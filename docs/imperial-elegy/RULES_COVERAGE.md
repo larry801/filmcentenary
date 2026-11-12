@@ -116,8 +116,8 @@ Status labels:
   already filtered against deck/discard/removed, hands, home slots, CP chains
   and the industry slot — to `prepareDeck`. `deck.ts` re-exports economy's
   canonical `decadeForTurn`, and `logText` localizes the 1860s/1910s labels.
-  **Partial:** the initial deal uses `setup.ts`’s hard-coded table rather than
-  `cardsToDraw`.
+  The first deal now uses the printed 10.2 `cardsToDraw` formula (industry
+  cards, stability, flashpoints and characteristics), not a hard-coded table.
 - **Diplomacy:** home-card selection, card gifts, Metternich’s Legacy on turn 1
   — **implemented**.
 - **Action:** CP/event play, mandatory handling, recruitment, fleet construction,
@@ -299,14 +299,21 @@ Status labels:
   capacity for redeploy/GW march/rail/navalMove/free demobilisation, and
   minor-owned broken-LoC penalties; 5.5.3 overstacking and 5.6.2 broken-LoC
   penalties are applied at impulse start.
-- **Remaining gaps:**
+- **Remaining gaps (round-8 refresh):**
   - 19.5’s non-port DRM entries (stability, reduced-only, manpower exhausted)
-    are not applied to the naval BDRM; 19.4/19.6 dreadnought-majority losses are
-    not enforced; 19.1’s automatic interception is destination-contact only;
-    split retreats enumerate completely up to 512 assignments; 19.8 enumerates
+    are applied in `beginNavalBattle`; 19.4/19.6 dreadnought-majority losses are
+    enforced by `recordDreadnoughtRequirement`/`withDreadnoughtPriority`.
+    19.1’s interception is destination-contact for ordinary moves and opens for
+    12.3 transports at their first transit box (`firstTransitInterceptHop`).
+  - 19.1 keeps the interrupted movement for ships left at sea after a partial
+    19.8 port move (only a whole-force move consumes it); the 19.4 mine-retreat
+    choice is unconditional and a force that cannot retreat is eliminated by
+    19.7; defenders cannot retreat into the box the attacker came from.
+  - Split retreats enumerate completely up to 512 assignments; 19.8 enumerates
     every legal port split up to 512 list options and uses a complete per-unit
-    chooser above that; land naval transport is a separate move and does not
-    open the interception/avoidance chain.
+    chooser above that. Interception battles cannot be avoided (19.2), and an
+    unescorted transport caught alone is not given 19.6.1(2) elimination — it
+    has no attacking ships, so no battle opens.
   - 19.5 correctly provides no adjacent support in naval battles; only naval
     units and a defending fort add FP. The 19.7–19.9 retreat, occupation and
     port-fort rules are live.
@@ -324,11 +331,14 @@ Status labels:
   a player choice on a tied roll; 20.10 WTT −1; 20.11 NG draw (1/3/5); 20.12
   turn/decade advance and the turn-7 finish; `endPhaseTurn` auto-keeps an
   undecided NG draw.
-- **Remaining:** 20.1 always offers “skip” (anti-deadlock); 20.5 uses UK/OT
-  per-track limits; 20.8 follows only the printed displacement/−1 stability/0→+1
+- **Remaining (round-8 refresh):** 20.1 offers “skip” only when no legal
+  benefit exists (it is the deterministic fallback, not an option); 20.5 uses
+  UK/OT per-track limits; 20.8 follows the printed displacement/−1 stability/0→+1
   flip; 20.3’s Italian rebuild now uses the shared 22.4 plan; the action-phase
   Alliance System tie now prompts (the printed neutral-lock/WTT clauses are not
-  modelled).
+  modelled). 22.1.3 now prompts for Sardinia-Piedmont vs the Two Sicilies when
+  both are legal; 23.1’s Powder Keg and The Balkan Wars open the Crisis Table
+  before the rest of their text.
 
 ## 21–23 Rebels, Italy/Poland, crisis
 
@@ -378,8 +388,8 @@ Status labels:
     live (`engine/italyEntry.ts`, `resolveItalyAtOutbreak`): Italy's Alliance
     Track chit (neutral stays out / aligned rolls 4+ / committed is automatic /
     a blamed incident forces the join), the independent Kingdom of Italy on the
-    map, and 25.4's 1 stability for an Italy entering at 0. The 32.1
-    Mexico/Canada restriction is not modelled.
+    map, and 25.4's 1 stability for an Italy entering at 0. 32.1’s Mexico/Canada
+    exit restriction is live in march/rail/battle/naval transport.
   - 30.2 / 32.1 / 32.2 / 29.1.1 US and Italian stability and surrender are
     live (`engine/gwMajors.ts`): US army loss, decisive defeats of a
     US-/Italian-led force, the US North Atlantic winter check, Italian home-key
@@ -418,9 +428,15 @@ Status labels:
     stability and the 1/3 bonus CP at the next planning step. Transfer LoC
     traces apply the same Suez/Dardanelles gates; transfer and bonus-CP
     allocation are deterministic rather than negotiated.
+  - **Round-8 additions:** 30.0 charges the −1 stability for a lost dreadnought
+    and counts committed supporting armies for the decisive-force threshold;
+    31.0’s second defeat condition (one living power in an alliance with no
+    neutral players left) ends the GW immediately at the winter step or the end
+    of any battle; 29.3’s free redeployment moves all of a neutral’s land units.
   - Multi-ally treaty allocation, the ally-knockout chooser, independent-minor
-    beneficiaries and the negotiated both-sides-knockout white-peace order are
-    live; arbitrary neutral-minor beneficiaries remain a gap.
+    and colonial-cession beneficiaries and the negotiated both-sides-knockout
+    white-peace order are live; arbitrary neutral-minor beneficiaries remain a
+    gap.
 
 ## 33 National characteristics
 
@@ -447,21 +463,25 @@ Summary:
   minor abandonment/Seeking Aid are live.
 - **FR:** City of Light; Second Empire → Third Republic (stability ≤1 or lost war
   outside the GW); Second Empire +1 GW budget; Third Republic 2 free CP; Zouave
-  +1 DRM/pacification, 1-CP Algeria rebuild and free prep rebuild. The card-driven
-  `lostWar` switch and Napoleon’s Legacy reveal remain limited.
+  +1 DRM/pacification, 1-CP Algeria rebuild and free prep rebuild; the
+  card-driven `lostWar` switch and Napoleon’s Legacy reveal are live.
 - **AU:** Metternich; Dual Monarchy card and turn-2 add-to-hand; 3 CP
   Reforms/Expand Citizenship/Incorporate; full Unstable Situation discard/marker;
-  A New Way Forward; Continental Power pacification; Bind Them Together. Wars of
+  A New Way Forward; Continental Power pacification; Bind Them Together; wars of
   unification on citizen nationalities and Arbiter of Italy liberation targets
-  remain unwired.
+  (validated in `auWarAims.test.ts`); full citizenship now removes a nationality
+  from the minority list for Nationalist Uprising targeting, and granting
+  citizenship also records rights.
 - **RU:** TSRR +1 card/+2 keys and free rail move; Endless Space; Agrarian 6;
-  Tsarist Repression; Second Rome VP/Istanbul capture; Scorched Earth; Russian
-  Steamroller reserve limit. TSRR rail armies as distinct units and wartime
-  Second Rome control remain limited.
+  Tsarist Repression; Second Rome VP/Istanbul capture (the start-of-GW 2 VPs
+  are awarded separately at outbreak); Scorched Earth; Russian Steamroller
+  reserve limit; Endless Space keys on the battle spaces only. The TSRR is a
+  movement allowance, not a distinct railroad unit (as printed).
 - **OT:** 2-stack home limit; Local Autonomy incl. Egypt Arab key and
   Tunisia/Tripoli LoC; Turkish/Arab split with separate Arab manpower;
   Europeanization 6 and no-own-card rejection; Jihad gain/use/discard; A106 two
-  ECs. Colonial-war Jihad/EF modifiers remain simplified.
+  ECs; the 29.2 colonial-war EF/elite/naval modifiers. OT colonial-war Jihad
+  interaction remains simplified.
 
 ## Deliberately deferred
 
@@ -479,10 +499,10 @@ gaps: the **partial** items above are live-code gaps, not deferred content.
   `IMPLEMENTATION_STATUS.md#exact-card-inventory-and-corrections`.
 - Test/build commands and the evidence gathered for this refresh: see
   `IMPLEMENTATION_STATUS.md#test-and-build-evidence`.
-- **Recorded evidence:** the full IE Jest suite passes **2532/2532 tests in
-  197/197 suites**; `tsc`, server `tsc`, `yarn build` and `yarn build:server`
-  are clean, and `python3 scripts/extract-imperial-elegy.py --check` verifies
-  501 assets. The browser specs were rerun on this build: **5/5 regression, 3/3
-  controls, 3/3 spectator**. See
+- **Recorded evidence (round 8):** the full IE Jest suite passes
+  **2607/2607 tests in 199/199 suites**, `tsc --noEmit`, `yarn build` and
+  `yarn build:server` are clean, and `python3 scripts/extract-imperial-elegy.py
+  --check` verifies 501 assets. The browser specs were rerun on this build:
+  **5/5 regression, 3/3 controls, 3/3 spectator**. See
   `IMPLEMENTATION_STATUS.md#test-and-build-evidence` for the new suites and
   targeted files.
