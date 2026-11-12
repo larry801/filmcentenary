@@ -34,7 +34,10 @@ EF/elite-colonial-EF substitution); 12.15 redeployment now follows the printed
 land route (controlled/influence spaces only, enemy spaces block, rebels stop
 the move) instead of teleporting; 32.5 now displaces units from rebel
 spaces at the outbreak, keeps trenches out of rebel spaces and refuses GW
-maneuver destinations there. Player-facing: pending options
+maneuver destinations there; A17/A18/A56's stability-or-card choice belongs to
+the chosen player (forced stability loss with no card), A18 rolls its backfire
+die and A56 targets a minority-nationality controller and grants +1 stability.
+Player-facing: pending options
 carry optional Chinese labels, treaty keys render as human labels, the newer
 naval-limit flags are public, `deployReserves` is registered in `ALL_MOVES`
 so its board control works, and the Great War maneuver now has board controls
@@ -50,8 +53,8 @@ promotional cards).
 > `engine/economy.ts`, `engine/crisisTable.ts`, `engine/counters.ts`,
 > `engine/alliance.ts`, `engine/endPhase.ts` and `engine/navalMovement.ts`, are
 > imported by the live game; `engine/greatWar.ts` keeps older flow helpers that
-> the live loop no longer calls. The full IE Jest suite passes **2622/2622 tests
-> in 202/202 suites** with clean `tsc`, `yarn build` and `yarn build:server`;
+> the live loop no longer calls. The full IE Jest suite passes **2632/2632 tests
+> in 203/203 suites** with clean `tsc`, `yarn build` and `yarn build:server`;
 > the 501-asset manifest check verifies 501 files. The three browser specs were
 > rerun on this build: **5/5 regression, 3/3 controls, 3/3 spectator**.
 
@@ -87,7 +90,7 @@ promotional cards).
 | Rules | Closed in this pass | Principal tests |
 | --- | --- | --- |
 | 1–8 | 5.6 supply traces through naval boxes and is blocked by enemy naval boxes in wartime; 5.6.1 minor sea trace; 5.5.3 movement-end stacking on the free TSRR rail, GW deploy and draft. | `brokenLoc.test.ts`, `minorBrokenLoc.test.ts`, `movementStacking.test.ts` |
-| 9–12 | 12.3 transports open the 19.1 interception chain (with the 19.6.1 carried-unit retreat/elimination); the first deal uses `cardsToDraw`; 12.15 redeployment follows the printed land route. | `navalTransport.test.ts`, `setup.test.ts`, `usExit.test.ts` |
+| 9–12 | 12.3 transports open the 19.1 interception chain (with the 19.6.1 carried-unit retreat/elimination); the first deal uses `cardsToDraw`; 12.15 redeployment follows the printed land route; A17/A18/A56 give the victim the stability-or-discard choice (A18 backfire die, A56 minority target). | `navalTransport.test.ts`, `setup.test.ts`, `usExit.test.ts` |
 | 13–17 | 15.0 consecutive-pass reset; 16.2.5 colonial cessions to the primary/player allies/independent minors; 17.0/17.1 war-end displacement and blockade (shared trace in `engine/blockade.ts`). | `demobilization.test.ts`, `limitedWarIntegration.test.ts`, `treatyAllocation.test.ts`, `minorTreatyBeneficiary.test.ts` |
 | 18–19 | 19.1 keeps the interrupted movement for survivors of a partial 19.8 move; 19.4 mine retreat is unconditional; 19.7 excludes the attacker’s origin box. | `interceptionContinuation.test.ts`, `mineRetreatOption.test.ts`, `ordinaryRetreatChoice.test.ts` |
 | 20–23 | 22.1.3 interactive Sardinia-Piedmont / Two Sicilies choice; 20.1 skip only when no benefit exists; 23.1 Powder Keg / The Balkan Wars open the crisis before the rest of the text. | `italianInternalWar.test.ts`, `endPhaseResiduals.test.ts`, `crisisFlow.test.ts` |
@@ -576,14 +579,14 @@ test, which had been intermittently failing (~1 run in 3) for this reason.
 
 ## Test and build evidence
 
-**The full IE Jest suite passes 2622/2622 tests in 202/202 suites**; `tsc`,
+**The full IE Jest suite passes 2632/2632 tests in 203/203 suites**; `tsc`,
 `yarn build`, `yarn build:server` and `python3
 scripts/extract-imperial-elegy.py --check` (501 assets) are clean. The three
 browser specs were rerun after a fresh `yarn build` + `yarn build:server`:
 **5/5 regression (`:5203`), 3/3 controls (`:5201`), 3/3 spectator
 (`:4004`/`:5202`)**. Round 8 added `powerProjection.test.ts` and
 `components/gwControls.test.tsx`, `gwDraftEf.test.ts`, `redeployPath.test.ts` and `gwRebels.test.ts` and extended
-the suite from 2532/197 to 2622/202.
+the suite from 2532/197 to 2632/203.
 
 > **Environment note (this checkout).** `node_modules` is a symlink to the main
 > checkout, which has moved from `@i18n-chain/react` to `@i18n-chain/core`. The
