@@ -21,6 +21,7 @@ import {
   PowerOrMinor,
   POWERS,
   SpaceId,
+  Unit,
   WarKnockoutRecord,
   WarState,
 } from "../types";
@@ -40,9 +41,12 @@ import {
   isPower,
   log,
   minorAlliesOf,
+  minorController,
   setSpaceControl,
 } from "./rules";
 import {AU_NATIONALITIES, governmentBenefits} from "./characteristics";
+import {blockadedAt} from "./blockade";
+import {displaceUnitToFriendlyLoc} from "./effects";
 import {initialNonPlayerBuildBox} from "./endPhase";
 import {POLAND, isPolandIndependent} from "./poland";
 import {
@@ -1946,6 +1950,7 @@ export const applyVictoryOutcome = (
   ctx?: Ctx,
 ): OutcomeApplication => {
   war.victor = victory.victor;
+  war.victoryPrimary = victory.primary;
   war.truceTurns = victory.truceTurns;
   war.status = "victory";
 
@@ -2105,8 +2110,10 @@ export const canApplyTreaty = (
   const allyBeneficiary = beneficiary !== null && primary !== null && beneficiary !== primary;
 
   // Rule 16.2: "Spaces and war reparations may be awarded to any of the
-  // victorious player's allies".  The other options belong to the primary.
-  if (allyBeneficiary && (choice.option === "realignment" || choice.option === "colonialCession")) {
+  // victorious player's allies".  A colonial cession is a space, so an ally or
+  // an independent minor ally may receive it; only realignment must stay with
+  // the imposing primary ("replace it with your own").
+  if (allyBeneficiary && choice.option === "realignment") {
     add("beneficiary-must-be-primary", `${choice.option} may only be imposed by the primary belligerent`);
   }
   if (allyBeneficiary && choice.option === "righteousDefense" && imposingSide !== "defender") {
@@ -2452,6 +2459,54 @@ export const demobilizeWar = (
   }
 
   const reservesReturned = returnReserveArmies(G);
+  // Rule 17.0's first step: "Check for blockade [17.1]."  A blockaded player
+  // gains a -1 card marker, except a player on the side that won a major
+  // victory ("a player (or players belonging to an alliance) that won a major
+  // victory can never be blockaded").  Blockading is optional in the printed
+  // rule; the engine enforces it deterministically because the only effect is
+  // the opponent's card marker and the live game has no blockader prompt.
+  const majorVictorySide =
+    war.victoryPrimary === "major" && war.victor !== null ? war.victor : null;
+  // 15.6: a knocked-out ally is out of the war, so it is no longer one of the
+  // "players involved in the war" that 17.0 demobilises (and its occupied
+  // capital is not a 17.1 blockade check).
+  const knockedOut = new Set(knockoutsFor(G, war).map((knockout) => knockout.power));
+  const blockaded = belligerentsOf(war).filter(
+    (power) =>
+      !knockedOut.has(power) &&
+      !(majorVictorySide !== null && sidePowers(war, majorVictorySide).includes(power)) &&
+      blockadedAt(G, power),
+  );
+  for (const power of blockaded) {
+    G.powers[power].cardMarkers -= 1;
+    log(G, power, "warBlockade", {penalty: -1, cardMarkers: G.powers[power].cardMarkers});
+  }
+  // Rule 17.0: "Displace any units in enemy controlled territory [5.7]."
+  // A space is enemy territory for a unit when its control marker (or the
+  // minor controlling it) belongs to the other side of this war; neutrals and
+  // same-side allies stay.  The reusable 5.7 helper moves each such land unit
+  // to the closest friendly controlled space with a LoC (or eliminates it) and
+  // sends naval units to an adjacent box.
+  const belligerents = new Set(belligerentsOf(war));
+  const sideOfUnit = (unit: Unit): WarSideName | null => {
+    if (isPower(unit.owner)) return sideOf(war, unit.owner);
+    const controller = minorController(G, unit.owner);
+    return controller === null ? null : sideOf(war, controller);
+  };
+  for (const [space, state] of Object.entries(G.spaces)) {
+    const rawController = state.control;
+    if (rawController === null || rawController === undefined) continue;
+    const controller = isPower(rawController) ? rawController : minorController(G, rawController);
+    if (controller === null || !belligerents.has(controller)) continue;
+    const controllerSide = sideOf(war, controller);
+    if (controllerSide === null) continue;
+    const enemySide: WarSideName = controllerSide === "attacker" ? "defender" : "attacker";
+    for (const id of [...state.units]) {
+      const unit = G.units[id];
+      if (!unit || sideOfUnit(unit) !== enemySide) continue;
+      displaceUnitToFriendlyLoc(G, id);
+    }
+  }
   war.status = "done";
   // 15.3: occupation is a wartime status.  Once the war is settled every
   // occupation marker leaves play — the treaty already moved the formal control

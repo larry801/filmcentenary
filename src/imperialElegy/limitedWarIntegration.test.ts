@@ -20,6 +20,7 @@ import {
   chooseWarAim,
   declareWar,
   declinePending,
+  deployReserves,
   passWarMove,
   resolveEnd,
   resolvePending,
@@ -473,5 +474,39 @@ describe("end phase and wartime/action hooks", () => {
     expect(G.war).toBeNull();
     expect(G.wars).toHaveLength(1);
     expect(G.phase).toBe("action");
+  });
+
+  test("a wartime action breaks the run of consecutive passes (15.0)", () => {
+    const G = fresh();
+    beginAction(G);
+    const ctx = makeCtx("0");
+    declare(G, ctx);
+    expect(startWarManeuver(G, ctx)).toBeUndefined();
+    const war = G.war!;
+    const au = makeCtx("3");
+    // Start with AU so GE (the only power with a reserve army in the setup) can
+    // take the second impulse.
+    war.initiative = ["AU", "GE"];
+    G.activePower = "AU";
+
+    // AU passes; GE now holds the impulse.
+    expect(passWarMove(G, au)).toBeUndefined();
+    expect(war.passed).toEqual(["AU"]);
+    expect(G.activePower).toBe("GE");
+
+    // GE deploys reserves: a wartime action, not a pass, so the earlier pass no
+    // longer forms part of a consecutive run.
+    expect(deployReserves(G, ctx, "berlin", 1)).toBeUndefined();
+    expect(war.passed).toEqual([]);
+
+    // GE passes next.  AU has not passed since the action, so the war goes on.
+    expect(passWarMove(G, ctx)).toBeUndefined();
+    expect(G.war).toBe(war);
+    expect(war.passed).toEqual(["GE"]);
+    expect(G.activePower).toBe("AU");
+
+    // AU's pass now completes a genuine consecutive run.
+    expect(passWarMove(G, au)).toBeUndefined();
+    expect(G.phase).not.toBe("wartime");
   });
 });

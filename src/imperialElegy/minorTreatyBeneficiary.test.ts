@@ -6,9 +6,9 @@
  * a player power (as before) or an independent minor power allied to the
  * imposing side; the choice is typed as `PowerOrMinor`, validated against the
  * live alliance markers and applied to the space or the minor's marker record.
- * The other treaty options stay with the primary belligerent (16.2), and a
- * minor that is not independent or not allied is rejected without mutating the
- * board.
+ * Both territorial and colonial cessions are spaces, so both may go to an ally;
+ * realignment stays with the primary belligerent (16.2.2), and a minor that is
+ * not independent or not allied is rejected without mutating the board.
  */
 import type {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -107,7 +107,7 @@ describe("16.2 independent-minor beneficiary candidates", () => {
     expect(ids).toContain("realignment");
     expect(ids).not.toContain("realignment@Saxony");
     expect(ids).toContain("colonialCession");
-    expect(ids).not.toContain("colonialCession@Saxony");
+    expect(ids).toContain("colonialCession@Saxony");
     // The non-independent Tuscany and the loser's ally Bavaria are never
     // offered to the winning side.
     expect(ids).not.toContain("territorialCession@Tuscany");
@@ -212,6 +212,25 @@ describe("16.2 applying a minor-power concession", () => {
     // Minors have no hand, so the awarded +1 marker is typed public
     // bookkeeping instead of being silently dropped.
     expect(G.minorCardMarkers).toEqual({Saxony: 1});
+  });
+
+  test("a colonial cession may be awarded to an independent minor ally (16.2.5)", () => {
+    const G = fresh();
+    const war = buildWar(G);
+    const victory = classifyVictory(G, war);
+    const entry = treatyOptionsFor(G, war, victory).find((candidate) => candidate.id === "colonialCession@Saxony");
+    expect(entry).toBeDefined();
+    const space = entry!.spaces[0];
+    expect(space).toBeDefined();
+
+    const result = applyTreaty(G, war, victory, {
+      option: "colonialCession",
+      space,
+      beneficiary: "Saxony",
+    });
+    expect(result.applied).toBe(true);
+    expect(G.spaces[space!].control).toBe("Saxony");
+    expect(G.log.at(-1)?.args).toMatchObject({beneficiary: "Saxony", allocatedTo: "ally"});
   });
 
   test("player-power beneficiaries keep working", () => {

@@ -64,7 +64,7 @@ const finishSettlement = (G: ImperialElegyState, ctx: Ctx): void => {
 };
 
 describe("16.2 multi-ally treaty allocation", () => {
-  test("territory and reparations are offered to the primary and participating allies", () => {
+  test("territory, colonial cessions and reparations are offered to the primary and allies", () => {
     const G = fresh();
     const war = buildWar(G, {major: true});
     war.attackerAllies = ["FR"];
@@ -80,11 +80,11 @@ describe("16.2 multi-ally treaty allocation", () => {
     expect(ids).toContain("territorialCession@FR");
     expect(ids).toContain("warReparations");
     expect(ids).toContain("warReparations@FR");
-    // Rule 16.2 only lets spaces and reparations go to allies.
+    // Rule 16.2: spaces (territorial and colonial) and reparations may go to
+    // allies; only realignment must stay with the imposing primary ("your own").
     expect(ids).toContain("realignment");
     expect(ids).not.toContain("realignment@FR");
-    expect(ids).toContain("colonialCession");
-    expect(ids).not.toContain("colonialCession@FR");
+    expect(ids).toContain("colonialCession@FR");
 
     const allyCession = entries.find((entry) => entry.id === "territorialCession@FR")!;
     expect(allyCession.beneficiary).toBe("FR");
@@ -133,6 +133,33 @@ describe("16.2 multi-ally treaty allocation", () => {
     expect(G.powers.FR.cardMarkers).toBe(frBefore + 1);
     expect(G.powers.AU.cardMarkers).toBe(auBefore - 1);
     expect(G.powers.GE.cardMarkers).toBe(0);
+  });
+
+  test("a colonial cession may be awarded to a participating ally (16.2.5)", () => {
+    const G = fresh();
+    const war = buildWar(G, {major: true});
+    war.attackerAllies = ["FR"];
+    war.budgets.FR = 3;
+    // A colonial key controlled by the loser is a legal cession target.
+    G.spaces.canada.control = "AU";
+    const victory = classifyVictory(G, war);
+
+    const entries = treatyOptionsFor(G, war, victory);
+    const allyColonial = entries.find((entry) => entry.id === "colonialCession@FR");
+    expect(allyColonial).toBeDefined();
+    const space = allyColonial!.spaces[0];
+    expect(space).toBeDefined();
+
+    const result = applyTreaty(G, war, victory, {
+      option: "colonialCession",
+      space,
+      beneficiary: "FR",
+    });
+    expect(result.applied).toBe(true);
+    expect(result.beneficiary).toBe("FR");
+    expect(G.spaces[space!].control).toBe("FR");
+    expect(G.powers.GE.cardMarkers).toBe(0);
+    expect(G.log.at(-1)?.args).toMatchObject({beneficiary: "FR", allocatedTo: "ally"});
   });
 
   test("invalid beneficiaries are rejected without mutating the board", () => {
