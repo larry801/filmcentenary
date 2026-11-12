@@ -336,4 +336,32 @@ describe("19.7 ordinary naval retreat choice", () => {
     expect(G.units[fr]).toBeUndefined();
     expect(navalUnitsIn(G, "north-atlantic").some((unit) => unit.owner === "FR")).toBe(false);
   });
+
+  test("the defender cannot retreat into the box the attacker attacked from (19.7)", () => {
+    const {G, fr} = navalFixture(true);
+    // A real naval move leaves the attacking ships in the battle box; model
+    // that by relocating GE's squadron out of its origin, the Western
+    // Mediterranean, so the origin is a legal empty box again.
+    const ge = G.battle!.mainAttack[0];
+    const origin = G.units[ge].space!;
+    G.spaces[origin].units = G.spaces[origin].units.filter((id) => id !== ge);
+    G.spaces["north-atlantic"].units.push(ge);
+    G.units[ge].space = "north-atlantic";
+    finishBattle(G, makeCtx([], seat("FR")));
+    expect(G.pending?.kind).toBe("combatRetreat");
+    const destinations = G.pending!.context?.unitDestinations as Record<string, string[]>;
+    // 19.7: "Defending units cannot retreat to a naval box that the attacker
+    // attacked from."  The Western Mediterranean is empty now, but it is the
+    // attacker's origin, so it must not be offered.
+    expect(destinations[fr]).not.toContain("western-mediterranean");
+    expect(destinations[fr]).toContain("baltic-sea");
+    const choice = G.pending!.options.find((entry) => {
+      const assignments = entry.data?.assignments as {unitId: string; space: string}[] | undefined;
+      return (assignments ?? []).some((part) => part.unitId === fr && part.space === "baltic-sea");
+    });
+    expect(choice).toBeDefined();
+    expect(resolvePending(G, makeCtx([], seat("FR")), choice!.id)).toBeUndefined();
+    expect(G.units[fr].space).toBe("baltic-sea");
+    expect(G.units[fr].space).not.toBe("western-mediterranean");
+  });
 });

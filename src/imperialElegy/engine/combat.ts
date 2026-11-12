@@ -1237,10 +1237,10 @@ export const MINE_RETREAT_HITS = 2;
 
 /**
  * 19.4: open the attacker's "retreat after two mine hits" choice when three or
- * more mines hit.  Options are private to the attacking seat.  The decision is
- * only offered when a retreat is actually possible (the attacked-from box holds
- * no hostile fleet, matching `finishBattle`'s lost-attacker fallback); otherwise
- * the full hit total stands.
+ * more mines hit.  Options are private to the attacking seat.  The printed
+ * choice is unconditional; when the attacked-from box holds a hostile fleet
+ * the retreating force simply cannot retreat, so 19.7 eliminates it instead of
+ * the choice being withheld.
  */
 const openMineRetreatDecision = (
   G: ImperialElegyState,
@@ -1251,7 +1251,6 @@ const openMineRetreatDecision = (
   if (!isPower(battle.attacker)) return false;
   const mines = Math.max(0, battle.mines ?? 0);
   if (mines <= MINE_RETREAT_HITS) return false;
-  if (!G.spaces[battle.from] || enemyNavalIn(G, battle.from, battle.attacker)) return false;
   openDecision(G, ctx, decision(
     "mineRetreat",
     battle.attacker,
@@ -1604,16 +1603,24 @@ const enemyNavalIn = (G: ImperialElegyState, space: SpaceId, power: Power): bool
 
 /**
  * 19.7: a defeated naval force retreats to an adjacent friendly port or an
- * adjacent naval box that does not contain enemy units.  Land units carried in
- * the stack retreat with it.  Port overstacking is allowed (19.7 lets retreats
- * overstack; the owner then pays the 5.5.3 step at the next impulse).
+ * adjacent naval box that does not contain enemy units, and "defending units
+ * cannot retreat to a naval box that the attacker attacked from".  Land units
+ * carried in the stack retreat with it.  Port overstacking is allowed (19.7
+ * lets retreats overstack; the owner then pays the 5.5.3 step at the next
+ * impulse).
  */
-const navalRetreatDestinations = (G: ImperialElegyState, power: Power, from: SpaceId): SpaceId[] => {
+const navalRetreatDestinations = (
+  G: ImperialElegyState,
+  power: Power,
+  from: SpaceId,
+  attackerFrom?: SpaceId,
+): SpaceId[] => {
   const out: SpaceId[] = [];
   for (const id of neighboursOf(from)) {
     const state = G.spaces[id];
     if (!state) continue;
     if (isNavalBox(id)) {
+      if (id === attackerFrom) continue;
       if (!enemyNavalIn(G, id, power)) out.push(id);
       continue;
     }
@@ -1626,8 +1633,12 @@ const navalRetreatDestinations = (G: ImperialElegyState, power: Power, from: Spa
 };
 
 /** 19.7: the deterministic first legal retreat space for one naval force. */
-const navalRetreatTarget = (G: ImperialElegyState, power: Power, from: SpaceId): SpaceId | null =>
-  navalRetreatDestinations(G, power, from)[0] ?? null;
+const navalRetreatTarget = (
+  G: ImperialElegyState,
+  power: Power,
+  from: SpaceId,
+  attackerFrom?: SpaceId,
+): SpaceId | null => navalRetreatDestinations(G, power, from, attackerFrom)[0] ?? null;
 
 /**
  * The player deciding the naval loser's retreat: the owner of a defending
@@ -2320,9 +2331,10 @@ const openNavalPortUnitStep = (
 
 /**
  * 19.8: resolve the port-only continuation.  "stay" keeps the fleet in the box
- * and hands over to the 19.1 continuation when one is waiting; a port move (for
- * all or part of the force) ends the naval action and consumes the 19.1
- * continuation.  Any unit not named by a split assignment stays at sea.
+ * and hands over to the 19.1 continuation when one is waiting.  Any unit not
+ * named by a split assignment stays at sea; a partial move therefore leaves
+ * those units in the interrupted movement, and only a move of the whole force
+ * consumes the 19.1 continuation.
  */
 export const resolveNavalPortContinuation = (
   G: ImperialElegyState,
@@ -2397,7 +2409,14 @@ export const resolveNavalPortContinuation = (
       const unit = byId.get(entry.unitId);
       if (unit) moveUnitTo(G, unit, entry.space);
     }
-    G.navalContinuation = null;
+    // 19.1: "The active player will be able to finish their naval movement."
+    // Only the units that entered a port give up the interrupted movement; a
+    // partial 19.8 move leaves the rest at sea still able to finish it.
+    const remaining = units.filter((unit) => unit.space === space && unit.steps > 0);
+    const waitingContinuation = context.continuation === true ? G.navalContinuation ?? null : null;
+    G.navalContinuation = waitingContinuation === null || remaining.length === 0
+      ? null
+      : {...waitingContinuation, unitIds: remaining.map((unit) => unit.id)};
     const distinct = [...new Set(parsed.map((entry) => entry.space))].sort((a, b) =>
       a.localeCompare(b, "en"),
     );
@@ -2408,6 +2427,12 @@ export const resolveNavalPortContinuation = (
       units: parsed.length,
       split: true,
     });
+    if (G.navalContinuation !== null) {
+      openNavalContinuationDecision(G, ctx, G.navalContinuation);
+      // A stale continuation (no legal destination left) is consumed rather
+      // than parked for a later battle.
+      if (G.pending === null) G.navalContinuation = null;
+    }
     return true;
   };
 
@@ -2496,7 +2521,10 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       const unitDestinations = new Map<string, SpaceId[]>();
       for (const unit of ships) {
         const power = unitRetreatPower(unit, retreatPower ?? null);
-        unitDestinations.set(unit.id, power === null ? [] : navalRetreatDestinations(G, power, battle.to));
+        unitDestinations.set(
+          unit.id,
+          power === null ? [] : navalRetreatDestinations(G, power, battle.to, battle.from),
+        );
       }
       const movableShips = ships.filter((unit) => (unitDestinations.get(unit.id) ?? []).length > 0);
       if (retreatPower !== undefined && destinationSetsDiffer(movableShips, unitDestinations)) {
@@ -2645,7 +2673,7 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
           const retreat = chosen ??
             legacyGroup ??
             (battle.retreatAssignments === undefined && power !== null
-              ? navalRetreatTarget(G, power, battle.to)
+              ? navalRetreatTarget(G, power, battle.to, battle.from)
               : null);
           if (retreat === null || retreat === undefined) {
             removeUnit(G, unit.id);
