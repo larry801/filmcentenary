@@ -989,6 +989,8 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
   // 5.5.4: a port holds at most 4 naval units.
   if (navalUnitsIn(G, space).length >= PORT_NAVAL_LIMIT) return INVALID_MOVE;
   placeUnit(G, power, kind, space, reduced ? 1 : 2);
+  // 3.3.1: the naval-unit cap on power projection changes with every new ship.
+  refreshPowerProjection(G);
   log(G, power, "fleetBuilt", {space, kind});
   return undefined;
 };
