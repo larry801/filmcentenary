@@ -1351,6 +1351,11 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
   if (G.persistent.otTwoElite === true) {
     G.powers.OT.manpower += Number(G.persistent.otManpowerBonus ?? 1);
   }
+  // 3.3.1: power projection is derived from port control (and naval units), so
+  // refresh the cached public track in the same board-reading pass that updates
+  // the keys.  Idempotent; `finishBattle` and `constructFleet` cover the naval
+  // changes this pass cannot see.
+  refreshPowerProjection(G);
 };
 
 export const ARAB_KEY_SPACES = new Set<SpaceId>(["arabia", "mecca", "baghdad", "kuwait", "syria"]);
@@ -1362,6 +1367,9 @@ export const computePowerProjection = (G: ImperialElegyState, power: Power): num
   for (const def of Object.values(SPACES)) {
     if (!def.ports || def.ports.length === 0) continue;
     if (G.spaces[def.id]?.control !== power) continue;
+    // 33.6 Local Autonomy: "Tunisia and Tripoli neither count as keys nor for
+    // power projection unless OT can trace a LoC to the keys by land."
+    if (power === "OT" && OT_AUTONOMY_KEYS.has(def.id) && !hasOtAutonomyLandLoc(G, def.id)) continue;
     for (const box of def.ports) {
       const current = byBox.get(box) ?? 0;
       // A key/territory port + a naval base in the same box gives 2.
@@ -1390,6 +1398,17 @@ export const EUROPEAN_WATERS = new Set<SpaceId>([
   "black-sea",
 ]);
 
+/**
+ * 3.3.1 Power Projection: the public/cached track value.  Power projection is
+ * always derived from the board ("players can dominate a flashpoint at any
+ * point during a turn"), so this is an idempotent overwrite, never an
+ * incremental update.  `recomputeTracks` (control and key changes, end phase)
+ * refreshes it, and the two naval-change paths that do not go through that
+ * pass — `finishBattle` (losses/port captures) and `constructFleet` (naval
+ * cap) — refresh it themselves.  Cost is one scan of spaces plus units per
+ * power, so it is cheap enough for those action boundaries but not for
+ * per-unit loops.
+ */
 export const refreshPowerProjection = (G: ImperialElegyState): void => {
   for (const power of POWERS) {
     G.powers[power].flags.powerProjection = computePowerProjection(G, power);

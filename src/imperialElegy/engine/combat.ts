@@ -28,6 +28,7 @@ import {
   unitById,
   unitsIn,
   recomputeTracks,
+  refreshPowerProjection,
   changeStability,
   resolveCapitalSurrenders,
 } from "./rules";
@@ -2862,6 +2863,10 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       G.navalContinuation = null;
     }
   }
+  // 3.3.1: a battle can capture ports and eliminate ships, both of which move
+  // power projection.  Refresh the cached track once the battle's own effects
+  // are settled; the next key recompute would otherwise be the end phase.
+  refreshPowerProjection(G);
   // Open 18.8's follow-up now when nothing else owns the decision; otherwise
   // the enclosing move calls `maybeOpenDecisiveFollowUp` after it clears the
   // card/loss decision.
