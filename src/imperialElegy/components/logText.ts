@@ -1258,6 +1258,33 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // 27.5.2: the second drafted army is a separate pending choice, and it can
+  // be forfeited when the first placement was the only legal home key.
+  gwDraftSecond: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const first = spaceName(entry.args?.first, locale);
+    return withActor(
+      entry,
+      locale,
+      `placed the second drafted army at ${space} (the first was at ${first}).`,
+      `在${space}放置了第二支征召军团（第一支在${first}）。`,
+    );
+  },
+
+  gwDraftSecondForfeited: (entry, locale) => {
+    const declined = str(entry.args?.reason) === "declined";
+    return withActor(
+      entry,
+      locale,
+      declined
+        ? "declined the second drafted army; it is forfeited."
+        : "forfeited the second drafted army: no legal second home key.",
+      declined
+        ? "放弃了第二支征召军团，该军团作废。"
+        : "第二支征召军团作废：没有其他合法的本土关键空间。",
+    );
+  },
+
   gwManeuverAction: (entry, locale) => {
     const kind = str(entry.args?.kind);
     const cost = num(entry.args?.cost);
@@ -1269,7 +1296,12 @@ const FORMATTERS: Record<string, Formatter> = {
       case "deploy":
         return withActor(entry, locale, `deployed reserves at ${to} (${cost} CP).`, `在${to}部署预备军（${cost} CP）。`);
       case "draft":
-        return withActor(entry, locale, `drafted two armies at ${to} (${cost} CP).`, `在${to}征召两个军团（${cost} CP）。`);
+        return withActor(
+          entry,
+          locale,
+          `drafted one army at ${to} (${cost} CP); the second placement follows.`,
+          `在${to}征召一个军团（${cost} CP）；第二支军团随后放置。`,
+        );
       case "refit":
         return withActor(entry, locale, `refit a land unit (${cost} CP).`, `整补一个陆军单位（${cost} CP）。`);
       case "refitFleet":
