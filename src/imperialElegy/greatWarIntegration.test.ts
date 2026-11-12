@@ -24,6 +24,7 @@ import {
   gwTransferBudget,
   landBattle,
   playGwCardMove,
+  resolvePending,
 } from "./moves";
 
 const makeCtx = (playerID: string | null = "0", phaseCalls?: string[]): Ctx =>
@@ -146,7 +147,15 @@ describe("Great War move integration", () => {
     expect(gwDraft(G, ctx, "berlin")).toBeUndefined();
     expect(G.powers.GE.gwBudget).toBe(3);
     expect(G.powers.GE.manpower).toBe(1);
-    expect(G.spaces.berlin.units.length).toBe(berlinBefore + 2);
+    // 27.5.2: one reduced army per space; the second is a separate choice.
+    expect(G.spaces.berlin.units.length).toBe(berlinBefore + 1);
+    expect(G.pending?.kind).toBe("gwDraft");
+    expect(G.pending?.power).toBe("GE");
+    expect(G.pending?.options.map((entry) => entry.id)).not.toContain("berlin");
+    const second = G.pending!.options[0].id;
+    expect(resolvePending(G, ctx, second)).toBeUndefined();
+    expect(G.pending).toBeNull();
+    expect(G.spaces[second].units.some((id) => G.units[id].owner === "GE" && G.units[id].steps === 1)).toBe(true);
 
     // An empty budget is rejected without spending twice or mutating state.
     G.powers.GE.gwBudget = 0;

@@ -37,6 +37,7 @@ import {
   GwSide,
   GwWinterState,
   ImperialElegyState,
+  PendingDecision,
   Power,
   POWERS,
   SpaceId,
@@ -752,6 +753,60 @@ const maneuverFriendly = (G: ImperialElegyState, space: SpaceId, power: Power): 
 const landSpace = (G: ImperialElegyState, space: SpaceId): boolean =>
   Boolean(G.spaces[space]) && !isNavalBox(space);
 
+/**
+ * 27.5.2: a drafted reduced army goes in a controlled home key with room under
+ * 5.5.1 and without a trench battle marker.  `first` is excluded from the
+ * second army's choices: "no more than one per space".
+ */
+const gwDraftSpaceAllowed = (
+  G: ImperialElegyState,
+  power: Power,
+  space: SpaceId,
+  first: SpaceId | null,
+): boolean => {
+  if (space === first) return false;
+  const state = G.spaces[space];
+  const type = SPACES[space]?.type;
+  if (!state || type === undefined || isNavalBox(space)) return false;
+  // "Home key": a printed key space (the German/Italian unification spaces are
+  // key spaces without a printed key type, so `isKey` would wrongly skip them).
+  if (type !== "key" && type !== "capital" && type !== "subcapital") return false;
+  if (!ownsKey(G, space, power) || !isHomeSpace(G, space, power)) return false;
+  if (state.trench) return false;
+  return armyEndProblem(G, space, 1) === null;
+};
+
+/** 27.5.2: every legal space for a draft, in printed map order. */
+export const gwDraftSpaces = (
+  G: ImperialElegyState,
+  power: Power,
+  first: SpaceId | null = null,
+): SpaceId[] => Object.keys(G.spaces).filter((space) => gwDraftSpaceAllowed(G, power, space, first));
+
+/**
+ * 27.5.2: the second drafted reduced army.  A null `space` forfeits it (the
+ * player declined, or there was nowhere legal to put it); the first army and
+ * the single CP/manpower cost have already been applied by the draft action.
+ */
+export const resolveGwDraftSecond = (
+  G: ImperialElegyState,
+  _ctx: Ctx | undefined,
+  pending: PendingDecision,
+  space: SpaceId | null,
+): boolean => {
+  const first = typeof pending.context?.space === "string" ? (pending.context.space as SpaceId) : null;
+  if (space === null) {
+    G.pending = null;
+    log(G, pending.power, "gwDraftSecondForfeited", {space: first, reason: "declined"});
+    return true;
+  }
+  if (!gwDraftSpaceAllowed(G, pending.power, space, first)) return false;
+  const unit = placeUnit(G, pending.power, "army", space, 1);
+  G.pending = null;
+  log(G, pending.power, "gwDraftSecond", {space, unit: unit.id, first});
+  return true;
+};
+
 const moveUnit = (G: ImperialElegyState, unit: Unit, to: SpaceId): void => {
   const from = unit.space;
   if (from && G.spaces[from]) {
@@ -1388,29 +1443,45 @@ export const performGwManeuver = (
       return finish({to: request.space, unitIds: [unitId]});
     }
     case "draft": {
-      if (!landSpace(G, request.space)) return fail("invalidTarget", "Draft needs a land space");
-      if (!friendlySpace(G, request.space, power)) return fail("invalidTarget", "Draft needs a friendly space");
-      // 27.5.2: drafts "cannot be placed in spaces containing a trench battle
-      // marker" (the 28.1.1 marker, not the terrain line).
-      if (G.spaces[request.space].trench) {
-        return fail("invalidTarget", "Drafts cannot be placed in a space containing a trench battle marker");
-      }
-      // 5.5.3: the two drafted armies still cannot end overstacked.
-      if (armyEndProblem(G, request.space, 2) !== null) {
-        return fail("invalidTarget", "That draft would end overstacked (5.5.3)");
+      // 27.5.2: drafted reduced armies "must be placed in controlled home
+      // keys, no more than one per space", without a trench battle marker and
+      // within the 5.5.1 stacking limit.
+      if (!gwDraftSpaceAllowed(G, power, request.space, null)) {
+        return fail(
+          "invalidTarget",
+          "A draft needs a controlled home key with room for one more army and no trench battle marker (27.5.2)",
+        );
       }
       if (p.manpower < 1) return fail("noManpower", "Not enough manpower to draft");
-      // 4.2: two reduced armies are two army counters.
+      // 4.2: two reduced armies are two army counters (the second is forfeited
+      // when there is nowhere legal to put it, but a full draft needs both).
       const remaining = counterRemaining(G, power, "army");
       if (remaining !== null && remaining < 2) {
         return fail("noCounter", `${power} does not have two more army counters`);
       }
       p.manpower -= 1;
-      const placed = [
-        placeUnit(G, power, "army", request.space, 1).id,
-        placeUnit(G, power, "army", request.space, 1).id,
-      ];
-      return finish({to: request.space, unitIds: placed});
+      const first = placeUnit(G, power, "army", request.space, 1);
+      const payload = finish({to: request.space, unitIds: [first.id]});
+      // A capital surrender or another printed decision opened by `finish`
+      // takes precedence; the second army is then forfeited rather than
+      // stacking a second pending decision on top of it.
+      if (G.pending === null) {
+        const secondSpaces = gwDraftSpaces(G, power, request.space);
+        if (secondSpaces.length === 0) {
+          log(G, power, "gwDraftSecondForfeited", {space: request.space, reason: "noSpace"});
+        } else {
+          openDecision(G, ctx, {
+            kind: "gwDraft",
+            power,
+            prompt: "Draft: choose the space for the second reduced army",
+            promptArgs: {power, first: request.space},
+            options: secondSpaces.map((space) => option(space, spaceLabel(space, "en"))),
+            context: {space: request.space, unitId: first.id},
+            blocking: true,
+          });
+        }
+      }
+      return payload;
     }
     case "refit": {
       const unit = G.units[request.unitId];

@@ -272,7 +272,14 @@ describe("Great War maneuver budget spending", () => {
     if (!draft.ok) throw new Error(draft.message);
     expect(G.powers.GE.gwBudget).toBe(4);
     expect(G.powers.GE.manpower).toBe(2);
-    expect(G.spaces.berlin.units.length).toBe(berlinBefore + 2);
+    // 27.5.2: one reduced army in the requested space, then a second-space
+    // decision ("no more than one per space").
+    expect(G.spaces.berlin.units.length).toBe(berlinBefore + 1);
+    expect(G.pending?.kind).toBe("gwDraft");
+    expect(G.pending?.options.map((entry) => entry.id)).not.toContain("berlin");
+    expect(resolvePending(G, ctx, "silesia")).toBeUndefined();
+    expect(G.pending).toBeNull();
+    expect(G.spaces.silesia.units).toHaveLength(1);
 
     const rail = performGwManeuver(G, ctx, {kind: "rail", power: "GE", unitId: mover, to: "pomerania"});
     expect(rail.ok).toBe(true);

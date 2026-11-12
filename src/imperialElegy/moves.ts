@@ -184,6 +184,7 @@ import {
   majorEntryOptions,
   performGwManeuver,
   resolveGwColonialChoice,
+  resolveGwDraftSecond,
   resolveGwNeutralOption,
   revealGwCombatCard,
   startGwManeuver,
@@ -4528,6 +4529,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   if (pending.kind === "germanConfederation") {
     return resolveGermanConfederation(G, ctx, pending, optionId);
   }
+  if (pending.kind === "gwDraft") {
+    // 27.5.2: the second drafted reduced army's controlled home key.
+    return resolveGwDraftSecond(G, ctx, pending, optionId as SpaceId) ? undefined : INVALID_MOVE;
+  }
   if (pending.kind === "napoleonsLegacy") {
     return resolveNapoleonsLegacy(G, ctx, pending, optionId);
   }
@@ -4832,6 +4837,11 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   if (pending.kind === "gwNeutralDestination" || pending.kind === "gwNeutralDeploy") {
     // These need an explicit destination/space; there is no safe auto-pick.
     return INVALID_MOVE;
+  }
+  if (pending.kind === "gwDraft") {
+    // 27.5.2: an unattended second draft forfeits the second army rather than
+    // deadlocking the maneuver step.
+    return resolveGwDraftSecond(G, ctx, pending, null) ? undefined : INVALID_MOVE;
   }
   // 29.2: the transfer is optional ("may then take control"), so a decline
   // takes no further space.  29.2.1's decline is the printed "no agreement":
