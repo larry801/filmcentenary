@@ -41,6 +41,7 @@ import {
   isHomeSpace,
   isPower,
   landUnitsIn,
+  movementEndProblem,
   ownsKey,
   unitsIn,
 } from "./rules";
@@ -2214,6 +2215,10 @@ export const tsrrRail = (
       ruAllyAtWar(G, power) &&
       (G.spaces[to]?.control === "RU" || G.spaces[to]?.occupiedBy === "RU"));
   if (G.spaces[to] && !friendlyDestination) reasons.push("The railroad destination must be friendly");
+  // 5.5.3: a free TSRR rail move still cannot end overstacked.
+  if (unit && from !== null && from !== to && movementEndProblem(G, to, [unit]) !== null) {
+    reasons.push("The railroad move would end overstacked (5.5.3)");
+  }
   return {
     power,
     unitId,

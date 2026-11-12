@@ -54,6 +54,7 @@ import {
 } from "../constant/spaces";
 import {
   allied,
+  armyEndProblem,
   atWar,
   beginImpulseUpkeep,
   capitalOf,
@@ -86,6 +87,7 @@ import {
   navalHopPassable,
   log,
   maneuverDestinationProblem,
+  movementEndProblem,
   navalUnitsIn,
   ownsKey,
   PORT_NAVAL_LIMIT,
@@ -1373,6 +1375,10 @@ export const performGwManeuver = (
       if (!unit || unit.owner !== power || !p.reserves.includes(unitId)) {
         return fail("noReserve", "That unit is not in this power's reserve box");
       }
+      // 5.5.3: a deploy still cannot end overstacked.
+      if (movementEndProblem(G, request.space, [unit]) !== null) {
+        return fail("invalidTarget", "That deploy would end overstacked (5.5.3)");
+      }
       p.reserves = p.reserves.filter((id) => id !== unitId);
       unit.space = request.space;
       // 15.2.3: "An army that was placed using the deploy reserves action
@@ -1388,6 +1394,10 @@ export const performGwManeuver = (
       // marker" (the 28.1.1 marker, not the terrain line).
       if (G.spaces[request.space].trench) {
         return fail("invalidTarget", "Drafts cannot be placed in a space containing a trench battle marker");
+      }
+      // 5.5.3: the two drafted armies still cannot end overstacked.
+      if (armyEndProblem(G, request.space, 2) !== null) {
+        return fail("invalidTarget", "That draft would end overstacked (5.5.3)");
       }
       if (p.manpower < 1) return fail("noManpower", "Not enough manpower to draft");
       // 4.2: two reduced armies are two army counters.

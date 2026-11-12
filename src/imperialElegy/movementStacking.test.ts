@@ -12,7 +12,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import type {GreatWarState, ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {placeUnit, removeUnit} from "./engine/effects";
+import {addReserve, placeUnit, removeUnit} from "./engine/effects";
 import {
   landUnitsIn,
   movementEndProblem,
@@ -20,7 +20,7 @@ import {
   PORT_NAVAL_LIMIT,
 } from "./engine/rules";
 import {beginGwTurn, performGwManeuver} from "./engine/greatWarFlow";
-import {navalMove, redeploy} from "./moves";
+import {navalMove, redeploy, tsrrRailMove} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -280,5 +280,47 @@ describe("GW maneuver movement-end stacking", () => {
     const res = performGwManeuver(G, ctx, {kind: "rail", power: "GE", unitId: mover.id, to: "saxony"});
     expect(res.ok).toBe(false);
     expect(G.units[mover.id].space).toBe("berlin");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Trans-Siberian Railroad and GW deployment capacity
+// ---------------------------------------------------------------------------
+
+describe("other movement-end capacity paths", () => {
+  test("a free TSRR rail move cannot end on three armies", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "RU";
+    G.pending = null;
+    G.battle = null;
+    G.cpRemaining = 6;
+    G.powers.RU.tsrr = true;
+    clearLand(G, "moscow");
+    clearLand(G, "urals");
+    const mover = placeUnit(G, "RU", "army", "moscow", 2);
+    for (let i = 0; i < 3; i += 1) placeUnit(G, "RU", "army", "urals", 2);
+    const ctx = makeCtx([], seat("RU"));
+    expect(tsrrRailMove(G, ctx, mover.id, "urals")).toBe(INVALID_MOVE);
+    expect(G.units[mover.id].space).toBe("moscow");
+    removeUnit(G, landUnitsIn(G, "urals")[0].id);
+    expect(tsrrRailMove(G, ctx, mover.id, "urals")).toBeUndefined();
+    expect(G.units[mover.id].space).toBe("urals");
+  });
+
+  test("a GW deploy that would overload the destination is refused", () => {
+    const {G, ctx} = gw();
+    clearLand(G, "berlin");
+    for (let i = 0; i < 3; i += 1) placeUnit(G, "GE", "army", "berlin", 2);
+    addReserve(G, "GE", 1);
+    const reserve = G.powers.GE.reserves[0];
+    const blocked = performGwManeuver(G, ctx, {kind: "deploy", power: "GE", space: "berlin", unitId: reserve});
+    expect(blocked.ok).toBe(false);
+    expect(G.powers.GE.reserves).toContain(reserve);
+    removeUnit(G, landUnitsIn(G, "berlin")[0].id);
+    const allowed = performGwManeuver(G, ctx, {kind: "deploy", power: "GE", space: "berlin", unitId: reserve});
+    if (!allowed.ok) throw new Error(allowed.message);
+    expect(allowed.ok).toBe(true);
+    expect(G.units[reserve].space).toBe("berlin");
   });
 });

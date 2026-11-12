@@ -602,6 +602,9 @@ const connectionPassable = (
     // movement: Suez (3.4/12.3) and the Dardanelles (3.4.1).  Otherwise a
     // blockaded capital could trace through a closed canal or strait.
     if (respectNavalGates && !navalHopPassable(G, power, from, to)) return false;
+    // 5.6: "naval boxes are never controlled; they can always be traced
+    // through, provided they don't contain enemy units in wartime."
+    if (spaceHostileTo(G, power, to)) return false;
     return true;
   }
   if (G.gw?.active) {
@@ -669,12 +672,14 @@ export const isSupplySource = (
   if (!ownsKey(G, space, power) || !isHomeSpace(G, space, power)) return false;
   if (!requireTwoSources) return true;
   // A supply source needs a LoC to at least one other controlled home key.
+  // 5.6: a LoC is "an uninterrupted chain of land connections and/or naval
+  // boxes", so the second home key may lie across the sea.
   const visited = new Set<SpaceId>([space]);
   const queue = [space];
   while (queue.length) {
     const current = queue.shift()!;
     for (const next of neighboursOf(current)) {
-      if (visited.has(next) || isNavalBox(next)) continue;
+      if (visited.has(next)) continue;
       if (!connectionPassable(G, current, next, power, false)) continue;
       if (ownsKey(G, next, power) && isHomeSpace(G, next, power)) return true;
       visited.add(next);
@@ -777,6 +782,22 @@ export const brokenLocSpaces = (G: ImperialElegyState, power: Power): SpaceId[] 
 export type MovementEndReason = "armyStacking" | "portCapacity";
 
 /**
+ * 5.5.3: would `arrivingArmies` more armies end `space` over its limit?  This
+ * is the shared army half of the movement-end guard, for callers that create
+ * counters (drafts) instead of moving existing ones.
+ */
+export const armyEndProblem = (
+  G: ImperialElegyState,
+  space: SpaceId,
+  arrivingArmies: number,
+): MovementEndReason | null => {
+  const def = SPACES[space];
+  if (!def || def.type === "navalBox" || arrivingArmies <= 0) return null;
+  if (armyCountIn(G, space) + arrivingArmies > landStackingLimit(space)) return "armyStacking";
+  return null;
+};
+
+/**
  * 5.5.3 / 5.5.4: "stacking can be violated during movement, but units cannot
  * end their movement overstacked."  Only the destination is validated; passing
  * through an overstacked space stays legal.  A naval battle in a port is the
@@ -792,7 +813,7 @@ export const movementEndProblem = (
   if (!def || def.type === "navalBox") return null;
   const newcomers = arriving.filter((unit) => unit.space !== space);
   const armies = newcomers.filter((unit) => unit.naval !== true && isArmyKind(unit.kind)).length;
-  if (armies > 0 && armyCountIn(G, space) + armies > landStackingLimit(space)) return "armyStacking";
+  if (armyEndProblem(G, space, armies) !== null) return "armyStacking";
   const ships = newcomers.filter((unit) => unit.naval === true).length;
   if (ships > 0 && navalUnitsIn(G, space).length + ships > PORT_NAVAL_LIMIT) return "portCapacity";
   return null;
@@ -1075,8 +1096,11 @@ export const minorHasLoc = (G: ImperialElegyState, minor: string, from: SpaceId)
     for (const next of neighboursOf(current)) {
       if (visited.has(next)) continue;
       // Land portions may only pass through the minor's/controller's friendly
-      // spaces; naval boxes are never controlled and are always traceable.
-      if (!minorFriendlySpace(G, minor, next)) continue;
+      // spaces; naval boxes are never controlled and are always traceable,
+      // except for an enemy-held box in wartime (5.6).
+      if (isNavalBox(next)) {
+        if (supplier !== null && spaceHostileTo(G, supplier, next)) continue;
+      } else if (!minorFriendlySpace(G, minor, next)) continue;
       if (isSource(next)) return true;
       visited.add(next);
       queue.push(next);
