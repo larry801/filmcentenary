@@ -5,10 +5,10 @@
  * The choice is offered after a mine roll of three or more hits, before the
  * battle dice and before any loss is applied (19.3 step 1): retreating caps the
  * mines at two and cancels the battle result, while continuing keeps every hit
- * and then rolls the battle dice.  An attacker with no retreat route
- * (the attacked-from box holds a hostile fleet) keeps the deterministic full
- * hit total, and `declinePending` takes the same "continue" default so
- * unattended play never stalls.
+ * and then rolls the battle dice.  The choice belongs to the attacker even when
+ * the attacked-from box holds a hostile fleet; retreating there is then
+ * impossible and 19.7 eliminates the stranded force.  `declinePending` takes
+ * the "continue" default so unattended play never stalls.
  */
 
 import type {Ctx} from "boardgame.io";
@@ -160,15 +160,51 @@ describe("19.4 mine retreat option", () => {
     expect(G.pending?.kind).not.toBe("mineRetreat");
   });
 
-  test("an attacker with no retreat route must take every hit", () => {
+  test("the choice is still offered when the attacked-from box holds a hostile fleet", () => {
     const {G, ctx} = fixture();
     G.spaces.brittany.control = "FR";
-    // A hostile fleet holds the attacked-from box, so "retreat" is impossible.
+    // A hostile fleet holds the attacked-from box, so "retreat" cannot reach a
+    // legal space; 19.4's choice is still the attacker's to make.
     placeUnit(G, "FR", "squadron", "north-atlantic", 2);
     beginAndHold(G, ctx);
     resolveBattleRoll(G, makeCtx([4, 4, 4, 4, 1, 1], seat("UK")));
+    expect(G.battle?.mines).toBe(4);
+    expect(G.pending?.kind).toBe("mineRetreat");
+    expect(G.pending?.options.map((option) => option.id)).toEqual(["continue", "retreat"]);
+  });
+
+  test("retreating with no route home takes two hits and eliminates the stranded force (19.7)", () => {
+    const {G, ctx, uk} = fixture();
+    G.spaces.brittany.control = "FR";
+    placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    beginAndHold(G, ctx);
+    // A real port attack leaves the attacking ships in the port; the battle's
+    // origin (the attacked-from box) is now held by the hostile fleet.
+    for (const id of uk) {
+      G.spaces["north-atlantic"].units = G.spaces["north-atlantic"].units.filter((entry) => entry !== id);
+      G.spaces.brittany.units.push(id);
+      G.units[id].space = "brittany";
+    }
+    resolveBattleRoll(G, makeCtx([4, 4, 4, 4, 1, 1], seat("UK")));
+    expect(G.pending?.kind).toBe("mineRetreat");
+    expect(resolvePending(G, makeCtx([], seat("UK")), "retreat")).toBeUndefined();
+    expect(G.battle).toBeNull();
+    expect(G.pending).toBeNull();
+    expect(mineLog(G)?.args?.hits).toBe(MINE_RETREAT_HITS);
+    // 19.7: "Units that cannot retreat are eliminated", so the two-hit retreat
+    // still costs the stranded force.
+    expect(navalUnitsIn(G, "north-atlantic").some((unit) => unit.owner === "UK")).toBe(false);
+    expect(navalUnitsIn(G, "brittany").some((unit) => unit.owner === "UK")).toBe(false);
+  });
+
+  test("an attacker with no retreat route still fights on when continuing", () => {
+    const {G, ctx} = fixture();
+    G.spaces.brittany.control = "FR";
+    placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    beginAndHold(G, ctx);
+    resolveBattleRoll(G, makeCtx([4, 4, 4, 4, 1, 1], seat("UK")));
+    expect(resolvePending(G, makeCtx([], seat("UK")), "continue")).toBeUndefined();
     expect(mineLog(G)).toBeUndefined();
-    expect(G.pending?.kind).not.toBe("mineRetreat");
     expect(G.log.filter((entry) => entry.key === "battleRoll").pop()?.args?.mines).toBe(4);
   });
 

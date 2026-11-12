@@ -199,4 +199,57 @@ describe("19.1 finishing the interrupted naval movement", () => {
     expect(G.pending?.kind).not.toBe("navalContinuation");
     expect(G.navalContinuation).toBeNull();
   });
+
+  test("a partial 19.8 port move leaves the units at sea able to finish the move", () => {
+    const G = navalWar();
+    placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    placeUnit(G, "FR", "squadron", "brittany", 2);
+    const first = placeUnit(G, "UK", "squadron", "london", 2).id;
+    const second = placeUnit(G, "UK", "squadron", "london", 2).id;
+    expect(navalMove(G, makeCtx([], seat("UK")), [first, second], "north-atlantic")).toBeUndefined();
+    expect(G.pending?.kind).toBe("navalInterception");
+    expect(resolvePending(G, makeCtx([5, 6, 1], seat("FR")), "intercept:brittany")).toBeUndefined();
+    expect(G.battle).toBeNull();
+    expect(G.pending?.kind).toBe("navalPortContinuation");
+    // A split that sends exactly one ship into a port and leaves the other at
+    // sea: 19.8 allows "any of their units", 19.1 still owes the rest a move.
+    const split = G.pending!.options.find((entry) => {
+      const raw = entry.data?.assignments;
+      if (!Array.isArray(raw)) return false;
+      return raw.filter((part) => (part as {space?: unknown}).space !== null).length === 1;
+    });
+    expect(split).toBeDefined();
+    const assignments = split!.data?.assignments as {unitId: string; space: string | null}[];
+    const movedId = assignments.find((part) => part.space !== null)!.unitId;
+    const stayedId = movedId === first ? second : first;
+    expect(resolvePending(G, makeCtx([], seat("UK")), split!.id)).toBeUndefined();
+    expect(G.units[movedId].space).not.toBe("north-atlantic");
+    expect(G.units[stayedId].space).toBe("north-atlantic");
+    // 19.1: "The active player will be able to finish their naval movement."
+    // The port move consumed only the units that left the sea.
+    expect(G.navalContinuation).not.toBeNull();
+    expect(G.pending?.kind).toBe("navalContinuation");
+    expect(G.pending?.context?.unitIds).toEqual([stayedId]);
+    expect(G.cpRemaining).toBe(5);
+    expect(resolvePending(G, makeCtx([], seat("UK")), "western-mediterranean")).toBeUndefined();
+    expect(G.units[stayedId].space).toBe("western-mediterranean");
+    expect(G.navalContinuation).toBeNull();
+    expect(G.log.some((entry) => entry.key === "navalContinuation" && entry.args?.units === 1)).toBe(true);
+  });
+
+  test("moving the whole force into a port still consumes the 19.1 continuation", () => {
+    const G = navalWar();
+    placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    placeUnit(G, "FR", "squadron", "brittany", 2);
+    const first = placeUnit(G, "UK", "squadron", "london", 2).id;
+    const second = placeUnit(G, "UK", "squadron", "london", 2).id;
+    expect(navalMove(G, makeCtx([], seat("UK")), [first, second], "north-atlantic")).toBeUndefined();
+    expect(resolvePending(G, makeCtx([5, 6, 1], seat("FR")), "intercept:brittany")).toBeUndefined();
+    expect(G.pending?.kind).toBe("navalPortContinuation");
+    expect(resolvePending(G, makeCtx([], seat("UK")), "london")).toBeUndefined();
+    expect(G.pending).toBeNull();
+    expect(G.navalContinuation).toBeNull();
+    expect(G.units[first].space).toBe("london");
+    expect(G.units[second].space).toBe("london");
+  });
 });
