@@ -13,6 +13,7 @@
  * Sicilies army or a second squadron.
  */
 import type {Ctx} from "boardgame.io";
+import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
@@ -23,6 +24,7 @@ import {
   italyTable,
 } from "./engine/greatWar";
 import {friendlySpace, landUnitsIn, navalUnitsIn} from "./engine/rules";
+import {declinePending, resolvePending} from "./moves";
 
 const makeCtx = (dieValue = 3): Ctx =>
   ({
@@ -146,5 +148,56 @@ describe("22.1.3 the minor gains an army and a squadron through the 4.2 pool", (
     expect(unitsOf(G, "Sardinia-Piedmont", "minorArmy")).toHaveLength(2);
     expect(unitsOf(G, "Sardinia-Piedmont", "squadron")).toHaveLength(1);
     expect(G.log.filter((entry) => entry.key === "nonPlayerCounterExhausted")).toHaveLength(1);
+  });
+});
+
+describe("22.1.3 the live card asks the active player to choose", () => {
+  test("both minors are legal, so the 4–5 result suspends for the active player", () => {
+    const G = fresh();
+    const ctx = makeCtx(4);
+
+    const done = italyTable(G, ctx, "GE", {interactive: true});
+
+    expect(done).toBe(false);
+    expect(G.pending?.kind).toBe("italianInternalWar");
+    expect(G.pending?.power).toBe("GE");
+    expect(G.pending?.options.map((candidate) => candidate.id)).toEqual([
+      "Sardinia-Piedmont",
+      "Two Sicilies",
+    ]);
+    // Nothing is applied until the choice is made.
+    expect(G.spaces.tuscany.control).not.toBe("Two Sicilies");
+
+    expect(resolvePending(G, {...ctx, playerID: "0"}, "Two Sicilies")).toBeUndefined();
+    expect(G.pending).toBeNull();
+    expect(G.spaces.tuscany.control).toBe("Two Sicilies");
+    expect(unitsOf(G, "Two Sicilies", "minorArmy")).toHaveLength(2);
+  });
+
+  test("only the deciding seat may answer the choice", () => {
+    const G = fresh();
+    const ctx = makeCtx(4);
+    italyTable(G, ctx, "GE", {interactive: true});
+
+    // UK's seat is not the deciding player.
+    expect(resolvePending(G, {...ctx, playerID: "1"}, "Sardinia-Piedmont")).toBe(INVALID_MOVE);
+    expect(G.pending?.kind).toBe("italianInternalWar");
+  });
+
+  test("declining an unattended choice takes the printed-order default", () => {
+    const G = fresh();
+    const ctx = makeCtx(4);
+    italyTable(G, ctx, "GE", {interactive: true});
+
+    expect(declinePending(G, {...ctx, playerID: "0"})).toBeUndefined();
+    expect(G.pending).toBeNull();
+    expect(G.spaces.tuscany.control).toBe("Sardinia-Piedmont");
+  });
+
+  test("the one-shot path (no interactive option) keeps the deterministic auto-pick", () => {
+    const G = fresh();
+    expect(italyTable(G, makeCtx(4), "GE")).toBe(true);
+    expect(G.pending).toBeNull();
+    expect(G.spaces.tuscany.control).toBe("Sardinia-Piedmont");
   });
 });

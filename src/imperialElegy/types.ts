@@ -810,6 +810,8 @@ export type PendingKind =
   | "industryCard"
   | "mpitAllocation"
   | "italyTable"
+  /** 22.1.3: choose Sardinia-Piedmont or the Kingdom of the Two Sicilies. */
+  | "italianInternalWar"
   | "crisis"
   /** 23.3: the active player chooses the bordering nation / Balkan state. */
   | "crisisIncident"

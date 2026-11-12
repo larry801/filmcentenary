@@ -341,6 +341,58 @@ describe("23.1 the inciting card's post-WTT text", () => {
     expect(G.log.some((entry) => entry.key === "eventDiscard")).toBe(false);
     expect(G.discard).toContain("IE-A017");
   });
+
+  test("a Powder Keg International Conference delays the rest of the text until after the roll", () => {
+    const G = fresh();
+    armCard(G, "IE-A053");
+    const next = scripted([5]); // International Conference
+    playCard(G, next("0"), "IE-A053", "event");
+    expect(G.pending?.kind).toBe("crisis");
+    // 23.1: everything after the WTT increase waits for the crisis roll.
+    expect(G.spaces["bosnia-herzegovina"].rebellion).toBeNull();
+
+    expect(resolvePending(G, next("0"), "roll")).toBeUndefined();
+    expect(G.gw).toBeNull();
+    expect(G.wtt).toBe(4);
+    // No outbreak, so "the rest of the text is followed".
+    expect(G.spaces["bosnia-herzegovina"].rebellion).not.toBeNull();
+  });
+
+  test("a Powder Keg outbreak ignores its rebel-placement text", () => {
+    const G = fresh();
+    setAlliances(G, {GE: "taCommitted", AU: "taCommitted", UK: "teCommitted", FR: "teCommitted", RU: "taCommitted"});
+    G.spaces.serbia.control = "Serbia";
+    G.spaces.bulgaria.control = "Bulgaria";
+    armCard(G, "IE-A053");
+    // 1 = Balkan Table (roll twice); then the printed Balkan draws/respondent.
+    const next = scripted([1, 3, 4, 6, 1]);
+    playCard(G, next("0"), "IE-A053", "event");
+    expect(G.pending?.kind).toBe("crisis");
+    expect(resolvePending(G, next("0"), "roll")).toBeUndefined();
+    expect(G.gw?.active).toBe(true);
+    // "If GW breaks out the rest of the text on the event is ignored": the
+    // 2 rebel armies and 0 WoI markers are never placed.
+    expect(G.spaces["bosnia-herzegovina"].rebellion).toBeNull();
+    expect(G.spaces.macedonia.rebellion).toBeNull();
+    expect(Object.values(G.units).some((unit) => unit.owner === "REBEL:Balkans")).toBe(false);
+  });
+
+  test("a Balkan Wars outbreak ignores the independence roll and Macedonia award", () => {
+    const G = fresh();
+    setAlliances(G, {GE: "taCommitted", AU: "taCommitted", UK: "teCommitted", FR: "teCommitted", RU: "taCommitted"});
+    G.spaces.serbia.control = "Serbia";
+    G.spaces.bulgaria.control = "Bulgaria";
+    armCard(G, "IE-A100");
+    const next = scripted([1, 3, 4, 6, 1]);
+    playCard(G, next("0"), "IE-A100", "event");
+    expect(G.pending?.kind).toBe("crisis");
+    expect(resolvePending(G, next("0"), "roll")).toBeUndefined();
+    expect(G.gw?.active).toBe(true);
+    // No independence decision and no award: the printed text after the WTT
+    // increase is ignored on outbreak.
+    expect(G.pending).toBeNull();
+    expect(G.spaces.macedonia.control).toBe("OT");
+  });
 });
 
 describe("23.5 neutral players joining an alliance", () => {

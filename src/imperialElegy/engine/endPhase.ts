@@ -84,8 +84,9 @@ export interface MilitarismOption {
  *
  * Defensive simplification: the printed text does not restrict which fort may
  * be protected, so every non-Indian fort of level 1-2 is offered (the Indian
- * fort never degrades, so protecting it would be a no-op).  `skip` is always
- * present as the explicit fallback that keeps an unattended game moving.
+ * fort never degrades, so protecting it would be a no-op).  The printed rule
+ * gives no "skip" choice: it is only present when no benefit is legal, so a
+ * player who can take a step must take one.
  */
 export const militarismOptions = (G: ImperialElegyState, power: Power): MilitarismOption[] => {
   const options: MilitarismOption[] = [];
@@ -129,13 +130,23 @@ export const militarismOptions = (G: ImperialElegyState, power: Power): Militari
     });
   }
 
-  options.push({id: "skip", benefit: "skip", space: null, label: "Skip (no Militarism benefit)"});
+  if (options.length === 0) {
+    // Rule 20.1 has no optional "skip": it is only a deterministic fallback
+    // for a player with no legal benefit at all.
+    options.push({id: "skip", benefit: "skip", space: null, label: "No legal Militarism benefit"});
+  }
   return options;
 };
 
 /** The deterministic one-shot default for 20.1: keep the pre-decision reserve growth. */
 export const defaultMilitarismOption = (options: readonly MilitarismOption[]): MilitarismOption =>
-  options.find((option) => option.benefit === "reserve") ?? options[options.length - 1];
+  options.find((option) => option.benefit === "reserve") ??
+  options.find((option) => option.benefit === "skip") ?? {
+    id: "skip",
+    benefit: "skip",
+    space: null,
+    label: "No legal Militarism benefit",
+  };
 
 // ---------------------------------------------------------------------------
 // 20.5 — Set manpower (armies over the new limit)

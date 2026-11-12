@@ -73,6 +73,7 @@ const ALL_PENDING_KINDS: Record<PendingKind, true> = {
   industryCard: true,
   mpitAllocation: true,
   italyTable: true,
+  italianInternalWar: true,
   crisis: true,
   crisisIncident: true,
   crisisAlliance: true,

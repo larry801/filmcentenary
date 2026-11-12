@@ -261,7 +261,8 @@ export const ACTION_CARDS: CardDef[] = [
   A(53, 2, "mandatory", "Powder Keg", "火药桶",
     "Increase the WTT by 1, place 2 rebel armies in Ottoman-controlled spaces in the Balkans (two different spaces unless turn 5 or later), place a 0 WoI marker in each space. OR increase the WTT by 1, choose an independent Balkan minor power; that power gains an army (if able) and looks for a player ally using the minor power alliance table, even if it already has an alliance (it may switch alliances).",
     "世界紧张 +1；在奥斯曼控制的巴尔干空间放置 2 个叛军和 0 独立战争标记（第 5 回合前须不同空间）。或世界紧张 +1，选择一个独立巴尔干小国，其获得 1 个军团并按小国联盟表寻找玩家盟友（可改换阵营）。",
-    [{type: "special", handler: "powderKeg"}]),
+    // 23.1: the WTT increase opens the Crisis Table before the rest of the text.
+    [{type: "wtt", delta: 1}, {type: "special", handler: "powderKeg"}]),
   A(54, 3, "response", "Failed Reforms", "改革失败",
     "Cannot be played after The Young Turks (added to the deck on turn 6). The Ottoman player must flip two full-strength armies to reduced. Draw an additional card. Playable at the start of the Ottoman player's impulse (including a wartime impulse).",
     "“青年土耳其党”之后不可打出。奥斯曼将 2 个满编军团翻为减员。额外抽 1 张牌。可在奥斯曼行动轮开始时打出。",
@@ -485,7 +486,8 @@ export const ACTION_CARDS: CardDef[] = [
   A(100, 2, "mandatory", "The Balkan Wars", "巴尔干战争",
     "Increase the WTT by 1. If the Ottomans control space(s) in the Balkans other than Istanbul, remove all Ottoman ally markers in the Balkans and roll a die: +1 per non-player army in the Balkans including rebels, -1 per Ottoman army in the Balkans. On 5 or more two Ottoman-controlled Balkan spaces gain independence (not Istanbul); displace units. On any other result all rebel armies in the Balkans and each independent Balkan minor power army suffer a step loss. Increase the WTT by 1. The active player gives Macedonia to Greece, Bulgaria, Serbia or the Ottomans (a minor power must be independent).",
     "世界紧张 +1。若奥斯曼控制伊斯坦布尔以外的巴尔干空间，移除其巴尔干联盟标记并掷骰（巴尔干非玩家军团 +1，奥斯曼军团 -1）：5+ 则两个奥斯曼巴尔干空间独立；否则巴尔干叛军与独立小国各受 1 步损失。世界紧张再 +1。当前玩家将马其顿交给希腊/保加利亚/塞尔维亚/奥斯曼之一。",
-    [{type: "special", handler: "balkanWars"}]),
+    // 23.1: the first WTT increase opens the Crisis Table before the rest of the text.
+    [{type: "wtt", delta: 1}, {type: "special", handler: "balkanWars"}]),
   A(101, 2, "mandatory", "The Black Hand", "黑手党",
     "Increase the WTT by 1.",
     "世界紧张 +1。",
