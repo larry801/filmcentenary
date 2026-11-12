@@ -349,6 +349,35 @@ const FORMATTERS: Record<string, Formatter> = {
   revolution1905: discardText(" in the Revolution of 1905", "（因 1905 年革命）"),
   eventDiscard: discardText(" to a card event", "（因卡牌事件）"),
   prepStabilityDiscard: discardText(" for +1 stability", "（换取 +1 稳定）"),
+
+  // A17/A18/A56: the victim chooses stability -1 or a random discard.
+  stabilityOrCard: (entry, locale) => {
+    const discarded = str(entry.args?.choice) === "discard";
+    const forced = entry.args?.forced === true;
+    return withActor(
+      entry,
+      locale,
+      discarded
+        ? "discarded a random card for the event."
+        : `took a -1 stability loss for the event${forced ? " (no card to discard)" : ""}.`,
+      discarded
+        ? "为该事件随机弃置了 1 张牌。"
+        : `为该事件承受 -1 稳定度${forced ? "（无牌可弃）" : ""}。`,
+    );
+  },
+
+  stabilityOrCardBackfire: (entry, locale) => {
+    const roll = num(entry.args?.roll);
+    return withActor(
+      entry,
+      locale,
+      `rolled ${roll} for the event backfire${roll === 1 ? " and suffers the same effect." : "."}`,
+      `事件反噬掷出 ${roll}${roll === 1 ? "，承受同样的效果。" : "。"}`
+    );
+  },
+
+  stabilityOrCardGain: (entry, locale) =>
+    withActor(entry, locale, "gained 1 stability.", "获得 1 点稳定度。"),
   atAnyCostDiscard: discardText(" to play At Any Cost from the discard pile", "（以从弃牌堆打出不惜一切）"),
 
   // ------------------------------------------------------------------ action phase

@@ -274,7 +274,9 @@ export const ACTION_CARDS: CardDef[] = [
   A(56, 3, "event", "Nationalism", "民族主义",
     "Choose a player that controls a space with a minority nationality. That player must either decrease their stability by 1 or discard a random card (they must decrease their stability if they cannot discard a card). Gain 1 stability.",
     "选择一名控制少数民族空间的玩家：其稳定 -1 或随机弃 1 张牌。你稳定 +1。",
-    [{type: "special", handler: "nationalism"}]),
+    // 23.1 / A56: the actor chooses a player controlling a minority-nationality
+    // space; that player then chooses stability -1 or a random discard.
+    [{type: "special", handler: "choosePlayerStabilityOrCard", args: {minorityOnly: true, actorStability: 1}}]),
   A(57, 3, "mandatory", "Impregnable", "坚不可摧",
     "Place a level 3 fort in a friendly controlled space on the Europe map.",
     "在欧洲地图一个友方控制空间放置 3 级要塞。",

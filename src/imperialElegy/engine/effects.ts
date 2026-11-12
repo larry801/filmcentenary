@@ -94,6 +94,7 @@ import {
 import {
   eligibleNationalistUprisingSpaces,
   matchedAuCitizenshipCount,
+  minorityNationalitiesFor,
 } from "./nationality";
 
 export interface EffectContext {
@@ -791,6 +792,7 @@ const CARD_CHAIN_SPECIALS: ReadonlySet<string> = new Set([
   "gwSubmarines",
   "gwPoliticalPressure",
   "gwExhaustion",
+  "stabilityOrCard",
 ]);
 
 const QING_CHINA_SPACES = (): SpaceId[] =>
@@ -1717,6 +1719,61 @@ const applySubmarines = (
 };
 
 /**
+ * A17 Assassination!, A18 Socialist Musings and A56 Nationalism: the chosen
+ * player "must either decrease their stability by 1 or discard a random card
+ * (they must decrease their stability if they cannot discard a card)".
+ *
+ * The victim makes the choice, so this opens an `eventChoice` owned by that
+ * player.  With an empty hand the stability loss is forced and no decision is
+ * needed.  Returns true when a decision was opened.
+ */
+const openStabilityOrCardChoice = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  power: Power,
+  context: Record<string, unknown>,
+): boolean => {
+  if (G.powers[power].hand.length === 0) {
+    changeStability(G, power, -1, ctx);
+    log(G, power, "stabilityOrCard", {choice: "stability", forced: true});
+    return false;
+  }
+  openDecision(G, ctx, decision(
+    "eventChoice",
+    power,
+    "Decrease stability by 1 or discard a random card",
+    [
+      option("stability", "Decrease stability by 1", undefined, false, "稳定度 -1"),
+      option("discard", "Discard a random card", undefined, false, "随机弃 1 张牌"),
+    ],
+    context,
+  ));
+  return true;
+};
+
+/** Apply the victim's (or backfiring actor's) stability-or-card choice. */
+const applyStabilityOrCardChoice = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  power: Power,
+  choice: string,
+): void => {
+  const hand = G.powers[power].hand;
+  if (choice === "discard" && hand.length > 0) {
+    const index = die(ctx, hand.length) - 1;
+    discardCard(G, power, hand[Math.max(0, Math.min(hand.length - 1, index))], "eventDiscard");
+    log(G, power, "stabilityOrCard", {choice: "discard"});
+    return;
+  }
+  changeStability(G, power, -1, ctx);
+  log(G, power, "stabilityOrCard", {choice: "stability"});
+};
+
+/**
+ * The chain dispatcher.  Called from `resolveCardDecision` before the generic
+ * target/choice handling; it consumes the option and either opens the next
+ * step or closes the chain.
+ *//**
  * The chain dispatcher.  Called from `resolveCardDecision` before the generic
  * target/choice handling; it consumes the option and either opens the next
  * step or closes the chain.
@@ -1732,6 +1789,44 @@ const resolveCardChain = (
   const special = String(context.special ?? "");
   const owner = (context.owner as Power | undefined) ?? pending.power;
   switch (special) {
+    case "stabilityOrCard": {
+      const owner = (context.owner as Power | undefined) ?? pending.power;
+      const rollBackfire = context.rollBackfire === true;
+      const actorStability = context.actorStability === true;
+      const stage = String(context.stage ?? "");
+      let target = context.target as Power | undefined;
+      let applied = false;
+      if (stage === "target") {
+        target = optionId as Power;
+        if (!G.powers[target] || target === owner) {
+          finishCardChain(G, ctx, pending);
+          return;
+        }
+        const next = {...context, target, stage: "choice", owner};
+        if (openStabilityOrCardChoice(G, ctx, target, next)) return;
+        applied = true;
+      } else if (stage === "choice") {
+        applyStabilityOrCardChoice(G, ctx, pending.power, optionId);
+        applied = true;
+      } else if (stage === "backfireChoice") {
+        applyStabilityOrCardChoice(G, ctx, owner, optionId);
+        applied = true;
+      }
+      if (applied && rollBackfire) {
+        const roll = die(ctx, 6);
+        log(G, owner, "stabilityOrCardBackfire", {roll, target: target ?? null});
+        if (roll === 1) {
+          const next = {...context, target, stage: "backfireChoice", owner};
+          if (openStabilityOrCardChoice(G, ctx, owner, next)) return;
+        }
+      }
+      if (applied && actorStability) {
+        changeStability(G, owner, 1, ctx);
+        log(G, owner, "stabilityOrCardGain", {amount: 1});
+      }
+      finishCardChain(G, ctx, pending);
+      return;
+    }
     case "secondOpiumWar": {
       if (G.spaces[optionId]?.control === "Qing China") {
         placeControlMarker(G, optionId, pending.power);
@@ -1988,9 +2083,38 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "choosePlayerStabilityOrCard": {
-      const target = args.target as Power | undefined;
-      const candidates = POWERS.filter((p) => p !== actor);
-      openDecision(G, ctx, decision("eventTargetPower", actor, "Choose a player", candidates.map((p) => option(p, POWER_DEFS[p].name)), {resume, special: "stabilityOrCard", rollBackfire: args.rollBackfire}));
+      // A17/A18 choose any player; A56 additionally requires a player that
+      // controls a space with a minority nationality and gives the actor +1
+      // stability.
+      const minorityOnly = args.minorityOnly === true;
+      const candidates = POWERS.filter(
+        (p) =>
+          p !== actor &&
+          !G.powers[p].eliminated &&
+          (!minorityOnly ||
+            Object.values(SPACES).some((space) =>
+              G.spaces[space.id]?.control === p &&
+              minorityNationalitiesFor(G, space.id, p).length > 0)),
+      );
+      if (candidates.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        if (args.actorStability === true) changeStability(G, actor, 1, ctx);
+        return true;
+      }
+      openDecision(G, ctx, decision(
+        "eventTargetPower",
+        actor,
+        minorityOnly ? "Choose a player controlling a minority-nationality space" : "Choose a player",
+        candidates.map((p) => option(p, POWER_DEFS[p].name)),
+        {
+          resume,
+          special: "stabilityOrCard",
+          stage: "target",
+          owner: actor,
+          rollBackfire: args.rollBackfire === true,
+          actorStability: args.actorStability === true || Number(args.actorStability ?? 0) > 0,
+        },
+      ));
       return false;
     }
     case "newAdministration": {

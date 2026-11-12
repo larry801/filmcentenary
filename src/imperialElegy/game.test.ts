@@ -49,6 +49,11 @@ test("mandatory Assassination! opens a target power decision", () => {
   expect(G.pending?.kind).toBe("eventTargetPower");
   const target = G.pending!.options.find((o) => o.id === "FR")!;
   resolvePending(G, ctx, target.id);
+  // A17's printed choice belongs to the victim: FR now chooses between losing
+  // stability and discarding a random card.
+  expect(G.pending?.kind).toBe("eventChoice");
+  expect(G.pending?.power).toBe("FR");
+  resolvePending(G, makeCtx(String(POWERS.indexOf("FR"))), "discard");
   expect(G.pending).toBeNull();
   expect(G.powers.FR.hand.length).toBeLessThan(4);
 });
