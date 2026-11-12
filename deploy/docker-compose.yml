@@ -1,0 +1,22 @@
+# Deployment compose file for the VPS host.
+#
+# The image is built and pushed by GitHub Actions (.github/workflows/ci.docker.yml)
+# on every push to master. This file only pulls and runs it, so nothing on the
+# host is compiled:
+#
+#   docker compose pull && docker compose up -d
+#
+# Live match data lives in ./data (boardgame.io FlatFile, one JSON file per key)
+# and is mounted at /data; it is not part of the image.
+services:
+  web:
+    image: ghcr.io/larry801/film-centenary:latest
+    # Public address: the port the old systemd unit served on.
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: "3000"
+      DB_DIR: "/data"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

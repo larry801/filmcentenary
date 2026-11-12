@@ -17,6 +17,8 @@
 
 # production
 /build
+# live match data written by docker-compose (boardgame.io FlatFile)
+/data
 
 # misc
 .DS_Store

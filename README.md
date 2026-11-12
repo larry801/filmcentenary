@@ -34,6 +34,24 @@ master 分支的 CI（`.github/workflows/ci.docker.yml`）会构建并推送三�
 echo "$GHCR_TOKEN" | docker login ghcr.io -u <你的用户名> --password-stdin
 ```
 
+CI 在推送之前会先在本机上把应用镜像跑起来并请求 `/`，确认镜像真的能启动后才会推送
+（运行时镜像只装生产依赖，**服务端代码不能引用 devDependencies**）。
+
+## 部署（VPS）
+
+VPS 上只跑镜像，不在主机上编译。`deploy/docker-compose.yml` 就是部署文件，
+对局数据通过 `./data` 挂载（boardgame.io FlatFile，不走数据库）：
+
+```shell
+mkdir -p /opt/filmcentenary/data      # 首次部署，放入已有对局数据
+cp deploy/docker-compose.yml /opt/filmcentenary/
+cd /opt/filmcentenary
+docker compose pull && docker compose up -d
+```
+
+发布新版本：CI 推送 `latest` 后在 VPS 上执行 `docker compose pull && docker compose up -d`。
+容器内服务监听 3000，宿主机映射到 3000（与原 systemd 版本一致）。
+
 ## 结构
 
 - 电影百年：`src/game/`

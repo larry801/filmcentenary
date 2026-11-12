@@ -394,15 +394,6 @@
   dependencies:
     tslib "2.0.3"
 
-"@i18n-chain/react@^2.0.1":
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/@i18n-chain/react/-/react-2.0.1.tgz"
-  integrity sha512-n3foxNJ9Jxa0lWtGLEV44nBMFAxWLIWj/w8+eN9exV7kSPzUeZfGUlUzzoDZZoJBEjmtF9R1MtF9TZFxvgX0vQ==
-  dependencies:
-    "@i18n-chain/core" "2.0.1"
-    hoist-non-react-statics "3.3.2"
-    tslib "2.0.3"
-
 "@ioredis/commands@2.0.0":
   version "2.0.0"
   resolved "https://registry.npmjs.org/@ioredis/commands/-/commands-2.0.0.tgz"

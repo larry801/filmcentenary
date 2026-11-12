@@ -91,14 +91,44 @@ jobs:
             ${{ env.IMAGE_NAMESPACE }}/film-centenary-base:${{ steps.vars.outputs.sha_short }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary-base:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary-base:${{ steps.vars.outputs.sha_short }}
-      - name: Build and push app image
+      - name: Build app image
         uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile.web
-          push: true
+          push: false
+          load: true
           tags: |
             ${{ env.IMAGE_NAMESPACE }}/film-centenary:latest
             ${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary:latest
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}
+      # The runtime image installs production dependencies only, so a module
+      # imported by the server bundle but listed in devDependencies makes an
+      # image that builds fine but crashes on boot. Prove it boots first.
+      - name: Smoke test app image
+        run: |
+          docker run -d --name smoke -p 3000:3000 \
+            -e PORT=3000 -e DB_DIR=/data "${{ env.IMAGE_NAMESPACE }}/film-centenary:latest"
+          for i in $(seq 1 60); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/ || true)" = "200" ]; then
+              echo "server responded with 200"
+              docker rm -f smoke
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::app image did not answer on :3000"
+          docker logs smoke
+          docker rm -f smoke
+          exit 1
+      - name: Push app image
+        run: |
+          docker push "${{ env.IMAGE_NAMESPACE }}/film-centenary:latest"
+          docker push "${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}"
+          docker tag "${{ env.IMAGE_NAMESPACE }}/film-centenary:latest" "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary:latest"
+          docker tag "${{ env.IMAGE_NAMESPACE }}/film-centenary:latest" "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}"
+          docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary:latest"
+          docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}"
+          docker tag "${{ env.IMAGE_NAMESPACE }}/film-centenary:latest" "docker.io/${{ env.IMAGE_NAMESPACE }}/film-centenary:latest"
+          docker tag "${{ env.IMAGE_NAMESPACE }}/film-centenary:latest" "docker.io/${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}"
+          docker push "docker.io/${{ env.IMAGE_NAMESPACE }}/film-centenary:latest"
+          docker push "docker.io/${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}"
