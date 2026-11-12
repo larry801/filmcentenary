@@ -77,6 +77,7 @@ import {
   isFormerlyControlledSpace,
   isHomeSpace,
   isNavalKind,
+  effectiveKeyType,
   isPower,
   ITALIAN_ARMY_COUNTER_MAX,
   ITALIAN_STANDING_ARMIES,
@@ -110,7 +111,7 @@ import {
   pruneTrenchBattle,
 } from "./combat";
 import {planNavalMove, requestDardanellesPassage} from "./navalMovement";
-import {counterRemaining, nonPlayerCounterRemaining, nonPlayerHasCounterFor} from "./counters";
+import {counterRemaining, hasCounterFor, nonPlayerCounterRemaining, nonPlayerHasCounterFor} from "./counters";
 import {ALLIANCE_MAX_PLAYERS} from "./alliance";
 import {
   facedownGwCombatCards,
@@ -695,6 +696,52 @@ export const gwDraftSpaces = (
   first: SpaceId | null = null,
 ): SpaceId[] => Object.keys(G.spaces).filter((space) => gwDraftSpaceAllowed(G, power, space, first));
 
+/** 27.5.2 EF substitution: one drafted army may be replaced by an EF. */
+export interface GwDraftEfChoice {
+  space: SpaceId;
+  kind: "expeditionary" | "eliteColonialEf";
+}
+
+/**
+ * 27.5.2: "instead of placing two reduced armies they can substitute 1 EF for
+ * an army.  That EF may be placed in a controlled home key or in a controlled
+ * colonial home key with a LoC (in both cases the spaces cannot contain a
+ * trench marker).  Players can also rebuild Elite Colonial EFs in this manner."
+ *
+ * The EF is the second placement (the first army is already down), and the
+ * printed "no more than one per space" keeps it out of the first space.
+ */
+export const gwDraftEfChoices = (
+  G: ImperialElegyState,
+  power: Power,
+  first: SpaceId | null = null,
+): GwDraftEfChoice[] => {
+  if (counterRemaining(G, power, "expeditionary") === 0) return [];
+  const out: GwDraftEfChoice[] = [];
+  for (const space of Object.keys(G.spaces).sort()) {
+    const state = G.spaces[space];
+    const def = SPACES[space];
+    if (!state || !def || isNavalBox(space) || space === first || state.trench) continue;
+    if (!ownsKey(G, space, power)) continue;
+    const home = isHomeSpace(G, space, power);
+    const colonial = effectiveKeyType(G, space) === "colonial" && hasLoc(G, power, space);
+    if (home || colonial) out.push({space, kind: "expeditionary"});
+    if (colonial) out.push({space, kind: "eliteColonialEf"});
+  }
+  return out;
+};
+
+/** Re-validate an EF substitution choice (the same rule the options use). */
+const gwDraftEfAllowed = (
+  G: ImperialElegyState,
+  power: Power,
+  space: SpaceId,
+  first: SpaceId | null,
+  kind: GwDraftEfChoice["kind"],
+): boolean => gwDraftEfChoices(G, power, first).some(
+  (choice) => choice.space === space && choice.kind === kind,
+);
+
 /**
  * 27.5.2: the second drafted reduced army.  A null `space` forfeits it (the
  * player declined, or there was nowhere legal to put it); the first army and
@@ -704,18 +751,31 @@ export const resolveGwDraftSecond = (
   G: ImperialElegyState,
   _ctx: Ctx | undefined,
   pending: PendingDecision,
-  space: SpaceId | null,
+  choice: string | null,
 ): boolean => {
   const first = typeof pending.context?.space === "string" ? (pending.context.space as SpaceId) : null;
-  if (space === null) {
+  if (choice === null) {
     G.pending = null;
     log(G, pending.power, "gwDraftSecondForfeited", {space: first, reason: "declined"});
     return true;
   }
-  if (!gwDraftSpaceAllowed(G, pending.power, space, first)) return false;
-  const unit = placeUnit(G, pending.power, "army", space, 1);
+  let space: SpaceId;
+  let kind: "army" | "expeditionary" | "eliteColonialEf" = "army";
+  if (choice.startsWith("ef:")) {
+    space = choice.slice("ef:".length) as SpaceId;
+    kind = "expeditionary";
+    if (!gwDraftEfAllowed(G, pending.power, space, first, kind)) return false;
+  } else if (choice.startsWith("eliteEf:")) {
+    space = choice.slice("eliteEf:".length) as SpaceId;
+    kind = "eliteColonialEf";
+    if (!gwDraftEfAllowed(G, pending.power, space, first, kind)) return false;
+  } else {
+    space = choice as SpaceId;
+    if (!gwDraftSpaceAllowed(G, pending.power, space, first)) return false;
+  }
+  const unit = placeUnit(G, pending.power, kind, space, 1);
   G.pending = null;
-  log(G, pending.power, "gwDraftSecond", {space, unit: unit.id, first});
+  log(G, pending.power, "gwDraftSecond", {space, unit: unit.id, first, kind});
   return true;
 };
 
@@ -1379,15 +1439,25 @@ export const performGwManeuver = (
       // stacking a second pending decision on top of it.
       if (G.pending === null) {
         const secondSpaces = gwDraftSpaces(G, power, request.space);
-        if (secondSpaces.length === 0) {
+        const efChoices = gwDraftEfChoices(G, power, request.space);
+        if (secondSpaces.length === 0 && efChoices.length === 0) {
           log(G, power, "gwDraftSecondForfeited", {space: request.space, reason: "noSpace"});
         } else {
           openDecision(G, ctx, {
             kind: "gwDraft",
             power,
-            prompt: "Draft: choose the space for the second reduced army",
+            prompt: "Draft: choose the space for the second reduced army or an EF substitute",
             promptArgs: {power, first: request.space},
-            options: secondSpaces.map((space) => option(space, spaceLabel(space, "en"))),
+            options: [
+              ...secondSpaces.map((space) => option(space, spaceLabel(space, "en"))),
+              ...efChoices.map(({space, kind}) => option(
+                `${kind === "expeditionary" ? "ef" : "eliteEf"}:${space}`,
+                `${kind === "expeditionary" ? "EF" : "Elite colonial EF"} in ${spaceLabel(space, "en")}`,
+                {kind, space},
+                false,
+                `${kind === "expeditionary" ? "远征军" : "精锐殖民远征军"}：${spaceLabel(space, "zh_CN")}`,
+              )),
+            ],
             context: {space: request.space, unitId: first.id},
             blocking: true,
           });

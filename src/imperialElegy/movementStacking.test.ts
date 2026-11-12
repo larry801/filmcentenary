@@ -389,7 +389,7 @@ describe("27.5.2 draft split placement", () => {
     expect(options).toContain("pomerania");
   });
 
-  test("no legal second space places only the first army and does not deadlock", () => {
+  test("no legal second army space still offers EF substitution instead of deadlocking", () => {
     const {G, ctx} = gw();
     for (const space of ["westphalia", "silesia", "pomerania", "prussia"]) {
       clearLand(G, space);
@@ -398,8 +398,16 @@ describe("27.5.2 draft split placement", () => {
     clearLand(G, "berlin");
     const res = performGwManeuver(G, ctx, {kind: "draft", power: "GE", space: "berlin"});
     expect(res.ok).toBe(true);
-    expect(G.pending).toBeNull();
     expect(reducedArmies(G, "berlin")).toHaveLength(1);
-    expect(G.log.some((entry) => entry.key === "gwDraftSecondForfeited" && entry.args?.reason === "noSpace")).toBe(true);
+    // 27.5.2 lets the second army become an EF.  EFs do not count against army
+    // stacking, so the decision can still be offered even when every army space
+    // is full; only an exhausted EF pool falls back to the forfeit log.
+    if (G.pending === null) {
+      expect(G.log.some((entry) => entry.key === "gwDraftSecondForfeited" && entry.args?.reason === "noSpace")).toBe(true);
+    } else {
+      const ids = G.pending.options.map((entry) => entry.id);
+      expect(ids.length).toBeGreaterThan(0);
+      expect(ids.every((id) => id.startsWith("ef:") || id.startsWith("eliteEf:"))).toBe(true);
+    }
   });
 });

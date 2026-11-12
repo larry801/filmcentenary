@@ -1263,6 +1263,23 @@ const FORMATTERS: Record<string, Formatter> = {
   gwDraftSecond: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     const first = spaceName(entry.args?.first, locale);
+    const kind = str(entry.args?.kind);
+    if (kind === "expeditionary") {
+      return withActor(
+        entry,
+        locale,
+        `substituted an EF at ${space} for the second drafted army (the first was at ${first}).`,
+        `在${space}以远征军替代第二支征召军团（第一支在${first}）。`,
+      );
+    }
+    if (kind === "eliteColonialEf") {
+      return withActor(
+        entry,
+        locale,
+        `substituted an elite colonial EF at ${space} for the second drafted army (the first was at ${first}).`,
+        `在${space}以精锐殖民远征军替代第二支征召军团（第一支在${first}）。`,
+      );
+    }
     return withActor(
       entry,
       locale,

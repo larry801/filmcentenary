@@ -4595,7 +4595,7 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   }
   if (pending.kind === "gwDraft") {
     // 27.5.2: the second drafted reduced army's controlled home key.
-    return resolveGwDraftSecond(G, ctx, pending, optionId as SpaceId) ? undefined : INVALID_MOVE;
+    return resolveGwDraftSecond(G, ctx, pending, optionId) ? undefined : INVALID_MOVE;
   }
   if (pending.kind === "napoleonsLegacy") {
     return resolveNapoleonsLegacy(G, ctx, pending, optionId);
