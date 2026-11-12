@@ -705,6 +705,15 @@ const clearFaceupCombat = (G: ImperialElegyState, power: Power): void => {
 };
 
 // ------------------------------------------------------------------ actions
+/**
+ * Rule 15.0: "If all players consecutively pass the war is over."  A wartime
+ * action breaks the run of passes, so every earlier pass is forgotten; the war
+ * only ends once every belligerent passes without an action in between.
+ */
+const noteWartimeAction = (G: ImperialElegyState): void => {
+  if (G.war) G.war.passed = [];
+};
+
 const requireCp = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null, amount: number): Power | typeof INVALID_MOVE => {
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
@@ -718,6 +727,7 @@ const requireCp = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null, a
     if (budget < amount) return INVALID_MOVE;
     G.war.budgets[power] = budget - amount;
     G.powers[power].flags.warCpSpentThisImpulse = true;
+    noteWartimeAction(G);
     return power;
   }
   if (G.phase === "gwManeuver") {
@@ -1346,6 +1356,9 @@ export const rapidDeploy = (
     G.spaces[to].units.push(unit.id);
     unit.space = to;
   }
+  // The free naval move is still a wartime action (15.0): it breaks the run of
+  // consecutive passes.
+  if (G.phase === "wartime") noteWartimeAction(G);
   G.powers.UK.rapidDeployment = {...grant, spent: true};
   log(G, power, "rapidDeployment", {from, to, count: units.length, scope: grant.scope});
   return undefined;
@@ -1847,8 +1860,9 @@ export const deployReserves = (
     G.war.budgets[power] = budget - 1;
   }
   // A free deploy is still an action: it closes the start-of-impulse response
-  // window just like a CP-funded one.
+  // window just like a CP-funded one (and breaks the 15.0 pass run).
   p.flags.warCpSpentThisImpulse = true;
+  noteWartimeAction(G);
   const placed: string[] = [];
   for (const id of available.slice(0, placing)) {
     p.reserves = p.reserves.filter((reserveId) => reserveId !== id);

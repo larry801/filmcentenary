@@ -473,6 +473,14 @@ export interface WarSide {
   treaties: string[];
   /** Who won (null if white peace). */
   victor: "attacker" | "defender" | null;
+  /**
+   * Rule 16.1/17.1: the primary victory classification, kept on the archived
+   * war for the demobilisation blockade check.  "a player ... that won a major
+   * victory can never be blockaded" (17.1), so the demobilisation step needs
+   * the outcome after the interactive treaty chooser has finished.  Optional
+   * so hand-written and pre-existing war states remain valid.
+   */
+  victoryPrimary?: "major" | "normal" | "defensive" | "negotiated" | "whitePeace";
   /** Turns remaining on the truce after the war. */
   truceTurns: number;
   /** Which sides have passed in the maneuver step. */

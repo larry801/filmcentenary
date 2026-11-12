@@ -1,7 +1,9 @@
 /**
- * Rule 17.0 — free redeployment and free naval movement after a war.
+ * Rules 17.0/17.1 — demobilisation.
  *
- * `demobilizeWar` already computed the entitled list; these tests pin the live
+ * The first block pins the printed war-end steps: the 17.1 blockade check
+ * (with its major-victory exception) and 5.7 displacement of units caught in
+ * enemy-controlled territory.  The rest pins the live free redeployment/naval
  * prompt: it is optional, never spends CP, cannot start a battle/support, is
  * skipped when a power has no legal move, records the action on the archived
  * war and always hands the action phase back.
@@ -10,7 +12,8 @@
 import {Ctx} from "boardgame.io";
 import {ImperialElegyState, Power, WarState} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {createWarState} from "./engine/limitedWar";
+import {applyVictoryOutcome, classifyVictory, createWarState, demobilizeWar} from "./engine/limitedWar";
+import {placeUnit} from "./engine/effects";
 import {declinePending, resolvePending, resolveWar} from "./moves";
 
 const makeCtx = (playerID: string | null = "0"): Ctx =>
@@ -48,6 +51,72 @@ const demobPending = (G: ImperialElegyState) => {
   expect(G.pending?.kind).toBe("demobilizationFreeAction");
   return G.pending!;
 };
+
+describe("17.0/17.1 demobilization blockade", () => {
+  test("a blockaded player gains a -1 card marker when the war ends", () => {
+    const G = fresh();
+    G.phase = "wartime";
+    G.activePower = "FR";
+    G.spaces.westphalia.control = "GE";
+    G.spaces.westphalia.occupiedBy = "FR";
+    const war = createWarState(G, "FR", "GE", "conquest", ["westphalia"], 2);
+    G.war = war;
+    // Enemy ships in the North Atlantic cut GE's only exit from the Baltic.
+    placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    const victory = classifyVictory(G, war);
+    expect(victory.kind).toBe("normal");
+    const before = G.powers.GE.cardMarkers;
+
+    applyVictoryOutcome(G, war, victory);
+    expect(demobilizeWar(G, war).ok).toBe(true);
+
+    expect(G.powers.GE.cardMarkers).toBe(before - 1);
+    expect(G.log.some((entry) => entry.key === "warBlockade" && entry.power === "GE")).toBe(true);
+  });
+
+  test("units in enemy-controlled territory displace at demobilisation", () => {
+    const G = fresh();
+    G.phase = "wartime";
+    G.activePower = "GE";
+    G.spaces.bohemia.occupiedBy = "GE";
+    const war = createWarState(G, "GE", "AU", "conquest", ["bohemia"], 2);
+    G.war = war;
+    const victory = classifyVictory(G, war);
+    expect(victory.kind).toBe("normal");
+    applyVictoryOutcome(G, war, victory);
+
+    // A GE army is sitting in AU-controlled Vienna when the war ends.
+    const unit = placeUnit(G, "GE", "army", "vienna", 2);
+    expect(G.units[unit.id].space).toBe("vienna");
+
+    expect(demobilizeWar(G, war).ok).toBe(true);
+
+    expect(G.units[unit.id].space).not.toBe("vienna");
+    expect(G.spaces.vienna.units).not.toContain(unit.id);
+    expect(G.log.some((entry) => entry.key === "unitDisplaced" && entry.args?.unit === unit.id)).toBe(true);
+  });
+
+  test("the major-victory winner is never blockaded", () => {
+    const G = fresh();
+    G.phase = "wartime";
+    G.activePower = "GE";
+    // Paris falls: GE wins a major victory over FR.
+    G.spaces.paris.occupiedBy = "GE";
+    const war = createWarState(G, "GE", "FR", "conquest", ["alsace-lorraine"], 2);
+    G.war = war;
+    // FR still cuts GE's Baltic exit; the exception overrides the trace.
+    placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    const victory = classifyVictory(G, war);
+    expect(victory.primary).toBe("major");
+    const before = G.powers.GE.cardMarkers;
+
+    applyVictoryOutcome(G, war, victory);
+    expect(demobilizeWar(G, war).ok).toBe(true);
+
+    expect(G.powers.GE.cardMarkers).toBe(before);
+    expect(G.log.some((entry) => entry.key === "warBlockade" && entry.power === "GE")).toBe(false);
+  });
+});
 
 describe("17.0 free demobilization actions", () => {
   test("the winning side is offered a free land redeploy that spends no CP and records history", () => {

@@ -409,9 +409,10 @@ export const treatyPickCounts = (
 /**
  * Rule 16.2: who may receive a treaty concession.  "Spaces and war reparations
  * may be awarded to any of the victorious player's allies, including
- * independent minor powers"; the other options belong to the primary
- * belligerent (righteous defense additionally lets the defender return a home
- * space to an ally, rule 16.2.4).
+ * independent minor powers", so territorial cessions, colonial cessions,
+ * reparations and righteous-defense home returns can go to the primary or an
+ * ally.  Realignment belongs to the imposing primary ("replace it with your
+ * own"), rule 16.2.2.
  */
 const beneficiaryCandidates = (
   G: ImperialElegyState,
@@ -426,7 +427,16 @@ const beneficiaryCandidates = (
   const allies = sidePowers(war, imposingSide).filter(
     (power) => power !== primary && G.powers[power]?.eliminated !== true,
   );
-  if (option === "territorialCession" || option === "warReparations" || option === "righteousDefense") {
+  if (
+    option === "territorialCession" ||
+    option === "warReparations" ||
+    option === "righteousDefense" ||
+    option === "colonialCession"
+  ) {
+    // 16.2: "Spaces and war reparations may be awarded to any of the victorious
+    // player's allies, including independent minor powers."  A colonial cession
+    // is a space, so it follows the same allocation rule as a territorial
+    // cession; only realignment stays with the imposing primary ("your own").
     return [primary, ...allies, ...independentMinorBeneficiaries(G, war, imposingSide)];
   }
   return primaryPlayers;
