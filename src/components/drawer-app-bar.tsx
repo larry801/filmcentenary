@@ -67,6 +67,7 @@ const DrawerAppBar = () => {
     i18n.use();
     const {pathname} = useLocation();
     const isVQ = /^\/(localVQ(?:\/|$)|join\/virginQueen\/)/.test(pathname);
+    const isIE = /^\/(localIE(?:\/|$)|imperialElegy(?:\/|$)|join\/imperialElegy\/)/.test(pathname);
     const [open, setOpen] = React.useState(false);
     // Derive the switch position from the active locale: the app starts in
     // zh_CN, so a hard-coded `true` made the first click a no-op.
@@ -110,6 +111,14 @@ const DrawerAppBar = () => {
             ],
         },
         {
+            key: 'imperialElegy',
+            title: drawer.section.imperialElegy,
+            items: [
+                {to: '/imperialElegy', label: drawer.imperialElegy.multiplayer},
+                {to: '/localIE', label: drawer.imperialElegy.local},
+            ],
+        },
+        {
             key: 'virginQueen',
             title: drawer.section.virginQueen,
             items: [
@@ -120,8 +129,8 @@ const DrawerAppBar = () => {
         },
     ];
     return <React.Fragment>
-        <AppBar position={"sticky"} sx={isVQ ? {height: 48, bgcolor: "#211b16", color: "#ead7af", boxShadow: "none", borderBottom: "1px solid #80633a"} : undefined}>
-        <Toolbar sx={isVQ ? {minHeight: "47px !important", gap: 1} : undefined}>
+        <AppBar position={"sticky"} sx={isIE ? {height: 48, bgcolor: "#211b16", color: "#ead7af", boxShadow: "none", borderBottom: "1px solid #80633a"} : isVQ ? {height: 48, bgcolor: "#211b16", color: "#ead7af", boxShadow: "none", borderBottom: "1px solid #80633a"} : undefined}>
+        <Toolbar sx={isVQ || isIE ? {minHeight: "47px !important", gap: 1} : undefined}>
             <IconButton
                 color="inherit"
                 aria-label="open drawer"
@@ -140,6 +149,7 @@ const DrawerAppBar = () => {
                 </Grid>
             </Typography>
             {isVQ && <Typography sx={{ml: "auto", fontSize: 11, letterSpacing: ".15em", fontFamily: "Georgia, serif"}}>VIRGIN QUEEN</Typography>}
+            {isIE && <Typography sx={{ml: "auto", fontSize: 11, letterSpacing: ".15em", fontFamily: "Georgia, serif"}}>IMPERIAL ELEGY</Typography>}
         </Toolbar>
     </AppBar>
         <MUIDrawer open={open} anchor={"left"} onClose={handleClose}>

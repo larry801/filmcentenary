@@ -101,7 +101,9 @@
     "test": "jest",
     "test:e2e": "playwright test",
     "a": "yarn build",
-    "serve": "yarn build  && yarn build:server && yarn start:server"
+    "serve": "yarn build  && yarn build:server && yarn start:server",
+    "extract:ie": "python3 scripts/extract-imperial-elegy.py",
+    "check:ie-assets": "python3 scripts/extract-imperial-elegy.py --check"
   },
   "license": "MIT",
   "browserslist": [

@@ -1,0 +1,4734 @@
+{
+  "file": "campaign-setup.vsav",
+  "sha256": "8b8c06939a34526e4d90d9e8d1a4246702ef423777e16e54ef499941f58aff06",
+  "pieces": [
+    {
+      "name": "UK Squadron/1",
+      "image": "Sq UK 2.png",
+      "board": "Main Map",
+      "x": 1592,
+      "y": 1562,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "Netherlands Army/0",
+      "image": "Netherlands Army.png",
+      "board": "Main Map",
+      "x": 1964,
+      "y": 1584,
+      "zone": null
+    },
+    {
+      "name": "UK EXP Force/1",
+      "image": "UK Exp Force.png",
+      "board": "Main Map",
+      "x": 1322,
+      "y": 4688,
+      "zone": null
+    },
+    {
+      "name": "Russia Power Projection/0",
+      "image": "RU Power Projection.png",
+      "board": "Main Map",
+      "x": 6396,
+      "y": 4591,
+      "zone": null
+    },
+    {
+      "name": "French Army/1",
+      "image": "Army France.png",
+      "board": "Main Map",
+      "x": 2082,
+      "y": 2010,
+      "zone": "Armies"
+    },
+    {
+      "name": "FP Power Projection 2nd/",
+      "image": "FP PP 2nd.png",
+      "board": "Main Map",
+      "x": 6981,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "FP Caucuses/",
+      "image": "FP Caucuses.png",
+      "board": "Main Map",
+      "x": 6499,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "FP Suez Canal/",
+      "image": "FP Suez Canal.png",
+      "board": "Main Map",
+      "x": 6659,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "French Army/1",
+      "image": "Army France.png",
+      "board": "Main Map",
+      "x": 1626,
+      "y": 2610,
+      "zone": "Armies"
+    },
+    {
+      "name": "French Army/1",
+      "image": "Army France.png",
+      "board": "Main Map",
+      "x": 1840,
+      "y": 1934,
+      "zone": "Armies"
+    },
+    {
+      "name": "FP Great Game/",
+      "image": "FP Great Game.png",
+      "board": "Main Map",
+      "x": 6338,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "Belgium Army/0",
+      "image": "Belgum Army.png",
+      "board": "Main Map",
+      "x": 1776,
+      "y": 1738,
+      "zone": null
+    },
+    {
+      "name": "UK Alliance/1",
+      "image": "UK Alliance Blue.png",
+      "board": "Main Map",
+      "x": 2956,
+      "y": 4641,
+      "zone": null
+    },
+    {
+      "name": "Master of the Caucasus/0",
+      "image": "Master of the C.png",
+      "board": "Main Map",
+      "x": 4844,
+      "y": 3371,
+      "zone": null
+    },
+    {
+      "name": "French Army/1",
+      "image": "Army France.png",
+      "board": "Main Map",
+      "x": 1564,
+      "y": 2116,
+      "zone": "Armies"
+    },
+    {
+      "name": "Independent Minor Power/0",
+      "image": "Minor Power Ind.png",
+      "board": "Main Map",
+      "x": 3680,
+      "y": 4072,
+      "zone": null
+    },
+    {
+      "name": "Russian Wartime Initiative/Card",
+      "image": "RU Wartime Initiative.png",
+      "board": "Main Map",
+      "x": 2188,
+      "y": 4257,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "Italian Alliance/1",
+      "image": "IT Alliance.png",
+      "board": "Main Map",
+      "x": 2956,
+      "y": 4641,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "French Squadron/1",
+      "image": "Sq FR 2.png",
+      "board": "Main Map",
+      "x": 1626,
+      "y": 2610,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "USA Alliance/1",
+      "image": "USA Alliance.png",
+      "board": "Main Map",
+      "x": 2956,
+      "y": 4641,
+      "zone": null
+    },
+    {
+      "name": "UK Wartime Initiative/Card",
+      "image": "UK Wartime Initiative.png",
+      "board": "Main Map",
+      "x": 2188,
+      "y": 4257,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "Ottoman Alliance/1",
+      "image": "OT Alliance.png",
+      "board": "Main Map",
+      "x": 2956,
+      "y": 4641,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "Germany Alliance/1",
+      "image": "GE Alliance.png",
+      "board": "Main Map",
+      "x": 2956,
+      "y": 4641,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "French Alliance/1",
+      "image": "FR Alliance Blue.png",
+      "board": "Main Map",
+      "x": 2956,
+      "y": 4641,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "AU Alliance/1",
+      "image": "AU Alliance.png",
+      "board": "Main Map",
+      "x": 2956,
+      "y": 4641,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "French Squadron/1",
+      "image": "Sq FR 2.png",
+      "board": "Main Map",
+      "x": 1206,
+      "y": 1868,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "Persia Army/0",
+      "image": "Persia Army.png",
+      "board": "Main Map",
+      "x": 5266,
+      "y": 1392,
+      "zone": null
+    },
+    {
+      "name": "Russian Alliance/1",
+      "image": "RU Alliance.png",
+      "board": "Main Map",
+      "x": 2956,
+      "y": 4641,
+      "zone": null
+    },
+    {
+      "name": "Zouave France/1",
+      "image": "FR Zouave.png",
+      "board": "Main Map",
+      "x": 1452,
+      "y": 3350,
+      "zone": "Elite Corps"
+    },
+    {
+      "name": "France Wartime Initiative/Card",
+      "image": "FR Wartime Initiative.png",
+      "board": "Main Map",
+      "x": 2188,
+      "y": 4257,
+      "zone": null
+    },
+    {
+      "name": "AU Wartime Initiative/Card",
+      "image": "AU Wartime Initiative.png",
+      "board": "Main Map",
+      "x": 2188,
+      "y": 4257,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS France/",
+      "image": "FR Elite Corps.png",
+      "board": "Main Map",
+      "x": 1564,
+      "y": 2116,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Wartime Initiative/Card",
+      "image": "OT Wartime Initiative.png",
+      "board": "Main Map",
+      "x": 2188,
+      "y": 4257,
+      "zone": null
+    },
+    {
+      "name": "Germany Wartime Initiative/Card",
+      "image": "GE Wartime Initiative.png",
+      "board": "Main Map",
+      "x": 2188,
+      "y": 4257,
+      "zone": null
+    },
+    {
+      "name": "UK Influence",
+      "image": "UK Influence Blue.png",
+      "board": "Main Map",
+      "x": 1776,
+      "y": 1738,
+      "zone": null
+    },
+    {
+      "name": "Egypt Army/0",
+      "image": "Egypy Army.png",
+      "board": "Main Map",
+      "x": 4144,
+      "y": 3974,
+      "zone": null
+    },
+    {
+      "name": "FP Italy/",
+      "image": "FP Italy.png",
+      "board": "Main Map",
+      "x": 5217,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "UK Power Projection/0",
+      "image": "UK Power Projection.png",
+      "board": "Main Map",
+      "x": 5951,
+      "y": 4738,
+      "zone": null
+    },
+    {
+      "name": "FP Qing China and Japan/",
+      "image": "FP Qing China and Japan.png",
+      "board": "Main Map",
+      "x": 5377,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "FP Central Europe/",
+      "image": "FP Central Eurpoe.png",
+      "board": "Main Map",
+      "x": 6017,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "FP Lowlands/",
+      "image": "FP Lowlands.png",
+      "board": "Main Map",
+      "x": 6178,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "FP Africa/",
+      "image": "FP Africa.png",
+      "board": "Main Map",
+      "x": 5697,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "FP Germany/",
+      "image": "FP Germany.png",
+      "board": "Main Map",
+      "x": 5536,
+      "y": 4250,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Army/1",
+      "image": "OT Army.png",
+      "board": "Main Map",
+      "x": 4542,
+      "y": 2818,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Army/1",
+      "image": "OT Army.png",
+      "board": "Main Map",
+      "x": 3184,
+      "y": 3028,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Army/1",
+      "image": "OT Army.png",
+      "board": "Main Map",
+      "x": 3656,
+      "y": 2896,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Arab Army/1",
+      "image": "OT Arab Army.png",
+      "board": "Main Map",
+      "x": 4434,
+      "y": 3354,
+      "zone": null
+    },
+    {
+      "name": "Greek 1st Army/0",
+      "image": "Greek Army.png",
+      "board": "Main Map",
+      "x": 3178,
+      "y": 3416,
+      "zone": null
+    },
+    {
+      "name": "France Influence",
+      "image": "FR Influence Blue.png",
+      "board": "Main Map",
+      "x": 1984,
+      "y": 2498,
+      "zone": null
+    },
+    {
+      "name": "Denmark Squadron/",
+      "image": "Sq Denmark 2.png",
+      "board": "Main Map",
+      "x": 2334,
+      "y": 1102,
+      "zone": null
+    },
+    {
+      "name": "French Power Projection/0",
+      "image": "FR Power Projection.png",
+      "board": "Main Map",
+      "x": 6396,
+      "y": 4591,
+      "zone": null
+    },
+    {
+      "name": "Austrian Army/1",
+      "image": "Army AU.png",
+      "board": "Main Map",
+      "x": 2728,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Austrian Army/1",
+      "image": "Army AU.png",
+      "board": "Main Map",
+      "x": 2606,
+      "y": 2244,
+      "zone": null
+    },
+    {
+      "name": "Austrian Army/1",
+      "image": "Army AU.png",
+      "board": "Main Map",
+      "x": 3012,
+      "y": 2184,
+      "zone": null
+    },
+    {
+      "name": "Hanover Army/0",
+      "image": "Hanover Army.png",
+      "board": "Main Map",
+      "x": 2212,
+      "y": 1550,
+      "zone": null
+    },
+    {
+      "name": "France Influence",
+      "image": "FR Influence.png",
+      "board": "Main Map",
+      "x": 730,
+      "y": 3854,
+      "zone": null
+    },
+    {
+      "name": "Ethiopia Army/0",
+      "image": "Ethiopia Army.png",
+      "board": "Main Map",
+      "x": 1604,
+      "y": 4036,
+      "zone": null
+    },
+    {
+      "name": "Piedmont 1st Army/0",
+      "image": "Piedmont Army.png",
+      "board": "Main Map",
+      "x": 1984,
+      "y": 2498,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Influence",
+      "image": "AU Ally B.png",
+      "board": "Main Map",
+      "x": 3506,
+      "y": 2516,
+      "zone": null
+    },
+    {
+      "name": "Saxony Army/0",
+      "image": "Saxony Army.png",
+      "board": "Main Map",
+      "x": 2476,
+      "y": 1722,
+      "zone": null
+    },
+    {
+      "name": "Bavaria Army/0",
+      "image": "Barvia Army.png",
+      "board": "Main Map",
+      "x": 2398,
+      "y": 1928,
+      "zone": null
+    },
+    {
+      "name": "German Army/1",
+      "image": "Army GE.png",
+      "board": "Main Map",
+      "x": 3108,
+      "y": 1394,
+      "zone": null
+    },
+    {
+      "name": "Naples 1st Army/0",
+      "image": "Naples Army.png",
+      "board": "Main Map",
+      "x": 2514,
+      "y": 3088,
+      "zone": null
+    },
+    {
+      "name": "German Army/1",
+      "image": "Army GE.png",
+      "board": "Main Map",
+      "x": 2576,
+      "y": 1512,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS Germany/",
+      "image": "GE Elite CORPS.png",
+      "board": "Main Map",
+      "x": 2576,
+      "y": 1512,
+      "zone": null
+    },
+    {
+      "name": "Pacification/0",
+      "image": "Pacification 0.png",
+      "board": "Main Map",
+      "x": 5048,
+      "y": 2252,
+      "zone": null
+    },
+    {
+      "name": "UK Army/1",
+      "image": "Army 1st UK.png",
+      "board": "Main Map",
+      "x": 1592,
+      "y": 1562,
+      "zone": "Armies"
+    },
+    {
+      "name": "UK Squadron/1",
+      "image": "Sq UK 2.png",
+      "board": "Main Map",
+      "x": 1552,
+      "y": 1016,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "UK Squadron/1",
+      "image": "Sq UK 2.png",
+      "board": "Main Map",
+      "x": 2648,
+      "y": 3454,
+      "zone": "Squradrons"
+    },
+    {
+      "name": "Indian Army/1",
+      "image": "Army UK IND.png",
+      "board": "Main Map",
+      "x": 5834,
+      "y": 1790,
+      "zone": "Elite Corps"
+    },
+    {
+      "name": "Denmark Army/0",
+      "image": "Denmark Army.png",
+      "board": "Main Map",
+      "x": 2246,
+      "y": 1314,
+      "zone": null
+    },
+    {
+      "name": "Pacification/0",
+      "image": "Pacification 0.png",
+      "board": "Main Map",
+      "x": 1520,
+      "y": 3274,
+      "zone": null
+    },
+    {
+      "name": "Russia Squadron/1",
+      "image": "RU Sq.png",
+      "board": "Main Map",
+      "x": 4074,
+      "y": 2432,
+      "zone": null
+    },
+    {
+      "name": "Russia Squadron/1",
+      "image": "RU Sq.png",
+      "board": "Main Map",
+      "x": 3640,
+      "y": 816,
+      "zone": "St Petersburg"
+    },
+    {
+      "name": "Russian EXP Force/1",
+      "image": "RU Exp Force.png",
+      "board": "Main Map",
+      "x": 6852,
+      "y": 724,
+      "zone": null
+    },
+    {
+      "name": "Russian EXP Force/1",
+      "image": "RU Exp Force.png",
+      "board": "Main Map",
+      "x": 4982,
+      "y": 2310,
+      "zone": null
+    },
+    {
+      "name": "Independent Minor Power/0",
+      "image": "Minor Power Ind.png",
+      "board": "Main Map",
+      "x": 4144,
+      "y": 3974,
+      "zone": null
+    },
+    {
+      "name": "Independent Minor Power/0",
+      "image": "Minor Power Ind.png",
+      "board": "Main Map",
+      "x": 4450,
+      "y": 3998,
+      "zone": null
+    },
+    {
+      "name": "Russian Army/1",
+      "image": "Army RU.png",
+      "board": "Main Map",
+      "x": 3174,
+      "y": 1128,
+      "zone": "Riga"
+    },
+    {
+      "name": "Russian Army/1",
+      "image": "Army RU.png",
+      "board": "Main Map",
+      "x": 3640,
+      "y": 816,
+      "zone": "St Petersburg"
+    },
+    {
+      "name": "Russian Army/1",
+      "image": "Army RU.png",
+      "board": "Main Map",
+      "x": 4708,
+      "y": 2520,
+      "zone": null
+    },
+    {
+      "name": "Russian Army/1",
+      "image": "Army RU.png",
+      "board": "Main Map",
+      "x": 3648,
+      "y": 2156,
+      "zone": null
+    },
+    {
+      "name": "Russian Army/1",
+      "image": "Army RU.png",
+      "board": "Main Map",
+      "x": 3484,
+      "y": 1878,
+      "zone": null
+    },
+    {
+      "name": "War of Independence/1",
+      "image": "WOI 0.png",
+      "board": "Main Map",
+      "x": 730,
+      "y": 2836,
+      "zone": null
+    },
+    {
+      "name": "Land Battle/1",
+      "image": "Land Battle.png",
+      "board": "Main Map",
+      "x": 900,
+      "y": 2836,
+      "zone": null
+    },
+    {
+      "name": "War Aim/",
+      "image": "War Aim.png",
+      "board": "Main Map",
+      "x": 850,
+      "y": 3020,
+      "zone": null
+    },
+    {
+      "name": "Game Turn/1",
+      "image": "Mkr-Turn.png",
+      "board": "Main Map",
+      "x": 5914,
+      "y": 3546,
+      "zone": null
+    },
+    {
+      "name": "Great War Turn/1",
+      "image": "Mkr-Turn GW.png",
+      "board": "Main Map",
+      "x": 5914,
+      "y": 3757,
+      "zone": null
+    },
+    {
+      "name": "World Tension/",
+      "image": "Mkr World Tension.png",
+      "board": "Main Map",
+      "x": 5922,
+      "y": 3975,
+      "zone": null
+    },
+    {
+      "name": "/1",
+      "image": "Suez Canal x.png",
+      "board": "Main Map",
+      "x": 4372,
+      "y": 4263,
+      "zone": null
+    },
+    {
+      "name": "Italy Unified/1",
+      "image": "Italy United x.png",
+      "board": "Main Map",
+      "x": 1876,
+      "y": 2816,
+      "zone": null
+    },
+    {
+      "name": "Berlin Confrence/1",
+      "image": "Berlin Confrence x.png",
+      "board": "Main Map",
+      "x": 1239,
+      "y": 3697,
+      "zone": null
+    },
+    {
+      "name": "Name/Vassal Module by Kevin Conway",
+      "image": "",
+      "board": "Main Map",
+      "x": 594,
+      "y": 553,
+      "zone": null
+    },
+    {
+      "name": "Name/Playtest Version: KF 1",
+      "image": "",
+      "board": "Main Map",
+      "x": 773,
+      "y": 556,
+      "zone": null
+    },
+    {
+      "name": "Fortress/",
+      "image": "Fort 0.png",
+      "board": "Main Map",
+      "x": 560,
+      "y": 3020,
+      "zone": null
+    },
+    {
+      "name": "Pacification/1",
+      "image": "Pacification 0.png",
+      "board": "Main Map",
+      "x": 560,
+      "y": 2836,
+      "zone": null
+    },
+    {
+      "name": "Fortress Marker/2",
+      "image": "Fort 0.png",
+      "board": "Main Map",
+      "x": 1856,
+      "y": 1930,
+      "zone": null
+    },
+    {
+      "name": "Fortress Marker/2",
+      "image": "Fort 0.png",
+      "board": "Main Map",
+      "x": 2314,
+      "y": 2430,
+      "zone": null
+    },
+    {
+      "name": "Fortress Marker/2",
+      "image": "Fort 0.png",
+      "board": "Main Map",
+      "x": 3692,
+      "y": 800,
+      "zone": "End Phase Build Box"
+    },
+    {
+      "name": "Fortress Marker/2",
+      "image": "Fort 0.png",
+      "board": "Main Map",
+      "x": 4054,
+      "y": 2444,
+      "zone": "Sevastopol"
+    },
+    {
+      "name": "Germany's TA Influence/1",
+      "image": "GE TA Influence.png",
+      "board": "Influence Track",
+      "x": 215,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "AU's TA Influence/1",
+      "image": "AU TA Influence.png",
+      "board": "Influence Track",
+      "x": 916,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "AU's TE Influence/1",
+      "image": "AU TE Influence.png",
+      "board": "Influence Track",
+      "x": 916,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom's TE Influence/1",
+      "image": "UK TE Influence.png",
+      "board": "Influence Track",
+      "x": 448,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "France's TA Influence/1",
+      "image": "FR TA Influence.png",
+      "board": "Influence Track",
+      "x": 684,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "France's TE Influence/1",
+      "image": "FR TE Influence.png",
+      "board": "Influence Track",
+      "x": 684,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "Germany's TE Influence/1",
+      "image": "GE TE Influence.png",
+      "board": "Influence Track",
+      "x": 215,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom's TA Influence/1",
+      "image": "UK TA Influence.png",
+      "board": "Influence Track",
+      "x": 448,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "Italy's TE Influence/1",
+      "image": "Neutral TE Influence.png",
+      "board": "Influence Track",
+      "x": 1630,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "Ottoman's TA Influence/1",
+      "image": "OT TA Influence.png",
+      "board": "Influence Track",
+      "x": 1389,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "Ottoman's TE Influence/1",
+      "image": "OT TE Influence.png",
+      "board": "Influence Track",
+      "x": 1389,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "Italy's TA Influence/1",
+      "image": "Neutral TA Influence.png",
+      "board": "Influence Track",
+      "x": 1630,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "Russia's TA Influence/1",
+      "image": "RU TA Influence.png",
+      "board": "Influence Track",
+      "x": 1151,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "Russia's TE Influence/1",
+      "image": "RU TE Influence.png",
+      "board": "Influence Track",
+      "x": 1151,
+      "y": 613,
+      "zone": null
+    },
+    {
+      "name": "Germany's Neutral Influence/1",
+      "image": "Neutral Influence.png",
+      "board": "Influence Track",
+      "x": 215,
+      "y": 783,
+      "zone": null
+    },
+    {
+      "name": "AU's Neutral Influence/1",
+      "image": "Neutral Influence.png",
+      "board": "Influence Track",
+      "x": 916,
+      "y": 783,
+      "zone": null
+    },
+    {
+      "name": "Russia's Neutral Influence/1",
+      "image": "Neutral Influence.png",
+      "board": "Influence Track",
+      "x": 1151,
+      "y": 783,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom's Neutral Influence/1",
+      "image": "Neutral Influence.png",
+      "board": "Influence Track",
+      "x": 448,
+      "y": 783,
+      "zone": null
+    },
+    {
+      "name": "France's Neutral Influence/1",
+      "image": "Neutral Influence.png",
+      "board": "Influence Track",
+      "x": 684,
+      "y": 783,
+      "zone": null
+    },
+    {
+      "name": "Ottoman's Neutral Influence/1",
+      "image": "Neutral Influence.png",
+      "board": "Influence Track",
+      "x": 1389,
+      "y": 783,
+      "zone": null
+    },
+    {
+      "name": "Italy's Neutral Influence/1",
+      "image": "Neutral Influence.png",
+      "board": "Influence Track",
+      "x": 1630,
+      "y": 783,
+      "zone": null
+    },
+    {
+      "name": "Germany Influence",
+      "image": "GE Influence ally.png",
+      "board": "Germany",
+      "x": 785,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Germany Influence",
+      "image": "GE Influence.png",
+      "board": "Germany",
+      "x": 785,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "German EXP Force/1",
+      "image": "GE EXP Force.png",
+      "board": "Germany",
+      "x": 444,
+      "y": 2297,
+      "zone": null
+    },
+    {
+      "name": "1 Turn Truce - Germany/1",
+      "image": "GE 1 Turn Truce.png",
+      "board": "Germany",
+      "x": 1081,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Germany War Budget/1",
+      "image": "GE War Budget.png",
+      "board": "Germany",
+      "x": 1081,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "Germany/1",
+      "image": "GE Elite Col Inf.png",
+      "board": "Germany",
+      "x": 785,
+      "y": 2297,
+      "zone": null
+    },
+    {
+      "name": "Joint Naval OP. - Germany/",
+      "image": "GE Joint Naval Op.png",
+      "board": "Germany",
+      "x": 1371,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Industralization attempt Marker/0",
+      "image": "IND Card.png",
+      "board": "Germany",
+      "x": 1754,
+      "y": 2116,
+      "zone": null
+    },
+    {
+      "name": "CP Chain. - Germany/1",
+      "image": "GE CP Chain.png",
+      "board": "Germany",
+      "x": 1081,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "German Power Projection/0",
+      "image": "GE Power Projection.png",
+      "board": "Germany",
+      "x": 1405,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "German Army/1",
+      "image": "Army GE.png",
+      "board": "Germany",
+      "x": 170,
+      "y": 1720,
+      "zone": null
+    },
+    {
+      "name": "German Reserve Army/1",
+      "image": "Army GE.png",
+      "board": "Germany",
+      "x": 1371,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Germany Squadron/1",
+      "image": "Sq GE.png",
+      "board": "Germany",
+      "x": 484,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "Germany Dreadnought/1",
+      "image": "Dn GE.png",
+      "board": "Germany",
+      "x": 484,
+      "y": 1952,
+      "zone": null
+    },
+    {
+      "name": "German Reserve Army/1",
+      "image": "Army GE.png",
+      "board": "Germany",
+      "x": 2092,
+      "y": 1445,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS Germany/",
+      "image": "GE Elite CORPS.png",
+      "board": "Germany",
+      "x": 444,
+      "y": 2124,
+      "zone": null
+    },
+    {
+      "name": "Germany Stability/",
+      "image": "GE Stability.png",
+      "board": "Germany",
+      "x": 629,
+      "y": 531,
+      "zone": null
+    },
+    {
+      "name": "Germany Manpower/",
+      "image": "GE Manpower.png",
+      "board": "Germany",
+      "x": 483,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Germany Industry/",
+      "image": "GE Industry.png",
+      "board": "Germany",
+      "x": 328,
+      "y": 1055,
+      "zone": null
+    },
+    {
+      "name": "Germany Territorial Keys/",
+      "image": "GE Keys.png",
+      "board": "Germany",
+      "x": 930,
+      "y": 1303,
+      "zone": null
+    },
+    {
+      "name": "Germany Colonial Keys/",
+      "image": "GE Colonial Keys.png",
+      "board": "Germany",
+      "x": 1428,
+      "y": 1300,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 213,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 465,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-3/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 717,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-4/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 967,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-5/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 1217,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-6/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 1474,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 213,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 465,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-3/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 717,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-4/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 967,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-5/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 1217,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-6/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 1474,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-7/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 213,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-8/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 465,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-9/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 717,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-10/",
+      "image": "Button Draw-Card.png",
+      "board": "Germany-Cards",
+      "x": 967,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 1/",
+      "image": "Button Home-Card.png",
+      "board": "Germany-Cards",
+      "x": 1217,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 2/",
+      "image": "Button Home-Card.png",
+      "board": "Germany-Cards",
+      "x": 1474,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-1/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 213,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-2/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 465,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-3/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 717,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-4/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 967,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-5/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 1217,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-6/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 1474,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-1/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 213,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-2/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 465,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-3/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 717,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-4/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 967,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-5/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 1217,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-6/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 1474,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-7/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 213,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-8/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 465,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-9/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 717,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-10/",
+      "image": "Button Draw-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 967,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 1/",
+      "image": "Button Home-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 1217,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 2/",
+      "image": "Button Home-Card.png",
+      "board": "United Kingdom-Cards",
+      "x": 1474,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-1/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 213,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-2/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 465,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-3/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 717,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-4/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 967,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-5/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 1217,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-6/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 1474,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-1/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 213,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-2/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 465,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-3/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 717,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-4/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 967,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-5/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 1217,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-6/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 1474,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-7/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 213,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-8/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 465,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-9/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 717,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-10/",
+      "image": "Button Draw-Card.png",
+      "board": "France-Cards",
+      "x": 967,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 2/",
+      "image": "Button Home-Card.png",
+      "board": "France-Cards",
+      "x": 1474,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 1/",
+      "image": "Button Home-Card.png",
+      "board": "France-Cards",
+      "x": 1217,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 213,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 465,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-3/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 717,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-4/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 967,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-5/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 1217,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-6/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 1474,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 213,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 465,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-3/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 717,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-4/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 967,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-5/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 1217,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-6/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 1474,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-7/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 213,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-8/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 465,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-9/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 717,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-10/",
+      "image": "Button Draw-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 967,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 1/",
+      "image": "Button Home-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 1217,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 2/",
+      "image": "Button Home-Card.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 1474,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Dual Monarchy/",
+      "image": "Button Dual Monarchy.png",
+      "board": "Austria-Hungary-Cards",
+      "x": 1474,
+      "y": 1122,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 213,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 465,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-3/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 717,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-4/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 967,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-5/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 1217,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-6/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 1474,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 213,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 465,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-3/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 717,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-4/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 967,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-5/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 1217,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-6/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 1474,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-7/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 213,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-8/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 465,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-9/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 717,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-10/",
+      "image": "Button Draw-Card.png",
+      "board": "Russia-Cards",
+      "x": 967,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 1/",
+      "image": "Button Home-Card.png",
+      "board": "Russia-Cards",
+      "x": 1217,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 2/",
+      "image": "Button Home-Card.png",
+      "board": "Russia-Cards",
+      "x": 1474,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 213,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 465,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-3/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 717,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-4/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 967,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-5/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 1217,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw Obj-6/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 1474,
+      "y": 320,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 213,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 465,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-3/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 717,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-4/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 967,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-5/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 1217,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-6/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 1474,
+      "y": 1052,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-7/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 213,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-8/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 465,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-9/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 717,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-10/",
+      "image": "Button Draw-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 967,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 1/",
+      "image": "Button Home-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 1217,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw Home 2/",
+      "image": "Button Home-Card.png",
+      "board": "Ottoman-Cards",
+      "x": 1474,
+      "y": 1452,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-1/",
+      "image": "Button Draw-Card.png",
+      "board": "Italy Hand",
+      "x": 213,
+      "y": 350,
+      "zone": null
+    },
+    {
+      "name": "Draw ACT-2/",
+      "image": "Button Draw-Card.png",
+      "board": "Italy Hand",
+      "x": 465,
+      "y": 350,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 26/",
+      "image": "Card AU Objective 26.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 25/",
+      "image": "Card AU Objective 25.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 32/",
+      "image": "Card AU Objective 32.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 31/",
+      "image": "Card AU Objective 31.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 33/",
+      "image": "Card AU Objective 33.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 28/",
+      "image": "Card AU Objective 28.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 27/",
+      "image": "Card AU Objective 27.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 30/",
+      "image": "Card AU Objective 30.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card AU Objective 29/",
+      "image": "Card AU Objective 29.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Kaiserreich/null",
+      "image": "Home Card 8 AU.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "Habsburg Dynasty/null",
+      "image": "Home Card 7 AU.png",
+      "board": "Card Decks",
+      "x": 225,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "Card FR Objective 20/",
+      "image": "Card FR Objective 20.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card FR Objective 19/",
+      "image": "Card FR Objective 19.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card FR Objective 18/",
+      "image": "Card FR Objective 18.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card FR Objective 17/",
+      "image": "Card FR Objective 17.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 270,
+      "zone": "Action Cards"
+    },
+    {
+      "name": "Aux Armes, Citoyens!/null",
+      "image": "Home Card 6 FR.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 720,
+      "zone": "Action Cards"
+    },
+    {
+      "name": "Card GE Objective 1/",
+      "image": "Card GE Objective 1.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card FR Objective 24/",
+      "image": "Card FR Objective 24.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 270,
+      "zone": "Action Cards"
+    },
+    {
+      "name": "The City of Lights/null",
+      "image": "Home Card 5 FR.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 720,
+      "zone": "Action Cards"
+    },
+    {
+      "name": "Card FR Objective 23/",
+      "image": "Card FR Objective 23.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card FR Objective 21/",
+      "image": "Card FR Objective 21.png",
+      "board": "Card Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Otto von Bismarck/null",
+      "image": "Home Card 1 GE.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "Card GE Objective 6/",
+      "image": "Card GE Objective 6.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card GE Objective 5/",
+      "image": "Card GE Objective 5.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card GE Objective 8/",
+      "image": "Card GE Objective 8.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card GE Objective 7/",
+      "image": "Card GE Objective 7.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card GE Objective 2/",
+      "image": "Card GE Objective 2.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card GE Objective 4/",
+      "image": "Card GE Objective 4.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card GE Objective 3/",
+      "image": "Card GE Objective 3.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card OT Objective 48/",
+      "image": "Card OT Objective 48.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card OT Objective 47/",
+      "image": "Card OT Objective 47.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card OT Objective 44/",
+      "image": "Card OT Objective 44.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card OT Objective 43/",
+      "image": "Card OT Objective 43.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card OT Objective 46/",
+      "image": "Card OT Objective 46.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card OT Objective 45/",
+      "image": "Card OT Objective 45.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "German General Staff/null",
+      "image": "Home Card 2 GE.png",
+      "board": "Card Decks",
+      "x": 825,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "Card OT Objective 42/",
+      "image": "Card OT Objective 42.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card RU Objective 36/",
+      "image": "Card RU Objective 36.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card RU Objective 35/",
+      "image": "Card RU Objective 35.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card RU Objective 34/",
+      "image": "Card RU Objective 34.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Jihad/null",
+      "image": "Home Card 12 OT.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "Modernization/null",
+      "image": "Home Card 11 OT.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "Card OT Objective 49/",
+      "image": "Card OT Objective 49.png",
+      "board": "Card Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Russo-Turkish Wars/null",
+      "image": "Home Card 9 RU.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "God Save the Tsar/null",
+      "image": "Home Card 10 RU.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "Card RU Objective 40/",
+      "image": "Card RU Objective 40.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card RU Objective 39/",
+      "image": "Card RU Objective 39.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card RU Objective 41/",
+      "image": "Card RU Objective 41.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card RU Objective 38/",
+      "image": "Card RU Objective 38.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card RU Objective 37/",
+      "image": "Card RU Objective 37.png",
+      "board": "Card Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card UK Objective 16/",
+      "image": "Card UK Objective 16.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card UK Objective 15/",
+      "image": "Card UK Objective 15.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card UK Objective 12/",
+      "image": "Card UK Objective 12.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card UK Objective 11/",
+      "image": "Card UK Objective 11.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card UK Objective 14/",
+      "image": "Card UK Objective 14.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card UK Objective 13/",
+      "image": "Card UK Objective 13.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card UK Objective 10/",
+      "image": "Card UK Objective 10.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Card UK Objective 9/",
+      "image": "Card UK Objective 9.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Sun Never Sets/null",
+      "image": "Home Card 3 UK.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "Balance of Power/null",
+      "image": "Home Card 4 UK.png",
+      "board": "Card Decks",
+      "x": 1725,
+      "y": 720,
+      "zone": null
+    },
+    {
+      "name": "UK Dreadnought/1",
+      "image": "Dn UK 3.png",
+      "board": "United Kingdom",
+      "x": 484,
+      "y": 1952,
+      "zone": null
+    },
+    {
+      "name": "UK EXP Force/1",
+      "image": "UK Exp Force.png",
+      "board": "United Kingdom",
+      "x": 444,
+      "y": 2297,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS France/",
+      "image": "UK Elite Corps.png",
+      "board": "United Kingdom",
+      "x": 444,
+      "y": 2124,
+      "zone": null
+    },
+    {
+      "name": "FP Power Projection 1st/Main Map",
+      "image": "FP Power Projection.png",
+      "board": "United Kingdom",
+      "x": 1627,
+      "y": 1110,
+      "zone": null
+    },
+    {
+      "name": "UK Influence",
+      "image": "UK Influence.png",
+      "board": "United Kingdom",
+      "x": 785,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "UK Influence",
+      "image": "UK Influence Blue.png",
+      "board": "United Kingdom",
+      "x": 785,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "1 Turn Truce - UK/1",
+      "image": "UK 1 Turn Truce.png",
+      "board": "United Kingdom",
+      "x": 1081,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "CP Chain. - United Kingdom/1",
+      "image": "UK CP Chain.png",
+      "board": "United Kingdom",
+      "x": 1081,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "UK War Budget/1",
+      "image": "UK War Budget.png",
+      "board": "United Kingdom",
+      "x": 1081,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "UK Elite Col. EF/1",
+      "image": "UK Exp Force 1 DRM.png",
+      "board": "United Kingdom",
+      "x": 785,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Industralization attempt Marker/0",
+      "image": "IND Card.png",
+      "board": "United Kingdom",
+      "x": 1754,
+      "y": 2116,
+      "zone": null
+    },
+    {
+      "name": "Joint Naval OP. - UK/",
+      "image": "UK Joint Naval Op.png",
+      "board": "United Kingdom",
+      "x": 1371,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Indian Army/1",
+      "image": "Army UK IND.png",
+      "board": "United Kingdom",
+      "x": 170,
+      "y": 2003,
+      "zone": null
+    },
+    {
+      "name": "UK Army/1",
+      "image": "Army UK.png",
+      "board": "United Kingdom",
+      "x": 170,
+      "y": 1720,
+      "zone": null
+    },
+    {
+      "name": "UK Squadron/1",
+      "image": "Sq UK 2.png",
+      "board": "United Kingdom",
+      "x": 484,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "UK CW Army/1",
+      "image": "Army UK CW.png",
+      "board": "United Kingdom",
+      "x": 170,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom Stability/1",
+      "image": "UK Stability.png",
+      "board": "United Kingdom",
+      "x": 663,
+      "y": 594,
+      "zone": null
+    },
+    {
+      "name": "UK Colonial Manpower/1",
+      "image": "UK Colonial Manpower.png",
+      "board": "United Kingdom",
+      "x": 367,
+      "y": 851,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom Industry/1",
+      "image": "UK Industry.png",
+      "board": "United Kingdom",
+      "x": 516,
+      "y": 1048,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom Territorial Keys/",
+      "image": "UK Territorial Keys.png",
+      "board": "United Kingdom",
+      "x": 513,
+      "y": 1434,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom Colonial Keys/",
+      "image": "UK Colonial Keys.png",
+      "board": "United Kingdom",
+      "x": 1752,
+      "y": 1276,
+      "zone": "Manpower"
+    },
+    {
+      "name": "India Stable/1",
+      "image": "India Stable.png",
+      "board": "United Kingdom",
+      "x": 1461,
+      "y": 1112,
+      "zone": "Manpower"
+    },
+    {
+      "name": "United Kingdom Manpower/1",
+      "image": "UK Manpower.png",
+      "board": "United Kingdom",
+      "x": 664,
+      "y": 800,
+      "zone": "Manpower"
+    },
+    {
+      "name": "India Permanent Fort/1",
+      "image": "Fort 1 ind.png",
+      "board": "United Kingdom",
+      "x": 1402,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "French Army/1",
+      "image": "Army France.png",
+      "board": "France",
+      "x": 170,
+      "y": 1720,
+      "zone": null
+    },
+    {
+      "name": "French Reserve Army/1",
+      "image": "Army France.png",
+      "board": "France",
+      "x": 1371,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "French Dreadnought/1",
+      "image": "Dn FR 3.png",
+      "board": "France",
+      "x": 484,
+      "y": 1952,
+      "zone": null
+    },
+    {
+      "name": "French Squadron/1",
+      "image": "Sq FR 2.png",
+      "board": "France",
+      "x": 484,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "French EXP Force/1",
+      "image": "FR Exp Force.png",
+      "board": "France",
+      "x": 444,
+      "y": 2297,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS France/",
+      "image": "FR Elite Corps.png",
+      "board": "France",
+      "x": 444,
+      "y": 2124,
+      "zone": null
+    },
+    {
+      "name": "France Influence",
+      "image": "FR Influence Blue.png",
+      "board": "France",
+      "x": 785,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "French War Budget/1",
+      "image": "FR War Budget.png",
+      "board": "France",
+      "x": 1081,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "1 Turn Truce - France/1",
+      "image": "Fr 1 Turn Truce.png",
+      "board": "France",
+      "x": 1081,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "France Elite Col. EF/1",
+      "image": "FR Elite Col EF.png",
+      "board": "France",
+      "x": 170,
+      "y": 2275,
+      "zone": null
+    },
+    {
+      "name": "CP Chain. - France/1",
+      "image": "FR CP Chain.png",
+      "board": "France",
+      "x": 1081,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Industralization attempt Marker/0",
+      "image": "IND Card.png",
+      "board": "France",
+      "x": 1754,
+      "y": 2116,
+      "zone": null
+    },
+    {
+      "name": "Joint Naval OP. - France/",
+      "image": "FR Joint Naval Op.png",
+      "board": "France",
+      "x": 1371,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "France Influence",
+      "image": "FR Influence.png",
+      "board": "France",
+      "x": 785,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "France Stability/1",
+      "image": "FR Stability.png",
+      "board": "France",
+      "x": 630,
+      "y": 538,
+      "zone": null
+    },
+    {
+      "name": "France Stability/1",
+      "image": "FR Second Empire.png",
+      "board": "France",
+      "x": 1490,
+      "y": 831,
+      "zone": null
+    },
+    {
+      "name": "France Manpower/1",
+      "image": "FR Manpower.png",
+      "board": "France",
+      "x": 782,
+      "y": 794,
+      "zone": null
+    },
+    {
+      "name": "France Industry/1",
+      "image": "FR Industry.png",
+      "board": "France",
+      "x": 325,
+      "y": 1056,
+      "zone": null
+    },
+    {
+      "name": "France Territorial Keys/",
+      "image": "FR Keys.png",
+      "board": "France",
+      "x": 324,
+      "y": 1462,
+      "zone": null
+    },
+    {
+      "name": "France Colonial Keys/",
+      "image": "FR Colonial Keys.png",
+      "board": "France",
+      "x": 1423,
+      "y": 1299,
+      "zone": null
+    },
+    {
+      "name": "Second Empire/",
+      "image": "French Arrow.png",
+      "board": "France",
+      "x": 1343,
+      "y": 494,
+      "zone": null
+    },
+    {
+      "name": "City of Light/1",
+      "image": "City of Lights 0.jpg",
+      "board": "France",
+      "x": 2362,
+      "y": 632,
+      "zone": null
+    },
+    {
+      "name": "Austrian Army/1",
+      "image": "Army AU.png",
+      "board": "Austria-Hungary",
+      "x": 170,
+      "y": 1720,
+      "zone": null
+    },
+    {
+      "name": "Austrian Army/1",
+      "image": "Army AU.png",
+      "board": "Austria-Hungary",
+      "x": 170,
+      "y": 1720,
+      "zone": "St Petersburg"
+    },
+    {
+      "name": "Austrian Reserve Army/1",
+      "image": "Army AU.png",
+      "board": "Austria-Hungary",
+      "x": 1371,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Joint Naval OP. - Austria-Hungary/1",
+      "image": "AU Joint Naval Op.png",
+      "board": "Austria-Hungary",
+      "x": 1371,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Industralization attempt Marker/0",
+      "image": "IND Card.png",
+      "board": "Austria-Hungary",
+      "x": 1754,
+      "y": 2116,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Power Projection/0",
+      "image": "AU Power Projection.png",
+      "board": "Austria-Hungary",
+      "x": 1405,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary NAR Squadron/1",
+      "image": "Sq AU NAR 2.png",
+      "board": "Austria-Hungary",
+      "x": 484,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary NAR Squadron/1",
+      "image": "Sq AU NAR 2.png",
+      "board": "Austria-Hungary",
+      "x": 484,
+      "y": 1711,
+      "zone": "St Petersburg"
+    },
+    {
+      "name": "Austria-Hungary Squadron/1",
+      "image": "Sq AU 2.png",
+      "board": "Austria-Hungary",
+      "x": 484,
+      "y": 1711,
+      "zone": "St Petersburg"
+    },
+    {
+      "name": "Austria-Hungary NAR Dreadnought/1",
+      "image": "Dn AU 3 NAR.png",
+      "board": "Austria-Hungary",
+      "x": 484,
+      "y": 1952,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS France/",
+      "image": "AU Elite Corps.png",
+      "board": "Austria-Hungary",
+      "x": 444,
+      "y": 2124,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Dreadnought/1",
+      "image": "Dn AU 3.png",
+      "board": "Austria-Hungary",
+      "x": 484,
+      "y": 1952,
+      "zone": null
+    },
+    {
+      "name": "Austrian EXP Force/1",
+      "image": "AU Exp Force.png",
+      "board": "Austria-Hungary",
+      "x": 444,
+      "y": 2297,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Influence",
+      "image": "AU Ally B.png",
+      "board": "Austria-Hungary",
+      "x": 785,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Influence",
+      "image": "AU Influence.png",
+      "board": "Austria-Hungary",
+      "x": 785,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "1 Turn Truce - Austria/1",
+      "image": "AU 1 Turn Truce.png",
+      "board": "Austria-Hungary",
+      "x": 1081,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "CP Chain. - Austria-Hungary/1",
+      "image": "AU CP Chain.png",
+      "board": "Austria-Hungary",
+      "x": 1081,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary War Budget/1",
+      "image": "AU War Budget.png",
+      "board": "Austria-Hungary",
+      "x": 1081,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungarian Stability/",
+      "image": "AU Stability.png",
+      "board": "Austria-Hungary",
+      "x": 632,
+      "y": 538,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungarian Manpower/",
+      "image": "AU Manpower.png",
+      "board": "Austria-Hungary",
+      "x": 781,
+      "y": 796,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungarian Industry/",
+      "image": "AU Industry.png",
+      "board": "Austria-Hungary",
+      "x": 325,
+      "y": 1056,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungarian Territorial Keys/",
+      "image": "AU Keys.png",
+      "board": "Austria-Hungary",
+      "x": 330,
+      "y": 1465,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Rights",
+      "image": "AU_Citz_placeholder.png",
+      "board": "Austria-Hungary",
+      "x": 1442,
+      "y": 1034,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Rights",
+      "image": "AU_Citz_placeholder.png",
+      "board": "Austria-Hungary",
+      "x": 1588,
+      "y": 1034,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Rights",
+      "image": "AU_Citz_placeholder.png",
+      "board": "Austria-Hungary",
+      "x": 1442,
+      "y": 1180,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Rights",
+      "image": "AU_Citz_placeholder.png",
+      "board": "Austria-Hungary",
+      "x": 1588,
+      "y": 1180,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Rights",
+      "image": "AU_Citz_placeholder.png",
+      "board": "Austria-Hungary",
+      "x": 1442,
+      "y": 1324,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Rights",
+      "image": "AU_Citz_placeholder.png",
+      "board": "Austria-Hungary",
+      "x": 1588,
+      "y": 1324,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Rights",
+      "image": "AU_Citz_placeholder.png",
+      "board": "Austria-Hungary",
+      "x": 1442,
+      "y": 1469,
+      "zone": null
+    },
+    {
+      "name": "Austria-Hungary Rights",
+      "image": "AU_Citz_placeholder.png",
+      "board": "Austria-Hungary",
+      "x": 1588,
+      "y": 1469,
+      "zone": null
+    },
+    {
+      "name": "Russia War Budget/1",
+      "image": "RU War Budget.png",
+      "board": "Russia",
+      "x": 1081,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "1 Turn Truce - Russia/1",
+      "image": "RU 1 turn truce.png",
+      "board": "Russia",
+      "x": 1081,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Elite Col EF Russia/1",
+      "image": "RU Elite Col EF.png",
+      "board": "Russia",
+      "x": 785,
+      "y": 2297,
+      "zone": null
+    },
+    {
+      "name": "Joint Naval OP. - Russia/1",
+      "image": "RU Joint Naval Op.png",
+      "board": "Russia",
+      "x": 1371,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Industralization attempt Marker/0",
+      "image": "IND Card.png",
+      "board": "Russia",
+      "x": 1754,
+      "y": 2116,
+      "zone": null
+    },
+    {
+      "name": "CP Chain. - Germany/1",
+      "image": "RU CP Chain.png",
+      "board": "Russia",
+      "x": 1081,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Russian Reserve Army/1",
+      "image": "Army RU.png",
+      "board": "Russia",
+      "x": 1371,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Russian Reserve Army/1",
+      "image": "Army RU.png",
+      "board": "Russia",
+      "x": 2057,
+      "y": 1412,
+      "zone": null
+    },
+    {
+      "name": "Russia Squadron/1",
+      "image": "RU Sq.png",
+      "board": "Russia",
+      "x": 484,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "Russia Dreadnought/1",
+      "image": "RU Dn.png",
+      "board": "Russia",
+      "x": 484,
+      "y": 1952,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS Russia/",
+      "image": "RU Elite Corp.png",
+      "board": "Russia",
+      "x": 444,
+      "y": 2124,
+      "zone": null
+    },
+    {
+      "name": "Russia Influence",
+      "image": "RU Influence.png",
+      "board": "Russia",
+      "x": 785,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "Russian EXP Force/1",
+      "image": "RU Exp Force.png",
+      "board": "Russia",
+      "x": 444,
+      "y": 2297,
+      "zone": null
+    },
+    {
+      "name": "Russia Influence",
+      "image": "Ru Influence Blue.png",
+      "board": "Russia",
+      "x": 785,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Russian Army/1",
+      "image": "Army RU.png",
+      "board": "Russia",
+      "x": 170,
+      "y": 1720,
+      "zone": null
+    },
+    {
+      "name": "Russia Stability/1",
+      "image": "RU Stability.png",
+      "board": "Russia",
+      "x": 630,
+      "y": 528,
+      "zone": null
+    },
+    {
+      "name": "Trans-Siberian Railroad/1",
+      "image": "Mkr- Trans-Siberian RR x.png",
+      "board": "Russia",
+      "x": 1434,
+      "y": 1055,
+      "zone": null
+    },
+    {
+      "name": "Russia Manpower/1",
+      "image": "RU Manpower.png",
+      "board": "Russia",
+      "x": 926,
+      "y": 777,
+      "zone": null
+    },
+    {
+      "name": "Russia Industry/1",
+      "image": "RU Industry.png",
+      "board": "Russia",
+      "x": 187,
+      "y": 1030,
+      "zone": null
+    },
+    {
+      "name": "Russia Total Keys/",
+      "image": "RU Territorial Keys.png",
+      "board": "Russia",
+      "x": 186,
+      "y": 1431,
+      "zone": null
+    },
+    {
+      "name": "FP Balkans/Main Map",
+      "image": "FP Balkans.png",
+      "board": "Ottoman",
+      "x": 1475,
+      "y": 1062,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Arab Reserve Army/1",
+      "image": "OT Arab Army.png",
+      "board": "Ottoman",
+      "x": 1371,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Reserve Army/1",
+      "image": "OT Army.png",
+      "board": "Ottoman",
+      "x": 1371,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Arab Army/1",
+      "image": "OT Arab Army.png",
+      "board": "Ottoman",
+      "x": 175,
+      "y": 2002,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Army/1",
+      "image": "OT Army.png",
+      "board": "Ottoman",
+      "x": 170,
+      "y": 1720,
+      "zone": null
+    },
+    {
+      "name": "Joint Naval OP. - Ottoman/1",
+      "image": "OT Joint Naval Op.png",
+      "board": "Ottoman",
+      "x": 1371,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Jihad/1",
+      "image": "Jihad.png",
+      "board": "Ottoman",
+      "x": 785,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Industralization attempt Marker/0",
+      "image": "IND Card.png",
+      "board": "Ottoman",
+      "x": 1754,
+      "y": 2116,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Dreadnought NAR/1",
+      "image": "OT Dn NAR B.png",
+      "board": "Ottoman",
+      "x": 484,
+      "y": 1952,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Squadron NAR/1",
+      "image": "OT Sq NAR.png",
+      "board": "Ottoman",
+      "x": 484,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Squadron/1",
+      "image": "OT Sq.png",
+      "board": "Ottoman",
+      "x": 484,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Dreadnought/1",
+      "image": "OT Dn.png",
+      "board": "Ottoman",
+      "x": 484,
+      "y": 1952,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Influence",
+      "image": "OT Influence.png",
+      "board": "Ottoman",
+      "x": 785,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "Ottoman EXP Force/1",
+      "image": "OT Exp Force.png",
+      "board": "Ottoman",
+      "x": 444,
+      "y": 2297,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS Ottoman/",
+      "image": "OT Elite Corps.png",
+      "board": "Ottoman",
+      "x": 444,
+      "y": 2124,
+      "zone": null
+    },
+    {
+      "name": "Elite CORPS Ottoman YT/",
+      "image": "OT Elite Corps YT.png",
+      "board": "Ottoman",
+      "x": 444,
+      "y": 2124,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Influence",
+      "image": "OT Ally B.png",
+      "board": "Ottoman",
+      "x": 785,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Ottoman War Budget/1",
+      "image": "OT War Budget.png",
+      "board": "Ottoman",
+      "x": 1081,
+      "y": 1721,
+      "zone": null
+    },
+    {
+      "name": "1 Turn Truce - Ottoman/1",
+      "image": "OT 1 Turn Truce.png",
+      "board": "Ottoman",
+      "x": 1081,
+      "y": 1962,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Power Projection/0",
+      "image": "OT Power Projection.png",
+      "board": "Ottoman",
+      "x": 1405,
+      "y": 1711,
+      "zone": null
+    },
+    {
+      "name": "CP Chain. - Ottoman/1",
+      "image": "OT CP Chain.png",
+      "board": "Ottoman",
+      "x": 1081,
+      "y": 2285,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Stability/",
+      "image": "Ot Stability.png",
+      "board": "Ottoman",
+      "x": 631,
+      "y": 534,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Industry/",
+      "image": "Ot Industry.png",
+      "board": "Ottoman",
+      "x": 182,
+      "y": 1046,
+      "zone": null
+    },
+    {
+      "name": "Ottoman All Other Keys/",
+      "image": "OT all other Keys.png",
+      "board": "Ottoman",
+      "x": 180,
+      "y": 1455,
+      "zone": null
+    },
+    {
+      "name": "Arab Keys/",
+      "image": "Ot Arab Keys.png",
+      "board": "Ottoman",
+      "x": 1580,
+      "y": 1455,
+      "zone": "Manpower"
+    },
+    {
+      "name": "Arab Manpower/",
+      "image": "OT Arab Manpower.png",
+      "board": "Ottoman",
+      "x": 331,
+      "y": 767,
+      "zone": "Manpower"
+    },
+    {
+      "name": "Turkish Manpower/",
+      "image": "OT Turkish Manpower.png",
+      "board": "Ottoman",
+      "x": 631,
+      "y": 811,
+      "zone": "Manpower"
+    },
+    {
+      "name": "Great War Card 1/null",
+      "image": "Great War Card 1.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 10/null",
+      "image": "Great War Card 10.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 3/null",
+      "image": "Great War Card 3.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 4/null",
+      "image": "Great War Card 4.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 5/null",
+      "image": "Great War Card 5.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 6/null",
+      "image": "Great War Card 6.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 2/null",
+      "image": "Great War Card 2.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 7/null",
+      "image": "Great War Card 7.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 8/null",
+      "image": "Great War Card 8.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 9/null",
+      "image": "Great War Card 9.png",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Economic Panic/",
+      "image": "Action Card 73_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Berlin Conference/",
+      "image": "Action Card 74_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Second Industrial Revolution/",
+      "image": "Action Card 75_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Zulus/",
+      "image": "Action Card 76_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Urabi Revolt/",
+      "image": "Action Card 71_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Meiji Restoration/",
+      "image": "Action Card 72_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Indian Nationalism/",
+      "image": "Action Card 77_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Crack Colonial Troops/",
+      "image": "Action Card 78_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Loose Grip/",
+      "image": "Action Card 79_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Machine Guns/",
+      "image": "Action Card 80_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Wilhelm II/",
+      "image": "Action Card 81_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Quagmire/",
+      "image": "Action Card 83_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Nationalist Uprising/",
+      "image": "Action Card 84_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Hungarian Obstinacy/",
+      "image": "Action Card 85_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Conquest of Central Asia/",
+      "image": "Action Card 81_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Boer Wars/",
+      "image": "Action Card 86_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Mahdist War/",
+      "image": "Action Card 87_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Our Place in the Sun/",
+      "image": "Action Card 88_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Naval Arms race/",
+      "image": "Action Card 92_result.jpg",
+      "board": "Play Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Nicholas II/",
+      "image": "Action Card 93_result.jpg",
+      "board": "Play Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "The Boxer Rebellion/",
+      "image": "Action Card 94_result.jpg",
+      "board": "Play Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Cossacks/",
+      "image": "Action Card 89_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "The Eiffel Tower/",
+      "image": "Action Card 90_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Hydraulic Recoil/",
+      "image": "Action Card 91_result.jpg",
+      "board": "Play Decks",
+      "x": 825,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Death of Franz Joseph/",
+      "image": "Action Card 95_result.jpg",
+      "board": "Play Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Empire of the Sun/",
+      "image": "Action Card 96_result.jpg",
+      "board": "Play Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "The Black Hand/",
+      "image": "Action Card 101_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Moroccan Crisis/",
+      "image": "Action Card 102_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Bosnian Crisis/",
+      "image": "Action Card 103_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "The Funeral of Edward VII/",
+      "image": "Action Card 104_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Dreadnaught/",
+      "image": "Action Card 99_result.jpg",
+      "board": "Play Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "The Balkan Wars/",
+      "image": "Action Card 100_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Diplomatic Recognition/",
+      "image": "Action Card 97_result.jpg",
+      "board": "Play Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Dreyfus Affair/",
+      "image": "Action Card 98_result.jpg",
+      "board": "Play Decks",
+      "x": 1125,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Franz Ferdinand/",
+      "image": "Action Card 112_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "High Seas Fleet/",
+      "image": "Action Card 108_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Revolution of 1905/",
+      "image": "Action Card 109_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Extreme Militarism/",
+      "image": "Action Card 110_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "The Alliance System/",
+      "image": "Action Card 111_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "Impulsive Ruler/",
+      "image": "Action Card 105_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "The Young Turks/",
+      "image": "Action Card 106_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "World's Fair/",
+      "image": "Action Card 107_result.jpg",
+      "board": "Play Decks",
+      "x": 1425,
+      "y": 270,
+      "zone": null
+    },
+    {
+      "name": "National Railroad/",
+      "image": "Action Card 21_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "New Administration/",
+      "image": "Action Card 22_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Assassination!/",
+      "image": "Action Card 17_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Socialist Musings/",
+      "image": "Action Card 18_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Skilled Diplomats/",
+      "image": "Action Card 19_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Diplomatic Incident/",
+      "image": "Action Card 20_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Colonial Conflict/",
+      "image": "Action Card 13_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Colonial Conflict/",
+      "image": "Action Card 14_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Shifting Alliances/",
+      "image": "Action Card 15_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Liberal Reforms/",
+      "image": "Action Card 16_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Secret Treaty/",
+      "image": "Action Card 64_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Indian Ocean Arms Trade/",
+      "image": "Action Card 65_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Damn the Torpedoes/",
+      "image": "Action Card 66_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "International Conference/",
+      "image": "Action Card 67_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Rapid Mobilization/",
+      "image": "Action Card 63_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "The United States/",
+      "image": "Action Card 68_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Concert of Europe/",
+      "image": "Action Card 69_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Papal Influence/",
+      "image": "Action Card 70_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "P3 Important Secondary Power/",
+      "image": "Action Card P3.jpg",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "P2 Teddy Roosevelt/",
+      "image": "Action Card P2.jpg",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "P1 At Any Cost/",
+      "image": "Action Card P1.jpg",
+      "board": "Play Decks",
+      "x": 225,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "New Rifles/",
+      "image": "Action Card 23_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "American Civil War/",
+      "image": "Action Card 32_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Power Projection/",
+      "image": "Action Card 28_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Economic Boom/",
+      "image": "Action Card 29_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Italy/",
+      "image": "Action Card 30_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Graveyard of Empires/",
+      "image": "Action Card 31_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "New Artillery/",
+      "image": "Action Card 24_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Divide and Conquer/",
+      "image": "Action Card 25_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Chinese Intervention/",
+      "image": "Action Card 26_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Foreign Investment/",
+      "image": "Action Card 27_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Sepoy Mutiny/",
+      "image": "Action Card 33_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Decline of the Qing/",
+      "image": "Action Card 34_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Uprising in Ireland/",
+      "image": "Action Card 39_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "British Trade/",
+      "image": "Action Card 40_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Prussian Military Tradidtion/",
+      "image": "Action Card 41_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "The Ruhr/",
+      "image": "Action Card 42_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Sick Man of Europe/",
+      "image": "Action Card 35_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Rebellions in China/",
+      "image": "Action Card 36_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "The Great Game/",
+      "image": "Action Card 37_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "The Second Opium War/",
+      "image": "Action Card 38_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "At Any Cost/",
+      "image": "Action Card 43_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Paris Commune/",
+      "image": "Action Card 44_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Folie de Grandeur/",
+      "image": "Action Card 45_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Reforms of the 1860s/",
+      "image": "Action Card 50_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Polish Revolt/",
+      "image": "Action Card 51_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Eastern Orthodoxy/",
+      "image": "Action Card 52_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "French Intervention/",
+      "image": "Action Card 46_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "The Dual Monarchy/",
+      "image": "Action Card 47_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Multicultural Empire/",
+      "image": "Action Card 48_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "South German Confederation/",
+      "image": "Action Card 49_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Power Keg/",
+      "image": "Action Card 53_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Failed reforms/",
+      "image": "Action Card 54_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Suez Canal/",
+      "image": "Action Card 55_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Nationalism/",
+      "image": "Action Card 56_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Ironclads/",
+      "image": "Action Card 61_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Miscommunication/",
+      "image": "Action Card 62_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Impregnable/",
+      "image": "Action Card 57_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Siege Guns/",
+      "image": "Action Card 58_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Flank Attack/",
+      "image": "Action Card 59_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "Charge of the Light Brigade/",
+      "image": "Action Card 60_result.jpg",
+      "board": "Play Decks",
+      "x": 525,
+      "y": 790,
+      "zone": null
+    },
+    {
+      "name": "1870's/1870 Cards",
+      "image": "",
+      "board": "Play Decks",
+      "x": 520,
+      "y": 500,
+      "zone": null
+    },
+    {
+      "name": "1880's/",
+      "image": "",
+      "board": "Play Decks",
+      "x": 830,
+      "y": 500,
+      "zone": null
+    },
+    {
+      "name": "1890's/",
+      "image": "",
+      "board": "Play Decks",
+      "x": 1140,
+      "y": 500,
+      "zone": null
+    },
+    {
+      "name": "1900's/",
+      "image": "",
+      "board": "Play Decks",
+      "x": 1450,
+      "y": 500,
+      "zone": null
+    },
+    {
+      "name": "Action Card Deck/Action Card Deck",
+      "image": "",
+      "board": "Play Decks",
+      "x": 520,
+      "y": 1020,
+      "zone": null
+    },
+    {
+      "name": "Discard Pile/Discard Pile",
+      "image": "",
+      "board": "Play Decks",
+      "x": 830,
+      "y": 1020,
+      "zone": null
+    },
+    {
+      "name": "Current Card/Current Card",
+      "image": "",
+      "board": "Play Decks",
+      "x": 1120,
+      "y": 1020,
+      "zone": null
+    },
+    {
+      "name": "Action Randomizer/Action Randomizer",
+      "image": "",
+      "board": "Play Decks",
+      "x": 1428,
+      "y": 1020,
+      "zone": null
+    },
+    {
+      "name": "German War Budget/1",
+      "image": "GE War Budget.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 396,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom's  War Budget/1",
+      "image": "UK War Budget.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 396,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 8/null",
+      "image": "Great War Card 8.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 9/null",
+      "image": "Great War Card 9.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 6/null",
+      "image": "Great War Card 6.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 7/null",
+      "image": "Great War Card 7.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Ottoman  Stability/1",
+      "image": "Ot Stability.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 683,
+      "zone": null
+    },
+    {
+      "name": "Russian  Stability/1",
+      "image": "RU Stability.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 683,
+      "zone": null
+    },
+    {
+      "name": "Austria's  Stability/1",
+      "image": "AU Stability.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 683,
+      "zone": null
+    },
+    {
+      "name": "Ottoman  War Budget/1",
+      "image": "OT War Budget.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 396,
+      "zone": null
+    },
+    {
+      "name": "Itallian Stability/1",
+      "image": "It Stability.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 683,
+      "zone": null
+    },
+    {
+      "name": "USA Stability/1",
+      "image": "US Stability.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 683,
+      "zone": null
+    },
+    {
+      "name": "France's  War Budget/1",
+      "image": "FR War Budget.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 396,
+      "zone": null
+    },
+    {
+      "name": "Austria's  War Budget/1",
+      "image": "AU War Budget.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 396,
+      "zone": null
+    },
+    {
+      "name": "Russian  War Budget/1",
+      "image": "RU War Budget.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 396,
+      "zone": null
+    },
+    {
+      "name": "Austria's Manpower/1",
+      "image": "AU Manpower.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 939,
+      "zone": null
+    },
+    {
+      "name": "France's Manpower/1",
+      "image": "FR Manpower.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 939,
+      "zone": null
+    },
+    {
+      "name": "USA Manpower/1",
+      "image": "USA Manpower.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 939,
+      "zone": null
+    },
+    {
+      "name": "Itallian Manpower/1",
+      "image": "Italian Manpower.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 939,
+      "zone": null
+    },
+    {
+      "name": "Ottoman Manpower/1",
+      "image": "OT Turkish Manpower.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 939,
+      "zone": null
+    },
+    {
+      "name": "Russian Manpower/1",
+      "image": "RU Manpower.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 939,
+      "zone": null
+    },
+    {
+      "name": "France's  Stability/1",
+      "image": "FR Stability.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 683,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom's  Stability/1",
+      "image": "UK Stability.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 683,
+      "zone": null
+    },
+    {
+      "name": "German Stability/1",
+      "image": "GE Stability.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 683,
+      "zone": null
+    },
+    {
+      "name": "United Kingdom's Manpower/1",
+      "image": "UK Manpower.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 939,
+      "zone": null
+    },
+    {
+      "name": "Germany Manpower/1",
+      "image": "GE Manpower.png",
+      "board": "Great War",
+      "x": 110,
+      "y": 939,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 5/null",
+      "image": "Great War Card 5.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 10/null",
+      "image": "Great War Card 10.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 2/null",
+      "image": "Great War Card 2.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 3/null",
+      "image": "Great War Card 3.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 4/null",
+      "image": "Great War Card 4.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "Great War Card 1/null",
+      "image": "Great War Card 1.png",
+      "board": "Great War",
+      "x": 727,
+      "y": 1418,
+      "zone": null
+    },
+    {
+      "name": "US 4 CP/1",
+      "image": "US Ally 4CP.png",
+      "board": "Great War",
+      "x": 1067,
+      "y": 232,
+      "zone": null
+    },
+    {
+      "name": "Italian 2 CP/1",
+      "image": "IT ally 2CP.png",
+      "board": "Great War",
+      "x": 902,
+      "y": 232,
+      "zone": null
+    }
+  ]
+}

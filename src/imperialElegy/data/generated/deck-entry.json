@@ -1,0 +1,64 @@
+{
+  "greatwar": [
+    "Great War Card 1/null",
+    "Great War Card 10/null",
+    "Great War Card 3/null",
+    "Great War Card 4/null",
+    "Great War Card 5/null",
+    "Great War Card 6/null",
+    "Great War Card 2/null",
+    "Great War Card 7/null",
+    "Great War Card 8/null",
+    "Great War Card 9/null"
+  ],
+  "1870s": [
+    "Economic Panic/",
+    "Berlin Conference/",
+    "Second Industrial Revolution/",
+    "Zulus/",
+    "Urabi Revolt/",
+    "Meiji Restoration/",
+    "Indian Nationalism/",
+    "Crack Colonial Troops/",
+    "Loose Grip/",
+    "Machine Guns/",
+    "Conquest of Central Asia/"
+  ],
+  "1880s": [
+    "Wilhelm II/",
+    "Quagmire/",
+    "Nationalist Uprising/",
+    "Hungarian Obstinacy/",
+    "Boer Wars/",
+    "Mahdist War/",
+    "Our Place in the Sun/",
+    "Cossacks/",
+    "The Eiffel Tower/",
+    "Hydraulic Recoil/"
+  ],
+  "1890s": [
+    "Naval Arms race/",
+    "Nicholas II/",
+    "The Boxer Rebellion/",
+    "Death of Franz Joseph/",
+    "Empire of the Sun/",
+    "Dreadnaught/",
+    "Diplomatic Recognition/",
+    "Dreyfus Affair/"
+  ],
+  "1900s": [
+    "The Black Hand/",
+    "Moroccan Crisis/",
+    "Bosnian Crisis/",
+    "The Funeral of Edward VII/",
+    "The Balkan Wars/",
+    "Franz Ferdinand/",
+    "High Seas Fleet/",
+    "Revolution of 1905/",
+    "Extreme Militarism/",
+    "The Alliance System/",
+    "Impulsive Ruler/",
+    "The Young Turks/",
+    "World's Fair/"
+  ]
+}

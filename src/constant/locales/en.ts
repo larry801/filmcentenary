@@ -534,6 +534,7 @@ const en = {
             general: "General",
             film: "Film Centenary",
             songJinn: "SongJinn",
+            imperialElegy: "Imperial Elegy",
             virginQueen: "Virgin Queen",
         },
         film: {
@@ -545,6 +546,10 @@ const en = {
         songJinn: {
             multiplayer: "Multiplayer / create match",
             local: "Local game",
+        },
+        imperialElegy: {
+            multiplayer: "Multiplayer / create match",
+            local: "Local hotseat",
         },
         virginQueen: {
             multiplayer: "Multiplayer / create match",

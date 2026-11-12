@@ -7,6 +7,7 @@ import RedisStorage from "./ioredis-stroage";
 import {PostgresStore} from "bgio-postgres"
 import {SongJinnGameDef} from "./src/songJinn/game";
 import {VirginQueenGameDef} from "./src/virginQueen/game";
+import {ImperialElegyGameDef} from "./src/imperialElegy/game";
 import fs from 'fs';
 
 const DB_DIR = process.env.DB_DIR || process.env.FILE_DB_DIR;
@@ -15,14 +16,14 @@ if (DB_DIR) {
 }
 
 const server = process.env.REDIS_URL ? Server({
-    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef],
+    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef,ImperialElegyGameDef],
     db: new RedisStorage(process.env.REDIS_URL),
     origins: [
         // Allow any domain connect.
         '*'
     ]
 }) : process.env.POSTGRES_URL ? Server({
-    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef],
+    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef,ImperialElegyGameDef],
     db: new PostgresStore(
         process.env.POSTGRES_URL,
         {
@@ -35,7 +36,7 @@ const server = process.env.REDIS_URL ? Server({
         '*'
     ]
 }) : DB_DIR ? Server({
-    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef],
+    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef,ImperialElegyGameDef],
     db: new FlatFile({
         dir: DB_DIR,
         logging: false,
@@ -45,7 +46,7 @@ const server = process.env.REDIS_URL ? Server({
         '*'
     ]
 }) : Server({
-    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef],
+    games: [FilmCentenaryGame,SongJinnGameDef,VirginQueenGameDef,ImperialElegyGameDef],
     origins: [
         // Allow any domain connect.
         '*'

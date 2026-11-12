@@ -5,11 +5,14 @@ import { FilmCentenaryBoard } from './board';
 import {FilmCentenaryGame} from "../Game";
 import {SongJinnGameDef} from "../songJinn/game";
 import {SongJinnBoard} from "../songJinn/components/board";
+import {ImperialElegyGameDef} from "../imperialElegy/game";
+import {ImperialElegyBoard} from "../imperialElegy/components/board";
 
 const server = `${window.location.protocol}//${window.location.host}`;
 const importedGames = [
     { game: FilmCentenaryGame, board: FilmCentenaryBoard },
     { game: SongJinnGameDef, board: SongJinnBoard},
+    { game: ImperialElegyGameDef, board: ImperialElegyBoard},
 ];
 
 export default  () => (

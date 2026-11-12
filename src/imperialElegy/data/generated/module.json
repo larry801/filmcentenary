@@ -1,0 +1,2750 @@
+{
+  "module": {
+    "name": "Imperial Elegy",
+    "version": "1.1.0-beta.4",
+    "vassalVersion": "3.7.26",
+    "description": "By Mike Lorino @Vuca Games (beta)",
+    "moduledata": {
+      "version": "1.1.0-beta.4",
+      "extra1": "",
+      "extra2": "",
+      "VassalVersion": "3.7.26",
+      "dateSaved": "1785618155927",
+      "description": "By Mike Lorino @Vuca Games (beta)",
+      "name": "Imperial Elegy"
+    },
+    "sourceFile": "Imperial Elegy 1.1.0-beta.4.vmod",
+    "sourceSha256": "398372518f2848298ed6d88b688d2d68e993caab557a7566d806fd640191b7d3",
+    "sourceBytes": 73525734
+  },
+  "maps": [
+    {
+      "name": "Main Map",
+      "button": "Map",
+      "boards": [
+        {
+          "image": "Map-World f.jpg",
+          "name": "World Map",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Influence Track",
+      "button": "",
+      "boards": [
+        {
+          "image": "Chart Mjr Pwr Influence.png",
+          "name": "Influence Track",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Play Decks",
+      "button": "",
+      "boards": [
+        {
+          "image": "Card Deck Map.jpg",
+          "name": "Play Decks",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Great War",
+      "button": "",
+      "boards": [
+        {
+          "image": "GW Main Map T3.jpg",
+          "name": "Great War",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Italy and Legend",
+      "button": "Italy and Legend",
+      "boards": [
+        {
+          "image": "Chart Italy and Legend.png",
+          "name": "Italy and Legend",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Sequence of Play",
+      "button": "Sequence of Play",
+      "boards": [
+        {
+          "image": "Chart Seq-of-Play.png",
+          "name": "Sequence of Play",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Bot 1",
+      "button": "Bot 1",
+      "boards": [
+        {
+          "image": "Chart Bot 1.png",
+          "name": "Bot 1",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Bot 2",
+      "button": "Bot 2",
+      "boards": [
+        {
+          "image": "Chart Bot 2.png",
+          "name": "Bot 2",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Map & Flashpoints",
+      "button": "Map & Flashpoints",
+      "boards": [
+        {
+          "image": "Chart Flag and Flashpoints.png",
+          "name": "Map & Flashpoints",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Combat & CRT",
+      "button": "Combat & CRT",
+      "boards": [
+        {
+          "image": "Chart Combat and CRT.png",
+          "name": "Combat & CRT",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Colonial and Great Wars",
+      "button": "Colonial and Great Wars",
+      "boards": [
+        {
+          "image": "Chart Colonial and Great Wars.png",
+          "name": "Colonial and Great Wars",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Wartime Actions",
+      "button": "Wartime Actions",
+      "boards": [
+        {
+          "image": "Chart War-Aims and Minors.png",
+          "name": "Wartime Actions",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Crisis Chart",
+      "button": "Crisis Chart",
+      "boards": [
+        {
+          "image": "Chart Crisis b.png",
+          "name": "Crisis Chart",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Counter Count",
+      "button": "Counter Count",
+      "boards": [
+        {
+          "image": "Chart Counter count.png",
+          "name": "Counter Count",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Card Decks",
+      "button": "",
+      "boards": [
+        {
+          "image": "Card Deck Map.jpg",
+          "name": "Card Decks",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Setup",
+      "button": "Setup",
+      "boards": [
+        {
+          "image": null,
+          "name": "Setup",
+          "reversible": "false"
+        }
+      ]
+    },
+    {
+      "name": "Bot Hands",
+      "button": "Bot Tools",
+      "boards": [
+        {
+          "image": null,
+          "name": "Bot Hands",
+          "reversible": "false"
+        }
+      ]
+    }
+  ],
+  "boards": [
+    {
+      "image": "Map-World f.jpg",
+      "name": "World Map",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Mjr Pwr Influence.png",
+      "name": "Influence Track",
+      "reversible": "false"
+    },
+    {
+      "image": "Card Deck Map.jpg",
+      "name": "Play Decks",
+      "reversible": "false"
+    },
+    {
+      "image": "GW Main Map T3.jpg",
+      "name": "Great War",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Italy and Legend.png",
+      "name": "Italy and Legend",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Seq-of-Play.png",
+      "name": "Sequence of Play",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Bot 1.png",
+      "name": "Bot 1",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Bot 2.png",
+      "name": "Bot 2",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Flag and Flashpoints.png",
+      "name": "Map & Flashpoints",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Combat and CRT.png",
+      "name": "Combat & CRT",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Colonial and Great Wars.png",
+      "name": "Colonial and Great Wars",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart War-Aims and Minors.png",
+      "name": "Wartime Actions",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Crisis b.png",
+      "name": "Crisis Chart",
+      "reversible": "false"
+    },
+    {
+      "image": "Chart Counter count.png",
+      "name": "Counter Count",
+      "reversible": "false"
+    },
+    {
+      "image": "Card Deck Map.jpg",
+      "name": "Card Decks",
+      "reversible": "false"
+    },
+    {
+      "image": null,
+      "name": "Setup",
+      "reversible": "false"
+    },
+    {
+      "image": null,
+      "name": "Bot Hands",
+      "reversible": "false"
+    }
+  ],
+  "zones": {
+    "Main Map": [
+      {
+        "name": "End Phase Build Box",
+        "path": "1278,653;2246,665;2244,891;1278,876",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "The Alliance Track",
+        "path": "2047,4467;3899,4466;3897,4809;2045,4811",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Wartime Initiative Order",
+        "path": "2091,4121;3162,4081;3173,4321;2095,4363",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "North Atlantic Box",
+        "path": "626,626;1030,661;982,1427;571,1394",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "South Atlantic Box",
+        "path": "572,4285;978,4272;992,4732;584,4746",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Baltic Sea Box",
+        "path": "2487,599;3078,617;3074,899;2476,885",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Eastern Mediterranean Box",
+        "path": "3289,3655;3940,3671;3937,3942;3286,3923",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Western Mediterranean Box",
+        "path": "1166,2951;1864,2930;1874,3202;1175,3221",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Black Sea Box",
+        "path": "3891,2547;4362,2559;4357,2773;3881,2772",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Indian Ocean Box",
+        "path": "5500,1986;6035,1998;6028,2394;5495,2384",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Pacific Ocean Box",
+        "path": "6231,2477;6744,2480;6742,2767;6229,2753",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "South & Central Pacific Ocean Box",
+        "path": "6540,2825;7012,2825;7020,3205;6543,3211",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Scotland",
+        "path": "1398,935;1652,935;1652,1135;1398,1135",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Ireland",
+        "path": "1023,1210;1277,1210;1277,1410;1023,1410",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Northern England",
+        "path": "1441,1185;1695,1185;1694,1383;1441,1385",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Wales",
+        "path": "1197,1403;1451,1403;1451,1603;1197,1603",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "London",
+        "path": "1454,1469;1697,1467;1660,1666;1454,1669",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Canada",
+        "path": "679,1970;933,1970;933,2170;679,2170",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Gibraltar",
+        "path": "655,3100;909,3100;909,3300;655,3300",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Malta",
+        "path": "2528,3359;2782,3359;2782,3559;2528,3559",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "South Africa",
+        "path": "1202,4602;1456,4602;1456,4802;1202,4802",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "India",
+        "path": "5732,1711;5932,1711;5930,1913;5732,1911",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Bengal",
+        "path": "6011,1608;6211,1608;6209,1810;6011,1808",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Singapore",
+        "path": "6409,2142;6609,2142;6607,2344;6409,2342",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Austrila & New Zeland",
+        "path": "6742,2294;7069,2289;7043,2497;6778,2497",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Hong Kong",
+        "path": "6591,1776;6695,1664;6789,1774;6790,1935;6721,1936;6592,1846",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Belgium - Low Countries",
+        "path": "1678,1647;1778,1615;1849,1649;1858,1686;1888,1844;1687,1845;1667,1722",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Hanover",
+        "path": "2110,1484;2172,1460;2305,1466;2318,1526;2312,1630;2139,1639;2118,1575",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Saxony",
+        "path": "2391,1637;2397,1803;2585,1803;2563,1629",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Netherlands - Low Countries",
+        "path": "1862,1437;1991,1428;2073,1494;2083,1675;1870,1675",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Brittany",
+        "path": "1102,1747;1324,1738;1353,2027;1099,2027",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Picardy",
+        "path": "1412,1742;1661,1744;1666,1931;1412,1931",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Champagne",
+        "path": "1734,1862;1947,1860;1952,2047;1698,2047",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Paris",
+        "path": "1447,2015;1686,2012;1685,2222;1448,2223",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Aquitane",
+        "path": "1140,2121;1412,2120;1411,2330;1142,2330",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Auvergne",
+        "path": "1511,2265;1719,2266;1730,2454;1485,2454",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Burgundy",
+        "path": "1740,2130;1941,2129;1946,2320;1742,2321",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Provence",
+        "path": "1550,2524;1753,2523;1755,2721;1551,2722",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Algeria - Africa",
+        "path": "1361,3225;1556,3223;1553,3418;1363,3426",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Alsace Lorraine",
+        "path": "1972,1916;2176,1917;2180,2136;1975,2138",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Westphalia",
+        "path": "2085,1662;2266,1667;2271,1865;2055,1865;2055,1722",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Berlin",
+        "path": "2472,1405;2684,1403;2686,1627;2470,1627",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Bavaria",
+        "path": "2313,1835;2310,2027;2510,2025;2493,1829",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Silesia - Central Europe",
+        "path": "2731,1633;2943,1631;2945,1855;2729,1855",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Popmerania",
+        "path": "2759,1404;2977,1401;2979,1625;2763,1625",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Prussia",
+        "path": "2993,1297;3211,1294;3213,1518;2997,1518",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Tyrol",
+        "path": "2218,2095;2399,2100;2404,2298;2188,2298;2188,2155",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Bohemia - Central Europe",
+        "path": "2639,1868;2820,1873;2825,2071;2609,2071;2609,1928",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Vienna",
+        "path": "2482,2126;2733,2129;2732,2357;2478,2353",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Lombardy",
+        "path": "2224,2348;2405,2353;2410,2551;2194,2551;2194,2408",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Piedmont",
+        "path": "1921,2386;2066,2389;2103,2583;1891,2578;1859,2436",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Tuscany",
+        "path": "2127,2603;2113,2783;2309,2787;2292,2603",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Croatia",
+        "path": "2456,2460;2637,2465;2642,2663;2426,2663;2426,2520",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Banat",
+        "path": "2844,2378;3025,2383;3030,2581;2814,2581;2814,2438",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Hungary",
+        "path": "2889,2066;3111,2069;3112,2309;2885,2313",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Transylvania",
+        "path": "3198,2188;3434,2190;3437,2411;3196,2409",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Galicia - Central Europe",
+        "path": "3085,1809;3321,1811;3324,2032;3083,2030",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Romania - Balkans",
+        "path": "3379,2408;3615,2410;3618,2631;3377,2629",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Greece - Balkans",
+        "path": "3018,3294;3267,3298;3332,3436;3273,3511;3185,3540;3082,3518",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Bosnia-Herzegovina - Balkans",
+        "path": "2680,2611;2933,2609;2936,2853;2692,2852;2642,2708",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Serbia - Balkans",
+        "path": "2976,2582;3205,2568;3202,2828;2978,2831",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Bulgaria - Balkans",
+        "path": "3215,2637;3436,2637;3441,2883;3217,2886",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Macedonia - Balkans",
+        "path": "3073,2935;3294,2935;3299,3181;3075,3184",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Istanbul - Balkans",
+        "path": "3515,2735;3806,2736;3809,3017;3540,3009",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Dardanelles",
+        "path": "3360,2972;3531,2970;3586,3038;3585,3117;3527,3213;3392,3213;3329,3118",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Izmir",
+        "path": "3504,3201;3563,3176;3735,3174;3739,3403;3499,3405",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Rhodes",
+        "path": "3557,3474;3616,3449;3788,3447;3795,3673;3551,3668",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Cyprus",
+        "path": "4102,3478;4161,3453;4306,3464;4340,3572;4340,3677;4096,3672",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Ankara",
+        "path": "4022,2814;4263,2816;4270,3042;4026,3037",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Antalya",
+        "path": "4050,3085;4291,3087;4294,3306;4054,3308",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Syria",
+        "path": "4279,3249;4520,3251;4523,3470;4283,3472",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Palestine",
+        "path": "4423,3560;4664,3562;4667,3781;4427,3783",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Arabia",
+        "path": "4607,3941;4848,3943;4851,4162;4611,4164",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Mecca",
+        "path": "4831,4402;5111,4405;5109,4639;4835,4636",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Sinai",
+        "path": "4306,3877;4586,3880;4584,4114;4310,4111",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Egypt - Africa",
+        "path": "4008,3846;4309,3871;4307,4105;4001,4103",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Great Sand Sea",
+        "path": "3536,3980;3816,3983;3814,4217;3540,4214",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Benghazi",
+        "path": "3002,3832;3282,3835;3280,4069;3006,4066",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Tripoli - Africa",
+        "path": "2411,3805;2691,3808;2689,4042;2415,4039",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "West Africa",
+        "path": "624,3756;818,3757;816,3935;616,3941",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Tunisia - Africa",
+        "path": "1911,3295;2191,3298;2198,3565;1888,3560",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Erzurum - Caucasus",
+        "path": "4400,2710;4641,2712;4644,2931;4404,2933",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Kayseri",
+        "path": "4506,3032;4747,3034;4750,3253;4510,3255",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Van - Caucasus",
+        "path": "4801,2787;5042,2789;5048,3031;4802,3030",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Mosul",
+        "path": "4879,3091;5120,3093;5123,3312;4883,3314",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Baghdad",
+        "path": "5126,3392;5223,3284;5411,3304;5422,3567;5163,3574",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Kuwait - The Great Game",
+        "path": "5437,3666;5484,3616;5751,3612;5749,3863;5447,3864",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Poland - Central Europe",
+        "path": "2989,1530;3217,1530;3217,1754;2989,1754",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "West Ukraine - Central Europe",
+        "path": "3370,1766;3598,1766;3598,1990;3370,1990",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Belorussia",
+        "path": "3273,1355;3501,1355;3501,1579;3273,1579",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Riga",
+        "path": "3045,1030;3273,1030;3273,1254;3045,1254",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Baltic States",
+        "path": "3276,852;3504,852;3504,1076;3276,1076",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Finland",
+        "path": "3142,620;3370,620;3370,844;3142,844",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "St Petersburg",
+        "path": "3531,669;3799,672;3804,919;3531,918",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Novgorod",
+        "path": "3549,1076;3777,1076;3777,1300;3549,1300",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Northern Russia",
+        "path": "3858,883;4036,879;4034,1138;3806,1138;3806,995",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Moscow",
+        "path": "4037,1074;4191,1000;4318,1034;4315,1304;4028,1283",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Smolensk",
+        "path": "3560,1322;3788,1322;3788,1546;3560,1546",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Orel",
+        "path": "3933,1343;4161,1343;4161,1567;3933,1567",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Kiev",
+        "path": "3641,1724;3869,1724;3869,1948;3641,1948",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Kharkov",
+        "path": "4007,1712;4235,1712;4235,1936;4007,1936",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Southern Ukraine",
+        "path": "3871,2029;4136,2025;4140,2269;3875,2270",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Don",
+        "path": "4315,1845;4543,1845;4543,2069;4315,2069",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Bessarabia",
+        "path": "3522,2062;3787,2058;3791,2302;3526,2303",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Sevastopol",
+        "path": "3920,2322;4185,2318;4189,2562;3924,2563",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Tsaritsyn",
+        "path": "4569,1621;4897,1624;4908,1892;4622,1891",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Astrakhan",
+        "path": "4834,1899;5112,1882;5128,2148;4837,2149",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Caucasus - Caucasus",
+        "path": "4451,2163;4544,2124;4697,2149;4712,2349;4448,2368;4434,2263",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Dagestan - Caucasus",
+        "path": "4879,2226;5025,2168;5196,2163;5196,2435;4876,2431;4862,2326",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Georgia - Caucasus",
+        "path": "4527,2472;4725,2385;4845,2457;4854,2640;4598,2640;4585,2556",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Azerbaijan - Caucasus",
+        "path": "4896,2498;5017,2456;5152,2488;5141,2713;4890,2711;4877,2627",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Baku - Caucasus",
+        "path": "5201,2678;5358,2649;5462,2736;5396,2903;5240,2902;5182,2807",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Urals",
+        "path": "5374,627;5614,627;5614,857;5374,857",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Siberia",
+        "path": "5853,613;6093,613;6093,843;5853,843",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Russian Far East",
+        "path": "6690,623;6966,622;6973,867;6690,853",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Central Asia - The Great Game",
+        "path": "5454,934;5694,934;5694,1164;5454,1164",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Afganistan - The Great Game",
+        "path": "5562,1220;5802,1220;5802,1450;5562,1450",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Balochistan - The Great Game",
+        "path": "5425,1527;5665,1527;5665,1757;5425,1757",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Qajar Persia - The Great Game",
+        "path": "5134,1250;5374,1250;5385,1580;5133,1581",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Oman",
+        "path": "5203,1570;5332,1568;5449,1685;5481,1835;5219,1833",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Aden",
+        "path": "5139,1824;5268,1822;5427,1950;5452,2093;5179,2090",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Manchuria - China & Japan",
+        "path": "6374,961;6614,961;6614,1191;6374,1191",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Korea - China & Japan",
+        "path": "6638,859;6878,859;6870,973;6835,1090;6638,1089",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Japan - China & Japan",
+        "path": "6870,999;6911,938;7101,934;7089,1176;6863,1179",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Shanghai - China & Japan",
+        "path": "6541,1423;6758,1420;6752,1659;6537,1661",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Shandong Peninsula - China & Japan",
+        "path": "6671,1194;6865,1193;6868,1433;6667,1432",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Guangzhou - China & Japan",
+        "path": "6337,1553;6531,1552;6534,1792;6333,1791",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Indochina - China & Japan",
+        "path": "6377,1837;6511,1836;6590,1876;6593,2074;6373,2075",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Caroline Islands",
+        "path": "6904,1611;7031,1614;7092,1695;7093,1905;6824,1895;6823,1687",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "New Guinea",
+        "path": "6873,1976;7000,1979;7061,2060;7062,2270;6793,2260;6792,2052",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "VP & PP",
+        "path": "5877,4519;7060,4518;7063,4813;5877,4817",
+        "locationFormat": "$gridLocation$"
+      },
+      {
+        "name": "Schleswig-Holstein",
+        "path": "2161,1214;2170,1397;2358,1399;2342,1217",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Naples",
+        "path": "2425,2999;2412,3170;2606,3172;2619,2993",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Ethiopia",
+        "path": "1513,3936;1505,4138;1689,4152;1691,3935",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Denmark",
+        "path": "2243,987;2244,1184;2414,1176;2426,979",
+        "locationFormat": "$name$"
+      }
+    ],
+    "Influence Track": [],
+    "Play Decks": [],
+    "Great War": [
+      {
+        "name": "German GW Cards",
+        "path": "65,1744;581,1744;581,2150;65,2150",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "UK GW Cards",
+        "path": "660,1744;1176,1744;1176,2150;660,2150",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "French GW Cards",
+        "path": "1254,1744;1770,1744;1770,2150;1254,2150",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Austrian GW Cards",
+        "path": "1849,1744;2365,1744;2365,2150;1849,2150",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Russian GW Cards",
+        "path": "2444,1744;2960,1744;2960,2150;2444,2150",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Ottoman GW Cards",
+        "path": "3039,1744;3555,1744;3555,2150;3039,2150",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Italy GW Cards",
+        "path": "3634,1744;4150,1744;4150,2150;3634,2150",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "USA GW Cards",
+        "path": "3634,1291;4150,1291;4150,1697;3634,1697",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "War Budget",
+        "path": "33,323;1300,323;1300,469;33,469",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Stability",
+        "path": "33,609;1300,609;1300,755;33,755",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Manpower",
+        "path": "33,865;1300,865;1300,1011;33,1011",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Trench Holding Box 1",
+        "path": "1352,94;2028,94;2028,583;1352,583",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Trench Holding Box 2",
+        "path": "2045,88;2721,88;2721,577;2045,577",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Trench Holding Box 3",
+        "path": "2748,69;3424,69;3424,558;2748,558",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Trench Holding Box 4",
+        "path": "3448,57;4124,57;4124,546;3448,546",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Trench Holding Box 5",
+        "path": "1377,740;2053,740;2053,1229;1377,1229",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Trench Holding Box 6",
+        "path": "2062,740;2738,740;2738,1229;2062,1229",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Trench Holding Box 7",
+        "path": "2767,720;3443,720;3443,1209;2767,1209",
+        "locationFormat": "$name$"
+      },
+      {
+        "name": "Trench Holding Box 8",
+        "path": "3464,705;4140,705;4140,1194;3464,1194",
+        "locationFormat": "$name$"
+      }
+    ],
+    "Italy and Legend": [],
+    "Sequence of Play": [],
+    "Bot 1": [],
+    "Bot 2": [],
+    "Map & Flashpoints": [],
+    "Combat & CRT": [],
+    "Colonial and Great Wars": [],
+    "Wartime Actions": [],
+    "Crisis Chart": [],
+    "Counter Count": [],
+    "Card Decks": [],
+    "Setup": [],
+    "Bot Hands": []
+  },
+  "cardSlots": [
+    {
+      "entryName": "Great War Card 1",
+      "image": "Great War Card 1.png",
+      "gpid": "2076"
+    },
+    {
+      "entryName": "Great War Card 10",
+      "image": "Great War Card 10.png",
+      "gpid": "2077"
+    },
+    {
+      "entryName": "Great War Card 2",
+      "image": "Great War Card 2.png",
+      "gpid": "2078"
+    },
+    {
+      "entryName": "Great War Card 3",
+      "image": "Great War Card 3.png",
+      "gpid": "2079"
+    },
+    {
+      "entryName": "Great War Card 4",
+      "image": "Great War Card 4.png",
+      "gpid": "2080"
+    },
+    {
+      "entryName": "Great War Card 5",
+      "image": "Great War Card 5.png",
+      "gpid": "2081"
+    },
+    {
+      "entryName": "Great War Card 6",
+      "image": "Great War Card 6.png",
+      "gpid": "2082"
+    },
+    {
+      "entryName": "Great War Card 7",
+      "image": "Great War Card 7.png",
+      "gpid": "2083"
+    },
+    {
+      "entryName": "Great War Card 8",
+      "image": "Great War Card 8.png",
+      "gpid": "2084"
+    },
+    {
+      "entryName": "Great War Card 9",
+      "image": "Great War Card 9.png",
+      "gpid": "2085"
+    },
+    {
+      "entryName": "Urabi Revolt",
+      "image": "Action Card 71_result.jpg",
+      "gpid": "1948"
+    },
+    {
+      "entryName": "Meiji Restoration",
+      "image": "Action Card 72_result.jpg",
+      "gpid": "1949"
+    },
+    {
+      "entryName": "Economic Panic",
+      "image": "Action Card 73_result.jpg",
+      "gpid": "1950"
+    },
+    {
+      "entryName": "Berlin Conference",
+      "image": "Action Card 74_result.jpg",
+      "gpid": "1951"
+    },
+    {
+      "entryName": "Second Industrial Revolution",
+      "image": "Action Card 75_result.jpg",
+      "gpid": "1952"
+    },
+    {
+      "entryName": "Zulus",
+      "image": "Action Card 76_result.jpg",
+      "gpid": "1953"
+    },
+    {
+      "entryName": "Indian Nationalism",
+      "image": "Action Card 77_result.jpg",
+      "gpid": "1954"
+    },
+    {
+      "entryName": "Crack Colonial Troops",
+      "image": "Action Card 78_result.jpg",
+      "gpid": "1955"
+    },
+    {
+      "entryName": "Loose Grip",
+      "image": "Action Card 79_result.jpg",
+      "gpid": "1956"
+    },
+    {
+      "entryName": "Machine Guns",
+      "image": "Action Card 80_result.jpg",
+      "gpid": "1957"
+    },
+    {
+      "entryName": "Conquest of Central Asia",
+      "image": "Action Card 81_result.jpg",
+      "gpid": "1958"
+    },
+    {
+      "entryName": "Wilhelm II",
+      "image": "Action Card 81_result.jpg",
+      "gpid": "1959"
+    },
+    {
+      "entryName": "Quagmire",
+      "image": "Action Card 83_result.jpg",
+      "gpid": "1960"
+    },
+    {
+      "entryName": "Nationalist Uprising",
+      "image": "Action Card 84_result.jpg",
+      "gpid": "1961"
+    },
+    {
+      "entryName": "Hungarian Obstinacy",
+      "image": "Action Card 85_result.jpg",
+      "gpid": "1962"
+    },
+    {
+      "entryName": "Boer Wars",
+      "image": "Action Card 86_result.jpg",
+      "gpid": "1963"
+    },
+    {
+      "entryName": "Mahdist War",
+      "image": "Action Card 87_result.jpg",
+      "gpid": "1964"
+    },
+    {
+      "entryName": "Our Place in the Sun",
+      "image": "Action Card 88_result.jpg",
+      "gpid": "1965"
+    },
+    {
+      "entryName": "Cossacks",
+      "image": "Action Card 89_result.jpg",
+      "gpid": "1966"
+    },
+    {
+      "entryName": "The Eiffel Tower",
+      "image": "Action Card 90_result.jpg",
+      "gpid": "1967"
+    },
+    {
+      "entryName": "Hydraulic Recoil",
+      "image": "Action Card 91_result.jpg",
+      "gpid": "1968"
+    },
+    {
+      "entryName": "Naval Arms race",
+      "image": "Action Card 92_result.jpg",
+      "gpid": "1969"
+    },
+    {
+      "entryName": "Nicholas II",
+      "image": "Action Card 93_result.jpg",
+      "gpid": "1970"
+    },
+    {
+      "entryName": "The Boxer Rebellion",
+      "image": "Action Card 94_result.jpg",
+      "gpid": "1971"
+    },
+    {
+      "entryName": "Death of Franz Joseph",
+      "image": "Action Card 95_result.jpg",
+      "gpid": "1972"
+    },
+    {
+      "entryName": "Empire of the Sun",
+      "image": "Action Card 96_result.jpg",
+      "gpid": "1973"
+    },
+    {
+      "entryName": "Diplomatic Recognition",
+      "image": "Action Card 97_result.jpg",
+      "gpid": "1975"
+    },
+    {
+      "entryName": "Dreyfus Affair",
+      "image": "Action Card 98_result.jpg",
+      "gpid": "1976"
+    },
+    {
+      "entryName": "Dreadnaught",
+      "image": "Action Card 99_result.jpg",
+      "gpid": "1977"
+    },
+    {
+      "entryName": "The Balkan Wars",
+      "image": "Action Card 100_result.jpg",
+      "gpid": "1978"
+    },
+    {
+      "entryName": "The Black Hand",
+      "image": "Action Card 101_result.jpg",
+      "gpid": "1979"
+    },
+    {
+      "entryName": "Moroccan Crisis",
+      "image": "Action Card 102_result.jpg",
+      "gpid": "1980"
+    },
+    {
+      "entryName": "Bosnian Crisis",
+      "image": "Action Card 103_result.jpg",
+      "gpid": "1981"
+    },
+    {
+      "entryName": "The Funeral of Edward VII",
+      "image": "Action Card 104_result.jpg",
+      "gpid": "1982"
+    },
+    {
+      "entryName": "Impulsive Ruler",
+      "image": "Action Card 105_result.jpg",
+      "gpid": "1983"
+    },
+    {
+      "entryName": "The Young Turks",
+      "image": "Action Card 106_result.jpg",
+      "gpid": "1984"
+    },
+    {
+      "entryName": "World's Fair",
+      "image": "Action Card 107_result.jpg",
+      "gpid": "1985"
+    },
+    {
+      "entryName": "High Seas Fleet",
+      "image": "Action Card 108_result.jpg",
+      "gpid": "1986"
+    },
+    {
+      "entryName": "Revolution of 1905",
+      "image": "Action Card 109_result.jpg",
+      "gpid": "1987"
+    },
+    {
+      "entryName": "Extreme Militarism",
+      "image": "Action Card 110_result.jpg",
+      "gpid": "1988"
+    },
+    {
+      "entryName": "The Alliance System",
+      "image": "Action Card 111_result.jpg",
+      "gpid": "1989"
+    },
+    {
+      "entryName": "Franz Ferdinand",
+      "image": "Action Card 112_result.jpg",
+      "gpid": "1990"
+    },
+    {
+      "entryName": "Colonial Conflict",
+      "image": "Action Card 13_result.jpg",
+      "gpid": "2019"
+    },
+    {
+      "entryName": "Colonial Conflict",
+      "image": "Action Card 14_result.jpg",
+      "gpid": "2020"
+    },
+    {
+      "entryName": "Shifting Alliances",
+      "image": "Action Card 15_result.jpg",
+      "gpid": "2021"
+    },
+    {
+      "entryName": "Liberal Reforms",
+      "image": "Action Card 16_result.jpg",
+      "gpid": "2022"
+    },
+    {
+      "entryName": "Assassination!",
+      "image": "Action Card 17_result.jpg",
+      "gpid": "2023"
+    },
+    {
+      "entryName": "Socialist Musings",
+      "image": "Action Card 18_result.jpg",
+      "gpid": "2024"
+    },
+    {
+      "entryName": "Skilled Diplomats",
+      "image": "Action Card 19_result.jpg",
+      "gpid": "2025"
+    },
+    {
+      "entryName": "Diplomatic Incident",
+      "image": "Action Card 20_result.jpg",
+      "gpid": "2026"
+    },
+    {
+      "entryName": "National Railroad",
+      "image": "Action Card 21_result.jpg",
+      "gpid": "2027"
+    },
+    {
+      "entryName": "New Administration",
+      "image": "Action Card 22_result.jpg",
+      "gpid": "2028"
+    },
+    {
+      "entryName": "New Rifles",
+      "image": "Action Card 23_result.jpg",
+      "gpid": "2029"
+    },
+    {
+      "entryName": "New Artillery",
+      "image": "Action Card 24_result.jpg",
+      "gpid": "2030"
+    },
+    {
+      "entryName": "Divide and Conquer",
+      "image": "Action Card 25_result.jpg",
+      "gpid": "2031"
+    },
+    {
+      "entryName": "Chinese Intervention",
+      "image": "Action Card 26_result.jpg",
+      "gpid": "2032"
+    },
+    {
+      "entryName": "Foreign Investment",
+      "image": "Action Card 27_result.jpg",
+      "gpid": "2033"
+    },
+    {
+      "entryName": "Power Projection",
+      "image": "Action Card 28_result.jpg",
+      "gpid": "2034"
+    },
+    {
+      "entryName": "Economic Boom",
+      "image": "Action Card 29_result.jpg",
+      "gpid": "2035"
+    },
+    {
+      "entryName": "Italy",
+      "image": "Action Card 30_result.jpg",
+      "gpid": "2036"
+    },
+    {
+      "entryName": "Graveyard of Empires",
+      "image": "Action Card 31_result.jpg",
+      "gpid": "2037"
+    },
+    {
+      "entryName": "American Civil War",
+      "image": "Action Card 32_result.jpg",
+      "gpid": "2038"
+    },
+    {
+      "entryName": "Sepoy Mutiny",
+      "image": "Action Card 33_result.jpg",
+      "gpid": "2039"
+    },
+    {
+      "entryName": "Decline of the Qing",
+      "image": "Action Card 34_result.jpg",
+      "gpid": "2040"
+    },
+    {
+      "entryName": "Sick Man of Europe",
+      "image": "Action Card 35_result.jpg",
+      "gpid": "2041"
+    },
+    {
+      "entryName": "Rebellions in China",
+      "image": "Action Card 36_result.jpg",
+      "gpid": "2042"
+    },
+    {
+      "entryName": "The Great Game",
+      "image": "Action Card 37_result.jpg",
+      "gpid": "2043"
+    },
+    {
+      "entryName": "The Second Opium War",
+      "image": "Action Card 38_result.jpg",
+      "gpid": "2044"
+    },
+    {
+      "entryName": "Uprising in Ireland",
+      "image": "Action Card 39_result.jpg",
+      "gpid": "2045"
+    },
+    {
+      "entryName": "British Trade",
+      "image": "Action Card 40_result.jpg",
+      "gpid": "2046"
+    },
+    {
+      "entryName": "Prussian Military Tradidtion",
+      "image": "Action Card 41_result.jpg",
+      "gpid": "2047"
+    },
+    {
+      "entryName": "The Ruhr",
+      "image": "Action Card 42_result.jpg",
+      "gpid": "2048"
+    },
+    {
+      "entryName": "At Any Cost",
+      "image": "Action Card 43_result.jpg",
+      "gpid": "2049"
+    },
+    {
+      "entryName": "Paris Commune",
+      "image": "Action Card 44_result.jpg",
+      "gpid": "2050"
+    },
+    {
+      "entryName": "Folie de Grandeur",
+      "image": "Action Card 45_result.jpg",
+      "gpid": "2051"
+    },
+    {
+      "entryName": "French Intervention",
+      "image": "Action Card 46_result.jpg",
+      "gpid": "2052"
+    },
+    {
+      "entryName": "The Dual Monarchy",
+      "image": "Action Card 47_result.jpg",
+      "gpid": "2053"
+    },
+    {
+      "entryName": "Multicultural Empire",
+      "image": "Action Card 48_result.jpg",
+      "gpid": "2054"
+    },
+    {
+      "entryName": "South German Confederation",
+      "image": "Action Card 49_result.jpg",
+      "gpid": "2055"
+    },
+    {
+      "entryName": "Reforms of the 1860s",
+      "image": "Action Card 50_result.jpg",
+      "gpid": "2056"
+    },
+    {
+      "entryName": "Polish Revolt",
+      "image": "Action Card 51_result.jpg",
+      "gpid": "2057"
+    },
+    {
+      "entryName": "Eastern Orthodoxy",
+      "image": "Action Card 52_result.jpg",
+      "gpid": "2058"
+    },
+    {
+      "entryName": "Power Keg",
+      "image": "Action Card 53_result.jpg",
+      "gpid": "2059"
+    },
+    {
+      "entryName": "Failed reforms",
+      "image": "Action Card 54_result.jpg",
+      "gpid": "2060"
+    },
+    {
+      "entryName": "Suez Canal",
+      "image": "Action Card 55_result.jpg",
+      "gpid": "2061"
+    },
+    {
+      "entryName": "Nationalism",
+      "image": "Action Card 56_result.jpg",
+      "gpid": "2062"
+    },
+    {
+      "entryName": "Impregnable",
+      "image": "Action Card 57_result.jpg",
+      "gpid": "2063"
+    },
+    {
+      "entryName": "Siege Guns",
+      "image": "Action Card 58_result.jpg",
+      "gpid": "2064"
+    },
+    {
+      "entryName": "Flank Attack",
+      "image": "Action Card 59_result.jpg",
+      "gpid": "2065"
+    },
+    {
+      "entryName": "Charge of the Light Brigade",
+      "image": "Action Card 60_result.jpg",
+      "gpid": "2066"
+    },
+    {
+      "entryName": "Ironclads",
+      "image": "Action Card 61_result.jpg",
+      "gpid": "2067"
+    },
+    {
+      "entryName": "Miscommunication",
+      "image": "Action Card 62_result.jpg",
+      "gpid": "2068"
+    },
+    {
+      "entryName": "Rapid Mobilization",
+      "image": "Action Card 63_result.jpg",
+      "gpid": "2069"
+    },
+    {
+      "entryName": "Secret Treaty",
+      "image": "Action Card 64_result.jpg",
+      "gpid": "2070"
+    },
+    {
+      "entryName": "Indian Ocean Arms Trade",
+      "image": "Action Card 65_result.jpg",
+      "gpid": "2071"
+    },
+    {
+      "entryName": "Damn the Torpedoes",
+      "image": "Action Card 66_result.jpg",
+      "gpid": "2072"
+    },
+    {
+      "entryName": "International Conference",
+      "image": "Action Card 67_result.jpg",
+      "gpid": "2073"
+    },
+    {
+      "entryName": "The United States",
+      "image": "Action Card 68_result.jpg",
+      "gpid": "2074"
+    },
+    {
+      "entryName": "Concert of Europe",
+      "image": "Action Card 69_result.jpg",
+      "gpid": "2075"
+    },
+    {
+      "entryName": "Papal Influence",
+      "image": "Action Card 70_result.jpg",
+      "gpid": "2444"
+    },
+    {
+      "entryName": "Great War Card 1",
+      "image": "Great War Card 1.png",
+      "gpid": "2127"
+    },
+    {
+      "entryName": "Great War Card 10",
+      "image": "Great War Card 10.png",
+      "gpid": "2128"
+    },
+    {
+      "entryName": "Great War Card 2",
+      "image": "Great War Card 2.png",
+      "gpid": "2129"
+    },
+    {
+      "entryName": "Great War Card 3",
+      "image": "Great War Card 3.png",
+      "gpid": "2130"
+    },
+    {
+      "entryName": "Great War Card 4",
+      "image": "Great War Card 4.png",
+      "gpid": "2131"
+    },
+    {
+      "entryName": "Great War Card 5",
+      "image": "Great War Card 5.png",
+      "gpid": "2132"
+    },
+    {
+      "entryName": "Great War Card 6",
+      "image": "Great War Card 6.png",
+      "gpid": "2133"
+    },
+    {
+      "entryName": "Great War Card 7",
+      "image": "Great War Card 7.png",
+      "gpid": "2134"
+    },
+    {
+      "entryName": "Great War Card 8",
+      "image": "Great War Card 8.png",
+      "gpid": "2135"
+    },
+    {
+      "entryName": "Great War Card 9",
+      "image": "Great War Card 9.png",
+      "gpid": "2136"
+    },
+    {
+      "entryName": "Card AU Objective 25",
+      "image": "Card AU Objective 25.png",
+      "gpid": "204"
+    },
+    {
+      "entryName": "Card AU Objective 26",
+      "image": "Card AU Objective 26.png",
+      "gpid": "205"
+    },
+    {
+      "entryName": "Card AU Objective 27",
+      "image": "Card AU Objective 27.png",
+      "gpid": "206"
+    },
+    {
+      "entryName": "Card AU Objective 28",
+      "image": "Card AU Objective 28.png",
+      "gpid": "207"
+    },
+    {
+      "entryName": "Card AU Objective 29",
+      "image": "Card AU Objective 29.png",
+      "gpid": "208"
+    },
+    {
+      "entryName": "Card AU Objective 30",
+      "image": "Card AU Objective 30.png",
+      "gpid": "209"
+    },
+    {
+      "entryName": "Card AU Objective 31",
+      "image": "Card AU Objective 31.png",
+      "gpid": "210"
+    },
+    {
+      "entryName": "Card AU Objective 32",
+      "image": "Card AU Objective 32.png",
+      "gpid": "211"
+    },
+    {
+      "entryName": "Card AU Objective 33",
+      "image": "Card AU Objective 33.png",
+      "gpid": "212"
+    },
+    {
+      "entryName": "Habsburg Dynasty",
+      "image": "Home Card 7 AU.png",
+      "gpid": "558"
+    },
+    {
+      "entryName": "Kaiserreich",
+      "image": "Home Card 8 AU.png",
+      "gpid": "568"
+    },
+    {
+      "entryName": "Card FR Objective 17",
+      "image": "Card FR Objective 17.png",
+      "gpid": "222"
+    },
+    {
+      "entryName": "Card FR Objective 18",
+      "image": "Card FR Objective 18.png",
+      "gpid": "223"
+    },
+    {
+      "entryName": "Card FR Objective 19",
+      "image": "Card FR Objective 19.png",
+      "gpid": "224"
+    },
+    {
+      "entryName": "Card FR Objective 20",
+      "image": "Card FR Objective 20.png",
+      "gpid": "225"
+    },
+    {
+      "entryName": "Card FR Objective 21",
+      "image": "Card FR Objective 21.png",
+      "gpid": "226"
+    },
+    {
+      "entryName": "Card FR Objective 23",
+      "image": "Card FR Objective 23.png",
+      "gpid": "227"
+    },
+    {
+      "entryName": "Card FR Objective 24",
+      "image": "Card FR Objective 24.png",
+      "gpid": "228"
+    },
+    {
+      "entryName": "The City of Lights",
+      "image": "Home Card 5 FR.png",
+      "gpid": "576"
+    },
+    {
+      "entryName": "Aux Armes, Citoyens!",
+      "image": "Home Card 6 FR.png",
+      "gpid": "578"
+    },
+    {
+      "entryName": "Card GE Objective 1",
+      "image": "Card GE Objective 1.png",
+      "gpid": "236"
+    },
+    {
+      "entryName": "Card GE Objective 2",
+      "image": "Card GE Objective 2.png",
+      "gpid": "237"
+    },
+    {
+      "entryName": "Card GE Objective 3",
+      "image": "Card GE Objective 3.png",
+      "gpid": "238"
+    },
+    {
+      "entryName": "Card GE Objective 4",
+      "image": "Card GE Objective 4.png",
+      "gpid": "239"
+    },
+    {
+      "entryName": "Card GE Objective 5",
+      "image": "Card GE Objective 5.png",
+      "gpid": "240"
+    },
+    {
+      "entryName": "Card GE Objective 6",
+      "image": "Card GE Objective 6.png",
+      "gpid": "241"
+    },
+    {
+      "entryName": "Card GE Objective 7",
+      "image": "Card GE Objective 7.png",
+      "gpid": "242"
+    },
+    {
+      "entryName": "Card GE Objective 8",
+      "image": "Card GE Objective 8.png",
+      "gpid": "243"
+    },
+    {
+      "entryName": "Otto von Bismarck",
+      "image": "Home Card 1 GE.png",
+      "gpid": "587"
+    },
+    {
+      "entryName": "German General Staff",
+      "image": "Home Card 2 GE.png",
+      "gpid": "589"
+    },
+    {
+      "entryName": "Card OT Objective 42",
+      "image": "Card OT Objective 42.png",
+      "gpid": "252"
+    },
+    {
+      "entryName": "Card OT Objective 43",
+      "image": "Card OT Objective 43.png",
+      "gpid": "253"
+    },
+    {
+      "entryName": "Card OT Objective 44",
+      "image": "Card OT Objective 44.png",
+      "gpid": "254"
+    },
+    {
+      "entryName": "Card OT Objective 45",
+      "image": "Card OT Objective 45.png",
+      "gpid": "255"
+    },
+    {
+      "entryName": "Card OT Objective 46",
+      "image": "Card OT Objective 46.png",
+      "gpid": "256"
+    },
+    {
+      "entryName": "Card OT Objective 47",
+      "image": "Card OT Objective 47.png",
+      "gpid": "257"
+    },
+    {
+      "entryName": "Card OT Objective 48",
+      "image": "Card OT Objective 48.png",
+      "gpid": "258"
+    },
+    {
+      "entryName": "Card OT Objective 49",
+      "image": "Card OT Objective 49.png",
+      "gpid": "259"
+    },
+    {
+      "entryName": "Modernization",
+      "image": "Home Card 11 OT.png",
+      "gpid": "598"
+    },
+    {
+      "entryName": "Jihad",
+      "image": "Home Card 12 OT.png",
+      "gpid": "600"
+    },
+    {
+      "entryName": "Card RU Objective 34",
+      "image": "Card RU Objective 34.png",
+      "gpid": "268"
+    },
+    {
+      "entryName": "Card RU Objective 35",
+      "image": "Card RU Objective 35.png",
+      "gpid": "269"
+    },
+    {
+      "entryName": "Card RU Objective 36",
+      "image": "Card RU Objective 36.png",
+      "gpid": "270"
+    },
+    {
+      "entryName": "Card RU Objective 37",
+      "image": "Card RU Objective 37.png",
+      "gpid": "271"
+    },
+    {
+      "entryName": "Card RU Objective 38",
+      "image": "Card RU Objective 38.png",
+      "gpid": "272"
+    },
+    {
+      "entryName": "Card RU Objective 39",
+      "image": "Card RU Objective 39.png",
+      "gpid": "273"
+    },
+    {
+      "entryName": "Card RU Objective 40",
+      "image": "Card RU Objective 40.png",
+      "gpid": "274"
+    },
+    {
+      "entryName": "Card RU Objective 41",
+      "image": "Card RU Objective 41.png",
+      "gpid": "275"
+    },
+    {
+      "entryName": "Russo-Turkish Wars",
+      "image": "Home Card 9 RU.png",
+      "gpid": "609"
+    },
+    {
+      "entryName": "God Save the Tsar",
+      "image": "Home Card 10 RU.png",
+      "gpid": "611"
+    },
+    {
+      "entryName": "Card UK Objective 9",
+      "image": "Card UK Objective 9.png",
+      "gpid": "291"
+    },
+    {
+      "entryName": "Card UK Objective 10",
+      "image": "Card UK Objective 10.png",
+      "gpid": "284"
+    },
+    {
+      "entryName": "Card UK Objective 11",
+      "image": "Card UK Objective 11.png",
+      "gpid": "285"
+    },
+    {
+      "entryName": "Card UK Objective 12",
+      "image": "Card UK Objective 12.png",
+      "gpid": "286"
+    },
+    {
+      "entryName": "Card UK Objective 13",
+      "image": "Card UK Objective 13.png",
+      "gpid": "287"
+    },
+    {
+      "entryName": "Card UK Objective 14",
+      "image": "Card UK Objective 14.png",
+      "gpid": "288"
+    },
+    {
+      "entryName": "Card UK Objective 15",
+      "image": "Card UK Objective 15.png",
+      "gpid": "289"
+    },
+    {
+      "entryName": "Card UK Objective 16",
+      "image": "Card UK Objective 16.png",
+      "gpid": "290"
+    },
+    {
+      "entryName": "Sun Never Sets",
+      "image": "Home Card 3 UK.png",
+      "gpid": "620"
+    },
+    {
+      "entryName": "Balance of Power",
+      "image": "Home Card 4 UK.png",
+      "gpid": "622"
+    }
+  ],
+  "drawPiles": [
+    {
+      "name": "Great War Deck Org",
+      "owningBoard": "Play Decks",
+      "x": "225",
+      "y": "270",
+      "deckOwners": ""
+    },
+    {
+      "name": "1870's",
+      "owningBoard": "Play Decks",
+      "x": "525",
+      "y": "270",
+      "deckOwners": "France,Solo"
+    },
+    {
+      "name": "1880's",
+      "owningBoard": "Play Decks",
+      "x": "825",
+      "y": "270",
+      "deckOwners": "Germany,Solo"
+    },
+    {
+      "name": "1890's",
+      "owningBoard": "Play Decks",
+      "x": "1125",
+      "y": "270",
+      "deckOwners": "Ottoman,Solo"
+    },
+    {
+      "name": "1900's",
+      "owningBoard": "Play Decks",
+      "x": "1425",
+      "y": "270",
+      "deckOwners": "Russia,Solo"
+    },
+    {
+      "name": "Action Deck",
+      "owningBoard": "Play Decks",
+      "x": "525",
+      "y": "790",
+      "deckOwners": ""
+    },
+    {
+      "name": "Action Discard",
+      "owningBoard": "Play Decks",
+      "x": "825",
+      "y": "790",
+      "deckOwners": ""
+    },
+    {
+      "name": "Action Randomizer",
+      "owningBoard": "Play Decks",
+      "x": "1425",
+      "y": "790",
+      "deckOwners": ""
+    },
+    {
+      "name": "ex1",
+      "owningBoard": "Card Decks",
+      "x": "1725",
+      "y": "270",
+      "deckOwners": "United Kingdom,Solo"
+    },
+    {
+      "name": "Great War Deck",
+      "owningBoard": "Great War",
+      "x": "727",
+      "y": "1418",
+      "deckOwners": ""
+    },
+    {
+      "name": "Great War Discard",
+      "owningBoard": "Great War",
+      "x": "1116",
+      "y": "1419",
+      "deckOwners": ""
+    },
+    {
+      "name": "RandomGermany",
+      "owningBoard": "Germany Cards",
+      "x": "2400",
+      "y": "1500",
+      "deckOwners": ""
+    },
+    {
+      "name": "RandomUnitedKingdom",
+      "owningBoard": "United Kingdom Cards",
+      "x": "2400",
+      "y": "1500",
+      "deckOwners": ""
+    },
+    {
+      "name": "RandomFrance",
+      "owningBoard": "France Cards",
+      "x": "2400",
+      "y": "1500",
+      "deckOwners": ""
+    },
+    {
+      "name": "RandomAustria-Hungary",
+      "owningBoard": "Austria-Hungary Cards",
+      "x": "2400",
+      "y": "1500",
+      "deckOwners": ""
+    },
+    {
+      "name": "RandomRussia",
+      "owningBoard": "Russian Cards",
+      "x": "2400",
+      "y": "1500",
+      "deckOwners": ""
+    },
+    {
+      "name": "RandomOttoman",
+      "owningBoard": "Ottoman Cards",
+      "x": "2400",
+      "y": "1500",
+      "deckOwners": ""
+    },
+    {
+      "name": "AU Objectives",
+      "owningBoard": "Card Decks",
+      "x": "225",
+      "y": "270",
+      "deckOwners": ""
+    },
+    {
+      "name": "Austria-Hungary Home Cards",
+      "owningBoard": "Card Decks",
+      "x": "225",
+      "y": "720",
+      "deckOwners": ""
+    },
+    {
+      "name": "FR Objectives",
+      "owningBoard": "Card Decks",
+      "x": "525",
+      "y": "270",
+      "deckOwners": ""
+    },
+    {
+      "name": "France Home Cards",
+      "owningBoard": "Card Decks",
+      "x": "525",
+      "y": "720",
+      "deckOwners": ""
+    },
+    {
+      "name": "GE Objectives",
+      "owningBoard": "Card Decks",
+      "x": "825",
+      "y": "270",
+      "deckOwners": ""
+    },
+    {
+      "name": "GE Home Card",
+      "owningBoard": "Card Decks",
+      "x": "825",
+      "y": "720",
+      "deckOwners": ""
+    },
+    {
+      "name": "OT Objectives",
+      "owningBoard": "Card Decks",
+      "x": "1125",
+      "y": "270",
+      "deckOwners": ""
+    },
+    {
+      "name": "OT Home Card",
+      "owningBoard": "Card Decks",
+      "x": "1125",
+      "y": "720",
+      "deckOwners": ""
+    },
+    {
+      "name": "RU Objectives",
+      "owningBoard": "Card Decks",
+      "x": "1425",
+      "y": "270",
+      "deckOwners": ""
+    },
+    {
+      "name": "RU Home Card",
+      "owningBoard": "Card Decks",
+      "x": "1425",
+      "y": "720",
+      "deckOwners": ""
+    },
+    {
+      "name": "UK Objectives",
+      "owningBoard": "Card Decks",
+      "x": "1725",
+      "y": "270",
+      "deckOwners": ""
+    },
+    {
+      "name": "United Kingdom Home Card",
+      "owningBoard": "Card Decks",
+      "x": "1725",
+      "y": "720",
+      "deckOwners": ""
+    },
+    {
+      "name": "Removed From Game",
+      "owningBoard": "Card Decks",
+      "x": "975",
+      "y": "1170",
+      "deckOwners": ""
+    },
+    {
+      "name": "Shuffler",
+      "owningBoard": "Bot Hands",
+      "x": "150",
+      "y": "200",
+      "deckOwners": ""
+    },
+    {
+      "name": "German Hand",
+      "owningBoard": "Bot Hands",
+      "x": "450",
+      "y": "350",
+      "deckOwners": ""
+    },
+    {
+      "name": "UK Hand",
+      "owningBoard": "Bot Hands",
+      "x": "750",
+      "y": "350",
+      "deckOwners": ""
+    },
+    {
+      "name": "FR Hand",
+      "owningBoard": "Bot Hands",
+      "x": "1050",
+      "y": "350",
+      "deckOwners": ""
+    },
+    {
+      "name": "AU Hand",
+      "owningBoard": "Bot Hands",
+      "x": "1350",
+      "y": "350",
+      "deckOwners": ""
+    },
+    {
+      "name": "RU Hand",
+      "owningBoard": "Bot Hands",
+      "x": "1650",
+      "y": "350",
+      "deckOwners": ""
+    },
+    {
+      "name": "OT Hand",
+      "owningBoard": "Bot Hands",
+      "x": "1950",
+      "y": "350",
+      "deckOwners": ""
+    }
+  ],
+  "usedImages": [
+    "2 cards.png",
+    "AU 1 Turn Truce.png",
+    "AU Alliance.png",
+    "AU Ally B.png",
+    "AU CP Chain.png",
+    "AU Elite Corps.png",
+    "AU Exp Force.png",
+    "AU Industry.png",
+    "AU Influence.png",
+    "AU Joint Naval Op.png",
+    "AU Keys.png",
+    "AU Manpower.png",
+    "AU Occupied.png",
+    "AU Power Projection.png",
+    "AU Stability.png",
+    "AU TA Influence.png",
+    "AU TE Influence.png",
+    "AU VPs.png",
+    "AU WB-Alt.png",
+    "AU War Budget.png",
+    "AU Wartime Initiative.png",
+    "AU_Citz_placeholder.png",
+    "Action Card 100_result.jpg",
+    "Action Card 101_result.jpg",
+    "Action Card 102_result.jpg",
+    "Action Card 103_result.jpg",
+    "Action Card 104_result.jpg",
+    "Action Card 105_result.jpg",
+    "Action Card 106_result.jpg",
+    "Action Card 107_result.jpg",
+    "Action Card 108_result.jpg",
+    "Action Card 109_result.jpg",
+    "Action Card 110_result.jpg",
+    "Action Card 111_result.jpg",
+    "Action Card 112_result.jpg",
+    "Action Card 13_result.jpg",
+    "Action Card 14_result.jpg",
+    "Action Card 15_result.jpg",
+    "Action Card 16_result.jpg",
+    "Action Card 17_result.jpg",
+    "Action Card 18_result.jpg",
+    "Action Card 19_result.jpg",
+    "Action Card 20_result.jpg",
+    "Action Card 21_result.jpg",
+    "Action Card 22_result.jpg",
+    "Action Card 23_result.jpg",
+    "Action Card 24_result.jpg",
+    "Action Card 25_result.jpg",
+    "Action Card 26_result.jpg",
+    "Action Card 27_result.jpg",
+    "Action Card 28_result.jpg",
+    "Action Card 29_result.jpg",
+    "Action Card 30_result.jpg",
+    "Action Card 31_result.jpg",
+    "Action Card 32_result.jpg",
+    "Action Card 33_result.jpg",
+    "Action Card 34_result.jpg",
+    "Action Card 35_result.jpg",
+    "Action Card 36_result.jpg",
+    "Action Card 37_result.jpg",
+    "Action Card 38_result.jpg",
+    "Action Card 39_result.jpg",
+    "Action Card 40_result.jpg",
+    "Action Card 41_result.jpg",
+    "Action Card 42_result.jpg",
+    "Action Card 43_result.jpg",
+    "Action Card 44_result.jpg",
+    "Action Card 45_result.jpg",
+    "Action Card 46_result.jpg",
+    "Action Card 47_result.jpg",
+    "Action Card 48_result.jpg",
+    "Action Card 49_result.jpg",
+    "Action Card 50_result.jpg",
+    "Action Card 51_result.jpg",
+    "Action Card 52_result.jpg",
+    "Action Card 53_result.jpg",
+    "Action Card 54_result.jpg",
+    "Action Card 55_result.jpg",
+    "Action Card 56_result.jpg",
+    "Action Card 57_result.jpg",
+    "Action Card 58_result.jpg",
+    "Action Card 59_result.jpg",
+    "Action Card 60_result.jpg",
+    "Action Card 61_result.jpg",
+    "Action Card 62_result.jpg",
+    "Action Card 63_result.jpg",
+    "Action Card 64_result.jpg",
+    "Action Card 65_result.jpg",
+    "Action Card 66_result.jpg",
+    "Action Card 67_result.jpg",
+    "Action Card 68_result.jpg",
+    "Action Card 69_result.jpg",
+    "Action Card 70_result.jpg",
+    "Action Card 71_result.jpg",
+    "Action Card 72_result.jpg",
+    "Action Card 73_result.jpg",
+    "Action Card 74_result.jpg",
+    "Action Card 75_result.jpg",
+    "Action Card 76_result.jpg",
+    "Action Card 77_result.jpg",
+    "Action Card 78_result.jpg",
+    "Action Card 79_result.jpg",
+    "Action Card 80_result.jpg",
+    "Action Card 81_result.jpg",
+    "Action Card 83_result.jpg",
+    "Action Card 84_result.jpg",
+    "Action Card 85_result.jpg",
+    "Action Card 86_result.jpg",
+    "Action Card 87_result.jpg",
+    "Action Card 88_result.jpg",
+    "Action Card 89_result.jpg",
+    "Action Card 90_result.jpg",
+    "Action Card 91_result.jpg",
+    "Action Card 92_result.jpg",
+    "Action Card 93_result.jpg",
+    "Action Card 94_result.jpg",
+    "Action Card 95_result.jpg",
+    "Action Card 96_result.jpg",
+    "Action Card 97_result.jpg",
+    "Action Card 98_result.jpg",
+    "Action Card 99_result.jpg",
+    "Action Card P1.jpg",
+    "Action Card P2.jpg",
+    "Action Card P3.jpg",
+    "Army 1st UK.png",
+    "Army AU.png",
+    "Army France.png",
+    "Army GE.png",
+    "Army RU.png",
+    "Army UK CW.png",
+    "Army UK IND.png",
+    "Army UK.png",
+    "BR GW F.png",
+    "Barvia Army.png",
+    "Belgium Control - Copy.png",
+    "Belgum Army.png",
+    "Berlin Confrence x.png",
+    "Boers PAC 11.png",
+    "Bonus Impulse TA.png",
+    "Bos-Heg Army.png",
+    "Bosnia Control.png",
+    "Boxer Army.png",
+    "Bulgaria Army.png",
+    "Bulgaria Control.png",
+    "Button Draw-Card.png",
+    "Button Dual Monarchy.png",
+    "Button Home-Card.png",
+    "CSA Control.png",
+    "Card +1.png",
+    "Card +half.png",
+    "Card -1.png",
+    "Card AU Objective 25.png",
+    "Card AU Objective 26.png",
+    "Card AU Objective 27.png",
+    "Card AU Objective 28.png",
+    "Card AU Objective 29.png",
+    "Card AU Objective 30.png",
+    "Card AU Objective 31.png",
+    "Card AU Objective 32.png",
+    "Card AU Objective 33.png",
+    "Card Deck Map.jpg",
+    "Card FR Objective 17.png",
+    "Card FR Objective 18.png",
+    "Card FR Objective 19.png",
+    "Card FR Objective 20.png",
+    "Card FR Objective 21.png",
+    "Card FR Objective 23.png",
+    "Card FR Objective 24.png",
+    "Card GE Objective 1.png",
+    "Card GE Objective 2.png",
+    "Card GE Objective 3.png",
+    "Card GE Objective 4.png",
+    "Card GE Objective 5.png",
+    "Card GE Objective 6.png",
+    "Card GE Objective 7.png",
+    "Card GE Objective 8.png",
+    "Card OT Objective 42.png",
+    "Card OT Objective 43.png",
+    "Card OT Objective 44.png",
+    "Card OT Objective 45.png",
+    "Card OT Objective 46.png",
+    "Card OT Objective 47.png",
+    "Card OT Objective 48.png",
+    "Card OT Objective 49.png",
+    "Card RU Objective 34.png",
+    "Card RU Objective 35.png",
+    "Card RU Objective 36.png",
+    "Card RU Objective 37.png",
+    "Card RU Objective 38.png",
+    "Card RU Objective 39.png",
+    "Card RU Objective 40.png",
+    "Card RU Objective 41.png",
+    "Card UK Objective 10.png",
+    "Card UK Objective 11.png",
+    "Card UK Objective 12.png",
+    "Card UK Objective 13.png",
+    "Card UK Objective 14.png",
+    "Card UK Objective 15.png",
+    "Card UK Objective 16.png",
+    "Card UK Objective 9.png",
+    "Chart Bot 1.png",
+    "Chart Bot 2.png",
+    "Chart Colonial and Great Wars.png",
+    "Chart Combat and CRT.png",
+    "Chart Counter count.png",
+    "Chart Crisis b.png",
+    "Chart Flag and Flashpoints.png",
+    "Chart Italy and Legend.png",
+    "Chart Mjr Pwr Influence.png",
+    "Chart Seq-of-Play.png",
+    "Chart War-Aims and Minors.png",
+    "China Army.png",
+    "City of Lights 0.jpg",
+    "Denmark Army.png",
+    "Dn AU 3 NAR.png",
+    "Dn AU 3.png",
+    "Dn FR 3.png",
+    "Dn GE.png",
+    "Dn IT 3.png",
+    "Dn Japan 3.png",
+    "Dn UK 3.png",
+    "Dn USA 3.png",
+    "Egypy Army.png",
+    "Ethiopia Army.png",
+    "FP Africa.png",
+    "FP Balkans.png",
+    "FP Caucuses.png",
+    "FP Central Eurpoe.png",
+    "FP Germany.png",
+    "FP Great Game.png",
+    "FP Italy.png",
+    "FP Lowlands.png",
+    "FP PP 2nd.png",
+    "FP Power Projection.png",
+    "FP Qing China and Japan.png",
+    "FP Suez Canal.png",
+    "FR Alliance Blue.png",
+    "FR CP Chain.png",
+    "FR Colonial Keys.png",
+    "FR Elite Col EF.png",
+    "FR Elite Corps.png",
+    "FR Exp Force.png",
+    "FR Industry.png",
+    "FR Influence Blue.png",
+    "FR Influence.png",
+    "FR Joint Naval Op.png",
+    "FR Keys.png",
+    "FR Manpower.png",
+    "FR Occupied.png",
+    "FR Power Projection.png",
+    "FR Second Empire.png",
+    "FR Stability.png",
+    "FR TA Influence.png",
+    "FR TE Influence.png",
+    "FR VPs.png",
+    "FR WB-Alt.png",
+    "FR War Budget.png",
+    "FR Wartime Initiative.png",
+    "FR Zouave.png",
+    "Flag Au.jpg",
+    "Flag Fr.jpg",
+    "Flag GE.jpg",
+    "Flag OT.jpg",
+    "Flag RU.jpg",
+    "Flag UK.jpg",
+    "Fort 0.png",
+    "Fort 1 ind.png",
+    "Fr 1 Turn Truce.png",
+    "French Arrow.png",
+    "GE 1 Turn Truce.png",
+    "GE Alliance.png",
+    "GE CP Chain.png",
+    "GE Colonial Keys.png",
+    "GE EXP Force.png",
+    "GE Elite CORPS.png",
+    "GE Elite Col Inf.png",
+    "GE Industry.png",
+    "GE Influence ally.png",
+    "GE Influence.png",
+    "GE Joint Naval Op.png",
+    "GE Keys.png",
+    "GE Manpower.png",
+    "GE Occupied.png",
+    "GE Power Projection.png",
+    "GE Stability.png",
+    "GE TA Influence.png",
+    "GE TE Influence.png",
+    "GE VPs.png",
+    "GE WB-Alt.png",
+    "GE War Budget.png",
+    "GE Wartime Initiative.png",
+    "GW Main Map T3.jpg",
+    "GeO PAC 12.png",
+    "German Home Space.png",
+    "Great War Card 1.png",
+    "Great War Card 10.png",
+    "Great War Card 2.png",
+    "Great War Card 3.png",
+    "Great War Card 4.png",
+    "Great War Card 5.png",
+    "Great War Card 6.png",
+    "Great War Card 7.png",
+    "Great War Card 8.png",
+    "Great War Card 9.png",
+    "Greece Control.png",
+    "Greek Army.png",
+    "Hanover Army.png",
+    "Home Card 1 GE.png",
+    "Home Card 10 RU.png",
+    "Home Card 11 OT.png",
+    "Home Card 12 OT.png",
+    "Home Card 2 GE.png",
+    "Home Card 3 UK.png",
+    "Home Card 4 UK.png",
+    "Home Card 5 FR.png",
+    "Home Card 6 FR.png",
+    "Home Card 7 AU.png",
+    "Home Card 8 AU.png",
+    "Home Card 9 RU.png",
+    "IND Card.png",
+    "IT Alliance.png",
+    "IT Exp Force.png",
+    "IT Influence.png",
+    "IT Stability.png",
+    "IT Truce 1 turn.png",
+    "IT ally 2CP.png",
+    "India +1 Card b.png",
+    "India Army.png",
+    "India Stable.png",
+    "Irish Army.png",
+    "Irish Fenian Army.png",
+    "Italian Ally 1 CP.png",
+    "Italian Manpower.png",
+    "Italy Army.png",
+    "Italy United x.png",
+    "Japan Army.png",
+    "Japan Influence.png",
+    "Jihad.png",
+    "Key AU.png",
+    "Key FR.png",
+    "Key Neut.png",
+    "Key OT.png",
+    "Key RU.png",
+    "Key UK.png",
+    "Land Battle Support 2.png",
+    "Land Battle.png",
+    "MP Army.png",
+    "MP Elite Corps.png",
+    "Mah Army.png",
+    "Map-World f.jpg",
+    "Master of the C.png",
+    "Minor Important Power.png",
+    "Minor Power Ind.png",
+    "Minor Power Srrictly Neutral.png",
+    "Mkr -1 VP.png",
+    "Mkr Blank white 141.png",
+    "Mkr CP Bonus.png",
+    "Mkr World Tension.png",
+    "Mkr- Trans-Siberian RR x.png",
+    "Mkr-Turn GW.png",
+    "Mkr-Turn.png",
+    "Naples Army.png",
+    "Naples Control.png",
+    "National Will.png",
+    "Naval arms race 2t.png",
+    "Netherlands Army.png",
+    "Neutral Influence.png",
+    "Neutral TA Influence.png",
+    "Neutral TE Influence.png",
+    "Note.png",
+    "OT 1 Turn Truce.png",
+    "OT Alliance.png",
+    "OT Ally B.png",
+    "OT Arab Army.png",
+    "OT Arab Manpower.png",
+    "OT Army.png",
+    "OT CP Chain.png",
+    "OT Dn NAR B.png",
+    "OT Dn.png",
+    "OT Elite Corps YT.png",
+    "OT Elite Corps.png",
+    "OT Exp Force.png",
+    "OT Influence.png",
+    "OT Joint Naval Op.png",
+    "OT Occupied.png",
+    "OT Power Projection.png",
+    "OT Sq NAR.png",
+    "OT Sq.png",
+    "OT TA Influence.png",
+    "OT TE Influence.png",
+    "OT Turkish Manpower.png",
+    "OT VPs.png",
+    "OT WB-Alt.png",
+    "OT War Budget.png",
+    "OT Wartime Initiative.png",
+    "OT all other Keys.png",
+    "Ot Arab Keys.png",
+    "Ot Industry.png",
+    "Ot Stability.png",
+    "POL Elite Corps.png",
+    "Pacification 0.png",
+    "Persia Army.png",
+    "Piedmont Army.png",
+    "Poland Army.png",
+    "RU 1 turn truce.png",
+    "RU Alliance.png",
+    "RU CP Chain.png",
+    "RU Dn.png",
+    "RU Elite Col EF.png",
+    "RU Elite Corp.png",
+    "RU Exp Force.png",
+    "RU Industry.png",
+    "RU Influence.png",
+    "RU Joint Naval Op.png",
+    "RU Manpower.png",
+    "RU Occupied.png",
+    "RU Power Projection.png",
+    "RU Sq.png",
+    "RU Stability.png",
+    "RU TA Influence.png",
+    "RU TE Influence.png",
+    "RU Territorial Keys.png",
+    "RU VPs.png",
+    "RU WB-Alt.png",
+    "RU War Budget.png",
+    "RU Wartime Initiative.png",
+    "Romanian Army.png",
+    "Ru Influence Blue.png",
+    "Rumania Control.png",
+    "Sardina-Piedmont Control.png",
+    "Saxony Army.png",
+    "Schorched Earth.png",
+    "Serbia Army.png",
+    "Serbia Control.png",
+    "Sq AU 2.png",
+    "Sq AU NAR 2.png",
+    "Sq Denmark 2.png",
+    "Sq FR 2.png",
+    "Sq GE.png",
+    "Sq Greek 2.png",
+    "Sq IT 2.png",
+    "Sq Japan 2.png",
+    "Sq MP 2.png",
+    "Sq Naples 2.png",
+    "Sq Netherlands 2.png",
+    "Sq Sardina-Piedmont 2.png",
+    "Sq UK 2.png",
+    "Sq USA 2.png",
+    "Suez Canal x.png",
+    "TE Bonus Impulse.png",
+    "Teritory AU.png",
+    "Teritory Fr.png",
+    "Teritory Ge.png",
+    "Teritory Neut.png",
+    "Teritory OT.png",
+    "Teritory RU.png",
+    "Teritory UK.png",
+    "The Bot.png",
+    "Trench Battle Attacker Adv.png",
+    "Tuscany Army.png",
+    "UK 1 Turn Truce.png",
+    "UK Alliance Blue.png",
+    "UK CP Chain.png",
+    "UK Colonial Keys.png",
+    "UK Colonial Manpower.png",
+    "UK Elite Corps.png",
+    "UK Exp Force 1 DRM.png",
+    "UK Exp Force.png",
+    "UK Industry.png",
+    "UK Influence Blue.png",
+    "UK Influence.png",
+    "UK Joint Naval Op.png",
+    "UK Manpower.png",
+    "UK Occupied.png",
+    "UK Power Projection.png",
+    "UK Stability.png",
+    "UK TA Influence.png",
+    "UK TE Influence.png",
+    "UK Territorial Keys.png",
+    "UK VPs.png",
+    "UK WB-Alt.png",
+    "UK War Budget.png",
+    "UK Wartime Initiative.png",
+    "US Ally 1 CP.png",
+    "US Ally 4CP.png",
+    "US Stability.png",
+    "USA Alliance.png",
+    "USA Army.png",
+    "USA Dreadnought.png",
+    "USA Influence.png",
+    "USA Manpower.png",
+    "USA Squadron .png",
+    "Vatican Army.png",
+    "WOI 0.png",
+    "War Aim.png",
+    "Zulu Army.png",
+    "kingdom of Italy Rome.png",
+    "kingdom of Italy.png"
+  ]
+}

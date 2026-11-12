@@ -37,6 +37,18 @@ const buildClient = async (gameName: string, server: string): Promise<GameClient
             loading: Loading,
         });
     }
+    if (gameName === 'imperialElegy') {
+        const [{ImperialElegyGameDef}, {ImperialElegyBoard}] = await Promise.all([
+            import("../../imperialElegy/game"),
+            import("../../imperialElegy/components/board"),
+        ]);
+        return Client({
+            game: ImperialElegyGameDef,
+            board: ImperialElegyBoard,
+            multiplayer: SocketIO({server: server}),
+            loading: Loading,
+        });
+    }
     if (gameName === 'film') {
         const [{FilmCentenaryGame}, {FilmCentenaryBoard}] = await Promise.all([
             import("../../Game"),

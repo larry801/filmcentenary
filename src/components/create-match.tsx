@@ -23,7 +23,8 @@ import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {LobbyClient} from 'boardgame.io/client';
-import {filmCentenaryName, songJinnName, virginQueenName} from "../constant/multi-games";
+import {filmCentenaryName, imperialElegyName, songJinnName, virginQueenName} from "../constant/multi-games";
+import {IE_SEAT_LABELS} from "../imperialElegy/configuration";
 import {ScenarioID} from "../virginQueen/constant/general";
 import {SCENARIO_OPTIONS, scenarioOptionLabel, seatLabels} from "../virginQueen/configuration";
 
@@ -140,7 +141,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [clicked, setClicked] = useState(false);
     const [matchID, setMatchID] = useState("");
     const [error, setError] = useState("");
-    const [numPlayers, setNumPlayers] = useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName ? 6 : 2);
+    const [numPlayers, setNumPlayers] = useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName || gameName === imperialElegyName ? 6 : 2);
     const [isPublic, setIsPublic] = useState(true);
     const [matches, setMatches] = useState<MatchData[]>([]);
     const [vqScenario, setVqScenario] = useState<ScenarioID>("campaign");
@@ -208,13 +209,13 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         refreshLobby();
     }, [refreshLobby]);
 
-    const gameTitle = gameName === 'film' ? "电影百年" : gameName === virginQueenName ? "Virgin Queen" : "宋金战争";
+    const gameTitle = gameName === 'film' ? "电影百年" : gameName === virginQueenName ? "Virgin Queen" : gameName === imperialElegyName ? "Imperial Elegy 帝国挽歌" : "宋金战争";
 
     const errorMessage = error ? (
         <Alert severity="error" sx={{mb: 1}}>
             {error} {i18n.chain.drawer.pleaseTry}
             {gameName === 'film' ? <Link to={'/local4p'}>{i18n.chain.drawer.fourPlayer}</Link> :
-                gameName === virginQueenName ? <Link to={'/localVQ'}>{i18n.chain.vq.local.hotseat}</Link> :
+                gameName === virginQueenName ? <Link to={'/localVQ'}>{i18n.chain.vq.local.hotseat}</Link> : gameName === imperialElegyName ? <Link to={'/localIE'}>本地热座 / Local hotseat</Link> :
                 <Link to={'/local'}>本地</Link>}
         </Alert>
     ) : null;
@@ -223,7 +224,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         match,
         createdText: new Date(match.createdAt).toLocaleString(),
         updatedText: new Date(match.updatedAt).toLocaleString(),
-        seats: match.gameName === virginQueenName ? seatLabels(match.setupData?.scenario ?? "campaign", match.players.length, vqLocale) : undefined,
+        seats: match.gameName === virginQueenName ? seatLabels(match.setupData?.scenario ?? "campaign", match.players.length, vqLocale) : match.gameName === imperialElegyName ? ["GE","UK","FR","AU","RU","OT"].map((p) => vqLocale === "zh_CN" ? IE_SEAT_LABELS[p as keyof typeof IE_SEAT_LABELS].zh_CN : IE_SEAT_LABELS[p as keyof typeof IE_SEAT_LABELS].en) : undefined,
     })), [matches, vqLocale]);
 
     return (
@@ -303,7 +304,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                     name: 'numPlayers',
                                     id: 'outlined-numPlayers-native-simple',
                                 }}>
-                                {gameName === virginQueenName ? SCENARIO_OPTIONS.find((entry) => entry.id === vqScenario)!.players.map((count) => <option key={count} value={count}>{count}</option>) : <>
+                                {gameName === virginQueenName ? SCENARIO_OPTIONS.find((entry) => entry.id === vqScenario)!.players.map((count) => <option key={count} value={count}>{count}</option>) : gameName === imperialElegyName ? <option value={6}>6</option> : <>
                                     <option value={2}>2</option>
                                     {gameName === 'film' ? <>
                                         <option value={3}>3</option>
@@ -325,6 +326,8 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 }}>
                                 {gameName === virginQueenName ? <>
                                     {seatLabels(vqScenario, numPlayers, vqLocale).map((label, index) => <option key={index} value={String(index)}>{`P${index + 1} ${label}`}</option>)}
+                                </> : gameName === imperialElegyName ? <>
+                                    {(["GE","UK","FR","AU","RU","OT"] as const).map((p, index) => <option key={p} value={String(index)}>{`P${index + 1} ${vqLocale === "zh_CN" ? IE_SEAT_LABELS[p].zh_CN : IE_SEAT_LABELS[p].en}`}</option>)}
                                 </> : <>
                                     {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
                                         : <option value={Player.P0}>宋</option>}

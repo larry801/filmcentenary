@@ -562,6 +562,7 @@ const zh_CN: Locale = {
             general: "全局",
             film: "电影百年",
             songJinn: "宋金战争",
+            imperialElegy: "Imperial Elegy 帝国挽歌",
             virginQueen: "Virgin Queen 童贞女王",
         },
         film: {
@@ -573,6 +574,10 @@ const zh_CN: Locale = {
         songJinn: {
             multiplayer: "多人 / 创建对局",
             local: "本地对战",
+        },
+        imperialElegy: {
+            multiplayer: "多人 / 创建对局",
+            local: "本地热座",
         },
         virginQueen: {
             multiplayer: "多人 / 创建对局",

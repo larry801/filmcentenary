@@ -17,6 +17,7 @@ const AboutPage = React.lazy(() => import("./components/about-page"));
 const Lobby = React.lazy(() => import("./components/lobby"));
 const Local = React.lazy(() => import("./songJinn/components/local"));
 const LocalVirginQueen = React.lazy(() => import("./virginQueen/components/local"));
+const LocalImperialElegy = React.lazy(() => import("./imperialElegy/components/local"));
 
 const RouteFallback = () => (
     <Box sx={{display: 'flex', justifyContent: 'center', p: 4}}>
@@ -36,6 +37,7 @@ createRoot(rootElement).render(
                 <Route path="/" element={<MUICreateMatch gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/songJinn" element={<MUICreateMatch gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/virginQueen" element={<MUICreateMatch gameName={"virginQueen"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
+                <Route path="/imperialElegy" element={<MUICreateMatch gameName={"imperialElegy"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/cards" element={<DenseTable/>}/>
                 <Route path="/about" element={<AboutPage/>}/>
                 <Route path="/join/film/:matchID/:player/:credential" element={<JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
@@ -44,11 +46,14 @@ createRoot(rootElement).render(
                 <Route path="/join/songJinn/:matchID/:player" element={<JoinPage gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/join/virginQueen/:matchID/:player/:credential" element={<JoinPage gameName={"virginQueen"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/join/virginQueen/:matchID/:player" element={<JoinPage gameName={"virginQueen"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
+                <Route path="/join/imperialElegy/:matchID/:player/:credential" element={<JoinPage gameName={"imperialElegy"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
+                <Route path="/join/imperialElegy/:matchID/:player" element={<JoinPage gameName={"imperialElegy"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/join/:matchID/:player/:credential" element={<JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/join/:matchID/:player" element={<JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/local" element={<Local/>}/>
                 <Route path="/localVQ" element={<LocalVirginQueen/>}/>
                 <Route path="/localVQ/tutorial" element={<LocalVirginQueen initialScenario="tutorial"/>}/>
+                <Route path="/localIE" element={<LocalImperialElegy/>}/>
                 <Route path="/local2p" element={<Local2p/>}/>
                 <Route path="/local3p" element={<Local3p/>}/>
                 <Route path="/local4p" element={<Local4p/>}/>

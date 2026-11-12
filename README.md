@@ -9,7 +9,7 @@
 yarn install
 ```
 
-打开本地版 （远程多人不可用 /local4p、/local、/localVQ 可用于测试）
+打开本地版 （远程多人不可用 /local4p、/local、/localVQ、/localIE 可用于测试）
 ```shell
 yarn start
 ```
@@ -57,6 +57,7 @@ docker compose pull && docker compose up -d
 - 电影百年：`src/game/`
 - 宋金战争：`src/songJinn/`
 - Virgin Queen：`src/virginQueen/`（说明见 `VIRGIN_QUEEN.md`）
+- Imperial Elegy：`src/imperialElegy/`（说明见 `docs/imperial-elegy/README.md`）
 
 电影百年主要逻辑在 src/game/util.ts。
 
