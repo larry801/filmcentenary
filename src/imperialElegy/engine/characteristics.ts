@@ -613,11 +613,12 @@ export const landBattleModifier = (
   }
 
   // RU Endless Space (33.5).  Affects support FP, not the main-force DRM.
-  const supportSpaces = [
-    ...battle.supportAttack.map((s) => s.space),
-    ...battle.supportDefense.map((s) => s.space),
-  ];
-  const endlessSpace = endlessSpaceSupport(G, [battle.from, battle.to, ...supportSpaces]);
+  // The printed trigger is the *battle*: armies supporting a battle into
+  // (`to`) or from (`from`) a Russian home space are halved.  A supporting
+  // army that merely stands in a Russian home space while the battle is fought
+  // elsewhere is not halved — `combat.supportCandidates` applies the same
+  // from/to test when it halves the FP.
+  const endlessSpace = endlessSpaceSupport(G, [battle.from, battle.to]);
   if (endlessSpace.halvesSupport) {
     sources.push({
       id: "endlessSpace",
@@ -1435,6 +1436,28 @@ export const canGrantCitizenship = (
     guaranteed: allowed && rollNeeded <= 1,
     impossible: allowed && rollNeeded > 6,
   };
+};
+
+/**
+ * 33.4.1: "A nationality must be granted rights before it can be granted full
+ * citizenship.  A nationality retains the benefits of having rights when it
+ * has full citizenship."  Every citizenship grant therefore records rights as
+ * well, so the printed ordering holds even when a card (A47 The Dual Monarchy)
+ * grants citizenship directly.  Unknown nationalities and repeats are ignored.
+ */
+export const grantAuCitizenship = (G: ImperialElegyState, nationality: string): boolean => {
+  if (!(AU_NATIONALITIES as readonly string[]).includes(nationality)) return false;
+  const p = G.powers.AU;
+  let changed = false;
+  if (!p.rights.includes(nationality)) {
+    p.rights.push(nationality);
+    changed = true;
+  }
+  if (!p.citizenship.includes(nationality)) {
+    p.citizenship.push(nationality);
+    changed = true;
+  }
+  return changed;
 };
 
 // ---------------------------------------------------------------------------

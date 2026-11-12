@@ -7,6 +7,7 @@ import {
   cardDrawModifier,
   dualMonarchy,
   governmentBenefits,
+  grantAuCitizenship,
   industryRoll,
   landBattleModifier,
   metternichAllies,
@@ -359,6 +360,15 @@ describe("landBattleModifier", () => {
     expect(elsewhere.endlessSpace.halvesSupport).toBe(false);
   });
 
+  test("Endless Space keys on the battle spaces, not on where the supporter stands", () => {
+    const G = fresh();
+    const battle = makeBattle("RU", "GE", "berlin", "saxony");
+    // Poland is a Russian home space, but this battle is neither into nor from
+    // it: an army supporting from Poland contributes full FP (33.5).
+    battle.supportAttack = [{space: "poland", units: [], fp: 2}];
+    expect(landBattleModifier(G, "RU", battle).endlessSpace.halvesSupport).toBe(false);
+  });
+
   test("OT Jihad offers the opponent -1 only in a qualifying space and only with a marker", () => {
     const G = fresh();
     G.powers.OT.jihad = 3;
@@ -558,6 +568,24 @@ describe("canGrantCitizenship", () => {
     for (const nationality of AU_NATIONALITIES) {
       expect(canGrantCitizenship(G, "AU", nationality).allowed).toBe(true);
     }
+  });
+});
+
+describe("grantAuCitizenship", () => {
+  test("records rights before citizenship, is idempotent and ignores non-AU nationalities", () => {
+    const G = fresh();
+    expect(grantAuCitizenship(G, "Czechs")).toBe(true);
+    expect(G.powers.AU.rights).toEqual(["Czechs"]);
+    expect(G.powers.AU.citizenship).toEqual(["Czechs"]);
+
+    expect(grantAuCitizenship(G, "Czechs")).toBe(false);
+    expect(G.powers.AU.rights).toHaveLength(1);
+    expect(G.powers.AU.citizenship).toHaveLength(1);
+
+    // Only the eight rule-33.4.1 nationalities can be naturalised.
+    expect(grantAuCitizenship(G, "Germans")).toBe(false);
+    expect(G.powers.AU.rights).not.toContain("Germans");
+    expect(G.powers.AU.citizenship).not.toContain("Germans");
   });
 });
 

@@ -149,6 +149,7 @@ import {
   frLostWar,
   GE_UNIFICATION_GOAL,
   germanConfederationCandidates,
+  grantAuCitizenship,
   industryRoll,
   jihadUse,
   NAPOLEONS_LEGACY_GOAL,
@@ -1591,7 +1592,7 @@ export const auAction = (
     if (decision.requiresStabilityLoss) changeStability(G, "AU", -1, ctx);
     const roll = die(ctx, 6);
     const success = roll >= decision.rollNeeded;
-    if (success) G.powers.AU.citizenship.push(target);
+    if (success) grantAuCitizenship(G, target);
     log(G, "AU", "auCitizenshipRoll", {
       nationality: target,
       roll,

@@ -2119,6 +2119,16 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  secondRomeVp: (entry, locale) => {
+    const vp = num(entry.args?.vp);
+    return withActor(
+      entry,
+      locale,
+      `controlled Istanbul at the start of the Great War and scored ${vp} VPs under The Second Rome.`,
+      `在大战开始时控制伊斯坦布尔，依据“第二罗马”获得 ${vp} VP。`,
+    );
+  },
+
   // ------------------------------------------------------------------ rule 14.0 consent
   // Rule 14.2.1 / the UK home card.
   balanceOfPower: (entry, locale) => {

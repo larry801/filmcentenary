@@ -12,7 +12,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import type {BattleState, GreatWarState, ImperialElegyState, Power, WarState} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {placeUnit, removeUnit} from "./engine/effects";
+import {placeUnit, removeUnit, resolveEffects} from "./engine/effects";
 import {landUnitsIn, recomputeTracks} from "./engine/rules";
 import {changeStability} from "./engine/rules";
 import {outbreakGreatWar} from "./engine/greatWar";
@@ -184,6 +184,24 @@ describe("A Compromise Needed (33.4)", () => {
     G.powers.AU.hand = [];
     applyPrepCharacteristics(G);
     expect(G.powers.AU.hand).not.toContain(DUAL_MONARCHY_CARD);
+  });
+
+  test("the card's event grants Hungarians citizenship and its rights benefits", () => {
+    const G = fresh();
+    const ctx = makeCtx();
+    expect(G.powers.AU.citizenship).toEqual([]);
+    expect(G.powers.AU.rights).toEqual([]);
+
+    expect(resolveEffects(G, ctx, "AU", [{type: "special", handler: "dualMonarchy"}], {})).toBe(true);
+    expect(G.powers.AU.citizenship).toContain("Hungarians");
+    // 33.4.1: "a nationality retains the benefits of having rights when it has
+    // full citizenship", so the rights track records it as well.
+    expect(G.powers.AU.rights).toContain("Hungarians");
+
+    // Re-applying the card effect cannot duplicate either entry.
+    resolveEffects(G, ctx, "AU", [{type: "special", handler: "dualMonarchy"}], {});
+    expect(G.powers.AU.citizenship.filter((n) => n === "Hungarians")).toHaveLength(1);
+    expect(G.powers.AU.rights.filter((n) => n === "Hungarians")).toHaveLength(1);
   });
 });
 
@@ -625,6 +643,28 @@ describe("The Second Rome (33.5)", () => {
     lost.war = makeWar("RU", "OT", {victor: "defender"});
     applyWarEndCharacteristics(lost, makeCtx());
     expect(lost.spaces.istanbul.control).toBe("OT");
+  });
+
+  test("controlling Istanbul at the start of the GW scores 2 VPs", () => {
+    const withIstanbul = fresh();
+    for (const power of POWERS) {
+      withIstanbul.powers[power].goals = [];
+      withIstanbul.powers[power].vp = 0;
+    }
+    withIstanbul.spaces.istanbul.control = "RU";
+    outbreakGreatWar(withIstanbul, makeCtx([3]), "GE", "incident");
+    expect(withIstanbul.powers.RU.vp).toBe(2);
+    expect(lastLog(withIstanbul, "secondRomeVp")?.args).toMatchObject({vp: 2});
+
+    // Negative: an Istanbul still under Ottoman control pays nothing.
+    const without = fresh();
+    for (const power of POWERS) {
+      without.powers[power].goals = [];
+      without.powers[power].vp = 0;
+    }
+    outbreakGreatWar(without, makeCtx([3]), "GE", "incident");
+    expect(without.powers.RU.vp).toBe(0);
+    expect(without.log.some((entry) => entry.key === "secondRomeVp")).toBe(false);
   });
 });
 
