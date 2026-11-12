@@ -5,7 +5,7 @@ import {ImperialElegyState, PendingOption, Power, POWERS, SpaceId, Unit} from ".
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, ownsKey} from "../engine/rules";
+import {effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, ownsKey} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -381,6 +381,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const [mpitTarget, setMpitTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "AU");
   const [mpitTrack, setMpitTrack] = React.useState<"te" | "ta" | "neutral">("neutral");
   const [warAlly, setWarAlly] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
+  const [warMinor, setWarMinor] = React.useState<string>("");
   const [giveTarget, setGiveTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
   const [giveCardId, setGiveCardId] = React.useState<string>("");
   const [confirmSurrender, setConfirmSurrender] = React.useState(false);
@@ -853,6 +854,15 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     ? POWER_KEYS.filter((p) => p !== viewer && !warBelligerents.includes(p) && (handCounts[p] ?? G.powers[p].hand.length) > 0)
     : [];
   const warAllyValue = callableAllies.includes(warAlly) ? warAlly : callableAllies[0];
+  // Rule 14.0: a primary belligerent may call its own minor allies into the war
+  // for free during the alliance step.
+  const callableMinors = war && viewer !== null && (viewer === war.attacker || viewer === war.defender)
+    ? minorAlliesOf(G, viewer).filter((minor) =>
+      MINOR_POWER_HOMES[minor] !== undefined &&
+      !war.attackerMinors.includes(minor) &&
+      !war.defenderMinors.includes(minor))
+    : [];
+  const warMinorValue = pickActionTarget(warMinor, callableMinors, callableMinors);
   const warBudgetRows = war
     ? [...new Set([war.attacker, war.defender, ...war.attackerAllies, ...war.defenderAllies])].filter(isPowerKey)
     : [];
@@ -1817,6 +1827,14 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
                           {callableAllies.map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
                         </select>
                         <button className="ie-btn" disabled={callableAllies.length === 0 || warAllyValue === undefined} onClick={() => doAction(() => moves.callWarAlly(warAllyValue!))}>{t.callAlly}</button>
+                      </div>
+                    )}
+                    {isPrincipal && war.status === "alliance" && callableMinors.length > 0 && (
+                      <div className="ie-inline" data-testid="ie-call-minor">
+                        <select className="ie-select" data-testid="ie-call-minor-select" value={warMinorValue} onChange={(e) => setWarMinor(e.target.value)} title={t.callMinor}>
+                          {callableMinors.map((minor) => <option key={minor} value={minor}>{minor}</option>)}
+                        </select>
+                        <button className="ie-btn" data-testid="ie-call-minor-button" disabled={warMinorValue === ""} onClick={() => doAction(() => moves.callWarMinor(warMinorValue))}>{t.callMinor}</button>
                       </div>
                     )}
                     {isPrincipal && (

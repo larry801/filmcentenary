@@ -368,3 +368,21 @@ describe("pending-kind i18n", () => {
     expect(zh.navalIntercept).toBe("海上拦截");
   });
 });
+
+describe("14.0 minor ally calls", () => {
+  test("the alliance step exposes the primary's minor-ally call", () => {
+    const G = fresh("GE");
+    G.phase = "wartime";
+    G.activePower = "GE";
+    G.war = warState("GE", "FR");
+    G.war.status = "alliance";
+    G.spaces.bavaria.control = "Bavaria";
+    G.spaces.bavaria.ally = "GE";
+    const moves = moveBag("callWarMinor");
+    const tree = renderTree(G, "GE", moves);
+    expect(byTestId(tree, "ie-call-minor")).toBeTruthy();
+    expect(byTestId(tree, "ie-call-minor-select")?.props.value).toBe("Bavaria");
+    byTestId(tree, "ie-call-minor-button")!.props.onClick();
+    expect(moves.callWarMinor).toHaveBeenCalledWith("Bavaria");
+  });
+});
