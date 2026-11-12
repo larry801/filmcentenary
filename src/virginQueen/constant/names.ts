@@ -181,6 +181,7 @@ export const LEADER_NAME_ZH: Record<string, string> = {
 
     // England
     leicester: "莱斯特伯爵",
+    norreys: "约翰·诺里斯",
     howard: "埃芬厄姆的霍华德勋爵",
     drake: "弗朗西斯·德雷克",
     hawkins: "约翰·霍金斯",
