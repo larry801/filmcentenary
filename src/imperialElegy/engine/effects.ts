@@ -691,7 +691,7 @@ const openTargetPower = (
     "eventTargetPower",
     actor,
     "Choose a power",
-    filtered.map((p) => option(p, POWER_DEFS[p].name)),
+    powerOptions(filtered),
     {resume, then: effect.then},
   ));
   return false;
@@ -717,7 +717,7 @@ const openSpecialSpace = (
     "eventTargetSpace",
     actor,
     prompt,
-    spaces.map((id) => option(id, spaceLabel(id, "en"))),
+    spaces.map((id) => option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN"))),
     {resume, special: handler},
   ));
   return false;
@@ -815,10 +815,10 @@ const africanControlSpaces = (G: ImperialElegyState): SpaceId[] =>
     .map((s) => s.id);
 
 const spaceOptions = (G: ImperialElegyState, spaces: SpaceId[]) =>
-  spaces.map((id) => option(id, spaceLabel(id, "en")));
+  spaces.map((id) => option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN")));
 
 const powerOptions = (powers: readonly Power[]) =>
-  powers.map((p) => option(p, POWER_DEFS[p].name));
+  powers.map((p) => option(p, POWER_DEFS[p].name, undefined, false, POWER_DEFS[p].nameZh));
 
 const chainQueue = (G: ImperialElegyState, powers: readonly Power[]): Power[] =>
   powers.filter((p) => !G.powers[p].eliminated);
@@ -2105,7 +2105,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         "eventTargetPower",
         actor,
         minorityOnly ? "Choose a player controlling a minority-nationality space" : "Choose a player",
-        candidates.map((p) => option(p, POWER_DEFS[p].name)),
+        powerOptions(candidates),
         {
           resume,
           special: "stabilityOrCard",

@@ -85,6 +85,7 @@ describe("stability-or-card event choices", () => {
     const actorStability = G.powers.GE.stability;
     playEvent(G, "IE-A056");
     expect(G.pending?.kind).toBe("eventTargetPower");
+    expect(G.pending!.options[0].labelZh).toBeTruthy();
     const target = G.pending!.options[0].id as Power;
     expect(target).not.toBe("GE");
     const stabilityBefore = G.powers[target].stability;
