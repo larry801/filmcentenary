@@ -2497,6 +2497,17 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `refused ${requesting} permission to pass the Dardanelles (${from} → ${to}).`, `拒绝${requesting}通过达达尼尔海峡（${from} → ${to}）。`);
   },
 
+  // 32.5: player units immediately displace out of a rebel space when the GW
+  // starts; the count keeps the automatic step visible.
+  rebelDisplacement: (entry, locale) => {
+    const count = num(entry.args?.count);
+    return text(
+      locale,
+      `The Great War outbreak displaced ${count} unit${count === 1 ? "" : "s"} out of rebel-held spaces (32.5).`,
+      `大战爆发时从叛乱空间移防了 ${count} 个单位（32.5）。`,
+    );
+  },
+
   // ------------------------------------------------------------------ 28.1 trenches
   trenchesPlaced: (entry, locale) => {
     const count = num(entry.args?.count);

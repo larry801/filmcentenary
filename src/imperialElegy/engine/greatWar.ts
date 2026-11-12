@@ -20,6 +20,7 @@ import {
   ITALIAN_EXTRA_NAVAL_MAX,
   ITALIAN_RESERVE_ARMY_MAX,
   setSpaceControl,
+  displacementTargetForLoc,
 } from "./rules";
 import {closeDecision, decision, openDecision, option} from "./pending";
 import {counterRemaining} from "./counters";
@@ -424,6 +425,43 @@ export interface CrisisOutbreakInfo {
   blameMinor?: string | null;
 }
 
+/**
+ * 32.5: "At the start of the GW if a space contains rebels and player units,
+ * the player units immediately displace.  Unlike rebels prior to the GW, rebel
+ * and non-rebel units cannot coexist in the same space during the GW."
+ *
+ * A displaced land unit goes to the closest friendly space with a LoC (5.7); a
+ * naval unit goes to an adjacent naval box.  Units with no destination are
+ * removed.  Rebel units themselves stay.
+ */
+export const displaceUnitsFromRebelSpaces = (G: ImperialElegyState): number => {
+  let moved = 0;
+  for (const [space, state] of Object.entries(G.spaces)) {
+    if (!state.rebellion) continue;
+    for (const unitId of [...(state.units ?? [])]) {
+      const unit = G.units[unitId];
+      if (!unit) continue;
+      if (unit.owner.startsWith("REBEL:")) continue;
+      const power = isPower(unit.owner) ? unit.owner : minorController(G, unit.owner);
+      let target: SpaceId | null = null;
+      if (unit.naval === true) {
+        target = neighboursOf(space).find((id) => SPACES[id]?.type === "navalBox") ?? null;
+      } else if (power !== null) {
+        target = displacementTargetForLoc(G, power, space);
+      }
+      if (target === null) {
+        removeUnit(G, unitId);
+        continue;
+      }
+      state.units = (state.units ?? []).filter((id) => id !== unitId);
+      G.spaces[target].units.push(unitId);
+      unit.space = target;
+      moved += 1;
+    }
+  }
+  return moved;
+};
+
 export const outbreakGreatWar = (
   G: ImperialElegyState,
   ctx: Ctx,
@@ -491,6 +529,9 @@ export const outbreakGreatWar = (
   // `italyIndependent` is false until this point, so `italyAllianceBox` reads
   // the GW state that was just created and 25.3 never shows up mid-war only.
   resolveItalyAtOutbreak(G, ctx, incident, actor, crisis);
+  // 32.5: any player units sharing a rebel space displace at the outbreak.
+  const displacedFromRebels = displaceUnitsFromRebelSpaces(G);
+  if (displacedFromRebels > 0) log(G, undefined, "rebelDisplacement", {count: displacedFromRebels});
   G.persistent.italyAlliance = G.gw.italyAlliance ?? "neutral";
   G.flags.gwOutbreakItalyResolved = true;
   const italySlot: "IT"[] = G.gw.italyIn ? ["IT"] : [];

@@ -958,6 +958,12 @@ export const beginGwTurn = (G: ImperialElegyState, ctx: Ctx): GwBeginResult => {
       if (def.type !== "key" && def.type !== "capital" && def.type !== "subcapital") continue;
       const state = G.spaces[def.id];
       if (!state) continue;
+      // 32.5: rebel spaces never contain trenches.
+      if (state.rebellion) {
+        state.trenchLine = false;
+        delete gw.trenches[def.id];
+        continue;
+      }
       const hadLine = state.trenchLine === true;
       state.trenchLine = true;
       if (!hadLine) placed += 1;
@@ -2663,7 +2669,7 @@ const neutralRedeployDestinations = (
   for (const to of Object.keys(G.spaces)) {
     if (to === from || isNavalBox(to)) continue;
     const state = G.spaces[to];
-    if (!state) continue;
+    if (!state || state.rebellion) continue;
     const endsFriendly =
       friendlySpace(G, to, power) || (state.influence === power && state.control === null);
     if (!endsFriendly) continue;

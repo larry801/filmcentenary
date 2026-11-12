@@ -87,6 +87,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   gwManeuver: {key: "gwManeuver", args: {turn: 2}},
   gwImpulse: {key: "gwImpulse", power: "GE", args: {kind: "power", index: 1, slot: "GE", bonus: false}},
   gwCpTransfer: {key: "gwCpTransfer", power: "GE", args: {to: "AU", amount: 2}},
+  rebelDisplacement: {key: "rebelDisplacement", args: {count: 2}},
   gwDraftSecond: {key: "gwDraftSecond", power: "GE", args: {space: "pomerania", first: "berlin", unit: "u1"}},
   gwDraftSecondForfeited: {key: "gwDraftSecondForfeited", power: "GE", args: {space: "berlin", reason: "noSpace"}},
   gwCombatCardFaceup: {key: "gwCombatCardFaceup", power: "GE", args: {card: CARD_ID}},

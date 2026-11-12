@@ -897,6 +897,10 @@ export const maneuverDestinationProblem = (
 ): string | null => {
   const to = request.to;
   if (typeof to !== "string" || !G.spaces[to]) return null;
+  // 32.5: rebels and non-rebel units cannot coexist during the GW.
+  if (G.gw?.active && G.spaces[to].rebellion) {
+    return "That space contains rebels (32.5: rebels and non-rebels cannot coexist during the GW)";
+  }
   if (request.kind === "march" || request.kind === "rail") {
     const unit = request.unitId ? G.units[request.unitId] : undefined;
     if (!unit || unit.naval || !unit.space) return null;
