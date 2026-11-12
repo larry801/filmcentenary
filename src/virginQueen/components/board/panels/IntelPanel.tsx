@@ -31,8 +31,7 @@ const VpHistoryTable = () => {
     const cell = {px: 0.25, py: 0.125, textAlign: "right" as const, whiteSpace: "nowrap" as const};
     const turnLabel = (year: number): string => i18n.chain.vq.intel.turnLong.replace("{turn}", String(year));
     return <ActionGroup title={i18n.chain.vq.intel.vpHistory}>
-        <Box component="table" className="vq-vp-history" sx={{borderCollapse: "collapse", fontSize: "0.75rem", width: "100%"}}
-             title={i18n.chain.vq.intel.vpHistoryHint}>
+        <Box component="table" className="vq-vp-history" sx={{borderCollapse: "collapse", fontSize: "0.75rem", width: "100%"}}>
             <thead><tr>
                 <Box component="th" scope="col" sx={{...cell, textAlign: "left"}}>{i18n.chain.vq.intel.turnColumn}</Box>
                 {years.map((y) => <Box component="th" scope="col" key={y} sx={cell} title={turnLabel(y)}>{y}</Box>)}
