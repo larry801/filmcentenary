@@ -1464,6 +1464,10 @@ const zh_CN: Locale = {
         },
         intel: {
             overview: "列强概览",
+            leaderEntries: "将领入场",
+            leadersNextTurn: "下回合入场将领",
+            leadersLaterTurn: "第 {turn} 回合入场将领",
+            leaderEntriesHint: "仅列出仍在人员池、将在本局后续回合入场的将领；场外将领需由事件或特殊规则带入。",
             vpHistory: "VP 记录",
             vpHistoryHint: "每回合结束时的 VP（粗体为领先者）。胜利平分时比较上一回合的 VP，仍平则继续向前追溯；神圣罗马未公开的宗教 VP 不计入。",
             turnColumn: "回合",

@@ -2195,6 +2195,31 @@ export const capitalOf = (G: VQGame, p: Power): string | undefined => {
 /** Bring leaders waiting in the pool onto the map (Spring Deployment, 10.4). */
 const isDefaultLeader = (id: string): boolean => id.startsWith("default-");
 
+/** A leader waiting on the Turn Track for a future Spring Deployment. */
+export interface ScheduledLeaderEntry {
+    id: string;
+    power: Power;
+    turn: number;
+}
+
+/**
+ * Leaders in the pool whose arrival is scheduled after the current turn and
+ * before the scenario ends.  This is the public Turn Track: the Leader Entry
+ * Table (8.1) plus leaders returning from the pool (battle losses, Orange after
+ * a rebellion).  Leaders held off-map have no `returnTurn` and are never
+ * scheduled; default leaders are a fallback, not an entry.
+ */
+export const scheduledLeaderEntries = (G: VQGame): ScheduledLeaderEntry[] =>
+    Object.keys(G.leaders)
+        .filter((id) => {
+            const def = LEADER_BY_ID[id];
+            const state = G.leaders[id];
+            return def !== undefined && !isDefaultLeader(id) && state.location === "pool" &&
+                state.returnTurn !== undefined && state.returnTurn > G.year && state.returnTurn <= G.endTurn;
+        })
+        .map((id) => ({id, power: LEADER_BY_ID[id].power, turn: G.leaders[id].returnTurn!}))
+        .sort((a, b) => a.turn - b.turn || POWER_INDEX[a.power] - POWER_INDEX[b.power] || a.id.localeCompare(b.id));
+
 export const removeDefaultLeader = (G: VQGame, p: Power): void => {
     const def = DEFAULT_LEADER_BY_POWER[p];
     if (def === undefined) return;

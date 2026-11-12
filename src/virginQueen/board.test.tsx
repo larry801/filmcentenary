@@ -5,7 +5,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {VirginQueenBoard, legalDiplomacyTarget, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue, StaffordTargetSelect, staffordPowerOptions, staffordDiscardOptions, staffordPowerValue, staffordDiscardValue, staffordTargetValue, GermanRecruitmentTargetSelect, germanRecruitmentSpaceOptions, germanRecruitmentPowerOptions, germanRecruitmentSpaceValue, germanRecruitmentPowerValue, germanRecruitmentTargetValue} from "./components/board";
 import {chooseAbjuration, proposeBetroth, respondAction} from "./moves";
 import {moveError} from "./movePolicy";
-import {powerVp, setupGame} from "./util";
+import {arriveLeaders, powerVp, setupGame} from "./util";
 import {ownerOf} from "./ownership";
 import {Power, POWERS, VQGame} from "./constant/general";
 import {SPACES} from "./mapData";
@@ -1412,6 +1412,37 @@ describe("Virgin Queen board", () => {
             expect(other).not.toContain("接受 英格兰 的提议");
             expect(other).not.toContain("结束行动轮次");
         });
+    });
+});
+
+describe("leader entry schedule", () => {
+    /** The schedule lives inside the powers-overview disclosure, before the log. */
+    const overview = (html: string): string => {
+        const start = html.indexOf("将领入场");
+        return start < 0 ? "" : html.slice(start, html.indexOf("</details>", start));
+    };
+
+    it("shows next turn's leaders in the powers overview before they arrive", () => {
+        const G = setupGame(fakeCtx());
+        const schedule = overview(renderDiplomacy(G, "0"));
+        expect(schedule).toContain("将领入场");
+        expect(schedule).toContain("下回合入场将领");
+        expect(schedule).toContain("奥地利的唐·约翰");
+        expect(schedule).toContain("莱斯特伯爵");
+        expect(schedule).toContain("第 4 回合入场将领");
+        expect(schedule).toContain("帕尔马公爵");
+        // Held off-map leaders have no scheduled entry.
+        expect(schedule).not.toContain("吉斯公爵");
+    });
+
+    it("removes arrived leaders from the schedule", () => {
+        const G = setupGame(fakeCtx());
+        G.year = 2;
+        arriveLeaders(G, {interactive: true});
+        const schedule = overview(renderDiplomacy(G, "0"));
+        expect(schedule).not.toContain("下回合入场将领");
+        expect(schedule).not.toContain("奥地利的唐·约翰");
+        expect(schedule).toContain("第 4 回合入场将领");
     });
 });
 

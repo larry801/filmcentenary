@@ -1390,6 +1390,10 @@ const en = {
         },
         intel: {
             overview: "Powers overview",
+            leaderEntries: "Leader entries",
+            leadersNextTurn: "Leaders entering next turn",
+            leadersLaterTurn: "Leaders entering on turn {turn}",
+            leaderEntriesHint: "Only leaders still in the pool with a future arrival this scenario; off-map leaders need an event or special rule to enter.",
             vpHistory: "VP history",
             vpHistoryHint: "VP at the end of each turn (bold = leader). Ties for victory are broken by the previous turn's VP, stepping back until the tie breaks; unrevealed HRE religious VP are not recorded.",
             turnColumn: "Turn",

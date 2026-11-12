@@ -9,7 +9,8 @@ import Typography from "@mui/material/Typography";
 import i18n from "../../../../constant/i18n";
 import {CONTROLLER_COLORS, powerName, powerShortName, hreReligiousPreferenceName, POWER_INFO, POWERS, rulerName} from "../../../constant/general";
 import {cardById, cardName} from "../../../constant/cards";
-import {baseVp, hreReligiousVp, powerVp, protestantOffMapCount, protestantSpaceCount, religiousSpecialVp} from "../../../util";
+import {leaderName} from "../../../constant/leaders";
+import {baseVp, hreReligiousVp, powerVp, protestantOffMapCount, protestantSpaceCount, religiousSpecialVp, scheduledLeaderEntries} from "../../../util";
 import {ownerOf, isActivatedMajor} from "../../../ownership";
 import {tutorialFortressVp} from "../../../tutorial";
 import {scenarioName} from "../../../scenario";
@@ -59,6 +60,33 @@ const VpHistoryTable = () => {
     </ActionGroup>;
 };
 
+/**
+ * Turn Track visibility: leaders still in the pool with a future arrival turn.
+ * Don John and Leicester enter on turn 2, so a turn-1 hotseat sees them under
+ * "leaders entering next turn" before anyone has to reveal the schedule.
+ */
+const LeaderEntrySchedule = () => {
+    const {G, vqLocale} = useVQBoard();
+    const entries = scheduledLeaderEntries(G);
+    if (entries.length === 0) return null;
+    const turns = [...new Set(entries.map((entry) => entry.turn))];
+    return <Box sx={{mt: 0.5, pt: 0.5, borderTop: 1, borderColor: "divider"}}>
+        <Typography variant="caption" sx={{display: "block", fontWeight: 700}}>
+            {i18n.chain.vq.intel.leaderEntries}
+        </Typography>
+        {turns.map((turn) => <Typography key={turn} variant="caption" color="text.secondary"
+                                        title={i18n.chain.vq.intel.leaderEntriesHint} sx={{display: "block"}}>
+            {turn === G.year + 1
+                ? i18n.chain.vq.intel.leadersNextTurn
+                : i18n.chain.vq.intel.leadersLaterTurn.replace("{turn}", String(turn))}
+            {i18n.chain.vq.punct.colon}
+            {entries.filter((entry) => entry.turn === turn).map((entry) =>
+                `${leaderName(entry.id, vqLocale)}${i18n.chain.vq.punct.openParen}${powerShortName(entry.power, vqLocale)}${i18n.chain.vq.punct.closeParen}`
+            ).join(i18n.chain.vq.punct.list)}
+        </Typography>)}
+    </Box>;
+};
+
 export const IntelPanel = () => {
     const {G, log, playerID, vqLocale, militaryGoalFor, militaryGoal, setSelected, me, ps, panelProps} = useVQBoard();
     return <section className="vq-panel vq-intel" {...panelProps("intel")}>
@@ -82,6 +110,7 @@ export const IntelPanel = () => {
                     {i18n.chain.vq.intel.war}{i18n.chain.vq.punct.colon}{G.powers[p].wars.map((w) => powerShortName(w, vqLocale)).join("/")}
                 </Typography>}
             </Stack>)}
+            <LeaderEntrySchedule/>
         </ActionGroup>
         <VpHistoryTable/>
         {me !== undefined && ps !== undefined && <ActionGroup title={i18n.chain.vq.intel.myPower}>

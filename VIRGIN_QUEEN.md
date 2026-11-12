@@ -1468,3 +1468,11 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 地图左上角控件新增切换按钮（地球 / 折叠地图图标，中英文 aria-label 同步）：默认欧洲地图铺满版面、世界地图为左下角可折叠小窗；点击后世界地图放大为主视图、欧洲地图缩成同位置的小窗。两张小窗都使用 `<details>` + `<summary>`，点标题栏即可收起/展开：收起后只剩一条标题栏，完整露出下方主图。欧洲小窗标题栏右侧另有「切换到欧洲地图 / Switch to Europe map」按钮可切回；桌面默认展开，窄屏默认折叠。世界主视图下隐藏只属于欧洲版的缩放/复位控件、单位图例与 hover 读数，世界地图图例靠右排布，避免与左下角小窗重叠。`VQMap` 新增可选 `defaultPrimaryMap`（默认 `europe`）与 `defaultEuropeInsetOpen` 指定初始主视图/小窗折叠状态；`WorldMapInset` 新增 `primary` 模式，改为带标题栏的 `<section>` 而非可折叠的 `<details>`。
 
 验证：`tsc --noEmit` 通过；`jest src/virginQueen/map.test.tsx --runInBand --silent` 18 tests passed（新增 3 项：默认欧洲主视图、世界主视图与欧洲小窗、欧洲小窗初始折叠态）；`jest src/virginQueen --silent --maxWorkers=4` 213 suites、1213 tests passed；`npm run build` 通过（仅既有大体积 chunk 提示）；浏览器实测中英文文案、双向切换、欧洲小窗收起/展开与返回按钮。
+
+## 将领入场时间表（列强概览）
+
+`列强概览` 末尾新增“将领入场”：按回合列出仍在人员池、将在本局后续回合入场的将领，最近的一回合标为“下回合入场将领”，并注明所属势力。场外将领（如吉斯、科利尼）及默认将领不列入；超出剧本末回合的归队也不显示。
+
+计算集中在 `scheduledLeaderEntries`：只统计 `location === "pool"`、`returnTurn` 位于当前回合之后且不超过 `endTurn` 的将领，因此第 1 回合就能在概览里看到唐·约翰、莱斯特伯爵将在第 2 回合入场，实际入场后该行自动消失。
+
+验证：`tsc --noEmit` 通过；`jest --silent` 225 suites、1353 tests passed；浏览器实测 `/localVQ` Campaign 第 1 回合的“列强概览”显示“下回合入场将领：奥地利的唐·约翰（西班牙）、莱斯特伯爵（英格兰）、亨利三世（法国）、奥兰治的威廉（新教联盟）”。

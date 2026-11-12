@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import {POWERS, VQGame} from "./constant/general";
 import {SPACES} from "./mapData";
 import {LEADER_ENTRY_TURN} from "./scenario";
-import {arriveLeaders, autoResolveOrangeArrival, resolveRebellion, setupGame} from "./util";
+import {arriveLeaders, autoResolveOrangeArrival, resolveRebellion, scheduledLeaderEntries, setupGame} from "./util";
 
 /**
  * Rule 8.1 / Scenario Book Leader Entry Table: leaders the setup does not
@@ -194,6 +194,50 @@ describe("leader entry schedule (8.1)", () => {
         expect(resolveRebellion(G, ctx(6), "protestant", target, 2)).toBe(true);
         expect(G.leaders.orange.location).toBe(target);
         expect(G.leaders.navarre.location).toBe("pool");
+    });
+
+    it("publishes the upcoming Turn Track entries for the overview", () => {
+        const G = game("campaign");
+        expect(scheduledLeaderEntries(G)).toEqual([
+            {id: "donJohn", power: "spain", turn: 2},
+            {id: "leicester", power: "england", turn: 2},
+            {id: "henryIII", power: "france", turn: 2},
+            {id: "orange", power: "protestant", turn: 2},
+            {id: "parma", power: "spain", turn: 4},
+            {id: "santaCruz", power: "spain", turn: 4},
+            {id: "norreys", power: "england", turn: 4},
+            {id: "navarre", power: "protestant", turn: 4},
+            {id: "maurice", power: "protestant", turn: 5},
+        ]);
+    });
+
+    it("drops a leader from the schedule once he has arrived", () => {
+        const G = game("campaign");
+        G.year = 2;
+        arriveLeaders(G, {interactive: true});
+        expect(scheduledLeaderEntries(G).map((entry) => entry.id))
+            .toEqual(["parma", "santaCruz", "norreys", "navarre", "maurice"]);
+    });
+
+    it("never schedules off-map, default or out-of-scenario leaders", () => {
+        const G = game("campaign");
+        expect(scheduledLeaderEntries(G).map((entry) => entry.id)).not.toContain("guise");
+        expect(scheduledLeaderEntries(G).map((entry) => entry.id)).not.toContain("coligny");
+        G.leaders["default-spain"] = {id: "default-spain", location: "pool", returnTurn: G.year + 1};
+        expect(scheduledLeaderEntries(G).map((entry) => entry.id)).not.toContain("default-spain");
+        G.leaders.santaCruz.returnTurn = G.endTurn + 1;
+        expect(scheduledLeaderEntries(G).map((entry) => entry.id)).not.toContain("santaCruz");
+    });
+
+    it("moves the schedule with the Tournament's later start", () => {
+        const G = game("tournament");
+        expect(scheduledLeaderEntries(G)).toEqual([
+            {id: "parma", power: "spain", turn: 4},
+            {id: "santaCruz", power: "spain", turn: 4},
+            {id: "norreys", power: "england", turn: 4},
+            {id: "navarre", power: "protestant", turn: 4},
+            {id: "maurice", power: "protestant", turn: 5},
+        ]);
     });
 
     it("never resurrects a Protestant leader removed from the game", () => {
