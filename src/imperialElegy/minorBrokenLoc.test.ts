@@ -228,3 +228,29 @@ describe("5.6.2 minor armies cannot support out of supply", () => {
     finishSupportWindows(G, makeCtx([3, 3]));
   });
 });
+
+// ---------------------------------------------------------------------------
+// 5.6 / 5.6.1 sea LoC
+// ---------------------------------------------------------------------------
+
+describe("5.6.1 minor sea LoC", () => {
+  test("an enemy fleet blocks a minor army's sea trace in wartime", () => {
+    const G = fresh();
+    G.phase = "wartime";
+    G.war = createWarState(G, "UK", "FR", "conquest", ["paris"], 3);
+    G.war.status = "maneuver";
+    clearAllLand(G);
+    G.spaces.serbia.control = "Serbia";
+    G.spaces.serbia.ally = "UK";
+    for (const id of [...G.spaces["north-atlantic"].units]) removeUnit(G, id);
+    placeUnit(G, "Serbia", "minorArmy", "canada", 2);
+
+    expect(minorController(G, "Serbia")).toBe("UK");
+    expect(minorHasLoc(G, "Serbia", "canada")).toBe(true);
+
+    // 5.6: a naval box may not be traced through while it holds enemy units.
+    placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    expect(minorHasLoc(G, "Serbia", "canada")).toBe(false);
+    expect(minorBrokenLoc(G, "Serbia", "canada")).toBe(true);
+  });
+});

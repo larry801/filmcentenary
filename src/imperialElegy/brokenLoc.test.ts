@@ -9,6 +9,7 @@ import {
   friendlySpace,
   hasLoc,
   impulsePenalties,
+  isSupplySource,
   landUnitsIn,
 } from "./engine/rules";
 import {beginLandBattle, supportCandidates} from "./engine/combat";
@@ -244,5 +245,48 @@ describe("5.6.3 peacetime broken LoCs displace", () => {
     expect(beginImpulseUpkeep(G, makeCtx(), "GE")).toBe(false);
     expect(G.units[unit.id].space).toBe("paris");
     expect(G.units[unit.id].steps).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5.6 LoC by sea
+// ---------------------------------------------------------------------------
+
+describe("5.6 sea LoC", () => {
+  /** UK at war with FR, with the North Atlantic empty of ships. */
+  const ukWar = (): ImperialElegyState => {
+    const G = fresh();
+    G.phase = "wartime";
+    G.war = warState("UK", "FR");
+    clearLand(G, "canada");
+    for (const unit of [...G.spaces["north-atlantic"].units]) removeUnit(G, unit);
+    return G;
+  };
+
+  test("a supply source may reach its second home key through a naval box", () => {
+    const G = ukWar();
+    // Cut the British Isles' land link: only London and Canada still belong to
+    // the UK, so London's second home key can only be reached by sea.
+    for (const [id, state] of Object.entries(G.spaces)) {
+      if (state.control === "UK" && id !== "london" && id !== "canada") state.control = "FR";
+    }
+    placeUnit(G, "UK", "army", "canada", 2);
+
+    expect(isSupplySource(G, "UK", "london")).toBe(true);
+    expect(isSupplySource(G, "UK", "canada")).toBe(true);
+    expect(brokenLoc(G, "UK", "canada")).toBe(false);
+  });
+
+  test("an enemy fleet blocks the sea trace in wartime", () => {
+    const G = ukWar();
+    placeUnit(G, "UK", "army", "canada", 2);
+    expect(hasLoc(G, "UK", "canada")).toBe(true);
+
+    placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    // 5.6: "naval boxes ... can always be traced through, provided they don't
+    // contain enemy units in wartime."
+    expect(hasLoc(G, "UK", "canada")).toBe(false);
+    expect(brokenLoc(G, "UK", "canada")).toBe(true);
+    expect(brokenLocSpaces(G, "UK")).toContain("canada");
   });
 });
