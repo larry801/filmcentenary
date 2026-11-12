@@ -44,7 +44,7 @@ describe("naval leader home-port choice", () => {
 
         expect(G.leaders.uluchAli).toEqual({id: "uluchAli", location: "athens"});
         expect(G.spaces.athens.leaders).toContain("uluchAli");
-        expect(G.navalLeaderArrivals?.some((entry) => entry.leader === "uluchAli")).toBe(false);
+        expect((G.navalLeaderArrivals ?? []).some((entry) => entry.leader === "uluchAli")).toBe(false);
         // No other Ottoman naval leader is waiting, so the choice stage closes.
         expect(endStage).toHaveBeenCalledTimes(1);
     });
@@ -57,7 +57,7 @@ describe("naval leader home-port choice", () => {
         expect(chooseNavalLeaderPort(G, context("0"), {leader: "uluchAli", port: "london"})).toBe(INVALID_MOVE);
 
         expect(G.leaders.uluchAli.location).toBe("pool");
-        expect(G.navalLeaderArrivals?.some((entry) => entry.leader === "uluchAli")).toBe(true);
+        expect((G.navalLeaderArrivals ?? []).some((entry) => entry.leader === "uluchAli")).toBe(true);
     });
 
     it("leaves the leader in the pool when no home port is legal", () => {
@@ -69,7 +69,7 @@ describe("naval leader home-port choice", () => {
 
         arriveLeaders(G, {interactive: true});
 
-        expect(G.navalLeaderArrivals?.some((entry) => entry.power === "ottoman")).toBe(false);
+        expect((G.navalLeaderArrivals ?? []).some((entry) => entry.power === "ottoman")).toBe(false);
         expect(G.leaders.uluchAli.location).toBe("pool");
     });
 
@@ -94,6 +94,6 @@ describe("naval leader home-port choice", () => {
         expect(endPhaseTurn(G, context("0"))).toBeUndefined();
 
         expect(G.leaders.uluchAli).toEqual({id: "uluchAli", location: expected});
-        expect(G.navalLeaderArrivals?.some((entry) => entry.leader === "uluchAli")).toBe(false);
+        expect((G.navalLeaderArrivals ?? []).some((entry) => entry.leader === "uluchAli")).toBe(false);
     });
 });

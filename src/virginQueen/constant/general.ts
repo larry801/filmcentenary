@@ -327,7 +327,11 @@ export interface LeaderDef {
 
 export interface LeaderState {
     id: string;
-    /** Space id, sea zone id, "pool" or "captured". */
+    /**
+     * Space id, sea zone id, "pool" (power card / Turn Track, enters once
+     * `returnTurn` is reached), "offMap" (out of play until a specific rule
+     * brings him in) or "captured".
+     */
     location: string;
     capturedBy?: Power;
     returnTurn?: number;

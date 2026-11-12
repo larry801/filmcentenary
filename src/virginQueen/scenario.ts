@@ -16,6 +16,7 @@ import {LEADERS} from "./constant/leaders";
 import {PATRON_BY_ID} from "./data/patrons";
 import {ROYAL_BY_ID} from "./data/royals";
 import {SCENARIOS} from "./data/scenarios";
+import {OFFICIAL_LEADERS} from "./data/leaders";
 import {SCIENCE_BONUSES, SCIENCE_BONUS_BY_ID} from "./data/scienceBonuses";
 import {SEA_CAPTAINS, SEA_CAPTAIN_BY_ID} from "./data/seaCaptains";
 import {PowerCardSetup, ScenarioSetup, ScenarioSpaceSetup} from "./data/types";
@@ -185,13 +186,39 @@ export const scenarioSpaces = (setup: ScenarioSetup): Record<string, SpaceState>
 // Leaders
 // --------------------------------------------------------------------------
 
+/**
+ * Leader Entry Table (Scenario Book p. 34): the turn each later leader joins
+ * play during that turn's Card Draw Phase (rule 8.1).
+ */
+export const LEADER_ENTRY_TURN: Readonly<Record<string, number>> = Object.fromEntries(
+    OFFICIAL_LEADERS.filter((leader) => leader.entryTurn !== undefined).map((leader) => [leader.id, leader.entryTurn!]),
+);
+
+/**
+ * State for a leader the scenario setup does not place on the map.
+ *
+ * - Leaders on the Leader Entry Table wait on the Turn Track until their turn.
+ * - Every other leader is out of play ("offMap") until a specific rule brings
+ *   him in: Uluch Ali after Dragut Falls!, the Duke of Guise when the Catholic
+ *   League forms (20.10), a scenario's "Leaders Held Off-Map" list (applied
+ *   afterwards), or never for counters that no scenario or table uses.  A
+ *   table leader whose turn is at or before the scenario's first turn is also
+ *   out: the setup would already list him if he were in play.
+ */
+const initialOffBoardLeader = (id: string, startTurn: number): LeaderState => {
+    const entryTurn = LEADER_ENTRY_TURN[id];
+    return entryTurn !== undefined && entryTurn > startTurn
+        ? {id, location: "pool", returnTurn: entryTurn}
+        : {id, location: "offMap"};
+};
+
 export const scenarioLeaders = (
     setup: ScenarioSetup,
     spaces: Record<string, SpaceState>,
 ): Record<string, LeaderState> => {
     const leaders: Record<string, LeaderState> = {};
     for (const def of LEADERS) {
-        leaders[def.id] = {id: def.id, location: "pool"};
+        leaders[def.id] = initialOffBoardLeader(def.id, setup.startTurn);
     }
     for (const space of Object.keys(spaces)) {
         for (const id of spaces[space].leaders) {

@@ -515,12 +515,8 @@ describe("Virgin Queen turn flow", () => {
                 clients[i].moves.endPhaseTurn();
             }
             expect(clients[0].getState().ctx.phase).toBe("spring");
-            // Returning naval leaders now ask for a home port before deployment.
-            const pending = clients[0].getState().G.navalLeaderArrivals?.filter((entry) => entry.power === "ottoman") ?? [];
-            expect(pending.length).toBeGreaterThan(0);
-            for (const entry of pending) {
-                clients[0].moves.chooseNavalLeaderPort({leader: entry.leader, port: entry.ports[0]});
-            }
+            // Turn 1 has no arriving leaders (8.1), so no home-port choice blocks deployment.
+            expect(clients[0].getState().G.navalLeaderArrivals).toBeUndefined();
             const before = clients[0].getState().G.spaces.edirne.land.ottoman?.regular ?? 0;
             // Mehmed's command rating is 5, so at most 5 units deploy.
             clients[0].moves.springDeploy({from: "istanbul", to: "edirne", units: {regular: 5}, leaders: ["mehmed"]});
@@ -561,11 +557,15 @@ describe("Virgin Queen turn flow", () => {
             const card = state.G.powers.ottoman.cards.find((id: string) => cardById(id).cp >= 1);
             clients[0].moves.playCard({cardId: card});
             const before = state.G.spaces.edirne.land.ottoman?.regular ?? 0;
+            // Mehmed (command 5) is the only Ottoman army leader in Istanbul on turn 1,
+            // so the whole 10-unit stack is too large to move as one formation.
             clients[0].moves.moveLand({from: "istanbul", to: "edirne"});
+            expect(clients[0].getState().G.spaces.istanbul.land.ottoman.regular).toBe(8);
+            clients[0].moves.moveLand({from: "istanbul", to: "edirne", units: {regular: 5}, leaders: ["mehmed"]});
             if (clients[0].getState().G.pendingAction) clients[1].moves.respondAction({choice: "continue"});
             const after = clients[0].getState().G.spaces.edirne.land.ottoman.regular;
-            expect(after).toBeGreaterThan(before);
-            expect(clients[0].getState().G.spaces.istanbul.land.ottoman).toBeUndefined();
+            expect(after).toBe(before + 5);
+            expect(clients[0].getState().G.spaces.istanbul.land.ottoman.regular).toBe(3);
         } finally {
             stopClients(clients);
         }

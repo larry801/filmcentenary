@@ -3458,15 +3458,13 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
         G.protestantCapital = space;
         pushLog(G, `The Protestant designates ${SPACE_BY_ID[space].name} as its capital.`);
     }
-    // Place an available army leader in the target space.
+    // Place an available army leader in the target space.  Only leaders who
+    // have already arrived (8.1 Leader Entry Table / Turn Track) and are
+    // waiting on the power card qualify; a removed leader never returns.
     const availableLeader = LEADERS.find((l) => l.power === "protestant" && l.kind === "army" &&
-        (G.leaders[l.id] === undefined || G.leaders[l.id].location === "pool"));
+        G.leaders[l.id]?.location === "pool" && (G.leaders[l.id].returnTurn ?? 0) <= G.year);
     if (availableLeader !== undefined) {
-        if (G.leaders[availableLeader.id] === undefined) {
-            G.leaders[availableLeader.id] = {id: availableLeader.id, location: space};
-        } else {
-            G.leaders[availableLeader.id].location = space;
-        }
+        G.leaders[availableLeader.id] = {id: availableLeader.id, location: space};
         if (!G.spaces[space].leaders.includes(availableLeader.id)) {
             G.spaces[space].leaders.push(availableLeader.id);
         }
