@@ -26,6 +26,7 @@ export const SpringPanel = () => {
     const preferenceRequired = hreReligiousPreferenceRequired(G, me);
     const mayKeepBoth = keepsBothHomeCards(G, me);
     const navalPortChoices = (G.navalLeaderArrivals ?? []).filter((entry) => entry.power === me);
+    const orangeChoice = G.orangeArrivalPending === true && me === "protestant";
     return <Stack spacing={1}>
         {hotseatWaitHint() !== undefined && <Typography variant="body2" color="text.secondary">{hotseatWaitHint()}</Typography>}
         {navalPortChoices.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
@@ -42,6 +43,22 @@ export const SpringPanel = () => {
                     </Button>)}
                 </Stack>
             </Stack>)}
+        </Stack>}
+        {orangeChoice && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
+            <Typography variant="subtitle2">William of Orange Arrives</Typography>
+            <Typography variant="caption" color="text.secondary">
+                Place him in the Protestant capital or hold him back to lead a rebellion (Scenario Book p. 9).
+            </Typography>
+            <Stack direction="row" spacing={0.5}>
+                <Button size="small" variant="outlined" disabled={!myTurn}
+                    onClick={() => moves.chooseOrangePlacement({place: true})}>
+                    Place in Capital
+                </Button>
+                <Button size="small" variant="outlined" disabled={!myTurn}
+                    onClick={() => moves.chooseOrangePlacement({place: false})}>
+                    Hold Back (Rebellion)
+                </Button>
+            </Stack>
         </Stack>}
         {preferenceRequired && <Stack spacing={0.5}>
             <Typography variant="subtitle2">{i18n.chain.vq.spring.secretPref}</Typography>
@@ -121,7 +138,7 @@ export const SpringPanel = () => {
             <Typography variant="caption">{i18n.chain.vq.board.moveHint}</Typography>
             {stackPicker(true)}
         </Stack>}
-        <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired || navalPortChoices.length > 0} onClick={() => moves.endPhaseTurn()}>
+        <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired || navalPortChoices.length > 0 || orangeChoice} onClick={() => moves.endPhaseTurn()}>
             {i18n.chain.vq.spring.endSpring}
         </Button>
     </Stack>;

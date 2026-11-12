@@ -902,6 +902,13 @@ export interface VQGame {
      */
     navalLeaderArrivals?: {leader: string; power: Power; ports: string[]}[];
     /**
+     * Tournament scenario: William of Orange has arrived on the Turn Track but
+     * the Protestant player has not yet chosen whether to place him in the
+     * capital (La Rochelle) or hold him in the pool so he can lead a rebellion.
+     * Rule: Scenario Book p. 9 "Leaders Held Off-Map" footnote.
+     */
+    orangeArrivalPending?: boolean;
+    /**
      * #18 City State Rebels losses awaiting the target controller's allocation.
      * Each hit is assigned to one land or naval unit by `chooseCityRebelsLoss`;
      * the automatic order resolves any hits left to the fallback. Because the

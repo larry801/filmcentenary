@@ -29,6 +29,7 @@ import {
     chooseHomeCard,
     chooseCatholicLeagueSpace,
     chooseNavalLeaderPort,
+    chooseOrangePlacement,
     chooseWinterLoss,
     chooseWinterNavalLoss,
     chooseHreReplacement,
@@ -119,6 +120,14 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
         const owner = ownerOf(G, G.activePower);
         if (owner !== undefined) {
             ctx.events?.setActivePlayers({value: {[owner]: "navalPortChoice"}});
+            return;
+        }
+    }
+    if (ctx.phase === "spring" && G.orangeArrivalPending && G.activePower === "protestant") {
+        // Tournament: Protestant must decide where Orange goes before deploying.
+        const owner = ownerOf(G, "protestant");
+        if (owner !== undefined) {
+            ctx.events?.setActivePlayers({value: {[owner]: "orangeArrivalChoice"}});
             return;
         }
     }
@@ -217,6 +226,15 @@ const choiceStages = {
         chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true as const},
         endPhaseTurn,
     }},
+    // Tournament: choose whether to place Orange in the capital or hold him
+    // back for a rebellion. Home card, HRE preference and ending the turn stay
+    // available so automated clients and a skipped choice fall back safely.
+    orangeArrivalChoice: {moves: {
+        chooseOrangePlacement,
+        chooseHomeCard: {move: chooseHomeCard, redact: true as const},
+        chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true as const},
+        endPhaseTurn,
+    }},
     // Winter attrition losses: the owner confirms or swaps the removed unit
     // type during Card Draw, including the ship types of a no-port naval loss.
     // Ending the turn keeps the safe automatic result.
@@ -307,6 +325,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 // Clear anything left over from an interrupted Spring, then let
                 // naval leaders returning from the pool pick a home port.
                 delete G.navalLeaderArrivals;
+                delete G.orangeArrivalPending;
                 arriveLeaders(G, {interactive: true});
             },
             turn: {order: powerOrder, onBegin: turnBegin, onEnd: turnEnd, stages: choiceStages},
@@ -344,6 +363,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         chooseHomeCard: {move: chooseHomeCard, redact: true},
         chooseCatholicLeagueSpace,
         chooseNavalLeaderPort,
+        chooseOrangePlacement,
         chooseWinterLoss,
         chooseWinterNavalLoss,
         chooseHreReplacement,

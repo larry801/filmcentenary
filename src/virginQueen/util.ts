@@ -2230,7 +2230,7 @@ export const homePortsFor = (G: VQGame, p: Power): string[] =>
         G.spaces[space.id].siege === undefined && !G.spaces[space.id].unrest &&
         friendlyControlled(G, p, space.id)).map((space) => space.id);
 
-const placeArrivingLeader = (G: VQGame, id: string, destination: string): void => {
+export const placeArrivingLeader = (G: VQGame, id: string, destination: string): void => {
     const def = LEADER_BY_ID[id];
     G.spaces[destination].leaders.push(id);
     G.leaders[id] = {id, location: destination};
@@ -2252,6 +2252,20 @@ export const autoPlaceNavalLeaderArrivals = (G: VQGame, p: Power): void => {
     }
     G.navalLeaderArrivals = (G.navalLeaderArrivals ?? []).filter((entry) => entry.power !== p);
     if (G.navalLeaderArrivals.length === 0) delete G.navalLeaderArrivals;
+};
+
+/**
+ * Safe fallback for a skipped Tournament Orange choice: place him in the
+ * Protestant capital.  If no friendly capital is available he stays in the pool
+ * for a later Spring Deployment.
+ */
+export const autoResolveOrangeArrival = (G: VQGame): void => {
+    if (!G.orangeArrivalPending) return;
+    delete G.orangeArrivalPending;
+    const cap = capitalOf(G, "protestant");
+    if (cap !== undefined && G.spaces[cap] !== undefined && friendlyControlled(G, "protestant", cap) && !G.spaces[cap].unrest) {
+        placeArrivingLeader(G, "orange", cap);
+    }
 };
 
 /**
@@ -2284,6 +2298,17 @@ export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): voi
                     continue;
                 }
                 placeArrivingLeader(G, id, ports[0]);
+                continue;
+            }
+            // Tournament: Orange arrives with his entry-turn pool marker removed,
+            // but the Protestant player may hold him back to lead a rebellion
+            // (Scenario Book p. 9).  In interactive mode raise the flag and let
+            // the player choose; non-interactive (and endPhaseTurn fallback)
+            // places him in the capital automatically.
+            if (options?.interactive && id === "orange" && G.scenario === "tournament" &&
+                !G.orangeArrivalPending) {
+                G.orangeArrivalPending = true;
+                pushLog(G, "William of Orange has arrived; Protestant must choose to place him in the capital or hold him back for a rebellion.");
                 continue;
             }
             const destination = cap;

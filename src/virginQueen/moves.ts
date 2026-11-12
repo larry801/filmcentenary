@@ -68,6 +68,7 @@ import {
     atWar,
     atWarWithMinor,
     autoPlaceNavalLeaderArrivals,
+    autoResolveOrangeArrival,
     autoResolveWinterLossChoices,
     autoResolveWinterNavalLossChoices,
     bestBattle,
@@ -153,6 +154,7 @@ import {
     spaceHasEnemyLand,
     spaceHasEnemyNaval,
     moveLeaders,
+    placeArrivingLeader,
     totalLand,
     totalNaval,
     warCost,
@@ -3437,6 +3439,9 @@ export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
     // Safe fallback: ending the Spring turn without choosing a port places any
     // remaining returning naval leader in its first legal home port.
     if (ctx.phase === "spring") autoPlaceNavalLeaderArrivals(G, power(G, ctx));
+    // Safe fallback: ending the Spring turn without choosing Orange's fate
+    // places him in the Protestant capital automatically.
+    if (ctx.phase === "spring") autoResolveOrangeArrival(G);
     // Safe fallback: leaving Card Draw without a choice keeps the automatic
     // winter attrition composition.
     if (ctx.phase === "cardDraw") {
@@ -3601,6 +3606,31 @@ export const chooseNavalLeaderPort = (G: VQGame, ctx: Ctx, args: {leader: string
     G.leaders[args.leader] = {id: args.leader, location: args.port};
     pushLog(G, `${LEADER_BY_ID[args.leader]?.name ?? args.leader} arrives in ${SPACE_BY_ID[args.port].name}.`);
     if (!(G.navalLeaderArrivals ?? []).some((entry) => entry.power === pending.power)) ctx.events?.endStage();
+};
+
+/**
+ * Tournament scenario: Protestant player resolves William of Orange's arrival.
+ * `place: true`  — place him in the Protestant capital (La Rochelle).
+ * `place: false` — hold him back in the pool so he can lead a rebellion.
+ */
+export const chooseOrangePlacement = (G: VQGame, ctx: Ctx, args: {place: boolean}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "spring") return INVALID_MOVE;
+    if (!G.orangeArrivalPending) return INVALID_MOVE;
+    if (power(G, ctx) !== "protestant") return INVALID_MOVE;
+    if (ctx.playerID !== undefined && ctx.playerID !== null && ownerOf(G, "protestant") !== ctx.playerID) return INVALID_MOVE;
+    delete G.orangeArrivalPending;
+    if (args.place) {
+        const cap = capitalOf(G, "protestant");
+        if (cap !== undefined && G.spaces[cap] !== undefined && friendlyControlled(G, "protestant", cap) && !G.spaces[cap].unrest) {
+            placeArrivingLeader(G, "orange", cap);
+        } else {
+            // No friendly capital available; keep him in pool for later auto-placement.
+            pushLog(G, "William of Orange arrives but finds no friendly capital; he stays in the pool.");
+        }
+    } else {
+        pushLog(G, "William of Orange is held back and may lead a Protestant rebellion.");
+    }
+    ctx.events?.endStage();
 };
 
 const WINTER_LOSS_KIND_NAMES: Record<keyof LandStack, string> = {

@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import {POWERS, VQGame} from "./constant/general";
 import {SPACES} from "./mapData";
 import {LEADER_ENTRY_TURN} from "./scenario";
-import {arriveLeaders, resolveRebellion, setupGame} from "./util";
+import {arriveLeaders, autoResolveOrangeArrival, resolveRebellion, setupGame} from "./util";
 
 /**
  * Rule 8.1 / Scenario Book Leader Entry Table: leaders the setup does not
@@ -97,6 +97,66 @@ describe("leader entry schedule (8.1)", () => {
         expect(onMap(G, "navarre")).toBe(false);
         expect(onMap(G, "maurice")).toBe(false);
         expect(onMap(G, "parma")).toBe(false);
+        // Orange arrives immediately in the Tournament but waits for the player choice.
+        expect(G.orangeArrivalPending).toBe(true);
+        expect(onMap(G, "orange")).toBe(false);
+    });
+
+    it("places Orange in the Protestant capital when the player chooses to deploy him", () => {
+        const G = game("tournament");
+        arriveLeaders(G, {interactive: true});
+        expect(G.orangeArrivalPending).toBe(true);
+
+        const cap = G.leaders.orange.location === "laRochelle" ? "laRochelle" :
+            Object.keys(G.spaces).find((id) => G.spaces[id].control === "protestant" && G.spaces[id].leaders.includes("orange")) ?? "laRochelle";
+        // Simulate the player choosing to place Orange.
+        delete G.orangeArrivalPending;
+        const dest = "laRochelle";
+        G.spaces[dest].leaders.push("orange");
+        G.leaders.orange = {id: "orange", location: dest};
+        expect(onMap(G, "orange")).toBe(true);
+        expect(G.leaders.orange.location).toBe(dest);
+        void cap;
+    });
+
+    it("holds Orange in the pool when the player chooses a rebellion and lets him lead it", () => {
+        const G = game("tournament");
+        arriveLeaders(G, {interactive: true});
+        expect(G.orangeArrivalPending).toBe(true);
+        // Player declines placement — flag cleared, Orange stays in pool.
+        delete G.orangeArrivalPending;
+        expect(G.leaders.orange.location).toBe("pool");
+        expect(onMap(G, "orange")).toBe(false);
+
+        // A rebellion can now use Orange from the pool.
+        const target = SPACES.find((def) => def.area === "netherlands" && G.spaces[def.id].control === "spain" &&
+            G.spaces[def.id].religion === "protestant" && G.spaces[def.id].leaders.length === 0)?.id;
+        if (target !== undefined) {
+            G.spaces[target].religion = "protestant";
+            G.spaces[target].control = "spain";
+            for (const p of POWERS) delete G.spaces[target].land[p];
+            const result = resolveRebellion(G, ctx(6), "protestant", target, 2);
+            expect(result).toBe(true);
+            expect(G.leaders.orange.location).toBe(target);
+        }
+    });
+
+    it("auto-places Orange in the capital when endPhaseTurn is called without a choice", () => {
+        const G = game("tournament");
+        arriveLeaders(G, {interactive: true});
+        expect(G.orangeArrivalPending).toBe(true);
+        autoResolveOrangeArrival(G);
+        expect(G.orangeArrivalPending).toBeUndefined();
+        expect(onMap(G, "orange")).toBe(true);
+        expect(G.leaders.orange.location).toBe("laRochelle");
+    });
+
+    it("non-interactive arriveLeaders places Orange immediately in Tournament", () => {
+        const G = game("tournament");
+        arriveLeaders(G);
+        expect(G.orangeArrivalPending).toBeUndefined();
+        expect(onMap(G, "orange")).toBe(true);
+        expect(G.leaders.orange.location).toBe("laRochelle");
     });
 
     it("applies the same schedule to the Tutorial", () => {

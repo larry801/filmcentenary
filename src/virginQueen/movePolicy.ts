@@ -34,6 +34,10 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
         !["chooseNavalLeaderPort", "chooseHomeCard", "chooseHreReligiousPreference", "endPhaseTurn"].includes(move)) {
         return "请先选择返回海军将领的本土港口。";
     }
+    if (G.orangeArrivalPending && G.activePower === "protestant" &&
+        !["chooseOrangePlacement", "chooseHomeCard", "chooseHreReligiousPreference", "endPhaseTurn"].includes(move)) {
+        return "请先决定威廉·奥兰治的位置。";
+    }
     if ((G.winterLossChoices?.some((entry) => entry.power === G.activePower) ||
         G.winterNavalLossChoices?.some((entry) => entry.power === G.activePower)) &&
         !["chooseWinterLoss", "chooseWinterNavalLoss", "endPhaseTurn"].includes(move)) {
