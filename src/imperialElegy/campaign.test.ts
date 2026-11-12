@@ -15,6 +15,16 @@ test("campaign auto-play reaches a result", async () => {
     const seatState=(p:string)=>cs[POWERS.indexOf(p as any)].getState()!.G;
     if(G.result){ break; }
     if(G.phase!==lastPhase){ phases.push(`${G.turn}:${G.phase}`); lastPhase=G.phase; }
+    // Every phase can suspend on a pending decision (the GW draft's second
+    // space, colonial transfers, neutral entry, ...).  Answer it before the
+    // phase-specific action, otherwise the loop sends an action the engine
+    // rejects and never reaches a result.
+    if(G.pending){
+      const p=G.pending.power; const i=POWERS.indexOf(p); const own=seatState(p);
+      const opt=own.pending?.options[0];
+      if(!opt) cs[i].moves.declinePending(); else cs[i].moves.resolvePending(opt.id);
+      await wait(30); continue;
+    }
     if(G.phase==="prep"){
       const i=Number(cs[0].getState()!.ctx.currentPlayer);
       const p=POWERS[i]; const own=seatState(p);
