@@ -77,12 +77,44 @@ export const isMinorityNationalitySpace = (
 ): boolean => minorityNationalities(spaceId, controller).length > 0;
 
 /**
+ * 33.4.1 / 3.2.6: "a nationality with full citizenship is no longer considered
+ * a minority nationality to the AU player", and cards do not affect an
+ * AU-controlled space with a minority nationality when that nationality has
+ * full citizenship.  A space is protected only when every minority nationality
+ * printed there is an AU citizen: one remaining minority flag keeps it a
+ * minority-nationality space.
+ */
+export const auCitizenshipProtectsSpace = (G: ImperialElegyState, spaceId: SpaceId): boolean => {
+  if (G.spaces[spaceId]?.control !== "AU") return false;
+  const minorities = minorityNationalities(spaceId, "AU");
+  if (minorities.length === 0) return false;
+  return minorities.every((nationality) => G.powers.AU.citizenship.includes(nationality));
+};
+
+/**
+ * Minority nationalities of `controller` after the AU full-citizenship
+ * exemption.  This is the list card targeting must use; the plain
+ * `minorityNationalities` stays controller-only for callers that have no state.
+ */
+export const minorityNationalitiesFor = (
+  G: ImperialElegyState,
+  spaceId: SpaceId,
+  controller: PowerOrMinor | null | undefined,
+): string[] => {
+  const minorities = minorityNationalities(spaceId, controller);
+  if (controller !== "AU") return minorities;
+  return minorities.filter((nationality) => !G.powers.AU.citizenship.includes(nationality));
+};
+
+/**
  * Spaces that Nationalist Uprising may target: land spaces directly controlled
  * by a player power and containing a minority nationality of that controller.
  * Naval boxes are never eligible, even if a nationality were printed on one.
  *
  * Minor-power allies are excluded on purpose: the card requires a space
  * "controlled by a player", and a minor ally's home is not player control.
+ * AU spaces whose minority nationalities all hold full citizenship are
+ * protected by 3.2.6 / 33.4.1 and are not offered.
  */
 export const eligibleNationalistUprisingSpaces = (G: ImperialElegyState): SpaceId[] =>
   Object.values(SPACES)
@@ -90,7 +122,7 @@ export const eligibleNationalistUprisingSpaces = (G: ImperialElegyState): SpaceI
       if (isNavalBox(space.id)) return false;
       const state = G.spaces[space.id];
       if (!state || !isPlayerPower(state.control)) return false;
-      return isMinorityNationalitySpace(space.id, state.control);
+      return minorityNationalitiesFor(G, space.id, state.control).length > 0;
     })
     .map((space) => space.id);
 

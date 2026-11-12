@@ -42,6 +42,18 @@ describe("Nationalist Uprising candidate selection", () => {
     const candidates = G.pending!.options.map((option) => option.id);
     expect(candidates).toContain("ireland");
   });
+
+  test("a fully naturalised AU minority space is not offered (33.4.1 / 3.2.6)", () => {
+    const G = fresh();
+    const ctx = makeCtx();
+    G.powers.AU.citizenship = ["Czechs"];
+
+    expect(special(G, ctx, "GE", "nationalistUprising")).toBe(false);
+    const candidates = G.pending!.options.map((option) => option.id);
+    expect(candidates).not.toContain("bohemia");
+    // A space that still prints a non-citizen minority stays a legal target.
+    expect(candidates).toContain("galicia");
+  });
 });
 
 describe("AU Bind Them Together", () => {

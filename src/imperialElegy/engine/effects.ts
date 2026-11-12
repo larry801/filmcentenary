@@ -86,6 +86,7 @@ import {nonPlayerCounterKindFor, nonPlayerHasCounterFor} from "./counters";
 import {
   AU_NATIONALITIES,
   auCitizenshipBlocked,
+  grantAuCitizenship,
   isIndependentIndia,
   planIndiaIndependence,
   planIndianArmyDisplacement,
@@ -2258,8 +2259,9 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "dualMonarchy": {
       changeStability(G, "AU", 1, ctx);
-      const hungarians = AU_NATIONALITIES.find((nationality) => nationality === "Hungarians");
-      if (hungarians && !G.powers.AU.citizenship.includes(hungarians)) G.powers.AU.citizenship.push(hungarians);
+      // 33.4.1: the card grants full citizenship; the nationality also keeps
+      // the benefits of rights, so both tracks are recorded.
+      grantAuCitizenship(G, "Hungarians");
       G.persistent.dualMonarchy = true;
       G.persistent.dualMonarchyPlayed = true;
       return true;
@@ -2678,7 +2680,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       if (G.resolvingCard === "IE-A095") G.persistent.franzJosephDead = true;
       if (auCitizenshipBlocked(G)) return true;
       const nationality = nextAuNationality(G.powers.AU.citizenship);
-      if (nationality && G.powers.AU.rights.includes(nationality)) G.powers.AU.citizenship.push(nationality);
+      if (nationality && G.powers.AU.rights.includes(nationality)) grantAuCitizenship(G, nationality);
       else if (nationality) G.powers.AU.rights.push(nationality);
       return true;
     }

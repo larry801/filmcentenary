@@ -207,6 +207,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   jihadUsed: {key: "jihadUsed", power: "OT", args: {space: "istanbul", opponent: "RU", markers: 2}},
   jihadDiscarded: {key: "jihadDiscarded", power: "OT", args: {markers: 2}},
   secondRome: {key: "secondRome", power: "RU", args: {space: "istanbul"}},
+  secondRomeVp: {key: "secondRomeVp", power: "RU", args: {vp: 2}},
   allyCalledToWar: {key: "allyCalledToWar", power: "GE", args: {ally: "AU", side: "attacker"}},
   balanceOfPower: {
     key: "balanceOfPower",

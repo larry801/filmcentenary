@@ -458,6 +458,14 @@ export const outbreakGreatWar = (
   G.persistent.italyAlliance = G.gw.italyAlliance ?? "neutral";
   G.flags.gwOutbreakItalyResolved = true;
   const italySlot: "IT"[] = G.gw.italyIn ? ["IT"] : [];
+  // 33.5 The Second Rome: "Controlling Istanbul at the end of the game and/or
+  // the start of the GW gives Russia 2 VPs."  The end-of-game half is scored by
+  // `victory.scoreGame`; this is the separate start-of-GW checkpoint, awarded
+  // before 25.5/25.6 so it is part of Russia's total there.
+  if (G.spaces.istanbul?.control === "RU") {
+    G.powers.RU.vp += 2;
+    log(G, "RU", "secondRomeVp", {vp: 2});
+  }
   // Score NGs at the outbreak (25.5).
   const scores = scoreGoals(G);
   for (const p of POWERS) {

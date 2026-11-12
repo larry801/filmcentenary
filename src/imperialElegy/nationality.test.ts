@@ -3,12 +3,14 @@ import {ImperialElegyState, POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {
   CORE_NATIONALITIES,
+  auCitizenshipProtectsSpace,
   citizenshipMatchesSpace,
   coreNationalitiesOf,
   eligibleNationalistUprisingSpaces,
   isCoreNationality,
   isMinorityNationalitySpace,
   minorityNationalities,
+  minorityNationalitiesFor,
 } from "./engine/nationality";
 
 const makeCtx = () => ({
@@ -86,6 +88,39 @@ describe("minorityNationalities", () => {
   });
 });
 
+describe("AU full citizenship removes a minority nationality (33.4.1 / 3.2.6)", () => {
+  test("a citizen nationality is no longer a minority nationality to AU", () => {
+    const G = fresh();
+    expect(minorityNationalitiesFor(G, "bohemia", "AU")).toEqual(["Czechs"]);
+    expect(auCitizenshipProtectsSpace(G, "bohemia")).toBe(false);
+
+    G.powers.AU.citizenship = ["Czechs"];
+    expect(minorityNationalitiesFor(G, "bohemia", "AU")).toEqual([]);
+    expect(auCitizenshipProtectsSpace(G, "bohemia")).toBe(true);
+  });
+
+  test("one non-citizen flag keeps the space a minority-nationality space", () => {
+    const G = fresh();
+    // Banat prints Hungarians (an AU core nationality), Serbians and Romanians.
+    expect(minorityNationalitiesFor(G, "banat", "AU")).toEqual(["Serbians", "Romanians"]);
+    G.powers.AU.citizenship = ["Serbians"];
+    expect(minorityNationalitiesFor(G, "banat", "AU")).toEqual(["Romanians"]);
+    expect(auCitizenshipProtectsSpace(G, "banat")).toBe(false);
+    G.powers.AU.citizenship = ["Serbians", "Romanians"];
+    expect(auCitizenshipProtectsSpace(G, "banat")).toBe(true);
+  });
+
+  test("only AU-controlled spaces are protected, and other powers are untouched", () => {
+    const G = fresh();
+    G.powers.AU.citizenship = ["Czechs"];
+    expect(auCitizenshipProtectsSpace(G, "berlin")).toBe(false);
+    G.spaces.bohemia.control = "GE";
+    expect(auCitizenshipProtectsSpace(G, "bohemia")).toBe(false);
+    // A German-controlled Bohemia still has Czechs as a minority for GE.
+    expect(minorityNationalitiesFor(G, "bohemia", "GE")).toEqual(["Czechs"]);
+  });
+});
+
 describe("eligibleNationalistUprisingSpaces", () => {
   test("excludes Berlin and the German core from GE", () => {
     const G = fresh();
@@ -110,6 +145,21 @@ describe("eligibleNationalistUprisingSpaces", () => {
 
     G.spaces["bosnia-herzegovina"].control = "AU";
     expect(eligibleNationalistUprisingSpaces(G)).toContain("bosnia-herzegovina");
+  });
+
+  test("a citizen nationality no longer exposes an AU space to the card (3.2.6)", () => {
+    const G = fresh();
+    expect(G.spaces.bohemia.control).toBe("AU");
+    expect(eligibleNationalistUprisingSpaces(G)).toContain("bohemia");
+
+    G.powers.AU.citizenship = ["Czechs"];
+    expect(eligibleNationalistUprisingSpaces(G)).not.toContain("bohemia");
+    // Galicia still prints non-citizen Ukrainians, so it remains a target.
+    expect(eligibleNationalistUprisingSpaces(G)).toContain("galicia");
+
+    // The same space under another controller is not protected.
+    G.spaces.bohemia.control = "GE";
+    expect(eligibleNationalistUprisingSpaces(G)).toContain("bohemia");
   });
 
   test("includes Poland for Russia and for a German-controlled Poland", () => {

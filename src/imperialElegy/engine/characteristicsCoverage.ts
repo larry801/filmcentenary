@@ -204,7 +204,8 @@ export const CHARACTERISTICS_COVERAGE: readonly CharacteristicCoverageEntry[] = 
     index: 1,
     label: "A Compromise Needed",
     status: "live",
-    implementation: "engine/characteristics.ts#dualMonarchy; moves.ts#applyPrepCharacteristics",
+    implementation:
+      "engine/characteristics.ts#dualMonarchy; engine/characteristics.ts#grantAuCitizenship; moves.ts#applyPrepCharacteristics",
   },
   {
     power: "AU",
@@ -287,7 +288,7 @@ export const CHARACTERISTICS_COVERAGE: readonly CharacteristicCoverageEntry[] = 
     label: "The Second Rome",
     status: "live",
     implementation:
-      "engine/characteristics.ts#secondRome; engine/victory.ts#scoreGoals; engine/rules.ts#capitalOf",
+      "engine/characteristics.ts#secondRome; engine/greatWar.ts#outbreakGreatWar; engine/victory.ts#scoreGoals; engine/rules.ts#capitalOf",
   },
   {
     power: "RU",
