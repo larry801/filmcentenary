@@ -1187,6 +1187,13 @@ export interface BattleState {
   dreadnoughtRequired?: {attacker: number; defender: number};
   /** 19.4/19.6: dreadnought steps already taken in this battle. */
   dreadnoughtLosses?: {attacker: number; defender: number};
+  /**
+   * 30.0: owners of dreadnoughts eliminated in this battle.  The GW stability
+   * loss ("Losing a dreadnought in battle: -1 stability") is applied once the
+   * battle's own effects are done, so a mid-battle surrender cannot truncate
+   * the loss/reward sequence.
+   */
+  dreadnoughtsSunk?: string[];
 }
 
 export interface MoveContext {

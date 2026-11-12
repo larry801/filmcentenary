@@ -3,7 +3,7 @@
  * surrender.
  */
 import type {Ctx} from "boardgame.io";
-import type {BattleState, GreatWarState, ImperialElegyState, Power} from "./types";
+import type {BattleState, GreatWarState, ImperialElegyState, Power, SpaceId} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {finishBattle} from "./engine/combat";
@@ -96,6 +96,7 @@ const resolveBattle = (
   to: string,
   winner: "attacker" | "defender",
   decisive: boolean,
+  supportAttack: {space: SpaceId; unitId: string}[] = [],
 ): void => {
   const major = G.flags.gwAllyImpulse;
   const attack = landUnitsIn(G, from).filter((u) => u.owner === attacker || (major !== "" && u.owner === major));
@@ -113,7 +114,7 @@ const resolveBattle = (
     mainAttack: attack.map((u) => u.id),
     mainDefense: defend.map((u) => u.id),
     forceOwners: {attacker: attack.map((u) => u.owner), defender: defend.map((u) => u.owner)},
-    supportAttack: [],
+    supportAttack: supportAttack.map((entry) => ({space: entry.space, units: [entry.unitId], fp: 2})),
     supportDefense: [],
     stage: "done",
     supportSide: "attacker",
@@ -209,6 +210,29 @@ describe("32.1 US stability", () => {
 
     resolveBattle(G, "FR", from, target, "defender", true);
     expect(G.gw!.usStability).toBe(3);
+  });
+
+  test("30.0: a supporting army counts towards the decisive-battle threshold", () => {
+    const G = gwSetup();
+    expect(enterGwAlly(G, makeCtx(), "US", "te").ok).toBe(true);
+    // Prussia borders both Berlin (the attack space) and Pomerania (the target),
+    // so it can provide the one supporting army.
+    const target = "pomerania";
+    const from = "berlin";
+    const support = "prussia";
+    clearSpace(G, target);
+    clearSpace(G, from);
+    clearSpace(G, support);
+    G.spaces[target].fort = null;
+    placeUnit(G, "GE", "army", target, 2);
+    placeUnit(G, "US", "usArmy", from, 2);
+    const supportingArmy = placeUnit(G, "US", "usArmy", support, 2).id;
+    G.flags.gwAllyImpulse = "US";
+
+    // One US army in the main force plus one supporting US army is a defeated
+    // force of two armies, so the US loses 1 stability (30.0 footnote).
+    resolveBattle(G, "FR", from, target, "defender", true, [{space: support, unitId: supportingArmy}]);
+    expect(G.gw!.usStability).toBe(2);
   });
 
   test("the force leader is the majority owner of the main force", () => {
