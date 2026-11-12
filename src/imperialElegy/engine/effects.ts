@@ -2034,8 +2034,9 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "italy": {
-      italyTable(G, ctx, actor);
-      return true;
+      // 22.1.3: the live card asks the active player to choose the Italian
+      // minor when both are legal; a suspended decision keeps the card open.
+      return italyTable(G, ctx, actor, {interactive: true});
     }
     case "sepoyMutiny": {
       G.powers.UK.indiaStable = false;
@@ -2315,7 +2316,8 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "powderKeg": {
-      changeWtt(G, 1, ctx, G.resolvingCard ?? undefined);
+      // The card data raises the WTT first (rule 23.1: on outbreak the rest of
+      // the text is ignored); this handler is the "rest of the text".
       const targets = ["bosnia-herzegovina", "serbia", "bulgaria", "macedonia", "greece"].filter((id) => G.spaces[id]?.control === "OT");
       for (const id of targets.slice(0, 2)) {
         G.spaces[id].rebellion = {minor: "Balkans", step: 0, rebels: []};
@@ -2553,7 +2555,8 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         ));
         return true;
       };
-      changeWtt(G, 1, ctx, G.resolvingCard ?? undefined);
+      // The card data raises the WTT first (rule 23.1: on outbreak the rest of
+      // the text is ignored); this handler is the "rest of the text".
       // "If the Ottomans control space(s) in the Balkans other than Istanbul,
       // remove all Ottoman ally markers in the Balkans and roll a die."
       for (const space of BALKAN_SPACES) {
@@ -3183,8 +3186,13 @@ export const performEffect = (
       return true;
     }
     case "italy": {
-      if (effect.action === "unify") unifyItaly(G, ctx, actor);
-      else if (effect.action === "roll" || effect.action === "table") italyTable(G, ctx, actor);
+      if (effect.action === "unify") {
+        unifyItaly(G, ctx, actor);
+        return true;
+      }
+      if (effect.action === "roll" || effect.action === "table") {
+        return italyTable(G, ctx, actor, {interactive: true});
+      }
       return true;
     }
     case "meiji": {

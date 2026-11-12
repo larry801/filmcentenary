@@ -175,7 +175,15 @@ import {
 } from "./engine/characteristics";
 import {checkGermanUnification, checkItalianUnification, checkAutoVictory, finishGame, scoreGame} from "./engine/victory";
 import {grantAuNewWayForward} from "./engine/nationality";
-import {crisisRoll, italyTable, outbreakGreatWar, endGreatWar, resolveCrisisPending} from "./engine/greatWar";
+import {
+  applyInternalItalianWar,
+  crisisRoll,
+  ITALIAN_INTERNAL_WAR_POWERS,
+  italyTable,
+  outbreakGreatWar,
+  endGreatWar,
+  resolveCrisisPending,
+} from "./engine/greatWar";
 import {addItalyMpit} from "./engine/italyEntry";
 import {
   activateGwExhaustion,
@@ -4522,6 +4530,16 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   const opt = pending.options.find((o) => o.id === optionId);
   if (!opt) return INVALID_MOVE;
   const context = pending.context ?? {};
+  if (pending.kind === "italianInternalWar") {
+    // 22.1.3: the active player chose Sardinia-Piedmont or the Two Sicilies.
+    if (!ITALIAN_INTERNAL_WAR_POWERS.includes(optionId as (typeof ITALIAN_INTERNAL_WAR_POWERS)[number])) {
+      return INVALID_MOVE;
+    }
+    G.pending = null;
+    applyInternalItalianWar(G, optionId);
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
   if (pending.kind === "bloodAndIron") {
     return resolveBloodAndIron(G, ctx, pending, optionId);
   }
@@ -4759,6 +4777,16 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   // deterministic tie direction), so an unattended end phase can never stall.
   if (pending.kind === "militarism" || pending.kind === "manpowerExcess" || pending.kind === "allianceTie") {
     return declineEndPhasePending(G, ctx, pending);
+  }
+  // 22.1.3 has no "skip": an unattended card takes the printed-order default
+  // (Sardinia-Piedmont first), the same fallback as the one-shot path.
+  if (pending.kind === "italianInternalWar") {
+    const first = pending.options[0];
+    if (!first) return INVALID_MOVE;
+    G.pending = null;
+    applyInternalItalianWar(G, first.id);
+    finalizePendingCard(G, ctx);
+    return undefined;
   }
   // A card-chain step marked `required` must be answered with an explicit
   // option: declining would otherwise auto-pick the first space or card, which
@@ -5565,9 +5593,14 @@ const declineEndPhasePending = (
   pending: PendingDecision,
 ): string | void => {
   if (pending.kind === "militarism") {
-    const skip = pending.options.find((candidate) => candidate.id === "skip");
-    if (!skip) return INVALID_MOVE;
-    return resolveEndPhasePending(G, ctx, pending, skip.id);
+    // Rule 20.1 offers no skip when a benefit is legal; the deterministic
+    // fallback then takes the reserve step (the old one-shot default).
+    const choice =
+      pending.options.find((candidate) => candidate.id === "skip") ??
+      pending.options.find((candidate) => candidate.id === "reserve") ??
+      pending.options[0];
+    if (!choice) return INVALID_MOVE;
+    return resolveEndPhasePending(G, ctx, pending, choice.id);
   }
   if (pending.kind === "manpowerExcess") {
     const first = pending.options[0];

@@ -151,6 +151,25 @@ test("20.1 protects a level-2 fort through 20.2 and refuses a level-3 fort", () 
   expect(G.spaces["st-petersburg"].fort).toBeNull();
 });
 
+test("20.1 does not offer skip when a legal benefit exists", () => {
+  const G = fresh();
+  // Give GE reserve-box room so the reserve step is legal; the printed rule
+  // gives no skip when a player can take a benefit.
+  G.powers.GE.industry = 3;
+
+  let options: string[] = [];
+  run(G, makeCtx(), (pending) => {
+    if (pending.kind === "militarism" && pending.power === "GE") {
+      options = pending.options.map((candidate) => candidate.id);
+      return "reserve";
+    }
+    return undefined;
+  });
+
+  expect(options).toContain("reserve");
+  expect(options).not.toContain("skip");
+});
+
 test("20.1 is not auto-picked and a player with no legal benefit is auto-skipped", () => {
   const G = fresh();
   // Strip every non-Indian fort so Germany (reserve box full, armies at

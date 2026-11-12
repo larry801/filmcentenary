@@ -134,6 +134,20 @@ export const applyInternalItalianWar = (
   return {power, key, armyId: army?.id ?? null, squadronId: squadron?.id ?? null};
 };
 
+/** The legal Internal Italian War choices: both minors border the same free key. */
+export const italianInternalWarChoices = (G: ImperialElegyState): ItalianInternalWarPower[] =>
+  ITALIAN_INTERNAL_WAR_POWERS.filter((power) => italianInternalWarKey(G, power) !== null);
+
+/**
+ * Apply the 22.1.3 result.  When both minors are legal the live card asks the
+ * active player to choose; `italyTable` returns false while that decision is
+ * open.  A direct/one-shot call (no `interactive` option) keeps the
+ * deterministic printed-order auto-pick for tools and older callers.
+ */
+export interface ItalyTableOptions {
+  interactive?: boolean;
+}
+
 const grantItalianReinforcement = (G: ImperialElegyState): void => {
   const grants = (G.italyReinforcements ??= {armies: 0, squadrons: 0});
   // 22.3.1: "Italy permanently gains an additional reserve army".  Reserve
@@ -151,8 +165,13 @@ const grantItalianReinforcement = (G: ImperialElegyState): void => {
   }
 };
 
-/** The Italian Minor Power Table (22.1). */
-export const italyTable = (G: ImperialElegyState, ctx: Ctx, actor: Power): void => {
+/** The Italian Minor Power Table (22.1).  Returns false when a decision is open. */
+export const italyTable = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  actor: Power,
+  options: ItalyTableOptions = {},
+): boolean => {
   if (G.persistent.italyUnified) {
     const roll = die(ctx, 6) + (G.turn >= 5 ? 1 : 0);
     if (roll <= 2) {
@@ -167,13 +186,13 @@ export const italyTable = (G: ImperialElegyState, ctx: Ctx, actor: Power): void 
       // Italy declares war on the Ottomans for an Eastern Mediterranean base.
       log(G, actor, "italyOttomanWar", {});
     }
-    return;
+    return true;
   }
   let roll = die(ctx, 6);
   if (G.flags.italyFlashpointDominator === actor) roll -= 2;
   if (roll <= 0) {
     log(G, actor, "italyLostDream", {});
-    return;
+    return true;
   }
   if (roll === 1) {
     const playerSpaces = Object.values(SPACES).filter((s) => s.flashpoints?.includes("italy") && G.spaces[s.id].control === actor);
@@ -181,25 +200,42 @@ export const italyTable = (G: ImperialElegyState, ctx: Ctx, actor: Power): void 
     G.spaces[target].rebellion = {minor: "Italian Rebels", step: 0, rebels: []};
     const rebel = placeUnit(G, "REBEL:Italian", "rebelArmy", target, 2);
     G.spaces[target].rebellion.rebels.push(rebel.id);
-    return;
+    return true;
   }
   if (roll <= 3) {
     // Petition for aid: remove an ally marker from an Italian minor.
     const alliedMinor = Object.values(SPACES).find((s) => s.flashpoints?.includes("italy") && G.spaces[s.id].ally !== null);
     if (alliedMinor) G.spaces[alliedMinor.id].ally = null;
     G.flags.italyPetition = true;
-    return;
+    return true;
   }
   if (roll <= 5) {
-    // 22.1.3 Internal Italian War: the chosen minor gains an army and a
-    // squadron through the 4.2 pool and takes the free neighboring key.
+    // 22.1.3 Internal Italian War: "Choose either Sardinia-Piedmont or the
+    // Kingdom of the Two Sicilies."  When both minors border a free key the
+    // active player chooses; the deterministic printed-order fallback is kept
+    // for the one-shot path (no interactive option).
+    const choices = italianInternalWarChoices(G);
+    if (options.interactive === true && choices.length > 1) {
+      openDecision(
+        G,
+        ctx,
+        decision(
+          "italianInternalWar",
+          actor,
+          `${POWER_DEFS[actor].name}: choose Sardinia-Piedmont or the Kingdom of the Two Sicilies`,
+          choices.map((power) => option(power, power)),
+        ),
+      );
+      return false;
+    }
     applyInternalItalianWar(G);
-    return;
+    return true;
   }
   // Nationalist wave: a minor takes 2 uncontrolled Italian keys, then roll.
   const uncontrolled = Object.values(SPACES).filter((s) => s.flashpoints?.includes("italy") && G.spaces[s.id].control === null).slice(0, 2);
   for (const s of uncontrolled) setSpaceControl(G, s.id, "Sardinia-Piedmont");
   italianUnificationRoll(G, ctx, actor);
+  return true;
 };
 
 export const italianUnificationRoll = (G: ImperialElegyState, ctx: Ctx, actor: Power): boolean => {
