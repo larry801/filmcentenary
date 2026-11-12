@@ -1347,12 +1347,25 @@ export const winter = (G: ImperialElegyState, ctx: Ctx): void => {
   }
 };
 
-export const endGreatWar = (G: ImperialElegyState, ctx: Ctx, reason: "elimination" | "turnLimit"): void => {
+export const endGreatWar = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  reason: "elimination" | "turnLimit" | "onePower",
+): void => {
   if (!G.gw) return;
   if (reason === "elimination") {
     const teAlive = G.gw.te.filter((p) => !G.powers[p].eliminated);
     const taAlive = G.gw.ta.filter((p) => !G.powers[p].eliminated);
     G.gw.victor = teAlive.length > 0 && taAlive.length === 0 ? "te" : taAlive.length > 0 && teAlive.length === 0 ? "ta" : null;
+  } else if (reason === "onePower") {
+    // 31.0: the alliance reduced to one living power while the opposing
+    // alliance still has more than one is the defeated one; the larger
+    // alliance wins.  (A 1v1 endgame is not a defeat — see checkGwVictory.)
+    const teAlive = G.gw.te.filter((p) => !G.powers[p].eliminated);
+    const taAlive = G.gw.ta.filter((p) => !G.powers[p].eliminated);
+    const teOne = teAlive.length === 1;
+    const taOne = taAlive.length === 1;
+    G.gw.victor = teOne && !taOne ? "ta" : taOne && !teOne ? "te" : null;
   }
   if (G.gw.victor !== null) {
     const winners = G.gw.victor === "te" ? G.gw.te : G.gw.ta;
@@ -1391,11 +1404,29 @@ export const endGreatWar = (G: ImperialElegyState, ctx: Ctx, reason: "eliminatio
 };
 
 export const checkGwVictory = (G: ImperialElegyState, ctx: Ctx): void => {
-  if (!G.gw) return;
+  // Idempotent: the battle-end and winter checkpoints can both run after the
+  // war has already been decided.
+  if (!G.gw || G.result) return;
   const teAlive = G.gw.te.filter((p) => !G.powers[p].eliminated);
   const taAlive = G.gw.ta.filter((p) => !G.powers[p].eliminated);
   if (teAlive.length === 0 || taAlive.length === 0) {
     endGreatWar(G, ctx, "elimination");
+    return;
   }
+  // 31.0 second bullet: "There is only one power remaining in an alliance and
+  // there are no neutral players".  A neutral *player* is a living power still
+  // outside both alliances (US/Italy are non-player majors, not neutral
+  // players); while one remains it could still join the depleted alliance, so
+  // the war goes on.  The condition defeats the alliance that is down to one
+  // power while the opposing alliance still has more than one.  If both
+  // alliances are down to one (a 1v1 endgame) neither has won, so the war runs
+  // on to the turn-5 limit as the printed "if neither alliance has won" rule
+  // provides.
+  const neutralPlayers = G.gw.neutrals.filter((p) => G.powers[p] && !G.powers[p].eliminated);
+  if (neutralPlayers.length > 0) return;
+  const teOutnumbered = teAlive.length === 1 && taAlive.length > 1;
+  const taOutnumbered = taAlive.length === 1 && teAlive.length > 1;
+  if (!teOutnumbered && !taOutnumbered) return;
+  endGreatWar(G, ctx, "onePower");
 };
 

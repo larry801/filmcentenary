@@ -45,11 +45,11 @@ const baseGw = (): ImperialElegyState => {
   G.gw = {
     active: true,
     turn: 2,
-    order: ["UK", "FR", "GE"],
-    belligerents: ["UK", "FR", "GE"],
+    order: ["UK", "FR", "GE", "AU"],
+    belligerents: ["UK", "FR", "GE", "AU"],
     neutrals: [],
     te: ["UK", "FR"],
-    ta: ["GE"],
+    ta: ["GE", "AU"],
     usIn: false,
     italyIn: false,
     usStability: 3,
@@ -68,6 +68,7 @@ const baseGw = (): ImperialElegyState => {
   G.powers.UK.alliance = "teCommitted";
   G.powers.FR.alliance = "teCommitted";
   G.powers.GE.alliance = "taCommitted";
+  G.powers.AU.alliance = "taCommitted";
   G.phase = "gwWinter";
   return G;
 };
@@ -171,9 +172,12 @@ describe("29.2.1 live bonus-CP allocation", () => {
     const G = baseGw();
     // A dead UK no longer counts as a living alliance member; FR is then the
     // only eligible ally, so there is nothing to negotiate and the 3 CP are
-    // awarded directly.
+    // awarded directly.  AU is dead too so the war stays 1v1 and 31.0's
+    // one-power defeat does not end it before the planning step.
     G.powers.UK.eliminated = true;
     G.powers.UK.stability = 0;
+    G.powers.AU.eliminated = true;
+    G.powers.AU.stability = 0;
     resolveGwWinter(G, makeCtx(3), {promptChoices: true});
     skipTransfers(G);
     expect(G.pending).toBeNull();

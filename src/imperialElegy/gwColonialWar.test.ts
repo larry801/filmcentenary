@@ -283,9 +283,9 @@ describe("29.2.1 colonial bonus CP", () => {
   test("controlling both submaps gives 3 bonus CP, split deterministically", () => {
     const G = baseGw({
       te: ["UK", "FR"],
-      ta: ["GE"],
-      belligerents: ["UK", "FR", "GE"],
-      order: ["UK", "FR", "GE"],
+      ta: ["GE", "AU"],
+      belligerents: ["UK", "FR", "GE", "AU"],
+      order: ["UK", "FR", "GE", "AU"],
       neutrals: [],
     });
     G.powers.UK.alliance = "teCommitted";

@@ -2543,10 +2543,11 @@ const neutralRedeployDestinations = (
 const neutralRedeployCandidates = (
   G: ImperialElegyState,
   power: Power,
+  moved: readonly string[] = [],
 ): {unitId: string; destinations: SpaceId[]}[] =>
   Object.keys(G.units)
     .map((id) => G.units[id])
-    .filter((unit) => unit.owner === power && unit.naval !== true && Boolean(unit.space))
+    .filter((unit) => unit.owner === power && unit.naval !== true && Boolean(unit.space) && !moved.includes(unit.id))
     .map((unit) => ({
       unitId: unit.id,
       destinations: neutralRedeployDestinations(G, power, unit),
@@ -2673,7 +2674,9 @@ const openGwNeutralActionDecision = (
     data?: Record<string, unknown>;
     secret?: boolean;
   }[] = [];
-  if (!entry.usedRedeploy && neutralRedeployCandidates(G, power).length > 0) {
+  // 12.15 / 29.3: one free redeployment action moves all of the power's land
+  // units, so keep offering it while an unmoved unit has a legal destination.
+  if (!entry.usedRedeploy && neutralRedeployCandidates(G, power, entry.redeployedUnits ?? []).length > 0) {
     options.push(option("redeploy", "Free redeployment", undefined, false, "免费重新部署"));
   }
   if (joined && !entry.usedDeploy && G.powers[power].reserves.length > 0 && neutralDeploySpaces(G, power).length > 0) {
@@ -2721,6 +2724,7 @@ const advanceNeutralEntry = (G: ImperialElegyState, ctx: Ctx): void => {
     entry.usedRedeploy = false;
     entry.usedDeploy = false;
     entry.unitId = null;
+    entry.redeployedUnits = [];
     const sides = neutralEntrySides(G, next);
     if (sides.length === 0) {
       log(G, next, "gwNeutralEntryBlocked", {side: "", reason: "noLegalAlliance"});
@@ -2744,6 +2748,7 @@ const finishCurrentNeutral = (G: ImperialElegyState, ctx: Ctx): void => {
   entry.usedRedeploy = false;
   entry.usedDeploy = false;
   entry.unitId = null;
+  entry.redeployedUnits = [];
   G.pending = null;
   if (entry.queue.length === 0) {
     if (gw.winter) finishGwWinter(G, ctx, gw.winter);
@@ -2792,7 +2797,7 @@ export const resolveGwNeutralOption = (
       }
       if (optionId === "redeploy") {
         if (entry.usedRedeploy) return false;
-        const candidates = neutralRedeployCandidates(G, power);
+        const candidates = neutralRedeployCandidates(G, power, entry.redeployedUnits ?? []);
         if (candidates.length === 0) return false;
         G.pending = null;
         openDecision(G, ctx, {
@@ -2854,7 +2859,9 @@ export const resolveGwNeutralOption = (
       }
       if (!optionId.startsWith("unit:")) return false;
       const unitId = optionId.slice(5);
-      const candidate = neutralRedeployCandidates(G, power).find((c) => c.unitId === unitId);
+      const candidate = neutralRedeployCandidates(G, power, entry.redeployedUnits ?? []).find(
+        (c) => c.unitId === unitId,
+      );
       if (!candidate) return false;
       entry.unitId = unitId;
       G.pending = null;
@@ -2879,7 +2886,9 @@ export const resolveGwNeutralOption = (
       G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unit.id);
       G.spaces[optionId].units.push(unit.id);
       unit.space = optionId;
-      entry.usedRedeploy = true;
+      // 12.15: the one free redeployment action may move every land unit, each
+      // once; keep the action open for the remaining units.
+      entry.redeployedUnits = [...(entry.redeployedUnits ?? []), unit.id];
       entry.unitId = null;
       log(G, power, "gwNeutralRedeploy", {unit: unit.id, from, to: optionId});
       G.pending = null;
@@ -3181,6 +3190,7 @@ const runNeutralEntry = (
       usedRedeploy: false,
       usedDeploy: false,
       unitId: null,
+      redeployedUnits: [],
     };
   }
   advanceNeutralEntry(G, ctx);

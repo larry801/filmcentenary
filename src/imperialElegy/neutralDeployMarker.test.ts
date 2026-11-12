@@ -30,11 +30,11 @@ const makeCtx = (playerID: string | null = "0"): Ctx =>
 const gwState = (overrides: Partial<GreatWarState> = {}): GreatWarState => ({
   active: true,
   turn: 2,
-  order: ["GE", "FR"],
-  belligerents: ["GE", "FR"],
+  order: ["GE", "AU", "FR"],
+  belligerents: ["GE", "FR", "AU"],
   neutrals: ["OT"],
   te: ["FR"],
-  ta: ["GE"],
+  ta: ["GE", "AU"],
   usIn: false,
   italyIn: false,
   usStability: 3,
@@ -57,6 +57,7 @@ const neutralWinter = (): ImperialElegyState => {
   const G = setupImperialElegy(makeCtx());
   G.gw = gwState();
   G.powers.GE.alliance = "taCommitted";
+  G.powers.AU.alliance = "taCommitted";
   G.powers.FR.alliance = "teCommitted";
   G.powers.OT.alliance = "neutral";
   G.phase = "gwWinter";

@@ -760,6 +760,12 @@ export interface GwNeutralEntryState {
   usedDeploy: boolean;
   /** Unit chosen for the free redeployment while its destination is picked. */
   unitId: string | null;
+  /**
+   * 12.15 / 29.3: a free redeployment action moves all of the power's land
+   * units, so each unit may be moved once; this records the ones already moved
+   * (optional for older saves and test states).
+   */
+  redeployedUnits?: string[];
 }
 
 /**
