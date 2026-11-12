@@ -943,7 +943,7 @@ export interface NavalTransitState {
   power: Power;
   /** A GW joint naval operation's allied power, when one takes part. */
   ally?: Power;
-  /** The mover's naval units still taking part. */
+  /** The mover's units still taking part (a 12.3 transport also carries its land unit). */
   unitIds: string[];
   /** The whole planned 12.3 route: origin first, final destination last. */
   path: SpaceId[];

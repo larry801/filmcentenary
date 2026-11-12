@@ -27,6 +27,7 @@ import {
   PORT_NAVAL_LIMIT,
   unitById,
   unitsIn,
+  recordOccupation,
   recomputeTracks,
   changeStability,
   resolveCapitalSurrenders,
@@ -2739,6 +2740,25 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
           }
         }
       }
+      // 19.6.1: "land units retreat with their accompanying naval units" when
+      // the fleet is forced to retreat, and are eliminated when all of the
+      // naval units accompanying their stack are eliminated (or they cannot
+      // retreat).  A 12.3 transport carries its land unit into the battle.
+      const attackerOwners = new Set<string>([battle.attacker, ...(battle.forceOwners?.attacker ?? [])]);
+      const carriedLand = unitsIn(G, battle.to).filter(
+        (unit) => unit.naval !== true && attackerOwners.has(unit.owner),
+      );
+      if (carriedLand.length > 0) {
+        const escort = battle.mainAttack
+          .map((id) => G.units[id])
+          .find((unit): unit is Unit =>
+            Boolean(unit) && unit!.naval === true && unit!.steps > 0 && unit!.space !== undefined,
+          );
+        for (const unit of carriedLand) {
+          if (escort?.space) moveUnitTo(G, unit, escort.space);
+          else removeUnit(G, unit.id);
+        }
+      }
     }
   } else if (winner === "attacker") {
     // 18.7: defender retreats unless a trench or GW-06 negates it.
@@ -3258,6 +3278,9 @@ export function advanceNavalTransit(G: ImperialElegyState, ctx: Ctx): boolean {
     return true;
   }
   for (const unit of units) moveUnitTo(G, unit, to);
+  // 12.3/15.3: a transported land unit that completes an interrupted move can
+  // occupy the destination port; a pure naval move leaves occupation alone.
+  if (units.some((unit) => unit.naval !== true)) recordOccupation(G, to);
   log(G, transit.power, "navalContinuation", {from, to, units: units.length});
   const interceptAtDestination =
     isNavalBox(to) && navalInterceptCandidates(G, transit.power, to).length > 0;
