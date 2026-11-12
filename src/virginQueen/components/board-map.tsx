@@ -33,7 +33,7 @@ import {
     boardGradientIndex,
     boardMarkerColors,
     boardSpacePoint,
-    boardWarpPath,
+    cachedBoardWarpPath,
     boardWorldPoint,
 } from "../data/board-layout";
 import {
@@ -286,7 +286,7 @@ export const VQBoardMap = ({
     const vqLocale: BoardLocale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
     const [hovered, setHovered] = React.useState<string>();
-    const landPath = React.useMemo(() => boardWarpPath(land.path), []);
+    const landPath = React.useMemo(() => cachedBoardWarpPath(land.path), []);
     const worldLocations = WORLD_MAP_LOCATIONS.filter((location) => {
         if (!location.gameOnly) return true;
         if (location.gameId === undefined) return false;

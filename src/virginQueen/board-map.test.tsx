@@ -16,6 +16,7 @@ import {
     BOARD_WORLD_STRIP,
     boardSpacePoint,
     boardWarpPath,
+    cachedBoardWarpPath,
 } from "./data/board-layout";
 import land from "./data/land-background.json";
 import {setupGame} from "./util";
@@ -61,6 +62,16 @@ describe("printed-board vector map (VQ.png redraw)", () => {
             }
         }
         expect(closest).toBeGreaterThan(5);
+    });
+
+    it("reuses the warped coastline between renders", () => {
+        const path = "M100,100L110,110L120,105Z";
+        expect(cachedBoardWarpPath(path)).toBe(boardWarpPath(path));
+        expect(cachedBoardWarpPath(land.path)).toBe(boardWarpPath(land.path));
+        // A cache hit must not recompute the warp.
+        const start = Date.now();
+        for (let render = 0; render < 20; render += 1) expect(cachedBoardWarpPath(land.path)).toBe(cachedBoardWarpPath(land.path));
+        expect(Date.now() - start).toBeLessThan(100);
     });
 
     it("warps the coastline into the same cartogram without invalid coordinates", () => {

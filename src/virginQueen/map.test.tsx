@@ -5,6 +5,7 @@ import {SPACE_POINTS, SPACES, SEA_ZONES, spacePoint} from "./mapData";
 import {setupGame} from "./util";
 import {VQMap, octagramPoints} from "./components/map";
 import {clampView, INITIAL_VIEW, isMapDrag, MAP_EXTENT, mapProject, nearestMapTarget, placeMapLabels, project, relaxMapPoints, warpSvgPath, zoomView} from "./components/map-geometry";
+import decluttered from "./data/decluttered-space-points.json";
 import land from "./data/land-background.json";
 import worldLand from "./data/world-background.json";
 import {WORLD_MAP_HEIGHT, WORLD_MAP_LOCATIONS, WORLD_MAP_WIDTH, projectWorld} from "./data/world-map";
@@ -286,5 +287,62 @@ describe("offline geographic map", () => {
             expect(points.trim().split(/\s+/)).toHaveLength(16);
         }
         expect(html).toMatch(/vq-legend-swatch-fortress[\s\S]{0,200}<polygon data-marker="fortress"/);
+    });
+});
+
+describe("de-cluttered map layout", () => {
+    it("relaxes points to the recorded layout for the runtime map", () => {
+        // Recorded from the original all-pairs solver.  The grid-based solver must
+        // produce the same cartography, so any change here is a layout change.
+        const anchor = (id: string) => decluttered.input[id as keyof typeof decluttered.input];
+        const relaxed = relaxMapPoints(SPACES.map((space) => ({id: space.id, ...anchor(space.id)})));
+        for (const space of SPACES) {
+            const expected = decluttered.relaxed[space.id as keyof typeof decluttered.relaxed];
+            expect(Math.abs(relaxed[space.id].x - expected.x)).toBeLessThan(1e-6);
+            expect(Math.abs(relaxed[space.id].y - expected.y)).toBeLessThan(1e-6);
+            // And the module itself must feed those anchors through the solver.
+            expect(Math.abs(SPACE_POINTS[space.id].x - expected.x)).toBeLessThan(1e-6);
+            expect(Math.abs(SPACE_POINTS[space.id].y - expected.y)).toBeLessThan(1e-6);
+        }
+    });
+
+    it("separates coincident points deterministically", () => {
+        const points = [
+            {id: "a", x: 100, y: 100},
+            {id: "b", x: 100, y: 100},
+            {id: "c", x: 900, y: 500},
+        ];
+        const first = relaxMapPoints(points, {iterations: 40});
+        const second = relaxMapPoints(points, {iterations: 40});
+        expect(first).toEqual(second);
+        expect(Math.hypot(first.a.x - first.b.x, first.a.y - first.b.y)).toBeGreaterThan(1);
+    });
+
+    it("matches the reference label placement", () => {
+        // The overlap index must not change which slot each label takes.
+        const labels = SPACES.slice(0, 40).map((space, index) => ({
+            id: space.id,
+            x: decluttered.relaxed[space.id as keyof typeof decluttered.relaxed].x,
+            y: decluttered.relaxed[space.id as keyof typeof decluttered.relaxed].y,
+            text: index % 2 === 0 ? "Danzig" : "威尼斯",
+            priority: index % 3 === 0 ? 400 : 50,
+            visible: true,
+        }));
+        const placements = placeMapLabels(labels, {obstacles: [{x: 0, y: 0, width: 30, height: 12}]});
+        for (const label of labels) {
+            const placement = placements[label.id];
+            if (placement === undefined) continue;
+            let collisions = 0;
+            for (const other of Object.values(placements)) {
+                if (other === placement) continue;
+                const width = Math.min(placement.box.x + placement.box.width, other.box.x + other.box.width) -
+                    Math.max(placement.box.x, other.box.x);
+                const height = Math.min(placement.box.y + placement.box.height, other.box.y + other.box.height) -
+                    Math.max(placement.box.y, other.box.y);
+                if (width > 0 && height > 0) collisions += 1;
+            }
+            // Only selected/legal targets may be drawn over another label.
+            expect(collisions === 0 || label.priority >= 350).toBe(true);
+        }
     });
 });

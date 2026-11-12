@@ -199,34 +199,108 @@ export const relaxMapPoints = (
     const pushX = new Float64Array(count);
     const pushY = new Float64Array(count);
 
+    // Bucket the markers so each pass only tests pairs that can be closer than
+    // `minDistance`.  The grid is refined until every pair of cells two apart is
+    // at least `minDistance` from each other, so a marker only ever has to look
+    // at its own cell and its eight neighbours.  Settled markers no longer
+    // interact, which keeps a 2200 pass solve at a few pairs per marker instead
+    // of comparing every marker with every other one.
+    const maxCoordinate = Math.max(MAP_WIDTH, MAP_HEIGHT);
+    const maxOffset = Math.max(1, Math.ceil(count ** 0.25));
+    const padding = minDistance * maxOffset;
+    const extent = maxCoordinate + 2 * padding;
+    let cellSize = minDistance;
+    while (cellSize / (maxOffset - 1) < minDistance) cellSize *= 1.5;
+    const columns = Math.ceil(extent / cellSize) + 1;
+    const rows = columns;
+    const cellCount = columns * rows;
+    const cellStart = new Int32Array(cellCount + 1);
+    const cellOf = new Int32Array(count);
+    const order = new Int32Array(count);
+    const cursor = new Int32Array(cellCount + 1);
+    const pairI = new Int32Array(Math.min(count * 40, count * count));
+    const pairJ = new Int32Array(Math.min(count * 40, count * count));
+    let pairCount = 0;
+
+    const minDistanceSquared = minDistance * minDistance;
+
     for (let iteration = 0; iteration < iterations; iteration += 1) {
         pushX.fill(0);
         pushY.fill(0);
+
+        cellStart.fill(0);
         for (let i = 0; i < count; i += 1) {
-            for (let j = i + 1; j < count; j += 1) {
-                const a = state[i];
-                const b = state[j];
-                let dx = a.x - b.x;
-                let dy = a.y - b.y;
-                let distance = Math.hypot(dx, dy);
-                if (distance >= minDistance) continue;
-                if (distance < 0.001) {
-                    // Deterministic tie-break for coincident or near-coincident
-                    // points.  Real coordinates are never exactly equal, but
-                    // keeping the solver deterministic makes static rendering
-                    // and tests reproducible.
-                    dx = Math.cos(a.jitter);
-                    dy = Math.sin(a.jitter);
-                    distance = 1;
+            const cx = Math.min(columns - 1, Math.max(0, Math.floor((state[i].x + padding) / cellSize)));
+            const cy = Math.min(rows - 1, Math.max(0, Math.floor((state[i].y + padding) / cellSize)));
+            const cell = cy * columns + cx;
+            cellOf[i] = cell;
+            cellStart[cell + 1] += 1;
+        }
+        for (let cell = 0; cell < cellCount; cell += 1) {
+            cellStart[cell + 1] += cellStart[cell];
+        }
+        cursor.set(cellStart);
+        for (let i = 0; i < count; i += 1) {
+            order[cursor[cellOf[i]]++] = i;
+        }
+
+        pairCount = 0;
+        for (let cell = 0; cell < cellCount; cell += 1) {
+            const cellX = cell % columns;
+            const cellY = (cell - cellX) / columns;
+            for (let offsetX = -1; offsetX <= 1; offsetX += 1) {
+                const nx = cellX + offsetX;
+                if (nx < 0 || nx >= columns) continue;
+                for (let offsetY = -1; offsetY <= 1; offsetY += 1) {
+                    const ny = cellY + offsetY;
+                    if (ny < 0 || ny >= rows) continue;
+                    const other = ny * columns + nx;
+                    // Visit every unordered pair of cells exactly once.
+                    if (other < cell) continue;
+                    for (let p = cellStart[cell]; p < cellStart[cell + 1]; p += 1) {
+                        const i = order[p];
+                        const from = other === cell ? p + 1 : cellStart[other];
+                        for (let q = from; q < cellStart[other + 1]; q += 1) {
+                            const j = order[q];
+                            const dx = state[i].x - state[j].x;
+                            const dy = state[i].y - state[j].y;
+                            if (dx * dx + dy * dy >= minDistanceSquared) continue;
+                            if (pairCount < pairI.length) {
+                                pairI[pairCount] = i;
+                                pairJ[pairCount] = j;
+                                pairCount += 1;
+                            }
+                        }
+                    }
                 }
-                const nx = dx / distance;
-                const ny = dy / distance;
-                const push = (minDistance - distance) * 0.5;
-                pushX[i] += nx * push;
-                pushY[i] += ny * push;
-                pushX[j] -= nx * push;
-                pushY[j] -= ny * push;
             }
+        }
+
+        for (let pair = 0; pair < pairCount; pair += 1) {
+            const i = pairI[pair];
+            const j = pairJ[pair];
+            const a = state[i];
+            const b = state[j];
+            let dx = a.x - b.x;
+            let dy = a.y - b.y;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance >= minDistance) continue;
+            if (distance < 0.001) {
+                // Deterministic tie-break for coincident or near-coincident
+                // points.  Real coordinates are never exactly equal, but
+                // keeping the solver deterministic makes static rendering
+                // and tests reproducible.
+                dx = Math.cos(a.jitter);
+                dy = Math.sin(a.jitter);
+                distance = 1;
+            }
+            const nx = dx / distance;
+            const ny = dy / distance;
+            const push = (minDistance - distance) * 0.5;
+            pushX[i] += nx * push;
+            pushY[i] += ny * push;
+            pushX[j] -= nx * push;
+            pushY[j] -= ny * push;
         }
         for (let i = 0; i < count; i += 1) {
             const point = state[i];
@@ -314,6 +388,74 @@ const overlapArea = (a: MapLabelBox, b: MapLabelBox): number => {
     return width > 0 && height > 0 ? width * height : 0;
 };
 
+/**
+ * Overlapping boxes bucketed by a coarse uniform grid, so a label candidate only
+ * has to be measured against the boxes near it.  Measuring every candidate
+ * against every marker and every placed label makes label layout quadratic in
+ * the number of places, and it dominates the cost of rendering the board.
+ */
+class BoxOverlapIndex {
+    private readonly cellSize: number;
+    private readonly columns: number;
+    private readonly cells = new Map<number, {index: number; box: MapLabelBox}[]>();
+    private nextIndex = 0;
+    private visited: Uint32Array;
+    private query: number;
+
+    constructor(cellSize: number, width: number) {
+        this.cellSize = cellSize;
+        // Extra columns either side leave room for boxes with negative cells.
+        this.columns = Math.max(1, Math.floor(width / cellSize) + 25);
+        this.visited = new Uint32Array(64);
+        this.query = 0;
+    }
+
+    add(box: MapLabelBox): void {
+        const index = this.nextIndex;
+        this.nextIndex += 1;
+        if (index >= this.visited.length) {
+            const grown = new Uint32Array(this.visited.length * 2);
+            grown.set(this.visited);
+            this.visited = grown;
+        }
+        const [minColumn, minRow, maxColumn, maxRow] = this.cellRange(box);
+        for (let column = minColumn; column <= maxColumn; column += 1) {
+            for (let row = minRow; row <= maxRow; row += 1) {
+                const key = row * this.columns + column;
+                const bucket = this.cells.get(key);
+                if (bucket === undefined) this.cells.set(key, [{index, box}]);
+                else bucket.push({index, box});
+            }
+        }
+    }
+
+    /** Total overlap with every indexed box, counting each box once. */
+    overlap(box: MapLabelBox): number {
+        this.query = (this.query + 1) >>> 0;
+        const [minColumn, minRow, maxColumn, maxRow] = this.cellRange(box);
+        let total = 0;
+        for (let column = minColumn; column <= maxColumn; column += 1) {
+            for (let row = minRow; row <= maxRow; row += 1) {
+                const bucket = this.cells.get(row * this.columns + column);
+                if (bucket === undefined) continue;
+                for (const entry of bucket) {
+                    if (this.visited[entry.index] === this.query) continue;
+                    this.visited[entry.index] = this.query;
+                    total += overlapArea(box, entry.box);
+                }
+            }
+        }
+        return total;
+    }
+
+    private cellRange(box: MapLabelBox): [number, number, number, number] {
+        // Shift far enough that negative map coordinates stay in range.
+        const offset = this.columns >> 1;
+        const column = (value: number) => Math.floor(value / this.cellSize) + offset;
+        return [column(box.x), column(box.y), column(box.x + box.width), column(box.y + box.height)];
+    }
+}
+
 /** Nearest point on or inside a rectangle to another point. */
 const nearestPointOnBox = (box: MapLabelBox, x: number, y: number): [number, number] => [
     Math.max(box.x, Math.min(box.x + box.width, x)),
@@ -362,6 +504,7 @@ export const placeMapLabels = (
         width: markerWidth,
         height: markerHeight,
     }));
+    const markerById = new Map(labels.map((label, index) => [label.id, index]));
     const padBox = (box: MapLabelBox, padding: number): MapLabelBox => ({
         x: box.x - padding,
         y: box.y - padding,
@@ -369,6 +512,21 @@ export const placeMapLabels = (
         height: box.height + padding * 2,
     });
     for (const obstacle of options.obstacles ?? []) occupied.push(obstacle);
+
+    // Measure each candidate against nearby boxes only.  The markers and the
+    // fixed obstacles are indexed once up front, and every accepted label joins
+    // the index as it is placed.
+    let widestCandidate = 0;
+    for (const label of labels) {
+        if (label.visible) widestCandidate = Math.max(widestCandidate, mapTextWidth(label.text, fontSize) + 5);
+    }
+    // Buckets about half the width of the widest padded candidate stay small.
+    const overlapIndex = new BoxOverlapIndex(
+        Math.max(64, height * 4, widestCandidate) / 2,
+        bounds.width,
+    );
+    occupied.forEach((box) => overlapIndex.add(box));
+    markers.forEach((box) => overlapIndex.add(box));
 
     const result: Record<string, MapLabelPlacement> = {};
     const sorted = labels
@@ -385,19 +543,15 @@ export const placeMapLabels = (
             score: number;
             overlap: number;
         } | undefined;
-        const ownMarker = markers[labels.indexOf(label)];
+        const ownMarker = markers[markerById.get(label.id)!];
         for (const distance of distances) {
             for (const [ux, uy, textAnchor] of LABEL_DIRECTIONS) {
                 const x = label.x + ux * distance;
                 const y = label.y + uy * distance;
                 const box = labelBoxAt(x, y, width, height, textAnchor);
                 const paddedBox = padBox(box, 2.5);
-                let overlap = 0;
-                for (const existing of occupied) overlap += overlapArea(paddedBox, existing);
-                for (let index = 0; index < markers.length; index += 1) {
-                    if (markers[index] === ownMarker) continue;
-                    overlap += overlapArea(paddedBox, markers[index]);
-                }
+                // Subtract the marker's own box that the index will also report.
+                const overlap = overlapIndex.overlap(paddedBox) - overlapArea(paddedBox, ownMarker);
                 // Out-of-bounds labels are never useful on a pan/zoom map.
                 const outside = Math.max(0, 8 - box.x) + Math.max(0, box.x + box.width - (bounds.width - 8)) +
                     Math.max(0, 8 - box.y) + Math.max(0, box.y + box.height - (bounds.height - 8));
@@ -422,6 +576,7 @@ export const placeMapLabels = (
             ...(leaderDistance > 13 ? {leader: {x1: label.x, y1: label.y, x2: leaderX, y2: leaderY}} : {}),
         };
         occupied.push(best.box);
+        overlapIndex.add(best.box);
     }
     return result;
 };

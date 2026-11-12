@@ -74,3 +74,16 @@ docker compose pull && docker compose up -d
 ## 性能
 
 `perf/` 目录下是性能测试脚本（不参与 `yarn test`），见 `perf/README.md`。
+
+## 测试
+
+`yarn test` 会跑完整的 Jest 套件（223 个文件、1300+ 个用例，约 1 分钟）。
+
+Jest 在每个 worker 进程里都要重新加载一遍被 import 的模块，因此 **模块顶层的
+计算会按进程重复进行**。修改地图/布局一类在 import 时算好的数据时请注意：
+
+* import 期不能跑重计算。`relaxMapPoints` 用网格只比较可能互相重叠的标记，
+  结果与原先的全比较实现完全一致（`map.test.tsx` 用
+  `data/decluttered-space-points.json` 锁定布局）。
+* 同一进程内重复使用的派生数据要缓存。`cachedBoardWarpPath` 缓存棋盘海岸线
+  的形变结果，因为棋盘每次走子都会重绘。

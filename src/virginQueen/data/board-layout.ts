@@ -203,6 +203,24 @@ export const boardWarpPath = (path: string): string =>
         return `${x.toFixed(2)},${y.toFixed(2)}`;
     });
 
+/**
+ * Warped coastline by source path.
+ *
+ * The background is a constant asset, warping it costs a few hundred
+ * milliseconds and the board is re-rendered on every move, so each distinct
+ * path only needs warping once per process.  Keyed by the input rather than
+ * computed at module load so importing the game logic stays cheap.
+ */
+const warpedPaths = new Map<string, string>();
+
+export const cachedBoardWarpPath = (path: string): string => {
+    const cached = warpedPaths.get(path);
+    if (cached !== undefined) return cached;
+    const warped = boardWarpPath(path);
+    warpedPaths.set(path, warped);
+    return warped;
+};
+
 /** Board-style position of every playable land space. */
 export const BOARD_SPACE_POINTS: Record<string, BoardPoint> = Object.fromEntries(
     SPACES.map((space) => {
