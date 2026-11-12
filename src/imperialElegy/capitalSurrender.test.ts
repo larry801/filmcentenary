@@ -312,6 +312,37 @@ describe("30.1 live occupation", () => {
     expect(G.powers.GE.eliminated).toBe(true);
   });
 
+  test("31.0: a capital advance that leaves an alliance at one power ends the war at once", () => {
+    const G = gwState({
+      order: ["FR", "GE", "UK", "AU"],
+      te: ["FR", "UK"],
+      ta: ["GE", "AU"],
+      belligerents: ["FR", "GE", "UK", "AU"],
+      neutrals: [],
+    });
+    G.powers.UK.alliance = "teCommitted";
+    G.powers.AU.alliance = "taCommitted";
+    G.powers.AU.stability = 3;
+    clearSpace(G, "vienna");
+    clearSpace(G, "hungary");
+    // Hungary is the AU subcapital and already occupied, so taking Vienna
+    // eliminates AU.  GE is then the only Triple Alliance power left and no
+    // neutral can join it (31.0), so the war ends in this battle's finish.
+    placeUnit(G, "FR", "army", "hungary", 2);
+    // The occupation marker persists when that army advances, keeping the
+    // subcapital occupied and so completing AU's 30.1 surrender.
+    G.spaces.hungary.occupiedBy = "FR";
+    placeUnit(G, "AU", "army", "vienna", 2);
+
+    resolveBattle(G, "FR", "hungary", "vienna", "attacker");
+
+    expect(G.powers.AU.eliminated).toBe(true);
+    expect(G.gw!.ta).toEqual(["GE"]);
+    expect(G.gw!.victor).toBe("te");
+    expect(G.result?.reason).toBe("greatWar:te");
+    expect(G.phase).toBe("gameOver");
+  });
+
   test("the winter step is a safety net for an occupation already in place", () => {
     const G = gwState();
     G.phase = "gwWinter";

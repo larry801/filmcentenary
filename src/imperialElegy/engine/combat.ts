@@ -56,7 +56,7 @@ import {
   supportDenySpaces,
 } from "./combatCards";
 import type {CombatCardMode} from "./combatCards";
-import {applyGwKeyCapture, keyHolder} from "./greatWar";
+import {applyGwKeyCapture, checkGwVictory, keyHolder} from "./greatWar";
 
 export {supportDenySpaces} from "./combatCards";
 
@@ -2883,10 +2883,14 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       G.navalContinuation = null;
     }
   }
+  // 31.0: the Great War ends immediately when an alliance is defeated, so a
+  // battle that eliminates the last-but-one power of an alliance (or its last
+  // power) closes the war here rather than waiting for the winter step.
+  if (G.gw?.active) checkGwVictory(G, ctx);
   // Open 18.8's follow-up now when nothing else owns the decision; otherwise
   // the enclosing move calls `maybeOpenDecisiveFollowUp` after it clears the
   // card/loss decision.
-  maybeOpenDecisiveFollowUp(G, ctx);
+  if (!G.result) maybeOpenDecisiveFollowUp(G, ctx);
 };
 
 /**

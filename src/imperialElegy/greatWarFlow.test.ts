@@ -402,13 +402,15 @@ describe("Great War winter", () => {
   test("resolves colonial war, waits for the neutral choice and advances to next planning", () => {
     const G = baseGw({
       turn: 2,
-      order: ["GE", "FR"],
+      order: ["GE", "AU", "FR"],
       te: ["FR"],
-      ta: ["GE"],
+      ta: ["GE", "AU"],
+      belligerents: ["FR", "GE", "AU"],
       neutrals: ["OT"],
     });
     G.phase = "gwWinter";
     G.powers.OT.alliance = "neutral";
+    G.powers.AU.alliance = "taCommitted";
     placeUnit(G, "FR", "expeditionary", "sudan", 1);
     const ctx = makeCtx();
 
@@ -463,6 +465,102 @@ describe("Great War winter", () => {
     expect(G.result?.reason).toBe("greatWar:ta");
     expect(G.result?.winners).toEqual(["GE"]);
     expect(G.phase).toBe("gameOver");
+  });
+
+  test("31.0: an alliance down to one power with no neutrals is defeated", () => {
+    const G = baseGw({
+      turn: 2,
+      order: ["GE", "AU", "FR"],
+      te: ["FR"],
+      ta: ["GE", "AU"],
+      belligerents: ["FR", "GE", "AU"],
+      neutrals: [],
+    });
+    G.phase = "gwWinter";
+    G.powers.AU.alliance = "taCommitted";
+
+    const res = resolveGwWinter(G, makeCtx());
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error(res.message);
+    // FR is the only Entente power left and no neutral can join it: the
+    // Entente is defeated even though FR still stands (31.0 second bullet).
+    expect(G.powers.FR.eliminated).toBe(false);
+    expect(G.gw!.victor).toBe("ta");
+    expect(res.ended).toBe(true);
+    expect(G.result?.reason).toBe("greatWar:ta");
+    expect(G.result?.winners).toEqual(["GE", "AU"]);
+    expect(G.phase).toBe("gameOver");
+  });
+
+  test("31.0: two powers in the depleted alliance keep the war going", () => {
+    const G = baseGw({
+      turn: 2,
+      order: ["GE", "AU", "FR", "UK"],
+      te: ["FR", "UK"],
+      ta: ["GE", "AU"],
+      belligerents: ["FR", "UK", "GE", "AU"],
+      neutrals: [],
+    });
+    G.phase = "gwWinter";
+    G.powers.AU.alliance = "taCommitted";
+    G.powers.UK.alliance = "teCommitted";
+
+    const res = resolveGwWinter(G, makeCtx());
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error(res.message);
+    expect(G.result).toBeNull();
+    expect(G.gw!.victor).toBeNull();
+    expect(G.gw!.turn).toBe(3);
+    expect(G.phase).toBe("gwPlanning");
+  });
+
+  test("31.0: a 1v1 endgame is not a defeat and runs to the turn limit", () => {
+    const G = baseGw({
+      turn: 2,
+      order: ["GE", "FR"],
+      te: ["FR"],
+      ta: ["GE"],
+      belligerents: ["FR", "GE"],
+      neutrals: [],
+    });
+    G.phase = "gwWinter";
+
+    const res = resolveGwWinter(G, makeCtx());
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error(res.message);
+    expect(G.result).toBeNull();
+    expect(G.gw!.victor).toBeNull();
+    expect(G.gw!.turn).toBe(3);
+    expect(G.phase).toBe("gwPlanning");
+  });
+
+  test("31.0: one neutral player left keeps the depleted alliance alive", () => {
+    const G = baseGw({
+      turn: 2,
+      order: ["GE", "AU", "FR"],
+      te: ["FR"],
+      ta: ["GE", "AU"],
+      belligerents: ["FR", "GE", "AU"],
+      neutrals: ["OT"],
+    });
+    G.phase = "gwWinter";
+    G.powers.AU.alliance = "taCommitted";
+
+    const res = resolveGwWinter(G, makeCtx());
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error(res.message);
+    expect(res.awaitingNeutrals).toBe(true);
+    expect(G.pending?.kind).toBe("gwNeutralEntry");
+    // OT stays out, so a neutral player remains and the Entente is not yet
+    // defeated; the winter then closes normally.
+    const ot = {...makeCtx(), playerID: "5"};
+    expect(resolvePending(G, ot, "stay")).toBeUndefined();
+    expect(resolvePending(G, ot, "done")).toBeUndefined();
+    expect(G.gw!.neutrals).toContain("OT");
+    expect(G.result).toBeNull();
+    expect(G.gw!.victor).toBeNull();
+    expect(G.gw!.turn).toBe(3);
+    expect(G.phase).toBe("gwPlanning");
   });
 
   test("ends at the GW turn 5 limit instead of starting turn 6", () => {

@@ -111,14 +111,18 @@ const choose = (G: ImperialElegyState, optionId: string, dieValue = 3): string |
 
 describe("29.3 neutral entry decision", () => {
   test("the winter stops for the neutral choice; joining grants the seat and free actions", () => {
-    const G = baseGw(["FR"], ["GE"], ["RU"]);
+    // TA starts with two powers so RU joining the Entente leaves 2v2: 31.0
+    // would otherwise end the war for the one-power Triple Alliance.
+    const G = baseGw(["FR"], ["GE", "AU"], ["RU"]);
     const res = resolveGwWinter(G, ctxFor("0"));
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error(res.message);
     expect(res.awaitingNeutrals).toBe(true);
     expect(G.pending?.kind).toBe("gwNeutralEntry");
     expect(G.pending?.power).toBe("RU");
-    expect(optionIds(G)).toEqual(["join:te", "join:ta", "stay"]);
+    // RU may only join the smaller Entente (the Triple Alliance already has two
+    // players, 29.3's "not larger than the opposing alliance").
+    expect(optionIds(G)).toEqual(["join:te", "stay"]);
 
     // Join the Entente.
     expect(choose(G, "join:te")).toBeUndefined();
@@ -270,24 +274,40 @@ describe("29.3 staying neutral", () => {
     expect(G.powers.GE.gwBudget).toBe(Math.max(2, G.powers.GE.industry) + 1);
   });
 
-  test("a staying neutral may take the free redeployment", () => {
+  test("a staying neutral moves all its land units with the free redeployment", () => {
     const G = baseGw(["FR"], ["GE"], ["AU"]);
     resolveGwWinter(G, ctxFor("0"));
     expect(choose(G, "stay")).toBeUndefined();
     expect(choose(G, "redeploy")).toBeUndefined();
-    const unitOption = pending(G).options.find((entry) => entry.id.startsWith("unit:"));
-    expect(unitOption).toBeTruthy();
-    const unitId = unitOption!.id.slice(5);
-    expect(choose(G, unitOption!.id)).toBeUndefined();
-    const destination = pending(G).options[0].id;
-    const from = G.units[unitId].space;
-    expect(choose(G, destination)).toBeUndefined();
-    expect(G.units[unitId].space).toBe(destination);
-    expect(G.spaces[from!].units).not.toContain(unitId);
+    expect(pending(G).options.filter((entry) => entry.id.startsWith("unit:")).length).toBeGreaterThan(1);
+
+    // 12.15: one free redeployment action moves all of the power's land units,
+    // each once; the action stays open after each unit's destination.
+    const moved: string[] = [];
+    for (let i = 0; i < 2; i += 1) {
+      if (i > 0) {
+        expect(optionIds(G)).toContain("redeploy");
+        expect(choose(G, "redeploy")).toBeUndefined();
+      }
+      const unitOption = pending(G).options.find((entry) => entry.id.startsWith("unit:"));
+      expect(unitOption).toBeTruthy();
+      const unitId = unitOption!.id.slice(5);
+      expect(moved).not.toContain(unitId);
+      expect(choose(G, unitOption!.id)).toBeUndefined();
+      const destination = pending(G).options[0].id;
+      const from = G.units[unitId].space;
+      expect(choose(G, destination)).toBeUndefined();
+      expect(G.units[unitId].space).toBe(destination);
+      expect(G.spaces[from!].units).not.toContain(unitId);
+      moved.push(unitId);
+      expect(G.pending?.kind).toBe("gwNeutralAction");
+    }
+
     // The menu comes back so the neutral can still give its bonus CP.
-    expect(G.pending?.kind).toBe("gwNeutralAction");
-    expect(optionIds(G)).not.toContain("redeploy");
     expect(optionIds(G)).toContain("done");
+    expect(choose(G, "done")).toBeUndefined();
+    expect(G.pending).toBeNull();
+    for (const id of moved) expect(G.units[id]).toBeTruthy();
   });
 
   test("declining the pending decision means staying neutral", () => {
