@@ -26,6 +26,8 @@ export const LEADERS: LeaderDef[] = [
 
     // England
     {id: "leicester", name: "Earl of Leicester", power: "england", kind: "army", battle: 1, command: 4, start: "london"},
+    // Battle 1 / command 6 from the printed counter; enters on turn 4 (Leader Entry Table).
+    {id: "norreys", name: "John Norreys", power: "england", kind: "army", battle: 1, command: 6, start: "pool"},
     {id: "howard", name: "Lord Howard of Effingham", power: "england", kind: "naval", battle: 1, start: "london"},
     {id: "drake", name: "Francis Drake", power: "england", kind: "naval", battle: 2, piracy: 2, start: "plymouth"},
     {id: "hawkins", name: "John Hawkins", power: "england", kind: "naval", battle: 1, piracy: 1, start: "portsmouth"},
