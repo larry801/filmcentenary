@@ -3,6 +3,10 @@ import path from "path";
 import {CAMPAIGN_SETUP} from "./constant/setup";
 import {CARDS} from "./constant/cards.data";
 import {MANIFEST} from "./testManifest";
+import type {Ctx} from "boardgame.io";
+import {setupImperialElegy} from "./engine/setup";
+import {cardsToDraw} from "./engine/rules";
+import {POWERS} from "./types";
 
 const saved = JSON.parse(fs.readFileSync(path.join(__dirname, "data/generated/campaign-setup.json"), "utf8"));
 const main = saved.pieces.filter((p: any) => p.board === "Main Map");
@@ -43,4 +47,27 @@ test("playbook setup quantities are represented in the card data", () => {
   expect(CARDS.actions.filter((c) => c.number! >= 13 && c.number! <= 70)).toHaveLength(58);
   expect(CAMPAIGN_SETUP.units.filter((u) => u.owner === "RU")).toHaveLength(10);
   expect(CAMPAIGN_SETUP.units.filter((u) => u.kind === "eliteCorps")).toHaveLength(2);
+});
+
+// 10.2: "Deal cards to each player based on their current industry level,
+// their domination of flashpoints, any plus or minus card markers, their
+// current stability level, and certain conditions such as India being stable."
+// The initial deal must use the same formula as every later prep deal.
+test("the initial deal uses the printed 10.2 card-draw formula", () => {
+  const ctx = {
+    playerID: "0",
+    random: {Die: () => 1},
+    events: {setPhase: () => undefined, setActivePlayers: () => undefined, endGame: () => undefined, endTurn: () => undefined},
+    turn: 1,
+    phase: "prep",
+  } as unknown as Ctx;
+  const G = setupImperialElegy(ctx);
+  for (const power of POWERS) {
+    expect(G.powers[power].hand).toHaveLength(cardsToDraw(G, power));
+  }
+  // The flashpoint dominations make the printed deal differ from the old
+  // industry-only table for the UK (Power Projection) and the Ottomans
+  // (Balkans).
+  expect(G.powers.UK.hand).toHaveLength(5);
+  expect(G.powers.OT.hand).toHaveLength(4);
 });

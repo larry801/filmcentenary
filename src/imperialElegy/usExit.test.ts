@@ -19,6 +19,7 @@ import {enterGwAlly} from "./engine/greatWarFlow";
 import {usArmyMayLeaveNorthAmerica, usCanLeaveNorthAmerica} from "./engine/gwMajors";
 import {navalTransport, navalTransportCheck} from "./moves";
 import {isArmyKind} from "./engine/rules";
+import {resolveNavalInterception} from "./engine/combat";
 
 /** The US slot is run by the first living TE power: France (seat 2). */
 const seat = (power: "GE" | "FR") => String(POWERS.indexOf(power));
@@ -157,6 +158,10 @@ describe("32.1 live US army route out of North America", () => {
     placeUnit(G, "US", "usArmy", "canada", 2);
     expect(usCanLeaveNorthAmerica(G).allowed).toBe(true);
     expect(navalTransport(G, makeCtx(), army.id, [fleet.id], "brittany")).toBeUndefined();
+    // 12.3: the transport crosses the North Atlantic, so the enemy UK may
+    // attempt the printed 19.1 interception before the landing.
+    expect(G.pending?.kind).toBe("navalInterception");
+    expect(resolveNavalInterception(G, makeCtx(), G.pending!, "skip")).toBe(true);
     expect(G.units[army.id].space).toBe("brittany");
   });
 });

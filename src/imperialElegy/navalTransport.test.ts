@@ -39,7 +39,8 @@ import type {BattleState, GreatWarState, ImperialElegyState, Power, WarState} fr
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {navalTransport, navalTransportCheck} from "./moves";
-import {placeUnit} from "./engine/effects";
+import {placeUnit, removeUnit} from "./engine/effects";
+import {beginNavalBattle, finishBattle, resolveNavalInterception} from "./engine/combat";
 import {planNavalTransport} from "./engine/navalMovement";
 import React from "react";
 import {ImperialElegyBoard} from "./components/board";
@@ -311,5 +312,108 @@ describe("12.3 naval transport board control", () => {
 
     byTestId(tree, "ie-naval-transport-go")?.props?.onClick?.();
     expect(moves.navalTransport).toHaveBeenCalledWith(army, fleet, expect.any(String));
+  });
+});
+
+// Rule 12.3: "The land unit can move through naval boxes as if it was a naval
+// unit (they are considered to be on transports) ... Additionally, units moving
+// by sea can be intercepted during wartime [19.1]."  Rule 19.6.1 says a
+// transported land unit retreats with its escorting fleet and is eliminated
+// when that escort is destroyed.
+describe("12.3 transport interception (19.1) and carried land losses (19.6.1)", () => {
+  /** UK army + fleet at London, sailing to friendly Brest, with FR at war. */
+  const contested = () => {
+    const base = londonToBrest();
+    base.G.war = warState("UK", "FR");
+    base.G.spaces.picardy.control = "FR";
+    const fr = placeUnit(base.G, "FR", "squadron", "picardy", 2).id;
+    return {...base, fr};
+  };
+
+  test("an enemy port adjacent to an intermediate box interrupts the transport", () => {
+    const {G, army, fleet, ctx} = contested();
+    expect(navalTransport(G, ctx, army, fleet, "brittany")).toBeUndefined();
+
+    // The whole stack (transported army included) is parked in the box where
+    // the 19.1 window opened, not at the destination.
+    expect(G.pending?.kind).toBe("navalInterception");
+    expect(G.pending?.power).toBe("FR");
+    expect(G.navalTransit?.index).toBe(1);
+    expect(G.navalTransit?.path).toEqual(["london", "north-atlantic", "brittany"]);
+    expect(G.navalTransit?.unitIds).toEqual([army, ...fleet]);
+    expect(G.units[army].space).toBe("north-atlantic");
+    for (const id of fleet) expect(G.units[id].space).toBe("north-atlantic");
+    expect(G.units[army].space).not.toBe("brittany");
+  });
+
+  test("declining the interception finishes the landing at the planned port", () => {
+    const {G, army, fleet, ctx} = contested();
+    // An uncontrolled port where the UK has influence: the interrupted landing
+    // must still record the 15.3 occupation.
+    G.spaces.brittany.control = null;
+    G.spaces.brittany.influence = "UK";
+    expect(navalTransport(G, ctx, army, fleet, "brittany")).toBeUndefined();
+    expect(resolveNavalInterception(G, ctx, G.pending!, "skip")).toBe(true);
+
+    expect(G.pending).toBeNull();
+    expect(G.navalTransit).toBeNull();
+    expect(G.units[army].space).toBe("brittany");
+    for (const id of fleet) expect(G.units[id].space).toBe("brittany");
+    expect(G.spaces.brittany.occupiedBy).toBe("UK");
+  });
+
+  test("a defeated transport retreats its carried army with the surviving fleet", () => {
+    const G = setupImperialElegy(makeCtx());
+    G.phase = "action";
+    G.activePower = "UK";
+    G.war = warState("UK", "FR");
+    G.pending = null;
+    G.battle = null;
+    clearSpace(G, "london");
+    clearSpace(G, "north-atlantic");
+    clearSpace(G, "brittany");
+    G.spaces.brittany.control = "UK";
+    const army = placeUnit(G, "UK", "army", "brittany", 2).id;
+    const ship = placeUnit(G, "UK", "squadron", "brittany", 2).id;
+    placeUnit(G, "FR", "squadron", "brittany", 2);
+    const ctx = makeCtx(seat("UK"));
+
+    const battle = beginNavalBattle(G, ctx, "UK", "london", "brittany", {attackerUnits: [ship]});
+    expect(battle).not.toBeNull();
+    G.pending = null;
+    battle!.winner = "defender";
+    finishBattle(G, ctx);
+
+    // 19.7: the beaten attacker falls back to the space it attacked from.
+    expect(G.units[ship]?.space).toBe("london");
+    // 19.6.1: the carried army retreats with it.
+    expect(G.units[army]?.space).toBe("london");
+  });
+
+  test("a carried army whose whole escort is eliminated is eliminated (19.6.1)", () => {
+    const G = setupImperialElegy(makeCtx());
+    G.phase = "action";
+    G.activePower = "UK";
+    G.war = warState("UK", "FR");
+    G.pending = null;
+    G.battle = null;
+    clearSpace(G, "london");
+    clearSpace(G, "brittany");
+    G.spaces.brittany.control = "UK";
+    const army = placeUnit(G, "UK", "army", "brittany", 2).id;
+    const ship = placeUnit(G, "UK", "squadron", "brittany", 2).id;
+    placeUnit(G, "FR", "squadron", "brittany", 2);
+    const ctx = makeCtx(seat("UK"));
+
+    const battle = beginNavalBattle(G, ctx, "UK", "london", "brittany", {attackerUnits: [ship]});
+    expect(battle).not.toBeNull();
+    G.pending = null;
+    battle!.winner = "defender";
+    // The last escorting ship is destroyed before the battle is finished.
+    removeUnit(G, ship);
+    finishBattle(G, ctx);
+
+    expect(G.units[ship]).toBeUndefined();
+    expect(G.units[army]).toBeUndefined();
   });
 });

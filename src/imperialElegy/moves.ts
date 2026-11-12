@@ -1267,11 +1267,40 @@ export const navalTransport = (
     if (paid === INVALID_MOVE) return INVALID_MOVE;
   }
   const from = check.from!;
+  const path = check.path ?? [];
   const fleetIds = Array.isArray(navalUnitIds) ? navalUnitIds : [];
   const land = G.units[landUnitId];
   const fleet = fleetIds.map((id) => G.units[id]).filter((unit): unit is Unit => unit !== undefined);
-  moveUnitToSpace(G, land, to);
-  for (const unit of fleet) moveUnitToSpace(G, unit, to);
+  const carried: Unit[] = [land, ...fleet];
+  // 12.3 + 19.1: "The land unit can move through naval boxes as if it was a
+  // naval unit (they are considered to be on transports) ... units moving by
+  // sea can be intercepted during wartime."  The transport enters each box on
+  // the 12.3 NMP path, so an enemy port adjacent to an intermediate box may
+  // intercept the whole stack there.  Park it and reuse the shared transit
+  // cursor; `advanceNavalTransit` finishes the landing after the window.
+  const transitIndex = firstTransitInterceptHop(G, power, path);
+  if (transitIndex > 0) {
+    const hop = path[transitIndex];
+    for (const unit of carried) moveUnitToSpace(G, unit, hop);
+    G.navalTransit = {
+      power,
+      unitIds: carried.map((unit) => unit.id),
+      path: [...path],
+      index: transitIndex,
+    };
+    log(G, power, "navalTransport", {
+      from,
+      to: hop,
+      unit: landUnitId,
+      naval: fleetIds.join(","),
+      count: carried.length,
+      path: path.slice(0, transitIndex + 1).join(","),
+      transit: true,
+    });
+    openNavalTransitInterception(G, ctx);
+    return undefined;
+  }
+  for (const unit of carried) moveUnitToSpace(G, unit, to);
   // 15.3: the carried land unit can occupy the destination port.
   recordOccupation(G, to);
   log(G, power, "navalTransport", {
@@ -1279,8 +1308,8 @@ export const navalTransport = (
     to,
     unit: landUnitId,
     naval: fleetIds.join(","),
-    count: fleet.length + 1,
-    path: (check.path ?? []).join(","),
+    count: carried.length,
+    path: path.join(","),
   });
   return undefined;
 };

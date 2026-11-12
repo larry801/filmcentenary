@@ -12,7 +12,7 @@ import {CAMPAIGN_SETUP, createEmptyPowerState, MINOR_POWER_HOMES} from "../const
 import {goalsForPower} from "../constant/goals";
 import {CARDS} from "../constant/cards.data";
 import {prepareDeck, shuffle, drawCards, cardsForDecade} from "./deck";
-import {log, recomputeTracks} from "./rules";
+import {log, cardsToDraw, recomputeTracks} from "./rules";
 import {ensureStateDefaults} from "./migrations";
 
 const newUnit = (
@@ -127,10 +127,11 @@ export const setupImperialElegy = (ctx: Ctx, _setupData?: unknown): ImperialEleg
   G.deck = [...new Set(G.deck)];
 
   // ---------------------------------------------------------------- first deal
-  // Turn 1 prep: no new deck cards, deal to every power.
+  // Turn 1 prep: no new deck cards, deal to every power by the printed 10.2
+  // formula (industry, flashpoint domination, card markers, stability and
+  // conditions such as India being stable), minimum 3.
   for (const power of POWERS) {
-    const p = G.powers[power];
-    drawCards(G, ctx, power, Math.max(3, baseDeal(G, power)));
+    drawCards(G, ctx, power, cardsToDraw(G, power));
   }
 
   G.log.push({id: G.nextLogId++, turn: 1, phase: "prep", key: "campaignStarted", args: {}});
@@ -141,20 +142,6 @@ export const setupImperialElegy = (ctx: Ctx, _setupData?: unknown): ImperialEleg
   // (build box, Italy MPIT, revealed goals, GW lifecycle, …), so a fresh game
   // and a migrated old save have exactly the same shape.
   return ensureStateDefaults(G);
-};
-
-/** Initial deal before the first prep-phase modifiers are known. */
-const baseDeal = (G: ImperialElegyState, power: Power): number => {
-  // The first deal uses industry cards plus the stability / conditions that
-  // are already printed on the display.
-  const stability = G.powers[power].stability;
-  const industry = G.powers[power].industry;
-  const table = [3, 3, 3, 4, 4, 4, 5, 5];
-  let count = table[Math.max(0, Math.min(table.length - 1, industry))] ?? 3;
-  if (stability <= 1) count = 1;
-  if (stability >= 6) count += 1;
-  if (power === "UK" && G.powers.UK.indiaStable) count += 1;
-  return Math.max(3, count);
 };
 
 export const initialSpaceState = (id: string): SpaceState => G_SPACE_FACTORY[id];
