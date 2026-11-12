@@ -1416,6 +1416,12 @@ const applyOneLoss = (
   }
   damageUnit(G, target.id, 1);
   if (!G.units[target.id]) {
+    // 30.0: a dreadnought eliminated in battle costs its owner 1 stability.
+    // Record the owner here (the unit is already gone) and charge it when the
+    // battle's other effects are resolved.
+    if (battle.kind === "naval" && target.kind === "dreadnought") {
+      battle.dreadnoughtsSunk = [...(battle.dreadnoughtsSunk ?? []), String(target.owner)];
+    }
     // An eliminated army also eliminates an attached EC (18.6.2).
     const ec = isEliteKind(target.kind) ? undefined : Object.values(G.units).find((u) => u.kind === "eliteCorps" && u.space === target.space && u.owner === target.owner);
     if (ec) removeUnit(G, ec.id);
@@ -2807,11 +2813,26 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
     // GW-10 Exhaustion (stability mode): a major defeat costs 2 stability
     // instead of 1 for the remainder of the GW turn.
     const lossSteps = G.persistent.exhaustion === "stability" ? 2 : 1;
-    if (units.length >= 2) {
+    // 30.0 footnote: "at least 2 armies (including supporting armies) or 2
+    // naval units".  The defeated force is the main force plus the armies that
+    // supported it, so a one-army main force with a supporting army still
+    // triggers the loss.
+    const support = loser === "attacker" ? battle.supportAttack : battle.supportDefense;
+    const forceSize = units.length + support.reduce((count, entry) => count + entry.units.length, 0);
+    if (forceSize >= 2) {
       for (let step = 0; step < lossSteps; step += 1) {
         if (leader) applyGwMajorDecisiveDefeat(G, leader, battle.to, ctx);
         else if (loserPower) changeStability(G, loserPower, -1, ctx);
       }
+    }
+  }
+  // 30.0: "Losing a dreadnought in battle: -1 stability."  One loss for each
+  // dreadnought eliminated (recorded while the losses were applied).  The US
+  // and Italy have their own 32.1/32.2 lists, so only player powers are
+  // charged here.
+  for (const owner of battle.dreadnoughtsSunk ?? []) {
+    if (G.gw?.active && isPower(owner) && !G.powers[owner].eliminated) {
+      changeStability(G, owner, -1, ctx, {cause: "battle"});
     }
   }
   // 30.1: an advance that occupies an enemy capital surrenders that player at

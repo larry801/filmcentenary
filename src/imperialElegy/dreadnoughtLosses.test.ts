@@ -7,7 +7,7 @@
  */
 
 import type {Ctx} from "boardgame.io";
-import type {ImperialElegyState, Power, WarState} from "./types";
+import type {GreatWarState, ImperialElegyState, Power, WarState} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit, removeUnit} from "./engine/effects";
@@ -193,5 +193,81 @@ describe("19.6 dreadnought-majority losses", () => {
     expect(G.pending?.kind).toBe("combatLosses");
     const options = G.pending!.options.map((option) => option.id);
     expect(options.sort()).toEqual([squadron1, squadron2, squadron3].sort());
+  });
+});
+
+/**
+ * 30.0: "Losing a dreadnought in battle: -1 stability."  The recorded owner is
+ * charged once the battle's other effects are done; the US and Italy follow
+ * their own 32.1/32.2 lists instead.
+ */
+const gwNavalWar = (): ImperialElegyState => {
+  const G = navalWar();
+  G.war = null;
+  G.phase = "gwManeuver";
+  G.gw = {
+    active: true,
+    turn: 2,
+    order: ["UK", "GE"],
+    belligerents: ["UK", "GE"],
+    neutrals: [],
+    te: ["UK"],
+    ta: ["GE"],
+    usIn: false,
+    italyIn: false,
+    usStability: 3,
+    usManpower: 3,
+    usBudget: 4,
+    italyStability: 3,
+    italyManpower: 3,
+    italyBudget: 2,
+    trenches: {},
+    lastColonialWar: null,
+    victor: null,
+    outbreakDone: true,
+    nationalWillDone: true,
+    bonusImpulses: [],
+  } as GreatWarState;
+  G.powers.UK.alliance = "teCommitted";
+  G.powers.GE.alliance = "taCommitted";
+  G.powers.UK.stability = 3;
+  G.powers.GE.stability = 3;
+  return G;
+};
+
+describe("30.0 a dreadnought lost in a GW battle", () => {
+  test("the eliminating step costs the owner 1 stability", () => {
+    const G = gwNavalWar();
+    const dread = placeUnit(G, "UK", "dreadnought", "london", 2);
+    dread.steps = 1; // one step from elimination
+    for (let i = 0; i < 4; i += 1) placeUnit(G, "GE", "squadron", "north-atlantic", 2);
+    const battle = beginNavalBattle(G, makeCtx(), "UK", "london", "north-atlantic");
+    if (!battle) throw new Error("naval battle did not start");
+    G.pending = null;
+    // Force a decisive defender win: the lone dreadnought must take the losses.
+    battle.attackerDrm = -20;
+    battle.defenderDrm = 0;
+    resolveBattleRoll(G, makeCtx([1, 6]));
+
+    expect(G.units[dread.id]).toBeUndefined();
+    expect(G.powers.UK.stability).toBe(2);
+    expect(G.powers.GE.stability).toBe(3);
+  });
+
+  test("a dreadnought outside the Great War costs no stability", () => {
+    const G = navalWar();
+    const dread = placeUnit(G, "UK", "dreadnought", "london", 2);
+    dread.steps = 1;
+    for (let i = 0; i < 4; i += 1) placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    const battle = beginNavalBattle(G, makeCtx(), "UK", "london", "north-atlantic");
+    if (!battle) throw new Error("naval battle did not start");
+    G.pending = null;
+    battle.attackerDrm = -20;
+    battle.defenderDrm = 0;
+    const before = G.powers.UK.stability;
+    resolveBattleRoll(G, makeCtx([1, 6]));
+
+    expect(G.units[dread.id]).toBeUndefined();
+    expect(G.powers.UK.stability).toBe(before);
   });
 });
