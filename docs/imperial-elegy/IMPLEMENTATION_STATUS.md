@@ -38,7 +38,8 @@ maneuver destinations there. Player-facing: pending options
 carry optional Chinese labels, treaty keys render as human labels, the newer
 naval-limit flags are public, `deployReserves` is registered in `ALL_MOVES`
 so its board control works, and the Great War maneuver now has board controls
-for march, rail, deploy, planning CP transfer and combat-card reveal.
+for march, rail, deploy, planning CP transfer and combat-card reveal, and
+14.0's minor-ally call has a board control.
 
 **Scope:** the six-player 1850–1920 campaign only (no bots, alternate scenarios or
 promotional cards).
@@ -49,7 +50,7 @@ promotional cards).
 > `engine/economy.ts`, `engine/crisisTable.ts`, `engine/counters.ts`,
 > `engine/alliance.ts`, `engine/endPhase.ts` and `engine/navalMovement.ts`, are
 > imported by the live game; `engine/greatWar.ts` keeps older flow helpers that
-> the live loop no longer calls. The full IE Jest suite passes **2621/2621 tests
+> the live loop no longer calls. The full IE Jest suite passes **2622/2622 tests
 > in 202/202 suites** with clean `tsc`, `yarn build` and `yarn build:server`;
 > the 501-asset manifest check verifies 501 files. The three browser specs were
 > rerun on this build: **5/5 regression, 3/3 controls, 3/3 spectator**.
@@ -92,7 +93,7 @@ promotional cards).
 | 20–23 | 22.1.3 interactive Sardinia-Piedmont / Two Sicilies choice; 20.1 skip only when no benefit exists; 23.1 Powder Keg / The Balkan Wars open the crisis before the rest of the text. | `italianInternalWar.test.ts`, `endPhaseResiduals.test.ts`, `crisisFlow.test.ts` |
 | 24–32 | 30.0 dreadnought stability loss + decisive-force threshold; 31.0 second alliance-defeat condition; 32.5 rebel/player coexistence (outbreak displacement, no trenches in rebel spaces, no GW destination in a rebel space); 29.3 all-unit free redeployment; 27.5.2 one drafted army per space with the EF / elite-colonial-EF substitution. | `dreadnoughtLosses.test.ts`, `greatWarFlow.test.ts`, `gwNeutralEntry.test.ts`, draft tests |
 | 33 | Citizenship-aware Nationalist Uprising targeting and rights-on-citizenship; start-of-GW Second Rome VPs; live `refreshPowerProjection`; Endless Space battle-scope fix. | `nationality.test.ts`, `characteristicsLive.test.ts`, `powerProjection.test.ts` |
-| UI | Pending options carry optional Chinese labels; treaty keys render as human labels (war panel); the newer naval-limit flags are public; `deployReserves` is registered in `ALL_MOVES`; the Great War maneuver march/rail/deploy/transfer/reveal controls are now on the board. | `board.test.tsx`, `pendingKindLabels.test.tsx`, `privacyFlags.test.ts`, `components/gwControls.test.tsx` |
+| UI | Pending options carry optional Chinese labels; treaty keys render as human labels (war panel); the newer naval-limit flags are public; `deployReserves` is registered in `ALL_MOVES`; the Great War maneuver march/rail/deploy/transfer/reveal controls are now on the board. | `board.test.tsx`, `pendingKindLabels.test.tsx`, `privacyFlags.test.ts`, `components/gwControls.test.tsx` (plus the 14.0 minor-call case in `boardActions2`) |
 
 ## Integrated modules at this refresh
 
@@ -575,14 +576,14 @@ test, which had been intermittently failing (~1 run in 3) for this reason.
 
 ## Test and build evidence
 
-**The full IE Jest suite passes 2621/2621 tests in 202/202 suites**; `tsc`,
+**The full IE Jest suite passes 2622/2622 tests in 202/202 suites**; `tsc`,
 `yarn build`, `yarn build:server` and `python3
 scripts/extract-imperial-elegy.py --check` (501 assets) are clean. The three
 browser specs were rerun after a fresh `yarn build` + `yarn build:server`:
 **5/5 regression (`:5203`), 3/3 controls (`:5201`), 3/3 spectator
 (`:4004`/`:5202`)**. Round 8 added `powerProjection.test.ts` and
 `components/gwControls.test.tsx`, `gwDraftEf.test.ts`, `redeployPath.test.ts` and `gwRebels.test.ts` and extended
-the suite from 2532/197 to 2621/202.
+the suite from 2532/197 to 2622/202.
 
 > **Environment note (this checkout).** `node_modules` is a symlink to the main
 > checkout, which has moved from `@i18n-chain/react` to `@i18n-chain/core`. The
@@ -739,7 +740,7 @@ checkout contains **501** published files.
    `tsrrRailMove`, `useJihad`, `rapidDeploy`, `amphibiousAssault`,
    `navalIntercept`, `navalTransport`, `playBalanceOfPower`,
    `chooseAllianceShift`, `polishRecruit`, the CW army build, `deployReserves`,
-   and the Great War maneuver actions (`gwMarch`, `gwRail`, `gwDeploy`,
+   `callWarMinor` and the Great War maneuver actions (`gwMarch`, `gwRail`, `gwDeploy`,
    `gwTransferBudget`, `gwRevealCombat`) are reachable from the board; pending
    kinds have bilingual labels; revealed goals are public. Round 8 added the
    GW controls (march/rail after choosing a land unit and destination, draft,
