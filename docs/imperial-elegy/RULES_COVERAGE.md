@@ -261,8 +261,9 @@ Status labels:
   archived on the war); truces block declarations and allied calls.
 - **Partial/fallback:**
   - 13.5’s “war on a minor with a player ally counts as declaring war on that
-    player” is not modelled; treaty beneficiaries are player powers and
-    independent minors, not arbitrary neutral minors; the both-sides-knockout
+    player” is live through the minor-war path; treaty beneficiaries are player
+    powers and independent minors (colonial cessions included), not arbitrary
+    neutral minors; the both-sides-knockout
     white-peace order is negotiated (proposal/response/counter with an
     initiative fallback); a treaty decline can skip outstanding optional picks.
   - The final initiative tie-break is a die roll-off (`initiativeRollOff`,
@@ -426,8 +427,8 @@ Status labels:
   - **29.2 colonial war** applies the printed EF/elite/army/naval-supremacy
     modifiers, opposed rolls, one/two-step losses, territorial transfer, UK/RU
     stability and the 1/3 bonus CP at the next planning step. Transfer LoC
-    traces apply the same Suez/Dardanelles gates; transfer and bonus-CP
-    allocation are deterministic rather than negotiated.
+    traces apply the same Suez/Dardanelles gates; the transfer choice and the
+    bonus-CP split are live pendings.
   - **Round-8 additions:** 30.0 charges the −1 stability for a lost dreadnought
     and counts committed supporting armies for the decisive-force threshold;
     31.0’s second defeat condition (one living power in an alliance with no
