@@ -933,6 +933,16 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // 17.1: a blockaded power gains a -1 card marker (the blockader itself is
+  // not logged; the entry is charged to the blockaded power).
+  warBlockade: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      `lost 1 card marker to an enemy wartime blockade (now ${num(entry.args?.cardMarkers)}).`,
+      `因敌方战时封锁失去 1 个卡牌标记（现为 ${num(entry.args?.cardMarkers)} 个）。`,
+    ),
+
   wttMax: (entry, locale) => {
     const inciting = str(entry.args?.incitingCard);
     const incited = inciting === "" ? "" : text(locale, ` (incited by ${cardLabel(inciting, locale)})`, `（由${cardLabel(inciting, locale)}引发）`);

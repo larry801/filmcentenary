@@ -133,6 +133,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   allyMarkerReassigned: {key: "allyMarkerReassigned", power: "GE", args: {space: "tuscany", from: "AU", to: "GE", side: "ta"}},
   minorUnitsDisbanded: {key: "minorUnitsDisbanded", power: "GE", args: {minor: "Tuscany", leaving: "GE", displaced: 1, eliminated: 0, units: "u1"}},
   warAllyKnockout: {key: "warAllyKnockout", power: "GE", args: {power: "RU", by: "attacker", capital: "st-petersburg"}},
+  warBlockade: {key: "warBlockade", power: "GE", args: {penalty: -1, cardMarkers: 2}},
   wttMax: {key: "wttMax", args: {incitingCard: CARD_ID}},
   germanUnification: {key: "germanUnification", power: "GE", args: {}},
   italianUnification: {key: "italianUnification", args: {}},
