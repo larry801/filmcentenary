@@ -5,7 +5,7 @@ import {ImperialElegyState, PendingOption, Power, POWERS, SpaceId, Unit} from ".
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landUnitsIn, ownsKey} from "../engine/rules";
+import {effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, ownsKey} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -396,6 +396,9 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   // 22.5(2): the controlling player may decline the extra Polish reserve army
   // that is otherwise deployed automatically with a deploy-reserves action.
   const [polishReserve, setPolishReserve] = React.useState(true);
+  // 27.6 GW planning CP transfer: recipient and amount, gated by the engine.
+  const [gwTransferTo, setGwTransferTo] = React.useState<string>("");
+  const [gwTransferAmount, setGwTransferAmount] = React.useState(1);
   // 19.10 / 19.1 selectors: the amphibious origin/port/armies and the port the
   // defender picks when intercepting the last naval move.
   const [amphibiousFrom, setAmphibiousFrom] = React.useState<string>("");
@@ -772,6 +775,13 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
       return;
     }
     if (selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space && selectedUnitDef.space !== id) {
+      // 27.5: a GW land move is a march or a rail move, so the destination is
+      // recorded and the action panel offers both printed actions.  Naval GW
+      // moves and the other phases keep their single move action.
+      if (phase === "gwManeuver" && !selectedUnitDef.naval) {
+        setSelected(id);
+        return;
+      }
       if (canSpend(1)) {
         if (selectedUnitDef.naval) doAction(() => moves.navalMove([selectedUnitDef.id], id));
         else doAction(() => moves.redeploy(selectedUnitDef.id, id));
@@ -890,6 +900,39 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
       ? bi(actualLocale, "joins automatically at the outbreak (25.3)", "大战爆发时自动参战（25.3）")
       : bi(actualLocale, "roll 4–6 at the outbreak, else back to neutral (25.3)", "爆发时掷 4–6 参战，否则退回中立（25.3）");
   const canGwDraft = selected !== null && viewer !== null && me !== null && phase === "gwManeuver" && isActive && pending === null && !eliminated && (me.gwBudget ?? 0) >= 1 && me.manpower >= 1;
+  // 27.5.2 GW deploy reserves: a controlled home key with stacking room, no
+  // trench battle marker and an army in the reserve box.
+  const gwDeployRoom = selected !== null && selectedState !== null && selectedState !== undefined
+    ? Math.max(0, landStackingLimit(selected) - landUnitsIn(G, selected).filter((u) => isArmyKind(u.kind)).length)
+    : 0;
+  const canGwDeployHere = Boolean(
+    viewer !== null && me !== null && selected !== null && selectedState && phase === "gwManeuver" &&
+    isActive && pending === null && !eliminated && (me.gwBudget ?? 0) >= 1 && me.reserves.length > 0 &&
+    gwDeployRoom > 0 && !isNavalBox(selected) && friendlySpace(G, selected, viewer) &&
+    (isHomeSpace(G, selected, viewer) || ownsKey(G, selected, viewer)) && !selectedState.trench,
+  );
+  // 27.6: CP may only move between allies during planning, once per donor.
+  const gwSideAllies: Power[] = viewer === null || !gw
+    ? []
+    : (gw.te.includes(viewer) ? gw.te : gw.ta.includes(viewer) ? gw.ta : [])
+        .filter((power) => power !== viewer && G.powers[power]?.eliminated !== true);
+  const gwTransferToValue: string = gwSideAllies.includes(gwTransferTo as Power)
+    ? (gwTransferTo as Power)
+    : gwSideAllies[0] ?? "";
+  const gwTransferAmountValue = Number.isFinite(gwTransferAmount) ? Math.max(1, Math.floor(gwTransferAmount)) : 1;
+  const canGwTransfer = Boolean(
+    viewer !== null && me !== null && gw !== null && phase === "gwPlanning" && isActive && pending === null &&
+    !eliminated && gwTransferToValue !== "" && gwTransferAmountValue <= (me.gwBudget ?? 0) &&
+    me.flags.gwCpTransferDone !== true,
+  );
+  // 26.1: a held GW-03/04/06 combat card may be revealed faceup.
+  const gwCardId = me?.gwCard === undefined || me?.gwCard === null ? "" : String(me.gwCard);
+  const gwCombatCardHeld = ["IE-GW-03", "IE-GW-04", "IE-GW-06"].includes(gwCardId);
+  const gwCardAlreadyFaceup = gwCombatCardHeld && String(me?.flags.gwFaceupCombat ?? "").includes(gwCardId);
+  const canGwReveal = Boolean(
+    viewer !== null && !eliminated && pending === null && me !== null && gwCombatCardHeld && !gwCardAlreadyFaceup &&
+    (phase === "gwPlanning" || phase === "gwManeuver"),
+  );
   // 33.1 Superior Staff Work and A063 both grant one free deploy reserves action.
   const deployFree = viewer !== null && phase === "wartime" && (
     rapidMobilizationFreeDeploy(G, viewer, war) || superiorStaffWorkFreeDeploy(G, viewer, war)
@@ -1086,7 +1129,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
                     const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
                     if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t)}</span>;
                     if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id))}>{unitLabel(u, t)}</button>;
-                    return <button key={id} className="ie-btn secondary" aria-pressed={selectedUnit === id} onClick={() => setSelectedUnit(id)}>{unitLabel(u, t)}</button>;
+                    return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedUnit === id} onClick={() => setSelectedUnit(id)}>{unitLabel(u, t)}</button>;
                   })}</div>
                   {selectedUnitDef && selectedUnitDef.owner === viewer && (
                     <div className="ie-hint">
@@ -1132,8 +1175,17 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
                         <button key="pacify" className="ie-btn" disabled={!canSpend(1) || !me || viewer === null || selectedState.influence !== viewer || !!me.flags[`pacified_${selected}`]} onClick={() => doAction(() => moves.pacify(selected!))}>{t.pacify}</button>,
                       ])}
                       {actionGroup("move", bi(actualLocale, "Move & battle", "移动与战斗"), [
-                        selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected
+                        selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase !== "gwManeuver"
                           ? <button key="move" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => selectedUnitDef.naval ? moves.navalMove([selectedUnitDef.id], selected!) : moves.redeploy(selectedUnitDef.id, selected!))}>{t.moveHere}</button>
+                          : null,
+                        selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase === "gwManeuver" && selectedUnitDef.naval
+                          ? <button key="gwnaval" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.navalMove([selectedUnitDef.id], selected!))}>{t.moveHere}</button>
+                          : null,
+                        selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase === "gwManeuver" && !selectedUnitDef.naval
+                          ? <React.Fragment key="gwmove">
+                              <button data-testid="ie-gw-march" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.gwMarch(selectedUnitDef.id, selected!))}>{t.gwMarch}</button>
+                              <button data-testid="ie-gw-rail" className="ie-btn secondary" disabled={!canSpend(1)} onClick={() => doAction(() => moves.gwRail(selectedUnitDef.id, selected!))}>{t.gwRail}</button>
+                            </React.Fragment>
                           : null,
                         selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.steps < 2 && phase === "gwManeuver"
                           ? <button key="refit" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.gwRefit(selectedUnitDef.id))}>{bi(actualLocale, "Refit selected unit (GW)", "整补所选单位（大战）")}</button>
@@ -1163,6 +1215,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
                       ])}
                       {canAct && phase === "gwManeuver" && actionGroup("gw", bi(actualLocale, "Great War", "大战"), [
                         <button key="draft" className="ie-btn" disabled={!canGwDraft} onClick={() => doAction(() => moves.gwDraft(selected!))}>{t.gwDraft}</button>,
+                        <button key="deploy" data-testid="ie-gw-deploy-action" className="ie-btn" title={bi(actualLocale, "Deploy one reserve army here (27.5).", "在此部署一支预备军（27.5）。")} disabled={!canGwDeployHere} onClick={() => doAction(() => moves.gwDeploy(selected!))}>{t.gwDeploy}</button>,
                       ])}
                     </div>
                   )}
@@ -1876,11 +1929,48 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
                   <div className="ie-hint">
                     {bi(actualLocale, "All powers pick their GW card in planning; the table then starts maneuver.", "所有国家在计划阶段选择大战卡，然后进入机动。")}
                     <button className="ie-btn" data-testid="ie-gw-start" onClick={() => doAction(() => moves.endGwPlanningMove())}>{t.gwStart}</button>
+                    {/* 27.6: planning CP transfer to an ally (once per donor). */}
+                    {canGwTransfer && (
+                      <span className="ie-inline" data-testid="ie-gw-transfer">
+                        <select
+                          className="ie-select"
+                          data-testid="ie-gw-transfer-to"
+                          value={gwTransferToValue}
+                          onChange={(e) => setGwTransferTo(e.target.value)}
+                          title={bi(actualLocale, "Allied recipient", "受援盟友")}
+                        >
+                          {gwSideAllies.map((power) => <option key={power} value={power}>{t.seats[power]}</option>)}
+                        </select>
+                        <input
+                          className="ie-select"
+                          data-testid="ie-gw-transfer-amount"
+                          type="number"
+                          min={1}
+                          max={Math.max(1, me?.gwBudget ?? 1)}
+                          value={gwTransferAmountValue}
+                          onChange={(e) => setGwTransferAmount(Number(e.target.value))}
+                          title={bi(actualLocale, "CP to transfer", "转交的 CP")}
+                        />
+                        <button
+                          className="ie-btn"
+                          data-testid="ie-gw-transfer-submit"
+                          disabled={!canGwTransfer || gwTransferToValue === ""}
+                          onClick={() => doAction(() => moves.gwTransferBudget(gwTransferToValue as Power, gwTransferAmountValue))}
+                        >{t.gwTransfer}</button>
+                      </span>
+                    )}
+                    {canGwReveal && (
+                      <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat())}>{t.gwReveal}</button>
+                    )}
                   </div>
                 )}
                 {phase === "gwManeuver" && isActive && !eliminated && pending === null && (
                   <div className="ie-inline">
                     <button className="ie-btn" data-testid="ie-gw-draft" title={t.draftArmies} disabled={!canGwDraft} onClick={() => doAction(() => moves.gwDraft(selected!))}>{t.gwDraft}{selected ? ` · ${spaceLabel(selected, actualLocale)}` : ""}</button>
+                    <button className="ie-btn" data-testid="ie-gw-deploy" title={bi(actualLocale, "Deploy one reserve army here (27.5).", "在此部署一支预备军（27.5）。")} disabled={!canGwDeployHere} onClick={() => doAction(() => moves.gwDeploy(selected!))}>{t.gwDeploy}</button>
+                    {canGwReveal && (
+                      <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat())}>{t.gwReveal}</button>
+                    )}
                     <button className="ie-btn secondary" data-testid="ie-gw-pass" disabled={forcedGwCard} title={forcedGwCard ? bi(actualLocale, "Exhaustion must be played before you can pass (27.3).", "必须先在打出手中的“精疲力竭”后才能停牌（27.3）。") : bi(actualLocale, "Pass this impulse only; the next power acts.", "仅停牌本轮，下一位国家行动。")} onClick={() => doAction(() => moves.gwPass())}>{t.gwPass}</button>
                     <button className="ie-btn secondary" data-testid="ie-gw-end" title={bi(actualLocale, "End the whole GW maneuver turn and go to winter.", "结束整个大战机动回合并进入冬季。")} onClick={() => doAction(() => moves.gwEndTurn())}>{t.gwEnd}</button>
                   </div>
