@@ -748,8 +748,10 @@ checkout contains **501** published files.
    kinds have bilingual labels; revealed goals are public. Round 8 added the
    GW controls (march/rail after choosing a land unit and destination, draft,
    deploy, planning CP transfer, faceup combat-card reveal) with a component
-   suite. Remaining UI gap: card-specific `eventChoice`/`eventTarget*` option
-   labels are still English-only (the generic pending labels are bilingual),
+   suite. Round 8 also gives the shared card target helpers
+   (`powerOptions`/`spaceOptions`/`openSpecialSpace`) Chinese labels. Remaining
+   UI gap: some one-off card `eventChoice` labels are still English-only (the
+   generic pending labels and most target power/space options are bilingual),
    `gwJointNaval` has no board control (the joint naval action stays
    move-level), and engine-supplied event targets in some older cards render
    raw ids.
