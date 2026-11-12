@@ -24,6 +24,7 @@ import {
 import {
   CONNECTIONS,
   SPACES,
+  connectionBetween,
   connectionsOf,
   isKey,
   isNavalBox,
@@ -817,6 +818,61 @@ export const movementEndProblem = (
   const ships = newcomers.filter((unit) => unit.naval === true).length;
   if (ships > 0 && navalUnitsIn(G, space).length + ships > PORT_NAVAL_LIMIT) return "portCapacity";
   return null;
+};
+
+/**
+ * 12.15 Redeployment: "move all their land units an unlimited distance by
+ * land.  Units may move through spaces that the player controls and through
+ * uncontrolled spaces where that player has influence.  Likewise, this
+ * movement must end in spaces that the player controls (or uncontrolled spaces
+ * with influence)."  The path is land/rail only, and a space containing enemy
+ * units is not passable; entering a space with rebels is allowed but stops the
+ * move (12.15).
+ */
+export const redeployLandPath = (
+  G: ImperialElegyState,
+  power: Power,
+  from: SpaceId,
+  to: SpaceId,
+): boolean => {
+  if (from === to) return false;
+  if (isNavalBox(from) || isNavalBox(to)) return false;
+  const held = (id: SpaceId): boolean => {
+    const state = G.spaces[id];
+    if (!state || isNavalBox(id)) return false;
+    return state.control === power || (state.control === null && state.influence === power);
+  };
+  const enterable = (id: SpaceId): boolean => {
+    if (!held(id)) return false;
+    const state = G.spaces[id];
+    return !(state?.units ?? []).some((unitId) => {
+      const unit = G.units[unitId];
+      if (!unit) return false;
+      if (unit.owner === power) return false;
+      if (isPower(unit.owner)) return !allied(G, unit.owner, power);
+      // Non-player units (minor allies, rebels) never block passage; a rebel
+      // space stops the move below instead.
+      return false;
+    });
+  };
+  const hasRebels = (id: SpaceId): boolean =>
+    (G.spaces[id]?.units ?? []).some((unitId) => G.units[unitId]?.owner.startsWith("REBEL:"));
+  const seen = new Set<SpaceId>([from]);
+  const queue: SpaceId[] = [from];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const next of neighboursOf(current)) {
+      if (seen.has(next) || isNavalBox(next)) continue;
+      const connection = connectionBetween(current, next);
+      if (!connection || connection.type === "sea") continue;
+      seen.add(next);
+      if (!enterable(next)) continue;
+      if (next === to) return true;
+      if (hasRebels(next)) continue;
+      queue.push(next);
+    }
+  }
+  return false;
 };
 
 /** The subset of a Great War maneuver request this validator needs. */

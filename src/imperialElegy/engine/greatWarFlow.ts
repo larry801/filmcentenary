@@ -93,6 +93,7 @@ import {
   ownsKey,
   PORT_NAVAL_LIMIT,
   recordOccupation,
+  redeployLandPath,
   resolveCapitalSurrenders,
   setSpaceControl,
   sweepOrphanedMinorUnits,
@@ -2666,6 +2667,9 @@ const neutralRedeployDestinations = (
     const endsFriendly =
       friendlySpace(G, to, power) || (state.influence === power && state.control === null);
     if (!endsFriendly) continue;
+    // 12.15: a free redeployment still moves by an unlimited-distance land
+    // route through controlled/influence spaces.
+    if (!redeployLandPath(G, power, from, to)) continue;
     const occupied = state.units.some((id) => {
       const other = G.units[id];
       if (!other) return false;

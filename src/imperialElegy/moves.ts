@@ -88,6 +88,7 @@ import {
   powerLabel,
   recomputeTracks,
   recordOccupation,
+  redeployLandPath,
   refreshPowerProjection,
   resolveImpulseLoss,
   setSpaceControl,
@@ -1985,7 +1986,12 @@ export const redeploy = (G: ImperialElegyState, ctx: Ctx, unitId: string, to: Sp
   // movement there.  Only the destination is validated.
   if (movementEndProblem(G, to, [unit]) !== null) return INVALID_MOVE;
   const from = unit.space ?? null;
-  if (from) G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unitId);
+  if (from === null) return INVALID_MOVE;
+  // 12.15: peacetime redeployment still needs a land route through
+  // controlled/influence spaces; it is not a teleport.  Wartime land movement
+  // is the 15.2 march/rail flow and keeps its own checks.
+  if (G.war === null && !G.gw?.active && !redeployLandPath(G, power, from, to)) return INVALID_MOVE;
+  G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unitId);
   G.spaces[to].units.push(unitId);
   unit.space = to;
   // 15.3: the last player to solely be in a space occupies it.
@@ -3909,6 +3915,9 @@ const freeRedeployDestinations = (G: ImperialElegyState, power: Power, unit: Uni
     const endsFriendly =
       friendlySpace(G, to, power) || (state.influence === power && state.control === null);
     if (!endsFriendly) continue;
+    // 12.15: a peacetime free redeployment is the same unlimited-distance
+    // land move (wartime free actions keep the wartime movement rules).
+    if (G.war === null && !G.gw?.active && !redeployLandPath(G, power, from, to)) continue;
     if (enemyFortIn(G, power, to)) continue;
     // The action must not start a battle: only empty/friendly stacks.
     if (foreignUnitIn(G, power, to, false)) continue;

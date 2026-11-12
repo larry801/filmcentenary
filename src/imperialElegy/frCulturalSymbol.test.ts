@@ -93,6 +93,9 @@ describe("33.3 Cultural Symbol", () => {
     expect(G.powers.FR.cityOfLight).toBe(3);
 
     // A second enemy army entering the already-occupied Paris costs nothing.
+    // The city is German-controlled here so the 12.15 peacetime redeploy route
+    // (adjacent Champagne) is legal; the cultural-symbol charge is unchanged.
+    G.spaces.paris.control = "GE";
     const extra = placeUnit(G, "GE", "army", "champagne", 2);
     expect(redeploy(G, ctx, extra.id, "paris")).toBeUndefined();
     expect(G.powers.FR.cityOfLight).toBe(3);
