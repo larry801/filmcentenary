@@ -2545,8 +2545,8 @@ const openMinorAidDecision = (
         diplomacy: state.current.diplomacy,
       },
       options: [
-        option("aid", `Aid ${state.minor} (gain its alliance)`),
-        option("decline", "Decline; the power asks the next candidate"),
+        option("aid", `Aid ${state.minor} (gain its alliance)`, undefined, false, `援助${state.minor}（获得其同盟）`),
+        option("decline", "Decline; the power asks the next candidate", undefined, false, "拒绝；该国将询问下一位候选者"),
       ],
       context: {...state, current: state.current, rolls: state.rolls},
       blocking: true,
@@ -2618,8 +2618,8 @@ const beginMinorWarDeclaration = (
       prompt: `${power} has declared war on ${minor.minor}. Fight for it or abandon it?`,
       promptArgs: {attacker: power, minor: minor.minor, ally: minor.ally, aim},
       options: [
-        option("join", `Join the war for ${minor.minor}`),
-        option("abandon", "Abandon the minor (lose 1 stability, shift away)"),
+        option("join", `Join the war for ${minor.minor}`, undefined, false, `为${minor.minor}参战`),
+        option("abandon", "Abandon the minor (lose 1 stability, shift away)", undefined, false, "放弃该小国（失去 1 点稳定度并移出同盟）"),
       ],
       context: {...base, ally: minor.ally},
       blocking: true,
@@ -2876,8 +2876,8 @@ export const declareWar = (
         "FR",
         "Napoleon's Legacy: reveal this National Goal for a 2-point stability discount?",
         [
-          option("reveal", "Reveal Napoleon's Legacy (-2 stability loss)"),
-          option("decline", "Keep it secret (full stability loss)"),
+          option("reveal", "Reveal Napoleon's Legacy (-2 stability loss)", undefined, false, "公开拿破仑的遗产（少受 2 点稳定度损失）"),
+          option("decline", "Keep it secret (full stability loss)", undefined, false, "保守秘密（承受全部稳定度损失）"),
         ],
         {target: minor === null ? playerDefender : defenderForAim, minor: minor?.minor, aim, objectives: [...objectives], cp},
       ),
@@ -5001,6 +5001,7 @@ const endPhaseMilitarism = (
         options.map((candidate) => ({
           id: candidate.id,
           label: candidate.label,
+          labelZh: candidate.labelZh,
           data: {benefit: candidate.benefit, space: candidate.space},
         })),
       ),
@@ -5197,6 +5198,8 @@ const endPhaseSetManpower = (
               `excess:${unitId}`,
               `Eliminate the army in ${space === null ? "an unknown space" : spaceLabel(space, "en")}`,
               {unit: unitId},
+              false,
+              `裁减驻军：${space === null ? "未知空间" : spaceLabel(space, "zh_CN")}`,
             );
           }),
         ),
@@ -5882,7 +5885,13 @@ export const callWarAlly = (G: ImperialElegyState, ctx: Ctx, ally: Power): strin
   // Rule 8.2's both-neutral case is the printed "the defending power chooses
   // which alliance box to shift into"; the invited neutral makes that choice
   // when the attacker's chit gives no direction.
-  const choicesForNeutral: Array<{id: string; label: string; data?: Record<string, unknown>; secret?: boolean}> = [];
+  const choicesForNeutral: Array<{
+    id: string;
+    label: string;
+    labelZh?: string;
+    data?: Record<string, unknown>;
+    secret?: boolean;
+  }> = [];
   if (call.allianceSide !== null) {
     const derived = declarationShiftDirection(
       G.powers[G.war.attacker].alliance,
@@ -5897,6 +5906,9 @@ export const callWarAlly = (G: ImperialElegyState, ctx: Ctx, ally: Power): strin
           label: `Join ${powerLabel(power)} and shift into the ${
             side === "te" ? "Triple Entente" : "Triple Alliance"
           } box`,
+          labelZh: `加入${POWER_DEFS[power].nameZh}并转入${
+            side === "te" ? "协约国" : "同盟国"
+          }阵营`,
           data: {allianceSide: side},
         });
       }
@@ -5904,7 +5916,7 @@ export const callWarAlly = (G: ImperialElegyState, ctx: Ctx, ally: Power): strin
   }
   const acceptOptions = choicesForNeutral.length > 0
     ? choicesForNeutral
-    : [{id: "accept", label: `Join the war with ${powerLabel(power)}`}];
+    : [{id: "accept", label: `Join the war with ${powerLabel(power)}`, labelZh: `与${POWER_DEFS[power].nameZh}并肩参战`}];
   // The call itself is public; the accept/refuse choice is private to the
   // called ally (playerView hides options/context from every other seat).
   openDecision(G, ctx, {
@@ -5924,7 +5936,7 @@ export const callWarAlly = (G: ImperialElegyState, ctx: Ctx, ally: Power): strin
     },
     options: [
       ...acceptOptions,
-      {id: "refuse", label: "Refuse the call (rule 14.0 penalties)"},
+      {id: "refuse", label: "Refuse the call (rule 14.0 penalties)", labelZh: "拒绝召唤（适用 14.0 惩罚）"},
     ],
     context: {
       caller: power,
@@ -6025,8 +6037,8 @@ export const playBalanceOfPower = (G: ImperialElegyState, ctx: Ctx): string | vo
     prompt: "The UK offers to become the primary belligerent on your side",
     promptArgs: {card: BALANCE_OF_POWER_CARD, uk: "UK", defender},
     options: [
-      {id: "accept", label: "Accept the UK's aid (it becomes the primary defender)"},
-      {id: "decline", label: "Decline (the UK draws a card)"},
+      {id: "accept", label: "Accept the UK's aid (it becomes the primary defender)", labelZh: "接受英国的援助（英国成为主要防御方）"},
+      {id: "decline", label: "Decline (the UK draws a card)", labelZh: "拒绝（英国抽一张牌）"},
     ],
     context: {warStartedTurn: war.startedTurn, defender},
     blocking: true,

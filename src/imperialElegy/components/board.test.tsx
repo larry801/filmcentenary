@@ -25,6 +25,7 @@ jest.mock("./map", () => {
 });
 
 import {ImperialElegyBoard} from "./board";
+import {ImperialElegyGameDef} from "../game";
 import {setupImperialElegy} from "../engine/setup";
 import {CARDS} from "../constant/cards.data";
 import {GreatWarState, ImperialElegyState} from "../types";
@@ -142,7 +143,7 @@ describe("Imperial Elegy board controls", () => {
       status: "warAim",
       budgets: {GE: 5, FR: 3},
       initiative: [],
-      treaties: [],
+      treaties: ["territorialCession", "warReparations"],
       victor: null,
       truceTurns: 2,
       passed: [],
@@ -154,6 +155,11 @@ describe("Imperial Elegy board controls", () => {
     expect(belligerent).toContain("召唤盟友");
     expect(belligerent).toContain("设定战争目标");
     expect(belligerent).toContain("投降");
+    // 16.2: the war panel shows human treaty labels, never the stored keys.
+    expect(belligerent).toContain("领土割让");
+    expect(belligerent).toContain("战争赔款");
+    expect(belligerent).not.toContain("territorialCession");
+    expect(belligerent).not.toContain("warReparations");
 
     const spectator = html(G, null);
     expect(spectator).toContain("data-testid=\"ie-war\"");
@@ -306,6 +312,36 @@ describe("Imperial Elegy board controls", () => {
     const inactive = html(G, "1");
     expect(inactive).toContain("data-testid=\"ie-cp-chain\"");
     expect(buttonTag(inactive, "ie-use-cp-chain")).toContain("disabled");
+  });
+
+  test("engine-supplied pending option text renders in Chinese, with no decorated id", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-treaty",
+      kind: "treatyOption",
+      power: "GE",
+      prompt: "Choose a treaty option",
+      options: [{
+        id: "territorialCession@UK#AU",
+        label: "Territorial Cession (Germany) — Austria-Hungary",
+        labelZh: "领土割让（德国）— 奥匈帝国",
+      }],
+      createdAt: 1,
+    };
+
+    const markup = html(G, "0");
+    const option = buttonTag(markup, "ie-pending-option-territorialCession@UK#AU");
+    const label = option.slice(option.indexOf(">") + 1, option.lastIndexOf("<"));
+    expect(label).toBe("领土割让（德国）— 奥匈帝国");
+    // Only the label is visible; the decorated id stays an internal handle.
+    expect(label).not.toContain("territorialCession");
+    expect(label).not.toContain("Territorial Cession");
+  });
+
+  test("every move the board calls is registered on the game definition", () => {
+    // The deploy-reserves control calls `moves.deployReserves`; a missing entry
+    // in ALL_MOVES makes that button throw at runtime.
+    expect(typeof (ImperialElegyGameDef.moves as unknown as Record<string, unknown>).deployReserves).toBe("function");
   });
 });
 

@@ -68,6 +68,8 @@ export interface MilitarismOption {
   /** The space for a standing army step or a protected fort. */
   space: SpaceId | null;
   label: string;
+  /** Chinese display label for the pending-decision option. */
+  labelZh: string;
 }
 
 /**
@@ -110,11 +112,18 @@ export const militarismOptions = (G: ImperialElegyState, power: Power): Militari
       benefit: "army",
       space,
       label: `Standing army step in ${spaceLabel(space, "en")}`,
+      labelZh: `驻军整补：${spaceLabel(space, "zh_CN")}`,
     });
   }
 
   if (reserveRemaining(G, power) > 0 && hasCounterFor(G, power, "reserveArmy")) {
-    options.push({id: "reserve", benefit: "reserve", space: null, label: "Reserve army step"});
+    options.push({
+      id: "reserve",
+      benefit: "reserve",
+      space: null,
+      label: "Reserve army step",
+      labelZh: "预备军整补",
+    });
   }
 
   // Fort protection: levels 1-2 degrade in 20.2; a level 3 fort cannot be protected.
@@ -126,10 +135,17 @@ export const militarismOptions = (G: ImperialElegyState, power: Power): Militari
       benefit: "fort",
       space,
       label: `Protect the level ${fort.level} fort in ${spaceLabel(space, "en")}`,
+      labelZh: `保护${spaceLabel(space, "zh_CN")}的 ${fort.level} 级要塞`,
     });
   }
 
-  options.push({id: "skip", benefit: "skip", space: null, label: "Skip (no Militarism benefit)"});
+  options.push({
+    id: "skip",
+    benefit: "skip",
+    space: null,
+    label: "Skip (no Militarism benefit)",
+    labelZh: "跳过（不获得军事主义收益）",
+  });
   return options;
 };
 

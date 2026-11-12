@@ -199,6 +199,7 @@ const S = {
       warInitiative: "Determine initiative",
       treatyOption: "Choose treaty option",
       treatySpace: "Choose treaty space",
+      whitePeaceOrder: "Negotiate the white-peace order",
       goalChoice: "Choose National Goal",
       industryCard: "Choose industry card",
       mpitAllocation: "Allocate MPIT influence",
@@ -237,6 +238,7 @@ const S = {
       bloodAndIron: "Blood and Iron!: search for Unification!",
       germanConfederation: "German Confederation: take a German minor",
       napoleonsLegacy: "Napoleon's Legacy: reveal the goal?",
+      metternich: "Metternich's Legacy: choose allies",
       dardanellesPassage: "Dardanelles passage: grant or refuse",
     },
     playBlock: {
@@ -483,6 +485,7 @@ const S = {
       warInitiative: "确定先手",
       treatyOption: "选择条约选项",
       treatySpace: "选择条约空间",
+      whitePeaceOrder: "协商白和顺序",
       goalChoice: "选择国家目标",
       industryCard: "选择工业牌",
       mpitAllocation: "分配大国影响力",
@@ -521,6 +524,7 @@ const S = {
       bloodAndIron: "铁血政策：搜寻“统一！”",
       germanConfederation: "德意志邦联：控制一个德意志小国",
       napoleonsLegacy: "拿破仑的遗产：是否公开该目标？",
+      metternich: "梅特涅的遗产：选择盟友",
       dardanellesPassage: "达达尼尔海峡：准许或拒绝通行",
     },
     playBlock: {

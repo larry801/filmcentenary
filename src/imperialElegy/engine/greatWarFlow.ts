@@ -2223,7 +2223,7 @@ const openColonialTransferDecision = (
     promptArgs: {region: choice.region, side: choice.side, remaining: choice.remaining},
     options: [
       ...options.map((space) => option(space, spaceLabel(space, "en"), {space})),
-      option("skip", "Take no further space"),
+      option("skip", "Take no further space", undefined, false, "不再夺取空间"),
     ],
     context: {mode: "gwColonialChoice", choice: index, region: choice.region, side: choice.side},
     blocking: true,
@@ -2277,9 +2277,15 @@ const openColonialBonusDecision = (
     promptArgs: {side: choice.side, pool: choice.pool, remaining: choice.remaining},
     options: [
       ...choice.eligible.map((power) =>
-        option(`power:${power}`, `Give 1 bonus CP to ${POWER_DEFS[power]?.name ?? power}`, {power}),
+        option(
+          `power:${power}`,
+          `Give 1 bonus CP to ${POWER_DEFS[power]?.name ?? power}`,
+          {power},
+          false,
+          `给予${POWER_DEFS[power]?.nameZh ?? power} 1 点奖励 CP`,
+        ),
       ),
-      option("decline", "No agreement: all bonus CP are lost"),
+      option("decline", "No agreement: all bonus CP are lost", undefined, false, "未能达成一致：所有奖励 CP 丢失"),
     ],
     context: {mode: "gwColonialChoice", choice: index, side: choice.side},
     blocking: true,
@@ -2710,9 +2716,15 @@ const openGwNeutralEntryDecision = (
 ): void => {
   G.pending = null;
   const options = sides.map((side) =>
-    option(`join:${side}`, side === "te" ? "Join the Triple Entente" : "Join the Triple Alliance", {side}),
+    option(
+      `join:${side}`,
+      side === "te" ? "Join the Triple Entente" : "Join the Triple Alliance",
+      {side},
+      false,
+      side === "te" ? "加入协约国" : "加入同盟国",
+    ),
   );
-  options.push(option("stay", "Stay neutral"));
+  options.push(option("stay", "Stay neutral", undefined, false, "保持中立"));
   openDecision(G, ctx, {
     kind: "gwNeutralEntry",
     power,
@@ -2732,19 +2744,33 @@ const openGwNeutralActionDecision = (
   entry: GwNeutralEntryState,
 ): void => {
   G.pending = null;
-  const options: {id: string; label: string; data?: Record<string, unknown>; secret?: boolean}[] = [];
+  const options: {
+    id: string;
+    label: string;
+    labelZh?: string;
+    data?: Record<string, unknown>;
+    secret?: boolean;
+  }[] = [];
   if (!entry.usedRedeploy && neutralRedeployCandidates(G, power).length > 0) {
-    options.push(option("redeploy", "Free redeployment"));
+    options.push(option("redeploy", "Free redeployment", undefined, false, "免费重新部署"));
   }
   if (joined && !entry.usedDeploy && G.powers[power].reserves.length > 0 && neutralDeploySpaces(G, power).length > 0) {
-    options.push(option("deploy", "Free deploy reserves"));
+    options.push(option("deploy", "Free deploy reserves", undefined, false, "免费部署预备军"));
   }
   if (!joined) {
     for (const target of neutralBonusCpTargets(G, power)) {
-      options.push(option(`cp:${target}`, `Give 1 bonus CP to ${target}`, {target}));
+      options.push(
+        option(
+          `cp:${target}`,
+          `Give 1 bonus CP to ${target}`,
+          {target},
+          false,
+          `给予${POWER_DEFS[target]?.nameZh ?? target} 1 点奖励 CP`,
+        ),
+      );
     }
   }
-  options.push(option("done", joined ? "Finish joining" : "Finish"));
+  options.push(option("done", joined ? "Finish joining" : "Finish", undefined, false, joined ? "完成加入" : "完成"));
   openDecision(G, ctx, {
     kind: "gwNeutralAction",
     power,
@@ -2856,7 +2882,7 @@ export const resolveGwNeutralOption = (
             ...candidates.map((candidate) =>
               option(`unit:${candidate.unitId}`, unitOptionLabel(G, candidate.unitId), {unitId: candidate.unitId}),
             ),
-            option("skip", "Skip the free redeployment"),
+            option("skip", "Skip the free redeployment", undefined, false, "跳过免费重新部署"),
           ],
           context: {mode: "gwNeutralAction"},
           blocking: true,
@@ -2876,7 +2902,7 @@ export const resolveGwNeutralOption = (
           promptArgs: {power, count: freeDeployAllowance(G, power)},
           options: [
             ...spaces.map((space) => option(space, spaceLabel(space, "en"))),
-            option("skip", "Skip the free deploy reserves"),
+            option("skip", "Skip the free deploy reserves", undefined, false, "跳过免费部署预备军"),
           ],
           context: {mode: "gwNeutralAction"},
           blocking: true,

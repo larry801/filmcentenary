@@ -70,7 +70,11 @@ export interface RedactContext {
  *    display bonus ("increased by 1 until the end of the game").
  *  - `navalLimit` — 12.4: the Dreadnought/Naval Arms Race events are public and
  *    decide which powers may build dreadnoughts (and their fleet limit).
+ *  - `navalLimitRaised`, `navalSquadronLimit`, `navalDreadnoughtLimit` — the
+ *    same public 12.4/A092 limits split by squadron/dreadnought when a raised
+ *    limit applies only to one kind.
  *  - `navalDiscount` — Naval Arms Race's public construction discount.
+ *  - `navalDiscountThrough` — the turn through which that public discount runs.
  *  - `plusCards` — 10.2/10.3 plus-card markers sit on the player display and
  *    change how many action cards a power draws; both are public.
  *  - `industryDrm` — 20.6 industrialisation DRMs come from public events such
@@ -90,7 +94,11 @@ export const PUBLIC_POWER_FLAGS: readonly string[] = [
   "rapidFreeDeployUsed",
   "reserveLimitBonus",
   "navalLimit",
+  "navalLimitRaised",
+  "navalSquadronLimit",
+  "navalDreadnoughtLimit",
   "navalDiscount",
+  "navalDiscountThrough",
   "plusCards",
   "industryDrm",
   "warDeclaration",

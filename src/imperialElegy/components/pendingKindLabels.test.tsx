@@ -1,8 +1,8 @@
 /**
  * Agent 2 round 7 — every `PendingKind` in `types.ts` must have its own
- * bilingual label in the generic pending-decision panel.  The exhaustive
- * `Record<PendingKind, true>` below is checked by `tsc`: adding a new kind to
- * the union without adding it here (and without a label) fails the build.
+ * bilingual label in the generic pending-decision panel.  The kinds are read
+ * from the runtime `PENDING_KINDS` list that `PendingKind` is derived from, so
+ * a new kind without a label fails the coverage test below.
  */
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
@@ -33,73 +33,14 @@ jest.mock("../../constant/i18n", () => ({
 import {ImperialElegyBoard} from "./board";
 import {setupImperialElegy} from "../engine/setup";
 import {ieStringsFor} from "./i18n";
-import type {ImperialElegyState, PendingKind} from "../types";
+import {PENDING_KINDS, type ImperialElegyState, type PendingKind} from "../types";
 
-/** Compile-time exhaustive list: a new `PendingKind` breaks `tsc` here. */
-const ALL_PENDING_KINDS: Record<PendingKind, true> = {
-  discardForStability: true,
-  chooseHomeCard: true,
-  giveCard: true,
-  eventTargetSpace: true,
-  eventTargetPower: true,
-  eventChoice: true,
-  eventUnits: true,
-  combatSupport: true,
-  navalInterception: true,
-  navalPortBox: true,
-  navalAvoid: true,
-  navalContinuation: true,
-  navalPortContinuation: true,
-  mineRetreat: true,
-  combatElite: true,
-  combatCard: true,
-  combatDiscard: true,
-  combatLosses: true,
-  decisiveBattle: true,
-  combatRetreat: true,
-  combatAdvance: true,
-  movementDestination: true,
-  warAim: true,
-  warAlly: true,
-  warInitiative: true,
-  warAllyConsent: true,
-  minorAbandon: true,
-  minorAid: true,
-  balanceOfPower: true,
-  treatyOption: true,
-  treatySpace: true,
-  demobilizationFreeAction: true,
-  goalChoice: true,
-  industryCard: true,
-  mpitAllocation: true,
-  italyTable: true,
-  crisis: true,
-  crisisIncident: true,
-  crisisAlliance: true,
-  gwDraft: true,
-  gwCard: true,
-  gwWinter: true,
-  scoringChoice: true,
-  responseCard: true,
-  confirm: true,
-  impulseLoss: true,
-  militarism: true,
-  manpowerExcess: true,
-  allianceTie: true,
-  gwNeutralEntry: true,
-  gwNeutralAction: true,
-  gwNeutralUnit: true,
-  gwNeutralDestination: true,
-  gwNeutralDeploy: true,
-  gwColonialTransfer: true,
-  gwColonialBonusCp: true,
-  bloodAndIron: true,
-  germanConfederation: true,
-  napoleonsLegacy: true,
-  dardanellesPassage: true,
-};
-
-const KINDS = Object.keys(ALL_PENDING_KINDS) as PendingKind[];
+/**
+ * Runtime source of truth: `PendingKind` is derived from `PENDING_KINDS` in
+ * `types.ts`, so a new kind that is missing a label fails these tests without
+ * a hand-maintained list here (this test file is outside the `tsc` program).
+ */
+const KINDS: readonly PendingKind[] = PENDING_KINDS;
 
 const testCtx = {
   random: {Die: () => 1, Number: () => 1, Shuffle: (a: unknown[]) => a},

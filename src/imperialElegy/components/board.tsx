@@ -45,6 +45,7 @@ import {deployReserveLimit, isLoneMinorWar, loneMinorDefender, rapidMobilization
 import {polishReserveDeployer} from "../engine/poland";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
 import {isIndependentItaly} from "../engine/greatWarFlow";
+import {treatyOptionLabel} from "../engine/treatyChoice";
 
 const POWER_KEYS: Power[] = ["GE", "UK", "FR", "AU", "RU", "OT"];
 
@@ -85,6 +86,14 @@ const PROMPT_ZH: Record<string, string> = {
   "Give the card to the Ottomans or Russians": "将牌交给奥斯曼或俄国",
   "Declare war": "宣战",
   "Choose a minor power": "选择一个小国",
+  "Choose a treaty option": "选择条约选项",
+  "Choose a treaty space": "选择条约空间",
+  "Colonial war: choose an unoccupied space to take": "殖民战争：选择一个无人占领的空间",
+  "Neutral player: join an alliance or stay out": "中立国：加入同盟或保持中立",
+  "Choose the alliance your neutral player joins": "选择你的中立国加入的同盟",
+  "Choose the space for the free deploy reserves": "选择免费部署预备军的位置",
+  "Choose the free redeployment destination": "选择免费重新部署的目的地",
+  "Choose a unit for the free redeployment": "选择免费重新部署的单位",
   "Choose": "选择",
 };
 
@@ -104,6 +113,14 @@ const OPTION_ZH: Record<string, string> = {
   "Continue": "继续",
   "Roll": "掷骰",
   "Pass": "跳过",
+  // 8.2/8.6 alliance tracks and the Crisis Table's alliance result.
+  "Triple Entente": "协约国",
+  "Triple Alliance": "同盟国",
+  "Neutral": "中立",
+  // 19.2/19.1: the naval avoidance and interception windows.
+  "Fight the naval battle": "进行海战",
+  "Do not intercept": "不拦截",
+  "Take no further space": "不再夺取空间",
 };
 
 /** Why the response button is disabled, in the player's language. */
@@ -781,6 +798,9 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const pendingPrompt = pending ? (actualLocale === "zh_CN" ? PROMPT_ZH[pending.prompt] ?? pending.prompt : pending.prompt) : "";
   const optionLabel = (o: PendingOption): string => {
     if (o.secret) return t.hidden;
+    // Engine-supplied bilingual text (treaties, Militarism, manpower, losses,
+    // colonial transfers) takes precedence over the static fallback map.
+    if (actualLocale === "zh_CN" && o.labelZh !== undefined && o.labelZh !== "") return o.labelZh;
     if (o.id === "done") return o.label === "No more support" ? bi(actualLocale, "No more support", "不再支援") : t.skip;
     const optionCard = typeof o.data?.card === "string" ? o.data.card : null;
     if (optionCard && CARD_BY_ID[optionCard]) {
@@ -1711,7 +1731,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
                 <div className="ie-war-budgets" data-testid="ie-war-budgets"><strong>{t.cp}:</strong> {warBudgetRows.map((p) => <span key={p} className={p === active ? "active" : ""}>{t.seats[p]} {war.budgets[p] ?? 0}</span>)}</div>
                 <div><strong>{t.pass}:</strong> {war.passed.map((p) => t.seats[p]).join(", ") || "—"}</div>
                 {war.initiative.length > 0 && <div><strong>{bi(actualLocale, "Initiative", "先手")}:</strong> {war.initiative.map((p) => t.seats[p]).join(" → ")}</div>}
-                {war.treaties.length > 0 && <div><strong>{t.treaty}:</strong> {war.treaties.join(", ")}</div>}
+                {war.treaties.length > 0 && <div data-testid="ie-war-treaties"><strong>{t.treaty}:</strong> {war.treaties.map((option) => treatyOptionLabel(option, actualLocale)).join(", ")}</div>}
                 <div className="ie-muted">{bi(actualLocale, "Status", "状态")}: {warStatusLabel} · {bi(actualLocale, "Started turn", "开始回合")} {war.startedTurn}</div>
 
                 {isBelligerent && !eliminated && pending === null && (

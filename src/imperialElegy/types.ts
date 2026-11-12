@@ -754,97 +754,108 @@ export interface GwNeutralEntryState {
   unitId: string | null;
 }
 
-export type PendingKind =
-  | "discardForStability"
-  | "chooseHomeCard"
-  | "giveCard"
-  | "eventTargetSpace"
-  | "eventTargetPower"
-  | "eventChoice"
-  | "eventUnits"
-  | "combatSupport"
+/**
+ * Every pending-decision kind, in one runtime list so the UI can verify that
+ * its bilingual label map covers exactly the union (a union alone is not
+ * visible at runtime, and tests are not part of the `tsc` program here).
+ * `PendingKind` is derived from this array, so adding a kind here without a
+ * label fails `pendingKindLabels.test.tsx`.
+ */
+export const PENDING_KINDS = [
+  "discardForStability",
+  "chooseHomeCard",
+  "giveCard",
+  "eventTargetSpace",
+  "eventTargetPower",
+  "eventChoice",
+  "eventUnits",
+  "combatSupport",
   /** 19.1: a port's ships may attempt to intercept a naval move into the box. */
-  | "navalInterception"
+  "navalInterception",
   /** 19.5 footnote: the attacker chooses the adjacent box of a two-box port. */
-  | "navalPortBox"
+  "navalPortBox",
   /** 19.2: the naval defender chooses to fight or attempt to avoid battle. */
-  | "navalAvoid"
+  "navalAvoid",
   /** 19.1: after winning an interception battle the mover may finish the move. */
-  | "navalContinuation"
+  "navalContinuation",
   /** 19.8: the active player may move the battle's units into an adjacent friendly port. */
-  | "navalPortContinuation"
+  "navalPortContinuation",
   /** 19.4: after two mine hits the attacker may retreat instead of taking the rest. */
-  | "mineRetreat"
-  | "combatElite"
-  | "combatCard"
-  | "combatDiscard"
-  | "combatLosses"
-  | "decisiveBattle"
-  | "combatRetreat"
-  | "combatAdvance"
-  | "movementDestination"
-  | "warAim"
-  | "warAlly"
-  | "warInitiative"
-  | "warAllyConsent"
+  "mineRetreat",
+  "combatElite",
+  "combatCard",
+  "combatDiscard",
+  "combatLosses",
+  "decisiveBattle",
+  "combatRetreat",
+  "combatAdvance",
+  "movementDestination",
+  "warAim",
+  "warAlly",
+  "warInitiative",
+  /** 13.4.1/13.4.2: the called ally accepts or refuses the call. */
+  "warAllyConsent",
   /** 13.4.1: a player ally may abandon the non-player power that was attacked. */
-  | "minorAbandon"
+  "minorAbandon",
   /** 13.4.2: a player is asked to aid the attacked non-player power. */
-  | "minorAid"
+  "minorAid",
   /** UK Balance of Power: the defender agrees (or not) to the UK becoming primary. */
-  | "balanceOfPower"
-  | "treatyOption"
-  | "treatySpace"
+  "balanceOfPower",
+  "treatyOption",
+  "treatySpace",
   /** 16.1.6: a two-sided white-peace knockout has no printed chooser order. */
-  | "whitePeaceOrder"
-  | "demobilizationFreeAction"
-  | "goalChoice"
-  | "industryCard"
-  | "mpitAllocation"
-  | "italyTable"
-  | "crisis"
+  "whitePeaceOrder",
+  "demobilizationFreeAction",
+  "goalChoice",
+  "industryCard",
+  "mpitAllocation",
+  "italyTable",
+  "crisis",
   /** 23.3: the active player chooses the bordering nation / Balkan state. */
-  | "crisisIncident"
+  "crisisIncident",
   /** 23.5: a single neutral player chooses the alliance it joins. */
-  | "crisisAlliance"
-  | "gwDraft"
-  | "gwCard"
-  | "gwWinter"
-  | "scoringChoice"
-  | "responseCard"
-  | "confirm"
+  "crisisAlliance",
+  "gwDraft",
+  "gwCard",
+  "gwWinter",
+  "scoringChoice",
+  "responseCard",
+  "confirm",
   /** 5.5.3 / 5.6.2: the owning player chooses which unit loses a step. */
-  | "impulseLoss"
+  "impulseLoss",
   /** 20.1 Militarism: one army step or protect a fort from degrading. */
-  | "militarism"
+  "militarism",
   /** 20.5 Set manpower: the owner picks the standing armies over the new limit. */
-  | "manpowerExcess"
+  "manpowerExcess",
   /** 8.6 / 20.9: the player chooses the direction of a tied alliance roll. */
-  | "allianceTie"
+  "allianceTie",
   /** 29.3: a neutral player chooses whether to join an alliance or stay out. */
-  | "gwNeutralEntry"
+  "gwNeutralEntry",
   /** 29.3: a neutral player's free redeployment / deploy reserves / bonus CP. */
-  | "gwNeutralAction"
+  "gwNeutralAction",
   /** 29.3: choose which unit takes the free redeployment. */
-  | "gwNeutralUnit"
+  "gwNeutralUnit",
   /** 29.3: choose the free redeployment destination. */
-  | "gwNeutralDestination"
+  "gwNeutralDestination",
   /** 29.3: choose the space for the free deploy-reserves action. */
-  | "gwNeutralDeploy"
+  "gwNeutralDeploy",
   /** 29.2: the winning alliance chooses an unoccupied colonial space to take. */
-  | "gwColonialTransfer"
+  "gwColonialTransfer",
   /** 29.2.1: the winning alliance allocates (or loses) its colonial bonus CP. */
-  | "gwColonialBonusCp"
+  "gwColonialBonusCp",
   /** 33.1 Blood and Iron!: turn-1 end phase, search the NG deck for Unification!. */
-  | "bloodAndIron"
+  "bloodAndIron",
   /** 33.1 German Confederation: take control of a German minor ally after a unification win. */
-  | "germanConfederation"
+  "germanConfederation",
   /** 33.3 Napoleon's Legacy: optionally reveal NG-24 when launching a war of conquest. */
-  | "napoleonsLegacy"
+  "napoleonsLegacy",
   /** 33.4 Metternich's Legacy: AU chooses its two minor-power allies on turn 1. */
-  | "metternich"
+  "metternich",
   /** 3.4.1: the Dardanelles controller's permission for one passage. */
-  | "dardanellesPassage";
+  "dardanellesPassage",
+] as const;
+
+export type PendingKind = (typeof PENDING_KINDS)[number];
 
 export interface PendingDecision {
   id: string;
@@ -869,6 +880,13 @@ export interface PendingDecision {
 export interface PendingOption {
   id: string;
   label: string;
+  /**
+   * Optional pre-localized label.  Engine-created options that build their
+   * label from state (power/space/unit names, counts) set this so the board
+   * can render Chinese without re-deriving the text; the board falls back to
+   * `OPTION_ZH` and then to `label`.
+   */
+  labelZh?: string;
   /** Hidden detail (e.g. card id) is stripped for other players. */
   secret?: boolean;
   data?: Record<string, unknown>;
