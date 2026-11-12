@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {AllianceBox, ImperialElegyState, PendingDecision, Power, POWERS, SpaceId} from "../types";
 import {POWER_DEFS, POWER_NAMES_ZH} from "../constant/powers";
-import {SPACES, connectionsOf, neighboursOf} from "../constant/spaces";
+import {SPACES, connectionsOf, neighboursOf, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import type {Effect} from "../constant/cards";
 import {discardCard} from "./deck";
@@ -807,6 +807,22 @@ const borderChoiceFromOption = (id: string): BorderChoice | null => {
   return null;
 };
 
+/** Chinese text for a crisis incident option id (23.3/23.5 choices). */
+const crisisOptionLabelZh = (id: string): string => {
+  if (id === "italy") return "意大利";
+  if (id.startsWith("power:")) {
+    const power = id.slice("power:".length);
+    return isPower(power) ? POWER_DEFS[power].nameZh : power;
+  }
+  if (id.startsWith("minor:")) {
+    const minor = id.slice("minor:".length);
+    if (minor === "German minors") return "德意志诸小国";
+    const home = MINOR_POWER_HOMES[minor];
+    return home !== undefined && SPACES[home] !== undefined ? spaceLabel(home, "zh_CN") : minor;
+  }
+  return id;
+};
+
 /** Open one of the table's "the active player chooses" decisions. */
 const openCrisisIncident = (
   G: ImperialElegyState,
@@ -825,7 +841,7 @@ const openCrisisIncident = (
       "crisisIncident",
       actor,
       prompt,
-      options.map((entry) => option(entry.id, entry.label)),
+      options.map((entry) => option(entry.id, entry.label, undefined, false, crisisOptionLabelZh(entry.id))),
       {crisis: run},
     ),
   );

@@ -119,6 +119,7 @@ const ALL_MOVES = {
   cpChain,
   useCpChain,
   redeploy,
+  deployReserves,
   landBattle,
   declareWar,
   chooseWarAim,

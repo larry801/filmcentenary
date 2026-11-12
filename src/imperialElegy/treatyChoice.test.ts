@@ -1,7 +1,9 @@
 import {setupImperialElegy} from "./engine/setup";
 import {
   applyTreatyChoice,
+  beneficiaryLabel,
   buildTreatyPending,
+  treatyOptionLabel,
   treatyOptionsFor,
   treatySpaceOptions,
   type TreatyOptionEntry,
@@ -39,6 +41,20 @@ const richWar = (G: ReturnType<typeof fresh>) => {
 };
 
 const optionIds = (entries: readonly TreatyOptionEntry[]): string[] => entries.map((entry) => entry.option);
+
+// ---------------------------------------------------------------------------
+// Display helpers (war panel and pending options)
+// ---------------------------------------------------------------------------
+
+test("treaty display helpers localize stored keys and beneficiaries", () => {
+  // `war.treaties` stores the bare option key.
+  expect(treatyOptionLabel("territorialCession", "zh_CN")).toBe("领土割让");
+  expect(treatyOptionLabel("warReparations", "en")).toBe("War Reparations");
+  // Unknown/legacy values stay readable rather than becoming blank.
+  expect(treatyOptionLabel("someLegacyKey", "zh_CN")).toBe("someLegacyKey");
+  expect(beneficiaryLabel("GE", "zh_CN")).toBe("德国");
+  expect(beneficiaryLabel("GE", "en")).toBe("Germany");
+});
 
 // ---------------------------------------------------------------------------
 // Legal option filtering
@@ -132,6 +148,8 @@ test("buildTreatyPending produces an openable treatyOption decision", () => {
 
   const territorial = pending.options.find((entry) => entry.id === "territorialCession")!;
   expect(territorial.label).toContain("Germany");
+  // The board renders `labelZh` for zh_CN; it must never need the decorated id.
+  expect(territorial.labelZh).toBe("领土割让（德国）");
   expect(territorial.data).toMatchObject({
     option: "territorialCession",
     beneficiary: "GE",

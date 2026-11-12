@@ -41,6 +41,13 @@ const plantFlags = (G: ImperialElegyState): void => {
       industryDrm: 2,
       rapidMobilization: true,
       professionalArmy: false,
+      // 12.4/A092 public naval limits and the Naval Arms Race discount window.
+      navalLimit: 4,
+      navalLimitRaised: 4,
+      navalSquadronLimit: 4,
+      navalDreadnoughtLimit: 4,
+      navalDiscount: 1,
+      navalDiscountThrough: 3,
       // Private bookkeeping.
       savedCards: `SAVED-${power}`,
       ngChoices: `NG-${power}`,
@@ -63,6 +70,25 @@ test("the allowlist contains only rule-public flags and no secret bookkeeping", 
     powerProjection: 8,
     plusCards: 1,
   });
+  // The split 12.4/A092 limits and the discount window are public too.
+  expect(
+    publicPowerFlags({
+      navalLimit: 4,
+      navalLimitRaised: 4,
+      navalSquadronLimit: 4,
+      navalDreadnoughtLimit: 4,
+      navalDiscount: 1,
+      navalDiscountThrough: 3,
+      savedCards: "IE-A017",
+    }),
+  ).toEqual({
+    navalLimit: 4,
+    navalLimitRaised: 4,
+    navalSquadronLimit: 4,
+    navalDreadnoughtLimit: 4,
+    navalDiscount: 1,
+    navalDiscountThrough: 3,
+  });
 });
 
 test("an opponent sees the public flags but none of the private ones", () => {
@@ -79,6 +105,12 @@ test("an opponent sees the public flags but none of the private ones", () => {
     expect(flags.industryDrm).toBe(2);
     expect(flags.rapidMobilization).toBe(true);
     expect(flags.professionalArmy).toBe(false);
+    expect(flags.navalLimit).toBe(4);
+    expect(flags.navalLimitRaised).toBe(4);
+    expect(flags.navalSquadronLimit).toBe(4);
+    expect(flags.navalDreadnoughtLimit).toBe(4);
+    expect(flags.navalDiscount).toBe(1);
+    expect(flags.navalDiscountThrough).toBe(3);
     expect(flags.savedCards).toBeUndefined();
     expect(flags.ngChoices).toBeUndefined();
     expect(flags.pendingCard).toBeUndefined();

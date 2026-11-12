@@ -29,6 +29,7 @@ import {
   WarState,
 } from "../types";
 import {SPACES, isNavalBox, spaceLabel} from "../constant/spaces";
+import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {
   TreatyChoice,
@@ -58,6 +59,15 @@ export const TREATY_OPTION_LABELS: Readonly<Record<TreatyOption, string>> = {
   colonialCession: "Colonial Cession",
 };
 
+/** Chinese display labels for the same options (pending options and war panel). */
+export const TREATY_OPTION_LABELS_ZH: Readonly<Record<TreatyOption, string>> = {
+  territorialCession: "领土割让",
+  realignment: "重新结盟",
+  warReparations: "战争赔款",
+  righteousDefense: "正义防御",
+  colonialCession: "殖民地割让",
+};
+
 /** Stable presentation order (matches rule 16.2's list). */
 export const TREATY_OPTION_ORDER: readonly TreatyOption[] = [
   "territorialCession",
@@ -73,6 +83,16 @@ export const isTreatyOption = (value: unknown): value is TreatyOption =>
   value === "warReparations" ||
   value === "righteousDefense" ||
   value === "colonialCession";
+
+/**
+ * Localized display label for a stored treaty option key (`war.treaties` and
+ * log args hold the bare key).  Unknown values are returned unchanged so a
+ * legacy save still renders something readable.
+ */
+export const treatyOptionLabel = (option: string, locale: "en" | "zh_CN" = "en"): string => {
+  if (!isTreatyOption(option)) return option;
+  return locale === "zh_CN" ? TREATY_OPTION_LABELS_ZH[option] : TREATY_OPTION_LABELS[option];
+};
 
 /** One legal treaty option, ready to become a `PendingOption`. */
 export interface TreatyOptionEntry {
@@ -194,8 +214,21 @@ const choiceTarget = (meta: EntryMeta): Pick<TreatyChoice, "target"> =>
     : {};
 
 /** Display label for a player power or a minor-power beneficiary. */
-const beneficiaryLabel = (beneficiary: PowerOrMinor): string =>
-  isPower(beneficiary) ? powerLabel(beneficiary) : beneficiary;
+export const beneficiaryLabel = (
+  beneficiary: PowerOrMinor,
+  locale: "en" | "zh_CN" = "en",
+): string => {
+  if (isPower(beneficiary)) {
+    return locale === "zh_CN" ? POWER_DEFS[beneficiary].nameZh : powerLabel(beneficiary);
+  }
+  // English keeps the stored minor/group name exactly as before; Chinese uses
+  // the printed home space so proper names are not left in English.
+  if (locale !== "zh_CN") return beneficiary;
+  if (beneficiary === "German minors") return "德意志诸小国";
+  const home = MINOR_POWER_HOMES[beneficiary];
+  if (home !== undefined && SPACES[home] !== undefined) return spaceLabel(home, "zh_CN");
+  return beneficiary;
+};
 
 const entryExtras = (meta: EntryMeta): Pick<
   TreatyOptionEntry,
@@ -719,16 +752,29 @@ const entryContext = (entry: TreatyOptionEntry): Record<string, unknown> => ({
 });
 
 /** Display label for a treaty target: a player name, or the non-player id. */
-const treatyTargetLabel = (target: EntryMeta["target"]): string =>
-  target === null ? "knocked-out ally" : isPower(target) ? powerLabel(target) : target;
+const treatyTargetLabel = (target: EntryMeta["target"], locale: "en" | "zh_CN" = "en"): string =>
+  target === null
+    ? locale === "zh_CN" ? "被击溃的盟友" : "knocked-out ally"
+    : isPower(target)
+      ? beneficiaryLabel(target, locale)
+      : target;
 
 const pendingOptionFor = (entry: TreatyOptionEntry): PendingOption => {
   const label = entry.winnerLabel ? `${entry.label} (${entry.winnerLabel})` : entry.label;
   const knockout = entry.pick === "knockout" || entry.pick === "loserKnockout";
   const knockedOut = treatyTargetLabel(entry.target);
+
+  // Same text in Chinese, built from the engine's own option/beneficiary
+  // helpers so a decorated pending id (`territorialCession@UK#AU`) never has
+  // to be shown to the player.
+  const optionZh = TREATY_OPTION_LABELS_ZH[entry.option];
+  const winnerZh = beneficiaryLabel(entry.beneficiary, "zh_CN");
+  const labelZh = `${optionZh}（${winnerZh}）`;
+  const knockedOutZh = treatyTargetLabel(entry.target, "zh_CN");
   return {
     id: entry.id,
     label: knockout ? `${label} — ${knockedOut}` : label,
+    labelZh: knockout ? `${labelZh} — ${knockedOutZh}` : labelZh,
     data: entryContext(entry),
   };
 };
@@ -999,6 +1045,7 @@ export const treatyMinorOptions = (entry: TreatyOptionEntry): PendingOption[] =>
   entry.minors.map((minor) => ({
     id: minor,
     label: minor,
+    labelZh: beneficiaryLabel(minor, "zh_CN"),
     data: {
       minor,
       option: "realignment",
@@ -1065,6 +1112,7 @@ export const treatySpaceOptions = (
   return spaces.map((space) => ({
     id: space,
     label: spaceLabel(space, "en"),
+    labelZh: spaceLabel(space, "zh_CN"),
     data: {space, option: kind},
   }));
 };

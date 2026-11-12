@@ -47,7 +47,8 @@ export const option = (
   label: string,
   data?: Record<string, unknown>,
   secret = false,
-): PendingOption => ({id, label, data, secret});
+  labelZh?: string,
+): PendingOption => ({id, label, labelZh, data, secret});
 
 export const requireDecision = (G: ImperialElegyState, playerID: string | null): PendingDecision => {
   const pending = G.pending;

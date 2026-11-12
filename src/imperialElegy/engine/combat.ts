@@ -1558,16 +1558,29 @@ const applyLosses = (G: ImperialElegyState, ctx: Ctx, side: "attacker" | "defend
   }
   // Let the side choose which unit takes the next loss.  The first loss is
   // restricted to the main force; later losses may hit supporting armies.
+  const lossKindZh: Record<string, string> = {
+    army: "军团",
+    reserveArmy: "预备军团",
+    eliteCorps: "精英军",
+    expeditionary: "远征军",
+    squadron: "分舰队",
+    dreadnought: "无畏舰",
+  };
   openDecision(G, ctx, decision(
     "combatLosses",
     side === "attacker" ? battle.attacker : defenderSupportPower(G, battle) ?? battle.defender,
     includeSupport
       ? "Choose a unit (main force or a supporting army) to take a step loss"
       : "Choose a unit in the main force to take a step loss",
-    candidates.map((u) => ({
-      id: u.id,
-      label: `${u.kind} (${u.steps} step${u.steps > 1 ? "s" : ""})${includeSupport && !(side === "attacker" ? battle.mainAttack : battle.mainDefense).includes(u.id) ? " · support" : ""}`,
-    })),
+    candidates.map((u) => {
+      const isSupport =
+        includeSupport && !(side === "attacker" ? battle.mainAttack : battle.mainDefense).includes(u.id);
+      return {
+        id: u.id,
+        label: `${u.kind} (${u.steps} step${u.steps > 1 ? "s" : ""})${isSupport ? " · support" : ""}`,
+        labelZh: `${lossKindZh[u.kind] ?? u.kind}（${u.steps} 步骤）${isSupport ? " · 支援" : ""}`,
+      };
+    }),
     {battle: true, side, remaining: losses, includeSupport},
   ));
 };
