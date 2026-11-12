@@ -501,7 +501,7 @@ gaps: the **partial** items above are live-code gaps, not deferred content.
 - Test/build commands and the evidence gathered for this refresh: see
   `IMPLEMENTATION_STATUS.md#test-and-build-evidence`.
 - **Recorded evidence (round 8):** the full IE Jest suite passes
-  **2610/2610 tests in 200/200 suites**, `tsc --noEmit`, `yarn build` and
+  **2615/2615 tests in 201/201 suites**, `tsc --noEmit`, `yarn build` and
   `yarn build:server` are clean, and `python3 scripts/extract-imperial-elegy.py
   --check` verifies 501 assets. The browser specs were rerun on this build:
   **5/5 regression, 3/3 controls, 3/3 spectator**. See
