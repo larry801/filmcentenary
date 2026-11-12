@@ -572,13 +572,26 @@ describe("Virgin Queen turn flow", () => {
     });
 
 
-    it("ends by time limit after turn seven", () => {
+    it("ends by time limit after turn seven when no other victory applies", () => {
         const G = newGame();
+        // Level the scores so Domination cannot pre-empt the time limit.
+        const target = powerVp(G, "ottoman");
+        for (const p of POWERS) G.powers[p].bonusVp += target - powerVp(G, p);
         G.year = G.endTurn + 1;
         G.checkVictory = true;
         const v = checkVictory(G);
         expect(v).toBeDefined();
         expect(v?.reason).toBe("timeLimit");
+    });
+
+    it("awards the Standard Victory when 25 VP is reached on the final turn", () => {
+        const G = newGame();
+        const target = powerVp(G, "ottoman");
+        for (const p of POWERS) G.powers[p].bonusVp += target - powerVp(G, p);
+        G.powers.spain.bonusVp += 30;
+        G.year = G.endTurn + 1;
+        G.checkVictory = true;
+        expect(checkVictory(G)).toEqual({winner: "spain", reason: "standard"});
     });
 
     it("hides other powers' hands in playerView", () => {

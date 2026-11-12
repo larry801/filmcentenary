@@ -153,10 +153,18 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     const phase = ctx.phase ?? "";
     // boardgame.io clears ctx.phase when the game ends; showing the empty key
     // would render "vq.header.phase." and spam the i18n missing-key warning.
-    const phaseText = phaseLabel(phase);
-    // The winter step advances the year before endIf reports the time-limit
-    // winner, so cap the header at the scenario's final turn on game over.
-    const displayYear = ctx.gameover !== undefined ? Math.min(G.year, G.endTurn) : G.year;
+    // Once over, the phase is meaningless (a winter win is reported after the
+    // year advanced), so show no phase at all.
+    const phaseText = ctx.gameover !== undefined ? "" : phaseLabel(phase);
+    // The winter step advances the year before endIf reports a Victory
+    // Determination win (standard, domination, time limit), so the panel should
+    // name the turn that just finished rather than the next one.  Immediate
+    // Action-Phase victories happen during the current turn.
+    const winterVictory = ctx.gameover !== undefined &&
+        (ctx.gameover.reason === "standard" || ctx.gameover.reason === "domination" || ctx.gameover.reason === "timeLimit");
+    const displayYear = ctx.gameover !== undefined
+        ? Math.max(G.startTurn, Math.min(winterVictory ? G.year - 1 : G.year, G.endTurn))
+        : G.year;
     const ps = me !== undefined ? G.powers[me] : undefined;
     const cp = ps?.cp ?? 0;
     const hand = ps?.cards ?? [];

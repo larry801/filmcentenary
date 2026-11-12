@@ -37,6 +37,7 @@ import {
     SpaceDef,
     VQGame,
     VQLocale,
+    VictoryReason,
     WinterLossChoice,
     isPower,
     emptyLand,
@@ -4704,16 +4705,17 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
     pushLog(G, G.year <= G.endTurn ? `Winter ends. Turn ${G.year} begins.` : `Winter ends. Scenario turn ${G.endTurn} is complete.`);
 };
 
-export const checkImmediateVictory = (G: VQGame, phase?: string): { winner: Power; reason: string } | undefined => {
-    // Rule 25.1: automatic victories are resolved in the Action Phase.  A key
-    // gained during Diplomacy does not end the game unless it is still held
-    // when the Action Phase begins.
-    if (phase !== undefined && phase !== "action") return undefined;
+/**
+ * Every automatic victory condition currently met, in resolution order.
+ * Rule 25.1 resolves simultaneous conditions by VP, so callers need the whole
+ * list rather than only the first hit.
+ */
+export const automaticVictoryCandidates = (G: VQGame): { winner: Power; reason: VictoryReason }[] => {
     if (G.scenario === "tutorial") {
         return controlledKeys(G, "ottoman").length >= TUTORIAL_POWER_CARDS.ottoman.military
-            ? {winner: "ottoman", reason: "military"} : undefined;
+            ? [{winner: "ottoman", reason: "military"}] : [];
     }
-    const candidates: { winner: Power; reason: string }[] = [];
+    const candidates: { winner: Power; reason: VictoryReason }[] = [];
     if (G.espionage?.catholicRebellionVictory) candidates.push({winner: "spain", reason: "catholicRebellion"});
     const n = protestantSpaceCount(G);
     if (n > 50) {
@@ -4731,6 +4733,15 @@ export const checkImmediateVictory = (G: VQGame, phase?: string): { winner: Powe
             candidates.push({winner: p, reason: "military"});
         }
     }
+    return candidates;
+};
+
+export const checkImmediateVictory = (G: VQGame, phase?: string): { winner: Power; reason: VictoryReason } | undefined => {
+    // Rule 25.1: automatic victories are resolved in the Action Phase.  A key
+    // gained during Diplomacy does not end the game unless it is still held
+    // when the Action Phase begins.
+    if (phase !== undefined && phase !== "action") return undefined;
+    const candidates = automaticVictoryCandidates(G);
     const winners = [...new Set(candidates.map((c) => c.winner))];
     if (winners.length <= 1) return candidates[0];
     // Rule 25.1: two powers earning automatic victories from the same action
@@ -4742,22 +4753,69 @@ export const checkImmediateVictory = (G: VQGame, phase?: string): { winner: Powe
     return candidates.find((c) => c.winner === winner);
 };
 
+/** One comparison made while stepping back through the Victory Record Sheet. */
+export interface VpTieBreakStep {
+    /** Turn whose recorded end-of-turn VP broke (or failed to break) the tie. */
+    year: number;
+    /** Recorded VP for the powers that were still tied when the turn was read. */
+    vp: Partial<Record<Power, number>>;
+    /** Powers that remained tied after this comparison. */
+    leaders: Power[];
+}
+
+export interface VpTieBreak {
+    /** Powers tied on the score that triggered the tie-break, in Impulse Order. */
+    tied: Power[];
+    /** First turn examined (the turn before the one being decided). */
+    fromYear: number;
+    /** Comparisons that actually narrowed the tie, most recent first. */
+    steps: VpTieBreakStep[];
+    winner: Power;
+    /** `history` when an earlier turn decided it, `impulseOrder` on an unbreakable tie. */
+    decidedBy: "history" | "impulseOrder";
+}
+
 /**
- * Rule 25.3 tie-breaker: among `tied`, the power with the highest recorded
- * end-of-turn VP on `fromYear` wins; if still tied, narrow to those leaders
- * and step back one turn at a time.  Recorded totals exclude unrevealed HRE
- * religious VP (23.5).  An unbreakable tie falls back to the first listed.
+ * Rule 25.3 tie-breaker.  Compare the tied powers' totals on the previous
+ * turn; keep only the leaders and step back one turn at a time until a single
+ * power remains.  A turn is only usable when every still-tied power has a
+ * recorded total, so a partially filled Victory Record Sheet cannot silently
+ * treat a missing total as zero.  Recorded totals exclude unrevealed HRE
+ * religious VP (23.5).
+ *
+ * When the trail reaches the scenario's first turn without breaking the tie,
+ * the rules define no further comparison.  Fall back to Impulse Order, the
+ * convention the errata adopts for other unresolved ties, so the result stays
+ * deterministic and explainable.
  */
-export const breakVpTie = (G: VQGame, tied: Power[], fromYear: number): Power => {
-    let remaining = tied;
+export const vpTieBreak = (G: VQGame, tied: Power[], fromYear: number): VpTieBreak => {
+    const candidates = [...new Set(tied)];
+    let remaining = candidates;
+    const steps: VpTieBreakStep[] = [];
     for (let year = fromYear; year >= G.startTurn && remaining.length > 1; year--) {
         const hist = G.vpHistory[String(year)];
-        if (hist === undefined) continue;
-        const best = Math.max(...remaining.map((p) => hist[p] ?? 0));
-        remaining = remaining.filter((p) => (hist[p] ?? 0) === best);
+        if (hist === undefined || !remaining.every((p) => hist[p] !== undefined)) continue;
+        const best = Math.max(...remaining.map((p) => hist[p]!));
+        const leaders = remaining.filter((p) => hist[p] === best);
+        steps.push({
+            year,
+            vp: Object.fromEntries(remaining.map((p) => [p, hist[p]!])),
+            leaders,
+        });
+        remaining = leaders;
     }
-    return remaining[0];
+    const impulseOrder = [...remaining].sort((a, b) => POWERS.indexOf(a) - POWERS.indexOf(b));
+    return {
+        tied: [...candidates].sort((a, b) => POWERS.indexOf(a) - POWERS.indexOf(b)),
+        fromYear,
+        steps,
+        winner: impulseOrder[0] ?? candidates[0],
+        decidedBy: remaining.length === 1 ? "history" : "impulseOrder",
+    };
 };
+
+export const breakVpTie = (G: VQGame, tied: Power[], fromYear: number): Power =>
+    vpTieBreak(G, tied, fromYear).winner;
 
 export const checkVictory = (G: VQGame, includeSecretHreVp = false, phase?: string): { winner: Power; reason: string } | undefined => {
     const immediate = checkImmediateVictory(G, phase);
@@ -4776,17 +4834,23 @@ export const checkVictory = (G: VQGame, includeSecretHreVp = false, phase?: stri
     // just completed is G.year - 1 and the "previous turn" is G.year - 2.
     const tiedWinner = (): Power =>
         breakVpTie(G, standings.filter((s) => s.vp === top.vp).map((s) => s.power), G.year - 2);
-    if (G.year > G.endTurn) {
-        return {winner: tiedWinner(), reason: "timeLimit"};
-    }
     if (!G.checkVictory) {
-        return undefined;
+        // Standard and Domination victories are only awarded in the Victory
+        // Determination Phase; the time limit still applies if the phase was
+        // somehow skipped.
+        return G.year > G.endTurn ? {winner: tiedWinner(), reason: "timeLimit"} : undefined;
     }
+    // Rule 25.3 order: check Standard, then Domination, and only then ask
+    // whether the final turn has passed.  A power that reaches 25 VP through
+    // Winter bonuses in Turn 7 wins a Standard Victory, not a Time Limit one.
     if (top.vp >= 25) {
         return {winner: tiedWinner(), reason: "standard"};
     }
     if (G.year > 4 && top.vp - second.vp >= 5) {
         return {winner: top.power, reason: "domination"};
+    }
+    if (G.year > G.endTurn) {
+        return {winner: tiedWinner(), reason: "timeLimit"};
     }
     return undefined;
 };

@@ -50,10 +50,9 @@ export const StatusOverlay = () => {
     return <header className={`vq-status${collapsed ? " vq-status--collapsed" : ""}`}>
         <div className="vq-status-head">
             {!gameOver && <i className="vq-dot vq-status-turn-dot" style={{background: CONTROLLER_COLORS[G.activePower]}} aria-hidden="true"/>}
-            <div className="vq-status-titles">
-                {!collapsed && <div className="vq-eyebrow">{i18n.chain.vq.header.eyebrow}</div>}
-                <h1 className="vq-title">Virgin Queen</h1>
-            </div>
+            {/* No game title here: the panel shows game status only.  The <h1>
+                stays for accessibility and search, visually hidden. */}
+            <h1 className="vq-sr-only">Virgin Queen</h1>
             {collapsed && <span className="vq-status-summary">
                 {`${i18n.chain.vq.header.turn} ${displayYear}`}{phaseText !== "" ? ` · ${phaseText}` : ""} · <strong>{currentText}</strong>
             </span>}

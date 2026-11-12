@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {POWER_INFO, POWERS, VQGame} from "./constant/general";
 import {KEY_SPACES} from "./mapData";
-import {breakVpTie, checkImmediateVictory, checkVictory, powerVp, setupGame} from "./util";
+import {automaticVictoryCandidates, breakVpTie, checkImmediateVictory, checkVictory, powerVp, setupGame, vpTieBreak} from "./util";
 
 const context = (): Ctx => ({
     random: {Die: () => 6, Shuffle: (cards: unknown[]) => cards},
@@ -51,12 +51,55 @@ describe("VP tie-breaker (25.3)", () => {
         expect(checkVictory(G)).toEqual({winner: "england", reason: "timeLimit"});
     });
 
+    it("awards Domination in the final turn's Victory Determination before the time limit", () => {
+        const G = scoringGame();
+        G.year = G.endTurn + 1;
+        setScore(G, "spain", 22);
+        G.vpHistory[String(G.endTurn - 1)] = {spain: 22};
+        expect(checkVictory(G)).toEqual({winner: "spain", reason: "domination"});
+    });
+
+    it("awards Standard instead of Time Limit at 25 VP on the final turn", () => {
+        const G = scoringGame();
+        G.year = G.endTurn + 1;
+        setScore(G, "france", 26);
+        expect(checkVictory(G)).toEqual({winner: "france", reason: "standard"});
+    });
+
     it("skips turns with no record and falls back to the first tied power", () => {
         const G = scoringGame();
         G.vpHistory["2"] = {spain: 5, france: 5};
         expect(breakVpTie(G, ["spain", "france"], 3)).toBe("spain");
         G.vpHistory["1"] = {spain: 4, france: 6};
         expect(breakVpTie(G, ["spain", "france"], 3)).toBe("france");
+    });
+
+    it("ignores a turn whose record is missing one of the tied powers", () => {
+        const G = scoringGame();
+        // A partially filled sheet must not treat the missing total as zero.
+        G.vpHistory["3"] = {spain: 21};
+        G.vpHistory["2"] = {spain: 12, france: 14};
+        expect(breakVpTie(G, ["spain", "france"], 3)).toBe("france");
+    });
+
+    it("falls back to Impulse Order when no recorded turn separates the tie", () => {
+        const G = scoringGame();
+        // Turkey is first in Impulse Order but last in the tie input order.
+        expect(breakVpTie(G, ["protestant", "ottoman"], 4)).toBe("ottoman");
+        const trace = vpTieBreak(G, ["protestant", "ottoman"], 4);
+        expect(trace.decidedBy).toBe("impulseOrder");
+        expect(trace.tied).toEqual(["ottoman", "protestant"]);
+    });
+
+    it("reports the turn that narrowed the tie", () => {
+        const G = scoringGame();
+        G.vpHistory["4"] = {spain: 20, france: 20};
+        G.vpHistory["3"] = {spain: 15, france: 17};
+        const trace = vpTieBreak(G, ["spain", "france"], 4);
+        expect(trace.winner).toBe("france");
+        expect(trace.decidedBy).toBe("history");
+        expect(trace.steps.map((step) => step.year)).toEqual([4, 3]);
+        expect(trace.steps.at(-1)).toEqual({year: 3, vp: {spain: 15, france: 17}, leaders: ["france"]});
     });
 });
 
@@ -68,6 +111,15 @@ describe("simultaneous automatic victories (25.1)", () => {
         }
         G.militaryVictoryBaseline[power] = 0;
     };
+
+    it("lists every condition met by the same action", () => {
+        const G = scoringGame();
+        G.year = 3;
+        G.espionage = {...G.espionage, catholicRebellionVictory: true} as VQGame["espionage"];
+        giveMilitaryVictory(G, "ottoman");
+        expect(automaticVictoryCandidates(G).map((c) => c.reason).sort())
+            .toEqual(["catholicRebellion", "military"]);
+    });
 
     it("awards the win to the power with more VP", () => {
         const G = scoringGame();

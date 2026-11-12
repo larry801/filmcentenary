@@ -21,14 +21,14 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import i18n from "../../../constant/i18n";
-import {CardDef, powerName, minorName, landCount, POWERS, Power, RoyalDef, VQGame, isPower, VictoryReason, VICTORY_TEXT, victoryText} from "../../constant/general";
+import {CardDef, powerName, powerShortName, minorName, landCount, POWERS, Power, RoyalDef, VQGame, isPower, VictoryReason, VICTORY_TEXT, victoryText} from "../../constant/general";
 import {cardById, cardImageUrl, cardName} from "../../constant/cards";
 import {leaderName} from "../../constant/leaders";
 import {royalAvailable} from "../../scenario";
 import {SPACE_BY_ID, SPACES, seaZoneName, spaceName} from "../../mapData";
 import {WORLD_SETTLEMENTS} from "../../data/world";
 import {PatronageVpAward} from "../../data/types";
-import {atWar} from "../../util";
+import {atWar, victoryStandings, vpTieBreak, type VpTieBreak} from "../../util";
 import {ownerOf} from "../../ownership";
 import {canPlayBattleCard} from "../../combat";
 import {actionResponseOptions} from "../../moves";
@@ -85,6 +85,44 @@ export const phaseLabel = (phase: string): string =>
 export const gameOverReasonText = (reason: string | undefined, locale: "en" | "zh_CN"): string => {
     if (reason === undefined || reason === "") return "";
     return reason in VICTORY_TEXT ? victoryText(reason as VictoryReason, locale) : reason;
+};
+
+/**
+ * Why a tie for the top score was decided as it was, phrased for the game-over
+ * panel.  Returns undefined when there was no tie to explain.
+ */
+export const vpTieBreakSummary = (G: VQGame, locale: "en" | "zh_CN"): string | undefined => {
+    // The tutorial awards its time-limit win to Spain by special rule rather
+    // than by score, and keeps no Victory Record Sheet.
+    if (G.scenario === "tutorial") return undefined;
+    const standings = victoryStandings(G);
+    const top = standings[0];
+    if (top === undefined) return undefined;
+    const tied = standings.filter((entry) => entry.vp === top.vp).map((entry) => entry.power);
+    if (tied.length < 2) return undefined;
+    // Mirrors checkVictory: the turn just completed is G.year - 1, so the
+    // previous turn is G.year - 2.
+    return describeVpTieBreak(vpTieBreak(G, tied, G.year - 2), locale);
+};
+
+/** Renders one tie-break trace as a single localized sentence. */
+export const describeVpTieBreak = (trace: VpTieBreak, locale: "en" | "zh_CN"): string => {
+    const t = i18n.chain.vq.shell;
+    const names = trace.tied.map((power) => powerShortName(power, locale)).join(i18n.chain.vq.punct.list);
+    const stem = t.vpTieIntro.replace("{powers}", names);
+    // Only a history-decided trace has a turn that produced a single winner;
+    // a trace may still narrow 3 powers to 2 and then run out of records, and
+    // that remainder is settled by Impulse Order, not by the narrowing turn.
+    const decisive = trace.decidedBy === "history" ? trace.steps.at(-1) : undefined;
+    if (decisive === undefined) {
+        return `${stem}${t.vpTieImpulseOrder.replace("{winner}", powerShortName(trace.winner, locale))}`;
+    }
+    return `${stem}${t.vpTieEarlierTurn
+        .replace("{turn}", String(decisive.year))
+        .replace("{winner}", powerShortName(trace.winner, locale))
+        .replace("{history}", Object.entries(decisive.vp)
+            .map(([power, vp]) => `${powerShortName(power as Power, locale)} ${vp}`)
+            .join(i18n.chain.vq.punct.list))}`;
 };
 
 /** Picks the active locale's name from data that carries English and Chinese labels. */

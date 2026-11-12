@@ -16,36 +16,47 @@ import {scenarioName} from "../../../scenario";
 
 import {useVQBoard} from "../BoardContext";
 
-/** End-of-turn VP record (the rulebook's Victory Record Sheet), used by the 25.3 tie-breaker. */
+/**
+ * End-of-turn VP record (the rulebook's Victory Record Sheet), used by the
+ * 25.3 tie-breaker.  Powers run down the rows and turns across the columns;
+ * headers are bare turn numbers so a seven-turn game still fits the sidebar
+ * (the full label lives in each cell's tooltip).
+ */
 const VpHistoryTable = () => {
     const {G, vqLocale} = useVQBoard();
     const years = Object.keys(G.vpHistory ?? {}).map(Number).sort((a, b) => a - b);
     if (years.length === 0) return null;
-    const rows = POWERS.filter((p) => years.some((y) => G.vpHistory[String(y)][p] !== undefined));
-    const best = (y: number) => Math.max(...rows.map((p) => G.vpHistory[String(y)][p] ?? 0));
-    const cell = {px: 0.75, py: 0.125, textAlign: "right" as const, whiteSpace: "nowrap" as const};
+    const powers = POWERS.filter((p) => years.some((y) => G.vpHistory[String(y)][p] !== undefined));
+    const best = (y: number) => Math.max(...powers.map((p) => G.vpHistory[String(y)][p] ?? 0));
+    const cell = {px: 0.25, py: 0.125, textAlign: "right" as const, whiteSpace: "nowrap" as const};
+    const turnLabel = (year: number): string => i18n.chain.vq.intel.turnLong.replace("{turn}", String(year));
     return <ActionGroup title={i18n.chain.vq.intel.vpHistory}>
-        <Box component="table" className="vq-vp-history" sx={{borderCollapse: "collapse", fontSize: "0.75rem"}}
+        <Box component="table" className="vq-vp-history" sx={{borderCollapse: "collapse", fontSize: "0.75rem", width: "100%"}}
              title={i18n.chain.vq.intel.vpHistoryHint}>
             <thead><tr>
-                <Box component="th" sx={{...cell, textAlign: "left"}}/>
-                {years.map((y) => <Box component="th" key={y} sx={cell}>{i18n.chain.vq.intel.turnShort.replace("{turn}", String(y))}</Box>)}
+                <Box component="th" scope="col" sx={{...cell, textAlign: "left"}}>{i18n.chain.vq.intel.turnColumn}</Box>
+                {years.map((y) => <Box component="th" scope="col" key={y} sx={cell} title={turnLabel(y)}>{y}</Box>)}
             </tr></thead>
-            <tbody>{rows.map((p) => <tr key={p}>
-                <Box component="th" sx={{...cell, textAlign: "left", fontWeight: 400}}>
-                    <Box component="span" sx={{display: "inline-block", width: 8, height: 8, mr: 0.5, bgcolor: CONTROLLER_COLORS[p], borderRadius: 0.5}}/>
+            <tbody>{powers.map((p) => <tr key={p}>
+                <Box component="th" scope="row" sx={{...cell, textAlign: "left", fontWeight: 400}}>
+                    <Box component="span" sx={{display: "inline-block", width: 7, height: 7, mr: 0.5, bgcolor: CONTROLLER_COLORS[p], borderRadius: 0.5}}/>
                     {powerShortName(p, vqLocale)}
                 </Box>
                 {years.map((y) => {
                     const vp = G.vpHistory[String(y)][p];
+                    // Bold the outright or shared lead; both sides of a two-way tie mark.
                     const leader = vp !== undefined && vp === best(y);
                     return <Box component="td" key={y} className={leader ? "vq-vp-leader" : undefined}
+                                title={`${powerShortName(p, vqLocale)} · ${turnLabel(y)} · ${vp ?? "–"} VP`}
                                 sx={{...cell, fontWeight: leader ? 700 : 400}}>
                         {vp ?? "–"}
                     </Box>;
                 })}
             </tr>)}</tbody>
         </Box>
+        <Typography variant="caption" color="text.secondary" sx={{display: "block"}}>
+            {i18n.chain.vq.intel.vpHistoryHint}
+        </Typography>
     </ActionGroup>;
 };
 

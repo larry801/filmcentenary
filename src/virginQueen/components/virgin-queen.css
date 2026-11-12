@@ -11,19 +11,16 @@
 .vq-skip-link { position: absolute; top: 8px; left: 8px; z-index: 30; padding: 8px 12px; border: 2px solid #77551f; border-radius: 6px; background: #f4eddd; color: #30291e; text-decoration: none; font-size: 13px; clip-path: inset(50%); }
 .vq-skip-link:focus { clip-path: none; }
 /* Game status floats over the map, below the zoom controls, and collapses to a pill. */
-.vq-status { position: absolute; top: 56px; left: 12px; z-index: 5; display: flex; flex-direction: column; gap: 6px; max-width: min(520px, calc(100% - 24px)); padding: 8px 8px 10px 12px; border: 1px solid #846a41; border-radius: 7px; background: #33291fe6; color: #f6ecd5; box-shadow: 0 2px 10px #0004; backdrop-filter: blur(2px); }
+.vq-status { position: absolute; top: 56px; left: 12px; z-index: 5; display: flex; flex-direction: column; gap: 6px; max-width: min(420px, calc(100% - 24px)); padding: 8px 8px 10px 12px; border: 1px solid #846a41; border-radius: 7px; background: #33291fe6; color: #f6ecd5; box-shadow: 0 2px 10px #0004; backdrop-filter: blur(2px); }
 .vq-status-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.vq-status-titles { flex: 1; min-width: 0; }
 .vq-status-toggle.MuiIconButton-root { color: #edcd85; min-width: 32px; min-height: 32px; padding: 4px; margin-left: auto; }
 .vq-status-turn-dot { width: 11px; height: 11px; box-shadow: 0 0 0 2px #33291f, 0 0 0 3px var(--vq-turn-color, #edcd85); }
 .vq-status--collapsed { padding: 3px 4px 3px 10px; border-radius: 999px; }
-.vq-status--collapsed .vq-title { font-size: 13px; }
-.vq-status--collapsed .vq-status-titles { flex: 0 0 auto; }
 .vq-status-summary { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .vq-status-summary strong { color: #edcd85; }
 .vq-status-meta[hidden] { display: none; }
-.vq-title { font-family: Georgia, "Songti SC", serif; font-size: 22px; line-height: 1.1; letter-spacing: .025em; margin: 0; }
-.vq-eyebrow { color: #c5aa78; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; margin-bottom: 4px; }
+/* Accessibility-only text: kept in the DOM and the markup, invisible on screen. */
+.vq-sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; border: 0; }
 .vq-status-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 12px; }
 .vq-status-meta strong { color: #edcd85; }
 .vq-score { display: inline-flex; gap: 5px; align-items: center; font-variant-numeric: tabular-nums; }
@@ -67,6 +64,11 @@
 .vq-intel .vq-disclosure:first-child { border-top: 0; }
 .vq-intel .vq-disclosure-content { max-height: 260px; overflow: auto; }
 .vq-intel .MuiStack-root { flex-wrap: wrap; }
+/* Victory Record Sheet: compact enough for the sidebar on a seven-turn game. */
+.vq-vp-history th, .vq-vp-history td { border-bottom: 1px solid #e2d6bd; }
+.vq-vp-history thead th { font-weight: 650; vertical-align: bottom; }
+.vq-vp-history tbody tr:last-child th, .vq-vp-history tbody tr:last-child td { border-bottom: 0; }
+.vq-vp-history .vq-vp-leader { color: #4a3410; background: #ecdcb8; }
 .vq-space-detail { margin-top: 14px; padding-top: 12px; border-top: 1px solid #c8b48a; overflow-wrap: anywhere; }
 .vq-guide { border-left: 3px solid #a8792e; background: #eadfc6; border-radius: 4px; padding: 10px; margin-bottom: 14px; }
 .vq-guide-title { font-size: 10px; color: #79613b; letter-spacing: .05em; margin-bottom: 6px; }
@@ -98,8 +100,6 @@
 @media (max-width: 1023px) {
     .vq-board { padding: 8px; gap: 8px; min-height: min(500px, calc(100dvh - var(--vq-appbar-height, 48px) - var(--vq-shell-height, 48px))); }
     .vq-status { top: 50px; left: 8px; max-width: calc(100% - 16px); }
-    .vq-title { font-size: 20px; }
-    .vq-eyebrow { font-size: 10px; }
     .vq-status-meta { gap: 6px; font-size: 11px; }
     .vq-board > .vq-mobile-tabs { display: block; background: #f4eddd; border-radius: 6px; flex-shrink: 0; }
     .vq-workspace { display: flex; flex-direction: column; }
@@ -253,14 +253,6 @@
 @media (max-width: 359px) {
     .vq-local-toolbar { padding: 4px 8px; gap: 4px 6px; }
     .vq-local-toolbar .MuiFormControl-root { width: 190px; }
-}
-
-/* Short phones: trim the decorative header so the board still fits the
-   viewport without forcing a page scroll. */
-@media (max-width: 599px) and (max-height: 660px) {
-    .vq-eyebrow { display: none; }
-    .vq-title { font-size: 18px; }
-    .vq-status-meta { font-size: 11px; }
 }
 
 /* Primary-view swap: the world map fills the board and the Europe map moves

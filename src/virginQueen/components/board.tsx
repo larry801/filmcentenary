@@ -38,7 +38,7 @@ import {TutorialGuide} from "./tutorial-guide";
 import {ownerOf} from "../ownership";
 import {scenarioName} from "../scenario";
 
-import {CardArt, VirginQueenBoardProps, cardKindLabel, gameOverReasonText, placeLabel, vqLocaleNow} from "./board/helpers";
+import {CardArt, VirginQueenBoardProps, cardKindLabel, gameOverReasonText, placeLabel, vpTieBreakSummary, vqLocaleNow} from "./board/helpers";
 import {useBoardState} from "./board/useBoardState";
 import {VQBoardContext} from "./board/BoardContext";
 import {CardDrawPanel} from "./board/panels/CardDrawPanel";
@@ -112,6 +112,11 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
     // The power whose move the table is waiting on, and whether that is this seat.
     const turnPower: Power = (hasResponse ? pendingPower : undefined) ?? G.activePower;
     const actingNow = ctx.gameover === undefined && (myTurn || responsePower !== undefined || winterChoiceRequired);
+    // A top-score tie is decided by recorded VP, not by the panel order; spell
+    // out which turn settled it so the result is not mistaken for a bug.  Only
+    // Standard and Time Limit victories are decided by score.
+    const tieBreakSummary = ctx.gameover !== undefined && (ctx.gameover.reason === "standard" || ctx.gameover.reason === "timeLimit")
+        ? vpTieBreakSummary(G, vqLocale) : undefined;
     const singleClickMode = mode !== "inspect" && mode !== "spring" && mode !== "moveLand" && mode !== "moveNaval" && mode !== "navalTransport";
 
     return <VQBoardContext.Provider value={board}><VQSurface><div className={`vq-board ${actingNow ? "vq-board--my-turn" : "vq-board--waiting"}`}
@@ -182,6 +187,9 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
                 {ctx.gameover !== undefined ? <Paper variant="outlined" sx={{p: 1.5, mb: 1}} role="status">
                     <Typography variant="h6">{i18n.chain.vq.shell.gameOver} · {i18n.chain.vq.shell.winner}{i18n.chain.vq.punct.colon}P{Number(ctx.gameover.winner) + 1} {powerName((ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power, vqLocale)}</Typography>
                     <Typography variant="body2">{i18n.chain.vq.shell.reason}: {gameOverReasonText(ctx.gameover.reason, vqLocale)}</Typography>
+                    {tieBreakSummary !== undefined && <Typography variant="caption" component="p">
+                        {tieBreakSummary}
+                    </Typography>}
                     {ctx.gameover.reason === "military" && ctx.gameover.power !== undefined && <Typography variant="caption">
                         {militaryGoal(ctx.gameover.power as Power)}
                     </Typography>}

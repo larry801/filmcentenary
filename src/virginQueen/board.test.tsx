@@ -5,7 +5,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {VirginQueenBoard, legalDiplomacyTarget, EventTargetField, playEventCard, betrothalChoices, HolyLeagueTargetSelect, holyLeagueHreAvailable, holyLeagueTargetOptions, holyLeagueTargetValue, HOLY_LEAGUE_DEFAULT_TARGET, PolishElectionTargetSelect, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, eventTargetMode, POLISH_ELECTION_AUTO_LABEL, MenendezTargetSelect, menendezTargetOptions, menendezTargetValue, actionResponderChoices, actionWindowResponders, virginQueenCombatRetrieveOptions, abjurationOfferDetails, abjurationOffers, abjurationSelection, abjurationOfferMove, acceptAbjurationOffer, ArmyMutinyTargetSelect, armyMutinySpaceOptions, armyMutinyOwnerOptions, armyMutinySpaceValue, armyMutinyOwnerValue, armyMutinyTargetValue, StaffordTargetSelect, staffordPowerOptions, staffordDiscardOptions, staffordPowerValue, staffordDiscardValue, staffordTargetValue, GermanRecruitmentTargetSelect, germanRecruitmentSpaceOptions, germanRecruitmentPowerOptions, germanRecruitmentSpaceValue, germanRecruitmentPowerValue, germanRecruitmentTargetValue} from "./components/board";
 import {chooseAbjuration, proposeBetroth, respondAction} from "./moves";
 import {moveError} from "./movePolicy";
-import {setupGame} from "./util";
+import {powerVp, setupGame} from "./util";
 import {ownerOf} from "./ownership";
 import {Power, POWERS, VQGame} from "./constant/general";
 import {SPACES} from "./mapData";
@@ -383,6 +383,39 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("回合 7");
         expect(html).not.toContain("回合 8");
         expect(html).toContain("时限胜利：第 7 回合结束时分数最高");
+    });
+
+    it("names the turn that just scored for a standard victory decided in Winter", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        // Winter already advanced the year when endIf reported the winner.
+        G.year = 6;
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "cardDraw", currentPlayer: "0", gameover: {winner: "1", power: "spain", reason: "standard"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("回合 5");
+        expect(html).not.toContain("回合 6");
+    });
+
+    it("keeps the current turn for an Action-Phase automatic victory", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        G.year = 3;
+        G.espionage = {...G.espionage, catholicRebellionVictory: true} as VQGame["espionage"];
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "0", gameover: {winner: "1", power: "spain", reason: "catholicRebellion"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("回合 3");
+    });
+
+    it("drops the phase label once the game is over", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        G.year = 6;
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "cardDraw", currentPlayer: "0", gameover: {winner: "1", power: "spain", reason: "standard"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).not.toContain("Card Draw 阶段");
     });
 
     it("shows the Protestant spaces target in the scenario panel", () => {
@@ -1395,9 +1428,98 @@ describe("VP history table", () => {
         const html = renderDiplomacy(G, "0");
         expect(html).toContain("vq-vp-history");
         expect(html.indexOf("列强概览")).toBeLessThan(html.indexOf("VP 记录"));
-        expect(html).toContain("第1回合");
-        expect(html).toContain("第2回合");
+        expect(html).toContain('title="第 1 回合"');
+        expect(html).toContain('title="第 2 回合"');
         expect(html).toMatch(/class="vq-vp-leader[^"]*"[^>]*>17</);
         expect(html).not.toMatch(/class="vq-vp-leader[^"]*"[^>]*>9</);
+        // The sheet keeps powers on rows and turns on columns, like the
+        // printed Victory Record Sheet, so six powers and seven turns fit.
+        expect(html.indexOf("西班牙")).toBeLessThan(html.indexOf(">12<"));
+        expect(html).toContain("回合");
+    });
+
+    it("limits the table to powers that actually have a recorded score", () => {
+        const G = setupGame(fakeCtx());
+        G.vpHistory = {"1": {spain: 12, france: 9}};
+        const html = renderDiplomacy(G, "0");
+        const table = html.slice(html.indexOf("vq-vp-history"), html.indexOf("</table>"));
+        expect(table).toContain("西班牙");
+        expect(table).not.toContain("奥斯曼帝国");
+        expect(table).not.toContain("新教联盟");
+    });
+});
+
+describe("VP tie-break explanation", () => {
+    /** A standard victory where Spain and France tie at the top but history separates them. */
+    const tiedStandardGame = (): VQGame => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "campaign"});
+        G.year = 6;
+        const setScore = (power: Power, score: number): void => {
+            G.powers[power].bonusVp += score - powerVp(G, power);
+        };
+        for (const power of POWERS) setScore(power, 10);
+        setScore("spain", 26);
+        setScore("france", 26);
+        G.vpHistory = {
+            "1": {ottoman: 11, spain: 17, england: 7, france: 9, hre: 8, protestant: 1},
+            "2": {ottoman: 11, spain: 18, england: 8, france: 10, hre: 8, protestant: 2},
+            "3": {ottoman: 11, spain: 19, england: 9, france: 12, hre: 8, protestant: 3},
+            "4": {ottoman: 11, spain: 20, england: 11, france: 16, hre: 8, protestant: 4},
+        };
+        return G;
+    };
+
+    const renderGameOver = (G: VQGame, reason: string, power: Power): string =>
+        renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "0", numPlayers: 6, gameover: {winner: ownerOf(G, power), power, reason}},
+            moves: {}, playerID: "0", isActive: false,
+        } as any}/>);
+
+    it("explains which earlier turn broke a Standard Victory tie", () => {
+        const G = tiedStandardGame();
+        const html = renderGameOver(G, "standard", "spain");
+        expect(html).toContain("对局结束 · 胜者：P2 西班牙");
+        expect(html).toContain("并列为最高 VP");
+        expect(html).toContain("第 4 回合的 VP 为 西班牙 20、法国 16");
+        expect(html).toContain("由 西班牙 获胜");
+    });
+
+    it("names Impulse Order when no recorded turn separates the tie", () => {
+        const G = tiedStandardGame();
+        G.vpHistory = {
+            "1": {ottoman: 11, spain: 17, england: 7, france: 17, hre: 8, protestant: 1},
+            "2": {ottoman: 11, spain: 17, england: 7, france: 17, hre: 8, protestant: 1},
+        };
+        const html = renderGameOver(G, "standard", "spain");
+        expect(html).toContain("按行动顺序由 西班牙 获胜");
+    });
+
+    it("does not claim a narrower-but-unresolved turn decided the win", () => {
+        const G = tiedStandardGame();
+        const setScore = (power: Power, score: number): void => {
+            G.powers[power].bonusVp += score - powerVp(G, power);
+        };
+        setScore("england", 26);
+        // Turn 3 drops England, leaving Spain and France level with no earlier
+        // record; the remainder is a genuine Impulse Order fallback.
+        G.vpHistory = {"3": {spain: 18, france: 18, england: 15}};
+        const html = renderGameOver(G, "standard", "spain");
+        expect(html).toContain("按行动顺序由 西班牙 获胜");
+        expect(html).not.toContain("第 3 回合的 VP 为");
+    });
+
+    it("stays silent when there is no tie", () => {
+        const G = tiedStandardGame();
+        G.powers.spain.bonusVp += 3;
+        const html = renderGameOver(G, "standard", "spain");
+        expect(html).not.toContain("并列为最高 VP");
+    });
+
+    it("does not explain ties for automatic victories, which compare live VP", () => {
+        const G = tiedStandardGame();
+        G.year = 3;
+        G.espionage = {...G.espionage, catholicRebellionVictory: true} as VQGame["espionage"];
+        const html = renderGameOver(G, "catholicRebellion", "spain");
+        expect(html).not.toContain("并列为最高 VP");
     });
 });
