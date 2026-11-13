@@ -3,6 +3,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {
   CardId,
   EndPhaseProgress,
+  GamePhase,
   ImperialElegyState,
   PendingDecision,
   Power,
@@ -197,6 +198,7 @@ import {
   resolveGwColonialChoice,
   resolveGwDraftSecond,
   resolveGwNeutralOption,
+  resolveGwWinter,
   revealGwCombatCard,
   startGwManeuver,
   transferGwBudget,
@@ -6378,6 +6380,27 @@ export const gwEndTurn = (G: ImperialElegyState, ctx: Ctx): string | void => {
   activateGwExhaustion(G);
   G.phase = "gwWinter";
   ctx.events?.setPhase?.("gwWinter");
+  return undefined;
+};
+
+/**
+ * 29.0: retry the winter resolution when the `gwWinter` phase hook could not
+ * finish it (an open decision or a blocked step left `G.phase` in the winter).
+ * The hook runs before any player can act, so a stalled winter has no other
+ * way out; `resolveGwWinter` itself is guarded by its `gw.winter` sentinel, so
+ * running it twice is safe.
+ */
+export const gwResolveWinter = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  if (!G.gw || G.phase !== "gwWinter") return INVALID_MOVE;
+  // An open decision is answered with `resolvePending`; the phase hook resumes
+  // the winter from there.
+  if (G.pending !== null) return INVALID_MOVE;
+  const res = resolveGwWinter(G, ctx);
+  if (!res.ok) return INVALID_MOVE;
+  // resolveGwWinter mutates G.phase out of the winter; widen it so TS does not
+  // keep the narrowed "gwWinter" type from the guard above.
+  const phaseAfter = G.phase as GamePhase;
+  if (!res.ended && phaseAfter === "gwPlanning") ctx.events?.setPhase?.("gwPlanning");
   return undefined;
 };
 

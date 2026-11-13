@@ -40,6 +40,7 @@ import {
   gwRail,
   gwRefit,
   gwRevealCombat,
+  gwResolveWinter,
   gwTransferBudget,
   playGwCardMove,
   industrialize,
@@ -153,6 +154,7 @@ const ALL_MOVES = {
   gwJointNaval,
   gwTransferBudget,
   gwRevealCombat,
+  gwResolveWinter,
   gwEndTurn,
   endTurn,
 };

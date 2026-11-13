@@ -120,7 +120,13 @@ test.describe("Imperial Elegy local hotseat", () => {
         }
         // The battle log line is outcome-independent (`在萨克森（自 柏林）交战：…`),
         // unlike `battleEnded`, which says either 赢得战斗 or 战败 depending on the dice.
-        await expect.poll(async () => await board.locator('[data-testid="ie-log"]').innerText()).toContain("交战");
+        // Read the state log rather than the panel: the panel only renders the
+        // last 80 entries, and a decisive victory appends follow-up lines that
+        // can push the `battle` entry out of that window.
+        await expect.poll(async () => await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            return G.log.some((entry: any) => entry.key === "battleRoll" && entry.args?.to === "saxony");
+        })).toBe(true);
         await expect.poll(async () => await board.locator('[data-testid="ie-log"]').innerText()).toContain("萨克森");
     });
 
