@@ -278,6 +278,17 @@ test.describe("Imperial Elegy solo vs bot", () => {
             if (await cpButtons.nth(i).isEnabled()) { await cpButtons.nth(i).click(); break; }
         }
         await page.waitForTimeout(600);
+
+        // 33.4 Metternich's Legacy opens a decision for AU (a bot seat) at the
+        // end of turn-1 diplomacy, and bots resolve their own pendings while GE
+        // is still to act.  `endImpulse` refuses to run while any decision is
+        // open, so wait for the decision to clear before handing over; clicking
+        // into that window burned the click and left the match on GE forever.
+        await expect.poll(
+            async () => await page.evaluate(() => (window as any).__IE_STATE__.pending === null),
+            {timeout: 30_000},
+        ).toBe(true);
+
         // Hand the impulse over exactly once.  Re-clicking a stale button would
         // send a second `endImpulse` after the seat is no longer active and
         // produce an `invalid move` that has nothing to do with the bot.
@@ -286,6 +297,7 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await endImpulse.click();
         await expect.poll(
             async () => await page.evaluate(() => (window as any).__IE_STATE__.activePower),
+            {timeout: 30_000},
         ).not.toBe("GE");
 
         // The bots must actually take their impulses: two more powers must

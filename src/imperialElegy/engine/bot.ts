@@ -36,6 +36,7 @@ import {canPassNow} from "../moves";
 import {canRecruitIn} from "./characteristics";
 import {gwDraftSpaces} from "./greatWarFlow";
 import {reserveRemaining} from "./economy";
+import {hasCounterFor} from "./counters";
 
 // ---------------------------------------------------------------------------
 // BDIT — Bot Diplomatic Interest Table (B2)
@@ -529,14 +530,18 @@ const priorityTwo = (
       }
     }
     // Then reserve armies.
-    if (G.cpRemaining >= 1) {
+    if (G.cpRemaining >= 1 && hasCounterFor(G, power, "reserveArmy")) {
       // `reserveRemaining` mirrors the move's own gate (box = manpower/industry,
       // 0 for the UK).  A box with no room is an illegal move, not a cheap army.
+      // The counter pool has to be checked too: the box can have room while
+      // every reserve counter is already on the map, and `recruit` refuses
+      // that, so the bot would re-send an illegal move forever.
       const room = reserveRemaining(G, power);
       if (room > 0) {
         return {move: "recruit", args: [null, "reserveArmy", 1, {}]};
       }
-    }    // Then fort (3-4 sub-result: die shows 3 on the chart → build fort).
+    }
+    // Then fort (3-4 sub-result: die shows 3 on the chart → build fort).
     if (roll === 3 && G.cpRemaining >= 1) {
       const space = botFortSpace(G, power);
       if (space !== null) {
@@ -544,7 +549,7 @@ const priorityTwo = (
       }
     }
     // Then EC.
-    if (roll === 4 && G.cpRemaining >= 2) {
+    if (roll === 4 && G.cpRemaining >= 2 && hasCounterFor(G, power, "eliteCorps")) {
       for (const [id] of Object.entries(SPACES)) {
         const armies = landUnitsIn(G, id).filter((u) => u.owner === power);
         if (armies.length > 0) {
