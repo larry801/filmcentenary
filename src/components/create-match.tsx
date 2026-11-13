@@ -136,6 +136,9 @@ const MatchRow = React.memo(({data, serverURL}: MatchRowProps) => {
 const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
+    // VQ and Imperial Elegy fix the first player by scenario (seat 0 always
+    // starts), so their lobbies must not offer the "start as player" choice.
+    const fixedFirstPlayer = gameName === virginQueenName || gameName === imperialElegyName;
     const navigate = useNavigate();
     const [player, setPlayer] = useState<Player>(Player.P0);
     const [clicked, setClicked] = useState(false);
@@ -153,9 +156,9 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
 
     useEffect(() => {
         if (matchID) {
-            navigate(`/join/${gameName}/${matchID}/${player}`);
+            navigate(`/join/${gameName}/${matchID}/${fixedFirstPlayer ? Player.P0 : player}`);
         }
-    }, [matchID, gameName, player, navigate]);
+    }, [matchID, gameName, player, fixedFirstPlayer, navigate]);
 
     const lobbyClient = useMemo(() => new LobbyClient({server: serverURL}), [serverURL]);
 
@@ -280,7 +283,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                         <Typography variant="h5" gutterBottom>{gameTitle}</Typography>
                         {gameName === virginQueenName && (
                             <Box sx={{display: "flex", flexWrap: "wrap", gap: 1, mb: 1}}>
-                                <Button variant="outlined" size="small" onClick={() => {setVqScenario("tutorial"); setNumPlayers(2); setPlayer(Player.P0);}}>
+                                <Button variant="outlined" size="small" onClick={() => {setVqScenario("tutorial"); setNumPlayers(2);}}>
                                     选择双人教学（在线）
                                 </Button>
                                 <Button component={Link} to="/localVQ/tutorial" variant="contained" size="small">
@@ -313,22 +316,18 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 </>}
                             </Select>
                         </FormControl>
-                        <FormControl variant="outlined" sx={styles.formControl} fullWidth>
-                            <InputLabel htmlFor="outlined-player-native-simple">{i18n.chain.lobby.player}</InputLabel>
-                            <Select
-                                native
-                                value={player}
-                                onChange={handlePlayerChange}
-                                label={i18n.chain.lobby.player}
-                                inputProps={{
-                                    name: 'player',
-                                    id: 'outlined-player-native-simple',
-                                }}>
-                                {gameName === virginQueenName ? <>
-                                    {seatLabels(vqScenario, numPlayers, vqLocale).map((label, index) => <option key={index} value={String(index)}>{`P${index + 1} ${label}`}</option>)}
-                                </> : gameName === imperialElegyName ? <>
-                                    {(["GE","UK","FR","AU","RU","OT"] as const).map((p, index) => <option key={p} value={String(index)}>{`P${index + 1} ${vqLocale === "zh_CN" ? IE_SEAT_LABELS[p].zh_CN : IE_SEAT_LABELS[p].en}`}</option>)}
-                                </> : <>
+                        {!fixedFirstPlayer && (
+                            <FormControl variant="outlined" sx={styles.formControl} fullWidth>
+                                <InputLabel htmlFor="outlined-player-native-simple">{i18n.chain.lobby.player}</InputLabel>
+                                <Select
+                                    native
+                                    value={player}
+                                    onChange={handlePlayerChange}
+                                    label={i18n.chain.lobby.player}
+                                    inputProps={{
+                                        name: 'player',
+                                        id: 'outlined-player-native-simple',
+                                    }}>
                                     {gameName === 'film' ? <option value={Player.P0}>{Player.P0}</option>
                                         : <option value={Player.P0}>宋</option>}
                                     {gameName === 'film' ? <option value={Player.P1}>{Player.P1}</option>
@@ -339,9 +338,9 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                     {gameName === 'film' && numPlayers >= 4 ?
                                         <option value={Player.P3}>{Player.P3}</option>
                                         : <></>}
-                                </>}
-                            </Select>
-                        </FormControl>
+                                </Select>
+                            </FormControl>
+                        )}
                         {gameName === virginQueenName && (
                             <FormControl variant="outlined" sx={styles.formControl} fullWidth>
                                 <InputLabel htmlFor="vq-scenario">{i18n.chain.vq.local.scenario}</InputLabel>
