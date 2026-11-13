@@ -118,6 +118,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const [polishReserve, setPolishReserve] = React.useState(true);
   const [gwTransferTo, setGwTransferTo] = React.useState<string>("");
   const [gwTransferAmount, setGwTransferAmount] = React.useState(1);
+  const [showLog, setShowLog] = React.useState(true);
   const [amphibiousFrom, setAmphibiousFrom] = React.useState<string>("");
   const [amphibiousTo, setAmphibiousTo] = React.useState<string>("");
   const [amphibiousUnitIds, setAmphibiousUnitIds] = React.useState<string[]>([]);
@@ -823,10 +824,20 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
           {responseWindow && <IEBadge tone="warn">{t.responseWindow}</IEBadge>}
           {viewer && <IEBadge tone={viewer.toLowerCase()}>{t.seats[viewer]}</IEBadge>}
           {!viewer && <IEBadge>{t.spectators}</IEBadge>}
-          <Button size="small" variant="outlined" onClick={() => setShowCharts((v) => !v)}>{t.charts}</Button>
-          <Button size="small" variant="outlined" onClick={() => setShowHelp((v) => !v)}>{t.rulesCoverage}</Button>
+          <button className="ie-btn secondary ie-mini" onClick={() => setShowCharts((v) => !v)}>{t.charts}</button>
+          <button className="ie-btn secondary ie-mini" onClick={() => setShowHelp((v) => !v)}>{t.rulesCoverage}</button>
         </div>
       </header>
+
+      {canDecide ? (
+        <div className="ie-turn-strip ie-turn-decide" role="status" aria-live="polite" data-testid="ie-turn-decide">
+          {t.yourDecision} — {pendingKind ?? pending?.kind ?? ""}
+        </div>
+      ) : canAct ? (
+        <div className="ie-turn-strip ie-turn-action" role="status" aria-live="polite" data-testid="ie-turn-action">
+          {bi(actualLocale, `Your impulse · ${cpBudget()} CP remaining`, `你的行动轮 · 剩余 ${cpBudget()} CP`)}
+        </div>
+      ) : null}
 
       <div className="ie-layout">
         <div>
@@ -861,6 +872,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               phase={phase}
               canAct={canAct}
               canSpend={canSpend}
+              cpRemaining={cpBudget()}
               canActionCard={canActionCard}
               pending={pending}
               canDecide={canDecide}
@@ -1147,9 +1159,13 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
             />
           )}
 
-          <IEPanel title={t.log}>
-            <div className="ie-log" data-testid="ie-log">
-              {G.log.slice(-80).reverse().map((entry) => <LogLine key={entry.id} entry={entry} locale={actualLocale}/>)}
+          <IEPanel title={t.log} actions={
+            <button className="ie-log-toggle" onClick={() => setShowLog((v) => !v)} aria-expanded={showLog} aria-label={showLog ? bi(actualLocale, "Collapse log", "折叠日志") : bi(actualLocale, "Expand log", "展开日志")}>
+              {showLog ? "▲" : "▼"}
+            </button>
+          }>
+            <div className={`ie-log${showLog ? "" : " ie-log-collapsed"}`} data-testid="ie-log">
+              {showLog && G.log.slice(-80).reverse().map((entry) => <LogLine key={entry.id} entry={entry} locale={actualLocale}/>)}
             </div>
           </IEPanel>
         </div>
