@@ -5,17 +5,18 @@ import {defineConfig, devices} from "@playwright/test";
  *
  * The spec starts its own boardgame.io server on :4004 and a static
  * `vite preview` on :5202, so this config deliberately has no `webServer`
- * block.  The shared test-results directory is avoided because other suites
- * can be running against the same checkout at the same time.
+ * block.  Its output goes to a dedicated directory so it never collides with
+ * the plain suite's `test-results/`; CI uploads both.
  */
 export default defineConfig({
     testDir: "./e2e",
+    testMatch: ["**/imperial-elegy-spectator.spec.ts"],
     fullyParallel: false,
     workers: 1,
     timeout: 60_000,
     expect: {timeout: 10_000},
     reporter: "list",
-    outputDir: "/tmp/ie/spectator-test-results",
+    outputDir: "test-results/ie-spectator",
     use: {
         baseURL: "http://127.0.0.1:5202",
         trace: "retain-on-failure",

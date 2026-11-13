@@ -25,7 +25,8 @@ CI 分成两个 workflow：
 
 - `.github/workflows/ci.yml`：单元测试、类型检查、生产构建和 Playwright E2E，
   跑在 `master` 以及 `feature/**`、`fix/**`、`refactor/**`、`test/**` 分支上
-  （也响应指向 `master` 的 pull request）。
+  （也响应指向 `master` 的 pull request）。E2E 分两步：`yarn test:e2e` 跑默认套件
+  （Vite dev server），`yarn test:e2e:ie` 跑三个需要生产构建的 IE 套件。
 - `.github/workflows/release.yml`：只有 `master` 会构建并推送三个镜像：
 
   - `ghcr.io/larry801/film-centenary`：应用镜像（`docker-compose.yml` 使用）

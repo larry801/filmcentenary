@@ -309,29 +309,39 @@ python3 scripts/extract-imperial-elegy.py --check
 
 ### IE Playwright configs
 
-The three IE browser configs are deliberately separate. The **controls** and
-**regression** configs have no `webServer` block: start the matching production
-preview by hand in another terminal, then run the spec. The **spectator** spec
-self-starts a boardgame.io server on `:4004` and a `vite preview` on `:5202`.
+The three IE browser configs are deliberately separate, and all three are
+started by their own config so CI needs no hand-started servers:
+
+- **regression** (`playwright.ie-regression.config.ts`) builds nothing itself;
+  its `webServer` runs `vite preview` over `build/` on `:5203`, so `yarn build`
+  must run first.
+- **controls** (`playwright.ie-controls.config.ts`) does the same on `:5201`.
+- **spectator** (`playwright.ie-spectator.config.ts`) has no `webServer`
+  block: the spec itself starts a boardgame.io server on `:4004` and a
+  `vite preview` on `:5202`, and requires `build/server.js` to exist.
+
+`yarn test:e2e` deliberately ignores these three specs (they run against the
+dev server on `:5173`, not their own origin); `yarn test:e2e:ie` runs all three
+in order.
 
 ```sh
 # Regression: original hotseat spec, 5 tests, preview :5203
 yarn build
-./node_modules/.bin/vite preview --host 127.0.0.1 --port 5203 --strictPort
-./node_modules/.bin/playwright test --config=playwright.ie-regression.config.ts e2e/imperial-elegy.spec.ts
+./node_modules/.bin/playwright test --config=playwright.ie-regression.config.ts
 
-# Controls: 3 tests, preview :5201 (start it manually first)
-./node_modules/.bin/vite preview --host 127.0.0.1 --port 5201 --strictPort
-./node_modules/.bin/playwright test --config=playwright.ie-controls.config.ts e2e/imperial-elegy-controls.spec.ts
+# Controls: 3 tests, preview :5201
+./node_modules/.bin/playwright test --config=playwright.ie-controls.config.ts
 
 # Online/spectator: 3 tests, self-starts game server :4004 + preview :5202
 yarn build:server          # produces build/server.js, which the spec requires
-./node_modules/.bin/playwright test --config=playwright.ie-spectator.config.ts e2e/imperial-elegy-spectator.spec.ts
+./node_modules/.bin/playwright test --config=playwright.ie-spectator.config.ts
+
+# All three in order
+yarn test:e2e:ie
 ```
 
-`yarn build` is needed before the regression/controls previews; the spectator
-spec builds its own frontend into `/tmp/ie/spectator-dist` and writes its
-playwright output under `/tmp/ie/spectator-test-results`.
+The spectator spec builds its own frontend into `/tmp/ie/spectator-dist` and
+writes its playwright output under `test-results/ie-spectator`.
 
 **Full evidence for this refresh:** the IE Jest suite passes **2641/2641 tests
 in 205/205 suites**; `tsc`, server `tsc`, `yarn build` and `yarn build:server` are
