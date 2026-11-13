@@ -350,9 +350,9 @@ const unitLabel = (u: Unit, t: ReturnType<typeof ieT>): string => {
   return `${u.owner} ${base}${u.steps > 1 ? " · full" : " · reduced"}`;
 };
 
-const LogLine = ({entry, locale}: {entry: ImperialElegyState["log"][number]; locale: "en" | "zh_CN"}) => (
+const LogLine = React.memo(({entry, locale}: {entry: ImperialElegyState["log"][number]; locale: "en" | "zh_CN"}) => (
   <div><span className="t">T{entry.turn}</span>{logText(entry, locale)}</div>
-);
+));
 
 export interface IEBoardProps {
   G: ImperialElegyState;
@@ -582,7 +582,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
         })
         .map((def) => def.id);
   const amphibiousFromValue = pickActionTarget(amphibiousFrom, amphibiousOrigins, amphibiousOrigins);
-  const amphibiousTargets: SpaceId[] = (() => {
+  const amphibiousTargets: SpaceId[] = React.useMemo(() => {
     if (!amphibiousVisible || viewer === null || amphibiousFromValue === "") return [];
     const boxes = isNavalBox(amphibiousFromValue) ? [amphibiousFromValue] : portBoxes(amphibiousFromValue);
     return Object.values(SPACES)
@@ -590,7 +590,8 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
       .filter((def) => (def.ports ?? []).some((box) => boxes.includes(box)))
       .filter((def) => !friendlySpace(G, def.id, viewer))
       .map((def) => def.id);
-  })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [amphibiousVisible, viewer, amphibiousFromValue, G.spaces]);
   const amphibiousToValue = pickActionTarget(amphibiousTo, amphibiousTargets, amphibiousTargets);
   const amphibiousBox: SpaceId | null = (() => {
     if (amphibiousFromValue === "" || amphibiousToValue === "") return null;
@@ -664,12 +665,18 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
       transportFleet.map((id) => G.units[id]),
       target,
     ).ok;
-  const transportTargets: SpaceId[] = !transportVisible || viewer === null || transportLandValue === ""
-    ? []
-    : Object.values(SPACES)
-        .filter((def) => !isNavalBox(def.id) && (def.ports?.length ?? 0) > 0 && def.id !== transportFromValue)
-        .filter((def) => transportReachableFrom(def.id))
-        .map((def) => def.id);
+  // planNavalTransport is expensive — memoize to avoid re-running for all ports
+  // on every render.  Re-runs only when the land unit, fleet, or origin changes.
+  const transportTargets: SpaceId[] = React.useMemo(
+    () => !transportVisible || viewer === null || transportLandValue === ""
+      ? []
+      : Object.values(SPACES)
+          .filter((def) => !isNavalBox(def.id) && (def.ports?.length ?? 0) > 0 && def.id !== transportFromValue)
+          .filter((def) => transportReachableFrom(def.id))
+          .map((def) => def.id),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [transportVisible, viewer, transportLandValue, transportFromValue, transportFleet.join(","), G.spaces],
+  );
   const transportToValue = pickActionTarget(transportTo, transportTargets, transportTargets);
   const transportCheck = transportVisible && viewer !== null
     ? navalTransportCheck(G, viewer, transportLandValue, transportFleet, transportToValue)
@@ -762,7 +769,19 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const handCounts = (G as unknown as {handCounts?: Partial<Record<Power, number>>}).handCounts ?? {};
   const goalCounts = (G as unknown as {goalCounts?: Partial<Record<Power, number>>}).goalCounts ?? {};
 
-  const onSelect = (id: SpaceId) => {
+  const doAction = React.useCallback((fn: () => void) => {
+    try {
+      fn();
+    } catch (error) {
+      // The server rejects illegal moves; the UI simply keeps its current state.
+      console.warn("illegal Imperial Elegy action", error);
+    }
+  }, []);
+
+  // Keep the latest onSelect logic in a ref so the stable callback below
+  // always reads up-to-date closure values without causing IEMap to re-render.
+  const onSelectImpl = React.useRef<(id: SpaceId) => void>(() => {});
+  onSelectImpl.current = (id: SpaceId) => {
     if (battleFrom) {
       if (canSpend(1)) doAction(() => moves.landBattle(battleFrom, id));
       setBattleFrom(null);
@@ -796,15 +815,8 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     setSelected(id);
     setSelectedUnit(null);
   };
-
-  const doAction = (fn: () => void) => {
-    try {
-      fn();
-    } catch (error) {
-      // The server rejects illegal moves; the UI simply keeps its current state.
-      console.warn("illegal Imperial Elegy action", error);
-    }
-  };
+  // Stable identity — IEMap's React.memo comparator can rely on this never changing.
+  const onSelect = React.useCallback((id: SpaceId) => onSelectImpl.current(id), []);
 
   const pendingKindLabels = t.pendingKind as unknown as Record<string, string>;
   const pendingKind = pending ? pendingKindLabels[pending.kind] ?? t.pendingDecision : null;

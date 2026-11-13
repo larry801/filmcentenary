@@ -22,7 +22,10 @@ jest.mock("react", () => {
     if (initial === true) value = (globalThis as unknown as {__polishReserveDefault?: boolean}).__polishReserveDefault ?? true;
     return [typeof initial === "function" ? (initial as () => unknown)() : value, () => undefined];
   };
-  return {...actual, useState, useEffect: () => undefined};
+  const useMemo = (fn: () => unknown) => fn();
+  const useCallback = (fn: unknown) => fn;
+  const useRef = (initial: unknown) => ({current: initial});
+  return {...actual, useState, useEffect: () => undefined, useMemo, useCallback, useRef};
 });
 
 jest.mock("./theme", () => {

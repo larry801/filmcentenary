@@ -4,7 +4,10 @@ jest.mock("react", () => {
     typeof initial === "function" ? (initial as () => unknown)() : initial,
     () => undefined,
   ];
-  return {...actual, useState, useEffect: () => undefined};
+  const useMemo = (fn: () => unknown) => fn();
+  const useCallback = (fn: unknown) => fn;
+  const useRef = (initial: unknown) => ({current: initial});
+  return {...actual, useState, useEffect: () => undefined, useMemo, useCallback, useRef};
 });
 
 jest.mock("./components/theme", () => {
