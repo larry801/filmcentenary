@@ -41,6 +41,17 @@ const loadBotSeats = (): Set<Power> => {
   return new Set();
 };
 
+const loadBotSeatsMaybeSolo = (): Set<Power> => {
+  const saved = loadBotSeats();
+  if (saved.size > 0) return saved;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("solo") === "1") {
+    // Pre-select P2–P6 as bots; leave P1 (index 0) for the human player.
+    return new Set(POWERS.slice(1));
+  }
+  return new Set();
+};
+
 const saveBotSeats = (seats: Set<Power>): void => {
   try {
     localStorage.setItem(BOT_SEATS_KEY, JSON.stringify([...seats]));
@@ -53,7 +64,7 @@ const LocalImperialElegy = () => {
   const [tab, setTab] = React.useState(0);
   const tabRefs = React.useRef<(HTMLElement | null)[]>([]);
   const seatCount = POWERS.length;
-  const [botSeats, setBotSeats] = React.useState<Set<Power>>(loadBotSeats);
+  const [botSeats, setBotSeats] = React.useState<Set<Power>>(loadBotSeatsMaybeSolo);
   const [started, setStarted] = React.useState(false);
 
   React.useEffect(() => {

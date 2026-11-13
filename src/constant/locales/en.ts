@@ -550,6 +550,7 @@ const en = {
         imperialElegy: {
             multiplayer: "Multiplayer / create match",
             local: "Local hotseat",
+            solo: "Solo vs bot (Rule 34)",
         },
         virginQueen: {
             multiplayer: "Multiplayer / create match",

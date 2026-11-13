@@ -115,6 +115,7 @@ const DrawerAppBar = () => {
             title: drawer.section.imperialElegy,
             items: [
                 {to: '/imperialElegy', label: drawer.imperialElegy.multiplayer},
+                {to: '/localIE?solo=1', label: drawer.imperialElegy.solo},
                 {to: '/localIE', label: drawer.imperialElegy.local},
             ],
         },
