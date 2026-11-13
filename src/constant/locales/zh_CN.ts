@@ -578,6 +578,7 @@ const zh_CN: Locale = {
         imperialElegy: {
             multiplayer: "多人 / 创建对局",
             local: "本地热座",
+            solo: "单人 vs AI (Rule 34)",
         },
         virginQueen: {
             multiplayer: "多人 / 创建对局",
