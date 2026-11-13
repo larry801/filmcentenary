@@ -148,6 +148,8 @@ export const blockingPendingReason = (G: VQGame): string | undefined => {
         : G.pendingPiracy ? b.piracy
         : G.pendingPolishElection ? b.election
         : G.pendingCityRebels || G.pendingRebelMove ? b.rebels
+        : G.pendingTribute ? b.tribute
+        : G.pendingMutiny ? b.mutiny
         : G.pendingForeignWar ? b.foreignWar
         : G.pendingActivation ? b.activation
         : G.pendingAction ? b.other

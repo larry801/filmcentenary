@@ -46,6 +46,18 @@ describe("event target options", () => {
             .toEqual(["england", "scotland"]);
     });
 
+    it("offers tribute targets for #2 and drops any power already at war", () => {
+        const G = game();
+        const options = eventTargetOptions(G, "vq-002", "ottoman");
+        // Venice is offered only while its diplomacy is still unresolved…
+        expect(options.map((option) => option.value)).toContain("venice");
+        // …and the label is the localized minor name, not a raw id.
+        expect(options.find((option) => option.value === "venice")!.label).toBe("威尼斯");
+
+        G.minorDiplomacyResolved = ["venice"];
+        expect(eventTargetOptions(G, "vq-002", "ottoman").map((option) => option.value)).not.toContain("venice");
+    });
+
     it("renders a target dropdown instead of the old free-text field", () => {
         const html = renderToStaticMarkup(<EventTargetSelect cardId="vq-107"
             options={[{value: "york", label: "约克"}]} value="york" onChange={() => undefined}/>);

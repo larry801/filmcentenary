@@ -19,6 +19,8 @@ import {PendingCardEventPanel} from "./board/PendingPanels/CardEventPanel";
 import {PendingActionResponsePanel} from "./board/PendingPanels/ActionResponsePanel";
 import {PendingPiracyPanel} from "./board/PendingPanels/PiracyPanel";
 import {PendingTutorialEventPanel} from "./board/PendingPanels/TutorialEventPanel";
+import {PendingTributePanel} from "./board/PendingPanels/TributePanel";
+import {PendingMutinyPanel} from "./board/PendingPanels/MutinyPanel";
 import {PendingBattlePanel} from "./board/PendingPanels/BattlePanel";
 import {PendingActivationPanel} from "./board/PendingPanels/ActivationPanel";
 import {PendingInterceptPanel} from "./board/PendingPanels/InterceptPanel";
@@ -65,6 +67,8 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
         if (G.pendingAbjuration) return <PendingAbjurationPanel G={G} moves={moves} playerID={playerID}
             selectedPower={selectedAbjurationPower} onSelect={setSelectedAbjurationPower}/>;
         if (G.pendingCityRebels) return <PendingCityRebelsPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingTribute) return <PendingTributePanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingMutiny) return <PendingMutinyPanel G={G} moves={moves} playerID={playerID}/>;
         if (G.gregorianResponse) return <PendingGregorianPanel G={G} moves={moves} playerID={playerID}
             target={gregorianTarget} onTargetChange={setGregorianTarget}/>;
         if (G.pendingCardEvent) return <PendingCardEventPanel G={G} moves={moves} playerID={playerID}

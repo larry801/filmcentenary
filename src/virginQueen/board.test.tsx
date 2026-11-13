@@ -584,6 +584,38 @@ describe("Virgin Queen board", () => {
         expect(cityHtml).toContain("行动 · 待响应");
     });
 
+    it("offers tribute choices only to the Ottoman's target", () => {
+        const G = setupGame(fakeCtx(), {numPlayers: 6});
+        G.activePower = "ottoman";
+        G.pendingTribute = {target: "spain", choices: ["pay_card", "refuse"]};
+        const render = (playerID: string): string => renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: playerID}, moves: {}, playerID, isActive: true,
+        } as any}/>);
+        const spain = render(ownerOf(G, "spain") ?? "1");
+        expect(spain).toContain("需要响应 · 西班牙");
+        expect(spain).toContain("拒绝纳贡（宣战）");
+        expect(spain).toContain("缴纳 1 张手牌");
+        const ottoman = render(ownerOf(G, "ottoman") ?? "0");
+        expect(ottoman).not.toContain("拒绝纳贡（宣战）");
+    });
+
+    it("offers mutiny discard choices only to the mutinied power", () => {
+        const G = setupGame(fakeCtx(), {numPlayers: 6});
+        G.activePower = "ottoman";
+        G.spaces.brussels.land.spain = {regular: 5, merc: 0, cav: 0};
+        G.powers.spain.cards = ["vq-020", "vq-022"];
+        G.pendingMutiny = {space: "brussels", owner: "spain"};
+        const render = (playerID: string): string => renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: playerID}, moves: {}, playerID, isActive: true,
+        } as any}/>);
+        const spain = render(ownerOf(G, "spain") ?? "1");
+        expect(spain).toContain("需要响应 · 西班牙");
+        expect(spain).toContain("军队哗变（#17）");
+        expect(spain).toContain("弃置");
+        const england = render(ownerOf(G, "england") ?? "2");
+        expect(england).not.toContain("弃置");
+    });
+
     it("offers all three religious preferences to HRE in its first Spring", () => {
         const G = setupGame(fakeCtx());
         G.activePower = "hre";

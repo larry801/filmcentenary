@@ -24,7 +24,7 @@ import {CardDef,
     VQGame,
     isPower,
     powerAt, spaceHomes, MINOR_REGULAR_LIMITS, MINOR_NAVAL_LIMITS} from "./constant/general";
-import {cardById} from "./constant/cards";
+import {cardById, cardName} from "./constant/cards";
 import i18n from "../constant/i18n";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENTS, WORLD_SETTLEMENT_BY_ID, WORLD_TRADE_WINDS} from "./data/world";
@@ -862,6 +862,18 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 const resolveOttomanTribute = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (target === undefined) return;
     const targetPower = target.split(":")[0];
+    // Venice is a minor power: only Spain and the HRE may buy the war off, so
+    // the threat resolves immediately as a declaration of war (rule 23.7).
+    if (targetPower === "venice") {
+        if (G.powers.ottoman.warsMinors.includes("venice") || G.minorDiplomacyResolved.includes("venice") ||
+            !minorAvailable(G, "venice") || G.powers.ottoman.alliedMinors.includes("venice")) return;
+        G.powers.ottoman.warsMinors.push("venice");
+        G.powers.ottoman.cp += 2;
+        pushLog(G, `${powerLabel("ottoman")} declares war on Venice.`);
+        pushLog(G, `${powerLabel("ottoman")} gains 2 CP for the tribute threat.`);
+        resolveMinorDiplomacy(G, ctx, "venice", {exclude: ["ottoman"]});
+        return;
+    }
     if (!isPower(targetPower) || targetPower === "ottoman" || allied(G, "ottoman", targetPower)) return;
     const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
     const treasures = G.powers[targetPower].treasures;
@@ -909,9 +921,10 @@ const resolveOttomanTributeChoice = (G: VQGame, ctx: Ctx, power: Power, choice: 
 export const tributeOptions = (G: VQGame): {id: string; label: string}[] => {
     const pending = G.pendingTribute;
     if (pending === undefined) return [];
+    const t = i18n.chain.vq.tribute;
     return pending.choices.map((id) => ({
         id,
-        label: id === "pay_treasure" ? "Pay a treasure" : id === "pay_card" ? "Pay a card" : "Refuse (war)",
+        label: id === "pay_treasure" ? t.payTreasure : id === "pay_card" ? t.payCard : t.refuse,
     }));
 };
 
@@ -1569,7 +1582,7 @@ const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
     const neighbor = landNeighbors(spaceId).find((space) => G.spaces[space.id] !== undefined && !G.spaces[space.id].unrest);
     if (neighbor !== undefined) G.spaces[neighbor.id].unrest = true;
     pushLog(G, `Army Mutiny strikes ${powerLabel(owner)} in ${SPACE_BY_ID[spaceId].name}.`);
-    const discardable = G.powers[owner].cards.filter((id) => cardById(id).officialKind !== "mandatory");
+    const discardable = mutinyDiscardable(G, owner);
     if (discardable.length <= 1) {
         // Zero or one eligible card – resolve immediately (no choice).
         finishMutinyDiscard(G, spaceId, owner, discardable[0]);
@@ -1582,6 +1595,31 @@ const resolveArmyMutiny = (G: VQGame, ctx: Ctx, target?: string): void => {
     }
 };
 
+/**
+ * Regulars kept after an Army Mutiny (#17) discard: a card worth 4+ CP saves
+ * the whole stack, otherwise the card's CP value saves twice that many.
+ */
+const mutinyRegularsKept = (cp: number, regulars: number): number =>
+    Math.min(regulars, cp >= 4 ? regulars : cp * 2);
+
+const mutinyDiscardable = (G: VQGame, owner: Power): string[] =>
+    G.powers[owner].cards.filter((id) => cardById(id).officialKind !== "mandatory");
+
+/** Legal #17 discard choices for the mutinied power, with the resulting keep count. */
+export const mutinyDiscardOptions = (G: VQGame): {card: string; label: string}[] => {
+    const pending = G.pendingMutiny;
+    if (pending === undefined) return [];
+    const regulars = G.spaces[pending.space]?.land[pending.owner]?.regular ?? 0;
+    const locale: "en" | "zh_CN" = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
+    const t = i18n.chain.vq.mutiny;
+    return mutinyDiscardable(G, pending.owner).map((card) => ({
+        card,
+        label: t.discard
+            .replace("{card}", cardName(card, locale))
+            .replace("{count}", String(mutinyRegularsKept(cardById(card).cp, regulars))),
+    }));
+};
+
 const finishMutinyDiscard = (G: VQGame, spaceId: string, owner: Power, cardId?: string): void => {
     const state = G.spaces[spaceId];
     if (state === undefined) return;
@@ -1589,8 +1627,7 @@ const finishMutinyDiscard = (G: VQGame, spaceId: string, owner: Power, cardId?: 
     if (stack === undefined) return;
     let keep = 0;
     if (cardId !== undefined) {
-        const cp = cardById(cardId).cp;
-        keep = cp >= 4 ? stack.regular : cp * 2;
+        keep = mutinyRegularsKept(cardById(cardId).cp, stack.regular);
         removeCardFromHand(G, owner, cardId);
         discardCard(G, owner, cardId, false);
     }
@@ -1602,8 +1639,7 @@ export const chooseMutinyDiscard = (G: VQGame, ctx: Ctx, args: {card: string}): 
     const pending = G.pendingMutiny;
     if (pending === undefined) return INVALID_MOVE;
     if (ctx.playerID !== ownerOf(G, pending.owner)) return INVALID_MOVE;
-    const discardable = G.powers[pending.owner].cards.filter((id) => cardById(id).officialKind !== "mandatory");
-    if (!discardable.includes(args.card)) return INVALID_MOVE;
+    if (!mutinyDiscardable(G, pending.owner).includes(args.card)) return INVALID_MOVE;
     const {space, owner} = pending;
     delete G.pendingMutiny;
     ctx.events?.endStage();

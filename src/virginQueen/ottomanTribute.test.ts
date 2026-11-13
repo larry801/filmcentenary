@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
-import {playCard, chooseTribute} from "./moves";
+import {playCard, chooseTribute, tributeOptions} from "./moves";
+import i18n from "../constant/i18n";
 import {atWar, setupGame} from "./util";
 
 const context = (playerID = "0"): Ctx => ({
@@ -117,5 +118,36 @@ describe("Ottoman Tribute (card #2)", () => {
         // Ottoman player ("0") tries to answer — should be rejected.
         expect(chooseTribute(G, context("0"), {choice: "pay_card"})).toBe("INVALID_MOVE");
         expect(G.pendingTribute).toBeDefined();
+    });
+
+    it("declares war on Venice without a tribute choice", () => {
+        const G = game();
+        if (!G.powers.ottoman.cards.includes("vq-002")) G.powers.ottoman.cards.push("vq-002");
+        const cp = G.powers.ottoman.cp;
+
+        expect(playCard(G, context(), {cardId: "vq-002", asEvent: true, target: "venice"})).toBeUndefined();
+
+        // Venice is a minor power, so there is no tribute window; the threat is
+        // an immediate declaration of war followed by the minor's activation.
+        expect(G.pendingTribute).toBeUndefined();
+        expect(G.powers.ottoman.cp).toBe(cp + 2);
+        expect(G.minorDiplomacyResolved).toContain("venice");
+        expect(G.log.some((line) => line.includes("declares war on Venice"))).toBe(true);
+    });
+
+    it("labels every choice through i18n", () => {
+        const G = game();
+        if (!G.powers.ottoman.cards.includes("vq-002")) G.powers.ottoman.cards.push("vq-002");
+        G.powers.hre.cards = ["vq-020"];
+        G.powers.hre.treasures = [3];
+
+        playCard(G, context(), {cardId: "vq-002", asEvent: true, target: "hre"});
+
+        const labels = Object.fromEntries(tributeOptions(G).map((option) => [option.id, option.label]));
+        expect(labels.refuse).toBe(i18n.chain.vq.tribute.refuse);
+        expect(labels.pay_card).toBe(i18n.chain.vq.tribute.payCard);
+        expect(labels.pay_treasure).toBe(i18n.chain.vq.tribute.payTreasure);
+        // No hard-coded English left over.
+        expect(Object.values(labels)).not.toContain("Refuse (war)");
     });
 });
