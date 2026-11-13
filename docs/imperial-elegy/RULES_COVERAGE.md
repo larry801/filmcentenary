@@ -491,7 +491,7 @@ Summary:
 
 ## Deliberately deferred
 
-- Bots (rule 34), bot PAC/priority and bot reference charts.
+- Bots (rule 34) **partially implemented**: `engine/bot.ts` provides Priority 1/2 action tables, BDIT targeting, BMPIT influence, wartime/GW priorities and pending-decision auto-answers; wired into `ImperialElegyGameDef` as `ai.enumerate`; hotseat local mode has a per-seat bot toggle. Random PAC dice and power-specific home-card edge cases use deterministic defaults.
 - Alternate scenarios (1870, 1880, No GW, alternate GW) and the 1850 tutorial.
 - Promotional cards P1–P3.
 - The printed Quick Start tutorial script.

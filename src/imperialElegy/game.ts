@@ -83,6 +83,7 @@ import {
 import {redactForView} from "./engine/privacy";
 import {ensureStateDefaults} from "./engine/migrations";
 import {beginEndPhase} from "./moves";
+import {enumerateBot} from "./engine/bot";
 
 const ALL_MOVES = {
   playCard,
@@ -282,6 +283,7 @@ const gwWinterBegin = (G: ImperialElegyState, ctx: Ctx): void => {
 
 export const ImperialElegyGameDef: Game<ImperialElegyState> = {
   name: "imperialElegy",
+  ai: {enumerate: enumerateBot},
   setup: (ctx: Ctx, setupData?: unknown) => setupImperialElegy(ctx, setupData),
   minPlayers: 6,
   maxPlayers: 6,
