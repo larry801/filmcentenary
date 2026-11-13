@@ -53,6 +53,10 @@ const loadBotSeatsMaybeSolo = (): Set<Power> => {
   return new Set();
 };
 
+/** `?solo=1` opens the seat-setup screen first; plain `/localIE` starts at once. */
+const wantsSeatSetup = (): boolean =>
+  new URLSearchParams(window.location.search).get("solo") === "1";
+
 const saveBotSeats = (seats: Set<Power>): void => {
   try {
     localStorage.setItem(BOT_SEATS_KEY, JSON.stringify([...seats]));
@@ -66,7 +70,12 @@ const LocalImperialElegy = () => {
   const tabRefs = React.useRef<(HTMLElement | null)[]>([]);
   const seatCount = POWERS.length;
   const [botSeats, setBotSeats] = React.useState<Set<Power>>(loadBotSeatsMaybeSolo);
-  const [started, setStarted] = React.useState(false);
+  // Plain `/localIE` keeps the historical behaviour: the board is live
+  // immediately.  Only the explicit solo entrance opens the seat setup.
+  const [started, setStarted] = React.useState(() => !wantsSeatSetup());
+  // A seat-setup change deals a new match, so the local master never resumes
+  // the old one with a different bot configuration.
+  const [matchNonce, setMatchNonce] = React.useState(0);
 
   React.useEffect(() => {
     const switchSeat = (event: KeyboardEvent) => {
@@ -104,7 +113,10 @@ const LocalImperialElegy = () => {
         </div>
         <Box sx={{p: 2}}>
           <Typography variant="subtitle1" sx={{mb: 1}}>
-            Bot seats (Rule 34)
+            {t.botSeatsTitle}
+          </Typography>
+          <Typography variant="body2" className="ie-muted" sx={{mb: 2}}>
+            {t.botSeatsHelp}
           </Typography>
           <Box sx={{display: "flex", flexWrap: "wrap", gap: 1, mb: 2}}>
             {POWERS.map((p, index) => (
@@ -123,7 +135,13 @@ const LocalImperialElegy = () => {
           </Box>
           <Box
             component="button"
-            onClick={() => setStarted(true)}
+            data-testid="ie-start-match"
+            onClick={() => {
+              // A fresh seat configuration is a fresh match: bump the nonce so
+              // the local master cannot resume the abandoned one.
+              setMatchNonce((n) => n + 1);
+              setStarted(true);
+            }}
             sx={{
               px: 3, py: 1,
               background: "#c8a84b",
@@ -147,6 +165,14 @@ const LocalImperialElegy = () => {
       <div className="ie-local-head">
         <Typography variant="h6" sx={{color: "#e6c987", letterSpacing: ".08em"}}>{t.localTitle}</Typography>
         <details><summary className="ie-muted">{t.localHelpLabel}</summary><div className="ie-muted">{t.localHelp}</div></details>
+        <button
+          type="button"
+          className="ie-btn secondary ie-mini"
+          data-testid="ie-seat-setup"
+          onClick={() => setStarted(false)}
+        >
+          {t.seatSetup}
+        </button>
       </div>
       <Tabs className="ie-local-tabs" value={tab} onChange={(_e, value) => setTab(value)} variant="scrollable" scrollButtons="auto" aria-label={t.seatTab}>
         {POWERS.map((p, index) => (
@@ -163,7 +189,9 @@ const LocalImperialElegy = () => {
         {POWERS.map((p, index) => (
           <Box key={p} sx={{display: tab === index ? "block" : "none"}} data-testid={`ie-seat-${p}`}>
             <BoardClient
-              matchID={MATCH_ID}
+              // A seat-setup change deals a new match, so an abandoned one is
+              // never silently resumed with a different bot configuration.
+              matchID={matchNonce === 0 ? MATCH_ID : `${MATCH_ID}_${matchNonce}`}
               playerID={String(index)}
               debug={false}
             />

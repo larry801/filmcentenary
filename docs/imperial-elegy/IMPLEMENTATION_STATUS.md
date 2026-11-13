@@ -685,12 +685,14 @@ python3 scripts/extract-imperial-elegy.py --check
 ```
 
 The IE browser specs use three separate Playwright configs. The **regression**
-config (5 tests, preview `:5203`) and **controls** config (3 tests, preview
-`:5201`) expect a manually started `vite preview`; the **spectator** config
-(3 tests) self-starts a boardgame.io server on `:4004` and a preview on `:5202`
-and requires `yarn build:server` first (build the server after `yarn build`,
-which clears `build/`). **Browser specs were rerun on this build:** 5/5
-regression, 3/3 controls and 3/3 spectator passed. The full commands are in
+config (5 tests, preview `:5203`) and the **controls** config (3 tests, preview
+`:5201`) each start their own `vite preview` over `build/`; the **spectator**
+config (3 tests) self-starts a boardgame.io server on `:4004` and a preview on
+`:5202` and requires `yarn build:server` first (build the server after
+`yarn build`, which clears `build/`). The default `yarn test:e2e` ignores all
+three because they do not run on the dev server's origin; `yarn test:e2e:ie`
+runs them. **Browser specs were rerun on this build:** 5/5 regression, 3/3
+controls and 3/3 spectator passed. The full commands are in
 [`README.md#ie-playwright-configs`](README.md#ie-playwright-configs).
 
 ### Targeted evidence available in the tree

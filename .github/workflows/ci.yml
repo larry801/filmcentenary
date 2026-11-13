@@ -95,8 +95,13 @@ jobs:
           path: build
       - name: Install Playwright browsers
         run: yarn playwright install --with-deps chromium
+      # The plain suite runs against the dev server (:5173).  The three
+      # Imperial Elegy specs have their own origins and build requirements, so
+      # they are a separate command rather than part of the default glob.
       - name: Run browser tests
         run: yarn test:e2e
+      - name: Run Imperial Elegy browser tests
+        run: yarn test:e2e:ie
       # Screenshots, traces and the HTML report are what a failure is
       # diagnosed from, so they are kept even when the run fails.
       - name: Upload the Playwright report

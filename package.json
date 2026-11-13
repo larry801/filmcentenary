@@ -100,6 +100,7 @@
     "start:server": "node build/server.js",
     "test": "jest",
     "test:e2e": "playwright test",
+    "test:e2e:ie": "playwright test --config=playwright.ie-regression.config.ts && playwright test --config=playwright.ie-controls.config.ts && playwright test --config=playwright.ie-spectator.config.ts",
     "a": "yarn build",
     "serve": "yarn build  && yarn build:server && yarn start:server",
     "extract:ie": "python3 scripts/extract-imperial-elegy.py",

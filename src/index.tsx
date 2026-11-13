@@ -5,6 +5,9 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import {Navigate, Route, Routes, BrowserRouter} from "react-router-dom";
 import DrawerAppBar from "./components/drawer-app-bar";
+// Binds `i18n.use()` to a real React hook for the browser.  Must be imported
+// before any component that calls it; the server bundle never loads it.
+import "./constant/i18nReact";
 import "./virginQueen/components/virgin-queen.css";
 
 const Local4p = React.lazy(() => import("./components/single/4p"));
