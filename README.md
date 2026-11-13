@@ -21,11 +21,16 @@ yarn serve
 
 ## 镜像
 
-master 分支的 CI（`.github/workflows/ci.docker.yml`）会构建并推送三个镜像：
+CI 分成两个 workflow：
 
-- `ghcr.io/larry801/film-centenary`：应用镜像（`docker-compose.yml` 使用）
-- `ghcr.io/larry801/film-centenary-base`：运行时依赖层
-- `ghcr.io/larry801/film-centenary-builder`：构建层
+- `.github/workflows/ci.yml`：单元测试、类型检查、生产构建和 Playwright E2E，
+  跑在 `master` 以及 `feature/**`、`fix/**`、`refactor/**`、`test/**` 分支上
+  （也响应指向 `master` 的 pull request）。
+- `.github/workflows/release.yml`：只有 `master` 会构建并推送三个镜像：
+
+  - `ghcr.io/larry801/film-centenary`：应用镜像（`docker-compose.yml` 使用）
+  - `ghcr.io/larry801/film-centenary-base`：运行时依赖层
+  - `ghcr.io/larry801/film-centenary-builder`：构建层
 
 同一个镜像也会同步推到 Docker Hub 的 `larry801/` 下。GHCR 上的包目前是公开的，
 可以直接匿名 `docker pull`；如果以后把包改成私有，部署机器拉取前需要先登录：

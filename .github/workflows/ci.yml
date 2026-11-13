@@ -1,0 +1,111 @@
+name: ci
+
+# Every branch that AGENTS.md allows an agent to develop on gets the full
+# remote test pipeline.  Releases are a different workflow (ci.docker.yml) and
+# only run on master.
+on:
+  push:
+    branches:
+      - master
+      - "feature/**"
+      - "fix/**"
+      - "refactor/**"
+      - "test/**"
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A force-push or a quick follow-up commit makes the older run obsolete.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  # Fast signal: types and unit tests do not need a bundle first.
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Type check
+        run: yarn tsc --noEmit
+      - name: Run unit tests
+        run: yarn test --ci
+
+  # Production build plus the server bundle.  The E2E job reuses `build/`
+  # instead of paying for a second build, and e2e/imperial-elegy-spectator
+  # needs build/server.js to exist before it starts.
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Build the frontend
+        run: yarn build
+      - name: Build the server bundle
+        run: yarn build:server
+      - name: Upload the build output
+        uses: actions/upload-artifact@v7
+        with:
+          name: app-build
+          path: build
+          retention-days: 3
+
+  e2e:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Download the build output
+        uses: actions/download-artifact@v8
+        with:
+          name: app-build
+          path: build
+      - name: Install Playwright browsers
+        run: yarn playwright install --with-deps chromium
+      - name: Run browser tests
+        run: yarn test:e2e
+      # Screenshots, traces and the HTML report are what a failure is
+      # diagnosed from, so they are kept even when the run fails.
+      - name: Upload the Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+          if-no-files-found: ignore
