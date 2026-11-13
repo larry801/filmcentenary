@@ -59,6 +59,7 @@ export const HandPanel = (props: HandPanelProps) => {
 
   return (
     <IEPanel
+      className="ie-hand-panel"
       title={`${t.hand}${viewer ? ` · ${t.seats[viewer]}` : ""}`}
       actions={hasPhaseButtons ? (
         <div className="ie-inline" data-testid="ie-impulse-actions">
@@ -74,7 +75,7 @@ export const HandPanel = (props: HandPanelProps) => {
       {!viewer || !me ? <div className="ie-muted">{t.privateInfo}: {t.hidden}. {t.spectators}.</div> : (
         <>
           <div className="ie-hand-meta">
-            <IEChip>{t.cp}: {G.cpRemaining}</IEChip>
+            <IEChip>{t.cp}: {props.cpBudget()}</IEChip>
             <IEChip>{t.hand}: {hand.length} {t.cards}</IEChip>
             <IEChip>{t.cpChain}: {me.cpChain.length}/2</IEChip>
             {responseInHand && <IEChip>{t.responseCard}: {hand.filter((id) => cardById(id).type === "response").length}</IEChip>}

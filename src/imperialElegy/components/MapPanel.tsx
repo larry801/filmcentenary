@@ -1,6 +1,6 @@
 import React from "react";
 import {ImperialElegyState, SpaceId} from "../types";
-import {spaceLabel} from "../constant/spaces";
+import {SPACES, spaceLabel} from "../constant/spaces";
 import {IEPanel} from "./theme";
 import {IEMap} from "./map";
 import {ieT} from "./i18n";
@@ -30,6 +30,15 @@ export const MapPanel = ({G, selected, onSelect, board, setBoard, pendingSpaceTa
       </div>
     }
   >
+    <label className="ie-space-picker">
+      <span>{t.selectSpace}</span>
+      <select className="ie-select" value={selected ?? ""} onChange={(event) => onSelect(event.target.value as SpaceId)}>
+        <option value="" disabled>{t.selectSpace}</option>
+        {Object.keys(SPACES).sort((a, b) => spaceLabel(a, locale).localeCompare(spaceLabel(b, locale), locale === "zh_CN" ? "zh-CN" : "en")).map((id) => (
+          <option key={id} value={id}>{spaceLabel(id, locale)}</option>
+        ))}
+      </select>
+    </label>
     <IEMap
       G={G}
       selected={selected}

@@ -840,7 +840,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
       ) : null}
 
       <div className="ie-layout">
-        <div>
+        <div className="ie-play-column">
           <MapPanel
             G={G}
             selected={selected}
@@ -855,7 +855,18 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
             mapHint={mapHint}
           />
 
-          <div className="ie-two-col">
+          <HandPanel
+            {...{G, viewer, me, t, phase, isActive, eliminated, pending, canPhaseAct,
+              hasPhaseButtons, forcedPass, forcedPassTitle, hand, handCounts, renderCard,
+              homeCardTitle, saveList, ngChoices, giveCards, giveCardId, setGiveCardId,
+              giveTarget, setGiveTarget, giveCardValue, responseInHand, responseWindow,
+              chainNonEmpty, chainSpendable, chainCap, chainReady, chainDisabledReason,
+              cpBudget, doAction, moves}}
+            locale={actualLocale}
+          />
+        </div>
+
+        <div className="ie-right-col">
             <SpacePanel
               G={G}
               selected={selected}
@@ -876,6 +887,24 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               canActionCard={canActionCard}
               pending={pending}
               canDecide={canDecide}
+      {(pending || battle || G.result) && <PendingPanel
+        G={G}
+        pending={pending}
+        canDecide={canDecide}
+        pendingKind={pendingKind}
+        pendingPrompt={pendingPrompt}
+        optionLabel={optionLabel}
+        canDecline={canDecline}
+        pendingSpaceTargets={pendingSpaceTargets}
+        viewer={viewer}
+        locale={actualLocale}
+        t={t}
+        jihadDecision={jihadDecision}
+        jihadReason={jihadReason}
+        doAction={doAction}
+        moves={moves}
+      />}
+
               war={war}
               warAim={warAim}
               setWarAim={setWarAim}
@@ -909,65 +938,8 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               moves={moves}
             />
 
-            <PendingPanel
-              G={G}
-              pending={pending}
-              canDecide={canDecide}
-              pendingKind={pendingKind}
-              pendingPrompt={pendingPrompt}
-              optionLabel={optionLabel}
-              canDecline={canDecline}
-              pendingSpaceTargets={pendingSpaceTargets}
-              viewer={viewer}
-              locale={actualLocale}
-              t={t}
-              jihadDecision={jihadDecision}
-              jihadReason={jihadReason}
-              doAction={doAction}
-              moves={moves}
-            />
-          </div>
-        </div>
-
-        <div className="ie-right-col">
-          <HandPanel
-            G={G}
-            viewer={viewer}
-            me={me}
-            locale={actualLocale}
-            t={t}
-            phase={phase}
-            isActive={isActive}
-            eliminated={eliminated}
-            pending={pending}
-            canPhaseAct={canPhaseAct}
-            hasPhaseButtons={hasPhaseButtons}
-            forcedPass={forcedPass}
-            forcedPassTitle={forcedPassTitle}
-            hand={hand}
-            handCounts={handCounts}
-            renderCard={renderCard}
-            homeCardTitle={homeCardTitle}
-            saveList={saveList}
-            ngChoices={ngChoices}
-            giveCards={giveCards}
-            giveCardId={giveCardId}
-            setGiveCardId={setGiveCardId}
-            giveTarget={giveTarget}
-            setGiveTarget={setGiveTarget}
-            giveCardValue={giveCardValue}
-            responseInHand={responseInHand}
-            responseWindow={responseWindow}
-            chainNonEmpty={chainNonEmpty}
-            chainSpendable={chainSpendable}
-            chainCap={chainCap}
-            chainReady={chainReady}
-            chainDisabledReason={chainDisabledReason}
-            cpBudget={cpBudget}
-            doAction={doAction}
-            moves={moves}
-          />
-
+          <details className="ie-reference">
+            <summary>{bi(actualLocale, "Powers & objectives", "列强与目标")}</summary>
           <DashboardPanel
             G={G}
             active={active}
@@ -1016,6 +988,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
             auSacrifice={auSacrifice}
             setAuSacrifice={setAuSacrifice}
             auIncorporateCandidates={auIncorporateCandidates}
+          </details>
             auIncorporateValue={auIncorporateValue}
             setAuIncorporateTarget={setAuIncorporateTarget}
             auIncorporate={auIncorporate}
