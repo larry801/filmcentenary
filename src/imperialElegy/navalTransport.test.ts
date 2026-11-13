@@ -53,8 +53,10 @@ const walk = (node: unknown, visit: (element: React.ReactElement<any>) => void):
   if (node === null || node === undefined || typeof node !== "object") return;
   if (Array.isArray(node)) { for (const child of node) walk(child, visit); return; }
   if (!React.isValidElement(node)) return;
-  visit(node as React.ReactElement<any>);
-  walk((node as React.ReactElement<any>).props?.children, visit);
+  const el = node as React.ReactElement<any>;
+  visit(el);
+  if (typeof el.type === "function") { try { walk((el.type as (p: any) => unknown)(el.props), visit); } catch {} }
+  walk(el.props?.children, visit);
 };
 const byTestId = (tree: React.ReactElement, testId: string): React.ReactElement<any> | undefined => {
   let found: React.ReactElement<any> | undefined;

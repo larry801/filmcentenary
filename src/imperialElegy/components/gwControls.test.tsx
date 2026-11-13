@@ -132,8 +132,13 @@ const walk = (node: unknown, visit: (element: React.ReactElement<any>) => void):
     return;
   }
   if (!React.isValidElement(node)) return;
-  visit(node as React.ReactElement<any>);
-  walk((node as React.ReactElement<any>).props?.children, visit);
+  const el = node as React.ReactElement<any>;
+  visit(el);
+  // Expand function components so sub-panels are visible to byTestId
+  if (typeof el.type === "function") {
+    try { walk((el.type as (p: any) => unknown)(el.props), visit); } catch {}
+  }
+  walk(el.props?.children, visit);
 };
 
 const byTestId = (tree: React.ReactElement, testId: string): React.ReactElement<any> | undefined => {
