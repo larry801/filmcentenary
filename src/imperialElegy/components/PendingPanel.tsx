@@ -30,7 +30,7 @@ export const PendingPanel = ({
 }: PendingPanelProps) => (
   <IEPanel title={t.pending} actions={pendingKind ? <IEBadge tone="warn">{pendingKind}</IEBadge> : undefined}>
     {!pending ? <div className="ie-muted">{t.noPending}</div> : (
-      <div className="ie-pending" data-testid="ie-pending">
+      <div className={`ie-pending${canDecide ? " urgent" : ""}`} data-testid="ie-pending">
         <h4>{canDecide ? t.yourDecision : `${t.waitingFor}: ${t.seats[pending.power]}`}</h4>
         <div className="ie-pending-kind" data-testid="ie-pending-kind">{pendingKind} · {t.pendingFor}: {t.seats[pending.power]}</div>
         <div className="ie-pending-prompt">{pendingPrompt}</div>

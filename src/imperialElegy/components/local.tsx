@@ -134,7 +134,7 @@ const LocalImperialElegy = () => {
     <IESurface className="ie-local">
       <div className="ie-local-head">
         <Typography variant="h6" sx={{color: "#e6c987", letterSpacing: ".08em"}}>{t.localTitle}</Typography>
-        <details><summary className="ie-muted">{t.localHelp}</summary><div className="ie-muted">{t.localHelp}</div></details>
+        <details><summary className="ie-muted">{t.localHelpLabel}</summary><div className="ie-muted">{t.localHelp}</div></details>
       </div>
       <Tabs className="ie-local-tabs" value={tab} onChange={(_e, value) => setTab(value)} variant="scrollable" scrollButtons="auto" aria-label={t.seatTab}>
         {POWERS.map((p, index) => (
