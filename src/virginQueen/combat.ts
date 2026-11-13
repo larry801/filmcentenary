@@ -1,11 +1,12 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Controller, Power, VQGame, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
+import {Controller, Power, VQGame, isPower, landCount, navalCount, spaceHomes, controllerName} from "./constant/general";
 import {cardById, cardName} from "./constant/cards";
 import i18n from "../constant/i18n";
 import {LEADER_BY_ID} from "./constant/leaders";
 import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
+import {resolveNavalMoves} from "./moves";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {
     addBesieger,
@@ -58,6 +59,9 @@ const endBattle = (G: VQGame, ctx: Ctx): void => {
     // Drop the auxiliary Virgin Queen stage too; endStage only ends the stage
     // of the player who made the current move.
     ctx.events?.setActivePlayers({value: {}});
+    // A Naval Move action may have several arrivals.  Once this battle is
+    // settled, continue the same paid action before giving the impulse back.
+    resolveNavalMoves(G, ctx);
 };
 
 const retreatOptions = (G: VQGame, battle: Battle, power: Power): string[] => {
@@ -117,7 +121,7 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
         if (battle.intercepted) return options;
         if (battle.phase === "naval" && !isSeaZone(battle.location)) return options;
         if (isFortifiedSpace(G, battle.location) && sideUnits(G, battle, false) <= 4) options.push({id: "fortify", label: i18n.chain.vq.engine.retreatIntoFortress});
-        for (const destination of retreatOptions(G, battle, power)) options.push({id: `avoid:${destination}`, label: `${i18n.chain.vq.engine.avoidBattleTo} ${mapName(destination)}`});
+        for (const destination of retreatOptions(G, battle, power)) options.push({id: `avoid:${destination}`, label: `${i18n.chain.vq.engine.avoidBattleTo} ${mapName(destination, locale)}`});
         return options;
     }
     if (battle.step === "attackerCards" || battle.step === "defenderCards" || battle.step === "attackerAfterRoll" || battle.step === "defenderAfterRoll") {
@@ -151,12 +155,13 @@ export const battleOptions = (G: VQGame): BattleOption[] => {
             for (const [kind, count] of Object.entries(stack ?? {})) {
                 const remaining = battle.losses![battle.step === "attackerLosses" ? "attacker" : "defender"];
                 const loser = battle.hitCounts!.attacker > battle.hitCounts!.defender ? battle.defender : battle.attacker;
-                if (count > 0 && (battle.phase !== "naval" || kind === "corsair" || remaining >= 2 || power === loser)) result.push({id: `loss:${owner}:${kind}`, label: `${i18n.chain.vq.engine.removeOne} ${owner} ${kind}`});
+                const unit = i18n.chain.vq.cardDraw[kind as "regular" | "merc" | "cav" | "galley" | "galleon" | "racebuilt" | "corsair"];
+                if (count > 0 && (battle.phase !== "naval" || kind === "corsair" || remaining >= 2 || power === loser)) result.push({id: `loss:${owner}:${kind}`, label: `${i18n.chain.vq.engine.removeOne} ${controllerName(owner, locale)} ${unit}`});
             }
         }
         return result;
     }
-    return retreatOptions(G, battle, battle.loser!).map((id) => ({id: `retreat:${id}`, label: `${i18n.chain.vq.engine.retreatTo} ${mapName(id)}`}));
+    return retreatOptions(G, battle, battle.loser!).map((id) => ({id: `retreat:${id}`, label: `${i18n.chain.vq.engine.retreatTo} ${mapName(id, locale)}`}));
 };
 
 const finishCasualties = (G: VQGame, ctx: Ctx): void => {

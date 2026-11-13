@@ -14,11 +14,12 @@ import {controllerName, powerName, landCount, LandStack, POWER_INFO, POWERS, Pow
 import {cardById, cardName} from "../../constant/cards";
 import {LEADER_BY_ID} from "../../constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID} from "../../mapData";
-import {capitalSpacesFor, controlledKeys, protestantKeysOutsideNetherlands, rulerStats, victoryStandings, formationCapacity, friendlyController, legalTargets} from "../../util";
+import {capitalSpacesFor, controlledKeys, protestantKeysOutsideNetherlands, rulerStats, victoryStandings, formationCapacity, friendlyController, legalTargets, springTargetsFrom} from "../../util";
+import {defaultFormation, landMoveIssue, springMoveIssue, transportMoveIssue, type MovementIssue} from "../../movement";
 import {controlledPowers, ownerOf, isActivatedMajor} from "../../ownership";
 import {TUTORIAL_POWER_CARDS} from "../../tutorial";
 import {Controller} from "../../constant/general";
-import {passBlockReasons, type PassBlock} from "../../moves";
+import {passBlockReasons, type PassBlock, type NavalMoveOrder} from "../../moves";
 
 import {ArmyMutinyTargetSelection, EMPTY_EVENT_SELECTION, GermanRecruitmentTargetSelection, MODE_COST, Mode, StaffordTargetSelection, VirginQueenBoardProps, actionResponderChoices, actionWindowResponders, eventSelectionReducer, leaderLabel, legalDiplomacyTarget, phaseLabel, unitLabel, virginQueenCombatRetrieveOptions} from "./helpers";
 
@@ -50,6 +51,11 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     const [movingOwner, setMovingOwner] = React.useState<Controller>("ottoman");
     const [movingLeaders, setMovingLeaders] = React.useState<string[]>([]);
     const [transportZones, setTransportZones] = React.useState<string[]>([]);
+    const [navalOrders, setNavalOrders] = React.useState<NavalMoveOrder[]>([]);
+    const submittedMove = React.useRef<{name: string; logLength: number} | undefined>(undefined);
+    const submission = submittedMove.current;
+    const acceptedMove = submission !== undefined && log?.slice(submission.logLength).some(({action}) =>
+        action.type === "MAKE_MOVE" && action.payload.type === submission.name && action.payload.playerID === playerID);
     const [rebelCp, setRebelCp] = React.useState(2);
     const [seaCaptainChoice, setSeaCaptainChoice] = React.useState("");
     const [seaCaptainPort, setSeaCaptainPort] = React.useState("");
@@ -203,7 +209,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         const tab = switchToTab(G.activePower);
         return tab === undefined ? base : `${base} ${tab}`;
     };
-    const canAct = myTurn && phase === "action" && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingTribute && !G.pendingMutiny && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
+    const canAct = myTurn && phase === "action" && !G.pendingNavalMoves && !G.pendingNavalOrder && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingTribute && !G.pendingMutiny && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
     /** Why an action mode is unavailable, or undefined when it can be picked. */
@@ -225,12 +231,14 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         if (!isMoveMode(mode)) return {steps: [`${i18n.chain.vq.step.clickHighlighted} · ${mode === "rebellion" ? rebelCp : MODE_COST[mode]} CP`], active: 0};
         const e = i18n.chain.vq.step;
         const steps = mode === "moveNaval"
-            ? [e.chooseOrigin, e.chooseTarget]
+            ? [e.chooseOrigin, e.chooseTarget, i18n.chain.vq.actionUi.executeNavalOrders]
             : [e.chooseOrigin, e.chooseUnit, e.chooseTarget];
-        return {steps, active: from === null ? 0 : 1};
+        return {steps, active: from !== null ? 1 : mode === "moveNaval" && navalOrders.length > 0 ? 2 : 0};
     };
 
-    const mapHighlights = mode === "inspect" ? undefined : legalTargets(G, me, mode, from);
+    const mapHighlights = mode === "inspect" ? undefined : mode === "spring" && from && me
+        ? springTargetsFrom(G, me, from, landCount(movingUnits)) : legalTargets(G, me, mode, from);
+    if (mode === "moveNaval" && from === null) navalOrders.forEach((order) => mapHighlights?.delete(order.from));
     const stepInfo = stepState();
 
     /** Sea zones that can be appended next to the transport route. */
@@ -248,16 +256,14 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
      * Units staged by default when an origin is chosen: the whole stack clipped
      * to the formation limit so the obvious next click does not fail silently.
      */
-    const defaultFormationUnits = (origin: string, leaders: string[]): LandStack => {
-        const available = (me !== undefined ? G.spaces[origin]?.land[me] : undefined) ?? {regular: 0, merc: 0, cav: 0};
-        let remaining = formationCapacity(leaders);
-        const units: LandStack = {regular: 0, merc: 0, cav: 0};
-        for (const kind of ["regular", "merc", "cav"] as const) {
-            const take = Math.min(available[kind], remaining);
-            units[kind] = take;
-            remaining -= take;
-        }
-        return units;
+    const stageFormation = (origin: string, owner: Controller): void => {
+        const formation = defaultFormation(G, origin, owner, mode === "navalTransport");
+        setFrom(origin);
+        setMovingOwner(owner);
+        setMovingLeaders(formation.leaders);
+        setMovingUnits(formation.units);
+        setTransportZones([]);
+        setActionNotice(undefined);
     };
 
     /**
@@ -266,7 +272,9 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
      * the owner picker.
      */
     const stackPicker = (spring: boolean) => {
-        if (from === null) return null;
+        // Hide a consumed formation immediately, before the cleanup effect, so
+        // its former counts are not rendered against the depleted origin.
+        if (from === null || acceptedMove) return null;
         const source = G.spaces[from];
         if (source === undefined) return null;
         const owner: Controller = spring && me !== undefined ? me : movingOwner;
@@ -276,9 +284,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         return <>
             {!spring && <Select size="small" value={movingOwner} onChange={(event) => {
                 const nextOwner = event.target.value as Controller;
-                setMovingOwner(nextOwner);
-                setMovingUnits({...G.spaces[from].land[nextOwner]!});
-                setMovingLeaders([]);
+                stageFormation(from, nextOwner);
             }}>
                 {(Object.keys(G.spaces[from].land) as Controller[])
                     .filter((candidate) => ((spring || mode === "navalTransport") ? candidate === me : friendlyController(G, me, candidate)) &&
@@ -287,7 +293,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
             </Select>}
             {(["regular", "merc", "cav"] as const).map((kind) => <Stack key={kind} direction="row" spacing={1}>
                 <Typography variant="caption">{unitLabel(kind)}</Typography>
-                <Select size="small" value={movingUnits[kind]} onChange={(event) => setMovingUnits({...movingUnits, [kind]: Number(event.target.value)})}>
+                <Select size="small" inputProps={{"aria-label": unitLabel(kind)}} value={movingUnits[kind]} onChange={(event) => setMovingUnits({...movingUnits, [kind]: Number(event.target.value)})}>
                     {Array.from({length: (available[kind] ?? 0) + 1}, (_, count) => <MenuItem key={count} value={count}>{count}</MenuItem>)}
                 </Select>
             </Stack>)}
@@ -316,6 +322,8 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         // phase, so arm it automatically instead of asking for a dropdown pick.
         setMode(ctx.phase === "spring" && myTurn ? "spring" : "inspect");
         setFrom(null);
+        setNavalOrders([]);
+        submittedMove.current = undefined;
         setForeignWarUnits([]);
         setForeignWarLeader("");
     }, [ctx.phase, ctx.currentPlayer, G.activePower, myTurn]);
@@ -323,6 +331,21 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     // A move that went through (the log grew) supersedes the last rejected-click
     // notice. Declared before the CP check below so its own notice survives.
     React.useEffect(() => {setActionNotice(undefined);}, [G.log.length]);
+
+    // An accepted move adds a boardgame.io log entry, including moves that
+    // pause for responses and Spring moves without a narrative log message.
+    // Rejected moves leave the staged selection in place for correction.
+    React.useEffect(() => {
+        const submitted = submittedMove.current;
+        if (!submitted || !acceptedMove) return;
+        submittedMove.current = undefined;
+        setFrom(null);
+        setTransportZones([]);
+        if (submitted.name === "moveNaval") setNavalOrders([]);
+        setActionNotice(undefined);
+    }, [acceptedMove]);
+
+    React.useEffect(() => {if (mode !== "moveNaval") setNavalOrders([]);}, [mode]);
 
     React.useEffect(() => {
         // A one-shot action can spend the last CP; do not leave the map in a
@@ -378,20 +401,30 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         if (G.spaces[id] === undefined && mode !== "moveNaval" && mode !== "navalTransport") return;
         // While routing a naval transport, clicking sea zones appends them to the
         // ordered route instead of executing anything.
-        if (mode === "navalTransport" && from !== null && G.spaces[id] === undefined) {
-            setTransportZones((zones) => zones.includes(id) ? zones : [...zones, id]);
+        if ((!canAct && !(myTurn && phase === "spring" && mode === "spring")) || me === undefined) {
             return;
         }
-        if ((!canAct && !(myTurn && phase === "spring" && mode === "spring")) || me === undefined) {
+        if (mode === "navalTransport" && from !== null && G.spaces[id] === undefined) {
+            if (!transportCandidates.some((zone) => zone.id === id)) setActionNotice(i18n.chain.vq.actionUi.transportRoute);
+            else setTransportZones((zones) => [...zones, id]);
             return;
         }
         const oneShot = mode === "recruitRegular" || mode === "recruitMerc" || mode === "recruitCav" ||
             mode === "buildGalley" || mode === "buildGalleon" || mode === "buildRacebuilt" || mode === "buildCorsair" ||
             mode === "control" || mode === "assault" || mode === "buildFortress" || mode === "rebellion";
-        if (oneShot && mapHighlights !== undefined && !mapHighlights.has(id)) {
+        if ((oneShot || (isMoveMode(mode) && (from === null || mode === "moveNaval"))) && mapHighlights !== undefined && !mapHighlights.has(id)) {
             setActionNotice(i18n.chain.vq.actionUi.illegalTarget);
             return;
         }
+        const submit = (name: string, args: unknown): void => {
+            submittedMove.current = {name, logLength: log?.length ?? 0};
+            moves[name](args);
+        };
+        const reject = (issue: MovementIssue | undefined): boolean => {
+            if (!issue) return false;
+            setActionNotice(i18n.chain.vq.actionUi[issue]);
+            return true;
+        };
         switch (mode) {
             case "recruitRegular":
                 moves.recruit({space: id, kind: "regular"});
@@ -420,45 +453,34 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
                     const owner = (Object.keys(G.spaces[id].land) as Controller[]).find((candidate) =>
                         (mode === "navalTransport" ? candidate === me : friendlyController(G, me, candidate)) && landCount(G.spaces[id].land[candidate]) > 0);
                     if (owner) {
-                        setFrom(id);
-                        setMovingOwner(owner);
-                        setMovingUnits({...G.spaces[id].land[owner]!});
-                        setMovingLeaders(G.spaces[id].leaders.filter((leader) => LEADER_BY_ID[leader]?.power === owner && LEADER_BY_ID[leader]?.kind === "army"));
-                        setTransportZones([]);
+                        stageFormation(id, owner);
                     }
                 } else {
-                    if (mode === "navalTransport") moves.navalTransport({from, to: id, zones: transportZones, units: movingUnits, leaders: movingLeaders});
-                    else moves.moveLand({from, to: id, units: movingUnits, unitPower: movingOwner, leaders: movingLeaders});
-                    setFrom(null);
+                    const order = {from, to: id, zones: transportZones, units: movingUnits, leaders: movingLeaders};
+                    if (mode === "navalTransport") {
+                        if (!reject(transportMoveIssue(G, me, order))) submit("navalTransport", order);
+                    } else if (!reject(landMoveIssue(G, me, order, movingOwner))) submit("moveLand", {...order, unitPower: movingOwner});
                 }
                 break;
             case "moveNaval":
                 if (from === null) {
-                    if (G.seaZones[id as keyof VQGame["seaZones"]]?.naval[me] !== undefined) {
-                        setFrom(id);
-                    } else if (G.spaces[id] !== undefined && (G.spaces[id].naval[me] !== undefined)) {
-                        setFrom(id);
-                    }
+                    // Legal origins include the Armada even without an escort.
+                    setFrom(id);
                 } else {
-                    moves.moveNaval({from, to: id});
+                    setNavalOrders((orders) => [...orders, {from, to: id}]);
                     setFrom(null);
+                    setActionNotice(undefined);
                 }
                 break;
             case "spring":
                 if (from === null) {
                     const stack = G.spaces[id].land[me];
                     if (capitalSpacesFor(G, me).includes(id) && stack !== undefined && landCount(stack) > 0) {
-                        const leaders = G.spaces[id].leaders
-                            .filter((leader) => LEADER_BY_ID[leader]?.power === me && LEADER_BY_ID[leader]?.kind === "army")
-                            .slice(0, 2);
-                        setFrom(id);
-                        setMovingOwner(me);
-                        setMovingLeaders(leaders);
-                        setMovingUnits(defaultFormationUnits(id, leaders));
+                        stageFormation(id, me);
                     }
                 } else {
-                    moves.springDeploy({from, to: id, units: movingUnits, leaders: movingLeaders});
-                    setFrom(null);
+                    const order = {from, to: id, units: movingUnits, leaders: movingLeaders};
+                    if (!reject(springMoveIssue(G, me, order))) submit("springDeploy", order);
                 }
                 break;
             case "control":
@@ -544,5 +566,39 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
             if (sidebarRef.current) sidebarRef.current.scrollTop = 0;
         }
     }, [needsAction, pendingPower, G.pendingBattle?.step, G.pendingPiracy?.step, G.pendingTutorialEvent?.step, G.pendingCardEvent, G.pendingEspionage?.step]);
-    return {G, log, ctx, moves, playerID, isActive, matchID, hotseat, vqLocale, militaryKeyCount, militaryGoalFor, militaryGoal, selected, setSelected, isDesktop, mobileView, setMobileView, handExpanded, setHandExpanded, selectedCard, setSelectedCard, eventSelection, dispatchEventSelection, actionRef, sidebarRef, panelID, mode, setMode, from, setFrom, movingUnits, setMovingUnits, movingOwner, setMovingOwner, movingLeaders, setMovingLeaders, transportZones, setTransportZones, rebelCp, setRebelCp, seaCaptainChoice, setSeaCaptainChoice, seaCaptainPort, setSeaCaptainPort, piracyZone, setPiracyZone, piracyTarget, setPiracyTarget, diploTarget, setDiploTarget, actionNotice, setActionNotice, loanFromPort, setLoanFromPort, loanToPort, setLoanToPort, loanLeader, setLoanLeader, domesticRoyal, setDomesticRoyal, foreignRoyal, setForeignRoyal, patronageCp, setPatronageCp, espionageTargetSelection, setEspionageTarget, assassinationTarget, setAssassinationTarget, assassinationCp, setAssassinationCp, catholicRebellionCp, setCatholicRebellionCp, informantSource, setInformantSource, eventTarget, espionageEventTarget, holyLeagueEventTarget, menendezEventTarget, polishElectionBids, armyMutinySelection, staffordSelection, germanRecruitmentSelection, setEventTarget, setEspionageEventTarget, setHolyLeagueEventTarget, setMenendezEventTarget, setPolishElectionBids, setArmyMutinySelection, setStaffordSelection, setGermanRecruitmentSelection, setEventBranches, setEventBranchParam, openCard, expeditionCaptain, setExpeditionCaptain, expeditionHasColony, setExpeditionHasColony, foreignArmySize, setForeignArmySize, foreignWarUnits, setForeignWarUnits, foreignWarLeader, setForeignWarLeader, gregorianTarget, setGregorianTarget, selectedActionResponder, setSelectedActionResponder, selectedAbjurationPower, setSelectedAbjurationPower, confirmAction, setConfirmAction, sheetOpen, setSheetOpen, formationSheetOpen, setFormationSheetOpen, viewPower, setViewPower, owned, piracyResponder, actionResponders, myActionChoices, myActionResponders, actionResponder, responsePower, me, legalEspionageTargets, espionageTarget, myTurn, diploTargetValue, switchToTab, phase, phaseText, displayYear, ps, cp, hand, passBlockCodes, passBlockText, passBlockReason, endImpulseBlocked, hotseatWaitHint, canAct, vqCombatRetrieve, modeDisabledReason, isMoveMode, stepState, mapHighlights, stepInfo, transportCandidates, defaultFormationUnits, stackPicker, formationSummary, doSpaceAction, onSelect, space, spaceDef, standings, religionActions, pendingPower, hasResponse, winterLandChoice, winterNavalChoice, winterChoiceRequired, needsAction, winterChoiceLabel, selectedSea, panelProps};
+    const submitNavalOrders = (): void => {
+        if (!canAct || me === undefined || navalOrders.length === 0) return;
+        if (navalOrders.some(({from, to}) => !legalTargets(G, me, "moveNaval", from).has(to))) {
+            setActionNotice(i18n.chain.vq.actionUi.illegalTarget);
+            return;
+        }
+        submittedMove.current = {name: "moveNaval", logLength: log?.length ?? 0};
+        moves.moveNaval({fleets: navalOrders});
+    };
+    return {
+        navalOrders, setNavalOrders, submitNavalOrders,
+        G, log, ctx, moves, playerID, isActive, matchID, hotseat, vqLocale, militaryKeyCount, militaryGoalFor, militaryGoal,
+        selected, setSelected, isDesktop, mobileView, setMobileView, handExpanded, setHandExpanded, selectedCard, setSelectedCard,
+        eventSelection, dispatchEventSelection, actionRef, sidebarRef, panelID, mode, setMode, from, setFrom,
+        movingUnits, setMovingUnits, movingOwner, setMovingOwner, movingLeaders, setMovingLeaders, transportZones, setTransportZones,
+        rebelCp, setRebelCp, seaCaptainChoice, setSeaCaptainChoice, seaCaptainPort, setSeaCaptainPort,
+        piracyZone, setPiracyZone, piracyTarget, setPiracyTarget, diploTarget, setDiploTarget, actionNotice, setActionNotice,
+        loanFromPort, setLoanFromPort, loanToPort, setLoanToPort, loanLeader, setLoanLeader, domesticRoyal, setDomesticRoyal,
+        foreignRoyal, setForeignRoyal, patronageCp, setPatronageCp, espionageTargetSelection, setEspionageTarget,
+        assassinationTarget, setAssassinationTarget, assassinationCp, setAssassinationCp, catholicRebellionCp, setCatholicRebellionCp,
+        informantSource, setInformantSource, eventTarget, espionageEventTarget, holyLeagueEventTarget, menendezEventTarget,
+        polishElectionBids, armyMutinySelection, staffordSelection, germanRecruitmentSelection, setEventTarget,
+        setEspionageEventTarget, setHolyLeagueEventTarget, setMenendezEventTarget, setPolishElectionBids,
+        setArmyMutinySelection, setStaffordSelection, setGermanRecruitmentSelection, setEventBranches, setEventBranchParam,
+        openCard, expeditionCaptain, setExpeditionCaptain, expeditionHasColony, setExpeditionHasColony, foreignArmySize, setForeignArmySize,
+        foreignWarUnits, setForeignWarUnits, foreignWarLeader, setForeignWarLeader, gregorianTarget, setGregorianTarget,
+        selectedActionResponder, setSelectedActionResponder, selectedAbjurationPower, setSelectedAbjurationPower,
+        confirmAction, setConfirmAction, sheetOpen, setSheetOpen, formationSheetOpen, setFormationSheetOpen, viewPower, setViewPower,
+        owned, piracyResponder, actionResponders, myActionChoices, myActionResponders, actionResponder, responsePower,
+        me, legalEspionageTargets, espionageTarget, myTurn, diploTargetValue, switchToTab, phase, phaseText, displayYear,
+        ps, cp, hand, passBlockCodes, passBlockText, passBlockReason, endImpulseBlocked, hotseatWaitHint, canAct, vqCombatRetrieve,
+        modeDisabledReason, isMoveMode, stepState, mapHighlights, stepInfo, transportCandidates, stackPicker, formationSummary,
+        doSpaceAction, onSelect, space, spaceDef, standings, religionActions, pendingPower, hasResponse, winterLandChoice,
+        winterNavalChoice, winterChoiceRequired, needsAction, winterChoiceLabel, selectedSea, panelProps,
+    };
 };

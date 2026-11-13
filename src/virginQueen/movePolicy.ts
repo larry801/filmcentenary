@@ -4,6 +4,9 @@ import {tutorialActionError} from "./tutorial";
 import {LEADER_BY_ID} from "./constant/leaders";
 
 export const moveError = (G: VQGame, move: string, args?: unknown): string | undefined => {
+    if ((G.pendingNavalMoves || G.pendingNavalOrder) && !["chooseBattle", "playVirginQueenCombat", "playCard", "chooseInterception", "respondBeaconFires", "chooseInterceptionOrder", "autoInterceptionOrder", "chooseNavalOrder"].includes(move)) {
+        return "请先完成当前海军行动的拦截与战斗。";
+    }
     if (G.pendingEspionage && move !== "chooseEspionage") return "请先完成当前谍报结算。";
     if (G.pendingCardEvent && move !== "chooseCardEvent") return "请先完成当前事件响应。";
     if (G.pendingRebelMove && move !== "chooseRebelMove") return "请先完成叛军移动。";

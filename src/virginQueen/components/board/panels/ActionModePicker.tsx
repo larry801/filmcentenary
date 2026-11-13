@@ -15,6 +15,7 @@ import {ACTION_BUTTON_GROUPS, modeLabel, placeLabel, vqLocaleNow} from "../helpe
 import {useVQBoard} from "../BoardContext";
 
 export const ActionModePicker = () => {
+    const {navalOrders, setNavalOrders, submitNavalOrders, canAct, cp} = useVQBoard();
     const {G, myTurn, setActionNotice, isDesktop, setMobileView, mode, setMode, from, setFrom, transportZones, setTransportZones, rebelCp, setRebelCp, me, modeDisabledReason, transportCandidates, stackPicker} = useVQBoard();
     if (me === undefined) return null;
     // Off-turn, a grid of disabled buttons only adds noise; the panel's waiting
@@ -54,6 +55,14 @@ export const ActionModePicker = () => {
                 </div>;
             })}
         </div>
+        {mode === "moveNaval" && <Stack spacing={1} className="vq-naval-orders">
+            <Typography variant="caption">{i18n.chain.vq.actionUi.navalOrdersHint}</Typography>
+            {navalOrders.map((order) => <Chip key={order.from}
+                label={`${placeLabel(order.from)} → ${placeLabel(order.to)}`}
+                onDelete={() => setNavalOrders(navalOrders.filter((entry) => entry.from !== order.from))}/>)}
+            <Button variant="contained" disabled={!canAct || cp < 1 || navalOrders.length === 0}
+                onClick={submitNavalOrders}>{i18n.chain.vq.actionUi.executeNavalOrders}</Button>
+        </Stack>}
         {(mode === "moveLand" || mode === "navalTransport") && from && <Stack spacing={0.5}>
             <Typography variant="caption">{i18n.chain.vq.board.moveHint}</Typography>
             {mode === "navalTransport" && <>

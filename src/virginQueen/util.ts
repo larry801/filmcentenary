@@ -5294,7 +5294,7 @@ export const springSeaCrossingBlocked = (G: VQGame, p: Power, zone: SeaZoneID): 
  * crossing at most one sea zone, with no passes, unrest, foreign units or
  * foreign leaders on the path.  Mirrors the BFS in `springDeploy`.
  */
-const springTargetsFrom = (G: VQGame, p: Power, from: string): Set<string> => {
+export const springTargetsFrom = (G: VQGame, p: Power, from: string, unitCount?: number): Set<string> => {
     const out = new Set<string>();
     const source = G.spaces[from]?.land[p];
     if (source === undefined || landCount(source) === 0) return out;
@@ -5302,13 +5302,14 @@ const springTargetsFrom = (G: VQGame, p: Power, from: string): Set<string> => {
         const state = G.spaces[id];
         if (state === undefined || !friendlyControlled(G, p, id) || state.unrest) return false;
         if (ownersWithLand(G, id).some((owner) => !friendlyController(G, p, owner))) return false;
+        if (G.scenario === "tutorial") return tutorialSpaceAllowed(id);
         if (ownersWithNaval(G, id).some((owner) => !friendlyController(G, p, owner))) return false;
         return state.leaders.every((leader) => {
             const def = LEADER_BY_ID[leader];
             return def === undefined || friendlyController(G, p, def.power);
         });
     };
-    const canCrossSea = landCount(source) <= 5;
+    const canCrossSea = (unitCount ?? landCount(source)) <= 5;
     const seen = new Set<string>([`${from}:false`]);
     const queue: {id: string; crossedSea: boolean}[] = [{id: from, crossedSea: false}];
     while (queue.length > 0) {
@@ -5325,8 +5326,13 @@ const springTargetsFrom = (G: VQGame, p: Power, from: string): Set<string> => {
         for (const zone of portZones(current.id)) {
             // Other major powers' naval units in the zone's ports block the
             // crossing even when allied (10.6).
-            if (springSeaCrossingBlocked(G, p, zone)) continue;
-            if (ownersWithNaval(G, zone).some((owner) => !friendlyController(G, p, owner))) continue;
+            if (G.scenario === "tutorial") {
+                if (zonePorts(zone).some((port) => ownersWithNaval(G, port).some((owner) => owner !== p)) ||
+                    ownersWithNaval(G, zone).some((owner) => owner !== p)) continue;
+            } else {
+                if (springSeaCrossingBlocked(G, p, zone)) continue;
+                if (ownersWithNaval(G, zone).some((owner) => !friendlyController(G, p, owner))) continue;
+            }
             for (const port of zonePorts(zone)) {
                 if (port === current.id || !pathSpaceAllowed(port)) continue;
                 const key = `${port}:true`;
@@ -5342,13 +5348,13 @@ const springTargetsFrom = (G: VQGame, p: Power, from: string): Set<string> => {
 };
 
 /** Rule 5.2 land movement: mirrors the destination checks in `moveLand`. */
-const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string): boolean => {
+export const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string, selectedOwner?: Controller): boolean => {
     const src = G.spaces[from];
     const dst = G.spaces[to];
     if (src === undefined || dst === undefined || from === to) return false;
     if (!landNeighbors(from).some((n) => n.id === to)) return false;
     const unitPowers = (Object.keys(src.land) as Controller[])
-        .filter((owner) => friendlyController(G, p, owner) && landCount(src.land[owner]) > 0);
+        .filter((owner) => (selectedOwner === undefined || selectedOwner === owner) && friendlyController(G, p, owner) && landCount(src.land[owner]) > 0);
     if (unitPowers.length === 0) return false;
     const defTo = SPACE_BY_ID[to];
     const spainIberianPenalty = p === "spain" && defTo !== undefined &&
@@ -5364,7 +5370,9 @@ const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string): boolean =
         if (G.lostBattleImpulse?.impulse === G.impulse && G.lostBattleImpulse.owners.includes(unitPower)) return false;
         // Units inside a besieged fortress may not march out; the besieger may.
         if (spaceHasEnemyLand(G, p, from) && src.siege !== undefined && !besiegerOwners(G, from).includes(p)) return false;
-        const canEnter = friendlyControlled(G, p, to) || dst.control === "independent" ||
+        const declaresWar = (p === "england" && defTo?.area === "netherlands" && dst.control === "spain") ||
+            (p === "spain" && dst.control === "england" && spaceHomes(defTo).some((home) => home === "ireland" || home === "scotland"));
+        const canEnter = declaresWar || friendlyControlled(G, p, to) || dst.control === "independent" ||
             (isPower(dst.control) ? atWar(G, p, dst.control) : atWarWithMinor(G, p, dst.control as MinorPower));
         const otherUnits = ownersWithLand(G, to).filter((owner) => !friendlyController(G, p, owner));
         if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0)) return false;
@@ -5373,7 +5381,7 @@ const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string): boolean =
 };
 
 /** Rule 16.1 naval movement: mirrors the destination checks in `moveNaval`. */
-const canMoveNavalTo = (G: VQGame, p: Power, from: string, to: string): boolean => {
+export const canMoveNavalTo = (G: VQGame, p: Power, from: string, to: string): boolean => {
     if (!isSeaZone(from) && G.spaces[from] === undefined) return false;
     if (!isSeaZone(to) && G.spaces[to] === undefined) return false;
     if (!navalAdjacent(from, to)) return false;
@@ -5385,8 +5393,8 @@ const canMoveNavalTo = (G: VQGame, p: Power, from: string, to: string): boolean 
         const enemyNaval = ownersWithNaval(G, to).some((c) => isPower(c) && atWar(G, p, c));
         if (G.spaces[to].control !== p && !enemyNaval) return false;
     }
-    // Rule 16.1: the first naval move of an impulse costs 1 CP; later ones are free.
-    if (G.powers[p].cp < 1 && G.navalMoveImpulse !== G.impulse) return false;
+    // Each Naval Move action costs 1 CP, including a second action this impulse.
+    if (G.powers[p].cp < 1) return false;
     const destinationHadEnemy = ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner));
     if (stack === undefined && destinationHadEnemy) return false;
     return true;
@@ -5529,7 +5537,7 @@ export const legalTargets = (
             return targets;
         }
         case "moveNaval": {
-            const canSailNow = G.powers[me].cp >= 1 || G.navalMoveImpulse === G.impulse;
+            const canSailNow = G.powers[me].cp >= 1;
             if (!canSailNow || !moveAllowed("moveNaval", {})) return targets;
             if (origin === null) {
                 // Origins: sea zones and ports holding this power's naval units.

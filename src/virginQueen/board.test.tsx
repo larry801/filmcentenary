@@ -354,6 +354,8 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("对局结束 · 胜者：P2 西班牙");
         expect(html).not.toContain(">结束行动轮次<");
         expect(html).toContain("教学结束：回顾本局");
+        expect(html).toContain("第 3 回合结束时，若奥斯曼尚未获胜，则西班牙获胜");
+        expect(html).not.toContain("第 7 回合结束时分数最高");
     });
 
     it("localizes the game-over reason and hides the cleared phase key", () => {
@@ -403,6 +405,34 @@ describe("Virgin Queen board", () => {
         } as any}/>);
         expect(html).toContain("回合 5");
         expect(html).not.toContain("回合 6");
+    });
+
+    it("uses the tournament's sixth turn in the time-limit explanation", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6}, {scenario: "tournament"});
+        G.year = G.endTurn + 1;
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: undefined, currentPlayer: "0", gameover: {winner: "1", power: "spain", reason: "timeLimit"}},
+            moves: {}, playerID: "0", isActive: true,
+        } as any}/>);
+        expect(html).toContain("时限胜利：第 6 回合结束时分数最高");
+    });
+
+    it("keeps naval rolls, losses and translated choices in the battle panel", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 2}, {scenario: "tutorial"});
+        G.seaZones.aegean.naval.spain = {galley: 2, galleon: 0, racebuilt: 0, corsair: 0};
+        G.pendingBattle = {phase: "naval", location: "aegean", from: "ionian", attacker: "spain", attackers: ["spain"],
+            defender: "ottoman", defenders: ["ottoman"], responding: "spain", step: "attackerLosses", cards: {},
+            rolls: {attacker: [1, 2, 3, 5], defender: [2, 3, 4, 5, 6, 6]},
+            hitCounts: {attacker: 1, defender: 3}, losses: {attacker: 3, defender: 1}};
+        const html = renderToStaticMarkup(<VirginQueenBoard {...{
+            G, ctx: {phase: "action", currentPlayer: "1", numPlayers: 2}, moves: {}, playerID: "1", isActive: true,
+        } as any}/>);
+        expect(html).toContain("战斗：爱琴海");
+        expect(html).toContain("攻方：分配损失");
+        expect(html).toContain("[1, 2, 3, 5]");
+        expect(html).toContain("剩余损失点数: 3");
+        expect(html).toContain("移除 1 西班牙 桨帆船");
+        expect(html).not.toContain("spain galley");
     });
 
     it("keeps the current turn for an Action-Phase automatic victory", () => {

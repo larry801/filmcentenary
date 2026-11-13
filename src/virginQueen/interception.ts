@@ -13,6 +13,7 @@ import {
     isSeaZone, moveLeaders, navalAdjacent, ownersWithLand, ownersWithNaval, powerLabel, pushLog, roll, totalLand,
 } from "./util";
 import {completeNavalInterception, offerBeaconResponse, playBeaconFires} from "./navalCombat";
+import {resolveNavalMoves} from "./moves";
 
 const candidateSpaces = (G: VQGame): string[] => {
     const pending = G.pendingIntercept;
@@ -59,6 +60,7 @@ const complete = (G: VQGame, ctx: Ctx): void => {
     } else {
         if (pending.phase === "field" && isFortifiedSpace(G, pending.to) && !friendlyControlled(G, pending.power, pending.to)) addBesieger(G, pending.to, pending.power);
         ctx.events?.endStage();
+        resolveNavalMoves(G, ctx);
     }
 };
 

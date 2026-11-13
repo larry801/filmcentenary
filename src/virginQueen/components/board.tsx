@@ -152,17 +152,8 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
                         // A staged origin is undone first; otherwise cancel leaves the action mode.
                         if (from !== null) {setFrom(null); setTransportZones([]);} else if (mode !== "spring") setMode("inspect");
                     }}/>}
-                {from !== null && (mode === "spring" || mode === "moveLand" || mode === "navalTransport") &&
-                    (isDesktop
-                        ? <Paper className="vq-map-stack" variant="outlined">
-                            <Stack spacing={0.5}>
-                                <Typography variant="caption" sx={{fontWeight: 700}}>
-                                    {i18n.chain.vq.step.chooseUnit} · {placeLabel(from)}
-                                </Typography>
-                                {stackPicker(mode === "spring")}
-                            </Stack>
-                        </Paper>
-                        : <Paper className="vq-map-formation" variant="outlined">
+                {!isDesktop && from !== null && (mode === "spring" || mode === "moveLand" || mode === "navalTransport") &&
+                        <Paper className="vq-map-formation" variant="outlined">
                             <Typography className="vq-formation-summary" variant="caption" aria-live="polite"
                                 color={landCount(movingUnits) > formationCapacity(movingLeaders) ? "error" : undefined}>
                                 {formationSummary()}
@@ -170,7 +161,7 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
                             <Button size="small" variant="outlined" onClick={() => setFormationSheetOpen(true)}>
                                 {i18n.chain.vq.springUi.adjustFormation}
                             </Button>
-                        </Paper>)}
+                        </Paper>}
                 {!isDesktop && selected && from === null && <div className="vq-map-selection">
                     <Button size="small" variant="contained" onClick={() => setMobileView("action")}>
                         {`${spaceDef !== undefined ? placeLabel(spaceDef.id) : seaZoneName(selected, vqLocaleNow())} · ${i18n.chain.vq.shell.detailOps}`}
@@ -191,7 +182,7 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
                 </Stack>}
                 {ctx.gameover !== undefined ? <Paper variant="outlined" sx={{p: 1.5, mb: 1}} role="status">
                     <Typography variant="h6">{i18n.chain.vq.shell.gameOver} · {i18n.chain.vq.shell.winner}{i18n.chain.vq.punct.colon}P{Number(ctx.gameover.winner) + 1} {powerName((ctx.gameover.power ?? powerAt(String(ctx.gameover.winner))) as Power, vqLocale)}</Typography>
-                    <Typography variant="body2">{i18n.chain.vq.shell.reason}: {gameOverReasonText(ctx.gameover.reason, vqLocale)}</Typography>
+                    <Typography variant="body2">{i18n.chain.vq.shell.reason}: {gameOverReasonText(ctx.gameover.reason, vqLocale, G)}</Typography>
                     {tieBreakSummary !== undefined && <Typography variant="caption" component="p">
                         {tieBreakSummary}
                     </Typography>}

@@ -14,7 +14,7 @@ export interface StepBannerProps {
 }
 
 /**
- * Overlay shown on the map while a multi-step action is in progress, for
+ * Dock below the map while a multi-step action is in progress, for
  * example "Choose origin → Choose units → Choose target [Cancel]".  Escape is
  * handled by the board itself so the same shortcut works anywhere.
  */

@@ -82,8 +82,19 @@ export const phaseLabel = (phase: string): string =>
     phase === "" ? "" : ((i18n.chain.vq.header.phase as unknown as Record<string, string>)[phase] ?? phase);
 
 /** Localized game-over reason; unknown reasons stay readable instead of blank. */
-export const gameOverReasonText = (reason: string | undefined, locale: "en" | "zh_CN"): string => {
+export const gameOverReasonText = (reason: string | undefined, locale: "en" | "zh_CN", game?: Pick<VQGame, "scenario" | "endTurn">): string => {
     if (reason === undefined || reason === "") return "";
+    if (game?.scenario === "tutorial") {
+        if (reason === "timeLimit") return locale === "en"
+            ? "Tutorial time-limit victory: Spain wins after turn 3 if the Ottoman Empire has not won."
+            : "教学时限胜利：第 3 回合结束时，若奥斯曼尚未获胜，则西班牙获胜。";
+        if (reason === "standard") return locale === "en"
+            ? "Tutorial victory: the Ottoman Empire reaches 20 VP at Winter victory determination."
+            : "教学胜利：奥斯曼在冬季胜利判定时达到 20 分。";
+    }
+    if (reason === "timeLimit" && game) return locale === "en"
+        ? `Time-limit victory: highest score at the end of turn ${game.endTurn}`
+        : `时限胜利：第 ${game.endTurn} 回合结束时分数最高`;
     return reason in VICTORY_TEXT ? victoryText(reason as VictoryReason, locale) : reason;
 };
 

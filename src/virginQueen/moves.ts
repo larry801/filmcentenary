@@ -31,6 +31,7 @@ import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENTS, WORLD_SETTLEMENT
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
+import {formationIssue, landMoveIssue, transportMoveIssue} from "./movement";
 import {activateMajor, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController, springSeaCrossingBlocked} from "./util";
 import {canPlayBattleCard, playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
@@ -74,6 +75,7 @@ import {
     bestBattle,
     bestPiracy,
     canControlSpace,
+    canMoveNavalTo,
     canDeclareWar,
     capitalOf,
     capitalSpacesFor,
@@ -4167,6 +4169,7 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
         const availableLeaders = G.spaces[args.from].leaders.filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id].kind === "army");
         const leaders = args.leaders ?? availableLeaders.slice(0, 2);
         const capacity = formationCapacity(leaders);
+        if (formationIssue(G, p, {from: args.from, to, units: stack, leaders})) return INVALID_MOVE;
         if (new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id)) ||
             landCount(stack) < 1 || landCount(stack) > capacity || Object.entries(stack).some(([kind, count]) => count < 0 || !Number.isInteger(count) || count > available[kind as keyof LandStack])) return INVALID_MOVE;
         const queue: {id: string; crossedSea: boolean}[] = [{id: args.from, crossedSea: false}];
@@ -4209,6 +4212,7 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
     const stack: LandStack = args.units
         ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0}
         : {...source};
+    if (formationIssue(G, p, {from: args.from, to, units: stack, leaders})) return INVALID_MOVE;
     if (new Set(leaders).size !== leaders.length ||
         leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
     const capacity = formationCapacity(leaders);
@@ -4884,6 +4888,7 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
     // Rule 16.3: only one formation may be transported per impulse.
     if (G.navalTransportImpulse === G.impulse) return INVALID_MOVE;
     const p = power(G, ctx);
+    if (transportMoveIssue(G, p, {...args, leaders: args.leaders ?? []})) return INVALID_MOVE;
     const source = G.spaces[args.from]?.land[p];
     const destination = G.spaces[args.to];
     if (G.spaces[args.from]?.siege && G.spaces[args.from].siege!.by !== p) return INVALID_MOVE;
@@ -4976,6 +4981,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     if (landCount(stack) === 0 || Object.entries(stack).some(([kind, count]) => !Number.isInteger(count) || count < 0 || count > source[kind as keyof LandStack])) return INVALID_MOVE;
     const availableLeaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === unitPower && LEADER_BY_ID[id]?.kind === "army");
     const leaders = args.leaders ?? availableLeaders;
+    if (landMoveIssue(G, p, {from, to, units: stack, leaders}, unitPower)) return INVALID_MOVE;
     if (new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
     // Rule 20.10: the Duke of Guise may not leave the French religious struggle area.
     if (leaders.includes("guise") && !inFrenchReligiousArea(to)) return INVALID_MOVE;
@@ -5167,94 +5173,68 @@ const finishNavalMove = (
     resolveNavalArrival(G, ctx, p, to, hit);
 };
 
-export const moveNaval = (G: VQGame, ctx: Ctx, args: { from: string; to: string }): void | typeof INVALID_MOVE => {
-    if (moveError(G, "moveNaval", args)) return INVALID_MOVE;
-    if (ctx.phase !== "action") {
-        return INVALID_MOVE;
-    }
-    const p = power(G, ctx);
-    const from = args.from;
-    const to = args.to;
-    if (!isSeaZone(from) && G.spaces[from] === undefined) {
-        return INVALID_MOVE;
-    }
-    if (!isSeaZone(to) && G.spaces[to] === undefined) {
-        return INVALID_MOVE;
-    }
-    if (!navalAdjacent(from, to)) {
-        return INVALID_MOVE;
-    }
-    const stack = isSeaZone(from) ? G.seaZones[from as keyof VQGame["seaZones"]].naval[p] : G.spaces[from].naval[p];
-    const armadaHere = p === "spain" && G.armada?.location === from;
-    if ((stack === undefined || navalCount(stack) === 0) && !armadaHere) {
-        return INVALID_MOVE;
-    }
-    if (isInlandPort(from) || isInlandPort(to)) return INVALID_MOVE;
-    if (G.spaces[to] !== undefined) {
-        const enemyNaval = ownersWithNaval(G, to).some((c) => isPower(c) && atWar(G, p, c));
-        if (G.spaces[to].control !== p && !enemyNaval) {
-            return INVALID_MOVE;
-        }
-    }
-    if (G.powers[p].cp < 1 && G.navalMoveImpulse !== G.impulse) return INVALID_MOVE;
-    if (offerActionResponse(G, ctx, "moveNaval", args)) return;
-    const firstNavalMove = G.navalMoveImpulse !== G.impulse;
-    if (firstNavalMove) {
-        if (!spend(G, p, 1)) {
-            return INVALID_MOVE;
-        }
-        G.navalMoveImpulse = G.impulse;
-    }
-    const destinationHadEnemy = ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner));
-    if (stack === undefined && destinationHadEnemy) return INVALID_MOVE;
-    const leaders = (isSeaZone(from) ? G.seaZones[from as keyof VQGame["seaZones"]].leaders : G.spaces[from].leaders)
-        .filter((id) => leaderPower(G, id) === p && LEADER_BY_ID[id]?.kind === "naval");
-    if (stack !== undefined) {
-        if (isSeaZone(to)) {
-            const dst = G.seaZones[to as keyof VQGame["seaZones"]];
-            const tgt = dst.naval[p] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
-            tgt.galley += stack.galley;
-            tgt.galleon += stack.galleon;
-            tgt.racebuilt += stack.racebuilt;
-            tgt.corsair += stack.corsair;
-            dst.naval[p] = tgt;
+/** Continue a paid naval action after an interception or battle choice. */
+export const resolveNavalMoves = (G: VQGame, ctx: Ctx): void => {
+    const pending = G.pendingNavalMoves;
+    if (pending === undefined) return;
+    while (pending.arrivals.length > 0) {
+        if (G.pendingBattle || G.pendingIntercept || G.pendingBeacon || G.pendingInterceptionOrder || G.pendingNavalOrder) return;
+        const {from, to, destinationHadEnemy} = pending.arrivals.shift()!;
+        const p = pending.power;
+        if (G.scenario === "tutorial") {
+            if (offerInterception(G, ctx, "naval", from, to, p)) return;
+            const enemies = ownersWithNaval(G, to).filter((owner) => !friendlyController(G, p, owner) &&
+                (isPower(owner) ? atWar(G, p, owner) : true));
+            if (enemies.length) startBattle(G, ctx, "naval", to, p, enemies, from);
         } else {
-            const dst = ensureNaval(G, to, p);
-            dst.galley += stack.galley;
-            dst.galleon += stack.galleon;
-            dst.racebuilt += stack.racebuilt;
-            dst.corsair += stack.corsair;
-        }
-        if (isSeaZone(from)) {
-            delete G.seaZones[from as keyof VQGame["seaZones"]].naval[p];
-        } else {
-            delete G.spaces[from].naval[p];
+            finishNavalMove(G, ctx, p, from, to, destinationHadEnemy);
         }
     }
-    for (const id of leaders) {
-        if (isSeaZone(from)) {
-            G.seaZones[from as keyof VQGame["seaZones"]].leaders = G.seaZones[from as keyof VQGame["seaZones"]].leaders.filter((x) => x !== id);
-        } else {
-            G.spaces[from].leaders = G.spaces[from].leaders.filter((x) => x !== id);
-        }
-        if (isSeaZone(to)) {
-            G.seaZones[to as keyof VQGame["seaZones"]].leaders.push(id);
-        } else {
-            G.spaces[to].leaders.push(id);
-        }
-        G.leaders[id].location = to;
-    }
-    if (p === "spain" && G.armada?.location === from) G.armada.location = to;
-    pushLog(G, `${powerLabel(p)} sails from ${from} to ${to}.`);
-    if (G.scenario === "tutorial") {
-        if (offerInterception(G, ctx, "naval", from, to, p)) return;
-        const enemies = ownersWithNaval(G, to).filter((owner) => !friendlyController(G, p, owner) &&
-            (isPower(owner) ? atWar(G, p, owner) : true));
-        if (enemies.length) startBattle(G, ctx, "naval", to, p, enemies, from);
-        return;
-    }
+    delete G.pendingNavalMoves;
+};
 
-    finishNavalMove(G, ctx, p, from, to, destinationHadEnemy);
+export type NavalMoveOrder = {from: string; to: string};
+
+/** Rule 16.1: declare all fleets before moving any; each action costs 1 CP. */
+export const moveNaval = (G: VQGame, ctx: Ctx, args: NavalMoveOrder | {fleets: NavalMoveOrder[]}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "moveNaval", args) || ctx.phase !== "action") return INVALID_MOVE;
+    const p = power(G, ctx);
+    const fleets = "fleets" in args ? args.fleets : [args];
+    if (!Array.isArray(fleets) || fleets.length === 0 || new Set(fleets.map((entry) => entry.from)).size !== fleets.length ||
+        fleets.some(({from, to}) => moveError(G, "moveNaval", {from, to}) || !canMoveNavalTo(G, p, from, to))) return INVALID_MOVE;
+    if (offerActionResponse(G, ctx, "moveNaval", args)) return;
+    if (!spend(G, p, 1)) return INVALID_MOVE;
+    const location = (id: string) => isSeaZone(id) ? G.seaZones[id as keyof VQGame["seaZones"]] : G.spaces[id];
+    // Snapshot and remove every departing stack before adding arrivals. This
+    // prevents a fleet from moving twice through another declared origin.
+    const departures = fleets.map(({from, to}) => ({
+        from, to,
+        stack: location(from).naval[p] ? {...location(from).naval[p]!} : undefined,
+        leaders: location(from).leaders.filter((id) => leaderPower(G, id) === p && LEADER_BY_ID[id]?.kind === "naval"),
+        armada: p === "spain" && G.armada?.location === from,
+        destinationHadEnemy: ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner)),
+    }));
+    for (const {from, leaders} of departures) {
+        delete location(from).naval[p];
+        location(from).leaders = location(from).leaders.filter((id) => !leaders.includes(id));
+    }
+    for (const {from, to, stack, leaders, armada} of departures) {
+        if (stack !== undefined) {
+            const target = ensureNaval(G, to, p);
+            for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) target[kind] += stack[kind];
+        }
+        for (const id of leaders) {
+            location(to).leaders.push(id);
+            G.leaders[id].location = to;
+        }
+        if (armada) G.armada!.location = to;
+        pushLog(G, `${powerLabel(p)} sails from ${from} to ${to}.`);
+    }
+    // Fleets converging on one destination fight together, once.
+    G.pendingNavalMoves = {power: p, arrivals: departures
+        .filter((entry, index) => departures.findIndex((other) => other.to === entry.to) === index)
+        .map(({from, to, destinationHadEnemy}) => ({from, to, destinationHadEnemy}))};
+    resolveNavalMoves(G, ctx);
 };
 
 /**
@@ -5282,10 +5262,12 @@ export const respondBeaconFires = (G: VQGame, ctx: Ctx, args: {choice: "play" | 
         playBeaconFires(G, pending.defender);
         completeNavalInterception(G, pending.defender, pending.from, pending.to);
         finishNavalMove(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy, true);
+        resolveNavalMoves(G, ctx);
     } else {
         pushLog(G, `${powerLabel(pending.defender)} declines Beacon Fires.`);
         finishNavalMove(G, ctx, pending.power, pending.moveFrom, pending.to, pending.destinationHadEnemy, false, pending.from,
             {location: pending.from, power: pending.defender});
+        resolveNavalMoves(G, ctx);
     }
 };
 
@@ -5308,6 +5290,7 @@ export const chooseInterceptionOrder = (G: VQGame, ctx: Ctx, args: {from: string
         undefined, {location: option.id, power: option.power});
     if (result === "paused" || result === "choice") return;
     resolveNavalArrival(G, ctx, pending.power, pending.to, result);
+    resolveNavalMoves(G, ctx);
 };
 
 /** Decline the order choice: resolve the remaining attempts in engine order. */
@@ -5322,6 +5305,7 @@ export const autoInterceptionOrder = (G: VQGame, ctx: Ctx): void | typeof INVALI
         undefined, undefined, true);
     if (result === "paused" || result === "choice") return;
     resolveNavalArrival(G, ctx, pending.power, pending.to, result);
+    resolveNavalMoves(G, ctx);
 };
 
 // --------------------------------------------------------------------------
@@ -5410,6 +5394,7 @@ export const chooseNavalOrder = (G: VQGame, ctx: Ctx, args: {enemy: Power}): voi
     pending.enemies = pending.enemies.filter((enemy) => enemy !== args.enemy);
     if (pending.enemies.length === 0 || countAtLocation(G, pending.location, pending.attacker) === 0 || !isSeaZone(pending.location)) {
         delete G.pendingNavalOrder;
+        resolveNavalMoves(G, ctx);
     }
 };
 

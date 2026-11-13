@@ -4,7 +4,7 @@ import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
 import i18n from "../../../../constant/i18n";
 import {powerName} from "../../../constant/general";
-import {spaceName} from "../../../mapData";
+import {mapName} from "../../../mapData";
 import {ownerOf} from "../../../ownership";
 import {battleOptions} from "../../../combat";
 import {PendingPanelProps} from "./types";
@@ -19,8 +19,17 @@ export const PendingBattlePanel = ({G, moves, playerID, retrieve}: PendingBattle
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     if (G.pendingBattle === undefined) return null;
+    const battle = G.pendingBattle;
+    const text = i18n.chain.vq.battle;
     return <Stack spacing={1}>
-        <Typography>{i18n.chain.vq.battle.title}{i18n.chain.vq.punct.colon}{spaceName(G.pendingBattle.location, vqLocale)} · {i18n.chain.vq.battle.waiting} {powerName(G.pendingBattle.responding, vqLocale)} {i18n.chain.vq.battle.choose}{i18n.chain.vq.punct.period}</Typography>
+        <Typography>{text.title}{i18n.chain.vq.punct.colon}{mapName(battle.location, vqLocale)} · {text.waiting} {powerName(battle.responding, vqLocale)} {text.choose}{i18n.chain.vq.punct.period}</Typography>
+        <Typography variant="subtitle2">{text.steps[battle.step]}</Typography>
+        {battle.rolls && <Stack spacing={0.5} className="vq-battle-results">
+            {(["attacker", "defender"] as const).map((side) => <Typography key={side} variant="body2">
+                {text[side]} · {powerName(battle[side], vqLocale)}: [{battle.rolls![side].join(", ")}] · {battle.hitCounts?.[side] ?? 0} {text.hits}
+                {battle.losses && ` · ${text.losses}: ${battle.losses[side]}`}
+            </Typography>)}
+        </Stack>}
         {ownerOf(G, G.pendingBattle.responding) === playerID && battleOptions(G).map((option) =>
             <Button key={option.id} variant="outlined" onClick={() => moves.chooseBattle({choice: option.id})}>{option.label}</Button>)}
         {retrieve.length > 0 && <Stack spacing={0.5}>

@@ -693,9 +693,11 @@ export interface VQGame {
     pendingPolishElection?: {bids: Partial<Record<Power, string>>; remaining: Power[]};
     pendingPiracy?: {power: Power; target: Power; zone: SeaZoneID; step: "losses" | "rewards"; remaining: number; rewards: Record<string, number>};
     piracyUsed?: Partial<Record<Power, SeaZoneID[]>>;
-    pendingAction?: {power: Power; responder?: Power; /** Every eligible responder; `responder` is the first. */ responders?: Power[]; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy" | "impulse"; args: {from?: string; to?: string; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
+    pendingAction?: {power: Power; responder?: Power; /** Every eligible responder; `responder` is the first. */ responders?: Power[]; move: "moveLand" | "moveNaval" | "navalTransport" | "assault" | "piracy" | "impulse"; args: {from?: string; to?: string; fleets?: {from: string; to: string}[]; space?: string; zone?: string; target?: Power; units?: Partial<LandStack>; leaders?: string[]; unitPower?: Controller; zones?: string[]}};
     resumeAction?: boolean;
     pendingNavalOrder?: {attacker: Power; location: string; enemies: Power[]};
+    /** All fleets have moved simultaneously; resolve each destination before another action. */
+    pendingNavalMoves?: {power: Power; arrivals: {from: string; to: string; destinationHadEnemy: boolean}[]};
     pendingWithdraw?: {active: Power; defender: Power; space: string; origin: string};
     pendingReliefSplit?: {space: string; from: string; power: Power; keepLimit: number; pUnits: number};
     pendingContinue?: {power: Power; origin: string; space: string; units: LandStack; leaders: string[]};
@@ -814,8 +816,6 @@ export interface VQGame {
     spanishTreasureRow?: number[];
     /** Impulse in which a naval transport was already made (16.3). */
     navalTransportImpulse?: number;
-    /** Impulse in which a Naval Move action was already taken (rule 16.1). */
-    navalMoveImpulse?: number;
     /** Set at the end of the Action Phase so endIf can score the winter. */
     checkVictory: boolean;
     /** Key counts at setup, so starting positions do not trigger military victory. */
