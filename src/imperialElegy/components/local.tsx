@@ -13,6 +13,7 @@ import {IESurface} from "./theme";
 import {ieT} from "./i18n";
 import i18n from "../../constant/i18n";
 import {POWERS, Power} from "../types";
+import {BotSeatsContext} from "./botContext";
 
 const HotseatBoard = (props: React.ComponentProps<typeof ImperialElegyBoard>) =>
   <ImperialElegyBoard {...props} hotseat/>;
@@ -158,15 +159,17 @@ const LocalImperialElegy = () => {
           />
         ))}
       </Tabs>
-      {POWERS.map((p, index) => (
-        <Box key={p} sx={{display: tab === index ? "block" : "none"}} data-testid={`ie-seat-${p}`}>
-          <BoardClient
-            matchID={MATCH_ID}
-            playerID={String(index)}
-            debug={false}
-          />
-        </Box>
-      ))}
+      <BotSeatsContext.Provider value={botSeats}>
+        {POWERS.map((p, index) => (
+          <Box key={p} sx={{display: tab === index ? "block" : "none"}} data-testid={`ie-seat-${p}`}>
+            <BoardClient
+              matchID={MATCH_ID}
+              playerID={String(index)}
+              debug={false}
+            />
+          </Box>
+        ))}
+      </BotSeatsContext.Provider>
     </IESurface>
   );
 };

@@ -17,7 +17,8 @@ jest.mock("react", () => {
   const useMemo = (fn: () => unknown) => fn();
   const useCallback = (fn: unknown) => fn;
   const useRef = (initial: unknown) => ({current: initial});
-  return {...actual, useState, useEffect: () => undefined, useMemo, useCallback, useRef};
+  const useContext = (ctx: {defaultValue?: unknown}) => ctx?.defaultValue;
+  return {...actual, useState, useEffect: () => undefined, useMemo, useCallback, useRef, useContext};
 });
 
 jest.mock("./theme", () => {

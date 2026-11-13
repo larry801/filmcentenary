@@ -69,6 +69,8 @@ import {NationalActionsPanel} from "./NationalActionsPanel";
 import {AmphibiousPanel, NavalTransportPanel, NavalInterceptPanel} from "./NavalPanel";
 import {WarPanel} from "./WarPanel";
 import {GreatWarPanel} from "./GreatWarPanel";
+import {BotSeatsContext} from "./botContext";
+import {botMoveFor} from "../engine/bot";
 
 const LogLine = React.memo(({entry, locale}: {entry: ImperialElegyState["log"][number]; locale: "en" | "zh_CN"}) => (
   <div><span className="t">T{entry.turn}</span>{logText(entry, locale)}</div>
@@ -402,6 +404,56 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   React.useEffect(() => { setSecondObjective(""); setConfirmSurrender(false); }, [selected]);
   React.useEffect(() => { setConfirmSurrender(false); }, [war?.status, war?.attacker, war?.defender]);
   React.useEffect(() => { setBattleFrom(null); setNavalFrom(null); setSelectedUnit(null); }, [phase]);
+
+  // ------------------------------------------------------------------ bot auto-submit (Rule 34)
+  // When this board instance belongs to a bot seat in hotseat mode, automatically
+  // dispatch the bot's decided move after a short delay so the human player can
+  // see what happened before the state advances.
+  const botSeats = React.useContext(BotSeatsContext);
+  const botTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  React.useEffect(() => {
+    // Only active in hotseat mode and when this seat is flagged as a bot.
+    if (!hotseat || viewer === null || !botSeats.has(viewer) || eliminated) return;
+
+    // The bot needs to act when:
+    //   • There is an open pending decision addressed to this power, OR
+    //   • It is this power's normal turn to act (action / wartime / prep /
+    //     diplomacy / gwManeuver all use isActive; end / gwPlanning / gwWinter
+    //     ask all powers to take their turn sequentially so canPhaseAct is true).
+    const needsAct =
+      (pending !== null && pending.power === viewer) ||
+      (pending === null && (
+        isActive ||
+        phase === "end" ||
+        phase === "gwPlanning" ||
+        phase === "gwWinter"
+      ));
+
+    if (!needsAct) return;
+
+    // Clear any previously scheduled timer before scheduling a new one.
+    if (botTimerRef.current !== null) clearTimeout(botTimerRef.current);
+    botTimerRef.current = setTimeout(() => {
+      botTimerRef.current = null;
+      try {
+        const decision = botMoveFor(G, ctx, viewer);
+        const fn = (moves as Record<string, (...args: unknown[]) => void>)[decision.move];
+        if (typeof fn === "function") fn(...(decision.args ?? []));
+      } catch (err) {
+        console.warn("[IE bot] auto-submit error", err);
+      }
+    }, 500);
+
+    return () => {
+      if (botTimerRef.current !== null) {
+        clearTimeout(botTimerRef.current);
+        botTimerRef.current = null;
+      }
+    };
+  // G and ctx change on every game-state update — that is the correct trigger.
+  // moves is a stable boardgame.io object; eslint-disable keeps the hook clean.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [G, ctx, viewer, hotseat, botSeats, eliminated, pending, isActive, phase]);
 
   const selectedState = selected ? G.spaces[selected] : null;
   const selectedUnitDef = selectedUnit ? G.units[selectedUnit] : undefined;
@@ -752,6 +804,14 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
           <h1 className="ie-title">{t.title}</h1>
           <div className="ie-sub">{t.subtitle} · {t.turn} {G.turn} · {bi(actualLocale, decade.en, decade.zh)}</div>
         </div>
+        {hotseat && viewer !== null && botSeats.has(viewer) && (
+          <div className="ie-bot-banner" role="status" aria-live="polite" style={{
+            padding: "4px 10px", background: "#2a2010", border: "1px solid #c8a84b",
+            borderRadius: 4, fontSize: 12, color: "#e6c987", alignSelf: "center",
+          }}>
+            🤖 {t.seats[viewer]} — bot (Rule 34)
+          </div>
+        )}
         <div className="ie-status">
           <IEBadge tone={active.toLowerCase()}>{t.active}: {t.seats[active]}</IEBadge>
           <IEBadge>{PHASE_LABEL(t, phase)}</IEBadge>
