@@ -15,6 +15,7 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
         return "请先完成境外战争的部队选择。";
     }
     if (G.pendingAbjuration && move !== "chooseAbjuration") return "请先完成誓绝法案的提议选择。";
+    if (G.pendingTribute && move !== "chooseTribute") return "请先完成奥斯曼贡金的纳贡选择。";
     if (G.pendingCityRebels && move !== "chooseCityRebelsLoss") return "请先完成城邦起义的损失选择。";
     if (G.pendingBeacon && move !== "respondBeaconFires") return "请先完成烽火响应。";
     if (G.pendingInterceptionOrder && move !== "chooseInterceptionOrder" && move !== "autoInterceptionOrder") {

@@ -64,6 +64,7 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
                 switchToTab={bidder !== undefined ? switchToTab(bidder) : undefined}/>;
         }
         if (G.pendingEspionage) return <PendingEspionagePanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingTribute) return <PendingTributePanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingAbjuration) return <PendingAbjurationPanel G={G} moves={moves} playerID={playerID}
             selectedPower={selectedAbjurationPower} onSelect={setSelectedAbjurationPower}/>;
         if (G.pendingCityRebels) return <PendingCityRebelsPanel G={G} moves={moves} playerID={playerID}/>;

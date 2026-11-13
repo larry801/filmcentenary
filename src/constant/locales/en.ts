@@ -1072,6 +1072,7 @@ const en = {
         },
         tribute: {
             title: "Ottoman Tribute (#2)",
+            desc: "The Ottoman threatens war: the target may pay tribute to cancel the declaration, or refuse and fight. Spain and the Holy Roman Empire may pay; Venice is a minor power and cannot.",
             waiting: "waiting for",
             choose: "to pay tribute or refuse and fight.",
             payTreasure: "Pay 1 treasure",

@@ -299,6 +299,73 @@ describe("Papal Bull retrieving Holy League", () => {
 });
 
 describe("tutorial event responses through two clients", () => {
+    it("resolves #2 at the target Spain chose in the card drawer, without asking again", () => {
+        const game = {...VirginQueenGameDef, seed: "tribute-target", setup: () => {
+            const G = tutorialGame();
+            G.dealtYear = G.year;
+            G.powers.spain.cards = ["vq-021", "vq-022"];
+            G.powers.ottoman.cards = ["vq-002"];
+            return G;
+        }};
+        const multiplayer = Local();
+        const clients = ["0", "1"].map((playerID) => Client({game, multiplayer, numPlayers: 2, playerID}));
+        for (const client of clients) client.start();
+        try {
+            for (let step = 0; step < 4; step++) {
+                const ctx = clients[0].getState()!.ctx;
+                clients[Number(ctx.currentPlayer)].moves.endPhaseTurn();
+            }
+            clients[0].moves.playCard({cardId: "vq-002", asEvent: true, target: "spain"});
+            const opened = clients[1].getState()!;
+            // Spain — the target from the drawer — is asked, not the Ottoman.
+            expect(opened.G.pendingTutorialEvent?.step).toBe("tribute");
+            expect(opened.G.pendingTutorialEvent?.responding).toBe("spain");
+            expect(opened.ctx.activePlayers).toEqual({"1": "tutorialEvent"});
+            // No second target menu: the event does not re-offer other powers.
+            expect(tutorialEventOptions(opened.G).map((entry) => entry.id)).not.toContain("war:hre");
+
+            clients[1].moves.chooseTutorialEvent({choice: "offer"});
+            expect(clients[0].getState()!.G.pendingTutorialEvent?.step).toBe("acceptTribute");
+            // The Ottoman now decides, and accepting takes the card.
+            expect(clients[0].getState()!.ctx.activePlayers).toEqual({"0": "tutorialEvent"});
+            clients[0].moves.chooseTutorialEvent({choice: "accept"});
+            for (const client of clients) {
+                const state = client.getState()!;
+                expect(state.G.pendingTutorialEvent).toBeUndefined();
+                expect(state.ctx.activePlayers).toBeNull();
+            }
+        } finally {
+            for (const client of clients) client.stop();
+        }
+    });
+
+    it("declares war when the tutorial target refuses", () => {
+        const game = {...VirginQueenGameDef, seed: "tribute-refuse", setup: () => {
+            const G = tutorialGame();
+            G.dealtYear = G.year;
+            G.powers.spain.cards = ["vq-021"];
+            G.powers.ottoman.cards = ["vq-002"];
+            return G;
+        }};
+        const multiplayer = Local();
+        const clients = ["0", "1"].map((playerID) => Client({game, multiplayer, numPlayers: 2, playerID}));
+        for (const client of clients) client.start();
+        try {
+            for (let step = 0; step < 4; step++) {
+                const ctx = clients[0].getState()!.ctx;
+                clients[Number(ctx.currentPlayer)].moves.endPhaseTurn();
+            }
+            const cp = clients[0].getState()!.G.powers.ottoman.cp;
+            clients[0].moves.playCard({cardId: "vq-002", asEvent: true, target: "spain"});
+            clients[1].moves.chooseTutorialEvent({choice: "refuse"});
+            const state = clients[0].getState()!;
+            expect(state.G.pendingTutorialEvent).toBeUndefined();
+            expect(state.G.powers.ottoman.cp).toBe(cp + 2);
+        } finally {
+            for (const client of clients) client.stop();
+        }
+    });
+
     it("routes rebel losses to Spain and restores the Ottoman impulse after the last choice", () => {
         const game = {...VirginQueenGameDef, seed: "rebels-response", setup: () => {
             const G = rebelGame();

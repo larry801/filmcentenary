@@ -326,6 +326,14 @@ describe("Virgin Queen board", () => {
         expect(html).toContain("请切换到 P2 标签页");
     });
 
+    it("blocks the Ottoman's other moves while tribute is pending", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "ottoman";
+        G.pendingTribute = {target: "spain", choices: ["refuse"]};
+        expect(moveError(G, "moveLand", {from: "istanbul", to: "edirne"})).toContain("奥斯曼贡金");
+        expect(moveError(G, "chooseTribute", {choice: "refuse"})).toBeUndefined();
+    });
+
     it("points hotseat users at the HRE tab while the winter choice is pending", () => {
         const G = setupGame({...fakeCtx()});
         G.activePower = "hre";

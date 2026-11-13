@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerName, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
+import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerName, isPower, landCount, minorName, navalCount, powerName, spaceHomes} from "./constant/general";
 import {cardById, cardName} from "./constant/cards";
 import {beginGrandVizierEvent, canPlayGrandVizier} from "./cardEvents";
 import {LEADER_BY_ID, leaderName} from "./constant/leaders";
@@ -12,11 +12,12 @@ import {TUTORIAL_KEYS, tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
 import {canPlayHolyLeague} from "./holyLeague";
 import {
-    addLand, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, defenderLandCount, discardCard, drawCards, ensureLand, friendlyControlled,
-    friendlyController, hits, isCityRebelsTarget, isPort, minorAlly, moveLeaders, ownersWithLand,
+    addLand, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, declareOttomanTributeWar, defenderLandCount, discardCard, drawCards, ensureLand, friendlyControlled,
+    friendlyController, hits, isCityRebelsTarget, isPort, minorAlly, moveLeaders, ottomanTributeTargets, ownersWithLand,
     powerVp, pushLog, removeCardFromHand, resolveMajorDiplomacy, resolveMinorDiplomacy,
     ownersWithNaval, roll, setWar, shuffle, totalLand, totalNaval,
 } from "./util";
+import type {OttomanTributeTarget} from "./util";
 
 export interface TutorialEventOption {id: string; label: string}
 type PendingEvent = NonNullable<VQGame["pendingTutorialEvent"]>;
@@ -150,6 +151,32 @@ const finish = (G: VQGame, ctx: Ctx): void => {
     ctx.events?.endStage();
 };
 
+/**
+ * #2 in the tutorial: the Ottoman has already named its target in the card
+ * drawer.  A major target may offer a random hand card, which the Ottoman then
+ * accepts (taking the card and drawing one) or rejects (war and 2 CP).
+ * Venice cannot pay, and a target with nothing to hand over goes straight to
+ * war, exactly as in the standard-game handler.
+ */
+const beginTutorialTribute = (G: VQGame, ctx: Ctx, power: Power, cardId: string, target: OttomanTributeTarget): void => {
+    // Only a major power with a seat at the table can negotiate; Venice is a
+    // minor and an unseated HRE simply has the war declared on it.
+    const payCard = target !== "venice" && isPower(target) && ownerOf(G, target) !== undefined &&
+        drawableCards(G, target).length > 0;
+    if (!payCard) {
+        delete G.pendingTutorialEvent;
+        declareOttomanTributeWar(G, ctx, target);
+        G.powers.ottoman.cp += 2;
+        pushLog(G, target === "venice"
+            ? "Venice cannot pay tribute; the Ottoman declares war and gains 2 CP."
+            : `${powerName(target as Power)} has nothing to pay; the Ottoman declares war and gains 2 CP.`);
+        ctx.events?.endStage();
+        return;
+    }
+    G.pendingTutorialEvent = {cardId, power, responding: target, step: "tribute", remaining: 1, space: target, tracks: []};
+    prompt(G, ctx);
+};
+
 export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
     const pending = G.pendingTutorialEvent;
     if (!pending) return [];
@@ -180,7 +207,8 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
     if (pending.step === "rebelLosses") return cityRebelLossOptions(G);
     if (pending.step === "rebelRegular") return [option("regular", i18n.chain.vq.engine.addHomeRegular), option("none", i18n.chain.vq.engine.noRegular)];
     if (pending.step === "cancel") return [option("continue", i18n.chain.vq.engine.allowEventResolution), option("cancel", i18n.chain.vq.engine.playGrandVizierCancel)];
-    if (pending.step === "tribute") return [option("refuse", i18n.chain.vq.engine.refuseTribute), ...(drawableCards(G, "spain").length > 0 ? [option("offer", i18n.chain.vq.engine.offerTribute)] : [])];
+    if (pending.step === "tribute") return [option("refuse", i18n.chain.vq.tribute.refuse),
+        ...(pending.space !== undefined && isPower(pending.space) && drawableCards(G, pending.space).length > 0 ? [option("offer", i18n.chain.vq.tribute.payCard)] : [])];
     if (pending.step === "acceptTribute") return [option("accept", i18n.chain.vq.engine.acceptTribute), option("reject", i18n.chain.vq.engine.rejectTribute)];
     if (pending.step === "payment") return [option("none", i18n.chain.vq.engine.noPayment), ...G.powers[pending.responding].cards.filter((id) => cardById(id).officialKind !== "mandatory")
         .map((id) => option(`card:${id}`, i18n.chain.vq.engine.payCard.replace("{card}", cardName(id, locale())).replace("{count}", String(cardById(id).cp * 2))))];
@@ -209,10 +237,14 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
         }
         return result;
     }
-    if (number === 2) return ["hre", "venice", "spain"].filter((target) => target === "spain" ? !atWar(G, "ottoman", "spain") :
-        target === "hre" ? !atWar(G, "ottoman", "hre") && !G.majorDiplomacyResolved?.includes("hre") :
-            !G.powers.ottoman.warsMinors.includes("venice") && !G.minorDiplomacyResolved.includes("venice"))
-        .map((target) => option(`war:${target}`, i18n.chain.vq.engine.declareWarOn.replace("{target}", target)));
+    if (number === 2) {
+        // The tutorial is the Ottoman-versus-Spain Lepanto game, so Spain stays
+        // a legal threat even though the two powers already start at war: the
+        // card is the Ottoman's scripted way to extort a card from Spain.
+        return ottomanTributeTargets(G)
+            .map((target) => option(`war:${target}`, i18n.chain.vq.engine.declareWarOn
+                .replace("{target}", target === "venice" ? minorName("venice", locale()) : powerName(target as Power, locale()))));
+    }
     if (number === 13 && power !== "ottoman") return activeSpaces().filter((space) => friendlyControlled(G, power, space.id)).map((space) => spaceOption(space.id));
     if (number === 13 || number === 23 || number === 17) return activeSpaces().flatMap((space) => Object.entries(G.spaces[space.id].land)
         .filter(([owner, stack]) => stack && (number === 17 ? isPower(owner) && owner !== power && landCount(stack) > 0 : stack.merc > 0))
@@ -254,7 +286,7 @@ const resolveTrack = (G: VQGame, ctx: Ctx, track: string): void => {
     else resolveMinorDiplomacy(G, ctx, track as MinorPower);
 };
 
-export const beginTutorialEvent = (G: VQGame, ctx: Ctx, power: Power, cardId: string, skipCancel = false): void => {
+export const beginTutorialEvent = (G: VQGame, ctx: Ctx, power: Power, cardId: string, skipCancel = false, target?: string): void => {
     const number = cardById(cardId).officialNumber!;
     if (number === 1) {beginGrandVizierEvent(G, ctx, cardId); return;}
     G.tutorialEffects ??= {nextDraw: {}, skip: [], piracyVp: 0};
@@ -293,6 +325,17 @@ export const beginTutorialEvent = (G: VQGame, ctx: Ctx, power: Power, cardId: st
     let remaining = number === 21 || number === 25 ? 3 : number === 13 && power === "ottoman" ? 2 : 1;
     if (number === 20 || number === 24) {step = "influence"; remaining = number === 20 ? 3 : 4;}
     if (number === 25) step = "unrest";
+    if (number === 2) {
+        // The card drawer already picked which power the Ottoman threatens, so
+        // #2 opens that target's tribute decision instead of asking again.
+        const chosen = target?.split(":")[0];
+        const threatened = chosen !== undefined && ottomanTributeTargets(G).includes(chosen as never)
+            ? chosen as OttomanTributeTarget : undefined;
+        if (threatened !== undefined) {
+            beginTutorialTribute(G, ctx, power, cardId, threatened);
+            return;
+        }
+    }
     if (number === 3) {
         addLand(G, "milan", "spain", "regular", 1);
         step = "leader";
@@ -388,20 +431,31 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
         return;
     }
     if (pending.step === "tribute") {
-        if (action === "offer") {pending.step = "acceptTribute"; pending.responding = "ottoman"; prompt(G, ctx); return;}
-        pending.step = "acceptTribute";
-        return chooseTutorialEvent(G, {...ctx, playerID: ownerOf(G, "ottoman")}, {choice: "reject"});
+        if (action === "offer") {
+            // The Ottoman now accepts or rejects the offered hand card.
+            pending.step = "acceptTribute";
+            pending.responding = "ottoman";
+            prompt(G, ctx);
+            return;
+        }
+        // Refusing pays nothing: the Ottoman declares war and gains 2 CP.
+        const tributeTarget = pending.space as OttomanTributeTarget | undefined;
+        if (tributeTarget !== undefined) {
+            declareOttomanTributeWar(G, ctx, tributeTarget);
+            G.powers.ottoman.cp += 2;
+        }
+        finish(G, ctx);
+        return;
     }
     if (pending.step === "acceptTribute") {
+        const tributeTarget = pending.space as OttomanTributeTarget | undefined;
         if (action === "accept") {
-            const id = shuffle(ctx, drawableCards(G, "spain"))[0];
-            if (id) {removeCardFromHand(G, "spain", id); G.powers.ottoman.cards.push(id);}
+            if (tributeTarget === undefined || !isPower(tributeTarget)) {finish(G, ctx); return;}
+            const id = shuffle(ctx, drawableCards(G, tributeTarget))[0];
+            if (id) {removeCardFromHand(G, tributeTarget, id); G.powers.ottoman.cards.push(id);}
             drawCards(G, ctx, "ottoman", 1);
-        } else {
-            if (pending.space === "venice") {
-                G.powers.ottoman.warsMinors.push("venice");
-                resolveMinorDiplomacy(G, ctx, "venice", {exclude: ["ottoman"]});
-            } else setWar(G, "ottoman", pending.space as Power);
+        } else if (tributeTarget !== undefined) {
+            declareOttomanTributeWar(G, ctx, tributeTarget);
             G.powers.ottoman.cp += 2;
         }
         finish(G, ctx);
@@ -452,9 +506,7 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
         addLand(G, target, power, "regular", 1);
         pending.remaining -= 1;
     } else if (number === 2) {
-        pending.space = target;
-        pending.step = "tribute";
-        pending.responding = "spain";
+        beginTutorialTribute(G, ctx, power, pending.cardId, target as OttomanTributeTarget);
     } else if (number === 13 && power !== "ottoman") {
         const nearHre = neighborsWithin(target, 2).some((id) => spaceHomes(SPACE_BY_ID[id]!).includes("hre"));
         addLand(G, target, power, "merc", nearHre ? 4 : 2);

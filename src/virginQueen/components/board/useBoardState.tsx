@@ -518,10 +518,10 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     };
 
     const pendingPower = G.pendingPolishElection?.remaining[0] ?? G.gregorianResponse?.responder ?? G.pendingBeacon?.defender ?? G.pendingInterceptionOrder?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
-        G.pendingEspionage?.responding ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power ??
+        G.pendingEspionage?.responding ?? G.pendingTribute?.target ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power ??
         G.pendingReliefSplit?.power ?? G.pendingForeignWar?.power ??
         (G.pendingCityRebels !== undefined ? (isPower(G.pendingCityRebels.controller) ? G.pendingCityRebels.controller : G.pendingCityRebels.power) : undefined) ??
-        G.pendingTribute?.target ?? G.pendingMutiny?.owner ??
+        G.pendingMutiny?.owner ??
         (G.pendingAbjuration !== undefined ? "protestant" as Power : undefined);
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
     // Winter attrition choices are mandatory but are not `pending*` responses,

@@ -1,11 +1,11 @@
-import {Controller, controllerName, MinorPower, minorName, Power, powerName, POWERS, spaceHomes, VQGame} from "./constant/general";
+import {Controller, controllerName, isPower, MinorPower, minorName, Power, powerName, POWERS, spaceHomes, VQGame} from "./constant/general";
 import {cardById} from "./constant/cards";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {WORLD_SETTLEMENT_BY_ID} from "./data/world";
 import {SPACES, SPACE_BY_ID, spaceName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {patronById, seaCaptainById, seaCaptainName, patronName} from "./scenario";
-import {atWar, allied, defenderLandCount, isCityRebelsTarget, isFortifiedSpace, landNeighbors, minorAvailable, ownersWithLand, zonePorts} from "./util";
+import {atWar, allied, defenderLandCount, isCityRebelsTarget, isFortifiedSpace, landNeighbors, minorAvailable, ottomanTributeTargets, ownersWithLand, zonePorts} from "./util";
 import i18n from "../constant/i18n";
 
 type VQLocale = "en" | "zh_CN";
@@ -55,14 +55,12 @@ const colonyOption = (id: string): EventTargetOption => {
 export const eventTargetOptions = (G: VQGame, cardId: string, power: Power): EventTargetOption[] => {
     switch (cardId) {
         case "vq-002": {
-            const majorTargets = (["spain", "hre"] as Power[])
-                .filter((target) => !allied(G, "ottoman", target));
-            // Venice is a minor: the threat always becomes a declaration of war.
-            const veniceLegal = !G.powers.ottoman.warsMinors.includes("venice") &&
-                !G.minorDiplomacyResolved.includes("venice") && !G.powers.ottoman.alliedMinors.includes("venice") &&
-                minorAvailable(G, "venice");
-            return [...majorTargets.map(powerOption),
-                ...(veniceLegal ? [{value: "venice", label: minorName("venice", locale())}] : [])];
+            // Spain, the HRE and Venice; Venice is a minor power with no seat,
+            // so its label comes from the minor-power table.  The shared helper
+            // also drops Venice once the Ottoman has blocked its track.
+            return ottomanTributeTargets(G).map((target) => target !== "venice"
+                ? powerOption(target)
+                : {value: target, label: minorName("venice", locale())});
         }
         case "vq-018": {
             return SPACES.filter((space) => isCityRebelsTarget(G, space.id)).map((space) => spaceOption(space.id));

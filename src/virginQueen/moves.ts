@@ -159,7 +159,11 @@ import {
     totalNaval,
     warCost,
     zonePorts,
+    declareOttomanTributeWar,
+    ottomanTributeTargets,
+    tributeAssets,
 } from "./util";
+import type {OttomanTributeTarget} from "./util";
 
 export {canPlayHolyLeague};
 
@@ -859,27 +863,28 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
 /** #35 Patron of Arts, option 2: draw two cards and give one to another power. */
 /** #34 Holy Roman Intercession: join one side of a war and punish the other. */
 /** #2 Ottoman Tribute: the Ottoman picks a target; the target then chooses. */
-const resolveOttomanTribute = (G: VQGame, ctx: Ctx, target?: string): void => {
-    if (target === undefined) return;
-    const targetPower = target.split(":")[0];
-    // Venice is a minor power: only Spain and the HRE may buy the war off, so
-    // the threat resolves immediately as a declaration of war (rule 23.7).
-    if (targetPower === "venice") {
-        if (G.powers.ottoman.warsMinors.includes("venice") || G.minorDiplomacyResolved.includes("venice") ||
-            !minorAvailable(G, "venice") || G.powers.ottoman.alliedMinors.includes("venice")) return;
-        G.powers.ottoman.warsMinors.push("venice");
-        G.powers.ottoman.cp += 2;
-        pushLog(G, `${powerLabel("ottoman")} declares war on Venice.`);
-        pushLog(G, `${powerLabel("ottoman")} gains 2 CP for the tribute threat.`);
-        resolveMinorDiplomacy(G, ctx, "venice", {exclude: ["ottoman"]});
+const resolveOttomanTribute = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
+    const declared = ottomanTributeTargets(G);
+    const chosen = target === undefined ? undefined : target.split(":")[0];
+    const targetPower = (chosen !== undefined && declared.includes(chosen as never) ? chosen : undefined) as OttomanTributeTarget | undefined;
+    if (targetPower === undefined) {
+        // The card drawer always supplies a legal target; without one the
+        // event has nothing to resolve, so the card just falls through.
+        if (declared.length === 0) pushLog(G, "Ottoman Tribute: no legal target; the event has no effect.");
         return;
     }
-    if (!isPower(targetPower) || targetPower === "ottoman" || allied(G, "ottoman", targetPower)) return;
-    const cards = G.powers[targetPower].cards.filter((id) => cardById(id).kind !== "home");
-    const treasures = G.powers[targetPower].treasures;
+    if (targetPower === "venice") {
+        // Venice is a minor power: it cannot negotiate a tribute, so the
+        // threat resolves as an immediate declaration of war.
+        declareOttomanTributeWar(G, ctx, "venice");
+        G.powers.ottoman.cp += 2;
+        pushLog(G, "Venice cannot pay tribute; the Ottoman declares war and gains 2 CP.");
+        return;
+    }
+    const {cards, treasures} = tributeAssets(G, targetPower);
     if (cards.length === 0 && treasures.length === 0) {
         // Nothing to pay – automatic war.
-        setWar(G, "ottoman", targetPower);
+        declareOttomanTributeWar(G, ctx, targetPower);
         G.powers.ottoman.cp += 2;
         pushLog(G, `${powerLabel(targetPower)} has nothing to pay; the Ottoman declares war and gains 2 CP.`);
         return;
@@ -889,11 +894,17 @@ const resolveOttomanTribute = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (treasures.length > 0) choices.push("pay_treasure");
     if (cards.length > 0) choices.push("pay_card");
     choices.push("refuse");
-    G.pendingTribute = {target: targetPower as Power, choices};
-    const targetOwner = ownerOf(G, targetPower as Power);
-    if (targetOwner !== undefined) {
-        ctx.events?.setActivePlayers({value: {[targetOwner]: "tributeChoice"}});
+    // The target answers, not the Ottoman: hand it the tributeChoice stage.
+    const targetOwner = ownerOf(G, targetPower);
+    if (targetOwner === undefined) {
+        // No seat controls the target (2-/3-/4-player HRE): resolve the
+        // printed fallback so the event does not stall.
+        resolveOttomanTributeChoice(G, ctx, targetPower, "refuse");
+        return;
     }
+    G.pendingTribute = {target: targetPower, choices};
+    ctx.events?.setActivePlayers({value: {[targetOwner]: "tributeChoice"}});
+    void p;
 };
 
 /** Resolve the target's answer to Ottoman Tribute (#2). */
@@ -905,19 +916,20 @@ const resolveOttomanTributeChoice = (G: VQGame, ctx: Ctx, power: Power, choice: 
         pushLog(G, `${powerLabel(power)} pays tribute: the Ottoman takes a treasure.`);
         drawCards(G, ctx, "ottoman", 1);
     } else if (choice === "pay_card") {
-        const cards = G.powers[power].cards.filter((id) => cardById(id).kind !== "home");
+        const {cards} = tributeAssets(G, power);
         const card = cards[Math.max(0, die(ctx, cards.length) - 1)];
         G.powers[power].cards = G.powers[power].cards.filter((id) => id !== card);
         G.powers.ottoman.cards.push(card);
         pushLog(G, `${powerLabel(power)} pays tribute: the Ottoman takes a card.`);
         drawCards(G, ctx, "ottoman", 1);
     } else {
-        setWar(G, "ottoman", power);
+        declareOttomanTributeWar(G, ctx, power);
         G.powers.ottoman.cp += 2;
         pushLog(G, `${powerLabel(power)} refuses tribute; the Ottoman declares war and gains 2 CP.`);
     }
 };
 
+/** Choices offered to the tribute target; the engine ids stay stable. */
 export const tributeOptions = (G: VQGame): {id: string; label: string}[] => {
     const pending = G.pendingTribute;
     if (pending === undefined) return [];
@@ -2944,7 +2956,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (isGrandVizier(def)) {
         beginGrandVizierEvent(G, ctx, cardId, target);
     } else if (G.scenario === "tutorial") {
-        beginTutorialEvent(G, ctx, p, cardId, true);
+        beginTutorialEvent(G, ctx, p, cardId, true, target);
     } else if (isEspionageEvent(handler)) {
         beginEspionageEvent(G, ctx, p, handler, target);
     } else if (beneficiary !== undefined) {
@@ -3104,7 +3116,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "holyRomanIntercession") {
         resolveHolyRomanIntercession(G, ctx, target);
     } else if (handler === "ottomanTribute") {
-        resolveOttomanTribute(G, ctx, target);
+        resolveOttomanTribute(G, ctx, p, target);
     } else if (handler === "spanishRoad") {
         resolveSpanishRoad(G);
     } else if (def.officialKind === "combat") {

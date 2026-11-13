@@ -1011,6 +1011,55 @@ export const allied = (G: VQGame, a: Power, b: Power): boolean =>
 
 export const friendly = (G: VQGame, a: Power, b: Power): boolean => a === b || allied(G, a, b);
 
+/**
+ * #2 Ottoman Tribute targets.  The card threatens Spain, the Holy Roman
+ * Empire or Venice; the target must not already be allied with the Ottoman.
+ * Venice is a minor power (it has no seat), so it is a target only while it is
+ * still unaligned and its diplomacy track has not been resolved.
+ */
+export type OttomanTributeTarget = Power | "venice";
+
+export const ottomanTributeTargets = (G: VQGame): OttomanTributeTarget[] => {
+    const options: OttomanTributeTarget[] = (["spain", "hre"] as Power[])
+        .filter((target) => !allied(G, "ottoman", target));
+    const venice = "venice";
+    if (!G.powers.ottoman.warsMinors.includes(venice) &&
+        !G.minorDiplomacyResolved.includes(venice) &&
+        (!G.minorInfluenceBlocked.ottoman?.includes(venice))) {
+        options.push(venice);
+    }
+    return options;
+};
+
+/** A major target that can choose tribute; Venice as a minor cannot. */
+export const canPayOttomanTribute = (target: OttomanTributeTarget): target is Power => isPower(target) && target !== "ottoman";
+
+/** The non-Home cards and treasures a power could hand over as tribute. */
+export const tributeAssets = (G: VQGame, power: Power): {cards: string[]; treasures: number[]} => ({
+    cards: G.powers[power].cards.filter((id) => cardById(id).kind !== "home"),
+    treasures: G.powers[power].treasures,
+});
+
+/**
+ * Applies the #2 war threat to a target that cannot (or will not) pay.
+ * Venice is handled as a minor declaration of war, including the diplomatic
+ * status check the rules trigger whenever a war starts in the Action Phase.
+ */
+export const declareOttomanTributeWar = (G: VQGame, ctx: Ctx, target: OttomanTributeTarget): void => {
+    if (target === "venice") {
+        if (!G.powers.ottoman.warsMinors.includes("venice")) {
+            G.powers.ottoman.warsMinors.push("venice");
+            pushLog(G, `${powerLabel("ottoman")} declares war on venice.`);
+        }
+        if (!G.minorInfluenceBlocked.ottoman.includes("venice")) G.minorInfluenceBlocked.ottoman.push("venice");
+        delete G.powers.ottoman.influence.venice;
+        delete G.minorInfluenceDefaults.ottoman.venice;
+        resolveMinorDiplomacy(G, ctx, "venice", {exclude: ["ottoman"]});
+        return;
+    }
+    setWar(G, "ottoman", target);
+};
+
 export const friendlyController = (G: VQGame, p: Power, owner: Controller): boolean => {
     if (owner === p) return true;
     if (isPower(owner)) return friendly(G, p, owner);
