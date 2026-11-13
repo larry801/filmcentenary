@@ -128,6 +128,8 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         G.pendingCardEvent && ownerOf(G, G.pendingCardEvent.responding) === playerID ? G.pendingCardEvent.responding :
         G.pendingTutorialEvent && ownerOf(G, G.pendingTutorialEvent.responding) === playerID ? G.pendingTutorialEvent.responding :
         G.pendingCityRebels && isPower(G.pendingCityRebels.controller) && ownerOf(G, G.pendingCityRebels.controller) === playerID ? G.pendingCityRebels.controller :
+        G.pendingTribute && ownerOf(G, G.pendingTribute.target) === playerID ? G.pendingTribute.target :
+        G.pendingMutiny && ownerOf(G, G.pendingMutiny.owner) === playerID ? G.pendingMutiny.owner :
         G.pendingBattle && ownerOf(G, G.pendingBattle.responding) === playerID ? G.pendingBattle.responding :
         G.pendingBetrothal && ownerOf(G, G.pendingBetrothal.target) === playerID ? G.pendingBetrothal.target :
         G.pendingForeignWar && ownerOf(G, G.pendingForeignWar.power) === playerID ? G.pendingForeignWar.power :
@@ -201,7 +203,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         const tab = switchToTab(G.activePower);
         return tab === undefined ? base : `${base} ${tab}`;
     };
-    const canAct = myTurn && phase === "action" && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
+    const canAct = myTurn && phase === "action" && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingTribute && !G.pendingMutiny && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
     /** Why an action mode is unavailable, or undefined when it can be picked. */
@@ -519,6 +521,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         G.pendingEspionage?.responding ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power ??
         G.pendingReliefSplit?.power ?? G.pendingForeignWar?.power ??
         (G.pendingCityRebels !== undefined ? (isPower(G.pendingCityRebels.controller) ? G.pendingCityRebels.controller : G.pendingCityRebels.power) : undefined) ??
+        G.pendingTribute?.target ?? G.pendingMutiny?.owner ??
         (G.pendingAbjuration !== undefined ? "protestant" as Power : undefined);
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
     // Winter attrition choices are mandatory but are not `pending*` responses,

@@ -228,6 +228,22 @@ describe("Virgin Queen board in English", () => {
         expectEnglish(renderBoard(G, "action", ownerOf(G, "spain") ?? "1", "1"), "pending city rebels");
     });
 
+    it("renders the tribute window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "ottoman";
+        G.pendingTribute = {target: "spain", choices: ["pay_card", "refuse"]};
+        expectEnglish(renderBoard(G, "action", ownerOf(G, "spain") ?? "1", "1"), "pending tribute");
+    });
+
+    it("renders the mutiny window without CJK", () => {
+        const G = setupGame({...fakeCtx(), numPlayers: 6});
+        G.activePower = "ottoman";
+        G.spaces.brussels.land.spain = {regular: 5, merc: 0, cav: 0};
+        G.powers.spain.cards = ["vq-020", "vq-022"];
+        G.pendingMutiny = {space: "brussels", owner: "spain"};
+        expectEnglish(renderBoard(G, "action", ownerOf(G, "spain") ?? "1", "1"), "pending mutiny");
+    });
+
     it("renders the Gregorian response window without CJK", () => {
         const G = setupGame({...fakeCtx(), numPlayers: 6});
         G.activePower = "spain";

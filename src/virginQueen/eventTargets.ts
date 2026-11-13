@@ -55,9 +55,14 @@ const colonyOption = (id: string): EventTargetOption => {
 export const eventTargetOptions = (G: VQGame, cardId: string, power: Power): EventTargetOption[] => {
     switch (cardId) {
         case "vq-002": {
-            return (["spain", "hre", "venice"] as Power[])
-                .filter((target) => !allied(G, "ottoman", target))
-                .map(powerOption);
+            const majorTargets = (["spain", "hre"] as Power[])
+                .filter((target) => !allied(G, "ottoman", target));
+            // Venice is a minor: the threat always becomes a declaration of war.
+            const veniceLegal = !G.powers.ottoman.warsMinors.includes("venice") &&
+                !G.minorDiplomacyResolved.includes("venice") && !G.powers.ottoman.alliedMinors.includes("venice") &&
+                minorAvailable(G, "venice");
+            return [...majorTargets.map(powerOption),
+                ...(veniceLegal ? [{value: "venice", label: minorName("venice", locale())}] : [])];
         }
         case "vq-018": {
             return SPACES.filter((space) => isCityRebelsTarget(G, space.id)).map((space) => spaceOption(space.id));
