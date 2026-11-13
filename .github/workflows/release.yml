@@ -1,5 +1,9 @@
-name: ci
+name: release
 
+# Image builds and pushes are a master-only concern.  Tests run for every
+# agent branch in ci.yml; this workflow assumes they passed on master before
+# the merge and never publishes from a feature branch (a manual dispatch on
+# one is gated below as well).
 on:
   push:
     branches:
@@ -16,22 +20,8 @@ env:
   IMAGE_NAMESPACE: larry801
 
 jobs:
-  test:
-    runs-on: ubuntu-24.04
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: yarn
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-      - name: Run unit tests
-        run: yarn test --ci
   docker_image:
-    needs: test
+    if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-24.04
     steps:
       - name: Check out the repo
