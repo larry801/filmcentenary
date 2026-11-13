@@ -1,7 +1,7 @@
 name: ci
 
 # Every branch that AGENTS.md allows an agent to develop on gets the full
-# remote test pipeline.  Releases are a different workflow (ci.docker.yml) and
+# remote test pipeline.  Releases are a different workflow (release.yml) and
 # only run on master.
 on:
   push:
