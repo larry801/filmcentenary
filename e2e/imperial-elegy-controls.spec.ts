@@ -195,6 +195,10 @@ test.describe("Imperial Elegy new controls", () => {
         await reachAction(page);
         const board = boardFor(page, "GE");
 
+        // The 27326a94 layout folds the player displays (dashboard + MPIT +
+        // national actions) into a collapsed reference block, so open it first.
+        await board.locator('details.ie-reference > summary').click();
+
         const mpit = board.locator('[data-testid="ie-mpit"]');
         await expect(board.getByRole("heading", {name: /MPIT · 影响力轨/})).toBeVisible();
         await expect(mpit).toBeVisible();
@@ -219,5 +223,84 @@ test.describe("Imperial Elegy new controls", () => {
         } else {
             await expect(gwPanel).toHaveCount(0);
         }
+    });
+});
+
+test.describe("Imperial Elegy solo vs bot", () => {
+    test("the solo entrance starts a match with P2-P6 as read-only bot seats", async ({page}) => {
+        await page.goto("/localIE?solo=1");
+        // The seat-setup screen only appears on the explicit solo entrance; the
+        // plain hotseat link keeps starting straight on the board.
+        const start = page.getByTestId("ie-start-match");
+        await expect(start).toBeVisible();
+        const checked = await page.locator(".ie-local input[type=checkbox]").evaluateAll(
+            (boxes) => boxes.map((box) => (box as HTMLInputElement).checked),
+        );
+        expect(checked).toEqual([false, true, true, true, true, true]);
+
+        await start.click();
+        await expect(page.locator('[data-testid="ie-seat-GE"]')).toBeVisible();
+
+        // A bot seat drives itself, so the person at the keyboard may only watch.
+        await page.getByRole("tab", {name: /P3/}).click();
+        const botBoard = page.locator('[data-testid="ie-seat-FR"]');
+        await expect(botBoard.locator(".ie-bot-banner")).toContainText("机器人");
+        const clickable = await botBoard
+            .locator(".ie-btn, .ie-card-actions button")
+            .evaluateAll((buttons) => buttons
+                .filter((button) => !(button as HTMLButtonElement).disabled)
+                .map((button) => (button.textContent ?? "").trim()));
+        // Only the shared read-only header buttons stay usable.
+        expect(clickable).toEqual(["参考图表", "规则与来源"]);
+    });
+
+    test("a bot seat takes its impulse instead of stalling on an illegal move", async ({page}) => {
+        const errors: string[] = [];
+        page.on("console", (message) => {
+            if (message.type() === "error") errors.push(message.text());
+        });
+
+        await page.goto("/localIE?solo=1");
+        await page.getByTestId("ie-start-match").click();
+        await expect(page.locator('[data-testid="ie-seat-GE"]')).toBeVisible();
+
+        const board = boardFor(page, "GE");
+        await clickUntilGone(page, board.getByRole("button", {name: "准备完毕"}).first());
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        await clickUntilGone(page, board.getByRole("button", {name: "选择本土牌"}).first());
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
+
+        // Play one card for CP and hand the impulse over.  The bug this guards
+        // was the bot re-sending `chooseHomeCard` forever once its home card had
+        // been played, which froze the match on this exact transition.
+        const cpButtons = board.locator(".ie-card-actions button", {hasText: "作为 CP 打出"});
+        for (let i = 0; i < await cpButtons.count(); i += 1) {
+            if (await cpButtons.nth(i).isEnabled()) { await cpButtons.nth(i).click(); break; }
+        }
+        await page.waitForTimeout(600);
+        // Hand the impulse over exactly once.  Re-clicking a stale button would
+        // send a second `endImpulse` after the seat is no longer active and
+        // produce an `invalid move` that has nothing to do with the bot.
+        const endImpulse = board.getByRole("button", {name: "结束行动轮"}).first();
+        await expect(endImpulse).toBeVisible();
+        await endImpulse.click();
+        await expect.poll(
+            async () => await page.evaluate(() => (window as any).__IE_STATE__.activePower),
+        ).not.toBe("GE");
+
+        // The bots must actually take their impulses: two more powers must
+        // write to the public log after the hand-over.  Counting log entries is
+        // dice-independent, unlike asserting on CP or on battle outcomes.
+        const botEntries = async () => await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            return G.log.filter((entry: any) => entry.power && entry.power !== "GE").length;
+        });
+        const before = await botEntries();
+        await expect.poll(botEntries, {timeout: 45_000}).toBeGreaterThanOrEqual(before + 2);
+
+        // The regression this guards: the bot re-sent `chooseHomeCard` (an
+        // illegal move outside diplomacy) forever once its home card had been
+        // played, which froze the match on exactly this transition.
+        expect(errors.filter((text) => /invalid move/.test(text))).toEqual([]);
     });
 });

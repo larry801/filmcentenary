@@ -132,8 +132,13 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const active = G.activePower;
   const isActive = viewer !== null && viewer === active;
   const eliminated = me?.eliminated === true;
+  // Rule 34: a hotseat seat marked as a bot is driven by `botMoveFor` below and
+  // is read-only for the person at the keyboard.  Every "may act" flag folds
+  // this in, so no control on a bot seat can be clicked.
+  const botSeats = React.useContext(BotSeatsContext);
+  const isBotViewer = hotseat && viewer !== null && botSeats.has(viewer);
   const pending = G.pending;
-  const canDecide = pending !== null && viewer !== null && pending.power === viewer;
+  const canDecide = pending !== null && viewer !== null && pending.power === viewer && !isBotViewer;
   const war = G.war;
   const gw = G.gw;
   const battle = G.battle;
@@ -151,10 +156,10 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     if (phase === "gwManeuver") return G.powers[viewer].gwBudget ?? 0;
     return 0;
   };
-  const canAct = viewer !== null && !eliminated && isActive && pending === null && (phase === "action" || phase === "wartime" || phase === "gwManeuver");
+  const canAct = viewer !== null && !eliminated && !isBotViewer && isActive && pending === null && (phase === "action" || phase === "wartime" || phase === "gwManeuver");
   const canSpend = (cost: number): boolean => canAct && cpBudget() >= cost;
-  const canActionCard = viewer !== null && !eliminated && isActive && phase === "action" && pending === null;
-  const canPhaseAct = viewer !== null && !eliminated && (phase === "end" || phase === "gwPlanning" ? true : isActive);
+  const canActionCard = viewer !== null && !eliminated && !isBotViewer && isActive && phase === "action" && pending === null;
+  const canPhaseAct = viewer !== null && !eliminated && !isBotViewer && (phase === "end" || phase === "gwPlanning" ? true : isActive);
   const forcedPass = viewer !== null ? passRestriction(G, viewer).forced : false;
   const forcedCardIds = viewer !== null ? passRestriction(G, viewer).cards.map((c) => c.card) : [];
   const forcedGwCard = viewer !== null && phase === "gwManeuver" && G.powers[viewer].gwCard
@@ -410,8 +415,11 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   // When this board instance belongs to a bot seat in hotseat mode, automatically
   // dispatch the bot's decided move after a short delay so the human player can
   // see what happened before the state advances.
-  const botSeats = React.useContext(BotSeatsContext);
   const botTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  // boardgame.io re-syncs the view even when a move is rejected, so an illegal
+  // decision used to be re-sent every 500 ms forever (console flood + a frozen
+  // match).  Track whether the state actually moved under the same decision.
+  const botFailureRef = React.useRef<{key: string; state: string; count: number} | null>(null);
   React.useEffect(() => {
     // Only active in hotseat mode and when this seat is flagged as a bot.
     if (!hotseat || viewer === null || !botSeats.has(viewer) || eliminated) return;
@@ -438,6 +446,35 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
       botTimerRef.current = null;
       try {
         const decision = botMoveFor(G, ctx, viewer);
+        const key = `${decision.move}|${JSON.stringify(decision.args ?? [])}`;
+        // A rejected move leaves the state untouched, so "same decision on an
+        // unchanged state" is the reliable failure signal.
+        const stateKey = `${G.turn}|${phase}|${active}|${G.cpRemaining}|${G.log.length}|${pending?.id ?? "-"}`;
+        const previous = botFailureRef.current;
+        const count = previous !== null && previous.key === key && previous.state === stateKey
+          ? previous.count + 1
+          : 0;
+        if (count >= 3) {
+          // The engine keeps refusing this decision.  Take a legal escape move
+          // so the match can continue instead of spinning forever.
+          botFailureRef.current = {key, state: stateKey, count};
+          const escape: Record<string, string> = {
+            action: "endImpulse",
+            wartime: "passWarMove",
+            prep: "finishPrep",
+            diplomacy: "endDiplomacy",
+            end: "endPhaseTurn",
+            gwPlanning: "endGwPlanningMove",
+            gwManeuver: "gwPass",
+            gwWinter: "gwResolveWinter",
+          };
+          const fallback = escape[phase];
+          console.warn("[IE bot] repeated invalid decision", key, "→ falling back to", fallback);
+          const fn = fallback === undefined ? undefined : (moves as Record<string, () => void>)[fallback];
+          if (typeof fn === "function") fn();
+          return;
+        }
+        botFailureRef.current = {key, state: stateKey, count};
         const fn = (moves as Record<string, (...args: unknown[]) => void>)[decision.move];
         if (typeof fn === "function") fn(...(decision.args ?? []));
       } catch (err) {
@@ -787,8 +824,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
             : pending !== null ? bi(actualLocale, "Resolve the pending decision first.", "请先处理待决事项。")
               : G.cpRemaining > 0 ? bi(actualLocale, "Finish this impulse first; the chain starts a fresh one.", "请先结束本次行动；CP 链需从新的行动开始。")
                 : chainSpendable <= 0 ? bi(actualLocale, "The chained cards have no CP.", "CP 链中的牌没有 CP。")
-                  : bi(actualLocale, "Not available now.", "当前不可用。");
-  const mapHint = pendingSpaceTargets.length > 0
+                  : bi(actualLocale, "Not available now.", "当前不可用。");  const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
     : battleFrom !== null
       ? bi(actualLocale, "Click a highlighted adjacent space to attack it.", "点击高亮的相邻空间发动进攻。")
@@ -810,7 +846,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
             padding: "4px 10px", background: "#2a2010", border: "1px solid #c8a84b",
             borderRadius: 4, fontSize: 12, color: "#e6c987", alignSelf: "center",
           }}>
-            🤖 {t.seats[viewer]} — bot (Rule 34)
+            🤖 {t.seats[viewer]} — {t.botSeatBadge} · {t.seatBotHint}
           </div>
         )}
         <div className="ie-status">
@@ -887,24 +923,6 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               canActionCard={canActionCard}
               pending={pending}
               canDecide={canDecide}
-      {(pending || battle || G.result) && <PendingPanel
-        G={G}
-        pending={pending}
-        canDecide={canDecide}
-        pendingKind={pendingKind}
-        pendingPrompt={pendingPrompt}
-        optionLabel={optionLabel}
-        canDecline={canDecline}
-        pendingSpaceTargets={pendingSpaceTargets}
-        viewer={viewer}
-        locale={actualLocale}
-        t={t}
-        jihadDecision={jihadDecision}
-        jihadReason={jihadReason}
-        doAction={doAction}
-        moves={moves}
-      />}
-
               war={war}
               warAim={warAim}
               setWarAim={setWarAim}
@@ -937,6 +955,24 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               doAction={doAction}
               moves={moves}
             />
+
+            {(pending || battle || G.result) && <PendingPanel
+              G={G}
+              pending={pending}
+              canDecide={canDecide}
+              pendingKind={pendingKind}
+              pendingPrompt={pendingPrompt}
+              optionLabel={optionLabel}
+              canDecline={canDecline}
+              pendingSpaceTargets={pendingSpaceTargets}
+              viewer={viewer}
+              locale={actualLocale}
+              t={t}
+              jihadDecision={jihadDecision}
+              jihadReason={jihadReason}
+              doAction={doAction}
+              moves={moves}
+            />}
 
           <details className="ie-reference">
             <summary>{bi(actualLocale, "Powers & objectives", "列强与目标")}</summary>
@@ -988,7 +1024,6 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
             auSacrifice={auSacrifice}
             setAuSacrifice={setAuSacrifice}
             auIncorporateCandidates={auIncorporateCandidates}
-          </details>
             auIncorporateValue={auIncorporateValue}
             setAuIncorporateTarget={setAuIncorporateTarget}
             auIncorporate={auIncorporate}
@@ -1004,6 +1039,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
             doAction={doAction}
             moves={moves}
           />
+          </details>
 
           <AmphibiousPanel
             show={amphibiousVisible && viewer !== null}

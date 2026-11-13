@@ -24,6 +24,7 @@ import {
   controlledBy,
   friendlySpace,
   hasLoc,
+  isArmyKind,
   isHomeSpace,
   landUnitsIn,
   navalUnitsIn,
@@ -32,6 +33,9 @@ import {
   isPower,
 } from "./rules";
 import {canPassNow} from "../moves";
+import {canRecruitIn} from "./characteristics";
+import {gwDraftSpaces} from "./greatWarFlow";
+import {reserveRemaining} from "./economy";
 
 // ---------------------------------------------------------------------------
 // BDIT — Bot Diplomatic Interest Table (B2)
@@ -134,6 +138,44 @@ const botHomeRecruit = (G: ImperialElegyState, power: Power): SpaceId | null => 
     if (units.length < 3) return id;
   }
   return null;
+};
+
+/**
+ * A home space that can actually take a new standing army right now.
+ * `botHomeRecruit` only checks the map; manpower, nationalities and the UK's
+ * Professional Army rule are enforced by `canRecruitIn`, and a recruit move
+ * built on the looser check would be refused (and would stall the bot).
+ */
+const botRecruitSpace = (G: ImperialElegyState, power: Power): SpaceId | null => {
+  for (const [id, def] of Object.entries(SPACES)) {
+    if (def.home !== power) continue;
+    const decision = canRecruitIn(G, power, id, "army", {});
+    if (decision.allowed) return id;
+  }
+  return null;
+};
+
+/**
+ * Cards the bot may spend for CP.  Mandatory cards must be played for their
+ * event (moves.ts refuses `mode: "cp"` for them), so selecting one here would
+ * hand the board an invalid move and stall the bot.
+ */
+const isCpSpendable = (cardId: CardId): boolean => {
+  const def = cardById(cardId);
+  return def.kind !== "home"
+    && def.type !== "response"
+    && def.type !== "combat"
+    && def.type !== "mandatory"
+    && def.type !== "mandatoryResponse";
+};
+
+/** Mandatory cards still in hand: they block passing until the event is played. */
+const mandatoryInHand = (G: ImperialElegyState, power: Power): CardId | null => {
+  const found = G.powers[power].hand.find((id) => {
+    const def = cardById(id);
+    return def.type === "mandatory" || def.type === "mandatoryResponse";
+  });
+  return found ?? null;
 };
 
 /** True when card is worth playing for event (not 3-CP, not harmful per bot rules). */
@@ -358,19 +400,19 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
   // 1. Play home card for its event (if stability > 0 or card gives < 3 CP)
   //    †Home Card Revealed: do not play for event if stability is 6 and
   //      the event gives < 3 CP value.
-  if (p.selectedHomeCard !== null) {
-    const hc = p.selectedHomeCard;
-    const def = cardById(hc);
+  //    The card is only playable while it is still in hand: `playCard` removes
+  //    it, and a later impulse must not try to play the same home card again.
+  //    A card may only be played while the impulse holds no CP (12.0).
+  const homeCard =
+    p.selectedHomeCard !== null && p.hand.includes(p.selectedHomeCard) ? p.selectedHomeCard : null;
+  if (homeCard !== null && G.cpRemaining === 0) {
+    const def = cardById(homeCard);
     const skipEvent = p.stability >= 6 && def.cp < 3;
     if (!skipEvent) {
-      return {move: "playCard", args: [hc, "event"]};
+      return {move: "playCard", args: [homeCard, "event"]};
     }
     // Play for CP instead.
-    return {move: "playCard", args: [hc, "cp"]};
-  }
-  if (p.homeCards.length > 0) {
-    // No home card selected yet — choose first available home card.
-    return {move: "chooseHomeCard", args: [p.homeCards[0]]};
+    return {move: "playCard", args: [homeCard, "cp"]};
   }
 
   // 2. Attack rebels.
@@ -378,7 +420,9 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
   if (rebel !== null && G.cpRemaining >= 1) {
     const attackers = landUnitsIn(G, rebel.from).filter((u) => u.owner === power).map((u) => u.id);
     if (attackers.length > 0) {
-      return {move: "landBattle", args: [rebel.from, rebel.space, attackers, []]};
+      // Rule 18.0: every friendly land unit in the origin space fights; the
+      // move takes only the origin and the target.
+      return {move: "landBattle", args: [rebel.from, rebel.space]};
     }
   }
 
@@ -389,7 +433,7 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
 
   // 5. GE special: build armies if able.
   if (power === "GE" && G.cpRemaining >= 1) {
-    const space = botHomeRecruit(G, "GE");
+    const space = botRecruitSpace(G, "GE");
     if (space !== null) {
       return {move: "recruit", args: [space, "army", 1, {}]};
     }
@@ -397,18 +441,21 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
 
   // 6. UK special: build dreadnoughts if able.
   if (power === "UK" && G.cpRemaining >= 3) {
-    for (const [id, def] of Object.entries(SPACES)) {
-      if (def.home !== "UK") continue;
-      if (!ownsKey(G, id, "UK")) continue;
-      if (def.ports && def.ports.length > 0 && navalUnitsIn(G, id).length < 4) {
-        return {move: "constructFleet", args: [id, "dreadnought"]};
+    const unlocked = G.persistent.dreadnoughts === true || Boolean(p.flags.navalLimit);
+    if (unlocked) {
+      for (const [id, def] of Object.entries(SPACES)) {
+        if (def.home !== "UK") continue;
+        if (!ownsKey(G, id, "UK")) continue;
+        if (def.ports && def.ports.length > 0 && navalUnitsIn(G, id).length < 4) {
+          return {move: "constructFleet", args: [id, "dreadnought"]};
+        }
       }
     }
   }
 
   // 7. All bots: build armies if WTT ≥ 3.
   if (G.wtt >= 3 && G.cpRemaining >= 1) {
-    const space = botHomeRecruit(G, power);
+    const space = botRecruitSpace(G, power);
     if (space !== null) {
       return {move: "recruit", args: [space, "army", 1, {}]};
     }
@@ -457,8 +504,8 @@ const priorityTwo = (
   }
 
   if (roll === 2) {
-    // Minor alliance (2 CP).
-    if (G.cpRemaining >= 2) {
+    // Minor alliance (3 CP) — the move itself charges 3.
+    if (G.cpRemaining >= 3) {
       const minor = minorAllianceTarget(G, power, region);
       if (minor !== null) {
         return {move: "minorAlliance", args: [minor]};
@@ -476,24 +523,24 @@ const priorityTwo = (
   if (roll >= 3 && roll <= 4) {
     // Build standing armies (1-2 CP).
     if (G.cpRemaining >= 1) {
-      const space = botHomeRecruit(G, power);
+      const space = botRecruitSpace(G, power);
       if (space !== null) {
         return {move: "recruit", args: [space, "army", 1, {}]};
       }
     }
     // Then reserve armies.
-    if (G.cpRemaining >= 1 && p.reserves.length === 0) {
-      return {move: "recruit", args: [null, "reserveArmy", 1, {}]};
-    }
-    // Then fort (3-4 sub-result: die shows 3 on the chart → build fort).
+    if (G.cpRemaining >= 1) {
+      // `reserveRemaining` mirrors the move's own gate (box = manpower/industry,
+      // 0 for the UK).  A box with no room is an illegal move, not a cheap army.
+      const room = reserveRemaining(G, power);
+      if (room > 0) {
+        return {move: "recruit", args: [null, "reserveArmy", 1, {}]};
+      }
+    }    // Then fort (3-4 sub-result: die shows 3 on the chart → build fort).
     if (roll === 3 && G.cpRemaining >= 1) {
-      for (const [id, def] of Object.entries(SPACES)) {
-        if (def.home !== power) continue;
-        if (!ownsKey(G, id, power)) continue;
-        const space = G.spaces[id];
-        if (space && (!space.fort || space.fort.level < 2)) {
-          return {move: "buildFort", args: [id]};
-        }
+      const space = botFortSpace(G, power);
+      if (space !== null) {
+        return {move: "buildFort", args: [space]};
       }
     }
     // Then EC.
@@ -507,12 +554,12 @@ const priorityTwo = (
     }
   }
 
-  if (roll >= 5 && roll <= 6) {
-    // Play top card for event (if it doesn't hurt self/allies).
+  // 5-6 — play a card for its event.  `playCard` only accepts an event while
+  // the impulse holds no CP (12.0), so this tier is skipped when CP is banked;
+  // `botDecision` then spends the CP and reaches this tier on a later impulse.
+  if (roll >= 5 && roll <= 6 && G.cpRemaining === 0) {
     for (const cardId of p.hand) {
-      const def = cardById(cardId);
-      if (def.kind === "home") continue;
-      if (def.type === "response" || def.type === "combat") continue;
+      if (!isCpSpendable(cardId)) continue;
       if (worthPlayingForEvent(G, power, cardId)) {
         return {move: "playCard", args: [cardId, "event"]};
       }
@@ -534,17 +581,62 @@ const excessCp = (G: ImperialElegyState, power: Power): BotMove | null => {
   if (G.cpRemaining <= 0) return null;
 
   // Build armies first.
-  const space = botHomeRecruit(G, power);
+  const space = botRecruitSpace(G, power);
   if (space !== null) {
     return {move: "recruit", args: [space, "army", 1, {}]};
   }
 
-  // Then BMPIT influence: pick first power/track (deterministic first option).
-  // We simulate rolling dice as power index + 1 and row 1 (TA), which is a
-  // conservative first choice; the actual random choice happens at runtime.
+  // Then BMPIT influence.  `placeInfluence` places a *map* influence marker
+  // and takes a SpaceId; the alliance track is moved with `placeMpit`.
+  // Deterministic first choice: the next power, on whichever of its tracks the
+  // bot is furthest from, preferring TA while it is still open.
   const targetPower = POWERS[(POWERS.indexOf(power) + 1) % POWERS.length];
-  return {move: "placeInfluence", args: [G.powers[targetPower].mpit.te >= 3 ? "neutral" : "te"]};
+  const track = G.powers[targetPower].mpit.te >= 3 ? "neutral" : "te";
+  return {move: "placeMpit", args: [targetPower, track]};
 };
+
+/**
+ * A space the bot may build a fort in: a European home key it still controls,
+ * with no fort and no fort built there this decade, under the three-fort cap.
+ */
+const botFortSpace = (G: ImperialElegyState, power: Power): SpaceId | null => {
+  const forts = Object.values(G.spaces).filter((s) => s.fort?.power === power).length;
+  if (forts >= 3) return null;
+  for (const [id, def] of Object.entries(SPACES)) {
+    if (def.home !== power) continue;
+    if (def.region !== "europe") continue;
+    if (!ownsKey(G, id, power)) continue;
+    if (G.spaces[id]?.fort) continue;
+    if (G.powers[power].flags[`fort_${id}`]) continue;
+    return id;
+  }
+  return null;
+};
+
+/**
+ * A space a wartime deploy-reserves action may legally use: it must be a main
+ * map land space that the power controls (or occupies) with a valid LoC and
+ * room for another army (15.2.3 / 5.5.3).
+ */
+const botDeploySpace = (G: ImperialElegyState, power: Power): SpaceId | null => {
+  for (const [id, def] of Object.entries(SPACES)) {
+    if (def.submap !== "main") continue;
+    const state = G.spaces[id];
+    if (!state) continue;
+    if (state.control !== power && state.occupiedBy !== power) continue;
+    if (!hasLoc(G, power, id, {landOnly: true})) continue;
+    if (landUnitsIn(G, id).filter((u) => isArmyKind(u.kind)).length >= 3) continue;
+    return id;
+  }
+  return null;
+};
+
+/**
+ * A home key the bot may draft a reduced army into (27.5.2).  The engine owns
+ * the eligibility rules; this only picks the first legal space.
+ */
+const botDraftSpace = (G: ImperialElegyState, power: Power): SpaceId | null =>
+  gwDraftSpaces(G, power)[0] ?? null;
 
 // ---------------------------------------------------------------------------
 // Wartime action priorities (B2)
@@ -571,12 +663,12 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
     // Find enemy capital.
     for (const [id, spaceDef] of Object.entries(SPACES)) {
       if (spaceDef.home !== enemy && spaceDef.type !== "capital") continue;
-      const myArmies = landUnitsIn(G, id);
       // Look for adjacent space with our armies.
       for (const nId of neighboursOf(id)) {
         const ourUnits = landUnitsIn(G, nId).filter((u) => u.owner === power);
         if (ourUnits.length > 0 && budget >= 1) {
-          return {move: "landBattle", args: [nId, id, ourUnits.map((u) => u.id), []]};
+          // `landBattle` takes only (from, to): the whole force in `nId` fights.
+          return {move: "landBattle", args: [nId, id]};
         }
       }
     }
@@ -584,7 +676,7 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
 
   // Deploy reserves if > 1 undeployed.
   if (G.powers[power].reserves.length > 1 && budget >= 1) {
-    const space = botHomeRecruit(G, power);
+    const space = botDeploySpace(G, power);
     if (space !== null) {
       return {move: "deployReserves", args: [space]};
     }
@@ -614,17 +706,17 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
 
   if (roll >= 1 && roll <= 3) {
     // Attack or move to defend stability spaces.
-    // Simplified: find the nearest enemy and attack.
+    // Simplified: march into an adjacent space that holds enemy armies.
     for (const [id] of Object.entries(G.spaces)) {
-      if (!isHomeSpace(G, id, power)) continue;
-      const enemies = landUnitsIn(G, id).filter((u) => {
-        return isPower(u.owner) && u.owner !== power;
-      });
-      if (enemies.length > 0) {
-        const ours = landUnitsIn(G, id).filter((u) => u.owner === power);
-        if (ours.length > 0) {
-          return {move: "gwMarch", args: [id, id, ours.map((u) => u.id)]};
-        }
+      const ours = landUnitsIn(G, id).filter((u) => u.owner === power && !u.elite);
+      if (ours.length === 0) continue;
+      for (const to of neighboursOf(id)) {
+        const enemies = landUnitsIn(G, to).filter((u) => isPower(u.owner) && u.owner !== power);
+        if (enemies.length === 0) continue;
+        // `gwMarch` takes (unitId, to): one army per action, so march the
+        // strongest unit the bot has in the origin space.
+        const unit = ours[0];
+        return {move: "gwMarch", args: [unit.id, to]};
       }
     }
   }
@@ -638,9 +730,12 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
   }
 
   if (roll === 6) {
-    // Draft, unless it would exhaust manpower.
+    // Draft into a legal home key; the engine decides the second placement.
     if (G.powers[power].manpower > 0) {
-      return {move: "gwDraft", args: []};
+      const space = botDraftSpace(G, power);
+      if (space !== null) {
+        return {move: "gwDraft", args: [space]};
+      }
     }
   }
 
@@ -689,6 +784,8 @@ export const botDecision = (
   if (phase === "diplomacy") {
     // B1: "do not choose a home card for bots, instead each bot adds a
     // random home card to their pile".  Add first available home card.
+    // `chooseHomeCard` is diplomacy-only and only accepts a card that has not
+    // been chosen yet (moves.ts), so this branch must never run later.
     if (!p.flags.homeChosen && p.homeCards.length > 0) {
       return {move: "chooseHomeCard", args: [p.homeCards[0]]};
     }
@@ -702,18 +799,21 @@ export const botDecision = (
       return {move: "endImpulse"};
     }
 
+    // A mandatory card in hand forbids passing (12.0), so play it first.
+    // It may only be played for its event and only while the impulse is empty.
+    const mandatory = mandatoryInHand(G, power);
+    if (mandatory !== null && G.cpRemaining === 0) {
+      return {move: "playCard", args: [mandatory, "event"]};
+    }
+
     // Priority 1.
     const p1 = priorityOne(G, power);
     if (p1 !== null) return p1;
 
-    // If we have CP remaining, play card for CP to get to priority 2.
-    if (G.cpRemaining === 0 && p.hand.length > 0) {
-      // Find a non-home, non-response/combat card to play for CP.
-      const cpCard = p.hand.find((id) => {
-        const def = cardById(id);
-        return def.kind !== "home" && def.type !== "response" && def.type !== "combat";
-      });
-      if (cpCard) {
+    // Start a fresh impulse by playing a card for CP.
+    if (G.cpRemaining === 0) {
+      const cpCard = p.hand.find(isCpSpendable);
+      if (cpCard !== undefined) {
         return {move: "playCard", args: [cpCard, "cp"]};
       }
     }
@@ -764,7 +864,9 @@ export const botDecision = (
   }
 
   if (phase === "gwWinter") {
-    return {move: "gwEndTurn"};
+    // `gwEndTurn` is a maneuver move; a stalled winter is retried through
+    // `gwResolveWinter`, which is the only move the phase accepts.
+    return {move: "gwResolveWinter"};
   }
 
   // Fallback.
