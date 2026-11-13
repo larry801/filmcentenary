@@ -62,6 +62,11 @@ test("International Conference offers both printed options when played as a resp
     "Apply +2 DRM to the crisis roll",
     "Decrease the WTT by 1",
   ]);
+  // One-off card option labels keep their printed Chinese text in the pending.
+  expect(G.pending?.options.map((o) => o.labelZh)).toEqual([
+    "危机掷骰 +2 DRM",
+    "世界紧张 -1",
+  ]);
   expect(G.powers.GE.hand).not.toContain("IE-A067");
 });
 

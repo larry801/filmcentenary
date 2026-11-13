@@ -243,6 +243,32 @@ describe("30.1 minor-power ally markers", () => {
     expect(entries[0].args).toMatchObject({from: "GE", to: "OT"});
   });
 
+  test("two surviving powers use a die roll when they cannot agree", () => {
+    const run = (dice: number[]) => {
+      const G = gwState({
+        order: ["FR", "GE", "OT", "AU"],
+        te: ["FR"],
+        ta: ["GE", "OT", "AU"],
+        belligerents: ["FR", "GE", "OT", "AU"],
+      });
+      G.spaces.tuscany.ally = "GE";
+      G.spaces.berlin.occupiedBy = "FR";
+      let index = 0;
+      const ctx = {
+        ...makeCtx(3),
+        random: {Die: (_sides: number) => dice[Math.min(index++, dice.length - 1)] ?? 3},
+      } as Ctx;
+      resolveCapitalSurrenders(G, ctx);
+      return G.spaces.tuscany.ally;
+    };
+    // OT and AU are the two remaining alliance members; the higher roll takes
+    // the minor power, whichever seat that is.
+    expect(run([2, 6])).toBe("AU");
+    expect(run([6, 2])).toBe("OT");
+    // A tie falls back to the earlier initiative order (OT).
+    expect(run([3, 3])).toBe("OT");
+  });
+
   test("removed when no alliance member survives", () => {
     const G = gwState();
     G.spaces.tuscany.ally = "GE";

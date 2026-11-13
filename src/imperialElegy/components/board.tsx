@@ -5,7 +5,7 @@ import {ImperialElegyState, PendingOption, Power, POWERS, SpaceId, Unit} from ".
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, ownsKey} from "../engine/rules";
+import {effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, navalUnitsIn, ownsKey} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -89,6 +89,8 @@ const PROMPT_ZH: Record<string, string> = {
   "Choose a treaty option": "选择条约选项",
   "Choose a treaty space": "选择条约空间",
   "Colonial war: choose an unoccupied space to take": "殖民战争：选择一个无人占领的空间",
+  "Colonial war: choose a unit to take the loss": "殖民战争：选择承受损失的单位",
+  "Unstable Situation: discard a random card or take a -1 card marker": "动荡局势：随机弃 1 张牌或获得 -1 抽牌标记",
   "Neutral player: join an alliance or stay out": "中立国：加入同盟或保持中立",
   "Choose the alliance your neutral player joins": "选择你的中立国加入的同盟",
   "Choose the space for the free deploy reserves": "选择免费部署预备军的位置",
@@ -935,6 +937,23 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     !eliminated && gwTransferToValue !== "" && gwTransferAmountValue <= (me.gwBudget ?? 0) &&
     me.flags.gwCpTransferDone !== true,
   );
+  // 15.2.2: a GW joint naval operation moves one contingent from each of two
+  // allied powers that start together.  The selected own ship supplies the
+  // origin; every naval unit that ally has in that box joins the operation.
+  const gwJointNavalAllies: Power[] = (() => {
+    if (viewer === null || !gw || phase !== "gwManeuver" || !selectedUnitDef || !selectedUnitDef.naval ||
+      selectedUnitDef.owner !== viewer || !selectedUnitDef.space) return [];
+    const side = gw.te.includes(viewer) ? gw.te : gw.ta.includes(viewer) ? gw.ta : [];
+    return side.filter((ally) =>
+      ally !== viewer &&
+      G.powers[ally]?.eliminated !== true &&
+      navalUnitsIn(G, selectedUnitDef.space!).some((unit) => unit.owner === ally),
+    );
+  })();
+  const gwJointNavalUnitIds = (ally: Power): string[] =>
+    selectedUnitDef?.space
+      ? navalUnitsIn(G, selectedUnitDef.space).filter((unit) => unit.owner === ally).map((unit) => unit.id)
+      : [];
   // 26.1: a held GW-03/04/06 combat card may be revealed faceup.
   const gwCardId = me?.gwCard === undefined || me?.gwCard === null ? "" : String(me.gwCard);
   const gwCombatCardHeld = ["IE-GW-03", "IE-GW-04", "IE-GW-06"].includes(gwCardId);
@@ -1190,6 +1209,20 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
                           : null,
                         selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase === "gwManeuver" && selectedUnitDef.naval
                           ? <button key="gwnaval" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.navalMove([selectedUnitDef.id], selected!))}>{t.moveHere}</button>
+                          : null,
+                        selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase === "gwManeuver" && selectedUnitDef.naval
+                          ? gwJointNavalAllies.map((ally) => (
+                              <button
+                                key={`gwjoint-${ally}`}
+                                data-testid={`ie-gw-joint-naval-${ally}`}
+                                className="ie-btn secondary"
+                                disabled={!canSpend(1)}
+                                title={bi(actualLocale, "15.2.2: move one contingent from each allied power together.", "15.2.2：两国各派一支分舰队联合行动。")}
+                                onClick={() => doAction(() => moves.gwJointNaval(ally, [selectedUnitDef.id], gwJointNavalUnitIds(ally), selected!))}
+                              >
+                                {bi(actualLocale, `Joint naval with ${t.seats[ally]}`, `与${t.seats[ally]}联合海军`)}
+                              </button>
+                            ))
                           : null,
                         selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase === "gwManeuver" && !selectedUnitDef.naval
                           ? <React.Fragment key="gwmove">

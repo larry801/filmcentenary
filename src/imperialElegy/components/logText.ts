@@ -1527,6 +1527,14 @@ const FORMATTERS: Record<string, Formatter> = {
 
   gwColonialLoss: (entry, locale) => {
     const region = regionLabel(entry.args?.region, locale);
+    if (bool(entry.args?.skip)) {
+      return withActor(
+        entry,
+        locale,
+        `had no unit left to lose in the ${region} colonial war.`,
+        `在${region}殖民战争中已无单位可损失。`,
+      );
+    }
     const space = spaceName(entry.args?.space, locale);
     const eliminated = bool(entry.args?.eliminated);
     const unit = unitKind(entry.args?.kind, locale);

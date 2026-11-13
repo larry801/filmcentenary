@@ -427,8 +427,8 @@ Status labels:
   - **29.2 colonial war** applies the printed EF/elite/army/naval-supremacy
     modifiers, opposed rolls, one/two-step losses, territorial transfer, UK/RU
     stability and the 1/3 bonus CP at the next planning step. Transfer LoC
-    traces apply the same Suez/Dardanelles gates; the transfer choice and the
-    bonus-CP split are live pendings.
+    traces apply the same Suez/Dardanelles gates; the losing side’s loss
+    choice, the winner’s transfer and the bonus-CP split are live pendings.
   - **Round-8 additions:** 30.0 charges the −1 stability for a lost dreadnought
     and counts committed supporting armies for the decisive-force threshold;
     31.0’s second defeat condition (one living power in an alliance with no
@@ -467,12 +467,17 @@ Summary:
   +1 DRM/pacification, 1-CP Algeria rebuild and free prep rebuild; the
   card-driven `lostWar` switch and Napoleon’s Legacy reveal are live.
 - **AU:** Metternich; Dual Monarchy card and turn-2 add-to-hand; 3 CP
-  Reforms/Expand Citizenship/Incorporate; full Unstable Situation discard/marker;
+  Reforms/Expand Citizenship/Incorporate; full Unstable Situation
+  discard-or-marker choice (private pending);
   A New Way Forward; Continental Power pacification; Bind Them Together; wars of
   unification on citizen nationalities and Arbiter of Italy liberation targets
   (validated in `auWarAims.test.ts`); full citizenship now removes a nationality
   from the minority list for Nationalist Uprising targeting, and granting
   citizenship also records rights.
+- **Italy (5.6.1 Italian Exception):** after unification, `IT` units trace a
+  player-style LoC to an Italian controlled home key that has a LoC to another
+  Italian controlled home key; a broken Italian LoC is charged to the combat
+  DRM/support/impulse paths.
 - **RU:** TSRR +1 card/+2 keys and free rail move; Endless Space; Agrarian 6;
   Tsarist Repression; Second Rome VP/Istanbul capture (the start-of-GW 2 VPs
   are awarded separately at outbreak); Scorched Earth; Russian Steamroller
@@ -501,7 +506,7 @@ gaps: the **partial** items above are live-code gaps, not deferred content.
 - Test/build commands and the evidence gathered for this refresh: see
   `IMPLEMENTATION_STATUS.md#test-and-build-evidence`.
 - **Recorded evidence (round 8):** the full IE Jest suite passes
-  **2632/2632 tests in 203/203 suites**, `tsc --noEmit`, `yarn build` and
+  **2641/2641 tests in 205/205 suites**, `tsc --noEmit`, `yarn build` and
   `yarn build:server` are clean, and `python3 scripts/extract-imperial-elegy.py
   --check` verifies 501 assets. The browser specs were rerun on this build:
   **5/5 regression, 3/3 controls, 3/3 spectator**. See

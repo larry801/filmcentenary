@@ -34,7 +34,7 @@ import {
 } from "../constant/spaces";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "../constant/setup";
 import {cardById, discardCard} from "./deck";
-import {decision, openDecision} from "./pending";
+import {closeDecision, decision, openDecision, option} from "./pending";
 
 export const die = (ctx: Ctx, sides: number): number => ctx.random!.Die(sides);
 
@@ -1173,6 +1173,101 @@ export const minorHasLoc = (G: ImperialElegyState, minor: string, from: SpaceId)
 export const minorBrokenLoc = (G: ImperialElegyState, minor: string, space: SpaceId): boolean =>
   !isNavalBox(space) && minorUpkeepPower(G, minor) !== null && !minorHasLoc(G, minor, space);
 
+// ---------------------------------------------------------------------------
+// 5.6.1 Italian Exception
+// ---------------------------------------------------------------------------
+
+/** The printed Italian home keys (the unification spaces, including Rome). */
+export const ITALIAN_HOME_SPACES: readonly SpaceId[] = Object.values(SPACES)
+  .filter((def) => def.flashpoints?.includes("italy"))
+  .map((def) => def.id);
+
+/** 5.6.1: "any Italian controlled home key". */
+export const italianControlledHomeKeys = (G: ImperialElegyState): SpaceId[] =>
+  ITALIAN_HOME_SPACES.filter((id) => G.spaces[id]?.control === "IT");
+
+/** Friendly spaces for unified Italy's LoC trace (5.6 player rules). */
+export const italianFriendlySpace = (G: ImperialElegyState, space: SpaceId): boolean => {
+  const state = G.spaces[space];
+  if (!state) return false;
+  if (isNavalBox(space)) {
+    // 5.6: naval boxes are always traceable unless an enemy ship is in them.
+    const side = gwMajorSide(G, "IT");
+    if (side === null) return true;
+    return !(state.units ?? []).some((id) => {
+      const unit = G.units[id];
+      if (!unit || unit.naval !== true) return false;
+      if (isPower(unit.owner)) {
+        const ownerSide = G.gw?.te.includes(unit.owner) ? "te" : G.gw?.ta.includes(unit.owner) ? "ta" : null;
+        return ownerSide !== null && ownerSide !== side;
+      }
+      if (unit.owner === "IT") return false;
+      // Neutral minors and rebels never belong to Italy's alliance.
+      return true;
+    });
+  }
+  if (state.control === "IT" || state.occupiedBy === "IT") return true;
+  const side = gwMajorSide(G, "IT");
+  if (side === null) return false;
+  if (isPower(state.control)) return G.gw?.te.includes(state.control) === (side === "te") || G.gw?.ta.includes(state.control) === (side === "ta");
+  if (!isPower(state.control) && state.control !== null && isPower(state.ally)) {
+    return G.gw?.te.includes(state.ally) === (side === "te") || G.gw?.ta.includes(state.ally) === (side === "ta");
+  }
+  return false;
+};
+
+/**
+ * 5.6.1 Italian Exception: "A supply source is any Italian controlled home key
+ * with a LoC to another Italian controlled home key."
+ */
+export const italianSupplySource = (G: ImperialElegyState, space: SpaceId): boolean => {
+  if (G.spaces[space]?.control !== "IT" || !ITALIAN_HOME_SPACES.includes(space)) return false;
+  const others = italianControlledHomeKeys(G).filter((id) => id !== space);
+  if (others.length === 0) return false;
+  const visited = new Set<SpaceId>([space]);
+  const queue: SpaceId[] = [space];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const next of neighboursOf(current)) {
+      if (visited.has(next)) continue;
+      if (!italianFriendlySpace(G, next)) continue;
+      if (others.includes(next)) return true;
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+  return false;
+};
+
+/** 5.6.1: unified Italian units trace a player-style LoC to an Italian source. */
+export const italianHasLoc = (G: ImperialElegyState, from: SpaceId): boolean => {
+  if (!G.spaces[from]) return false;
+  if (italianSupplySource(G, from)) return true;
+  const visited = new Set<SpaceId>([from]);
+  const queue: SpaceId[] = [from];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const next of neighboursOf(current)) {
+      if (visited.has(next)) continue;
+      if (!italianFriendlySpace(G, next)) continue;
+      if (italianSupplySource(G, next)) return true;
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+  return false;
+};
+
+/** 5.6.1/5.6.2: a unified Italian army with a broken LoC (GW only). */
+export const italianBrokenLoc = (G: ImperialElegyState, space: SpaceId): boolean =>
+  Boolean(G.gw?.active) && !isNavalBox(space) && !italianHasLoc(G, space);
+
+/** IT units in `space` whose broken LoC is charged during an Italian impulse. */
+const italianBrokenCandidates = (G: ImperialElegyState, space: SpaceId): Unit[] =>
+  unitsIn(G, space).filter(
+    (unit) => unit.owner === "IT" && unit.steps > 0 && unit.naval !== true && isArmyKind(unit.kind) && italianBrokenLoc(G, space),
+  );
+
 /** The minor armies in `space` whose broken-LoC step falls on `power`. */
 const minorBrokenCandidates = (
   G: ImperialElegyState,
@@ -1216,11 +1311,18 @@ export const impulsePenalties = (G: ImperialElegyState, power: Power): ImpulsePe
       const own = penaltyCandidates(G, space, power, false);
       const ownBroken = own.length > 0 && brokenLoc(G, power, space);
       const minors = minorBrokenCandidates(G, space, power);
-      if (!ownBroken && minors.length === 0) continue;
+      // 5.6.1 Italian Exception: a unified Italy's armies follow player LoC
+      // rules.  Charge their step to the player taking Italy's own GW impulse.
+      const italians = gwAllyImpulseFor(G, power) === "IT" ? italianBrokenCandidates(G, space) : [];
+      if (!ownBroken && minors.length === 0 && italians.length === 0) continue;
       out.push({
         space,
         cause: "brokenLoc",
-        candidates: [...(ownBroken ? own.map((u) => u.id) : []), ...minors.map((u) => u.id)],
+        candidates: [
+          ...(ownBroken ? own.map((u) => u.id) : []),
+          ...minors.map((u) => u.id),
+          ...italians.map((u) => u.id),
+        ],
       });
     }
   }
@@ -1621,30 +1723,82 @@ export const changeStability = (
     log(G, power, "frThirdRepublic", {});
   }
   if (result.unstableSituation.applies && result.unstableSituation.passes === false) {
-    // 33.4 Unstable Situation: discard a random card, or take a -1 card marker
-    // when there is no card to discard.  The marker is the same `cardMarkers`
-    // counter that `cardsToDraw` adds to the hand size.
+    // 33.4 Unstable Situation: "they must either discard a random card or take
+    // a minus one card marker (if they cannot discard a card, they must take
+    // the minus one card marker)."  The choice belongs to AU, so open a
+    // private pending decision instead of auto-discarding.  A forced marker
+    // (no eligible card) and non-interactive callers keep the deterministic
+    // fallback so an unattended game can never stall.
     const eligible = p.hand.filter((id) => id !== p.selectedHomeCard && cardById(id).kind !== "home");
-    let discarded: CardId | null = null;
-    if (eligible.length > 0) {
-      const roll = ctx ? die(ctx, eligible.length) : 1;
-      const index = Math.max(0, Math.min(eligible.length - 1, roll - 1));
-      discarded = eligible[index];
-      discardCard(G, power, discarded, "auUnstableDiscard");
+    if (eligible.length > 0 && ctx !== undefined && G.pending === null) {
+      openDecision(G, ctx, decision(
+        "auUnstable",
+        power,
+        "Unstable Situation: discard a random card or take a -1 card marker",
+        [
+          option("discard", "Discard a random card", undefined, false, "随机弃 1 张牌"),
+          option("marker", "Take a -1 card marker", undefined, false, "获得 -1 抽牌标记"),
+        ],
+        {
+          roll: result.unstableSituation.dieRoll,
+          rights: result.unstableSituation.rights,
+          eligible,
+        },
+      ));
     } else {
-      p.cardMarkers -= 1;
+      let discarded: CardId | null = null;
+      if (eligible.length > 0) {
+        const roll = ctx ? die(ctx, eligible.length) : 1;
+        const index = Math.max(0, Math.min(eligible.length - 1, roll - 1));
+        discarded = eligible[index];
+        discardCard(G, power, discarded, "auUnstableDiscard");
+      } else {
+        p.cardMarkers -= 1;
+      }
+      log(G, power, "auUnstable", {
+        roll: result.unstableSituation.dieRoll,
+        rights: result.unstableSituation.rights,
+        discarded,
+        marker: discarded === null,
+      });
     }
-    log(G, power, "auUnstable", {
-      roll: result.unstableSituation.dieRoll,
-      rights: result.unstableSituation.rights,
-      discarded,
-      marker: discarded === null,
-    });
   }
   if (G.gw?.active && p.stability <= 0) {
     eliminatePower(G, power, ctx, "stability");
   }
   return p.stability - before;
+};
+
+/**
+ * 33.4 Unstable Situation: answer AU's discard-or-marker decision.  Returns
+ * false for an illegal option so the move layer can return `INVALID_MOVE`.
+ */
+export const resolveAuUnstableChoice = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: {context?: Record<string, unknown>},
+  optionId: string,
+): boolean => {
+  const p = G.powers.AU;
+  const eligible = Array.isArray(pending.context?.eligible)
+    ? (pending.context!.eligible as string[]).filter((id) => p.hand.includes(id as CardId))
+    : [];
+  const roll = Number(pending.context?.roll ?? 0);
+  const rights = Number(pending.context?.rights ?? 0);
+  if (optionId === "discard") {
+    if (eligible.length === 0) return false;
+    const index = Math.max(0, Math.min(eligible.length - 1, die(ctx, eligible.length) - 1));
+    const discarded = eligible[index] as CardId;
+    discardCard(G, "AU", discarded, "auUnstableDiscard");
+    log(G, "AU", "auUnstable", {roll, rights, discarded, marker: false});
+  } else if (optionId === "marker") {
+    p.cardMarkers -= 1;
+    log(G, "AU", "auUnstable", {roll, rights, discarded: null, marker: true});
+  } else {
+    return false;
+  }
+  closeDecision(G, ctx);
+  return true;
 };
 
 /**
@@ -1747,14 +1901,17 @@ const syncEliminationBonusImpulse = (
  * alliance and they cannot agree which receives the minor powers, use a die
  * roll to resolve it."
  *
- * The engine has no negotiation channel, so the heir is deterministic: the
- * surviving member earliest in the wartime initiative order, then printed seat
- * order.  When no alliance member survives the markers leave play.
+ * The engine has no negotiation channel, so when exactly two alliance members
+ * survive, the printed fallback is a die roll: each rolls one die and the
+ * highest receives the minor powers (a tie keeps the earliest initiative
+ * order, so an unattended or deterministic call never loops).  With one
+ * survivor the heir is unambiguous; with none the markers leave play.
  */
 const reassignMinorAllyMarkers = (
   G: ImperialElegyState,
   leaving: Power | "IT" | "US",
   side: GwSide | null,
+  ctx?: Ctx,
 ): void => {
   if (!G.gw || !isPower(leaving)) return;
   const roster = side === null ? [] : side === "te" ? G.gw.te : G.gw.ta;
@@ -1767,7 +1924,20 @@ const reassignMinorAllyMarkers = (
       const orderB = ib < 0 ? Number.MAX_SAFE_INTEGER : ib;
       return orderA - orderB || POWER_ORDER[a] - POWER_ORDER[b];
     });
-  const heir: Power | null = survivors[0] ?? null;
+  let heir: Power | null = survivors[0] ?? null;
+  let heirRolls: {power: Power; roll: number}[] = [];
+  // 30.1: "If there are two remaining powers in the alliance and they cannot
+  // agree which receives the minor powers, use a die roll to resolve it."
+  // The negotiation happens at the table; the engine always uses the printed
+  // die-roll fallback when two members remain.
+  if (survivors.length === 2 && ctx !== undefined) {
+    heirRolls = survivors.map((power) => ({power, roll: die(ctx, 6)}));
+    const best = Math.max(...heirRolls.map((entry) => entry.roll));
+    const winners = heirRolls.filter((entry) => entry.roll === best);
+    // A tie is resolved by the existing initiative/seat order (survivors is
+    // already sorted that way), so a constant test die cannot loop forever.
+    heir = winners[0]?.power ?? survivors[0];
+  }
   for (const space of Object.keys(G.spaces).sort()) {
     const state = G.spaces[space];
     if (!state || state.ally !== leaving) continue;
@@ -1777,6 +1947,9 @@ const reassignMinorAllyMarkers = (
       from: leaving,
       to: heir ?? "",
       side: side ?? "",
+      ...(heirRolls.length > 0
+        ? {rolls: heirRolls.map((entry) => `${entry.power}:${entry.roll}`).join(",")}
+        : {}),
     });
   }
 };
@@ -1798,6 +1971,7 @@ export const removeGwSurrenderMarkers = (
   G: ImperialElegyState,
   leaving: Power | "IT" | "US",
   side: GwSide | null,
+  ctx?: Ctx,
 ): void => {
   if (!G.gw) return;
   if (isPower(leaving)) {
@@ -1821,7 +1995,7 @@ export const removeGwSurrenderMarkers = (
     G.gw.bonusImpulses = G.gw.bonusImpulses.filter((entry) => entry !== "US");
   }
   syncEliminationBonusImpulse(G, leaving, side);
-  reassignMinorAllyMarkers(G, leaving, side);
+  reassignMinorAllyMarkers(G, leaving, side, ctx);
 };
 
 /**
@@ -1846,7 +2020,7 @@ export const eliminatePower = (
   if (G.gw) {
     // 30.1: capture the minors under this power before its ally markers move.
     const controlledMinors = minorsControlledBy(G, power);
-    removeGwSurrenderMarkers(G, power, side);
+    removeGwSurrenderMarkers(G, power, side, ctx);
     // 30.1: minors the surviving alliance did not inherit are disbanded by
     // 15.6/5.7 instead of leaving orphaned units on the map.
     sweepOrphanedMinorUnits(G, {leaving: power, candidates: controlledMinors});

@@ -681,6 +681,12 @@ export interface GwWinterState {
   /** GW-08/09: pressured players that failed the attack condition. */
   politicalPressureLosses: Power[];
   /**
+   * 29.2: the live loss choices still to be answered.  Only the interactive
+   * winter creates these; the deterministic fallback applies the losses at
+   * once and leaves the list empty/absent.
+   */
+  colonialLosses?: GwColonialLossChoice[];
+  /**
    * 29.2: the live transfer choices still to be answered.  Only the interactive
    * winter creates these; the deterministic fallback applies the transfer at
    * once and leaves the list empty/absent.
@@ -690,6 +696,17 @@ export interface GwWinterState {
   colonialBonus?: GwColonialBonusChoice[];
   /** True once `colonialBonus` has been computed for this winter. */
   colonialBonusPlanned?: boolean;
+}
+
+/** 29.2: one losing alliance's pending "which unit takes the loss" choice. */
+export interface GwColonialLossChoice {
+  region: "africa" | "asia";
+  side: "te" | "ta";
+  /** The deterministic controller of the losing alliance that answers it. */
+  by: Power;
+  /** Losses still to take (1, or 2 on a differential of 4+). */
+  remaining: number;
+  done: boolean;
 }
 
 /** 29.2: one winning alliance's pending "take an unoccupied space" choice. */
@@ -855,10 +872,14 @@ export const PENDING_KINDS = [
   "gwNeutralDestination",
   /** 29.3: choose the space for the free deploy-reserves action. */
   "gwNeutralDeploy",
+  /** 29.2: the losing alliance chooses which unit takes the colonial-war loss. */
+  "gwColonialLoss",
   /** 29.2: the winning alliance chooses an unoccupied colonial space to take. */
   "gwColonialTransfer",
   /** 29.2.1: the winning alliance allocates (or loses) its colonial bonus CP. */
   "gwColonialBonusCp",
+  /** 33.4 Unstable Situation: discard a random card or take a -1 card marker. */
+  "auUnstable",
   /** 33.1 Blood and Iron!: turn-1 end phase, search the NG deck for Unification!. */
   "bloodAndIron",
   /** 33.1 German Confederation: take control of a German minor ally after a unification win. */

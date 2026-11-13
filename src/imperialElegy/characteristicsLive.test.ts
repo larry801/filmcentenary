@@ -24,6 +24,7 @@ import {
   pacify,
   placeMpit,
   rebuildZouave,
+  resolvePending,
   startWarManeuver,
   tsrrRailMove,
   useJihad,
@@ -321,12 +322,29 @@ describe("Unstable Situation (33.4)", () => {
     G.powers.AU.stability = 3;
     G.powers.AU.rights = [];
     G.powers.AU.hand = ["IE-A018", "IE-A019"];
-    // Die 1: stability roll; die 1: random hand index.
-    changeStability(G, "AU", -1, makeCtx([1, 1]));
+    // Die 1: stability roll.  The discard is a separate private choice.
+    changeStability(G, "AU", -1, makeCtx([1]));
+    expect(G.pending?.kind).toBe("auUnstable");
+    // Die 1: random hand index.
+    expect(resolvePending(G, makeCtx([1], "3"), "discard")).toBeUndefined();
     expect(G.powers.AU.stability).toBe(2);
     expect(G.powers.AU.hand).toEqual(["IE-A019"]);
     expect(G.discard).toContain("IE-A018");
     expect(lastLog(G, "auUnstable")?.args).toMatchObject({discarded: "IE-A018", marker: false});
+  });
+
+  test("a failed roll with cards still lets AU choose the -1 marker", () => {
+    const G = fresh();
+    G.powers.AU.stability = 3;
+    G.powers.AU.hand = ["IE-A018"];
+    const markers = G.powers.AU.cardMarkers;
+    changeStability(G, "AU", -1, makeCtx([1]));
+    expect(G.pending?.kind).toBe("auUnstable");
+    expect(G.pending?.options.map((o) => o.id)).toEqual(["discard", "marker"]);
+    expect(resolvePending(G, makeCtx([1], "3"), "marker")).toBeUndefined();
+    expect(G.powers.AU.hand).toEqual(["IE-A018"]);
+    expect(G.powers.AU.cardMarkers).toBe(markers - 1);
+    expect(lastLog(G, "auUnstable")?.args).toMatchObject({discarded: null, marker: true});
   });
 
   test("with no card to discard AU takes the -1 card marker", () => {
@@ -345,6 +363,8 @@ describe("Unstable Situation (33.4)", () => {
     alone.powers.AU.rights = [];
     alone.powers.AU.hand = ["IE-A018"];
     changeStability(alone, "AU", -1, makeCtx([5]));
+    expect(alone.pending?.kind).toBe("auUnstable");
+    expect(resolvePending(alone, makeCtx([1], "3"), "discard")).toBeUndefined();
     expect(alone.powers.AU.hand).toHaveLength(0);
 
     const withRights = fresh();

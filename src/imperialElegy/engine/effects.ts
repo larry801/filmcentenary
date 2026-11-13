@@ -594,7 +594,7 @@ export const resolveCard = (G: ImperialElegyState, ctx: Ctx, actor: Power, card:
       "eventChoice",
       actor,
       "Choose an event option",
-      card.options.map((o, index) => option(`opt${index}`, o.label, {index})),
+      card.options.map((o, index) => option(`opt${index}`, o.label, {index}, false, o.labelZh)),
       {cardId: card.id, options: card.options.map((o) => o.effects)},
     ));
     return false;
@@ -1553,18 +1553,18 @@ const openBalkanAward = (
   resume: Effect[],
   owner: Power,
 ): boolean => {
-  const options: {id: string; label: string}[] = [];
+  const options: {id: string; label: string; labelZh: string}[] = [];
   for (const space of ["greece", "bulgaria", "serbia"] as SpaceId[]) {
     if (isIndependentBalkanMinor(G, space)) {
-      options.push({id: space, label: SPACES[space]?.name ?? space});
+      options.push({id: space, label: SPACES[space]?.name ?? space, labelZh: SPACES[space]?.nameZh ?? space});
     }
   }
-  options.push({id: "OT", label: POWER_DEFS.OT.name});
+  options.push({id: "OT", label: POWER_DEFS.OT.name, labelZh: POWER_DEFS.OT.nameZh});
   openDecision(G, ctx, decision(
     "eventChoice",
     owner,
     "The Balkan Wars: give Macedonia to Greece, Bulgaria, Serbia or the Ottomans",
-    options.map((entry) => option(entry.id, entry.label)),
+    options.map((entry) => option(entry.id, entry.label, undefined, false, entry.labelZh)),
     {resume, special: "balkanWars", stage: "award", owner, required: true},
   ));
   return true;
@@ -2021,7 +2021,11 @@ const resolveCardChain = (
           "eventChoice",
           owner,
           "Submarines: you may add +2 or -2 to the die before rolling",
-          [option("plus2", "+2 DRM"), option("zero", "No modifier"), option("minus2", "-2 DRM")],
+          [
+            option("plus2", "+2 DRM", undefined, false, "+2 修正"),
+            option("zero", "No modifier", undefined, false, "无修正"),
+            option("minus2", "-2 DRM", undefined, false, "-2 修正"),
+          ],
           {resume, special: "gwSubmarines", stage: "drm", target, owner, required: true},
         ));
         return;
@@ -2125,21 +2129,22 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         "goalChoice",
         actor,
         "Draw three National Goals and keep one",
-        drawn.map((id) => option(id, GOALS_BY_ID[id]?.title ?? id)),
+        drawn.map((id) => option(id, GOALS_BY_ID[id]?.title ?? id, undefined, false, GOALS_BY_ID[id]?.titleZh)),
         {resume, drawn, keep: 1},
       ));
       return false;
     }
     case "divideAndConquer": {
       const choices = [
-        {id: "pacify", label: "Add 2 to a pacification value and roll"},
-        {id: "rebel", label: "Eliminate a rebel army, place an EF and pacify"},
+        {id: "pacify", label: "Add 2 to a pacification value and roll", labelZh: "绥靖值 +2 并掷骰"},
+        {id: "rebel", label: "Eliminate a rebel army, place an EF and pacify", labelZh: "消灭 1 支叛军，放置 1 支远征军并绥靖"},
       ];
-      openDecision(G, ctx, decision("eventChoice", actor, "Choose an option", choices.map((c) => option(c.id, c.label)), {resume, special: handler}));
+      openDecision(G, ctx, decision("eventChoice", actor, "Choose an option", choices.map((c) => option(c.id, c.label, undefined, false, c.labelZh)), {resume, special: handler}));
       return false;
     }
     case "foreignInvestment": {
-      const choices = POWERS.filter((p) => p === "OT" || p === "RU").map((p) => option(p, POWER_DEFS[p].name));
+      const choices = POWERS.filter((p) => p === "OT" || p === "RU")
+        .map((p) => option(p, POWER_DEFS[p].name, undefined, false, POWER_DEFS[p].nameZh));
       openDecision(G, ctx, decision("eventTargetPower", actor, "Give the card to the Ottomans or Russians", choices, {resume, special: handler}));
       return false;
     }
@@ -2639,7 +2644,10 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         "eventChoice",
         actor,
         "Empire of the Sun: choose Korea or Manchuria",
-        [option("korea", SPACES.korea.name), option("manchuria", SPACES.manchuria.name)],
+        [
+          option("korea", SPACES.korea.name, undefined, false, SPACES.korea.nameZh),
+          option("manchuria", SPACES.manchuria.name, undefined, false, SPACES.manchuria.nameZh),
+        ],
         {resume, special: "empireOfTheSun", stage: "target", owner: actor, required: true},
       ));
       return false;
@@ -2928,7 +2936,21 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         "eventChoice",
         actor,
         "Major Power Entry: shift Italy or the US toward your alliance",
-        majors.map((major) => option(major, major === "IT" ? `Italy (in ${italyAllianceBox(G)}; ${italyEntryOdds(italyAllianceBox(G))})` : `United States (now ${usAllianceBox(G)})`)),
+        majors.map((major) => major === "IT"
+          ? option(
+              major,
+              `Italy (in ${italyAllianceBox(G)}; ${italyEntryOdds(italyAllianceBox(G))})`,
+              undefined,
+              false,
+              `意大利（${italyAllianceBox(G)}；${italyEntryOdds(italyAllianceBox(G))}）`,
+            )
+          : option(
+              major,
+              `United States (now ${usAllianceBox(G)})`,
+              undefined,
+              false,
+              `美国（当前 ${usAllianceBox(G)}）`,
+            )),
         {resume, special: "gwMajorEntry"},
       ));
       return false;
@@ -2942,7 +2964,16 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         "eventChoice",
         actor,
         "Flip a facedown GW combat card faceup",
-        facedown.map((entry, index) => option(`flip${index}`, `${entry.cardId} (${entry.holder})`)),
+        facedown.map((entry, index) => {
+          const card = cardById(entry.cardId);
+          return option(
+            `flip${index}`,
+            `${card.title} (${POWER_DEFS[entry.holder]?.name ?? entry.holder})`,
+            undefined,
+            false,
+            `${card.titleZh}（${POWER_DEFS[entry.holder]?.nameZh ?? entry.holder}）`,
+          );
+        }),
         {
           resume,
           special: "gwCombatFlip",
@@ -3008,9 +3039,9 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       }
       // "OR all players fighting in the GW lose 1 VP; this option can only be
       // chosen if there is currently a neutral player(s)."
-      const options = [option("stability", "All major defeats cost 2 stability this turn")];
+      const options = [option("stability", "All major defeats cost 2 stability this turn", undefined, false, "本回合所有重大失败损失 2 点稳定度")];
       const neutrals = G.gw?.neutrals ?? [];
-      if (neutrals.length > 0) options.push(option("vp", "All GW players lose 1 VP"));
+      if (neutrals.length > 0) options.push(option("vp", "All GW players lose 1 VP", undefined, false, "所有大战玩家失去 1 VP"));
       openDecision(G, ctx, decision(
         "eventChoice",
         actor,
@@ -3289,9 +3320,9 @@ export const performEffect = (
     }
     case "war": {
       openDecision(G, ctx, decision("eventChoice", actor, "Declare war", [
-        option("conquest", "War of conquest"),
-        option("liberation", "War of liberation"),
-        option("unification", "War of unification"),
+        option("conquest", "War of conquest", undefined, false, "征服战争"),
+        option("liberation", "War of liberation", undefined, false, "解放战争"),
+        option("unification", "War of unification", undefined, false, "统一战争"),
       ], {resume, special: "warDeclaration", free: effect.free}));
       return false;
     }

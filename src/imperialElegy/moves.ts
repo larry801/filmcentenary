@@ -60,6 +60,7 @@ import {
   atWar,
   beginImpulseUpkeep,
   changeStability,
+  resolveAuUnstableChoice,
   clearTurnDurationFlags,
   changeWtt,
   computePowerProjection,
@@ -4662,6 +4663,12 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     resolveImpulseLoss(G, ctx, pending, optionId);
     return undefined;
   }
+  if (pending.kind === "auUnstable") {
+    // 33.4: AU chooses between discarding a random card and the -1 marker.
+    if (!resolveAuUnstableChoice(G, ctx, pending, optionId)) return INVALID_MOVE;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
   if (pending.kind === "navalInterception") {
     return resolveNavalInterception(G, ctx, pending, optionId) ? undefined : INVALID_MOVE;
   }
@@ -4732,8 +4739,13 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     // 29.3: the engine owns the neutral-entry sequence and its follow-ups.
     return resolveGwNeutralOption(G, ctx, pending, optionId) ? undefined : INVALID_MOVE;
   }
-  if (pending.kind === "gwColonialTransfer" || pending.kind === "gwColonialBonusCp") {
-    // 29.2 / 29.2.1: the winning alliance's live transfer / bonus-CP choice.
+  if (
+    pending.kind === "gwColonialLoss" ||
+    pending.kind === "gwColonialTransfer" ||
+    pending.kind === "gwColonialBonusCp"
+  ) {
+    // 29.2 / 29.2.1: the losing alliance's loss / winning alliance's transfer
+    // and bonus-CP choices.
     return resolveGwColonialChoice(G, ctx, pending, optionId) ? undefined : INVALID_MOVE;
   }
   // Card decisions.
@@ -4926,9 +4938,26 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
     // deadlocking the maneuver step.
     return resolveGwDraftSecond(G, ctx, pending, null) ? undefined : INVALID_MOVE;
   }
-  // 29.2: the transfer is optional ("may then take control"), so a decline
-  // takes no further space.  29.2.1's decline is the printed "no agreement":
-  // all bonus CP from that colonial pool are lost.
+  // 29.2: the loss itself is mandatory, so an unattended losing alliance takes
+  // the deterministic first candidate.  The transfer is optional ("may then
+  // take control"), so a decline takes no further space.  29.2.1's decline is
+  // the printed "no agreement": all bonus CP from that colonial pool are lost.
+  if (pending.kind === "auUnstable") {
+    // 33.4: an unattended AU takes the old deterministic choice (discard when
+    // a card is available, otherwise the marker).
+    const discard = pending.options.find((entry) => entry.id === "discard");
+    const marker = pending.options.find((entry) => entry.id === "marker");
+    const pick = discard ?? marker;
+    if (!pick) return INVALID_MOVE;
+    if (!resolveAuUnstableChoice(G, ctx, pending, pick.id)) return INVALID_MOVE;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "gwColonialLoss") {
+    const first = pending.options[0];
+    if (!first) return INVALID_MOVE;
+    return resolveGwColonialChoice(G, ctx, pending, first.id) ? undefined : INVALID_MOVE;
+  }
   if (pending.kind === "gwColonialTransfer") {
     return resolveGwColonialChoice(G, ctx, pending, "skip") ? undefined : INVALID_MOVE;
   }

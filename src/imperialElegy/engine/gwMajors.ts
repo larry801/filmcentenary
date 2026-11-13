@@ -136,7 +136,7 @@ export const surrenderGwMajor = (
   G: ImperialElegyState,
   major: GwMajor,
   reason: "stability" | "capital",
-  _ctx?: Ctx,
+  ctx?: Ctx,
 ): void => {
   if (!G.gw || hasSurrendered(G, major)) return;
   // Capture the side before `usIn`/`italyIn` is cleared (gwMajorSide reads it).
@@ -155,7 +155,7 @@ export const surrenderGwMajor = (
   // 30.1: the same marker bookkeeping too — Italy's Alliance Track chit and the
   // major's initiative slot become the alliance's bonus impulse, and the
   // one-marker/compaction rule applies exactly as for a player elimination.
-  removeGwSurrenderMarkers(G, major, side);
+  removeGwSurrenderMarkers(G, major, side, ctx);
   // 15.6: "when a player ally (or Italy) is knocked out, displace any allied
   // units in their territory" — the same 5.7 displacement a player elimination
   // runs, with the side captured before the chit is cleared.

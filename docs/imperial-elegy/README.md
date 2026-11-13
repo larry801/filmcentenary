@@ -166,7 +166,8 @@ Important boundaries (the status document has the full list):
   naval movement traces the multi-box NMP and can be intercepted in transit;
   ordinary land/naval retreats offer per-unit destinations when they diverge.
   Great War joint naval movement exists through `gwJointNaval`/
-  `performGwManeuver`. Naval battles have no adjacent support (19.5: only naval
+  `performGwManeuver`, with a board button for each allied contingent starting
+  in the selected ship's box. Naval battles have no adjacent support (19.5: only naval
   units and a defending fort add FP); the loser retreats to a friendly port or
   empty naval box, the attacker occupies a naval box or displaces back to its
   origin after a port battle, and a port fort is eliminated when its defender
@@ -223,12 +224,18 @@ Important boundaries (the status document has the full list):
   knockout when a capital falls so a retaken capital does not erase it. **32.1 US Mexico/Canada** and the **Ottoman Ankara
   capital** switch are enforced. 29.1 blockade, 29.2 colonial war and 29.3
   neutral entry are live (a neutral chooses to join; blockade reduces maximum
-  industry per GW year; the colonial war uses the printed modifiers, losses,
-  player-chosen transfers and bonus-CP allocation). 15.6/30.1/30.2 also displace
+  industry per GW year; the colonial war uses the printed modifiers, a
+  losing-side unit-loss choice, player-chosen transfers and bonus-CP
+  allocation). 15.6/30.1/30.2 also displace
   allied units and enforce formerly-controlled march/rail and symmetric US/Italy
   chit cleanup.
   28.1 trench terrain is created on every printed key at GW turn 1, and the
   trench-battle marker lifecycle is maintained by the battle path.
+- **AU's Unstable Situation and unified Italy's LoC are live choices.** A failed
+  AU stability roll opens a private discard-or-marker decision instead of
+  auto-discarding; 5.6.1's Italian Exception gives unified `IT` units a
+  player-style LoC to an Italian controlled home key that connects to another
+  Italian controlled home key.
 - **All printed national characteristics now have a live path.** The
   `characteristicsCoverage` registry maps all 38 bullets to helpers/moves with
   zero display-only entries; the round-7 pass closed FR Second Empire/Cultural
@@ -249,7 +256,8 @@ Important boundaries (the status document has the full list):
   labels. See [`DECADE_AUDIT.md`](DECADE_AUDIT.md).
 
 Bots, alternate scenarios (1870/1880/No GW/alternate GW), the 1850 tutorial and
-promotional cards P1–P3 are deliberately deferred.
+promotional cards P1–P3 remain deliberately deferred; the round-9 pass did not
+change that release boundary.
 
 ## Data layout
 
@@ -325,8 +333,8 @@ yarn build:server          # produces build/server.js, which the spec requires
 spec builds its own frontend into `/tmp/ie/spectator-dist` and writes its
 playwright output under `/tmp/ie/spectator-test-results`.
 
-**Full evidence for this refresh:** the IE Jest suite passes **2632/2632 tests
-in 203/203 suites**; `tsc`, server `tsc`, `yarn build` and `yarn build:server` are
+**Full evidence for this refresh:** the IE Jest suite passes **2641/2641 tests
+in 205/205 suites**; `tsc`, server `tsc`, `yarn build` and `yarn build:server` are
 clean; `python3 scripts/extract-imperial-elegy.py --check` verifies **501
 assets**. The declared `@i18n-chain/react@2.0.1` is now installed in this
 checkout’s `node_modules`, so no shim is needed (see

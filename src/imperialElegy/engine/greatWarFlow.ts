@@ -30,6 +30,7 @@ import {
   CardId,
   GreatWarState,
   GwColonialBonusChoice,
+  GwColonialLossChoice,
   GwColonialTransferChoice,
   GwColonialWarRollState,
   GwExhaustionMode,
@@ -1845,14 +1846,19 @@ export const colonialSubmapControl = (
   return counted > 0 ? side : null;
 };
 
-/** 29.2: eliminate a unit or take an army step on the losing submap. */
-const applyColonialLoss = (
+/**
+ * 29.2: every unit on the losing side of one colonial submap.  The losing
+ * alliance chooses one of these units (or one army step) for each printed
+ * loss; the deterministic fallback sorts them so an unattended winter is
+ * stable.
+ */
+export const colonialLossCandidates = (
   G: ImperialElegyState,
   region: "africa" | "asia",
   side: GwSide,
-  roll: GwColonialWarRoll,
-): void => {
-  const candidates = [
+  owner?: Power,
+): {id: string; space: SpaceId; unit: Unit}[] =>
+  [
     ...colonialRegionSpaces(region).flatMap((def) =>
       (G.spaces[def.id]?.units ?? []).map((id) => ({id, space: def.id})),
     ),
@@ -1862,6 +1868,7 @@ const applyColonialLoss = (
       (entry): entry is {id: string; space: SpaceId; unit: Unit} =>
         Boolean(entry.unit) &&
         isPower(entry.unit!.owner) &&
+        (owner === undefined || entry.unit!.owner === owner) &&
         colonialUnitSide(G, entry.unit!, entry.space) === side,
     )
     // Deterministic: single-step units are eliminated first, then full armies
@@ -1872,8 +1879,17 @@ const applyColonialLoss = (
         String(a.unit.owner).localeCompare(String(b.unit.owner)) ||
         a.id.localeCompare(b.id, "en", {numeric: true}),
     );
-  const chosen = candidates[0];
-  if (!chosen) return;
+
+/** 29.2: apply one chosen loss to a specific unit on the losing submap. */
+export const applyColonialLossToUnit = (
+  G: ImperialElegyState,
+  region: "africa" | "asia",
+  side: GwSide,
+  roll: GwColonialWarRoll,
+  unitId: string,
+): boolean => {
+  const chosen = colonialLossCandidates(G, region, side).find((entry) => entry.id === unitId);
+  if (!chosen) return false;
   const eliminated = chosen.unit.steps <= 1 || chosen.unit.elite === true;
   if (eliminated) removeUnit(G, chosen.id);
   else chosen.unit.steps -= 1;
@@ -1890,6 +1906,24 @@ const applyColonialLoss = (
     space: chosen.space,
     eliminated,
   });
+  return true;
+};
+
+/** 29.2: deterministic fallback — take `count` losses from the losing side. */
+const applyColonialLosses = (
+  G: ImperialElegyState,
+  region: "africa" | "asia",
+  side: GwSide,
+  count: number,
+  roll: GwColonialWarRoll,
+): void => {
+  for (let i = 0; i < count; i += 1) {
+    // Re-read the candidates after each loss: a reduced unit may have been
+    // eliminated, and a two-step loss can still hit the same full army.
+    const chosen = colonialLossCandidates(G, region, side)[0];
+    if (!chosen) return;
+    applyColonialLossToUnit(G, region, side, roll, chosen.id);
+  }
 };
 
 /** 29.2: the first living ally that may take `space` (fort + LoC checks). */
@@ -2087,8 +2121,14 @@ const awardColonialBonusCp = (
   }
 };
 
-/** 29.2: how `resolveColonialWar` handles the winner's territorial reward. */
+/** 29.2: how `resolveColonialWar` handles the printed loss / reward choices. */
 export interface ColonialWarOptions {
+  /**
+   * Leave the losing alliance's unit choice to the live `gwColonialLoss`
+   * pending decision.  The default (helpers, bots, the one-shot winter) applies
+   * the deterministic loss at once.
+   */
+  deferLosses?: boolean;
   /**
    * Leave the transfer to the live `gwColonialTransfer` pending decision.  The
    * roll still records the losses; the caller applies each chosen space.  The
@@ -2140,7 +2180,7 @@ export const resolveColonialWar = (
   if (winner !== null) {
     const losingSide: GwSide = winner === "te" ? "ta" : "te";
     const count = differential >= 4 ? 2 : 1;
-    for (let i = 0; i < count; i += 1) applyColonialLoss(G, region, losingSide, roll);
+    if (!options.deferLosses) applyColonialLosses(G, region, losingSide, count, roll);
     if (!options.deferTransfers) {
       for (let i = 0; i < count; i += 1) applyColonialTransfer(G, ctx, region, winner, roll);
     }
@@ -2253,6 +2293,65 @@ const planColonialBonusChoices = (G: ImperialElegyState, winter: GwWinterState):
     });
   }
   winter.colonialBonus = choices;
+};
+
+/**
+ * 29.2: open the losing alliance's unit-loss decision.  The losing player (the
+ * deterministic controller when the alliance has several members) chooses
+ * which unit takes the step or is eliminated.
+ */
+const openColonialLossDecision = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  winter: GwWinterState,
+  choice: GwColonialLossChoice,
+): boolean => {
+  if (choice.remaining <= 0) {
+    choice.done = true;
+    return false;
+  }
+  const controller = G.powers[choice.by]?.eliminated
+    ? colonialController(G, choice.side)
+    : choice.by;
+  if (controller === null) {
+    choice.done = true;
+    return false;
+  }
+  choice.by = controller;
+  const candidates = colonialLossCandidates(G, choice.region, choice.side);
+  if (candidates.length === 0) {
+    log(G, choice.by, "gwColonialLoss", {
+      region: choice.region,
+      unit: "",
+      kind: "",
+      space: "",
+      eliminated: false,
+      skip: true,
+      remaining: choice.remaining,
+    });
+    choice.done = true;
+    return false;
+  }
+  G.pending = null;
+  const index = (winter.colonialLosses ?? []).indexOf(choice);
+  openDecision(G, ctx, {
+    kind: "gwColonialLoss",
+    power: choice.by,
+    prompt: "Colonial war: choose a unit to take the loss",
+    promptArgs: {region: choice.region, side: choice.side, remaining: choice.remaining},
+    options: candidates.map((entry) =>
+      option(
+        entry.id,
+        `${spaceLabel(entry.space, "en")}: ${entry.unit.kind} (${entry.unit.owner})`,
+        {unit: entry.id, space: entry.space},
+        false,
+        `${spaceLabel(entry.space, "zh_CN")}：${entry.unit.kind}（${POWER_DEFS[entry.unit.owner as Power]?.nameZh ?? entry.unit.owner}）`,
+      ),
+    ),
+    context: {mode: "gwColonialChoice", choice: index, region: choice.region, side: choice.side},
+    blocking: true,
+  });
+  return true;
 };
 
 /** Open the next transfer decision, or apply/dismiss a forced one in place. */
@@ -2374,6 +2473,13 @@ export const advanceWinterColonialChoices = (
   winter: GwWinterState,
 ): boolean => {
   for (;;) {
+    // 29.2: the losing alliance takes its losses before the winner chooses the
+    // spaces it will occupy.
+    const loss = (winter.colonialLosses ?? []).find((choice) => !choice.done);
+    if (loss) {
+      if (openColonialLossDecision(G, ctx, winter, loss)) return true;
+      continue;
+    }
     const transfer = (winter.colonialTransfers ?? []).find((choice) => !choice.done);
     if (transfer) {
       if (openColonialTransferDecision(G, ctx, winter, transfer)) return true;
@@ -2408,7 +2514,15 @@ export const resolveGwColonialChoice = (
   const index = Number(pending.context?.choice);
   if (!Number.isInteger(index) || index < 0) return false;
 
-  if (pending.kind === "gwColonialTransfer") {
+  if (pending.kind === "gwColonialLoss") {
+    const choice = winter.colonialLosses?.[index];
+    if (!choice || choice.done || choice.by !== pending.power) return false;
+    const unitId = optionId;
+    const roll = winter.colonialWar[choice.region];
+    if (!applyColonialLossToUnit(G, choice.region, choice.side, roll, unitId)) return false;
+    choice.remaining = Math.max(0, choice.remaining - 1);
+    if (choice.remaining === 0) choice.done = true;
+  } else if (pending.kind === "gwColonialTransfer") {
     const choice = winter.colonialTransfers?.[index];
     if (!choice || choice.done || choice.by !== pending.power) return false;
     if (optionId === "skip") {
@@ -3401,10 +3515,10 @@ export const resolveGwWinter = (
     // 29.1.1: enemy ships in the North Atlantic cost the US 1 stability.
     const usStabilityLoss = usNorthAtlanticCheck(G, ctx);
     // 29.2: the two opposed colonial-war rolls.  The live path defers the
-    // territorial rewards to the winning alliances' pending decisions; every
-    // other caller applies them deterministically below.
-    const africa = resolveColonialWar(G, ctx, "africa", {deferTransfers: interactive});
-    const asia = resolveColonialWar(G, ctx, "asia", {deferTransfers: interactive});
+    // losing alliance's loss choice and the winner's territorial rewards to
+    // pending decisions; every other caller applies them deterministically.
+    const africa = resolveColonialWar(G, ctx, "africa", {deferLosses: interactive, deferTransfers: interactive});
+    const asia = resolveColonialWar(G, ctx, "asia", {deferLosses: interactive, deferTransfers: interactive});
     gw.lastColonialWar = {africa: africa.winner ?? undefined, asia: asia.winner ?? undefined};
     const colonialStability = applyColonialStability(G, ctx, africa, asia);
     const winter: GwWinterState = {
@@ -3419,14 +3533,25 @@ export const resolveGwWinter = (
       politicalPressureLosses: pressureLosses,
     };
     if (interactive) {
-      // 29.2: one choice per winning roll, answered by the deterministic
-      // controller of that alliance.  The bonus-CP choices are planned after
-      // every transfer has been applied (control can change with them).
+      // 29.2: one loss choice for the losing alliance and one transfer choice
+      // for the winning alliance per colonial roll.  The losing player chooses
+      // the unit; the bonus-CP choices are planned after every transfer has
+      // been applied (control can change with them).
+      const losses: GwColonialLossChoice[] = [];
       const choices: GwColonialTransferChoice[] = [];
       for (const region of ["africa", "asia"] as const) {
         const roll = winter.colonialWar[region];
         if (roll.winner === null) continue;
         const count = Math.abs(roll.te - roll.ta) >= 4 ? 2 : 1;
+        const losingSide: GwSide = roll.winner === "te" ? "ta" : "te";
+        const loser = colonialController(G, losingSide);
+        if (loser === null || colonialLossCandidates(G, region, losingSide).length === 0) {
+          // No living player can answer (or there is nothing to lose): take
+          // the printed loss deterministically so it is never skipped.
+          applyColonialLosses(G, region, losingSide, count, roll);
+        } else {
+          losses.push({region, side: losingSide, by: loser, remaining: count, done: false});
+        }
         const by = colonialController(G, roll.winner, winter.blockaded);
         if (by === null) {
           log(G, undefined, "gwColonialTransfer", {region, space: "", skip: true, remaining: count});
@@ -3434,6 +3559,7 @@ export const resolveGwWinter = (
         }
         choices.push({region, side: roll.winner, by, remaining: count, taken: [], done: false});
       }
+      winter.colonialLosses = losses;
       winter.colonialTransfers = choices;
       winter.colonialBonus = [];
       winter.colonialBonusPlanned = false;

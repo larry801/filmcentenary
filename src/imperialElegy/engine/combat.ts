@@ -16,6 +16,7 @@ import {
   isNavalKind,
   isPower,
   isMinorPowerOwner,
+  italianBrokenLoc,
   landStackingLimit,
   landUnitsIn,
   log,
@@ -299,6 +300,9 @@ const locBlocksSupport = (G: ImperialElegyState, space: SpaceId, unit: Unit): bo
   if (G.war === null && !G.gw?.active) return false;
   if (isPower(unit.owner)) return brokenLoc(G, unit.owner, space);
   if (isMinorPowerOwner(unit.owner)) return minorBrokenLoc(G, unit.owner, space);
+  // 5.6.1 Italian Exception: a unified Italy's armies follow the player LoC
+  // rules, so a broken Italian LoC forbids their support too.
+  if (unit.owner === "IT") return italianBrokenLoc(G, space);
   return false;
 };
 
@@ -579,7 +583,8 @@ export const beginLandBattle = (
     // minor armies fighting in it (their own 5.6.1 trace).
     const attackerOutOfSupply =
       (!isNavalBox(from) && brokenLoc(G, actor, from)) ||
-      attackUnits.some((u) => isMinorPowerOwner(u.owner) && minorBrokenLoc(G, u.owner, from));
+      attackUnits.some((u) => isMinorPowerOwner(u.owner) && minorBrokenLoc(G, u.owner, from)) ||
+      (attackUnits.some((u) => u.owner === "IT") && italianBrokenLoc(G, from));
     if (attackerOutOfSupply) {
       battle.attackerDrm -= 1;
       battle.notes.push("brokenLocAttacker");
@@ -587,7 +592,8 @@ export const beginLandBattle = (
     const defenderLeader = defenderSupportPower(G, battle);
     const defenderOutOfSupply =
       (defenderLeader !== null && !isNavalBox(to) && brokenLoc(G, defenderLeader, to)) ||
-      defenceCandidates.some((u) => isMinorPowerOwner(u.owner) && minorBrokenLoc(G, u.owner, to));
+      defenceCandidates.some((u) => isMinorPowerOwner(u.owner) && minorBrokenLoc(G, u.owner, to)) ||
+      (defenceCandidates.some((u) => u.owner === "IT") && italianBrokenLoc(G, to));
     if (defenderOutOfSupply) {
       battle.defenderDrm -= 1;
       battle.notes.push("brokenLocDefender");

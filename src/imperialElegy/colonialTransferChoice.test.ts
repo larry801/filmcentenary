@@ -81,6 +81,14 @@ const oneSpaceWin = (): ImperialElegyState => {
   return G;
 };
 
+/** 29.2: the losing alliance's unit choice precedes the winner's transfer. */
+const answerLoss = (G: ImperialElegyState): void => {
+  if (G.pending?.kind !== "gwColonialLoss") return;
+  const power = G.pending.power;
+  const chosen = G.pending.options[0].id;
+  expect(resolvePending(G, seatCtx(power), chosen)).toBeUndefined();
+};
+
 describe("29.2 live transfer choice", () => {
   test("the winter stops for the winner's transfer decision; the chosen space is applied", () => {
     const G = oneSpaceWin();
@@ -88,6 +96,7 @@ describe("29.2 live transfer choice", () => {
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error(res.message);
     expect(res.awaitingColonialChoices).toBe(true);
+    answerLoss(G);
     expect(G.pending?.kind).toBe("gwColonialTransfer");
     expect(G.pending?.power).toBe("FR");
     expect(G.pending?.promptArgs).toMatchObject({region: "africa", side: "te", remaining: 1});
@@ -120,6 +129,7 @@ describe("29.2 live transfer choice", () => {
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error(res.message);
     expect(res.awaitingColonialChoices).toBe(true);
+    answerLoss(G);
     expect(G.pending?.promptArgs).toMatchObject({remaining: 2});
 
     const first = G.pending!.options.find((entry) => entry.id !== "skip")!.id;
@@ -139,6 +149,7 @@ describe("29.2 live transfer choice", () => {
   test("skipping takes no space and is logged", () => {
     const G = oneSpaceWin();
     resolveGwWinter(G, makeCtx(3), {promptChoices: true});
+    answerLoss(G);
     expect(G.pending?.kind).toBe("gwColonialTransfer");
     expect(resolvePending(G, seatCtx("FR"), "skip")).toBeUndefined();
     expect(G.pending).toBeNull();
@@ -153,6 +164,7 @@ describe("29.2 live transfer choice", () => {
   test("a reject from the wrong seat or an illegal option leaves the decision open", () => {
     const G = oneSpaceWin();
     resolveGwWinter(G, makeCtx(3), {promptChoices: true});
+    answerLoss(G);
     const chosen = G.pending!.options.find((entry) => entry.id !== "skip")!.id;
     expect(resolvePending(G, seatCtx("GE"), chosen)).toBe(INVALID_MOVE);
     expect(resolvePending(G, seatCtx("FR"), "not-a-space")).toBe(INVALID_MOVE);
@@ -163,6 +175,7 @@ describe("29.2 live transfer choice", () => {
   test("the pending options are private to the deciding seat", () => {
     const G = oneSpaceWin();
     resolveGwWinter(G, makeCtx(3), {promptChoices: true});
+    answerLoss(G);
     const view = redactForView(G, "1");
     expect(view.pending?.options).toEqual([]);
     const own = redactForView(G, String(POWERS.indexOf("FR")));
@@ -174,6 +187,7 @@ describe("29.2 live transfer choice", () => {
     type PhaseOnBegin = (G: ImperialElegyState, ctx: Ctx) => void;
     const phases = ImperialElegyGameDef.phases as unknown as Record<string, {onBegin: PhaseOnBegin}>;
     phases.gwWinter.onBegin(G, makeCtx(3, "gwWinter"));
+    answerLoss(G);
     expect(G.pending?.kind).toBe("gwColonialTransfer");
     expect(G.phase).toBe("gwWinter");
     const chosen = G.pending!.options.find((entry) => entry.id !== "skip")!.id;
@@ -188,6 +202,7 @@ describe("29.2 live transfer choice", () => {
     const res = resolveGwWinter(G, makeCtx(3), {promptChoices: true});
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error(res.message);
+    answerLoss(G);
     const chosen = G.pending!.options.find((entry) => entry.id !== "skip")!.id;
     expect(resolvePending(G, seatCtx("FR"), chosen)).toBeUndefined();
     expect(G.pending?.kind).toBe("gwNeutralEntry");
@@ -223,6 +238,7 @@ describe("29.2 live transfer choice", () => {
     const res = resolveGwWinter(G, makeCtx(3), {promptChoices: true});
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error(res.message);
+    answerLoss(G);
     expect(G.pending).toBeNull();
     expect(res.colonialTransfers).toEqual([]);
     expect(G.log.some((entry) => entry.key === "gwColonialTransfer" && entry.args?.skip === true)).toBe(true);
@@ -245,6 +261,7 @@ describe("29.2 live transfer choice", () => {
 
     const stabilityBefore = G.powers.UK.stability;
     resolveGwWinter(G, makeCtx(3), {promptChoices: true});
+    answerLoss(G);
     expect(G.pending?.kind).toBe("gwColonialTransfer");
     expect(resolvePending(G, seatCtx("FR"), "south-africa")).toBeUndefined();
 

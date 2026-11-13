@@ -1,8 +1,15 @@
 # Imperial Elegy — implementation status
 
-**Snapshot:** 2026-11-13 round-8 pass (eight parallel workstreams), workspace
+**Snapshot:** 2026-11-13 round-9 pass, workspace
 `/Users/larryw/tools/filmcentenary`.
-**Fix pass:** 16.2.1 mandatory cession is enforced; the both-sides white-peace
+**Round-9 pass:** 29.2 now opens a losing-alliance `gwColonialLoss` decision
+before the winner's transfer; 30.1's two-survivor minor-heir case uses the
+printed die roll; AU's Unstable Situation is a live discard-or-marker choice;
+5.6.1's Italian Exception gives unified Italy player-style LoC/supply; the
+Great War joint naval operation has board controls; and the remaining one-off
+card option labels carry Chinese text. The deliberately deferred 34.x content
+(bots, alternate scenarios and promo cards P1–P3) is unchanged.
+**Earlier fix pass:** 16.2.1 mandatory cession is enforced; the both-sides white-peace
 chooser order is negotiated; 13.4.1 and 14.0 stability penalties stack; GW-05
 rerolls no longer double mine/trench hits; 19.8 enumerates complete splits and
 switches to a per-unit chooser above the list limit; direct control writes clear
@@ -53,8 +60,8 @@ promotional cards).
 > `engine/economy.ts`, `engine/crisisTable.ts`, `engine/counters.ts`,
 > `engine/alliance.ts`, `engine/endPhase.ts` and `engine/navalMovement.ts`, are
 > imported by the live game; `engine/greatWar.ts` keeps older flow helpers that
-> the live loop no longer calls. The full IE Jest suite passes **2632/2632 tests
-> in 203/203 suites** with clean `tsc`, `yarn build` and `yarn build:server`;
+> the live loop no longer calls. The full IE Jest suite passes **2641/2641 tests
+> in 205/205 suites** with clean `tsc`, `yarn build` and `yarn build:server`;
 > the 501-asset manifest check verifies 501 files. The three browser specs were
 > rerun on this build: **5/5 regression, 3/3 controls, 3/3 spectator**.
 
@@ -72,7 +79,7 @@ promotional cards).
 | Rules | Status | Live implementation at this refresh | Principal gaps / fallbacks |
 | --- | --- | --- | --- |
 | **1–4 Key concepts** | **Partial** | Seat order GE, UK, FR, AU, RU, OT; phases; active power; dice through `ctx.random`; half-FP rounding; impulse loop with pass/end-impulse. **4.2 counter pools are transcribed from the printed `counter-count` chart** for all six players **and 24 non-player rows** (armies/reserves/EC/EF/squadrons/dreadnoughts) and enforced in recruit/buildEf/constructFleet/GW draft/Polish recruitment; the printed naval limits (GE/AU/OT 2/2 until A092 4/4 or GE unification) sit on top. 4.2.1’s five-minor-ally cap is enforced by distinct minor power. | A few non-player rows the chart omits (Tuscany, Papal States, Egypt, Morocco, Korea, Mexico) stay `null` rather than invented; some printed “cannot be played by” clauses remain event-mode only (see §9–12). |
-| **5 Units, stacking, LoC** | **Partial** | Typed armies, reserve armies, EC/EF, elite colonial EF, Zouaves, squadrons, dreadnoughts; two-step armies; stacking caps 3 (Europe) / 2 (elsewhere, including all OT home spaces); ports hold 4 naval units; BFS LoC and supply sources. **5.5.3 overstacking** now costs one step per overstacked stack at the start of the owning player's impulse (owner chooses; one step total) and caps contributing defenders; **5.6.2 broken LoC** costs one step at impulse start, gives −1 BDRM and forbids support; **5.6.3** displaces a peacetime broken-LoC army to the nearest friendly LoC space. | Supply now traces through naval boxes and is blocked by enemy naval boxes in wartime; the 5.6.1 minor supply sources are live, including the sea trace. 5.7 has reusable displacement helpers used by war-end and event paths, and movement-end stacking is enforced on the remaining movement paths (free TSRR rail, GW deploy and draft). The 5.6.1 Italian Exception is still unmodelled (Italian units stay outside the player LoC rules). |
+| **5 Units, stacking, LoC** | **Partial** | Typed armies, reserve armies, EC/EF, elite colonial EF, Zouaves, squadrons, dreadnoughts; two-step armies; stacking caps 3 (Europe) / 2 (elsewhere, including all OT home spaces); ports hold 4 naval units; BFS LoC and supply sources. **5.5.3 overstacking** now costs one step per overstacked stack at the start of the owning player's impulse (owner chooses; one step total) and caps contributing defenders; **5.6.2 broken LoC** costs one step at impulse start, gives −1 BDRM and forbids support; **5.6.3** displaces a peacetime broken-LoC army to the nearest friendly LoC space. | Supply now traces through naval boxes and is blocked by enemy naval boxes in wartime; the 5.6.1 minor supply sources are live, including the sea trace. 5.7 has reusable displacement helpers used by war-end and event paths, and movement-end stacking is enforced on the remaining movement paths (free TSRR rail, GW deploy and draft). The 5.6.1 Italian Exception is live: after unification, `IT` units trace a player-style LoC to an Italian controlled home key that has a LoC to another Italian controlled home key, and their broken LoC charges the combat DRM/support/impulse rules. |
 | **6–7 Displays and tracks** | **Partial** | Stability, manpower, industry, territorial/colonial/Arab keys, reserves, City of Light, citizenship/rights, India stability, TSRR, Jihad; stability VP/BM/card tables, industry card counts and key→manpower tables. UK colonial keys 7; UK secondary-manpower track, four port links and Egypt `minorHome` corrected. All printed characteristic bullets are wired through `engine/characteristics.ts`/`characteristicsCoverage`. | A71’s Egypt colonial-home key type is live (explicit override plus a dynamic legacy-save fallback keyed on the UK/FR home override); India independence and Poland’s limits are live; the remaining display gaps are the per-bullet partial clauses in the registry notes. |
 | **8 Alliances and MPIT** | **Partial** | MPIT placement, alliance-track shifts, the 20.9 resolution (highest total first, 2d6 + influence, ≥10 = two boxes, 8.5 reset), card-driven shifts, the **8.2 declaration shift**, the **8.6 action-phase Alliance System tie** (`allianceTie` pending), **unified Italy’s random declaration shift**, **typed Italy MPIT (8.5/8.6)** resolved in 20.9 and card events, **13.4.2 Seeking Aid**, **13.4.1 abandonment + 14.0 refusal**, and the **14.2 Italy aid shift**; 8.4’s three-player cap is enforced across 20.9, card shifts, neutral entry and calls. | 13.4.1’s abandonment −1 and 14.0’s committed-box −1 are separate penalties and now stack; the US and Italy are exempt from the cap by the printed wording; no separate alliance-resolution phase (runs as 20.9 and card events); Italy resolves after player powers. |
 | **9–12 Cards and action phase** | **Partial** | 100 action, 12 home and 10 GW cards; types, decade build, prep deals, CP chain, response/combat/GW windows, save card. Card targets/playability (A41/A98/A54 windows, A59 attacker-only, GW-10 timing, A70 removal, A54 Young Turks), Loose Grip’s full Ottoman set, auction reveal and 12.3 land-plus-naval transport (incl. 32.1 US exit) are live. A98/A41 DRMs are consumed, all `duration:"turn"` flags clear at the printed boundary, Exhaustion activates at impulse end, A85/A75 are correctly scoped, and every printed characteristic bullet has a live path (`characteristicsCoverage`). | Transports now open the 19.1 interception chain at their first transit box, and the first deal uses the printed `cardsToDraw` formula; a few “remainder of turn” clauses stay approximate. |
@@ -81,8 +88,8 @@ promotional cards).
 | **18–19 Combat** | **Partial** | CRT/BDRM, support, elites, losses, EC/EF, forts, trenches/machine guns, naval dice/mines, data-driven cards, 28.1 trench lifecycle, 19.10 amphibious, 19.1 interception/19.2 avoidance and the contact chain, GW multi-box NMP/continuation, complete 19.5 DRMs, 19.4/19.6 dreadnought-majority losses, **19.3 mine-first sequence + two-hit retreat**, **19.8 split port retreat**, transit interception incl. `gwJointNaval`, **all-port mines**, land/naval manpower exhausted, Dardanelles prompts including allied controllers, per-unit land/naval/trench retreats, movement-end stacking/port capacity and minor broken-LoC penalties. | GW-05 rerolls keep mine/trench hits outside the decisive doubling; 19.8 enumerates every legal split up to 512 list options and switches to a complete per-unit chooser above that (no lossy covering set); 19.1 keeps the interrupted movement for survivors of a partial 19.8 move; the 19.4 mine-retreat choice is unconditional; 19.7 forbids retreating into the attacker’s origin box. Interception battles cannot be avoided (19.2), and an unescorted transport caught alone gets no 19.6.1(2) elimination. |
 | **20 End phase** | **Partial** | Live `beginEndPhase` walks the 12 steps and suspends on 20.1/20.5/20.9; 20.2 fort decay (Indian exempt), 20.3 non-player builds at printed counter rows (Poland 2, Italy via 22.4/5th army), 20.4 naval return, 20.5 owner trimming (CW on the colonial track), 20.6 industry, 20.7 truces, 20.8 WoI, 20.10 WTT, 20.11 NG draw, 20.12 advance + turn-flag clear + Italy 8.6. | 20.1 offers “skip” only when no legal benefit exists (it is the deterministic fallback); 20.5 prints no track-choice (each track trims itself); 20.8 follows the printed displacement/−1 stability/0→+1 flip; 20.3 Italy keeps some unplaced counters in the box when the chart is full. |
 | **21–23 Rebels, Italy/Poland, crisis** | **Partial** | Per-space rebellion state and rebel armies; Italian Minor Power Table and unification, **22.1.3 internal war through the 4.2 pool** (interactive Sardinia-Piedmont / Two Sicilies choice when both are legal), **Italy’s 5th army/22.3.1 grants**, **22.5 Polish recruitment/reserve/build limits and TSRR**; Poland/AU/RU special cases via card handlers; **the printed Crisis Table (23.0–23.5)** as typed data + live resolver: every printed row, the Balkan States table, footnotes (`*` conference once/reroll, `**` special, `†`, `>6`), 23.3 bordering nation/minority/Balkan special results, 23.4 impossible results, 23.5 neutral players joining an alliance with the three-player limit, and the real blamed incident driving 25.3 Italy; GW outbreak; 23.1’s Powder Keg / The Balkan Wars open the crisis before the rest of their text. | “Minor powers drawn into the GW” are recorded as ally markers (no separate minor-belligerent list); A100’s second printed WTT increase inside the handler can still open a second crisis after its sub-decisions; some rows are reachable only when a handler raises the WTT. |
-| **24–32 The Great War** | **Partial** | Outbreak, alliances, NGs, national will, order/bonus, planning/maneuver/winter, 29.1 blockade (RU/TSRR allies, capital→box, yearly max industry, US check), 29.2 colonial war with player transfers/bonus CP, 29.3 neutral entry, 30.0 key loss/recapture, 30.1 capital surrender with full marker bookkeeping **and allied-unit displacement / formerly-controlled march-rail / permanent-minor sweep**, 30.2 US/Italy surrender with symmetric chit cleanup, 15.6 knockout + displacement, **15.3 persistent occupation on all moves**, GW #2/25.3 Italy, 28.1 trenches, crisis blame, multi-ally treaties, Rome/Italy capital, 32.1 US Mexico/Canada, Ankara capital, 22.4 Italian redeployment. | Blockade/colonial LoC traces apply Suez/Dardanelles closure; direct/event control writes route through `setSpaceControl`, which retires a stale `occupiedBy` marker (unification preserves a live enemy occupation); `surrenderGwMajor` runs the permanent-minor sweep; 30.0 now charges the dreadnought stability loss and counts committed support for the decisive-force threshold; 31.0’s one-power/no-neutral alliance-defeat condition ends the GW immediately; 29.3’s free redeployment moves all land units; 22.1.3 is an interactive choice when both Italian minors are legal. |
-| **33 National characteristics** | **Partial** | Live and covered by `characteristicsCoverage` (zero display-only bullets/gaps): UK pools/India/Rapid Deployment/Join Your Country’s Army/Status Quo/CW; OT Turkish-Arab split/Local Autonomy/Europeanization/Jihad; AU Dual Monarchy/Reforms/Expand Citizenship/Incorporate/Unstable Situation/Continental Power/Metternich/New Way Forward/Arbiter; FR Third Republic/CP/Zouaves/Cultural Symbol/Second Empire/Napoleon’s Legacy; RU TSRR/Second Rome/Ankara; GE Imperial Germany/Continental Focus/Superior Staff Work/German Confederation/Zollverein/Blood and Iron!; **22.5 Polish recruitment/reserve/build limits**. | Remaining are printed-clause boundaries, not unwired abilities: Zollverein has no fuller home/source text, Poland’s total-cap interpretation, chart-less non-player rows stay null, and a few timing conventions (GE’s limited-war “first impulse” window, AU’s exact-two auto-pick). Round 8 added citizenship-aware Nationalist Uprising targeting, the start-of-GW Second Rome VPs and a live `refreshPowerProjection`; its port formula still shows FR/RU at 4 where the playbook prints 3, so those two displayed values are +1 until the port model is reconciled. |
+| **24–32 The Great War** | **Partial** | Outbreak, alliances, NGs, national will, order/bonus, planning/maneuver/winter, 29.1 blockade (RU/TSRR allies, capital→box, yearly max industry, US check), 29.2 colonial war with player-chosen losses/transfers/bonus CP, 29.3 neutral entry, 30.0 key loss/recapture, 30.1 capital surrender with full marker bookkeeping **and allied-unit displacement / formerly-controlled march-rail / permanent-minor sweep**, 30.2 US/Italy surrender with symmetric chit cleanup, 15.6 knockout + displacement, **15.3 persistent occupation on all moves**, GW #2/25.3 Italy, 28.1 trenches, crisis blame, multi-ally treaties, Rome/Italy capital, 32.1 US Mexico/Canada, Ankara capital, 22.4 Italian redeployment. | Blockade/colonial LoC traces apply Suez/Dardanelles closure; direct/event control writes route through `setSpaceControl`, which retires a stale `occupiedBy` marker (unification preserves a live enemy occupation); `surrenderGwMajor` runs the permanent-minor sweep; 30.0 now charges the dreadnought stability loss and counts committed support for the decisive-force threshold; 31.0’s one-power/no-neutral alliance-defeat condition ends the GW immediately; 29.3’s free redeployment moves all land units; 29.2’s losing alliance chooses its loss and 30.1’s two-survivor heir uses a die roll; 22.1.3 is an interactive choice when both Italian minors are legal. |
+| **33 National characteristics** | **Partial** | Live and covered by `characteristicsCoverage` (zero display-only bullets/gaps): UK pools/India/Rapid Deployment/Join Your Country’s Army/Status Quo/CW; OT Turkish-Arab split/Local Autonomy/Europeanization/Jihad; AU Dual Monarchy/Reforms/Expand Citizenship/Incorporate/Unstable Situation/Continental Power/Metternich/New Way Forward/Arbiter; FR Third Republic/CP/Zouaves/Cultural Symbol/Second Empire/Napoleon’s Legacy; RU TSRR/Second Rome/Ankara; GE Imperial Germany/Continental Focus/Superior Staff Work/German Confederation/Zollverein/Blood and Iron!; **22.5 Polish recruitment/reserve/build limits**. | Remaining are printed-clause boundaries, not unwired abilities: Zollverein has no fuller home/source text, Poland’s total-cap interpretation, chart-less non-player rows stay null, and a few timing conventions (GE’s limited-war “first impulse” window). Round 8 added citizenship-aware Nationalist Uprising targeting, the start-of-GW Second Rome VPs and a live `refreshPowerProjection`; its port formula still shows FR/RU at 4 where the playbook prints 3, so those two displayed values are +1 until the port model is reconciled. |
 | **34 Bots, scenarios, promos** | **Not implemented** | Campaign scenario only. | Bots, bot PAC/priority, 1870/1880/No-GW/alternate-GW scenarios, the 1850 tutorial and promotional cards P1–P3 are deliberately deferred. |
 
 ### Round-8 delta (what closed)
@@ -529,8 +536,9 @@ test, which had been intermittently failing (~1 run in 3) for this reason.
 - **Colonial war (29.2)** applies the printed per-side modifiers (EF/elite/
   army/naval supremacy), the opposed rolls, the one/two-step losses and
   territorial transfer, the UK/RU stability effects and the 1/3 bonus CP paid at
-  the next planning step. The transfer choice and the bonus-CP split are live
-  pendings (`gwColonialTransfer` / `gwColonialBonusCp`).
+  the next planning step. The losing side's unit loss, the winner's transfer
+  and the bonus-CP split are live pendings (`gwColonialLoss` /
+  `gwColonialTransfer` / `gwColonialBonusCp`).
 - GW combat cards are offered from `gwCard` and face-up in-front cards,
   including the post-dice GW-05/GW-06 window. GW-05/GW-06 go to `G.gw.discard`;
   GW-03/GW-04 are placed face down in front of the opponent and flipped at
@@ -539,12 +547,10 @@ test, which had been intermittently failing (~1 run in 3) for this reason.
   capital and subcapital; enemy occupation is immediate, idempotent and logged;
   **22.4** places one Italian army in Rome and two on the frontier, with the
   squadron in Naples/Piedmont.
-- **Remaining:** 30.1’s full marker bookkeeping (alliance chit/inittive
-  slot/bonus impulse/minor ally reassignment) is not in `eliminatePower`;
-  non-GW 15.6 knockout is still computed only at victory; 20.3’s Italian rebuild
-  uses its own legacy placement; the 32.1 guard has no live US land route out
-  of North America yet; blockade/colonial outcomes are deterministic;
-  `gwJointNaval` still one connection per action point.
+- **Remaining:** non-GW 15.6 knockout is still computed only at victory;
+  20.3’s Italian rebuild uses its own legacy placement; the 32.1 guard has no
+  live US land route out of North America yet; `gwJointNaval` still allows one
+  sea connection per action point.
 
 ### Minor-defender support and windows
 
@@ -573,20 +579,19 @@ test, which had been intermittently failing (~1 run in 3) for this reason.
 | GE | Bewegungskrieg wins initiative ties and the GW alliance goes first; German unification marks `unified` and converts German-flashpoint spaces held by diplomacy/ally to GE control; Imperial Germany’s one-time +1 manpower is granted at the next end phase; Continental Focus pacification 2 CP and 2/2 naval cap until unification; **Superior Staff Work** (one free deploy in GE’s first war/GW impulse, not stacking with A063); **German Confederation** (after a won unification war, annex Bavaria/Saxony/Hanover including a realignment gain; control, unit removal, permanent elimination, permanent home); **Zollverein** (GE-controlled German unification spaces count as territorial keys); **Blood and Iron!** (turn-1 end phase search for NG-08 and play it faceup). | Full Zollverein home/source treatment; German Confederation `homeOverride` is stamped only by the annexation (not every treaty/conquest gain); the Staff Work “first impulse” is approximated as “before GE first passes”. |
 | UK | No reserve armies; global pre-GW British army limit; starting London 1st Army +1 DRM; India card/DRM; Crown Jewel; pass/save at two; Indian armies limited by colonial manpower, auto-displaced at end of turn/war and capped at 1 after independence; Indian Fort; **India independence**; **Rapid Deployment**; **Join Your Country’s Army!**; **Maintaining the Status Quo** (primary-defender neutral invites in the alliance step); **CW army** (GW only, Australia/NZ/Canada, shared colonial manpower). | The free Join-Your-Country armies bypass the 4.2 pool and may overstack London; a Status Quo invited player’s post-war draw is deterministic; the CW army uses the shared colonial ceiling. |
 | FR | City of Light +1 card at ≥4; Second Empire → Third Republic at stability ≤1 or a lost war outside the GW; Second Empire +1 GW budget; Third Republic 2 free alliance-track CP once per turn; Zouaves +1 DRM/pacification and rebuilds; **Napoleon’s Legacy** (reveal NG-24 before a conquest declaration for the printed −2 stability, publicly revealed). | The lost-war republic switch still has no card-driven `lostWar` caller beyond war settlement; full Zouave rebuild/pacification edge cases. |
-| AU | Metternich’s first two candidate alliances; Dual Monarchy card event and turn-2 add-to-hand; Reforms/Expand Citizenship/Incorporate; full Unstable Situation discard/marker; A New Way Forward; Continental Power pacification; Bind Them Together; **citizen-nationality wars of unification** and **Arbiter of Italy** liberation targeting; full citizenship also records rights and removes that nationality from Nationalist Uprising targeting (`minorityNationalitiesFor`/`auCitizenshipProtectsSpace`). | Generic Expand Citizenship remains a special action rather than a card; failed Unstable Situation has no separate −1 card marker visual; Unstable Situation’s printed discard-or-marker choice is an automatic discard when a card exists. |
+| AU | Metternich’s first two candidate alliances; Dual Monarchy card event and turn-2 add-to-hand; Reforms/Expand Citizenship/Incorporate; full Unstable Situation discard-or-marker choice; A New Way Forward; Continental Power pacification; Bind Them Together; **citizen-nationality wars of unification** and **Arbiter of Italy** liberation targeting; full citizenship also records rights and removes that nationality from Nationalist Uprising targeting (`minorityNationalitiesFor`/`auCitizenshipProtectsSpace`). | Generic Expand Citizenship remains a special action rather than a card; failed Unstable Situation has no separate −1 card marker visual. |
 | RU | TSRR +1 card/+2 keys and the free rail move once per impulse; Endless Space now keys only on the battle spaces; Agrarian industrialisation 6; Tsarist Repression through the stability table; Second Rome +2 VP for Istanbul at the end of the game and a separate +2 at the GW outbreak; Scorched Earth absorbs the first GW key loss; Russian Steamroller’s +1 reserve limit (end phase and `recruit`). The Ottoman capital switches to Ankara when RU takes Istanbul (`capitalOf`/`isBlockaded`). | The TSRR is a movement allowance, not a distinct railroad unit (as printed); Second Rome wartime control beyond the Istanbul capture flag. |
 | OT | Poor Infrastructure 2-stack limit; Local Autonomy Arab/Egyptian keys and Tunisia/Tripoli land-LoC condition (typed `otLandLocKeyType`); Turkish/Arab army split with separate Arab manpower; Europeanization 6 and no-own-card rejection; Jihad gain/use/discard; A106 two ECs. | Full “Arab manpower spending” display edge cases; non-player counter rows are enforced as pools (chart-less rows stay null). |
 
 ## Test and build evidence
 
-**The full IE Jest suite passes 2632/2632 tests in 203/203 suites**; `tsc`,
-`yarn build`, `yarn build:server` and `python3
-scripts/extract-imperial-elegy.py --check` (501 assets) are clean. The three
-browser specs were rerun after a fresh `yarn build` + `yarn build:server`:
-**5/5 regression (`:5203`), 3/3 controls (`:5201`), 3/3 spectator
-(`:4004`/`:5202`)**. Round 8 added `powerProjection.test.ts` and
-`components/gwControls.test.tsx`, `gwDraftEf.test.ts`, `redeployPath.test.ts` and `gwRebels.test.ts` and extended
-the suite from 2532/197 to 2632/203.
+**The full IE Jest suite passes 2641/2641 tests in 205/205 suites**; `tsc`,
+`yarn build` and `yarn build:server` are clean. The three browser specs were not
+rerun in round 9 (the round-8 evidence remains the latest browser smoke).
+Round 8 added `powerProjection.test.ts`, `components/gwControls.test.tsx`,
+`gwDraftEf.test.ts`, `redeployPath.test.ts` and `gwRebels.test.ts`; round 9
+added `gwColonialLossChoice.test.ts` and `italianLoc.test.ts` and extended the
+suite from 2632/203 to 2641/205.
 
 > **Environment note (this checkout).** `node_modules` is a symlink to the main
 > checkout, which has moved from `@i18n-chain/react` to `@i18n-chain/core`. The
@@ -748,13 +753,12 @@ checkout contains **501** published files.
    kinds have bilingual labels; revealed goals are public. Round 8 added the
    GW controls (march/rail after choosing a land unit and destination, draft,
    deploy, planning CP transfer, faceup combat-card reveal) with a component
-   suite. Round 8 also gives the shared card target helpers
-   (`powerOptions`/`spaceOptions`/`openSpecialSpace`) Chinese labels. Remaining
-   UI gap: some one-off card `eventChoice` labels are still English-only (the
-   generic pending labels and most target power/space options are bilingual),
-   `gwJointNaval` has no board control (the joint naval action stays
-   move-level), and engine-supplied event targets in some older cards render
-   raw ids.
+   suite. Round 8 gives the shared card target helpers
+   (`powerOptions`/`spaceOptions`/`openSpecialSpace`) Chinese labels; round 9
+   adds the `gwJointNaval` board buttons and localizes the remaining one-off
+   card option labels (A65/A67 options, Balkan award, foreign investment,
+   Empire of the Sun, major-power entry, GW combat-card flips, Submarines and
+   Exhaustion).
 7. **`openDecision` widens boardgame.io’s active seats while a decision is
    open.** Cross-seat card chains (UK/FR placements, auctions, a defending
    player’s discard choice) would otherwise be rejected because the deciding

@@ -1,11 +1,12 @@
 import {BattleState, GreatWarState, ImperialElegyState, Power, SpaceId, Unit} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {cardsToDraw, changeStability} from "./engine/rules";
+import {resolvePending} from "./moves";
 import {supportCandidates, unitFp, beginLandBattle} from "./engine/combat";
 import {discardHandAtEndOfTurn} from "./engine/deck";
 
-const makeCtx = (die = 3) => ({
-  playerID: "0",
+const makeCtx = (die = 3, playerID = "0") => ({
+  playerID,
   random: {Die: (_sides: number) => die},
   events: {setPhase: () => {}, setActivePlayers: () => {}, endGame: () => {}, endTurn: () => {}},
   turn: 1,
@@ -139,6 +140,9 @@ describe("changeStability national characteristics", () => {
 
     expect(applied).toBe(-1);
     expect(G.powers.AU.stability).toBe(2);
+    // 33.4: AU chooses between discarding a card and the -1 marker.
+    expect(G.pending?.kind).toBe("auUnstable");
+    expect(resolvePending(G, makeCtx(3, "3"), "discard")).toBeUndefined();
     const entry = G.log.find((e) => e.key === "auUnstable" && e.power === "AU");
     expect(entry).toBeDefined();
     expect(entry!.args).toMatchObject({roll: 3, rights: 2});
