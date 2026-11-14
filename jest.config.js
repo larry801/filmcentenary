@@ -6,6 +6,10 @@ module.exports = {
   // jsdom + asset stubs, so it is kept out of the normal test run.
   // `.claude/worktrees/` holds local agent worktrees whose copies of `src/`
   // would otherwise be collected a second (and third) time.
-  testPathIgnorePatterns: ["/node_modules/", "/perf/", "/e2e/", "/.claude/"],
+  // `tools/ie-sim/` is the seeded self-play harness: several suites there run
+  // real multi-thousand-step games (the batch statistics one takes ~20 minutes),
+  // so it is run explicitly, never as part of `yarn test`.  See
+  // `tools/ie-sim/README.md`.
+  testPathIgnorePatterns: ["/node_modules/", "/perf/", "/e2e/", "/.claude/", "/tools/"],
   setupFilesAfterEnv: ["./config.js"]
 };

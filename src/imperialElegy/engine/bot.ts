@@ -796,9 +796,26 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
  *
  * The bot must be called on its turn only; callers should check seat/phase.
  */
+/**
+ * One B1 die.  `ctx.random` is only present inside a real move (boardgame.io
+ * attaches the random plugin to the move's ctx) and in the harness; a direct
+ * caller that passes a bare ctx gets the documented conservative 3.
+ */
+const roll2d6 = (ctx: Ctx | undefined): number => {
+  const random = ctx?.random;
+  if (random === undefined) return 3;
+  let value: number;
+  try {
+    value = random.Die(6);
+  } catch {
+    return 3;
+  }
+  return typeof value === "number" && value >= 1 && value <= 6 ? value : 3;
+};
+
 export const botDecision = (
   G: ImperialElegyState,
-  _ctx: Ctx,
+  ctx: Ctx,
   power: Power,
 ): BotMove => {
   // Handle any open pending decision first.
@@ -876,11 +893,14 @@ export const botDecision = (
       }
     }
 
-    // Priority 2: bot uses a fixed "die" of 3 (conservative — build armies)
-    // when no random roll is available.  The UI/MCTS layer should supply a
-    // real roll; this fallback ensures the bot always has a legal move.
+    // Priority 2 (B1) is driven by a 2d6 roll: 1 = influence/EF, 2 = minor
+    // alliance/diplomacy, 3-4 = build armies, 5-6 = play an event.  Passing a
+    // constant here collapsed the whole table onto its 3-4 branch, so the
+    // non-army priorities were unreachable and the bot played the same way in
+    // every game.  Roll for real when the ctx carries the random plugin; the
+    // constant stays as the documented fallback for direct/test callers.
     if (G.cpRemaining > 0) {
-      const p2 = priorityTwo(G, power, 3, 3);
+      const p2 = priorityTwo(G, power, roll2d6(ctx), roll2d6(ctx));
       if (p2 !== null) return p2;
 
       // Excess CP: build armies, then BMPIT.
@@ -916,7 +936,9 @@ export const botDecision = (
   }
 
   if (phase === "gwManeuver") {
-    const p2 = gwPriorityTwo(G, power, 3);
+    // Same B1 die as the action phase: a constant collapsed the GW maneuver
+    // table onto its attack branch.
+    const p2 = gwPriorityTwo(G, power, roll2d6(ctx));
     if (p2 !== null) return p2;
     // 27.3: GW-10 Exhaustion forbids passing, and as a GW card it is not in
     // `hand` — `passRestriction` has to be asked about this turn's GW card, or

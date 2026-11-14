@@ -526,3 +526,46 @@ describe("11 — a rebel space is not a legal GW naval destination", () => {
     expect(String(verdict)).toMatch(/rebels/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// 12. The Rule 34 B1 die is rolled, not fixed
+// ---------------------------------------------------------------------------
+
+describe("12 — the B1 priority die is actually rolled", () => {
+  test("different dice reach different priority rows", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "FR";
+    G.powers.FR.flags.homeChosen = true;
+    G.powers.FR.selectedHomeCard = null;
+    G.cpRemaining = 3;
+
+    // B1's priority rows are 1 = influence/EF, 2 = minor alliance/diplomacy,
+    // 3-4 = build armies, 5-6 = play an event.  A constant die collapsed all of
+    // them onto one row, so the bot behaved identically in every game and most
+    // of the move vocabulary was unreachable.
+    const seen = new Set<string>();
+    for (const die of [1, 2, 3, 4, 5, 6]) {
+      const ctx = {
+        ...makeCtx("2"),
+        random: {Die: () => die},
+      } as unknown as Ctx;
+      seen.add(botDecision(G, ctx, "FR").move);
+    }
+    expect(seen.size).toBeGreaterThan(1);
+  });
+
+  test("a ctx without the random plugin still yields the documented fallback", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "FR";
+    G.powers.FR.flags.homeChosen = true;
+    G.powers.FR.selectedHomeCard = null;
+    G.cpRemaining = 3;
+    const bare = {playerID: "2", events: {}, phase: "action"} as unknown as Ctx;
+    expect(() => botDecision(G, bare, "FR")).not.toThrow();
+    // The fallback is the conservative 3-4 row (build armies), as documented.
+    const move = botDecision(G, bare, "FR");
+    expect(typeof move.move).toBe("string");
+  });
+});

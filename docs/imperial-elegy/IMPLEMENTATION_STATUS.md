@@ -227,10 +227,10 @@ engine — seeded random plugin, phase/turn flow, move validation and
 campaign, a match started in the Great War, and a variant that declares limited
 wars, a naval variant that builds fleets and fights 19.0 contact battles, and an
 amphibious variant that stages landings next to enemy ports. Running many seeds
-surfaced eleven engine bugs that the hand-built fixtures never reached. All
-eleven are fixed; ten are engine fixes and one (the rebel-space naval
-destination, see below) was a harness gap that surfaced while sailing during a
-war. All are pinned by `selfPlayRegression.test.ts`.
+surfaced twelve engine bugs that the hand-built fixtures never reached. All
+eleven are fixed; eleven are engine fixes and one (the rebel-space naval destination, see
+below) was a harness gap that surfaced while sailing during a war. All are
+pinned by `selfPlayRegression.test.ts`.
 
 1. **The Dual Monarchy was duplicated.** `applyPrepCharacteristics` pushed
    `IE-A047` into AU's hand without taking the physical copy out of the deck or
@@ -316,6 +316,31 @@ answers that decision like any other, and a run across six seeds logs dozens of
 `intercept:<port>` choices, including successful battles. No engine change was
 needed there.
 
+A twelfth bug came from batch statistics rather than a single game:
+
+12. **The Rule 34 B1 die was never rolled.** `botDecision` called
+    `priorityTwo(G, power, 3, 3)` and `gwPriorityTwo(G, power, 3)` with
+    hard-coded dice, on the theory that "the UI/MCTS layer should supply a real
+    roll" — but `ai.enumerate` goes through the same function, so every bot seat
+    in every real game used the constant. B1's rows (1 = influence/EF,
+    2 = minor alliance/diplomacy, 3-4 = build armies, 5-6 = play an event)
+    therefore collapsed onto 3-4, the bot played identically in every match, and
+    most of the move vocabulary was unreachable. It now rolls `ctx.random.Die`
+    and keeps the constant only as the documented fallback for a bare ctx.
+
+**Batch statistics** (`tools/ie-sim/batch.test.ts`) run N seeds across all six
+modes and report, deduplicated by failure signature: completion rate per mode,
+result reasons, average steps/turns, every distinct fatal signature with a
+reproducing seed, and the set of game moves the batch never touched. On 24
+games (IE_BATCH=4) it finishes 24/24 with no crash or stall.
+
+That report also measures a bot limitation rather than an engine bug: `buildFort`
+and `placeMpit` absorb almost every action impulse because `priorityOne`'s army
+rules nearly always apply, so rows 1-2 of the B1 table are still rarely reached
+even with the die fixed. The move-coverage line in the batch output is the
+standing reminder; raising it would mean changing the bot's strategy, which is
+out of scope here.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
 (`W-1…8`) declares wars, runs the wartime impulses and settles them; and the
@@ -324,8 +349,10 @@ winter (including the colonial transfers and neutral entry) to a decisive
 result; the naval sweep (`N-1…10`) adds fleet builds, sea moves and naval
 battles; the amphibious sweep (`A-1…8`) performs ~200 real 19.10 landings. A
 mixed stress sweep (`tools/ie-sim/stress.test.ts`) adds random pending choices
-on half the seeds. The full Jest suite is **443/443 suites,
-4075/4075 tests**, and `tsc` plus the server `tsc` are clean.
+on half the seeds, and the naval runs answer the 19.1 interception decision
+dozens of times. The full Jest suite is **438/438 suites, 4073/4073 tests**, and
+`tsc` plus the server `tsc` are clean; `tools/` is excluded from `yarn test`
+because the batch sweep alone takes minutes and is run explicitly instead.
 
 ## Known fallbacks and simplifications
 

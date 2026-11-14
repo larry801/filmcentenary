@@ -6,11 +6,14 @@ phase/turn flow, move validation, `playerView` redaction and every move in
 this reports is an engine or rule-implementation problem, not a UI issue.
 
 ```sh
-# campaign + Great War, default seeds
-npx jest --testPathPatterns tools/ie-sim --runInBand
+# Every suite here lives under `tools/`, which jest's default config excludes
+# so `yarn test` stays fast.  Run them explicitly:
+npx jest --testPathPatterns "tools/ie-sim" \
+  --testPathIgnorePatterns "/node_modules/" --runInBand
 
 # pick seeds
-IE_SEEDS=IE-SIM-1,IE-SIM-2 npx jest --testPathPatterns tools/ie-sim --runInBand
+IE_SEEDS=IE-SIM-1,IE-SIM-2 npx jest --testPathPatterns "tools/ie-sim" \
+  --testPathIgnorePatterns "/node_modules/" --runInBand
 ```
 
 The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
@@ -26,6 +29,7 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 | `navy` | builds fleets, sails them, fights 19.0 contact battles and answers the 19.1 interception decision |
 | `amphibious` | stages two armies plus an escort beside an enemy port and plays the 19.10 landing |
 | `chaos` | answers pending decisions randomly instead of taking the first option |
+| `IE_BATCH=N` | batch statistics over N seeds × all modes (see below) |
 
 ## Test suites here
 
@@ -34,6 +38,19 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 - `navy.test.ts` — fleet builds, sea moves and naval battles (19.1–19.9).
 - `amph.test.ts` — 19.10 amphibious assaults (unopposed and contested).
 - `stress.test.ts` — longer mixed run, random pending choices on half the seeds.
+- `batch.test.ts` — N seeds × all six modes, aggregated: completion rate per
+  mode, result reasons, distinct fatal signatures (each with a reproducing
+  seed) and the moves the batch never touched.  Not a pass/fail gate on
+  coverage: it prints the report and only fails on a crash, stall or unfinished
+  game.
+
+```sh
+# `tools/` is outside jest's default paths, so point jest at it explicitly.
+IE_BATCH=20 npx jest --testPathPatterns "tools/ie-sim/batch" \
+  --testPathIgnorePatterns "/node_modules/" --runInBand
+```
+
+`tools/` is excluded from `yarn test`, so these never slow the normal suite.
 
 ## What it checks
 
@@ -48,6 +65,6 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 
 ## Findings
 
-The runs have found ten engine bugs so far (plus one harness gap); they are listed in
+The runs have found twelve engine bugs so far (plus one harness gap); they are listed in
 [`../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md`](../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md)
 and pinned by `src/imperialElegy/selfPlayRegression.test.ts`.
