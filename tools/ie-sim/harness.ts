@@ -426,6 +426,10 @@ const navalAction = (
       // a friendly port.  Ending in a neutral/enemy port is refused by
       // `performGwManeuver` even though the action-phase planner allows it.
       if (gwManeuver && !isNavalBox(to) && !friendlySpace(G, to, power)) continue;
+      // 5.5.4: a port holds at most four naval units.  The engine refuses a
+      // move that would end overstacked; naming it just produces a rejected
+      // action, so skip a full port (a contact battle is still allowed).
+      if (!isNavalBox(to) && !contact && navalUnitsIn(G, to).length >= PORT_NAVAL_LIMIT) continue;
       if (budget < 1) return null;
       // 32.5: during the GW rebels and non-rebels cannot coexist, and the flow
       // refuses a naval move into a rebel space.  Ask the same destination gate
@@ -819,8 +823,10 @@ export function runSeededGame(opts: SimOptions): SimResult {
       if (err.type === "action/invalid_move" && decision.move === "navalMove" && power !== null) {
         const [ids, dest] = (decision.args ?? []) as [string[], string];
         const unit = before.units[ids?.[0]];
-        reason = ` [navalMove phase=${before.phase} active=${String(before.activePower)} cp=${before.cpRemaining}`
-          + ` unit=${String(ids?.[0])} exists=${Boolean(unit)} owner=${String(unit?.owner)} space=${String(unit?.space)} to=${String(dest)}]`;
+        reason = ` [navalMove active=${String(before.activePower)} cp=${before.cpRemaining}`
+          + ` from=${String(unit?.space)} to=${String(dest)}`
+          + ` destNaval=${navalUnitsIn(before, String(dest)).length}`
+          + ` destControl=${String(before.spaces[String(dest)]?.control)}]`;
       }
       if (err.type === "action/invalid_move" && decision.move === "navalMove" && power !== null
         && before.phase === "gwManeuver" && before.gw?.active === true) {
