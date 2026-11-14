@@ -240,7 +240,9 @@ async function readMatch(matchID: string): Promise<MatchMetadata> {
 }
 
 async function handTitles(page: Page): Promise<string[]> {
-    const titles = await page.locator(".ie-hand .ie-card .ie-card-title").allInnerTexts();
+    // Card faces are SVG (<text class="ie-card-title">), and SVG elements have
+    // no innerText, so read textContent instead.
+    const titles = await page.locator(".ie-hand .ie-card .ie-card-title").allTextContents();
     return titles.map((title) => title.trim()).filter(Boolean);
 }
 
