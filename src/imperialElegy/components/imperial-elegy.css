@@ -148,7 +148,9 @@
 .ie-power.eliminated { opacity: .55; filter: grayscale(.5); }
 
 /* ---------------------------------------------------------------- hand & cards */
-.ie-hand { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; padding: 4px 0; align-items: start; }
+.ie-hand, .ie-goal-hand { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; padding: 4px 0; align-items: start; }
+.ie-hand > .ie-card, .ie-goal-hand > .ie-card { max-width: 300px; }
+.ie-card-standalone { max-width: 300px; }
 .ie-hand-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .ie-hand-section { margin-top: 10px; }
 .ie-section-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #cbb07a; margin-bottom: 4px; }
@@ -165,10 +167,11 @@
   transition: box-shadow .15s;
 }
 .ie-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,.45); }
-.ie-card img { width: 100%; display: block; aspect-ratio: 247/385; object-fit: cover; }
-.ie-card-body { padding: 10px; font-size: 13px; line-height: 1.5; }
-.ie-card-title { font-weight: 700; font-size: 15px; margin: 1px 0 6px; }
-.ie-card-zh { color: #5a4a33; font-size: 13px; margin-top: 4px; }
+.ie-card-face { width: 100%; height: auto; display: block; }
+.ie-card-translation { padding: 8px 10px; font-size: 13px; line-height: 1.5; border-top: 1px solid #c7b894; }
+.ie-card-translation summary { cursor: pointer; color: #5a4a33; font-size: 12px; }
+.ie-card-translation > div { margin-top: 8px; }
+.ie-card-translation p { margin: 4px 0; }
 
 /* 2-column button grid: each button takes ~half the card width */
 .ie-card-actions {
@@ -193,9 +196,6 @@
 }
 .ie-card-actions button:hover:not(:disabled) { background: #d9c49c; }
 .ie-card-actions button:disabled { opacity: .4; cursor: not-allowed; }
-
-.ie-card-type { position: absolute; top: 4px; right: 4px; background: #241d17dd; color: #f0dfba; font-size: 9px; border-radius: 3px; padding: 1px 4px; letter-spacing: .04em; }
-.ie-card-cp { position: absolute; top: 4px; left: 4px; background: #f6eed8ee; color: #241d17; font-weight: 700; font-size: 12px; width: 20px; height: 20px; display: grid; place-items: center; border: 1px solid #6d5636; border-radius: 2px; }
 
 /* ---------------------------------------------------------------- log */
 .ie-log { max-height: 220px; overflow: auto; font-size: 11px; line-height: 1.4; }
@@ -435,13 +435,10 @@
 .ie-reference > summary { cursor: pointer; padding: 14px; color: #e6c987; font-weight: 600; }
 .ie-reference > .ie-panel { border: 0; box-shadow: none; }
 .ie-hand-panel .ie-panel-head { align-items: flex-start; }
-.ie-card-type { font-size: 12px; padding: 3px 6px; }
-.ie-card-cp { width: 28px; height: 28px; font-size: 16px; }
 @media (max-width: 600px) {
   .ie-surface { padding: 8px; }
   .ie-panel-body { padding: 10px; }
   .ie-panel-head { padding: 10px; }
-  .ie-hand { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .ie-status { gap: 8px; }
   .ie-title { font-size: 22px; }
   .ie-mpit-grid, .ie-budget-grid { grid-template-columns: 1fr; }
