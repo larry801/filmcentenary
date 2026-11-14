@@ -5096,6 +5096,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
                 const decider = (isPower(G.spaces[to].control) ? G.spaces[to].control : defenderPower) as Power;
                 if (ownerOf(G, decider) !== undefined) {
                     G.pendingWithdraw = {active: p, defender: decider, space: to, origin: from};
+                    ctx.events?.setActivePlayers({value: {[ownerOf(G, decider)!]: "withdrawChoice"}});
                     return;
                 }
             }
@@ -5405,6 +5406,7 @@ export const chooseWithdraw = (G: VQGame, ctx: Ctx, args: {withdraw: boolean}): 
     const defenders = totalLand(G, pending.space, ownersWithLand(G, pending.space).filter((owner) => owner !== pending.active));
     const activeUnits = totalLand(G, pending.space, [pending.active]);
     delete G.pendingWithdraw;
+    ctx.events?.endStage();
     if (!args.withdraw) {
         const hostile = ownersWithLand(G, pending.space).filter((owner) => !friendlyController(G, pending.active, owner) && !besiegerOwners(G, pending.space).includes(owner as Power));
         const activeCtx = {...ctx, playerID: ownerOf(G, pending.active)!};

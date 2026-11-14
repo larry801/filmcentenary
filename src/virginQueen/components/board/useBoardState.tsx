@@ -136,6 +136,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         G.pendingCityRebels && isPower(G.pendingCityRebels.controller) && ownerOf(G, G.pendingCityRebels.controller) === playerID ? G.pendingCityRebels.controller :
         G.pendingTribute && ownerOf(G, G.pendingTribute.target) === playerID ? G.pendingTribute.target :
         G.pendingMutiny && ownerOf(G, G.pendingMutiny.owner) === playerID ? G.pendingMutiny.owner :
+        G.pendingWithdraw && ownerOf(G, G.pendingWithdraw.defender) === playerID ? G.pendingWithdraw.defender :
         G.pendingBattle && ownerOf(G, G.pendingBattle.responding) === playerID ? G.pendingBattle.responding :
         G.pendingBetrothal && ownerOf(G, G.pendingBetrothal.target) === playerID ? G.pendingBetrothal.target :
         G.pendingForeignWar && ownerOf(G, G.pendingForeignWar.power) === playerID ? G.pendingForeignWar.power :
@@ -204,12 +205,12 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     // Hotseat: every mounted seat shares one screen, so an idle panel has to
     // say which tab the device user should open next.
     const hotseatWaitHint = (): string | undefined => {
-        if (myTurn || me === undefined) return undefined;
+        if (myTurn || responsePower !== undefined || me === undefined) return undefined;
         const base = `${i18n.chain.vq.board.waiting} ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.board.act}${i18n.chain.vq.punct.period}`;
         const tab = switchToTab(G.activePower);
         return tab === undefined ? base : `${base} ${tab}`;
     };
-    const canAct = myTurn && phase === "action" && !G.pendingNavalMoves && !G.pendingNavalOrder && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingTribute && !G.pendingMutiny && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
+    const canAct = myTurn && phase === "action" && !G.pendingNavalMoves && !G.pendingNavalOrder && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingWithdraw && !G.pendingContinue && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingTribute && !G.pendingMutiny && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
     /** Why an action mode is unavailable, or undefined when it can be picked. */
@@ -540,7 +541,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     };
 
     const pendingPower = G.pendingPolishElection?.remaining[0] ?? G.gregorianResponse?.responder ?? G.pendingBeacon?.defender ?? G.pendingInterceptionOrder?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
-        G.pendingEspionage?.responding ?? G.pendingTribute?.target ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power ??
+        G.pendingEspionage?.responding ?? G.pendingTribute?.target ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingWithdraw?.defender ?? G.pendingContinue?.power ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power ??
         G.pendingReliefSplit?.power ?? G.pendingForeignWar?.power ??
         (G.pendingCityRebels !== undefined ? (isPower(G.pendingCityRebels.controller) ? G.pendingCityRebels.controller : G.pendingCityRebels.power) : undefined) ??
         G.pendingMutiny?.owner ??
