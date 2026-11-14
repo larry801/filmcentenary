@@ -2,6 +2,7 @@ import {Link, useLocation} from 'react-router-dom'
 import React from "react";
 import Drawer from "@mui/material/Drawer";
 import MenuIcon from '@mui/icons-material/Menu';
+import HomeIcon from '@mui/icons-material/Home';
 import i18n from "../constant/i18n";
 import AppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';
@@ -17,6 +18,7 @@ import Switch from "@mui/material/Switch"
 import {styled} from '@mui/material/styles';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import {getNavGroups} from "../constant/navigation";
 const MUIDrawer = Drawer;
 
 
@@ -51,17 +53,6 @@ const AntSwitch = styled(Switch)(({theme}) => ({
     },
 }));
 
-interface DrawerNavItem {
-    to: string;
-    label: string;
-}
-
-interface DrawerNavGroup {
-    key: string;
-    title: string;
-    items: DrawerNavItem[];
-}
-
 const DrawerAppBar = () => {
 
     i18n.use();
@@ -82,53 +73,7 @@ const DrawerAppBar = () => {
         }
     };
     const drawer = i18n.chain.drawer;
-    const navGroups: DrawerNavGroup[] = [
-        {
-            key: 'general',
-            title: drawer.section.general,
-            items: [
-                {to: '/cards', label: drawer.cards},
-                {to: '/about', label: drawer.about},
-                {to: '/lobby', label: drawer.globalLobby},
-            ],
-        },
-        {
-            key: 'film',
-            title: drawer.section.film,
-            items: [
-                {to: '/', label: drawer.film.multiplayer},
-                {to: '/local2p', label: drawer.film.local2p},
-                {to: '/local3p', label: drawer.film.local3p},
-                {to: '/local4p', label: drawer.film.local4p},
-            ],
-        },
-        {
-            key: 'songJinn',
-            title: drawer.section.songJinn,
-            items: [
-                {to: '/songJinn', label: drawer.songJinn.multiplayer},
-                {to: '/local', label: drawer.songJinn.local},
-            ],
-        },
-        {
-            key: 'imperialElegy',
-            title: drawer.section.imperialElegy,
-            items: [
-                {to: '/imperialElegy', label: drawer.imperialElegy.multiplayer},
-                {to: '/localIE?solo=1', label: drawer.imperialElegy.solo},
-                {to: '/localIE', label: drawer.imperialElegy.local},
-            ],
-        },
-        {
-            key: 'virginQueen',
-            title: drawer.section.virginQueen,
-            items: [
-                {to: '/virginQueen', label: drawer.virginQueen.multiplayer},
-                {to: '/localVQ', label: drawer.virginQueen.local},
-                {to: '/localVQ/tutorial', label: drawer.virginQueen.tutorial},
-            ],
-        },
-    ];
+    const navGroups = getNavGroups();
     return <React.Fragment>
         <AppBar position={"sticky"} sx={isIE ? {height: 48, bgcolor: "#211b16", color: "#ead7af", boxShadow: "none", borderBottom: "1px solid #80633a"} : isVQ ? {height: 48, bgcolor: "#211b16", color: "#ead7af", boxShadow: "none", borderBottom: "1px solid #80633a"} : undefined}>
         <Toolbar sx={isVQ || isIE ? {minHeight: "47px !important", gap: 1} : undefined}>
@@ -140,6 +85,11 @@ const DrawerAppBar = () => {
             >
                 <MenuIcon/>
             </IconButton>
+            {pathname !== "/" && (
+                <IconButton component={Link} to="/" color="inherit" aria-label={drawer.home} sx={{ml: 1}}>
+                    <HomeIcon/>
+                </IconButton>
+            )}
             <Typography component="div">
                 <Grid component="label" container spacing={1} sx={{alignItems: 'center'}}>
                     <Grid>中文</Grid>

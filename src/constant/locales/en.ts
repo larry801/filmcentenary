@@ -529,9 +529,8 @@ const en = {
         cards: "Card list",
         about: "Rules & Help",
         navigation: "Navigation",
-        globalLobby: "Multiplayer lobby (global)",
+        home: "Home",
         section: {
-            general: "General",
             film: "Film Centenary",
             songJinn: "SongJinn",
             imperialElegy: "Imperial Elegy",
@@ -559,6 +558,10 @@ const en = {
         },
     },
     title: "Film Centenary",
+    home: {
+        title: "Game Hub",
+        subtitle: "Choose a game and a play mode",
+    },
     lobby: {
         copyPrompt: "Copied to clipboard",
         numPlayers: "Players",
