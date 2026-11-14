@@ -13,8 +13,10 @@ import {redactForView} from "../../src/imperialElegy/engine/privacy";
 import {botDecision} from "../../src/imperialElegy/engine/bot";
 import {ImperialElegyState, POWERS, Power} from "../../src/imperialElegy/types";
 import {ensureStateDefaults} from "../../src/imperialElegy/engine/migrations";
-import {SPACES, neighboursOf} from "../../src/imperialElegy/constant/spaces";
-import {controlledBy, friendlySpace, hostileOwner} from "../../src/imperialElegy/engine/rules";
+import {SPACES, isNavalBox, neighboursOf, portBoxes} from "../../src/imperialElegy/constant/spaces";
+import {planNavalMove} from "../../src/imperialElegy/engine/navalMovement";
+import {hasCounterFor} from "../../src/imperialElegy/engine/counters";
+import {controlledBy, friendlySpace, hostileOwner, navalUnitsIn, ownsKey, PORT_NAVAL_LIMIT} from "../../src/imperialElegy/engine/rules";
 import {performGwManeuver} from "../../src/imperialElegy/engine/greatWarFlow";
 import {hasTruce, validateWarAim} from "../../src/imperialElegy/engine/limitedWar";
 import {outbreakGreatWar} from "../../src/imperialElegy/engine/greatWar";
@@ -38,6 +40,11 @@ export interface SimOptions {
    * does, so without this the entire `wartime` phase is skipped.
    */
   war?: boolean;
+  /**
+   * Build fleets, sail them and fight naval battles.  The Rule 34 bot only
+   * builds the occasional dreadnought, so 19.1–19.9 had no coverage.
+   */
+  navy?: boolean;
   /** Hard cap on dispatched actions. */
   maxSteps?: number;
   /** Randomised pending choices (chaos exploration) instead of first option. */
@@ -262,6 +269,79 @@ const aggressiveWarDeclaration = (
 };
 
 /**
+ * One naval action for a seat, built through the engine's own route planner so
+ * a refusal here is a real engine refusal.  Covers the three live naval
+ * verbs the Rule 34 bot never uses: `constructFleet`, `navalMove` and
+ * `navalBattle` (19.0 contact), which together drive 19.1–19.9.
+ */
+const navalAction = (
+  G: ImperialElegyState,
+  power: Power,
+): {move: string; args: unknown[]} | null => {
+  const me = G.powers[power];
+  if (me.eliminated) return null;
+  const budget = G.phase === "gwManeuver" ? me.gwBudget ?? 0 : G.cpRemaining;
+  if (budget < 1) return null;
+
+  // 1. Attack with a fleet that already has a legal target (19.0 contact).
+  // A naval battle needs an *enemy* (at war), so the check is `hostileOwner`:
+  // neutral ships in a shared box are not a legal target.
+  for (const unit of Object.values(G.units)) {
+    if (unit.owner !== power || !unit.naval || !unit.space) continue;
+    const from = unit.space;
+    for (const to of neighboursOf(from)) {
+      if (!G.spaces[to]) continue;
+      const plan = planNavalMove(G, power, from, to, {allowEnemyDestination: true});
+      if (!plan.ok) continue;
+      const contact = navalUnitsIn(G, to).some((other) => hostileOwner(G, power, other.owner));
+      if (!contact) continue;
+      return {move: "navalBattle", args: [from, to]};
+    }
+  }
+
+  // 2. Move a fleet toward the nearest enemy fleet, so contact eventually
+  // happens.  A move that ends in the enemy's box is still `navalMove` (the
+  // contact battle is resolved by the move itself, 19.0).
+  const enemyBoxes = new Set<string>();
+  for (const [id, space] of Object.entries(G.spaces)) {
+    if (space.units.some((uid) => {
+      const other = G.units[uid];
+      return other && other.naval && hostileOwner(G, power, other.owner);
+    })) enemyBoxes.add(id);
+  }
+  for (const unit of Object.values(G.units)) {
+    if (unit.owner !== power || !unit.naval || !unit.space) continue;
+    const from = unit.space;
+    const step = enemyBoxes.size > 0 ? nextHopToward(G, from, enemyBoxes) : null;
+    const candidates = step !== null ? [step, ...neighboursOf(from)] : neighboursOf(from);
+    for (const to of candidates) {
+      if (!G.spaces[to]) continue;
+      const contact = navalUnitsIn(G, to).some((other) => hostileOwner(G, power, other.owner));
+      // 26.x is stricter than 12.3: a GW naval move must end in a naval box or
+      // a friendly port.  Ending in a neutral/enemy port is refused by
+      // `performGwManeuver` even though the action-phase planner allows it.
+      if (G.phase === "gwManeuver" && !isNavalBox(to) && !friendlySpace(G, to, power)) continue;
+      const plan = planNavalMove(G, power, from, to, {allowEnemyDestination: contact});
+      if (!plan.ok || plan.cost < 1) continue;
+      return {move: "navalMove", args: [[unit.id], to]};
+    }
+  }
+
+  // 3. Build a squadron in a home port with room and a free counter.
+  if (G.phase === "action" && budget >= 2) {
+    for (const [id, def] of Object.entries(SPACES)) {
+      if (def.home !== power) continue;
+      if (!portBoxes(id).length) continue;
+      if (!ownsKey(G, id, power)) continue;
+      if (navalUnitsIn(G, id).length >= PORT_NAVAL_LIMIT) continue;
+      if (!hasCounterFor(G, power, "squadron")) continue;
+      return {move: "constructFleet", args: [id, "squadron"]};
+    }
+  }
+  return null;
+};
+
+/**
  * One aggressive GW maneuver for a seat: deploy/refit/march into contact.
  * Deliberately engine-shaped (it only reads state and names a real move), so
  * a refusal here is a genuine engine refusal rather than a bot heuristic.
@@ -461,6 +541,17 @@ export function runSeededGame(opts: SimOptions): SimResult {
         return {move: "__none__", args: []};
       }
     })();
+    // Navy mode: replace a passive naval/CP action with a real naval one.
+    if (opts.navy && !G.pending && (G.phase === "action" || G.phase === "gwManeuver")
+      && power === G.activePower
+      && (decision.move === "pass" || decision.move === "endImpulse" || decision.move === "placeMpit"
+        || decision.move === "buildFort" || decision.move === "gwPass" || decision.move === "playCard")) {
+      const naval = navalAction(G, G.activePower);
+      if (naval !== null) {
+        decision.move = naval.move;
+        decision.args = naval.args;
+      }
+    }
     // Aggressive mode: declare a legal war when the action phase would
     // otherwise just bank CP, so the `wartime` phase actually runs.  The
     // declaration belongs to the *active* power: in the action phase only that
@@ -468,7 +559,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
     // A refused declaration is not retried: `warRetry` remembers the exact
     // (power, target, objective) that the engine refused so the sweep cannot
     // spin on it the way the real hotseat bot would have.
-    if (opts.war && !G.pending && G.phase === "action" && power === G.activePower && !warRefused
+    if ((opts.war || opts.navy) && !G.pending && G.phase === "action" && power === G.activePower && !warRefused
       && (decision.move === "playCard" || decision.move === "pass" || decision.move === "endImpulse" || decision.move === "placeMpit" || decision.move === "buildFort")) {
       const declaration = aggressiveWarDeclaration(G, G.activePower);
       if (declaration !== null) {
@@ -527,6 +618,18 @@ export function runSeededGame(opts: SimOptions): SimResult {
       if (err.type === "action/invalid_move" && decision.move === "declareWar") {
         const args = decision.args ?? [];
         reason = ` [declareWar power=${String(power)} active=${before.activePower} war=${before.war ? "yes" : "no"} wtt=${before.wtt} cp=${before.cpRemaining} args=${JSON.stringify(args)}]`;
+      }
+      if (err.type === "action/invalid_move" && decision.move === "navalMove" && power !== null) {
+        const args = decision.args ?? [];
+        const clone = JSON.parse(JSON.stringify(before)) as ImperialElegyState;
+        const ctxProbe = {
+          playerID: String(POWERS.indexOf(power)),
+          random: {Die: () => 3, Number: () => 0, Shuffle: (a: unknown[]) => a},
+          events: {setPhase: () => undefined, setActivePlayers: () => undefined, endGame: () => undefined, endTurn: () => undefined},
+          phase: clone.phase,
+        } as unknown as Ctx;
+        const res = performGwManeuver(clone, ctxProbe, {kind: "naval", power, unitIds: args[0] as string[], to: String(args[1])});
+        reason = ` [navalMove ${res.ok ? "probe accepted" : `${res.error}: ${res.message ?? ""}`}]`;
       }
       if (err.type === "action/invalid_move" && before.phase === "gwManeuver" && power !== null) {
         const probeArgs = decision.args ?? [];

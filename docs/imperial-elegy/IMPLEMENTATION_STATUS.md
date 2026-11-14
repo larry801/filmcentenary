@@ -225,9 +225,9 @@ A seeded self-play harness (`tools/ie-sim/`) drives the real boardgame.io
 engine — seeded random plugin, phase/turn flow, move validation and
 `playerView` redaction — with the Rule 34 bot for every seat, for the 1850
 campaign, a match started in the Great War, and a variant that declares limited
-wars. Running many seeds surfaced eight engine bugs that the hand-built
-fixtures never reached. All eight are fixed and pinned by
-`selfPlayRegression.test.ts`.
+wars, and a naval variant that builds fleets and fights 19.0 contact battles.
+Running many seeds surfaced nine engine bugs that the hand-built fixtures never
+reached. All nine are fixed and pinned by `selfPlayRegression.test.ts`.
 
 1. **The Dual Monarchy was duplicated.** `applyPrepCharacteristics` pushed
    `IE-A047` into AU's hand without taking the physical copy out of the deck or
@@ -273,14 +273,30 @@ never does, so the whole `wartime` phase had no coverage):
    and the bot never checked that flag. A power that discarded but stayed at
    stability ≤ 2 then looped on the refused move forever.
 
+A ninth bug came from the naval sweep (`navy` mode builds fleets, sails them
+and fights 19.0 contact battles):
+
+9. **A minor power's fleet crashed the 19.2/19.5 naval modifiers.**
+   `beginNavalBattle` falls back to the port's control marker for `defender`,
+   which is a minor name (for example an independent `Denmark`) rather than a
+   player. `friendlySpace` reads `G.powers[power].alliance` and threw
+   `Cannot read properties of undefined (reading 'alliance')` from
+   `navalPortBattleModifiers`, `navalAvoidanceModifiers`,
+   `navalRetreatDestinations`, `navalAvoidPlans` and the Gibraltar gate check.
+   A battle against a minor's squadron therefore aborted mid-resolution. These
+   helpers now take `PowerOrMinor` and route non-players through their own
+   control/ally markers, and a non-player retreat skips the player-only route
+   and gate checks.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
 (`W-1…8`) declares wars, runs the wartime impulses and settles them; and the
 Great War sweep (`GA-1…6`, `GW-1…2`) runs planning → maneuver → battles →
 winter (including the colonial transfers and neutral entry) to a decisive
-result. A mixed stress sweep (`tools/ie-sim/stress.test.ts`) adds random
-pending choices on half the seeds. The full Jest suite is **438/438 suites,
-4062/4062 tests**, and `tsc` plus the server `tsc` are clean.
+result; the naval sweep (`N-1…10`) adds fleet builds, 714 sea moves and nine
+naval battles. A mixed stress sweep (`tools/ie-sim/stress.test.ts`) adds random
+pending choices on half the seeds. The full Jest suite is **441/441 suites,
+4070/4070 tests**, and `tsc` plus the server `tsc` are clean.
 
 ## Known fallbacks and simplifications
 

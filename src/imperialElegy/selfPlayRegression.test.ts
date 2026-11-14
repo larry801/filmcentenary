@@ -35,6 +35,7 @@ import {isArmyKind, landUnitsIn, hostileOwner} from "./engine/rules";
 import {neighboursOf} from "./constant/spaces";
 import {applyPrepCharacteristics, discardForStability, recruit} from "./moves";
 import {cardById} from "./engine/deck";
+import {navalAvoidanceModifiers, navalAvoidPlans, navalPortBattleModifiers} from "./engine/combat";
 
 const makeCtx = (playerID: string | null = "0"): Ctx =>
   ({
@@ -396,5 +397,54 @@ describe("8 — the prep stability discard happens once per phase", () => {
       const second = botDecision(G, makeCtx("0"), "GE");
       expect(second.move).not.toBe("discardForStability");
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. A non-player naval defender must not crash the 19.2/19.5 modifiers
+// ---------------------------------------------------------------------------
+
+describe("9 — a minor power's fleet can be the naval defender", () => {
+  const baseGw = (G: ImperialElegyState): void => {
+    G.gw = {
+      active: true, turn: 2, order: ["GE", "FR"], belligerents: ["GE", "FR"], neutrals: [],
+      te: ["FR"], ta: ["GE"], usIn: false, italyIn: false,
+      usStability: 3, usManpower: 3, usBudget: 4, italyStability: 3, italyManpower: 3, italyBudget: 2,
+      trenches: {}, lastColonialWar: null, victor: null, outbreakDone: true, nationalWillDone: true,
+      bonusImpulses: [], discard: [],
+    } as never;
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    G.powers.GE.alliance = "taCommitted";
+    G.powers.FR.alliance = "teCommitted";
+  };
+
+  test("19.5 port modifiers accept a minor-name defender instead of throwing", () => {
+    const G = fresh();
+    baseGw(G);
+    // A neutral minor's port is the embattled area; `defender` is its name, not
+    // a Power.  `friendlySpace` reads `G.powers[power].alliance` and used to
+    // throw `Cannot read properties of undefined`.
+    expect(() => navalPortBattleModifiers(G, "GE", "Denmark" as never, "denmark")).not.toThrow();
+    const mods = navalPortBattleModifiers(G, "GE", "Denmark" as never, "denmark");
+    expect(mods.attackerDrm).toBeGreaterThanOrEqual(-2);
+  });
+
+  test("19.2 avoidance modifiers accept a minor-name defender", () => {
+    const G = fresh();
+    baseGw(G);
+    expect(() => navalAvoidanceModifiers(G, "GE", "Denmark" as never, "denmark")).not.toThrow();
+  });
+
+  test("19.2 avoidance plans accept a minor-name defender", () => {
+    const G = fresh();
+    baseGw(G);
+    // Give the defender a ship so the plan enumerates destinations.
+    const ship: typeof G.units[string] = {
+      id: "uMinorShip", kind: "squadron", owner: "Denmark", steps: 2, space: "denmark", naval: true,
+    };
+    G.units.uMinorShip = ship;
+    G.spaces.denmark.units.push("uMinorShip");
+    expect(() => navalAvoidPlans(G, "GE", "Denmark" as never, "denmark", "north-atlantic" as never)).not.toThrow();
   });
 });

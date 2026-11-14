@@ -1,5 +1,5 @@
 import {Ctx} from "boardgame.io";
-import {BattleState, ImperialElegyState, NavalTransitState, PendingDecision, Power, POWERS, SpaceId, Unit} from "../types";
+import {BattleState, ImperialElegyState, NavalTransitState, PendingDecision, Power, PowerOrMinor, POWERS, SpaceId, Unit} from "../types";
 import {SPACES, connectionsOf, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {endlessSpaceSupport, landBattleModifier} from "./characteristics";
@@ -1625,8 +1625,14 @@ const moveUnitTo = (G: ImperialElegyState, unit: Unit, to: SpaceId): void => {
 
 const isPortSpace = (space: SpaceId): boolean => portBoxes(space).length > 0;
 
-const enemyNavalIn = (G: ImperialElegyState, space: SpaceId, power: Power): boolean =>
-  navalUnitsIn(G, space).some((unit) => isPower(unit.owner) && atWar(G, power, unit.owner));
+const enemyNavalIn = (G: ImperialElegyState, space: SpaceId, power: PowerOrMinor): boolean =>
+  navalUnitsIn(G, space).some((unit) => {
+    if (!isPower(unit.owner)) return false;
+    // A non-player side is not a Power, so `atWar` cannot answer for it; a
+    // player's ship in the box is simply hostile to it.
+    if (!isPower(power)) return unit.owner !== power;
+    return atWar(G, power, unit.owner);
+  });
 
 /**
  * 19.7: a defeated naval force retreats to an adjacent friendly port or an
@@ -1636,9 +1642,23 @@ const enemyNavalIn = (G: ImperialElegyState, space: SpaceId, power: Power): bool
  * lets retreats overstack; the owner then pays the 5.5.3 step at the next
  * impulse).
  */
+/**
+ * 19.x helpers answer "is this space friendly to this side?", where the side can
+ * be a player *or* a non-player defender (an independent minor's own squadron,
+ * or a port whose control marker is a minor name).  `friendlySpace` reads
+ * `G.powers[power].alliance` and throws for a minor name, so route non-players
+ * through their own control/ally markers.
+ */
+const friendlyToSide = (G: ImperialElegyState, space: SpaceId, side: PowerOrMinor): boolean => {
+  if (isPower(side)) return friendlySpace(G, space, side);
+  const state = G.spaces[space];
+  if (!state) return false;
+  return state.control === side || state.ally === side;
+};
+
 const navalRetreatDestinations = (
   G: ImperialElegyState,
-  power: Power,
+  power: PowerOrMinor,
   from: SpaceId,
   attackerFrom?: SpaceId,
 ): SpaceId[] => {
@@ -1652,7 +1672,7 @@ const navalRetreatDestinations = (
       continue;
     }
     if (!isPortSpace(id)) continue;
-    if (!friendlySpace(G, id, power)) continue;
+    if (!friendlyToSide(G, id, power)) continue;
     if (enemyNavalIn(G, id, power)) continue;
     out.push(id);
   }
@@ -3529,7 +3549,7 @@ export interface NavalPortBattleModifiers {
 export const navalPortBattleModifiers = (
   G: ImperialElegyState,
   attacker: Power,
-  defender: Power,
+  defender: PowerOrMinor,
   space: SpaceId,
   box?: SpaceId,
 ): NavalPortBattleModifiers => {
@@ -3541,8 +3561,17 @@ export const navalPortBattleModifiers = (
   const adjacentPorts = Object.values(SPACES).filter(
     (def) => def.ports !== undefined && boxes.some((entry) => def.ports!.includes(entry)),
   );
-  const count = (power: Power): number =>
-    adjacentPorts.filter((def) => friendlySpace(G, def.id, power)).length;
+  // 19.5: a non-player defender (a minor power's or an independent port's
+  // fleet) has no alliance box of its own.  `friendlySpace` reads
+  // `G.powers[power].alliance`, which throws for a minor name, so only real
+  // players are asked.  An independent minor's own ports still count for it,
+  // which is what `control === defender` expresses.
+  const count = (power: PowerOrMinor): number =>
+    adjacentPorts.filter((def) =>
+      isPower(power)
+        ? friendlySpace(G, def.id, power)
+        : G.spaces[def.id]?.control === power || G.spaces[def.id]?.ally === power,
+    ).length;
   const attackerPorts = count(attacker);
   const defenderPorts = count(defender);
   const notes: string[] = [];
@@ -3702,7 +3731,7 @@ export interface NavalAvoidanceModifiers {
 export const navalAvoidanceModifiers = (
   G: ImperialElegyState,
   attacker: Power,
-  defender: Power,
+  defender: PowerOrMinor,
   space: SpaceId,
   box?: SpaceId,
 ): NavalAvoidanceModifiers => {
@@ -3724,8 +3753,8 @@ export const navalAvoidanceModifiers = (
   const adjacentPorts = Object.values(SPACES).filter(
     (def) => def.ports !== undefined && boxes.some((entry) => def.ports!.includes(entry)),
   );
-  const attackerPorts = adjacentPorts.filter((def) => friendlySpace(G, def.id, attacker)).length;
-  const defenderPorts = adjacentPorts.filter((def) => friendlySpace(G, def.id, defender)).length;
+  const attackerPorts = adjacentPorts.filter((def) => friendlyToSide(G, def.id, attacker)).length;
+  const defenderPorts = adjacentPorts.filter((def) => friendlyToSide(G, def.id, defender)).length;
   if (attackerPorts === 0) {
     drm += 1;
     notes.push("attackerNoPorts");
@@ -3789,13 +3818,19 @@ export const navalAvoidPlans = (
     const isBox = def.type === "navalBox";
     const isPort = (def.ports?.length ?? 0) > 0;
     if (!isBox && !isPort) continue;
-    if (isPort && !friendlySpace(G, def.id, defender)) continue;
+    if (isPort && !friendlyToSide(G, def.id, defender)) continue;
     // "Players cannot avoid battle into a naval box containing enemy units."
     // Side-aware: a friendly minor's squadron in the box is not an enemy.
     if (spaceHostileTo(G, defender, def.id)) continue;
-    const plan = planNavalMove(G, defender, space, def.id);
-    if (!plan.ok) continue;
-    if (crossesHostileGibraltar(G, defender, plan.path)) continue;
+    // `planNavalMove` / `crossesHostileGibraltar` are keyed on a player Power
+    // (they read `G.powers[power].alliance` and the player gate permissions).
+    // An independent minor's squadron retreats along the plain adjacency the
+    // caller already checked; it owns no gate permissions of its own.
+    if (isPower(defender)) {
+      const plan = planNavalMove(G, defender, space, def.id);
+      if (!plan.ok) continue;
+      if (crossesHostileGibraltar(G, defender, plan.path)) continue;
+    }
     if (isBox) {
       single.push({space: def.id, ports: []});
       continue;
