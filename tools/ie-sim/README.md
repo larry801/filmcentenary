@@ -20,9 +20,16 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 | option | what it exercises |
 | --- | --- |
 | default | the 1850 campaign from setup through turn 7's end phase |
+| `war` | declares legal limited wars, so the `wartime` phase (initiative, budgets, maneuver, battles, victory, truces) runs |
 | `greatWar` | starts the war through the real `outbreakGreatWar` from inside a move, so the seeded random plugin is live |
 | `aggressive` | in the GW, drives contact/battle/retreat and occupation instead of passing |
 | `chaos` | answers pending decisions randomly instead of taking the first option |
+
+## Test suites here
+
+- `sweep.test.ts` — campaign + Great War per seed (the default gate).
+- `war.test.ts` — campaign with limited-war declarations.
+- `stress.test.ts` — longer mixed run, random pending choices on half the seeds.
 
 ## What it checks
 
@@ -37,6 +44,6 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 
 ## Findings
 
-The first run found six bugs; they are listed in
+The runs have found eight bugs so far; they are listed in
 [`../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md`](../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md)
 and pinned by `src/imperialElegy/selfPlayRegression.test.ts`.

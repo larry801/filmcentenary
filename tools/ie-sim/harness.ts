@@ -14,8 +14,9 @@ import {botDecision} from "../../src/imperialElegy/engine/bot";
 import {ImperialElegyState, POWERS, Power} from "../../src/imperialElegy/types";
 import {ensureStateDefaults} from "../../src/imperialElegy/engine/migrations";
 import {SPACES, neighboursOf} from "../../src/imperialElegy/constant/spaces";
-import {friendlySpace, hostileOwner} from "../../src/imperialElegy/engine/rules";
+import {controlledBy, friendlySpace, hostileOwner} from "../../src/imperialElegy/engine/rules";
 import {performGwManeuver} from "../../src/imperialElegy/engine/greatWarFlow";
+import {hasTruce, validateWarAim} from "../../src/imperialElegy/engine/limitedWar";
 import {outbreakGreatWar} from "../../src/imperialElegy/engine/greatWar";
 
 export interface SimOptions {
@@ -32,6 +33,11 @@ export interface SimOptions {
    * battles, retreats and occupation through the real engine.
    */
   aggressive?: boolean;
+  /**
+   * Declare a legal limited war during the action phase.  The Rule 34 bot never
+   * does, so without this the entire `wartime` phase is skipped.
+   */
+  war?: boolean;
   /** Hard cap on dispatched actions. */
   maxSteps?: number;
   /** Randomised pending choices (chaos exploration) instead of first option. */
@@ -208,6 +214,54 @@ const gwEnemiesOf = (G: ImperialElegyState, power: Power): Power[] => {
 };
 
 /**
+ * A legal declaration of war for this seat, if any.  The Rule 34 bot never
+ * declares war on its own, which left the whole `wartime` phase (initiative,
+ * war budgets, maneuver, battles, victory classification, treaties,
+ * demobilisation) untested by the sweep.  The declaration is built through the
+ * engine's own `validateWarAim`, so a refusal below is a genuine engine
+ * refusal and not an invented target.
+ */
+const aggressiveWarDeclaration = (
+  G: ImperialElegyState,
+  power: Power,
+): {move: string; args: unknown[]} | null => {
+  if (G.phase !== "action" || G.war !== null || G.wtt >= 3) return null;
+  // Never stack a declaration on an open decision: FR's Napoleon's Legacy and
+  // the minor-war aid search both suspend the declaration on a pending choice,
+  // so a second declaration in the same impulse is correctly refused.
+  if (G.pending !== null) return null;
+  // A declaration needs a real budget to spend; `declareWar` charges CP.
+  if (G.cpRemaining < 1) return null;
+  // A declaration spends CP from the impulse, so it needs the CP banked.  The
+  // `actionCpSpentThisImpulse` flag is NOT a gate: the bot sets it whenever it
+  // plays a card for CP, which is exactly how the CP got banked in the first
+  // place.
+  if (G.powers[power].eliminated) return null;
+  const cp = 2;
+  if (G.cpRemaining < cp) return null;
+
+  for (const defender of POWERS) {
+    if (defender === power || G.powers[defender].eliminated) continue;
+    // 13.5: a truce blocks a declaration.  Checked here as well as inside
+    // `validateWarAim`'s caller so the sweep never names a declaration the
+    // engine will refuse (a just-settled war leaves a 1-turn truce).
+    if (hasTruce(G, power, defender)) continue;
+    // `controlledBy` (not a raw `control` compare) is what `validateWarAim`
+    // uses, and it accounts for allied minors; comparing `control` directly
+    // picked the attacker's own spaces and produced `same-power` refusals.
+    const objectives = Object.keys(SPACES).filter(
+      (id) => SPACES[id].type === "key" && controlledBy(G, id, defender),
+    );
+    for (const objective of objectives) {
+      const validation = validateWarAim(G, power, defender, "conquest", [objective]);
+      if (!validation.ok) continue;
+      return {move: "declareWar", args: [defender, "conquest", [objective], cp]};
+    }
+  }
+  return null;
+};
+
+/**
  * One aggressive GW maneuver for a seat: deploy/refit/march into contact.
  * Deliberately engine-shaped (it only reads state and names a real move), so
  * a refusal here is a genuine engine refusal rather than a bot heuristic.
@@ -369,6 +423,8 @@ export function runSeededGame(opts: SimOptions): SimResult {
   let steps = 0;
   /** Repeated identical rejected decision detector (mirrors the board's escape). */
   let repeat = {key: "", count: 0};
+  /** (power|target|objective) declarations the engine refused — never retried. */
+  let warRefused = false;
 
   for (; steps < maxSteps; steps += 1) {
     const G = state.G as ImperialElegyState;
@@ -405,6 +461,21 @@ export function runSeededGame(opts: SimOptions): SimResult {
         return {move: "__none__", args: []};
       }
     })();
+    // Aggressive mode: declare a legal war when the action phase would
+    // otherwise just bank CP, so the `wartime` phase actually runs.  The
+    // declaration belongs to the *active* power: in the action phase only that
+    // seat may act, and `power` can differ (a stale per-seat view).
+    // A refused declaration is not retried: `warRetry` remembers the exact
+    // (power, target, objective) that the engine refused so the sweep cannot
+    // spin on it the way the real hotseat bot would have.
+    if (opts.war && !G.pending && G.phase === "action" && power === G.activePower && !warRefused
+      && (decision.move === "playCard" || decision.move === "pass" || decision.move === "endImpulse" || decision.move === "placeMpit" || decision.move === "buildFort")) {
+      const declaration = aggressiveWarDeclaration(G, G.activePower);
+      if (declaration !== null) {
+        decision.move = declaration.move;
+        decision.args = declaration.args;
+      }
+    }
     // Aggressive mode: override a passive decision with a real maneuver so the
     // contact/battle/retreat paths are exercised through the engine.  The move
     // is probed with the real flow first, so a refusal reported below is always
@@ -451,7 +522,12 @@ export function runSeededGame(opts: SimOptions): SimResult {
       // Ask the flow itself why a GW maneuver was refused; the reducer only
       // says "invalid_move", which cannot distinguish a real engine refusal
       // from a bad heuristic in this harness.
+      if (decision.move === "declareWar") warRefused = true;
       let reason = "";
+      if (err.type === "action/invalid_move" && decision.move === "declareWar") {
+        const args = decision.args ?? [];
+        reason = ` [declareWar power=${String(power)} active=${before.activePower} war=${before.war ? "yes" : "no"} wtt=${before.wtt} cp=${before.cpRemaining} args=${JSON.stringify(args)}]`;
+      }
       if (err.type === "action/invalid_move" && before.phase === "gwManeuver" && power !== null) {
         const probeArgs = decision.args ?? [];
         const request =

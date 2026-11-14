@@ -33,7 +33,8 @@ import {outbreakGreatWar} from "./engine/greatWar";
 import {performGwManeuver} from "./engine/greatWarFlow";
 import {isArmyKind, landUnitsIn, hostileOwner} from "./engine/rules";
 import {neighboursOf} from "./constant/spaces";
-import {applyPrepCharacteristics, recruit} from "./moves";
+import {applyPrepCharacteristics, discardForStability, recruit} from "./moves";
+import {cardById} from "./engine/deck";
 
 const makeCtx = (playerID: string | null = "0"): Ctx =>
   ({
@@ -323,6 +324,77 @@ describe("6 — the bot attacks enemies, never allies or illegal targets", () =>
         kind: "landBattle", power: "GE", from, to,
       });
       expect(res.ok).toBe(true);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7 / 8. Two more bot deadlocks found by the limited-war sweep
+// ---------------------------------------------------------------------------
+
+describe("7 — a rebel space is not a legal GW battle target", () => {
+  test("the bot never names a battle into a rebel space during the GW", () => {
+    const G = fresh();
+    G.gw = {
+      active: true, turn: 2, order: ["GE", "FR"], belligerents: ["GE", "FR"], neutrals: [],
+      te: ["FR"], ta: ["GE"], usIn: false, italyIn: false,
+      usStability: 3, usManpower: 3, usBudget: 4, italyStability: 3, italyManpower: 3, italyBudget: 2,
+      trenches: {}, lastColonialWar: null, victor: null, outbreakDone: true, nationalWillDone: true,
+      bonusImpulses: [], discard: [],
+    } as never;
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    G.turnIndex = 0;
+    G.powers.GE.alliance = "taCommitted";
+    G.powers.FR.alliance = "teCommitted";
+    G.powers.GE.gwBudget = 3;
+
+    // A French army next to a German one, but the French space is in rebellion:
+    // 32.5 forbids rebels and non-rebels coexisting, so the flow refuses the
+    // battle before `beginLandBattle` is ever reached.
+    const german = Object.values(G.units).find((unit) => unit.owner === "GE" && !unit.naval)!;
+    const front = neighboursOf(german.space as string).find((id) => G.spaces[id] !== undefined)!;
+    G.units.uEnemy = {id: "uEnemy", kind: "army", owner: "FR", steps: 2, space: front, naval: false};
+    G.spaces[front].units.push("uEnemy");
+    G.spaces[front].control = "FR";
+    G.spaces[front].rebellion = {minor: "Test", step: 0, rebels: []} as never;
+    G.spaces[front].trench = null;
+    G.spaces[front].trenchLine = false;
+
+    const decision = botDecision(G, makeCtx("0"), "GE");
+    if (decision.move === "landBattle") {
+      const [from, to] = decision.args as [string, string];
+      const res = performGwManeuver(JSON.parse(JSON.stringify(G)), makeCtx("0"), {
+        kind: "landBattle", power: "GE", from, to,
+      });
+      expect(res.ok).toBe(true);
+    }
+  });
+});
+
+describe("8 — the prep stability discard happens once per phase", () => {
+  test("a bot that already discarded does not re-issue the move", () => {
+    const G = fresh();
+    G.phase = "prep";
+    G.activePower = "GE";
+    G.powers.GE.stability = 2;
+    G.powers.GE.hand = G.powers.GE.hand.filter(
+      (id) => cardById(id).kind !== "home",
+    );
+    expect(G.powers.GE.hand.length).toBeGreaterThan(0);
+
+    // First decision: discard for stability.
+    const first = botDecision(G, makeCtx("0"), "GE");
+    expect(first.move).toBe("discardForStability");
+
+    // Replay it through the move, then ask again while stability is still ≤ 2:
+    // the move's own `prepStability` guard now refuses a second discard, so the
+    // bot must fall through to finishPrep instead of spinning.
+    const played = discardForStability(G, makeCtx("0"), first.args![0] as never);
+    expect(played).toBeUndefined();
+    if (G.powers.GE.stability <= 2) {
+      const second = botDecision(G, makeCtx("0"), "GE");
+      expect(second.move).not.toBe("discardForStability");
     }
   });
 });

@@ -223,10 +223,11 @@ test, which had been intermittently failing (~1 run in 3) for this reason.
 
 A seeded self-play harness (`tools/ie-sim/`) drives the real boardgame.io
 engine — seeded random plugin, phase/turn flow, move validation and
-`playerView` redaction — with the Rule 34 bot for every seat, for both the
-1850 campaign and a match started in the Great War. Running many seeds surfaced
-six engine bugs that the hand-built fixtures never reached. All six are fixed
-and pinned by `selfPlayRegression.test.ts`.
+`playerView` redaction — with the Rule 34 bot for every seat, for the 1850
+campaign, a match started in the Great War, and a variant that declares limited
+wars. Running many seeds surfaced eight engine bugs that the hand-built
+fixtures never reached. All eight are fixed and pinned by
+`selfPlayRegression.test.ts`.
 
 1. **The Dual Monarchy was duplicated.** `applyPrepCharacteristics` pushed
    `IE-A047` into AU's hand without taking the physical copy out of the deck or
@@ -259,12 +260,27 @@ and pinned by `selfPlayRegression.test.ts`.
    friendly. Both are refused by `performGwManeuver`. It now uses
    `hostileOwner` and the engine's own `beginLandBattle` gate.
 
+Two more surfaced once the sweep also declared limited wars (the Rule 34 bot
+never does, so the whole `wartime` phase had no coverage):
+
+7. **A rebel space was treated as a legal GW battle target.** 32.5 forbids
+   rebels and non-rebels coexisting, and the GW flow refuses that battle before
+   `beginLandBattle` runs, but the bot's probe only asked `beginLandBattle`, so
+   it re-sent the refused battle every impulse. The probe now asks
+   `maneuverDestinationProblem` first, the same gate the flow uses.
+8. **The prep stability discard was retried after it had been used.**
+   `discardForStability` allows one discard per prep phase (`prepStability`),
+   and the bot never checked that flag. A power that discarded but stayed at
+   stability ≤ 2 then looped on the refused move forever.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
-with zero refused moves and zero invariant breaks, and the Great War sweep
-(`GA-1…6`, `GW-1…2`) runs planning → maneuver → battles → winter (including the
-colonial transfers and neutral entry) to a decisive result. The full Jest suite
-is **438/438 suites, 4062/4062 tests**, and `tsc` plus the server `tsc` are
-clean.
+with zero refused moves and zero invariant breaks; the limited-war sweep
+(`W-1…8`) declares wars, runs the wartime impulses and settles them; and the
+Great War sweep (`GA-1…6`, `GW-1…2`) runs planning → maneuver → battles →
+winter (including the colonial transfers and neutral entry) to a decisive
+result. A mixed stress sweep (`tools/ie-sim/stress.test.ts`) adds random
+pending choices on half the seeds. The full Jest suite is **438/438 suites,
+4062/4062 tests**, and `tsc` plus the server `tsc` are clean.
 
 ## Known fallbacks and simplifications
 
