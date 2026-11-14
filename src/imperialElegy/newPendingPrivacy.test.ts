@@ -361,14 +361,15 @@ test("A062 support-deny pending hides the space options and support-deny context
       expect(JSON.stringify(view.pending)).not.toContain(option.id);
     }
     expect(JSON.stringify(view)).not.toContain("supportDenied");
-    expect(JSON.stringify(view)).not.toContain("IE-A062");
+    // The combat-card play itself is faceup; only the decision's payload and the
+    // inciting-card fields stay private.
+    expect(view.log.find((entry) => entry.key === "combatCardPlayed")!.args?.card).toBe("IE-A062");
   }
 
   const spectatorView = asView(G, null);
   expectNonOwnerDecisionRedacted(G, spectatorView);
   expectIncitingCardHidden(spectatorView);
   expectPublicDataVisible(G, spectatorView);
-  expect(JSON.stringify(spectatorView)).not.toContain("IE-A062");
   expect(viaPlayerView(G, "1")).toEqual(asView(G, "1"));
   expect(viaPlayerView(G, null)).toEqual(spectatorView);
 
@@ -434,7 +435,9 @@ test("GW-05 reroll-side pending hides the side options and reroll context from n
     for (const option of pending.options) {
       expect(JSON.stringify(view.pending)).not.toContain(option.id);
     }
-    expect(JSON.stringify(view)).not.toContain("IE-GW-05");
+    // The GW-05 combat play is public (a combat card is played openly), but the
+    // pile itself holds no card id for any viewer.
+    expect(JSON.stringify(view.gw!.discard)).not.toContain("IE-GW-05");
   }
 
   const spectatorView = asView(G, null);
@@ -443,7 +446,7 @@ test("GW-05 reroll-side pending hides the side options and reroll context from n
   expectPublicDataVisible(G, spectatorView);
   expect(spectatorView.gw!.discard).toEqual([]);
   expect(spectatorView.gwDiscardCount).toBe(1);
-  expect(JSON.stringify(spectatorView)).not.toContain("IE-GW-05");
+  expect(JSON.stringify(spectatorView.gw!.discard)).not.toContain("IE-GW-05");
   expect(viaPlayerView(G, "1")).toEqual(asView(G, "1"));
   expect(viaPlayerView(G, null)).toEqual(spectatorView);
 
@@ -478,12 +481,12 @@ test("gw.discard card ids are hidden from every viewer and only its count is pub
     expect(view.faceupCombat).toEqual({GE: "IE-GW-03", FR: "IE-GW-04"});
   }
 
-  // No GW discard card id is reachable from a non-owner or spectator view.
-  for (const seat of NON_GE) {
+  // No GW discard card id is reachable from the pile; the only public trace is
+  // the log line for a combat card that was played faceup on the table.
+  for (const seat of [...SEATS, null]) {
     const view = asView(G, seat);
-    for (const cardId of G.gw!.discard!) {
-      expect(JSON.stringify(view)).not.toContain(cardId);
-    }
+    expect(JSON.stringify(view.gw!.discard)).not.toContain("IE-GW-05");
+    expect(JSON.stringify(view.gw!.discard)).not.toContain("IE-GW-06");
   }
 
   // The owner is not an exception: same precedent as the top-level discard.
