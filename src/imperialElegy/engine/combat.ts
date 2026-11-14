@@ -210,7 +210,13 @@ export const defenderSupportPower = (
   // unit owner or a minor's controlling ally).  Trust it first: scanning the
   // space for any player unit would also pick up a neutral/allied bystander
   // that is not part of the main defense force.
-  if (battle.defender !== battle.attacker) return battle.defender;
+  //
+  // It must still be an actual *player*: a unified Italy that entered the Great
+  // War on its own fights under `"IT"`, which is not a seat.  Returning that
+  // name made `defenderHasPlayer` report "a player decides", so the engine
+  // skipped the no-player fallback and opened a `combatLosses` decision owned by
+  // `"IT"` — a decision nobody can answer, which deadlocked the game.
+  if (battle.defender !== battle.attacker && isPower(battle.defender)) return battle.defender;
   const state = G.spaces[battle.to];
   if (!state) return null;
   if (isPower(state.control)) return state.control === battle.attacker ? null : state.control;
@@ -1022,9 +1028,18 @@ export const playCombatCard = (G: ImperialElegyState, ctx: Ctx, selection: strin
   if (!isCombatCardId(cardId)) return;
   const def = COMBAT_CARD_BY_ID[cardId];
   const side = battle.cardSide ?? "attacker";
-  const power = side === "attacker"
-    ? battle.attacker
-    : defenderSupportPower(G, battle) ?? battle.defender;
+  // A defending side with no player (an independent major's units, a lone
+  // minor) cannot play a combat card at all: `G.powers[power]` would be
+  // undefined and every later lookup would throw or create a decision its
+  // "owner" can never answer.
+  let power: Power;
+  if (side === "attacker") {
+    power = battle.attacker;
+  } else {
+    const defending = defenderSupportPower(G, battle);
+    if (defending === null) return;
+    power = defending;
+  }
   // IE-A043's special discard-pile play.  It is not a printed mode: reserve
   // the choice of which hand card to discard, then resolve after that choice.
   if (modeId === "discard") {

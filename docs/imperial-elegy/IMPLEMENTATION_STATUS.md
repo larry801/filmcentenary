@@ -227,8 +227,8 @@ engine — seeded random plugin, phase/turn flow, move validation and
 campaign, a match started in the Great War, and a variant that declares limited
 wars, a naval variant that builds fleets and fights 19.0 contact battles, and an
 amphibious variant that stages landings next to enemy ports. Running many seeds
-surfaced twelve engine bugs that the hand-built fixtures never reached. All
-eleven are fixed; eleven are engine fixes and one (the rebel-space naval destination, see
+surfaced thirteen engine bugs that the hand-built fixtures never reached. All
+eleven are fixed; twelve are engine fixes and one (the rebel-space naval destination, see
 below) was a harness gap that surfaced while sailing during a war. All are
 pinned by `selfPlayRegression.test.ts`.
 
@@ -332,7 +332,9 @@ A twelfth bug came from batch statistics rather than a single game:
 modes and report, deduplicated by failure signature: completion rate per mode,
 result reasons, average steps/turns, every distinct fatal signature with a
 reproducing seed, and the set of game moves the batch never touched. On 24
-games (IE_BATCH=4) it finishes 24/24 with no crash or stall.
+games it finishes every one with no crash or stall; the 300-game run (50 seeds
+x six modes, sharded across four processes and merged with
+`tools/ie-sim/batch-report.js`) is what surfaced bug 13.
 
 That report also measures a bot limitation rather than an engine bug: `buildFort`
 and `placeMpit` absorb almost every action impulse because `priorityOne`'s army
@@ -340,6 +342,20 @@ rules nearly always apply, so rows 1-2 of the B1 table are still rarely reached
 even with the die fixed. The move-coverage line in the batch output is the
 standing reminder; raising it would mean changing the bot's strategy, which is
 out of scope here.
+
+A thirteenth bug came from the 300-game batch — one game in 300, which no
+single-seed sweep had ever hit:
+
+13. **A non-player defender could own a decision nobody can answer.** A unified
+    Italy that entered the Great War on its own fights under `"IT"`, which is
+    not a seat. `defenderSupportPower` returned `battle.defender` whenever it
+    differed from the attacker without checking that it was a *player*, so
+    `defenderHasPlayer` reported "a player decides". The engine then skipped
+    its no-player fallback and opened a `combatLosses` decision owned by `"IT"`.
+    `resolvePending`/`declinePending` only accept a seat, so the decision could
+    never be answered and the game deadlocked. `defenderSupportPower` now
+    returns only a real player, and the combat-card path refuses outright when
+    the defending side has no player.
 
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep

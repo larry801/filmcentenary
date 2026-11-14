@@ -35,7 +35,7 @@ import {isArmyKind, landUnitsIn, hostileOwner, maneuverDestinationProblem} from 
 import {neighboursOf} from "./constant/spaces";
 import {applyPrepCharacteristics, discardForStability, recruit} from "./moves";
 import {cardById} from "./engine/deck";
-import {navalAvoidanceModifiers, navalAvoidPlans, navalPortBattleModifiers} from "./engine/combat";
+import {defenderHasPlayer, defenderSupportPower, navalAvoidanceModifiers, navalAvoidPlans, navalPortBattleModifiers} from "./engine/combat";
 
 const makeCtx = (playerID: string | null = "0"): Ctx =>
   ({
@@ -567,5 +567,61 @@ describe("12 — the B1 priority die is actually rolled", () => {
     // The fallback is the conservative 3-4 row (build armies), as documented.
     const move = botDecision(G, bare, "FR");
     expect(typeof move.move).toBe("string");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 13. A non-player defender never owns a decision
+// ---------------------------------------------------------------------------
+
+describe("13 — an independent major's units are not a deciding seat", () => {
+  test("defenderSupportPower ignores a non-player defender name", () => {
+    const G = fresh();
+    G.gw = {
+      active: true, turn: 2, order: ["GE", "FR"], belligerents: ["GE", "FR"], neutrals: [],
+      te: ["FR"], ta: ["GE"], usIn: false, italyIn: false,
+      usStability: 3, usManpower: 3, usBudget: 4, italyStability: 3, italyManpower: 3, italyBudget: 2,
+      trenches: {}, lastColonialWar: null, victor: null, outbreakDone: true, nationalWillDone: true,
+      bonusImpulses: [], discard: [],
+    } as never;
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    G.powers.GE.alliance = "taCommitted";
+
+    // A unified Italy that entered on its own fights under "IT", which is not a
+    // seat.  Returning it made `defenderHasPlayer` report "a player decides", so
+    // the engine skipped the no-player fallback and opened a `combatLosses`
+    // decision owned by "IT" — unanswerable, which deadlocked the game.
+    G.units.uItalian = {id: "uItalian", kind: "italianArmy", owner: "IT", steps: 2, space: "piedmont", naval: false};
+    G.spaces.piedmont.units.push("uItalian");
+    G.spaces.piedmont.control = "IT";
+
+    const battle = {
+      kind: "land" as const, attacker: "GE", defender: "IT" as never,
+      from: "lombardy", to: "piedmont",
+      mainAttack: [], mainDefense: ["uItalian"],
+      supportAttack: [], supportDefense: [],
+      stage: "support" as const, supportSide: "attacker" as const,
+      attackerDrm: 0, defenderDrm: 0, attackerLosses: 0, defenderLosses: 0,
+      decisive: false, amphibious: false, trench: false, notes: [],
+    };
+
+    expect(defenderSupportPower(G, battle as never)).toBeNull();
+    expect(defenderHasPlayer(G, battle as never)).toBe(false);
+  });
+
+  test("a real player defender is still returned", () => {
+    const G = fresh();
+    const battle = {
+      kind: "land" as const, attacker: "GE", defender: "FR" as never,
+      from: "lombardy", to: "piedmont",
+      mainAttack: [], mainDefense: [],
+      supportAttack: [], supportDefense: [],
+      stage: "support" as const, supportSide: "attacker" as const,
+      attackerDrm: 0, defenderDrm: 0, attackerLosses: 0, defenderLosses: 0,
+      decisive: false, amphibious: false, trench: false, notes: [],
+    };
+    expect(defenderSupportPower(G, battle as never)).toBe("FR");
+    expect(defenderHasPlayer(G, battle as never)).toBe(true);
   });
 });

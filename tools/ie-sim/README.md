@@ -84,6 +84,6 @@ It exits non-zero when the batch has a crash, a stall or an unfinished game.
 
 ## Findings
 
-The runs have found twelve engine bugs so far (plus one harness gap); they are listed in
+The runs have found thirteen engine bugs so far (plus one harness gap); they are listed in
 [`../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md`](../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md)
 and pinned by `src/imperialElegy/selfPlayRegression.test.ts`.
