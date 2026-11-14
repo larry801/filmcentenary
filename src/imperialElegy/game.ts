@@ -1,4 +1,5 @@
 import {Ctx, Game, PlayerID} from "boardgame.io";
+import {TurnOrder} from "boardgame.io/core";
 import {GamePhase, ImperialElegyState, POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {cardsToDraw as cardsToDrawCount} from "./engine/rules";
@@ -166,6 +167,21 @@ const MOVES = Object.fromEntries(Object.entries(ALL_MOVES).map(([name, move]) =>
 
 const seatOfPower = (G: ImperialElegyState): string => String(POWERS.indexOf(G.activePower));
 
+/**
+ * The action phase hands the impulse to the next power by setting
+ * `G.activePower` and `setActivePlayers` directly (`finishImpulse`), never
+ * through `endTurn`.  The framework's own current player therefore stays on
+ * whoever opened the phase, and once that seat is no longer the active one
+ * every later impulse is rejected as "player not active".  Reporting the
+ * engine's active seat as the current player keeps the two in step: the
+ * framework only asks for it when a turn starts or ends, which is exactly
+ * when `activePower` already names the power that should move next.
+ */
+const ACTION_TURN_ORDER = {
+  first: (G: ImperialElegyState): number => Math.max(0, POWERS.indexOf(G.activePower)),
+  next: (G: ImperialElegyState): number => Math.max(0, POWERS.indexOf(G.activePower)),
+};
+
 const prepBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   // A save resumed mid-match never runs `setup`, so the earliest live hook is
   // also the first point where an old save (or a partial fixture) is migrated.
@@ -296,42 +312,42 @@ export const ImperialElegyGameDef: Game<ImperialElegyState> = {
     prep: {
       start: true,
       onBegin: prepBegin,
-      turn: {stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, stages: {play: {moves: MOVES}}},
       next: "diplomacy",
     },
     diplomacy: {
       onBegin: diplomacyBegin,
-      turn: {stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, stages: {play: {moves: MOVES}}},
       next: "action",
     },
     action: {
       onBegin: actionBegin,
-      turn: {onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
+      turn: {order: ACTION_TURN_ORDER, onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
       next: "end",
     },
     wartime: {
       onBegin: wartimeBegin,
-      turn: {onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
       next: "action",
     },
     end: {
       onBegin: endBegin,
-      turn: {onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
       next: "prep",
     },
     gwPlanning: {
       onBegin: gwPlanningBegin,
-      turn: {onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
       next: "gwManeuver",
     },
     gwManeuver: {
       onBegin: gwManeuverBegin,
-      turn: {onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
       next: "gwWinter",
     },
     gwWinter: {
       onBegin: gwWinterBegin,
-      turn: {onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
       next: "gwPlanning",
     },
   },

@@ -32,7 +32,9 @@ import {
   unitsOfPower,
   isPower,
 } from "./rules";
-import {canPassNow} from "../moves";
+import {canPassNow, recruit as recruitMove} from "../moves";
+import {passRestriction} from "./characteristics";
+import {beginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
 import {gwDraftSpaces} from "./greatWarFlow";
 import {reserveRemaining} from "./economy";
@@ -222,19 +224,34 @@ const influenceTarget = (G: ImperialElegyState, power: Power, region: BditRegion
 };
 
 /** Find rebel armies on the map that the bot can attack (adjacent or in space). */
+/**
+ * A land battle the engine would actually accept.  `beginLandBattle` is the
+ * same gate `landBattle` uses, so a probe that returns non-null is a move the
+ * impulse can spend.  The probe ctx never rolls: the dice are only read once
+ * the battle is legal.
+ */
+const botBattleCtx = {random: {Die: () => 3, Number: () => 0, Shuffle: (a: unknown[]) => a}} as unknown as Ctx;
+
+const legalLandBattle = (G: ImperialElegyState, power: Power, from: SpaceId, to: SpaceId): boolean =>
+  // `beginLandBattle` writes the battle into the state it is given.  Probing
+  // the live state leaves that battle open, so every later decision this
+  // impulse reads a board the move will never see.
+  beginLandBattle(JSON.parse(JSON.stringify(G)) as ImperialElegyState, botBattleCtx, power, from, to) !== null;
+
 const findRebelTarget = (G: ImperialElegyState, power: Power): {space: SpaceId; from: SpaceId} | null => {
   for (const [spaceId, spaceState] of Object.entries(G.spaces)) {
     if (!spaceState.rebellion) continue;
-    // Check if we have an army adjacent that can attack
+    // Neighbours include the space's ports and naval boxes, which are never a
+    // land-battle origin, so each candidate has to pass the engine's gate.
     for (const nId of neighboursOf(spaceId)) {
       const nState = G.spaces[nId];
       if (!nState) continue;
       const our = landUnitsIn(G, nId).filter((u) => u.owner === power);
-      if (our.length > 0) return {space: spaceId, from: nId};
+      if (our.length > 0 && legalLandBattle(G, power, nId, spaceId)) return {space: spaceId, from: nId};
     }
-    // Or we're already in the rebel space
+    // Or we're already in the rebel space (a trench battle, 28.1.2).
     const our = landUnitsIn(G, spaceId).filter((u) => u.owner === power);
-    if (our.length > 0) return {space: spaceId, from: spaceId};
+    if (our.length > 0 && legalLandBattle(G, power, spaceId, spaceId)) return {space: spaceId, from: spaceId};
   }
   return null;
 };
@@ -530,16 +547,13 @@ const priorityTwo = (
       }
     }
     // Then reserve armies.
-    if (G.cpRemaining >= 1 && hasCounterFor(G, power, "reserveArmy")) {
-      // `reserveRemaining` mirrors the move's own gate (box = manpower/industry,
-      // 0 for the UK).  A box with no room is an illegal move, not a cheap army.
-      // The counter pool has to be checked too: the box can have room while
-      // every reserve counter is already on the map, and `recruit` refuses
-      // that, so the bot would re-send an illegal move forever.
-      const room = reserveRemaining(G, power);
-      if (room > 0) {
-        return {move: "recruit", args: [null, "reserveArmy", 1, {}]};
-      }
+    if (G.cpRemaining >= 1) {
+      // Probe the move itself on a copy.  Re-deriving its gates here drifted
+      // (the box, the counter pool and the per-power allowance each refused
+      // the move on their own) and a refused recruit is re-sent forever.
+      const probe = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
+      const accepted = recruitMove(probe, botBattleCtx, null as unknown as SpaceId, "reserveArmy", 1, {}) !== "INVALID_MOVE";
+      if (accepted) return {move: "recruit", args: [null, "reserveArmy", 1, {}]};
     }
     // Then fort (3-4 sub-result: die shows 3 on the chart → build fort).
     if (roll === 3 && G.cpRemaining >= 1) {
@@ -671,7 +685,10 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
       // Look for adjacent space with our armies.
       for (const nId of neighboursOf(id)) {
         const ourUnits = landUnitsIn(G, nId).filter((u) => u.owner === power);
-        if (ourUnits.length > 0 && budget >= 1) {
+        // The capital's neighbours include its ports, and the capital is only
+        // an enemy while its owner is at war with us.  Both are settled by the
+        // same gate the move uses.
+        if (ourUnits.length > 0 && budget >= 1 && legalLandBattle(G, power, nId, id)) {
           // `landBattle` takes only (from, to): the whole force in `nId` fights.
           return {move: "landBattle", args: [nId, id]};
         }
@@ -809,6 +826,16 @@ export const botDecision = (
     const mandatory = mandatoryInHand(G, power);
     if (mandatory !== null && G.cpRemaining === 0) {
       return {move: "playCard", args: [mandatory, "event"]};
+    }
+
+    // A047 The Dual Monarchy and GW-10 Exhaustion also forbid passing, and
+    // unlike a mandatory card they may be spent for CP.  Left until later the
+    // bot fills the impulse with its home card and then has no legal move.
+    const blocking = G.cpRemaining === 0
+      ? passRestriction(G, power).cards.find((card) => isCpSpendable(card.card))
+      : undefined;
+    if (blocking !== undefined) {
+      return {move: "playCard", args: [blocking.card, "cp"]};
     }
 
     // Priority 1.
