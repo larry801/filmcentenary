@@ -127,6 +127,51 @@ export const isPublicPowerFlag = (flag: string): boolean => PUBLIC_POWER_FLAG_SE
 /** Log argument keys whose values identify a card and must be private. */
 const SENSITIVE_CARD_ARGS = ["card", "incitingCard"] as const;
 
+/**
+ * Log entries whose `card` names a card the printed rules place faceup on the
+ * table, so every seat may read it:
+ *  - `cardPlayed` with `mode: "event"` (12.0/12.1: an event is announced and its
+ *    text read out); a card spent for CP is NOT revealed and stays private;
+ *  - `responsePlayed` (9.1.3) and `combatCardPlayed` (9.1.2, 27.2) — played
+ *    openly before the dice;
+ *  - `industrializeCard` (12.13: "The card is played faceup, placed next to the
+ *    player display") and `cpChained` (12.14: "placed faceup");
+ *  - `gwCombatCardFaceup`/`gwCombatCardFlipped` (26.1: GW combat cards are public
+ *    information even while facedown);
+ *  - the notes a resolving card emits about itself (`noLegalTarget`,
+ *    `unhandledSpecial`, `gwTurnZero`): they describe that same faceup card,
+ *    so masking them would contradict the public play line.
+ */
+const PUBLIC_CARD_ARG_KEYS: ReadonlySet<string> = new Set([
+  "responsePlayed",
+  "combatCardPlayed",
+  "industrializeCard",
+  "cpChained",
+  "gwCombatCardFaceup",
+  "gwCombatCardFlipped",
+  "noLegalTarget",
+  "unhandledSpecial",
+  "gwTurnZero",
+]);
+
+/** An event play: the card is on the table, so its identity is public. */
+const isPublicEventPlay = (entry: LogEntry): boolean =>
+  entry.key === "cardPlayed" && entry.args?.mode === "event";
+
+/**
+ * Is this log argument a card identity the printed rules put in the open?
+ *  - `incitingCard` names the card that is resolving right now.  A card can only
+ *    resolve after being played faceup (event, response, combat or GW card), so
+ *    it is public regardless of which container the play was logged in.
+ *  - the faceup-play keys above, and an event's own `cardPlayed` line.
+ * Everything else keeps the mask unless the same turn's log already announced
+ * the card as a faceup event (see `redactLog`).
+ */
+const isPublicCardArg = (entry: LogEntry, key: string): boolean => {
+  if (key === "incitingCard") return true;
+  return isPublicEventPlay(entry) || PUBLIC_CARD_ARG_KEYS.has(entry.key);
+};
+
 /** Top-level flags that describe the card behind an open decision. */
 const SENSITIVE_PENDING_FLAGS = ["pendingCard", "pendingMandatory", "pendingResponse"] as const;
 
@@ -211,18 +256,43 @@ const logEntryOwner = (
 
 const redactLog = (G: ImperialElegyState, entries: LogEntry[], seat: string | null): LogEntry[] => {
   const owners = cardOwnersFromLog(G);
+  // Cards played faceup as events so far in the log's current turn.  A card
+  // announced as an event leaves the hand and cannot be saved, chained,
+  // industrialised, discarded at random or given again before the next prep
+  // reshuffle, so within a turn the set only names cards the table has already
+  // seen.  The set resets per turn so an earlier private entry never becomes
+  // public retroactively once a later turn replays the reshuffled card.
+  let logTurn = entries[0]?.turn;
+  let publiclyPlayed = new Set<CardId>();
   return entries.map((entry) => {
+    if (entry.turn !== logTurn) {
+      logTurn = entry.turn;
+      publiclyPlayed = new Set<CardId>();
+    }
+    if (isPublicEventPlay(entry)) {
+      const played = entry.args?.card;
+      if (typeof played === "string" && played !== HIDDEN_CARD) publiclyPlayed.add(played as CardId);
+    }
     const hasSensitiveArg = SENSITIVE_CARD_ARGS.some((key) => typeof entry.args?.[key] === "string");
     if (!hasSensitiveArg) return entry;
 
     const owner = logEntryOwner(G, entry, owners);
     if (owner !== null && isOwner(seat, owner)) return entry;
 
+    // A faceup play is public information: only the still-hidden arguments of
+    // the entry are masked.  Masking every card play made the public log read
+    // "played a hidden card as an event" for events whose text is read out.
     const args: Record<string, unknown> = {...entry.args};
+    let masked = false;
     for (const key of SENSITIVE_CARD_ARGS) {
-      if (typeof args[key] === "string") args[key] = HIDDEN_CARD;
+      if (typeof args[key] !== "string") continue;
+      if (isPublicCardArg(entry, key)) continue;
+      const card = args[key] as CardId;
+      if (publiclyPlayed.has(card)) continue;
+      args[key] = HIDDEN_CARD;
+      masked = true;
     }
-    return {...entry, args};
+    return masked ? {...entry, args} : entry;
   });
 };
 
@@ -246,8 +316,13 @@ const redactLog = (G: ImperialElegyState, entries: LogEntry[], seat: string | nu
  *  - while a decision is open, the inciting card fields at the top level and
  *    in `flags` are hidden from non-owners;
  *  - log arguments naming a card (`card`, `incitingCard`) are masked for
- *    non-owners even when the log entry has no `power` attribution.  Entries
- *    that do not name a card are left untouched.
+ *    non-owners even when the log entry has no `power` attribution — unless the
+ *    printed rules put that card faceup on the table: an event played for its
+ *    text, a response, a combat card, a faceup industrialization/CP-chain card,
+ *    a faceup GW combat card, and the notes those plays emit about themselves.
+ *    A card spent for CP, saved for the next turn, discarded at random or
+ *    refused for play was never revealed and stays masked.  Entries that do not
+ *    name a card are left untouched.
  */
 export const redactForView = (
   G: ImperialElegyState,

@@ -212,7 +212,28 @@ Status labels:
   options, context and prompt arguments only to the deciding seat. The inciting
   card fields at the top level and in `flags` are hidden from non-owners.
 - Log arguments naming a card (`card`, `incitingCard`) are masked for
-  non-owners; public log entries are unchanged. Face-up Great War combat cards
+  non-owners **unless the printed rules put that card faceup on the table**:
+  - 12.0/12.1 — an event is announced and its text followed in the open, so a
+    `cardPlayed` line with `mode: "event"` names the card to every seat. A card
+    spent for CP is not revealed and its `cardPlayed` line stays masked.
+  - 9.1.2/9.1.3 and 27.2 — response, combat and Great War cards are played
+    openly; `responsePlayed`/`combatCardPlayed` are public.
+  - 12.13/12.14 — industrialization cards and CP-chain cards are placed faceup;
+    `industrializeCard` and `cpChained` are public. (11.1 card gifts and 14.0 ally
+    cards are also public at the table, but their log entries carry no `card`
+    argument, so they are outside this mask.)
+  - 26.1 — GW combat cards are public information even while facedown;
+    `gwCombatCardFaceup`/`gwCombatCardFlipped` are public.
+  - the notes a resolving card emits about itself (`noLegalTarget`,
+    `unhandledSpecial`, `gwTurnZero`) name the same faceup card, as does
+    `incitingCard` (that card is resolving, so it was announced); a removal or WTT
+    maximum about a card already played faceup this turn stays readable. Without
+    this the public log said “played a hidden card as an event”, contradicting
+    the table.
+  - Everything else keeps the mask: a card saved for the next turn, discarded at
+    random, drawn and removed (Ironclads after Dreadnoughts) or refused for play
+    was never revealed.
+- Public log entries are otherwise unchanged. Face-up Great War combat cards
   are exposed through `faceupCombat`; the identities of in-front GW combat cards
   (`G.gw.combatCardsInFront`) are public even while facedown.
 - Spectators (`playerID === null`) see no private zones or decision details.

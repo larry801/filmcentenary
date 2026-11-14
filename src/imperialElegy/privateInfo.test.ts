@@ -2,7 +2,7 @@ import {Client} from "boardgame.io/client";
 import {Local} from "boardgame.io/multiplayer";
 import {ImperialElegyGameDef} from "./game";
 import {setupImperialElegy} from "./engine/setup";
-import {cardById} from "./engine/deck";
+import {cardById, drawCards} from "./engine/deck";
 import {playCard} from "./moves";
 import {ImperialElegyState, Power, POWERS} from "./types";
 
@@ -170,20 +170,34 @@ test("pending decision does not expose the inciting card to non-owners", () => {
   }
 });
 
-test("cardPlayed log entries are private to the owner and public events stay public", () => {
+test("an event play is public; a CP play is private to its owner", () => {
   const G = openAssassinationDecision();
   const cardPlayed = G.log.find((entry) => entry.key === "cardPlayed")!;
   expect(cardPlayed.power).toBe("GE");
   expect(cardPlayed.args?.card).toBe("IE-A017");
+  expect(cardPlayed.args?.mode).toBe("event");
 
-  const ownerEntry = asView(G, "0").log.find((entry) => entry.id === cardPlayed.id)!;
-  expect(ownerEntry.args?.card).toBe("IE-A017");
-
-  for (const playerID of [...SEATS.slice(1), null]) {
+  // Events are resolved faceup: every seat and the spectator may name the card.
+  for (const playerID of [...SEATS, null]) {
     const entry = asView(G, playerID).log.find((e) => e.id === cardPlayed.id)!;
-    expect(entry.args?.card).toBe("hidden");
+    expect(entry.args?.card).toBe("IE-A017");
     expect(entry.key).toBe("cardPlayed");
     expect(entry.power).toBe("GE");
+  }
+
+  // A card spent for CP never leaves the owner's hand faceup.
+  const cp = fresh();
+  cp.phase = "action";
+  cp.activePower = "GE";
+  cp.powers.GE.hand.push("IE-A021");
+  playCard(cp, makeCtx("0"), "IE-A021", "cp");
+  const cpPlayed = cp.log.find((entry) => entry.key === "cardPlayed")!;
+  expect(cpPlayed.args).toMatchObject({card: "IE-A021", mode: "cp"});
+  expect(asView(cp, "0").log.find((e) => e.id === cpPlayed.id)!.args?.card).toBe("IE-A021");
+  for (const playerID of [...SEATS.slice(1), null]) {
+    const entry = asView(cp, playerID).log.find((e) => e.id === cpPlayed.id)!;
+    expect(entry.args?.card).toBe("hidden");
+    expect(entry.key).toBe("cardPlayed");
   }
 
   const publicEntry = G.log.find((entry) => entry.key === "campaignStarted")!;
@@ -195,7 +209,9 @@ test("cardPlayed log entries are private to the owner and public events stay pub
   }
 });
 
-test("cardRemoved log entries do not reveal the removed card to non-owners", () => {
+test("removal of a card that was played faceup is public; a hidden removal is not", () => {
+  // Wilhelm II removes itself after its faceup event, so its removal follows the
+  // public play line rather than contradicting it with "a hidden card".
   const G = fresh();
   G.phase = "action";
   G.activePower = "GE";
@@ -203,19 +219,29 @@ test("cardRemoved log entries do not reveal the removed card to non-owners", () 
   playCard(G, makeCtx("0"), "IE-A082", "event");
 
   expect(G.removed).toContain("IE-A082");
-  // Even the owner's own view should be able to see it.
-  const ownerRemoved = asView(G, "0").log
-    .filter((entry) => entry.key === "cardRemoved")
-    .map((entry) => entry.args?.card);
-  expect(ownerRemoved).toContain("IE-A082");
-
+  expect(
+    asView(G, "0").log.filter((entry) => entry.key === "cardRemoved").map((entry) => entry.args?.card),
+  ).toContain("IE-A082");
   for (const playerID of [...SEATS.slice(1), null]) {
-    const view = asView(G, playerID);
-    const removedCards = view.log
+    const removedCards = asView(G, playerID).log
       .filter((entry) => entry.key === "cardRemoved")
       .map((entry) => String(entry.args?.card));
-    // Bismarck's home card may be public; the played card must not be.
-    expect(removedCards).not.toContain("IE-A082");
+    expect(removedCards).toContain("IE-A082");
+  }
+
+  // A card removed without ever being revealed (Ironclads after Dreadnoughts) is
+  // still private to the power whose draw removed it.
+  const hidden = fresh();
+  hidden.persistent.dreadnoughts = true;
+  hidden.deck = ["IE-A061"];
+  hidden.discard = [];
+  drawCards(hidden, makeCtx("0"), "GE", 1);
+  expect(hidden.removed).toContain("IE-A061");
+  for (const playerID of [...SEATS.slice(1), null]) {
+    const removedCards = asView(hidden, playerID).log
+      .filter((entry) => entry.key === "cardRemoved")
+      .map((entry) => String(entry.args?.card));
+    expect(removedCards).not.toContain("IE-A061");
   }
 });
 

@@ -8,7 +8,9 @@
 
 import {setupImperialElegy} from "./engine/setup";
 import {playCard} from "./moves";
+import {cardById, drawCards} from "./engine/deck";
 import {HIDDEN_CARD, redactForView, RedactedView} from "./engine/privacy";
+import {logText} from "./components/logText";
 import {ImperialElegyState, PendingDecision, Power, POWERS} from "./types";
 
 const makeCtx = (playerID: string | null = "0") => ({
@@ -229,7 +231,9 @@ test("KNOWN LEAK FIXED: an open decision hides resolvingCard, impulseCard and pe
   expect(ownerView.flags.pendingCard).toBe("IE-A017");
   expect(ownerView.flags.pendingMandatory).toBe(true);
 
-  // Everybody else sees neither the fields nor the card id anywhere.
+  // Everybody else sees neither the fields nor the card id in the decision
+  // bookkeeping.  (The event play itself is faceup on the table, so the log's
+  // `cardPlayed` line is public; see the faceup-play test below.)
   for (const playerID of NON_GE) {
     const view = asView(G, playerID);
     expect(view.resolvingCard).toBeNull();
@@ -237,7 +241,7 @@ test("KNOWN LEAK FIXED: an open decision hides resolvingCard, impulseCard and pe
     expect(view.flags.pendingCard).toBeUndefined();
     expect(view.flags.pendingMandatory).toBeUndefined();
     expect(view.flags.pendingResponse).toBeUndefined();
-    expect(JSON.stringify(view)).not.toContain("IE-A017");
+    expect(JSON.stringify(view.flags)).not.toContain("IE-A017");
   }
 
   // Authoritative state is untouched.
@@ -289,39 +293,82 @@ test("KNOWN LEAK FIXED: pendingStack decisions are redacted for non-owners", () 
   expect(G.pendingStack[0]).toEqual(suspended);
 });
 
-test("KNOWN LEAK FIXED: cardRemoved entries with power undefined are masked for non-owners", () => {
+test("a card removed without a faceup play stays hidden from non-owners", () => {
   const G = fresh();
-  G.phase = "action";
-  G.activePower = "GE";
-  G.powers.GE.hand.push("IE-A082");
-  playCard(G, makeCtx("0"), "IE-A082", "event");
+  // Ironclads is removed by the draw itself once Dreadnoughts is in play: it was
+  // never revealed, so its identity must stay private.
+  G.persistent.dreadnoughts = true;
+  G.deck = ["IE-A061"];
+  G.discard = [];
+  const drawn = drawCards(G, makeCtx("0"), "GE", 1);
+  expect(drawn).toEqual([]);
+  expect(G.removed).toContain("IE-A061");
 
-  expect(G.removed).toContain("IE-A082");
-  const undefinedRemovals = G.log.filter(
-    (entry) => entry.key === "cardRemoved" && entry.power === undefined,
-  );
-  expect(undefinedRemovals.length).toBeGreaterThan(0);
-  expect(undefinedRemovals.some((entry) => entry.args?.card === "IE-A082")).toBe(true);
+  const removals = G.log.filter((entry) => entry.key === "cardRemoved" && entry.args?.card === "IE-A061");
+  expect(removals.length).toBeGreaterThan(0);
+  // These entries carry no power attribution, so the fallback owner applies.
+  expect(removals.every((entry) => entry.power === undefined)).toBe(true);
 
-  // Even the owner's own view can still see the removed card.
-  const ownerRemoved = asView(G, "0").log
-    .filter((entry) => entry.key === "cardRemoved")
-    .map((entry) => entry.args?.card);
-  expect(ownerRemoved).toContain("IE-A082");
-
+  // GE's own view keeps it; every other seat's log masks it.  (A seat that
+  // happens to hold the same card in its own hand still sees its own hand.)
+  expect(
+    asView(G, "0").log.filter((entry) => entry.key === "cardRemoved").map((entry) => entry.args?.card),
+  ).toContain("IE-A061");
   for (const playerID of NON_GE) {
-    const view = asView(G, playerID);
-    const removedCards = view.log
+    const cards = asView(G, playerID).log
       .filter((entry) => entry.key === "cardRemoved")
       .map((entry) => entry.args?.card);
-    // Bismarck's home card may be public; the played card must not be.
-    expect(removedCards).not.toContain("IE-A082");
-    expect(removedCards.every((card) => card === HIDDEN_CARD)).toBe(true);
-    expect(JSON.stringify(view)).not.toContain("IE-A082");
+    expect(cards).not.toContain("IE-A061");
+    expect(cards.every((card) => card === HIDDEN_CARD)).toBe(true);
   }
 });
 
-test("log card and incitingCard args are masked regardless of entry.power; public entries stay public", () => {
+test("a faceup event play names its card to every seat", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.wtt = 4;
+  // Assassination! is played as an event and raises the WTT to its maximum, so a
+  // `wttMax` note naming the inciting card follows the public play line.
+  G.powers.GE.hand.push("IE-A017");
+  playCard(G, makeCtx("0"), "IE-A017", "event");
+
+  const played = G.log.find((entry) => entry.key === "cardPlayed")!;
+  expect(played.args).toMatchObject({card: "IE-A017", mode: "event"});
+
+  // The event is announced on the table, so every seat and the spectator read
+  // its title instead of "a hidden card".
+  for (const playerID of [...SEATS, null]) {
+    const view = asView(G, playerID);
+    const entry = view.log.find((e) => e.id === played.id)!;
+    expect(entry.args?.card).toBe("IE-A017");
+    expect(logText({key: entry.key, power: entry.power, args: entry.args}, "zh_CN")).toContain(
+      cardById("IE-A017").titleZh,
+    );
+  }
+
+});
+
+test("a card spent for CP is never revealed", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.powers.GE.hand.push("IE-A021");
+  playCard(G, makeCtx("0"), "IE-A021", "cp");
+
+  const played = G.log.find((entry) => entry.key === "cardPlayed")!;
+  expect(played.args).toMatchObject({card: "IE-A021", mode: "cp"});
+  expect(asView(G, "0").log.find((e) => e.id === played.id)!.args?.card).toBe("IE-A021");
+
+  for (const playerID of NON_GE) {
+    const view = asView(G, playerID);
+    expect(view.log.find((e) => e.id === played.id)!.args?.card).toBe(HIDDEN_CARD);
+    // The CP card leaves the hand and cannot be re-revealed before the reshuffle.
+    expect(JSON.stringify(view)).not.toContain("IE-A021");
+  }
+});
+
+test("an incitingCard note follows the public play of that card but nothing else leaks", () => {
   const G = fresh();
   G.phase = "action";
   G.activePower = "GE";
@@ -337,10 +384,22 @@ test("log card and incitingCard args are masked regardless of entry.power; publi
   const ownerEntry = asView(G, "0").log.find((entry) => entry.id === wttMax.id)!;
   expect(ownerEntry.args?.incitingCard).toBe("IE-A017");
 
-  for (const playerID of NON_GE) {
+  // The inciting card was played faceup this turn, so the note is readable.
+  for (const playerID of [...SEATS, null]) {
     const entry = asView(G, playerID).log.find((e) => e.id === wttMax.id)!;
-    expect(entry.args?.incitingCard).toBe(HIDDEN_CARD);
+    expect(entry.args?.incitingCard).toBe("IE-A017");
     expect(entry.key).toBe("wttMax");
+  }
+
+  // A random discard names a card through the same `card` key but was never
+  // revealed, so only `incitingCard` is exempt from the mask.
+  const randomDiscard = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
+  randomDiscard.log = [
+    {id: 900, turn: randomDiscard.turn, phase: randomDiscard.phase, power: "FR", key: "eventDiscard", args: {card: "IE-A098"}},
+  ];
+  for (const playerID of [...SEATS.slice(1), null]) {
+    if (playerID === "2") continue; // FR owns the entry and keeps its own log.
+    expect(asView(randomDiscard, playerID).log[0].args?.card).toBe(HIDDEN_CARD);
   }
 
   // A genuinely public entry is byte-for-byte unchanged for every viewer.
