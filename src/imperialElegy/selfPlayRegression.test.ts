@@ -31,7 +31,7 @@ import {redactForView} from "./engine/privacy";
 import {ensureStateDefaults} from "./engine/migrations";
 import {outbreakGreatWar} from "./engine/greatWar";
 import {performGwManeuver} from "./engine/greatWarFlow";
-import {isArmyKind, landUnitsIn, hostileOwner} from "./engine/rules";
+import {isArmyKind, landUnitsIn, hostileOwner, maneuverDestinationProblem} from "./engine/rules";
 import {neighboursOf} from "./constant/spaces";
 import {applyPrepCharacteristics, discardForStability, recruit} from "./moves";
 import {cardById} from "./engine/deck";
@@ -489,5 +489,40 @@ describe("10 — the GW bot does not attack from a naval box", () => {
       expect(from).not.toBe(box);
       expect(landUnitsIn(G, from).some((unit) => !unit.naval && unit.owner === "GE")).toBe(true);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 11. A GW naval move may not enter a rebel space (32.5)
+// ---------------------------------------------------------------------------
+
+describe("11 — a rebel space is not a legal GW naval destination", () => {
+  test("the destination gate refuses it before the move is attempted", () => {
+    const G = fresh();
+    G.gw = {
+      active: true, turn: 2, order: ["GE", "FR"], belligerents: ["GE", "FR"], neutrals: [],
+      te: ["FR"], ta: ["GE"], usIn: false, italyIn: false,
+      usStability: 3, usManpower: 3, usBudget: 4, italyStability: 3, italyManpower: 3, italyBudget: 2,
+      trenches: {}, lastColonialWar: null, victor: null, outbreakDone: true, nationalWillDone: true,
+      bonusImpulses: [], discard: [],
+    } as never;
+    G.phase = "gwManeuver";
+    G.activePower = "UK";
+    G.powers.UK.alliance = "teCommitted";
+    G.powers.GE.alliance = "taCommitted";
+    G.powers.UK.gwBudget = 3;
+
+    // 32.5 forbids rebels and non-rebels coexisting, so a naval move into a
+    // rebel space is refused by the flow.  The sweep kept naming it because it
+    // only asked the route planner.
+    G.spaces.india.rebellion = {minor: "India", step: 0, rebels: []} as never;
+    const ship = Object.values(G.units).find((unit) => unit.owner === "UK" && unit.naval)!;
+    expect(ship).toBeDefined();
+
+    const verdict = maneuverDestinationProblem(G, "UK", {
+      kind: "naval", to: "india", unitIds: [ship.id],
+    });
+    expect(verdict).not.toBeNull();
+    expect(String(verdict)).toMatch(/rebels/);
   });
 });

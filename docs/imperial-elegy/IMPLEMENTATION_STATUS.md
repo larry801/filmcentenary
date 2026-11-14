@@ -227,8 +227,10 @@ engine — seeded random plugin, phase/turn flow, move validation and
 campaign, a match started in the Great War, and a variant that declares limited
 wars, a naval variant that builds fleets and fights 19.0 contact battles, and an
 amphibious variant that stages landings next to enemy ports. Running many seeds
-surfaced ten engine bugs that the hand-built fixtures never reached. All ten are
-fixed and pinned by `selfPlayRegression.test.ts`.
+surfaced eleven engine bugs that the hand-built fixtures never reached. All
+eleven are fixed; ten are engine fixes and one (the rebel-space naval
+destination, see below) was a harness gap that surfaced while sailing during a
+war. All are pinned by `selfPlayRegression.test.ts`.
 
 1. **The Dual Monarchy was duplicated.** `applyPrepCharacteristics` pushed
    `IE-A047` into AU's hand without taking the physical copy out of the deck or
@@ -299,6 +301,20 @@ plus an escort beside an enemy port, then plays the real 19.10 landing):
     battles need land spaces" on every impulse, so the game deadlocked. The
     bot now skips boxes for both the origin and the target and still routes the
     decision through `legalLandBattle`.
+
+Making the sweep sail during a war also exposed a **harness** gap rather than an
+engine bug: 32.5's "rebels and non-rebels cannot coexist" is a Great War rule,
+so the action phase has no rebel gate at all, and the sweep's route planner
+happily named a GW naval move into a rebel space. The naval path now consults
+`maneuverDestinationProblem` (the same gate the flow uses), which is where the
+engine check already lived.
+
+**19.1 interception was already covered.** The engine opens a
+`navalInterception` *pending decision* after a naval move (the board's explicit
+`navalIntercept` move is a second entry point for the same rule). The sweep
+answers that decision like any other, and a run across six seeds logs dozens of
+`intercept:<port>` choices, including successful battles. No engine change was
+needed there.
 
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep

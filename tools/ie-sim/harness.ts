@@ -19,7 +19,7 @@ import {amphibiousAssaultCheck, navalInterceptCheck} from "../../src/imperialEle
 import {isArmyKind, landUnitsIn} from "../../src/imperialElegy/engine/rules";
 import {hasCounterFor} from "../../src/imperialElegy/engine/counters";
 import {placeUnit} from "../../src/imperialElegy/engine/effects";
-import {controlledBy, friendlySpace, hostileOwner, navalUnitsIn, ownsKey, PORT_NAVAL_LIMIT} from "../../src/imperialElegy/engine/rules";
+import {atWar, controlledBy, maneuverDestinationProblem, friendlySpace, hostileOwner, navalUnitsIn, ownsKey, PORT_NAVAL_LIMIT} from "../../src/imperialElegy/engine/rules";
 import {performGwManeuver} from "../../src/imperialElegy/engine/greatWarFlow";
 import {hasTruce, validateWarAim} from "../../src/imperialElegy/engine/limitedWar";
 import {outbreakGreatWar} from "../../src/imperialElegy/engine/greatWar";
@@ -369,6 +369,10 @@ const navalAction = (
   }
 
 
+  // 19.1 only exists while two powers are at war: a peaceful sea move never
+  // opens an interception window, so the sweep would never exercise it.
+  const hostile = POWERS.some((other) => other !== power && atWar(G, power, other));
+
   // 2. Attack with a fleet that already has a legal target (19.0 contact).
   // A naval battle needs an *enemy* (at war), so the check is `hostileOwner`:
   // neutral ships in a shared box are not a legal target.
@@ -390,16 +394,31 @@ const navalAction = (
   // contact battle is resolved by the move itself, 19.0).
   const enemyBoxes = new Set<string>();
   for (const [id, space] of Object.entries(G.spaces)) {
-    if (space.units.some((uid) => {
+    if (!space.units.some((uid) => {
       const other = G.units[uid];
       return other && other.naval && hostileOwner(G, power, other.owner);
-    })) enemyBoxes.add(id);
+    })) continue;
+    enemyBoxes.add(id);
   }
+  void hostile;
   for (const unit of Object.values(G.units)) {
     if (unit.owner !== power || !unit.naval || !unit.space) continue;
     const from = unit.space;
     const step = enemyBoxes.size > 0 ? nextHopToward(G, from, enemyBoxes) : null;
-    const candidates = step !== null ? [step, ...neighboursOf(from)] : neighboursOf(from);
+    // Prefer an EMPTY box: a move straight into enemy ships resolves as a
+    // contact battle and closes the 19.1 reaction window before it can open.
+    // 19.1 needs an empty destination box next to an enemy-held port: a box
+    // with enemy ships resolves as a contact battle instead, which closes the
+    // reaction window before any interception can be attempted.
+    const interceptable = neighboursOf(from).filter((id) => {
+      if (!isNavalBox(id) || navalUnitsIn(G, id).length > 0) return false;
+      return Object.keys(SPACES).some((port) =>
+        portBoxes(port).includes(id) && G.spaces[port]?.control !== null
+        && !friendlySpace(G, port, power));
+    });
+    const rest = neighboursOf(from).filter((id) => !navalUnitsIn(G, id).length);
+    const candidates = [...interceptable, ...(step !== null ? [step] : []), ...rest, ...neighboursOf(from)]
+      .filter((id, i, arr) => arr.indexOf(id) === i);
     for (const to of candidates) {
       if (!G.spaces[to]) continue;
       const contact = navalUnitsIn(G, to).some((other) => hostileOwner(G, power, other.owner));
@@ -408,6 +427,10 @@ const navalAction = (
       // `performGwManeuver` even though the action-phase planner allows it.
       if (gwManeuver && !isNavalBox(to) && !friendlySpace(G, to, power)) continue;
       if (budget < 1) return null;
+      // 32.5: during the GW rebels and non-rebels cannot coexist, and the flow
+      // refuses a naval move into a rebel space.  Ask the same destination gate
+      // the flow uses so the sweep never names that move.
+      if (gwManeuver && maneuverDestinationProblem(G, power, {kind: "naval", to, unitIds: [unit.id]}) !== null) continue;
       // Let the planner decide: it refuses an empty enemy/neutral port (that
       // needs an amphibious assault) and allows a port holding enemy ships
       // (19.0 contact).  Forcing `allowEnemyDestination` named illegal moves.
@@ -417,9 +440,11 @@ const navalAction = (
     }
   }
 
-  // 4. 19.1 interception: our port's ships may intercept the naval move that
-  // just arrived in an adjacent box.  Only legal while that move is the last
-  // log entry and the mover is still the active power.
+  // 4. 19.1 interception.  The engine opens a `navalInterception` pending
+  // decision after a naval move and the sweep answers it with the first
+  // `intercept:<port>` option, so that path is already covered; this
+  // standalone move is only reachable from the board's explicit button, and a
+  // random pending answer may decline it, so it is offered here too.
   for (const port of Object.keys(G.spaces)) {
     if (isNavalBox(port) || !portBoxes(port).length) continue;
     if (!friendlySpace(G, port, power)) continue;
@@ -666,7 +691,16 @@ export function runSeededGame(opts: SimOptions): SimResult {
           if (!pendingView.options || pendingView.options.length === 0) return {move: "declinePending", args: []};
           return {move: "resolvePending", args: [pendingView.options[0].id]};
         }
-        return botDecision(view, state.ctx, power as Power);
+        const botMove = botDecision(view, state.ctx, power as Power);
+        // In wartime the Rule 34 bot only ever passes; a naval sortie is what
+        // opens the 19.1 interception window, so prefer it when available.
+        if (opts.navy && state.ctx.phase === "wartime" && botMove.move === "passWarMove") {
+          const naval = navalAction(view, power as Power);
+          if (naval !== null && (naval.move === "navalMove" || naval.move === "navalBattle" || naval.move === "amphibiousAssault")) {
+            return naval;
+          }
+        }
+        return botMove;
       } catch (err) {
         issues.push({
           kind: "exception", step: steps, turn: G.turn, phase: G.phase, power,
@@ -679,6 +713,22 @@ export function runSeededGame(opts: SimOptions): SimResult {
     // later read of units/CP must come from the current state or the harness
     // names a unit id that no longer exists (and the engine rightly refuses).
     const liveG = state.G as ImperialElegyState;
+    // Aggressive mode: declare a legal war when the action phase would
+    // otherwise just bank CP, so the `wartime` phase actually runs.  The
+    // declaration belongs to the *active* power: in the action phase only that
+    // seat may act, and `power` can differ (a stale per-seat view).
+    // A refused declaration is not retried: `warRetry` remembers the exact
+    // (power, target, objective) that the engine refused so the sweep cannot
+    // spin on it the way the real hotseat bot would have.
+    if ((opts.war || opts.navy) && !liveG.pending && liveG.phase === "action"
+      && power === liveG.activePower && !warRefused
+      && (decision.move === "playCard" || decision.move === "pass" || decision.move === "endImpulse" || decision.move === "placeMpit" || decision.move === "buildFort")) {
+      const declaration = aggressiveWarDeclaration(liveG, liveG.activePower);
+      if (declaration !== null) {
+        decision.move = declaration.move;
+        decision.args = declaration.args;
+      }
+    }
     // Navy mode: replace a passive naval/CP action with a real naval one.
     if (opts.navy && !liveG.pending && (liveG.phase === "action" || liveG.phase === "gwManeuver" || liveG.phase === "wartime")
       && power === liveG.activePower
@@ -709,21 +759,6 @@ export function runSeededGame(opts: SimOptions): SimResult {
         decision.args = naval.args;
       }
       navalOverrideBlocked = false;
-    }
-    // Aggressive mode: declare a legal war when the action phase would
-    // otherwise just bank CP, so the `wartime` phase actually runs.  The
-    // declaration belongs to the *active* power: in the action phase only that
-    // seat may act, and `power` can differ (a stale per-seat view).
-    // A refused declaration is not retried: `warRetry` remembers the exact
-    // (power, target, objective) that the engine refused so the sweep cannot
-    // spin on it the way the real hotseat bot would have.
-    if ((opts.war || opts.navy) && !G.pending && G.phase === "action" && power === G.activePower && !warRefused
-      && (decision.move === "playCard" || decision.move === "pass" || decision.move === "endImpulse" || decision.move === "placeMpit" || decision.move === "buildFort")) {
-      const declaration = aggressiveWarDeclaration(G, G.activePower);
-      if (declaration !== null) {
-        decision.move = declaration.move;
-        decision.args = declaration.args;
-      }
     }
     // Aggressive mode: override a passive decision with a real maneuver so the
     // contact/battle/retreat paths are exercised through the engine.  The move
