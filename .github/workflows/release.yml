@@ -1,9 +1,8 @@
 name: release
 
-# Image builds and pushes are a master-only concern.  Tests run for every
-# agent branch in ci.yml; this workflow assumes they passed on master before
-# the merge and never publishes from a feature branch (a manual dispatch on
-# one is gated below as well).
+# Image builds and pushes are a master-only concern, and master pushes run
+# nothing else: ci.yml skips master, so this is the entire post-merge pipeline.
+# Tests for every agent branch live in ci.yml.
 on:
   push:
     branches:
