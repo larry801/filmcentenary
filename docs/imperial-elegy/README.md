@@ -56,6 +56,20 @@ Seat order is fixed by rule 4.3: **GE, UK, FR, AU, RU, OT** (seats 0–5).
 Local hotseat keeps all six clients mounted; switching tabs never restarts the
 match. Keys `1`–`6` (or `[` / `]`) switch seats.
 
+### SVG card faces
+
+The hand uses `components/CardFace.tsx` to render all 100 action cards, 12 home
+cards, 10 Great War cards and 49 National Goals directly from the transcribed
+data. Inline SVG draws the frame, CP/VP, type, title, rules and vector emblems;
+card faces make no raster-image or external-font requests. The original card
+assets total approximately 13.4 MiB and remain available as source references.
+
+Faces follow the selected UI language. Expand **English text / 中文译文** below
+a face to read the other language (English includes the full rule transcription).
+Long rules extend the SVG height instead of being clipped or reduced to tiny
+type. Missing module faces, including action cards 21/82 and goal 22, use the
+same renderer. The photographs are represented by lightweight vector emblems.
+
 ## Implementation status
 
 The campaign game is playable end-to-end, but this is an **in-progress

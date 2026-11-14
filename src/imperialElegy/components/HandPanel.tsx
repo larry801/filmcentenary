@@ -6,7 +6,8 @@ import {gwEventHint} from "../engine/playability";
 import Button from "@mui/material/Button";
 import {IEBadge, IEChip, IEPanel} from "./theme";
 import {ieT} from "./i18n";
-import {POWER_KEYS, bi, cardArt} from "./boardHelpers";
+import {POWER_KEYS, bi} from "./boardHelpers";
+import {CardFace} from "./CardFace";
 
 export interface HandPanelProps {
   G: ImperialElegyState;
@@ -115,10 +116,8 @@ export const HandPanel = (props: HandPanelProps) => {
                   ? bi(locale, "Exhaustion: neither event triggers on GW turn 0.", "精疲力竭：首轮大战不触发任一效果。")
                   : undefined;
                 return (
-                  <article className="ie-card" data-testid={`ie-gw-card-${gwId}`}>
-                    <div className="ie-card-cp">{gwCard.cp}</div>
-                    {cardArt(gwCard.image) ? <img src={cardArt(gwCard.image)} alt={gwCard.title}/> : null}
-                    <div className="ie-card-body"><div className="ie-card-title">{locale === "zh_CN" ? gwCard.titleZh : gwCard.title}</div><div>{gwCard.text}</div><div className="ie-card-zh">{gwCard.textZh}</div></div>
+                  <article className="ie-card ie-card-standalone" data-testid={`ie-gw-card-${gwId}`}>
+                    <CardFace card={gwCard} locale={locale}/>
                     <div className="ie-card-actions">
                       <button disabled={!canGwCard} onClick={() => doAction(() => moves.playGwCardMove("cp"))}>{t.cpMode}</button>
                       <button disabled={!canGwCard} title={gwEventTitle} onClick={() => doAction(() => moves.playGwCardMove("event"))}>{t.eventMode}</button>
@@ -144,14 +143,12 @@ export const HandPanel = (props: HandPanelProps) => {
           {me.goals.length > 0 && (
             <div className="ie-hand-section">
               <div className="ie-section-title">{t.goals}:</div>
-              <div className="ie-inline">
+              <div className="ie-goal-hand">
                 {me.goals.map((id) => {
                   const goal = GOALS_BY_ID[id];
-                  const image = goal ? `/imperial-elegy/cards/goal-${goal.power}-${String(goal.number).padStart(2, "0")}.png` : undefined;
-                  return <div key={id} className="ie-card" style={{width: 130}} data-testid={`ie-goal-${id}`}>
-                    {image && <img src={image} alt={goal?.title}/>}
-                    <div className="ie-card-body"><div className="ie-card-title">{locale === "zh_CN" ? goal?.titleZh : goal?.title}</div><div>{locale === "zh_CN" ? goal?.textZh : goal?.text}</div></div>
-                  </div>;
+                  return goal ? <article key={id} className="ie-card" data-testid={`ie-goal-${id}`}>
+                    <CardFace goal={goal} locale={locale}/>
+                  </article> : null;
                 })}
               </div>
             </div>

@@ -5,7 +5,7 @@ import {POWERS} from "../types";
 import {cardById} from "../engine/deck";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
-import {PHASE_LABEL, POWER_KEYS, bi, isPowerKey, cardArt} from "./boardHelpers";
+import {PHASE_LABEL, POWER_KEYS, bi, isPowerKey} from "./boardHelpers";
 import {gwEventHint} from "../engine/playability";
 
 export interface GreatWarPanelProps {

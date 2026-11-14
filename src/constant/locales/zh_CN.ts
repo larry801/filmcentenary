@@ -557,9 +557,8 @@ const zh_CN: Locale = {
         cards: "卡表",
         about: "规则和帮助",
         navigation: "导航",
-        globalLobby: "多人大厅（通用）",
+        home: "首页",
         section: {
-            general: "全局",
             film: "电影百年",
             songJinn: "宋金战争",
             imperialElegy: "Imperial Elegy 帝国挽歌",
@@ -613,6 +612,10 @@ const zh_CN: Locale = {
         redo: "恢复",
     },
     title: "电影百年",
+    home: {
+        title: "游戏中心",
+        subtitle: "选择游戏与对战模式",
+    },
     lobby: {
         player: "起手玩家",
         copyPrompt: "复制",

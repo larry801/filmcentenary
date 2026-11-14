@@ -130,16 +130,29 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect.poll(async () => await board.locator('[data-testid="ie-log"]').innerText()).toContain("萨克森");
     });
 
-    test("English/Chinese switch renders both card descriptions", async ({page}) => {
+    test("SVG cards switch language and expose the other translation without image requests", async ({page}) => {
+        const cardImageRequests: string[] = [];
+        page.on("request", (request) => {
+            if (/\/imperial-elegy\/cards\/.*\.(png|jpe?g)(?:\?|$)/i.test(request.url())) cardImageRequests.push(request.url());
+        });
         await openLocal(page);
-        await finishPrep(page);
-        await chooseHomeCards(page);
-        await focusSeat(page, "GE");
         const board = page.locator('[data-testid="ie-seat-GE"]');
-        await expect(board.locator(".ie-card-zh").first()).toBeVisible();
+        const card = board.locator(".ie-hand .ie-card").first();
+        const face = card.locator("svg.ie-card-face");
+        const original = await face.getAttribute("data-card-id");
+        await expect(face).toHaveAttribute("lang", "zh-CN");
+        await expect(face.locator(".ie-card-rules")).toContainText(/[\u4e00-\u9fff]/);
+        await expect(board.locator(".ie-card img, .ie-card image")).toHaveCount(0);
+        await card.locator("summary").click();
+        await expect(card.locator("details > div")).toBeVisible();
+        await expect(card.locator("details > div")).toHaveAttribute("lang", "en");
         await page.locator(".MuiSwitch-input").click();
         await expect(page.getByRole("heading", {name: "Imperial Elegy — local hotseat"})).toBeVisible();
-        await expect(board.locator(".ie-card-zh").first()).toBeVisible();
+        await expect(face).toHaveAttribute("data-card-id", original!);
+        await expect(face).toHaveAttribute("lang", "en");
+        await expect(face.locator(".ie-card-rules")).toContainText(/[A-Za-z]/);
+        await expect(card.locator("details > div")).toHaveAttribute("lang", "zh-CN");
+        expect(cardImageRequests).toEqual([]);
     });
 
     test("an online match-creation page is reachable", async ({page}) => {

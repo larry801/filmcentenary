@@ -144,9 +144,6 @@ export const transportReasonText = (
   }
 };
 
-export const cardArt = (image?: string): string | undefined =>
-  image ? `/imperial-elegy/${image}` : undefined;
-
 /** Why the amphibious-assault button is disabled, in the player's language. */
 export const amphibiousReasonText = (
   locale: "en" | "zh_CN",

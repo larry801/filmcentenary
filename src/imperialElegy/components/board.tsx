@@ -46,7 +46,6 @@ import {
   amphibiousReasonText,
   bi,
   BATTLE_STAGE,
-  cardArt,
   controlLabel,
   interceptReasonText,
   isPowerKey,
@@ -63,6 +62,7 @@ import {MapPanel} from "./MapPanel";
 import {SpacePanel} from "./SpacePanel";
 import {PendingPanel} from "./PendingPanel";
 import {HandPanel} from "./HandPanel";
+import {CardFace} from "./CardFace";
 import {DashboardPanel} from "./DashboardPanel";
 import {MpitPanel} from "./MpitPanel";
 import {NationalActionsPanel} from "./NationalActionsPanel";
@@ -776,14 +776,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     const saveOk = viewer !== null && (phase === "action" || phase === "end") && card.kind !== "home" && !isMandatory;
     return (
       <article key={id} className="ie-card" data-testid={`ie-card-${id}`}>
-        <div className="ie-card-cp">{card.cp}</div>
-        <div className="ie-card-type">{t.cardType[card.type] ?? card.type}</div>
-        {cardArt(card.image) ? <img src={cardArt(card.image)} alt={card.title}/> : <div style={{padding: "18px 8px", background: "#3a2f24", color: "#f0dfba", minHeight: 180}}><strong>{card.title}</strong><div style={{fontSize: 10, marginTop: 6}}>{card.text}</div></div>}
-        <div className="ie-card-body">
-          <div className="ie-card-title">{actualLocale === "zh_CN" ? card.titleZh : card.title}</div>
-          <div>{card.text}</div>
-          <div className="ie-card-zh">{card.textZh}</div>
-        </div>
+        <CardFace card={card} locale={actualLocale}/>
         <div className="ie-card-actions">
           <button disabled={!cpModeOk} title={!cpModeOk ? bi(actualLocale, "Requires your impulse and no CP left in it.", "需在你的行动轮且当前无剩余 CP。") : undefined} onClick={() => doAction(() => moves.playCard(id, "cp"))}>{t.cpMode}</button>
           <button data-testid={`ie-play-event-${id}`} disabled={!eventModeOk} data-blocked={eventBlockReason ? eventGate?.reason : undefined} title={!eventModeOk ? (eventBlockReason ?? bi(actualLocale, "Events are played at the start of your impulse.", "事件需在你的行动轮开始时打出。")) : undefined} onClick={() => doAction(() => moves.playCard(id, "event"))}>{t.eventMode}</button>

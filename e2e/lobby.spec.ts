@@ -18,8 +18,37 @@ test.beforeEach(async ({page}) => {
     await page.route("**/games/imperialElegy/create", (route) => route.fulfill({json: {matchID: "e2e-created-ie-match"}}));
 });
 
-test("creates a match and navigates to the join page", async ({page}) => {
+test("home page shows the game navigation instead of the film lobby", async ({page}) => {
     await page.goto("/");
+    await expect(page.getByRole("heading", {name: "游戏中心"})).toBeVisible();
+    // The "全局" group is gone; 卡表 and 规则 are 电影百年-specific links.
+    await expect(page.getByRole("group", {name: "全局"})).toHaveCount(0);
+    const filmGroup = page.getByRole("group", {name: "电影百年"});
+    await expect(filmGroup).toBeVisible();
+    await expect(filmGroup.getByRole("link", {name: "卡表"})).toBeVisible();
+    await expect(filmGroup.getByRole("link", {name: "规则和帮助"})).toBeVisible();
+    // The film lobby's own content must not be rendered on the landing page.
+    await expect(page.getByRole("heading", {name: "公开对局"})).toHaveCount(0);
+    await expect(page.getByRole("button", {name: "创建游戏"})).toHaveCount(0);
+});
+
+test("app bar home link returns to the landing page", async ({page}) => {
+    await page.goto("/film");
+    await page.getByRole("link", {name: "首页"}).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", {name: "游戏中心"})).toBeVisible();
+});
+
+test("home page links to the film lobby", async ({page}) => {
+    await page.goto("/");
+    await page.getByRole("group", {name: "电影百年"})
+        .getByRole("link", {name: "多人 / 创建对局"}).click();
+    await expect(page).toHaveURL(/\/film$/);
+    await expect(page.getByRole("heading", {name: "电影百年"})).toBeVisible();
+});
+
+test("creates a match and navigates to the join page", async ({page}) => {
+    await page.goto("/film");
     await expect(page.getByRole("heading", {name: "电影百年"})).toBeVisible();
 
     await page.getByRole("button", {name: "创建游戏"}).click();
@@ -27,7 +56,7 @@ test("creates a match and navigates to the join page", async ({page}) => {
 });
 
 test("clicks a listed match and navigates to the join page", async ({page}) => {
-    await page.goto("/");
+    await page.goto("/film");
 
     const row = page.getByRole("row").filter({hasText: "e2e-listed-match"});
     await expect(row).toBeVisible();
@@ -65,7 +94,7 @@ test("Imperial Elegy creates a match with the fixed first player", async ({page}
 });
 
 test("film and Song Jinn keep the start-player choice", async ({page}) => {
-    await page.goto("/");
+    await page.goto("/film");
     await expect(page.locator("#outlined-player-native-simple")).toBeVisible();
 
     await page.goto("/songJinn");
