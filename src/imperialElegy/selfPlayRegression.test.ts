@@ -31,9 +31,10 @@ import {redactForView} from "./engine/privacy";
 import {ensureStateDefaults} from "./engine/migrations";
 import {outbreakGreatWar} from "./engine/greatWar";
 import {performGwManeuver} from "./engine/greatWarFlow";
-import {isArmyKind, landUnitsIn, hostileOwner, maneuverDestinationProblem} from "./engine/rules";
+import {isArmyKind, landUnitsIn, hostileOwner, maneuverDestinationProblem, randomIndex} from "./engine/rules";
 import {neighboursOf} from "./constant/spaces";
 import {applyPrepCharacteristics, discardForStability, playCard, recruit, resolvePending, declinePending} from "./moves";
+import {resolveEffects} from "./engine/effects";
 import {cardById} from "./engine/deck";
 import {defenderHasPlayer, defenderSupportPower, navalAvoidanceModifiers, navalAvoidPlans, navalPortBattleModifiers} from "./engine/combat";
 
@@ -675,5 +676,62 @@ describe("14 — A027 Foreign Investment lives only in the industry slot", () =>
     const zones = zonesOf(G, "IE-A027");
     expect(zones).toHaveLength(1);
     expect(zones[0]).toMatch(/\.industry$/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 15. A "discard a random card" effect never indexes past the hand
+// ---------------------------------------------------------------------------
+
+describe("15 — random-discard effects clamp an out-of-range die", () => {
+  /** A ctx whose die ignores `sides`, so every face — including nonsense — is reachable. */
+  const fixedDie = (face: number): Ctx =>
+    ({
+      ...makeCtx("0"),
+      random: {Die: () => face},
+    }) as unknown as Ctx;
+
+  const discardHandlers = [
+    "polishRevolt",
+    "nationalism",
+    "revolution1905",
+    "nationalistUprising",
+    "empireOfTheSun",
+  ];
+
+  const probe = (handler: string, face: number): void => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "GE";
+    // Give every power a couple of cards so the effect has something to pick.
+    for (const power of POWERS) G.powers[power].hand = G.deck.splice(0, 2);
+    G.spaces.poland.control = "RU";
+    G.spaces["central-asia"].control = "RU";
+    G.spaces.india.control = "UK";
+    G.resolvingCard = "IE-A051";
+    resolveEffects(G, fixedDie(face), "GE", [{type: "special", handler} as never], {});
+  };
+
+  test("every random-discard handler survives faces 0, 1, 3, 6 and 99", () => {
+    const failures: string[] = [];
+    for (const handler of discardHandlers) {
+      for (const face of [0, 1, 3, 6, 99]) {
+        try {
+          probe(handler, face);
+        } catch (error) {
+          failures.push(`${handler} face=${face}: ${(error as Error).message}`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  test("randomIndex clamps into the collection", () => {
+    expect(randomIndex(fixedDie(0), 3)).toBe(0);
+    expect(randomIndex(fixedDie(1), 3)).toBe(0);
+    expect(randomIndex(fixedDie(3), 3)).toBe(2);
+    expect(randomIndex(fixedDie(99), 3)).toBe(2);
+    // An empty collection has no valid index; callers must handle it first.
+    expect(randomIndex(fixedDie(4), 0)).toBe(0);
   });
 });

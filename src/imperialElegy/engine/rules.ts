@@ -38,6 +38,22 @@ import {closeDecision, decision, openDecision, option} from "./pending";
 
 export const die = (ctx: Ctx, sides: number): number => ctx.random!.Die(sides);
 
+/**
+ * A safe index for "pick a random one of these" effects.
+ *
+ * The printed text ("discard a random card") implies a card, not a crash: an
+ * out-of-range face — a migrated save, a mocked die in a test, a future caller
+ * passing the wrong `sides` — must clamp into the collection instead of
+ * indexing past it and resolving `cardById(undefined)`.  Returns 0 for an empty
+ * collection; callers still have to handle "nothing to pick".
+ */
+export const randomIndex = (ctx: Ctx, length: number): number => {
+  if (!Number.isFinite(length) || length <= 0) return 0;
+  const raw = Math.trunc(die(ctx, length)) - 1;
+  if (!Number.isFinite(raw)) return 0;
+  return Math.min(Math.max(raw, 0), length - 1);
+};
+
 export const POWER_ORDER: Record<Power, number> = {GE: 0, UK: 1, FR: 2, AU: 3, RU: 4, OT: 5};
 
 export const isPower = (value: unknown): value is Power =>

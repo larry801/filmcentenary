@@ -46,6 +46,9 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
   action, wartime maneuver, wartime alliance, Great War.  This is what reaches
   the four `warOnly` responses, which are `response` cards and are played with
   `playResponseCard` rather than `playCard`.
+- `cardStates.test.ts` — every action card against ten deliberately extreme
+  boards (empty hands, no reserves, stability at both ends, an eliminated
+  power, …), so an effect's arithmetic is checked, not just its text.
 - `cardSweep.ts` — the shared scaffolding those three use (ctx with a
   `sides`-aware die, single-copy card injection, settle loop, reporting).
 - `batch.test.ts` — N seeds × all six modes, aggregated: completion rate per
@@ -94,6 +97,6 @@ It exits non-zero when the batch has a crash, a stall or an unfinished game.
 
 ## Findings
 
-The runs have found fourteen engine bugs so far (plus one harness gap); they are listed in
+The runs have found fifteen engine bugs so far (plus one harness gap); they are listed in
 [`../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md`](../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md)
 and pinned by `src/imperialElegy/selfPlayRegression.test.ts`.

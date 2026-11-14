@@ -227,8 +227,8 @@ engine — seeded random plugin, phase/turn flow, move validation and
 campaign, a match started in the Great War, and a variant that declares limited
 wars, a naval variant that builds fleets and fights 19.0 contact battles, and an
 amphibious variant that stages landings next to enemy ports. Running many seeds
-surfaced fourteen engine bugs that the hand-built fixtures never reached. All
-eleven are fixed; thirteen are engine fixes and one (the rebel-space naval destination, see
+surfaced fifteen engine bugs that the hand-built fixtures never reached. All
+eleven are fixed; fourteen are engine fixes and one (the rebel-space naval destination, see
 below) was a harness gap that surfaced while sailing during a war. All are
 pinned by `selfPlayRegression.test.ts`.
 
@@ -389,6 +389,22 @@ pair counts (35766 in a maneuver vs 30002 in an alliance) are that measurement.
 `responseCardEligibility`/`eventPlayability` decide entry, so `playResponseCard`
 is used where it is the right move.
 
+A fifteenth bug came from a state-stress sweep that pushes card effects against
+deliberately extreme boards (empty hands, one-card hands, no reserves, no
+manpower/industry, stability pinned at both ends, every speaker fortified, an
+eliminated power, the whole board industrialised, the WTT pinned at 5):
+
+15. **Five "discard a random card" effects could index past the hand.**
+    `nationalism` (A056), `revolution1905`, `nationalistUprising`,
+    `empireOfTheSun` and the `stabilityOrCard` prompt computed
+    `die(ctx, hand.length) - 1` and used it directly. A real die cannot escape
+    its range today, but any out-of-range face — a migrated save, a mocked die,
+    a future caller passing the wrong `sides` — indexed past the hand and threw
+    `unknown card undefined` from `cardById` instead of discarding nothing.
+    A040/A041 Polish Revolt had already been patched in an earlier round; all
+    of them now go through `rules.ts#randomIndex`, one clamping helper, and a
+    regression test drives every one of them with faces 0, 1, 3, 6 and 99.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
 (`W-1…8`) declares wars, runs the wartime impulses and settles them; and the
@@ -398,7 +414,7 @@ result; the naval sweep (`N-1…10`) adds fleet builds, sea moves and naval
 battles; the amphibious sweep (`A-1…8`) performs ~200 real 19.10 landings. A
 mixed stress sweep (`tools/ie-sim/stress.test.ts`) adds random pending choices
 on half the seeds, and the naval runs answer the 19.1 interception decision
-dozens of times. The full Jest suite is **438/438 suites, 4091/4091 tests**, and `tsc` plus the
+dozens of times. The full Jest suite is **438/438 suites, 4093/4093 tests**, and `tsc` plus the
 server `tsc` are clean; `tools/` is excluded from `yarn test` because the batch
 sweep alone takes minutes and is run explicitly instead.
 

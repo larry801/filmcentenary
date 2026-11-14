@@ -23,6 +23,7 @@ import {
   changeWtt,
   computePowerProjection,
   die,
+  randomIndex,
   EGYPTIAN_SPACES,
   controlledBy,
   crossesSuez,
@@ -1600,7 +1601,7 @@ const resolveEmpireOfTheSun = (
     return Boolean(unit.space) && (SPACES[unit.space as SpaceId]?.ports ?? []).includes(pacificBox);
   });
   if (discard && G.powers[defender].hand.length > 0) {
-    const index = die(ctx, G.powers[defender].hand.length) - 1;
+    const index = randomIndex(ctx, G.powers[defender].hand.length);
     discardCard(G, defender, G.powers[defender].hand[index], "empireOfTheSun");
   }
   // "-1 DRM for each defending naval unit in or adjacent to the Pacific, -1 if
@@ -1760,8 +1761,8 @@ const applyStabilityOrCardChoice = (
 ): void => {
   const hand = G.powers[power].hand;
   if (choice === "discard" && hand.length > 0) {
-    const index = die(ctx, hand.length) - 1;
-    discardCard(G, power, hand[Math.max(0, Math.min(hand.length - 1, index))], "eventDiscard");
+    const index = randomIndex(ctx, hand.length);
+    discardCard(G, power, hand[index], "eventDiscard");
     log(G, power, "stabilityOrCard", {choice: "discard"});
     return;
   }
@@ -2432,11 +2433,9 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         if (rebel) G.spaces[s.id].rebellion!.rebels.push(rebel.id);
       }
       if (G.powers[controller].hand.length > 0) {
-        // The random index must stay inside the hand: `discardCard` resolves the
-        // id through `cardById`, so an out-of-range pick throws on `undefined`
-        // instead of discarding nothing.
-        const raw = die(ctx, G.powers[controller].hand.length) - 1;
-        const index = Math.min(Math.max(0, Math.trunc(raw)), G.powers[controller].hand.length - 1);
+        // A027-style random picks go through `randomIndex` so an out-of-range
+        // face clamps instead of resolving `cardById(undefined)`.
+        const index = randomIndex(ctx, G.powers[controller].hand.length);
         discardCard(G, controller, G.powers[controller].hand[index], "polishRevolt");
       } else changeStability(G, controller, -1, ctx);
       return true;
@@ -2471,7 +2470,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       const candidates = POWERS.filter((p) => p !== actor && Object.values(SPACES).some((s) => s.nationalities?.length && G.spaces[s.id].control === p));
       const target = candidates[0] ?? "AU";
       if (G.powers[target].hand.length > 0) {
-        const index = die(ctx, G.powers[target].hand.length) - 1;
+        const index = randomIndex(ctx, G.powers[target].hand.length);
         discardCard(G, target, G.powers[target].hand[index], "nationalism");
       } else changeStability(G, target, -1, ctx);
       changeStability(G, actor, 1, ctx);
@@ -2800,7 +2799,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "revolution1905": {
       if (G.powers.RU.hand.length > 0) {
-        const index = die(ctx, G.powers.RU.hand.length) - 1;
+        const index = randomIndex(ctx, G.powers.RU.hand.length);
         discardCard(G, "RU", G.powers.RU.hand[index], "revolution1905");
       } else changeStability(G, "RU", -1, ctx);
       drawCards(G, ctx, actor, 1);
@@ -3472,7 +3471,7 @@ export const resolveCardDecision = (
       if (rebel) G.spaces[space].rebellion!.rebels.push(rebel.id);
       const controller = G.spaces[space].control as Power;
       if (G.powers[controller].hand.length > 0) {
-        const index = die(ctx, G.powers[controller].hand.length) - 1;
+        const index = randomIndex(ctx, G.powers[controller].hand.length);
         discardCard(G, controller, G.powers[controller].hand[index], "nationalistUprising");
       } else changeStability(G, controller, -1, ctx);
     } else if (special === "mahdistWar") {
@@ -3497,7 +3496,7 @@ export const resolveCardDecision = (
     if (special === "stabilityOrCard") {
       const p = G.powers[target];
       if (p.hand.length > 0) {
-        const index = die(ctx, p.hand.length) - 1;
+        const index = randomIndex(ctx, p.hand.length);
         discardCard(G, target, p.hand[index], "eventDiscard");
       } else {
         changeStability(G, target, -1, ctx);
