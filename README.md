@@ -24,10 +24,12 @@ yarn serve
 CI 分成两个 workflow：
 
 - `.github/workflows/ci.yml`：单元测试、类型检查、生产构建和 Playwright E2E，
-  跑在 `master` 以及 `feature/**`、`fix/**`、`refactor/**`、`test/**` 分支上
-  （也响应指向 `master` 的 pull request）。E2E 分两步：`yarn test:e2e` 跑默认套件
-  （Vite dev server），`yarn test:e2e:ie` 跑三个需要生产构建的 IE 套件。
-- `.github/workflows/release.yml`：只有 `master` 会构建并推送三个镜像：
+  跑在 `feature/**`、`fix/**`、`refactor/**`、`test/**` 分支上，以及指向 `master`
+  的 pull request。**`master` 上的 push 不跑这套测试**（合并前后已经验证过）。
+  E2E 分两步：`yarn test:e2e` 跑默认套件（Vite dev server），
+  `yarn test:e2e:ie` 跑三个需要生产构建的 IE 套件。
+- `.github/workflows/release.yml`：`master` 上只做 Docker 构建与推送，不跑测试。
+  会构建并推送三个镜像：
 
   - `ghcr.io/larry801/film-centenary`：应用镜像（`docker-compose.yml` 使用）
   - `ghcr.io/larry801/film-centenary-base`：运行时依赖层
