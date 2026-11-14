@@ -27,7 +27,7 @@ export const getNavGroups = (): NavGroup[] => {
                 {to: '/local2p', label: drawer.film.local2p},
                 {to: '/local3p', label: drawer.film.local3p},
                 {to: '/local4p', label: drawer.film.local4p},
-                // 卡表和规则只适用于电影百年，归入本游戏分组而非全局导航。
+                // 每个游戏都有自己的卡表；规则和帮助目前仅适用于电影百年。
                 {to: '/cards', label: drawer.cards},
                 {to: '/about', label: drawer.about},
             ],
@@ -38,6 +38,7 @@ export const getNavGroups = (): NavGroup[] => {
             items: [
                 {to: '/songJinn', label: drawer.songJinn.multiplayer},
                 {to: '/local', label: drawer.songJinn.local},
+                {to: '/cards/songJinn', label: drawer.cards},
             ],
         },
         {
@@ -47,6 +48,7 @@ export const getNavGroups = (): NavGroup[] => {
                 {to: '/imperialElegy', label: drawer.imperialElegy.multiplayer},
                 {to: '/localIE?solo=1', label: drawer.imperialElegy.solo},
                 {to: '/localIE', label: drawer.imperialElegy.local},
+                {to: '/cards/imperialElegy', label: drawer.cards},
             ],
         },
         {
@@ -56,6 +58,7 @@ export const getNavGroups = (): NavGroup[] => {
                 {to: '/virginQueen', label: drawer.virginQueen.multiplayer},
                 {to: '/localVQ', label: drawer.virginQueen.local},
                 {to: '/localVQ/tutorial', label: drawer.virginQueen.tutorial},
+                {to: '/cards/virginQueen', label: drawer.cards},
             ],
         },
     ];

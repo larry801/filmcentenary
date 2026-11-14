@@ -20,6 +20,11 @@
 # live match data written by docker-compose (boardgame.io FlatFile)
 /data
 
+# local agent worktrees and tool state (see also jest.config.js)
+/.opencode/
+/.commandcode/
+/.claude/
+
 # misc
 .DS_Store
 # local reference photo of the physical board

@@ -529,6 +529,8 @@ export interface CardDef {
     /** Official Home cards for this power; availability is checked each turn. */
     power?: Power;
     text?: string;
+    /** English effect text for official cards whose `text` is the Chinese OCR. */
+    textEn?: string;
     effect?: EventEffect | EventEffect[];
     /** Metadata preserved from the official 112-card table. */
     officialNumber?: number;

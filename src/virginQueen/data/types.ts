@@ -249,7 +249,10 @@ export interface OfficialCardDef {
     kind: "event" | "response" | "combat" | "mandatory" | "home";
     power?: Power;
     timing: string | null;
+    /** Chinese card-face effect text, OCR'd from the scans. */
     textZh: string;
+    /** English translation of textZh, using rulebook terminology. */
+    textEn: string;
     removeOnEvent: boolean;
     removeAfterUse: boolean;
     removeCondition?: string;

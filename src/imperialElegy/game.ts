@@ -282,13 +282,24 @@ const gwManeuverBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   G.cpRemaining = 0;
 };
 
+/**
+ * The winter opens its 29.2/29.3 decisions (colonial losses/transfers, neutral
+ * entry) from this phase `onBegin` hook.  boardgame.io rejects
+ * `setActivePlayers` inside a phase `onBegin`, and `openDecision` uses it to
+ * widen move dispatch to every seat, so the hook must run the resolver without
+ * the events plugin — exactly like `moves.ts#endPhaseCtx`.  The deciding seat's
+ * own turn then opens the decision through a normal move (`gwResolveWinter` is
+ * dispatched by that seat), where the plugin is legal.
+ */
+const winterHookCtx = (ctx: Ctx): Ctx => ({...ctx, events: undefined}) as Ctx;
+
 const gwWinterBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   // Guard on the game phase so a repeated begin hook cannot resolve winter
   // twice (resolveGwWinter advances the GW turn).  A failed resolution leaves
   // G.phase as "gwWinter" so the step can be retried once unblocked.
   const phaseBefore: GamePhase = G.phase;
   if (phaseBefore !== "gwWinter" || !G.gw) return;
-  const res = resolveGwWinter(G, ctx);
+  const res = resolveGwWinter(G, winterHookCtx(ctx));
   // resolveGwWinter mutates G.phase; widen it so TS does not keep the narrowed
   // "gwWinter" type from the guard above.
   const phaseAfter: GamePhase = G.phase;

@@ -148,6 +148,16 @@ describe("Virgin Queen official data - cards", () => {
         expect(CARD_BY_NUMBER[112].nameZh).toBe("街垒日");
     });
 
+    it("provides an English effect text for every card", () => {
+        for (const card of OFFICIAL_CARDS) {
+            expect(card.textEn.length).toBeGreaterThan(0);
+            expect(card.textEn).not.toContain("\n");
+            expect(card.textEn).not.toBe(card.textZh);
+            // The translation must not smuggle the Chinese card face through.
+            expect(card.textEn).not.toMatch(/[㐀-鿿]/);
+        }
+    });
+
     it("makes every complex effect explicit instead of silently faking it", () => {
         for (const card of OFFICIAL_CARDS) {
             expect(card.effect).toBeDefined();

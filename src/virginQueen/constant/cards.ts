@@ -340,6 +340,7 @@ export const CARD_BY_ID: Record<string, CardDef> = Object.fromEntries(
             kind: card.kind === "home" ? "home" : card.kind === "event" ? "event" : "command",
             power: card.power,
             text: card.textZh,
+            textEn: card.textEn,
             officialNumber: card.number,
             officialKind: card.kind,
             officialEffect: card.effect,

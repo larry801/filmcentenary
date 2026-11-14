@@ -26,7 +26,9 @@ import {
   hasLoc,
   isArmyKind,
   isHomeSpace,
+  hostileOwner,
   landUnitsIn,
+  maneuverDestinationProblem,
   navalUnitsIn,
   ownsKey,
   unitsOfPower,
@@ -232,11 +234,18 @@ const influenceTarget = (G: ImperialElegyState, power: Power, region: BditRegion
  */
 const botBattleCtx = {random: {Die: () => 3, Number: () => 0, Shuffle: (a: unknown[]) => a}} as unknown as Ctx;
 
-const legalLandBattle = (G: ImperialElegyState, power: Power, from: SpaceId, to: SpaceId): boolean =>
+const legalLandBattle = (G: ImperialElegyState, power: Power, from: SpaceId, to: SpaceId): boolean => {
+  // 32.5: during the Great War rebels and non-rebel units cannot coexist, so a
+  // battle targeting a rebel space is refused by the GW flow *before*
+  // `beginLandBattle` runs.  Probing only `beginLandBattle` therefore said
+  // "legal" and the bot re-sent a refused move every impulse.  Ask the same
+  // destination gate the flow uses, then the battle gate.
+  if (maneuverDestinationProblem(G, power, {kind: "landBattle", to}) !== null) return false;
   // `beginLandBattle` writes the battle into the state it is given.  Probing
   // the live state leaves that battle open, so every later decision this
   // impulse reads a board the move will never see.
-  beginLandBattle(JSON.parse(JSON.stringify(G)) as ImperialElegyState, botBattleCtx, power, from, to) !== null;
+  return beginLandBattle(JSON.parse(JSON.stringify(G)) as ImperialElegyState, botBattleCtx, power, from, to) !== null;
+};
 
 const findRebelTarget = (G: ImperialElegyState, power: Power): {space: SpaceId; from: SpaceId} | null => {
   for (const [spaceId, spaceState] of Object.entries(G.spaces)) {
@@ -728,17 +737,25 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
 
   if (roll >= 1 && roll <= 3) {
     // Attack or move to defend stability spaces.
-    // Simplified: march into an adjacent space that holds enemy armies.
+    // A march destination must be a *friendly* space (26.x); marching into a
+    // space that holds an enemy army is illegal and `performGwManeuver` refuses
+    // it, which used to leave the bot re-sending a rejected move forever.  The
+    // printed way to attack an adjacent enemy is `landBattle`.  Enemies are
+    // exactly the units `hostileOwner` names: another player on the opposing
+    // side, or a minor — never an ally (an allied army in the space is not a
+    // legal defender, so `beginLandBattle` refuses the attack).  The battle is
+    // probed through the engine's own gate (trenches need a full-strength army
+    // in the attack force, a trench-marker space is attacked from inside it, …)
+    // so the bot never names a fight the move will refuse.
     for (const [id] of Object.entries(G.spaces)) {
       const ours = landUnitsIn(G, id).filter((u) => u.owner === power && !u.elite);
       if (ours.length === 0) continue;
       for (const to of neighboursOf(id)) {
-        const enemies = landUnitsIn(G, to).filter((u) => isPower(u.owner) && u.owner !== power);
+        const enemies = landUnitsIn(G, to).filter((u) => hostileOwner(G, power, u.owner));
         if (enemies.length === 0) continue;
-        // `gwMarch` takes (unitId, to): one army per action, so march the
-        // strongest unit the bot has in the origin space.
-        const unit = ours[0];
-        return {move: "gwMarch", args: [unit.id, to]};
+        if (!legalLandBattle(G, power, id, to)) continue;
+        // `landBattle` takes (from, to): the whole force in `from` attacks.
+        return {move: "landBattle", args: [id, to]};
       }
     }
   }
@@ -790,7 +807,11 @@ export const botDecision = (
   if (phase === "prep") {
     // Take stability discard if stability ≤ 2 (B1: "bots will take the
     // optional stability increase if their stability is ≤ 2").
-    if (p.stability <= 2 && p.hand.length > 0) {
+    //
+    // `prepStability` is the move's own once-per-phase guard.  Ignoring it made
+    // the bot discard, stay at stability ≤ 2 (the discard is +1, but a card can
+    // push it back), and then re-issue the same refused discard forever.
+    if (p.stability <= 2 && p.hand.length > 0 && p.flags.prepStability !== true) {
       const discardable = p.hand.find((id) => {
         const def = cardById(id);
         return def.type !== "mandatory" && def.type !== "mandatoryResponse" && def.kind !== "home";
@@ -892,6 +913,15 @@ export const botDecision = (
   if (phase === "gwManeuver") {
     const p2 = gwPriorityTwo(G, power, 3);
     if (p2 !== null) return p2;
+    // 27.3: GW-10 Exhaustion forbids passing, and as a GW card it is not in
+    // `hand` — `passRestriction` has to be asked about this turn's GW card, or
+    // the bot names a move the engine refuses forever.  Playing it for CP is
+    // the printed escape (the card's event is optional at this point).
+    const gwCard = p.gwCard;
+    if (gwCard && passRestriction(G, power, [gwCard]).forced) {
+      // 27.3's printed escape is to spend the card's CP instead of passing.
+      return {move: "playGwCardMove", args: ["cp"]};
+    }
     return {move: "gwPass"};
   }
 

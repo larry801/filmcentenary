@@ -21,12 +21,16 @@ test.beforeEach(async ({page}) => {
 test("home page shows the game navigation instead of the film lobby", async ({page}) => {
     await page.goto("/");
     await expect(page.getByRole("heading", {name: "游戏中心"})).toBeVisible();
-    // The "全局" group is gone; 卡表 and 规则 are 电影百年-specific links.
+    // The "全局" group is gone; every game now has its own 卡表 link, while
+    // 规则和帮助 stays a Film Centenary link.
     await expect(page.getByRole("group", {name: "全局"})).toHaveCount(0);
     const filmGroup = page.getByRole("group", {name: "电影百年"});
     await expect(filmGroup).toBeVisible();
     await expect(filmGroup.getByRole("link", {name: "卡表"})).toBeVisible();
     await expect(filmGroup.getByRole("link", {name: "规则和帮助"})).toBeVisible();
+    for (const section of ["宋金战争", "Imperial Elegy 帝国挽歌", "Virgin Queen 童贞女王"]) {
+        await expect(page.getByRole("group", {name: section}).getByRole("link", {name: "卡表"})).toBeVisible();
+    }
     // The film lobby's own content must not be rendered on the landing page.
     await expect(page.getByRole("heading", {name: "公开对局"})).toHaveCount(0);
     await expect(page.getByRole("button", {name: "创建游戏"})).toHaveCount(0);
