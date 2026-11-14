@@ -25,6 +25,8 @@ jest.mock("./map", () => {
 });
 
 import {ImperialElegyBoard} from "./board";
+import {PendingPanel, TargetDock} from "./PendingPanel";
+import {ieT} from "./i18n";
 import {ImperialElegyGameDef} from "../game";
 import {setupImperialElegy} from "../engine/setup";
 import {CARDS} from "../constant/cards.data";
@@ -336,6 +338,130 @@ describe("Imperial Elegy board controls", () => {
     // Only the label is visible; the decorated id stays an internal handle.
     expect(label).not.toContain("territorialCession");
     expect(label).not.toContain("Territorial Cession");
+  });
+
+  test("the pending decision is docked above the layout so it cannot scroll out of view", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-dock",
+      kind: "eventTargetSpace",
+      power: "GE",
+      prompt: "Choose a space",
+      options: [{id: "berlin", label: "Berlin"}],
+      createdAt: 1,
+    };
+    const markup = html(G, "0");
+    const dock = markup.indexOf("data-testid=\"ie-dock\"");
+    const layout = markup.indexOf("class=\"ie-layout\"");
+    expect(dock).toBeGreaterThan(-1);
+    expect(layout).toBeGreaterThan(dock);
+    // The dock keeps its own copy of the decision controls and a collapse toggle.
+    expect(markup).toContain("data-testid=\"ie-pending-option-berlin\"");
+    expect(markup).toContain("data-testid=\"ie-dock-toggle\"");
+  });
+
+  test("no decision dock is rendered when nothing is pending", () => {
+    const markup = html(freshGame(), "0");
+    expect(markup).not.toContain("data-testid=\"ie-dock\"");
+  });
+
+  test("a collapsed dock shows a one-line summary instead of the option list", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-collapsed",
+      kind: "eventTargetSpace",
+      power: "GE",
+      prompt: "Choose a space",
+      options: [{id: "berlin", label: "Berlin"}],
+      createdAt: 1,
+    };
+    const props = {
+      G,
+      pending: G.pending,
+      canDecide: true,
+      pendingKind: "Choose a space",
+      pendingPrompt: "选择一个空间",
+      optionLabel: () => "Berlin",
+      canDecline: true,
+      pendingSpaceTargets: [],
+      viewer: "GE" as const,
+      locale: "zh_CN" as const,
+      t: ieT(),
+      jihadDecision: null,
+      jihadReason: undefined,
+      doAction: () => undefined,
+      moves: {},
+    };
+    const open = renderToStaticMarkup(React.createElement(PendingPanel, {...props, dock: true}));
+    expect(open).toContain("data-testid=\"ie-pending-option-berlin\"");
+
+    const collapsed = renderToStaticMarkup(React.createElement(PendingPanel, {
+      ...props, dock: true, collapsed: true, onToggleCollapsed: () => undefined,
+    }));
+    expect(collapsed).toContain("data-testid=\"ie-dock-summary\"");
+    expect(collapsed).toContain("选择一个空间");
+    expect(collapsed).not.toContain("data-testid=\"ie-pending-option-berlin\"");
+    expect(collapsed).toContain("aria-expanded=\"false\"");
+  });
+
+  test("the target instruction strip renders the prompt and a cancel button", () => {
+    const stripe = renderToStaticMarkup(React.createElement(TargetDock, {
+      title: "选择战斗目标",
+      body: "从柏林出击：在地图上点击高亮的相邻空间。",
+      cancelLabel: "取消",
+      onCancel: () => undefined,
+    }));
+    expect(stripe).toContain("data-testid=\"ie-dock-target\"");
+    expect(stripe).toContain("选择战斗目标");
+    expect(stripe).toContain("从柏林出击");
+    expect(buttonTag(stripe, "ie-dock-target-cancel")).toContain("取消");
+  });
+
+  test("the required home-card choice is pinned in the dock above the layout", () => {
+    const G = freshGame();
+    G.phase = "diplomacy";
+    G.activePower = "GE";
+    const markup = html(G, "0");
+    const dock = markup.indexOf("data-testid=\"ie-dock\"");
+    const layout = markup.indexOf("class=\"ie-layout\"");
+    expect(dock).toBeGreaterThan(-1);
+    expect(layout).toBeGreaterThan(dock);
+    expect(markup.indexOf("data-testid=\"ie-home-card-choice\"")).toBeLessThan(layout);
+    // The hand panel only points at the dock instead of duplicating the buttons.
+    expect(markup).toContain("data-testid=\"ie-hand-choices-hint\"");
+    expect(markup.match(/data-testid="ie-home-card-choice"/g)).toHaveLength(1);
+  });
+
+  test("the end-phase National Goal pick is pinned in the dock", () => {
+    const G = freshGame();
+    G.phase = "end";
+    G.powers.GE.flags.ngChoices = "G1,G2,G3";
+    const markup = html(G, "0");
+    const layout = markup.indexOf("class=\"ie-layout\"");
+    const choice = markup.indexOf("data-testid=\"ie-goal-choice\"");
+    expect(choice).toBeGreaterThan(-1);
+    expect(choice).toBeLessThan(layout);
+    expect(markup.match(/data-testid="ie-goal-choice"/g)).toHaveLength(1);
+  });
+
+  test("the prep-phase stability discard is pinned in the dock", () => {
+    const G = freshGame();
+    G.phase = "prep";
+    G.flags = {...G.flags};
+    G.powers.GE.flags.prepStability = false;
+    const markup = html(G, "0");
+    expect(markup).toContain("data-testid=\"ie-stability-discard\"");
+    expect(markup.match(/data-testid="ie-stability-discard"/g)).toHaveLength(1);
+  });
+
+  test("the optional diplomacy card transfer stays in the hand panel", () => {
+    const G = freshGame();
+    G.phase = "diplomacy";
+    const markup = html(G, "0");
+    // Giving a card is optional, so it must not take over the pinned dock.
+    expect(markup).toContain("data-testid=\"ie-give-card\"");
+    const layout = markup.indexOf("class=\"ie-layout\"");
+    expect(markup.indexOf("data-testid=\"ie-give-card\"")).toBeGreaterThan(layout);
   });
 
   test("every move the board calls is registered on the game definition", () => {

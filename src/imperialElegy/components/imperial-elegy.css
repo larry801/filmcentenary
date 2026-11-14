@@ -152,6 +152,18 @@
 .ie-hand > .ie-card, .ie-goal-hand > .ie-card { max-width: 300px; }
 .ie-card-standalone { max-width: 300px; }
 .ie-hand-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.ie-dock-choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+.ie-dock-choice {
+  padding: 8px 14px;
+  border: 1px solid #b3873a;
+  border-left-width: 4px;
+  border-radius: var(--ie-radius);
+  background: #3a2c1c;
+  color: #f0d799;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .55);
+}
+.ie-dock-choice .ie-section-title { color: #d9be86; }
+.ie-dock-choices + .ie-dock-panel { margin-top: 8px; }
 .ie-hand-section { margin-top: 10px; }
 .ie-section-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #cbb07a; margin-bottom: 4px; }
 
@@ -213,6 +225,59 @@
 .ie-pending-options button:disabled { opacity: .4; cursor: not-allowed; }
 .ie-battle { margin-top: 8px; border-top: 1px solid #4a3a26; padding-top: 6px; font-size: 11px; line-height: 1.45; }
 .ie-battle h4 { margin: 0 0 3px; color: #f0d799; font-size: 12px; }
+
+/* ---------------------------------------------------------------- decision dock */
+/* The pending/target decision is the most important control on the board, so it
+   is pinned under the app bar instead of sitting at the bottom of the right
+   column where a tall map or hand scrolls it out of view. */
+.ie-dock {
+  position: sticky;
+  top: 52px;
+  z-index: 30;
+  margin-top: 12px;
+}
+.ie-dock-panel {
+  border-color: #b3873a;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .55);
+  background: #2b2318;
+}
+.ie-dock-panel .ie-panel-head { border-bottom-color: #7a5c33; }
+.ie-dock-panel .ie-panel-body { max-height: min(45vh, 420px); overflow: auto; }
+.ie-panel-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ie-dock-toggle {
+  background: #3b3025;
+  color: #e7d7b7;
+  border: 1px solid #6d5636;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.ie-dock-toggle:hover { background: #4a3a2f; }
+.ie-dock-summary {
+  font-size: 13px;
+  color: #f1e3c4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ie-dock-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 10px 14px;
+  border: 1px solid #c08a3c;
+  border-left-width: 4px;
+  border-radius: var(--ie-radius);
+  background: #3a2c1c;
+  color: #f0d799;
+  font-size: 13px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .55);
+}
+.ie-dock-target span { color: #e3d2b0; flex: 1 1 240px; }
+.ie-dock-target .ie-dock-toggle { flex: 0 0 auto; }
 
 /* ---------------------------------------------------------------- buttons */
 .ie-btn {
@@ -436,6 +501,8 @@
 .ie-reference > .ie-panel { border: 0; box-shadow: none; }
 .ie-hand-panel .ie-panel-head { align-items: flex-start; }
 @media (max-width: 600px) {
+  .ie-dock { top: 48px; margin-top: 8px; }
+  .ie-dock-panel .ie-panel-body { max-height: 38vh; }
   .ie-surface { padding: 8px; }
   .ie-panel-body { padding: 10px; }
   .ie-panel-head { padding: 10px; }

@@ -45,6 +45,8 @@ export interface HandPanelProps {
   cpBudget: () => number;
   doAction: (fn: () => void) => void;
   moves: Record<string, (...args: any[]) => void>;
+  /** One-line pointer to the pinned decision dock, when a card choice is waiting there. */
+  handChoicesHint: string | null;
 }
 
 export const HandPanel = (props: HandPanelProps) => {
@@ -53,7 +55,7 @@ export const HandPanel = (props: HandPanelProps) => {
     forcedPass, forcedPassTitle, hand, renderCard, homeCardTitle, saveList, ngChoices,
     giveCards, giveCardId, setGiveCardId, giveTarget, setGiveTarget, giveCardValue,
     responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
-    chainReady, chainDisabledReason, doAction, moves,
+    chainReady, chainDisabledReason, doAction, moves, handChoicesHint,
   } = props;
 
   const giveTargets = POWER_KEYS.filter((p) => p !== viewer);
@@ -128,14 +130,21 @@ export const HandPanel = (props: HandPanelProps) => {
             </div>
           )}
 
-          {phase === "diplomacy" && me.homeCards.length > 0 && (
-            <div className="ie-hand-section">
-              <div className="ie-section-title">{t.chooseHome}:</div>
+          {handChoicesHint !== null && (
+            <div className="ie-hint" data-testid="ie-hand-choices-hint">{handChoicesHint}</div>
+          )}
+
+          {phase === "diplomacy" && giveCards.length > 0 && (
+            <div className="ie-hand-section" data-testid="ie-give-card">
+              <div className="ie-section-title">{bi(locale, "Give a card (diplomacy)", "转交卡牌（外交阶段）")}</div>
               <div className="ie-inline">
-                {me.homeCards.map((id) => {
-                  const chosen = me.selectedHomeCard === id;
-                  return <button key={id} className={`ie-btn secondary${chosen ? " selected" : ""}`} aria-pressed={chosen} disabled={!canPhaseAct || me.selectedHomeCard !== null} onClick={() => doAction(() => moves.chooseHomeCard(id))}>{chosen ? "✓ " : ""}{homeCardTitle(id)}</button>;
-                })}
+                <select className="ie-select" value={giveTarget} onChange={(e) => setGiveTarget(e.target.value as Power)}>
+                  {giveTargets.map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
+                </select>
+                <select className="ie-select" value={giveCardValue} onChange={(e) => setGiveCardId(e.target.value)}>
+                  {giveCards.map((id) => <option key={id} value={id}>{homeCardTitle(id)}</option>)}
+                </select>
+                <button className="ie-btn" disabled={giveTarget === viewer || !giveCardValue} onClick={() => doAction(() => moves.giveCard(giveTarget, giveCardValue))}>{bi(locale, "Give", "转交")}</button>
               </div>
             </div>
           )}
@@ -150,44 +159,6 @@ export const HandPanel = (props: HandPanelProps) => {
                     <CardFace goal={goal} locale={locale}/>
                   </article> : null;
                 })}
-              </div>
-            </div>
-          )}
-
-          {phase === "end" && ngChoices.length > 0 && (
-            <div className="ie-hand-section ie-goal-choice" data-testid="ie-goal-choice">
-              <div className="ie-section-title">{bi(locale, "Draw three National Goals and keep one", "抽三张国家目标并保留一张")}</div>
-              <div className="ie-inline">
-                {ngChoices.map((id) => (
-                  <button key={id} className="ie-btn secondary" onClick={() => doAction(() => moves.chooseGoal(id))}>{locale === "zh_CN" ? GOALS_BY_ID[id]?.titleZh : GOALS_BY_ID[id]?.title}</button>
-                ))}
-              </div>
-              <div className="ie-hint">{bi(locale, "Continuing without a choice keeps the first Goal.", "未选择即继续时自动保留第一张目标。")}</div>
-            </div>
-          )}
-
-          {phase === "prep" && canPhaseAct && !me.flags.prepStability && (
-            <div className="ie-hand-section">
-              <div className="ie-section-title">{t.discardForStability}:</div>
-              <div className="ie-inline">
-                {hand.filter((id) => cardById(id).type !== "mandatory" && cardById(id).kind !== "home").map((id) => (
-                  <button key={id} className="ie-btn secondary" onClick={() => doAction(() => moves.discardForStability(id))}>{homeCardTitle(id)}</button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {phase === "diplomacy" && giveCards.length > 0 && (
-            <div className="ie-hand-section" data-testid="ie-give-card">
-              <div className="ie-section-title">{bi(locale, "Give a card (diplomacy)", "转交卡牌（外交阶段）")}</div>
-              <div className="ie-inline">
-                <select className="ie-select" value={giveTarget} onChange={(e) => setGiveTarget(e.target.value as Power)}>
-                  {giveTargets.map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
-                </select>
-                <select className="ie-select" value={giveCardValue} onChange={(e) => setGiveCardId(e.target.value)}>
-                  {giveCards.map((id) => <option key={id} value={id}>{homeCardTitle(id)}</option>)}
-                </select>
-                <button className="ie-btn" disabled={giveTarget === viewer || !giveCardValue} onClick={() => doAction(() => moves.giveCard(giveTarget, giveCardValue))}>{bi(locale, "Give", "转交")}</button>
               </div>
             </div>
           )}

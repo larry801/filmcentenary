@@ -60,7 +60,8 @@ import {
 } from "./boardHelpers";
 import {MapPanel} from "./MapPanel";
 import {SpacePanel} from "./SpacePanel";
-import {PendingPanel} from "./PendingPanel";
+import {PendingPanel, TargetDock} from "./PendingPanel";
+import {HandChoices, hasHandChoices} from "./HandChoices";
 import {HandPanel} from "./HandPanel";
 import {CardFace} from "./CardFace";
 import {DashboardPanel} from "./DashboardPanel";
@@ -119,6 +120,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const [gwTransferTo, setGwTransferTo] = React.useState<string>("");
   const [gwTransferAmount, setGwTransferAmount] = React.useState(1);
   const [showLog, setShowLog] = React.useState(true);
+  const [dockCollapsed, setDockCollapsed] = React.useState(false);
   const [amphibiousFrom, setAmphibiousFrom] = React.useState<string>("");
   const [amphibiousTo, setAmphibiousTo] = React.useState<string>("");
   const [amphibiousUnitIds, setAmphibiousUnitIds] = React.useState<string[]>([]);
@@ -817,7 +819,39 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
             : pending !== null ? bi(actualLocale, "Resolve the pending decision first.", "请先处理待决事项。")
               : G.cpRemaining > 0 ? bi(actualLocale, "Finish this impulse first; the chain starts a fresh one.", "请先结束本次行动；CP 链需从新的行动开始。")
                 : chainSpendable <= 0 ? bi(actualLocale, "The chained cards have no CP.", "CP 链中的牌没有 CP。")
-                  : bi(actualLocale, "Not available now.", "当前不可用。");  const mapHint = pendingSpaceTargets.length > 0
+                  : bi(actualLocale, "Not available now.", "当前不可用。");
+  // A battle selection needs a click on the map. Show that instruction in the
+  // pinned dock too, so the player never has to scroll back to the SpacePanel
+  // to learn that the map is waiting for a target.
+  const targetingHint: {title: string; body: string; cancel: () => void} | null = battleFrom !== null
+    ? {
+        title: bi(actualLocale, "Choose a battle target", "选择战斗目标"),
+        body: bi(actualLocale,
+          `From ${spaceLabel(battleFrom, actualLocale)}: click a highlighted adjacent space on the map.`,
+          `从${spaceLabel(battleFrom, actualLocale)}出击：在地图上点击高亮的相邻空间。`),
+        cancel: () => setBattleFrom(null),
+      }
+    : navalFrom !== null
+      ? {
+          title: bi(actualLocale, "Choose a naval battle space", "选择海战海域"),
+          body: bi(actualLocale,
+            `From ${spaceLabel(navalFrom, actualLocale)}: click a highlighted adjacent sea space on the map.`,
+            `从${spaceLabel(navalFrom, actualLocale)}出击：在地图上点击高亮的相邻海域。`),
+          cancel: () => setNavalFrom(null),
+        }
+      : null;
+  // Card choices that the rules require now (home card, National Goal, the prep
+  // stability discard) join the same pinned dock, so a tall map or a long hand
+  // cannot hide them. HandPanel only shows a pointer.
+  const choicesProps = {
+    viewer, me, locale: actualLocale, t, phase, canPhaseAct, hand, ngChoices,
+    homeCardTitle, doAction, moves,
+  };
+  const dockChoices = hasHandChoices(choicesProps);
+  const handChoicesHint = dockChoices
+    ? bi(actualLocale, "Required choices are pinned in the decision panel above.", "当前必须做出的选择已固定在页面顶部的决策面板。")
+    : null;
+  const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
     : battleFrom !== null
       ? bi(actualLocale, "Click a highlighted adjacent space to attack it.", "点击高亮的相邻空间发动进攻。")
@@ -868,6 +902,42 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
         </div>
       ) : null}
 
+      {(pending || battle || G.result || targetingHint !== null || dockChoices) && (
+        <div className="ie-dock" data-testid="ie-dock">
+          {targetingHint !== null && (
+            <TargetDock
+              title={targetingHint.title}
+              body={targetingHint.body}
+              cancelLabel={t.cancel}
+              onCancel={targetingHint.cancel}
+            />
+          )}
+          {dockChoices && <HandChoices {...choicesProps}/>}
+          {(pending || battle || G.result) && (
+            <PendingPanel
+              G={G}
+              pending={pending}
+              canDecide={canDecide}
+              pendingKind={pendingKind}
+              pendingPrompt={pendingPrompt}
+              optionLabel={optionLabel}
+              canDecline={canDecline}
+              pendingSpaceTargets={pendingSpaceTargets}
+              viewer={viewer}
+              locale={actualLocale}
+              t={t}
+              jihadDecision={jihadDecision}
+              jihadReason={jihadReason}
+              doAction={doAction}
+              moves={moves}
+              dock
+              collapsed={dockCollapsed}
+              onToggleCollapsed={() => setDockCollapsed((v) => !v)}
+            />
+          )}
+        </div>
+      )}
+
       <div className="ie-layout">
         <div className="ie-play-column">
           <MapPanel
@@ -890,7 +960,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               homeCardTitle, saveList, ngChoices, giveCards, giveCardId, setGiveCardId,
               giveTarget, setGiveTarget, giveCardValue, responseInHand, responseWindow,
               chainNonEmpty, chainSpendable, chainCap, chainReady, chainDisabledReason,
-              cpBudget, doAction, moves}}
+              cpBudget, doAction, moves, handChoicesHint}}
             locale={actualLocale}
           />
         </div>
@@ -949,26 +1019,8 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               moves={moves}
             />
 
-            {(pending || battle || G.result) && <PendingPanel
-              G={G}
-              pending={pending}
-              canDecide={canDecide}
-              pendingKind={pendingKind}
-              pendingPrompt={pendingPrompt}
-              optionLabel={optionLabel}
-              canDecline={canDecline}
-              pendingSpaceTargets={pendingSpaceTargets}
-              viewer={viewer}
-              locale={actualLocale}
-              t={t}
-              jihadDecision={jihadDecision}
-              jihadReason={jihadReason}
-              doAction={doAction}
-              moves={moves}
-            />}
-
-          <details className="ie-reference">
-            <summary>{bi(actualLocale, "Powers & objectives", "列强与目标")}</summary>
+            <details className="ie-reference">
+              <summary>{bi(actualLocale, "Powers & objectives", "列强与目标")}</summary>
           <DashboardPanel
             G={G}
             active={active}
