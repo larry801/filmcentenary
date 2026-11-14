@@ -215,6 +215,7 @@ const choiceStages = {
     interceptionOrder: {moves: {chooseInterceptionOrder, autoInterceptionOrder}},
     gregorianResponse: {moves: {playCard, declineGregorianCalendar}},
     interceptChoice: {moves: {chooseInterception}},
+    withdrawChoice: {moves: {chooseWithdraw}},
     respondBetroth: {moves: {acceptBetroth, rejectBetroth}},
     // Spring-only: choose a returning naval leader's home port. Home card,
     // HRE preference and ending the turn stay available so automated clients

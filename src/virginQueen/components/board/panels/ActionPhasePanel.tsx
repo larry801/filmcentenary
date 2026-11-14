@@ -14,6 +14,8 @@ import {powerName, landCount, VQGame} from "../../../constant/general";
 import {LEADER_BY_ID} from "../../../constant/leaders";
 import {SPACES} from "../../../mapData";
 import {landNeighbors} from "../../../util";
+import {ownerOf} from "../../../ownership";
+import {blockingPendingReason} from "../helpers";
 
 import {leaderLabel, placeLabel, unitLabel} from "../helpers";
 import {useVQBoard} from "../BoardContext";
@@ -24,8 +26,10 @@ import {ActionModePicker} from "./ActionModePicker";
 import {ActionExtras} from "./ActionExtras";
 
 export const ActionPhasePanel = () => {
-    const {G, moves, vqLocale, from, foreignWarUnits, setForeignWarUnits, foreignWarLeader, setForeignWarLeader, setConfirmAction, me, myTurn, ps, cp, hand, passBlockCodes, passBlockReason, endImpulseBlocked, hotseatWaitHint, space} = useVQBoard();
+    const {G, moves, playerID, ctx, vqLocale, from, foreignWarUnits, setForeignWarUnits, foreignWarLeader, setForeignWarLeader, setConfirmAction, me, myTurn, ps, cp, hand, passBlockCodes, passBlockReason, endImpulseBlocked, hotseatWaitHint, space} = useVQBoard();
     if (me === undefined) return null;
+    const movementPending = !!(G.pendingWithdraw || G.pendingContinue);
+    const movementBlockedReason = movementPending ? blockingPendingReason(G) : undefined;
     return <Stack spacing={1}>
         <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
             <Typography variant="body2">{i18n.chain.vq.board.remainingCp}: <b>{cp}</b></Typography>
@@ -50,9 +54,9 @@ export const ActionPhasePanel = () => {
                 {placeLabel(G.pendingWithdraw.space)} {i18n.chain.vq.board.withdrawOrField}{i18n.chain.vq.punct.period}
             </Typography>
             <Stack direction="row" spacing={0.5} sx={{mt: 0.5}}>
-                <Button size="small" variant="outlined" disabled={!myTurn}
+                <Button size="small" variant="outlined" disabled={ctx.gameover !== undefined || ownerOf(G, G.pendingWithdraw.defender) !== playerID}
                     onClick={() => moves.chooseWithdraw({withdraw: true})}>{i18n.chain.vq.board.retreatInto}</Button>
-                <Button size="small" variant="outlined" color="error" disabled={!myTurn}
+                <Button size="small" variant="outlined" color="error" disabled={ctx.gameover !== undefined || ownerOf(G, G.pendingWithdraw.defender) !== playerID}
                     onClick={() => moves.chooseWithdraw({withdraw: false})}>{i18n.chain.vq.board.fieldBattle}</Button>
             </Stack>
         </Paper>}
@@ -111,17 +115,17 @@ export const ActionPhasePanel = () => {
         {myTurn && endImpulseBlocked && passBlockReason !== undefined &&
             <Typography variant="caption" color="error" role="status">{passBlockReason}</Typography>}
         <div className="vq-turn-actions">
-            <Tooltip title={!myTurn ? i18n.chain.vq.turn.notYourTurn : passBlockReason ?? ""}>
+            <Tooltip title={!myTurn ? i18n.chain.vq.turn.notYourTurn : movementBlockedReason ?? passBlockReason ?? ""}>
                 <span>
                     <Button size="small" color="inherit" variant="text" className="vq-pass"
-                            disabled={!myTurn || passBlockCodes.length > 0}
+                            disabled={!myTurn || movementPending || passBlockCodes.length > 0}
                             onClick={() => setConfirmAction("pass")}>{i18n.chain.vq.turn.pass}</Button>
                 </span>
             </Tooltip>
-            <Tooltip title={!myTurn ? i18n.chain.vq.turn.notYourTurn : endImpulseBlocked ? passBlockReason ?? "" : ""}>
+            <Tooltip title={!myTurn ? i18n.chain.vq.turn.notYourTurn : movementBlockedReason ?? (endImpulseBlocked ? passBlockReason ?? "" : "")}>
                 <span>
                     <Button size="small" variant="contained" className="vq-end-impulse"
-                            disabled={!myTurn || endImpulseBlocked}
+                            disabled={!myTurn || movementPending || endImpulseBlocked}
                             onClick={() => setConfirmAction("endImpulse")}>{i18n.chain.vq.turn.endImpulse}</Button>
                 </span>
             </Tooltip>

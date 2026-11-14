@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
+import {INVALID_MOVE} from "boardgame.io/core";
 import {VQGame, landCount} from "./constant/general";
-import {chooseWithdraw, continueMove, moveLand, stopContinue} from "./moves";
+import {chooseWithdraw, continueMove, endImpulse, moveLand, recruit, stopContinue} from "./moves";
 import {setupGame} from "./util";
 
 const context = (player = "3"): Ctx => ({
@@ -29,6 +30,23 @@ const prepare = (G: VQGame): void => {
 };
 
 describe("withdraw into fortifications (rule 13.4)", () => {
+    it("blocks unrelated actions until withdrawal and continuation are settled", () => {
+        const G = game();
+        prepare(G);
+        G.powers.france.cardPlayed = true;
+        moveLand(G, context(), {from: "paris", to: "orleans", units: {regular: 2}, leaders: []});
+        expect(endImpulse(G, context())).toBe(INVALID_MOVE);
+        expect(recruit(G, context(), {space: "paris", kind: "merc"})).toBe(INVALID_MOVE);
+        expect(chooseWithdraw(G, context(), {withdraw: true})).toBe(INVALID_MOVE);
+        expect(G.pendingWithdraw).toBeDefined();
+        chooseWithdraw(G, context("2"), {withdraw: true});
+        expect(G.pendingContinue).toBeDefined();
+        expect(endImpulse(G, context())).toBe(INVALID_MOVE);
+        expect(recruit(G, context(), {space: "paris", kind: "merc"})).toBe(INVALID_MOVE);
+        expect(stopContinue(G, context())).toBeUndefined();
+        expect(endImpulse(G, context())).toBeUndefined();
+    });
+
     it("offers the attacker a 1 CP continuation after the defenders withdraw", () => {
         const G = game();
         prepare(G);

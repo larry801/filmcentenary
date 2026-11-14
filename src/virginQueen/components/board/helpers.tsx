@@ -152,7 +152,7 @@ export const foreignWarEnemyName = (enemy: string | undefined): string =>
  */
 export const blockingPendingReason = (G: VQGame): string | undefined => {
     const b = i18n.chain.vq.turn.blocked;
-    const what = G.pendingBattle || G.pendingReliefSplit ? b.battle
+    const what = G.pendingBattle || G.pendingReliefSplit || G.pendingWithdraw || G.pendingContinue ? b.battle
         : G.pendingEspionage ? b.espionage
         : G.pendingIntercept || G.pendingInterceptionOrder || G.pendingBeacon ? b.interception
         : G.pendingCardEvent || G.pendingTutorialEvent || G.gregorianResponse || G.pendingAbjuration ? b.cardEvent
