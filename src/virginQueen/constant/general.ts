@@ -698,9 +698,10 @@ export interface VQGame {
     pendingNavalOrder?: {attacker: Power; location: string; enemies: Power[]};
     /** All fleets have moved simultaneously; resolve each destination before another action. */
     pendingNavalMoves?: {power: Power; arrivals: {from: string; to: string; destinationHadEnemy: boolean}[]};
-    pendingWithdraw?: {active: Power; defender: Power; space: string; origin: string};
+    pendingWithdraw?: {active: Power; /** Owner of the incoming stack; may be an ally of `active`. */ unitPower?: Controller; defender: Power; space: string; origin: string};
     pendingReliefSplit?: {space: string; from: string; power: Power; keepLimit: number; pUnits: number};
-    pendingContinue?: {power: Power; origin: string; space: string; units: LandStack; leaders: string[]};
+    /** `unitPower` owns the moving stack; it may be an ally of `power` (rule 13.4 + 9.1). */
+    pendingContinue?: {power: Power; unitPower?: Controller; origin: string; space: string; units: LandStack; leaders: string[]};
     pendingIntercept?: {power: Power; defender: Power; from: string; to: string; phase: "field" | "naval"; attackers: Controller[]; attempted: string[]; succeeded: boolean; transported?: boolean};
     /** #14 response window: a home-port interception attempt waits for the defender before its roll. */
     pendingBeacon?: {power: Power; defender: Power; from: string; moveFrom: string; to: string; destinationHadEnemy: boolean};

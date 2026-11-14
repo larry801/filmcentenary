@@ -4947,7 +4947,7 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
         } else {
             // Rule 16.3.4: a lost field battle at the port eliminates the
             // transported units instead of retreating them.
-            fieldBattle(G, ctx, args.to, p, enemies, args.from, true);
+            fieldBattle(G, ctx, args.to, p, enemies, args.from, true, [p]);
         }
     } else if (isFortifiedSpace(G, args.to) && !friendlyControlled(G, p, args.to)) destination.siege = {by: p, sinceImpulse: G.impulse};
     G.navalTransportImpulse = G.impulse;
@@ -5083,7 +5083,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     const defenders = totalLand(G, to, hostile);
     if (defenders > 0) {
         if (intercepted) {
-            fieldBattle(G, ctx, to, p, hostile, from);
+            fieldBattle(G, ctx, to, p, hostile, from, false, [unitPower]);
             return;
         }
         if (G.scenario === "tutorial") {
@@ -5095,22 +5095,22 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
             if (defenderPower !== undefined && friendlyControlled(G, defenderPower as Power, to)) {
                 const decider = (isPower(G.spaces[to].control) ? G.spaces[to].control : defenderPower) as Power;
                 if (ownerOf(G, decider) !== undefined) {
-                    G.pendingWithdraw = {active: p, defender: decider, space: to, origin: from};
+                    G.pendingWithdraw = {active: p, unitPower, defender: decider, space: to, origin: from};
                     ctx.events?.setActivePlayers({value: {[ownerOf(G, decider)!]: "withdrawChoice"}});
                     return;
                 }
             }
-            if (totalLand(G, to, [p]) > defenders) {
+            if (totalLand(G, to, [unitPower]) > defenders) {
                 addBesieger(G, to, p);
                 pushLog(G, `The defenders of ${SPACE_BY_ID[to].name} withdraw into the fortifications; the space is under siege.`);
             } else if (G.powers[p].cp >= 1) {
-                G.pendingContinue = {power: p, origin: from, space: to, units: {...stack}, leaders: [...leaders]};
+                G.pendingContinue = {power: p, unitPower, origin: from, space: to, units: {...stack}, leaders: [...leaders]};
                 pushLog(G, "The defenders withdraw; the active formation may spend 1 CP to continue or return.");
             } else {
-                const st = G.spaces[to].land[p];
+                const st = G.spaces[to].land[unitPower];
                 if (st !== undefined) {
-                    delete G.spaces[to].land[p];
-                    const back = ensureLand(G, from, p);
+                    delete G.spaces[to].land[unitPower];
+                    const back = ensureLand(G, from, unitPower);
                     back.regular += st.regular;
                     back.merc += st.merc;
                     back.cav += st.cav;
@@ -5123,7 +5123,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
                 }
             }
         } else {
-            fieldBattle(G, ctx, to, p, hostile, from);
+            fieldBattle(G, ctx, to, p, hostile, from, false, [unitPower]);
         }
         return;
     }
@@ -5403,14 +5403,18 @@ export const chooseWithdraw = (G: VQGame, ctx: Ctx, args: {withdraw: boolean}): 
     const pending = G.pendingWithdraw;
     if (pending === undefined || ctx.playerID !== ownerOf(G, pending.defender)) return INVALID_MOVE;
     const state = G.spaces[pending.space];
-    const defenders = totalLand(G, pending.space, ownersWithLand(G, pending.space).filter((owner) => owner !== pending.active));
-    const activeUnits = totalLand(G, pending.space, [pending.active]);
+    const owner: Controller = pending.unitPower ?? pending.active;
+    // Defenders are everyone not on the active side: the incoming stack may
+    // belong to an ally, and an allied garrison is never a defender.
+    const defenders = totalLand(G, pending.space, ownersWithLand(G, pending.space)
+        .filter((candidate) => candidate !== owner && !friendlyController(G, pending.active, candidate)));
+    const activeUnits = totalLand(G, pending.space, [owner]);
     delete G.pendingWithdraw;
     ctx.events?.endStage();
     if (!args.withdraw) {
-        const hostile = ownersWithLand(G, pending.space).filter((owner) => !friendlyController(G, pending.active, owner) && !besiegerOwners(G, pending.space).includes(owner as Power));
+        const hostile = ownersWithLand(G, pending.space).filter((candidate) => !friendlyController(G, pending.active, candidate) && !besiegerOwners(G, pending.space).includes(candidate as Power));
         const activeCtx = {...ctx, playerID: ownerOf(G, pending.active)!};
-        fieldBattle(G, activeCtx, pending.space, pending.active, hostile, pending.origin);
+        fieldBattle(G, activeCtx, pending.space, pending.active, hostile, pending.origin, false, [owner]);
         return;
     }
     if (activeUnits > defenders) {
@@ -5419,22 +5423,22 @@ export const chooseWithdraw = (G: VQGame, ctx: Ctx, args: {withdraw: boolean}): 
         return;
     }
     if (G.powers[pending.active].cp >= 1) {
-        const stack = state.land[pending.active];
+        const stack = state.land[owner];
         if (stack !== undefined) {
-            const leaders = state.leaders.filter((id) => LEADER_BY_ID[id]?.power === pending.active && LEADER_BY_ID[id]?.kind === "army");
-            G.pendingContinue = {power: pending.active, origin: pending.origin, space: pending.space, units: {...stack}, leaders};
+            const leaders = state.leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+            G.pendingContinue = {power: pending.active, unitPower: owner, origin: pending.origin, space: pending.space, units: {...stack}, leaders};
             pushLog(G, "The defenders withdraw; the active formation may spend 1 CP to continue or return.");
         }
         return;
     }
-    const stack = state.land[pending.active];
+    const stack = state.land[owner];
     if (stack !== undefined) {
-        delete state.land[pending.active];
-        const back = ensureLand(G, pending.origin, pending.active);
+        delete state.land[owner];
+        const back = ensureLand(G, pending.origin, owner);
         back.regular += stack.regular;
         back.merc += stack.merc;
         back.cav += stack.cav;
-        for (const id of state.leaders.filter((leader) => LEADER_BY_ID[leader]?.power === pending.active)) {
+        for (const id of state.leaders.filter((leader) => LEADER_BY_ID[leader]?.power === owner)) {
             state.leaders = state.leaders.filter((leader) => leader !== id);
             G.spaces[pending.origin].leaders.push(id);
             G.leaders[id].location = pending.origin;
@@ -5445,23 +5449,26 @@ export const chooseWithdraw = (G: VQGame, ctx: Ctx, args: {withdraw: boolean}): 
 
 export const continueMove = (G: VQGame, ctx: Ctx, args: {to: string}): void | typeof INVALID_MOVE => {
     const pending = G.pendingContinue;
+    // The stack may belong to an ally (rule 9.1), so use the owner recorded when
+    // the formation entered the space rather than the acting power.
+    const owner: Controller = pending?.unitPower ?? pending?.power ?? "independent";
     const cost = pending !== undefined ? (passBetween(pending.space, args.to) ? 2 : 1) : 1;
     if (pending === undefined || power(G, ctx) !== pending.power || !landAdjacent(pending.space, args.to) ||
         G.powers[pending.power].cp < cost || args.to === pending.origin) return INVALID_MOVE;
     const destination = G.spaces[args.to];
     if (destination === undefined) return INVALID_MOVE;
-    const hostile = ownersWithLand(G, args.to).some((owner) => !friendlyController(G, pending.power, owner));
+    const hostile = ownersWithLand(G, args.to).some((candidate) => !friendlyController(G, pending.power, candidate));
     if (hostile) return INVALID_MOVE;
     const canEnter = friendlyControlled(G, pending.power, args.to) || destination.control === "independent" ||
         (isPower(destination.control) ? atWar(G, pending.power, destination.control) : atWarWithMinor(G, pending.power, destination.control));
     if (!canEnter || !spend(G, pending.power, cost)) return INVALID_MOVE;
-    const source = G.spaces[pending.space].land[pending.power];
+    const source = G.spaces[pending.space].land[owner];
     if (source === undefined || source.regular < pending.units.regular || source.merc < pending.units.merc || source.cav < pending.units.cav) return INVALID_MOVE;
     source.regular -= pending.units.regular;
     source.merc -= pending.units.merc;
     source.cav -= pending.units.cav;
-    if (landCount(source) === 0) delete G.spaces[pending.space].land[pending.power];
-    const target = ensureLand(G, args.to, pending.power);
+    if (landCount(source) === 0) delete G.spaces[pending.space].land[owner];
+    const target = ensureLand(G, args.to, owner);
     target.regular += pending.units.regular;
     target.merc += pending.units.merc;
     target.cav += pending.units.cav;
@@ -5477,13 +5484,14 @@ export const continueMove = (G: VQGame, ctx: Ctx, args: {to: string}): void | ty
 export const stopContinue = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     const pending = G.pendingContinue;
     if (pending === undefined || power(G, ctx) !== pending.power) return INVALID_MOVE;
-    const source = G.spaces[pending.space].land[pending.power];
+    const owner: Controller = pending.unitPower ?? pending.power;
+    const source = G.spaces[pending.space].land[owner];
     if (source === undefined) return INVALID_MOVE;
     source.regular -= pending.units.regular;
     source.merc -= pending.units.merc;
     source.cav -= pending.units.cav;
-    if (landCount(source) === 0) delete G.spaces[pending.space].land[pending.power];
-    const target = ensureLand(G, pending.origin, pending.power);
+    if (landCount(source) === 0) delete G.spaces[pending.space].land[owner];
+    const target = ensureLand(G, pending.origin, owner);
     target.regular += pending.units.regular;
     target.merc += pending.units.merc;
     target.cav += pending.units.cav;

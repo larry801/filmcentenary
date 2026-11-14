@@ -77,9 +77,16 @@ export const ActionPhasePanel = () => {
                 {i18n.chain.vq.board.continueMarch}{i18n.chain.vq.punct.comma}{i18n.chain.vq.board.orReturn} {placeLabel(G.pendingContinue.origin)}{i18n.chain.vq.punct.period}
             </Typography>
             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
-                {landNeighbors(G.pendingContinue.space).filter((neighbor) => !neighbor.pass).map((neighbor) =>
-                    <Button key={neighbor.id} size="small" variant="outlined" disabled={!myTurn || cp < 1}
-                        onClick={() => moves.continueMove({to: neighbor.id})}>{placeLabel(neighbor.id)}</Button>)}
+                {landNeighbors(G.pendingContinue.space).map((neighbor) => {
+                    // Rule 13.4: continuing costs 1 CP, or 2 CP across a pass.
+                    // Pass crossings used to be filtered out entirely, which hid
+                    // a legal (if expensive) continuation from the player.
+                    const cost = neighbor.pass ? 2 : 1;
+                    return <Button key={neighbor.id} size="small" variant="outlined" disabled={!myTurn || cp < cost}
+                        onClick={() => moves.continueMove({to: neighbor.id})}>
+                        {placeLabel(neighbor.id)}{neighbor.pass ? ` (${cost} CP)` : ""}
+                    </Button>;
+                })}
                 <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.stopContinue()}>{i18n.chain.vq.board.returnOrigin}</Button>
             </Stack>
         </Paper>}
