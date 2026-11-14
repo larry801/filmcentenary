@@ -787,10 +787,10 @@ export const recruit = (
   if (power === INVALID_MOVE) return INVALID_MOVE;
   const p = G.powers[power];
 
-  if (p.flags.noBuildArmiesThisImpulse === true && kind !== "eliteCorps") {
-    log(G, power, "recruitRejected", {kind, space, reasons: "Armies may not be built this impulse"});
-    return INVALID_MOVE;
-  }
+  // A83 Liberal Reforms ("no armies may be built this impulse") is one of the
+  // gates inside `canRecruitIn` below, so the UI, the Rule 34 bot and this
+  // move all read the same answer.  Keeping a second copy here is what let the
+  // bot name a build the helper had already called legal.
 
   const ottoman = power === "OT" ? options.ottoman ?? ottomanArmyTypeFor(space) : undefined;
   const cw = power === "UK" && options.cw === true;
@@ -880,10 +880,8 @@ export const recruit = (
     (u) => u.owner === power && u.kind === "army" && (u.flags?.cw === true) === cw,
   );
   const upgrade = existing.length > 0 && existing[0].steps < 2;
-  if (!upgrade && stackingLimit(G, space, power) <= landUnitsIn(G, space).filter((u) => isArmyKind(u.kind)).length) {
-    log(G, power, "recruitRejected", {kind, space, reasons: "Stacking limit reached"});
-    return INVALID_MOVE;
-  }
+  // The stacking gate lives in `canRecruitIn` (called above), so the UI, the
+  // bot and this move all read one answer; nothing to re-check here.
   if (!upgrade && !hasCounterFor(G, power, "army")) {
     log(G, power, "recruitRejected", {kind, space, reasons: "No army counter available"});
     return INVALID_MOVE;
@@ -4993,6 +4991,21 @@ export const applyPrepCharacteristics = (G: ImperialElegyState): void => {
   const compromise = dualMonarchy(G);
   G.phase = previousPhase;
   if (compromise.shouldAddToHand) {
+    // The card is a single physical copy: when it was played for CP on turn 1
+    // it sits in the discard pile (and the prep deck merge shuffles that pile
+    // straight back into `G.deck`).  Adding it to the hand without pulling the
+    // other copy out leaves the game with two A047s, which then shows up as
+    // the same card in the hand twice after a later draw.  Move it, never copy.
+    for (const pile of [G.deck, G.discard, G.removed] as CardId[][]) {
+      const index = pile.indexOf(DUAL_MONARCHY_CARD);
+      if (index >= 0) pile.splice(index, 1);
+    }
+    for (const p of POWERS) {
+      const chain = G.powers[p].cpChain;
+      const index = chain.indexOf(DUAL_MONARCHY_CARD);
+      if (index >= 0) chain.splice(index, 1);
+      if (G.powers[p].industryCard === DUAL_MONARCHY_CARD) G.powers[p].industryCard = null;
+    }
     G.powers.AU.hand.push(DUAL_MONARCHY_CARD);
     G.persistent.dualMonarchyDealt = true;
     log(G, "AU", "dualMonarchyAdded", {card: DUAL_MONARCHY_CARD});

@@ -219,6 +219,53 @@ Fixed in three places:
 Regression coverage: `passRestriction.test.ts`, plus the campaign auto-play
 test, which had been intermittently failing (~1 run in 3) for this reason.
 
+## Fixed: six deadlocks and duplicates found by seeded self-play
+
+A seeded self-play harness (`tools/ie-sim/`) drives the real boardgame.io
+engine — seeded random plugin, phase/turn flow, move validation and
+`playerView` redaction — with the Rule 34 bot for every seat, for both the
+1850 campaign and a match started in the Great War. Running many seeds surfaced
+six engine bugs that the hand-built fixtures never reached. All six are fixed
+and pinned by `selfPlayRegression.test.ts`.
+
+1. **The Dual Monarchy was duplicated.** `applyPrepCharacteristics` pushed
+   `IE-A047` into AU's hand without taking the physical copy out of the deck or
+   discard pile. When AU had played it for CP on turn 1 the copy sat in the
+   discard pile, which the prep deck merge then shuffled back in, so the game
+   carried two A047s (observed as the same card twice in AU's hand, and as one
+   copy in the deck plus one in hand). It is now moved, never copied.
+2. **`canRecruitIn` and `recruit` disagreed on the 5.5 stacking cap.** The
+   helper said a build was legal and the move then refused it, so the hotseat
+   bot re-sent the rejected build every 500 ms forever. The stacking gate now
+   lives in `canRecruitIn` (reported after the power-specific reasons, so
+   Professional Army / colonial / Local Autonomy messages are unchanged) and the
+   duplicate check in `recruit` is gone.
+3. **`canRecruitIn` ignored A83 Liberal Reforms.** `recruit` refused with "no
+   armies may be built this impulse" after the helper had said legal, with the
+   same deadlock. The gate is now part of the helper.
+4. **The Great War winter could never resolve.** `gwWinterBegin` (a phase
+   `onBegin` hook) ran `resolveGwWinter`, whose 29.2/29.3 steps open pending
+   decisions; `openDecision` calls `setActivePlayers`, which boardgame.io
+   rejects inside a phase `onBegin`. The whole move was then rolled back and the
+   game stuck in `gwWinter` for every seed. The hook now runs the resolver with
+   the events plugin removed (the same `endPhaseCtx` pattern the end phase
+   already used), and the deciding seat opens the decision from its own move.
+5. **The bot passed while holding GW-10 Exhaustion.** 27.3 forbids it, and the
+   GW card is not in `hand`, so `passRestriction` was never asked. The bot now
+   plays the card for CP — the printed escape — instead of passing.
+6. **The bot attacked allies and "marched" onto enemy spaces.** In the GW
+   maneuver it treated every non-own unit as an enemy (`u.owner !== power`,
+   which includes allies) and named `gwMarch` for a destination that must be
+   friendly. Both are refused by `performGwManeuver`. It now uses
+   `hostileOwner` and the engine's own `beginLandBattle` gate.
+
+**Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
+with zero refused moves and zero invariant breaks, and the Great War sweep
+(`GA-1…6`, `GW-1…2`) runs planning → maneuver → battles → winter (including the
+colonial transfers and neutral entry) to a decisive result. The full Jest suite
+is **438/438 suites, 4062/4062 tests**, and `tsc` plus the server `tsc` are
+clean.
+
 ## Known fallbacks and simplifications
 
 ### Treaty, peace and war settlement

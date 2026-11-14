@@ -26,6 +26,7 @@ import {
   hasLoc,
   isArmyKind,
   isHomeSpace,
+  hostileOwner,
   landUnitsIn,
   navalUnitsIn,
   ownsKey,
@@ -728,17 +729,25 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
 
   if (roll >= 1 && roll <= 3) {
     // Attack or move to defend stability spaces.
-    // Simplified: march into an adjacent space that holds enemy armies.
+    // A march destination must be a *friendly* space (26.x); marching into a
+    // space that holds an enemy army is illegal and `performGwManeuver` refuses
+    // it, which used to leave the bot re-sending a rejected move forever.  The
+    // printed way to attack an adjacent enemy is `landBattle`.  Enemies are
+    // exactly the units `hostileOwner` names: another player on the opposing
+    // side, or a minor — never an ally (an allied army in the space is not a
+    // legal defender, so `beginLandBattle` refuses the attack).  The battle is
+    // probed through the engine's own gate (trenches need a full-strength army
+    // in the attack force, a trench-marker space is attacked from inside it, …)
+    // so the bot never names a fight the move will refuse.
     for (const [id] of Object.entries(G.spaces)) {
       const ours = landUnitsIn(G, id).filter((u) => u.owner === power && !u.elite);
       if (ours.length === 0) continue;
       for (const to of neighboursOf(id)) {
-        const enemies = landUnitsIn(G, to).filter((u) => isPower(u.owner) && u.owner !== power);
+        const enemies = landUnitsIn(G, to).filter((u) => hostileOwner(G, power, u.owner));
         if (enemies.length === 0) continue;
-        // `gwMarch` takes (unitId, to): one army per action, so march the
-        // strongest unit the bot has in the origin space.
-        const unit = ours[0];
-        return {move: "gwMarch", args: [unit.id, to]};
+        if (!legalLandBattle(G, power, id, to)) continue;
+        // `landBattle` takes (from, to): the whole force in `from` attacks.
+        return {move: "landBattle", args: [id, to]};
       }
     }
   }
@@ -892,6 +901,15 @@ export const botDecision = (
   if (phase === "gwManeuver") {
     const p2 = gwPriorityTwo(G, power, 3);
     if (p2 !== null) return p2;
+    // 27.3: GW-10 Exhaustion forbids passing, and as a GW card it is not in
+    // `hand` — `passRestriction` has to be asked about this turn's GW card, or
+    // the bot names a move the engine refuses forever.  Playing it for CP is
+    // the printed escape (the card's event is optional at this point).
+    const gwCard = p.gwCard;
+    if (gwCard && passRestriction(G, power, [gwCard]).forced) {
+      // 27.3's printed escape is to spend the card's CP instead of passing.
+      return {move: "playGwCardMove", args: ["cp"]};
+    }
     return {move: "gwPass"};
   }
 
