@@ -38,8 +38,16 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 - `navy.test.ts` — fleet builds, sea moves and naval battles (19.1–19.9).
 - `amph.test.ts` — 19.10 amphibious assaults (unopposed and contested).
 - `stress.test.ts` — longer mixed run, random pending choices on half the seeds.
-- `cardCombo.test.ts` — every ordered pair of playable action cards on one
-  state, invariant-checked after each card (~6642 pairs, ~9s).
+- `cardCombo.test.ts` — every ordered pair of playable *event* cards on one
+  state, invariant-checked after each card (~6642 pairs, ~5s).
+- `cardTriple.test.ts` — ordered triples: a cover pass (every card first, middle
+  and last) plus a deterministic seeded sample (`IE_TRIPLES`, default 20000).
+- `cardComboSituations.test.ts` — the same pairs in each board situation:
+  action, wartime maneuver, wartime alliance, Great War.  This is what reaches
+  the four `warOnly` responses, which are `response` cards and are played with
+  `playResponseCard` rather than `playCard`.
+- `cardSweep.ts` — the shared scaffolding those three use (ctx with a
+  `sides`-aware die, single-copy card injection, settle loop, reporting).
 - `batch.test.ts` — N seeds × all six modes, aggregated: completion rate per
   mode, result reasons, distinct fatal signatures (each with a reproducing
   seed) and the moves the batch never touched.  Not a pass/fail gate on

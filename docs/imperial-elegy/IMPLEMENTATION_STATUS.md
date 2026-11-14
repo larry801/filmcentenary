@@ -371,10 +371,23 @@ once on a fresh board, so it could never see this:
     finaliser. The sweep also hardened the `polishRevolt` random-discard index
     against an out-of-range die, which previously threw on `cardById(undefined)`.
 
-The sweep currently runs **6642 ordered pairs in ~9s with zero failures**, and
-reports second-card refusals separately: once the first card has changed the
-board, a printed playability gate legitimately refuses the second, and that is
-not an interaction bug.
+The card sweeps now cover three axes, all reporting second-card refusals
+separately — once an earlier card has changed the board, a printed playability
+gate legitimately refuses the next one, and that is not an interaction bug:
+
+| sweep | scope | result |
+| --- | --- | --- |
+| `cardCombo.test.ts` | every ordered pair of playable **event** cards | 6642 pairs, 0 failures |
+| `cardTriple.test.ts` | deterministic sample of ordered **triples** (a cover pass puts every card first, middle and last, then a seeded sample) | 20000 triples, 0 failures |
+| `cardComboSituations.test.ts` | every ordered pair in each board situation — action, wartime maneuver, wartime alliance, Great War | 33042 / 35766 / 30002 / 32742 pairs, 0 failures |
+
+The situation matrix is what reaches the four `warOnly` responses (A023/A024 in
+a maneuver, A063/A064 in the alliance step): they are `response` cards, so the
+event-pair sweep never sees them and the action-phase sweep correctly refuses
+them. Each situation pairs only the cards its own gates admit, and the differing
+pair counts (35766 in a maneuver vs 30002 in an alliance) are that measurement.
+`responseCardEligibility`/`eventPlayability` decide entry, so `playResponseCard`
+is used where it is the right move.
 
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
