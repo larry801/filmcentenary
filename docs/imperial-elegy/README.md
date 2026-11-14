@@ -70,6 +70,18 @@ Long rules extend the SVG height instead of being clipped or reduced to tiny
 type. Missing module faces, including action cards 21/82 and goal 22, use the
 same renderer. The photographs are represented by lightweight vector emblems.
 
+### Card choices
+
+Whenever the rules ask the player to *pick a card*, the choice renders the
+printed face instead of a title button: the diplomacy home card, the end-phase
+National Goal draw-and-keep, the prep-phase stability discard, the combat
+windows (A043/A058–A062, GW-03–GW-06) and the face-down auctions. A card that
+is offered in several printed modes (A061, A066, the UK's two auction sides)
+keeps one face with one button per mode. `components/CardChoice.tsx` is the
+shared wrapper; `HandChoices` (pinned dock) and `PendingPanel` both use it, and
+the diplomacy give-card preview shows the selected card's face too. Space,
+power and unit options stay plain buttons.
+
 ## Implementation status
 
 The campaign game is playable end-to-end, but this is an **in-progress

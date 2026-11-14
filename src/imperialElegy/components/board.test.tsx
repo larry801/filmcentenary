@@ -30,6 +30,7 @@ import {ieT} from "./i18n";
 import {ImperialElegyGameDef} from "../game";
 import {setupImperialElegy} from "../engine/setup";
 import {CARDS} from "../constant/cards.data";
+import {CARD_BY_ID} from "../engine/deck";
 import {GreatWarState, ImperialElegyState} from "../types";
 import i18n from "../../constant/i18n";
 
@@ -430,6 +431,129 @@ describe("Imperial Elegy board controls", () => {
     // The hand panel only points at the dock instead of duplicating the buttons.
     expect(markup).toContain("data-testid=\"ie-hand-choices-hint\"");
     expect(markup.match(/data-testid="ie-home-card-choice"/g)).toHaveLength(1);
+  });
+
+  test("a home-card choice renders the printed face, not just its title", () => {
+    const G = freshGame();
+    G.phase = "diplomacy";
+    G.activePower = "GE";
+    const markup = html(G, "0");
+    const home = G.powers.GE.homeCards[0];
+    // The face carries the card id and the rules text; the button stays bare.
+    expect(markup).toContain(`data-card-id="${home}"`);
+    const face = markup.match(new RegExp(`<article[^>]*data-testid="ie-home-card-${home}"[\\s\\S]*?</article>`))?.[0] ?? "";
+    expect(face).toContain("<svg");
+    expect(face).toContain(CARD_BY_ID[home].titleZh);
+    expect(face).toContain(`data-testid="ie-choose-home-${home}"`);
+  });
+
+  test("the end-phase National Goal pick shows each candidate's face", () => {
+    const G = freshGame();
+    G.phase = "end";
+    const drawn = G.powers.GE.goalDeck.slice(0, 3);
+    G.powers.GE.flags.ngChoices = drawn.join(",");
+    const markup = html(G, "0");
+    for (const id of drawn) {
+      expect(markup).toContain(`data-testid="ie-ng-card-${id}"`);
+      expect(markup).toContain(`data-testid="ie-choose-goal-${id}"`);
+    }
+    const first = markup.match(new RegExp(`<article[^>]*data-testid="ie-ng-card-${drawn[0]}"[\\s\\S]*?</article>`))?.[0] ?? "";
+    expect(first).toContain("<svg");
+  });
+
+  test("the stability discard shows the hand card's face", () => {
+    const G = freshGame();
+    G.phase = "prep";
+    G.activePower = "GE";
+    const discardable = G.powers.GE.hand.find((id) => {
+      const card = CARD_BY_ID[id];
+      return card !== undefined && card.type !== "mandatory" && card.kind !== "home";
+    })!;
+    const markup = html(G, "0");
+    expect(markup).toContain(`data-testid="ie-discard-card-${discardable}"`);
+    expect(markup).toContain(`data-testid="ie-discard-${discardable}"`);
+  });
+
+  test("a pending decision that names a card renders its face with the option button", () => {
+    const G = freshGame();
+    const card = CARDS.actions.find((entry) => entry.kind === "action" && entry.type !== "combat")!;
+    G.pending = {
+      id: "d-card",
+      kind: "combatDiscard",
+      power: "GE",
+      prompt: "At Any Cost: discard a card to play it from the discard pile",
+      options: [{id: card.id, label: card.title, data: {card: card.id}}],
+      createdAt: 1,
+    };
+    const markup = html(G, "0");
+    expect(markup).toContain("data-testid=\"ie-pending-cards\"");
+    expect(markup).toContain(`data-testid="ie-pending-card-${card.id}"`);
+    // The existing option selector still resolves the move.
+    expect(markup).toContain(`data-testid="ie-pending-option-${card.id}"`);
+    const face = markup.match(new RegExp(`<article[^>]*data-testid="ie-pending-card-${card.id}"[\\s\\S]*?</article>`))?.[0] ?? "";
+    expect(face).toContain("<svg");
+    expect(face).toContain(card.titleZh);
+  });
+
+  test("a goal option in a pending decision renders the Goal face", () => {
+    const G = freshGame();
+    const goal = G.powers.GE.goalDeck[0];
+    G.pending = {
+      id: "d-goal",
+      kind: "goalChoice",
+      power: "GE",
+      prompt: "Draw three National Goals and keep one",
+      options: [{id: goal, label: "Goal"}],
+      createdAt: 1,
+    };
+    const markup = html(G, "0");
+    expect(markup).toContain(`data-testid="ie-pending-card-${goal}"`);
+    const face = markup.match(new RegExp(`<article[^>]*data-testid="ie-pending-card-${goal}"[\\s\\S]*?</article>`))?.[0] ?? "";
+    expect(face).toContain("<svg");
+  });
+
+  test("a face-down auction bid shows its face to the bidder but stays hidden from others", () => {
+    const G = freshGame();
+    const card = CARDS.actions.find((entry) => entry.kind === "action")!;
+    G.pending = {
+      id: "d-auction",
+      kind: "eventChoice",
+      power: "GE",
+      prompt: "Moroccan Crisis: play a card face down",
+      options: [
+        {id: `card:${card.id}`, label: card.title, data: {card: card.id}, secret: true},
+        {id: "pass", label: "Play no card"},
+      ],
+      createdAt: 1,
+    };
+    // The deciding seat must recognise the card it is bidding.
+    const own = html(G, "0");
+    expect(own).toContain(`data-testid="ie-pending-card-${card.id}"`);
+
+    // An opponent (or spectator) never sees which card is hidden: no options
+    // at all, and therefore no face.
+    for (const playerID of ["1", null]) {
+      const markup = html(G, playerID);
+      expect(markup).not.toContain("data-testid=\"ie-pending-cards\"");
+      const dock = markup.slice(markup.indexOf("data-testid=\"ie-dock\""), markup.indexOf("class=\"ie-layout\""));
+      expect(dock).not.toContain(`data-card-id="${card.id}"`);
+      expect(dock).not.toContain(card.titleZh);
+    }
+  });
+
+  test("spaces, powers and units keep plain option buttons", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-space",
+      kind: "eventTargetSpace",
+      power: "GE",
+      prompt: "Choose a space",
+      options: [{id: "berlin", label: "Berlin"}],
+      createdAt: 1,
+    };
+    const markup = html(G, "0");
+    expect(markup).not.toContain("data-testid=\"ie-pending-cards\"");
+    expect(markup).toContain("data-testid=\"ie-pending-option-berlin\"");
   });
 
   test("the end-phase National Goal pick is pinned in the dock", () => {

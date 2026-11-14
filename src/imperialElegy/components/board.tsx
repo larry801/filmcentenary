@@ -62,6 +62,7 @@ import {MapPanel} from "./MapPanel";
 import {SpacePanel} from "./SpacePanel";
 import {PendingPanel, TargetDock} from "./PendingPanel";
 import {HandChoices, hasHandChoices} from "./HandChoices";
+import {CardChoiceFace} from "./CardChoice";
 import {HandPanel} from "./HandPanel";
 import {CardFace} from "./CardFace";
 import {DashboardPanel} from "./DashboardPanel";
@@ -597,14 +598,30 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const pendingKindLabels = t.pendingKind as unknown as Record<string, string>;
   const pendingKind = pending ? pendingKindLabels[pending.kind] ?? t.pendingDecision : null;
   const pendingPrompt = pending ? (actualLocale === "zh_CN" ? PROMPT_ZH[pending.prompt] ?? pending.prompt : pending.prompt) : "";
+  /** The card id an option names, from `data.card` or a `card:<id>[:mode]` id. */
+  const optionCardId = (o: PendingOption): string | null => {
+    const data = o.data?.card;
+    if (typeof data === "string" && CARD_BY_ID[data]) return data;
+    if (o.id.startsWith("card:")) {
+      const card = o.id.split(":")[1];
+      if (card && CARD_BY_ID[card]) return card;
+    }
+    if (o.label.startsWith("Play ") && CARD_BY_ID[o.label.slice(5)]) return o.label.slice(5);
+    return null;
+  };
   const optionLabel = (o: PendingOption): string => {
-    if (o.secret) return t.hidden;
+    // `playerView` already clears the options of a decision that is not ours.
+    // The extra mask is a safety net for any caller that renders raw state;
+    // the deciding seat must still read its own face-down bid card.
+    if (o.secret && (viewer === null || pending === null || pending.power !== viewer)) return t.hidden;
     if (actualLocale === "zh_CN" && o.labelZh !== undefined && o.labelZh !== "") return o.labelZh;
     if (o.id === "done") return o.label === "No more support" ? bi(actualLocale, "No more support", "不再支援") : t.skip;
     const optionCard = typeof o.data?.card === "string" ? o.data.card : null;
     if (optionCard && CARD_BY_ID[optionCard]) {
       const c = CARD_BY_ID[optionCard];
-      return `${actualLocale === "zh_CN" ? c.titleZh : c.title} (${bi(actualLocale, "discard", "弃牌")})`;
+      const title = actualLocale === "zh_CN" ? c.titleZh : c.title;
+      // Only the combat discard window spends the card; an auction bids with it.
+      return pending?.kind === "combatDiscard" ? `${title} (${bi(actualLocale, "discard", "弃牌")})` : title;
     }
     if (o.id.startsWith("battle:") || o.id.startsWith("move:")) {
       const target = o.id.slice(o.id.indexOf(":") + 1);
@@ -622,6 +639,26 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
       return `${t.cardType.combat}: ${actualLocale === "zh_CN" ? c.titleZh : c.title}`;
     }
     return actualLocale === "zh_CN" ? OPTION_ZH[o.label] ?? o.label : o.label;
+  };
+  /**
+   * A pending option that names a card or a National Goal shows its printed
+   * face, so "pick a card" decisions do not degrade to title-only buttons.
+   * A face-down auction bid keeps its face private until the auction reveals.
+   */
+  const optionFace = (o: PendingOption): CardChoiceFace | null => {
+    if (o.secret && (viewer === null || pending === null || pending.power !== viewer)) return null;
+    const card = optionCardId(o);
+    if (card !== null) return {card: CARD_BY_ID[card]};
+    const goal = GOALS_BY_ID[o.id];
+    return goal ? {goal} : null;
+  };
+  /** Action label under a card face: the face already prints the title. */
+  const optionAction = (o: PendingOption): string => {
+    if (pending?.kind === "combatCard") return bi(actualLocale, "Play this card", "打出此牌");
+    if (pending?.kind === "combatDiscard") return bi(actualLocale, "Discard this card", "弃置此牌");
+    if (pending?.kind === "goalChoice") return bi(actualLocale, "Keep this Goal", "保留此目标");
+    if (o.id.startsWith("card:")) return bi(actualLocale, "Bid with this card", "以此牌竞价");
+    return bi(actualLocale, "Choose", "选择");
   };
   const canDecline = canDecide && pending !== null && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
 
@@ -845,7 +882,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   // cannot hide them. HandPanel only shows a pointer.
   const choicesProps = {
     viewer, me, locale: actualLocale, t, phase, canPhaseAct, hand, ngChoices,
-    homeCardTitle, doAction, moves,
+    doAction, moves,
   };
   const dockChoices = hasHandChoices(choicesProps);
   const handChoicesHint = dockChoices
@@ -921,6 +958,8 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               pendingKind={pendingKind}
               pendingPrompt={pendingPrompt}
               optionLabel={optionLabel}
+              optionFace={optionFace}
+              optionAction={optionAction}
               canDecline={canDecline}
               pendingSpaceTargets={pendingSpaceTargets}
               viewer={viewer}

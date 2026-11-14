@@ -5,6 +5,7 @@ import {CARD_BY_ID} from "../engine/deck";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
 import {BATTLE_STAGE, OPTION_ZH, PROMPT_ZH, bi, unitLabel} from "./boardHelpers";
+import {CardChoice, CardChoiceFace} from "./CardChoice";
 
 export interface PendingPanelProps {
   G: ImperialElegyState;
@@ -13,6 +14,14 @@ export interface PendingPanelProps {
   pendingKind: string | null;
   pendingPrompt: string;
   optionLabel: (o: PendingOption) => string;
+  /**
+   * Printed face for an option that names a card or a National Goal, so the
+   * decision shows the card itself instead of only its title.  Returns null
+   * for every other option (spaces, powers, units, "continue", hidden bids).
+   */
+  optionFace?: (o: PendingOption) => CardChoiceFace | null;
+  /** Button text for a card/Goal option, shown under its face. */
+  optionAction?: (o: PendingOption) => string;
   canDecline: boolean;
   pendingSpaceTargets: SpaceId[];
   viewer: Power | null;
@@ -46,7 +55,7 @@ export const TargetDock = ({title, body, cancelLabel, onCancel}: {
 );
 
 export const PendingPanel = ({
-  G, pending, canDecide, pendingKind, pendingPrompt, optionLabel, canDecline,
+  G, pending, canDecide, pendingKind, pendingPrompt, optionLabel, optionFace, optionAction, canDecline,
   pendingSpaceTargets, viewer, locale, t, jihadDecision, jihadReason, doAction, moves,
   dock = false, collapsed = false, onToggleCollapsed,
 }: PendingPanelProps) => {
@@ -71,6 +80,24 @@ export const PendingPanel = ({
         ? `${t.gameOver}: ${G.result.winners.map((p) => t.seats[p]).join(", ")}`
         : "";
 
+  // Card and Goal options show their printed face; everything else (spaces,
+  // powers, units, "continue") stays a button.  A card offered in several
+  // modes (A061/A066, the UK's two auction sides) keeps one face and one
+  // button per mode instead of repeating the face.
+  const groups: {face: CardChoiceFace; options: PendingOption[]}[] = [];
+  const rest: PendingOption[] = [];
+  for (const o of pending?.options ?? []) {
+    const face = optionFace ? optionFace(o) : null;
+    if (face === null) {
+      rest.push(o);
+      continue;
+    }
+    const key = face.goal ? face.goal.id : face.card.id;
+    const group = groups.find((entry) => (entry.face.goal ? entry.face.goal.id : entry.face.card.id) === key);
+    if (group) group.options.push(o);
+    else groups.push({face, options: [o]});
+  }
+
   return (
     <IEPanel
       className={dock ? "ie-dock-panel" : ""}
@@ -94,12 +121,38 @@ export const PendingPanel = ({
               {canDecide ? (
                 <>
                   <div className="ie-section-title">{t.pendingOptions}</div>
-                  <div className="ie-pending-options">
-                    {pending.options.map((o) => (
-                      <button key={o.id} data-testid={`ie-pending-option-${o.id}`} onClick={() => doAction(() => moves.resolvePending(o.id))}>{optionLabel(o)}</button>
-                    ))}
-                    {canDecline && <button className="ie-btn secondary" onClick={() => doAction(() => moves.declinePending())}>{t.decline}</button>}
-                  </div>
+                  {groups.length > 0 && (
+                    <div className="ie-choice-grid" data-testid="ie-pending-cards">
+                      {groups.map(({face, options}) => {
+                        const id = face.goal ? face.goal.id : face.card.id;
+                        return (
+                          <CardChoice
+                            key={id}
+                            locale={locale}
+                            face={face}
+                            testId={`ie-pending-card-${id}`}
+                            actions={options.map((o) => ({
+                              // A card with several printed modes needs the mode
+                              // named on the buttons; a single use of a card keeps
+                              // a short verb under the face.
+                              label: options.length > 1 || optionAction === undefined ? optionLabel(o) : optionAction(o),
+                              testId: `ie-pending-option-${o.id}`,
+                              title: optionLabel(o),
+                              onChoose: () => doAction(() => moves.resolvePending(o.id)),
+                            }))}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                  {(rest.length > 0 || canDecline) && (
+                    <div className="ie-pending-options">
+                      {rest.map((o) => (
+                        <button key={o.id} data-testid={`ie-pending-option-${o.id}`} onClick={() => doAction(() => moves.resolvePending(o.id))}>{optionLabel(o)}</button>
+                      ))}
+                      {canDecline && <button className="ie-btn secondary" onClick={() => doAction(() => moves.declinePending())}>{t.decline}</button>}
+                    </div>
+                  )}
                 </>
               ) : <div className="ie-muted" style={{marginTop: 6}}>{t.waitingOther}</div>}
               {canDecide && pendingSpaceTargets.length > 0 && <div className="ie-hint">{bi(locale, "The matching spaces are highlighted on the map.", "对应空间已在地图上高亮。")}</div>}

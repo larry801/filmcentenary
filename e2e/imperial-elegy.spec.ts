@@ -130,6 +130,23 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect.poll(async () => await board.locator('[data-testid="ie-log"]').innerText()).toContain("萨克森");
     });
 
+    test("the required card choices render the printed face, not just a title", async ({page}) => {
+        await openLocal(page);
+        await finishPrep(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        await focusSeat(page, "GE");
+        const board = page.locator('[data-testid="ie-seat-GE"]');
+        const choice = board.locator('[data-testid="ie-home-card-choice"]');
+        await expect(choice).toBeVisible({timeout: 15_000});
+        // Each home card candidate is drawn as its SVG face with its own button.
+        const card = choice.locator(".ie-choice-card").first();
+        await expect(card.locator("svg.ie-card-face")).toBeVisible();
+        await expect(card.locator(".ie-card-rules")).toContainText(/[\u4e00-\u9fff]/);
+        const homeId = await card.locator("svg.ie-card-face").getAttribute("data-card-id");
+        await expect(card.locator(`[data-testid="ie-choose-home-${homeId}"]`)).toBeVisible();
+        await expect(choice.locator(".ie-card img, .ie-card image")).toHaveCount(0);
+    });
+
     test("SVG cards switch language and expose the other translation without image requests", async ({page}) => {
         const cardImageRequests: string[] = [];
         page.on("request", (request) => {

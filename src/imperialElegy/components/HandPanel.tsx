@@ -146,6 +146,14 @@ export const HandPanel = (props: HandPanelProps) => {
                 </select>
                 <button className="ie-btn" disabled={giveTarget === viewer || !giveCardValue} onClick={() => doAction(() => moves.giveCard(giveTarget, giveCardValue))}>{bi(locale, "Give", "转交")}</button>
               </div>
+              {/* The transfer is a card choice too: preview the selected card. */}
+              {giveCardValue && (
+                <div className="ie-choice-grid ie-give-preview">
+                  <article className="ie-card ie-choice-card" data-testid="ie-give-card-preview" data-card-id={giveCardValue}>
+                    <CardFace card={cardById(giveCardValue)} locale={locale}/>
+                  </article>
+                </div>
+              )}
             </div>
           )}
 

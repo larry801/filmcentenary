@@ -724,13 +724,15 @@ export const openCombatCardWindow = (G: ImperialElegyState, ctx: Ctx, battle: Ba
     // in both the id and the label.
     const singleMode = mode.id === "default" && combatCardModes(COMBAT_CARD_BY_ID[cardId]).length === 1;
     const id = singleMode ? `card:${cardId}` : `card:${cardId}:${mode.id}`;
-    return option(id, `Play ${mode.label}`);
+    return option(id, `Play ${mode.label}`, undefined, false, `打出 ${mode.labelZh}`);
   });
   if (discardA043) {
     choices.push(option(
       "card:IE-A043:discard",
       "Play At Any Cost from the discard pile",
       {card: "IE-A043", fromDiscard: true},
+      false,
+      "从弃牌堆打出不惜一切",
     ));
   }
   choices.push(option("done", "Continue"));

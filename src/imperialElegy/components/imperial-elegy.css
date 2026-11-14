@@ -150,6 +150,14 @@
 /* ---------------------------------------------------------------- hand & cards */
 .ie-hand, .ie-goal-hand { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 12px; padding: 4px 0; align-items: start; }
 .ie-hand > .ie-card, .ie-goal-hand > .ie-card { max-width: 300px; }
+/* A required card choice draws the printed face; the grid keeps several
+   candidates side by side without stretching a single card across the dock. */
+.ie-choice-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 190px), 1fr)); gap: 10px; margin-top: 6px; align-items: start; }
+.ie-choice-card { max-width: 240px; }
+.ie-choice-card > .ie-card-translation { font-size: 12px; }
+/* The pinned dock must not grow past the viewport when a long hand is being
+   discarded; scroll inside the candidate row instead. */
+.ie-dock-choice .ie-choice-grid { max-height: min(52vh, 460px); overflow: auto; padding: 2px 2px 4px; }
 .ie-card-standalone { max-width: 300px; }
 .ie-hand-meta { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
 .ie-dock-choices { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
