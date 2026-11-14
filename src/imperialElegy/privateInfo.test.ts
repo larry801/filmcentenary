@@ -18,6 +18,21 @@ type PrivateView = ImperialElegyState & Counts;
 
 const wait = (ms = 40) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Poll until `probe` returns a truthy value (or time out).  Local-mode clients
+ * propagate moves over the event loop, so a fixed sleep races the update on a
+ * loaded CI box; waiting for the state we are about to assert on does not.
+ */
+const eventually = async <T>(probe: () => T | undefined | null | false, timeout = 5_000, interval = 25): Promise<T> => {
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    const value = probe();
+    if (value) return value as T;
+    if (Date.now() > deadline) throw new Error("timed out waiting for game state");
+    await wait(interval);
+  }
+};
+
 const makeCtx = (playerID: string | null = "0") => ({
   playerID,
   random: {Die: (n: number) => 3},
@@ -308,7 +323,9 @@ test("reconnecting the GE client preserves its private hand and keeps other view
   expect(discardable).toBeDefined();
 
   ge.moves.discardForStability(discardable!);
-  await wait(80);
+  const discardLog = await eventually(() =>
+    (ge.getState()!.G as PrivateView).log.find((entry) => entry.key === "prepStabilityDiscard"));
+  await eventually(() => observer.getState()!.G.log.some((entry) => entry.id === discardLog.id));
 
   const afterAction = ge.getState()!.G as PrivateView;
   expect(afterAction.powers.GE.hand).toEqual(handBefore.filter((id) => id !== discardable));
@@ -319,7 +336,6 @@ test("reconnecting the GE client preserves its private hand and keeps other view
   expect(observerAfter.handCounts.GE).toBe(afterAction.powers.GE.hand.length);
   expect(observerAfter.pending).toBeNull();
 
-  const discardLog = afterAction.log.find((entry) => entry.key === "prepStabilityDiscard")!;
   expect(discardLog.args?.card).toBe(discardable);
   expect(observerAfter.log.find((entry) => entry.id === discardLog.id)!.args?.card).toBe("hidden");
 
