@@ -16,6 +16,9 @@ const Local2p = React.lazy(() => import("./components/single/2p"));
 const MUICreateMatch = React.lazy(() => import("./components/create-match"));
 const JoinPage = React.lazy(() => import("./components/join"));
 const DenseTable = React.lazy(() => import("./components/card-table"));
+const SongJinnCardTable = React.lazy(() => import("./songJinn/components/card-table"));
+const ImperialElegyCardTable = React.lazy(() => import("./imperialElegy/components/card-table"));
+const VQCardTable = React.lazy(() => import("./virginQueen/components/card-table"));
 const AboutPage = React.lazy(() => import("./components/about-page"));
 const HomePage = React.lazy(() => import("./components/home"));
 const Lobby = React.lazy(() => import("./components/lobby"));
@@ -44,6 +47,9 @@ createRoot(rootElement).render(
                 <Route path="/virginQueen" element={<MUICreateMatch gameName={"virginQueen"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/imperialElegy" element={<MUICreateMatch gameName={"imperialElegy"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/cards" element={<DenseTable/>}/>
+                <Route path="/cards/songJinn" element={<SongJinnCardTable/>}/>
+                <Route path="/cards/imperialElegy" element={<ImperialElegyCardTable/>}/>
+                <Route path="/cards/virginQueen" element={<VQCardTable/>}/>
                 <Route path="/about" element={<AboutPage/>}/>
                 <Route path="/join/film/:matchID/:player/:credential" element={<JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/join/film/:matchID/:player" element={<JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
