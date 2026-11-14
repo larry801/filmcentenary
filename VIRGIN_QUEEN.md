@@ -1482,3 +1482,14 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 计算集中在 `scheduledLeaderEntries`：只统计 `location === "pool"`、`returnTurn` 位于当前回合之后且不超过 `endTurn` 的将领，因此第 1 回合就能在概览里看到唐·约翰、莱斯特伯爵将在第 2 回合入场，实际入场后该行自动消失。
 
 验证：`tsc --noEmit` 通过；`jest --silent` 225 suites、1353 tests passed；浏览器实测 `/localVQ` Campaign 第 1 回合的“列强概览”显示“下回合入场将领：奥地利的唐·约翰（西班牙）、莱斯特伯爵（英格兰）、亨利三世（法国）、奥兰治的威廉（新教联盟）”。
+
+## 官方 112 张卡牌的英文效果文本
+
+此前卡表只有从中文卡面 OCR 的 `textZh`（英文副标题也注明“效果文本为卡面中文原文”）。现为 `OfficialCardDef` 增加 `textEn`：依据中文卡面逐张翻译，术语统一采用 2024 英文规则书（Unrest markers、conversion attempts、field/naval battle、assault、diplomatic status、CP、VP 等），保留全部数字、骰值、条件、选项与 FAQ 注记，且每条为单行文本。
+
+展示层同步接入：`/cards/virginQueen` 卡表按界面语言显示英文译文或中文原文（名称原本已是双语）；游戏内手牌卡片详情 `CardDetail` 也在英文界面显示英文效果文本（`CardDef.textEn`，中文界面仍为卡面中文）。中英文卡表副标题改为说明双语效果文本。
+
+回归测试：`data.test.ts` 新增全 112 张卡的 `textEn` 覆盖校验（非空、无换行、非中文原文、不含汉字）；`components/card-table.test.tsx` 用服务端渲染分别验证中英文列内容；`e2e/card-tables.spec.ts` 新增切换语言后效果单元格变为英文的用例。
+
+验证：`tsc --noEmit` 通过；`jest --runInBand --silent` 437 suites、4055 tests passed；`npm run build` 通过；`playwright test e2e/card-tables.spec.ts` 6 项全通过（本地 5173 被其他工作区的旧 vite 占用，故用独立 5174 端口临时配置运行）。
+

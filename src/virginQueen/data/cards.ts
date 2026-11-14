@@ -7,9 +7,11 @@ import {OfficialCardDef, CardCpCoverage} from "./types";
  * printed numbers on the scans in public/vq-cards/.
  *
  * nameZh and textZh are OCR transcriptions of those scans (RapidOCR
- * cross-checked with Apple Vision, then hand-checked). Command points, the
- * first turn each card is available, the printed category and the typed
- * effects still come from the card table on pages 42-56 of 中文規則.pdf.
+ * cross-checked with Apple Vision, then hand-checked). textEn is an English
+ * translation of textZh using the terminology of the 2024 English rulebook.
+ * Command points, the first turn each card is available, the printed category
+ * and the typed effects still come from the card table on pages 42-56 of
+ * 中文規則.pdf.
  */
 export const OFFICIAL_CARDS: OfficialCardDef[] = [
 {
@@ -24,6 +26,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase; also playable as a response to cancel an event",
         textZh: "选择以下选项中的一项执行：1、在奥斯曼本土地区及对外战争牌上增加4个单位（仍不能在阿尔及尔、杰尔巴招募正规军），可以是正规军及桨帆船的任意组合。海军部队必须放置于与爱琴海相邻的港口。2、立即对苏伊士运河工程进行投骰检定（仅限5到6人游戏）。3、作为响应牌使用，以取消任意1张普通事件牌的事件效果。",
+        textEn: "Choose one of the following: 1. Add 4 units in Ottoman home spaces and on the Foreign War card (regulars still may not be recruited in Algiers or Djerba), in any combination of regulars and galleys. Naval units must be placed in ports adjacent to the Aegean Sea. 2. Immediately make a die roll check for the Suez Canal project (5-6 player games only). 3. Play as a Response to cancel the event effect of any 1 regular Event card.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -46,6 +49,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "行动阶段，向西班牙、神圣罗马帝国、威尼斯其中之一的势力威胁开战（不得与目标势力同盟）。西班牙和神圣罗马帝国（若是玩家）可以选择纳贡以询问奥斯曼是否取消这次宣战。若奥斯曼接受纳贡，可以选择从目标势力手中抽取一张卡牌或者一个宝藏，再从牌堆中抽一张牌，并取消宣战。否则，奥斯曼对目标势力宣战，并获得2CP用于行动。",
+        textEn: "During the Action Phase, threaten war against one of Spain, the Holy Roman Empire, or Venice (may not be allied with the target power). Spain and the Holy Roman Empire (if players) may choose to pay tribute to ask the Ottoman whether it will cancel this declaration of war. If the Ottoman accepts the tribute, it may choose to draw one card or one treasure from the target power, then draw one card from the draw deck, and cancel the declaration of war. Otherwise, the Ottoman declares war on the target power and gains 2 CP to use for actions.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -69,6 +73,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "若米兰处于西班牙控制下，在米兰增加1支正规军，同时可以将一个陆军将领从任意地区移至米兰。西班牙以春季部署规则从米兰发兵。行军路线可以途径中立势力所属地区（少于6人的游戏中，可途径未被激活的神圣罗马帝国地区），但路线地区不能有敌方部队。该行军路线可途径1处山路，但不能跨海。这张卡牌的移动不能被其他势力拦截或者插入结算。",
+        textEn: "If Milan is under Spanish control, add 1 regular in Milan, and may move one army leader from any space to Milan. Spain deploys troops from Milan using the Spring Deployment rules. The march route may pass through spaces of neutral powers (in games with fewer than 6 players, may pass through unactivated Holy Roman Empire spaces), but no space on the route may contain enemy units. This march route may pass through 1 mountain pass, but may not cross the sea. This card's movement may not be intercepted or have its resolution interrupted by other powers.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -91,6 +96,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Immediately when drawn",
         textZh: "立即进行神圣罗马帝国的外交评议。此牌每回合都会洗入牌堆",
+        textEn: "Immediately resolve the Holy Roman Empire's diplomatic status. This card is shuffled back into the deck each turn",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -112,6 +118,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Immediately when drawn",
         textZh: "立即进行教廷的外交评议。结盟教廷的玩家势力可以选择执行下其中一项（也可以选择什么都不执行）：①将伊丽莎白一世开除教籍，将“伊丽莎白被开除教籍”标记置于外交形势表上。②在法兰西地区或尼德兰地区执行7次天主教传教尝试。③选择1个来自意大利的艺术家或科学家，视为花费了3CP来执行1次赞助行动。本次赞助计入每回合的赞助限制。④若“神圣同盟”在弃牌堆中，且没有在本回合被执行事件，将其找回并执行事件。此牌每回合都会洗入牌堆",
+        textEn: "Immediately resolve the Papacy's diplomatic status. The player power allied with the Papacy may choose to perform one of the following (or may choose to do nothing): 1. Excommunicate Elizabeth I and place the “Elizabeth Excommunicated” marker on the Diplomatic Status Table. 2. Perform 7 Catholic conversion attempts in France (the area) or the Netherlands. 3. Choose 1 artist or scientist from Italy, treat as spending 3 CP to perform 1 patronage action. This patronage counts toward the per-turn Patronage limit. 4. If “Holy League” is in the discard pile and its event has not been played this turn, retrieve it and play its event. This card is shuffled back into the deck each turn",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -134,6 +141,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "When Suleiman dies / event",
         textZh: "苏莱曼去世。塞利姆二世接替苏莱曼一世成为奥斯曼的统治者。将这张牌放置在奥斯曼势力板上的统治者区域。将“塞浦路斯VP”标记置于下列首个非奥斯曼控制的地区上：塞浦路斯、干地亚、科孚。往后游戏中若奥斯曼成功夺取该据点的控制权时，可获得该VP。治理能力：保留2张手牌；手牌奖励：额外1张卡牌。FAQ：此牌第二回合开始时从摸牌堆加入奥斯曼手牌（2-4人游戏中改为第二回合冬季强制触发），且永远不会被强制弃置。",
+        textEn: "Suleiman dies. Selim II succeeds Suleiman I as the Ottoman ruler. Place this card in the Ruler area of the Ottoman power board. Place the “Cyprus VP” marker on the first of the following spaces not under Ottoman control: Cyprus, Candia, Corfu. For the rest of the game, if the Ottoman successfully seizes control of that space, it gains that VP. Admin rating: keep 2 cards; card bonus: 1 additional card. FAQ: This card is added to the Ottoman hand from the draw deck at the start of the second turn (in 2-4 player games, instead it is mandatorily triggered in the Winter Phase of the second turn), and will never be forced to be discarded.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -156,6 +164,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "combat",
         timing: "Before an assault you are attacking",
         textZh: "本次攻城中，你的命中判定变为4、5、6，但防守方可以投掷双倍数量的骰子（这些骰子的命中判定不变）。",
+        textEn: "In this assault, your hit rolls become 4, 5, 6, but the defender may roll double the number of dice (the hit rolls for these dice are unchanged).",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -179,6 +188,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "combat",
         timing: "Before a field battle",
         textZh: "本次野战中，额外多掷3个骰子。若奥斯曼或者西班牙使用，这3个骰子的命中判定变为4、5、6。",
+        textEn: "In this field battle, roll 3 additional dice. If used by the Ottoman or Spain, the hit rolls for these 3 dice become 4, 5, 6.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -201,6 +211,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "combat",
         timing: "Before a naval battle",
         textZh: "本次海战中，额外多掷2个骰子。若对港口内的敌方舰队、或者对西班牙无敌舰队发起海战，改为额外多掷4个骰子。",
+        textEn: "In this naval battle, roll 2 additional dice. If the naval battle is against an enemy fleet in a port, or against the Spanish Armada, instead roll 4 additional dice.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -224,6 +235,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "combat",
         timing: "Before an assault; or as a response to Flooding",
         textZh: "若你是攻城方，在本次攻城中额外多掷3个骰子。若是对安特卫普或鹿特丹进行攻城时，即使防守方控制与该地区通过内陆水道相连的港口，也可以攻城。-或-取消战斗牌“洪水”对你的影响。",
+        textEn: "If you are the attacker, roll 3 additional dice in this assault. When assaulting Antwerp or Rotterdam, you may still assault even if the defender controls a port connected to that space by an inland waterway. — or — Cancel the effect of the Combat card “Flood” on you.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -247,6 +259,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "After a battle or piracy involving Dragut",
         textZh: "当德拉古特参与战斗或海盗行动结束后，打出者投1个骰子。若骰值为4-6，德拉古特死亡，将乌鲁奇·阿里置于回合记录轨，下回合登场。若骰值为1-3，将德拉古特置于回合记录轨，下回合重新登场。-或-当西班牙控制杰尔巴/的黎波里时才可以使用。可以作为事件打出。德拉古特死亡，将乌鲁奇·阿里置于回合记录轨，下回合登场。西班牙获得1个“战争胜利者”VP。德拉古特死亡时，将此牌移出游戏",
+        textEn: "After a battle or piracy action involving Dragut ends, the player who played this card rolls 1 die. If the die result is 4-6, Dragut dies; place Uluch Ali on the Turn Record Track, and he appears next turn. If the die result is 1-3, place Dragut on the Turn Record Track, and he reappears next turn. — or — May only be used when Spain controls Djerba/Tripoli. May be played as an Event. Dragut dies; place Uluch Ali on the Turn Record Track, and he appears next turn. Spain gains 1 “War Winner” VP. When Dragut dies, remove this card from play.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -270,6 +283,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "After both sides roll in a naval battle",
         textZh: "在地中海海域的海战中（不包括海盗行动），在双方掷骰后打出此牌。给予一个参战势力3个额外骰子。若该势力控制了威尼斯桨帆船参战，改为5个额外骰子。",
+        textEn: "In a naval battle in Mediterranean sea zones (not including piracy actions), play this card after both sides have rolled their dice. Give one participating power 3 additional dice. If that power controls Venetian galleys that are participating, instead give 5 additional dice.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -293,6 +307,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Action Phase",
         textZh: "若由奥斯曼打出，消灭地图上的任意2支雇佣兵（可以不为同一势力）。若由其他势力打出，则将2支雇佣兵放置至任意一己方控制地区（可以不为己方本土地区）。若所选地区距离神圣罗马帝国本土地区不超过2个陆地连接点（译者注：可理解为“距离神罗本土2条线及以内的地区”），可改为放置4支雇佣兵。FAQ：不能放置在骚乱或者被围城的地区。不能放置在其他主要势力陆军存在的地区。在执行另一项事件的过程中（如“海上乞丐”）时，亦不可在一处无陆军地区放置雇佣兵。",
+        textEn: "If played by the Ottoman, eliminate any 2 mercenaries on the map (not necessarily of the same power). If played by another power, place 2 mercenaries in any one space it controls (not necessarily its own home space). If the chosen space is no more than 2 land connections from Holy Roman Empire home spaces (Translator's note: may be understood as “spaces within 2 lines of the HRE home spaces”), may instead place 4 mercenaries. FAQ: May not be placed in spaces with Unrest or under siege. May not be placed in spaces where another major power's army is present. During the resolution of another event (such as “Sea Beggars”), mercenaries also may not be placed in a space with no army units.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -315,6 +330,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Before intercepting with a home-port fleet",
         textZh: "在你位于本土地区港口中的海军舰队发动拦截时，进行拦截判定前打出。本次拦截自动成功，拦截方在本次海战中额外多掷2个骰子。",
+        textEn: "When your naval fleet in a port in a home space attempts an intercept, play this card before the intercept check. This intercept automatically succeeds, and the intercepting power rolls 2 additional dice in this naval battle.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -338,6 +354,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "After another power spends CP on a movement action",
         textZh: "在其他主要势力的行动轮中，该玩家声明耗费CP来执行陆军行军、攻城、海盗行动、海军移动，或是海上运输后打出。目标玩家损失1CP，在该行动轮余下的时间里，其陆军单位不能移动超过1个地区，同时禁止执行攻城、海盗行动、海军移动，或是海上运输。-或-强制一支远征队执行航行检定。FAQ：1效果不能用来阻止“变节”，但可以阻止“苏丹的后宫”；2效果可以对自己的远征队使用。",
+        textEn: "Play during another major power's impulse, after that player declares spending CP to perform an army march, assault, piracy action, naval movement, or sea transport. The target player loses 1 CP; for the remainder of that impulse, its army units cannot move more than 1 space, and assault, piracy action, naval movement, or sea transport are prohibited. — or — Force an expedition to make a voyage check. FAQ: Effect 1 cannot be used to prevent “Treachery”, but can prevent “Sultan's Harem”; Effect 2 may be used on your own expedition.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -360,6 +377,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Ottoman event, or a non-Ottoman response",
         textZh: "仅奥斯曼玩家可作为事件牌打出。获得5CP用于执行建造海盗船、海军移动和海盗行动。以此法执行海盗行动时，额外多掷1个骰子。-或其他非奥斯曼的玩家可作为响应牌打出，奥斯曼跳过本回合中的下一个行动轮。将此牌作为响应牌打出的势力抽一张牌。FAQ：2效果不能用来跳过奥斯曼本回合的首轮行动。",
+        textEn: "Only the Ottoman player may play this as an Event. Gain 5 CP to use for building pirate ships, naval movement, and piracy actions. When performing a piracy action this way, roll 1 extra die. — or — Any other non-Ottoman player may play this as a Response; the Ottoman skips its next impulse this turn. The power playing this card as a Response draws 1 card. FAQ: Effect 2 cannot be used to skip the Ottoman's first impulse of this turn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -381,6 +399,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "选择任意主要势力的一个陆军堆叠（不能在西班牙无敌舰队上或者国外战争牌上），移除该堆叠所有雇佣兵。除非该部队所属势力弃置1张手牌（可以为势力牌，不能为强制性事件牌），否则堆叠中所有正规军也将移除。所弃置手牌或宝藏的CP决定了保留正规军的数量：1CP=2正规军；2CP=4正规军；3CP=6正规军；4CP及以上=所有正规军。最后，在堆叠所属地区及1个相邻地区放置骚乱标记。",
+        textEn: "Choose 1 army stack of any major power (not on the Spanish Armada or on a Foreign War card) and remove all mercenaries in that stack. Unless the power owning those units discards 1 card from its hand (may be a Home card, but not a Mandatory Event), all regulars in the stack are also removed. The CP of the discarded hand card or treasure determines the number of regulars retained: 1 CP = 2 regulars; 2 CP = 4 regulars; 3 CP = 6 regulars; 4 CP or more = all regulars. Finally, place Unrest markers in the space containing the stack and in 1 adjacent space.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -402,6 +421,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "选择任意势力（可为次要势力）的一个被占领的本土设防地区。掷5个骰子，每个命中骰可以消灭目标地区的1支陆军或海军。若目标地区的军队被全歼，执行以下操作：①陆军将领被出牌势力俘虏；②海军将领置于回合记录轨上，下回合可重新上场；③移除当前控制标记，放置该设防地区原属势力控制标记（若为两个势力的本土，则出牌者选择一个），并加入1支属于该势力的正规军。FAQ：该地区的控制者必须不视该地区为本土，且不与接收方势力结盟。",
+        textEn: "Choose 1 occupied home fortress of any power (may be a minor power). Roll 5 dice; each hit may eliminate 1 army or naval unit in the target space. If all units in the target space are eliminated, do the following: 1. the army leader is captured by the power playing the card; 2. the naval leader is placed on the Turn Record Track and may re-enter play next turn; 3. remove the current control marker, place the control marker of the power that originally owned the fortress (if it is home to 2 powers, the player playing the card chooses 1), and add 1 regular belonging to that power. FAQ: The controller of the space must not treat that space as home and must not be allied with the receiving power.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -423,6 +443,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "移除另一个主要势力与其他势力的外交影响力（共计至多5点）。",
+        textEn: "Remove the diplomatic influence of another major power with other powers (up to 5 points in total).",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -444,6 +465,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "任意分配3点己方外交影响力，之后选择一个势力进行外交评议。",
+        textEn: "Distribute 3 points of your own diplomatic influence as you wish, then choose 1 power to resolve diplomatic status.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -465,6 +487,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "放置3支正规军。可以任意分配在己方控制且未被围攻或骚乱的地区（包括通常禁止招募正规军的地区）。",
+        textEn: "Place 3 regulars. They may be distributed as you wish among spaces you control that are neither under siege nor in unrest (including spaces where recruiting regulars is normally prohibited).",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -488,6 +511,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "从牌堆中抽两张牌。下回合抽牌阶段你少抽一张牌。将一个“-1卡牌”的标记置于你的势力板上，直到下回合抽牌阶段结束。-或-组建一个载有殖民者的远征队，然后获得3CP用于海军移动或海盗行动。FAQ：奥斯曼在苏伊士运河竣工前，其远征队依然为受损状态，且无法携带殖民者。",
+        textEn: "Draw 2 cards from the draw deck. You draw 1 fewer card during next turn's draw phase. Place a “-1 card” marker on your power board until the end of next turn's draw phase. — or — Form an expedition carrying colonists, then gain 3 CP for naval movement or piracy actions. FAQ: Until the Ottoman has completed the Suez Canal, its expeditions remain damaged and cannot carry colonists.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -509,6 +533,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "移除一个地区的所有雇佣兵。若有多个主要势力的雇佣兵位于目标地区，只有其中1个主要势力的雇佣兵受此事件影响（荷兰军队与胡格诺派军队视为同一势力）。神圣罗马帝国执行事件时，可以指定两个地区（并且可以指定两个势力）。",
+        textEn: "Remove all mercenaries in 1 space. If mercenaries of more than 1 major power are in the target space, only the mercenaries of 1 of those major powers are affected by this event (Dutch units and Huguenot units are treated as the same power). When the Holy Roman Empire executes this event, it may designate 2 spaces (and may designate 2 powers).",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -530,6 +555,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "仅对教廷、威尼斯或神圣罗马帝国（若为非玩家势力）中至少一个有潜在外交影响力的势力可作为事件打出。奥斯曼帝国的VP小于13时，不可作为事件打出。获得4点己方外交影响力，任意分配给教廷、威尼斯或神圣罗马帝国（若为非玩家势力）。若可能，对其中任意两个势力进行外交评议（尽可能全部进行评议）。",
+        textEn: "Only a power that has potential diplomatic influence with at least 1 of the Papacy, Venice, or the Holy Roman Empire (if a non-player power) may play this as an Event. May not be played as an Event if the Ottoman Empire's VP is less than 13. Gain 4 points of your own diplomatic influence, distributed as you wish among the Papacy, Venice, or the Holy Roman Empire (if a non-player power). If possible, resolve diplomatic status with any 2 of those powers (resolve as many as possible).",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -551,6 +577,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "在奥斯曼、神圣罗马帝国、西班牙之间选择一个主要势力。在目标势力的最多3个未驻军的本土地区放置骚乱标记。若目标势力为西班牙，则不能选择其在尼德兰地区的本土地区。",
+        textEn: "Choose 1 major power among the Ottoman, the Holy Roman Empire, and Spain. Place Unrest markers in up to 3 unoccupied home spaces of the target power. If the target power is Spain, its home spaces in the Netherlands may not be chosen.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -572,6 +599,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "在一个被围城且仅有不多于3支军队防守的设防地区中放置1支正规军。目标地区可以被任何势力控制（包括中立势力）；放置的正规军为控制该地区的势力所属。可以在通常禁止招募正规军的地区放置。",
+        textEn: "Place 1 regular in a fortress that is under siege and defended by no more than 3 units. The target space may be controlled by any power (including a neutral power); the placed regular belongs to the power controlling that space. It may be placed in spaces where recruiting regulars is normally prohibited.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -594,6 +622,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "若圣约翰骑士团在地图上，未被围城，且穿过1个海域与奥斯曼控制下的港口相连，同时奥斯曼不是未激活主要势力，出牌势力从奥斯曼玩家手中随机抽一张牌，或减少奥斯曼1点海盗VP。-或-若圣约翰骑士团不在地图上，西班牙控制马耳他且未被围城，西班牙可放置2支圣约翰骑士团正规军于马耳他。否则将2支圣约翰骑士团正规军放置在西班牙未驻军且非设防地区的本土港口，并在该地区放置要塞标记。",
+        textEn: "If the Knights of St. John are on the map, not under siege, and connected to a port under Ottoman control across 1 sea zone, and the Ottoman is not an unactivated major power, the power playing the card draws 1 card at random from the Ottoman player's hand or reduces the Ottoman's piracy VP by 1. — or — If the Knights of St. John are not on the map, Spain controls Malta and Malta is not under siege, Spain may place 2 Knights of St. John regulars in Malta. Otherwise place the 2 Knights of St. John regulars in an unoccupied Spanish home port that is not a fortress, and place a fortress marker in that space.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -615,6 +644,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "奥斯曼与西班牙交战时可打出。移除格拉纳达的所有陆军，在该地区放置骚乱标记。奥斯曼（2-4人游戏中为英国）将2支摩尔人部队放置于该地区，该部队用法限制参见规则23.1。奥斯曼在2个与格拉纳达距离不大于2的未驻军的地区上放置骚乱标记。冬季阶段开始时，若摩尔人部队仍存在于西班牙本土地区，奥斯曼在2个与格拉纳达距离不大于2的未驻军的地区上放置骚乱标记。FAQ：若有陆军将领因此卡被移除，改为由奥斯曼俘获该将领。若摩尔人部队被消灭，或奥斯曼与西班牙停战，将此牌从牌堆中移除，摩尔人部队移出游戏",
+        textEn: "May be played when the Ottoman is at war with Spain. Remove all army units in Granada and place an Unrest marker in that space. The Ottoman (England in 2-4 player games) places 2 Moorish units in that space; see rule 23.1 for restrictions on the use of these units. The Ottoman places Unrest markers in 2 unoccupied spaces at a distance of no more than 2 from Granada. At the start of the Winter Phase, if Moorish units are still present in Spanish home spaces, the Ottoman places Unrest markers in 2 unoccupied spaces at a distance of no more than 2 from Granada. FAQ: If an army leader is removed by this card, the Ottoman captures that leader instead. If the Moorish units are eliminated, or the Ottoman makes peace with Spain, remove this card from the deck and remove the Moorish units from play.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -638,6 +668,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "将一个“+1卡牌”的标记置于你的势力板上。下回合抽牌阶段你额外抽一张牌。英格兰玩家执行事件时，再额外放置一个“+1卡牌”的标记在回合记录轨中两回合后的格子，英格兰玩家可以连续两回合抽牌阶段额外抽一张牌。",
+        textEn: "Place a “+1 Card” marker on your power board. Draw one additional card during the draw phase of your next turn. When the England player plays the Event, additionally place a “+1 Card” marker in the box two turns ahead on the turn record track; the England player draws one additional card during the draw phase for two consecutive turns.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -659,6 +690,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "对其他主要势力使用，随机丢弃目标势力的一张手牌。-或-跳过目标势力的下一个行动轮，且可以使目标势力的一个指挥官返回首都（不能指定吉斯公爵，因为吉斯公爵不能离开法兰西地区。若其首都被围城或被占领，则返回目标势力指定的一个本土设防地区）。FAQ：可以指定被围城中的陆军将领为目标；西班牙将领可自由选择回到哪个首都。",
+        textEn: "Use against another major power; randomly discard one card from the target power's hand. — or — Skip the target power's next impulse, and may return one of the target power's leaders to its capital (the Duke of Guise may not be chosen, since the Duke of Guise cannot leave France (the area). If its capital is besieged or occupied, it returns to a home fortress of the target power's choice). FAQ: An army leader under siege may be designated as the target; Spanish leaders may freely choose which capital to return to.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -680,6 +712,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "During a siege",
         textZh: "针对一个当前正在被围城的设防地区打出，即使围城方未满足攻城的条件（如缺乏补给路线或守城方海军的存在），围城方立即对该地区发起一次攻城。在攻城后，若围城方部队依然多于守城方部队，执行以下效果：所有守城方部队被消灭；所有守城方将领被俘虏；围城方获得该地区的控制权。FAQ：计算单位时无视防守方的将领和海军单位。",
+        textEn: "Play against a fortress that is currently under siege; even if the besieging power does not meet the assault conditions (such as lacking a supply line or the presence of defending naval units), the besieging power immediately launches an assault on that space. After the assault, if the besieging power's units still outnumber the defender's units, apply the following effects: all defending units are eliminated; all defending leaders are captured; the besieging power gains control of the space. FAQ: Ignore the defender's leaders and naval units when counting units.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -702,6 +735,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "选择以下选项中的一项执行：1、在法兰西地区进行7次传播新教尝试，然后在尼德兰地区进行7次传播新教尝试。两地传播新教尝试的首个骰值默认为“6”，随机掷其余骰子。2、在法兰西地区或尼德兰地区进行一次7CP的煽动叛乱。3、在法兰西地区和尼德兰地区同时进行煽动叛乱，视作花费了4CP和3CP（自由分配）。",
+        textEn: "Choose one of the following: 1. Make 7 Protestant conversion attempts in France (the area), then 7 Protestant conversion attempts in the Netherlands. The first die counts as a 6 for the Protestant conversion attempts in both areas; roll the remaining dice randomly. 2. Instigate a 7 CP Rebellion in France (the area) or the Netherlands. 3. Instigate Rebellion in France (the area) and the Netherlands simultaneously, treating it as spending 4 CP and 3 CP (allocated freely).",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -724,6 +758,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Diplomacy / Action Phase",
         textZh: "选择以下选项中的一项执行：1、在有法国王室订婚时可以使用。在一次法国联姻中放置“皇室婚宴+2”的标记。然后从牌堆中抽一张牌，或从弃牌堆找回“大旅行”（可立即打出）。2、在法国与新教处于交战状态，且法国的手牌数不大于3时（包括此牌）可以使用。投掷1个骰子，骰值+2为最终结果。新教选择该结果数量的法兰西地区，这些地区要么从新教政治控制变为法国政治控制，要么转变为天主教。本回合的剩余时间，新教无法在法兰西地区煽动叛乱。",
+        textEn: "Choose one of the following: 1. May be used when a French royal betrothal exists. Place a “Royal Wedding +2” marker on a French marriage. Then draw a card from the draw deck, or retrieve “Grand Tour” from the discard pile (may be played immediately). 2. May be used when France is at war with the Protestant and France's hand size is no more than 3 (including this card). Roll 1 die; the die result +2 is the final result. The Protestant chooses that many spaces in France (the area); these spaces either change from Protestant political control to French political control, or convert to Catholic. For the remainder of this turn, the Protestant cannot instigate Rebellion in France (the area).",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -746,6 +781,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "神圣罗马帝国可选择介入其他两个主要势力之间的战争。对其中一方宣战（不得与目标势力结盟），同时与另一方结盟。在1个神圣罗马帝国本土地区放置2支正规军，同时可将1个陆军将领移至此地区。此时刚与神圣罗马帝国交战的势力可以掷5个骰子，每个骰值为“1”的骰子可在任意1个神圣罗马帝国本土地区放置1个骚乱标记。FAQ：神罗必须介入两个势力之间的战争，而不能直接宣战；骚乱标记可以放置在有驻军的地区；可以移动被围城中的将领。",
+        textEn: "The Holy Roman Empire may choose to intervene in a war between two other major powers. Declare war on one of them (may not be allied with the target power), while allying with the other. Place 2 regulars in 1 Holy Roman Empire home space, and may also move 1 army leader to this space. The power that has just gone to war with the Holy Roman Empire may then roll 5 dice; for each die with a result of “1”, place 1 Unrest marker in any 1 Holy Roman Empire home space. FAQ: The HRE must intervene in a war between two powers and cannot declare war directly; Unrest markers may be placed in spaces with garrisons; leaders under siege may be moved.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -768,6 +804,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "选择以下选项中的一项执行：1、指定1个意大利艺术家或科学家，或者随机选择1个神圣罗马帝国艺术家或科学家，视作花费3CP给予赞助。如果鲁道夫二世是帝国皇帝，放置“+2布拉格文化中心”标记至该艺术家或科学家上。然后从牌堆中抽一张牌。本次赞助计入每回合的赞助限制。2、从牌堆中抽两张牌。将手牌中的一张牌（不能是势力牌或强制性事件牌）交给其他势力。FAQ：当鲁道夫二世联姻成功时（联姻判定先于赞助判定），立即将“+2布拉格文化中心”标记移出游戏。",
+        textEn: "Choose one of the following: 1. Designate 1 Italian artist or scientist, or randomly select 1 Holy Roman Empire artist or scientist, and treat it as spending 3 CP for patronage. If Rudolf II is the Emperor, place a “+2 Prague Cultural Center” marker on that artist or scientist. Then draw a card from the draw deck. This patronage counts against the per-turn Patronage limit. 2. Draw two cards from the draw deck. Give one card from your hand (may not be a Home card or Mandatory Event) to another power. FAQ: When Rudolf II's marriage succeeds (the marriage check is resolved before the patronage check), immediately remove the “+2 Prague Cultural Center” marker from play.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -791,6 +828,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "选择以下选项中的一项执行：1、如果伊丽莎白一世活着，找回弃牌堆中的一张牌，选择保留或打出。2、如果伊丽莎白一世已经订婚，可以解除婚约。准新郎所属势力根据伊丽莎白悔婚补偿表掷骰并获取补偿。英格兰玩家从牌堆中抽一张牌。FAQ：若伊丽莎白一世死亡，此卡在本回合不能作为事件打出，且在本回合结束时移出游戏。",
+        textEn: "Choose one of the following: 1. If Elizabeth I is alive, retrieve one card from the discard pile and choose to keep or play it. 2. If Elizabeth I is betrothed, the betrothal may be broken off. The groom's power rolls on the Jilted by Elizabeth Table and receives compensation. The England player draws a card from the draw deck. FAQ: If Elizabeth I has died, this card may not be played as an Event this turn, and is removed from play at the end of this turn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -813,6 +851,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Immediately when drawn",
         textZh: "立即进行奥斯曼帝国的外交评议。此牌每回合都会洗入牌堆",
+        textEn: "Immediately resolve Ottoman diplomatic status. This card is shuffled back into the deck each turn",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -834,6 +873,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Immediately when drawn",
         textZh: "西班牙珍宝舰队在随机区域暴露行踪。根据章节23.2的程序处理。此牌每回合都会洗入牌堆",
+        textEn: "The Spanish Treasure Fleet is revealed in a random area. Follow the procedure in Section 23.2. This card is shuffled back into the deck each turn",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -855,6 +895,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "combat",
         timing: "Before assault dice are rolled",
         textZh: "当敌军对你在尼德兰地区的设防地区攻城时，在投骰前使用。围城解除，敌军撤退，敌军损失一半的雇佣兵（向上取整）。不能阻止“变节”。",
+        textEn: "Use before rolling dice when enemy units assault your fortress in the Netherlands. The siege is lifted, the enemy retreats, and the enemy loses half its mercenaries (rounded up). Cannot prevent “Defection”.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -876,6 +917,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "combat",
         timing: "Before dice in field, naval or assault",
         textZh: "在野战、海战或攻城战（不能是海盗行动）中，额外多掷2个骰子。若英格兰使用此战斗牌，改为多掷4个骰子。",
+        textEn: "In a field battle, naval battle, or assault (not a pirate action), roll 2 additional dice. If England uses this Combat card, roll 4 additional dice instead.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -899,6 +941,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Action Phase",
         textZh: "只有控制约克、卡莱尔、贝里克郡或者苏格兰境内任意地区的势力可以使用。从在以上7个地区中控制任一地区的另一主要势力中选择一个目标玩家，从其手中随机抽一张牌并保留。-或-只有英格兰、法国或新教玩家可使用。对苏格兰获得4点外交影响力。FAQ：可以在自己的行动轮作为事件打出；可以在“苏格兰女王玛丽”为苏格兰添加影响力后打出。",
+        textEn: "Only a power that controls York, Carlisle, Berwickshire, or any space in Scotland may use this. Choose a target player from another major power that controls any of the above 7 spaces; randomly draw one card from their hand and keep it. — or — Only the England, France, or Protestant player may use this. Gain 4 diplomatic influence with Scotland. FAQ: May be played as an Event during your own impulse; may be played after “Mary Queen of Scots” adds influence to Scotland.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -920,6 +963,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "As a response before an event resolves",
         textZh: "任何玩家可当做响应牌取消下列事件。可在任何时机取消的事件：“福克斯殉道者名录”“破坏圣像运动”“纳瓦拉的珍妮”。可在事件的目标针对法兰西地区时取消的事件：“军队哗变”“城邦起义”“德意志的裁军”“烧杀掳掠”“变节！”。FAQ：若用来取消神圣罗马帝国打出的“德意志的裁军”，在神圣罗马帝国指定两个目标后打出，所有在法兰西地区的雇佣兵都会保留。",
+        textEn: "Any player may play this as a Response to cancel the following Events. Events that may be cancelled at any timing: “Foxe's Book of Martyrs”, “Iconoclasm”, “Jeanne of Navarre”. Events that may be cancelled when the Event's target is France (the area): “Army Mutiny”, “City Revolt”, “German Disbandment”, “Sack and Pillage”, “Defection!”. FAQ: If used to cancel “German Disbandment” played by the Holy Roman Empire, play it after the Holy Roman Empire designates two targets; all mercenaries in France (the area) are retained.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -941,6 +985,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Before a navigation roll",
         textZh: "选择一位航海家，他在之后的航行中航海等级+1（最多为3）。将一个“老练领航员”标记置于此航海家上。除非在航行检定掷骰前使用，否则此次检定结果不变。FAQ：该牌的标记会随着远征队冬季停泊于殖民地消失；该牌的标记唯一；该牌可以作为事件打出。",
+        textEn: "Choose a sea captain; he gains +1 to his voyage rating (to a maximum of 3) on future voyages. Place a “Veteran Pilot” marker on this sea captain. Unless used before the die roll for a voyage check, the result of this check is unchanged. FAQ: This card's marker is removed when the expedition winters at a colony; this card's marker is unique; this card may be played as an Event.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -962,6 +1007,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "After capturing a fortress by assault",
         textZh: "在攻城并占领设防地区后使用。目标地区相邻的敌方所属设防地区也可能会投降，对每个地区分别掷1个骰子，若骰值比地区上的守军多，进攻方获得该地区控制权，守军全部撤离。最后，防守方获得一个“+1卡牌”标记。FAQ：正在被围城的敌方设防地区也会因此效果投降，并且撤离守军。",
+        textEn: "Use after an assault captures a fortress. Enemy fortresses adjacent to the target space may also surrender; roll 1 die separately for each space, and if the die result exceeds the number of defending units in the space, the attacker gains control of that space and all defending units are withdrawn. Finally, the defender gains a “+1 Card” marker. FAQ: Enemy fortresses currently under siege also surrender to this effect, and the defending units are withdrawn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -983,6 +1029,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Navigation roll",
         textZh: "在一次航行检定掷骰后，使掷骰结果-1。-或-强制一个远征队（可以是己方远征队）进行一次航行检定。",
+        textEn: "After the die roll for a voyage check, apply -1 to the die result. — or — Force an expedition (which may be your own) to make a voyage check.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1004,6 +1051,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "After capturing a key by assault",
         textZh: "在攻城并占领核心地区后使用。进攻方可从防守方手中抽一张牌。然后再从牌堆中抽一张牌。防守方可获得一个“+1卡牌”标记。FAQ：如果被攻占的地区不是主要势力控制，或者防守方没有手牌，不会因此从牌堆中抽两张牌。",
+        textEn: "Use after an assault captures a key. The attacker may draw a card from the defender's hand. Then draw a card from the draw deck. The defender may gain a “+1 Card” marker. FAQ: If the captured space is not controlled by a major power, or the defender has no cards in hand, two cards are not drawn from the draw deck as a result.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1025,6 +1073,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "在尼德兰地区进行8次传播新教尝试。首个骰值默认为“6”，随机掷其余骰子。所有骰值“3”均视为“4”",
+        textEn: "Make 8 Protestant conversion attempts in the Netherlands. The first die counts as a 6; roll the remaining dice randomly. All die results of 3 are treated as 4",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1051,6 +1100,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "指定1个意大利艺术家或科学家，视作花费3CP给予赞助。将己方控制标记置于该艺术家或科学家底下，以表示该艺术家或科学家所属。本次赞助计入每回合的赞助限制。",
+        textEn: "Designate 1 Italian artist or scientist; treat as spending 3 CP on patronage. Place your own control marker beneath that artist or scientist to show which power owns that artist or scientist. This patronage counts against the per-turn patronage limit.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1072,6 +1122,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "在菲律宾群岛放置西班牙的控制标记。立即增加1个宝藏至西班牙的新世界宝藏轨第5格。之后的每回合开始时，西班牙可以放置第5个新世界宝藏。此牌作为事件打出后，移出游戏",
+        textEn: "Place a Spanish control marker in the Philippine Islands. Immediately add 1 treasure to the 5th box of Spain's New World Treasure track. At the start of each turn thereafter, Spain may place the 5th New World treasure. Remove this card from play after it is played as an Event",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -1095,6 +1146,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "当西班牙在尼德兰地区有不小于5支部队（不包括瓦隆卫队）时可作为事件打出。将威廉·奥兰治置于回合记录轨上，西班牙在尼德兰地区进行8次传播天主教尝试。首个骰值默认为“6”，随机掷其余骰子。之后，西班牙可夺取3个位于尼德兰地区、新教政治控制、无驻军、非核心的地区的政治控制权。新教获得一个“+1卡牌”标记。此牌作为事件打出后，移出游戏",
+        textEn: "May be played as an Event when Spain has at least 5 units in the Netherlands (not including Walloon Guards). Place William of Orange on the Turn Record Track; Spain makes 8 Catholic conversion attempts in the Netherlands. The first die counts as a 6; roll the remaining dice randomly. Afterward, Spain may take political control of 3 spaces in the Netherlands that are under Protestant political control, have no garrison, and are not keys. The Protestant gains a “+1 Card” marker. Remove this card from play after it is played as an Event",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -1118,6 +1170,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "当有航海家在南美北海岸与安地列斯群岛航行时可打出。将该航海家置于回合记录轨，在本回合的剩余时间里，该航海家将尝试寻找传说中的黄金国。远征结束，远征队失去载有的宝藏。FAQ：对德雷克/霍金斯联合探险队使用时，这两名航海家都会被置于回合记录轨。",
+        textEn: "May be played when a sea captain is sailing in the North Coast of South America and the Antilles. Place that sea captain on the Turn Record Track; for the rest of this turn, that sea captain will attempt to find the legendary El Dorado. The expedition ends; the expedition loses the treasure it carries. FAQ: When used on the Drake/Hawkins joint expedition, both sea captains are placed on the Turn Record Track.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1139,6 +1192,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "将英格兰地区中两个信仰天主教的地区转为信仰新教。在法兰西、尼德兰和苏格兰地区进行共计5次传播新教尝试。",
+        textEn: "Convert 2 Catholic spaces in England to Protestant. Make a total of 5 Protestant conversion attempts in France, the Netherlands, and Scotland.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1160,6 +1214,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "移除所有法兰西地区的骚乱标记。法国玩家可选择执行以下其中两项：①与一个主要势力停战（若有需要应撤离部队）。②从弃牌堆找回“诺查丹玛斯的大预言”并保留。③选择一张手牌（不能是势力牌或强制性事件牌）或一个宝藏交给另一个玩家。④在巴黎增加1支正规军，然后依照春季部署的限制，将1个陆军堆叠从巴黎发兵至其他法国本土地区。若天主教联盟已成立，此牌作为事件或CP打出后须移出游戏",
+        textEn: "Remove all Unrest markers in France. The French player may choose to perform two of the following: 1. Make peace with a major power (withdraw units if necessary). 2. Retrieve “Nostradamus' Great Prophecy” from the discard pile and keep it. 3. Give a card from your hand (not a Home card or Mandatory Event) or a treasure to another player. 4. Add 1 regular in Paris, then, subject to the Spring Deployment restrictions, move 1 army stack from Paris to another French home space. If the Catholic League has been formed, this card must be removed from play after it is played as an Event or for CP",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1183,6 +1238,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "在法兰西地区进行8次传播新教尝试。首个骰值默认为“6”，随机掷其余骰子。",
+        textEn: "Make 8 Protestant conversion attempts in France. The first die counts as a 6; roll the remaining dice randomly.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1210,6 +1266,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "在法兰西地区和尼德兰地区中选择其一，进行7次传播新教尝试。所有骰值“5”均视为“6”。每个骰值“1”都会导致一个地区放置骚乱标记（而非原有的掷任何数量“1”仅会在一个地区放置骚乱标记）。不能在已有骚乱的地区再次放置骚乱标记。",
+        textEn: "Choose either France or the Netherlands and make 7 Protestant conversion attempts. All die results of 5 are treated as 6. Each die result of 1 causes an Unrest marker to be placed in one space (instead of the normal rule that any number of 1s places an Unrest marker in only one space). An Unrest marker may not be placed again in a space that already has Unrest.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1238,6 +1295,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "在法兰西、尼德兰和苏格兰地区进行6次传播天主教尝试。首个骰值默认为“6”随机掷其余骰子。-或-取消一个艺术家或科学家的工作进度，将他的标记从赞助表上移至回合记录轨上，该艺术家或科学家下回合可重新上场。该艺术家或科学家所属的势力仍然视为在本回合进行过赞助。",
+        textEn: "Make 6 Catholic conversion attempts in France, the Netherlands, and Scotland. The first die counts as a 6; roll the remaining dice randomly. — or — Cancel the work progress of an artist or scientist, move his marker from the Patronage Table to the Turn Record Track, and that artist or scientist may return next turn. The power that owns that artist or scientist is still treated as having performed patronage this turn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1259,6 +1317,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Diplomacy Phase",
         textZh: "若本回合爱尔兰未进行外交评议，可由西班牙、法国或神圣罗马帝国作为事件打出。对爱尔兰获得2点外交影响力，并立即进行爱尔兰的外交评议。若爱尔兰与任一主要势力结盟，执行以下事项：移除英格兰位于都柏林和金赛尔的一半雇佣兵和正规军（分别向下取整且至少为1）。移除位于阿尔斯特的所有部队，并放置3支爱尔兰叛军。结盟爱尔兰的势力可以选择移动叛军，如章节24.2中启动流程步骤6所述。",
+        textEn: "If Ireland's diplomatic status has not been resolved this turn, this card may be played as an Event by Spain, France, or the Holy Roman Empire. Gain 2 diplomatic influence with Ireland and immediately resolve Ireland's diplomatic status. If Ireland is allied with any major power, do the following: remove half of England's mercenaries and regulars in Dublin and Kinsale (rounded down separately for each, minimum 1 each). Remove all units in Ulster and place 3 Irish rebel units. The power allied with Ireland may choose to move the rebel units, as described in step 6 of the Activation Procedure in Section 24.2.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1280,6 +1339,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Action Phase; also a response to Gouvernante de France",
         textZh: "作为事件牌打出，新教在法兰西地区进行一次5CP的煽动叛乱。撤离巴约纳的所有非新教单位。巴约纳改为新教政治控制，并增加1支胡格诺派正规军。-或-作为响应牌打出，取消势力牌“法兰西的女管家”的效果。此牌作为事件或响应打出后，移出游戏",
+        textEn: "Play as an Event: the Protestant instigates a 5 CP Rebellion in the France area. Withdraw all non-Protestant units from Bayonne. Bayonne changes to Protestant political control and adds 1 Huguenot regular. — or — Play as a Response: cancel the effect of the Home card “Gouvernante de France”. Remove this card from play after it is played as an Event or Response.",
         removeOnEvent: false,
         removeAfterUse: true,
         effect: {
@@ -1302,6 +1362,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "英格兰获得5CP用于执行建造海军（包括远征队）、海军移动和海盗行动。在这些行动中，若航海家约翰·霍金斯在几内亚海岸或南美北海岸，则他的海盗等级变为2。此时每次约翰·霍金斯在海盗行动检定时未骰出“4”“5”“6”，英格兰拿取一个“-1奴隶贩子VP”标记。-或-英格兰或西班牙可以剪除1个敌方的密探，同时派遣1个密探去该势力。-或-将英格兰本土港口的所有大帆船翻面升级为快速帆船。",
+        textEn: "England gains 5 CP to spend on building naval units (including expeditions), naval moves and piracy actions. During these actions, if sea captain John Hawkins is in the Guinea Coast or the Spanish Main, his piracy rating becomes 2. At this time, each time John Hawkins fails to roll a “4”, “5” or “6” on a piracy action check, England takes a “-1 Slave Trader VP” marker. — or — England or Spain may eliminate 1 enemy operative and place 1 operative on that power. — or — Flip all galleons in English home ports to upgrade them to race-built galleons.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1324,6 +1385,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "选择一个苏格兰地区，将除此之外的所有苏格兰地区转为信仰新教。-或-英格兰或新教可使用，对苏格兰增加4点外交影响力。",
+        textEn: "Choose one space in Scotland and convert all other Scottish spaces to Protestant. — or — England or the Protestant may use this to add 4 diplomatic influence with Scotland.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1345,6 +1407,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "掷1个骰子，若骰值不小于“3”，则移除英格兰、法国或新教在佛罗里达的殖民地。在之后的游戏中，该地区由西班牙控制。若西班牙在目标势力有密探，掷骰自动成功。-或-西班牙获得1支大帆船，并直接配置为珍宝舰队护航。-或-西班牙在世界地图上任意一个所属地区放置一个要塞，同时在任意一个大洋区放置1支海巡队。此牌放置的要塞不计入西班牙每回合要塞限制。",
+        textEn: "Roll 1 die; if the result is “3” or higher, remove the colony of England, France, or the Protestant in Florida. For the rest of the game, that space is under Spanish control. If Spain has an operative in the target power, the die roll automatically succeeds. — or — Spain gains 1 galleon and directly assigns it as a Treasure Fleet escort. — or — Spain places a fortress in any of its spaces on the World Map and 1 naval patrol in any ocean zone. The fortress placed by this card does not count against Spain's per-turn fortress limit.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1366,6 +1429,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "强制在几内亚海岸或北大西洋的航海家掷1骰检定。若骰值不大于其航海等级，则平安无事。否则该航海家将改道探索西北航道，远征队失去所有宝藏。然后再掷1骰，若骰值为“5”或“6”，则该航海家死亡并移出游戏。若为其他骰值则该远征失败，将航海家置于回合记录轨上，下回合可重新上场。",
+        textEn: "Force a sea captain in the Guinea Coast or North Atlantic to roll 1 die for a check. If the result is not greater than his Navigation rating, nothing happens. Otherwise the sea captain diverts to explore the Northwest Passage and the expedition loses all treasures. Then roll 1 more die; if the result is “5” or “6”, the sea captain dies and is removed from play. On any other result the expedition fails, place the sea captain on the Turn Track, and he may re-enter play next turn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1387,6 +1451,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "从牌堆抽4张牌，选择1张保留，将其余牌洗回牌堆。若法国玩家执行该事件，则改为抽取8张牌，选择1张保留，将其余牌洗回牌堆。此牌作为事件打出后移出游戏",
+        textEn: "Draw 4 cards from the draw deck, keep 1 and shuffle the rest back into the deck. If the France player executes this event, draw 8 cards instead, keep 1 and shuffle the rest back into the deck. Remove this card from play after it is played as an Event.",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -1409,6 +1474,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "取消一个科学家的工作进度，将他的标记从赞助表上移至回合记录轨上，该科学家下回合可重新上场。该科学家所属的势力仍然视为在本回合进行过科学家赞助。",
+        textEn: "Cancel the work progress of one scientist, move his marker from the Patronage table to the Turn Track; that scientist may re-enter play next turn. The power to which that scientist belongs is still considered to have sponsored a scientist this turn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1430,6 +1496,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "令英格兰玩家选择让你执行：①从他手中随机抽1张牌。②在英格兰本土地区3个无驻军地区放置骚乱标记。若选择抽牌选项，你需要展示你抽到的手牌，英格兰可以选择弃置该牌或将其交给新教玩家。",
+        textEn: "Have the England player choose one of the following for you to perform: 1. Draw 1 card at random from his hand. 2. Place Unrest markers in 3 unoccupied English home spaces. If the card-draw option is chosen, you must reveal the card you drew; England may choose to discard that card or give it to the Protestant player.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1451,6 +1518,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "新教可以获得任意1个在荷兰本土地区无守军港口的政治控制权，同时将该地区转为信仰新教。在该地区增加1支荷兰大帆船与1支正规军，若目标地区为布里勒或法拉盛，则可再额外放置1支大帆船。若西班牙控制任何与北海相邻的港口，且新教本回合可在北海海域进行海盗行动，则新教免费获得一次在北海海域，针对西班牙港口的海盗行动（无需在交战状态）。跳到海盗行动的第五步，新教获得3个骰子进行本次海盗行动。",
+        textEn: "The Protestant may gain political control of any 1 ungarrisoned port in the Dutch home spaces and convert that space to Protestant at the same time. Add 1 Dutch galleon and 1 regular in that space; if the target space is Brielle or Flushing, 1 additional galleon may be placed. If Spain controls any port adjacent to the North Sea and the Protestant can conduct a piracy action in the North Sea sea zone this turn, the Protestant gains a free piracy action in the North Sea sea zone against a Spanish port (no need to be at war). Skip to step 5 of the piracy action; the Protestant gets 3 dice for this piracy action.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1473,6 +1541,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "西班牙不能作为事件打出。西班牙必须移除在尼德兰地区的，由西班牙控制的2支正规军。每移除2支西班牙雇佣兵可代替1支正规军。出牌势力从牌堆中抽一张牌。此牌作为事件打出后移出游戏",
+        textEn: "Spain may not play this as an Event. Spain must remove 2 regulars under Spanish control in the Netherlands. Every 2 Spanish mercenaries removed may substitute for 1 regular. The power playing the card draws a card from the draw deck. Remove this card from play after it is played as an Event.",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -1494,6 +1563,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "将你的1张手牌（不能是势力牌或强制性事件牌）交给另一个玩家。从牌堆中抽一张牌（即使你刚才没有手牌可以交给其他玩家）。从牌堆中抽的这张牌不能立即使用。",
+        textEn: "Give 1 card from your hand (not a Home card or Mandatory Event) to another player. Draw a card from the draw deck (even if you had no card in hand to give to another player). The card drawn from the draw deck may not be used immediately.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1515,6 +1585,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "新教在尼德兰地区进行一次5CP的煽动叛乱。-或-西班牙从新教手中随机抽一张牌。这张牌不能立即使用。",
+        textEn: "The Protestant instigates a 5 CP Rebellion in the Netherlands. — or — Spain draws 1 card at random from the Protestant's hand. This card may not be used immediately.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1536,6 +1607,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "在任意两个宗教斗争区域进行共计8次传播天主教尝试（可选无法通过一般途径进行传教尝试的区域）。首个骰值默认为“6”，随机掷其余骰子。",
+        textEn: "Make a total of 8 Catholic conversion attempts in any two religious struggle areas (areas that cannot normally be targeted for conversion attempts may be chosen). The first die counts as a “6”; roll the remaining dice randomly.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1565,6 +1637,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "从另一个势力手中随机抽一张牌并保留（不能抽取势力牌）。-或-检视另一个势力的手牌，选择一张弃掉（不能选择势力牌）。",
+        textEn: "Randomly draw a card from another power's hand and keep it (may not draw a Home card). — or — Look at another power's hand and choose one card to discard (may not choose a Home card).",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1586,6 +1659,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "若神圣罗马帝国和奥斯曼帝国未交战，可作为事件打出。神圣罗马帝国从地图上移除3-8支陆军部队（同时也可选择任意数量的将领），并将这些部队放置在这张国外战争牌上（章节23.7）。波兰军队起始有3或5支陆军部队（由出牌玩家随后决定）。若初始有5支陆军部队，则在此国外战争结束后神圣罗马帝国获得1个战争胜利者VP。另将一个“-1卡牌”标记给神圣罗马帝国玩家直到国外战争结束。",
+        textEn: "If the Holy Roman Empire and the Ottoman are not at war, may be played as an Event. The Holy Roman Empire removes 3-8 army units from the map (also may choose any number of leaders) and places these units on this Foreign War card (Section 23.7). The Polish army starts with 3 or 5 army units (decided later by the player playing the card). If it starts with 5 army units, the Holy Roman Empire gains 1 war winner VP after this Foreign War ends. Also give a “-1 Card” marker to the Holy Roman Empire player until the Foreign War ends.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1608,6 +1682,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "奥斯曼帝国从地图上移除3-8支陆军部队（同时也可选择任意数量的将领），并将这些部队放置在这张国外战争牌上（章节23.7）。波斯军队起始有3或5支陆军部队（由出牌玩家随后决定）。若初始有5支陆军部队，则在此国外战争结束后奥斯曼帝国获得1个战争胜利者VP。另将一个“-1卡牌”标记给奥斯曼帝国玩家直到国外战争结束。",
+        textEn: "The Ottoman removes 3-8 army units from the map (also may choose any number of leaders) and places these units on this Foreign War card (Section 23.7). The Persian army starts with 3 or 5 army units (decided later by the player playing the card). If it starts with 5 army units, the Ottoman gains 1 war winner VP after this Foreign War ends. Also give a “-1 Card” marker to the Ottoman player until the Foreign War ends.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1630,6 +1705,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Diplomacy Phase",
         textZh: "立即进行苏格兰的外交评议，且给予控制爱丁堡的玩家额外+1掷骰修正。若结果是“与英格兰或新教结盟”，且苏格兰玛丽女王还生活在苏格兰，则她将被英格兰俘虏。赢得苏格兰外交评议的势力玩家获得所有苏格兰地区控制权，所有位于苏格兰地区、且非该玩家或其盟友的部队必须撤离。最后，移除所有苏格兰陆军，并在爱丁堡放置2支苏格兰正规军。此牌每回合都会洗入牌堆",
+        textEn: "Immediately resolve Scotland's diplomatic status, and give the player controlling Edinburgh an additional +1 die roll modifier. If the result is “Allied with England or the Protestant” and Mary Queen of Scots is still living in Scotland, she is captured by England. The player of the power that wins the Scotland diplomatic status resolution gains control of all Scottish spaces, and all units located in Scottish spaces that are not that player's or their allies' must withdraw. Finally, remove all Scottish army units and place 2 Scottish regulars in Edinburgh. This card is shuffled back into the deck each turn",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1651,6 +1727,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Immediately when drawn",
         textZh: "指定一个位于大西洋沿岸的殖民地，控制该殖民地的玩家须掷1个骰子来保护其殖民地。若骰值为“5”或“6”则殖民地保护成功；否则该殖民地被摧毁。打出此牌时，若有符合条件的殖民地存在，即使殖民地的所有者就是出牌者，也必须进行掷骰判定。此牌每回合都会洗入牌堆",
+        textEn: "Designate one colony on the Atlantic coast. The player controlling that colony must roll 1 die to protect their colony. If the die result is “5” or “6”, the colony is successfully protected; otherwise the colony is destroyed. When this card is played, if any eligible colony exists, even if the owner of the colony is the player playing the card, a die roll check must still be made. This card is shuffled back into the deck each turn",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1672,6 +1749,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Immediately when drawn",
         textZh: "将下列任一已上场将领移出游戏（无论在何处）：皮雅利帕夏、唐胡安、蒙莫朗西、阿尔瓦公爵、圣克鲁斯、莱斯特伯爵、兹里尼。此牌每回合都会洗入牌堆。",
+        textEn: "Remove from play any one of the following leaders already in play (wherever located): Piyale Pasha, Don Juan, Montmorency, Duke of Alba, Santa Cruz, Earl of Leicester, Zrinyi. This card is shuffled back into the deck each turn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1693,6 +1771,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "移除一个邻近南大西洋、印度洋或南太平洋海域的殖民地。若打出此牌的势力控制里斯本，则再抽一个宝藏并保留，可在接下来的行动轮使用。无法使用此牌移除葡萄牙及其盟友的殖民地，或者西班牙殖民地。",
+        textEn: "Remove one colony adjacent to the South Atlantic, Indian Ocean, or South Pacific sea zone. If the power playing the card controls Lisbon, then draw one additional treasure and keep it, which may be used in the following impulse. This card may not be used to remove colonies of Portugal and its allies, or Spanish colonies.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1714,6 +1793,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "只有苏格兰的玛丽女王已经被英格兰俘虏，才可作为事件打出。西班牙选择3个英格兰地区转为信仰天主教。所选的地区不能有信仰新教的部队，且必须在本次行动开始时就距离已经信仰天主教的地区不超过2个地区。然后，若西班牙与英格兰正在交战，西班牙可以在英格兰进行一次4CP的煽动叛乱（与新教煽动叛乱相同）。若西班牙与英格兰未交战，西班牙可在英格兰地区选择至多4个未驻军或信仰天主教的地区放置骚乱标记。",
+        textEn: "May be played as an Event only if Mary Queen of Scots has already been captured by England. Spain chooses 3 English spaces to convert to Catholic. The chosen spaces may not contain Protestant units and must, at the start of this action, be no more than 2 spaces away from a space already Catholic. Then, if Spain and England are at war, Spain may conduct one 4 CP instigate rebellion in England (same as a Protestant instigate rebellion). If Spain and England are not at war, Spain may place Unrest markers in up to 4 English spaces that are ungarrisoned or Catholic.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1736,6 +1816,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "将任意3个尼德兰地区转为信仰新教。这些地区可以不符合传教条件（章节18.5）。此牌作为事件打出后移出游戏。",
+        textEn: "Convert any 3 Netherlands spaces to Protestant. These spaces need not meet the conversion requirements (Section 18.5). Remove this card from play after it is played as an Event.",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -1758,6 +1839,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "选择以下选项中的一项执行：1、派遣1个密探至任意一个有陆军将领位于法兰西地区的1个势力，然后立即对法兰西地区的1个目标进行一次刺杀，视作花费4CP。本次刺杀计入每回合的刺杀限制。2、选择派遣2个密探，或进行1次花费3CP的间谍行动。然后从牌堆中抽一张牌。3、检视另一个势力的手牌。然后选择从该势力手中随机抽一张牌并保留，或从牌堆中抽两张牌。",
+        textEn: "Choose one of the following: 1. Send 1 operative to any one power that has an army leader located in France (the area), then immediately conduct one assassination against 1 target in France (the area), treated as spending 4 CP. This assassination counts toward the per-turn Assassination limit. 2. Choose to send 2 operatives, or conduct 1 espionage action costing 3 CP. Then draw a card from the draw deck. 3. Look at another power's hand. Then choose to randomly draw a card from that power's hand and keep it, or draw two cards from the draw deck.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1780,6 +1862,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Event or response",
         textZh: "选择以下选项中的一项执行：1、可作为事件牌或响应牌使用。直到回合结束前，选择让势力板上的“沃尔辛厄姆”标记处于攻势（己方间谍行动进攻骰“4”“5”“6”视为命中）或守势（敌方间谍行动进攻骰仅“6”视为命中）。2、移除1个英格兰势力板上的敌方密探或耶稣会士。然后可选择进行1次可额外掷2个骰子的获取情报。",
+        textEn: "Choose one of the following: 1. May be used as an Event card or a Response card. Until the end of the turn, choose to have the “Walsingham” marker on the power board in the offensive position (friendly espionage action attack dice of “4”, “5”, “6” count as hits) or the defensive position (enemy espionage action attack dice count as hits only on “6”). 2. Remove 1 enemy operative or Jesuit from the England power board. Then may choose to conduct 1 Gain Intelligence that may roll 2 additional dice.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1802,6 +1885,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Action Phase",
         textZh: "葡萄牙作为次要势力进入游戏，可作为宣战和外交评议的对象。放置标志在外交影响评估板上，表示其与西班牙、法国和英格兰的外交状态（英格兰的初始外交影响力为1）。任何在冬季阶段控制里斯本的势力可以抽一个葡萄牙宝藏（如果还有剩余），作为葡萄牙在世界地图上的收入。此牌作为事件打出后移出游戏",
+        textEn: "Portugal enters the game as a minor power and may be the target of declarations of war and of resolving diplomatic status. Place markers on the diplomatic influence assessment board indicating its diplomatic status with Spain, France, and England (England's initial diplomatic influence is 1). Any power controlling Lisbon in the Winter Phase may draw one Portuguese treasure (if any remain) as Portugal's income on the world map. Remove this card from play after it is played as an Event",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -1824,6 +1908,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Immediately when drawn",
         textZh: "计算尼德兰地区处于西班牙政治控制下的地区数量（骚乱地区不计），按照以下说明给予VP奖励：0：新教+3VP；1-7：新教+2VP，英格兰+1VP；8-11：新教、英格兰、西班牙+1VP；12-19：西班牙+2VP；20-21：西班牙+3VP。此牌每回合都会洗入牌堆。",
+        textEn: "Count the number of Netherlands spaces under Spanish political control (spaces with Unrest markers are not counted), and award VP bonuses as follows: 0: Protestant +3 VP; 1-7: Protestant +2 VP, England +1 VP; 8-11: Protestant, England, Spain +1 VP; 12-19: Spain +2 VP; 20-21: Spain +3 VP. This card is shuffled back into the deck each turn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1845,6 +1930,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "When Charles IX dies",
         textZh: "查理九世去世。亨利三世接替查理九世成为法国统治者。将这张牌放置在法国势力板上的统治者区域。如果查理九世尚未联姻，则将其移出游戏并终止联姻。治理能力：保留1张手牌；手牌奖励：额外1张卡牌。",
+        textEn: "Charles IX dies. Henry III succeeds Charles IX as ruler of France. Place this card in the ruler area on the France power board. If Charles IX has not yet married, remove him from play and terminate the marriage. Admin rating: keep 1 card in hand; card bonus: 1 additional card.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1867,6 +1953,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "When Selim II dies",
         textZh: "塞利姆二世去世。穆拉德三世接替塞利姆二世成为奥斯曼帝国的统治者。将这张牌放置在奥斯曼帝国势力板的统治者区域。如果游戏人数不大于4人，则立即进行奥斯曼帝国的外交评议。治理能力：保留1张手牌；手牌奖励：无额外卡牌。",
+        textEn: "Selim II dies. Murad III succeeds Selim II as ruler of the Ottoman Empire. Place this card in the Ruler area of the Ottoman Empire's power board. If the game has 4 or fewer players, immediately resolve the Ottoman Empire's diplomatic status. Admin rating: keep 1 card in hand; Card bonus: no extra cards.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1889,6 +1976,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Action Phase",
         textZh: "立即结束神圣罗马帝国与波兰的战争，然后西班牙、法国和神圣罗马帝国（若该势力为玩家）可以依次面朝下打出一张卡牌（可以为势力牌，不能为强制性事件牌）或宝藏并同时翻开以参与选王。然后每个势力掷1个骰子，加上其打出卡牌或宝藏的CP值作为最终分数。最终分数最大且大于5的势力成为波兰国王并获得2VP（平手按法、罗、西的顺序决定）。若最高分数不大于5则无VP奖励。以此法结束“波兰战争”时，视为神圣罗马帝国获得胜利。此牌作为事件打出后移出游戏",
+        textEn: "Immediately end the war between the Holy Roman Empire and Poland, then Spain, France and the Holy Roman Empire (if that power is a player) may each in turn play one card face down (may be a Home card, may not be a Mandatory Event) or a treasure and reveal them simultaneously to take part in the royal election. Then each power rolls 1 die, adding the CP value of the card or treasure it played to obtain its final score. The power with the highest final score that is also greater than 5 becomes King of Poland and gains 2 VP (ties decided in the order France, HRE, Spain). If the highest score is not greater than 5, no VP is awarded. When the “Polish War” is ended in this way, the Holy Roman Empire is treated as having won. Remove this card from play after it is played as an Event.",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -1911,6 +1999,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "When Maximilian II dies",
         textZh: "马克西米利安二世去世。鲁道夫二世接替马克西米利安二世成为神圣罗马帝国的统治者。将这张牌放置在神圣罗马帝国势力板的统治者区域。神圣罗马帝国立即迁都到布拉格。如果游戏人数不大于5人，则立即进行神圣罗马帝国的外交评议。治理能力：保留1张手牌；手牌奖励：额外1张卡牌。",
+        textEn: "Maximilian II dies. Rudolf II succeeds Maximilian II as ruler of the Holy Roman Empire. Place this card in the Ruler area of the Holy Roman Empire's power board. The Holy Roman Empire immediately moves its capital to Prague. If the game has 5 or fewer players, immediately resolve the Holy Roman Empire's diplomatic status. Admin rating: keep 1 card in hand; Card bonus: 1 extra card.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1933,6 +2022,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Before an assassination roll",
         textZh: "刺杀行动掷骰前打出。本次刺杀行动额外掷2个骰子。",
+        textEn: "Play before the die roll for an assassination action. Roll 2 additional dice for this assassination action.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1955,6 +2045,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "Event or response",
         textZh: "如果苏格兰的玛丽女王还活着，执行以下其中一项：①作为响应牌打出，增加4点法国对苏格兰的外交影响力。②作为事件牌打出，增加3点法国对苏格兰的外交影响力，然后立即进行苏格兰的外交评议。③作为响应牌打出，在英格兰天主教起义中额外掷3个骰子。④作为响应牌打出，在针对伊丽莎白一世的刺杀行动中额外掷3个骰子。若苏格兰的玛丽女王已死，在当做事件、响应或CP打出后移出游戏",
+        textEn: "If Mary Queen of Scots is still alive, do one of the following: 1. Play as a Response: add 4 to France's diplomatic influence with Scotland. 2. Play as an Event: add 3 to France's diplomatic influence with Scotland, then immediately resolve Scotland's diplomatic status. 3. Play as a Response: roll 3 extra dice in a Catholic uprising in England. 4. Play as a Response: roll 3 extra dice in an assassination action against Elizabeth I. If Mary Queen of Scots is dead, remove this card from play after it is played as an Event, Response or CP.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1976,6 +2067,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "As a response to Jesuit neutralization",
         textZh: "保留一个将被移除的耶稣会士。如果超过一个将被移除，出牌势力选择一个保留。",
+        textEn: "Keep one Jesuit that is to be removed. If more than one is to be removed, the power playing the card chooses one to keep.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -1997,6 +2089,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "选择以下选项中的一项执行：①将一个“密码表”标记放置在其他势力的“被密探渗透”区（或者移动已被放置的标记）。②移除己方势力板上的“密码表”标记。“密码表”的加成不能和科技“密码学”叠加。",
+        textEn: "Choose one of the following: 1. Place a “Cipher Table” marker in another power's “Infiltrated by Operatives” area (or move an already placed marker). 2. Remove the “Cipher Table” marker from your own power board. The “Cipher Table” bonus cannot stack with the “Cryptography” technology.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2018,6 +2111,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "剪除己方势力板上的1个密探。往另一个势力的势力板上派遣1个密探。",
+        textEn: "Eliminate 1 operative on your own power board. Send 1 operative to another power's power board.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2039,6 +2133,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "当里尔或敦刻尔克信仰天主教时才可以打出。在本局游戏中，每回合开始时西班牙可以额外放置一个耶稣会士在其势力板上。西班牙立即从势力板外获得一个额外的耶稣会士，将其放置在没有驻军的英格兰地区，并将该地区转为信仰天主教。此牌作为事件打出后，移出游戏",
+        textEn: "May only be played when Lille or Dunkirk is Catholic. For the rest of this game, at the start of each turn Spain may place one extra Jesuit on its power board. Spain immediately gains one additional Jesuit from outside its power board, places it in an ungarrisoned English space and converts that space to Catholic. Remove this card from play after it is played as an Event.",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -2062,6 +2157,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "西班牙将势力板上的所有耶稣会士移至没有驻军的英格兰地区。西班牙可以将一个之前已经在英格兰的耶稣会士移到英格兰境内的其他地区。目标地区可以有军队，但是不能有其他耶稣会士，然后将该地区转为信仰天主教。",
+        textEn: "Spain moves all Jesuits on its power board to ungarrisoned English spaces. Spain may move one Jesuit that was already in England beforehand to another space within England. The target space may have units but may not have other Jesuits, then convert that space to Catholic.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2084,6 +2180,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Diplomacy Phase",
         textZh: "奥斯曼无法作为事件打出。在外交的谈判阶段使用，洛林的路易丝作为适婚对象上场（此前不会衰老）。若你在宣布协议，可以同时打出此牌。若你在确认协议，那么其他主要势力将以此卡牌为附带协议宣告与洛林的路易丝进行联姻。在联姻检定投骰时，视为打出此牌势力的王室成员。此牌作为事件打出后，移出游戏",
+        textEn: "The Ottoman Empire cannot play this card as an Event. Use during the negotiation phase of diplomacy. Louise of Lorraine enters play as a marriage candidate (she does not age before this). If you are announcing an agreement, you may play this card simultaneously. If you are confirming an agreement, then other major powers will announce a marriage with Louise of Lorraine with this card as a side agreement. For the marriage check die roll, Louise of Lorraine is treated as a royal of the power playing this card. Remove this card from play after it is played as an Event.",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -2106,6 +2203,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "移除2个位于英格兰地区的耶稣会士，然后在英格兰地区进行5次传播新教尝试。西班牙获得“+1卡牌”标记。",
+        textEn: "Remove 2 Jesuits in English spaces, then make 5 Protestant conversion attempts in English spaces. Spain gains a “+1 Card” marker.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2128,6 +2226,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "移除新教在法兰西地区的所有雇佣兵，新教可获得一个“+1卡牌”标记。将5个被法国控制的法国本土地区转为信仰天主教。法国可以视为立即对科利尼进行一次花费2CP的刺杀行动（计入每回合的刺杀限制）。若纳瓦拉的亨利正与法国王室订婚，则转信提高至8个地区，刺杀行动花费增至4CP。此牌作为事件打出后，移出游戏",
+        textEn: "Remove all Protestant mercenaries in France, and the Protestant may gain a “+1 Card” marker. Convert 5 French home spaces controlled by France to Catholic. France may treat this as immediately conducting a 2 CP assassination action against Coligny (counted toward the per-turn assassination limit). If Henry of Navarre is betrothed to the French royal family, the conversions increase to 8 spaces and the assassination action cost increases to 4 CP. Remove this card from play after it is played as an Event.",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -2151,6 +2250,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "选择以下选项中的一项执行：①若穆拉德三世为奥斯曼帝国统治者，且游戏人数不小于5，可当作事件打出。奥斯曼帝国选择给予另一个势力1张手牌，该势力在看牌之前，需从手中选择1张卡牌交给奥斯曼帝国。若目标势力为英格兰或法国，奥斯曼帝国可以从牌堆中抽一张牌。②任何能以外交影响威尼斯的势力都可打出。获得2点对威尼斯的己方外交影响力，并立即进行威尼斯的外交评议。",
+        textEn: "Choose one of the following: 1. If Murad III is the Ottoman Empire's ruler and the game has at least 5 players, this may be played as an Event. The Ottoman Empire chooses to give 1 card from its hand to another power; before looking at the card, that power must choose 1 card from its hand and give it to the Ottoman Empire. If the target power is England or France, the Ottoman Empire may draw a card from the draw deck. 2. May be played by any power able to exert diplomatic influence on Venice. Gain 2 of its own diplomatic influence with Venice, and immediately resolve Venice's diplomatic status.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2172,6 +2272,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "选择以下选项中的一项执行：1、如果西班牙无敌舰队不在地图上，将其放置于下列西班牙控制的港口中的一个：塞维利亚，科伦纳或里斯本。然后获得5CP来升级无敌舰队或在舰队上组建陆军部队（须在本土港口组建）。2、如果西班牙无敌舰队已经在地图上，获得7CP来在舰队上组建陆军部队（须在本土港口组建）、升级舰队（须在上述3个港口）、海军移动或海上运输。若伊丽莎白一世被绝罚，则以上两个选项均额外获得1CP。",
+        textEn: "Choose one of the following: 1. If the Spanish Armada is not on the map, place it in one of the following Spanish-controlled ports: Seville, Corunna or Lisbon. Then gain 5 CP to upgrade the Armada or build army units on the fleet (must be built in a home port); 2. If the Spanish Armada is already on the map, gain 7 CP to build army units on the fleet (must be built in a home port), upgrade the fleet (must be in the above 3 ports), naval movement or sea transport. If Elizabeth I is excommunicated, both of the above options gain 1 additional CP.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2194,6 +2295,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "mandatory",
         timing: "Immediately when drawn",
         textZh: "计算在英格兰地区存在的耶稣会士、信仰天主教的地区、西班牙控制地区及西班牙正规军的数量的总和（骚乱地区不影响计数），计算VP：1-2：英格兰+1VP，西班牙-1VP；3-4：英格兰+1VP；5-6：无VP奖励；7-10：西班牙+1VP；11-15：西班牙+2VP，英格兰-1VP；16+：西班牙+3VP，英格兰-2VP。此牌每回合都会洗入牌堆。",
+        textEn: "Count the total of Jesuits, Catholic spaces, Spanish-controlled spaces and Spanish regulars present in the England area (spaces in Unrest do not affect the count), then calculate VP: 1-2: England +1 VP, Spain -1 VP; 3-4: England +1 VP; 5-6: no VP award; 7-10: Spain +1 VP; 11-15: Spain +2 VP, England -1 VP; 16+: Spain +3 VP, England -2 VP. This card is shuffled back into the deck each turn.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2215,6 +2317,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "After a power finishes its turn",
         textZh: "当一个势力结束其行动轮时打出。重置行动轮，指定任意势力开始下一个行动轮（可以是刚结束其行动轮的势力）。若你与教廷结盟，可从牌堆抽一张牌。此牌作为事件打出后移出游戏",
+        textEn: "Play when a power ends its impulse. Reset the impulse; designate any power to begin the next impulse (it may be the power that just ended its impulse). If you are allied with the Papacy, draw a card from the draw deck. Remove this card from play after it is played as an Event",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2237,6 +2340,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "response",
         timing: "As a response to Walsingham, or as an event",
         textZh: "选择以下选项中的一项执行：①作为响应牌打出，取消“沃尔辛厄姆”事件牌或响应牌的效果。②作为事件牌打出，检视一个势力的手牌和宝藏，并从中选择一张手牌或宝藏弃置。",
+        textEn: "Choose one of the following: 1. Play as a Response to cancel the effect of the “Walsingham” Event card or Response card; 2. Play as an Event to examine one power's hand and treasures, and choose one card or treasure from them to discard.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2258,6 +2362,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "英格兰、法国和神圣罗马帝国可以公开提议对新教势力提供军事帮助。每个势力的公开提议须为：立即与新教结盟，同时从本土地区移动至多5支陆军部队（可另加一个将领）至尼德兰地区任意一个新教控制地区。新教只可接受一个公开提议。如果新教接受了公开提议，马上执行协议内容，并给予该势力1VP。FAQ：与新教交战的国家无法提议；提议内容须声明足够清楚。目标地区必须由新教控制且没有新教以外的部队存在，但可以处于骚乱状态。此牌作为事件打出后，移出游戏",
+        textEn: "England, France and the Holy Roman Empire may publicly offer military aid to the Protestant power. Each power's public offer must be: immediately ally with the Protestant and simultaneously move up to 5 army units (plus one leader) from home spaces to any one Protestant-controlled space in the Netherlands. The Protestant may accept only one public offer. If the Protestant accepts a public offer, immediately carry out the terms of the agreement and award that power 1 VP. FAQ: A power at war with the Protestant cannot make an offer; the offer must be stated clearly enough. The target space must be Protestant-controlled and contain no units other than Protestant units, but may be in Unrest. Remove this card from play after it is played as an Event",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2280,6 +2385,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "若西班牙无敌舰队已经在地图上，西班牙获得4CP用于建造无敌舰队上的陆军部队（须在本土港口组建）、升级无敌舰队（须在特定的3个港口）、海军移动或海上运输。每达成以下一项条件时，可额外获得1CP：①与教廷结盟；②伊丽莎白一世被绝罚。",
+        textEn: "If the Spanish Armada is already on the map, Spain gains 4 CP to build army units on the Armada (must be built in a home port), upgrade the Armada (must be in the specific 3 ports), naval movement or sea transport. For each of the following conditions met, gain 1 additional CP: 1. allied with the Papacy; 2. Elizabeth I is excommunicated.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2302,6 +2408,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "选择以下选项中的一项执行：①如果“国王塞巴斯蒂安去世”事件已触发，可由能对葡萄牙进行外交影响的势力打出。对葡萄牙增加3点己方影响力，然后立即进行葡萄牙的外交评议。②可由已与葡萄牙结盟的势力打出。在葡萄牙控制下的一个未被围城的本土地区增加至多3支葡萄牙正规军。",
+        textEn: "Choose one of the following: 1. If the “Death of King Sebastian” event has been triggered, may be played by a power able to exert diplomatic influence on Portugal. Add 3 points of its own influence to Portugal, then immediately resolve Portugal's diplomatic status; 2. May be played by a power already allied with Portugal. Add up to 3 Portuguese regulars to one unbesieged home space under Portuguese control.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2323,6 +2430,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "若霍金斯与德雷克二人均不在地图上且都存活，英格兰立即组建一支由这两位船长带领的远征队，使用德雷克的等级与奖励，可携带最多2份宝藏。该远征队在海盗检定骰出“6”时，除了一般效果外，还可摧毁同一海域的一座堡垒（即使只剩一位船长）。在移除一个船长前，每位船长可先各自承受1点损伤。FAQ：在“西北航道”检定时，使用德雷克的航海能力，若检定失败再分别检定各自的航海能力。此牌作为事件打出后，移出游戏",
+        textEn: "If neither Hawkins nor Drake is on the map and both are alive, England immediately forms an expedition led by these two sea captains, using Drake's rating and bonuses, and may carry up to 2 treasures. When this expedition rolls a “6” on a pirate check, in addition to the normal effect it may also destroy one fortress in the same sea zone (even if only one sea captain remains). Before removing a sea captain, each sea captain may first take 1 damage. FAQ: For the “Northwest Passage” check, use Drake's navigation ability; if the check fails, then check each of their own navigation abilities separately. Remove this card from play after it is played as an Event",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2345,6 +2453,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "西班牙将势力板上的一个耶稣会士移至英格兰地区的1个无驻军地区，同时将该地区转为信仰天主教。计算出与目标地区相邻的信仰新教地区的总和，然后西班牙可以在英格兰及苏格兰地区进行与上述结果等量次数的传播天主教尝试。",
+        textEn: "Spain moves one Jesuit from its power board to 1 ungarrisoned space in the England area and at the same time converts that space to Catholic. Count the total of Protestant spaces adjacent to the target space; Spain may then make a number of Catholic conversion attempts in England and Scotland equal to that result.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2367,6 +2476,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "西班牙在英格兰和苏格兰地区进行共计6次传播天主教尝试。首个骰值默认为“6”，随机掷其余骰子。",
+        textEn: "Spain makes a total of 6 Catholic conversion attempts in England and Scotland. The first die counts as a 6; roll the remaining dice randomly.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2395,6 +2505,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "移除尼德兰地区的所有雇佣兵。本回合新教无法在尼德兰地区煽动叛乱。本局游戏中，尼德兰的双色地区视为仅对西班牙的本土地区。西班牙选择5个尼德兰双色地区，将其转为信仰天主教或己方政治控制。西班牙在一个其控制的未被围城的尼德兰地区放置至多4支瓦隆卫队。每放置1支瓦隆卫队，需撤离尼德兰地区的1支西班牙正规军（不满足则无需撤离）。FAQ：新教的首都可能因此牌被置于回合记录轨上；西班牙不能选择无效目标；不能选择存在与西班牙交战的势力部队、被围城或处于骚乱的地区。此牌作为事件打出后，移出游戏",
+        textEn: "Remove all mercenaries in the Netherlands. This turn the Protestant cannot instigate rebellion in the Netherlands. For the rest of the game, the Netherlands' two-color spaces are considered home spaces for Spain only. Spain chooses 5 Netherlands two-color spaces and converts them to Catholic or to its own political control. Spain places up to 4 Walloon Guards in one Netherlands space it controls that is not besieged. For each Walloon Guard placed, 1 Spanish regular in the Netherlands must be withdrawn (if not met, no withdrawal is required). FAQ: The Protestant capital may be placed on the turn record track by this card; Spain may not choose invalid targets; may not choose spaces that contain units of a power at war with Spain, are besieged, or are in Unrest. Remove this card from play after it is played as an Event",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -2418,6 +2529,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "若西班牙控制任何未被骚乱的尼德兰港口，则西班牙获得一次免费的在北海海域，针对英格兰或新教港口的海盗行动。跳到海盗行动的第五步，西班牙获得4个骰子进行本次海盗行动。FAQ：此牌不会放置海盗标记；即使西班牙没有海军存在于地图上，也可以投掷海盗骰。",
+        textEn: "If Spain controls any Netherlands port not in Unrest, Spain gains one free pirate action in the North Sea against an English or Protestant port. Skip to step 5 of the pirate action; Spain gains 4 dice for this pirate action. FAQ: This card does not place a pirate marker; even if Spain has no naval units on the map, the pirate dice may still be rolled.",
         removeOnEvent: false,
         removeAfterUse: false,
         effect: {
@@ -2440,6 +2552,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "home",
         timing: "Action Phase",
         textZh: "如果胡格诺派控制巴黎或是2个与巴黎相邻的地区，至少有5支胡格诺派正规军及纳瓦拉的亨利距离巴黎1格或以内，且新教与法国非同盟状态时，可作为事件打出。新教在距离巴黎1格或以内的地区中（优先为巴黎），选择至多3个地区并夺取其政治控制权，胡格诺派迁都巴黎，此后其也视为胡格诺派本土。FAQ：巴黎非法国控制时也可打出；新教首都位于回合进度条上时也可因此牌迁都至巴黎。此牌作为事件打出后，移出游戏",
+        textEn: "If the Huguenots control Paris or 2 spaces adjacent to Paris, at least 5 Huguenot regulars and Henry of Navarre are within 1 space of Paris, and the Protestant is not allied with France, this may be played as an Event. The Protestant chooses up to 3 spaces among those within 1 space of Paris (Paris first) and seizes their political control; the Huguenots move their capital to Paris, and thereafter it is also considered a Huguenot home space. FAQ: May also be played when Paris is not controlled by France; the Protestant capital may also be moved to Paris by this card when it is on the turn progress track. Remove this card from play after it is played as an Event",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {
@@ -2463,6 +2576,7 @@ export const OFFICIAL_CARDS: OfficialCardDef[] = [
         kind: "event",
         timing: "Action Phase",
         textZh: "如果法国未和西班牙结盟，西班牙控制2个与巴黎相邻的地区，但并未控制巴黎，且至少有4支西班牙正规军及吉斯公爵距离巴黎1格或以内，可作为事件打出。移除巴黎所有的部队，将领返回最近的设防地区。西班牙可获得巴黎的政治控制权。若如此做，西班牙在巴黎放置4支正规军，并将吉斯公爵移至巴黎。FAQ：巴黎非法国控制时也可打出；执行事件时，瓦隆卫队不计入西班牙正规军数量。此牌作为事件打出后，移出游戏",
+        textEn: "If France is not allied with Spain, Spain controls 2 spaces adjacent to Paris but does not control Paris, and at least 4 Spanish regulars and the Duke of Guise are within 1 space of Paris, this may be played as an Event. Remove all units in Paris; leaders return to the nearest fortress. Spain may gain political control of Paris. If it does so, Spain places 4 regulars in Paris and moves the Duke of Guise to Paris. FAQ: May also be played when Paris is not controlled by France; when resolving the event, Walloon Guards do not count toward the number of Spanish regulars. Remove this card from play after it is played as an Event",
         removeOnEvent: true,
         removeAfterUse: false,
         effect: {

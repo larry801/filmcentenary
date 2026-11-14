@@ -662,7 +662,7 @@ const en = {
         },
         virginQueen: {
             title: "Virgin Queen · Card list",
-            subtitle: "The official 112-card deck, numbered by 中文卡表. Effect text is the Chinese card face.",
+            subtitle: "The official 112-card deck, numbered by 中文卡表. Effect text follows the active language: the Chinese card face or its English translation.",
             officialCards: "Official cards (112)",
             turn: {variable: "Variable"},
             remove: {onEvent: "Remove on event", afterUse: "Remove after use"},

@@ -8,8 +8,9 @@ import {powerName} from "../constant/general";
 
 /**
  * Virgin Queen card list: the official 112-card deck transcribed in
- * `data/cards.ts`. Card names are bilingual; printed effect text is the
- * Chinese card face (the data set has no English transcription).
+ * `data/cards.ts`. Card names and printed effect text are bilingual; the
+ * table follows the active locale (Chinese card face or its English
+ * translation).
  */
 const VQCardTable = () => {
     i18n.use();
@@ -61,7 +62,7 @@ const VQCardTable = () => {
             turnLabel(card),
             kindLabel(card),
             card.power === undefined ? "—" : powerName(card.power, locale),
-            card.textZh,
+            isEn ? card.textEn : card.textZh,
             notes(card),
         ];
     });

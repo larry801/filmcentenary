@@ -26,6 +26,9 @@ import {useVQBoard} from "../BoardContext";
 export const CardDetail = ({id}: {id: string}) => {
     const {G, ctx, moves, vqLocale, selected, setSelectedCard, eventSelection, from, eventTarget, espionageEventTarget, holyLeagueEventTarget, menendezEventTarget, polishElectionBids, armyMutinySelection, staffordSelection, germanRecruitmentSelection, setEventTarget, setEspionageEventTarget, setHolyLeagueEventTarget, setMenendezEventTarget, setPolishElectionBids, setArmyMutinySelection, setStaffordSelection, setGermanRecruitmentSelection, setEventBranches, setEventBranchParam, foreignArmySize, setForeignArmySize, me, ps, canAct, onSelect, space} = useVQBoard();
     const def = cardById(id);
+    // Official cards carry the Chinese card face in `text`; show its English
+    // translation when the board is in English.
+    const cardText = vqLocale === "en" ? (def.textEn ?? def.text) : def.text;
     const disabled = !canAct || ps === undefined || ps.cardPlayed;
     const handler = def.officialEffect?.kind === "manual" ? def.officialEffect.handler : "";
     const espionageTargets = handler === "walsingham" ? ["offensive", "defensive", ...POWERS.filter((p) => p !== "england" && !isActivatedMajor(G, p))] :
@@ -70,7 +73,7 @@ export const CardDetail = ({id}: {id: string}) => {
             <Chip size="small" variant="outlined" label={cardKindLabel(def)}/>
         </Stack>
         <CardArt def={def} className="vq-card-detail-art"/>
-        {def.text !== undefined && <Typography variant="caption" color="text.secondary">{def.text}</Typography>}
+        {cardText !== undefined && <Typography variant="caption" color="text.secondary">{cardText}</Typography>}
         {branchChoice !== undefined && <EventBranchPanel choice={branchChoice} selected={eventSelection.branches}
             params={eventSelection.branchParams} onSelect={setEventBranches} onParam={setEventBranchParam}/>}
         {branchChoice === undefined && espionageTargets.length > 0 && <Select size="small" fullWidth value={espionageTarget}

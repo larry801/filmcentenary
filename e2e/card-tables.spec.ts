@@ -39,6 +39,15 @@ test("Virgin Queen card list renders the official 112 cards", async ({page}) => 
     await expect(cards.getByRole("cell", {name: "大维齐尔", exact: true}).first()).toBeVisible();
 });
 
+test("Virgin Queen effect text follows the locale switch", async ({page}) => {
+    await page.goto("/cards/virginQueen");
+    const cards = page.getByRole("table", {name: "Virgin Queen official cards"});
+    await expect(cards.getByRole("cell", {name: /选择以下选项中的一项执行/}).first()).toBeVisible();
+    await page.locator('input[name="locale-switch"]').check({force: true});
+    await expect(page.getByRole("heading", {name: "Virgin Queen · Card list"})).toBeVisible();
+    await expect(cards.getByRole("cell", {name: /Choose one of the following/}).first()).toBeVisible();
+});
+
 test("card list headings and columns follow the locale switch", async ({page}) => {
     await page.goto("/cards/songJinn");
     await expect(page.getByRole("heading", {name: "宋金战争 · 卡表"})).toBeVisible();

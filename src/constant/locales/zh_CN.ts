@@ -991,7 +991,7 @@ const zh_CN: Locale = {
         },
         virginQueen: {
             title: "童贞女王 · 卡表",
-            subtitle: "官方 112 张卡牌，编号按《中文卡表》顺序；效果文本为卡面中文原文。",
+            subtitle: "官方 112 张卡牌，编号按《中文卡表》顺序；效果文本为卡面中文原文，英文界面显示英文翻译。",
             officialCards: "官方卡牌（112）",
             turn: {variable: "变动"},
             remove: {onEvent: "事件后移出", afterUse: "用后移出"},
