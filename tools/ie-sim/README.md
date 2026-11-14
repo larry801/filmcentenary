@@ -50,6 +50,25 @@ IE_BATCH=20 npx jest --testPathPatterns "tools/ie-sim/batch" \
   --testPathIgnorePatterns "/node_modules/" --runInBand
 ```
 
+A larger batch is sharded and merged, which is how 50 seeds stay practical:
+
+```sh
+mkdir -p /tmp/ie-batch
+for i in 0 1 2 3; do
+  IE_BATCH=50 IE_BATCH_SHARD=$i/4 IE_BATCH_DUMP=/tmp/ie-batch/shard-$i.json \
+    npx jest --testPathPatterns "tools/ie-sim/batch" \
+    --testPathIgnorePatterns "/node_modules/" --runInBand \
+    > /tmp/ie-batch/log-$i.txt 2>&1 &
+done
+wait
+node tools/ie-sim/batch-report.js /tmp/ie-batch/shard-*.json
+```
+
+`batch-report.js` merges the dumps and prints the same report once for the
+whole batch, adding a step-count distribution (to see whether games converge or
+pile up at the step cap) and the share of games each fatal signature affects.
+It exits non-zero when the batch has a crash, a stall or an unfinished game.
+
 `tools/` is excluded from `yarn test`, so these never slow the normal suite.
 
 ## What it checks

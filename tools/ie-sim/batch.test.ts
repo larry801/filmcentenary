@@ -9,18 +9,33 @@
  *    once per signature rather than once per step)?
  *  - which moves and phases never happen at all across the whole batch?
  *
- * Run with a larger N when hunting:
+ * A large batch takes a while (a campaign game is ~700 steps and ~2s), so the
+ * run is shardable: `IE_BATCH_SHARD=<i>/<n>` runs every n-th seed block, and
+ * `IE_BATCH_DUMP=<file>` writes the raw per-game results as JSON so shards can
+ * be merged and analysed afterwards.
  *
- *   IE_BATCH=100 npx jest --testPathPatterns tools/ie-sim/batch --runInBand
+ *   IE_BATCH=50 IE_BATCH_SHARD=0/4 IE_BATCH_DUMP=/tmp/ie-0.json \
+ *     npx jest --testPathPatterns "tools/ie-sim/batch" \
+ *     --testPathIgnorePatterns "/node_modules/" --runInBand
  *
- * Deterministic: seeds are `IE-BATCH-<n>`, so a reported signature can be
- * reproduced with `IE_SEEDS=<seed>` on the matching single-mode suite.
+ * Deterministic: seeds are `IE-BATCH-<n>-<mode>`, so a reported signature can be
+ * reproduced with `IE_SEEDS=IE-BATCH-<n>-<mode>` on the matching suite.
  */
+import {writeFileSync} from "fs";
 import {runSeededGame, SimIssue, SimResult} from "./harness";
 
 jest.setTimeout(3600000);
 
 const COUNT = Number(process.env.IE_BATCH ?? 12);
+/** Optional `i/n` shard over the seed blocks. */
+const SHARD = (() => {
+  const raw = process.env.IE_BATCH_SHARD;
+  if (!raw) return {index: 0, of: 1};
+  const [index, of] = raw.split("/").map(Number);
+  return Number.isFinite(index) && Number.isFinite(of) && of > 0 ? {index, of} : {index: 0, of: 1};
+})();
+/** Optional file to dump raw per-game results into. */
+const DUMP = process.env.IE_BATCH_DUMP;
 /** Round-robin the modes so one mode cannot dominate the statistics. */
 const MODES: {name: string; opts: Parameters<typeof runSeededGame>[0] extends infer O ? Partial<O> : never}[] = [
   {name: "campaign", opts: {}},
@@ -48,6 +63,8 @@ test("batch statistics", () => {
   const started = Date.now();
 
   for (let i = 0; i < COUNT; i += 1) {
+    // Shard over seed blocks so several jest processes can run in parallel.
+    if (i % SHARD.of !== SHARD.index) continue;
     for (const mode of MODES) {
       const seed = `IE-BATCH-${i}-${mode.name}`;
       const result = runSeededGame({seed, maxSteps: 20000, ...mode.opts});
@@ -59,6 +76,25 @@ test("batch statistics", () => {
   const total = results.length;
   const finished = results.filter((result) => result.finished);
   const unfinished = results.filter((result) => !result.finished);
+
+  // Raw dump for merging shards.  `events` is dropped: it dominates the size
+  // (~1k entries per game) and the analysis below only needs counts.
+  if (DUMP) {
+    const slim = results.map(({events, result: outcome, ...rest}) => ({
+      ...rest,
+      result: outcome,
+      eventCounts: events.reduce<Record<string, number>>((acc, event) => {
+        acc[event.move] = (acc[event.move] ?? 0) + 1;
+        return acc;
+      }, {}),
+      phaseCounts: events.reduce<Record<string, number>>((acc, event) => {
+        acc[event.phase] = (acc[event.phase] ?? 0) + 1;
+        return acc;
+      }, {}),
+    }));
+    writeFileSync(DUMP, JSON.stringify(slim));
+    console.log(`dumped ${slim.length} games to ${DUMP}`);
+  }
 
   console.log(`\n=== ${total} games in ${elapsed}s (${(Number(elapsed) / total).toFixed(2)}s/game) ===`);
   console.log(`finished ${finished.length}/${total}`);
