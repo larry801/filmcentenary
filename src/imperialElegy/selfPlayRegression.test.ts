@@ -448,3 +448,46 @@ describe("9 — a minor power's fleet can be the naval defender", () => {
     expect(() => navalAvoidPlans(G, "GE", "Denmark" as never, "denmark", "north-atlantic" as never)).not.toThrow();
   });
 });
+
+// ---------------------------------------------------------------------------
+// 10. A naval box is never a land-battle origin
+// ---------------------------------------------------------------------------
+
+describe("10 — the GW bot does not attack from a naval box", () => {
+  test("a fleet sharing a box with an enemy army is not used as a land attacker", () => {
+    const G = fresh();
+    G.gw = {
+      active: true, turn: 2, order: ["GE", "FR"], belligerents: ["GE", "FR"], neutrals: [],
+      te: ["FR"], ta: ["GE"], usIn: false, italyIn: false,
+      usStability: 3, usManpower: 3, usBudget: 4, italyStability: 3, italyManpower: 3, italyBudget: 2,
+      trenches: {}, lastColonialWar: null, victor: null, outbreakDone: true, nationalWillDone: true,
+      bonusImpulses: [], discard: [],
+    } as never;
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    G.turnIndex = 0;
+    G.powers.GE.alliance = "taCommitted";
+    G.powers.FR.alliance = "teCommitted";
+    G.powers.GE.gwBudget = 3;
+
+    // A German fleet sits in a naval box that is adjacent to an enemy-held
+    // coastal space.  `landBattle` takes a land origin, so naming the box makes
+    // `performGwManeuver` refuse with "Land battles need land spaces" forever.
+    const box = "north-atlantic";
+    G.units.uFleet = {id: "uFleet", kind: "squadron", owner: "GE", steps: 2, space: box, naval: true};
+    G.spaces[box].units.push("uFleet");
+    const port = neighboursOf(box)[0];
+    G.units.uEnemy = {id: "uEnemy", kind: "army", owner: "FR", steps: 2, space: port, naval: false};
+    G.spaces[port].units.push("uEnemy");
+    G.spaces[port].control = "FR";
+
+    for (let step = 0; step < 6; step += 1) {
+      const decision = botDecision(G, makeCtx("0"), "GE");
+      if (decision.move !== "landBattle") continue;
+      const from = String((decision.args ?? [])[0]);
+      // A land battle may only start from a land space with land units.
+      expect(from).not.toBe(box);
+      expect(landUnitsIn(G, from).some((unit) => !unit.naval && unit.owner === "GE")).toBe(true);
+    }
+  });
+});

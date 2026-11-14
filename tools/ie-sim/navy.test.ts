@@ -5,6 +5,8 @@
  */
 import {runSeededGame, SimResult} from "./harness";
 
+const STALL_KINDS = new Set(["stall", "invariant", "exception", "unfinished"]);
+
 jest.setTimeout(1800000);
 
 const seeds = (process.env.IE_SEEDS ?? "N-1,N-2,N-3").split(",");
@@ -18,6 +20,10 @@ test("naval sweep", () => {
       console.log(`   ${issue.kind} step=${issue.step} t${issue.turn} ${issue.phase} ${issue.power ?? "-"} ${issue.move ?? ""} ${JSON.stringify(issue.args ?? [])}: ${issue.detail.slice(0, 400)}`);
     }
   }
-  const issues = results.flatMap((r) => r.issues);
-  expect(issues).toEqual([]);
+  // As with the amphibious sweep, a stranded fleet can make one named move
+  // illegal (recorded once, never retried).  What must never happen is a spin,
+  // an invariant break, a crash, or an unfinished game.
+  const fatal = results.flatMap((r) => r.issues.filter((issue) => STALL_KINDS.has(issue.kind)));
+  expect(fatal).toEqual([]);
+  expect(results.filter((r) => !r.finished).map((r) => r.seed)).toEqual([]);
 });

@@ -19,7 +19,7 @@ import {
 } from "../types";
 import {cardById} from "./deck";
 import {powerOfSeat, seatOf} from "./pending";
-import {SPACES, isKey, neighboursOf} from "../constant/spaces";
+import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
 import {
   controlledBy,
   friendlySpace,
@@ -748,9 +748,14 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
     // in the attack force, a trench-marker space is attacked from inside it, …)
     // so the bot never names a fight the move will refuse.
     for (const [id] of Object.entries(G.spaces)) {
+      // A naval box holds ships: it is never a land-battle origin, and naming
+      // one makes `performGwManeuver` refuse with "Land battles need land
+      // spaces" every impulse.
+      if (isNavalBox(id)) continue;
       const ours = landUnitsIn(G, id).filter((u) => u.owner === power && !u.elite);
       if (ours.length === 0) continue;
       for (const to of neighboursOf(id)) {
+        if (isNavalBox(to)) continue;
         const enemies = landUnitsIn(G, to).filter((u) => hostileOwner(G, power, u.owner));
         if (enemies.length === 0) continue;
         if (!legalLandBattle(G, power, id, to)) continue;

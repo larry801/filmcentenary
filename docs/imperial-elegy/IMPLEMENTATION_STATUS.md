@@ -225,9 +225,10 @@ A seeded self-play harness (`tools/ie-sim/`) drives the real boardgame.io
 engine — seeded random plugin, phase/turn flow, move validation and
 `playerView` redaction — with the Rule 34 bot for every seat, for the 1850
 campaign, a match started in the Great War, and a variant that declares limited
-wars, and a naval variant that builds fleets and fights 19.0 contact battles.
-Running many seeds surfaced nine engine bugs that the hand-built fixtures never
-reached. All nine are fixed and pinned by `selfPlayRegression.test.ts`.
+wars, a naval variant that builds fleets and fights 19.0 contact battles, and an
+amphibious variant that stages landings next to enemy ports. Running many seeds
+surfaced ten engine bugs that the hand-built fixtures never reached. All ten are
+fixed and pinned by `selfPlayRegression.test.ts`.
 
 1. **The Dual Monarchy was duplicated.** `applyPrepCharacteristics` pushed
    `IE-A047` into AU's hand without taking the physical copy out of the deck or
@@ -288,15 +289,27 @@ and fights 19.0 contact battles):
    control/ally markers, and a non-player retreat skips the player-only route
    and gate checks.
 
+A tenth bug came from the amphibious sweep (`amphibious` mode stages two armies
+plus an escort beside an enemy port, then plays the real 19.10 landing):
+
+10. **The GW bot attacked from a naval box.** `gwPriorityTwo` walked every
+    space for a land battle without excluding naval boxes, and a box that
+    shares a border with an enemy-held coast then produced
+    `landBattle(box, port)`. `performGwManeuver` refuses that with "Land
+    battles need land spaces" on every impulse, so the game deadlocked. The
+    bot now skips boxes for both the origin and the target and still routes the
+    decision through `legalLandBattle`.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
 (`W-1…8`) declares wars, runs the wartime impulses and settles them; and the
 Great War sweep (`GA-1…6`, `GW-1…2`) runs planning → maneuver → battles →
 winter (including the colonial transfers and neutral entry) to a decisive
-result; the naval sweep (`N-1…10`) adds fleet builds, 714 sea moves and nine
-naval battles. A mixed stress sweep (`tools/ie-sim/stress.test.ts`) adds random
-pending choices on half the seeds. The full Jest suite is **441/441 suites,
-4070/4070 tests**, and `tsc` plus the server `tsc` are clean.
+result; the naval sweep (`N-1…10`) adds fleet builds, sea moves and naval
+battles; the amphibious sweep (`A-1…8`) performs ~200 real 19.10 landings. A
+mixed stress sweep (`tools/ie-sim/stress.test.ts`) adds random pending choices
+on half the seeds. The full Jest suite is **443/443 suites,
+4075/4075 tests**, and `tsc` plus the server `tsc` are clean.
 
 ## Known fallbacks and simplifications
 

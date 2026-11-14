@@ -23,7 +23,8 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 | `war` | declares legal limited wars, so the `wartime` phase (initiative, budgets, maneuver, battles, victory, truces) runs |
 | `greatWar` | starts the war through the real `outbreakGreatWar` from inside a move, so the seeded random plugin is live |
 | `aggressive` | in the GW, drives contact/battle/retreat and occupation instead of passing |
-| `navy` | builds fleets, sails them and fights 19.0 contact battles |
+| `navy` | builds fleets, sails them, fights 19.0 contact battles, and tries 19.1 interception |
+| `amphibious` | stages two armies plus an escort beside an enemy port and plays the 19.10 landing |
 | `chaos` | answers pending decisions randomly instead of taking the first option |
 
 ## Test suites here
@@ -31,6 +32,7 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 - `sweep.test.ts` — campaign + Great War per seed (the default gate).
 - `war.test.ts` — campaign with limited-war declarations.
 - `navy.test.ts` — fleet builds, sea moves and naval battles (19.1–19.9).
+- `amph.test.ts` — 19.10 amphibious assaults (unopposed and contested).
 - `stress.test.ts` — longer mixed run, random pending choices on half the seeds.
 
 ## What it checks
@@ -46,6 +48,6 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 
 ## Findings
 
-The runs have found nine bugs so far; they are listed in
+The runs have found ten bugs so far; they are listed in
 [`../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md`](../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md)
 and pinned by `src/imperialElegy/selfPlayRegression.test.ts`.

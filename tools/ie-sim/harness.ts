@@ -15,7 +15,10 @@ import {ImperialElegyState, POWERS, Power} from "../../src/imperialElegy/types";
 import {ensureStateDefaults} from "../../src/imperialElegy/engine/migrations";
 import {SPACES, isNavalBox, neighboursOf, portBoxes} from "../../src/imperialElegy/constant/spaces";
 import {planNavalMove} from "../../src/imperialElegy/engine/navalMovement";
+import {amphibiousAssaultCheck, navalInterceptCheck} from "../../src/imperialElegy/moves";
+import {isArmyKind, landUnitsIn} from "../../src/imperialElegy/engine/rules";
 import {hasCounterFor} from "../../src/imperialElegy/engine/counters";
+import {placeUnit} from "../../src/imperialElegy/engine/effects";
 import {controlledBy, friendlySpace, hostileOwner, navalUnitsIn, ownsKey, PORT_NAVAL_LIMIT} from "../../src/imperialElegy/engine/rules";
 import {performGwManeuver} from "../../src/imperialElegy/engine/greatWarFlow";
 import {hasTruce, validateWarAim} from "../../src/imperialElegy/engine/limitedWar";
@@ -45,6 +48,11 @@ export interface SimOptions {
    * builds the occasional dreadnought, so 19.1–19.9 had no coverage.
    */
   navy?: boolean;
+  /**
+   * Stage two armies plus an escort next to an enemy port each action phase so
+   * the 19.10 amphibious assault actually runs.
+   */
+  amphibious?: boolean;
   /** Hard cap on dispatched actions. */
   maxSteps?: number;
   /** Randomised pending choices (chaos exploration) instead of first option. */
@@ -197,6 +205,45 @@ const simOutbreak = (G: ImperialElegyState, ctx: Ctx): void => {
   G.phase = "gwPlanning";
 };
 
+/**
+ * Harness-only setup move: put two armies and a squadron in a naval box so the
+ * 19.10 amphibious assault has something to launch.  The printed game reaches
+ * that state through transport/naval movement; this fast-forwards it so the
+ * landing path is exercised rather than skipped.
+ */
+const simStageAmphibious = (G: ImperialElegyState, ctx: Ctx): void => {
+  if (G.phase !== "action" || G.pending !== null) return;
+  const power = G.activePower;
+  const stageKey = `${G.turn}:${power}`;
+  if (G.flags.simAmphibStageTurn === stageKey) return;
+  G.flags.simAmphibStageTurn = stageKey;
+  // Find a friendly home port whose adjacent box touches an enemy port.
+  for (const [port, def] of Object.entries(SPACES)) {
+    if (def.home !== power || !portBoxes(port).length) continue;
+    if (!friendlySpace(G, port, power)) continue;
+    for (const box of portBoxes(port)) {
+      const enemies = Object.keys(SPACES).filter((id) =>
+        portBoxes(id).includes(box) && G.spaces[id]?.control !== null && !friendlySpace(G, id, power));
+      if (enemies.length === 0) continue;
+      const target = enemies[0];
+      // 19.10 needs the armies *and* an escort in the box (12.3 transport).
+      const present = landUnitsIn(G, box).filter((unit) => unit.owner === power && isArmyKind(unit.kind)).length;
+      for (let i = present; i < 2; i += 1) placeUnit(G, power, "army", box, 2);
+      if (navalUnitsIn(G, box).filter((unit) => unit.owner === power).length === 0) {
+        placeUnit(G, power, "squadron", box, 2);
+      }
+      G.flags.simAmphibTarget = target;
+      return;
+    }
+  }
+  void ctx;
+};
+
+/** Record that this impulse already staged a landing (harness bookkeeping). */
+const simMarkAmphibious = (G: ImperialElegyState, _ctx: Ctx, key: string): void => {
+  G.flags.simAmphibLastKey = key;
+};
+
 const withSimMoves = (def: typeof ImperialElegyGameDef): typeof ImperialElegyGameDef => {
   const phases: Record<string, any> = {};
   for (const [name, phase] of Object.entries(def.phases ?? {})) {
@@ -204,11 +251,11 @@ const withSimMoves = (def: typeof ImperialElegyGameDef): typeof ImperialElegyGam
       ...phase,
       turn: {
         ...phase.turn,
-        stages: {play: {moves: {...(phase.turn as any)?.stages?.play?.moves, simOutbreak}}},
+        stages: {play: {moves: {...(phase.turn as any)?.stages?.play?.moves, simOutbreak, simStageAmphibious, simMarkAmphibious}}},
       },
     };
   }
-  return {...def, moves: {...def.moves, simOutbreak}, phases: phases as any};
+  return {...def, moves: {...def.moves, simOutbreak, simStageAmphibious, simMarkAmphibious}, phases: phases as any};
 };
 
 /** Opposing alliance of `power`, from the GW boxes. */
@@ -280,10 +327,49 @@ const navalAction = (
 ): {move: string; args: unknown[]} | null => {
   const me = G.powers[power];
   if (me.eliminated) return null;
-  const budget = G.phase === "gwManeuver" ? me.gwBudget ?? 0 : G.cpRemaining;
+  // Only a *live* Great War uses the GW budget; a finished war leaves `G.gw`
+  // behind with `active` false while the phase can still read `gwManeuver`.
+  const gwManeuver = G.phase === "gwManeuver" && G.gw?.active === true;
+  // The live budget is the impulse CP in the action phase and the war/GW budget
+  // otherwise; `navalMove`/`navalBattle` charge it, so a 0 budget means every
+  // naval action would be refused.
+  const budget = gwManeuver
+    ? me.gwBudget ?? 0
+    : G.phase === "wartime" && G.war
+      ? G.war.budgets[power] ?? 0
+      : G.cpRemaining;
   if (budget < 1) return null;
 
-  // 1. Attack with a fleet that already has a legal target (19.0 contact).
+  // Every naval verb below charges the impulse/budget, and the bot may have
+  // spent it on a different action between two calls; re-check before naming a
+  // move so a 0-budget impulse cannot produce a refused action.
+  if (budget < 1) return null;
+
+  // 1. 19.10 amphibious assault: land up to two armies from a box that already
+  // holds them onto an adjacent enemy port.  Probed with the same check the
+  // move uses, so a refusal here is a real engine refusal.  Only once per
+  // impulse: the staging move keeps refilling the box, and a second landing
+  // would spend CP the impulse no longer has.
+  const amphibKey = `${G.turn}:${power}:${G.cpRemaining}`;
+  if ((G.phase === "action" || G.phase === "wartime") && G.flags.simAmphibLastKey !== amphibKey) {
+    for (const box of Object.keys(G.spaces)) {
+      if (!isNavalBox(box)) continue;
+      const armies = landUnitsIn(G, box).filter((unit) => unit.owner === power && isArmyKind(unit.kind));
+      if (armies.length === 0) continue;
+      const fleet = navalUnitsIn(G, box).filter((unit) => unit.owner === power);
+      if (fleet.length === 0) continue;
+      const targets = Object.keys(SPACES).filter((id) => portBoxes(id).includes(box));
+      for (const port of targets) {
+        const ids = armies.slice(0, 2).map((unit) => unit.id);
+        if (amphibiousAssaultCheck(G, power, box, port, ids).ok) {
+          return {move: "amphibiousAssault", args: [box, port, ids]};
+        }
+      }
+    }
+  }
+
+
+  // 2. Attack with a fleet that already has a legal target (19.0 contact).
   // A naval battle needs an *enemy* (at war), so the check is `hostileOwner`:
   // neutral ships in a shared box are not a legal target.
   for (const unit of Object.values(G.units)) {
@@ -299,7 +385,7 @@ const navalAction = (
     }
   }
 
-  // 2. Move a fleet toward the nearest enemy fleet, so contact eventually
+  // 3. Move a fleet toward the nearest enemy fleet, so contact eventually
   // happens.  A move that ends in the enemy's box is still `navalMove` (the
   // contact battle is resolved by the move itself, 19.0).
   const enemyBoxes = new Set<string>();
@@ -320,14 +406,31 @@ const navalAction = (
       // 26.x is stricter than 12.3: a GW naval move must end in a naval box or
       // a friendly port.  Ending in a neutral/enemy port is refused by
       // `performGwManeuver` even though the action-phase planner allows it.
-      if (G.phase === "gwManeuver" && !isNavalBox(to) && !friendlySpace(G, to, power)) continue;
-      const plan = planNavalMove(G, power, from, to, {allowEnemyDestination: contact});
+      if (gwManeuver && !isNavalBox(to) && !friendlySpace(G, to, power)) continue;
+      if (budget < 1) return null;
+      // Let the planner decide: it refuses an empty enemy/neutral port (that
+      // needs an amphibious assault) and allows a port holding enemy ships
+      // (19.0 contact).  Forcing `allowEnemyDestination` named illegal moves.
+      const plan = planNavalMove(G, power, from, to, contact ? {allowEnemyDestination: true} : {});
       if (!plan.ok || plan.cost < 1) continue;
       return {move: "navalMove", args: [[unit.id], to]};
     }
   }
 
-  // 3. Build a squadron in a home port with room and a free counter.
+  // 4. 19.1 interception: our port's ships may intercept the naval move that
+  // just arrived in an adjacent box.  Only legal while that move is the last
+  // log entry and the mover is still the active power.
+  for (const port of Object.keys(G.spaces)) {
+    if (isNavalBox(port) || !portBoxes(port).length) continue;
+    if (!friendlySpace(G, port, power)) continue;
+    for (const box of portBoxes(port)) {
+      if (navalInterceptCheck(G, power, port, box).ok) {
+        return {move: "navalIntercept", args: [port, box]};
+      }
+    }
+  }
+
+  // 5. Build a squadron in a home port with room and a free counter.
   if (G.phase === "action" && budget >= 2) {
     for (const [id, def] of Object.entries(SPACES)) {
       if (def.home !== power) continue;
@@ -381,10 +484,14 @@ const aggressiveGwMove = (
   // 26.x: a land battle is declared from an adjacent friendly space; marching
   // *into* an enemy-held space is illegal (the destination must be friendly).
   for (const [id, space] of Object.entries(G.spaces)) {
+    // A naval box holds ships, never a land-battle origin (26.x); naming one
+    // makes `performGwManeuver` refuse with "Land battles need land spaces".
+    if (isNavalBox(id)) continue;
     for (const uid of space.units) {
       const unit = G.units[uid];
       if (!unit || unit.naval || unit.owner !== power) continue;
       for (const to of neighboursOf(id)) {
+        if (isNavalBox(to)) continue;
         if (enemySpaces.has(to)) return {move: "landBattle", args: [id, to]};
       }
     }
@@ -395,11 +502,11 @@ const aggressiveGwMove = (
     for (const uid of space.units) {
       const unit = G.units[uid];
       if (!unit || unit.naval || unit.owner !== power) continue;
-      if (!friendlySpace(G, id, power)) continue;
+      if (isNavalBox(id) || !friendlySpace(G, id, power)) continue;
       const step = nextHopToward(G, id, enemySpaces);
       if (step === null || enemySpaces.has(step)) continue;
       const target = G.spaces[step];
-      if (!target || !friendlySpace(G, step, power)) continue;
+      if (!target || isNavalBox(step) || !friendlySpace(G, step, power)) continue;
       if (target.units.some((other) => {
         const candidate = G.units[other];
         return candidate && !candidate.naval && hostileOwner(G, power, candidate.owner);
@@ -472,7 +579,8 @@ const probeGwManeuver = (
 };
 
 export function runSeededGame(opts: SimOptions): SimResult {
-  const def = opts.greatWar ? withSimMoves(ImperialElegyGameDef) : ImperialElegyGameDef;
+  const needsSimMoves = Boolean(opts.greatWar || opts.amphibious);
+  const def = needsSimMoves ? withSimMoves(ImperialElegyGameDef) : ImperialElegyGameDef;
   const game = ProcessGameConfig({...def, seed: opts.seed} as any);
   const reducer = CreateGameReducer({game, isClient: false});
   const rng = opts.rng ?? mulberry32(0x51ed);
@@ -505,6 +613,11 @@ export function runSeededGame(opts: SimOptions): SimResult {
   let repeat = {key: "", count: 0};
   /** (power|target|objective) declarations the engine refused — never retried. */
   let warRefused = false;
+  /** True when this iteration already staged amphibious units (bounds a retry). */
+  let stagedThisStep = false;
+  let navalOverrideBlocked = false;
+  /** (unitId|dest) naval moves the engine refused — never proposed again. */
+  const refusedNaval = new Set<string>();
 
   for (; steps < maxSteps; steps += 1) {
     const G = state.G as ImperialElegyState;
@@ -521,6 +634,27 @@ export function runSeededGame(opts: SimOptions): SimResult {
     const view = viewFor(seat);
     const power = POWERS[Number(seat)] ?? (G.pending?.power as Power) ?? null;
 
+    // Amphibious mode: fast-forward the transport step so 19.10 has units.
+    if (opts.amphibious && !G.pending && G.phase === "action" && power === G.activePower
+      && G.flags.simAmphibStageTurn !== `${G.turn}:${G.activePower}`) {
+      const staged = reducer(state, {type: "MAKE_MOVE", payload: {type: "simStageAmphibious", args: [], playerID: seat}});
+      if (!staged.transients?.error) {
+        state = staged;
+        views.clear();
+      }
+      // Restart the iteration with the staged state: `G`/`seat` above were read
+      // before the staging move, and building a decision from them would name
+      // units that no longer exist.  `stagedThisStep` bounds the restart so a
+      // rejected staging move cannot spin.
+      if (!stagedThisStep) {
+        stagedThisStep = true;
+        // Re-enter the loop *without* consuming a step: `for` increments after
+        // the body, so compensate once.
+        steps -= 1;
+        continue;
+      }
+    }
+    stagedThisStep = false;
     const decision = (() => {
       try {
         if (G.pending) {
@@ -541,16 +675,40 @@ export function runSeededGame(opts: SimOptions): SimResult {
         return {move: "__none__", args: []};
       }
     })();
+    // The staging move above may have replaced `state`, so `G` is stale: any
+    // later read of units/CP must come from the current state or the harness
+    // names a unit id that no longer exists (and the engine rightly refuses).
+    const liveG = state.G as ImperialElegyState;
     // Navy mode: replace a passive naval/CP action with a real naval one.
-    if (opts.navy && !G.pending && (G.phase === "action" || G.phase === "gwManeuver")
-      && power === G.activePower
+    if (opts.navy && !liveG.pending && (liveG.phase === "action" || liveG.phase === "gwManeuver" || liveG.phase === "wartime")
+      && power === liveG.activePower
       && (decision.move === "pass" || decision.move === "endImpulse" || decision.move === "placeMpit"
         || decision.move === "buildFort" || decision.move === "gwPass" || decision.move === "playCard")) {
-      const naval = navalAction(G, G.activePower);
-      if (naval !== null) {
+      const naval = navalAction(liveG, liveG.activePower);
+      if (naval !== null && naval.move === "navalMove") {
+        const [ids, dest] = naval.args as [string[], string];
+        if (refusedNaval.has(`${ids[0]}|${dest}`)) {
+          // Skip a move this sweep already saw refused (a fleet stranded in a
+          // port that stopped being friendly); otherwise it re-sends forever.
+          decision.move = "endImpulse";
+          decision.args = [];
+          navalOverrideBlocked = true;
+        }
+      }
+      // Re-check affordability against the live impulse: the CP may have been
+      // spent between the budget snapshot inside `navalAction` and here.
+      const liveBudget = liveG.phase === "gwManeuver" && liveG.gw?.active === true
+        ? liveG.powers[liveG.activePower].gwBudget ?? 0
+        : liveG.phase === "wartime" && liveG.war
+          ? liveG.war.budgets[liveG.activePower] ?? 0
+          : liveG.cpRemaining;
+      const affordable = naval !== null
+        && (naval.move === "navalIntercept" || liveBudget >= 1);
+      if (naval !== null && affordable && !navalOverrideBlocked) {
         decision.move = naval.move;
         decision.args = naval.args;
       }
+      navalOverrideBlocked = false;
     }
     // Aggressive mode: declare a legal war when the action phase would
     // otherwise just bank CP, so the `wartime` phase actually runs.  The
@@ -614,12 +772,23 @@ export function runSeededGame(opts: SimOptions): SimResult {
       // says "invalid_move", which cannot distinguish a real engine refusal
       // from a bad heuristic in this harness.
       if (decision.move === "declareWar") warRefused = true;
+      if (decision.move === "navalMove") {
+        const [ids, dest] = (decision.args ?? []) as [string[], string];
+        if (ids?.[0]) refusedNaval.add(`${ids[0]}|${dest}`);
+      }
       let reason = "";
       if (err.type === "action/invalid_move" && decision.move === "declareWar") {
         const args = decision.args ?? [];
         reason = ` [declareWar power=${String(power)} active=${before.activePower} war=${before.war ? "yes" : "no"} wtt=${before.wtt} cp=${before.cpRemaining} args=${JSON.stringify(args)}]`;
       }
       if (err.type === "action/invalid_move" && decision.move === "navalMove" && power !== null) {
+        const [ids, dest] = (decision.args ?? []) as [string[], string];
+        const unit = before.units[ids?.[0]];
+        reason = ` [navalMove phase=${before.phase} active=${String(before.activePower)} cp=${before.cpRemaining}`
+          + ` unit=${String(ids?.[0])} exists=${Boolean(unit)} owner=${String(unit?.owner)} space=${String(unit?.space)} to=${String(dest)}]`;
+      }
+      if (err.type === "action/invalid_move" && decision.move === "navalMove" && power !== null
+        && before.phase === "gwManeuver" && before.gw?.active === true) {
         const args = decision.args ?? [];
         const clone = JSON.parse(JSON.stringify(before)) as ImperialElegyState;
         const ctxProbe = {
@@ -629,7 +798,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
           phase: clone.phase,
         } as unknown as Ctx;
         const res = performGwManeuver(clone, ctxProbe, {kind: "naval", power, unitIds: args[0] as string[], to: String(args[1])});
-        reason = ` [navalMove ${res.ok ? "probe accepted" : `${res.error}: ${res.message ?? ""}`}]`;
+        reason += ` [gwNaval ${res.ok ? "probe accepted" : `${res.error}: ${res.message ?? ""}`}]`;
       }
       if (err.type === "action/invalid_move" && before.phase === "gwManeuver" && power !== null) {
         const probeArgs = decision.args ?? [];
@@ -666,6 +835,13 @@ export function runSeededGame(opts: SimOptions): SimResult {
     events.push(event);
     opts.trace?.(steps, event);
     state = next;
+    if (opts.navy && decision.move === "amphibiousAssault" && event.status === "ok") {
+      // Mark this impulse as landed so the staging refill cannot produce a
+      // second attack the impulse can no longer pay for.
+      const marked = reducer(state, {type: "MAKE_MOVE", payload: {type: "simMarkAmphibious", args: [`${(state.G as ImperialElegyState).turn}:${String(power)}:${(state.G as ImperialElegyState).cpRemaining}`], playerID: seat}});
+      if (!marked.transients?.error) state = marked;
+      views.clear();
+    }
     views.clear();
     const after = state.G as ImperialElegyState;
     const problems = checkInvariants(after);
