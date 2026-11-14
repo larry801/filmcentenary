@@ -227,8 +227,8 @@ engine — seeded random plugin, phase/turn flow, move validation and
 campaign, a match started in the Great War, and a variant that declares limited
 wars, a naval variant that builds fleets and fights 19.0 contact battles, and an
 amphibious variant that stages landings next to enemy ports. Running many seeds
-surfaced thirteen engine bugs that the hand-built fixtures never reached. All
-eleven are fixed; twelve are engine fixes and one (the rebel-space naval destination, see
+surfaced fourteen engine bugs that the hand-built fixtures never reached. All
+eleven are fixed; thirteen are engine fixes and one (the rebel-space naval destination, see
 below) was a harness gap that surfaced while sailing during a war. All are
 pinned by `selfPlayRegression.test.ts`.
 
@@ -357,6 +357,25 @@ single-seed sweep had ever hit:
     returns only a real player, and the combat-card path refuses outright when
     the defending side has no player.
 
+A fourteenth bug came from the card-effect **combination** sweep
+(`tools/ie-sim/cardCombo.test.ts`), which plays every ordered pair of playable
+action cards on one state — the existing `fuzz.test.ts` only plays each card
+once on a fresh board, so it could never see this:
+
+14. **A027 Foreign Investment left one physical card in two zones.** The event
+    parks the card face up in front of the Ottomans or Russians as that
+    player's industrialization card, but the decision resolved *after*
+    `playCard` had already pushed the card into the discard pile (and
+    `finalizePendingCard` pushed it again). A card that is a player's industry
+    slot is now never also discarded, in both the event tail and the pending-card
+    finaliser. The sweep also hardened the `polishRevolt` random-discard index
+    against an out-of-range die, which previously threw on `cardById(undefined)`.
+
+The sweep currently runs **6642 ordered pairs in ~9s with zero failures**, and
+reports second-card refusals separately: once the first card has changed the
+board, a printed playability gate legitimately refuses the second, and that is
+not an interaction bug.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
 (`W-1…8`) declares wars, runs the wartime impulses and settles them; and the
@@ -366,9 +385,9 @@ result; the naval sweep (`N-1…10`) adds fleet builds, sea moves and naval
 battles; the amphibious sweep (`A-1…8`) performs ~200 real 19.10 landings. A
 mixed stress sweep (`tools/ie-sim/stress.test.ts`) adds random pending choices
 on half the seeds, and the naval runs answer the 19.1 interception decision
-dozens of times. The full Jest suite is **438/438 suites, 4073/4073 tests**, and
-`tsc` plus the server `tsc` are clean; `tools/` is excluded from `yarn test`
-because the batch sweep alone takes minutes and is run explicitly instead.
+dozens of times. The full Jest suite is **438/438 suites, 4091/4091 tests**, and `tsc` plus the
+server `tsc` are clean; `tools/` is excluded from `yarn test` because the batch
+sweep alone takes minutes and is run explicitly instead.
 
 ## Known fallbacks and simplifications
 

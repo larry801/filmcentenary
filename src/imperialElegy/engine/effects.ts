@@ -2432,7 +2432,11 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         if (rebel) G.spaces[s.id].rebellion!.rebels.push(rebel.id);
       }
       if (G.powers[controller].hand.length > 0) {
-        const index = die(ctx, G.powers[controller].hand.length) - 1;
+        // The random index must stay inside the hand: `discardCard` resolves the
+        // id through `cardById`, so an out-of-range pick throws on `undefined`
+        // instead of discarding nothing.
+        const raw = die(ctx, G.powers[controller].hand.length) - 1;
+        const index = Math.min(Math.max(0, Math.trunc(raw)), G.powers[controller].hand.length - 1);
         discardCard(G, controller, G.powers[controller].hand[index], "polishRevolt");
       } else changeStability(G, controller, -1, ctx);
       return true;
@@ -3505,6 +3509,17 @@ export const resolveCardDecision = (
       if (card) {
         G.powers[target].industryCard = card;
         G.powers[target].autoIndustry = true;
+        // The event play already pushed this card into the discard pile (the
+        // slot was not filled yet when `playCard` finished).  A physical card
+        // lives in one zone, so take it back out of the discard/removed piles
+        // and out of every hand.
+        for (const pile of [G.discard, G.removed, G.deck] as CardId[][]) {
+          for (let index = pile.indexOf(card); index >= 0; index = pile.indexOf(card)) pile.splice(index, 1);
+        }
+        for (const power of POWERS) {
+          G.powers[power].hand = G.powers[power].hand.filter((id) => id !== card);
+          G.powers[power].cpChain = G.powers[power].cpChain.filter((id) => id !== card);
+        }
       }
     } else {
       const then = (context.then as Effect[] | undefined) ?? [];

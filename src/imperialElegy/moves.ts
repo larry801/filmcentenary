@@ -401,6 +401,15 @@ const pruneRemovedFromDiscard = (G: ImperialElegyState): void => {
   G.discard = G.discard.filter((id) => !removed.has(id));
 };
 
+/**
+ * True when the card is currently parked as a player's industrialization card.
+ * A027 Foreign Investment is played as an event and then sits face up in front
+ * of the Ottoman or Russian player; the physical card must live in exactly one
+ * zone, so the event-resolution tail must not also discard it.
+ */
+const isHeldAsIndustryCard = (G: ImperialElegyState, cardId: CardId): boolean =>
+  POWERS.some((power) => G.powers[power].industryCard === cardId);
+
 export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: "cp" | "event"): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
@@ -467,7 +476,11 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   }
   if (done) {
     if (card.remove) removeCard(G, cardId);
-    else if (card.kind !== "home") G.discard.push(cardId);
+    // Some events park the physical card face up in front of a player (A027
+    // Foreign Investment is that player's industrialization card).  That card
+    // is now held in `industryCard`, so pushing it into the discard pile as
+    // well would put one physical card in two zones.
+    else if (card.kind !== "home" && !isHeldAsIndustryCard(G, cardId)) G.discard.push(cardId);
     pruneRemovedFromDiscard(G);
     G.resolvingCard = null;
     G.impulseCard = null;
@@ -3183,7 +3196,10 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
     // phase ends, not when its mandatory event finishes resolving.
   } else if (!gwCard && card.remove) {
     removeCard(G, cardId);
-  } else if (!gwCard && card.kind !== "home") {
+  } else if (!gwCard && card.kind !== "home" && !isHeldAsIndustryCard(G, cardId)) {
+    // A027 Foreign Investment is parked as the receiving player's
+    // industrialization card while its decision resolves; discarding it here
+    // would leave one physical card in two zones.
     G.discard.push(cardId);
   }
   pruneRemovedFromDiscard(G);

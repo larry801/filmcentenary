@@ -33,7 +33,7 @@ import {outbreakGreatWar} from "./engine/greatWar";
 import {performGwManeuver} from "./engine/greatWarFlow";
 import {isArmyKind, landUnitsIn, hostileOwner, maneuverDestinationProblem} from "./engine/rules";
 import {neighboursOf} from "./constant/spaces";
-import {applyPrepCharacteristics, discardForStability, recruit} from "./moves";
+import {applyPrepCharacteristics, discardForStability, playCard, recruit, resolvePending, declinePending} from "./moves";
 import {cardById} from "./engine/deck";
 import {defenderHasPlayer, defenderSupportPower, navalAvoidanceModifiers, navalAvoidPlans, navalPortBattleModifiers} from "./engine/combat";
 
@@ -623,5 +623,57 @@ describe("13 — an independent major's units are not a deciding seat", () => {
     };
     expect(defenderSupportPower(G, battle as never)).toBe("FR");
     expect(defenderHasPlayer(G, battle as never)).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 14. A card parked in front of a player is in exactly one zone
+// ---------------------------------------------------------------------------
+
+describe("14 — A027 Foreign Investment lives only in the industry slot", () => {
+  /** Every zone a physical card can occupy, for the duplicate check. */
+  const zonesOf = (G: ImperialElegyState, card: string): string[] => {
+    const zones: string[] = [];
+    if (G.deck.includes(card as never)) zones.push("deck");
+    if (G.discard.includes(card as never)) zones.push("discard");
+    if (G.removed.includes(card as never)) zones.push("removed");
+    for (const power of POWERS) {
+      if (G.powers[power].hand.includes(card as never)) zones.push(`${power}.hand`);
+      if (G.powers[power].industryCard === card) zones.push(`${power}.industry`);
+      if (G.powers[power].cpChain.includes(card as never)) zones.push(`${power}.cpChain`);
+    }
+    return zones;
+  };
+
+  test("playing it for the event leaves one copy, in the industry slot", () => {
+    const G = fresh();
+    // Take the single physical copy from wherever the setup deal put it.
+    G.deck = G.deck.filter((id) => id !== "IE-A027");
+    G.discard = G.discard.filter((id) => id !== "IE-A027");
+    for (const power of POWERS) {
+      G.powers[power].hand = G.powers[power].hand.filter((id) => id !== "IE-A027");
+      if (G.powers[power].industryCard === "IE-A027") G.powers[power].industryCard = null;
+    }
+    G.phase = "action";
+    G.activePower = "GE";
+    G.cpRemaining = 0;
+    G.powers.GE.hand.push("IE-A027");
+
+    expect(playCard(G, makeCtx("0"), "IE-A027" as never, "event")).toBeUndefined();
+    // The card suspends on the recipient choice: pick the first (OT or RU).
+    let guard = 0;
+    while (G.pending !== null && guard++ < 10) {
+      const pending = G.pending;
+      const seat = String(POWERS.indexOf(pending.power));
+      const optionId = pending.options[0]?.id;
+      if (optionId === undefined) declinePending(G, makeCtx(seat));
+      else resolvePending(G, makeCtx(seat), optionId);
+    }
+    expect(G.pending).toBeNull();
+
+    // Exactly one zone, and it is the industry slot of the receiving major.
+    const zones = zonesOf(G, "IE-A027");
+    expect(zones).toHaveLength(1);
+    expect(zones[0]).toMatch(/\.industry$/);
   });
 });

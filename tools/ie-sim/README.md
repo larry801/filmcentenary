@@ -38,6 +38,8 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 - `navy.test.ts` — fleet builds, sea moves and naval battles (19.1–19.9).
 - `amph.test.ts` — 19.10 amphibious assaults (unopposed and contested).
 - `stress.test.ts` — longer mixed run, random pending choices on half the seeds.
+- `cardCombo.test.ts` — every ordered pair of playable action cards on one
+  state, invariant-checked after each card (~6642 pairs, ~9s).
 - `batch.test.ts` — N seeds × all six modes, aggregated: completion rate per
   mode, result reasons, distinct fatal signatures (each with a reproducing
   seed) and the moves the batch never touched.  Not a pass/fail gate on
@@ -84,6 +86,6 @@ It exits non-zero when the batch has a crash, a stall or an unfinished game.
 
 ## Findings
 
-The runs have found thirteen engine bugs so far (plus one harness gap); they are listed in
+The runs have found fourteen engine bugs so far (plus one harness gap); they are listed in
 [`../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md`](../../docs/imperial-elegy/IMPLEMENTATION_STATUS.md)
 and pinned by `src/imperialElegy/selfPlayRegression.test.ts`.
