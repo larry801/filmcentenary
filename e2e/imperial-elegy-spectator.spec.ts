@@ -240,8 +240,17 @@ async function readMatch(matchID: string): Promise<MatchMetadata> {
 }
 
 async function handTitles(page: Page): Promise<string[]> {
-    const titles = await page.locator(".ie-hand .ie-card .ie-card-title").allInnerTexts();
-    return titles.map((title) => title.trim()).filter(Boolean);
+    // Card faces are inline SVG, and `.ie-card-title` is an SVG <text> whose
+    // tspans hold the wrapped lines.  SVG elements have no `innerText` in
+    // Chromium (`allInnerTexts()` yields undefined), and joining the tspans
+    // would merge or split words at the wrap points.  The face carries the
+    // unwrapped title in its <title> element (the `aria-labelledby` target),
+    // so read that instead.
+    return page.locator(".ie-hand .ie-card svg.ie-card-face > title").evaluateAll((nodes) =>
+        nodes
+            .map((node) => (node.textContent ?? "").trim())
+            .filter((title) => title.length > 0),
+    );
 }
 
 async function openSeat(page: Page, matchID: string, seat: number): Promise<void> {
