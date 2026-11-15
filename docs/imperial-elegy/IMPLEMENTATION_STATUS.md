@@ -27,6 +27,28 @@ Latest fully verified baseline: **2591c8f1284fd31cb6239695a90b4c55ed004d9c**,
 16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43695994681).
 The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
 
+### Current local verification (2026-11-15 follow-up, rebased onto master)
+
+The 26–27 / 25.7.1 / 29.3 / 30.1 follow-up recorded below (the two tip commits
+of this branch) has been rebased onto `origin/master` at `327b19a9` ("Merge
+branch 'feature/ie-rules-continuation'"). Local verification on the rebased
+tree:
+
+- `npx tsc --noEmit -p tsconfig.json` — clean.
+- `npx jest --ci` — **460 suites / 4425 tests passed**, 0 failed, 0 skipped.
+
+The rebase adds seven map/board suites from master, superseding the earlier
+453-suite / 4347-test count as well as the focused 80-test / 8-suite and
+600-test / 8-suite runs and the 452-suite / 4337-test full local run cited
+below. The pre-existing rule
+fixtures (legacy saves and hand-built `GreatWarState`s with no impulse ledger)
+stay green through a compatibility gate that applies the 27.1–27.3 strictness
+only once `beginGwImpulse` has created `G.gw.impulse`; the 27.1 end-turn guard
+and the 27.7 consecutive-pass reset still apply to them. Frontend/server
+builds, browser specs and seeded self-play sweeps were **not** re-run for this
+commit, so the 449-suite CI baseline above remains the last full build/browser
+verification.
+
 ### 26–27 Great War impulse and action follow-up
 
 - **27.1 / 27.7:** an ordinary impulse permits one budget-funded action.
@@ -66,6 +88,8 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   TypeScript and diff checks, rather than a new full build/browser/self-play
   sweep. The previous full totals below are
   historical evidence, not a claim that this follow-up has full verification.
+  This focused run has since been superseded by the full local suite run in
+  "Current local verification" above.
 - Remaining section audit includes 25.7 alliance-selected order, 26.1 card
   transfers, US planning gifts, 27.5.2's remaining recruitment substitutions /
   manpower pools and full multi-army deploy choices.
@@ -1206,6 +1230,11 @@ sweep alone takes minutes and is run explicitly instead.
 | OT | Poor Infrastructure 2-stack limit; Local Autonomy Arab/Egyptian keys and Tunisia/Tripoli land-LoC condition (typed `otLandLocKeyType`); Turkish/Arab army split with separate Arab manpower; Europeanization 6 and no-own-card rejection; Jihad gain/use/discard; A106 two ECs. | Full “Arab manpower spending” display edge cases; non-player counter rows are enforced as pools (chart-less rows stay null). |
 
 ## Test and build evidence
+
+> **Current (2026-11-15):** after rebasing onto `origin/master`, the
+> 26–27 / bonus-impulse follow-up passes `tsc --noEmit` and **460 suites /
+> 4425 tests** in a full local `jest --ci` run; see "Current local verification"
+> near the top of this file. The 2641/205 figures below are round-9 history.
 
 **The full IE Jest suite passes 2641/2641 tests in 205/205 suites**; `tsc`,
 `yarn build` and `yarn build:server` are clean. The three browser specs were not
