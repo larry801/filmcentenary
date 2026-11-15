@@ -1938,7 +1938,7 @@ export interface OutcomeApplication {
   victor: WarSideName | null;
   truceTurns: number;
   stability: {power: Power; delta: number}[];
-  /** Hook for the caller: both primaries shift away from each other (16.2). */
+  /** Actual harsh terms imposed (8.3), not the entitlement to choose two. */
   harshTerms: boolean;
 }
 
@@ -1981,7 +1981,7 @@ export const applyVictoryOutcome = (
     victor: victory.victor,
     truceTurns: victory.truceTurns,
     stability,
-    harshTerms: victory.primary === "major" || victory.primary === "negotiated",
+    harshTerms: war.harshTermsApplied === true,
   };
 };
 
@@ -2014,6 +2014,57 @@ export interface TreatyChoice {
   /** Treaty target when imposing an ally-knockout option. */
   target?: Power;
 }
+
+/**
+ * 8.3 / 16.2: two distinct, successfully imposed options against the losing
+ * PRIMARY are harsh terms. Knockout picks against allies, declined picks and
+ * a major victory's unused entitlement do not count. `applied` is the existing
+ * settlement ledger (also saved in interactive treaty pending contexts).
+ *
+ * Resolve both directions from the original positions before moving either
+ * chit. When both primaries are neutral, roll independently for each (the
+ * 8.2 convention: 1–3 TE, 4–6 TA). The 8.4 declaration exception does not
+ * apply: a harsh-terms shift cannot put a fourth player into an alliance.
+ */
+export const applyHarshTerms = (
+  G: ImperialElegyState,
+  war: WarState,
+  applied: readonly TreatyChoice[],
+  ctx?: Ctx,
+): boolean => {
+  if (war.harshTermsApplied) return true;
+  if (G.war !== war || war.status === "done" || war.victor === null ||
+      !isPower(war.attacker) || !isPower(war.defender)) return false;
+  const loser = war.victor === "attacker" ? war.defender : war.attacker;
+  const primaryOptions = new Set(applied
+    .filter((choice) => (choice.target ?? loser) === loser && war.treaties.includes(choice.option))
+    .map((choice) => choice.option));
+  if (primaryOptions.size < 2) return false;
+
+  const attackerBox = G.powers[war.attacker].alliance;
+  const defenderBox = G.powers[war.defender].alliance;
+  const bothNeutral = attackerBox === "neutral" && defenderBox === "neutral";
+  const shifts = [
+    {power: war.attacker, opponent: war.defender, direction: declarationShiftDirection(defenderBox, attackerBox)},
+    {power: war.defender, opponent: war.attacker, direction: declarationShiftDirection(attackerBox, defenderBox)},
+  ].map((entry) => {
+    // Live settlements supply ctx; context-free rule helpers use the same
+    // deterministic first-face fallback as the other optional-ctx rules.
+    const roll = bothNeutral ? (ctx ? die(ctx, 6) : 1) : null;
+    const direction = roll === null ? entry.direction : roll <= 3 ? "te" as const : "ta" as const;
+    return {...entry, roll, direction};
+  });
+  // Mark even a capped/track-end no-op, so resuming settlement never rerolls.
+  war.harshTermsApplied = true;
+  for (const {power, opponent, direction, roll} of shifts) {
+    const from = G.powers[power].alliance;
+    const shift = direction === null
+      ? {from, to: from, steps: 0, blocked: false}
+      : shiftAlliance(G, power, direction);
+    log(G, power, "harshTermsShift", {...shift, opponent, roll});
+  }
+  return true;
+};
 
 export interface TreatyIssue {
   code: string;
@@ -2641,6 +2692,7 @@ export const settleLimitedWar = (
     .map((entry) => entry.choice);
   const treaties = orderedChoices.map((choice) => applyTreaty(G, war, victory, choice));
   const invalid = treaties.filter((treaty) => !treaty.applied).map((treaty) => treaty.option);
+  outcome.harshTerms = applyHarshTerms(G, war, orderedChoices.filter((_, index) => treaties[index].applied), ctx);
   const demobilization = demobilizeWar(G, war, ctx);
   return {
     ok: invalid.length === 0,

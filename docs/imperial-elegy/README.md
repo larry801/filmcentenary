@@ -143,6 +143,10 @@ At a glance, the live game covers:
   neutral restriction, and the conditional WTT increase after resolution.
   Each positive MPIT marker rolls one d6; tied player rolls prompt, Italian
   ties reroll, and crisis continuation retains the original card and player.
+- **Harsh terms (8.3 / 16.2)** — imposing two actual treaty options on the
+  losing primary shifts both primaries away from each other, with independent
+  dice when both are neutral and the ordinary three-player cap. Applies to
+  interactive and explicit settlements; ally-knockout terms are counted separately.
 - **Limited war** — validated war declarations and aims, objectives, alliance
   and minor calls, initiative order (including A063 Rapid Mobilization's
   first-impulse priority), war budgets, maneuver, deploy reserves (with A063's

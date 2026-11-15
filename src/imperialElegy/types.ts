@@ -471,6 +471,8 @@ export interface WarSide {
   knockedOut?: WarKnockoutRecord[];
   /** Treaties chosen by the victor. */
   treaties: string[];
+  /** 8.3 / 16.2: the two-primary harsh-terms shift has already resolved. */
+  harshTermsApplied?: boolean;
   /** Who won (null if white peace). */
   victor: "attacker" | "defender" | null;
   /**

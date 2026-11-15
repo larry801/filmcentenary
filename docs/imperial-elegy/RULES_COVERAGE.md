@@ -102,6 +102,12 @@ Status labels:
   See `allianceSystem.test.ts` and the 2026-11-15 status follow-up.
 - The US and Italy are exempt from the cap by the printed “not a player power”
   wording. Italy's MPIT resolves after the six player columns.
+- **8.3 / 16.2 harsh terms:** two actual treaty options against the losing
+  primary shift both primaries away from each other at settlement completion.
+  The both-neutral case rolls independently; the three-player cap still applies.
+  Unused major-victory picks and ally-knockout terms do not count. The saved
+  interactive ledger and explicit settlement use the same idempotent resolver
+  (`harshTerms.test.ts`), with bilingual public logs.
 
 ## 9–12 Cards and the action phase
 

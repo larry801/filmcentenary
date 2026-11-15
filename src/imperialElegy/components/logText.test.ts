@@ -54,6 +54,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   supportDenied: {key: "supportDenied", power: "GE", args: {space: "bavaria", battle: "paris"}},
   noLegalTarget: {key: "noLegalTarget", power: "GE", args: {card: CARD_ID}},
   allianceResolution: {key: "allianceResolution", power: "GE", args: {te: 12, ta: 7, steps: 2}},
+  harshTermsShift: {key: "harshTermsShift", power: "GE", args: {from: "neutral", to: "teAligned", opponent: "UK", roll: 3, steps: 1, blocked: false}},
   allianceShifted: {
     key: "allianceShifted",
     power: "FR",

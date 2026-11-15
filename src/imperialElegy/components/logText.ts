@@ -1882,6 +1882,23 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  harshTermsShift: (entry, locale) => {
+    const from = allianceBoxLabel(entry.args?.from, locale);
+    const to = allianceBoxLabel(entry.args?.to, locale);
+    const opponent = powerLabel(entry.args?.opponent, locale);
+    const roll = entry.args?.roll;
+    const rolled = typeof roll === "number" ? text(locale, ` (die ${roll})`, `（掷骰 ${roll}）`) : "";
+    const blocked = bool(entry.args?.blocked)
+      ? text(locale, "; the three-player alliance limit blocks the shift", "；因同盟三名玩家上限而无法移动")
+      : "";
+    return withActor(
+      entry,
+      locale,
+      `resolves harsh terms against ${opponent}: ${from} → ${to}${rolled}${blocked} (8.3).`,
+      `结算与${opponent}之间的苛刻条款：${from} → ${to}${rolled}${blocked}（8.3）。`,
+    );
+  },
+
   treatyApplied: (entry, locale) => {
     const option = str(entry.args?.option);
     const spaces = spaceList(entry.args?.spaces, locale);

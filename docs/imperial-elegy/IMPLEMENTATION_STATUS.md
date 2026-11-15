@@ -1,5 +1,25 @@
 # Imperial Elegy — implementation status
 
+## 2026-11-15 harsh-terms follow-up
+
+- **8.3 / 16.2:** completing a settlement that actually imposes two distinct
+  treaty options on the losing primary shifts both primary belligerents one
+  box away from each other. Merely winning a major victory, declining an
+  optional term, negotiated peace's single concession, or imposing additional
+  knockout terms on allies does not trigger this rule. A concession awarded
+  to a victorious ally still counts against its primary target.
+- Both directions use the pre-shift positions. If both primaries are neutral,
+  the live server rolls independently for each (1–3 TE / 4–6 TA, using §8.2's
+  direction convention). The ordinary three-player maximum remains in force;
+  the declaration exception is not used. Track ends stop further movement.
+- Interactive and explicit settlements share `applyHarshTerms`. The existing
+  applied-choice ledger survives saved pending decisions; a war-local
+  `harshTermsApplied` marker prevents duplicate shifts/rerolls and remains in
+  the war archive. Public English/Chinese logs record each result.
+- Source: publisher rulebook §§8.3, 8.4 and 16.2 (pp. 19, 33). Regression
+  coverage is in `harshTerms.test.ts`; full verification is the exact commit's
+  feature-branch GitHub Actions run.
+
 ## 2026-11-15 alliance-rules follow-up
 
 - **A015 / A111:** the initial shift offers only legal adjacent boxes (8.0 / 8.4),

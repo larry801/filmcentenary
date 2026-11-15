@@ -209,6 +209,7 @@ import {
   allyCallEligibility,
   allyRefusalPenalty,
   applyAllyRefusal,
+  applyHarshTerms,
   applyMinorAidAlliance,
   applyMinorDeclarationShift,
   applyVictoryOutcome,
@@ -3657,9 +3658,10 @@ const postWarWinnerFor = (war: WarState, victor: "attacker" | "defender" | null)
   victor === "defender" && isPower(war.defender) ? war.defender : war.attacker;
 
 /** Apply the primary outcome, clear the war and hand back the action phase. */
-const finishWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void => {
+const finishWarSettlement = (G: ImperialElegyState, ctx: Ctx, applied: readonly TreatyChoice[] = []): string | void => {
   const war = G.war;
   if (!war) return INVALID_MOVE;
+  applyHarshTerms(G, war, applied, ctx);
   // 33.3 / 33.6: resolves against the war that is being settled, before the
   // war state is handed to demobilizeWar.
   applyWarEndCharacteristics(G, ctx);
@@ -3775,7 +3777,7 @@ const advanceTreatyStage = (
   // mandatory knockout options still have to be answered (16.1.6).
   const skipped = [...new Set([...treatySkippedSides(pending), treatyStageSide(pending, victory)])];
   if (openNextTreatyStage(G, ctx, victory, applied, skipped)) return undefined;
-  return finishWarSettlement(G, ctx);
+  return finishWarSettlement(G, ctx, applied);
 };
 
 const resolveWarTreatyPending = (
@@ -3836,7 +3838,7 @@ const resolveWarTreatyPending = (
   // The remaining picks are recomputed from `applied` and the live victory, so
   // a spent option (16.2: once per war) simply drops out of the next group.
   if (openNextTreatyStage(G, ctx, victory, nextApplied, skipped)) return undefined;
-  return finishWarSettlement(G, ctx);
+  return finishWarSettlement(G, ctx, nextApplied);
 };
 
 // ------------------------------------------------------------------ demobilization free actions
@@ -4872,7 +4874,7 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
     // 16.1.6 knockout option still has to be chosen after the winner.
     const victory = victoryFromTreatyPending(pending);
     G.pending = null;
-    if (!victory) return finishWarSettlement(G, ctx);
+    if (!victory) return finishWarSettlement(G, ctx, treatyAppliedFromPending(pending));
     return advanceTreatyStage(G, ctx, pending, victory);
   }
   if (pending.kind === "warAllyConsent") {
