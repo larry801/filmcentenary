@@ -1,5 +1,32 @@
 # Imperial Elegy — implementation status
 
+## Active Partial-completion audit (2026-11-15)
+
+The section matrix below contains historical claims, including already-fixed
+items labelled partial. Completion requires checking the printed rule, the live
+call path and regression evidence; a documentation-only relabel is not closure.
+This table tracks the current audit until every Partial row is reconciled.
+
+| Section | Audit / implementation still to close | Evidence already verified remotely |
+| --- | --- | --- |
+| 1–4 | Unlisted non-player physical counters; per-mode card restrictions; key/territory semantics. | Existing chart tests; source/data verification remains open. |
+| 5 | Home **key** supply sources; friendly/neutral/occupied LoC routes; land-only and sea-gate traces; minor/Italian supply; displacement and impulse lifecycle audit. | Existing stacking/displacement suites; source-level LoC corrections in progress. |
+| 6–7 | Key/colonial/Arab track derivation and power-projection baseline audit. | Existing display/track suites. |
+| 8 | Reconcile the complete alliance section, including aid shifts and player choices. | A015/A111 + d6 resolution: [0184ee01 CI](https://github.com/larry801/filmcentenary/actions/runs/43683138802); harsh terms: [ef8b259c CI](https://github.com/larry801/filmcentenary/actions/runs/43687623222). |
+| 9–12 | Audit remaining event timing, per-mode playability and economy simplifications against card text. | Prior card/response/turn-flag suites; not yet signed off as a complete section. |
+| 13–17 | Finish treaty follow-up CI; audit surrender, joint naval operations, settlement/free-action choices and remove obsolete gap claims only with evidence. | Harsh terms verified; 135c1b75 CI found a stale surrender assertion and a random-card browser fixture, being corrected. |
+| 18–19 | Audit the remaining combat/naval fallback claims against current code and rules. | Existing combat/naval regression suites; section audit open. |
+| 20 | Verify every end-phase choice and non-player rebuild exception; distinguish printed counter limits from missing functionality. | Existing end-phase regression suites; section audit open. |
+| 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | Existing table/flow suites; section audit open. |
+| 24–32 | Bonus-impulse chooser, minor/GW-major integration, remaining Great War flow audit. | Existing GW flow/regression suites; section audit open. |
+| 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
+| 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix is live; remaining deterministic choices require rule audit. |
+
+Latest fully verified baseline: **ef8b259c2887a9ad94194b88522b41d1352e3841**,
+441 suites / 4168 tests, frontend + server builds, 37 general browser tests and
+16 IE browser tests, all passed. The newer treaty-territory milestone remains
+unverified until its follow-up CI succeeds.
+
 ## 2026-11-15 treaty-territory follow-up
 
 - **16.2.4 Righteous Defense:** a defending primary's major victory waives
