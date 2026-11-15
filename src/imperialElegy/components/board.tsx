@@ -963,7 +963,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
           <IEBadge tone={active.toLowerCase()}>{t.active}: {t.seats[active]}</IEBadge>
           <IEBadge>{PHASE_LABEL(t, phase)}</IEBadge>
           <IEBadge tone={G.wtt >= 4 ? "warn" : "default"}>{t.wtt}: {G.wtt}/5</IEBadge>
-          <IEBadge>{t.cp}: {G.cpRemaining}</IEBadge>
+          <IEBadge>{t.cp}: {viewer ? cpBudget() : G.cpRemaining}</IEBadge>
           {G.gw?.active && <IEBadge tone="warn">GW {G.gw.turn}</IEBadge>}
           {battle && <IEBadge tone="warn">{bi(actualLocale, battle.kind === "naval" ? "Naval battle" : "Land battle", battle.kind === "naval" ? "海战" : "陆战")}</IEBadge>}
           {pending && <IEBadge tone="warn">{t.pending}: {t.seats[pending.power]}</IEBadge>}
