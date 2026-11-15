@@ -487,7 +487,14 @@ export const removeCardFromGame = (G: VQGame, cardId: string): void => {
     G.discard = G.discard.filter((id) => id !== cardId);
     G.futureDeck = G.futureDeck.filter((id) => id !== cardId);
     G.homeSetAside = G.homeSetAside.filter((id) => id !== cardId);
-    for (const p of POWERS) G.powers[p].cards = G.powers[p].cards.filter((id) => id !== cardId);
+    for (const p of POWERS) {
+        G.powers[p].cards = G.powers[p].cards.filter((id) => id !== cardId);
+        // A Home card set aside face down during Spring is still a physical
+        // copy; leaving it there put the same card in `removed` and the secret
+        // set-aside at once (for example the Virgin Queen after Elizabeth I is
+        // assassinated).
+        G.powers[p].homeCardSetAside = G.powers[p].homeCardSetAside.filter((id) => id !== cardId);
+    }
 };
 
 export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolean): void => {
@@ -1451,6 +1458,12 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
     }
     state.cp = 0;
     state.cardModifier = 0;
+    // A deactivated major has no controlling seat and no cards, so it cannot
+    // take an impulse.  If it was mid-impulse the Action Phase has to move on
+    // (see `turnEnd`, which skips a deactivated `activePower`), and a deactivated
+    // power must never block passing for whoever acts next either.
+    state.cardPlayed = false;
+    state.passed = false;
     G.majorDiplomacyResolved ??= [];
     if (!G.majorDiplomacyResolved.includes(power)) G.majorDiplomacyResolved.push(power);
     if (power === "hre") {

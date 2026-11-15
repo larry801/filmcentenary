@@ -412,7 +412,13 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
         return true;
     }
     if (handler === "scottishLordsRebel") {
-        if (G.minorDiplomacyResolved.includes("scotland")) return false;
+        // Rule 24.6: a second evaluation of the same minor in one turn is
+        // ignored.  The card is still playable (it is Mandatory), so log the
+        // ignored resolution instead of resolving again.
+        if (G.minorDiplomacyResolved.includes("scotland")) {
+            pushLog(G, "Scottish Lords Rebel: Scotland was already evaluated this turn, so the event is ignored (rule 24.6).");
+            return true;
+        }
         const edinburghController = G.spaces.edinburgh?.control;
         const modifier = isPower(edinburghController) ? {[edinburghController]: 1} : {};
         const winner = resolveMinorDiplomacy(G, ctx, "scotland", {modifier});
@@ -1515,8 +1521,8 @@ export const chooseCityRebelsLoss = (
 ): void | typeof INVALID_MOVE => {
     const pending = G.pendingCityRebels;
     if (pending === undefined) return INVALID_MOVE;
-    const lossOwner3 = isPower(pending.controller) ? ownerOf(G, pending.controller) : pending.controller === "independent" ? undefined : ownerOf(G, minorAlly(G, pending.controller as never) ?? pending.controller as never);
-    if (ctx.playerID !== undefined && ctx.playerID !== null && lossOwner3 !== ctx.playerID) {
+    const decider = cityRebelsDecider(G, pending.controller);
+    if (ctx.playerID !== undefined && ctx.playerID !== null && (decider === undefined || ownerOf(G, decider) !== ctx.playerID)) {
         return INVALID_MOVE;
     }
     if (args.kind === "auto") {
@@ -1535,6 +1541,20 @@ export const chooseCityRebelsLoss = (
 export const autoResolveCityRebelsLosses = (G: VQGame, ctx?: Ctx): void => {
     const pending = G.pendingCityRebels;
     if (pending !== undefined) finishCityRebelsLoss(G, pending, ctx);
+};
+
+/**
+ * Seat that decides a #18 loss allocation.  A major-power garrison belongs to
+ * its own seat; an allied minor's garrison is decided by the major that owns
+ * the minor, which is also the seat `chooseCityRebelsLoss` accepts the move
+ * from.  An independent garrison has no decider (the automatic order applies).
+ * The board's panel and the move guard share this helper so they can never
+ * disagree about who is asked.
+ */
+export const cityRebelsDecider = (G: VQGame, controller: Controller): Power | undefined => {
+    if (isPower(controller)) return controller;
+    if (controller === "independent") return undefined;
+    return minorAlly(G, controller as MinorPower);
 };
 
 /**
@@ -1563,7 +1583,8 @@ const resolveCityStateRebels = (G: VQGame, ctx: Ctx, p: Power, target?: string):
     // Only open the stage when composition is actually in doubt: every unit
     // dies regardless when hits cover the stack, and one surviving unit type
     // has no alternative to choose. This keeps small garrisons automatic.
-    const lossOwner = isPower(controller) ? ownerOf(G, controller) : controller === "independent" ? undefined : ownerOf(G, minorAlly(G, controller) ?? controller as never);
+    const decider = cityRebelsDecider(G, controller);
+    const lossOwner = decider === undefined ? undefined : ownerOf(G, decider);
     if (hitCount > 0 &&
         landCount(state.land[controller]) + navalCount(state.naval[controller]) > hitCount &&
         cityRebelsLossKinds(G, target, controller).length > 1 &&
@@ -3231,7 +3252,14 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         cardHandler === "scottishLordsRebel" ? "scotland" :
             cardHandler === "sultanaSafiye" && p !== "ottoman" ? "venice" :
                 cardHandler === "donAntonioOfPortugal" && !ps.alliedMinors.includes("portugal") ? "portugal" : undefined;
-    if (args.asEvent === true && cardDiplomacyTarget !== undefined &&
+    // Rule 24.6: an event that re-evaluates a minor already resolved this turn
+    // is ignored.  For an ordinary Event card that means the card cannot be
+    // played at all, but a Mandatory Event still has to be playable: refusing it
+    // blocks the pass too (`passBlockReasons` reports "mandatory"), which
+    // deadlocks a power holding #74 after Scotland was evaluated.  Let the play
+    // through and let the handler skip the ignored resolution.
+    const mandatoryCard = def.officialKind === "mandatory";
+    if (args.asEvent === true && cardDiplomacyTarget !== undefined && !mandatoryCard &&
         (G.minorDiplomacyResolved.includes(cardDiplomacyTarget) ||
             !minorAvailable(G, cardDiplomacyTarget))) {
         return INVALID_MOVE;

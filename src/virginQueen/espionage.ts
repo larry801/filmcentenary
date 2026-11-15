@@ -239,8 +239,12 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
                 const royal = G.royals.find((r) => r.id === "elizabeth")!;
                 royal.alive = false; royal.status = "dead";
                 G.powers.england.ruler = "elizabethDead";
-                G.removed.push(...["vq-036", "vq-home-virgin-queen"].filter((id) => !G.removed.includes(id)));
-                G.powers.england.cards = G.powers.england.cards.filter((id) => !G.removed.includes(id));
+                // Rule 21.4 / card text: the Virgin Queen leaves the game for
+                // good.  Use the shared helper so every zone is cleared — a
+                // Home card already set aside face down in Spring used to stay
+                // there, putting one physical card in two zones at once.
+                removeCardFromGame(G, "vq-036");
+                removeCardFromGame(G, "vq-home-virgin-queen");
                 if (espionageState(G).mary === "captured") {executeMary(G); espionageState(G).maryBonusTurn = G.year;}
             } else if (isRudolfTarget(p.target)) {
                 // #35 FAQ: Rudolf's death removes the +2 Prague Cultural
