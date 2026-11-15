@@ -40,6 +40,7 @@ import {
   isArmyKind,
   isHomeSpace,
   isPower,
+  industrializationModifier,
   landStackingLimit,
   landUnitsIn,
   movementEndProblem,
@@ -1283,7 +1284,7 @@ export const industryRoll = (
   const target: 5 | 6 = power === "RU" || power === "OT" ? 6 : 5;
   const source: IndustryRollDecision["source"] =
     power === "RU" ? "agrarian" : power === "OT" ? "europeanization" : "standard";
-  const drm = Number(p.flags.industryDrm ?? 0);
+  const drm = industrializationModifier(G, power);
   const autoSuccess = p.autoIndustry === true;
   const reasons: string[] = [];
   if (power === "RU") reasons.push("Agrarian: needs a 6 after DRMs");

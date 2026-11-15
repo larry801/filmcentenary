@@ -117,7 +117,7 @@ export const isHomeSpace = (G: ImperialElegyState, space: SpaceId, power: Power)
   if (def.home === power) return true;
   if (def.minorHome !== null && def.minorHome !== undefined && def.home === power) return true;
   // A GE unification space becomes a permanent home space.
-  return def.flashpoints?.includes("germany") === true && G.spaces[space]?.control === power && G.powers.GE.unified === true;
+  return power === "GE" && def.flashpoints?.includes("germany") === true && G.spaces[space]?.control === power && G.powers.GE.unified === true;
 };
 
 export const germanHomeSpaces = (G: ImperialElegyState): SpaceId[] =>
@@ -663,15 +663,55 @@ export const resolveCapitalSurrenders = (G: ImperialElegyState, ctx?: Ctx): Powe
   return eliminated;
 };
 
+/** 4.9.4: only allies actually participating in this war supply one another. */
+const locAllies = (G: ImperialElegyState, power: Power): readonly Power[] => {
+  if (G.gw?.active) {
+    if (G.gw.te.includes(power)) return G.gw.te;
+    if (G.gw.ta.includes(power)) return G.gw.ta;
+    return [];
+  }
+  if (G.war !== null) {
+    const attack = [G.war.attacker, ...G.war.attackerAllies].filter(isPower);
+    const defence = [G.war.defender, ...G.war.defenderAllies].filter(isPower);
+    if (attack.includes(power)) return attack;
+    if (defence.includes(power)) return defence;
+  }
+  return [];
+};
+
+/**
+ * 5.6 land portion of a LoC: own controlled spaces at peace, friendly held
+ * spaces in war. Occupation takes precedence over formal control (15.3).
+ * This is deliberately narrower than movement's influence-space allowance.
+ */
+export const locFriendlySpace = (G: ImperialElegyState, space: SpaceId, power: Power): boolean => {
+  const state = G.spaces[space];
+  if (!state || isNavalBox(space)) return false;
+  if (unitsIn(G, space).some((unit) => unit.kind === "rebelArmy")) return false;
+  const allies = locAllies(G, power);
+  if (allies.length === 0) return state.control === power;
+  const holder = state.occupiedBy ?? state.control;
+  if (isPower(holder)) return allies.includes(holder);
+  if (holder === "IT" || holder === "US") {
+    const side = gwMajorSide(G, holder);
+    return side !== null && (side === "te" ? G.gw!.te : G.gw!.ta).includes(power);
+  }
+  if (holder !== null && holder !== undefined) {
+    const controller = minorController(G, holder) ?? minorUpkeepPower(G, holder);
+    return controller !== null && allies.includes(controller);
+  }
+  return isPower(state.influence) && allies.includes(state.influence);
+};
+
 const connectionPassable = (
   G: ImperialElegyState,
   from: SpaceId,
   to: SpaceId,
   power: Power,
   landOnly: boolean,
-  respectNavalGates = false,
+  respectNavalGates = true,
 ): boolean => {
-  if (landOnly && (isNavalBox(from) || isNavalBox(to))) return false;
+  if (landOnly && (isNavalBox(from) || isNavalBox(to) || connectionBetween(from, to)?.type === "sea")) return false;
   const state = G.spaces[to];
   if (!state) return false;
   if (isNavalBox(to)) {
@@ -684,18 +724,7 @@ const connectionPassable = (
     if (spaceHostileTo(G, power, to)) return false;
     return true;
   }
-  if (G.gw?.active) {
-    // GW: enemy spaces need a land battle; LoC only through friendly/occupied.
-    if (friendlySpace(G, to, power)) return true;
-    return false;
-  }
-  if (G.war !== null) {
-    if (friendlySpace(G, to, power)) return true;
-    if (atWar(G, power, state.control as Power)) return false;
-    // During a war, neutral spaces still block LoC.
-    return false;
-  }
-  return friendlySpace(G, to, power);
+  return locFriendlySpace(G, to, power);
 };
 
 /** Breadth-first LoC trace. */
@@ -707,16 +736,19 @@ export const hasLoc = (
     landOnly?: boolean;
     requireTwoSources?: boolean;
     capitalOnly?: boolean;
-    /** 29.1/29.2: follow Suez and Dardanelles closures on sea hops. */
+    /** Follow Suez and Dardanelles closures on sea hops (default true). */
     respectNavalGates?: boolean;
   } = {},
 ): boolean => {
   if (!G.spaces[from]) return false;
+  const isSource = (space: SpaceId): boolean => options.capitalOnly
+    ? space === capitalOf(G, power) && G.spaces[space]?.control === power && locFriendlySpace(G, space, power)
+    : isSupplySource(G, power, space, options.requireTwoSources ?? true, options.respectNavalGates ?? true);
   const visited = new Set<SpaceId>([from]);
   const queue: SpaceId[] = [from];
   while (queue.length > 0) {
     const current = queue.shift()!;
-    if (current !== from && isSupplySource(G, power, current, options.requireTwoSources ?? true)) return true;
+    if (current !== from && isSource(current)) return true;
     for (const next of neighboursOf(current)) {
       if (visited.has(next)) continue;
       if (
@@ -726,7 +758,7 @@ export const hasLoc = (
           next,
           power,
           options.landOnly ?? false,
-          options.respectNavalGates ?? false,
+          options.respectNavalGates ?? true,
         )
       ) {
         continue;
@@ -735,7 +767,14 @@ export const hasLoc = (
       queue.push(next);
     }
   }
-  return isSupplySource(G, power, from, options.requireTwoSources ?? true);
+  return isSource(from);
+};
+
+/** 3.2.1–3.2.2: square/star spaces are keys even without a display track type. */
+export const isKeySpace = (G: ImperialElegyState, space: SpaceId): boolean => {
+  const def = SPACES[space];
+  return def !== undefined && !isNavalBox(space) &&
+    (["key", "capital", "subcapital"].includes(def.type) || effectiveKeyType(G, space) !== undefined);
 };
 
 export const isSupplySource = (
@@ -743,10 +782,11 @@ export const isSupplySource = (
   power: Power,
   space: SpaceId,
   requireTwoSources = true,
+  respectNavalGates = true,
 ): boolean => {
-  const def = SPACES[space];
-  if (!def || def.type === "navalBox") return false;
-  if (!ownsKey(G, space, power) || !isHomeSpace(G, space, power)) return false;
+  const ownHomeKey = (id: SpaceId): boolean =>
+    isKeySpace(G, id) && ownsKey(G, id, power) && isHomeSpace(G, id, power) && locFriendlySpace(G, id, power);
+  if (!ownHomeKey(space)) return false;
   if (!requireTwoSources) return true;
   // A supply source needs a LoC to at least one other controlled home key.
   // 5.6: a LoC is "an uninterrupted chain of land connections and/or naval
@@ -757,8 +797,8 @@ export const isSupplySource = (
     const current = queue.shift()!;
     for (const next of neighboursOf(current)) {
       if (visited.has(next)) continue;
-      if (!connectionPassable(G, current, next, power, false)) continue;
-      if (ownsKey(G, next, power) && isHomeSpace(G, next, power)) return true;
+      if (!connectionPassable(G, current, next, power, false, respectNavalGates)) continue;
+      if (ownHomeKey(next)) return true;
       visited.add(next);
       queue.push(next);
     }
@@ -1061,7 +1101,8 @@ export const spaceHostileTo = (
 export const isMinorPowerOwner = (owner: PowerOrMinor): owner is string =>
   typeof owner === "string" &&
   !isPower(owner) &&
-  Object.prototype.hasOwnProperty.call(MINOR_POWER_HOMES, owner);
+  !["US", "IT", "United States", "Italy"].includes(owner) &&
+  !owner.startsWith("REBEL:");
 
 /**
  * The player currently controlling a minor (its allied player), or null when
@@ -1182,9 +1223,15 @@ export const formerlyControlledRailAllowed = (
  */
 export const minorSupplySource = (G: ImperialElegyState, minor: string, space: SpaceId): boolean => {
   const def = SPACES[space];
-  if (!def || def.type === "navalBox") return false;
+  if (!def || !isKeySpace(G, space)) return false;
   if (G.spaces[space]?.control !== minor) return false;
-  return def.minorHome === minor || MINOR_POWER_HOMES[minor] === space;
+  const occupier = G.spaces[space].occupiedBy;
+  if (occupier !== null && occupier !== undefined && occupier !== minor) {
+    const supplier = minorController(G, minor) ?? minorUpkeepPower(G, minor);
+    if (supplier === null || !locFriendlySpace(G, space, supplier)) return false;
+  }
+  return def.minorHome === minor || MINOR_POWER_HOMES[minor] === space ||
+    G.spaces[space]?.independentHome?.power === minor;
 };
 
 /** Friendly spaces for a minor's LoC trace (5.6: through friendly spaces). */
@@ -1282,12 +1329,15 @@ export const italianFriendlySpace = (G: ImperialElegyState, space: SpaceId): boo
       return true;
     });
   }
-  if (state.control === "IT" || state.occupiedBy === "IT") return true;
+  const holder = state.occupiedBy ?? state.control;
+  if (holder === "IT") return true;
   const side = gwMajorSide(G, "IT");
   if (side === null) return false;
-  if (isPower(state.control)) return G.gw?.te.includes(state.control) === (side === "te") || G.gw?.ta.includes(state.control) === (side === "ta");
-  if (!isPower(state.control) && state.control !== null && isPower(state.ally)) {
-    return G.gw?.te.includes(state.ally) === (side === "te") || G.gw?.ta.includes(state.ally) === (side === "ta");
+  const members = side === "te" ? G.gw!.te : G.gw!.ta;
+  if (isPower(holder)) return members.includes(holder);
+  if (holder !== null && holder !== undefined) {
+    const controller = minorController(G, holder);
+    if (controller !== null) return members.includes(controller);
   }
   return false;
 };
@@ -1297,7 +1347,7 @@ export const italianFriendlySpace = (G: ImperialElegyState, space: SpaceId): boo
  * with a LoC to another Italian controlled home key."
  */
 export const italianSupplySource = (G: ImperialElegyState, space: SpaceId): boolean => {
-  if (G.spaces[space]?.control !== "IT" || !ITALIAN_HOME_SPACES.includes(space)) return false;
+  if (G.spaces[space]?.control !== "IT" || !ITALIAN_HOME_SPACES.includes(space) || !italianFriendlySpace(G, space)) return false;
   const others = italianControlledHomeKeys(G).filter((id) => id !== space);
   if (others.length === 0) return false;
   const visited = new Set<SpaceId>([space]);
@@ -1623,32 +1673,35 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
 export const ARAB_KEY_SPACES = new Set<SpaceId>(["arabia", "mecca", "baghdad", "kuwait", "syria"]);
 export const EGYPTIAN_SPACES = new Set<SpaceId>(["egypt", "great-sand-sea", "sinai"]);
 
-/** Power projection: at most two per naval box, capped by naval units x 2. */
+/** 3.3.1: a box grants 1 for ports, 2 with both an ordinary port and a base. */
 export const computePowerProjection = (G: ImperialElegyState, power: Power): number => {
-  const byBox = new Map<SpaceId, number>();
+  const byBox = new Map<SpaceId, {port: boolean; base: boolean}>();
   for (const def of Object.values(SPACES)) {
     if (!def.ports || def.ports.length === 0) continue;
     if (G.spaces[def.id]?.control !== power) continue;
+    if (unitsIn(G, def.id).some((unit) => unit.kind === "rebelArmy")) continue;
     // 33.6 Local Autonomy: "Tunisia and Tripoli neither count as keys nor for
     // power projection unless OT can trace a LoC to the keys by land."
     if (power === "OT" && OT_AUTONOMY_KEYS.has(def.id) && !hasOtAutonomyLandLoc(G, def.id)) continue;
     for (const box of def.ports) {
-      const current = byBox.get(box) ?? 0;
-      // A key/territory port + a naval base in the same box gives 2.
-      const add = def.type === "navalBase" ? 2 : 1;
-      byBox.set(box, Math.min(2, current + add));
+      if (def.id === "egypt" && box === "indian-ocean" && G.persistent.suezCanal !== true) continue;
+      const present = byBox.get(box) ?? {port: false, base: false};
+      if (def.type === "navalBase") present.base = true;
+      else present.port = true;
+      byBox.set(box, present);
     }
   }
   let total = 0;
-  let european = 0;
-  for (const [box, value] of byBox) {
-    if (EUROPEAN_WATERS.has(box)) {
-      if (european >= 3) continue;
-      european += 1;
-    }
-    total += value;
+  const european: number[] = [];
+  for (const [box, present] of byBox) {
+    const value = present.port && present.base ? 2 : 1;
+    if (EUROPEAN_WATERS.has(box)) european.push(value);
+    else total += value;
   }
-  const naval = unitsOfPower(G, power).filter((u) => u.naval).length;
+  // The three-box maximum is a limit on scoring, not map iteration order.
+  total += european.sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0);
+  const naval = Object.values(G.units).filter((unit) => unit.naval && unit.steps > 0 && unit.space !== null &&
+    (unit.owner === power || (!isPower(unit.owner) && minorController(G, unit.owner) === power))).length;
   return Math.max(0, Math.min(total, naval * 2));
 };
 
@@ -1682,6 +1735,8 @@ export const flashpointController = (G: ImperialElegyState, flashpoint: string):
     const ranked = [...POWERS].sort((a, b) => Number(G.powers[b].flags.powerProjection ?? 0) - Number(G.powers[a].flags.powerProjection ?? 0));
     const first = Number(G.powers[ranked[0]].flags.powerProjection ?? 0);
     const second = Number(G.powers[ranked[1]].flags.powerProjection ?? 0);
+    const leaders = ranked.filter((power) => Number(G.powers[power].flags.powerProjection ?? 0) === first);
+    if (leaders.length > 1) return first > 0 && leaders.length === 2 ? leaders : [];
     const out: Power[] = [];
     if (first > 0) out.push(ranked[0]);
     // Ties for second place do not dominate.
@@ -1721,6 +1776,13 @@ export const dominatedFlashpoints = (G: ImperialElegyState, power: Power): strin
   return out;
 };
 
+/** 3.3.1 / 20.6: projection domination adds +1 alongside event DRMs. */
+export const industrializationModifier = (G: ImperialElegyState, power: Power): number => {
+  const eventDrm = Number(G.powers[power].flags.industryDrm ?? 0);
+  return (Number.isFinite(eventDrm) ? eventDrm : 0) +
+    (flashpointController(G, "powerProjection").includes(power) ? 1 : 0);
+};
+
 export const stabilityEffect = (G: ImperialElegyState, power: Power): StabilityEffect => {
   const p = G.powers[power];
   const table = POWER_DEFS[power].stability;
@@ -1740,7 +1802,9 @@ export const cardsToDraw = (G: ImperialElegyState, power: Power): number => {
   // Flashpoint bonuses: +1 or +1/2 rounded down? Printed cards give +1 or half;
   // dominating two half-flashpoints is +1.  We model each domination as a
   // half bonus and round the total up (4.1.1).
-  const flashpoints = dominatedFlashpoints(G, power).length;
+  // 3.3.1: PP grants industry DRM, never an inherent card bonus. A028
+  // awards a separate +1 marker when that event is played.
+  const flashpoints = dominatedFlashpoints(G, power).filter((id) => id !== "powerProjection").length;
   count += Math.ceil(flashpoints / 2);
   // National characteristics (India, City of Light, TSRR) now live in one place.
   count += cardDrawModifier(G, power).delta;
@@ -2812,6 +2876,7 @@ export const beginImpulseUpkeep = (
 ): boolean => {
   if (G.pending !== null || G.battle !== null) return false;
   if (!G.powers[power] || G.powers[power].eliminated) return false;
+  if (G.phase === "action") G.powers[power].flags.allianceAtImpulseStart ??= G.powers[power].alliance;
   const stamp = `${G.phase}|${G.turn}|${G.turnIndex}|${G.gw?.turn ?? ""}|${G.war?.status ?? ""}|${power}`;
   if (G.flags.impulseUpkeepStamp === stamp) return false;
   G.flags.impulseUpkeepStamp = stamp;

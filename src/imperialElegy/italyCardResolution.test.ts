@@ -7,7 +7,7 @@
  * rolled for each marker. ... Reroll the dice if the Italian result produces a
  * tie."  The live card events previously resolved players only; they now run
  * the same `resolveItalyAllianceStep` as the 20.9 end phase: one marker shifts
- * automatically, 2d6 + influence decides multiple markers, a differential of
+ * automatically, d6 + influence decides multiple markers, a differential of
  * 10+ shifts two boxes (8.6.1), a tie is rerolled, and 8.5 resets the column to
  * the marker matching the new box.
  */
@@ -99,23 +99,23 @@ describe("8.6 action-phase events resolve unified Italy's MPIT", () => {
     expect(G.discard).toContain("IE-A015");
   });
 
-  test("2d6 + influence with a differential of 10+ shifts Italy two boxes", () => {
+  test("d6 + influence with a differential of 10+ shifts Italy two boxes", () => {
     const G = fresh();
     armShiftingAlliances(G, {
       italyBox: "neutral",
-      italyMpit: {te: 1, ta: 0, neutral: 1},
+      italyMpit: {te: 6, ta: 0, neutral: 1},
     });
-    // Italy rolls TE first (2d6) then neutral (2d6): 13 vs 3 = differential 10.
-    const ctx = makeCtx([6, 6, 1, 1], seat("GE"));
+    // Italy rolls TE then neutral: 6+6=12 vs 1+1=2 = differential 10.
+    const ctx = makeCtx([6, 1], seat("GE"));
     playShiftingAlliances(G, ctx);
 
     expect(G.persistent.italyAlliance).toBe("teCommitted");
     expect(G.italyMpit).toEqual({te: 1, ta: 0, neutral: 0});
     expect(lastLog(G, "italyAllianceResolution")?.args).toMatchObject({
       major: "IT",
-      te: 13,
+      te: 12,
       ta: 0,
-      neutral: 3,
+      neutral: 2,
       direction: "te",
       steps: 2,
       blocked: false,
@@ -130,8 +130,8 @@ describe("8.6 action-phase events resolve unified Italy's MPIT", () => {
       italyBox: "neutral",
       italyMpit: {te: 1, ta: 1, neutral: 0},
     });
-    // First roll ties 3-3 (TE 1+1+1, TA 1+1+1); reroll is TE 4 / TA 3.
-    const ctx = makeCtx([1, 1, 1, 1, 2, 1, 1, 1], seat("GE"));
+    // First roll ties 2-2; reroll is TE 3 / TA 2.
+    const ctx = makeCtx([1, 1, 2, 1], seat("GE"));
     playShiftingAlliances(G, ctx);
 
     expect(G.pending).toBeNull();
@@ -139,8 +139,8 @@ describe("8.6 action-phase events resolve unified Italy's MPIT", () => {
     expect(G.italyMpit).toEqual({te: 1, ta: 0, neutral: 0});
     expect(lastLog(G, "italyAllianceResolution")?.args).toMatchObject({
       direction: "te",
-      te: 4,
-      ta: 3,
+      te: 3,
+      ta: 2,
       steps: 1,
       to: "teAligned",
     });
@@ -154,9 +154,9 @@ describe("8.6 action-phase events resolve unified Italy's MPIT", () => {
       italyBox: "teAligned",
       italyMpit: {te: 0, ta: 0, neutral: 5},
     });
-    // GE has TE and TA influence: 3+3+1=7 and 1+5+1=7, a printed player tie.
+    // GE has TE and TA influence: 3+1=4 and 3+1=4, a printed player tie.
     G.powers.GE.mpit = {te: 1, ta: 1, neutral: 0};
-    const ctx = makeCtx([3, 3, 1, 5, 1, 1], seat("GE"));
+    const ctx = makeCtx([3, 3], seat("GE"));
     playShiftingAlliances(G, ctx);
 
     expect(G.pending?.kind).toBe("allianceTie");

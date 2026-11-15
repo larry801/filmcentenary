@@ -25,7 +25,7 @@ import {
   WarKnockoutRecord,
   WarState,
 } from "../types";
-import {SPACES, isNavalBox} from "../constant/spaces";
+import {SPACES, connectionsOf, isNavalBox} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {cardById, isCardId} from "./deck";
 import {
@@ -39,6 +39,7 @@ import {
   displaceAlliedUnitsInTerritory,
   hasLoc,
   isPower,
+  isKeySpace,
   log,
   minorAlliesOf,
   minorController,
@@ -46,7 +47,8 @@ import {
 } from "./rules";
 import {AU_NATIONALITIES, governmentBenefits} from "./characteristics";
 import {blockadedAt} from "./blockade";
-import {displaceUnitToFriendlyLoc} from "./effects";
+import {displaceUnitToFriendlyLoc, displaceUnitsNotFriendlyTo, registerPolishIndependence} from "./effects";
+import {liberatedPowerFor, liberationNationalities} from "./nationality";
 import {initialNonPlayerBuildBox} from "./endPhase";
 import {POLAND, isPolandIndependent} from "./poland";
 import {
@@ -422,8 +424,12 @@ export const NON_PLAYER_HOMES: Readonly<Record<string, SpaceId>> = {
 };
 
 /** The space that identifies `minor` (a minor power name or "Italy"). */
-export const nonPlayerHome = (minor: string): SpaceId | null =>
-  MINOR_POWER_HOMES[minor] ?? NON_PLAYER_HOMES[minor] ?? null;
+export const nonPlayerHome = (minor: string, G?: ImperialElegyState): SpaceId | null => {
+  const printed = MINOR_POWER_HOMES[minor] ?? NON_PLAYER_HOMES[minor];
+  const liberated = G && Object.entries(G.spaces).find(([, state]) =>
+    state.independentHome?.power === minor && state.control === minor)?.[0];
+  return (printed && (!G || G.spaces[printed]?.control === nonPlayerControlId(minor)) ? printed : liberated) ?? printed ?? null;
+};
 
 /** The control-marker value a non-player power writes into `SpaceState.control`. */
 export const nonPlayerControlId = (minor: string): string => (minor === "Italy" ? "IT" : minor);
@@ -466,7 +472,7 @@ export const minorWarInfo = (
   attacker: Power,
   minor: string,
 ): MinorWarInfo => {
-  const home = nonPlayerHome(minor);
+  const home = nonPlayerHome(minor, G);
   if (home === null) return {ok: false, minor, home, ally: null, reason: "unknown-minor"};
   const controlId = nonPlayerControlId(minor);
   const homeState = G.spaces[home];
@@ -510,7 +516,7 @@ export const minorWarInfo = (
 
 /** The player the non-player power is allied to, from its control markers. */
 export const minorWarAlly = (G: ImperialElegyState, minor: string, controlId = nonPlayerControlId(minor)): Power | null => {
-  const home = nonPlayerHome(minor);
+  const home = nonPlayerHome(minor, G);
   if (home !== null) {
     const direct = G.spaces[home]?.ally;
     if (isPower(direct)) return direct;
@@ -530,6 +536,7 @@ export const minorWarAlly = (G: ImperialElegyState, minor: string, controlId = n
 export const isIndependentMinor = (G: ImperialElegyState, minor: string): boolean => {
   if (minor === "Italy" || minor === "United States" || minor === "US" || minor === "IT") return false;
   if (G.eliminatedMinors?.includes(minor) === true) return false;
+  if (Object.values(G.spaces).some((state) => state.control === minor && state.independentHome?.power === minor)) return true;
   const home = MINOR_POWER_HOMES[minor] ?? NON_PLAYER_HOMES[minor] ?? null;
   if (home === null) return false;
   return G.spaces[home]?.control === nonPlayerControlId(minor);
@@ -854,7 +861,7 @@ export const seekingAidSlots = (
   minor: string,
 ): SeekingAidSlot[] => {
   const slots: SeekingAidSlot[] = [];
-  const home = nonPlayerHome(minor);
+  const home = nonPlayerHome(minor, G);
   // A player "has a diplomacy marker with it" when the marker sits on the
   // power's home or on any other space the power controls.  The printed rule
   // assumes one such player; when more than one exists they are asked in seat
@@ -926,7 +933,7 @@ export const applyMinorAidAlliance = (
   minor: string,
   ally: Power,
 ): SpaceId | null => {
-  const home = nonPlayerHome(minor);
+  const home = nonPlayerHome(minor, G);
   if (home === null || !G.spaces[home]) return null;
   // The alliance belongs to the power, so every space it controls carries the
   // new ally marker (a multi-space non-player such as unified Italy).  The
@@ -1932,13 +1939,24 @@ export const classifyVictory = (
   };
 };
 
+/** 13.6 / 15.5: primary surrender at a war impulse boundary, never mid-battle.
+ * The original defender can also concede immediately after hearing the aim. */
+export const canSurrender = (G: ImperialElegyState, power: Power): boolean => {
+  const war = G.war;
+  if (!war || G.phase !== "wartime" || G.gw?.active || G.pending !== null || G.battle !== null) return false;
+  if (G.powers[power].eliminated || war.victor !== null) return false;
+  if (power !== war.attacker && power !== war.defender) return false;
+  return war.status === "maneuver" ||
+    (power === war.defender && (war.status === "warAim" || war.status === "alliance"));
+};
+
 export interface OutcomeApplication {
   applied: boolean;
   kind: WarVictoryKind;
   victor: WarSideName | null;
   truceTurns: number;
   stability: {power: Power; delta: number}[];
-  /** Hook for the caller: both primaries shift away from each other (16.2). */
+  /** Actual harsh terms imposed (8.3), not the entitlement to choose two. */
   harshTerms: boolean;
 }
 
@@ -1981,7 +1999,7 @@ export const applyVictoryOutcome = (
     victor: victory.victor,
     truceTurns: victory.truceTurns,
     stability,
-    harshTerms: victory.primary === "major" || victory.primary === "negotiated",
+    harshTerms: war.harshTermsApplied === true,
   };
 };
 
@@ -2013,7 +2031,62 @@ export interface TreatyChoice {
   beneficiary?: PowerOrMinor;
   /** Treaty target when imposing an ally-knockout option. */
   target?: Power;
+  /** v1.1 16.2.4. Omitted in older saves: infer home return, otherwise take. */
+  righteousMode?: "take" | "returnHome" | "liberate";
+  /** The printed minority flag selected for the liberation option. */
+  nationality?: string;
 }
+
+/**
+ * 8.3 / 16.2: two distinct, successfully imposed options against the losing
+ * PRIMARY are harsh terms. Knockout picks against allies, declined picks and
+ * a major victory's unused entitlement do not count. `applied` is the existing
+ * settlement ledger (also saved in interactive treaty pending contexts).
+ *
+ * Resolve both directions from the original positions before moving either
+ * chit. When both primaries are neutral, roll independently for each (the
+ * 8.2 convention: 1–3 TE, 4–6 TA). The 8.4 declaration exception does not
+ * apply: a harsh-terms shift cannot put a fourth player into an alliance.
+ */
+export const applyHarshTerms = (
+  G: ImperialElegyState,
+  war: WarState,
+  applied: readonly TreatyChoice[],
+  ctx?: Ctx,
+): boolean => {
+  if (war.harshTermsApplied) return true;
+  if (G.war !== war || war.status === "done" || war.victor === null ||
+      !isPower(war.attacker) || !isPower(war.defender)) return false;
+  const loser = war.victor === "attacker" ? war.defender : war.attacker;
+  const primaryOptions = new Set(applied
+    .filter((choice) => (choice.target ?? loser) === loser && war.treaties.includes(choice.option))
+    .map((choice) => choice.option));
+  if (primaryOptions.size < 2) return false;
+
+  const attackerBox = G.powers[war.attacker].alliance;
+  const defenderBox = G.powers[war.defender].alliance;
+  const bothNeutral = attackerBox === "neutral" && defenderBox === "neutral";
+  const shifts = [
+    {power: war.attacker, opponent: war.defender, direction: declarationShiftDirection(defenderBox, attackerBox)},
+    {power: war.defender, opponent: war.attacker, direction: declarationShiftDirection(attackerBox, defenderBox)},
+  ].map((entry) => {
+    // Live settlements supply ctx; context-free rule helpers use the same
+    // deterministic first-face fallback as the other optional-ctx rules.
+    const roll = bothNeutral ? (ctx ? die(ctx, 6) : 1) : null;
+    const direction = roll === null ? entry.direction : roll <= 3 ? "te" as const : "ta" as const;
+    return {...entry, roll, direction};
+  });
+  // Mark even a capped/track-end no-op, so resuming settlement never rerolls.
+  war.harshTermsApplied = true;
+  for (const {power, opponent, direction, roll} of shifts) {
+    const from = G.powers[power].alliance;
+    const shift = direction === null
+      ? {from, to: from, steps: 0, blocked: false}
+      : shiftAlliance(G, power, direction);
+    log(G, power, "harshTermsShift", {...shift, opponent, roll});
+  }
+  return true;
+};
 
 export interface TreatyIssue {
   code: string;
@@ -2044,6 +2117,57 @@ const treatyTargetFor = (war: WarState, victory: VictoryClassification, choice: 
     return victory.allyKnockouts[0].power;
   }
   return victory.loser;
+};
+
+/** 3.2.1–3.2.2: every square/star is a key, including keys without a track type. */
+export const isTreatyKey = (G: ImperialElegyState, space: SpaceId): boolean => isKeySpace(G, space);
+
+/** Printed and event-granted homes, including a minor ally's original home. */
+export const treatyHomeOf = (G: ImperialElegyState, space: SpaceId, power: PowerOrMinor): boolean => {
+  const def = SPACES[space];
+  if (!def) return false;
+  return isPower(power)
+    ? def.home === power || G.spaces[space]?.homeOverride === power
+    : def.minorHome === power || MINOR_POWER_HOMES[power] === space || G.spaces[space]?.independentHome?.power === power;
+};
+
+/** v1.1 16.2.4(1): the acquisition must remain supplied during peacetime.
+ * Evaluate a read-only post-cession view: the selected space becomes ours and
+ * wartime occupations/participating allies can no longer bridge the trace. */
+export const hasPeacetimeTreatyLoc = (G: ImperialElegyState, power: Power, space: SpaceId): boolean => {
+  const state = G.spaces[space];
+  if (!state) return false;
+  const peaceful: ImperialElegyState = {
+    ...G, phase: "action", war: null, gw: null,
+    spaces: {...G.spaces, [space]: {...state, control: power, occupiedBy: null}},
+  };
+  return hasLoc(peaceful, power, space, {respectNavalGates: true});
+};
+
+/**
+ * 16.2.5 / 3.2.1: colonial for a treaty means no contiguous controlled land
+ * connection to the losing player's capital. AU/RU/OT's display convention
+ * (count all keys as territorial) does not exempt their overseas keys.
+ * Trace formal control, not occupation (15.3), and never bridge the route
+ * with an ally, neutral space, naval box, or a port-to-port sea connection.
+ */
+export const isColonialTreatyKey = (G: ImperialElegyState, space: SpaceId, power: Power): boolean => {
+  if (!isTreatyKey(G, space) || G.spaces[space]?.control !== power) return false;
+  const capital = capitalOf(G, power);
+  const visited = new Set<SpaceId>([space]);
+  const queue = [space];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current === capital) return false;
+    for (const connection of connectionsOf(current)) {
+      if (connection.type === "sea") continue;
+      const next = connection.a === current ? connection.b : connection.a;
+      if (visited.has(next) || isNavalBox(next) || G.spaces[next]?.control !== power) continue;
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+  return true;
 };
 
 /** Rule 16.2 validation, including the once-per-option restriction. */
@@ -2091,7 +2215,12 @@ export const canApplyTreaty = (
 
   const victoriousPowers = imposingSide === null ? [] : sidePowers(war, imposingSide);
   const primary = imposingSide === null ? null : imposingSide === "attacker" ? war.attacker : war.defender;
-  if (choice.beneficiary !== undefined && imposingSide !== null) {
+  const returnsHome = choice.option === "righteousDefense" && choice.righteousMode !== "liberate" &&
+    choice.righteousMode !== "take" && choice.space !== undefined && choice.beneficiary !== undefined &&
+    treatyHomeOf(G, choice.space, choice.beneficiary);
+  // v1.1's separate home-return option can restore the rightful owner even
+  // when that owner did not participate in this war.
+  if (choice.beneficiary !== undefined && imposingSide !== null && !returnsHome) {
     if (isPower(choice.beneficiary)) {
       if (!victoriousPowers.includes(choice.beneficiary)) {
         add("beneficiary-not-victorious", `${choice.beneficiary} is not on the victorious side`);
@@ -2136,7 +2265,7 @@ export const canApplyTreaty = (
     const minor = choice.minor;
     const germanUnification = war.warAim === "unification" && beneficiary === "GE";
     if (minor) {
-      const home = MINOR_POWER_HOMES[minor];
+      const home = nonPlayerHome(minor, G);
       if (!home) add("unknown-minor", `unknown minor power ${minor}`);
       else if (target && G.spaces[home]?.ally !== target && !Object.values(G.spaces).some((state) => state.control === minor && state.ally === target)) {
         add("minor-not-allied-to-loser", `${minor} is not allied with ${target}`);
@@ -2174,23 +2303,49 @@ export const canApplyTreaty = (
       if (!def || !state) add("unknown-space", `unknown space ${space}`);
       else if (
         isNavalBox(space) ||
-        (effectiveKeyType(G, space) === undefined && def.type !== "territory" && def.type !== "navalBase")
+        (!isTreatyKey(G, space) && def.type !== "territory" && def.type !== "navalBase")
       ) {
         add("not-key-or-territory", `${space} is not a key, territory or naval base`);
       } else {
-        const attackerPowers = sidePowers(war, "attacker");
         const defenderPowers = sidePowers(war, "defender");
-        const enemyControlled = heldByAny(G, space, attackerPowers);
-        const defenderHome = def.home === war.defender && enemyControlled;
+        // 16.1.6: a knockout option can only take from its named target,
+        // never another member of the attacking side.
+        const enemyControlled = target !== null &&
+          (controlledBy(G, space, target) || state.occupiedBy === target);
+        const returnedHome = beneficiary !== null && treatyHomeOf(G, space, beneficiary) && enemyControlled;
         const occupiedByDefender = state.occupiedBy !== null && state.occupiedBy !== undefined && defenderPowers.includes(state.occupiedBy as Power);
-        if (allyBeneficiary) {
-          // Rule 16.2.4: an ally may only receive a returned defender home.
-          if (!defenderHome) add("not-defender-home", `${space} is not a ${war.defender} home space controlled by the enemy`);
-        } else if (!defenderHome && !(enemyControlled && occupiedByDefender)) {
-          add("not-eligible-space", `${space} is not an occupied enemy space or a controlled defender home`);
-        }
-        if (isPower(war.defender) && !hasLoc(G, war.defender, space, {requireTwoSources: false})) {
-          add("no-loc", `${war.defender} cannot trace a LoC to ${space}`);
+        const majorDefense = victory.primary === "major" && victory.victor === "defender" && target === war.attacker;
+        const mode = choice.righteousMode ?? (returnedHome ? "returnHome" : "take");
+        if (mode === "liberate") {
+          if (allyBeneficiary) add("beneficiary-must-be-primary", "the defender gains the liberated power's alliance");
+          if (target === null || state.control !== target || !occupiedByDefender) add("liberation-not-occupied", "liberation requires occupation of a space controlled by the treaty target");
+          const nationality = choice.nationality;
+          if (!target || !nationality || !liberationNationalities(G, space, target).includes(nationality)) {
+            add("not-minority-nationality", "select a surviving printed minority nationality of the treaty target");
+          } else {
+            const minor = liberatedPowerFor(space, nationality);
+            const allies = minorAlliesOf(G, war.defender);
+            if (!allies.includes(minor) && allies.length >= 5) add("minor-ally-limit", "the defender already has five minor allies (4.2.1)");
+          }
+        } else if (mode === "returnHome") {
+          if (!returnedHome || beneficiary === target) add("not-beneficiary-home", `${space} is not a lost home belonging to ${beneficiary}`);
+          if (beneficiary !== null && !isPower(beneficiary) &&
+              (G.eliminatedMinors?.includes(beneficiary) ||
+               (G.persistent.italyUnified && ["Sardinia-Piedmont", "Two Sicilies", "Tuscany", "Papal States"].includes(beneficiary)))) {
+            add("permanently-eliminated-minor", "unification permanently removed this minor power");
+          }
+          // No occupation or LoC requirement is printed for this separate option.
+        } else if (mode === "take") {
+          if (allyBeneficiary) add("not-beneficiary-home", "an ally must receive its own home through the home-return option");
+          const eligible = enemyControlled && def.type !== "navalBase" && (occupiedByDefender || majorDefense);
+          if (!eligible) {
+            add("not-eligible-space", `${space} is not an eligible enemy key/territory`);
+          }
+          if (eligible && !allyBeneficiary && isPower(war.defender) && !hasPeacetimeTreatyLoc(G, war.defender, space)) {
+            add("no-loc", `${war.defender} cannot trace a peacetime LoC to ${space}`);
+          }
+        } else {
+          add("unknown-righteous-mode", "unknown righteous-defense option");
         }
       }
     }
@@ -2206,12 +2361,12 @@ export const canApplyTreaty = (
       const state = G.spaces[space];
       if (!def || !state) add("unknown-space", `unknown space ${space}`);
       else {
-        const isColonial = def.keyType === "colonial";
+        const isColonial = target !== null && isPower(target) && isColonialTreatyKey(G, space, target);
         const isBase = def.type === "navalBase";
         if (!isColonial && !isBase) add("not-colonial", `${space} is not a colonial key or naval base`);
         if (target && state.control !== target) add("not-controlled-by-loser", `${space} is not controlled by ${target}`);
         // A colonial home space is only ceded when the winner occupies it.
-        if (def.home === target && target && !heldByAny(G, space, victoriousPowers)) {
+        if (target && treatyHomeOf(G, space, target) && !heldByAny(G, space, victoriousPowers)) {
           add("colonial-home-not-occupied", `${space} is a colonial home and must be occupied`);
         }
       }
@@ -2244,7 +2399,7 @@ const setControl = (
 
 const realignMinor = (G: ImperialElegyState, minor: string, from: Power | null, to: Power): SpaceId[] => {
   const affected: SpaceId[] = [];
-  const home = MINOR_POWER_HOMES[minor];
+  const home = nonPlayerHome(minor, G);
   if (home && G.spaces[home]) {
     if (from === null || G.spaces[home].ally === from) {
       G.spaces[home].ally = to;
@@ -2337,9 +2492,30 @@ export const applyTreaty = (
     }
   } else if (choice.option === "righteousDefense" || choice.option === "colonialCession") {
     if (choice.space) {
-      setControl(G, choice.space, beneficiary, {ally: null});
+      if (choice.option === "righteousDefense" && choice.righteousMode === "liberate" && choice.nationality) {
+        const minor = liberatedPowerFor(choice.space, choice.nationality);
+        const state = G.spaces[choice.space];
+        state.independentHome = {power: minor, nationality: choice.nationality};
+        setControl(G, choice.space, minor, {ally: war.defender});
+        state.diplomacy = null;
+        state.influence = null;
+        state.rebellion = null;
+        // An existing independent polity has one ally, even across several spaces.
+        for (const other of Object.values(G.spaces)) {
+          if (other.control === minor) { other.ally = war.defender; other.diplomacy = null; }
+        }
+        if (minor === POLAND) registerPolishIndependence(G);
+        displaceUnitsNotFriendlyTo(G, choice.space, war.defender);
+        affectedMinor = minor;
+      } else {
+        // Returning an occupied minor home restores its existing alliance too.
+        const ally = choice.option === "righteousDefense" && !isPower(beneficiary)
+          ? G.spaces[choice.space].ally
+          : null;
+        setControl(G, choice.space, beneficiary, {ally});
+      }
       affectedSpaces.push(choice.space);
-      notes.push(`${choice.option}:${choice.space}->${beneficiary}`);
+      notes.push(`${choice.option}:${choice.space}->${affectedMinor ?? beneficiary}`);
     }
   }
 
@@ -2352,6 +2528,8 @@ export const applyTreaty = (
     allocatedTo: beneficiary === primary ? "primary" : "ally",
     spaces: affectedSpaces.join(","),
     minor: affectedMinor,
+    righteousMode: choice.righteousMode,
+    nationality: choice.nationality,
   });
   return {...validation, applied: true, affectedSpaces, affectedMinor, notes};
 };
@@ -2641,6 +2819,7 @@ export const settleLimitedWar = (
     .map((entry) => entry.choice);
   const treaties = orderedChoices.map((choice) => applyTreaty(G, war, victory, choice));
   const invalid = treaties.filter((treaty) => !treaty.applied).map((treaty) => treaty.option);
+  outcome.harshTerms = applyHarshTerms(G, war, orderedChoices.filter((_, index) => treaties[index].applied), ctx);
   const demobilization = demobilizeWar(G, war, ctx);
   return {
     ok: invalid.length === 0,

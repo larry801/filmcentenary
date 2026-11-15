@@ -348,6 +348,7 @@ describe("15.4.2 / 16.0 victory and settlement", () => {
   test("an attacker's surrender is a defensive result with no treaty for the non-player", () => {
     const G = fresh();
     declareLoneWarOnDenmark(G);
+    expect(startWarManeuver(G, makeCtx([], seat("GE")))).toBeUndefined();
     const stability = G.powers.GE.stability;
     expect(surrender(G, makeCtx([], seat("GE")))).toBeUndefined();
     expect(G.war!.victor).toBe("defender");

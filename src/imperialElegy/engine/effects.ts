@@ -67,6 +67,7 @@ import {
   enterGwAlly,
   LAND_ATTACK_TURN_FLAG,
   majorEntryCandidates,
+  maxIndustryOf,
   queueGwExhaustion,
   resolveMajorPowerEntry,
   usAllianceBox,
@@ -81,7 +82,7 @@ import {
 } from "./italyEntry";
 import {checkGermanUnification, checkItalianUnification} from "./victory";
 import {noteGwUnitEliminated} from "./gwMajors";
-import {ALLIANCE_TRACK, shiftAlliance, sideOfAllianceBox, type AllianceShiftResult} from "./alliance";
+import {ALLIANCE_TRACK, allianceMembers, canJoinAlliance, shiftAlliance, sideOfAllianceBox, stepAllianceBox, type AllianceShiftResult} from "./alliance";
 import {initialNonPlayerBuildBox} from "./endPhase";
 import {nonPlayerCounterKindFor, nonPlayerHasCounterFor} from "./counters";
 import {
@@ -589,6 +590,9 @@ const promptSpaceOptions = (G: ImperialElegyState, actor: Power, filter: SpaceFi
   legalSpaces(G, actor, filter).map((id) => option(id, spaceLabel(id, "en")));
 
 export const resolveCard = (G: ImperialElegyState, ctx: Ctx, actor: Power, card: CardDef): boolean => {
+  // Legacy mid-impulse saves may lack the start snapshot. Capture it before
+  // any card changes the chit, and retain it across chained mandatory events.
+  if (G.phase === "action") G.powers[actor].flags.allianceAtImpulseStart ??= G.powers[actor].alliance;
   G.resolvingCard = card.id;
   if (card.options && card.options.length > 0) {
     openDecision(G, ctx, decision(
@@ -635,6 +639,9 @@ export const resumeEffects = (G: ImperialElegyState, ctx: Ctx, pending: PendingD
   if (resume.length > 0) {
     resolveEffects(G, ctx, actor, resume, data);
   }
+  // A later decision still belongs to this card (including its Crisis Table
+  // row). Do not erase the inciting card while an alliance tie is outstanding.
+  if (G.pending !== null) return;
   // 23.0/23.1: a special handler that raised the WTT inside a card-choice chain
   // (e.g. Naval Arms Race) must still open the Crisis Table once the chain's
   // printed text has been followed.  `resolveEffects` already does this for
@@ -1041,7 +1048,7 @@ export interface AllianceResolutionRoll {
  *
  *  - one influence type ≥ 1: the chit shifts one box in that direction
  *    automatically, no die roll;
- *  - two or three types ≥ 1: two dice are rolled for each marker and the
+ *  - two or three types ≥ 1: one die is rolled for each present marker and the
  *    influence is added as a DRM; the highest result wins, and a differential
  *    of 10 or more shifts two boxes (8.6.1);
  *  - a tie among the top results is the deciding player's choice.
@@ -1070,11 +1077,11 @@ export const rollAllianceResolution = (
     };
   }
   const rolls = {
-    te: die(ctx, 6) + die(ctx, 6) + influence.te,
-    ta: die(ctx, 6) + die(ctx, 6) + influence.ta,
-    neutral: die(ctx, 6) + die(ctx, 6) + influence.neutral,
+    te: present.includes("te") ? die(ctx, 6) + influence.te : 0,
+    ta: present.includes("ta") ? die(ctx, 6) + influence.ta : 0,
+    neutral: present.includes("neutral") ? die(ctx, 6) + influence.neutral : 0,
   };
-  const ranked = (["te", "ta", "neutral"] as const)
+  const ranked = present
     .map((side) => ({side, result: rolls[side]}))
     .sort((a, b) => b.result - a.result || ["te", "ta", "neutral"].indexOf(a.side) - ["te", "ta", "neutral"].indexOf(b.side));
   const top = ranked[0];
@@ -1109,11 +1116,12 @@ export const applyAllianceResolution = (
   G: ImperialElegyState,
   roll: AllianceResolutionRoll,
   direction: AllianceDirection,
+  preventNeutral?: Power,
 ): AllianceResolutionEntry => {
   const power = roll.power;
   const p = G.powers[power];
   const steps = allianceStepsFor(roll, direction);
-  const shift = shiftAlliance(G, power, direction, steps);
+  const shift = shiftAlliance(G, power, direction, steps, {preventNeutral: preventNeutral === power});
   p.mpit = {te: 0, ta: 0, neutral: 0};
   const position = sideOfAllianceBox(p.alliance);
   if (position === "te") p.mpit.te = 1;
@@ -1177,6 +1185,7 @@ export const continueAllianceResolutionEvent = (
   index: number,
   resume: Effect[],
   resumeOnComplete: boolean,
+  preventNeutral?: Power,
 ): boolean => {
   for (let i = Math.max(0, index); i < order.length; i += 1) {
     const power = order[i];
@@ -1190,11 +1199,11 @@ export const continueAllianceResolutionEvent = (
           side,
           side === "te" ? "Triple Entente" : side === "ta" ? "Triple Alliance" : "Neutral",
         )),
-        {special: "allianceResolution", order: [...order], index: i, roll, resume},
+        {special: "allianceResolution", actor, preventNeutral, order: [...order], index: i, roll, resume},
       ));
       return false;
     }
-    applyAllianceResolution(G, roll, roll.direction);
+    applyAllianceResolution(G, roll, roll.direction, preventNeutral);
   }
   // Rule 8.6: "all players and a unified Italy determine if they shift".  Italy
   // is not a player power, so its own typed MPIT column resolves after the
@@ -1214,14 +1223,15 @@ export const beginAllianceResolutionEvent = (
   ctx: Ctx,
   actor: Power,
   resume: Effect[],
-): boolean => continueAllianceResolutionEvent(G, ctx, actor, allianceResolutionOrder(G), 0, resume, false);
+  preventNeutral?: Power,
+): boolean => continueAllianceResolutionEvent(G, ctx, actor, allianceResolutionOrder(G), 0, resume, false, preventNeutral);
 
 /**
  * Rules 8.5/8.6: resolve a unified Italy's own MPIT column.
  *
  * "During this step all players and a unified Italy determine if they shift on
  * the alliance track."  Italy rolls like a player power (one marker shifts
- * automatically; two or three roll 2d6 per marker with influence as a DRM) but
+ * automatically; two or three roll one die per marker with influence as a DRM) but
  * rerolls a tie instead of opening a decision.  The 20.9 end phase and the
  * action-phase Alliance System / Shifting Alliances events share this one
  * resolver so their printed behaviour cannot drift apart.
@@ -1267,11 +1277,13 @@ export const resolveAllianceResolutionTie = (
   const index = Number(context.index);
   if (roll === undefined || !Array.isArray(order) || !Number.isFinite(index)) return false;
   if (!roll.tied.includes(optionId as AllianceDirection)) return false;
-  applyAllianceResolution(G, roll, optionId as AllianceDirection);
+  const preventNeutral = context.preventNeutral as Power | undefined;
+  applyAllianceResolution(G, roll, optionId as AllianceDirection, preventNeutral);
   const resume = (context.resume as Effect[] | undefined) ?? [];
   // The continuation may suspend again on a later power's tie; either way the
   // answered tie was handled.
-  continueAllianceResolutionEvent(G, ctx, pending.power, order as Power[], index + 1, resume, true);
+  const actor = isPower(context.actor) ? context.actor : G.activePower;
+  continueAllianceResolutionEvent(G, ctx, actor, order as Power[], index + 1, resume, true, preventNeutral);
   return true;
 };
 
@@ -2005,7 +2017,15 @@ const resolveCardChain = (
         for (const space of remaining.slice(0, Math.max(0, needed))) {
           grantBalkanIndependence(G, space);
         }
-        if (!openBalkanAward(G, ctx, resume, owner)) finishCardChain(G, ctx, pending);
+        // The remaining card effects own the second WTT increase and award.
+        // Resolving the crisis here must precede choosing Macedonia's owner.
+        // Legacy saves already charged the second increase before this choice
+        // and carry no award effect. Resume their old tail without charging it twice.
+        if (!resume.some((effect) => effect.type === "special" && effect.handler === "balkanWarsAward")) {
+          openBalkanAward(G, ctx, resume, owner);
+          return;
+        }
+        finishCardChain(G, ctx, pending);
         return;
       }
       const award = optionId;
@@ -2074,13 +2094,38 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "shiftingAlliances": {
       const p = G.powers[actor];
-      const choices = [
-        {id: "te", label: "Triple Entente"},
-        {id: "ta", label: "Triple Alliance"},
-        {id: "neutral", label: "Neutral"},
-      ];
-      openDecision(G, ctx, decision("eventChoice", actor, "Shift your alliance marker", choices.map((c) => option(c.id, c.label)), {resume, special: handler}));
+      // 8.0: a shift is exactly one adjacent box, never a stay or a jump
+      // straight from committed to neutral. 8.4 also governs this choice.
+      const choices = (["te", "ta"] as const).flatMap((direction) => {
+        const to = stepAllianceBox(p.alliance, direction);
+        const side = sideOfAllianceBox(to);
+        if (to === p.alliance || (side !== null && !canJoinAlliance(G, actor, side))) return [];
+        const id = to === "neutral" ? "neutral" : direction;
+        const labels = {
+          teCommitted: ["Triple Entente — committed", "协约国承诺框"],
+          teAligned: ["Triple Entente — aligned", "协约国倾向框"],
+          neutral: ["Neutral", "中立"],
+          taAligned: ["Triple Alliance — aligned", "同盟国倾向框"],
+          taCommitted: ["Triple Alliance — committed", "同盟国承诺框"],
+        };
+        return [option(id, labels[to][0], {direction}, false, labels[to][1])];
+      });
+      const startedNeutral = (p.flags.allianceAtImpulseStart ?? p.alliance) === "neutral";
+      const continuation = resume.map((effect): Effect => effect.type === "allianceResolution" && startedNeutral
+        ? {...effect, preventNeutral: actor}
+        : effect);
+      openDecision(G, ctx, decision("eventChoice", actor, "Shift your alliance marker", choices, {resume: continuation, special: handler}));
       return false;
+    }
+    case "allianceSystemTension": {
+      // Count player powers only, after every player and Italy has resolved.
+      // The printed OR grants one increase even when both conditions hold.
+      const te = allianceMembers(G, "te").length;
+      const ta = allianceMembers(G, "ta").length;
+      if (te + ta > POWERS.length - te - ta || te >= 3 || ta >= 3) {
+        return performEffect(G, ctx, actor, {type: "wtt", delta: 1}, {}, resume);
+      }
+      return true;
     }
     case "liberalReforms": {
       for (const p of POWERS) spendReserveSteps(G, p, 2);
@@ -2150,15 +2195,16 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return false;
     }
     case "influenceSeaPower": {
+      refreshPowerProjection(G);
       for (const p of POWERS) {
         if (dominatedFlashpoints(G, p).includes("powerProjection")) {
           if (p === "UK") {
             const ukPp = Number(G.powers.UK.flags.powerProjection ?? 0);
             const others = POWERS.filter((x) => x !== "UK").map((x) => Number(G.powers[x].flags.powerProjection ?? 0));
             const maxOther = Math.max(0, ...others);
-            if (ukPp > 0 && ukPp >= maxOther * 2) G.powers.UK.flags.plusCards = Number(G.powers.UK.flags.plusCards ?? 0) + 1;
+            if (ukPp > 0 && ukPp >= maxOther * 2) G.powers.UK.cardMarkers += 1;
           } else {
-            G.powers[p].flags.plusCards = Number(G.powers[p].flags.plusCards ?? 0) + 1;
+            G.powers[p].cardMarkers += 1;
           }
         }
       }
@@ -2696,23 +2742,22 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // the text is ignored); this handler is the "rest of the text".
       // "If the Ottomans control space(s) in the Balkans other than Istanbul,
       // remove all Ottoman ally markers in the Balkans and roll a die."
-      for (const space of BALKAN_SPACES) {
-        if (G.spaces[space].ally === "OT") G.spaces[space].ally = null;
-      }
       const otBalkan = BALKAN_SPACES.filter((id) => id !== "istanbul" && G.spaces[id].control === "OT");
       if (otBalkan.length > 0) {
-        const nonPlayerArmies = otBalkan.reduce(
+        for (const space of BALKAN_SPACES) {
+          if (G.spaces[space].ally === "OT") G.spaces[space].ally = null;
+        }
+        const nonPlayerArmies = BALKAN_SPACES.reduce(
           (sum, id) => sum + landUnitsIn(G, id).filter((u) => isArmyKind(u.kind) && !isPower(u.owner)).length,
           0,
         );
-        const otArmies = otBalkan.reduce(
+        const otArmies = BALKAN_SPACES.reduce(
           (sum, id) => sum + landUnitsIn(G, id).filter((u) => isArmyKind(u.kind) && u.owner === "OT").length,
           0,
         );
         const roll = die(ctx, 6) + nonPlayerArmies - otArmies;
         if (roll >= 5) {
-          changeWtt(G, 1, ctx, G.resolvingCard ?? undefined);
-          return openBalkanIndependence(otBalkan);
+          return !openBalkanIndependence(otBalkan);
         }
         // "all rebel armies in the Balkans and each independent Balkan minor
         // power army suffer a step loss."
@@ -2724,10 +2769,12 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
           }
         }
       }
-      changeWtt(G, 1, ctx, G.resolvingCard ?? undefined);
+      return true;
+    }
+    case "balkanWarsAward": {
       // "The active player gives Macedonia to Greece, Bulgaria, Serbia or the
       // Ottomans (a minor power must be independent)."
-      return openBalkanAward(G, ctx, resume, actor);
+      return !openBalkanAward(G, ctx, resume, actor);
     }
     case "moroccanCrisis": {
       // "You and the player currently controlling Morocco may play a card
@@ -3123,7 +3170,7 @@ export const performEffect = (
       // Rule 8.6: a tied marker roll is the player's choice, so the action-
       // phase event suspends on the shared 20.9 `allianceTie` pending instead
       // of applying the deterministic default.
-      return beginAllianceResolutionEvent(G, ctx, actor, resume);
+      return beginAllianceResolutionEvent(G, ctx, actor, resume, effect.preventNeutral);
     }
     case "placeInfluence":
     case "placeDiplomacy":
@@ -3244,7 +3291,7 @@ export const performEffect = (
     }
     case "industry": {
       const target = powerOf(G, actor, effect.target);
-      G.powers[target].industry = Math.min(7, G.powers[target].industry + effect.delta);
+      G.powers[target].industry = Math.max(0, Math.min(maxIndustryOf(G, target), G.powers[target].industry + effect.delta));
       return true;
     }
     case "keys": {
@@ -3533,8 +3580,8 @@ export const resolveCardDecision = (
     const index = Number.isFinite(Number(optionId)) ? Number(optionId) : Number(optData.index);
     const chosen = options[index];
     if (special === "shiftingAlliances") {
-      const direction = optionId === "te" ? "te" : optionId === "ta" ? "ta" : "neutral";
-      shiftAlliance(G, actor, direction, direction === "neutral" ? ALLIANCE_TRACK.length : 1);
+      const direction = optData.direction ?? optionId;
+      shiftAlliance(G, actor, direction === "te" ? "te" : direction === "ta" ? "ta" : "neutral", 1);
     } else if (special === "divideAndConquer") {
       if (optionId === "pacify") {
         const candidates = legalSpaces(G, actor, {});

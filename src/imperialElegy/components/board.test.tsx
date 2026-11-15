@@ -33,6 +33,8 @@ import {ImperialElegyGameDef} from "../game";
 import {setupImperialElegy} from "../engine/setup";
 import {CARDS} from "../constant/cards.data";
 import {CARD_BY_ID} from "../engine/deck";
+import {createWarState} from "../engine/limitedWar";
+import {resolveWar, surrender} from "../moves";
 import {GreatWarState, ImperialElegyState} from "../types";
 import i18n from "../../constant/i18n";
 
@@ -159,7 +161,10 @@ describe("Imperial Elegy board controls", () => {
     expect(belligerent).toContain("开始机动");
     expect(belligerent).toContain("召唤盟友");
     expect(belligerent).toContain("设定战争目标");
-    expect(belligerent).toContain("投降");
+    // 13.6: only the defender may concede before maneuver; 15.5 opens the
+    // attacker's offer at a wartime impulse boundary.
+    expect(buttonTag(belligerent, "ie-surrender")).toBe("");
+    expect(buttonTag(html(G, "2"), "ie-surrender")).not.toBe("");
     // 16.2: the war panel shows human treaty labels, never the stored keys.
     expect(belligerent).toContain("领土割让");
     expect(belligerent).toContain("战争赔款");
@@ -341,6 +346,35 @@ describe("Imperial Elegy board controls", () => {
     // Only the label is visible; the decorated id stays an internal handle.
     expect(label).not.toContain("territorialCession");
     expect(label).not.toContain("Territorial Cession");
+  });
+
+  test("the live righteous-defense liberation choice renders its nationality in the treaty panel", () => {
+    const G = freshGame();
+    G.phase = "wartime";
+    G.activePower = "FR";
+    G.war = createWarState(G, "AU", "FR", "conquest", ["provence"], 2);
+    G.war.victor = "defender";
+    G.spaces.bohemia.occupiedBy = "FR";
+    expect(resolveWar(G, {...testCtx, playerID: "2"})).toBeUndefined();
+    const markup = html(G, "2");
+    const button = buttonTag(markup, "ie-pending-option-righteousDefense:liberate:bohemia:Czechs");
+    expect(button).toContain("正义防御：解放波希米亚的捷克民族");
+    expect(button).not.toContain("disabled");
+  });
+
+  test("the surrender control opens the defending seat's accept/refuse choices", () => {
+    const G = freshGame();
+    G.phase = "wartime";
+    G.war = createWarState(G, "GE", "FR", "conquest", ["alsace-lorraine"], 2);
+    G.war.status = "maneuver";
+    expect(buttonTag(html(G, "0"), "ie-surrender")).not.toBe("");
+    expect(surrender(G, {...testCtx, playerID: "0"})).toBeUndefined();
+    const defender = html(G, "2");
+    expect(buttonTag(defender, "ie-pending-option-accept")).toContain("接受投降（重大胜利）");
+    expect(buttonTag(defender, "ie-pending-option-refuse")).toContain("拒绝投降，继续战争");
+    expect(defender).toContain("接受进攻方投降，还是继续战争？");
+    expect(buttonTag(html(G, "0"), "ie-pending-option-accept")).toBe("");
+    expect(buttonTag(defender, "ie-surrender")).toBe("");
   });
 
   test("the pending decision is docked above the layout so it cannot scroll out of view", () => {

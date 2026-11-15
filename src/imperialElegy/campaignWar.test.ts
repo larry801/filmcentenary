@@ -329,6 +329,8 @@ describe("campaign limited war", () => {
 
     // Rule 16.1.1: the attacker concedes; the defender is the victor.
     expect(surrender(G, ctx)).toBeUndefined();
+    expect(G.pending?.power).toBe("FR");
+    expect(resolvePending(G, makeCtx(seat("FR")), "accept")).toBeUndefined();
     expect(G.war!.status).toBe("victory");
     expect(G.war!.victor).toBe("defender");
 
@@ -336,8 +338,11 @@ describe("campaign limited war", () => {
     // the shared classification/settlement path.
     passAllBelligerents(G);
 
-    // A defensive major victory has no legal treaty option against GE here,
-    // so no chooser is opened; the winner's free-action prompt still runs.
+    // 16.2.4: surrender grants a major defensive victory, so FR can now take
+    // an unoccupied GE key with a LoC. Decline the optional treaty explicitly.
+    expect(G.pending?.kind).toBe("treatyOption");
+    expect(G.pending?.options.some((entry) => entry.id === "righteousDefense")).toBe(true);
+    expect(declinePending(G, makeCtx(seat("FR")))).toBeUndefined();
     expect(G.pending?.kind).toBe("demobilizationFreeAction");
     expect(declinePending(G, makeCtx(seat("FR")))).toBeUndefined();
     expect(G.pending).toBeNull();

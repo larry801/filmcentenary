@@ -109,14 +109,25 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect.poll(async () => await board.locator('[data-testid="ie-pending"]').count()).toBeGreaterThan(0);
         await expect(board.locator('[data-testid="ie-pending"]')).toBeVisible();
         await expect(board.locator('[data-testid="ie-pending"]')).toContainText("支援");
-        // Resolve the attacker's and defender's support windows.
-        for (let i = 0; i < 4; i += 1) {
-            const pending = board.locator('[data-testid="ie-pending"]');
-            if (!(await pending.isVisible())) break;
-            const options = pending.locator("button");
-            if (await options.count()) await options.first().click();
-            else break;
-            await page.waitForTimeout(120);
+        // Resolve each seat's support/card window deliberately. Choosing the
+        // first random card could play A059, end the battle before dice and
+        // immediately launch a decisive follow-up instead of producing a roll.
+        for (let i = 0; i < 12; i += 1) {
+            const state = await page.evaluate(() => {
+                const G = (window as any).__IE_STATE__;
+                return {
+                    rolled: G.log.some((entry: any) => entry.key === "battleRoll" && entry.args?.to === "saxony"),
+                    pending: G.pending && {id: G.pending.id, kind: G.pending.kind, power: G.pending.power},
+                };
+            });
+            if (state.rolled) break;
+            expect(state.pending).not.toBeNull();
+            expect(["combatSupport", "combatCard"]).toContain(state.pending!.kind);
+            await focusSeat(page, state.pending!.power);
+            const decidingBoard = page.locator(`[data-testid="ie-seat-${state.pending!.power}"]`);
+            await decidingBoard.getByTestId("ie-pending-option-done").click();
+            await expect.poll(async () => page.evaluate(() => (window as any).__IE_STATE__.pending?.id ?? null))
+                .not.toBe(state.pending!.id);
         }
         // The battle log line is outcome-independent (`在萨克森（自 柏林）交战：…`),
         // unlike `battleEnded`, which says either 赢得战斗 or 战败 depending on the dice.
@@ -127,6 +138,7 @@ test.describe("Imperial Elegy local hotseat", () => {
             const G = (window as any).__IE_STATE__;
             return G.log.some((entry: any) => entry.key === "battleRoll" && entry.args?.to === "saxony");
         })).toBe(true);
+        await focusSeat(page, "GE");
         await expect.poll(async () => await board.locator('[data-testid="ie-log"]').innerText()).toContain("萨克森");
     });
 

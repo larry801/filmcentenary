@@ -38,6 +38,7 @@ import {
   unitMinor,
   woiProgressPlan,
   type MilitarismBenefit,
+  type NavalReturnEntry,
 } from "./engine/endPhase";
 import {
   dardanellesController,
@@ -196,6 +197,7 @@ import {
   advanceGwImpulse,
   faceupCombatCards,
   majorEntryOptions,
+  maxIndustryOf,
   performGwManeuver,
   resolveGwColonialChoice,
   resolveGwDraftSecond,
@@ -209,11 +211,13 @@ import {
   allyCallEligibility,
   allyRefusalPenalty,
   applyAllyRefusal,
+  applyHarshTerms,
   applyMinorAidAlliance,
   applyMinorDeclarationShift,
   applyVictoryOutcome,
   belligerentsOf,
   canAidMinor,
+  canSurrender,
   classifyVictory,
   conquestDeclarationPenalty,
   createWarState,
@@ -288,8 +292,11 @@ const spend = (G: ImperialElegyState, amount: number): boolean => {
  * passes to the next belligerent.
  */
 const clearActionImpulseSpend = (G: ImperialElegyState): void => {
+  // A fresh impulse may belong to the same sole remaining player.
+  delete G.flags.impulseUpkeepStamp;
   for (const power of POWERS) {
     delete G.powers[power].flags.actionCpSpentThisImpulse;
+    delete G.powers[power].flags.allianceAtImpulseStart;
     // 33.5 is "per impulse", so the railroad allowance resets when the
     // impulse passes to the next player (4.5).
     delete G.powers[power].flags.tsrrRailImpulse;
@@ -307,6 +314,7 @@ const clearDeployedThisImpulse = (G: ImperialElegyState): void => {
 };
 
 const clearWarImpulseSpend = (G: ImperialElegyState): void => {
+  delete G.flags.impulseUpkeepStamp;
   for (const power of POWERS) {
     delete G.powers[power].flags.warCpSpentThisImpulse;
     // 33.5: a new wartime impulse re-enables the one-army railroad move.
@@ -2616,7 +2624,7 @@ const beginSeekingAid = (G: ImperialElegyState, ctx: Ctx, base: MinorDeclaration
     const state: SeekingAidState = {...base, slots, current: null, index: 0, rolls: []};
     if (openMinorAidDecision(G, ctx, state)) return undefined;
   }
-  const home = nonPlayerHome(base.minor);
+  const home = nonPlayerHome(base.minor, G);
   return finalizeUnopposedMinorDeclaration(
     G,
     ctx,
@@ -2842,7 +2850,7 @@ const resolveMinorAid = (
   }
   const state: SeekingAidState = {...base, slots: [...slots], current, index: index + 1, rolls};
   if (openMinorAidDecision(G, ctx, state)) return undefined;
-  const home = nonPlayerHome(base.minor);
+  const home = nonPlayerHome(base.minor, G);
   return finalizeUnopposedMinorDeclaration(
     G,
     ctx,
@@ -3075,15 +3083,43 @@ export const surrender = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const war = G.war;
   const power = actor(G, playerID);
-  if (!war || power === null) return INVALID_MOVE;
-  // Rule 15.5: only a primary belligerent may surrender; allies cannot.
-  if (power !== war.attacker && power !== war.defender) return INVALID_MOVE;
-  if (G.pending !== null) return INVALID_MOVE;
-  // Once the war has reached a result, surrender cannot rewrite it.
-  if (war.status === "victory" || war.status === "demobilization" || war.status === "done") return INVALID_MOVE;
-  if (war.victor !== null) return INVALID_MOVE;
+  if (!war || power === null || !canSurrender(G, power)) return INVALID_MOVE;
+  if (power === war.attacker && isPower(war.defender)) {
+    // 15.5: only the defending primary can refuse an attacker's surrender.
+    // Keep the entire maneuver state intact while the defending seat decides.
+    openDecision(G, ctx, decision(
+      "confirm", war.defender, "Accept the attacker's surrender or continue the war?",
+      [
+        option("accept", "Accept surrender (major victory)", undefined, false, "接受投降（重大胜利）"),
+        option("refuse", "Refuse surrender; continue the war", undefined, false, "拒绝投降，继续战争"),
+      ],
+      {special: "attackerSurrender", attacker: war.attacker, defender: war.defender, startedTurn: war.startedTurn},
+    ));
+    log(G, power, "warSurrender", {result: "offered", attacker: war.attacker, defender: war.defender});
+    return undefined;
+  }
+  // The defender cannot force a consent decision on the attacker. A lone
+  // non-player defender has no seat, so an attacker's concession is accepted
+  // automatically and classified by 15.4.2 without a player-only major award.
+  if (power === war.defender) settleDefenderShiftChoice(G, war);
   war.status = "victory";
   war.victor = power === war.defender ? "attacker" : "defender";
+  log(G, power, "warSurrender", {result: "surrendered", attacker: war.attacker, defender: war.defender});
+  return undefined;
+};
+
+const resolveAttackerSurrender = (G: ImperialElegyState, ctx: Ctx, pending: PendingDecision, accept: boolean): string | void => {
+  const war = G.war;
+  const context = pending.context ?? {};
+  if (!war || G.phase !== "wartime" || G.gw?.active || G.battle !== null || war.status !== "maneuver" ||
+      war.victor !== null || pending.power !== war.defender || context.attacker !== war.attacker ||
+      context.defender !== war.defender || context.startedTurn !== war.startedTurn) return INVALID_MOVE;
+  G.pending = null;
+  if (accept) {
+    war.status = "victory";
+    war.victor = "defender";
+  }
+  log(G, war.defender, "warSurrender", {result: accept ? "accepted" : "refused", attacker: war.attacker, defender: war.defender});
   return undefined;
 };
 
@@ -3625,6 +3661,50 @@ const drawPostWarCards = (G: ImperialElegyState, ctx: Ctx, war: WarState): void 
   }
 };
 
+type PostWarDrawContinuation =
+  | {mode: "interactive"; applied: readonly TreatyChoice[]}
+  | {mode: "immediate"; victory: VictoryClassification; choices: readonly TreatyChoice[]};
+
+/** Balance of Power: the UK chooses exactly one invited ally, after the war. */
+const preparePostWarDraws = (G: ImperialElegyState, ctx: Ctx, continuation: PostWarDrawContinuation): boolean => {
+  const war = G.war;
+  if (!war || !(war.postWarDraws ?? []).includes("UK")) return false;
+  // Older saves put every invited joiner directly into postWarDraws. Recover
+  // that candidate list before replacing it with the printed two recipients.
+  const candidates = [...new Set(war.postWarDrawCandidates ?? war.postWarDraws!.filter((power) => power !== "UK"))]
+    .filter((power) => war.defenderAllies.includes(power) && !G.powers[power].eliminated);
+  war.postWarDrawCandidates = candidates;
+  const selected = war.postWarDrawChoice;
+  if (selected !== undefined && candidates.includes(selected)) {
+    war.postWarDraws = ["UK", selected];
+    return false;
+  }
+  if (candidates.length <= 1) {
+    war.postWarDraws = ["UK", ...candidates];
+    if (candidates.length === 1) war.postWarDrawChoice = candidates[0];
+    return false;
+  }
+  openDecision(G, ctx, decision(
+    "eventTargetPower", "UK", "Balance of Power: choose one invited ally to draw a card",
+    candidates.map((power) => option(power, POWER_DEFS[power].name, undefined, false, POWER_DEFS[power].nameZh)),
+    {special: "balanceOfPowerDraw", continuation, required: true},
+  ));
+  return true;
+};
+
+const resolvePostWarDrawChoice = (G: ImperialElegyState, ctx: Ctx, pending: PendingDecision, chosen: string): string | void => {
+  const war = G.war;
+  const continuation = pending.context?.continuation as PostWarDrawContinuation | undefined;
+  if (!war || !continuation || !isPower(chosen) || !war.postWarDrawCandidates?.includes(chosen) ||
+      !war.defenderAllies.includes(chosen) || G.powers[chosen].eliminated) return INVALID_MOVE;
+  war.postWarDrawChoice = chosen;
+  war.postWarDraws = ["UK", chosen];
+  G.pending = null;
+  return continuation.mode === "interactive"
+    ? finishWarSettlement(G, ctx, continuation.applied)
+    : settleWarImmediately(G, ctx, continuation.victory, continuation.choices);
+};
+
 /** Demobilize the settled war and open the rule 17.0 free actions. */
 const completeWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const war = G.war;
@@ -3656,9 +3736,11 @@ const postWarWinnerFor = (war: WarState, victor: "attacker" | "defender" | null)
   victor === "defender" && isPower(war.defender) ? war.defender : war.attacker;
 
 /** Apply the primary outcome, clear the war and hand back the action phase. */
-const finishWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void => {
+const finishWarSettlement = (G: ImperialElegyState, ctx: Ctx, applied: readonly TreatyChoice[] = []): string | void => {
   const war = G.war;
   if (!war) return INVALID_MOVE;
+  if (preparePostWarDraws(G, ctx, {mode: "interactive", applied})) return undefined;
+  applyHarshTerms(G, war, applied, ctx);
   // 33.3 / 33.6: resolves against the war that is being settled, before the
   // war state is handed to demobilizeWar.
   applyWarEndCharacteristics(G, ctx);
@@ -3686,6 +3768,7 @@ const settleWarImmediately = (
     log(G, undefined, "warSettlementIssues", {issues: "mandatory-cession-missing"});
     return undefined;
   }
+  if (preparePostWarDraws(G, ctx, {mode: "immediate", victory, choices})) return undefined;
   applyWarEndCharacteristics(G, ctx);
   drawPostWarCards(G, ctx, war);
   G.flags.postWarWinner = postWarWinnerFor(war, victory.victor);
@@ -3774,7 +3857,7 @@ const advanceTreatyStage = (
   // mandatory knockout options still have to be answered (16.1.6).
   const skipped = [...new Set([...treatySkippedSides(pending), treatyStageSide(pending, victory)])];
   if (openNextTreatyStage(G, ctx, victory, applied, skipped)) return undefined;
-  return finishWarSettlement(G, ctx);
+  return finishWarSettlement(G, ctx, applied);
 };
 
 const resolveWarTreatyPending = (
@@ -3835,7 +3918,7 @@ const resolveWarTreatyPending = (
   // The remaining picks are recomputed from `applied` and the live victory, so
   // a spent option (16.2: once per war) simply drops out of the next group.
   if (openNextTreatyStage(G, ctx, victory, nextApplied, skipped)) return undefined;
-  return finishWarSettlement(G, ctx);
+  return finishWarSettlement(G, ctx, nextApplied);
 };
 
 // ------------------------------------------------------------------ demobilization free actions
@@ -4572,6 +4655,16 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   const opt = pending.options.find((o) => o.id === optionId);
   if (!opt) return INVALID_MOVE;
   const context = pending.context ?? {};
+  if (pending.kind === "eventTargetPower" && context.special === "balanceOfPowerDraw") {
+    return resolvePostWarDrawChoice(G, ctx, pending, optionId);
+  }
+  if (pending.kind === "confirm" && context.special === "attackerSurrender") {
+    if (optionId !== "accept" && optionId !== "refuse") return INVALID_MOVE;
+    return resolveAttackerSurrender(G, ctx, pending, optionId === "accept");
+  }
+  if (pending.kind === "movementDestination" && context.special === "endPhaseNavalReturn") {
+    return resolveNavalReturnChoice(G, ctx, pending, optionId);
+  }
   if (pending.kind === "italianInternalWar") {
     // 22.1.3: the active player chose Sardinia-Piedmont or the Two Sicilies.
     if (!ITALIAN_INTERNAL_WAR_POWERS.includes(optionId as (typeof ITALIAN_INTERNAL_WAR_POWERS)[number])) {
@@ -4750,6 +4843,17 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   const playerID = ctx.playerID ?? null;
   const pending = G.pending;
   if (!pending || playerID !== seatOf(pending.power)) return INVALID_MOVE;
+  if (pending.kind === "movementDestination" && pending.context?.special === "endPhaseNavalReturn") {
+    const first = pending.options[0];
+    return first ? resolveNavalReturnChoice(G, ctx, pending, first.id) : INVALID_MOVE;
+  }
+  if (pending.kind === "confirm" && pending.context?.special === "attackerSurrender") {
+    return resolveAttackerSurrender(G, ctx, pending, false);
+  }
+  if (pending.kind === "eventTargetPower" && pending.context?.special === "balanceOfPowerDraw") {
+    // A required choice stays open instead of silently awarding a different ally.
+    return INVALID_MOVE;
+  }
   // These decisions have an explicit "done"/cost choice; never auto-pick one.
   if (pending.kind === "combatDiscard") return INVALID_MOVE;
   if (pending.kind === "impulseLoss") return INVALID_MOVE;
@@ -4871,7 +4975,7 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
     // 16.1.6 knockout option still has to be chosen after the winner.
     const victory = victoryFromTreatyPending(pending);
     G.pending = null;
-    if (!victory) return finishWarSettlement(G, ctx);
+    if (!victory) return finishWarSettlement(G, ctx, treatyAppliedFromPending(pending));
     return advanceTreatyStage(G, ctx, pending, victory);
   }
   if (pending.kind === "warAllyConsent") {
@@ -5239,24 +5343,47 @@ const endPhaseNonPlayerBuild = (G: ImperialElegyState): void => {
  * respects the four-unit port limit and reports units that must be eliminated
  * because their owner controls no port at all.
  */
-const endPhaseNavalToPort = (G: ImperialElegyState): void => {
-  for (const entry of navalReturnPlan(G)) {
-    const power = isPower(entry.owner) ? entry.owner : undefined;
-    if (entry.eliminate) {
-      removeUnit(G, entry.unitId);
-      log(G, power, "navalReturnToPort", {from: entry.from, to: null, count: 1, eliminated: true});
-      continue;
-    }
+const applyNavalReturn = (G: ImperialElegyState, entry: NavalReturnEntry): void => {
+  const ids = entry.unitIds ?? [entry.unitId];
+  const power = isPower(entry.owner) ? entry.owner : undefined;
+  for (const id of ids) {
+    if (entry.eliminate) { removeUnit(G, id); continue; }
     if (entry.to === null) continue;
-    const unit = G.units[entry.unitId];
+    const unit = G.units[id];
     if (!unit) continue;
-    if (unit.space && G.spaces[unit.space]) {
-      G.spaces[unit.space].units = G.spaces[unit.space].units.filter((id) => id !== unit.id);
-    }
-    G.spaces[entry.to].units.push(unit.id);
+    if (unit.space && G.spaces[unit.space]) G.spaces[unit.space].units = G.spaces[unit.space].units.filter((unitId) => unitId !== id);
+    G.spaces[entry.to].units.push(id);
     unit.space = entry.to;
-    log(G, power, "navalReturnToPort", {from: entry.from, to: entry.to, count: 1, eliminated: false});
   }
+  if (entry.eliminate || entry.to !== null) log(G, power, "navalReturnToPort", {from: entry.from, to: entry.to, count: ids.length, eliminated: entry.eliminate});
+};
+
+const resolveNavalReturnChoice = (G: ImperialElegyState, ctx: Ctx, pending: PendingDecision, port: string): string | void => {
+  if (G.phase !== "end" || G.endPhase === undefined) return INVALID_MOVE;
+  const entry = navalReturnPlan(G).find((candidate) => candidate.unitId === pending.context?.unitId);
+  if (!entry || !entry.destinations?.includes(port)) return INVALID_MOVE;
+  const controller = isPower(entry.owner) ? entry.owner : minorController(G, entry.owner);
+  if (controller !== pending.power) return INVALID_MOVE;
+  G.pending = null;
+  applyNavalReturn(G, {...entry, to: port});
+  continueEndPhase(G, ctx);
+  return undefined;
+};
+
+const endPhaseNavalToPort = (G: ImperialElegyState, ctx: Ctx, interactive: boolean): boolean => {
+  for (const entry of navalReturnPlan(G)) {
+    const controller = isPower(entry.owner) ? entry.owner : minorController(G, entry.owner);
+    if (interactive && controller !== null && (entry.destinations?.length ?? 0) > 1) {
+      openDecision(G, endPhaseCtx(ctx), decision(
+        "movementDestination", controller, "Return to port: choose a nearest friendly port",
+        entry.destinations!.map((port) => option(port, spaceLabel(port, "en"), {space: port}, false, spaceLabel(port, "zh_CN"))),
+        {special: "endPhaseNavalReturn", unitId: entry.unitId, required: true},
+      ));
+      return true;
+    }
+    applyNavalReturn(G, entry);
+  }
+  return false;
 };
 
 /** Remove one standing army for 20.5 and log it. */
@@ -5334,15 +5461,15 @@ const endPhaseSetManpower = (
 
 /** 20.6 Industrialization (12.13). */
 const endPhaseIndustrialization = (G: ImperialElegyState, ctx: Ctx): void => {
+  refreshPowerProjection(G);
   for (const power of POWERS) {
     const p = G.powers[power];
     if (p.industryCard) {
       const cp = cardById(p.industryCard).cp;
       const needed = industryRollNeeded(G, power, cp);
-      const roll = die(ctx, 6);
       // 12.13: a card of any CP value succeeds automatically on the auto side.
-      if (autoIndustrySuccess(G, power) || roll >= needed) {
-        p.industry = Math.min(7, p.industry + 1);
+      if (autoIndustrySuccess(G, power) || die(ctx, 6) >= needed) {
+        p.industry = Math.min(maxIndustryOf(G, power), p.industry + 1);
         p.autoIndustry = false;
       } else {
         p.autoIndustry = true;
@@ -5556,8 +5683,7 @@ const applyEndPhaseStep = (
       endPhaseNonPlayerBuild(G);
       return false;
     case "navalUnitsToPort":
-      endPhaseNavalToPort(G);
-      return false;
+      return endPhaseNavalToPort(G, ctx, interactive);
     case "setManpower":
       return endPhaseSetManpower(G, ctx, progress, interactive);
     case "industrialization":
@@ -5956,11 +6082,10 @@ const resolveWarAllyConsent = (
     // 33.2 Rapid Deployment: joining a war is entering it.
     if (ally === "UK") grantRapidDeployment(G, "limited");
     // The Balance of Power card: "one player (your choice) that you invited
-    // (and that joined) also draws a card at the end of the war."  The first
-    // invited player that actually joins is recorded; the deterministic
-    // fallback avoids a second settlement prompt.
-    if (statusQuo && (war.postWarDraws ?? []).includes("UK") && !(war.postWarDraws ?? []).includes(ally)) {
-      war.postWarDraws = [...(war.postWarDraws ?? []), ally];
+    // (and that joined) also draws a card at the end of the war." Record every
+    // actual invitee, then let the UK choose one at settlement.
+    if (caller === "UK" && (war.postWarDraws ?? []).includes("UK")) {
+      war.postWarDrawCandidates = [...new Set([...(war.postWarDrawCandidates ?? []), ally])];
     }
     G.pending = null;
     return undefined;

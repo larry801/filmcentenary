@@ -240,7 +240,11 @@ const actionBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   delete G.flags.cpChainActive;
   delete G.flags.cpChainSpent;
   delete G.flags.cpChainPower;
-  for (const p of POWERS) G.powers[p].flags.passed = false;
+  for (const p of POWERS) {
+    G.powers[p].flags.passed = false;
+    delete G.powers[p].flags.allianceAtImpulseStart;
+  }
+  G.powers[G.activePower].flags.allianceAtImpulseStart = G.powers[G.activePower].alliance;
 };
 
 const endBegin = (G: ImperialElegyState, ctx: Ctx): void => {

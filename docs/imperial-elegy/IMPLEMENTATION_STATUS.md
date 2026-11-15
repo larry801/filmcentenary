@@ -1,5 +1,288 @@
 # Imperial Elegy — implementation status
 
+## Active Partial-completion audit (2026-11-15)
+
+The section matrix below contains historical claims, including already-fixed
+items labelled partial. Completion requires checking the printed rule, the live
+call path and regression evidence; a documentation-only relabel is not closure.
+This table tracks the current audit until every Partial row is reconciled.
+
+| Section | Audit / implementation still to close | Evidence already verified remotely |
+| --- | --- | --- |
+| 1–4 | Unlisted non-player physical counters; per-mode card restrictions; key/territory semantics. | Existing chart tests; source/data verification remains open. |
+| 5 | Home **key** supply sources; friendly/neutral/occupied LoC routes; land-only and sea-gate traces; minor/Italian supply; displacement and impulse lifecycle audit. | Existing stacking/displacement suites; source-level LoC corrections in progress. |
+| 6–7 | Key/colonial/Arab track derivation and power-projection baseline audit. | Existing display/track suites. |
+| 8 | Reconcile the complete alliance section, including aid shifts and player choices. | A015/A111 + d6 resolution: [0184ee01 CI](https://github.com/larry801/filmcentenary/actions/runs/43683138802); harsh terms: [ef8b259c CI](https://github.com/larry801/filmcentenary/actions/runs/43687623222). |
+| 9–12 | Audit remaining event timing, per-mode playability and economy simplifications against card text. | Prior card/response/turn-flag suites; not yet signed off as a complete section. |
+| 13–17 | Audit surrender, joint naval operations, settlement/free-action choices and remove obsolete gap claims only with evidence. | Treaty territory/continuation: [ca46b63b CI](https://github.com/larry801/filmcentenary/actions/runs/43690347798), after correcting the stale surrender assertion and random-card browser fixture. |
+| 18–19 | Audit the remaining combat/naval fallback claims against current code and rules. | Existing combat/naval regression suites; section audit open. |
+| 20 | Verify every end-phase choice and non-player rebuild exception; distinguish printed counter limits from missing functionality. | Existing end-phase regression suites; section audit open. |
+| 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | Existing table/flow suites; section audit open. |
+| 24–32 | Bonus-impulse chooser, minor/GW-major integration, remaining Great War flow audit. | Existing GW flow/regression suites; section audit open. |
+| 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
+| 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix is live; remaining deterministic choices require rule audit. |
+
+Latest fully verified baseline: **2591c8f1284fd31cb6239695a90b4c55ed004d9c**,
+449 suites / 4288 tests, frontend + server builds, 37 general browser tests and
+16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43695994681).
+The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
+
+### Supply-source corrections under verification
+
+- 5.6 sources and their second home must be actual controlled **keys**;
+  ordinary home territories and naval bases cannot supply armies. Unprinted
+  key track types and permanent German home overrides remain valid. German
+  unification no longer turns foreign-controlled German spaces into foreign homes.
+- 4.9.4 / 5.6: peace traces through own control; wartime routes use participating
+  allies, including neutral-chit players who joined the war. Occupation takes
+  precedence over control; rebels deny a land source. An uncommitted diplomatic
+  ally is not a supply corridor. Player traces and second-key qualification obey
+  Suez/Dardanelles closures; land-only traces reject direct port-to-port sea edges.
+- 5.6.1: minor sources require keys and cannot be enemy-occupied. Italy's GW
+  routing no longer mistakes neutral players for allies, and respects occupation.
+- 5.5.3 / 5.6.2: a new action/war impulse resets the upkeep guard even when the
+  same sole remaining player acts again; repeated upkeep within one impulse
+  remains idempotent. `supplySources.test.ts` covers these cases and live loss.
+- This closes identified defects, not the entire section-5 audit: minor/Italian
+  sea-gate paths and the remaining displacement/movement clauses still require
+  source-level verification before changing the section's status.
+
+### Power-projection / source audit in progress
+
+- Current publisher downloads are [Living Rules v1.1 (January 2026)](https://cdn.shopify.com/s/files/1/0295/6650/0908/files/rulebook_V1.1_Lowrez.pdf?v=1769177925)
+  and [Living Playbook v1.1](https://cdn.shopify.com/s/files/1/0295/6650/0908/files/Playbook_V1.1_Lowrez.pdf?v=1769177919).
+  The product page still links the older production PDFs. Future section closure
+  must cross-check v1.1; notably 16.2.4 adds minority liberation and explicitly
+  requires a peacetime LoC for a foreign territorial acquisition.
+- 3.3.1 projection is one point per box with a port, two with an ordinary port
+  **and** a naval base, not additive per ordinary port. Score the best three
+  European boxes; count allied-minor naval units in the two-per-ship cap. Egypt's
+  Indian Ocean port is enabled by Suez. Hong Kong is a printed triangle/naval
+  base, not a territory; its Pacific anchor is a sea connection, and the three
+  unprinted direct land links to Chinese keys have been removed.
+- PP domination itself grants no cards. A028 awards actual +1 card markers,
+  reading current projection and enforcing the UK's double-next-highest clause.
+  Three-way ties for the top two places grant no domination.
+- **Source discrepancy still open:** v1.1 Playbook p.3 prints FR 3, but its
+  campaign setup and the map give France ordinary ports in only North Atlantic
+  and Western Mediterranean, with no naval base. Rule 3.3.1 therefore yields
+  FR 2. RU now correctly yields 3; UK 8 and the other printed zeros agree.
+  The setup's printed FR value is retained in `CAMPAIGN_SETUP`; the derived
+  calculation is pinned to the rule formula, with this discrepancy explicit in
+  `powerProjection.test.ts`. No fictitious port or numeric bonus is introduced.
+
+### A100 / 23.1 crisis sequencing corrected
+
+- Both WTT increases are printed on A100. Two crises are therefore legitimate
+  when a conference at the first increase leaves WTT at 4; suppressing the
+  second would contradict the card. The defect was the order: independence
+  choices must finish before the second increase, and Macedonia must wait
+  until after its crisis. An outbreak keeps preceding effects and skips the award.
+- The two increases, independence/loss resolution and Macedonia award are now
+  separate continuable effects. Corrected the handler's inverted pending return
+  value, so mandatory-card bookkeeping cannot finish while a choice is open.
+- The independence DRM counts armies throughout the Balkans, not only the
+  Ottoman-controlled target spaces. With no qualifying Ottoman space, the
+  conditional ally removal and die are skipped; the second WTT/award still run.
+- Legacy saved independence choices (which already charged the second WTT)
+  retain their award without a duplicate increase. `balkanWarsSequence.test.ts`
+  exercises both crisis boundaries, conference/outbreak, low-roll loss, forced
+  independence, no-target handling, all-space DRMs and legacy continuation.
+
+### Balance of Power post-war draw choice
+
+- The UK now chooses **one** player it invited who actually joined, instead of
+  granting every accepted invitee a card. The original defender and players
+  who refused do not qualify. With a single candidate the award is unambiguous;
+  with several, the UK gets a required private power choice at war settlement.
+- Both interactive and explicit treaty settlements suspend before draws and
+  resume exactly once. The saved continuation retains treaty choices and harsh-
+  terms bookkeeping. Old saves whose `postWarDraws` contained several invitees
+  are converted to the same chooser. Plain Status Quo invitations do not create
+  Balance of Power rewards.
+- Candidates, the chosen player and final recipients are recorded on the war;
+  the existing power-choice panel provides English/Chinese labels. Verified
+  locally by `balanceOfPowerDraw.test.ts` plus existing Balance of Power and
+  Status Quo suites (35 tests); remote validation remains required.
+
+### 3.3.1 / 20.6 projection industrialization bonus
+
+- PP domination now contributes the printed +1 industrialization DRM. The
+  live economy threshold and characteristic helper share one modifier, stacking
+  PP with A075's +2 for other players. The end-phase step refreshes projection
+  before rolling, so captured ports and lost fleets cannot leave a stale bonus.
+- `projectionIndustry.test.ts` covers the shared modifiers, tied second place
+  and a live roll where UK succeeds only because of PP. A075 and RU/OT target
+  fixtures now isolate their own rule from the separately earned PP modifier.
+
+### Living Rules v1.1 16.2.4: all three righteous-defense options
+
+- **Acquire:** an occupied enemy key/territory (occupation waived for a primary
+  major defensive victory) must be supplied in a read-only **post-cession
+  peacetime** view. Wartime occupation corridors and allies cannot supply a
+  permanent acquisition. Source qualification still needs connected home keys.
+- **Return a home:** the separate v1.1 option restores the actual owner,
+  including a non-participating player or minor. It requires neither occupation
+  nor the acquisition option's LoC. Permanently eliminated unification minors
+  cannot be resurrected. Older choices infer this mode from the recipient's home.
+- **Liberate:** the treaty panel explicitly lists each eligible space/nationality
+  pair, with bilingual labels. The defender must occupy a space controlled by
+  the named treaty target; a major victory does not waive that condition. AU
+  citizenship, actual printed minority flags, permanent elimination and the
+  five-minor-ally cap are validated before mutation. No rebellion or LoC is
+  required by this third bullet.
+- Liberation creates independent control and immediately allies the minor to
+  the defender. `SpaceState.independentHome` persists its nationality/home after
+  reconquest, lets the new minor supply units, be declared on and be realigned,
+  and survives JSON saves. Polish liberation uses the existing reserve/build-box
+  registration even when Poland starts in Galicia. Unfriendly units displace;
+  the one-per-war righteous-defense allowance is shared by every mode.
+- Direct and interactive settlements use the same validator/application. New
+  regression suite `righteousDefenseV11.test.ts` exercises choices, independence,
+  alliance/cap, displacement, minority targeting, peace supply, neutral home
+  returns, save/resume and invalid-option immutability. `components/board.test.tsx`
+  renders the real engine-created liberation button in Chinese. Targeted local
+  run: **505 tests / 5 suites passed**. Full remote verification passed on
+  **cd87d19f**, as recorded in the baseline above.
+
+### 20.3 independent-minor build corrections
+
+- The automatic build step now requires an independent minor to control its
+  home. A red campaign build-box reminder no longer creates Serbian/Bosnian/
+  Bulgarian armies inside an Ottoman-controlled homeland. Permanently removed
+  minors never rebuild, even if a stale control marker remains.
+- One automatic army per minor is the printed 20.3 ceiling. The larger physical
+  pools in 4.2 allow player recruitment/events to create a second army; they do
+  not raise the automatic ceiling. Existing reduced second armies can still
+  receive the one-step promotion. Poland keeps its two-step/spaces+1 exception.
+- Polish placement uses a controlled Polish home (preferring Poland itself),
+  including a newly liberated Galicia; it cannot place troops in still-Russian
+  Poland. Dynamic liberated homes are recognized when a minor is in the box.
+- `minorBuildIndependence.test.ts` and corrected source-based assertions in
+  `endPhaseSteps` / `nonPlayerPlacementLimits` pin the independence and placement
+  rules. No new automatic build entitlement is invented for a minor absent
+  from the printed build box.
+
+### 20.6 industry track endpoints and automatic success
+
+- Successful end-phase industrialization and event-based industry increases
+  now use the same per-power maximum as the printed display / GW blockade cap,
+  rather than allowing every power to reach the hard-coded German maximum 7.
+- An automatic industrialization with a supplied card no longer consumes a die
+  before applying its guaranteed result. The card is still discarded and the
+  auto marker cleared; no-card behavior is unchanged.
+- `industryCeilings.test.ts` checks all six powers' live end-phase and event
+  paths, a reduced industry ceiling and the automatic no-die path. Combined
+  local industry/end-phase regressions: **48 tests / 3 suites passed**.
+
+### 15.5 attacker-surrender consent
+
+- An attacker's surrender during maneuver now opens an accept/refuse decision
+  for the **current defending primary**, including the UK after Balance of
+  Power. The offer itself leaves victor, budgets, initiative, pass history,
+  stability and active power untouched. Acceptance records the defender's major
+  victory for the existing victory/treaty step; refusal (including decline)
+  resumes the same war impulse.
+- The defender's own surrender is immediate, including the pre-maneuver 13.6
+  window. The attacker can only offer at a maneuver boundary; battles, pending
+  choices, already-settled results, allies, outsiders and eliminated powers are
+  rejected. An unaided non-player defender gets no unanswerable player prompt.
+- The board uses the same eligibility helper and renders bilingual accept/refuse
+  buttons and public logs. Pending context stores the participants and war turn;
+  save/resume, stale decisions, wrong-seat answers and duplicate acceptance are
+  validated. `surrenderConsent.test.ts` and the real board-panel test cover the
+  live flow; updated campaign tests explicitly accept the offer before settlement.
+- Local surrender/lone-minor/board regressions: **64 tests / 3 suites passed**;
+  TypeScript and diff checks pass. Full remote verification remains required.
+
+### 20.4 complete sea-unit return and nearest-port choice
+
+- The return planner reserves earlier arrivals' capacity instead of assigning
+  every ship to the same initially empty port. Naval and land stacking limits
+  are enforced; armies cannot enter naval bases. All sea-borne unit kinds are
+  considered, including reserve armies, elite colonial EFs and Zouaves; an army
+  and its attached corps return together.
+- The live end phase suspends on an owner-controlled nearest-port choice when
+  several destinations tie (a controlled minor's player decides too). The
+  existing bilingual movement-destination panel renders the choices. Save/resume
+  revalidates the current capacity, then continues step 20.4 before manpower.
+  A one-shot resolver uses the deterministic nearest legal port.
+- Empty enemy-occupied ports are excluded even after their garrison leaves;
+  player traces use the Suez/Dardanelles gates. `navalEndReturn.test.ts` covers
+  multi-ship capacity, reserve/corps grouping, omitted unit kinds, army/base
+  restrictions, saved owner choices, stale destinations and occupation markers.
+
+## 2026-11-15 treaty-territory follow-up
+
+- **16.2.4 Righteous Defense:** a defending primary's major victory waives
+  occupation of the losing primary's key/territory; ordinary and negotiated
+  defensive victories still require occupation unless returning a home.
+  The recipient's own home may be returned to a victorious ally (including an
+  independent minor's occupied home, preserving its alliance). Event-granted
+  homes are recognized. A valid LoC to a supply source is still required, with
+  naval gates respected. Knockout options stay restricted to their named target
+  and do not borrow the primary-major exception.
+- **16.2.5 Colonial Cession:** eligibility now reads the key's controlled
+  overland connection to the losing player's current capital (3.2.1), rather
+  than requiring a fixed `keyType: "colonial"` label. This includes AU/RU/OT
+  overseas keys and square/star keys without a printed track type. Allied,
+  neutral, influenced and sea links do not bridge the owned-land connection;
+  formal control and temporary occupation remain distinct (15.3). Colonial
+  homes, including event-granted Egypt, retain the occupation requirement.
+- **Chooser continuation:** candidate generation and follow-up validation share
+  the live treaty rules. A `treatySpace` choice retains the parent's beneficiary
+  and knockout target, including after JSON save/resume; stale choices are
+  rejected before changing control. The older default-first-space regression
+  now explicitly chooses its intended home because major victory offers more
+  legal spaces.
+- Source: publisher rulebook §§3.2.1–3.2.2, 3.2.5, 5.6, 15.3 and 16.2.4–16.2.5
+  (pp. 8–9, 16, 32–33). Focused regressions: `treatyTerritoryRules.test.ts`.
+  Full verification is reported by the exact feature commit's GitHub Actions run.
+
+## 2026-11-15 harsh-terms follow-up
+
+- **8.3 / 16.2:** completing a settlement that actually imposes two distinct
+  treaty options on the losing primary shifts both primary belligerents one
+  box away from each other. Merely winning a major victory, declining an
+  optional term, negotiated peace's single concession, or imposing additional
+  knockout terms on allies does not trigger this rule. A concession awarded
+  to a victorious ally still counts against its primary target.
+- Both directions use the pre-shift positions. If both primaries are neutral,
+  the live server rolls independently for each (1–3 TE / 4–6 TA, using §8.2's
+  direction convention). The ordinary three-player maximum remains in force;
+  the declaration exception is not used. Track ends stop further movement.
+- Interactive and explicit settlements share `applyHarshTerms`. The existing
+  applied-choice ledger survives saved pending decisions; a war-local
+  `harshTermsApplied` marker prevents duplicate shifts/rerolls and remains in
+  the war archive. Public English/Chinese logs record each result.
+- Source: publisher rulebook §§8.3, 8.4 and 16.2 (pp. 19, 33). Regression
+  coverage is in `harshTerms.test.ts`; full verification is the exact commit's
+  feature-branch GitHub Actions run.
+
+## 2026-11-15 alliance-rules follow-up
+
+- **A015 / A111:** the initial shift offers only legal adjacent boxes (8.0 / 8.4),
+  with bilingual destination labels. A power that began the impulse neutral
+  cannot return to or pass through neutral during this event's resolution.
+  The impulse-start snapshot and event-local restriction survive tied rolls,
+  other players' decisions and CP-chain insertion; the next impulse resets it.
+- **Post-resolution WTT:** after all player powers and unified Italy resolve,
+  raise tension once if allied players outnumber neutrals **or** either alliance
+  contains three players. Italy is excluded from those player counts. Reaching
+  5 opens the original card's Crisis Table row for its original player, including
+  after another player's tie; a conference resumes and finishes the card once.
+- **8.6 dice correction:** each positive influence marker rolls **one d6**,
+  not two. Zero-influence markers neither roll nor compete. This applies to
+  players and Italy, in card events and the end phase; Italy still rerolls ties.
+  The 10-point double-shift threshold is unchanged.
+- **Source:** publisher [rulebook, pp. 19–20, §§8.0–8.7](https://cdn.shopify.com/s/files/1/0295/6650/0908/files/rulebook_Prod_10mmBleed-upload.pdf?v=1756972319)
+  and the transcribed A015/A111 card faces. The new `allianceSystem.test.ts`
+  includes the printed §8.7 GE example, legal shifts, neutral restrictions,
+  WTT boundaries, cross-seat crisis continuation and CP-chain ownership.
+
+The historical round-9 test totals below predate this follow-up. Full validation
+for subsequent commits is reported by the feature branch's GitHub Actions run.
+
 **Snapshot:** 2026-11-13 round-9 pass, workspace
 `/Users/larryw/tools/filmcentenary`.
 **Round-9 pass:** 29.2 now opens a losing-alliance `gwColonialLoss` decision
@@ -81,7 +364,7 @@ promotional cards).
 | **1–4 Key concepts** | **Partial** | Seat order GE, UK, FR, AU, RU, OT; phases; active power; dice through `ctx.random`; half-FP rounding; impulse loop with pass/end-impulse. **4.2 counter pools are transcribed from the printed `counter-count` chart** for all six players **and 24 non-player rows** (armies/reserves/EC/EF/squadrons/dreadnoughts) and enforced in recruit/buildEf/constructFleet/GW draft/Polish recruitment; the printed naval limits (GE/AU/OT 2/2 until A092 4/4 or GE unification) sit on top. 4.2.1’s five-minor-ally cap is enforced by distinct minor power. | A few non-player rows the chart omits (Tuscany, Papal States, Egypt, Morocco, Korea, Mexico) stay `null` rather than invented; some printed “cannot be played by” clauses remain event-mode only (see §9–12). |
 | **5 Units, stacking, LoC** | **Partial** | Typed armies, reserve armies, EC/EF, elite colonial EF, Zouaves, squadrons, dreadnoughts; two-step armies; stacking caps 3 (Europe) / 2 (elsewhere, including all OT home spaces); ports hold 4 naval units; BFS LoC and supply sources. **5.5.3 overstacking** now costs one step per overstacked stack at the start of the owning player's impulse (owner chooses; one step total) and caps contributing defenders; **5.6.2 broken LoC** costs one step at impulse start, gives −1 BDRM and forbids support; **5.6.3** displaces a peacetime broken-LoC army to the nearest friendly LoC space. | Supply now traces through naval boxes and is blocked by enemy naval boxes in wartime; the 5.6.1 minor supply sources are live, including the sea trace. 5.7 has reusable displacement helpers used by war-end and event paths, and movement-end stacking is enforced on the remaining movement paths (free TSRR rail, GW deploy and draft). The 5.6.1 Italian Exception is live: after unification, `IT` units trace a player-style LoC to an Italian controlled home key that has a LoC to another Italian controlled home key, and their broken LoC charges the combat DRM/support/impulse rules. |
 | **6–7 Displays and tracks** | **Partial** | Stability, manpower, industry, territorial/colonial/Arab keys, reserves, City of Light, citizenship/rights, India stability, TSRR, Jihad; stability VP/BM/card tables, industry card counts and key→manpower tables. UK colonial keys 7; UK secondary-manpower track, four port links and Egypt `minorHome` corrected. All printed characteristic bullets are wired through `engine/characteristics.ts`/`characteristicsCoverage`. | A71’s Egypt colonial-home key type is live (explicit override plus a dynamic legacy-save fallback keyed on the UK/FR home override); India independence and Poland’s limits are live; the remaining display gaps are the per-bullet partial clauses in the registry notes. |
-| **8 Alliances and MPIT** | **Partial** | MPIT placement, alliance-track shifts, the 20.9 resolution (highest total first, 2d6 + influence, ≥10 = two boxes, 8.5 reset), card-driven shifts, the **8.2 declaration shift**, the **8.6 action-phase Alliance System tie** (`allianceTie` pending), **unified Italy’s random declaration shift**, **typed Italy MPIT (8.5/8.6)** resolved in 20.9 and card events, **13.4.2 Seeking Aid**, **13.4.1 abandonment + 14.0 refusal**, and the **14.2 Italy aid shift**; 8.4’s three-player cap is enforced across 20.9, card shifts, neutral entry and calls. | 13.4.1’s abandonment −1 and 14.0’s committed-box −1 are separate penalties and now stack; the US and Italy are exempt from the cap by the printed wording; no separate alliance-resolution phase (runs as 20.9 and card events); Italy resolves after player powers. |
+| **8 Alliances and MPIT** | **Partial** | MPIT placement, alliance-track shifts, the 20.9 resolution (highest total first, d6 + influence per positive marker, ≥10 = two boxes, 8.5 reset), card-driven shifts, the **8.2 declaration shift**, the **8.6 action-phase Alliance System tie** (`allianceTie` pending), **A015/A111 adjacent shift / neutral lock / conditional WTT**, **unified Italy’s random declaration shift**, **typed Italy MPIT (8.5/8.6)** resolved in 20.9 and card events, **13.4.2 Seeking Aid**, **13.4.1 abandonment + 14.0 refusal**, and the **14.2 Italy aid shift**; 8.4’s three-player cap is enforced across 20.9, card shifts, neutral entry and calls. | 13.4.1’s abandonment −1 and 14.0’s committed-box −1 are separate penalties and now stack; the US and Italy are exempt from the cap by the printed wording; no separate alliance-resolution phase (runs as 20.9 and card events); Italy resolves after player powers. |
 | **9–12 Cards and action phase** | **Partial** | 100 action, 12 home and 10 GW cards; types, decade build, prep deals, CP chain, response/combat/GW windows, save card. Card targets/playability (A41/A98/A54 windows, A59 attacker-only, GW-10 timing, A70 removal, A54 Young Turks), Loose Grip’s full Ottoman set, auction reveal and 12.3 land-plus-naval transport (incl. 32.1 US exit) are live. A98/A41 DRMs are consumed, all `duration:"turn"` flags clear at the printed boundary, Exhaustion activates at impulse end, A85/A75 are correctly scoped, and every printed characteristic bullet has a live path (`characteristicsCoverage`). | Transports now open the 19.1 interception chain at their first transit box, and the first deal uses the printed `cardsToDraw` formula; a few “remainder of turn” clauses stay approximate. |
 | **Privacy / playerView** | **Implemented** | `engine/privacy.ts#redactForView` runs from `game.ts#playerView`; hides opponents’ hands/goals/goal decks/GW cards/per-power secret flags, replaces deck/discard/removed order with public counts, redacts active and suspended pending decisions, hides inciting-card fields, and masks card-naming log arguments unless the printed rules put the card faceup (events, responses, combat/GW cards, industrialization and CP-chain cards; CP-spent, saved, random-discard and refused plays stay masked). A documented `PUBLIC_POWER_FLAGS` allowlist now exposes the genuinely public flags (power projection, professional army, rapid mobilization, reserve bonus, naval limit/discount, etc.) while keeping secret flags hidden. Face-up GW combat cards remain public; auction bids are private. | Per-power flags are split by an explicit allowlist rather than a full public/private field split, so a future flag must be added to the allowlist to be visible; log entries that do not name a card are public by design. |
 | **13–17 Limited war** | **Partial** | Declaration validation, war aims/objectives, budgets, ally calls, 8.2 shift, Status Quo, Balance of Power, **13.4/13.5 non-player war**, **13.4.1 abandonment + 14.0 refusal**, **13.4.2 Seeking Aid**, **14.2 Italy aid shift**, **16.1.6 two-stage knockout treaties**, **15.4.2 lone non-player WarState**, **Italy MPIT (8.5/8.6) in 20.9 and card events**, **independent-minor treaty beneficiaries**, white-peace both-side knockout sequence with chooser order, initiative, maneuver/battles, surrender, multi-ally treaties, demobilisation and truces. | 16.2.1 mandatory cession is enforced in both the interactive chooser (no early finish) and the explicit settlement path; the both-sides white-peace order is a proposal/response/counter negotiation with an initiative fallback; 13.4.1 and 14.0 stability penalties stack; 15.0’s consecutive-pass reset, 16.2.5 colonial cessions to the primary/player allies/independent minors and 17.0/17.1 war-end displacement + blockade are live; treaty beneficiaries still exclude arbitrary neutral minors. |

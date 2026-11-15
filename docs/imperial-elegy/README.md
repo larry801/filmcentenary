@@ -139,6 +139,24 @@ At a glance, the live game covers:
   resolve on insertion; `useCpChain` funds one action per action phase (capped
   at 4 CP); chained cards stay face-up and are discarded at the end of the
   action phase.
+- **Alliance events A015/A111** — legal adjacent shifts, the impulse-start
+  neutral restriction, and the conditional WTT increase after resolution.
+  Each positive MPIT marker rolls one d6; tied player rolls prompt, Italian
+  ties reroll, and crisis continuation retains the original card and player.
+- **Harsh terms (8.3 / 16.2)** — imposing two actual treaty options on the
+  losing primary shifts both primaries away from each other, with independent
+  dice when both are neutral and the ordinary three-player cap. Applies to
+  interactive and explicit settlements; ally-knockout terms are counted separately.
+- **Territorial treaty eligibility (16.2.4–16.2.5)** — righteous defense permits
+  unoccupied enemy keys/territories after a major defensive victory and returns
+  an ally's own homes; colonial cession checks the losing power's controlled
+  land connection to its capital, including AU/RU/OT overseas keys. Follow-up
+  space choices retain the chosen beneficiary and knockout target.
+- **Living Rules v1.1 righteous defense** — the acquisition tests a peacetime
+  LoC after cession; returning a home is a separate option; occupied minorities
+  may be explicitly liberated and immediately allied to the defender. The
+  space/nationality choices, dual-home persistence, supply and later diplomacy
+  are shared by interactive and direct settlement paths.
 - **Limited war** — validated war declarations and aims, objectives, alliance
   and minor calls, initiative order (including A063 Rapid Mobilization's
   first-impulse priority), war budgets, maneuver, deploy reserves (with A063's

@@ -40,8 +40,8 @@ const lastLog = (G: ImperialElegyState, key: string) =>
 
 /**
  * Arm GE with Shifting Alliances.  GE has two influence types with equal
- * influence, so each marker rolls two dice; the scripted dice [3,3,1,5,1,1] make
- * both results tie at 7.
+ * influence, so each marker rolls one die; the scripted dice [3,3] make
+ * both results tie at 4.
  */
 const armShiftingAlliances = (G: ImperialElegyState): void => {
   G.phase = "action";
@@ -58,7 +58,7 @@ describe("8.6 action-phase alliance resolution tie", () => {
   test("the card suspends on the shared allianceTie pending and resumes", () => {
     const G = fresh();
     armShiftingAlliances(G);
-    const next = makeCtx([3, 3, 1, 5, 1, 1], seat("GE"));
+    const next = makeCtx([3, 3], seat("GE"));
 
     expect(playCard(G, next, "IE-A015", "event")).toBeUndefined();
     // The card's own "shift your chit" choice comes first.
@@ -87,7 +87,7 @@ describe("8.6 action-phase alliance resolution tie", () => {
   test("the tie decision is private to the deciding seat", () => {
     const G = fresh();
     armShiftingAlliances(G);
-    const next = makeCtx([3, 3, 1, 5, 1, 1], seat("GE"));
+    const next = makeCtx([3, 3], seat("GE"));
     playCard(G, next, "IE-A015", "event");
     resolvePending(G, next, "te");
     expect(G.pending?.kind).toBe("allianceTie");
@@ -105,7 +105,7 @@ describe("8.6 action-phase alliance resolution tie", () => {
   test("declining the tie takes the deterministic 8.6 direction", () => {
     const G = fresh();
     armShiftingAlliances(G);
-    const next = makeCtx([3, 3, 1, 5, 1, 1], seat("GE"));
+    const next = makeCtx([3, 3], seat("GE"));
     playCard(G, next, "IE-A015", "event");
     resolvePending(G, next, "te");
     expect(G.pending?.kind).toBe("allianceTie");
@@ -122,9 +122,8 @@ describe("8.6 action-phase alliance resolution tie", () => {
     armShiftingAlliances(G);
     // GE resolves first (same total, earlier seat).  UK then ties as well.
     G.powers.UK.mpit = {te: 1, ta: 1, neutral: 0};
-    // GE: te 3+3+1=7, ta 1+5+1=7, neutral 1+1+0=2.
-    // UK: te 2+2+1=5, ta 4+4+1=9 -> no tie on these dice; use 4+4 and 2+6.
-    const next = makeCtx([3, 3, 1, 5, 1, 1, 4, 4, 2, 6, 1, 1], seat("GE"));
+    // GE: TE 3+1=4, TA 3+1=4. UK: TE 4+1=5, TA 4+1=5.
+    const next = makeCtx([3, 3, 4, 4], seat("GE"));
     playCard(G, next, "IE-A015", "event");
     resolvePending(G, next, "te");
     expect(G.pending?.kind).toBe("allianceTie");
@@ -160,7 +159,7 @@ describe("8.6 action-phase alliance resolution tie", () => {
   test("a rejected option does not consume the tie", () => {
     const G = fresh();
     armShiftingAlliances(G);
-    const next = makeCtx([3, 3, 1, 5, 1, 1], seat("GE"));
+    const next = makeCtx([3, 3], seat("GE"));
     playCard(G, next, "IE-A015", "event");
     resolvePending(G, next, "te");
     expect(G.pending?.kind).toBe("allianceTie");

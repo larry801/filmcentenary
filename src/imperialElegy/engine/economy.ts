@@ -24,6 +24,7 @@ import {CardId, ImperialElegyState, Power, POWERS} from "../types";
 import {Decade} from "../constant/cards";
 import {PowerDef, POWER_DEFS} from "../constant/powers";
 import {cardById, cardsForDecade} from "./deck";
+import {industrializationModifier} from "./rules";
 
 // ---------------------------------------------------------------------------
 // 10.1 / 10.2 — The decade and the cards that enter with it
@@ -226,8 +227,7 @@ export const industryTarget = (_G: ImperialElegyState, power: Power): IndustryTa
  * means only the auto-industrialization chit can succeed.
  */
 export const industryRollNeeded = (G: ImperialElegyState, power: Power, cp: number): number => {
-  const drm = Number(G.powers[power].flags.industryDrm ?? 0);
-  return industryTarget(G, power) - cp - (Number.isFinite(drm) ? drm : 0);
+  return industryTarget(G, power) - cp - industrializationModifier(G, power);
 };
 
 /**

@@ -44,7 +44,7 @@ export type Effect =
   | {type: "mpit"; track: "te" | "ta" | "neutral"; amount: number; target?: "self" | Power}
   | {type: "mpitChoice"; amount: number; track?: "te" | "ta" | "neutral"; target?: "self" | Power}
   | {type: "allianceShift"; direction: "te" | "ta" | "neutral"; steps?: number; target?: "self" | Power}
-  | {type: "allianceResolution"}
+  | {type: "allianceResolution"; preventNeutral?: Power}
   | {type: "placeInfluence"; filter?: SpaceFilter; count?: number; target?: "self" | Power}
   | {type: "placeDiplomacy"; filter?: SpaceFilter; count?: number; target?: "self" | Power}
   | {type: "removeInfluence"; filter?: SpaceFilter; count?: number}

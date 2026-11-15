@@ -91,7 +91,8 @@ const ROWS: Row[] = [
   {id: "bengal", name: "Bengal", nameZh: "孟加拉", type: "key", region: "asia", submap: "asia", control: "UK", home: "UK", ports: ["indian-ocean"], keyType: "colonial", x: 6111, y: 1709},
   {id: "singapore", name: "Singapore", nameZh: "新加坡", type: "key", region: "asia", submap: "asia", control: "UK", home: "UK", ports: ["indian-ocean", "pacific-ocean"], keyType: "colonial", x: 6509, y: 2243},
   {id: "australia-new-zealand", name: "Australia & New Zealand", nameZh: "澳大利亚与新西兰", type: "key", region: "asia", submap: "asia", control: "UK", home: "UK", ports: ["pacific-ocean", "south-central-pacific"], keyType: "colonial", x: 6906, y: 2393},
-  {id: "hong-kong", name: "Hong Kong", nameZh: "香港", type: "territory", region: "asia", submap: "asia", control: "UK", home: "UK", ports: ["pacific-ocean"], x: 6690, y: 1800},
+  // Printed triangle (3.2.8); also named as the extra Pacific PP in 3.3.1.
+  {id: "hong-kong", name: "Hong Kong", nameZh: "香港", type: "navalBase", region: "asia", submap: "asia", control: "UK", home: "UK", ports: ["pacific-ocean"], x: 6690, y: 1800},
 
   // ---------------------------------------------------------------- Low Countries & Germany
   {id: "belgium", name: "Belgium", nameZh: "比利时", type: "key", region: "europe", submap: "main", control: "Belgium", minorHome: "Belgium", ports: ["north-atlantic"], flashpoints: ["lowCountries"], x: 1778, y: 1730},
@@ -534,9 +535,7 @@ const CONNECTION_ROWS: [SpaceId, SpaceId, ConnectionType?][] = [
   ["singapore", "pacific-ocean", "sea"],
   ["indochina", "guangzhou", "sea"],
   ["indochina", "indian-ocean", "sea"],
-  ["hong-kong", "shanghai"],
-  ["hong-kong", "guangzhou"],
-  ["hong-kong", "shandong-peninsula"],
+  // Hong Kong's triangle has only a Pacific anchor, no printed land lines.
   ["hong-kong", "pacific-ocean", "sea"],
   ["shanghai", "shandong-peninsula"],
   ["shanghai", "guangzhou"],

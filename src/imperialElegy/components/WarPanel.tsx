@@ -3,7 +3,7 @@ import {ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {minorAlliesOf} from "../engine/rules";
-import {isLoneMinorWar, loneMinorDefender} from "../engine/limitedWar";
+import {canSurrender, isLoneMinorWar, loneMinorDefender} from "../engine/limitedWar";
 import {treatyOptionLabel} from "../engine/treatyChoice";
 import {BALANCE_OF_POWER_CARD} from "../moves";
 import {IEBadge, IEPanel} from "./theme";
@@ -118,8 +118,8 @@ export const WarPanel = (props: WarPanelProps) => {
                 <button className="ie-btn" data-testid="ie-call-minor-button" disabled={warMinorValue === ""} onClick={() => doAction(() => moves.callWarMinor(warMinorValue))}>{t.callMinor}</button>
               </div>
             )}
-            {isPrincipal && (
-              <button className={`ie-btn secondary${confirmSurrender ? " danger" : ""}`} onClick={() => {
+            {isPrincipal && viewer !== null && canSurrender(G, viewer) && (
+              <button data-testid="ie-surrender" className={`ie-btn secondary${confirmSurrender ? " danger" : ""}`} onClick={() => {
                 if (!confirmSurrender) { setConfirmSurrender(true); return; }
                 doAction(() => moves.surrender());
                 setConfirmSurrender(false);

@@ -271,9 +271,9 @@ test("a forced 20.5 removal (one candidate) is applied without a decision", () =
 test("20.9 suspends a tied alliance roll for the player's choice without rerolling", () => {
   const G = fresh();
   G.powers.GE.mpit = {te: 1, ta: 1, neutral: 0};
-  // The first six dice are 1 (TE 3 vs TA 3); if the suspended roll were rolled
-  // again on resume it would produce 13 vs 13 and loop forever.
-  const ctx = makeCtx([1, 1, 1, 1, 1, 1, 6]);
+  // One die per positive marker: TE 2 vs TA 2; the stored roll survives the
+  // decision rather than consuming the following sixes.
+  const ctx = makeCtx([1, 1, 6]);
   let tie: PendingDecision | null = null;
 
   const seen = run(G, ctx, (pending) => {
@@ -289,7 +289,7 @@ test("20.9 suspends a tied alliance roll for the player's choice without rerolli
   expect(tie!.power).toBe("GE");
   expect(tie!.options.map((candidate) => candidate.id).sort()).toEqual(["ta", "te"]);
   const roll = tie!.context?.roll as {rolls: {te: number; ta: number; neutral: number}};
-  expect(roll.rolls).toEqual({te: 3, ta: 3, neutral: 2});
+  expect(roll.rolls).toEqual({te: 2, ta: 2, neutral: 0});
   expect(G.powers.GE.alliance).toBe("taAligned");
   expect(G.powers.GE.mpit).toEqual({te: 0, ta: 1, neutral: 0});
 });

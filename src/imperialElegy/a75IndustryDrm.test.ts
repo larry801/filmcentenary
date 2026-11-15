@@ -14,6 +14,8 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {cardById} from "./engine/deck";
+import {removeUnit} from "./engine/effects";
+import {refreshPowerProjection} from "./engine/rules";
 import {industryRollNeeded} from "./engine/economy";
 import {playCard, resolveEnd} from "./moves";
 
@@ -34,7 +36,13 @@ const makeCtx = (dice: number[] = [3], playerID: string | null = "0"): Ctx => {
 };
 
 const seat = (power: Power): string => String(POWERS.indexOf(power));
-const fresh = (): ImperialElegyState => setupImperialElegy(makeCtx());
+const fresh = (): ImperialElegyState => {
+  const G = setupImperialElegy(makeCtx());
+  // Isolate A75's +2 from the separate 3.3.1 PP domination +1.
+  for (const unit of Object.values(G.units)) if (unit.naval) removeUnit(G, unit.id);
+  refreshPowerProjection(G);
+  return G;
+};
 
 const playA75 = (G: ImperialElegyState, by: Power): Ctx => {
   G.phase = "action";

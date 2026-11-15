@@ -177,6 +177,8 @@ export interface SpaceState {
   control: PowerOrMinor | null;
   /** Dynamic home-space changes (unification, annexation). */
   homeOverride?: Power | null;
+  /** 4.7.1 / 16.2.4: a liberated nationality's home, retained after reconquest. */
+  independentHome?: {power: string; nationality: string};
   /**
    * Dynamic key classification.  A71 Urabi Revolt makes the Egyptian spaces
    * colonial home spaces for a UK/FR winner, so the Egypt key must count as a
@@ -458,6 +460,10 @@ export interface WarSide {
    * war ends (the UK for entering, plus the one invited player that joined).
    */
   postWarDraws?: Power[];
+  /** Balance of Power: players the UK invited and who actually joined. */
+  postWarDrawCandidates?: Power[];
+  /** The one invited player the UK selected for the card's additional draw. */
+  postWarDrawChoice?: Power;
   /** CP war budgets. */
   budgets: Partial<Record<Power, number>>;
   initiative: Power[];
@@ -471,6 +477,8 @@ export interface WarSide {
   knockedOut?: WarKnockoutRecord[];
   /** Treaties chosen by the victor. */
   treaties: string[];
+  /** 8.3 / 16.2: the two-primary harsh-terms shift has already resolved. */
+  harshTermsApplied?: boolean;
   /** Who won (null if white peace). */
   victor: "attacker" | "defender" | null;
   /**

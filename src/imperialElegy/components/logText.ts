@@ -5,6 +5,7 @@ import {SPACES, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {ieStringsFor} from "./i18n";
 import type {PlayBlockReason} from "../engine/playability";
+import {nationalityLabel} from "../engine/nationality";
 
 /**
  * Bilingual, key-driven rendering for the Imperial Elegy engine log.
@@ -1842,6 +1843,20 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  warSurrender: (entry, locale) => {
+    const attacker = powerLabel(entry.args?.attacker, locale);
+    switch (entry.args?.result) {
+      case "offered":
+        return withActor(entry, locale, "offers to surrender; the defending primary decides (15.5).", "提出投降，等待主要防守方决定（15.5）。");
+      case "accepted":
+        return withActor(entry, locale, `accepts ${attacker}'s surrender and wins a major victory (15.5).`, `接受${attacker}投降，取得重大胜利（15.5）。`);
+      case "refused":
+        return withActor(entry, locale, `refuses ${attacker}'s surrender; the war continues (15.5).`, `拒绝${attacker}投降，战争继续（15.5）。`);
+      default:
+        return withActor(entry, locale, "surrenders; proceed to the victory step.", "投降，进入胜利结算步骤。");
+    }
+  },
+
   warVictory: (entry, locale) => {
     const kind = str(entry.args?.kind);
     const treaties = num(entry.args?.treaties);
@@ -1879,6 +1894,23 @@ const FORMATTERS: Record<string, Formatter> = {
       locale,
       `won a ${label} victory (${treaties} treaty ${treaties === 1 ? "option" : "options"}; ${victor}).`,
       `取得${label}胜利（${treaties} 个条约选项；${victor}）。`,
+    );
+  },
+
+  harshTermsShift: (entry, locale) => {
+    const from = allianceBoxLabel(entry.args?.from, locale);
+    const to = allianceBoxLabel(entry.args?.to, locale);
+    const opponent = powerLabel(entry.args?.opponent, locale);
+    const roll = entry.args?.roll;
+    const rolled = typeof roll === "number" ? text(locale, ` (die ${roll})`, `（掷骰 ${roll}）`) : "";
+    const blocked = bool(entry.args?.blocked)
+      ? text(locale, "; the three-player alliance limit blocks the shift", "；因同盟三名玩家上限而无法移动")
+      : "";
+    return withActor(
+      entry,
+      locale,
+      `resolves harsh terms against ${opponent}: ${from} → ${to}${rolled}${blocked} (8.3).`,
+      `结算与${opponent}之间的苛刻条款：${from} → ${to}${rolled}${blocked}（8.3）。`,
     );
   },
 
@@ -1922,6 +1954,11 @@ const FORMATTERS: Record<string, Formatter> = {
           hasTarget ? `向${target}索取战争赔款${recipientZh}。` : "索取战争赔款。",
         );
       case "righteousDefense":
+        if (entry.args?.righteousMode === "liberate") {
+          return withActor(entry, locale,
+            `liberated ${minor} in ${spaces} and gained its alliance under righteous defense.`,
+            `以正义防御解放${spaces}的${nationalityLabel(str(entry.args?.nationality), "zh_CN")}民族，并立即与其结盟。`);
+        }
         return withActor(
           entry,
           locale,

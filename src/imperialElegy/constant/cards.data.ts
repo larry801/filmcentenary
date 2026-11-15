@@ -105,7 +105,7 @@ export const ACTION_CARDS: CardDef[] = [
   A(15, 2, "mandatory", "Shifting Alliances", "联盟变动",
     "Shift your chit on the Alliance Track. Then immediately conduct an alliance resolution step. If you began this impulse in the neutral box, you cannot shift back into neutrality during this alliance resolution step. After alliances are resolved, increase the WTT by one if there are more players in alliance boxes than in the neutral box OR if one alliance has three players in it.",
     "在联盟轨道上移动你的标记，然后立即进行一次联盟结算。若本行动轮开始时你在中立框，本次结算不能移回中立。结算后若联盟框内玩家多于中立框，或某个同盟已有 3 名玩家，世界紧张 +1。",
-    [{type: "special", handler: "shiftingAlliances"}, {type: "allianceResolution"}]),
+    [{type: "special", handler: "shiftingAlliances"}, {type: "allianceResolution"}, {type: "special", handler: "allianceSystemTension"}]),
   A(16, 2, "mandatory", "Liberal Reforms", "自由主义改革",
     "All players eliminate 2 reserve army steps in their reserve armies holding box. The CP from this card cannot be used to build new armies.",
     "所有玩家在预备军框移除 2 个预备军步骤。本牌 CP 不能用于建造新军团。",
@@ -488,8 +488,10 @@ export const ACTION_CARDS: CardDef[] = [
   A(100, 2, "mandatory", "The Balkan Wars", "巴尔干战争",
     "Increase the WTT by 1. If the Ottomans control space(s) in the Balkans other than Istanbul, remove all Ottoman ally markers in the Balkans and roll a die: +1 per non-player army in the Balkans including rebels, -1 per Ottoman army in the Balkans. On 5 or more two Ottoman-controlled Balkan spaces gain independence (not Istanbul); displace units. On any other result all rebel armies in the Balkans and each independent Balkan minor power army suffer a step loss. Increase the WTT by 1. The active player gives Macedonia to Greece, Bulgaria, Serbia or the Ottomans (a minor power must be independent).",
     "世界紧张 +1。若奥斯曼控制伊斯坦布尔以外的巴尔干空间，移除其巴尔干联盟标记并掷骰（巴尔干非玩家军团 +1，奥斯曼军团 -1）：5+ 则两个奥斯曼巴尔干空间独立；否则巴尔干叛军与独立小国各受 1 步损失。世界紧张再 +1。当前玩家将马其顿交给希腊/保加利亚/塞尔维亚/奥斯曼之一。",
-    // 23.1: the first WTT increase opens the Crisis Table before the rest of the text.
-    [{type: "wtt", delta: 1}, {type: "special", handler: "balkanWars"}]),
+    // 23.1: either increase may incite a crisis. Finish the intervening
+    // independence/loss choices before the second; award Macedonia afterwards.
+    [{type: "wtt", delta: 1}, {type: "special", handler: "balkanWars"},
+      {type: "wtt", delta: 1}, {type: "special", handler: "balkanWarsAward"}]),
   A(101, 2, "mandatory", "The Black Hand", "黑手党",
     "Increase the WTT by 1.",
     "世界紧张 +1。",
@@ -533,7 +535,7 @@ export const ACTION_CARDS: CardDef[] = [
   A(111, 2, "mandatory", "The Alliance System", "联盟体系",
     "Shift your chit on the Alliance Track. Then immediately conduct an alliance resolution step. If you began this impulse in the neutral box, you cannot shift back into neutrality during this alliance resolution step. After alliances are resolved, increase the WTT by one if there are more players in alliance boxes than in the neutral box OR if one alliance has three players in it.",
     "在联盟轨道上移动你的标记，然后立即进行一次联盟结算。若本行动轮开始时你在中立框，本次结算不能移回中立。结算后若联盟框内玩家多于中立框，或某个同盟已有 3 名玩家，世界紧张 +1。",
-    [{type: "special", handler: "shiftingAlliances"}, {type: "allianceResolution"}]),
+    [{type: "special", handler: "shiftingAlliances"}, {type: "allianceResolution"}, {type: "special", handler: "allianceSystemTension"}]),
   A(112, 1, "event", "Franz Ferdinand", "弗朗茨·斐迪南",
     "Austria-Hungary grants full citizenship to a nationality that already has rights. OR Austria-Hungary grants rights to a nationality. Playable if Death of Franz Joseph has been played.",
     "奥匈给予一个已有权利的民族完整公民权；或给予一个民族权利。“弗朗茨·约瑟夫之死”打出后可打出。",

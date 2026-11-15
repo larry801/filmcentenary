@@ -38,6 +38,8 @@ import {
   italianNavalDeploySpace,
   landStackingLimit,
   landUnitsIn,
+  movementEndProblem,
+  navalHopPassable,
 } from "./rules";
 import {canRecruitIn, ottomanArmyTypeFor} from "./characteristics";
 import {hasCounterFor, nonPlayerCounterPool, nonPlayerCounterRemaining, nonPlayerHasCounterFor} from "./counters";
@@ -280,9 +282,14 @@ const BUILD_STEPS: Record<string, number> = {Poland: 2};
  * mapped in `MINOR_POWER_HOMES`; Poland gains independence during play and has
  * no entry there, so fall back to the space id / `minorHome` marker.
  */
-const homeForMinor = (minor: string): SpaceId | null => {
+const homeForMinor = (G: ImperialElegyState, minor: string): SpaceId | null => {
+  if (minor === POLAND && G.spaces.poland?.control === POLAND) return "poland";
+  const liberated = Object.entries(G.spaces).find(([, state]) => state.control === minor && state.independentHome?.power === minor)?.[0];
   const mapped = MINOR_POWER_HOMES[minor];
-  if (mapped !== undefined) return mapped;
+  if (mapped !== undefined) return G.spaces[mapped]?.control === minor ? mapped : liberated ?? mapped;
+  if (liberated !== undefined) return liberated;
+  if (minor === POLAND) return Object.values(SPACES).find((space) =>
+    space.nationalities?.includes("Poles") && G.spaces[space.id]?.control === POLAND)?.id ?? null;
   const direct = Object.values(SPACES).find((space) => space.minorHome === minor || space.id === minor.toLowerCase());
   return direct?.id ?? null;
 };
@@ -296,16 +303,12 @@ const homeForMinor = (minor: string): SpaceId | null => {
  *
  * The plan is deterministic: a reduced army is promoted before a new one is
  * placed, and the new army always appears on the space that shares the minor's
- * name (e.g. Serbian units are placed in Serbia, even when the space is
- * controlled by the Ottomans).
+ * name (e.g. Serbian units are placed in independent Serbia).
  *
- * 4.2/20.3: the ceiling is the minor's printed non-player "Armies" row, not a
- * universal 1 — Serbia, Greece, Romania and Bulgaria may each build up to two
- * armies.  Each end phase still adds at most one step (Poland: two), so the
- * counter mix only stops a build once the row is full.  Rows the chart does not
- * print keep the old conservative one-army ceiling rather than inventing a
- * larger pool; `nonPlayerHasCounterFor` is also consulted before every
- * placement so a full row can never be over-built.
+ * 20.3 explicitly cannot place a second army (except Poland). The larger 4.2
+ * physical pools apply to player actions/events, not this automatic build.
+ * Existing reduced armies may still be promoted. `nonPlayerHasCounterFor`
+ * also guards each replacement against the physical counter pool.
  *
  * Poland is gated on rule 22.5: only an independent Poland build-box power
  * takes the two Polish steps.  Its allowance (Polish spaces + 1) counts the map
@@ -321,14 +324,16 @@ export const nonPlayerBuildPlan = (G: ImperialElegyState): NonPlayerBuildEntry[]
     // spaces must not receive a minor-power build step (the printed 20.3 minor
     // is no longer an independent power), so skip them for the 22.4 rebuild.
     if (G.persistent.italyUnified === true && ITALIAN_MINOR_POWERS.has(minor)) continue;
-    const home = homeForMinor(minor);
+    if (G.eliminatedMinors?.includes(minor)) continue;
+    const home = homeForMinor(G, minor);
     if (home === null || !G.spaces[home]) continue;
     if (minor === POLAND && !isPolandIndependent(G)) continue;
+    if (G.spaces[home].control !== minor) continue;
     const isPoland = minor === POLAND;
     const armies = Object.values(G.units)
       .filter((unit) => unit.owner === minor && isArmyKind(unit.kind))
       .sort((a, b) => a.id.localeCompare(b.id));
-    const maxArmies = isPoland ? polishArmyCap(G) : nonPlayerCounterPool(minor)?.armies ?? 1;
+    const maxArmies = isPoland ? polishArmyCap(G) : Math.min(1, nonPlayerCounterPool(minor)?.armies ?? 1);
     const steps = isPoland ? BUILD_STEPS[POLAND] : 1;
     const reduced = armies.filter((unit) => unit.steps < 2);
     let total = armies.length;
@@ -493,6 +498,10 @@ export interface NavalReturnEntry {
   reason: NavalReturnReason;
   /** Distance in naval-box hops to the port's box (0 = adjacent). */
   hops: number | null;
+  /** Every equally-near legal port; the live owner chooses among them. */
+  destinations?: SpaceId[];
+  /** An army and its attached corps return together. */
+  unitIds?: string[];
 }
 
 /** Friendly for 20.4: own control, an ally's port, or an uncontrolled port with the power's influence. */
@@ -510,11 +519,6 @@ const friendlyPortFor = (G: ImperialElegyState, owner: PowerOrMinor, space: Spac
   return state.control === owner;
 };
 
-const navalUnitsInSpace = (G: ImperialElegyState, space: SpaceId): Unit[] =>
-  (G.spaces[space]?.units ?? [])
-    .map((id) => G.units[id])
-    .filter((unit): unit is Unit => unit !== undefined && unit.naval === true);
-
 /**
  * Rule 20.4: a friendly-controlled port that contains enemy units is not a
  * legal destination "until the enemy units are dealt with".  Friendly means the
@@ -524,6 +528,9 @@ const navalUnitsInSpace = (G: ImperialElegyState, space: SpaceId): Unit[] =>
 const portHasEnemyUnits = (G: ImperialElegyState, owner: PowerOrMinor, port: SpaceId): boolean => {
   const state = G.spaces[port];
   if (!state) return false;
+  const occupier = state.occupiedBy;
+  if (occupier !== null && occupier !== undefined && occupier !== owner &&
+      (!isPower(owner) || !isPower(occupier) || !allied(G, owner, occupier))) return true;
   for (const id of state.units) {
     const unit = G.units[id];
     if (!unit || unit.owner === owner) continue;
@@ -541,11 +548,14 @@ const portHasEnemyUnits = (G: ImperialElegyState, owner: PowerOrMinor, port: Spa
   return false;
 };
 
-const portHasRoom = (G: ImperialElegyState, port: SpaceId, forNaval: boolean): boolean =>
-  !forNaval || navalUnitsInSpace(G, port).length < PORT_NAVAL_CAPACITY;
+const portHasRoom = (G: ImperialElegyState, port: SpaceId, units: Unit[]): boolean => {
+  if (SPACES[port].type === "navalBase" && units.some((unit) => !unit.naval &&
+      !["expeditionary", "eliteColonialEf", "zouave"].includes(unit.kind))) return false;
+  return movementEndProblem(G, port, units) === null;
+};
 
 /** Naval-box distance map from `start`, respecting the Suez Canal gate. */
-const boxDistances = (G: ImperialElegyState, start: SpaceId): Map<SpaceId, number> => {
+const boxDistances = (G: ImperialElegyState, start: SpaceId, owner: PowerOrMinor): Map<SpaceId, number> => {
   const distance = new Map<SpaceId, number>();
   if (!isNavalBox(start)) return distance;
   distance.set(start, 0);
@@ -557,6 +567,7 @@ const boxDistances = (G: ImperialElegyState, start: SpaceId): Map<SpaceId, numbe
       const next = conn.a === current ? conn.b : conn.a;
       if (!isNavalBox(next) || distance.has(next)) continue;
       if (crossesSuez(current, next) && G.persistent.suezCanal !== true) continue;
+      if (isPower(owner) && !navalHopPassable(G, owner, current, next)) continue;
       distance.set(next, (distance.get(current) ?? 0) + 1);
       queue.push(next);
     }
@@ -572,19 +583,29 @@ const boxDistances = (G: ImperialElegyState, start: SpaceId): Map<SpaceId, numbe
  * its naval units ("If a power does not control a port their naval units are
  * eliminated").
  *
- * The plan is deterministic: ports are tried in id order, adjacent boxes before
- * farther ones, and lower box distance before higher.
+ * The plan retains all equally-near destinations for the live owner choice.
+ * Its one-shot default tries ports in id order, adjacent boxes before farther
+ * ones, reserving earlier arrivals' capacity for subsequent units.
  */
 export const navalReturnPlan = (G: ImperialElegyState): NavalReturnEntry[] => {
   const plan: NavalReturnEntry[] = [];
+  // Reserve capacity as each earlier unit is planned; otherwise five ships
+  // all choose the same currently-empty port and overstack it on application.
+  const projected: ImperialElegyState = {...G, spaces: Object.fromEntries(
+    Object.entries(G.spaces).map(([id, state]) => [id, {...state, units: [...state.units]}]),
+  )};
+  const processed = new Set<string>();
   for (const box of Object.values(SPACES)) {
     if (box.type !== "navalBox") continue;
     const state = G.spaces[box.id];
     if (!state) continue;
     for (const unit of [...state.units].map((id) => G.units[id]).filter((u): u is Unit => u !== undefined)) {
       // Only units actually at sea: naval units and land units on transports.
-      const atSea = unit.naval === true || unit.kind === "army" || unit.kind === "minorArmy" || unit.kind === "italianArmy" || unit.kind === "usArmy" || unit.kind === "expeditionary";
-      if (!atSea) continue;
+      if (processed.has(unit.id) || unit.kind === "rebelArmy") continue;
+      if (unit.attachedTo && G.units[unit.attachedTo]?.space === box.id) continue;
+      const group = [unit, ...state.units.map((id) => G.units[id]).filter((other) => other && other.attachedTo === unit.id)];
+      const unitIds = group.map((member) => member.id);
+      for (const id of unitIds) processed.add(id);
       const owner = unit.owner;
       // Rule 20.4: a friendly port that contains enemy units is not a legal
       // destination "until the enemy units are dealt with", so it is skipped
@@ -593,19 +614,21 @@ export const navalReturnPlan = (G: ImperialElegyState): NavalReturnEntry[] => {
         Object.values(SPACES)
           .filter((def) => def.ports?.includes(space))
           .map((def) => def.id)
-          .filter((port) => friendlyPortFor(G, owner, port) && !portHasEnemyUnits(G, owner, port))
+          .filter((port) => group.every((member) => friendlyPortFor(G, member.owner, port) && !portHasEnemyUnits(G, member.owner, port)))
           .sort();
       let chosen: SpaceId | null = null;
       let chosenHops: number | null = null;
-      const distances = boxDistances(G, box.id);
+      const distances = boxDistances(G, box.id, owner);
+      const destinations: SpaceId[] = [];
       const orderedBoxes = [...distances.entries()].sort((a, b) => a[1] - b[1] || a[0].localeCompare(b[0]));
       for (const [candidateBox, hops] of orderedBoxes) {
+        if (chosenHops !== null && hops > chosenHops) break;
         const ports = portCandidates(candidateBox);
-        const room = ports.find((port) => portHasRoom(G, port, unit.naval === true)) ?? null;
-        if (room !== null) {
-          chosen = room;
+        const legal = ports.filter((port) => portHasRoom(projected, port, group));
+        if (legal.length > 0) {
+          destinations.push(...legal.filter((port) => !destinations.includes(port)));
+          chosen ??= legal[0];
           chosenHops = hops;
-          break;
         }
       }
       if (chosen !== null) {
@@ -617,7 +640,10 @@ export const navalReturnPlan = (G: ImperialElegyState): NavalReturnEntry[] => {
           eliminate: false,
           reason: chosenHops === 0 ? "adjacentPort" : "nearestPort",
           hops: chosenHops,
+          destinations,
+          unitIds,
         });
+        projected.spaces[chosen].units.push(...unitIds);
         continue;
       }
       // No legal port with room.  Eliminate only when the owner controls no
@@ -626,7 +652,7 @@ export const navalReturnPlan = (G: ImperialElegyState): NavalReturnEntry[] => {
         (def) => portBoxes(def.id).length > 0 && G.spaces[def.id]?.control === owner,
       );
       if (!controlsAPort) {
-        plan.push({unitId: unit.id, owner, from: box.id, to: null, eliminate: true, reason: "eliminated", hops: null});
+        plan.push({unitId: unit.id, owner, from: box.id, to: null, eliminate: true, reason: "eliminated", hops: null, unitIds});
       } else {
         // Why the stay-at-sea: distinguish a full port from one whose enemy
         // garrison blocks it (20.4) and from "no friendly port at all".
