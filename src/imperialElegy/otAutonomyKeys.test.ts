@@ -59,6 +59,10 @@ describe("33.6 Local Autonomy — conditional keys", () => {
     // Egypt under OT control creates the land route Egypt - Great Sand Sea -
     // Benghazi - Tripoli - Tunisia.
     G.spaces.egypt.control = "OT";
+    // Benghazi–Egypt is a SEA edge, not the named land route. The intervening
+    // Great Sand Sea must be controlled too (5.6 / 33.6).
+    expect(hasOtAutonomyLandLoc(G, "tripoli")).toBe(false);
+    G.spaces["great-sand-sea"].control = "OT";
     recomputeTracks(G);
     expect(hasOtAutonomyLandLoc(G, "tripoli")).toBe(true);
     expect(hasOtAutonomyLandLoc(G, "tunisia")).toBe(true);

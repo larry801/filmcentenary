@@ -39,6 +39,7 @@ import {
   displaceAlliedUnitsInTerritory,
   hasLoc,
   isPower,
+  isKeySpace,
   log,
   minorAlliesOf,
   minorController,
@@ -2098,11 +2099,7 @@ const treatyTargetFor = (war: WarState, victory: VictoryClassification, choice: 
 };
 
 /** 3.2.1–3.2.2: every square/star is a key, including keys without a track type. */
-export const isTreatyKey = (G: ImperialElegyState, space: SpaceId): boolean => {
-  const def = SPACES[space];
-  return def !== undefined && !isNavalBox(space) &&
-    (["key", "capital", "subcapital"].includes(def.type) || effectiveKeyType(G, space) !== undefined);
-};
+export const isTreatyKey = (G: ImperialElegyState, space: SpaceId): boolean => isKeySpace(G, space);
 
 /** Printed and event-granted homes, including a minor ally's original home. */
 const treatyHomeOf = (G: ImperialElegyState, space: SpaceId, power: PowerOrMinor): boolean => {

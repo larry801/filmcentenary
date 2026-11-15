@@ -14,7 +14,7 @@ This table tracks the current audit until every Partial row is reconciled.
 | 6–7 | Key/colonial/Arab track derivation and power-projection baseline audit. | Existing display/track suites. |
 | 8 | Reconcile the complete alliance section, including aid shifts and player choices. | A015/A111 + d6 resolution: [0184ee01 CI](https://github.com/larry801/filmcentenary/actions/runs/43683138802); harsh terms: [ef8b259c CI](https://github.com/larry801/filmcentenary/actions/runs/43687623222). |
 | 9–12 | Audit remaining event timing, per-mode playability and economy simplifications against card text. | Prior card/response/turn-flag suites; not yet signed off as a complete section. |
-| 13–17 | Finish treaty follow-up CI; audit surrender, joint naval operations, settlement/free-action choices and remove obsolete gap claims only with evidence. | Harsh terms verified; 135c1b75 CI found a stale surrender assertion and a random-card browser fixture, being corrected. |
+| 13–17 | Audit surrender, joint naval operations, settlement/free-action choices and remove obsolete gap claims only with evidence. | Treaty territory/continuation: [ca46b63b CI](https://github.com/larry801/filmcentenary/actions/runs/43690347798), after correcting the stale surrender assertion and random-card browser fixture. |
 | 18–19 | Audit the remaining combat/naval fallback claims against current code and rules. | Existing combat/naval regression suites; section audit open. |
 | 20 | Verify every end-phase choice and non-player rebuild exception; distinguish printed counter limits from missing functionality. | Existing end-phase regression suites; section audit open. |
 | 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | Existing table/flow suites; section audit open. |
@@ -22,10 +22,30 @@ This table tracks the current audit until every Partial row is reconciled.
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
 | 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix is live; remaining deterministic choices require rule audit. |
 
-Latest fully verified baseline: **ef8b259c2887a9ad94194b88522b41d1352e3841**,
-441 suites / 4168 tests, frontend + server builds, 37 general browser tests and
-16 IE browser tests, all passed. The newer treaty-territory milestone remains
-unverified until its follow-up CI succeeds.
+Latest fully verified baseline: **ca46b63b53f82ad3b8cd0327b26208e6422a005e**,
+442 suites / 4199 tests, frontend + server builds, 37 general browser tests and
+16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43690347798).
+The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
+
+### Supply-source corrections under verification
+
+- 5.6 sources and their second home must be actual controlled **keys**;
+  ordinary home territories and naval bases cannot supply armies. Unprinted
+  key track types and permanent German home overrides remain valid. German
+  unification no longer turns foreign-controlled German spaces into foreign homes.
+- 4.9.4 / 5.6: peace traces through own control; wartime routes use participating
+  allies, including neutral-chit players who joined the war. Occupation takes
+  precedence over control; rebels deny a land source. An uncommitted diplomatic
+  ally is not a supply corridor. Player traces and second-key qualification obey
+  Suez/Dardanelles closures; land-only traces reject direct port-to-port sea edges.
+- 5.6.1: minor sources require keys and cannot be enemy-occupied. Italy's GW
+  routing no longer mistakes neutral players for allies, and respects occupation.
+- 5.5.3 / 5.6.2: a new action/war impulse resets the upkeep guard even when the
+  same sole remaining player acts again; repeated upkeep within one impulse
+  remains idempotent. `supplySources.test.ts` covers these cases and live loss.
+- This closes identified defects, not the entire section-5 audit: minor/Italian
+  sea-gate paths and the remaining displacement/movement clauses still require
+  source-level verification before changing the section's status.
 
 ## 2026-11-15 treaty-territory follow-up
 

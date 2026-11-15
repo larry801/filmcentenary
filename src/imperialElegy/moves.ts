@@ -289,6 +289,8 @@ const spend = (G: ImperialElegyState, amount: number): boolean => {
  * passes to the next belligerent.
  */
 const clearActionImpulseSpend = (G: ImperialElegyState): void => {
+  // A fresh impulse may belong to the same sole remaining player.
+  delete G.flags.impulseUpkeepStamp;
   for (const power of POWERS) {
     delete G.powers[power].flags.actionCpSpentThisImpulse;
     delete G.powers[power].flags.allianceAtImpulseStart;
@@ -309,6 +311,7 @@ const clearDeployedThisImpulse = (G: ImperialElegyState): void => {
 };
 
 const clearWarImpulseSpend = (G: ImperialElegyState): void => {
+  delete G.flags.impulseUpkeepStamp;
   for (const power of POWERS) {
     delete G.powers[power].flags.warCpSpentThisImpulse;
     // 33.5: a new wartime impulse re-enables the one-army railroad move.
