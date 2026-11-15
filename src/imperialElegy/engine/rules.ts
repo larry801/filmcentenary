@@ -1774,6 +1774,13 @@ export const dominatedFlashpoints = (G: ImperialElegyState, power: Power): strin
   return out;
 };
 
+/** 3.3.1 / 20.6: projection domination adds +1 alongside event DRMs. */
+export const industrializationModifier = (G: ImperialElegyState, power: Power): number => {
+  const eventDrm = Number(G.powers[power].flags.industryDrm ?? 0);
+  return (Number.isFinite(eventDrm) ? eventDrm : 0) +
+    (flashpointController(G, "powerProjection").includes(power) ? 1 : 0);
+};
+
 export const stabilityEffect = (G: ImperialElegyState, power: Power): StabilityEffect => {
   const p = G.powers[power];
   const table = POWER_DEFS[power].stability;

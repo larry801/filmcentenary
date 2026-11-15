@@ -242,6 +242,13 @@ test("end-phase reserve growth is capped by reserveAllowance and the UK gets non
 
 test("resolveEnd uses the RU/OT target 6 and the auto-industrialization chit", () => {
   const G = fresh();
+  // This fixture tests the printed target, not Russia's separate +1 for PP.
+  for (const unit of Object.values(G.units)) {
+    if (unit.owner === "RU" && unit.naval) {
+      if (unit.space !== null) G.spaces[unit.space].units = G.spaces[unit.space].units.filter((id) => id !== unit.id);
+      delete G.units[unit.id];
+    }
+  }
   const [geCard, ruCard, otCard, ruAuto, otAuto] = oneCpCards(5);
 
   G.powers.GE.industry = 1;

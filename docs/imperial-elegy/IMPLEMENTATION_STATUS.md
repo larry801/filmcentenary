@@ -22,9 +22,9 @@ This table tracks the current audit until every Partial row is reconciled.
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
 | 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix is live; remaining deterministic choices require rule audit. |
 
-Latest fully verified baseline: **ca46b63b53f82ad3b8cd0327b26208e6422a005e**,
-442 suites / 4199 tests, frontend + server builds, 37 general browser tests and
-16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43690347798).
+Latest fully verified baseline: **1da85ed3c4c7af9cec3b4b7734a02ed59b22a4cc**,
+444 suites / 4239 tests, frontend + server builds, 37 general browser tests and
+16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43692794857).
 The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
 
 ### Supply-source corrections under verification
@@ -104,6 +104,16 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   the existing power-choice panel provides English/Chinese labels. Verified
   locally by `balanceOfPowerDraw.test.ts` plus existing Balance of Power and
   Status Quo suites (35 tests); remote validation remains required.
+
+### 3.3.1 / 20.6 projection industrialization bonus
+
+- PP domination now contributes the printed +1 industrialization DRM. The
+  live economy threshold and characteristic helper share one modifier, stacking
+  PP with A075's +2 for other players. The end-phase step refreshes projection
+  before rolling, so captured ports and lost fleets cannot leave a stale bonus.
+- `projectionIndustry.test.ts` covers the shared modifiers, tied second place
+  and a live roll where UK succeeds only because of PP. A075 and RU/OT target
+  fixtures now isolate their own rule from the separately earned PP modifier.
 
 ## 2026-11-15 treaty-territory follow-up
 

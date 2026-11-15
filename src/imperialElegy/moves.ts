@@ -5393,6 +5393,7 @@ const endPhaseSetManpower = (
 
 /** 20.6 Industrialization (12.13). */
 const endPhaseIndustrialization = (G: ImperialElegyState, ctx: Ctx): void => {
+  refreshPowerProjection(G);
   for (const power of POWERS) {
     const p = G.powers[power];
     if (p.industryCard) {
