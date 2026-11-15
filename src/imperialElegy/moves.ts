@@ -38,6 +38,7 @@ import {
   unitMinor,
   woiProgressPlan,
   type MilitarismBenefit,
+  type NavalReturnEntry,
 } from "./engine/endPhase";
 import {
   dardanellesController,
@@ -4661,6 +4662,9 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     if (optionId !== "accept" && optionId !== "refuse") return INVALID_MOVE;
     return resolveAttackerSurrender(G, ctx, pending, optionId === "accept");
   }
+  if (pending.kind === "movementDestination" && context.special === "endPhaseNavalReturn") {
+    return resolveNavalReturnChoice(G, ctx, pending, optionId);
+  }
   if (pending.kind === "italianInternalWar") {
     // 22.1.3: the active player chose Sardinia-Piedmont or the Two Sicilies.
     if (!ITALIAN_INTERNAL_WAR_POWERS.includes(optionId as (typeof ITALIAN_INTERNAL_WAR_POWERS)[number])) {
@@ -4839,6 +4843,10 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   const playerID = ctx.playerID ?? null;
   const pending = G.pending;
   if (!pending || playerID !== seatOf(pending.power)) return INVALID_MOVE;
+  if (pending.kind === "movementDestination" && pending.context?.special === "endPhaseNavalReturn") {
+    const first = pending.options[0];
+    return first ? resolveNavalReturnChoice(G, ctx, pending, first.id) : INVALID_MOVE;
+  }
   if (pending.kind === "confirm" && pending.context?.special === "attackerSurrender") {
     return resolveAttackerSurrender(G, ctx, pending, false);
   }
@@ -5335,24 +5343,47 @@ const endPhaseNonPlayerBuild = (G: ImperialElegyState): void => {
  * respects the four-unit port limit and reports units that must be eliminated
  * because their owner controls no port at all.
  */
-const endPhaseNavalToPort = (G: ImperialElegyState): void => {
-  for (const entry of navalReturnPlan(G)) {
-    const power = isPower(entry.owner) ? entry.owner : undefined;
-    if (entry.eliminate) {
-      removeUnit(G, entry.unitId);
-      log(G, power, "navalReturnToPort", {from: entry.from, to: null, count: 1, eliminated: true});
-      continue;
-    }
+const applyNavalReturn = (G: ImperialElegyState, entry: NavalReturnEntry): void => {
+  const ids = entry.unitIds ?? [entry.unitId];
+  const power = isPower(entry.owner) ? entry.owner : undefined;
+  for (const id of ids) {
+    if (entry.eliminate) { removeUnit(G, id); continue; }
     if (entry.to === null) continue;
-    const unit = G.units[entry.unitId];
+    const unit = G.units[id];
     if (!unit) continue;
-    if (unit.space && G.spaces[unit.space]) {
-      G.spaces[unit.space].units = G.spaces[unit.space].units.filter((id) => id !== unit.id);
-    }
-    G.spaces[entry.to].units.push(unit.id);
+    if (unit.space && G.spaces[unit.space]) G.spaces[unit.space].units = G.spaces[unit.space].units.filter((unitId) => unitId !== id);
+    G.spaces[entry.to].units.push(id);
     unit.space = entry.to;
-    log(G, power, "navalReturnToPort", {from: entry.from, to: entry.to, count: 1, eliminated: false});
   }
+  if (entry.eliminate || entry.to !== null) log(G, power, "navalReturnToPort", {from: entry.from, to: entry.to, count: ids.length, eliminated: entry.eliminate});
+};
+
+const resolveNavalReturnChoice = (G: ImperialElegyState, ctx: Ctx, pending: PendingDecision, port: string): string | void => {
+  if (G.phase !== "end" || G.endPhase === undefined) return INVALID_MOVE;
+  const entry = navalReturnPlan(G).find((candidate) => candidate.unitId === pending.context?.unitId);
+  if (!entry || !entry.destinations?.includes(port)) return INVALID_MOVE;
+  const controller = isPower(entry.owner) ? entry.owner : minorController(G, entry.owner);
+  if (controller !== pending.power) return INVALID_MOVE;
+  G.pending = null;
+  applyNavalReturn(G, {...entry, to: port});
+  continueEndPhase(G, ctx);
+  return undefined;
+};
+
+const endPhaseNavalToPort = (G: ImperialElegyState, ctx: Ctx, interactive: boolean): boolean => {
+  for (const entry of navalReturnPlan(G)) {
+    const controller = isPower(entry.owner) ? entry.owner : minorController(G, entry.owner);
+    if (interactive && controller !== null && (entry.destinations?.length ?? 0) > 1) {
+      openDecision(G, endPhaseCtx(ctx), decision(
+        "movementDestination", controller, "Return to port: choose a nearest friendly port",
+        entry.destinations!.map((port) => option(port, spaceLabel(port, "en"), {space: port}, false, spaceLabel(port, "zh_CN"))),
+        {special: "endPhaseNavalReturn", unitId: entry.unitId, required: true},
+      ));
+      return true;
+    }
+    applyNavalReturn(G, entry);
+  }
+  return false;
 };
 
 /** Remove one standing army for 20.5 and log it. */
@@ -5652,8 +5683,7 @@ const applyEndPhaseStep = (
       endPhaseNonPlayerBuild(G);
       return false;
     case "navalUnitsToPort":
-      endPhaseNavalToPort(G);
-      return false;
+      return endPhaseNavalToPort(G, ctx, interactive);
     case "setManpower":
       return endPhaseSetManpower(G, ctx, progress, interactive);
     case "industrialization":

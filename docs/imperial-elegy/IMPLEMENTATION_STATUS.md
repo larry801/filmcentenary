@@ -22,9 +22,9 @@ This table tracks the current audit until every Partial row is reconciled.
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
 | 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix is live; remaining deterministic choices require rule audit. |
 
-Latest fully verified baseline: **cd87d19f134174412800074173b2bd024add9322**,
-447 suites / 4268 tests, frontend + server builds, 37 general browser tests and
-16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43695257641).
+Latest fully verified baseline: **2591c8f1284fd31cb6239695a90b4c55ed004d9c**,
+449 suites / 4288 tests, frontend + server builds, 37 general browser tests and
+16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43695994681).
 The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
 
 ### Supply-source corrections under verification
@@ -194,6 +194,23 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   live flow; updated campaign tests explicitly accept the offer before settlement.
 - Local surrender/lone-minor/board regressions: **64 tests / 3 suites passed**;
   TypeScript and diff checks pass. Full remote verification remains required.
+
+### 20.4 complete sea-unit return and nearest-port choice
+
+- The return planner reserves earlier arrivals' capacity instead of assigning
+  every ship to the same initially empty port. Naval and land stacking limits
+  are enforced; armies cannot enter naval bases. All sea-borne unit kinds are
+  considered, including reserve armies, elite colonial EFs and Zouaves; an army
+  and its attached corps return together.
+- The live end phase suspends on an owner-controlled nearest-port choice when
+  several destinations tie (a controlled minor's player decides too). The
+  existing bilingual movement-destination panel renders the choices. Save/resume
+  revalidates the current capacity, then continues step 20.4 before manpower.
+  A one-shot resolver uses the deterministic nearest legal port.
+- Empty enemy-occupied ports are excluded even after their garrison leaves;
+  player traces use the Suez/Dardanelles gates. `navalEndReturn.test.ts` covers
+  multi-ship capacity, reserve/corps grouping, omitted unit kinds, army/base
+  restrictions, saved owner choices, stale destinations and occupation markers.
 
 ## 2026-11-15 treaty-territory follow-up
 
