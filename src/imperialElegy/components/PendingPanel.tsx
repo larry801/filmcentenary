@@ -78,6 +78,11 @@ export const PendingPanel = ({
     <IEPanel
       className={dock ? "ie-dock-panel" : ""}
       title={t.pending}
+      // Folding this panel must not hide a decision the player owes: the
+      // folded bar says so, and the badge names the kind of decision.
+      collapsedHint={canDecide
+        ? bi(locale, "A decision is waiting here — expand to answer it.", "这里有待决事项，展开以继续。")
+        : undefined}
       actions={pendingKind !== null ? (
         <div className="ie-panel-actions">
           <IEBadge tone="warn">{pendingKind}</IEBadge>
