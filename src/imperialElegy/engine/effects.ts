@@ -2016,7 +2016,15 @@ const resolveCardChain = (
         for (const space of remaining.slice(0, Math.max(0, needed))) {
           grantBalkanIndependence(G, space);
         }
-        if (!openBalkanAward(G, ctx, resume, owner)) finishCardChain(G, ctx, pending);
+        // The remaining card effects own the second WTT increase and award.
+        // Resolving the crisis here must precede choosing Macedonia's owner.
+        // Legacy saves already charged the second increase before this choice
+        // and carry no award effect. Resume their old tail without charging it twice.
+        if (!resume.some((effect) => effect.type === "special" && effect.handler === "balkanWarsAward")) {
+          openBalkanAward(G, ctx, resume, owner);
+          return;
+        }
+        finishCardChain(G, ctx, pending);
         return;
       }
       const award = optionId;
@@ -2733,23 +2741,22 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // the text is ignored); this handler is the "rest of the text".
       // "If the Ottomans control space(s) in the Balkans other than Istanbul,
       // remove all Ottoman ally markers in the Balkans and roll a die."
-      for (const space of BALKAN_SPACES) {
-        if (G.spaces[space].ally === "OT") G.spaces[space].ally = null;
-      }
       const otBalkan = BALKAN_SPACES.filter((id) => id !== "istanbul" && G.spaces[id].control === "OT");
       if (otBalkan.length > 0) {
-        const nonPlayerArmies = otBalkan.reduce(
+        for (const space of BALKAN_SPACES) {
+          if (G.spaces[space].ally === "OT") G.spaces[space].ally = null;
+        }
+        const nonPlayerArmies = BALKAN_SPACES.reduce(
           (sum, id) => sum + landUnitsIn(G, id).filter((u) => isArmyKind(u.kind) && !isPower(u.owner)).length,
           0,
         );
-        const otArmies = otBalkan.reduce(
+        const otArmies = BALKAN_SPACES.reduce(
           (sum, id) => sum + landUnitsIn(G, id).filter((u) => isArmyKind(u.kind) && u.owner === "OT").length,
           0,
         );
         const roll = die(ctx, 6) + nonPlayerArmies - otArmies;
         if (roll >= 5) {
-          changeWtt(G, 1, ctx, G.resolvingCard ?? undefined);
-          return openBalkanIndependence(otBalkan);
+          return !openBalkanIndependence(otBalkan);
         }
         // "all rebel armies in the Balkans and each independent Balkan minor
         // power army suffer a step loss."
@@ -2761,10 +2768,12 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
           }
         }
       }
-      changeWtt(G, 1, ctx, G.resolvingCard ?? undefined);
+      return true;
+    }
+    case "balkanWarsAward": {
       // "The active player gives Macedonia to Greece, Bulgaria, Serbia or the
       // Ottomans (a minor power must be independent)."
-      return openBalkanAward(G, ctx, resume, actor);
+      return !openBalkanAward(G, ctx, resume, actor);
     }
     case "moroccanCrisis": {
       // "You and the player currently controlling Morocco may play a card

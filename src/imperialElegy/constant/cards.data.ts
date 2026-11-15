@@ -488,8 +488,10 @@ export const ACTION_CARDS: CardDef[] = [
   A(100, 2, "mandatory", "The Balkan Wars", "巴尔干战争",
     "Increase the WTT by 1. If the Ottomans control space(s) in the Balkans other than Istanbul, remove all Ottoman ally markers in the Balkans and roll a die: +1 per non-player army in the Balkans including rebels, -1 per Ottoman army in the Balkans. On 5 or more two Ottoman-controlled Balkan spaces gain independence (not Istanbul); displace units. On any other result all rebel armies in the Balkans and each independent Balkan minor power army suffer a step loss. Increase the WTT by 1. The active player gives Macedonia to Greece, Bulgaria, Serbia or the Ottomans (a minor power must be independent).",
     "世界紧张 +1。若奥斯曼控制伊斯坦布尔以外的巴尔干空间，移除其巴尔干联盟标记并掷骰（巴尔干非玩家军团 +1，奥斯曼军团 -1）：5+ 则两个奥斯曼巴尔干空间独立；否则巴尔干叛军与独立小国各受 1 步损失。世界紧张再 +1。当前玩家将马其顿交给希腊/保加利亚/塞尔维亚/奥斯曼之一。",
-    // 23.1: the first WTT increase opens the Crisis Table before the rest of the text.
-    [{type: "wtt", delta: 1}, {type: "special", handler: "balkanWars"}]),
+    // 23.1: either increase may incite a crisis. Finish the intervening
+    // independence/loss choices before the second; award Macedonia afterwards.
+    [{type: "wtt", delta: 1}, {type: "special", handler: "balkanWars"},
+      {type: "wtt", delta: 1}, {type: "special", handler: "balkanWarsAward"}]),
   A(101, 2, "mandatory", "The Black Hand", "黑手党",
     "Increase the WTT by 1.",
     "世界紧张 +1。",

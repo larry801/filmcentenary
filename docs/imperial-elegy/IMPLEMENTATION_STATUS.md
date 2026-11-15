@@ -71,6 +71,24 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   calculation is pinned to the rule formula, with this discrepancy explicit in
   `powerProjection.test.ts`. No fictitious port or numeric bonus is introduced.
 
+### A100 / 23.1 crisis sequencing corrected
+
+- Both WTT increases are printed on A100. Two crises are therefore legitimate
+  when a conference at the first increase leaves WTT at 4; suppressing the
+  second would contradict the card. The defect was the order: independence
+  choices must finish before the second increase, and Macedonia must wait
+  until after its crisis. An outbreak keeps preceding effects and skips the award.
+- The two increases, independence/loss resolution and Macedonia award are now
+  separate continuable effects. Corrected the handler's inverted pending return
+  value, so mandatory-card bookkeeping cannot finish while a choice is open.
+- The independence DRM counts armies throughout the Balkans, not only the
+  Ottoman-controlled target spaces. With no qualifying Ottoman space, the
+  conditional ally removal and die are skipped; the second WTT/award still run.
+- Legacy saved independence choices (which already charged the second WTT)
+  retain their award without a duplicate increase. `balkanWarsSequence.test.ts`
+  exercises both crisis boundaries, conference/outbreak, low-roll loss, forced
+  independence, no-target handling, all-space DRMs and legacy continuation.
+
 ## 2026-11-15 treaty-territory follow-up
 
 - **16.2.4 Righteous Defense:** a defending primary's major victory waives
