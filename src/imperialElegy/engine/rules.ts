@@ -1671,32 +1671,35 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
 export const ARAB_KEY_SPACES = new Set<SpaceId>(["arabia", "mecca", "baghdad", "kuwait", "syria"]);
 export const EGYPTIAN_SPACES = new Set<SpaceId>(["egypt", "great-sand-sea", "sinai"]);
 
-/** Power projection: at most two per naval box, capped by naval units x 2. */
+/** 3.3.1: a box grants 1 for ports, 2 with both an ordinary port and a base. */
 export const computePowerProjection = (G: ImperialElegyState, power: Power): number => {
-  const byBox = new Map<SpaceId, number>();
+  const byBox = new Map<SpaceId, {port: boolean; base: boolean}>();
   for (const def of Object.values(SPACES)) {
     if (!def.ports || def.ports.length === 0) continue;
     if (G.spaces[def.id]?.control !== power) continue;
+    if (unitsIn(G, def.id).some((unit) => unit.kind === "rebelArmy")) continue;
     // 33.6 Local Autonomy: "Tunisia and Tripoli neither count as keys nor for
     // power projection unless OT can trace a LoC to the keys by land."
     if (power === "OT" && OT_AUTONOMY_KEYS.has(def.id) && !hasOtAutonomyLandLoc(G, def.id)) continue;
     for (const box of def.ports) {
-      const current = byBox.get(box) ?? 0;
-      // A key/territory port + a naval base in the same box gives 2.
-      const add = def.type === "navalBase" ? 2 : 1;
-      byBox.set(box, Math.min(2, current + add));
+      if (def.id === "egypt" && box === "indian-ocean" && G.persistent.suezCanal !== true) continue;
+      const present = byBox.get(box) ?? {port: false, base: false};
+      if (def.type === "navalBase") present.base = true;
+      else present.port = true;
+      byBox.set(box, present);
     }
   }
   let total = 0;
-  let european = 0;
-  for (const [box, value] of byBox) {
-    if (EUROPEAN_WATERS.has(box)) {
-      if (european >= 3) continue;
-      european += 1;
-    }
-    total += value;
+  const european: number[] = [];
+  for (const [box, present] of byBox) {
+    const value = present.port && present.base ? 2 : 1;
+    if (EUROPEAN_WATERS.has(box)) european.push(value);
+    else total += value;
   }
-  const naval = unitsOfPower(G, power).filter((u) => u.naval).length;
+  // The three-box maximum is a limit on scoring, not map iteration order.
+  total += european.sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0);
+  const naval = Object.values(G.units).filter((unit) => unit.naval && unit.steps > 0 && unit.space !== null &&
+    (unit.owner === power || (!isPower(unit.owner) && minorController(G, unit.owner) === power))).length;
   return Math.max(0, Math.min(total, naval * 2));
 };
 
@@ -1730,6 +1733,8 @@ export const flashpointController = (G: ImperialElegyState, flashpoint: string):
     const ranked = [...POWERS].sort((a, b) => Number(G.powers[b].flags.powerProjection ?? 0) - Number(G.powers[a].flags.powerProjection ?? 0));
     const first = Number(G.powers[ranked[0]].flags.powerProjection ?? 0);
     const second = Number(G.powers[ranked[1]].flags.powerProjection ?? 0);
+    const leaders = ranked.filter((power) => Number(G.powers[power].flags.powerProjection ?? 0) === first);
+    if (leaders.length > 1) return first > 0 && leaders.length === 2 ? leaders : [];
     const out: Power[] = [];
     if (first > 0) out.push(ranked[0]);
     // Ties for second place do not dominate.
@@ -1788,7 +1793,9 @@ export const cardsToDraw = (G: ImperialElegyState, power: Power): number => {
   // Flashpoint bonuses: +1 or +1/2 rounded down? Printed cards give +1 or half;
   // dominating two half-flashpoints is +1.  We model each domination as a
   // half bonus and round the total up (4.1.1).
-  const flashpoints = dominatedFlashpoints(G, power).length;
+  // 3.3.1: PP grants industry DRM, never an inherent card bonus. A028
+  // awards a separate +1 marker when that event is played.
+  const flashpoints = dominatedFlashpoints(G, power).filter((id) => id !== "powerProjection").length;
   count += Math.ceil(flashpoints / 2);
   // National characteristics (India, City of Light, TSRR) now live in one place.
   count += cardDrawModifier(G, power).delta;

@@ -65,9 +65,7 @@ test("the initial deal uses the printed 10.2 card-draw formula", () => {
   for (const power of POWERS) {
     expect(G.powers[power].hand).toHaveLength(cardsToDraw(G, power));
   }
-  // The flashpoint dominations make the printed deal differ from the old
-  // industry-only table for the UK (Power Projection) and the Ottomans
-  // (Balkans).
-  expect(G.powers.UK.hand).toHaveLength(5);
+  // PP does not inherently grant cards (3.3.1); OT's Balkans still does.
+  expect(G.powers.UK.hand).toHaveLength(4);
   expect(G.powers.OT.hand).toHaveLength(4);
 });

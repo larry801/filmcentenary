@@ -14,9 +14,10 @@ import type {ImperialElegyState, Power, Unit} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {SPACES} from "./constant/spaces";
+import {CAMPAIGN_SETUP} from "./constant/setup";
 import {placeUnit} from "./engine/effects";
-import {computePowerProjection, hasOtAutonomyLandLoc, recomputeTracks, refreshPowerProjection} from "./engine/rules";
-import {auAction, constructFleet} from "./moves";
+import {cardsToDraw, computePowerProjection, flashpointController, hasOtAutonomyLandLoc, recomputeTracks, refreshPowerProjection} from "./engine/rules";
+import {auAction, constructFleet, playCard} from "./moves";
 
 const makeCtx = (playerID: string | null = "0"): Ctx =>
   ({
@@ -50,6 +51,15 @@ const otFleet = (G: ImperialElegyState): void => {
 };
 
 describe("3.3.1 power projection is a derived, cached track", () => {
+  test("campaign projection follows the printed port formula, with the documented FR setup discrepancy", () => {
+    const G = fresh();
+    expect(Object.fromEntries(POWERS.map((power) => [power, computePowerProjection(G, power)])))
+      .toEqual({...CAMPAIGN_SETUP.powerProjection, FR: 2});
+    // v1.1 Playbook p.3 prints FR 3, but its setup owns ordinary ports in
+    // only North Atlantic and West Mediterranean, with no base (rule 3.3.1).
+    expect(CAMPAIGN_SETUP.powerProjection.FR).toBe(3);
+    expect(SPACES["hong-kong"].type).toBe("navalBase");
+  });
   test("refreshPowerProjection overwrites the flag with the computed value", () => {
     const G = fresh();
     otFleet(G);
@@ -79,21 +89,117 @@ describe("3.3.1 power projection is a derived, cached track", () => {
   });
 });
 
+const isolated = (power: Power, spaces: string[], ships = 6): ImperialElegyState => {
+  const G = fresh();
+  G.units = {};
+  for (const state of Object.values(G.spaces)) {
+    state.units = [];
+    state.control = null;
+    state.ally = null;
+  }
+  for (const space of spaces) G.spaces[space].control = power;
+  for (let i = 0; i < ships; i += 1) placeUnit(G, power, "squadron", "north-atlantic", 1);
+  return G;
+};
+
+describe("3.3.1 printed port formula and rewards", () => {
+  test("many ordinary ports in a single box still score one", () => {
+    const G = isolated("FR", ["picardy", "brittany", "aquitaine"]);
+    expect(computePowerProjection(G, "FR")).toBe(1);
+  });
+
+  test("a naval base alone scores one, adding an ordinary port raises that box to two", () => {
+    const G = isolated("FR", ["malta"]);
+    expect(computePowerProjection(G, "FR")).toBe(1);
+    G.spaces.provence.control = "FR";
+    expect(computePowerProjection(G, "FR")).toBe(2);
+  });
+
+  test("only the best three European boxes contribute", () => {
+    const G = isolated("UK", ["london", "riga", "provence", "rhodes", "syria"]);
+    // North Atlantic 1, Baltic 1, West Med 1, East Med 2: choose 2+1+1.
+    expect(computePowerProjection(G, "UK")).toBe(4);
+  });
+
+  test("allied minor naval units count toward the cap, including reduced ships", () => {
+    const G = isolated("GE", ["picardy", "provence", "india"], 1);
+    expect(computePowerProjection(G, "GE")).toBe(2);
+    G.spaces.denmark.control = "Denmark";
+    G.spaces.denmark.ally = "GE";
+    placeUnit(G, "Denmark", "squadron", "denmark", 1);
+    expect(computePowerProjection(G, "GE")).toBe(3);
+    G.spaces.denmark.ally = "FR";
+    expect(computePowerProjection(G, "GE")).toBe(2);
+  });
+
+  test("Egypt's Indian Ocean port only contributes after Suez is built", () => {
+    const G = isolated("GE", ["egypt"]);
+    expect(computePowerProjection(G, "GE")).toBe(1);
+    G.persistent.suezCanal = true;
+    expect(computePowerProjection(G, "GE")).toBe(2);
+  });
+
+  test("rebel-held ports cannot project power", () => {
+    const G = isolated("FR", ["provence"]);
+    placeUnit(G, "REBEL:French", "rebelArmy", "provence", 1);
+    expect(computePowerProjection(G, "FR")).toBe(0);
+  });
+
+  test.each([
+    {values: [8, 8, 3, 0, 0, 0], winners: ["GE", "UK"]},
+    {values: [8, 8, 8, 0, 0, 0], winners: []},
+    {values: [8, 3, 3, 0, 0, 0], winners: ["GE"]},
+    {values: [0, 0, 0, 0, 0, 0], winners: []},
+  ])("PP ties $values award domination to $winners", ({values, winners}) => {
+    const G = fresh();
+    POWERS.forEach((power, index) => { G.powers[power].flags.powerProjection = values[index]; });
+    expect(flashpointController(G, "powerProjection")).toEqual(winners);
+  });
+
+  test("dominating PP gives no inherent card bonus", () => {
+    const G = isolated("FR", ["provence"]);
+    refreshPowerProjection(G);
+    const before = cardsToDraw(G, "FR");
+    G.powers.FR.flags.powerProjection = 0;
+    expect(cardsToDraw(G, "FR")).toBe(before);
+  });
+
+  test("A028 grants actual +1 card markers using current PP and the UK's double threshold", () => {
+    const G = isolated("UK", ["london", "india"], 2);
+    G.spaces.provence.control = "FR";
+    placeUnit(G, "FR", "squadron", "provence", 1);
+    startAction(G, "GE", 0);
+    G.powers.GE.hand = ["IE-A028"];
+    // Deliberately stale cached values: the event must compute the current board.
+    for (const power of POWERS) G.powers[power].flags.powerProjection = 99;
+    expect(playCard(G, makeCtx("0"), "IE-A028", "event")).toBeUndefined();
+    expect(G.powers.UK.cardMarkers).toBe(1);
+    expect(G.powers.FR.cardMarkers).toBe(1);
+    expect(G.powers.GE.cardMarkers).toBe(0);
+    G.spaces.india.control = null; // UK 1, FR 1: UK no longer doubles FR.
+    G.cpRemaining = 0;
+    G.powers.GE.hand = ["IE-A028"];
+    expect(playCard(G, makeCtx("0"), "IE-A028", "event")).toBeUndefined();
+    expect(G.powers.UK.cardMarkers).toBe(1);
+    expect(G.powers.FR.cardMarkers).toBe(2);
+  });
+});
+
 describe("33.6 Local Autonomy: Tunisia and Tripoli and power projection", () => {
   test("their ports do not count without a land line of communication", () => {
     const G = fresh();
     otFleet(G);
-    // Eastern Mediterranean 2, Black Sea 2, Indian Ocean 2, Western
+    // Eastern Mediterranean 2 (ordinary ports + Rhodes), Black Sea 1, Indian Ocean 1, Western
     // Mediterranean 1 (Benghazi only: Tunisia/Tripoli are excluded).
-    expect(computePowerProjection(G, "OT")).toBe(7);
+    expect(computePowerProjection(G, "OT")).toBe(5);
 
     // Ceding the two autonomous keys changes nothing while there is no land LoC.
     G.spaces.tripoli.control = "Egypt";
     G.spaces.tunisia.control = "Egypt";
-    expect(computePowerProjection(G, "OT")).toBe(7);
+    expect(computePowerProjection(G, "OT")).toBe(5);
   });
 
-  test("they count normally once the Ottomans have a land LoC", () => {
+  test("they count once linked by land, without stacking ordinary ports in the same box", () => {
     const G = fresh();
     otFleet(G);
     // Egypt under Ottoman control is the printed land route (33.6).  Egypt's
@@ -101,17 +207,19 @@ describe("33.6 Local Autonomy: Tunisia and Tripoli and power projection", () => 
     // per-box cap, so narrow that port for this test only: the Ottomans then
     // reach the box through Benghazi, Tripoli and Tunisia.
     G.spaces.egypt.control = "OT";
+    G.spaces["great-sand-sea"].control = "OT";
     const egypt = SPACES.egypt;
     const ports = egypt.ports;
     try {
       egypt.ports = ["indian-ocean"];
       expect(hasOtAutonomyLandLoc(G, "tripoli")).toBe(true);
-      // East 2 + Black Sea 2 + West 2 (Benghazi/Tripoli/Tunisia) + Indian 2.
-      expect(computePowerProjection(G, "OT")).toBe(8);
+      // East 2 + Black Sea 1 + West 1 + Indian 1. Extra ordinary ports
+      // cannot raise West to 2 without a naval base (3.3.1).
+      expect(computePowerProjection(G, "OT")).toBe(5);
 
       G.spaces.tripoli.control = "Egypt";
       G.spaces.tunisia.control = "Egypt";
-      expect(computePowerProjection(G, "OT")).toBe(7);
+      expect(computePowerProjection(G, "OT")).toBe(5);
     } finally {
       egypt.ports = ports;
     }

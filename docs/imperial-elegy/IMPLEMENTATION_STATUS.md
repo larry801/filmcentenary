@@ -47,6 +47,30 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   sea-gate paths and the remaining displacement/movement clauses still require
   source-level verification before changing the section's status.
 
+### Power-projection / source audit in progress
+
+- Current publisher downloads are [Living Rules v1.1 (January 2026)](https://cdn.shopify.com/s/files/1/0295/6650/0908/files/rulebook_V1.1_Lowrez.pdf?v=1769177925)
+  and [Living Playbook v1.1](https://cdn.shopify.com/s/files/1/0295/6650/0908/files/Playbook_V1.1_Lowrez.pdf?v=1769177919).
+  The product page still links the older production PDFs. Future section closure
+  must cross-check v1.1; notably 16.2.4 adds minority liberation and explicitly
+  requires a peacetime LoC for a foreign territorial acquisition.
+- 3.3.1 projection is one point per box with a port, two with an ordinary port
+  **and** a naval base, not additive per ordinary port. Score the best three
+  European boxes; count allied-minor naval units in the two-per-ship cap. Egypt's
+  Indian Ocean port is enabled by Suez. Hong Kong is a printed triangle/naval
+  base, not a territory; its Pacific anchor is a sea connection, and the three
+  unprinted direct land links to Chinese keys have been removed.
+- PP domination itself grants no cards. A028 awards actual +1 card markers,
+  reading current projection and enforcing the UK's double-next-highest clause.
+  Three-way ties for the top two places grant no domination.
+- **Source discrepancy still open:** v1.1 Playbook p.3 prints FR 3, but its
+  campaign setup and the map give France ordinary ports in only North Atlantic
+  and Western Mediterranean, with no naval base. Rule 3.3.1 therefore yields
+  FR 2. RU now correctly yields 3; UK 8 and the other printed zeros agree.
+  The setup's printed FR value is retained in `CAMPAIGN_SETUP`; the derived
+  calculation is pinned to the rule formula, with this discrepancy explicit in
+  `powerProjection.test.ts`. No fictitious port or numeric bonus is introduced.
+
 ## 2026-11-15 treaty-territory follow-up
 
 - **16.2.4 Righteous Defense:** a defending primary's major victory waives

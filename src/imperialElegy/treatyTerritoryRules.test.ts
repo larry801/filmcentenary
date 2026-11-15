@@ -313,8 +313,8 @@ describe("16.2.5 colonial cession", () => {
   test("the treaty target's control is required and ordinary overseas territories are excluded", () => {
     const G = colonialWar("AU");
     const victory = classifyVictory(G, G.war!);
-    G.spaces["hong-kong"].control = "AU";
-    expect(canApplyTreaty(G, G.war!, victory, {option: "colonialCession", space: "hong-kong"}).ok).toBe(false);
+    G.spaces.aden.control = "AU";
+    expect(canApplyTreaty(G, G.war!, victory, {option: "colonialCession", space: "aden"}).ok).toBe(false);
     expect(canApplyTreaty(G, G.war!, victory, {option: "colonialCession", space: "canada"}).ok).toBe(false);
     expect(canApplyTreaty(G, G.war!, victory, {option: "colonialCession", space: "vienna"}).ok).toBe(false);
   });

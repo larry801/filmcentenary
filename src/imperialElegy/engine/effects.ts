@@ -2186,15 +2186,16 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return false;
     }
     case "influenceSeaPower": {
+      refreshPowerProjection(G);
       for (const p of POWERS) {
         if (dominatedFlashpoints(G, p).includes("powerProjection")) {
           if (p === "UK") {
             const ukPp = Number(G.powers.UK.flags.powerProjection ?? 0);
             const others = POWERS.filter((x) => x !== "UK").map((x) => Number(G.powers[x].flags.powerProjection ?? 0));
             const maxOther = Math.max(0, ...others);
-            if (ukPp > 0 && ukPp >= maxOther * 2) G.powers.UK.flags.plusCards = Number(G.powers.UK.flags.plusCards ?? 0) + 1;
+            if (ukPp > 0 && ukPp >= maxOther * 2) G.powers.UK.cardMarkers += 1;
           } else {
-            G.powers[p].flags.plusCards = Number(G.powers[p].flags.plusCards ?? 0) + 1;
+            G.powers[p].cardMarkers += 1;
           }
         }
       }

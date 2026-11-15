@@ -697,6 +697,10 @@ describe("Local Autonomy (33.6)", () => {
     const G = fresh();
     // Egypt is an independent minor at setup; OT control makes it an Arab key.
     G.spaces.egypt.control = "OT";
+    // 3.4.4 also transfers the Egyptian companion spaces, providing the land
+    // corridor through Great Sand Sea rather than the Benghazi–Egypt sea edge.
+    G.spaces["great-sand-sea"].control = "OT";
+    G.spaces.sinai.control = "OT";
     recomputeTracks(G);
     expect(G.powers.OT.arabKeys).toBe(6);
     expect(G.powers.OT.secondaryManpower).toBe(2);
