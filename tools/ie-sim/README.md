@@ -46,6 +46,12 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
   action, wartime maneuver, wartime alliance, Great War.  This is what reaches
   the four `warOnly` responses, which are `response` cards and are played with
   `playResponseCard` rather than `playCard`.
+- `moduleCrossCheck.test.ts` — cross-checks the hand-transcribed campaign
+  setup against the publisher's own VASSAL save: the module's zone polygons put
+  each of its 591 pieces on a printed space, and the test requires our setup to
+  agree on which power starts where.  The few genuine representation
+  differences (an Indian Army, fort-garrison formations) are listed in one table
+  that a second test keeps honest — a stale entry fails.
 - `saveMigration.test.ts` — deletes one documented optional field at a time
   (then all of them plus the container records) and keeps *playing*, so a save
   that only survives loading does not pass.  A progress guard asserts every

@@ -423,6 +423,31 @@ on every line:
 Neither found a new defect, which is the useful result: the remaining index
 accesses are guarded, and the migration is additive as documented.
 
+**Data cross-check against the publisher's module.** The setup numbers in
+`constant/setup.ts` were transcribed by hand, and no logic test can catch a
+transcription slip. `tools/ie-sim/moduleCrossCheck.test.ts` uses the generated
+`campaign-setup.json` (591 pieces from the publisher's own VASSAL save) plus the
+map's zone polygons in `module.json` to put each piece on a printed space, then
+requires our setup to agree on which power starts where.
+
+Reading the module surfaced four naming conventions that a naive comparison
+gets wrong, and the test now records them instead of tripping on them:
+
+- the module labels a minor's army by its **space** (`Piedmont 1st Army/0`,
+  `Naples 1st Army/0`, `Ethiopia Army/0`), not by the minor's name;
+- India's army is `Indian Army/1`, not a UK unit (our setup's
+  `special: "indian"`);
+- an expeditionary force is `EXP Force/1` (`South Africa`, `Russian Far East`);
+- display markers (`FP …`, `VP & PP`, influence, pacification, fortress
+  markers) sit on the map but are not space units — 24 of the 100 main-map
+  pieces are these.
+
+The remaining genuine differences are in one table — a UK influence marker in
+Belgium, the Indian Army in India, and the garrisons in Lombardy and Sevastopol —
+and a second test keeps that table honest: a note that no longer matches
+anything, or whose space no longer holds that owner's unit, fails. That test
+already removed one note the author had added defensively.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
 (`W-1…8`) declares wars, runs the wartime impulses and settles them; and the
