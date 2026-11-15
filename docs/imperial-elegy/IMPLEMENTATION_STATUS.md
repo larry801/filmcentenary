@@ -22,9 +22,9 @@ This table tracks the current audit until every Partial row is reconciled.
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
 | 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix is live; remaining deterministic choices require rule audit. |
 
-Latest fully verified baseline: **2ffe30f078b779af2e9b3eb31b2f6b6bfa02baef**,
-446 suites / 4250 tests, frontend + server builds, 37 general browser tests and
-16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43694100893).
+Latest fully verified baseline: **cd87d19f134174412800074173b2bd024add9322**,
+447 suites / 4268 tests, frontend + server builds, 37 general browser tests and
+16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43695257641).
 The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
 
 ### Supply-source corrections under verification
@@ -142,7 +142,8 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   alliance/cap, displacement, minority targeting, peace supply, neutral home
   returns, save/resume and invalid-option immutability. `components/board.test.tsx`
   renders the real engine-created liberation button in Chinese. Targeted local
-  run: **505 tests / 5 suites passed**; full remote verification remains required.
+  run: **505 tests / 5 suites passed**. Full remote verification passed on
+  **cd87d19f**, as recorded in the baseline above.
 
 ### 20.3 independent-minor build corrections
 
@@ -161,6 +162,18 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   `endPhaseSteps` / `nonPlayerPlacementLimits` pin the independence and placement
   rules. No new automatic build entitlement is invented for a minor absent
   from the printed build box.
+
+### 20.6 industry track endpoints and automatic success
+
+- Successful end-phase industrialization and event-based industry increases
+  now use the same per-power maximum as the printed display / GW blockade cap,
+  rather than allowing every power to reach the hard-coded German maximum 7.
+- An automatic industrialization with a supplied card no longer consumes a die
+  before applying its guaranteed result. The card is still discarded and the
+  auto marker cleared; no-card behavior is unchanged.
+- `industryCeilings.test.ts` checks all six powers' live end-phase and event
+  paths, a reduced industry ceiling and the automatic no-die path. Combined
+  local industry/end-phase regressions: **48 tests / 3 suites passed**.
 
 ## 2026-11-15 treaty-territory follow-up
 

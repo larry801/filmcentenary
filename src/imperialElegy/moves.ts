@@ -196,6 +196,7 @@ import {
   advanceGwImpulse,
   faceupCombatCards,
   majorEntryOptions,
+  maxIndustryOf,
   performGwManeuver,
   resolveGwColonialChoice,
   resolveGwDraftSecond,
@@ -5399,10 +5400,9 @@ const endPhaseIndustrialization = (G: ImperialElegyState, ctx: Ctx): void => {
     if (p.industryCard) {
       const cp = cardById(p.industryCard).cp;
       const needed = industryRollNeeded(G, power, cp);
-      const roll = die(ctx, 6);
       // 12.13: a card of any CP value succeeds automatically on the auto side.
-      if (autoIndustrySuccess(G, power) || roll >= needed) {
-        p.industry = Math.min(7, p.industry + 1);
+      if (autoIndustrySuccess(G, power) || die(ctx, 6) >= needed) {
+        p.industry = Math.min(maxIndustryOf(G, power), p.industry + 1);
         p.autoIndustry = false;
       } else {
         p.autoIndustry = true;

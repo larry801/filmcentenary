@@ -67,6 +67,7 @@ import {
   enterGwAlly,
   LAND_ATTACK_TURN_FLAG,
   majorEntryCandidates,
+  maxIndustryOf,
   queueGwExhaustion,
   resolveMajorPowerEntry,
   usAllianceBox,
@@ -3290,7 +3291,7 @@ export const performEffect = (
     }
     case "industry": {
       const target = powerOf(G, actor, effect.target);
-      G.powers[target].industry = Math.min(7, G.powers[target].industry + effect.delta);
+      G.powers[target].industry = Math.max(0, Math.min(maxIndustryOf(G, target), G.powers[target].industry + effect.delta));
       return true;
     }
     case "keys": {
