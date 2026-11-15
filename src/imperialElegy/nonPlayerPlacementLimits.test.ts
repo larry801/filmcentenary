@@ -60,28 +60,26 @@ const seedMinorArmies = (G: ImperialElegyState, minor: string, home: string, cou
 };
 
 // ---------------------------------------------------------------------------
-// 20.3 — the printed minor "Armies" row is the ceiling
+// 20.3 — automatic builds cannot create a second army
 // ---------------------------------------------------------------------------
 
-describe("20.3 minor build ceiling follows the 4.2 chart row", () => {
+describe("20.3 one-army automatic build limit is narrower than the 4.2 pool", () => {
   test.each([
     ["Serbia", "serbia"],
     ["Greece", "greece"],
     ["Romania", "romania"],
     ["Bulgaria", "bulgaria"],
-  ])("%s may reach its printed two armies, one step per end phase", (minor, home) => {
+  ])("%s cannot build its second army automatically, but can promote an event-built one", (minor, home) => {
     const G = fresh();
     G.nonPlayerBuildBox = boxFor([minor]);
+    G.spaces[home].control = minor;
     seedMinorArmies(G, minor, home, 1);
 
-    // One full army on the map: the chart row (2) still allows a new reduced
-    // army.  The old universal ceiling of 1 refused this placement.
-    expect(nonPlayerBuildPlan(G)).toEqual([
-      {minor, home, action: "placeReduced", unitId: null, space: home},
-    ]);
+    // 20.3 clarification: the second counter requires a player action/event.
+    expect(nonPlayerBuildPlan(G)).toEqual([]);
     resolveEnd(G, makeCtx());
-    expect(unitsOf(G, minor)).toHaveLength(2);
-    expect(unitsOf(G, minor).filter((unit) => unit.steps === 1)).toHaveLength(1);
+    expect(unitsOf(G, minor)).toHaveLength(1);
+    placeUnit(G, minor, "minorArmy", home, 1);
 
     // The row is now full: no over-place, and the next phase only promotes the
     // reduced counter.

@@ -280,9 +280,14 @@ const BUILD_STEPS: Record<string, number> = {Poland: 2};
  * mapped in `MINOR_POWER_HOMES`; Poland gains independence during play and has
  * no entry there, so fall back to the space id / `minorHome` marker.
  */
-const homeForMinor = (minor: string): SpaceId | null => {
+const homeForMinor = (G: ImperialElegyState, minor: string): SpaceId | null => {
+  if (minor === POLAND && G.spaces.poland?.control === POLAND) return "poland";
+  const liberated = Object.entries(G.spaces).find(([, state]) => state.control === minor && state.independentHome?.power === minor)?.[0];
   const mapped = MINOR_POWER_HOMES[minor];
-  if (mapped !== undefined) return mapped;
+  if (mapped !== undefined) return G.spaces[mapped]?.control === minor ? mapped : liberated ?? mapped;
+  if (liberated !== undefined) return liberated;
+  if (minor === POLAND) return Object.values(SPACES).find((space) =>
+    space.nationalities?.includes("Poles") && G.spaces[space.id]?.control === POLAND)?.id ?? null;
   const direct = Object.values(SPACES).find((space) => space.minorHome === minor || space.id === minor.toLowerCase());
   return direct?.id ?? null;
 };
@@ -296,16 +301,12 @@ const homeForMinor = (minor: string): SpaceId | null => {
  *
  * The plan is deterministic: a reduced army is promoted before a new one is
  * placed, and the new army always appears on the space that shares the minor's
- * name (e.g. Serbian units are placed in Serbia, even when the space is
- * controlled by the Ottomans).
+ * name (e.g. Serbian units are placed in independent Serbia).
  *
- * 4.2/20.3: the ceiling is the minor's printed non-player "Armies" row, not a
- * universal 1 — Serbia, Greece, Romania and Bulgaria may each build up to two
- * armies.  Each end phase still adds at most one step (Poland: two), so the
- * counter mix only stops a build once the row is full.  Rows the chart does not
- * print keep the old conservative one-army ceiling rather than inventing a
- * larger pool; `nonPlayerHasCounterFor` is also consulted before every
- * placement so a full row can never be over-built.
+ * 20.3 explicitly cannot place a second army (except Poland). The larger 4.2
+ * physical pools apply to player actions/events, not this automatic build.
+ * Existing reduced armies may still be promoted. `nonPlayerHasCounterFor`
+ * also guards each replacement against the physical counter pool.
  *
  * Poland is gated on rule 22.5: only an independent Poland build-box power
  * takes the two Polish steps.  Its allowance (Polish spaces + 1) counts the map
@@ -321,14 +322,16 @@ export const nonPlayerBuildPlan = (G: ImperialElegyState): NonPlayerBuildEntry[]
     // spaces must not receive a minor-power build step (the printed 20.3 minor
     // is no longer an independent power), so skip them for the 22.4 rebuild.
     if (G.persistent.italyUnified === true && ITALIAN_MINOR_POWERS.has(minor)) continue;
-    const home = homeForMinor(minor);
+    if (G.eliminatedMinors?.includes(minor)) continue;
+    const home = homeForMinor(G, minor);
     if (home === null || !G.spaces[home]) continue;
     if (minor === POLAND && !isPolandIndependent(G)) continue;
+    if (G.spaces[home].control !== minor) continue;
     const isPoland = minor === POLAND;
     const armies = Object.values(G.units)
       .filter((unit) => unit.owner === minor && isArmyKind(unit.kind))
       .sort((a, b) => a.id.localeCompare(b.id));
-    const maxArmies = isPoland ? polishArmyCap(G) : nonPlayerCounterPool(minor)?.armies ?? 1;
+    const maxArmies = isPoland ? polishArmyCap(G) : Math.min(1, nonPlayerCounterPool(minor)?.armies ?? 1);
     const steps = isPoland ? BUILD_STEPS[POLAND] : 1;
     const reduced = armies.filter((unit) => unit.steps < 2);
     let total = armies.length;

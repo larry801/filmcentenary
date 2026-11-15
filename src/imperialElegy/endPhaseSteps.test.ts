@@ -112,7 +112,7 @@ test("a legacy UK fort in India without the flag is repaired to the Indian fort"
 // 20.3 — Non-Player Power Build Step
 // ---------------------------------------------------------------------------
 
-test("the build box defaults to the printed roster and each minor gets one army step", () => {
+test("the printed build-box roster only grants independent minors an army step", () => {
   const G = fresh();
   // Round 7: `setupImperialElegy` now writes the migrated defaults, so the
   // printed campaign box is already on a fresh state.  Delete it again to keep
@@ -129,11 +129,10 @@ test("the build box defaults to the printed roster and each minor gets one army 
   expect(tuscany).toHaveLength(1);
   expect(tuscany[0].space).toBe("tuscany");
   expect(tuscany[0].steps).toBe(1);
-  // Serbia is listed in the red/start box even though the Ottomans control the
-  // space, so a reduced Serbian army is placed there too.
+  // The red/start box is a reminder, not an independence grant. Serbia remains
+  // Ottoman-controlled and gets no army until it becomes independent (20.3).
   const serbia = unitsOf(G, "Serbia");
-  expect(serbia).toHaveLength(1);
-  expect(serbia[0].space).toBe("serbia");
+  expect(serbia).toHaveLength(0);
 });
 
 test("a reduced build-box army is flipped to full strength, not duplicated", () => {

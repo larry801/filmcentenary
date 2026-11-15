@@ -144,6 +144,24 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   renders the real engine-created liberation button in Chinese. Targeted local
   run: **505 tests / 5 suites passed**; full remote verification remains required.
 
+### 20.3 independent-minor build corrections
+
+- The automatic build step now requires an independent minor to control its
+  home. A red campaign build-box reminder no longer creates Serbian/Bosnian/
+  Bulgarian armies inside an Ottoman-controlled homeland. Permanently removed
+  minors never rebuild, even if a stale control marker remains.
+- One automatic army per minor is the printed 20.3 ceiling. The larger physical
+  pools in 4.2 allow player recruitment/events to create a second army; they do
+  not raise the automatic ceiling. Existing reduced second armies can still
+  receive the one-step promotion. Poland keeps its two-step/spaces+1 exception.
+- Polish placement uses a controlled Polish home (preferring Poland itself),
+  including a newly liberated Galicia; it cannot place troops in still-Russian
+  Poland. Dynamic liberated homes are recognized when a minor is in the box.
+- `minorBuildIndependence.test.ts` and corrected source-based assertions in
+  `endPhaseSteps` / `nonPlayerPlacementLimits` pin the independence and placement
+  rules. No new automatic build entitlement is invented for a minor absent
+  from the printed build box.
+
 ## 2026-11-15 treaty-territory follow-up
 
 - **16.2.4 Righteous Defense:** a defending primary's major victory waives
