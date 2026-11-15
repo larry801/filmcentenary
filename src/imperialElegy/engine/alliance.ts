@@ -102,8 +102,8 @@ export interface AllianceShiftResult {
   /** How many boxes were actually shifted. */
   steps: number;
   /**
-   * True when a printed shift was refused because it would have put a fourth
-   * player into an alliance (rule 8.4).  The chit stays where it was.
+   * True when a step was refused by the alliance cap (8.4) or an event's
+   * prohibition on returning to neutrality. Earlier legal steps still apply.
    */
   blocked: boolean;
 }
@@ -116,6 +116,8 @@ export interface AllianceShiftOptions {
    * voluntary shift keeps the cap.
    */
   ignoreCap?: boolean;
+  /** A015/A111: a player who began the impulse neutral cannot shift back. */
+  preventNeutral?: boolean;
 }
 
 /**
@@ -145,6 +147,10 @@ export const shiftAlliance = (
   for (let i = 0; i < Math.max(0, steps); i += 1) {
     const next = stepAllianceBox(current, direction);
     if (next === current) break;
+    if (next === "neutral" && options.preventNeutral) {
+      blocked = true;
+      break;
+    }
     const side = sideOfAllianceBox(next);
     if (side !== null && options.ignoreCap !== true && !canJoinAlliance(G, power, side)) {
       blocked = true;

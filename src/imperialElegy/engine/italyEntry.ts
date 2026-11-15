@@ -167,7 +167,7 @@ const italyOrder: readonly ItalyAllianceDirection[] = ["te", "ta", "neutral"];
 
 /**
  * Rule 8.6, Italy's half.  Italy rolls exactly like a player power — one
- * influence type shifts automatically, two or three roll 2d6 per marker with
+ * influence type shifts automatically, two or three roll one die per marker with
  * the influence as a DRM — except that "reroll the dice if the Italian result
  * produces a tie".  Returns null when Italy has no influence to resolve.
  */
@@ -195,12 +195,12 @@ export const rollItalyAllianceResolution = (
   // one influence are rolled (the printed example rolls two dice for a power
   // with neutral + Triple Alliance influence).
   const rollOnce = (): {te: number; ta: number; neutral: number} => ({
-    te: present.includes("te") ? rollDie() + rollDie() + influence.te : 0,
-    ta: present.includes("ta") ? rollDie() + rollDie() + influence.ta : 0,
-    neutral: present.includes("neutral") ? rollDie() + rollDie() + influence.neutral : 0,
+    te: present.includes("te") ? rollDie() + influence.te : 0,
+    ta: present.includes("ta") ? rollDie() + influence.ta : 0,
+    neutral: present.includes("neutral") ? rollDie() + influence.neutral : 0,
   });
   const rank = (rolls: {te: number; ta: number; neutral: number}) => {
-    const ranked = italyOrder
+    const ranked = present
       .map((side) => ({side, result: rolls[side]}))
       .sort((a, b) => b.result - a.result || italyOrder.indexOf(a.side) - italyOrder.indexOf(b.side));
     const top = ranked[0].result;

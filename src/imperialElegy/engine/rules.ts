@@ -2812,6 +2812,7 @@ export const beginImpulseUpkeep = (
 ): boolean => {
   if (G.pending !== null || G.battle !== null) return false;
   if (!G.powers[power] || G.powers[power].eliminated) return false;
+  if (G.phase === "action") G.powers[power].flags.allianceAtImpulseStart ??= G.powers[power].alliance;
   const stamp = `${G.phase}|${G.turn}|${G.turnIndex}|${G.gw?.turn ?? ""}|${G.war?.status ?? ""}|${power}`;
   if (G.flags.impulseUpkeepStamp === stamp) return false;
   G.flags.impulseUpkeepStamp = stamp;

@@ -290,6 +290,7 @@ const spend = (G: ImperialElegyState, amount: number): boolean => {
 const clearActionImpulseSpend = (G: ImperialElegyState): void => {
   for (const power of POWERS) {
     delete G.powers[power].flags.actionCpSpentThisImpulse;
+    delete G.powers[power].flags.allianceAtImpulseStart;
     // 33.5 is "per impulse", so the railroad allowance resets when the
     // impulse passes to the next player (4.5).
     delete G.powers[power].flags.tsrrRailImpulse;

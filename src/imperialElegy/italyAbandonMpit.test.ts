@@ -202,20 +202,20 @@ describe("8.6 Italy's own alliance resolution", () => {
 
   test("a tie is rerolled (the Italian exception)", () => {
     const G = italy({te: 1, ta: 1, neutral: 0});
-    const dice = [1, 1, 1, 1, 2, 1, 1, 1];
+    const dice = [1, 1, 2, 1];
     const roll = rollItalyAllianceResolution(G, () => dice.shift() ?? 1);
-    // First roll ties 3-3; the reroll is 4-3 for the Triple Entente.
-    expect(roll?.rolls).toEqual({te: 4, ta: 3, neutral: 0});
+    // First roll ties 2-2; the reroll is 3-2 for the Triple Entente.
+    expect(roll?.rolls).toEqual({te: 3, ta: 2, neutral: 0});
     expect(roll?.direction).toBe("te");
     expect(roll?.steps).toBe(1);
   });
 
   test("a differential of 10+ shifts twice", () => {
-    const G = italy({te: 1, ta: 0, neutral: 1});
-    const dice = [6, 6, 1, 1, 1, 1];
+    const G = italy({te: 6, ta: 0, neutral: 1});
+    const dice = [6, 1];
     const roll = rollItalyAllianceResolution(G, () => dice.shift() ?? 1);
-    // te = 13, neutral = 3, ta = 0 -> differential 10 -> two boxes.
-    expect(roll?.rolls).toEqual({te: 13, ta: 0, neutral: 3});
+    // te = 12, neutral = 2, ta = 0 -> differential 10 -> two boxes.
+    expect(roll?.rolls).toEqual({te: 12, ta: 0, neutral: 2});
     expect(roll?.steps).toBe(2);
     expect(roll?.direction).toBe("te");
     const shift = applyItalyAllianceResolution(G, roll!);
@@ -229,9 +229,9 @@ describe("8.6 Italy's own alliance resolution", () => {
   });
 
   test("the track end stops a two-box shift and reports it", () => {
-    const G = italy({te: 1, ta: 0, neutral: 1});
+    const G = italy({te: 6, ta: 0, neutral: 1});
     G.persistent.italyAlliance = "teAligned";
-    const dice = [6, 6, 1, 1];
+    const dice = [6, 1];
     const roll = rollItalyAllianceResolution(G, () => dice.shift() ?? 1);
     expect(roll?.steps).toBe(2);
     const shift = applyItalyAllianceResolution(G, roll!);

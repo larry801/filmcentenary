@@ -80,7 +80,7 @@ Status labels:
 
 - Alliance track boxes, committed/aligned state, declarations of war and
   card-driven alliance shifts — **implemented**.
-- MPIT influence and the alliance resolution step (2d6 + influence; differential
+- MPIT influence and the alliance resolution step (one d6 per positive marker + influence; differential
   ≥10 = two boxes) — **implemented** in `engine/effects.ts`; the `placeMpit`
   move spends 1 CP.
 - **8.4 three-player maximum is enforced** by `engine/alliance.ts` in the 20.9
@@ -93,11 +93,15 @@ Status labels:
   Power** paths are live; a **unified Italy’s random declaration shift**, the
   **8.6 action-phase Alliance System tie** (same live `allianceTie` pending as
   20.9) and **13.4.1/13.4.2** abandonment/Seeking Aid are modelled.
-- **Partial**: 14.2’s “player ally aiding a minor also shifts” is not modelled;
-  the unified-Italy random shift is unreachable; the 8.6 tie is deterministic
-  except at the live 20.9 step; the US and Italy are exempt from the cap by the
-  printed “not a player power” wording.
-- **Automatic fallback**: the Italy special branch resolves automatically.
+- **A015/A111 complete their printed alliance sequence:** legal adjacent initial
+  shift, an impulse-start neutral lock scoped to this resolution, and the
+  conditional post-resolution WTT increase (allied players > neutral players OR
+  three players in an alliance; only +1, excluding Italy). Tied decisions retain
+  the event's original actor and inciting card, so WTT 5 opens the correct crisis.
+  The one-d6-per-positive-marker rule also applies to Italy; Italian ties reroll.
+  See `allianceSystem.test.ts` and the 2026-11-15 status follow-up.
+- The US and Italy are exempt from the cap by the printed “not a player power”
+  wording. Italy's MPIT resolves after the six player columns.
 
 ## 9–12 Cards and the action phase
 
@@ -357,8 +361,8 @@ Status labels:
   benefit exists (it is the deterministic fallback, not an option); 20.5 uses
   UK/OT per-track limits; 20.8 follows the printed displacement/−1 stability/0→+1
   flip; 20.3’s Italian rebuild now uses the shared 22.4 plan; the action-phase
-  Alliance System tie now prompts (the printed neutral-lock/WTT clauses are not
-  modelled). 22.1.3 now prompts for Sardinia-Piedmont vs the Two Sicilies when
+  Alliance System tie now prompts (the printed neutral-lock/WTT clauses were
+  added in the 2026-11-15 follow-up). 22.1.3 now prompts for Sardinia-Piedmont vs the Two Sicilies when
   both are legal; 23.1’s Powder Keg and The Balkan Wars open the Crisis Table
   before the rest of their text.
 

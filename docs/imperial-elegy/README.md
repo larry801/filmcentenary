@@ -139,6 +139,10 @@ At a glance, the live game covers:
   resolve on insertion; `useCpChain` funds one action per action phase (capped
   at 4 CP); chained cards stay face-up and are discarded at the end of the
   action phase.
+- **Alliance events A015/A111** — legal adjacent shifts, the impulse-start
+  neutral restriction, and the conditional WTT increase after resolution.
+  Each positive MPIT marker rolls one d6; tied player rolls prompt, Italian
+  ties reroll, and crisis continuation retains the original card and player.
 - **Limited war** — validated war declarations and aims, objectives, alliance
   and minor calls, initiative order (including A063 Rapid Mobilization's
   first-impulse priority), war budgets, maneuver, deploy reserves (with A063's
