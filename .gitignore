@@ -41,3 +41,5 @@ yarn-error.log*
 # Microsoft Edge
 debug.log
 /.env
+__pycache__/
+*.pyc
