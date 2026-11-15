@@ -22,6 +22,7 @@ import {powerOfSeat, seatOf} from "./pending";
 import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
 import {
   controlledBy,
+  cpBudgetFor,
   friendlySpace,
   hasLoc,
   isArmyKind,
@@ -680,7 +681,7 @@ const botDraftSpace = (G: ImperialElegyState, power: Power): SpaceId | null =>
 const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
   const war = G.war;
   if (!war) return null;
-  const budget = war.budgets[power] ?? 0;
+  const budget = cpBudgetFor(G, power);
 
   // Attack enemy capital if adjacent.
   const enemyPowers = [...war.attackerAllies, war.attacker, ...war.defenderAllies, war.defender]
@@ -716,7 +717,7 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
   // Pass if conditions are met.
   if (budget <= 2) {
     const opponentMaxBudget = Math.max(
-      ...enemyPowers.map((p) => war.budgets[p] ?? 0),
+      ...enemyPowers.map((p) => cpBudgetFor(G, p)),
     );
     if (opponentMaxBudget > budget) {
       return {move: "passWar"};
@@ -732,7 +733,7 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
 
 /** GW Priority 2 (B2) — roll 1–6. */
 const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMove | null => {
-  const budget = G.powers[power].gwBudget ?? 0;
+  const budget = cpBudgetFor(G, power);
   if (budget <= 0) return null;
 
   if (roll >= 1 && roll <= 3) {

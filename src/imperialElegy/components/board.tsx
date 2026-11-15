@@ -5,7 +5,7 @@ import {ImperialElegyState, PendingOption, Power, POWERS, SpaceId, Unit} from ".
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, navalUnitsIn, ownsKey} from "../engine/rules";
+import {cpBudgetFor, effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, navalUnitsIn, ownsKey} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -154,13 +154,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const isPrincipal = viewer !== null && war !== null && (viewer === war.attacker || viewer === war.defender);
   const isBelligerent = viewer !== null && warBelligerents.includes(viewer);
 
-  const cpBudget = (): number => {
-    if (viewer === null) return 0;
-    if (phase === "action") return G.cpRemaining;
-    if (phase === "wartime" && war) return war.budgets[viewer] ?? 0;
-    if (phase === "gwManeuver") return G.powers[viewer].gwBudget ?? 0;
-    return 0;
-  };
+  const cpBudget = (): number => viewer === null ? 0 : cpBudgetFor(G, viewer);
   const canAct = viewer !== null && !eliminated && !isBotViewer && isActive && pending === null && (phase === "action" || phase === "wartime" || phase === "gwManeuver");
   const canSpend = (cost: number): boolean => canAct && cpBudget() >= cost;
   const canActionCard = viewer !== null && !eliminated && !isBotViewer && isActive && phase === "action" && pending === null;
@@ -755,13 +749,13 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     : italyBox.endsWith("Committed")
       ? bi(actualLocale, "joins automatically at the outbreak (25.3)", "大战爆发时自动参战（25.3）")
       : bi(actualLocale, "roll 4–6 at the outbreak, else back to neutral (25.3)", "爆发时掷 4–6 参战，否则退回中立（25.3）");
-  const canGwDraft = selected !== null && viewer !== null && me !== null && phase === "gwManeuver" && isActive && pending === null && !eliminated && (me.gwBudget ?? 0) >= 1 && me.manpower >= 1;
+  const canGwDraft = selected !== null && viewer !== null && me !== null && phase === "gwManeuver" && isActive && pending === null && !eliminated && cpBudget() >= 1 && me.manpower >= 1;
   const gwDeployRoom = selected !== null && selectedState !== null && selectedState !== undefined
     ? Math.max(0, landStackingLimit(selected) - landUnitsIn(G, selected).filter((u) => isArmyKind(u.kind)).length)
     : 0;
   const canGwDeployHere = Boolean(
     viewer !== null && me !== null && selected !== null && selectedState && phase === "gwManeuver" &&
-    isActive && pending === null && !eliminated && (me.gwBudget ?? 0) >= 1 && me.reserves.length > 0 &&
+    isActive && pending === null && !eliminated && cpBudget() >= 1 && me.reserves.length > 0 &&
     gwDeployRoom > 0 && !isNavalBox(selected) && friendlySpace(G, selected, viewer) &&
     (isHomeSpace(G, selected, viewer) || ownsKey(G, selected, viewer)) && !selectedState.trench,
   );

@@ -401,6 +401,66 @@ export const gwAllyImpulseFor = (G: ImperialElegyState, power: Power): "IT" | "U
   return slot === "US" || slot === "IT" ? slot : null;
 };
 
+/**
+ * The single place that decides which CP "wallet" the current phase spends
+ * from.  Action impulses draw on the shared `G.cpRemaining`; wartime
+ * maneuvers on the belligerent's `war.budgets` entry; GW maneuvers on the
+ * acting power's `gwBudget`, except during a US/Italian ally impulse (26.3)
+ * where the major's own `usBudget` / `italyBudget` is spent instead.  Phases
+ * without a CP budget have no wallet.
+ *
+ * UI, move validation and the bot must all read and charge the same wallet.
+ * Keeping that choice here is what stops the status badge, the legality checks
+ * and `requireCp` from drifting apart.
+ */
+interface CpWallet {
+  get: () => number;
+  set: (value: number) => void;
+}
+
+const cpWalletFor = (G: ImperialElegyState, power: Power): CpWallet | null => {
+  if (G.phase === "action") {
+    return {get: () => G.cpRemaining, set: (value) => { G.cpRemaining = value; }};
+  }
+  if (G.phase === "wartime") {
+    const war = G.war;
+    if (war === null) return null;
+    return {
+      get: () => war.budgets[power] ?? 0,
+      set: (value) => { war.budgets[power] = value; },
+    };
+  }
+  if (G.phase === "gwManeuver") {
+    const gw = G.gw;
+    const major = gwAllyImpulseFor(G, power);
+    if (gw !== null && major === "US") {
+      return {get: () => gw.usBudget, set: (value) => { gw.usBudget = value; }};
+    }
+    if (gw !== null && major === "IT") {
+      return {get: () => gw.italyBudget, set: (value) => { gw.italyBudget = value; }};
+    }
+    return {
+      get: () => G.powers[power].gwBudget ?? 0,
+      set: (value) => { G.powers[power].gwBudget = value; },
+    };
+  }
+  return null;
+};
+
+/** CP still available to `power` in the current phase (0 when there is no wallet). */
+export const cpBudgetFor = (G: ImperialElegyState, power: Power): number =>
+  cpWalletFor(G, power)?.get() ?? 0;
+
+/** Charge `amount` CP against the phase's wallet; false when short or unavailable. */
+export const spendCpFor = (G: ImperialElegyState, power: Power, amount: number): boolean => {
+  const wallet = cpWalletFor(G, power);
+  if (wallet === null) return false;
+  const budget = wallet.get();
+  if (budget < amount) return false;
+  wallet.set(budget - amount);
+  return true;
+};
+
 export const enemiesOf = (G: ImperialElegyState, power: Power): Power[] =>
   POWERS.filter((p) => p !== power && atWar(G, power, p));
 

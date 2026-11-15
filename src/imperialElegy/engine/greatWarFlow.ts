@@ -98,6 +98,8 @@ import {
   resolveCapitalSurrenders,
   setSpaceControl,
   sweepOrphanedMinorUnits,
+  cpBudgetFor,
+  spendCpFor,
 } from "./rules";
 import {blockadedAt, tsrrConnectionUsable} from "./blockade";
 
@@ -609,7 +611,7 @@ const requireManeuver = (G: ImperialElegyState, power: Power): {budget: number} 
   if (!G.gw.belligerents.includes(power)) return fail("notBelligerent", `${power} is not a belligerent`);
   if (G.activePower !== power) return fail("notActive", `${power} is not the active power`);
   const major = gwAllyImpulseFor(G, power);
-  const budget = major === null ? G.powers[power].gwBudget ?? 0 : majorBudget(G, major);
+  const budget = cpBudgetFor(G, power);
   if (budget < 1) {
     return fail("insufficientBudget", `${major ?? power} has no GW budget left`);
   }
@@ -1377,9 +1379,7 @@ export const performGwManeuver = (
     if (request.kind === "march" || request.kind === "rail") {
       if (payload.to !== undefined) recordOccupation(G, payload.to);
     }
-    if (major === "US" && G.gw) G.gw.usBudget = budget - 1;
-    else if (major === "IT" && G.gw) G.gw.italyBudget = budget - 1;
-    else p.gwBudget = budget - 1;
+    spendCpFor(G, power, 1);
     p.flags.gwActionsThisImpulse = Number(p.flags.gwActionsThisImpulse ?? 0) + 1;
     // 30.1 safety net: a maneuver that leaves an enemy capital occupied (the
     // normal case is a battle advance through `finishBattle`, but a forced or

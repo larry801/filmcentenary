@@ -65,6 +65,7 @@ import {
   clearTurnDurationFlags,
   changeWtt,
   computePowerProjection,
+  cpBudgetFor,
   controlledBy,
   die,
   dominatedFlashpoints,
@@ -94,6 +95,7 @@ import {
   refreshPowerProjection,
   resolveImpulseLoss,
   setSpaceControl,
+  spendCpFor,
   unitById,
   unitsOfPower,
 } from "./engine/rules";
@@ -744,26 +746,16 @@ const noteWartimeAction = (G: ImperialElegyState): void => {
 const requireCp = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null, amount: number): Power | typeof INVALID_MOVE => {
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (!spendCpFor(G, power, amount)) return INVALID_MOVE;
+  // The first CP of an impulse closes the response window, and a wartime
+  // action breaks the run of consecutive passes (15.0).
   if (G.phase === "action") {
-    if (!spend(G, amount)) return INVALID_MOVE;
     G.powers[power].flags.actionCpSpentThisImpulse = true;
-    return power;
-  }
-  if (G.phase === "wartime" && G.war) {
-    const budget = G.war.budgets[power] ?? 0;
-    if (budget < amount) return INVALID_MOVE;
-    G.war.budgets[power] = budget - amount;
+  } else if (G.phase === "wartime") {
     G.powers[power].flags.warCpSpentThisImpulse = true;
     noteWartimeAction(G);
-    return power;
   }
-  if (G.phase === "gwManeuver") {
-    const budget = G.powers[power].gwBudget ?? 0;
-    if (budget < amount) return INVALID_MOVE;
-    G.powers[power].gwBudget = budget - amount;
-    return power;
-  }
-  return INVALID_MOVE;
+  return power;
 };
 
 export interface RecruitOptions {
@@ -1185,21 +1177,9 @@ export interface NavalTransportCheck {
   usUnoccupied?: SpaceId[];
 }
 
-/** The budget a GW maneuver action spends: a US/Italian impulse uses its own. */
-const gwManeuverBudgetFor = (G: ImperialElegyState, power: Power): number => {
-  const major = gwAllyImpulseFor(G, power);
-  if (major === "US") return G.gw?.usBudget ?? 0;
-  if (major === "IT") return G.gw?.italyBudget ?? 0;
-  return G.powers[power].gwBudget ?? 0;
-};
-
-/** Charge one GW maneuver action against the correct budget. */
+/** Charge one GW maneuver action against the phase's CP wallet (26.3). */
 const spendGwManeuverBudget = (G: ImperialElegyState, power: Power): boolean => {
-  if (gwManeuverBudgetFor(G, power) < 1) return false;
-  const major = gwAllyImpulseFor(G, power);
-  if (major === "US" && G.gw) G.gw.usBudget = (G.gw.usBudget ?? 0) - 1;
-  else if (major === "IT" && G.gw) G.gw.italyBudget = (G.gw.italyBudget ?? 0) - 1;
-  else G.powers[power].gwBudget = (G.powers[power].gwBudget ?? 0) - 1;
+  if (!spendCpFor(G, power, 1)) return false;
   G.powers[power].flags.gwActionsThisImpulse = Number(G.powers[power].flags.gwActionsThisImpulse ?? 0) + 1;
   return true;
 };
@@ -1229,18 +1209,16 @@ export const navalTransportCheck = (
   if (G.pending !== null || G.battle !== null) return {ok: false, reason: "busy"};
   if (G.phase === "action") {
     if (G.activePower !== power) return {ok: false, reason: "not-active"};
-    if (G.cpRemaining < 1) return {ok: false, reason: "no-budget"};
   } else if (G.phase === "wartime") {
     if (!G.war || G.war.status !== "maneuver") return {ok: false, reason: "phase"};
     if (G.activePower !== power) return {ok: false, reason: "not-active"};
-    if ((G.war.budgets[power] ?? 0) < 1) return {ok: false, reason: "no-budget"};
   } else if (G.phase === "gwManeuver") {
     if (!G.gw?.active) return {ok: false, reason: "phase"};
     if (G.activePower !== power) return {ok: false, reason: "not-active"};
-    if (gwManeuverBudgetFor(G, power) < 1) return {ok: false, reason: "no-budget"};
   } else {
     return {ok: false, reason: "phase"};
   }
+  if (cpBudgetFor(G, power) < 1) return {ok: false, reason: "no-budget"};
   const land = G.units[landUnitId];
   const fleet = (Array.isArray(navalUnitIds) ? [...navalUnitIds] : []).map((id) => G.units[id]);
   if (!commandsUnit(G, power, land)) return {ok: false, reason: "land-unit"};
@@ -1910,11 +1888,7 @@ export const deployReserves = (
   const rapidFree = rapidMobilizationFreeDeploy(G, power, G.war);
   const staffFree = !rapidFree && superiorStaffWorkFreeDeploy(G, power, G.war);
   const free = rapidFree || staffFree;
-  if (!free) {
-    const budget = G.war.budgets[power] ?? 0;
-    if (budget < 1) return INVALID_MOVE;
-    G.war.budgets[power] = budget - 1;
-  }
+  if (!free && !spendCpFor(G, power, 1)) return INVALID_MOVE;
   // A free deploy is still an action: it closes the start-of-impulse response
   // window just like a CP-funded one (and breaks the 15.0 pass run).
   p.flags.warCpSpentThisImpulse = true;
@@ -2135,12 +2109,7 @@ export const amphibiousAssaultCheck = (
   if ((isPower(target.control) || target.occupiedBy) && friendlySpace(G, to, power)) {
     return {ok: false, reason: "target-friendly"};
   }
-  const budget = G.phase === "action"
-    ? G.cpRemaining
-    : G.phase === "wartime" && G.war
-      ? G.war.budgets[power] ?? 0
-      : 0;
-  if (budget < 1) return {ok: false, reason: "no-cp"};
+  if (cpBudgetFor(G, power) < 1) return {ok: false, reason: "no-cp"};
   const armies = unitIds
     .map((id) => G.units[id])
     .filter((unit): unit is Unit => Boolean(unit) && unit!.owner === power && !unit!.naval);
