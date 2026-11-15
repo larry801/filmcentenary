@@ -135,6 +135,7 @@ describe("33.1 Superior Staff Work — first GW impulse", () => {
   test("a first GW impulse that passes forfeits and latches the grant", () => {
     const G = fresh();
     activateGw(G);
+    G.powers.GE.gwBudget = 2;
     const ctx = makeCtx([3], seat("GE"));
     expect(gwPass(G, ctx)).toBeUndefined();
     expect(G.powers.GE.flags.superiorStaffWorkGwUsed).toBe(true);

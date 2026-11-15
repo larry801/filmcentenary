@@ -5,7 +5,8 @@ import {GOALS_BY_ID} from "../constant/goals";
 import {gwEventHint} from "../engine/playability";
 import {IEBadge, IEChip, IEPanel} from "./theme";
 import {ieT} from "./i18n";
-import {POWER_KEYS, bi} from "./boardHelpers";
+import {POWER_KEYS, bi, gwImpulseReasonText} from "./boardHelpers";
+import {gwCardProblem} from "../engine/gwImpulse";
 import {CardFace} from "./CardFace";
 
 export interface HandPanelProps {
@@ -97,7 +98,9 @@ export const HandPanel = (props: HandPanelProps) => {
               {(() => {
                 const gwId = me.gwCard!;
                 const gwCard = cardById(gwId);
-                const canGwCard = viewer !== null && !eliminated && pending === null && (phase === "gwPlanning" || (phase === "gwManeuver" && isActive));
+                const cpProblem = viewer === null ? "notActive" : gwCardProblem(G, viewer, "cp");
+                const eventProblem = viewer === null ? "notActive" : gwCardProblem(G, viewer, "event");
+                const canGwCard = viewer !== null && !eliminated && isActive && pending === null;
                 const gwHint = gwEventHint(G, gwId);
                 const gwEventTitle = gwHint === "gw-turn-0"
                   ? bi(locale, "Exhaustion: neither event triggers on GW turn 0.", "精疲力竭：首轮大战不触发任一效果。")
@@ -106,8 +109,8 @@ export const HandPanel = (props: HandPanelProps) => {
                   <article className="ie-card ie-card-standalone" data-testid={`ie-gw-card-${gwId}`}>
                     <CardFace card={gwCard} locale={locale}/>
                     <div className="ie-card-actions">
-                      <button disabled={!canGwCard} onClick={() => doAction(() => moves.playGwCardMove("cp"))}>{t.cpMode}</button>
-                      <button disabled={!canGwCard} title={gwEventTitle} onClick={() => doAction(() => moves.playGwCardMove("event"))}>{t.eventMode}</button>
+                      <button disabled={!canGwCard || cpProblem !== null} title={gwImpulseReasonText(locale, cpProblem)} onClick={() => doAction(() => moves.playGwCardMove("cp"))}>{bi(locale, "Bonus action", "奖励行动")}</button>
+                      <button disabled={!canGwCard || eventProblem !== null} title={gwImpulseReasonText(locale, eventProblem) ?? gwEventTitle} onClick={() => doAction(() => moves.playGwCardMove("event"))}>{t.eventMode}</button>
                     </div>
                   </article>
                 );

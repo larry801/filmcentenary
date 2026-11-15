@@ -3,6 +3,7 @@ import {GreatWarState, ImperialElegyState, Power} from "../types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
 import {resolvePending} from "./moves";
+import {beginGwImpulse} from "./engine/gwImpulse";
 import {
   advanceGwImpulse,
   beginGwTurn,
@@ -56,6 +57,7 @@ const baseGw = (overrides: Partial<GreatWarState> = {}): ImperialElegyState => {
   };
   G.powers.GE.alliance = "taCommitted";
   G.powers.FR.alliance = "teCommitted";
+  for (const p of ["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]) G.powers[p].gwBudget = 2;
   G.phase = "gwPlanning";
   return G;
 };
@@ -111,11 +113,11 @@ describe("Great War planning", () => {
     G.powers.UK.gwBudget = 2;
     const ctx = makeCtx();
 
-    const transfer = transferGwBudget(G, ctx, "FR", "UK", 2);
+    const transfer = transferGwBudget(G, ctx, "FR", "UK", 1);
     expect(transfer.ok).toBe(true);
     if (!transfer.ok) throw new Error(transfer.message);
-    expect(G.powers.FR.gwBudget).toBe(1);
-    expect(G.powers.UK.gwBudget).toBe(4);
+    expect(G.powers.FR.gwBudget).toBe(2);
+    expect(G.powers.UK.gwBudget).toBe(3);
     expect(G.powers.FR.flags.gwCpTransferDone).toBe(true);
 
     const again = transferGwBudget(G, ctx, "FR", "UK", 1);
@@ -179,7 +181,7 @@ describe("Great War impulse order", () => {
   });
 
   test("skips passed powers and reports when every belligerent has passed", () => {
-    const G = baseGw({order: ["GE", "FR"], te: ["FR"], ta: ["GE"]});
+    const G = baseGw({order: ["GE", "FR"], te: ["FR"], ta: ["GE"], neutrals: []});
     G.phase = "gwManeuver";
     G.activePower = "GE";
     G.turnIndex = 0;
@@ -222,7 +224,7 @@ describe("Great War impulse order", () => {
     expect(us.kind).toBe("ally");
     expect(us.slot).toBe("US");
     expect(us.power).toBe("FR");
-    expect(G.gw!.bonusImpulses).toContain("US");
+    expect(G.flags.gwAllyImpulse).toBe("US");
 
     const duplicate = enterGwAlly(G, ctx, "US", "ta");
     expect(duplicate.ok).toBe(false);
@@ -267,6 +269,7 @@ describe("Great War maneuver budget spending", () => {
     expect(G.units[reserve].flags?.deployedThisImpulse).toBe(true);
 
     const berlinBefore = G.spaces.berlin.units.length;
+    beginGwImpulse(G, "GE"); // These are distinct ordinary impulses (27.1).
     const draft = performGwManeuver(G, ctx, {kind: "draft", power: "GE", space: "berlin"});
     expect(draft.ok).toBe(true);
     if (!draft.ok) throw new Error(draft.message);
@@ -281,12 +284,14 @@ describe("Great War maneuver budget spending", () => {
     expect(G.pending).toBeNull();
     expect(G.spaces.silesia.units).toHaveLength(1);
 
+    beginGwImpulse(G, "GE");
     const rail = performGwManeuver(G, ctx, {kind: "rail", power: "GE", unitId: mover, to: "pomerania"});
     expect(rail.ok).toBe(true);
     if (!rail.ok) throw new Error(rail.message);
     expect(G.powers.GE.gwBudget).toBe(3);
     expect(G.units[mover].space).toBe("pomerania");
 
+    beginGwImpulse(G, "GE");
     const march = performGwManeuver(G, ctx, {kind: "march", power: "GE", unitId: mover, to: "prussia"});
     expect(march.ok).toBe(true);
     if (!march.ok) throw new Error(march.message);
@@ -304,6 +309,7 @@ describe("Great War maneuver budget spending", () => {
       .map((id) => G.units[id])
       .find((unit) => unit.owner === "GE" && unit.kind === "army" && unit.steps === 1);
     expect(drafted).toBeTruthy();
+    beginGwImpulse(G, "GE");
     const refit = performGwManeuver(G, ctx, {kind: "refit", power: "GE", unitId: drafted!.id});
     expect(refit.ok).toBe(true);
     if (!refit.ok) throw new Error(refit.message);
@@ -312,11 +318,12 @@ describe("Great War maneuver budget spending", () => {
 
     // An empty budget is a structured failure and does not mutate state.
     G.powers.GE.gwBudget = 0;
+    beginGwImpulse(G, "GE");
     const before = JSON.stringify(G);
     const broke = performGwManeuver(G, ctx, {kind: "deploy", power: "GE", space: "berlin"});
     expect(broke.ok).toBe(false);
     if (broke.ok) throw new Error("expected a failure");
-    expect(broke.error).toBe("insufficientBudget");
+    expect(broke.error).toBe("invalidTarget");
     expect(JSON.stringify(G)).toBe(before);
   });
 
@@ -381,6 +388,7 @@ describe("Great War maneuver budget spending", () => {
     expect(G.units[ukSquadron!.id].space).toBe("north-atlantic");
 
     const frSquadron = placeUnit(G, "FR", "squadron", "north-atlantic", 2);
+    beginGwImpulse(G, "UK");
     const joint = performGwManeuver(G, ctx, {
       kind: "jointNaval",
       power: "UK",
@@ -397,6 +405,7 @@ describe("Great War maneuver budget spending", () => {
     expect(G.units[frSquadron.id].space).toBe("london");
 
     G.units[ukSquadron!.id].steps = 1;
+    beginGwImpulse(G, "UK");
     const refit = performGwManeuver(G, ctx, {kind: "refitFleet", power: "UK", unitId: ukSquadron!.id});
     expect(refit.ok).toBe(true);
     if (!refit.ok) throw new Error(refit.message);

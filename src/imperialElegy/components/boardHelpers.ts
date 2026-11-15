@@ -6,6 +6,7 @@ import {SPACES, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {ieT} from "./i18n";
+import type {GwImpulseReason} from "../engine/gwImpulse";
 import {
   type AmphibiousBlockReason,
   type NavalInterceptBlockReason,
@@ -21,6 +22,26 @@ export const isPowerKey = (value: unknown): value is Power =>
 /** Bilingual helper for labels that have no key in i18n.ts yet. */
 export const bi = (locale: "en" | "zh_CN", en: string, zh: string): string =>
   locale === "zh_CN" ? zh : en;
+
+export const gwImpulseReasonText = (locale: "en" | "zh_CN", reason: GwImpulseReason | null): string | undefined => {
+  if (reason === null) return undefined;
+  const labels: Record<GwImpulseReason, [string, string]> = {
+    busy: ["Finish the pending choice or battle first.", "请先处理待决选择或战斗。"],
+    notActive: ["Only during your GW maneuver impulse.", "仅限自己的大战机动行动轮。"],
+    notBelligerent: ["Neutral players may only play an event.", "中立玩家只能打出事件。"],
+    budget: ["No war-budget CP remains.", "战争预算 CP 已耗尽。"],
+    actionUsed: ["The budget action is complete; end the impulse or play a GW card.", "预算行动已完成；结束本轮或打出大战卡。"],
+    repeatAction: ["The card bonus cannot repeat this impulse's action.", "卡牌奖励不能重复本轮已执行的行动。"],
+    bonusLandBattle: ["No land battle in an impulse using a card bonus action.", "使用卡牌奖励行动的本轮不能发动陆战。"],
+    bonusPending: ["Spend the card's immediate bonus action first.", "请先执行卡牌授予的即时奖励行动。"],
+    exhaustion: ["Play Exhaustion before passing or spending your final budget CP.", "停牌或花掉最后 1 点预算前，必须打出“精疲力竭”。"],
+    mustAct: ["Take a budget action first; passing requires a budget of at most 2.", "请先执行预算行动；预算不超过 2 时才可停牌。"],
+    cardWindow: ["This impulse's card window is closed.", "本轮卡牌窗口已关闭。"],
+    battleCard: ["This card's event belongs in its printed battle window.", "此牌事件须在规定的战斗窗口使用。"],
+    majorCard: ["Your card cannot fund a US/Italian impulse.", "玩家卡牌不能用于美意行动轮。"],
+  };
+  return bi(locale, ...labels[reason]);
+};
 
 /**
  * Pick the selector value: keep the current choice when it is legal, otherwise
@@ -68,6 +89,7 @@ export const PROMPT_ZH: Record<string, string> = {
   "Return to port: choose a nearest friendly port": "返回港口：选择一个最近的友方港口",
   "Accept the attacker's surrender or continue the war?": "接受进攻方投降，还是继续战争？",
   "Balance of Power: choose one invited ally to draw a card": "均势：选择一位应邀参战的盟友抽一张牌",
+  "Bonus impulse: choose an alliance member or pass": "奖励行动轮：选择一位联盟成员行动，或跳过",
 };
 
 export const BATTLE_STAGE: Record<string, {en: string; zh: string}> = {

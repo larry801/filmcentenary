@@ -18,7 +18,7 @@ This table tracks the current audit until every Partial row is reconciled.
 | 18–19 | Audit the remaining combat/naval fallback claims against current code and rules. | Existing combat/naval regression suites; section audit open. |
 | 20 | Verify every end-phase choice and non-player rebuild exception; distinguish printed counter limits from missing functionality. | Existing end-phase regression suites; section audit open. |
 | 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | Existing table/flow suites; section audit open. |
-| 24–32 | Bonus-impulse chooser, minor/GW-major integration, remaining Great War flow audit. | Existing GW flow/regression suites; section audit open. |
+| 24–32 | Alliance-order choices; remaining draft/deploy, major-power entry/card exceptions and minor integration audit. Bonus choices plus ordinary impulse/card/pass/neutral-window corrections are implemented below. | Existing GW flow/regression suites; section audit open. |
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
 | 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix is live; remaining deterministic choices require rule audit. |
 
@@ -26,6 +26,83 @@ Latest fully verified baseline: **2591c8f1284fd31cb6239695a90b4c55ed004d9c**,
 449 suites / 4288 tests, frontend + server builds, 37 general browser tests and
 16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43695994681).
 The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
+
+### 26–27 Great War impulse and action follow-up
+
+- **27.1 / 27.7:** an ordinary impulse permits one budget-funded action.
+  Finishing that action advances the initiative without recording a pass;
+  an unused ordinary impulse may pass only at budget ≤2. Any action clears
+  the consecutive-pass history, and a previous pass does not withdraw the
+  player for the rest of the year. `gwEndTurn` now validates the active seat,
+  unresolved work and actual end condition instead of skipping to winter.
+- **27.2 / 27.3:** a card spent for its bonus funds a separate immediate action,
+  not banked war-budget CP. Repeating an action or taking a land battle in a
+  card-bonus impulse is refused. GE's free staff deploy is accounted separately.
+  Exhaustion resolves its mandatory event even through the CP entry point and
+  grants the immediate bonus; its chosen effect still activates at impulse end.
+  The last ordinary budget CP cannot be spent while Exhaustion is still held.
+- Normal GW events require the active player's budget action first; planning,
+  another player's impulse and battle-only cards are rejected. GW-05 retains
+  its start-of-impulse response exception. Pending GW-card finalization no longer
+  invokes the normal action-phase impulse finisher. The optional saved impulse
+  ledger distinguishes ordinary/card/free actions and stores no private card ID.
+- **27.4:** after military maneuver, living neutrals get event-only impulses in
+  normal seat order before winter. Each can play or keep its card; the sequence
+  survives saves and pending event choices. Neutral players cannot buy military
+  actions from this window.
+- **26.3:** US/Italian initiative slots recur each cycle while their budget
+  remains. Their units, pass history and upkeep are separate from the commanding
+  player's; a major's slot cannot spend the controller's card or move its armies.
+  Controlled minor armies and fleets can use the controller's march/naval paths.
+- **27.5.1 / 27.5.3 / 27.5.4:** army refit requires a LoC; fleet refit requires
+  a friendly port. New live `gwEliteCorps` and `gwRefitFleet` moves have board
+  controls. An EC costs 1 CP, joins a supplied friendly army (including outside
+  home territory), and observes the counter/EC limits. **26.2 player transfers**
+  are exactly 1 CP, once in planning, with a LoC to the recipient.
+- The map, hand, maneuver controls and bot read the same allowance helpers;
+  the bot finishes completed impulses and selects a legal required action when
+  its priority row cannot act. Verification is intentionally focused for this
+  follow-up: **80 tests / 8 impulse/flow/card/control suites passed**, plus
+  TypeScript and diff checks, rather than a new full build/browser/self-play
+  sweep. The previous full totals below are
+  historical evidence, not a claim that this follow-up has full verification.
+- Remaining section audit includes 25.7 alliance-selected order, 26.1 card
+  transfers, US planning gifts, 27.5.2's remaining recruitment substitutions /
+  manpower pools and full multi-army deploy choices.
+
+### 25.7.1 / 29.3 / 30.1 Great War bonus impulses
+
+- The alliance now selects its bonus-impulse player instead of rotating through
+  a deterministic list. Its first living player in initiative order submits the
+  alliance choice, with every living belligerent member available; a sole member
+  is unambiguous. The bilingual pending panel also offers an explicit pass.
+- Selecting a player activates the exact bonus slot and applies that player's
+  upkeep once. Passing the slot costs no CP and preserves ordinary pass history.
+  The saved choice validates the GW year, order, cursor, deciding seat, alliance
+  and current candidates before mutation; duplicate and stale answers are refused.
+  A leading bonus marker is also resolved at the start of the next GW year;
+  the last ordinary pass still visits bonus/major slots later in the track.
+- At outbreak, each missing alliance position becomes a bonus slot **inside**
+  the alternating order. GE neutrality uses the printed UK / FR / AU / RU
+  priority for the alliance that goes first. A neutral entrant replaces the
+  lowest-numbered non-player position, including an intervening bonus marker,
+  while US/Italy remain after the player slots.
+- 30.1 says only **one alliance** may hold bonus markers, not only one marker.
+  An eliminated player's position becomes another bonus for that same alliance;
+  if this would give both alliances markers, all bonus markers are removed and
+  the track closes up. Cursor bookkeeping preserves the exact position even
+  when several slots carry the identical `"bonus"` value.
+- Source: Living Rules v1.1 §§25.7–25.7.1, 29.3 and 30.1 (pp. 47, 52).
+  Regression evidence: `gwBonusImpulseChoice.test.ts`, corrected source-based
+  `capitalBookkeeping.test.ts`, and the live board choice in
+  `components/board.test.tsx`. Targeted run: **600 tests / 8 suites passed**,
+  including the real boardgame.io phase hook and cross-seat dispatcher.
+  Full local run: **452 suites / 4337 tests passed**, plus six seeded
+  campaign/GW self-play games, frontend/server builds, and all **16 IE browser
+  tests**. Remote verification remains open.
+- Section 24–32 remains Partial. The ordinary action/pass/turn-end and major
+  impulse follow-up is recorded above; alliance-selected order and the remaining
+  recruitment / card-transfer clauses still require implementation/audit.
 
 ### Supply-source corrections under verification
 
@@ -1061,9 +1138,12 @@ sweep alone takes minutes and is run explicitly instead.
   exists, and an enemy-held Rome immediately surrenders the independent Kingdom
   of Italy (units removed, re-entry blocked). A pre-entry enemy occupation of
   Rome surrenders Italy on entry.
-- Bonus impulses: the order contains a `"bonus"` slot and `advanceGwImpulse`
-  grants an extra impulse to the side with fewer living slots; the controller
-  is deterministic (rotates by prior bonus grants), not a player choice.
+- **Bonus impulses (25.7.1 / 30.1):** `advanceGwImpulse` opens an alliance
+  player choice (or activates its sole member) at each `"bonus"` slot. The
+  alliance may pass without spending CP; bonus passes preserve ordinary pass
+  history. Outbreak alternation, neutral entrants, multiple elimination-earned
+  markers, next-year leading slots and saved choices are covered by
+  `gwBonusImpulseChoice.test.ts` / `capitalBookkeeping.test.ts`.
 - **Neutral entry (29.3) is a player procedure.** Each living neutral chooses
   whether to join a legal alliance (three-player cap, not larger than the
   opposing alliance); multiple neutrals roll off for order, and a joining

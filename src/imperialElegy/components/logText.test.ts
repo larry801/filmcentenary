@@ -116,6 +116,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   gwNeutralDeploy: {key: "gwNeutralDeploy", power: "OT", args: {space: "istanbul", units: "u1,u2"}},
   gwBonusImpulse: {key: "gwBonusImpulse", args: {side: "ta", te: 3, ta: 2}},
   gwBonusImpulseRemoved: {key: "gwBonusImpulseRemoved", args: {te: 2, ta: 2}},
+  gwBonusImpulseSkipped: {key: "gwBonusImpulseSkipped", power: "FR", args: {side: "te", index: 5}},
   gwBlockade: {key: "gwBlockade", power: "GE", args: {maxIndustry: 5, industry: 5, reduced: true}},
   gwColonialLoss: {key: "gwColonialLoss", power: "GE", args: {region: "africa", unit: "u1", kind: "army", space: "south-africa", eliminated: false}},
   gwColonialTransfer: {key: "gwColonialTransfer", power: "GE", args: {region: "africa", space: "nigeria", from: ""}},

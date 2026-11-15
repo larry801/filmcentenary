@@ -40,6 +40,8 @@ import {
   gwPass,
   gwRail,
   gwRefit,
+  gwRefitFleet,
+  gwEliteCorps,
   gwRevealCombat,
   gwResolveWinter,
   gwTransferBudget,
@@ -149,6 +151,8 @@ const ALL_MOVES = {
   playGwCardMove,
   gwDraft,
   gwRefit,
+  gwRefitFleet,
+  gwEliteCorps,
   gwDeploy,
   gwMarch,
   gwRail,
@@ -280,7 +284,9 @@ const gwManeuverBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   // that triggered the phase change has already run it, G.phase is already
   // "gwManeuver" and this is a no-op apart from the shared reset below.
   if (G.phase === "gwPlanning") {
-    startGwManeuver(G, ctx);
+    // A leading bonus marker may open an alliance choice. Phase hooks cannot
+    // call setActivePlayers; the normal move path retains its events plugin.
+    startGwManeuver(G, {...ctx, events: undefined} as Ctx);
   }
   G.phase = "gwManeuver";
   G.cpRemaining = 0;

@@ -195,6 +195,8 @@ import {addItalyMpit} from "./engine/italyEntry";
 import {
   activateGwExhaustion,
   advanceGwImpulse,
+  beginGwNeutralImpulses,
+  resolveGwBonusImpulse,
   faceupCombatCards,
   majorEntryOptions,
   maxIndustryOf,
@@ -207,6 +209,10 @@ import {
   startGwManeuver,
   transferGwBudget,
 } from "./engine/greatWarFlow";
+import {
+  currentGwImpulse, gwActionAllowance, gwCanEndTurn, gwCardProblem,
+  gwFinishImpulseProblem, hasLiveGwImpulse, noteGwCard, recordGwAction,
+} from "./engine/gwImpulse";
 import {
   allyCallEligibility,
   allyRefusalPenalty,
@@ -752,6 +758,11 @@ const noteWartimeAction = (G: ImperialElegyState): void => {
 };
 
 const requireCp = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null, amount: number): Power | typeof INVALID_MOVE => {
+  // GW actions use the 27.1 allowance and wallet together, never this generic
+  // action-phase payer (which would bypass the one-budget-action limit). A
+  // state without the live impulse ledger (legacy save / rule test) keeps the
+  // pre-27.1 payer until the next activation creates it.
+  if (G.phase === "gwManeuver" && hasLiveGwImpulse(G)) return INVALID_MOVE;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (!spendCpFor(G, power, amount)) return INVALID_MOVE;
@@ -899,8 +910,16 @@ export const recruit = (
     log(G, power, "recruitRejected", {kind, space, reasons: "No army counter available"});
     return INVALID_MOVE;
   }
-  const paid = requireCp(G, ctx, playerID, steps);
-  if (paid === INVALID_MOVE) return INVALID_MOVE;
+  if (G.phase === "gwManeuver" && cw && hasLiveGwImpulse(G)) {
+    // The existing Commonwealth build also consumes the printed draft action
+    // allowance; it must not bypass 27.1 via the generic recruitment payer.
+    const allowance = gwActionAllowance(G, power, "draft");
+    if (!allowance.ok || gwAllyImpulseFor(G, power) !== null) return INVALID_MOVE;
+    recordGwAction(G, power, "draft", allowance);
+  } else {
+    const paid = requireCp(G, ctx, playerID, steps);
+    if (paid === INVALID_MOVE) return INVALID_MOVE;
+  }
   if (upgrade) {
     existing[0].steps = 2;
   } else {
@@ -1023,6 +1042,8 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
   // 3.4.1 uses a decision, not CP: validate the request before spending
   // anything, then return so the controller can answer it.
   const preview = requireActive(G, ctx, playerID);
+  if (G.phase === "gwManeuver" && hasLiveGwImpulse(G) &&
+      (preview === INVALID_MOVE || !gwActionAllowance(G, preview, "naval").ok)) return INVALID_MOVE;
   if (preview !== INVALID_MOVE && Array.isArray(unitIds) && unitIds.length > 0) {
     const previewUnits = unitIds
       .map((id) => G.units[id])
@@ -1054,7 +1075,7 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
     // move afterwards without spending again.
     const gwUnits = unitIds
       .map((id) => G.units[id])
-      .filter((unit): unit is Unit => Boolean(unit) && unit!.owner === gwPower && unit!.naval === true);
+      .filter((unit): unit is Unit => Boolean(unit) && commandsUnit(G, gwPower, unit) && unit!.naval === true);
     const gwFrom = gwUnits[0]?.space;
     if (
       gwUnits.length === unitIds.length &&
@@ -1187,17 +1208,29 @@ export interface NavalTransportCheck {
 
 /** Charge one GW maneuver action against the phase's CP wallet (26.3). */
 const spendGwManeuverBudget = (G: ImperialElegyState, power: Power): boolean => {
-  if (!spendCpFor(G, power, 1)) return false;
-  G.powers[power].flags.gwActionsThisImpulse = Number(G.powers[power].flags.gwActionsThisImpulse ?? 0) + 1;
+  if (!hasLiveGwImpulse(G)) {
+    // Pre-27.1 wallet: one CP per action, with the legacy action count that
+    // `currentGwImpulse` reads when such a save is resumed.
+    if (!spendCpFor(G, power, 1)) return false;
+    G.powers[power].flags.gwActionsThisImpulse = Number(G.powers[power].flags.gwActionsThisImpulse ?? 0) + 1;
+    return true;
+  }
+  const allowance = gwActionAllowance(G, power, "naval");
+  if (!allowance.ok) return false;
+  recordGwAction(G, power, "naval", allowance);
   return true;
 };
 
 /** True when `power` may move `unit`: its own, or a US/Italian GW major's. */
 const commandsUnit = (G: ImperialElegyState, power: Power, unit: Unit | undefined): boolean => {
   if (!unit) return false;
-  if (unit.owner === power) return true;
   const major = gwAllyImpulseFor(G, power);
-  return major !== null && unit.owner === major;
+  if (major !== null) return unit.owner === major;
+  if (unit.owner === power) return true;
+  // 15.4: controlled minors contribute ordinary army/fleet counters only;
+  // elite corps/fleets are not army counters and cannot be carried.
+  if (isPower(unit.owner) || unit.owner === "US" || unit.owner === "IT") return false;
+  return (isArmyKind(unit.kind) || isNavalKind(unit.kind)) && minorController(G, unit.owner) === power;
 };
 
 /**
@@ -1226,7 +1259,9 @@ export const navalTransportCheck = (
   } else {
     return {ok: false, reason: "phase"};
   }
-  if (cpBudgetFor(G, power) < 1) return {ok: false, reason: "no-budget"};
+  if (G.phase === "gwManeuver" ? !gwActionAllowance(G, power, "naval").ok : cpBudgetFor(G, power) < 1) {
+    return {ok: false, reason: "no-budget"};
+  }
   const land = G.units[landUnitId];
   const fleet = (Array.isArray(navalUnitIds) ? [...navalUnitIds] : []).map((id) => G.units[id]);
   if (!commandsUnit(G, power, land)) return {ok: false, reason: "land-unit"};
@@ -2020,9 +2055,16 @@ export const landBattle = (G: ImperialElegyState, ctx: Ctx, from: SpaceId, to: S
 
 export const navalBattle = (G: ImperialElegyState, ctx: Ctx, from: SpaceId, to: SpaceId): string | void => {
   const playerID = ctx.playerID ?? null;
+  if (G.phase === "gwManeuver" && hasLiveGwImpulse(G)) {
+    const power = actor(G, playerID);
+    if (power === null) return INVALID_MOVE;
+    const unitIds = navalUnitsIn(G, from).filter((unit) => commandsUnit(G, power, unit)).map((unit) => unit.id);
+    return navalMove(G, ctx, unitIds, to);
+  }
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (G.phase !== "action" && G.phase !== "wartime" && G.phase !== "gwManeuver") return INVALID_MOVE;
+  if (G.phase !== "action" && G.phase !== "wartime" &&
+      !(G.phase === "gwManeuver" && !hasLiveGwImpulse(G))) return INVALID_MOVE;
   // 19.2: the defender may try to avoid any naval battle, including this
   // explicit attack.  Interception (19.1) is resolved elsewhere and never
   // offers the intercepting ships an avoid attempt.
@@ -3214,7 +3256,9 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
     // A chain insertion is one impulse; resume the next player once its
     // mandatory event has finished (unless the event itself granted CP).
     if (G.cpRemaining <= 0) finishImpulse(G, ctx);
-  } else if (!mandatory && !response && G.cpRemaining <= 0) {
+  } else if (!(gwCard && hasLiveGwImpulse(G)) && !mandatory && !response && G.cpRemaining <= 0) {
+    // 27.1: a GW card's pending decision must not finish the action-phase
+    // impulse. Legacy states keep the old action-phase finalization.
     finishImpulse(G, ctx);
   }
 };
@@ -4807,6 +4851,15 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     resolveCrisisDecision(G, ctx, pending, optionId);
     return undefined;
   }
+  if (pending.kind === "gwBonusImpulse") {
+    const result = resolveGwBonusImpulse(G, ctx, pending, optionId);
+    if (!result.ok) return INVALID_MOVE;
+    if (result.kind === "end") {
+      G.phase = "gwWinter";
+      ctx.events?.setPhase?.("gwWinter");
+    }
+    return undefined;
+  }
   if (
     pending.kind === "gwNeutralEntry" ||
     pending.kind === "gwNeutralAction" ||
@@ -4843,6 +4896,7 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   const playerID = ctx.playerID ?? null;
   const pending = G.pending;
   if (!pending || playerID !== seatOf(pending.power)) return INVALID_MOVE;
+  if (pending.kind === "gwBonusImpulse") return resolvePending(G, ctx, "skip");
   if (pending.kind === "movementDestination" && pending.context?.special === "endPhaseNavalReturn") {
     const first = pending.options[0];
     return first ? resolveNavalReturnChoice(G, ctx, pending, first.id) : INVALID_MOVE;
@@ -6366,19 +6420,25 @@ export const endGwPlanningMove = (G: ImperialElegyState, ctx: Ctx): string | voi
 export const gwPass = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
-  if (G.phase !== "gwManeuver" || !G.gw || power === null || power !== G.activePower) return INVALID_MOVE;
-  if (G.pending !== null || G.battle !== null) return INVALID_MOVE;
+  if (!hasLiveGwImpulse(G)) {
+    // Pre-27.1 pass guard: active seat, no open decision, and the printed
+    // Exhaustion/"cannot pass" restriction on the card in hand.
+    if (G.phase !== "gwManeuver" || !G.gw || power === null || power !== G.activePower) return INVALID_MOVE;
+    if (G.pending !== null || G.battle !== null) return INVALID_MOVE;
+    const heldCard = G.powers[power].gwCard;
+    if (heldCard && passRestriction(G, power, [heldCard]).forced) return INVALID_MOVE;
+  } else if (power === null || gwFinishImpulseProblem(G, power) !== null || !G.gw) {
+    return INVALID_MOVE;
+  }
+  const impulse = currentGwImpulse(G, power);
+  const major = gwAllyImpulseFor(G, power);
   markSuperiorStaffWorkGwImpulse(G);
-  // 27.3: "players cannot pass with the Exhaustion card in their hand.
-  // ... they must do so at some point during the turn, and it must be played
-  // in addition to their GW action."  They are not forced to play it first,
-  // so the only refusal here is passing while it is still held.
-  const gwCard = G.powers[power].gwCard;
-  if (gwCard && passRestriction(G, power, [gwCard]).forced) return INVALID_MOVE;
+  // The shared guard distinguishes ending a completed action from passing an
+  // unused impulse, and enforces the budget / Exhaustion / card-bonus gates.
   // 33.1 Superior Staff Work: a Great War first impulse that ends without the
   // free deploy reserves action forfeits it (once per GW).
   if (
-    power === "GE" &&
+    power === "GE" && major === null && !G.gw.neutralImpulses &&
     G.powers.GE.flags.superiorStaffWorkGwUsed !== true &&
     G.gw.belligerents.includes("GE")
   ) {
@@ -6387,7 +6447,12 @@ export const gwPass = (G: ImperialElegyState, ctx: Ctx): string | void => {
     }
     G.powers.GE.flags.superiorStaffWorkGwUsed = true;
   }
-  G.powers[power].flags.passedGw = true;
+  // 25.7.1: passing an optional bonus slot does not pass the player's normal
+  // slot as well. The same player can still act at its next ordinary impulse.
+  if (!impulse.acted && !G.gw.neutralImpulses) {
+    if (major !== null) (G.gw.majorPassed ??= {})[major] = true;
+    else if (G.gw.order[G.turnIndex] !== "bonus") G.powers[power].flags.passedGw = true;
+  }
   // GW-10: the event chosen this impulse "takes effect at the end of this
   // impulse", i.e. now, before the next power is activated.
   activateGwExhaustion(G);
@@ -6420,24 +6485,29 @@ export const gwRefit = (G: ImperialElegyState, ctx: Ctx, unitId: string): string
   return res.ok ? undefined : INVALID_MOVE;
 };
 
+export const gwRefitFleet = (G: ImperialElegyState, ctx: Ctx, unitId: string): string | void => {
+  const power = actor(G, ctx.playerID ?? null);
+  if (power === null) return INVALID_MOVE;
+  const res = performGwManeuver(G, ctx, {kind: "refitFleet", power, unitId});
+  return res.ok ? undefined : INVALID_MOVE;
+};
+
+export const gwEliteCorps = (G: ImperialElegyState, ctx: Ctx, unitId: string): string | void => {
+  const power = actor(G, ctx.playerID ?? null);
+  if (power === null) return INVALID_MOVE;
+  const res = performGwManeuver(G, ctx, {kind: "eliteCorps", power, unitId});
+  return res.ok ? undefined : INVALID_MOVE;
+};
+
 export const gwDeploy = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, unitId?: string): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (G.phase !== "gwManeuver" || !G.gw || power === null) return INVALID_MOVE;
-  // 33.1 Superior Staff Work: the first-impulse deploy reserves action is
-  // free.  `performGwManeuver` charges one budget point, so refund it after a
-  // successful deploy and consume the once-per-GW flag.  The impulse must be
-  // latched before the grant is tested.
+  // The shared allowance keeps the free staff action outside both the normal
+  // budget action and the card bonus; no provisional charge/refund is needed.
   markSuperiorStaffWorkGwImpulse(G);
-  const staffFree = superiorStaffWorkGwFreeDeploy(G);
   const res = performGwManeuver(G, ctx, {kind: "deploy", power, space, unitId});
   if (!res.ok) return INVALID_MOVE;
-  if (staffFree) {
-    const p = G.powers.GE;
-    p.gwBudget = (p.gwBudget ?? 0) + 1;
-    p.flags.superiorStaffWorkGwUsed = true;
-    log(G, "GE", "superiorStaffWork", {space, count: res.unitIds?.length ?? 1, scope: "gw"});
-  }
   return undefined;
 };
 
@@ -6497,12 +6567,24 @@ export const gwRevealCombat = (G: ImperialElegyState, ctx: Ctx): string | void =
 };
 
 export const gwEndTurn = (G: ImperialElegyState, ctx: Ctx): string | void => {
-  if (G.phase !== "gwManeuver" || !G.gw) return INVALID_MOVE;
-  if (G.pending !== null || G.battle !== null) return INVALID_MOVE;
-  // Skipping the whole maneuver turn also ends the active impulse.
+  const power = actor(G, ctx.playerID ?? null);
+  if (!hasLiveGwImpulse(G)) {
+    // Legacy states skip the whole maneuver turn the old way: no neutral
+    // event impulses were part of the pre-27.4 flow. The 27.1 end-condition
+    // guard still applies, so a player cannot skip another's remaining budget.
+    if (power === null || !gwCanEndTurn(G, power)) return INVALID_MOVE;
+    activateGwExhaustion(G);
+    G.phase = "gwWinter";
+    ctx.events?.setPhase?.("gwWinter");
+    return undefined;
+  }
+  if (power === null || !gwCanEndTurn(G, power)) return INVALID_MOVE;
   activateGwExhaustion(G);
-  G.phase = "gwWinter";
-  ctx.events?.setPhase?.("gwWinter");
+  const next = beginGwNeutralImpulses(G, ctx);
+  if (next.kind === "end") {
+    G.phase = "gwWinter";
+    ctx.events?.setPhase?.("gwWinter");
+  }
   return undefined;
 };
 
@@ -6539,7 +6621,9 @@ const discardGwCard = (G: ImperialElegyState, cardId: CardId): void => {
 
 /** Identify the current GW impulse so a one-per-impulse event stays spent. */
 const gwImpulseKey = (G: ImperialElegyState): string =>
-  `${G.gw?.turn ?? 0}:${G.turnIndex}:${G.activePower}`;
+  G.gw?.impulseSeq === undefined
+    ? `${G.gw?.turn ?? 0}:${G.turnIndex}:${G.activePower}`
+    : `${G.gw.turn}:impulse${G.gw.impulseSeq}:${G.activePower}`;
 
 /**
  * GW-05 "Capable Commander" may be played as a normal event at the start of a
@@ -6558,8 +6642,8 @@ const canPlayGw05Event = (G: ImperialElegyState, power: Power): boolean => {
 export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | "cp"): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
-  if (power === null || !G.gw || (G.phase !== "gwPlanning" && G.phase !== "gwManeuver")) return INVALID_MOVE;
-  if (G.pending !== null) return INVALID_MOVE;
+  if (power === null || !G.gw || (mode !== "event" && mode !== "cp")) return INVALID_MOVE;
+  if (gwCardProblem(G, power, mode) !== null) return INVALID_MOVE;
   const p = G.powers[power];
   const cardId = p.gwCard;
   if (!cardId) return INVALID_MOVE;
@@ -6575,13 +6659,19 @@ export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | 
   const outbreakItaly = cardId === "IE-GW-02" && mode === "event" && (G.gw.turn ?? 0) === 0;
   if (outbreakItaly && !majorEntryOptions(G, power).includes("IT")) return INVALID_MOVE;
   if (isGw05Event) G.flags.gw05PlayedImpulse = gwImpulseKey(G);
+  const mandatory = cardId === "IE-GW-10";
+  const legacy = !hasLiveGwImpulse(G);
+  const bonus = !G.gw.neutralImpulses && (mode === "cp" || mandatory);
+  noteGwCard(G, power, bonus);
   p.gwCard = null;
   // The played card is no longer faceup; remove only this power's stale entry
   // so other powers' public combat cards remain visible for the turn.
   clearFaceupCombat(G, power);
   G.resolvingCard = cardId;
-  if (mode === "cp") {
-    p.gwBudget = (p.gwBudget ?? 0) + card.cp;
+  if (mode === "cp" && (legacy || !mandatory)) {
+    // 27.2: spend the bonus immediately as a separate action, not banked CP.
+    // Pre-27.1 states still bank the printed CP into the GW wallet.
+    if (legacy) p.gwBudget = (p.gwBudget ?? 0) + card.cp;
     if (card.remove) G.removed.push(cardId);
     else discardGwCard(G, cardId);
     G.resolvingCard = null;

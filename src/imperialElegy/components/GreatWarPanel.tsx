@@ -7,6 +7,8 @@ import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
 import {PHASE_LABEL, POWER_KEYS, bi, isPowerKey} from "./boardHelpers";
 import {gwEventHint} from "../engine/playability";
+import {currentGwImpulse, gwCanEndTurn, gwFinishImpulseProblem} from "../engine/gwImpulse";
+import {gwImpulseReasonText} from "./boardHelpers";
 
 export interface GreatWarPanelProps {
   gw: NonNullable<ImperialElegyState["gw"]>;
@@ -136,7 +138,7 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
                 <select className="ie-select" data-testid="ie-gw-transfer-to" value={gwTransferToValue} onChange={(e) => setGwTransferTo(e.target.value)} title={bi(locale, "Allied recipient", "受援盟友")}>
                   {gwSideAllies.map((power) => <option key={power} value={power}>{t.seats[power]}</option>)}
                 </select>
-                <input className="ie-select" data-testid="ie-gw-transfer-amount" type="number" min={1} max={Math.max(1, me?.gwBudget ?? 1)}
+                <input className="ie-select" data-testid="ie-gw-transfer-amount" type="number" min={1} max={1}
                   value={gwTransferAmountValue} onChange={(e) => setGwTransferAmount(Number(e.target.value))} title={bi(locale, "CP to transfer", "转交的 CP")}/>
                 <button className="ie-btn" data-testid="ie-gw-transfer-submit" disabled={!canGwTransfer || gwTransferToValue === ""}
                   onClick={() => doAction(() => moves.gwTransferBudget(gwTransferToValue as Power, gwTransferAmountValue))}>{t.gwTransfer}</button>
@@ -156,10 +158,11 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
             {canGwReveal && (
               <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat())}>{t.gwReveal}</button>
             )}
-            <button className="ie-btn secondary" data-testid="ie-gw-pass" disabled={forcedGwCard}
-              title={forcedGwCard ? bi(locale, "Exhaustion must be played before you can pass (27.3).", "必须先在打出手中的“精疲力竭”后才能停牌（27.3）。") : bi(locale, "Pass this impulse only; the next power acts.", "仅停牌本轮，下一位国家行动。")}
-              onClick={() => doAction(() => moves.gwPass())}>{t.gwPass}</button>
-            <button className="ie-btn secondary" data-testid="ie-gw-end"
+            {G.gw?.impulse?.bonusPending && <span className="ie-hint">{bi(locale, "Immediate card bonus: choose a different non-land-battle action.", "即时卡牌奖励：选择另一种非陆战行动。")}</span>}
+            <button className="ie-btn secondary" data-testid="ie-gw-pass" disabled={viewer === null || gwFinishImpulseProblem(G, viewer) !== null}
+              title={viewer === null ? undefined : gwImpulseReasonText(locale, gwFinishImpulseProblem(G, viewer))}
+              onClick={() => doAction(() => moves.gwPass())}>{viewer !== null && (currentGwImpulse(G, viewer).acted || G.gw?.neutralImpulses) ? bi(locale, "End impulse", "结束行动轮") : t.gwPass}</button>
+            <button className="ie-btn secondary" data-testid="ie-gw-end" disabled={viewer === null || !gwCanEndTurn(G, viewer)}
               title={bi(locale, "End the whole GW maneuver turn and go to winter.", "结束整个大战机动回合并进入冬季。")}
               onClick={() => doAction(() => moves.gwEndTurn())}>{t.gwEnd}</button>
           </div>

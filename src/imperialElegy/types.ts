@@ -64,6 +64,25 @@ export type GwSide = "te" | "ta";
  */
 export type GwExhaustionMode = "stability" | "vp";
 
+/** 27.1–27.3: action identities, shared by the flow, cards and controls. */
+export type GwActionKind = "deploy" | "draft" | "refit" | "refitFleet" | "eliteCorps" |
+  "landBattle" | "rail" | "march" | "naval" | "jointNaval";
+
+export interface GwImpulseState {
+  power: Power;
+  turn: number;
+  index: number;
+  /** A new serial even when the same player/slot acts twice in succession. */
+  serial: number;
+  /** Legacy saves knew only that an action occurred, not which action. */
+  budgetAction?: GwActionKind | "legacy";
+  bonusAction?: GwActionKind;
+  bonusPending?: boolean;
+  /** Presence only: a CP-spent card's identity is private. */
+  cardPlayed?: boolean;
+  acted: boolean;
+}
+
 /**
  * GW-10 Exhaustion's queued choice.  `turn` is the GW turn whose impulse it
  * was played in, so a stale save cannot fire it in a later turn (and the
@@ -566,8 +585,8 @@ export interface GreatWarState {
   /** Turn order, including bonus impulses (null slot). */
   order: (Power | "bonus" | "IT" | "US" | null)[];
   /**
-   * Rule 30.1: the alliance that owns the single bonus-impulse marker on the
-   * wartime initiative track, if any.  The bonus slot itself stays the generic
+   * Rule 30.1: the one alliance that owns bonus-impulse markers on the
+   * wartime initiative track, if any. Each bonus slot stays the generic
    * `"bonus"` order entry (old code and saves keep working); this field only
    * records whose alliance the marker belongs to, so a slot earned by an
    * elimination is not silently re-derived from the current alliance sizes.
@@ -575,6 +594,13 @@ export interface GreatWarState {
    * living alliance sizes exactly as before.
    */
   bonusImpulseSide?: GwSide | null;
+  /** Live 27.1 action allowance; absent in legacy saves until the next action. */
+  impulse?: GwImpulseState;
+  impulseSeq?: number;
+  /** Major powers pass on their own budget, never on their controller's. */
+  majorPassed?: Partial<Record<"US" | "IT", boolean>>;
+  /** 27.4 neutral event impulses after the belligerents finish maneuvering. */
+  neutralImpulses?: {order: Power[]; index: number};
   /** Which powers are belligerent. */
   belligerents: Power[];
   /** Neutral players still outside the war. */
@@ -857,6 +883,8 @@ export const PENDING_KINDS = [
   /** 23.5: a single neutral player chooses the alliance it joins. */
   "crisisAlliance",
   "gwDraft",
+  /** 25.7.1: the alliance chooses a player for its bonus impulse, or passes. */
+  "gwBonusImpulse",
   "gwCard",
   "gwWinter",
   "scoringChoice",

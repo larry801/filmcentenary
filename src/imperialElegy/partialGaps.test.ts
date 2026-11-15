@@ -463,7 +463,10 @@ describe("GW #2 Major Power Entry and the US impulse", () => {
 
     // FR's own units are not part of the US impulse's draft/refit actions.
     expect(gwPass(G, ctx)).toBeUndefined();
-    expect(G.phase).toBe("gwWinter");
+    // 27.7: the US action cleared the earlier passes, so GE/FR still have
+    // budget and the maneuver step continues with the next player impulse
+    // rather than ending on this pass. The US slot is no longer active.
+    expect(G.phase).toBe("gwManeuver");
     expect(G.flags.gwAllyImpulse).toBe("");
   });
 

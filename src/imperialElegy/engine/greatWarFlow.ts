@@ -20,8 +20,8 @@
  *
  * Planned faceup combat cards are tracked in the existing, serializable
  * `PowerState.flags` bag (`gwFaceupCombat`), and CP-transfer / bonus-impulse
- * bookkeeping uses the other documented flag slots.  No new persistent shape
- * is introduced, so old saves remain valid.
+ * bookkeeping uses the optional JSON-serializable GW impulse ledger; legacy
+ * saves migrate their old action-count marker on first use.
  */
 
 import {Ctx} from "boardgame.io";
@@ -29,6 +29,7 @@ import {
   AllianceBox,
   CardId,
   GreatWarState,
+  GwActionKind,
   GwColonialBonusChoice,
   GwColonialLossChoice,
   GwColonialTransferChoice,
@@ -86,6 +87,9 @@ import {
   italianArmyTarget,
   italianNavalDeploySpace,
   minorController,
+  minorHasLoc,
+  italianHasLoc,
+  ownerFriendlyTo,
   landUnitsIn,
   log,
   maneuverDestinationProblem,
@@ -99,8 +103,8 @@ import {
   setSpaceControl,
   sweepOrphanedMinorUnits,
   cpBudgetFor,
-  spendCpFor,
 } from "./rules";
+import {beginGwImpulse, gwActionAllowance, gwMilitaryFinished, recordGwAction} from "./gwImpulse";
 import {blockadedAt, tsrrConnectionUsable} from "./blockade";
 
 // 17.1 / 29.1: keep the historical greatWarFlow exports working for callers
@@ -128,7 +132,7 @@ import {
 } from "./combatCards";
 import {applyGwKeyCapture, checkGwVictory, endGreatWar} from "./greatWar";
 import {grantRapidDeployment, placeNonPlayerCounter, placeUnit, removeUnit} from "./effects";
-import {EXHAUSTION_CARD} from "./characteristics";
+import {EXHAUSTION_CARD, markSuperiorStaffWorkGwImpulse} from "./characteristics";
 import {gwExhaustionTurnZero} from "./playability";
 import {
   enemyOccupiedItalianKeys,
@@ -237,11 +241,12 @@ export interface GwManeuverBegin {
   power: Power;
   index: number;
   order: GreatWarState["order"];
+  awaitingBonusChoice?: boolean;
 }
 
 export type GwManeuverBeginResult = GwManeuverBegin | GwFailure;
 
-export type GwImpulseKind = "power" | "bonus" | "ally" | "end";
+export type GwImpulseKind = "power" | "bonus" | "ally" | "neutral" | "choice" | "end";
 
 export interface GwImpulse {
   ok: true;
@@ -257,16 +262,7 @@ export interface GwImpulse {
 
 export type GwImpulseResult = GwImpulse | GwFailure;
 
-export type GwManeuverKind =
-  | "deploy"
-  | "draft"
-  | "refit"
-  | "refitFleet"
-  | "landBattle"
-  | "rail"
-  | "march"
-  | "naval"
-  | "jointNaval";
+export type GwManeuverKind = GwActionKind;
 
 export interface GwBattleSummary {
   kind: "land" | "naval";
@@ -297,6 +293,7 @@ export type GwManeuverRequest =
   | {kind: "draft"; power: Power; space: SpaceId}
   | {kind: "refit"; power: Power; unitId: string}
   | {kind: "refitFleet"; power: Power; unitId: string}
+  | {kind: "eliteCorps"; power: Power; unitId: string}
   | {kind: "landBattle"; power: Power; from: SpaceId; to: SpaceId}
   | {kind: "rail"; power: Power; unitId: string; to: SpaceId}
   | {kind: "march"; power: Power; unitId: string; to: SpaceId}
@@ -547,26 +544,28 @@ const pickSidePower = (G: ImperialElegyState, side: GwSide): Power | null => {
 };
 
 /**
- * Pick the power that receives the order's `"bonus"` slot.
+ * Eligible players for the order's `"bonus"` slot (25.7.1).
  *
  * 30.1 grants the marker to the eliminated power's alliance, which can leave
  * the alliances equal in size; the recorded `bonusImpulseSide` therefore wins
  * over the 25.7.1/29.3 size heuristic.  Older saves/tests without the record
  * keep the historic "outnumbered alliance" behaviour.
  */
-const pickBonusPower = (G: ImperialElegyState): {power: Power; side: GwSide} | null => {
+const bonusImpulseCandidates = (G: ImperialElegyState): {powers: Power[]; side: GwSide} | null => {
   if (!G.gw) return null;
   const {te, ta} = orderSideCounts(G);
   const recorded = G.gw.bonusImpulseSide;
   if (recorded !== "te" && recorded !== "ta" && te === ta) return null;
   const side: GwSide = recorded === "te" || recorded === "ta" ? recorded : te < ta ? "te" : "ta";
-  const sidePowers = livingPowers(G, side === "te" ? G.gw.te : G.gw.ta);
+  const sidePowers = livingPowers(G, side === "te" ? G.gw.te : G.gw.ta)
+    .filter((power) => G.gw!.belligerents.includes(power));
   if (sidePowers.length === 0) return null;
-  // Prefer powers that are already in the order; fall back to the side roster.
-  const ordered = sidePowers.filter((p) => G.gw!.order.includes(p));
-  const pool = ordered.length > 0 ? ordered : sidePowers;
-  const prior = G.gw.bonusImpulses.filter((entry) => isPower(entry) && pool.includes(entry)).length;
-  return {power: pool[prior % pool.length], side};
+  if (sidePowers.every((power) => (G.powers[power].gwBudget ?? 0) <= 0)) return null;
+  // The first player in alliance order submits the alliance's decision, as in
+  // colonial-war choices. Any living member may act, including one that passed
+  // earlier or has no budget and wishes to pass this optional impulse.
+  const ordered = G.gw.order.filter((slot): slot is Power => isPower(slot) && sidePowers.includes(slot));
+  return {powers: [...new Set([...ordered, ...sidePowers])], side};
 };
 
 /** 15.2.3: clear the "deployed this impulse" marker when the next impulse starts. */
@@ -589,8 +588,6 @@ const activateImpulse = (
   G.turnIndex = index;
   // 15.2.3/29.3: a unit deployed during the previous impulse may act now.
   clearDeployedThisImpulse(G);
-  G.powers[power].flags.gwActionsThisImpulse = 0;
-  if (bonus) G.powers[power].flags.passedGw = false;
   G.flags.gwBonusImpulse = bonus;
   // 26.3: an "IT"/"US" slot is that major's own impulse, run by a player on
   // its side with the major's budget and units.
@@ -598,8 +595,48 @@ const activateImpulse = (
   const side = sideOf(G, power);
   log(G, power, "gwImpulse", {kind, index, slot, bonus});
   // 5.5.3 / 5.6.2: the incoming belligerent's start-of-impulse penalties.
-  beginImpulseUpkeep(G, ctx, power);
+  // Run upkeep before creating the new 27.1 ledger, so a legacy state (no
+  // ledger yet) is still checked with its pre-26.3 own-stack upkeep rules.
+  delete G.flags.impulseUpkeepStamp;
+  if (kind !== "neutral") beginImpulseUpkeep(G, ctx, power);
+  beginGwImpulse(G, power);
+  if (kind !== "ally" && kind !== "neutral") markSuperiorStaffWorkGwImpulse(G);
   return {ok: true, kind, power, slot, index, side};
+};
+
+/** Open a bonus-slot choice, or activate its sole eligible member. */
+const activateBonusSlot = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  order: GreatWarState["order"],
+  index: number,
+): GwImpulse | null => {
+  const bonus = bonusImpulseCandidates(G);
+  if (!bonus) return null;
+  const power = bonus.powers[0];
+  if (bonus.powers.length > 1) {
+    openDecision(G, ctx, {
+      kind: "gwBonusImpulse",
+      power,
+      prompt: "Bonus impulse: choose an alliance member or pass",
+      options: [
+        ...bonus.powers.map((candidate) => option(
+          candidate, `Activate ${POWER_DEFS[candidate].name}`,
+          undefined, false, `由${POWER_DEFS[candidate].nameZh}行动`,
+        )),
+        option("skip", "Pass this bonus impulse", undefined, false, "跳过本次奖励行动轮"),
+      ],
+      context: {
+        turn: G.gw!.turn, index, side: bonus.side,
+        previousIndex: G.turnIndex, previousPower: G.activePower,
+        order: JSON.stringify(order),
+      },
+      blocking: true,
+    });
+    return {ok: true, kind: "choice", index, slot: "bonus", side: bonus.side};
+  }
+  G.gw!.bonusImpulses.push(power);
+  return activateImpulse(G, ctx, power, index, true, "bonus", "bonus");
 };
 
 const requireManeuver = (G: ImperialElegyState, power: Power): {budget: number} | GwFailure => {
@@ -610,11 +647,7 @@ const requireManeuver = (G: ImperialElegyState, power: Power): {budget: number} 
   if (G.powers[power].eliminated) return fail("eliminated", `${power} is eliminated`);
   if (!G.gw.belligerents.includes(power)) return fail("notBelligerent", `${power} is not a belligerent`);
   if (G.activePower !== power) return fail("notActive", `${power} is not the active power`);
-  const major = gwAllyImpulseFor(G, power);
   const budget = cpBudgetFor(G, power);
-  if (budget < 1) {
-    return fail("insufficientBudget", `${major ?? power} has no GW budget left`);
-  }
   return {budget};
 };
 
@@ -633,9 +666,14 @@ const MAJOR_CONTROL: Record<"IT" | "US", readonly string[]> = {
  */
 const commandsUnit = (G: ImperialElegyState, power: Power, unit: Unit | undefined): unit is Unit => {
   if (!unit) return false;
-  if (unit.owner === power) return true;
   const major = gwAllyImpulseFor(G, power);
-  return major !== null && unit.owner === major;
+  if (major !== null) return unit.owner === major;
+  if (unit.owner === power) return true;
+  // 15.4: a controlled minor contributes ordinary army/fleet counters to its
+  // controller's maneuvers. Elite corps/fleets are not army counters and must
+  // still be rejected (see commandsRailMinorArmy for the rail action).
+  if (isPower(unit.owner) || unit.owner === "US" || unit.owner === "IT") return false;
+  return (isArmyKind(unit.kind) || isNavalKind(unit.kind)) && minorController(G, unit.owner) === power;
 };
 
 /** Unit kinds a controlled allied minor may contribute to a GW rail action (15.4). */
@@ -917,11 +955,16 @@ export const beginGwTurn = (G: ImperialElegyState, ctx: Ctx): GwBeginResult => {
   const firstBudgetPass = gw.budgetTurn !== turn;
 
   gw.bonusImpulses = [];
+  delete gw.impulse;
+  delete gw.neutralImpulses;
+  gw.majorPassed = {};
   G.flags.gwBonusImpulse = false;
   G.flags.gwAllyImpulse = "";
   // 26.2: the US has a 4 CP and Italy a 2 CP war budget every GW turn.
-  gw.usBudget = 4;
-  gw.italyBudget = 2;
+  if (firstBudgetPass) {
+    gw.usBudget = 4;
+    gw.italyBudget = 2;
+  }
   delete G.flags[FACEUP_COMBAT_FLAG];
   // 26.1: facedown GW combat cards are flipped faceup during planning and may
   // be used by the player they sit in front of this turn.
@@ -1092,7 +1135,6 @@ export const startGwManeuver = (G: ImperialElegyState, ctx: Ctx): GwManeuverBegi
   const power = index >= 0 ? (G.gw.order[index] as Power) : null;
   if (!power) return fail("invalidOrder", "The GW order has no living power");
   for (const p of POWERS) G.powers[p].flags.passedGw = false;
-  G.powers[power].flags.gwActionsThisImpulse = 0;
   // 15.2.3/29.3: the maneuver step begins a new impulse.
   clearDeployedThisImpulse(G);
   G.phase = "gwManeuver";
@@ -1100,7 +1142,23 @@ export const startGwManeuver = (G: ImperialElegyState, ctx: Ctx): GwManeuverBegi
   G.activePower = power;
   G.turnIndex = index;
   G.flags.gwBonusImpulse = false;
+  G.flags.gwAllyImpulse = "";
+  beginGwImpulse(G, power);
   log(G, undefined, "gwManeuver", {turn: G.gw.turn});
+  // 30.1 can replace the first player with a bonus marker. That slot must also
+  // act at the beginning of subsequent years, before the first living player.
+  if (G.gw.order.slice(0, index).includes("bonus")) {
+    G.turnIndex = G.gw.order.length - 1;
+    const first = advanceGwImpulse(G, ctx);
+    if (!first.ok) return first;
+    return {
+      ok: true, power: first.power ?? power, index: first.index, order: G.gw.order,
+      awaitingBonusChoice: first.kind === "choice",
+    };
+  }
+  markSuperiorStaffWorkGwImpulse(G);
+  delete G.flags.impulseUpkeepStamp;
+  beginImpulseUpkeep(G, ctx, power);
   return {ok: true, power, index, order: G.gw.order};
 };
 
@@ -1118,7 +1176,7 @@ export const transferGwBudget = (
   if (!G.gw?.active) return fail("noGreatWar", "The Great War is not active");
   if (G.phase !== "gwPlanning") return fail("wrongPhase", "CP can only be transferred in planning");
   if (from === to) return fail("invalidTarget", "A power cannot transfer CP to itself");
-  if (!Number.isInteger(amount) || amount <= 0) return fail("invalidTarget", "Transfer must be a positive integer");
+  if (amount !== 1) return fail("invalidTarget", "26.2 permits transferring exactly one CP");
   if (!G.powers[from] || !G.powers[to]) return fail("invalidTarget", "Unknown power");
   if (G.powers[from].eliminated || G.powers[to].eliminated) return fail("eliminated", "Eliminated powers cannot transfer CP");
   if (!G.gw.belligerents.includes(from) || !G.gw.belligerents.includes(to)) {
@@ -1127,6 +1185,7 @@ export const transferGwBudget = (
   const sideFrom = sideOf(G, from);
   const sideTo = sideOf(G, to);
   if (sideFrom === null || sideFrom !== sideTo) return fail("notAllied", "CP can only be transferred to an ally");
+  if (!hasLoc(G, from, capitalOf(G, to))) return fail("invalidTarget", "26.2 requires a line of communication to the recipient");
   const p = G.powers[from];
   if (p.flags.gwCpTransferDone === true) return fail("alreadyUsed", "This power already transferred CP this turn");
   const fromBefore = p.gwBudget ?? 0;
@@ -1236,14 +1295,48 @@ export const chooseGw05FlipCard = (
 
 // ------------------------------------------------------------------ impulses
 
+/** Resume a saved 25.7.1 alliance choice without replaying impulse upkeep. */
+export const resolveGwBonusImpulse = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  optionId: string,
+): GwImpulseResult => {
+  const context = pending.context;
+  const index = context?.index;
+  const candidates = bonusImpulseCandidates(G);
+  if (
+    !G.gw?.active || G.phase !== "gwManeuver" || G.battle !== null ||
+    G.pending?.id !== pending.id || pending.kind !== "gwBonusImpulse" ||
+    context?.turn !== G.gw.turn || context?.order !== JSON.stringify(G.gw.order) ||
+    context?.previousIndex !== G.turnIndex || context?.previousPower !== G.activePower ||
+    typeof index !== "number" || G.gw.order[index] !== "bonus" ||
+    !candidates || context?.side !== candidates.side || pending.power !== candidates.powers[0] ||
+    !pending.options.some((entry) => entry.id === optionId) ||
+    (optionId !== "skip" && (!isPower(optionId) || !candidates.powers.includes(optionId)))
+  ) return fail("invalidTarget", "That bonus-impulse choice is no longer available");
+
+  G.pending = null;
+  if (optionId === "skip") {
+    // The alliance passes the slot; no player starts an impulse or pays upkeep,
+    // and no player's ordinary pass history or budget is changed.
+    G.turnIndex = index;
+    log(G, pending.power, "gwBonusImpulseSkipped", {side: candidates.side, index});
+    return advanceGwImpulse(G, ctx);
+  }
+  const power = optionId as Power;
+  G.gw.bonusImpulses.push(power);
+  return activateImpulse(G, ctx, power, index, true, "bonus", "bonus");
+};
+
 /**
  * Advance one impulse slot in `G.gw.order`.
  *
  * The order may contain `"bonus"`, `"IT"`, `"US"` and `null` slots.  A
  * `"bonus"` slot is not a power: it grants an extra impulse to the alliance
- * with fewer living order slots, selected deterministically.  `"IT"`/`"US"`
- * slots do the same once that ally has entered the war.  Passed powers are
- * skipped, so the caller can loop until `kind === "end"`.
+ * with fewer living order slots, chosen by that alliance. `"IT"`/`"US"`
+ * slots use the major's own budget each cycle. A player's earlier pass does
+ * not remove its slot; any action breaks the run of consecutive passes.
  *
  * The cursor is `G.turnIndex` rather than `order.indexOf(G.activePower)`:
  * a bonus impulse gives the SAME power a second consecutive slot, and an
@@ -1253,68 +1346,85 @@ export const advanceGwImpulse = (G: ImperialElegyState, ctx: Ctx): GwImpulseResu
   if (!G.gw?.active) return fail("noGreatWar", "The Great War is not active");
   if (G.phase !== "gwManeuver") return fail("wrongPhase", "Not in the GW maneuver step");
   if (G.pending !== null) return fail("pending", "A pending decision blocks the next impulse");
+  if (G.gw.neutralImpulses) {
+    G.gw.neutralImpulses.index += 1;
+    return nextGwNeutralImpulse(G, ctx);
+  }
   const order = G.gw.order;
   if (order.length === 0) return fail("invalidOrder", "The GW order is empty");
   let start = G.turnIndex;
   if (!Number.isInteger(start) || start < 0 || start >= order.length) {
     start = order.findIndex((slot) => isPower(slot) && slot === G.activePower);
   }
-  // Once every belligerent has passed, the maneuver step is over; do not hand
-  // out a bonus impulse from a stale order slot.
-  const allPassedNow = G.gw.belligerents.every(
-    (p) => !G.powers[p] || G.powers[p].eliminated || G.powers[p].flags.passedGw === true,
-  );
-  if (allPassedNow) {
-    // 26.3: the US and then Italy act after all player powers.  Their slots
-    // sit after the players' slots, so give each entered major that has not
-    // yet acted this turn its impulse before the maneuver step ends.
+  // Finish remaining bonus/major slots before ending on consecutive passes.
+  // Empty budgets need no further military activation at all.
+  const budgetsEmpty = G.gw.belligerents.every((p) => G.powers[p].eliminated || (G.powers[p].gwBudget ?? 0) <= 0) &&
+    (!G.gw.usIn || G.gw.usBudget <= 0) && (!G.gw.italyIn || G.gw.italyBudget <= 0);
+  if (budgetsEmpty && gwMilitaryFinished(G)) return beginGwNeutralImpulses(G, ctx);
+  const playersPassed = G.gw.belligerents.every((p) => G.powers[p].eliminated ||
+    (G.powers[p].gwBudget ?? 0) <= 0 || G.powers[p].flags.passedGw === true);
+  if (playersPassed) {
     for (let index = start + 1; index < order.length; index += 1) {
       const slot = order[index];
-      if (slot !== "IT" && slot !== "US") continue;
-      if (!isEnteredAlly(G, slot) || G.gw.bonusImpulses.includes(slot)) continue;
-      if (majorBudget(G, slot) < 1) continue;
-      const side = allySide(G, slot);
-      const controller = side ? pickSidePower(G, side) : null;
-      if (!controller) continue;
-      G.gw.bonusImpulses.push(slot);
-      return activateImpulse(G, ctx, controller, index, true, "ally", slot);
+      if (slot === "bonus") {
+        const extra = activateBonusSlot(G, ctx, order, index);
+        if (extra) return extra;
+      } else if ((slot === "IT" || slot === "US") && isEnteredAlly(G, slot) &&
+        !G.gw.majorPassed?.[slot] && majorBudget(G, slot) > 0) {
+        const side = allySide(G, slot);
+        const controller = side ? pickSidePower(G, side) : null;
+        if (controller) return activateImpulse(G, ctx, controller, index, true, "ally", slot);
+      }
     }
-    G.flags.gwAllyImpulse = "";
-    return {ok: true, kind: "end", index: start, allPassed: true};
+    if (gwMilitaryFinished(G)) return beginGwNeutralImpulses(G, ctx);
   }
   for (let step = 1; step <= order.length; step += 1) {
     const index = (start + step) % order.length;
     const slot = order[index];
     if (slot === null || slot === undefined) continue;
     if (slot === "bonus") {
-      const bonus = pickBonusPower(G);
-      if (!bonus) continue;
-      G.gw.bonusImpulses.push(bonus.power);
-      return activateImpulse(G, ctx, bonus.power, index, true, "bonus", slot);
+      const impulse = activateBonusSlot(G, ctx, order, index);
+      if (impulse) return impulse;
+      continue;
     }
     if (slot === "IT" || slot === "US") {
       if (!isEnteredAlly(G, slot)) continue;
-      if (G.gw.bonusImpulses.includes(slot) || majorBudget(G, slot) < 1) continue;
+      if (G.gw.majorPassed?.[slot] || majorBudget(G, slot) < 1) continue;
       const side = allySide(G, slot);
       if (!side) continue;
       const controller = pickSidePower(G, side);
       if (!controller) continue;
-      G.gw.bonusImpulses.push(slot);
       return activateImpulse(G, ctx, controller, index, true, "ally", slot);
     }
     if (isPower(slot)) {
       if (G.powers[slot].eliminated) continue;
-      if (G.powers[slot].flags.passedGw === true) continue;
+      if (!G.gw.belligerents.includes(slot)) continue;
+      // A pass is only consecutive history; it does not withdraw a player.
+      if ((G.powers[slot].gwBudget ?? 0) <= 0 && G.powers[slot].gwCard !== EXHAUSTION_CARD) continue;
       return activateImpulse(G, ctx, slot, index, false, "power", slot);
     }
   }
-  const allPassed = G.gw.belligerents.every(
-    (p) => !G.powers[p] || G.powers[p].eliminated || G.powers[p].flags.passedGw === true,
-  );
-  if (allPassed) {
-    return {ok: true, kind: "end", index: start, allPassed: true};
-  }
+  if (gwMilitaryFinished(G)) return beginGwNeutralImpulses(G, ctx);
   return fail("noEligibleImpulse", "No living, unpassed power left in the order");
+};
+
+/** 27.4: one event-only window per neutral, in the normal six-player order. */
+const nextGwNeutralImpulse = (G: ImperialElegyState, ctx: Ctx): GwImpulse => {
+  const sequence = G.gw!.neutralImpulses!;
+  while (sequence.index < sequence.order.length) {
+    const power = sequence.order[sequence.index];
+    if (!G.powers[power].eliminated && G.gw!.neutrals.includes(power)) {
+      return activateImpulse(G, ctx, power, G.gw!.order.length + sequence.index, false, "neutral", power);
+    }
+    sequence.index += 1;
+  }
+  G.flags.gwAllyImpulse = "";
+  return {ok: true, kind: "end", index: G.turnIndex, allPassed: true};
+};
+
+export const beginGwNeutralImpulses = (G: ImperialElegyState, ctx: Ctx): GwImpulse => {
+  G.gw!.neutralImpulses = {order: POWERS.filter((p) => G.gw!.neutrals.includes(p) && !G.powers[p].eliminated), index: 0};
+  return nextGwNeutralImpulse(G, ctx);
 };
 
 // ------------------------------------------------------------------ maneuver
@@ -1363,13 +1473,15 @@ export const performGwManeuver = (
   const power = request.power;
   const p = G.powers[power];
   const budget = guard.budget;
+  const allowance = gwActionAllowance(G, power, request.kind);
+  if (!allowance.ok) return fail("invalidTarget", allowance.reason);
   // 5.5.3 / 5.5.4 / 28.1.5: movement-end stacking and trench-exit rules.
   const destinationProblem = maneuverDestinationProblem(G, power, request);
   if (destinationProblem !== null) return fail("invalidTarget", destinationProblem);
   const major = gwAllyImpulseFor(G, power);
-  if (major !== null && !["landBattle", "march", "rail", "naval"].includes(request.kind)) {
-    // A US/Italian impulse only moves and fights with that major's units;
-    // reserves, drafting, refits and joint operations belong to the player.
+  if (major !== null && !["landBattle", "march", "rail", "naval", "refit", "refitFleet"].includes(request.kind)) {
+    // A US/Italian impulse moves, fights and refits that major's own units.
+    // Player recruitment and joint operations cannot use the major's budget.
     return fail("invalidTarget", `Only movement and battles are possible during the ${major} impulse`);
   }
   const finish = (payload: Partial<GwManeuverSuccess> = {}): GwManeuverSuccess => {
@@ -1379,20 +1491,20 @@ export const performGwManeuver = (
     if (request.kind === "march" || request.kind === "rail") {
       if (payload.to !== undefined) recordOccupation(G, payload.to);
     }
-    spendCpFor(G, power, 1);
-    p.flags.gwActionsThisImpulse = Number(p.flags.gwActionsThisImpulse ?? 0) + 1;
+    recordGwAction(G, power, request.kind, allowance);
+    if (allowance.funding === "staff") log(G, power, "superiorStaffWork", {space: payload.to, count: payload.unitIds?.length ?? 1, scope: "gw"});
     // 30.1 safety net: a maneuver that leaves an enemy capital occupied (the
     // normal case is a battle advance through `finishBattle`, but a forced or
     // scripted occupation also passes here) surrenders its owner at once.
     resolveCapitalSurrenders(G, ctx);
-    log(G, power, "gwManeuverAction", {kind: request.kind, ...payload, cost: 1});
+    log(G, power, "gwManeuverAction", {kind: request.kind, ...payload, cost: allowance.cost});
     return {
       ok: true,
       kind: request.kind,
       power,
-      cost: 1,
+      cost: allowance.cost,
       budgetBefore: budget,
-      budgetAfter: budget - 1,
+      budgetAfter: budget - allowance.cost,
       ...payload,
     };
   };
@@ -1475,19 +1587,40 @@ export const performGwManeuver = (
     }
     case "refit": {
       const unit = G.units[request.unitId];
-      if (!unit || unit.owner !== power || unit.naval) return fail("invalidUnit", "Refit needs your land unit");
+      if (!commandsUnit(G, power, unit) || unit.naval || !unit.space) return fail("invalidUnit", "Refit needs your land unit on the map");
       if (!isArmyKind(unit.kind) || unit.elite) return fail("invalidUnit", "Only two-step land units can be refit");
       if (unit.steps >= 2) return fail("invalidUnit", "That unit is already at full strength");
+      if (major === "IT" ? !italianHasLoc(G, unit.space) : major === "US" ? !minorHasLoc(G, "United States", unit.space) : !hasLoc(G, power, unit.space)) {
+        return fail("invalidTarget", "Refit requires a line of communication (27.5.1)");
+      }
       unit.steps = 2;
       return finish({unitIds: [unit.id]});
     }
     case "refitFleet": {
       const unit = G.units[request.unitId];
-      if (!unit || unit.owner !== power || !unit.naval) return fail("invalidUnit", "Refit fleet needs your naval unit");
+      if (!commandsUnit(G, power, unit) || !unit.naval || !unit.space) return fail("invalidUnit", "Refit fleet needs your naval unit");
       if (!isNavalKind(unit.kind)) return fail("invalidUnit", "Only squadrons and dreadnoughts can be refit");
       if (unit.steps >= 2) return fail("invalidUnit", "That fleet is already at full strength");
+      if (isNavalBox(unit.space) || !(SPACES[unit.space]?.ports?.length) || !maneuverFriendly(G, unit.space, power)) {
+        return fail("invalidTarget", "Refit fleet requires a friendly port (27.5.4)");
+      }
       unit.steps = 2;
       return finish({unitIds: [unit.id]});
+    }
+    case "eliteCorps": {
+      const army = G.units[request.unitId];
+      if (!army?.space || army.naval || !isArmyKind(army.kind) || !ownerFriendlyTo(G, power, army.owner)) {
+        return fail("invalidUnit", "An elite corps must join a friendly army");
+      }
+      if (!hasLoc(G, power, army.space)) return fail("invalidTarget", "An elite corps requires a line of communication");
+      if (!hasCounterFor(G, power, "eliteCorps")) return fail("noCounter", "No elite corps counter remains");
+      const cap = power === "OT" && G.persistent.otTwoElite === true ? 2 : 1;
+      if (Object.values(G.units).filter((u) => u.owner === power && u.kind === "eliteCorps").length >= cap) {
+        return fail("noCounter", "The elite corps limit has been reached");
+      }
+      const ec = placeUnit(G, power, "eliteCorps", army.space, 1);
+      ec.attachedTo = army.id;
+      return finish({to: army.space, unitIds: [ec.id]});
     }
     case "landBattle": {
       if (G.battle !== null) return fail("pending", "A battle is already in progress");
@@ -2637,20 +2770,24 @@ export const neutralEntrySides = (G: ImperialElegyState, power: Power): GwSide[]
 export const insertNeutralOrderSlot = (G: ImperialElegyState, power: Power): number => {
   if (!G.gw) return -1;
   if (G.gw.order.includes(power)) return G.gw.order.indexOf(power);
-  // The "next available spot" is the last player slot: the major slots (IT/US)
-  // and the bonus slot stay at the end of the order.
-  let index = 0;
-  for (let i = 0; i < G.gw.order.length; i += 1) {
-    const slot = G.gw.order[i];
-    if (isPower(slot) && !G.powers[slot]?.eliminated) index = i + 1;
-  }
-  G.gw.order.splice(index, 0, power);
+  // 29.3: the lowest-numbered spot not occupied by a player, including a
+  // bonus marker between players. US/Italy keep their slots after the players.
+  let index = G.gw.order.findIndex((slot) => !isPower(slot) || G.powers[slot].eliminated);
+  if (index < 0) index = G.gw.order.length;
+  const slot = G.gw.order[index];
+  if (slot === "bonus" || slot === null || (isPower(slot) && G.powers[slot].eliminated)) {
+    G.gw.order[index] = power;
+    if (slot === "bonus") {
+      log(G, power, "gwBonusImpulseRemoved", {...gwSideCounts(G), reason: "neutralEntry"});
+      if (!G.gw.order.includes("bonus")) G.gw.bonusImpulseSide = null;
+    }
+  } else G.gw.order.splice(index, 0, power);
   return index;
 };
 
 /**
- * 29.3 / 25.7.1: keep the single bonus-impulse slot in step with the alliance
- * sizes.  The outnumbered alliance gets one bonus slot; equal alliances have
+ * 29.3 / 25.7.1: keep bonus-impulse slots in step with the alliance
+ * sizes. The outnumbered alliance fills missing slots; equal alliances have
  * none.  Called after a neutral joins so the opposing alliance gains its bonus
  * impulse and a bonus the joined alliance no longer needs is removed.
  */
@@ -2659,26 +2796,28 @@ export const rebalanceBonusImpulse = (G: ImperialElegyState): void => {
   const counts = gwSideCounts(G);
   const existing = G.gw.order.filter((slot) => slot === "bonus").length;
   if (counts.te === counts.ta) {
-    if (existing === 0) return;
+    const hadBonus = existing > 0 || G.gw.bonusImpulseSide != null;
     G.gw.order = G.gw.order.filter((slot) => slot !== "bonus");
     G.gw.bonusImpulseSide = null;
-    log(G, undefined, "gwBonusImpulseRemoved", {te: counts.te, ta: counts.ta});
+    if (hadBonus) log(G, undefined, "gwBonusImpulseRemoved", {te: counts.te, ta: counts.ta});
     return;
   }
   const side: GwSide = counts.te < counts.ta ? "te" : "ta";
-  if (existing === 1) {
+  const needed = Math.abs(counts.te - counts.ta);
+  if (existing === needed) {
     // 29.3: a neutral may have pushed its alliance past the other side; the
     // printed marker belongs to whichever alliance is now outnumbered.
     G.gw.bonusImpulseSide = side;
     return;
   }
-  G.gw.order = G.gw.order.filter((slot) => slot !== "bonus");
+  let retained = 0;
+  G.gw.order = G.gw.order.filter((slot) => slot !== "bonus" || ++retained <= needed);
   let index = 0;
   for (let i = 0; i < G.gw.order.length; i += 1) {
     const slot = G.gw.order[i];
     if (isPower(slot) && !G.powers[slot]?.eliminated) index = i + 1;
   }
-  G.gw.order.splice(index, 0, "bonus");
+  G.gw.order.splice(index, 0, ...Array<"bonus">(Math.max(0, needed - existing)).fill("bonus"));
   G.gw.bonusImpulseSide = side;
   log(G, undefined, "gwBonusImpulse", {
     side,

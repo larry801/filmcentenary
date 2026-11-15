@@ -35,6 +35,7 @@ import {CARDS} from "../constant/cards.data";
 import {CARD_BY_ID} from "../engine/deck";
 import {createWarState} from "../engine/limitedWar";
 import {resolveWar, surrender} from "../moves";
+import {advanceGwImpulse} from "../engine/greatWarFlow";
 import {GreatWarState, ImperialElegyState} from "../types";
 import i18n from "../../constant/i18n";
 
@@ -360,6 +361,28 @@ describe("Imperial Elegy board controls", () => {
     const button = buttonTag(markup, "ie-pending-option-righteousDefense:liberate:bohemia:Czechs");
     expect(button).toContain("正义防御：解放波希米亚的捷克民族");
     expect(button).not.toContain("disabled");
+  });
+
+  test("the live bonus-impulse chooser renders bilingual player and skip buttons for the deciding seat", () => {
+    const G = freshGame();
+    G.gw = greatWarState();
+    G.gw.te = ["UK", "FR"];
+    G.gw.ta = ["GE", "AU", "RU"];
+    G.gw.belligerents = ["GE", "UK", "FR", "AU", "RU"];
+    G.gw.order = ["GE", "UK", "AU", "FR", "RU", "bonus"];
+    G.gw.bonusImpulseSide = "te";
+    // 25.7.1: the chooser only opens for allies that still have a GW budget;
+    // the live flow grants this in beginGwTurn, which a board fixture skips.
+    for (const power of ["UK", "FR"] as const) G.powers[power].gwBudget = 2;
+    G.phase = "gwManeuver";
+    G.activePower = "RU";
+    G.turnIndex = 4;
+    expect(advanceGwImpulse(G, testCtx)).toMatchObject({kind: "choice"});
+    const markup = html(G, "1");
+    expect(markup).toContain("奖励行动轮：选择一位联盟成员行动，或跳过");
+    expect(buttonTag(markup, "ie-pending-option-FR")).toContain("由法国行动");
+    expect(buttonTag(markup, "ie-pending-option-skip")).toContain("跳过本次奖励行动轮");
+    expect(buttonTag(html(G, "4"), "ie-pending-option-FR")).toBe("");
   });
 
   test("the surrender control opens the defending seat's accept/refuse choices", () => {

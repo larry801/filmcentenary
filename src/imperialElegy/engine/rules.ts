@@ -2,6 +2,7 @@ import {Ctx} from "boardgame.io";
 import {
   AllianceBox,
   CardId,
+  GreatWarState,
   GwSide,
   ImperialElegyState,
   KeyType,
@@ -1425,6 +1426,25 @@ const minorBrokenCandidates = (
 export const impulsePenalties = (G: ImperialElegyState, power: Power): ImpulsePenalty[] => {
   if (G.powers[power].eliminated) return [];
   const out: ImpulsePenalty[] = [];
+  // 26.3's major-impulse upkeep belongs to the live 27.1 ledger flow. A state
+  // without that ledger (legacy save / rule fixture) keeps the pre-26.3 check
+  // of the commanding player's own stacks, so an old save is not hit with a
+  // new upkeep decision the moment a US/Italian slot activates.
+  const major = G.gw?.impulse !== undefined ? gwAllyImpulseFor(G, power) : null;
+  if (major !== null) {
+    // 26.3: taking Italy's/US's slot never charges the commanding player's
+    // own stacks a second upkeep. The prompt still belongs to that seat.
+    for (const space of Object.keys(G.spaces)) {
+      if (isNavalBox(space)) continue;
+      const units = unitsIn(G, space).filter((u) => u.owner === major && u.steps > 0);
+      const armies = units.filter((u) => !u.naval && isArmyKind(u.kind));
+      const stacked = units.filter((u) => u.naval || isArmyKind(u.kind));
+      if (isOverstacked(G, space) && stacked.length) out.push({space, cause: "overstack", candidates: stacked.map((u) => u.id)});
+      const supplied = major === "IT" ? italianHasLoc(G, space) : minorHasLoc(G, "United States", space);
+      if (armies.length && !supplied) out.push({space, cause: "brokenLoc", candidates: armies.map((u) => u.id)});
+    }
+    return out;
+  }
   for (const space of overstackedSpaces(G, power)) {
     const land = penaltyCandidates(G, space, power, false).map((u) => u.id);
     const naval = penaltyCandidates(G, space, power, true).map((u) => u.id);
@@ -1972,7 +1992,7 @@ export const removeAllUnitsOf = (G: ImperialElegyState, owner: PowerOrMinor): nu
 };
 
 /**
- * 30.1: align the single bonus-impulse marker with the elimination.  The
+ * 30.1: align the bonus-impulse markers with the elimination. The
  * eliminated power's initiative slot becomes a bonus impulse for its alliance,
  * but "only one alliance can have a bonus impulse on the wartime initiative
  * track": if the other alliance already owns the marker, both markers are
@@ -1994,10 +2014,14 @@ const syncEliminationBonusImpulse = (
   // Removing/compacting order entries shifts every later index.  Keep the
   // maneuver cursor on the slot it was actually pointing at so the rest of the
   // turn still visits every remaining power exactly once.
-  const cursorSlot = Number.isInteger(G.turnIndex) && G.turnIndex >= 0 ? gw.order[G.turnIndex] : undefined;
-  const realignCursor = (): void => {
-    if (cursorSlot === undefined || cursorSlot === null) return;
-    G.turnIndex = gw.order.indexOf(cursorSlot);
+  const removeSlots = (remove: (slot: GreatWarState["order"][number]) => boolean): void => {
+    // Count removed positions instead of looking up a slot value: multiple
+    // bonus markers have the same value but are different impulse positions.
+    if (Number.isInteger(G.turnIndex) && G.turnIndex >= 0) {
+      G.turnIndex -= gw.order.slice(0, G.turnIndex + 1).filter(remove).length;
+    }
+    gw.order = gw.order.filter((slot) => !remove(slot));
+    if (gw.impulse && gw.impulse.power === G.activePower) gw.impulse.index = G.turnIndex;
   };
   const livingCount = (powers: readonly Power[]): number =>
     powers.filter((power) => G.powers[power] && !G.powers[power].eliminated).length;
@@ -2008,29 +2032,21 @@ const syncEliminationBonusImpulse = (
 
   if (side === null) {
     // A neutral eliminated outside the war has no alliance to give the marker to.
-    gw.order = gw.order.filter((slot) => slot !== leaving);
-    realignCursor();
+    removeSlots((slot) => slot === leaving);
     return;
   }
   if (existing && ownedSide !== side) {
     // The other alliance would also gain a marker: remove both and compact the
     // track so every remaining player initiative marker moves up.
-    gw.order = gw.order.filter((slot) => slot !== "bonus" && slot !== leaving);
+    removeSlots((slot) => slot === "bonus" || slot === leaving);
     gw.bonusImpulseSide = null;
-    realignCursor();
     log(G, undefined, "gwBonusImpulseRemoved", {te: counts.te, ta: counts.ta, reason: "elimination"});
     return;
   }
-  if (existing) {
-    // This alliance already has its one marker; its own marker stays, and the
-    // eliminated power's slot is simply vacated.
-    gw.order = gw.order.filter((slot) => slot !== leaving);
-    realignCursor();
-    return;
-  }
+  // 30.1 limits bonus markers to ONE ALLIANCE, not one marker. Each eliminated
+  // player's slot becomes a bonus even when that alliance already has one.
   gw.order = gw.order.map((slot) => (slot === leaving ? "bonus" : slot));
   gw.bonusImpulseSide = side;
-  realignCursor();
   log(G, undefined, "gwBonusImpulse", {side, te: counts.te, ta: counts.ta, reason: "elimination"});
 };
 
@@ -2102,8 +2118,8 @@ const reassignMinorAllyMarkers = (
  *  - the Alliance Track chit is removed (a player's chit leaves the track;
  *    Italy's 25.3 chit goes back to neutral);
  *  - the wartime initiative slot becomes a bonus impulse for the alliance,
- *    enforcing the one-marker rule and compacting the track when both
- *    alliances would hold one;
+ *    keeping markers for one alliance and compacting the track when both
+ *    alliances would hold markers;
  *  - the eliminated player's minor-power ally markers are transferred to a
  *    surviving alliance member (deterministically) or removed.
  */

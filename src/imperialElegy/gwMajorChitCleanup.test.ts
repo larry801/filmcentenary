@@ -191,7 +191,7 @@ describe("30.2 Italy's chit is neutralized symmetrically", () => {
 });
 
 describe("30.1 the major surrender shares the initiative-slot bookkeeping", () => {
-  test("both majors surrendering leaves one bonus impulse and neutral chits", () => {
+  test("both majors surrendering removes both alliances' bonus impulses and neutralizes chits", () => {
     const G = gwState();
     G.gw!.order = ["FR", "US", "IT", "GE"];
     G.gw!.usIn = true;

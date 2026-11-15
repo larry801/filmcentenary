@@ -129,7 +129,7 @@ describe("30.1 eliminated power's markers", () => {
     expect(result.side).toBe("ta");
   });
 
-  test("only one bonus impulse per alliance: an existing marker is kept", () => {
+  test("30.1 limits markers to one alliance, not to one bonus impulse", () => {
     const G = gwState({
       order: ["FR", "bonus", "GE", "AU"],
       te: ["FR"],
@@ -141,10 +141,23 @@ describe("30.1 eliminated power's markers", () => {
 
     resolveCapitalSurrenders(G, makeCtx());
 
-    expect(bonusCount(G)).toBe(1);
-    expect(G.gw!.order).toEqual(["FR", "bonus", "AU"]);
+    expect(bonusCount(G)).toBe(2);
+    expect(G.gw!.order).toEqual(["FR", "bonus", "bonus", "AU"]);
     expect(G.gw!.bonusImpulseSide).toBe("ta");
-    expect(G.log.some((item) => item.key === "gwBonusImpulse")).toBe(false);
+    expect(G.log.some((item) => item.key === "gwBonusImpulse")).toBe(true);
+  });
+
+  test("multiple bonus markers keep the cursor at its exact position after an allied elimination", () => {
+    const G = gwState({
+      order: ["FR", "bonus", "GE", "AU", "bonus"],
+      te: ["FR"], ta: ["GE", "AU"],
+      belligerents: ["FR", "GE", "AU"], bonusImpulseSide: "ta",
+    });
+    G.activePower = "AU";
+    G.turnIndex = 4;
+    eliminatePower(G, "GE", makeCtx(), "capital");
+    expect(G.gw!.order).toEqual(["FR", "bonus", "bonus", "AU", "bonus"]);
+    expect(G.turnIndex).toBe(4);
   });
 
   test("both alliances would have one: both markers are removed and the track compacts", () => {
@@ -188,14 +201,14 @@ describe("30.1 eliminated power's markers", () => {
       te: ["FR", "UK"],
       ta: ["GE", "AU"],
       belligerents: ["GE", "AU", "FR", "UK"],
-      bonusImpulseSide: "ta",
+      bonusImpulseSide: "te",
     });
     G.activePower = "FR";
     G.turnIndex = 2;
 
     eliminatePower(G, "GE", makeCtx(), "capital");
 
-    expect(G.gw!.order).toEqual(["AU", "FR", "UK", "bonus"]);
+    expect(G.gw!.order).toEqual(["AU", "FR", "UK"]);
     // FR's slot moved from index 2 to index 1; the cursor must follow it or the
     // next impulse would skip UK.
     expect(G.turnIndex).toBe(1);

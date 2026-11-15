@@ -16,7 +16,7 @@ import {beginLandBattle, finishBattle} from "./engine/combat";
 import {placeUnit, removeUnit} from "./engine/effects";
 import {landUnitsIn} from "./engine/rules";
 import {activateGwExhaustion, resolveGwWinter} from "./engine/greatWarFlow";
-import {gwEndTurn, gwPass, playGwCardMove, resolvePending} from "./moves";
+import {gwEndTurn, gwMarch, gwPass, gwRefit, playGwCardMove, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -63,7 +63,15 @@ const baseGw = (turn = 2): ImperialElegyState => {
   G.phase = "gwManeuver";
   G.activePower = "GE";
   G.turnIndex = 0;
+  G.powers.GE.gwBudget = G.powers.FR.gwBudget = 2;
   return G;
+};
+
+/** 27.3: finish the card's bonus and its required ordinary budget action. */
+const completeActions = (G: ImperialElegyState): void => {
+  const army = placeUnit(G, "GE", "army", "berlin", 1);
+  expect(gwRefit(G, ctxFor("GE"), army.id)).toBeUndefined();
+  expect(gwMarch(G, ctxFor("GE"), army.id, "pomerania")).toBeUndefined();
 };
 
 /** Play GE's Exhaustion as an event and resolve its printed mode choice. */
@@ -75,6 +83,7 @@ const playExhaustion = (G: ImperialElegyState, mode: "stability" | "vp"): void =
   expect(G.pending?.kind).toBe("eventChoice");
   expect(resolvePending(G, ctx, mode)).toBeUndefined();
   expect(G.pending).toBeNull();
+  completeActions(G);
 };
 
 /**
@@ -152,11 +161,12 @@ describe("GW-10 Exhaustion timing", () => {
     expect(G.powers.UK.vp).toBe(0);
   });
 
-  test("skipping the maneuver turn also closes the impulse", () => {
+  test("ending the turn cannot bypass the other belligerent's remaining impulses", () => {
     const G = baseGw();
     playExhaustion(G, "stability");
-    expect(gwEndTurn(G, ctxFor("GE"))).toBeUndefined();
-    expect(G.phase).toBe("gwWinter");
+    expect(gwEndTurn(G, ctxFor("GE"))).toBe(INVALID_MOVE);
+    expect(gwPass(G, ctxFor("GE"))).toBeUndefined();
+    expect(G.phase).toBe("gwManeuver");
     expect(G.persistent.exhaustion).toBe("stability");
   });
 });
@@ -197,8 +207,9 @@ describe("GW-10 Exhaustion guards", () => {
     expect(resolvePending(G, ctxFor("GE"), "stability")).toBeUndefined();
     expect(G.powers.GE.gwCard).toBeNull();
 
+    completeActions(G);
     expect(gwPass(G, ctxFor("GE"))).toBeUndefined();
-    expect(G.powers.GE.flags.passedGw).toBe(true);
+    expect(G.powers.GE.flags.passedGw).toBe(false); // Ended an action impulse, not a pass.
     expect(G.persistent.exhaustion).toBe("stability");
   });
 

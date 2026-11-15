@@ -417,12 +417,26 @@ Status labels:
 - **Live flow (`engine/greatWarFlow.ts`, wired):**
   - `beginGwTurn` deals/refreshes GW cards, marks combat cards face-up, resets
     budgets (`max(2, industry)`, plus FR Second Empire +1) and planning flags.
-  - `startGwManeuver`/`advanceGwImpulse` run the order. The `"bonus"` slot now
-    grants an extra impulse to the alliance with fewer living slots instead of
-    being skipped.
+  - `startGwManeuver`/`advanceGwImpulse` run the order. `"bonus"` slots open
+    an alliance member/pass choice, and the last ordinary pass still processes
+    bonus and US/Italian slots later in the initiative track. Outbreak slots
+    alternate and fill missing player positions; 30.1 permits multiple markers
+    for one alliance and removes all markers if both alliances would hold them.
   - `performGwManeuver` validates deploy, draft, refit, march, rail, naval,
     joint naval and land battle, each costing one GW budget.
-  - Planning CP transfer (`gwTransferBudget`) is allied-only and once per donor.
+  - **27.1–27.3:** `engine/gwImpulse.ts` shares the one-budget-action allowance
+    with all live maneuvers, transport, cards, controls and the bot. A card funds
+    an immediate distinct non-land-battle action; GE's free deploy is separate.
+    Finishing an action is distinct from passing an unused ≤2-budget impulse.
+    Exhaustion resolves its event and bonus and activates only at impulse end.
+  - **27.7 / 27.4:** actions clear the consecutive-pass history. Turn-end checks
+    reject premature winter; neutral players then get event-only impulses in
+    normal seat order, with serializable continuation.
+  - **27.5.1 / 27.5.3 / 27.5.4:** refit requires LoC, fleet refit requires a
+    friendly port, and the live 1-CP EC move attaches to a supplied friendly
+    army. Fleet-refit/EC moves have board controls and share the action allowance.
+  - Planning player CP transfer (`gwTransferBudget`) is allied-only, exactly
+    one CP, once per donor, and requires a LoC to the recipient.
   - GW combat cards are offered from `gwCard` and from face-up cards in front,
     including the post-dice GW-05/GW-06 window. Face-up combat cards are public
     via `G.flags.gwFaceupCombat` and `revealGwCombatCard`.
@@ -441,6 +455,9 @@ Status labels:
     a blamed incident forces the join), the independent Kingdom of Italy on the
     map, and 25.4's 1 stability for an Italy entering at 0. 32.1’s Mexico/Canada
     exit restriction is live in march/rail/battle/naval transport.
+    Major initiative slots now recur each cycle and keep their budget, pass
+    history, commanded units and upkeep separate from the player's. Controlled
+    minor armies/fleets can move through the controller's march/naval paths.
   - 30.2 / 32.1 / 32.2 / 29.1.1 US and Italian stability and surrender are
     live (`engine/gwMajors.ts`): US army loss, decisive defeats of a
     US-/Italian-led force, the US North Atlantic winter check, Italian home-key
@@ -456,8 +473,9 @@ Status labels:
     redeploy and give one bonus CP to a legal belligerent.
   - **30.1 capital-occupation surrender is live in the GW:** AU/RU/OT need both
     capital and subcapital; enemy occupation is immediate and idempotent; the
-    eliminated power’s alliance chit is removed, its initiative slot becomes the
-    alliance bonus impulse (one-marker/compaction), and its minor ally markers
+    eliminated power’s alliance chit is removed, its initiative slot becomes a
+    bonus impulse for its alliance (multiple markers for one alliance; removal
+    and compaction only if both alliances would have markers), and its minor ally markers
     are reassigned. **22.4** places one Italian army in Rome and two on the
     frontier with the squadron in Naples/Piedmont; **15.6** records an ally
     knockout when a capital is taken so a retaken capital does not erase it.

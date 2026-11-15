@@ -154,7 +154,8 @@ export const surrenderGwMajor = (
   const removed = removeAllUnitsOf(G, major);
   // 30.1: the same marker bookkeeping too — Italy's Alliance Track chit and the
   // major's initiative slot become the alliance's bonus impulse, and the
-  // one-marker/compaction rule applies exactly as for a player elimination.
+  // one-alliance-marker/compaction rule applies exactly as for a player
+  // elimination.
   removeGwSurrenderMarkers(G, major, side, ctx);
   // 15.6: "when a player ally (or Italy) is knocked out, displace any allied
   // units in their territory" — the same 5.7 displacement a player elimination

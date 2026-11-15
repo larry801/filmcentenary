@@ -344,7 +344,7 @@ describe("29.3 order slot and bonus impulse", () => {
     expect(G.log.some((entry) => entry.key === "gwBonusImpulseRemoved")).toBe(true);
   });
 
-  test("rebalance keeps exactly one bonus slot for the outnumbered side", () => {
+  test("rebalance keeps the required number of bonus slots for the outnumbered side", () => {
     const G = baseGw(["FR"], ["GE", "AU"], [], ["GE", "AU", "FR"]);
     rebalanceBonusImpulse(G);
     expect(G.gw!.order.filter((slot) => slot === "bonus")).toHaveLength(1);

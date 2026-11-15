@@ -576,23 +576,22 @@ export const outbreakGreatWar = (
   // 25.3: Italy enters at the outbreak before 25.4 — a major that enters at 0
   // stability gains 1.
   if (G.gw.italyIn && G.gw.italyStability <= 0) G.gw.italyStability = 1;
-  // GW turn order: alternating, GE's alliance first.
-  const geSide = sideOf(G, "GE") ?? "ta";
+  // 25.7: GE's alliance first; if neutral, use UK, FR, AU, then RU.
+  const geSide = POWERS.map((power) => sideOf(G, power)).find((side) => side !== null) ?? "ta";
   const first = geSide === "te" ? te : ta;
   const second = geSide === "te" ? ta : te;
   const order: (Power | "bonus" | "IT")[] = [];
   const max = Math.max(first.length, second.length);
   for (let i = 0; i < max; i += 1) {
-    if (first[i]) order.push(first[i]);
-    if (second[i]) order.push(second[i]);
-  }
-  if (first.length !== second.length) {
-    order.push("bonus");
+    // 25.7.1: fill the missing alliance's alternating slot, rather than
+    // appending a bonus after successive impulses of the larger alliance.
+    order.push(first[i] ?? "bonus");
+    order.push(second[i] ?? "bonus");
   }
   // 26.3: Italy's impulse comes at the end of the order.
   order.push(...italySlot);
   G.gw.order = order;
-  // 25.7.1: the single bonus marker belongs to the outnumbered alliance.
+  // 25.7.1: bonus markers belong to the outnumbered alliance.
   G.gw.bonusImpulseSide =
     first.length === second.length ? null : first.length < second.length ? geSide : geSide === "te" ? "ta" : "te";
   G.gw.outbreakDone = true;
@@ -1470,4 +1469,3 @@ export const checkGwVictory = (G: ImperialElegyState, ctx: Ctx): void => {
   if (!teOutnumbered && !taOutnumbered) return;
   endGreatWar(G, ctx, "onePower");
 };
-

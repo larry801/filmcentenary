@@ -1795,7 +1795,9 @@ export const superiorStaffWorkFreeDeploy = (
  * that enters the war later does not receive the grant (turn 0 only).
  */
 export const gwImpulseKey = (G: ImperialElegyState): string =>
-  `${G.gw?.turn ?? 0}:${G.turnIndex}:${G.activePower}`;
+  G.gw?.impulseSeq === undefined
+    ? `${G.gw?.turn ?? 0}:${G.turnIndex}:${G.activePower}`
+    : `${G.gw.turn}:impulse${G.gw.impulseSeq}:${G.activePower}`;
 
 /**
  * Latch GE's first GW maneuver impulse.  Called by the live GW moves before
@@ -1804,6 +1806,7 @@ export const gwImpulseKey = (G: ImperialElegyState): string =>
  */
 export const markSuperiorStaffWorkGwImpulse = (G: ImperialElegyState): void => {
   if (!G.gw?.active || G.gw.turn !== 0) return;
+  if (G.gw.neutralImpulses || !G.gw.belligerents.includes("GE") || G.flags.gwAllyImpulse) return;
   if (G.activePower !== "GE") return;
   const p = G.powers.GE;
   if (!p || p.eliminated) return;
@@ -1813,6 +1816,7 @@ export const markSuperiorStaffWorkGwImpulse = (G: ImperialElegyState): void => {
 
 export const superiorStaffWorkGwFreeDeploy = (G: ImperialElegyState): boolean => {
   if (!G.gw?.active || G.gw.turn !== 0) return false;
+  if (G.gw.neutralImpulses || G.flags.gwAllyImpulse) return false;
   if (G.activePower !== "GE") return false;
   const p = G.powers.GE;
   if (!p || p.eliminated) return false;

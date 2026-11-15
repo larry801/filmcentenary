@@ -88,6 +88,7 @@ export interface RedactContext {
  *    Sets, Our Place in the Sun).
  */
 export const PUBLIC_POWER_FLAGS: readonly string[] = [
+  "passedGw", // 27.7's consecutive-pass history is public turn progress.
   "powerProjection",
   "professionalArmy",
   "rapidMobilization",

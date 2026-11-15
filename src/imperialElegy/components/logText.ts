@@ -1488,8 +1488,16 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  gwBonusImpulseSkipped: (entry, locale) => text(locale,
+    `${sideLabel(entry.args?.side, locale)} passes its bonus impulse.`,
+    `${sideLabel(entry.args?.side, locale)}跳过本次奖励行动轮。`,
+  ),
   gwBonusImpulse: (entry, locale) => {
     const side = sideLabel(entry.args?.side, locale);
+    if (entry.args?.reason === "elimination") return text(locale,
+      `${side} gains a bonus impulse in the eliminated player's slot.`,
+      `${side}在被淘汰玩家的位置获得奖励行动轮。`,
+    );
     return withActor(
       entry,
       locale,
@@ -1498,13 +1506,22 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
-  gwBonusImpulseRemoved: (entry, locale) =>
-    withActor(
+  gwBonusImpulseRemoved: (entry, locale) => {
+    if (entry.args?.reason === "neutralEntry") return withActor(entry, locale,
+      "takes the earliest available initiative slot, replacing its bonus marker.",
+      "进入最靠前的可用行动顺位，替换该位置的奖励标记。",
+    );
+    if (entry.args?.reason === "elimination") return text(locale,
+      "Both alliances' bonus impulses are removed and the initiative track closes up.",
+      "移除双方联盟的奖励行动轮标记，并前移行动顺位以填补空位。",
+    );
+    return withActor(
       entry,
       locale,
       "lost its bonus impulse: the alliances are now equal in size.",
       "失去奖励行动轮：双方同盟人数现已相等。",
-    ),
+    );
+  },
 
   gwBlockade: (entry, locale) => {
     const max = num(entry.args?.maxIndustry);

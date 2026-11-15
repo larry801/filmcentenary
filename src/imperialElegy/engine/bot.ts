@@ -23,6 +23,7 @@ import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
 import {
   controlledBy,
   cpBudgetFor,
+  gwAllyImpulseFor,
   friendlySpace,
   hasLoc,
   isArmyKind,
@@ -39,7 +40,8 @@ import {canPassNow, recruit as recruitMove} from "../moves";
 import {passRestriction} from "./characteristics";
 import {beginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
-import {gwDraftSpaces} from "./greatWarFlow";
+import {gwDraftSpaces, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
+import {currentGwImpulse, gwActionAllowance, gwCardProblem, gwFinishImpulseProblem} from "./gwImpulse";
 import {reserveRemaining} from "./economy";
 import {hasCounterFor} from "./counters";
 
@@ -759,7 +761,7 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
         if (isNavalBox(to)) continue;
         const enemies = landUnitsIn(G, to).filter((u) => hostileOwner(G, power, u.owner));
         if (enemies.length === 0) continue;
-        if (!legalLandBattle(G, power, id, to)) continue;
+        if (!gwActionAllowance(G, power, "landBattle").ok || !legalLandBattle(G, power, id, to)) continue;
         // `landBattle` takes (from, to): the whole force in `from` attacks.
         return {move: "landBattle", args: [id, to]};
       }
@@ -768,8 +770,8 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
 
   if (roll >= 4 && roll <= 5) {
     // Refit (convert to 6 if all armies full strength).
-    const reduced = Object.values(G.units).filter((u) => u.owner === power && !u.naval && u.steps === 1);
-    if (reduced.length > 0) {
+    const reduced = Object.values(G.units).filter((u) => u.owner === power && !u.naval && isArmyKind(u.kind) && u.steps === 1 && u.space && hasLoc(G, power, u.space));
+    if (reduced.length > 0 && gwActionAllowance(G, power, "refit").ok) {
       return {move: "gwRefit", args: [reduced[0].id]};
     }
   }
@@ -778,12 +780,46 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
     // Draft into a legal home key; the engine decides the second placement.
     if (G.powers[power].manpower > 0) {
       const space = botDraftSpace(G, power);
-      if (space !== null) {
+      if (space !== null && hasCounterFor(G, power, "army") && gwActionAllowance(G, power, "draft").ok) {
         return {move: "gwDraft", args: [space]};
       }
     }
   }
 
+  return null;
+};
+
+/** Find a legal required action when a priority row cannot spend this impulse. */
+const gwRequiredAction = (G: ImperialElegyState, ctx: Ctx, power: Power): BotMove | null => {
+  const owner = gwAllyImpulseFor(G, power) ?? power;
+  const candidates: {request: GwManeuverRequest; move: BotMove}[] = [];
+  for (const unit of Object.values(G.units)) {
+    if (unit.owner !== owner || !unit.space) continue;
+    if (unit.steps < 2 && (unit.naval || isArmyKind(unit.kind))) {
+      const kind = unit.naval ? "refitFleet" : "refit";
+      candidates.push({request: {kind, power, unitId: unit.id}, move: {move: unit.naval ? "gwRefitFleet" : "gwRefit", args: [unit.id]}});
+    }
+    if (!unit.naval && isArmyKind(unit.kind)) {
+      candidates.push({request: {kind: "eliteCorps", power, unitId: unit.id}, move: {move: "gwEliteCorps", args: [unit.id]}});
+    }
+    for (const to of neighboursOf(unit.space)) {
+      if (unit.naval) {
+        candidates.push({request: {kind: "naval", power, unitIds: [unit.id], to}, move: {move: "navalMove", args: [[unit.id], to]}});
+      } else {
+        candidates.push({request: {kind: "march", power, unitId: unit.id, to}, move: {move: "gwMarch", args: [unit.id, to]}});
+        candidates.push({request: {kind: "rail", power, unitId: unit.id, to}, move: {move: "gwRail", args: [unit.id, to]}});
+      }
+    }
+  }
+  for (const space of gwDraftSpaces(G, power)) {
+    candidates.push({request: {kind: "draft", power, space}, move: {move: "gwDraft", args: [space]}});
+    if (G.powers[power].reserves.length) candidates.push({request: {kind: "deploy", power, space}, move: {move: "gwDeploy", args: [space]}});
+  }
+  for (const {request, move} of candidates) {
+    if (!gwActionAllowance(G, power, request.kind).ok) continue;
+    const probe = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
+    if (performGwManeuver(probe, {...ctx, random: {...ctx.random, Die: () => 3}, events: undefined} as Ctx, request).ok) return move;
+  }
   return null;
 };
 
@@ -937,6 +973,21 @@ export const botDecision = (
   }
 
   if (phase === "gwManeuver") {
+    if (G.gw?.neutralImpulses) {
+      return gwCardProblem(G, power, "event") === null
+        ? {move: "playGwCardMove", args: ["event"]} : {move: "gwPass"};
+    }
+    const impulse = currentGwImpulse(G, power);
+    if (impulse.bonusPending) return gwRequiredAction(G, ctx, power) ?? {move: "gwPass"};
+    if (impulse.budgetAction && gwFinishImpulseProblem(G, power) === null) return {move: "gwPass"};
+    if (p.gwCard === "IE-GW-10" && gwAllyImpulseFor(G, power) === null && gwCardProblem(G, power, "cp") === null) {
+      // 27.3: the printed escape for a mandatory Exhaustion card is its CP
+      // play, not the event; the event still resolves at the end of the impulse.
+      return {move: "playGwCardMove", args: ["cp"]};
+    }
+    if (gwAllyImpulseFor(G, power) !== null) {
+      return gwRequiredAction(G, ctx, power) ?? {move: "gwPass"};
+    }
     // Same B1 die as the action phase: a constant collapsed the GW maneuver
     // table onto its attack branch.
     const p2 = gwPriorityTwo(G, power, roll2d6(ctx));
@@ -945,11 +996,7 @@ export const botDecision = (
     // `hand` — `passRestriction` has to be asked about this turn's GW card, or
     // the bot names a move the engine refuses forever.  Playing it for CP is
     // the printed escape (the card's event is optional at this point).
-    const gwCard = p.gwCard;
-    if (gwCard && passRestriction(G, power, [gwCard]).forced) {
-      // 27.3's printed escape is to spend the card's CP instead of passing.
-      return {move: "playGwCardMove", args: ["cp"]};
-    }
+    if (gwFinishImpulseProblem(G, power) !== null) return gwRequiredAction(G, ctx, power) ?? {move: "gwPass"};
     return {move: "gwPass"};
   }
 

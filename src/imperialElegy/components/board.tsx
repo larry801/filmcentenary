@@ -5,7 +5,7 @@ import {ImperialElegyState, PendingOption, Power, POWERS, SpaceId, Unit} from ".
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, navalUnitsIn, ownsKey} from "../engine/rules";
+import {cpBudgetFor, effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -40,6 +40,7 @@ import {deployReserveLimit, isLoneMinorWar, loneMinorDefender, rapidMobilization
 import {polishReserveDeployer} from "../engine/poland";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
 import {isIndependentItaly} from "../engine/greatWarFlow";
+import {gwActionAllowance} from "../engine/gwImpulse";
 import {treatyOptionLabel} from "../engine/treatyChoice";
 import {
   POWER_KEYS,
@@ -155,7 +156,8 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const isBelligerent = viewer !== null && warBelligerents.includes(viewer);
 
   const cpBudget = (): number => viewer === null ? 0 : cpBudgetFor(G, viewer);
-  const canAct = viewer !== null && !eliminated && !isBotViewer && isActive && pending === null && (phase === "action" || phase === "wartime" || phase === "gwManeuver");
+  const canAct = viewer !== null && !eliminated && !isBotViewer && isActive && pending === null &&
+    (phase === "action" || phase === "wartime" || (phase === "gwManeuver" && !gw?.neutralImpulses));
   const canSpend = (cost: number): boolean => canAct && cpBudget() >= cost;
   const canActionCard = viewer !== null && !eliminated && !isBotViewer && isActive && phase === "action" && pending === null;
   const canPhaseAct = viewer !== null && !eliminated && !isBotViewer && (phase === "end" || phase === "gwPlanning" ? true : isActive);
@@ -521,8 +523,12 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
 
   const selectedState = selected ? G.spaces[selected] : null;
   const selectedUnitDef = selectedUnit ? G.units[selectedUnit] : undefined;
+  const commandedOwner = viewer === null ? null : gwAllyImpulseFor(G, viewer) ?? viewer;
+  const commandsSelected = (unit: Unit): boolean => unit.owner === commandedOwner ||
+    (phase === "gwManeuver" && viewer !== null && commandedOwner === viewer && !isPowerKey(unit.owner) &&
+      unit.owner !== "US" && unit.owner !== "IT" && minorController(G, unit.owner) === viewer);
   const ownUnitsInSelected = selectedState
-    ? selectedState.units.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && viewer !== null && u.owner === viewer)
+    ? selectedState.units.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && viewer !== null && commandsSelected(u))
     : [];
   const ownLandInSelected = ownUnitsInSelected.filter((u) => !u.naval);
   const ownNavalInSelected = ownUnitsInSelected.filter((u) => u.naval);
@@ -554,12 +560,12 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const potentialNavalTargets = enemyNavalTargetsFrom(selected);
 
   const unitMoveTargets: SpaceId[] = (() => {
-    if (!selectedUnitDef || !selectedUnitDef.space || viewer === null || selectedUnitDef.owner !== viewer) return [];
+    if (!selectedUnitDef || !selectedUnitDef.space || viewer === null || !commandsSelected(selectedUnitDef)) return [];
     return neighboursOf(selectedUnitDef.space).filter((id) => {
       const state = G.spaces[id];
       if (!state) return false;
       if (selectedUnitDef.naval) return true;
-      return friendlySpace(G, id, viewer) || (state.influence === viewer && state.control === null);
+      return state.control === commandedOwner || state.occupiedBy === commandedOwner || friendlySpace(G, id, viewer) || (state.influence === viewer && state.control === null);
     });
   })();
 
@@ -587,12 +593,12 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const onSelectImpl = React.useRef<(id: SpaceId) => void>(() => {});
   onSelectImpl.current = (id: SpaceId) => {
     if (battleFrom) {
-      if (canSpend(1)) doAction(() => moves.landBattle(battleFrom, id));
+      if (phase === "gwManeuver" ? canAct && viewer !== null && gwActionAllowance(G, viewer, "landBattle").ok : canSpend(1)) doAction(() => moves.landBattle(battleFrom, id));
       setBattleFrom(null);
       return;
     }
     if (navalFrom) {
-      if (canSpend(1)) doAction(() => moves.navalBattle(navalFrom, id));
+      if (phase === "gwManeuver" ? canAct && viewer !== null && gwActionAllowance(G, viewer, "naval").ok : canSpend(1)) doAction(() => moves.navalBattle(navalFrom, id));
       setNavalFrom(null);
       return;
     }
@@ -600,12 +606,12 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
       doAction(() => moves.resolvePending(id));
       return;
     }
-    if (selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space && selectedUnitDef.space !== id) {
+    if (selectedUnitDef && commandsSelected(selectedUnitDef) && selectedUnitDef.space && selectedUnitDef.space !== id) {
       if (phase === "gwManeuver" && !selectedUnitDef.naval) {
         setSelected(id);
         return;
       }
-      if (canSpend(1)) {
+      if (phase === "gwManeuver" ? canAct && viewer !== null && gwActionAllowance(G, viewer, "naval").ok : canSpend(1)) {
         if (selectedUnitDef.naval) doAction(() => moves.navalMove([selectedUnitDef.id], id));
         else doAction(() => moves.redeploy(selectedUnitDef.id, id));
       }
@@ -749,13 +755,13 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     : italyBox.endsWith("Committed")
       ? bi(actualLocale, "joins automatically at the outbreak (25.3)", "大战爆发时自动参战（25.3）")
       : bi(actualLocale, "roll 4–6 at the outbreak, else back to neutral (25.3)", "爆发时掷 4–6 参战，否则退回中立（25.3）");
-  const canGwDraft = selected !== null && viewer !== null && me !== null && phase === "gwManeuver" && isActive && pending === null && !eliminated && cpBudget() >= 1 && me.manpower >= 1;
+  const canGwDraft = selected !== null && viewer !== null && me !== null && phase === "gwManeuver" && isActive && pending === null && !eliminated && gwActionAllowance(G, viewer, "draft").ok && me.manpower >= 1;
   const gwDeployRoom = selected !== null && selectedState !== null && selectedState !== undefined
     ? Math.max(0, landStackingLimit(selected) - landUnitsIn(G, selected).filter((u) => isArmyKind(u.kind)).length)
     : 0;
   const canGwDeployHere = Boolean(
     viewer !== null && me !== null && selected !== null && selectedState && phase === "gwManeuver" &&
-    isActive && pending === null && !eliminated && cpBudget() >= 1 && me.reserves.length > 0 &&
+    isActive && pending === null && !eliminated && gwActionAllowance(G, viewer, "deploy").ok && me.reserves.length > 0 &&
     gwDeployRoom > 0 && !isNavalBox(selected) && friendlySpace(G, selected, viewer) &&
     (isHomeSpace(G, selected, viewer) || ownsKey(G, selected, viewer)) && !selectedState.trench,
   );
@@ -766,7 +772,7 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
   const gwTransferToValue: string = gwSideAllies.includes(gwTransferTo as Power)
     ? (gwTransferTo as Power)
     : gwSideAllies[0] ?? "";
-  const gwTransferAmountValue = Number.isFinite(gwTransferAmount) ? Math.max(1, Math.floor(gwTransferAmount)) : 1;
+  const gwTransferAmountValue = 1;
   const canGwTransfer = Boolean(
     viewer !== null && me !== null && gw !== null && phase === "gwPlanning" && isActive && pending === null &&
     !eliminated && gwTransferToValue !== "" && gwTransferAmountValue <= (me.gwBudget ?? 0) &&

@@ -1,7 +1,8 @@
 import React from "react";
-import {ImperialElegyState, Power, SpaceId, Unit} from "../types";
+import {GwActionKind, ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {SPACES, neighboursOf, portBoxes, spaceLabel, isNavalBox} from "../constant/spaces";
-import {effectiveKeyType, hasLoc, isArmyKind, isHomeSpace, landUnitsIn, ownsKey} from "../engine/rules";
+import {effectiveKeyType, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landUnitsIn, minorController, ownsKey} from "../engine/rules";
+import {gwActionAllowance} from "../engine/gwImpulse";
 import {isCwArmySpace} from "../engine/characteristics";
 import {polishReserveDeployer} from "../engine/poland";
 import {IEBadge, IEPanel} from "./theme";
@@ -85,6 +86,11 @@ export const SpacePanel = (props: SpacePanelProps) => {
 
   const selectedSpace = selected ? SPACES[selected] : null;
   const selectedState = selected ? G.spaces[selected] : null;
+  const commandedOwner = viewer === null ? null : gwAllyImpulseFor(G, viewer) ?? viewer;
+  const commanded = (unit: Unit): boolean => unit.owner === commandedOwner ||
+    (phase === "gwManeuver" && viewer !== null && commandedOwner === viewer && !isPowerKey(unit.owner) &&
+      unit.owner !== "US" && unit.owner !== "IT" && minorController(G, unit.owner) === viewer);
+  const gwAllowed = (kind: GwActionKind): boolean => canAct && viewer !== null && gwActionAllowance(G, viewer, kind).ok;
 
   const actionGroup = (key: string, title: string, children: React.ReactNode) => {
     const content = React.Children.toArray(children);
@@ -123,13 +129,13 @@ export const SpacePanel = (props: SpacePanelProps) => {
           <div className="ie-space-units"><strong>{t.units}:</strong> {selectedState.units.length === 0 ? "—" : selectedState.units.map((id) => {
             const u = G.units[id];
             if (!u) return null;
-            const mine = viewer !== null && u.owner === viewer;
+            const mine = viewer !== null && commanded(u);
             const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
             if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t)}</span>;
             if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id))}>{unitLabel(u, t)}</button>;
             return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedUnit === id} onClick={() => setSelectedUnit(id)}>{unitLabel(u, t)}</button>;
           })}</div>
-          {selectedUnitDef && selectedUnitDef.owner === viewer && (
+          {selectedUnitDef && commanded(selectedUnitDef) && (
             <div className="ie-hint">
               {bi(locale, "Selected:", "已选：")} {unitLabel(selectedUnitDef, t)}
               {selectedUnitDef.space && selectedUnitDef.space !== selected && <span> · {bi(locale, "click a highlighted space to move here.", "点击高亮空间移动至此。")}</span>}
@@ -140,7 +146,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
           {canAct && (
             <div className="ie-action-groups">
               <span className="ie-cp-remaining">⚡ {cpRemaining} CP</span>
-              {actionGroup("recruit", bi(locale, "Recruit", "征募"), [
+              {phase !== "gwManeuver" && actionGroup("recruit", bi(locale, "Recruit", "征募"), [
                 <button key="army" className="ie-btn"
                   disabled={!canSpend(1) || !me || viewer === null || !isHomeSpace(G, selected!, viewer) || !ownsKey(G, selected!, viewer) || myOnMapArmies >= me.manpower || me.flags.noBuildArmiesThisImpulse === true}
                   title={!canSpend(1) ? bi(locale, "Needs 1 CP", "需要 1 CP") : !me || viewer === null || !isHomeSpace(G, selected!, viewer) ? bi(locale, "Must be your home space", "必须是本国核心领土") : !ownsKey(G, selected!, viewer) ? bi(locale, "Must control a key in this space", "必须控制此空间的关键") : me && myOnMapArmies >= me.manpower ? bi(locale, "Manpower limit reached", "已达兵力上限") : me?.flags.noBuildArmiesThisImpulse === true ? bi(locale, "Cannot recruit this impulse", "本轮不能征募") : undefined}
@@ -163,7 +169,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
                   ? <button key="polishReserve" data-testid="ie-polish-reserve" className="ie-btn secondary" disabled={polishReserveDecision.allowed !== true || !canSpend(polishReserveDecision.cost)} title={polishReserveDecision.allowed ? undefined : polishReserveDecision.reasons.join(" | ")} onClick={() => doAction(() => moves.polishRecruit("reserveArmy", null, 2))}>{bi(locale, `Polish reserve (${polishReserveDecision.cost} CP)`, `波兰预备军（${polishReserveDecision.cost} CP）`)}</button>
                   : null,
               ])}
-              {actionGroup("build", bi(locale, "Build", "建造"), [
+              {phase !== "gwManeuver" && actionGroup("build", bi(locale, "Build", "建造"), [
                 portBoxes(selected!).length > 0 ? <button key="sq" className="ie-btn" disabled={!canSpend(2) || !me || viewer === null || !isHomeSpace(G, selected!, viewer) || !ownsKey(G, selected!, viewer)}
                   title={!canSpend(2) ? bi(locale, "Needs 2 CP", "需要 2 CP") : !me || viewer === null || !isHomeSpace(G, selected!, viewer) ? bi(locale, "Must be your home space", "必须是本国核心领土") : !ownsKey(G, selected!, viewer) ? bi(locale, "Must control a key in this space", "必须控制此空间的关键") : undefined}
                   onClick={() => doAction(() => moves.constructFleet(selected!, "squadron", false))}>{t.buildSquadron}</button> : null,
@@ -180,7 +186,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
                   ? <button key="efmove" className="ie-btn secondary" disabled={!canSpend(1)} onClick={() => doAction(() => moves.buildEf(selected!, selectedUnitDef.id))}>{bi(locale, "Move selected EF here", "移动所选远征军至此")}</button>
                   : null,
               ])}
-              {actionGroup("diplomacy", bi(locale, "Diplomacy & influence", "外交与影响"), [
+              {phase !== "gwManeuver" && actionGroup("diplomacy", bi(locale, "Diplomacy & influence", "外交与影响"), [
                 <button key="inf" className="ie-btn"
                   disabled={!canSpend(1) || !me || me.flags.alreadyInfluenced === true || selectedState.control !== null || (selectedState.influence ?? null) !== null || viewer === null || !hasLoc(G, viewer, selected!)}
                   title={!canSpend(1) ? bi(locale, "Needs 1 CP", "需要 1 CP") : me?.flags.alreadyInfluenced ? bi(locale, "Already influenced this impulse", "本轮已使用影响") : selectedState.control !== null ? bi(locale, "Space is already controlled", "此空间已被控制") : (selectedState.influence ?? null) !== null ? bi(locale, "Space already has influence", "此空间已有影响标记") : viewer === null || !hasLoc(G, viewer, selected!) ? bi(locale, "Space is out of your supply line", "此空间超出补给线") : undefined}
@@ -210,26 +216,26 @@ export const SpacePanel = (props: SpacePanelProps) => {
                 selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase !== "gwManeuver"
                   ? <button key="move" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => selectedUnitDef.naval ? moves.navalMove([selectedUnitDef.id], selected!) : moves.redeploy(selectedUnitDef.id, selected!))}>{t.moveHere}</button>
                   : null,
-                selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase === "gwManeuver" && selectedUnitDef.naval
-                  ? <button key="gwnaval" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.navalMove([selectedUnitDef.id], selected!))}>{t.moveHere}</button>
+                selectedUnitDef && commanded(selectedUnitDef) && selectedUnitDef.space !== selected && phase === "gwManeuver" && selectedUnitDef.naval
+                  ? <button key="gwnaval" className="ie-btn" disabled={!gwAllowed("naval")} onClick={() => doAction(() => moves.navalMove([selectedUnitDef.id], selected!))}>{t.moveHere}</button>
                   : null,
                 selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase === "gwManeuver" && selectedUnitDef.naval
                   ? gwJointNavalAllies.map((ally) => (
-                      <button key={`gwjoint-${ally}`} data-testid={`ie-gw-joint-naval-${ally}`} className="ie-btn secondary" disabled={!canSpend(1)}
+                      <button key={`gwjoint-${ally}`} data-testid={`ie-gw-joint-naval-${ally}`} className="ie-btn secondary" disabled={!gwAllowed("jointNaval")}
                         title={bi(locale, "15.2.2: move one contingent from each allied power together.", "15.2.2：两国各派一支分舰队联合行动。")}
                         onClick={() => doAction(() => moves.gwJointNaval(ally, [selectedUnitDef.id], gwJointNavalUnitIds(ally), selected!))}>
                         {bi(locale, `Joint naval with ${t.seats[ally]}`, `与${t.seats[ally]}联合海军`)}
                       </button>
                     ))
                   : null,
-                selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.space !== selected && phase === "gwManeuver" && !selectedUnitDef.naval
+                selectedUnitDef && commanded(selectedUnitDef) && selectedUnitDef.space !== selected && phase === "gwManeuver" && !selectedUnitDef.naval
                   ? <React.Fragment key="gwmove">
-                      <button data-testid="ie-gw-march" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.gwMarch(selectedUnitDef.id, selected!))}>{t.gwMarch}</button>
-                      <button data-testid="ie-gw-rail" className="ie-btn secondary" disabled={!canSpend(1)} onClick={() => doAction(() => moves.gwRail(selectedUnitDef.id, selected!))}>{t.gwRail}</button>
+                      <button data-testid="ie-gw-march" className="ie-btn" disabled={!gwAllowed("march")} onClick={() => doAction(() => moves.gwMarch(selectedUnitDef.id, selected!))}>{t.gwMarch}</button>
+                      <button data-testid="ie-gw-rail" className="ie-btn secondary" disabled={!gwAllowed("rail")} onClick={() => doAction(() => moves.gwRail(selectedUnitDef.id, selected!))}>{t.gwRail}</button>
                     </React.Fragment>
                   : null,
-                selectedUnitDef && selectedUnitDef.owner === viewer && selectedUnitDef.steps < 2 && phase === "gwManeuver"
-                  ? <button key="refit" className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.gwRefit(selectedUnitDef.id))}>{bi(locale, "Refit selected unit (GW)", "整补所选单位（大战）")}</button>
+                selectedUnitDef && selectedUnitDef.owner === commandedOwner && selectedUnitDef.steps < 2 && phase === "gwManeuver"
+                  ? <button key="refit" data-testid="ie-gw-refit" className="ie-btn" disabled={!gwAllowed(selectedUnitDef.naval ? "refitFleet" : "refit")} onClick={() => doAction(() => selectedUnitDef.naval ? moves.gwRefitFleet(selectedUnitDef.id) : moves.gwRefit(selectedUnitDef.id))}>{bi(locale, "Refit selected unit (GW)", "整补所选单位（大战）")}</button>
                   : null,
                 viewer === "UK" && me?.rapidDeployment && !me.rapidDeployment.spent
                   && selectedUnitDef && selectedUnitDef.owner === "UK" && selectedUnitDef.naval && selectedUnitDef.space !== selected
@@ -250,12 +256,18 @@ export const SpacePanel = (props: SpacePanelProps) => {
                       )}
                     </React.Fragment>
                   : null,
-                <button key="land" className="ie-btn secondary" disabled={!canSpend(1) || ownLandInSelected.length === 0 || potentialLandTargets.length === 0} onClick={() => { setNavalFrom(null); setBattleFrom(selected); }}>{t.battleHere}</button>,
-                <button key="naval" className="ie-btn secondary" disabled={!canSpend(1) || ownNavalInSelected.length === 0 || potentialNavalTargets.length === 0} onClick={() => { setBattleFrom(null); setNavalFrom(selected); }}>{t.navalBattle}</button>,
+                <button key="land" className="ie-btn secondary" disabled={!(phase === "gwManeuver" ? gwAllowed("landBattle") : canSpend(1)) || ownLandInSelected.length === 0 || potentialLandTargets.length === 0} onClick={() => { setNavalFrom(null); setBattleFrom(selected); }}>{t.battleHere}</button>,
+                <button key="naval" className="ie-btn secondary" disabled={!(phase === "gwManeuver" ? gwAllowed("naval") : canSpend(1)) || ownNavalInSelected.length === 0 || potentialNavalTargets.length === 0} onClick={() => { setBattleFrom(null); setNavalFrom(selected); }}>{t.navalBattle}</button>,
               ])}
               {canAct && phase === "gwManeuver" && actionGroup("gw", bi(locale, "Great War", "大战"), [
                 <button key="draft" className="ie-btn" disabled={!canGwDraft} onClick={() => doAction(() => moves.gwDraft(selected!))}>{t.gwDraft}</button>,
+                viewer === "UK" && isCwArmySpace(selected)
+                  ? <button key="cw" className="ie-btn" disabled={!gwAllowed("draft")} onClick={() => doAction(() => moves.recruit(selected!, "army", 1, {cw: true}))}>{bi(locale, "CW army", "自治领军")}</button>
+                  : null,
                 <button key="deploy" data-testid="ie-gw-deploy-action" className="ie-btn" title={bi(locale, "Deploy one reserve army here (27.5).", "在此部署一支预备军（27.5）。")} disabled={!canGwDeployHere} onClick={() => doAction(() => moves.gwDeploy(selected!))}>{t.gwDeploy}</button>,
+                selectedUnitDef && !selectedUnitDef.naval && isArmyKind(selectedUnitDef.kind)
+                  ? <button key="ec" data-testid="ie-gw-elite-corps" className="ie-btn" disabled={!gwAllowed("eliteCorps")} onClick={() => doAction(() => moves.gwEliteCorps(selectedUnitDef.id))}>{bi(locale, "Attach elite corps (1 CP)", "编入精锐军团（1 CP）")}</button>
+                  : null,
               ])}
             </div>
           )}

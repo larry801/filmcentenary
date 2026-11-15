@@ -13,6 +13,7 @@ import {GreatWarState, ImperialElegyState, Power} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
 import {faceupCombatCards} from "./engine/greatWarFlow";
+import {beginGwImpulse} from "./engine/gwImpulse";
 import {ImperialElegyGameDef} from "./game";
 import {
   endGwPlanningMove,
@@ -71,6 +72,7 @@ const baseGw = (overrides: Partial<GreatWarState> = {}): ImperialElegyState => {
   };
   G.powers.GE.alliance = "taCommitted";
   G.powers.FR.alliance = "teCommitted";
+  for (const power of ["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]) G.powers[power].gwBudget = 2;
   G.phase = "gwPlanning";
   return G;
 };
@@ -144,6 +146,7 @@ describe("Great War move integration", () => {
     expect(G.units[reserve].space).toBe("berlin");
 
     const berlinBefore = G.spaces.berlin.units.length;
+    expect(gwPass(G, ctx)).toBeUndefined(); // End the deploy impulse first.
     expect(gwDraft(G, ctx, "berlin")).toBeUndefined();
     expect(G.powers.GE.gwBudget).toBe(3);
     expect(G.powers.GE.manpower).toBe(1);
@@ -177,14 +180,14 @@ describe("Great War move integration", () => {
     const fr = makeCtx("2");
     const ge = makeCtx("0");
 
-    expect(gwTransferBudget(G, fr, "UK", 2)).toBeUndefined();
-    expect(G.powers.FR.gwBudget).toBe(1);
-    expect(G.powers.UK.gwBudget).toBe(4);
+    expect(gwTransferBudget(G, fr, "UK", 1)).toBeUndefined();
+    expect(G.powers.FR.gwBudget).toBe(2);
+    expect(G.powers.UK.gwBudget).toBe(3);
     expect(G.powers.FR.flags.gwCpTransferDone).toBe(true);
 
     expect(gwTransferBudget(G, fr, "UK", 1)).toBe(INVALID_MOVE);
     expect(gwTransferBudget(G, ge, "FR", 1)).toBe(INVALID_MOVE);
-    expect(G.powers.UK.gwBudget).toBe(4);
+    expect(G.powers.UK.gwBudget).toBe(3);
 
     G.phase = "gwManeuver";
     expect(gwTransferBudget(G, fr, "UK", 1)).toBe(INVALID_MOVE);
@@ -281,7 +284,7 @@ describe("Great War move integration", () => {
     expect(G.powers.GE.gwBudget).toBe(2);
   });
 
-  test("gwEndTurn moves to winter without spending budget", () => {
+  test("gwEndTurn cannot skip another player's maneuver budget", () => {
     const phaseCalls: string[] = [];
     const G = baseGw();
     G.phase = "gwManeuver";
@@ -289,9 +292,9 @@ describe("Great War move integration", () => {
     G.powers.GE.gwBudget = 3;
     const ctx = makeCtx("0", phaseCalls);
 
-    expect(gwEndTurn(G, ctx)).toBeUndefined();
-    expect(G.phase).toBe("gwWinter");
-    expect(phaseCalls).toContain("gwWinter");
+    expect(gwEndTurn(G, ctx)).toBe(INVALID_MOVE);
+    expect(G.phase).toBe("gwManeuver");
+    expect(phaseCalls).not.toContain("gwWinter");
     expect(G.powers.GE.gwBudget).toBe(3);
   });
 
@@ -308,9 +311,13 @@ describe("Great War move integration", () => {
     expect(gwRevealCombat(G, fr)).toBeUndefined();
     expect(faceupCombatCards(G)).toMatchObject({GE: "IE-GW-03", FR: "IE-GW-04"});
 
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    beginGwImpulse(G, "GE");
     expect(playGwCardMove(G, ge, "cp")).toBeUndefined();
     expect(G.powers.GE.gwCard).toBeNull();
-    expect(G.powers.GE.gwBudget).toBe(3);
+    expect(G.powers.GE.gwBudget).toBe(2);
+    expect(G.gw!.impulse!.bonusPending).toBe(true);
     expect(faceupCombatCards(G).GE).toBeUndefined();
     expect(faceupCombatCards(G).FR).toBe("IE-GW-04");
     expect(String(G.flags.gwFaceupCombat)).not.toContain("GE:");
