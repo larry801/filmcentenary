@@ -448,6 +448,23 @@ and a second test keeps that table honest: a note that no longer matches
 anything, or whose space no longer holds that owner's unit, fails. That test
 already removed one note the author had added defensively.
 
+The same treatment applies to the **card decade bands**.
+`tools/ie-sim/deckBands.test.ts` compares our assignment against the module's
+saved deck placement (`data/generated/deck-entry.json`, 42 cards across
+1870s–1900s). It checks three things, each in both directions:
+
+- the band sizes are 11 / 10 / 8 / 13, matching the module's groups;
+- every module entry sits in the band the module files it under;
+- every card we place after the 1850s band appears in the module's list, so a
+  band cannot be invented here rather than transcribed.
+
+One printed spelling variant surfaced — the module's deck label says
+**"Dreadnaught"** where the card face and our data say **"Dreadnought"** — and
+it is handled as a documented variant rather than by fuzzy matching. A probe
+confirmed all 42 entries match a card title **exactly** after normalisation, so
+the prefix fallback was removed: a fuzzy match would only hide a future
+misfiling behind a plausible-looking hit.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
 (`W-1…8`) declares wars, runs the wartime impulses and settles them; and the

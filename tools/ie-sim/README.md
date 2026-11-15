@@ -46,6 +46,10 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
   action, wartime maneuver, wartime alliance, Great War.  This is what reaches
   the four `warOnly` responses, which are `response` cards and are played with
   `playResponseCard` rather than `playCard`.
+- `deckBands.test.ts` — cross-checks the action cards' decade bands against the
+  module's own saved deck placement (42 entries across 1870s–1900s, matched by
+  printed title).  Matching is exact after normalisation, on purpose: every
+  entry resolves, so a fuzzy fallback would only hide a future misfiling.
 - `moduleCrossCheck.test.ts` — cross-checks the hand-transcribed campaign
   setup against the publisher's own VASSAL save: the module's zone polygons put
   each of its 591 pieces on a printed space, and the test requires our setup to
