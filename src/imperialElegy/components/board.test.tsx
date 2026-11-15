@@ -26,6 +26,8 @@ jest.mock("./map", () => {
 
 import {ImperialElegyBoard} from "./board";
 import {PendingPanel, TargetDock} from "./PendingPanel";
+import {DecisionDock} from "./DecisionDock";
+import {PhaseActions} from "./PhaseActions";
 import {ieT} from "./i18n";
 import {ImperialElegyGameDef} from "../game";
 import {setupImperialElegy} from "../engine/setup";
@@ -361,48 +363,83 @@ describe("Imperial Elegy board controls", () => {
     expect(markup).toContain("data-testid=\"ie-dock-toggle\"");
   });
 
-  test("no decision dock is rendered when nothing is pending", () => {
-    const markup = html(freshGame(), "0");
-    expect(markup).not.toContain("data-testid=\"ie-dock\"");
+  test("the dock is the control bar for the active seat and is absent for a spectator", () => {
+    // Phase buttons now live in the dock, so a seat with something to press
+    // always gets one; a spectator has nothing to press and gets none.
+    const active = html(freshGame(), "0");
+    expect(active).toContain("data-testid=\"ie-dock\"");
+    expect(active).toContain("data-testid=\"ie-phase-actions\"");
+
+    const spectator = html(freshGame(), null);
+    expect(spectator).not.toContain("data-testid=\"ie-dock\"");
   });
 
-  test("a collapsed dock shows a one-line summary instead of the option list", () => {
+  test("the phase buttons render in the dock bar, not the hand panel header", () => {
+    const G = freshGame();
+    G.phase = "action";
+    G.activePower = "GE";
+    const markup = html(G, "0");
+    const dock = markup.indexOf("data-testid=\"ie-dock\"");
+    const layout = markup.indexOf("class=\"ie-layout\"");
+    expect(dock).toBeGreaterThan(-1);
+    expect(markup.indexOf("data-testid=\"ie-impulse-actions\"")).toBeLessThan(layout);
+    // Pass and end-impulse are the two action-phase buttons.
+    expect(buttonTag(markup, "ie-pass")).toContain("停牌");
+    expect(buttonTag(markup, "ie-end-impulse")).toContain("结束行动轮");
+    expect(markup).not.toContain("ie-hand-panel-actions");
+  });
+
+  test("a collapsed dock keeps the summary and phase buttons but hides the body", () => {
+    const summary = "你的行动轮 · 剩余 3 CP";
+    const open = renderToStaticMarkup(React.createElement(DecisionDock, {
+      summary,
+      collapsed: false,
+      onToggleCollapsed: () => undefined,
+      locale: "zh_CN" as const,
+      actions: React.createElement(PhaseActions, {
+        title: "行动",
+        locale: "zh_CN" as const,
+        actions: [{key: "pass", label: "停牌", testId: "ie-pass", onClick: () => undefined}],
+      }),
+      children: React.createElement("div", {"data-testid": "ie-dock-child"}, "body"),
+    }));
+    expect(open).toContain("data-testid=\"ie-dock-child\"");
+
+    const collapsed = renderToStaticMarkup(React.createElement(DecisionDock, {
+      summary,
+      collapsed: true,
+      onToggleCollapsed: () => undefined,
+      locale: "zh_CN" as const,
+      actions: React.createElement(PhaseActions, {
+        title: "行动",
+        locale: "zh_CN" as const,
+        actions: [{key: "pass", label: "停牌", testId: "ie-pass", onClick: () => undefined}],
+      }),
+      children: React.createElement("div", {"data-testid": "ie-dock-child"}, "body"),
+    }));
+    expect(collapsed).toContain("data-testid=\"ie-dock-summary\"");
+    expect(collapsed).toContain(summary);
+    expect(collapsed).toContain("aria-expanded=\"false\"");
+    expect(collapsed).toContain("展开");
+    // Collapsing must not take the phase buttons with it.
+    expect(collapsed).toContain("data-testid=\"ie-pass\"");
+    expect(collapsed).not.toContain("data-testid=\"ie-dock-child\"");
+  });
+
+  test("a pending decision keeps its options when the dock is expanded", () => {
     const G = freshGame();
     G.pending = {
-      id: "d-collapsed",
+      id: "d-expanded",
       kind: "eventTargetSpace",
       power: "GE",
       prompt: "Choose a space",
       options: [{id: "berlin", label: "Berlin"}],
       createdAt: 1,
     };
-    const props = {
-      G,
-      pending: G.pending,
-      canDecide: true,
-      pendingKind: "Choose a space",
-      pendingPrompt: "选择一个空间",
-      optionLabel: () => "Berlin",
-      canDecline: true,
-      pendingSpaceTargets: [],
-      viewer: "GE" as const,
-      locale: "zh_CN" as const,
-      t: ieT(),
-      jihadDecision: null,
-      jihadReason: undefined,
-      doAction: () => undefined,
-      moves: {},
-    };
-    const open = renderToStaticMarkup(React.createElement(PendingPanel, {...props, dock: true}));
-    expect(open).toContain("data-testid=\"ie-pending-option-berlin\"");
-
-    const collapsed = renderToStaticMarkup(React.createElement(PendingPanel, {
-      ...props, dock: true, collapsed: true, onToggleCollapsed: () => undefined,
-    }));
-    expect(collapsed).toContain("data-testid=\"ie-dock-summary\"");
-    expect(collapsed).toContain("选择一个空间");
-    expect(collapsed).not.toContain("data-testid=\"ie-pending-option-berlin\"");
-    expect(collapsed).toContain("aria-expanded=\"false\"");
+    const markup = html(G, "0");
+    expect(markup).toContain("data-testid=\"ie-dock\"");
+    expect(markup).toContain("data-testid=\"ie-pending-option-berlin\"");
+    expect(markup).toContain("data-testid=\"ie-dock-toggle\"");
   });
 
   test("the target instruction strip renders the prompt and a cancel button", () => {

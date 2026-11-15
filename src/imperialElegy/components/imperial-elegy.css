@@ -235,22 +235,58 @@
 .ie-battle h4 { margin: 0 0 3px; color: #f0d799; font-size: 12px; }
 
 /* ---------------------------------------------------------------- decision dock */
-/* The pending/target decision is the most important control on the board, so it
-   is pinned under the app bar instead of sitting at the bottom of the right
-   column where a tall map or hand scrolls it out of view. */
+/* The pending decision, the required card choices and the phase buttons all live
+   in this pinned dock: they are the controls that answer "what may I do now", so
+   a tall map or a long hand must not push them below the fold.  The dock
+   collapses to a single bar so it stops covering the map. */
 .ie-dock {
   position: sticky;
   top: 52px;
   z-index: 30;
   margin-top: 12px;
-}
-.ie-dock-panel {
-  border-color: #b3873a;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, .55);
+  border: 1px solid #b3873a;
+  border-radius: var(--ie-radius);
   background: #2b2318;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, .55);
+}
+/* The bar never collapses: the summary and the phase buttons stay reachable. */
+.ie-dock-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  background: #33281a;
+  border-bottom: 1px solid #4a3a26;
+  border-radius: var(--ie-radius) var(--ie-radius) 0 0;
+}
+.ie-dock[data-collapsed="true"] .ie-dock-bar { border-bottom: 0; border-radius: var(--ie-radius); }
+.ie-dock-bar-summary {
+  flex: 1 1 200px;
+  min-width: 0;
+  font-size: 13px;
+  color: #f1e3c4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Phase buttons sit in the bar, so the row must not stretch. */
+.ie-dock-bar .ie-dock-choice { padding: 0; border: 0; background: none; box-shadow: none; }
+.ie-dock-bar .ie-dock-choice .ie-section-title { display: none; }
+.ie-dock-bar .ie-impulse-actions,
+.ie-dock-bar [data-testid="ie-impulse-actions"] { gap: 6px; }
+.ie-dock-body { padding: 8px 10px 10px; }
+/* The dock already has its own frame; the nested panel border/box-shadow only
+   added height (a one-line "waiting" state filled three nested boxes). */
+.ie-dock-panel {
+  border: 0;
+  box-shadow: none;
+  background: transparent;
 }
 .ie-dock-panel .ie-panel-head { border-bottom-color: #7a5c33; }
-.ie-dock-panel .ie-panel-body { max-height: min(45vh, 420px); overflow: auto; }
+.ie-dock-panel .ie-panel-body { padding: 0; max-height: min(45vh, 420px); overflow: auto; }
+.ie-dock-panel .ie-pending { border: 0; background: none; padding: 2px 0 0; }
+.ie-dock-panel .ie-pending .ie-pending-prompt { margin: 0; }
 .ie-panel-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ie-dock-toggle {
   background: #3b3025;
@@ -260,6 +296,7 @@
   padding: 4px 10px;
   font-size: 12px;
   cursor: pointer;
+  flex: 0 0 auto;
 }
 .ie-dock-toggle:hover { background: #4a3a2f; }
 .ie-dock-summary {

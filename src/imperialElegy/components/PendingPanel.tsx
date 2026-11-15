@@ -33,9 +33,6 @@ export interface PendingPanelProps {
   moves: Record<string, (...args: any[]) => void>;
   /** Docked above the board: the panel is pinned in place while the board scrolls. */
   dock?: boolean;
-  /** Docked and collapsed into a one-line summary. */
-  collapsed?: boolean;
-  onToggleCollapsed?: () => void;
 }
 
 /** Pinned instruction strip for a map-targeting step (battle, naval battle, move). */
@@ -57,29 +54,8 @@ export const TargetDock = ({title, body, cancelLabel, onCancel}: {
 export const PendingPanel = ({
   G, pending, canDecide, pendingKind, pendingPrompt, optionLabel, optionFace, optionAction, canDecline,
   pendingSpaceTargets, viewer, locale, t, jihadDecision, jihadReason, doAction, moves,
-  dock = false, collapsed = false, onToggleCollapsed,
+  dock = false,
 }: PendingPanelProps) => {
-  const toggle = onToggleCollapsed === undefined ? null : (
-    <button
-      type="button"
-      className="ie-dock-toggle"
-      data-testid="ie-dock-toggle"
-      aria-expanded={collapsed ? "false" : "true"}
-      onClick={onToggleCollapsed}
-    >
-      {collapsed ? bi(locale, "Expand", "展开") : bi(locale, "Collapse", "收起")}
-    </button>
-  );
-  // One-line readout for the collapsed dock, so the pending state stays legible
-  // without covering the map.
-  const summary = pending
-    ? `${t.pendingFor}: ${t.seats[pending.power]} · ${pendingPrompt}`
-    : G.battle
-      ? `${bi(locale, G.battle.kind === "naval" ? "Naval battle" : "Land battle", G.battle.kind === "naval" ? "海战" : "陆战")} · ${spaceLabel(G.battle.from, locale)} → ${spaceLabel(G.battle.to, locale)}`
-      : G.result
-        ? `${t.gameOver}: ${G.result.winners.map((p) => t.seats[p]).join(", ")}`
-        : "";
-
   // Card and Goal options show their printed face; everything else (spaces,
   // powers, units, "continue") stays a button.  A card offered in several
   // modes (A061/A066, the UK's two auction sides) keeps one face and one
@@ -102,18 +78,14 @@ export const PendingPanel = ({
     <IEPanel
       className={dock ? "ie-dock-panel" : ""}
       title={t.pending}
-      actions={pendingKind !== null || toggle !== null ? (
+      actions={pendingKind !== null ? (
         <div className="ie-panel-actions">
-          {pendingKind !== null && <IEBadge tone="warn">{pendingKind}</IEBadge>}
-          {toggle}
+          <IEBadge tone="warn">{pendingKind}</IEBadge>
         </div>
       ) : undefined}
     >
-      {collapsed ? (
-        <div className="ie-dock-summary" data-testid="ie-dock-summary">{summary}</div>
-      ) : (
-        <>
-          {!pending ? <div className="ie-muted">{t.noPending}</div> : (
+      <>
+        {!pending ? <div className="ie-muted">{t.noPending}</div> : (
             <div className={`ie-pending${canDecide ? " urgent" : ""}`} data-testid="ie-pending">
               <h4>{canDecide ? t.yourDecision : `${t.waitingFor}: ${t.seats[pending.power]}`}</h4>
               <div className="ie-pending-kind" data-testid="ie-pending-kind">{pendingKind} · {t.pendingFor}: {t.seats[pending.power]}</div>
@@ -175,8 +147,7 @@ export const PendingPanel = ({
             </div>
           )}
           {G.result && <div style={{marginTop: 8}}><IEBadge tone="warn">{t.gameOver}: {G.result.winners.map((p) => t.seats[p]).join(", ")}</IEBadge></div>}
-        </>
-      )}
+      </>
     </IEPanel>
   );
 };

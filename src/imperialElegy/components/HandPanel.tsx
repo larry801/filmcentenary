@@ -3,7 +3,6 @@ import {ImperialElegyState, Power} from "../types";
 import {cardById} from "../engine/deck";
 import {GOALS_BY_ID} from "../constant/goals";
 import {gwEventHint} from "../engine/playability";
-import Button from "@mui/material/Button";
 import {IEBadge, IEChip, IEPanel} from "./theme";
 import {ieT} from "./i18n";
 import {POWER_KEYS, bi} from "./boardHelpers";
@@ -19,10 +18,6 @@ export interface HandPanelProps {
   isActive: boolean;
   eliminated: boolean;
   pending: ImperialElegyState["pending"];
-  canPhaseAct: boolean;
-  hasPhaseButtons: boolean;
-  forcedPass: boolean;
-  forcedPassTitle: string;
   hand: string[];
   handCounts: Partial<Record<Power, number>>;
   renderCard: (id: string) => React.ReactElement;
@@ -51,8 +46,8 @@ export interface HandPanelProps {
 
 export const HandPanel = (props: HandPanelProps) => {
   const {
-    G, viewer, me, locale, t, phase, isActive, eliminated, pending, canPhaseAct, hasPhaseButtons,
-    forcedPass, forcedPassTitle, hand, renderCard, homeCardTitle, saveList, ngChoices,
+    G, viewer, me, locale, t, phase, isActive, eliminated, pending,
+    hand, renderCard, homeCardTitle, saveList, ngChoices,
     giveCards, giveCardId, setGiveCardId, giveTarget, setGiveTarget, giveCardValue,
     responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, doAction, moves, handChoicesHint,
@@ -64,16 +59,6 @@ export const HandPanel = (props: HandPanelProps) => {
     <IEPanel
       className="ie-hand-panel"
       title={`${t.hand}${viewer ? ` · ${t.seats[viewer]}` : ""}`}
-      actions={hasPhaseButtons ? (
-        <div className="ie-inline" data-testid="ie-impulse-actions">
-          {phase === "prep" && canPhaseAct && !me?.flags.prepDone && <Button size="small" variant="outlined" onClick={() => doAction(() => moves.finishPrep())}>{t.finishPrep}</Button>}
-          {phase === "diplomacy" && canPhaseAct && me && me.homeCards.length > 0 && !me.selectedHomeCard && <Button size="small" variant="outlined" onClick={() => doAction(() => moves.chooseHomeCard(me.homeCards.find((id) => id !== me.selectedHomeCard) ?? me.homeCards[0]))}>{t.chooseHome}</Button>}
-          {phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard && <Button size="small" variant="outlined" onClick={() => doAction(() => moves.endDiplomacy())}>{t.endDiplomacy}</Button>}
-          {phase === "action" && isActive && !eliminated && <Button size="small" variant="outlined" disabled={forcedPass} title={forcedPass ? forcedPassTitle : undefined} onClick={() => doAction(() => moves.pass())}>{t.pass}</Button>}
-          {phase === "action" && isActive && !eliminated && <Button size="small" variant="outlined" onClick={() => doAction(() => moves.endImpulse())}>{t.endImpulse}</Button>}
-          {phase === "end" && canPhaseAct && <Button size="small" variant="outlined" onClick={() => doAction(() => moves.endPhaseTurn())}>{t.continue}</Button>}
-        </div>
-      ) : undefined}
     >
       {!viewer || !me ? <div className="ie-muted">{t.privateInfo}: {t.hidden}. {t.spectators}.</div> : (
         <>

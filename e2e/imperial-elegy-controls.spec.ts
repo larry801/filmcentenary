@@ -47,7 +47,9 @@ async function chooseHomeCards(page: Page) {
     for (const seat of SEATS) {
         await focusSeat(page, seat);
         const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
-        const choose = board.getByRole("button", {name: "选择本土牌"}).first();
+        // The home card is chosen by clicking a specific card's face, so each
+        // choice is explicit rather than an auto-pick of the first card.
+        const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
         await expect(choose).toBeVisible({timeout: 15_000});
         await clickUntilGone(page, choose);
     }
@@ -128,6 +130,34 @@ async function answerStartPending(page: Page) {
 }
 
 test.describe("Imperial Elegy new controls", () => {
+    test("phase buttons live in the collapsible dock and survive collapsing", async ({page}) => {
+        await reachAction(page);
+        const board = boardFor(page, "GE");
+        const dock = board.locator('[data-testid="ie-dock"]');
+        await expect(dock).toBeVisible();
+        await expect(dock).toHaveAttribute("data-collapsed", "false");
+
+        // The action-phase buttons are in the dock, not the hand panel.
+        const pass = dock.getByRole("button", {name: "停牌", exact: true});
+        const endImpulse = dock.getByRole("button", {name: "结束行动轮"});
+        await expect(pass).toBeVisible();
+        await expect(endImpulse).toBeVisible();
+
+        // Collapsing hides the bulky body but keeps the bar and its buttons.
+        await dock.locator('[data-testid="ie-dock-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-collapsed", "true");
+        await expect(dock.locator('[data-testid="ie-dock-toggle"]')).toHaveAttribute("aria-expanded", "false");
+        await expect(pass).toBeVisible();
+        await expect(endImpulse).toBeVisible();
+
+        // The dock is shorter when collapsed, so it covers less of the map.
+        const collapsedHeight = (await dock.boundingBox())!.height;
+        await dock.locator('[data-testid="ie-dock-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-collapsed", "false");
+        const expandedHeight = (await dock.boundingBox())!.height;
+        expect(collapsedHeight).toBeLessThan(expandedHeight);
+    });
+
     test("war declaration reveals aim, ally and maneuver controls", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");
@@ -267,7 +297,7 @@ test.describe("Imperial Elegy solo vs bot", () => {
         const board = boardFor(page, "GE");
         await clickUntilGone(page, board.getByRole("button", {name: "准备完毕"}).first());
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
-        await clickUntilGone(page, board.getByRole("button", {name: "选择本土牌"}).first());
+        await clickUntilGone(page, board.locator('[data-testid^="ie-choose-home-"]').first());
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
 
         // Play one card for CP and hand the impulse over.  The bug this guards

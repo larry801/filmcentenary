@@ -82,6 +82,25 @@ shared wrapper; `HandChoices` (pinned dock) and `PendingPanel` both use it, and
 the diplomacy give-card preview shows the selected card's face too. Space,
 power and unit options stay plain buttons.
 
+### The decision dock
+
+Everything the rules require *right now* sits in one pinned dock under the app
+bar: the pending decision, the required card faces and the buttons that end or
+continue the step (准备完毕, 停牌, 结束行动轮, 继续). Both kinds of control answer
+"what may I do now", and a tall map or a long hand used to push them below the
+fold.
+
+`components/DecisionDock.tsx` owns the frame and the collapse toggle;
+`components/PhaseActions.tsx` renders the phase buttons. The dock collapses to
+a single bar, so it stops covering the map once the player has read it, and the
+phase buttons stay in that bar while collapsed — ending an impulse must not
+cost an extra click to expand first.
+
+The dock also stops treating a finished step as open: once a seat has chosen its
+home card the pending-choice faces remain (marking the selection) but the summary
+and the "required card choice" state clear, so the next seat is not told a
+decision is still waiting.
+
 ## Implementation status
 
 The campaign game is playable end-to-end, but this is an **in-progress

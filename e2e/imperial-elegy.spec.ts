@@ -28,7 +28,7 @@ async function chooseHomeCards(page: Page) {
     for (const seat of SEATS) {
         await focusSeat(page, seat);
         const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
-        const choose = board.getByRole("button", {name: "选择本土牌"}).first();
+        const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
         if (await choose.count()) await choose.click();
         await page.waitForTimeout(250);
     }

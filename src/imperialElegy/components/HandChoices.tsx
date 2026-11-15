@@ -34,7 +34,7 @@ export const hasHandChoices = ({
   phase, canPhaseAct, me, ngChoices, viewer,
 }: Pick<HandChoicesProps, "phase" | "canPhaseAct" | "me" | "ngChoices" | "viewer">): boolean => {
   if (viewer === null || me === null) return false;
-  return (phase === "diplomacy" && me.homeCards.length > 0) ||
+  return (phase === "diplomacy" && me.homeCards.length > 0 && me.selectedHomeCard === null) ||
     (phase === "end" && ngChoices.length > 0) ||
     (phase === "prep" && canPhaseAct && !me.flags.prepStability);
 };
@@ -45,6 +45,8 @@ export const HandChoices = (props: HandChoicesProps) => {
   } = props;
   if (viewer === null || me === null) return null;
 
+  // Once the card is chosen the faces stay (they mark the selection) but the
+  // dock no longer treats the step as an open required choice.
   const showHome = phase === "diplomacy" && me.homeCards.length > 0;
   const showGoals = phase === "end" && ngChoices.length > 0;
   const discardable = hand.filter((id) => {

@@ -63,6 +63,8 @@ import {SpacePanel} from "./SpacePanel";
 import {PendingPanel, TargetDock} from "./PendingPanel";
 import {HandChoices, hasHandChoices} from "./HandChoices";
 import {CardChoiceFace} from "./CardChoice";
+import {DecisionDock} from "./DecisionDock";
+import {PhaseAction, PhaseActions} from "./PhaseActions";
 import {HandPanel} from "./HandPanel";
 import {CardFace} from "./CardFace";
 import {DashboardPanel} from "./DashboardPanel";
@@ -172,6 +174,33 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     "A card in hand forbids passing (The Dual Monarchy / Exhaustion). Play it for CP or its event first.",
     "手中有禁止停牌的牌（二元君主国 / 精疲力竭）。请先作为 CP 或事件打出。");
   const hasPhaseButtons = viewer !== null && !eliminated && ((phase === "prep" || phase === "diplomacy") ? canPhaseAct : phase === "action" ? isActive : phase === "end" ? canPhaseAct : false);
+  // Buttons that end or continue the current phase step.  They belong in the
+  // pinned dock with the pending decisions: both answer "what may I do now",
+  // and neither may be pushed below the fold by a tall map or a long hand.
+  const phaseActions: PhaseAction[] = hasPhaseButtons ? [
+    ...(phase === "prep" && canPhaseAct && !me?.flags.prepDone
+      ? [{key: "finishPrep", label: t.finishPrep, testId: "ie-finish-prep", onClick: () => moves.finishPrep()}]
+      : []),
+    ...(phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard
+      ? [{key: "endDiplomacy", label: t.endDiplomacy, testId: "ie-end-diplomacy", onClick: () => moves.endDiplomacy()}]
+      : []),
+    ...(phase === "action" && isActive && !eliminated
+      ? [{
+          key: "pass",
+          label: t.pass,
+          testId: "ie-pass",
+          disabled: forcedPass,
+          title: forcedPass ? forcedPassTitle : undefined,
+          onClick: () => moves.pass(),
+        }]
+      : []),
+    ...(phase === "action" && isActive && !eliminated
+      ? [{key: "endImpulse", label: t.endImpulse, testId: "ie-end-impulse", onClick: () => moves.endImpulse()}]
+      : []),
+    ...(phase === "end" && canPhaseAct
+      ? [{key: "endPhaseTurn", label: t.continue, testId: "ie-end-phase-turn", onClick: () => moves.endPhaseTurn()}]
+      : []),
+  ] : [];
 
   // ------------------------------------------------------------- 33.x national actions
   const nationalActionPhase = viewer !== null && !eliminated && isActive && phase === "action" && pending === null;
@@ -885,6 +914,23 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     doAction, moves,
   };
   const dockChoices = hasHandChoices(choicesProps);
+  // The dock also carries the phase buttons now, so it must render whenever
+  // there is something to press — not only when a decision is pending.
+  const dockVisible = pending !== null || battle !== null || G.result !== null ||
+    targetingHint !== null || dockChoices || phaseActions.length > 0;
+  const dockSummary = pending !== null
+    ? `${t.pendingFor}: ${t.seats[pending.power]}`
+    : battle !== null
+      ? bi(actualLocale, battle.kind === "naval" ? "Naval battle" : "Land battle", battle.kind === "naval" ? "海战" : "陆战")
+      : G.result !== null
+        ? t.gameOver
+        : targetingHint !== null
+          ? targetingHint.title
+          : dockChoices
+            ? bi(actualLocale, "Required card choice", "需要选择卡牌")
+            : canAct
+              ? bi(actualLocale, `Your impulse · ${cpBudget()} CP remaining`, `你的行动轮 · 剩余 ${cpBudget()} CP`)
+              : bi(actualLocale, "Waiting", "等待");
   const handChoicesHint = dockChoices
     ? bi(actualLocale, "Required choices are pinned in the decision panel above.", "当前必须做出的选择已固定在页面顶部的决策面板。")
     : null;
@@ -939,8 +985,14 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
         </div>
       ) : null}
 
-      {(pending || battle || G.result || targetingHint !== null || dockChoices) && (
-        <div className="ie-dock" data-testid="ie-dock">
+      {dockVisible && (
+        <DecisionDock
+          summary={dockSummary}
+          collapsed={dockCollapsed}
+          onToggleCollapsed={() => setDockCollapsed((v) => !v)}
+          locale={actualLocale}
+          actions={<PhaseActions title={t.yourTurnActions} locale={actualLocale} actions={phaseActions}/>}
+        >
           {targetingHint !== null && (
             <TargetDock
               title={targetingHint.title}
@@ -970,11 +1022,9 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
               doAction={doAction}
               moves={moves}
               dock
-              collapsed={dockCollapsed}
-              onToggleCollapsed={() => setDockCollapsed((v) => !v)}
             />
           )}
-        </div>
+        </DecisionDock>
       )}
 
       <div className="ie-layout">
@@ -994,8 +1044,8 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
           />
 
           <HandPanel
-            {...{G, viewer, me, t, phase, isActive, eliminated, pending, canPhaseAct,
-              hasPhaseButtons, forcedPass, forcedPassTitle, hand, handCounts, renderCard,
+            {...{G, viewer, me, t, phase, isActive, eliminated, pending,
+              hand, handCounts, renderCard,
               homeCardTitle, saveList, ngChoices, giveCards, giveCardId, setGiveCardId,
               giveTarget, setGiveTarget, giveCardValue, responseInHand, responseWindow,
               chainNonEmpty, chainSpendable, chainCap, chainReady, chainDisabledReason,
