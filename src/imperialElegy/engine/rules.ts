@@ -1101,7 +1101,8 @@ export const spaceHostileTo = (
 export const isMinorPowerOwner = (owner: PowerOrMinor): owner is string =>
   typeof owner === "string" &&
   !isPower(owner) &&
-  Object.prototype.hasOwnProperty.call(MINOR_POWER_HOMES, owner);
+  !["US", "IT", "United States", "Italy"].includes(owner) &&
+  !owner.startsWith("REBEL:");
 
 /**
  * The player currently controlling a minor (its allied player), or null when
@@ -1229,7 +1230,8 @@ export const minorSupplySource = (G: ImperialElegyState, minor: string, space: S
     const supplier = minorController(G, minor) ?? minorUpkeepPower(G, minor);
     if (supplier === null || !locFriendlySpace(G, space, supplier)) return false;
   }
-  return def.minorHome === minor || MINOR_POWER_HOMES[minor] === space;
+  return def.minorHome === minor || MINOR_POWER_HOMES[minor] === space ||
+    G.spaces[space]?.independentHome?.power === minor;
 };
 
 /** Friendly spaces for a minor's LoC trace (5.6: through friendly spaces). */

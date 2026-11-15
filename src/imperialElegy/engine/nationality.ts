@@ -106,6 +106,45 @@ export const minorityNationalitiesFor = (
   return minorities.filter((nationality) => !G.powers.AU.citizenship.includes(nationality));
 };
 
+/** Match the printed flags to existing non-player identities; other minorities
+ * keep their printed nationality as the independent power's name. */
+const MINORITY_POWER_NAMES: Readonly<Record<string, string>> = {
+  Poles: "Poland", Irish: "Ireland", Serbians: "Serbia", Bosnians: "Bosnia",
+  Bulgarians: "Bulgaria", Romanians: "Romania", Greeks: "Greece", Danes: "Denmark",
+  Egyptians: "Egypt", Czechs: "Bohemia", Croats: "Croatia", Hungarians: "Hungary",
+  Finns: "Finland", Scots: "Scotland", Welsh: "Wales", Armenians: "Armenia",
+};
+
+const NATIONALITY_LABELS_ZH: Readonly<Record<string, string>> = {
+  Arabs: "阿拉伯", Armenians: "亚美尼亚", Belarusians: "白俄罗斯", Bosnians: "波斯尼亚",
+  Bulgarians: "保加利亚", Croats: "克罗地亚", Czechs: "捷克", Danes: "丹麦",
+  Egyptians: "埃及", Estonians: "爱沙尼亚", Finns: "芬兰", French: "法兰西",
+  Germans: "德意志", Greeks: "希腊", Hungarians: "匈牙利", Irish: "爱尔兰",
+  Italians: "意大利", Latvians: "拉脱维亚", Lithuanians: "立陶宛", Macedonians: "马其顿",
+  Palestinians: "巴勒斯坦", Poles: "波兰", Romanians: "罗马尼亚", Scots: "苏格兰",
+  Serbians: "塞尔维亚", Syrians: "叙利亚", Ukrainians: "乌克兰", Welsh: "威尔士",
+};
+
+export const nationalityLabel = (nationality: string, locale: "en" | "zh_CN"): string =>
+  locale === "zh_CN" ? NATIONALITY_LABELS_ZH[nationality] ?? nationality : nationality;
+
+export const liberatedPowerFor = (space: SpaceId, nationality: string): string => {
+  // German/Italian regional flags name the printed minor where one exists.
+  const home = SPACES[space]?.minorHome;
+  if (home && ["Germans", "Italians"].includes(nationality)) return home;
+  return MINORITY_POWER_NAMES[nationality] ?? nationality;
+};
+
+/** v1.1 16.2.4: the explicit nationality choices available in an enemy space. */
+export const liberationNationalities = (G: ImperialElegyState, space: SpaceId, target: Power): string[] =>
+  minorityNationalitiesFor(G, space, target).filter((nationality) => {
+    const minor = liberatedPowerFor(space, nationality);
+    // 3.2.5.1: unification permanently removes the regional Italian/German minors.
+    if (G.eliminatedMinors?.includes(minor)) return false;
+    if (G.persistent.italyUnified && ["Sardinia-Piedmont", "Two Sicilies", "Tuscany", "Papal States"].includes(minor)) return false;
+    return true;
+  });
+
 /**
  * Spaces that Nationalist Uprising may target: land spaces directly controlled
  * by a player power and containing a minority nationality of that controller.

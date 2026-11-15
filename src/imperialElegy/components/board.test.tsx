@@ -33,6 +33,8 @@ import {ImperialElegyGameDef} from "../game";
 import {setupImperialElegy} from "../engine/setup";
 import {CARDS} from "../constant/cards.data";
 import {CARD_BY_ID} from "../engine/deck";
+import {createWarState} from "../engine/limitedWar";
+import {resolveWar} from "../moves";
 import {GreatWarState, ImperialElegyState} from "../types";
 import i18n from "../../constant/i18n";
 
@@ -341,6 +343,20 @@ describe("Imperial Elegy board controls", () => {
     // Only the label is visible; the decorated id stays an internal handle.
     expect(label).not.toContain("territorialCession");
     expect(label).not.toContain("Territorial Cession");
+  });
+
+  test("the live righteous-defense liberation choice renders its nationality in the treaty panel", () => {
+    const G = freshGame();
+    G.phase = "wartime";
+    G.activePower = "FR";
+    G.war = createWarState(G, "AU", "FR", "conquest", ["provence"], 2);
+    G.war.victor = "defender";
+    G.spaces.bohemia.occupiedBy = "FR";
+    expect(resolveWar(G, {...testCtx, playerID: "2"})).toBeUndefined();
+    const markup = html(G, "2");
+    const button = buttonTag(markup, "ie-pending-option-righteousDefense:liberate:bohemia:Czechs");
+    expect(button).toContain("正义防御：解放波希米亚的捷克民族");
+    expect(button).not.toContain("disabled");
   });
 
   test("the pending decision is docked above the layout so it cannot scroll out of view", () => {

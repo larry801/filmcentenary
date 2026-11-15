@@ -22,9 +22,9 @@ This table tracks the current audit until every Partial row is reconciled.
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
 | 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix is live; remaining deterministic choices require rule audit. |
 
-Latest fully verified baseline: **1da85ed3c4c7af9cec3b4b7734a02ed59b22a4cc**,
-444 suites / 4239 tests, frontend + server builds, 37 general browser tests and
-16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43692794857).
+Latest fully verified baseline: **2ffe30f078b779af2e9b3eb31b2f6b6bfa02baef**,
+446 suites / 4250 tests, frontend + server builds, 37 general browser tests and
+16 IE browser tests, all passed. [Full run](https://github.com/larry801/filmcentenary/actions/runs/43694100893).
 The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
 
 ### Supply-source corrections under verification
@@ -114,6 +114,35 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
 - `projectionIndustry.test.ts` covers the shared modifiers, tied second place
   and a live roll where UK succeeds only because of PP. A075 and RU/OT target
   fixtures now isolate their own rule from the separately earned PP modifier.
+
+### Living Rules v1.1 16.2.4: all three righteous-defense options
+
+- **Acquire:** an occupied enemy key/territory (occupation waived for a primary
+  major defensive victory) must be supplied in a read-only **post-cession
+  peacetime** view. Wartime occupation corridors and allies cannot supply a
+  permanent acquisition. Source qualification still needs connected home keys.
+- **Return a home:** the separate v1.1 option restores the actual owner,
+  including a non-participating player or minor. It requires neither occupation
+  nor the acquisition option's LoC. Permanently eliminated unification minors
+  cannot be resurrected. Older choices infer this mode from the recipient's home.
+- **Liberate:** the treaty panel explicitly lists each eligible space/nationality
+  pair, with bilingual labels. The defender must occupy a space controlled by
+  the named treaty target; a major victory does not waive that condition. AU
+  citizenship, actual printed minority flags, permanent elimination and the
+  five-minor-ally cap are validated before mutation. No rebellion or LoC is
+  required by this third bullet.
+- Liberation creates independent control and immediately allies the minor to
+  the defender. `SpaceState.independentHome` persists its nationality/home after
+  reconquest, lets the new minor supply units, be declared on and be realigned,
+  and survives JSON saves. Polish liberation uses the existing reserve/build-box
+  registration even when Poland starts in Galicia. Unfriendly units displace;
+  the one-per-war righteous-defense allowance is shared by every mode.
+- Direct and interactive settlements use the same validator/application. New
+  regression suite `righteousDefenseV11.test.ts` exercises choices, independence,
+  alliance/cap, displacement, minority targeting, peace supply, neutral home
+  returns, save/resume and invalid-option immutability. `components/board.test.tsx`
+  renders the real engine-created liberation button in Chinese. Targeted local
+  run: **505 tests / 5 suites passed**; full remote verification remains required.
 
 ## 2026-11-15 treaty-territory follow-up
 

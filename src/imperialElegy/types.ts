@@ -177,6 +177,8 @@ export interface SpaceState {
   control: PowerOrMinor | null;
   /** Dynamic home-space changes (unification, annexation). */
   homeOverride?: Power | null;
+  /** 4.7.1 / 16.2.4: a liberated nationality's home, retained after reconquest. */
+  independentHome?: {power: string; nationality: string};
   /**
    * Dynamic key classification.  A71 Urabi Revolt makes the Egyptian spaces
    * colonial home spaces for a UK/FR winner, so the Egypt key must count as a

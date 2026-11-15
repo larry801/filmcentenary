@@ -2621,7 +2621,7 @@ const beginSeekingAid = (G: ImperialElegyState, ctx: Ctx, base: MinorDeclaration
     const state: SeekingAidState = {...base, slots, current: null, index: 0, rolls: []};
     if (openMinorAidDecision(G, ctx, state)) return undefined;
   }
-  const home = nonPlayerHome(base.minor);
+  const home = nonPlayerHome(base.minor, G);
   return finalizeUnopposedMinorDeclaration(
     G,
     ctx,
@@ -2847,7 +2847,7 @@ const resolveMinorAid = (
   }
   const state: SeekingAidState = {...base, slots: [...slots], current, index: index + 1, rolls};
   if (openMinorAidDecision(G, ctx, state)) return undefined;
-  const home = nonPlayerHome(base.minor);
+  const home = nonPlayerHome(base.minor, G);
   return finalizeUnopposedMinorDeclaration(
     G,
     ctx,

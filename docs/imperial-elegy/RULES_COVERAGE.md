@@ -306,6 +306,14 @@ Status labels:
     AU/RU/OT overseas keys and keys without a printed track type. Space-choice
     continuations preserve beneficiary and knockout target; event-granted home
     status and stale-choice validation are covered in `treatyTerritoryRules`.
+  - **Living Rules v1.1 16.2.4:** acquisition now validates the post-cession
+    peacetime LoC. The separate home-return option restores the actual owner
+    without an occupation/LoC requirement. Minority liberation is an explicit
+    space/nationality choice: occupied target, independent control and immediate
+    defensive alliance, with AU citizenship, ally cap, permanent-minor and
+    knockout-target guards. Dynamic independent homes survive reconquest and
+    participate in supply, subsequent declarations and realignment. See
+    `righteousDefenseV11.test.ts` and the real treaty-panel rendering regression.
   - `surrender` is a simple status/victor setter; the subsequent `resolveWar`
     still drives classification and treaties.
 

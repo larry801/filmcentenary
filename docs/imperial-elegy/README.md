@@ -152,6 +152,11 @@ At a glance, the live game covers:
   an ally's own homes; colonial cession checks the losing power's controlled
   land connection to its capital, including AU/RU/OT overseas keys. Follow-up
   space choices retain the chosen beneficiary and knockout target.
+- **Living Rules v1.1 righteous defense** — the acquisition tests a peacetime
+  LoC after cession; returning a home is a separate option; occupied minorities
+  may be explicitly liberated and immediately allied to the defender. The
+  space/nationality choices, dual-home persistence, supply and later diplomacy
+  are shared by interactive and direct settlement paths.
 - **Limited war** — validated war declarations and aims, objectives, alliance
   and minor calls, initiative order (including A063 Rapid Mobilization's
   first-impulse priority), war budgets, maneuver, deploy reserves (with A063's

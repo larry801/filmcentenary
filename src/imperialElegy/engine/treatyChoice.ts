@@ -25,6 +25,7 @@ import {
   PendingOption,
   Power,
   PowerOrMinor,
+  POWERS,
   SpaceId,
   WarState,
 } from "../types";
@@ -48,6 +49,7 @@ import {
 } from "./limitedWar";
 import {POWER_ORDER, controlledBy, isPower, powerLabel} from "./rules";
 import {isIndependentIndia} from "./characteristics";
+import {liberationNationalities, nationalityLabel} from "./nationality";
 
 // ---------------------------------------------------------------------------
 // Vocabulary
@@ -287,7 +289,11 @@ const entryForRealignment = (
   const minors: string[] = [];
   let choice: TreatyChoice | null = null;
 
-  for (const minor of Object.keys(MINOR_POWER_HOMES)) {
+  const minorNames = new Set([
+    ...Object.keys(MINOR_POWER_HOMES),
+    ...Object.values(G.spaces).flatMap((state) => state.independentHome ? [state.independentHome.power] : []),
+  ]);
+  for (const minor of minorNames) {
     const validation = canApplyTreaty(G, war, victory, {
       option: "realignment",
       minor,
@@ -395,6 +401,31 @@ const entryForSpaceOption = (
   };
 };
 
+/** v1.1 16.2.4(3): explicit space + nationality choices share the one
+ * righteous-defense treaty allowance; no implicit first-flag selection. */
+const entriesForLiberation = (
+  G: ImperialElegyState, war: WarState, victory: VictoryClassification, meta: EntryMeta,
+): TreatyOptionEntry[] => {
+  if (meta.target === null) return [];
+  const entries: TreatyOptionEntry[] = [];
+  for (const space of righteousSpaceIds(G)) {
+    if (isIndependentIndia(G, space)) continue;
+    for (const nationality of liberationNationalities(G, space, meta.target)) {
+      const choice: TreatyChoice = {
+        option: "righteousDefense", righteousMode: "liberate", nationality, space,
+        beneficiary: meta.primaryBeneficiary, ...choiceTarget(meta),
+      };
+      if (!canApplyTreaty(G, war, victory, choice).ok) continue;
+      entries.push({
+        ...entryExtras(meta), id: `${entryId("righteousDefense", meta)}:liberate:${space}:${nationality}`,
+        option: "righteousDefense", label: `Righteous Defense — liberate ${nationality} in ${spaceLabel(space, "en")}`,
+        target: meta.target, choice, spaces: [space], minors: [], requiresSpace: false, requiresMinor: false,
+      });
+    }
+  }
+  return entries;
+};
+
 // ---------------------------------------------------------------------------
 // Public builder
 // ---------------------------------------------------------------------------
@@ -462,10 +493,15 @@ const beneficiaryCandidates = (
   const allies = sidePowers(war, imposingSide).filter(
     (power) => power !== primary && G.powers[power]?.eliminated !== true,
   );
+  if (option === "righteousDefense") {
+    // v1.1(2) returns a home to its owner, including a non-participating owner.
+    // canApplyTreaty restricts these recipients to their own lost homes.
+    const owners = Object.values(G.spaces).flatMap((state) => state.independentHome ? [state.independentHome.power] : []);
+    return [...new Set([primary, ...allies, ...POWERS, ...Object.keys(MINOR_POWER_HOMES), ...owners])];
+  }
   if (
     option === "territorialCession" ||
     option === "warReparations" ||
-    option === "righteousDefense" ||
     option === "colonialCession"
   ) {
     // 16.2: "Spaces and war reparations may be awarded to any of the victorious
@@ -680,6 +716,9 @@ export const treatyOptionsFor = (
           entry = entryForSpaceOption(G, war, victory, meta, option);
         }
         if (entry !== null) entries.push(entry);
+        if (option === "righteousDefense" && beneficiary === planPrimary) {
+          entries.push(...entriesForLiberation(G, war, victory, meta));
+        }
       }
     }
   }
@@ -776,7 +815,9 @@ const pendingOptionFor = (entry: TreatyOptionEntry): PendingOption => {
   return {
     id: entry.id,
     label: knockout ? `${label} — ${knockedOut}` : label,
-    labelZh: knockout ? `${labelZh} — ${knockedOutZh}` : labelZh,
+    labelZh: entry.choice.righteousMode === "liberate"
+      ? `正义防御：解放${spaceLabel(entry.choice.space!, "zh_CN")}的${nationalityLabel(entry.choice.nationality!, "zh_CN")}民族${knockout ? ` — ${knockedOutZh}` : ""}`
+      : knockout ? `${labelZh} — ${knockedOutZh}` : labelZh,
     data: entryContext(entry),
   };
 };

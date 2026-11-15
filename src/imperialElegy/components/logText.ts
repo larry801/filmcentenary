@@ -5,6 +5,7 @@ import {SPACES, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {ieStringsFor} from "./i18n";
 import type {PlayBlockReason} from "../engine/playability";
+import {nationalityLabel} from "../engine/nationality";
 
 /**
  * Bilingual, key-driven rendering for the Imperial Elegy engine log.
@@ -1939,6 +1940,11 @@ const FORMATTERS: Record<string, Formatter> = {
           hasTarget ? `向${target}索取战争赔款${recipientZh}。` : "索取战争赔款。",
         );
       case "righteousDefense":
+        if (entry.args?.righteousMode === "liberate") {
+          return withActor(entry, locale,
+            `liberated ${minor} in ${spaces} and gained its alliance under righteous defense.`,
+            `以正义防御解放${spaces}的${nationalityLabel(str(entry.args?.nationality), "zh_CN")}民族，并立即与其结盟。`);
+        }
         return withActor(
           entry,
           locale,
