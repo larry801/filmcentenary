@@ -96,18 +96,71 @@
   border-bottom: 1px solid #4a3a26;
   background: linear-gradient(90deg, #2a221b, #251e17);
 }
+/* Every panel folds from its title bar, so the bar is a target: it gets a
+   pointer and a hover state, and the caret states the direction. */
+.ie-panel-head.collapsible { cursor: pointer; user-select: none; }
+.ie-panel-head.collapsible:hover { background: linear-gradient(90deg, #322819, #2a2219); }
+.ie-panel[data-collapsed="true"] .ie-panel-head { border-bottom: 0; }
+.ie-panel-caret {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: #241d17;
+  color: #d4a85c;
+  border: 1px solid #5a4830;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ie-panel-caret:hover { background: #3a2f24; border-color: #b8923f; }
+.ie-panel-caret:focus-visible { outline: 2px solid #e6c987; outline-offset: 1px; }
 .ie-panel-head h3 {
   margin: 0;
   font-size: 15px;
   letter-spacing: .02em;
   color: #d4a85c;
   font-weight: 600;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ie-panel-folded-hint {
+  flex: 1 1 100%;
+  font-size: 11.5px;
+  color: #cdbb9a;
 }
 .ie-panel-body { padding: 14px; }
 
 /* ---------------------------------------------------------------- map */
+/* The panel head carries the collapse toggle beside the board tabs. */
+.ie-map-panel-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Folded away, the board leaves a single line: the selected space and the
+   current hint stay readable without the map taking half the screen. */
+.ie-map-collapsed {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #cdbb9a;
+}
+/* No body content means no body: a folded panel is one bar. */
+.ie-map-panel .ie-panel-body:empty { display: none; }
+
 .ie-map-wrap { position: relative; overflow: hidden; background: #0f0c09; border-radius: 4px; }
-.ie-map { width: 100%; height: min(52vh, 620px); min-height: 280px; display: block; cursor: grab; touch-action: none; }
+/* The board is a fixed-aspect rectangle: let the element take that shape so the
+   SVG never letterboxes inside a tall box (which wasted half the panel on a
+   phone and left the sea clipped to a stripe). */
+.ie-map {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 6693 / 4382;
+  max-height: min(64vh, 720px);
+  display: block;
+  cursor: grab;
+  touch-action: none;
+  background: #efe6d2;
+}
 .ie-map.dragging { cursor: grabbing; }
 .ie-map-controls { position: absolute; right: 8px; top: 8px; display: flex; gap: 4px; }
 .ie-map-controls button {
@@ -250,6 +303,9 @@
 .ie-pending-kind { display: inline-block; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #cbb07a; border: 1px solid #6d5636; border-radius: 999px; padding: 1px 7px; margin-bottom: 4px; }
 .ie-pending-prompt { font-size: 12px; line-height: 1.4; color: #f1e3c4; }
 .ie-pending-options { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+/* A decision that names many spaces must not turn into a wall of buttons:
+   scroll inside the option list instead of pushing the board off screen. */
+.ie-pending-options { max-height: min(34vh, 260px); overflow: auto; padding-right: 2px; }
 .ie-pending-options button:disabled { opacity: .4; cursor: not-allowed; }
 .ie-battle { margin-top: 8px; border-top: 1px solid #4a3a26; padding-top: 6px; font-size: 11px; line-height: 1.45; }
 .ie-battle h4 { margin: 0 0 3px; color: #f0d799; font-size: 12px; }
@@ -561,6 +617,90 @@
 .ie-board .ie-turn-strip { text-align: left; padding: 12px 16px; font-size: 14px; }
 .ie-space-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 12px; }
 .ie-space-picker select { flex: 1; min-width: 0; }
+
+/* ---------------------------------------------------------------- space picker */
+/* The board has 145 spaces, so the chooser is a small searchable list instead of
+   a long <select>: type to narrow, filter by region, or show only the spaces the
+   current decision can use.  The list scrolls so a long result set never pushes
+   the map off screen. */
+.ie-picker { position: relative; margin-bottom: 10px; }
+.ie-picker-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ie-picker-current {
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  background: #241d17;
+  color: #eadfc8;
+  border: 1px solid #6d5636;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  text-align: left;
+}
+.ie-picker-current:hover { border-color: #b8923f; }
+.ie-picker-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ie-picker-caret { color: #cbb07a; font-size: 10px; }
+.ie-picker-panel {
+  position: absolute;
+  z-index: 40;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: #2b2318;
+  border: 1px solid #b3873a;
+  border-radius: var(--ie-radius);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .65);
+}
+.ie-picker-search { width: 100%; font-size: 13px; padding: 6px 8px; }
+.ie-picker-regions { display: flex; flex-wrap: wrap; gap: 4px; }
+.ie-picker-regions .ie-chip { cursor: pointer; background: #241d17; border: 1px solid #5e4a2f; color: #cdbb9a; }
+.ie-picker-regions .ie-chip[aria-pressed="true"] { background: #cbb07a; color: #211b16; border-color: #cbb07a; }
+.ie-picker-list { list-style: none; margin: 0; padding: 0; overflow: auto; }
+.ie-picker-list li { display: flex; align-items: stretch; gap: 2px; }
+.ie-picker-item {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  border: 0;
+  border-radius: 3px;
+  color: #e6d9bd;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+.ie-picker-item:hover { background: #3a2f24; }
+.ie-picker-item.target { color: #f6e2a8; }
+.ie-picker-item.target .ie-picker-name::before { content: "◆ "; color: #f4d574; }
+.ie-picker-item.selected { background: #43341f; color: #fff4cf; }
+.ie-picker-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ie-picker-flag { font-size: 9.5px; letter-spacing: .06em; color: #f4d574; border: 1px solid #8a7350; border-radius: 999px; padding: 0 5px; }
+.ie-picker-meta { margin-left: auto; color: #b3a084; font-size: 11px; white-space: nowrap; }
+.ie-picker-locate {
+  flex: 0 0 auto;
+  width: 26px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #cbb07a;
+  cursor: pointer;
+}
+.ie-picker-locate:hover { border-color: #6d5636; background: #3a2f24; }
+.ie-picker-empty { color: #b3a084; font-size: 12px; padding: 6px 8px; }
+.ie-picker-count { font-size: 11px; color: #b3a084; }
+
+/* ---------------------------------------------------------------- reference */
 .ie-reference { border: 1px solid var(--ie-line); border-radius: var(--ie-radius); background: #241d17; }
 .ie-reference > summary { cursor: pointer; padding: 14px; color: #e6c987; font-weight: 600; }
 .ie-reference > .ie-panel { border: 0; box-shadow: none; }
