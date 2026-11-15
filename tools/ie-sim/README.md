@@ -46,6 +46,13 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
   action, wartime maneuver, wartime alliance, Great War.  This is what reaches
   the four `warOnly` responses, which are `response` cards and are played with
   `playResponseCard` rather than `playCard`.
+- `saveMigration.test.ts` — deletes one documented optional field at a time
+  (then all of them plus the container records) and keeps *playing*, so a save
+  that only survives loading does not pass.  A progress guard asserts every
+  scenario actually advanced the game.
+- `exceptionHunt.test.ts` — wide seed sweep whose only assertion is "no engine
+  exception"; it reports the first stack frame inside `src/imperialElegy`, so a
+  failure names the exact line.  `IE_HUNT` sets the seed count (default 3).
 - `cardStates.test.ts` — every action card against ten deliberately extreme
   boards (empty hands, no reserves, stability at both ends, an eliminated
   power, …), so an effect's arithmetic is checked, not just its text.

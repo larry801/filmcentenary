@@ -405,6 +405,24 @@ eliminated power, the whole board industrialised, the WTT pinned at 5):
     of them now go through `rules.ts#randomIndex`, one clamping helper, and a
     regression test drives every one of them with faces 0, 1, 3, 6 and 99.
 
+**Follow-up audit: the same class elsewhere.** After fixing the random-index
+crash, the remaining unchecked `[0]`-style accesses (138 of them) were audited
+rather than patched blindly. Two new sweeps now cover the risk without asserting
+on every line:
+
+- `tools/ie-sim/exceptionHunt.test.ts` runs a wide seed sweep and asserts only
+  "no engine exception", reporting the first stack frame inside
+  `src/imperialElegy` so a failure names the line. 60 games across all six modes:
+  no exception.
+- `tools/ie-sim/saveMigration.test.ts` deletes one documented optional field at
+  a time — then all of them plus the container records — and keeps *playing*
+  afterwards, because a save that only survives loading is not enough. A
+  progress guard asserts each scenario actually advanced the game, so the suite
+  cannot pass vacuously.
+
+Neither found a new defect, which is the useful result: the remaining index
+accesses are guarded, and the migration is additive as documented.
+
 **Verification:** the sweep at `IE_SEEDS=IE-SIM-1…10` finishes every campaign
 with zero refused moves and zero invariant breaks; the limited-war sweep
 (`W-1…8`) declares wars, runs the wartime impulses and settles them; and the
