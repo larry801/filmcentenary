@@ -29,14 +29,42 @@ export interface HandChoicesProps {
   moves: Record<string, (...args: any[]) => void>;
 }
 
-/** True when at least one required card choice is on screen for this viewer. */
-export const hasHandChoices = ({
-  phase, canPhaseAct, me, ngChoices, viewer,
-}: Pick<HandChoicesProps, "phase" | "canPhaseAct" | "me" | "ngChoices" | "viewer">): boolean => {
-  if (viewer === null || me === null) return false;
-  return (phase === "diplomacy" && me.homeCards.length > 0 && me.selectedHomeCard === null) ||
-    (phase === "end" && ngChoices.length > 0) ||
-    (phase === "prep" && canPhaseAct && !me.flags.prepStability);
+/** Which kinds of card choice the rules put on screen right now. */
+export interface HandChoiceAvailability {
+  /** A rules-mandated choice is waiting (home card, National Goal). */
+  required: boolean;
+  /** An action the player may take but may also skip (stability discard). */
+  optional: boolean;
+}
+
+/**
+ * Split the card choices into mandatory and optional.  The distinction matters
+ * for the dock: a required choice is a blocker, while an optional one must not
+ * read as "you cannot continue until you pick".
+ */
+export const handChoiceAvailability = ({
+  phase, canPhaseAct, me, ngChoices, viewer, hand,
+}: Pick<HandChoicesProps, "phase" | "canPhaseAct" | "me" | "ngChoices" | "viewer" | "hand">): HandChoiceAvailability => {
+  if (viewer === null || me === null) return {required: false, optional: false};
+  const home = phase === "diplomacy" && me.homeCards.length > 0 && me.selectedHomeCard === null;
+  const goals = phase === "end" && ngChoices.length > 0;
+  // The discard needs a legal card in hand; otherwise the dock would announce a
+  // choice with an empty body.
+  const discard = phase === "prep" && canPhaseAct && !me.flags.prepStability &&
+    hand.some((id) => isDiscardableForStability(id));
+  return {required: home || goals, optional: discard};
+};
+
+/** Cards the prep stability discard may spend (11.x: not mandatory, not a home card). */
+export const isDiscardableForStability = (id: string): boolean => {
+  const card = cardById(id);
+  return card.type !== "mandatory" && card.kind !== "home";
+};
+
+/** True when at least one card choice is on screen for this viewer. */
+export const hasHandChoices = (props: Parameters<typeof handChoiceAvailability>[0]): boolean => {
+  const {required, optional} = handChoiceAvailability(props);
+  return required || optional;
 };
 
 export const HandChoices = (props: HandChoicesProps) => {
@@ -49,15 +77,15 @@ export const HandChoices = (props: HandChoicesProps) => {
   // dock no longer treats the step as an open required choice.
   const showHome = phase === "diplomacy" && me.homeCards.length > 0;
   const showGoals = phase === "end" && ngChoices.length > 0;
-  const discardable = hand.filter((id) => {
-    const card = cardById(id);
-    return card.type !== "mandatory" && card.kind !== "home";
-  });
+  const discardable = hand.filter(isDiscardableForStability);
   const showDiscard = phase === "prep" && canPhaseAct && !me.flags.prepStability && discardable.length > 0;
   if (!showHome && !showGoals && !showDiscard) return null;
 
   const chooseLabel = bi(locale, "Choose", "选择");
   const discardLabel = bi(locale, "Discard for +1 stability", "弃牌换 +1 稳定");
+  // Only the prep discard may be skipped; the home card and the National Goal
+  // are mandatory, so their sections carry no "optional" wording.
+  const optionalTag = bi(locale, "Optional", "可选");
 
   return (
     <div className="ie-dock-choices" data-testid="ie-hand-choices">
@@ -117,8 +145,11 @@ export const HandChoices = (props: HandChoicesProps) => {
       )}
 
       {showDiscard && (
-        <div className="ie-dock-choice" data-testid="ie-stability-discard">
-          <div className="ie-section-title">{t.discardForStability}:</div>
+        <div className="ie-dock-choice ie-dock-choice-optional" data-testid="ie-stability-discard">
+          <div className="ie-section-title">
+            {t.discardForStability}
+            <span className="ie-choice-tag" data-testid="ie-stability-discard-optional">{optionalTag}</span>
+          </div>
           <div className="ie-choice-grid">
             {discardable.map((id) => (
               <CardChoice
@@ -133,6 +164,13 @@ export const HandChoices = (props: HandChoicesProps) => {
                 }]}
               />
             ))}
+          </div>
+          {/* Skipping is a legal choice: the player can keep the card and
+              simply press Ready / continue. */}
+          <div className="ie-hint" data-testid="ie-stability-discard-hint">
+            {bi(locale,
+              "Optional: you may skip this and keep the card — press Ready (准备完毕) to continue without discarding.",
+              "可选：可以跳过并保留手牌——直接点“准备完毕”继续即可，无需弃牌。")}
           </div>
         </div>
       )}

@@ -82,6 +82,25 @@ shared wrapper; `HandChoices` (pinned dock) and `PendingPanel` both use it, and
 the diplomacy give-card preview shows the selected card's face too. Space,
 power and unit options stay plain buttons.
 
+### Required versus optional
+
+Not every choice blocks the game. The home card and the National Goal
+draw-and-keep are mandatory; the prep-phase stability discard and the diplomacy
+card transfer are things a player *may* do. The dock distinguishes them, so an
+optional action never reads as "you cannot continue until you pick":
+
+- a mandatory section is a solid gold-bordered box and the bar summary says
+  `需要选择卡牌` / "Required card choice";
+- an optional section uses a dashed frame and an `可选` / "Optional" tag, the bar
+  summary says `可选：弃牌换稳定` / "Optional: discard for stability", and a hint
+  names the way out ("press Ready to continue without discarding" / "转交卡牌并非
+  必须").
+
+`handChoiceAvailability` returns `{required, optional}` so the dock summary and
+the pointer in the hand panel follow the same rule. The discard is only offered
+when a legal card is actually in hand, so an empty optional section is never
+rendered.
+
 ### The decision dock
 
 Everything the rules require *right now* sits in one pinned dock under the app

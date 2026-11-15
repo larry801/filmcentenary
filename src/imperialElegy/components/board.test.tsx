@@ -615,6 +615,68 @@ describe("Imperial Elegy board controls", () => {
     expect(markup.match(/data-testid="ie-stability-discard"/g)).toHaveLength(1);
   });
 
+  test("the stability discard is marked optional and says it may be skipped", () => {
+    const G = freshGame();
+    G.phase = "prep";
+    G.activePower = "GE";
+    G.powers.GE.flags.prepStability = false;
+    const markup = html(G, "0");
+    // A dashed frame and an "optional" tag distinguish it from a blocker.
+    expect(markup).toContain("ie-dock-choice-optional");
+    expect(markup).toContain(`data-testid="ie-stability-discard-optional"`);
+    expect(markup).toContain("可选");
+    // The hint names the way out: press Ready without discarding.
+    const hint = markup.slice(
+      markup.indexOf(`data-testid="ie-stability-discard-hint"`),
+      markup.indexOf(`data-testid="ie-stability-discard-hint"`) + 400,
+    );
+    expect(hint).toContain("可以跳过");
+    expect(hint).toContain("准备完毕");
+    // The dock summary must not claim a choice is required.
+    expect(markup).toContain("可选：弃牌换稳定");
+    expect(markup).not.toContain("需要选择卡牌");
+    // The ready button is right there to continue without discarding.
+    expect(buttonTag(markup, "ie-finish-prep")).toContain("准备完毕");
+  });
+
+  test("the mandatory home card and Goal choices are not marked optional", () => {
+    const home = freshGame();
+    home.phase = "diplomacy";
+    home.activePower = "GE";
+    const homeMarkup = html(home, "0");
+    expect(homeMarkup).toContain("需要选择卡牌");
+    expect(homeMarkup).not.toContain("ie-dock-choice-optional");
+    expect(homeMarkup).not.toContain(`data-testid="ie-stability-discard-optional"`);
+
+    const goal = freshGame();
+    goal.phase = "end";
+    goal.powers.GE.flags.ngChoices = goal.powers.GE.goalDeck.slice(0, 3).join(",");
+    const goalMarkup = html(goal, "0");
+    expect(goalMarkup).toContain("需要选择卡牌");
+    expect(goalMarkup).not.toContain("ie-dock-choice-optional");
+  });
+
+  test("the discard is only offered when a legal card is in hand", () => {
+    const G = freshGame();
+    G.phase = "prep";
+    G.activePower = "GE";
+    G.powers.GE.flags.prepStability = false;
+    G.powers.GE.hand = [];
+    const markup = html(G, "0");
+    // Nothing to discard means no empty optional section in the dock.
+    expect(markup).not.toContain("data-testid=\"ie-stability-discard\"");
+    expect(markup).not.toContain("可选：弃牌换稳定");
+  });
+
+  test("an already-used stability discard stops being offered", () => {
+    const G = freshGame();
+    G.phase = "prep";
+    G.activePower = "GE";
+    G.powers.GE.flags.prepStability = true;
+    const markup = html(G, "0");
+    expect(markup).not.toContain("data-testid=\"ie-stability-discard\"");
+  });
+
   test("the optional diplomacy card transfer stays in the hand panel", () => {
     const G = freshGame();
     G.phase = "diplomacy";
@@ -623,6 +685,13 @@ describe("Imperial Elegy board controls", () => {
     expect(markup).toContain("data-testid=\"ie-give-card\"");
     const layout = markup.indexOf("class=\"ie-layout\"");
     expect(markup.indexOf("data-testid=\"ie-give-card\"")).toBeGreaterThan(layout);
+    // It carries the same "optional" tag and skip hint as the stability discard.
+    expect(markup).toContain(`data-testid="ie-give-card-optional"`);
+    const hint = markup.slice(
+      markup.indexOf(`data-testid="ie-give-card-hint"`),
+      markup.indexOf(`data-testid="ie-give-card-hint"`) + 400,
+    );
+    expect(hint).toContain("并非必须");
   });
 
   test("every move the board calls is registered on the game definition", () => {

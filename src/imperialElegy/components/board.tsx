@@ -61,7 +61,7 @@ import {
 import {MapPanel} from "./MapPanel";
 import {SpacePanel} from "./SpacePanel";
 import {PendingPanel, TargetDock} from "./PendingPanel";
-import {HandChoices, hasHandChoices} from "./HandChoices";
+import {HandChoices, handChoiceAvailability} from "./HandChoices";
 import {CardChoiceFace} from "./CardChoice";
 import {DecisionDock} from "./DecisionDock";
 import {PhaseAction, PhaseActions} from "./PhaseActions";
@@ -913,7 +913,8 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
     viewer, me, locale: actualLocale, t, phase, canPhaseAct, hand, ngChoices,
     doAction, moves,
   };
-  const dockChoices = hasHandChoices(choicesProps);
+  const choiceKinds = handChoiceAvailability(choicesProps);
+  const dockChoices = choiceKinds.required || choiceKinds.optional;
   // The dock also carries the phase buttons now, so it must render whenever
   // there is something to press — not only when a decision is pending.
   const dockVisible = pending !== null || battle !== null || G.result !== null ||
@@ -926,14 +927,19 @@ export const ImperialElegyBoard = ({G, ctx, moves, playerID, hotseat = false}: I
         ? t.gameOver
         : targetingHint !== null
           ? targetingHint.title
-          : dockChoices
+          : choiceKinds.required
             ? bi(actualLocale, "Required card choice", "需要选择卡牌")
-            : canAct
-              ? bi(actualLocale, `Your impulse · ${cpBudget()} CP remaining`, `你的行动轮 · 剩余 ${cpBudget()} CP`)
-              : bi(actualLocale, "Waiting", "等待");
-  const handChoicesHint = dockChoices
+            : choiceKinds.optional
+              // An optional action must not read as a blocker.
+              ? bi(actualLocale, "Optional: discard for stability", "可选：弃牌换稳定")
+              : canAct
+                ? bi(actualLocale, `Your impulse · ${cpBudget()} CP remaining`, `你的行动轮 · 剩余 ${cpBudget()} CP`)
+                : bi(actualLocale, "Waiting", "等待");
+  const handChoicesHint = choiceKinds.required
     ? bi(actualLocale, "Required choices are pinned in the decision panel above.", "当前必须做出的选择已固定在页面顶部的决策面板。")
-    : null;
+    : choiceKinds.optional
+      ? bi(actualLocale, "An optional stability discard is available in the decision panel above.", "决策面板提供了可选的弃牌换稳定操作。")
+      : null;
   const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
     : battleFrom !== null

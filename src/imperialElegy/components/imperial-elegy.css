@@ -172,6 +172,26 @@
 }
 .ie-dock-choice .ie-section-title { color: #d9be86; }
 .ie-dock-choices + .ie-dock-panel { margin-top: 8px; }
+/* An optional choice must not look like a blocker: dashed frame and a muted
+   "optional" tag next to the heading. */
+.ie-dock-choice-optional {
+  border-style: dashed;
+  border-color: #7a6440;
+  background: #302718;
+}
+.ie-dock-choice-optional .ie-section-title { color: #c2ab82; }
+.ie-choice-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  border: 1px dashed #8a7350;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: .06em;
+  text-transform: none;
+  color: #c9b48c;
+  vertical-align: middle;
+}
 .ie-hand-section { margin-top: 10px; }
 .ie-section-title { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: #cbb07a; margin-bottom: 4px; }
 
@@ -548,6 +568,12 @@
 @media (max-width: 600px) {
   .ie-dock { top: 48px; margin-top: 8px; }
   .ie-dock-panel .ie-panel-body { max-height: 38vh; }
+  /* Keep the bar on one line: the summary truncates instead of pushing the
+     phase buttons onto a second row. */
+  .ie-dock-bar { flex-wrap: nowrap; gap: 6px; padding: 6px 8px; }
+  .ie-dock-bar-summary { flex: 1 1 auto; min-width: 0; }
+  .ie-dock-bar [data-testid="ie-impulse-actions"] { flex-wrap: nowrap; gap: 4px; }
+  .ie-dock-bar [data-testid="ie-impulse-actions"] .ie-btn { padding: 6px 8px; font-size: 12px; white-space: nowrap; }
   .ie-surface { padding: 8px; }
   .ie-panel-body { padding: 10px; }
   .ie-panel-head { padding: 10px; }

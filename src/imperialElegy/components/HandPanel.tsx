@@ -121,7 +121,10 @@ export const HandPanel = (props: HandPanelProps) => {
 
           {phase === "diplomacy" && giveCards.length > 0 && (
             <div className="ie-hand-section" data-testid="ie-give-card">
-              <div className="ie-section-title">{bi(locale, "Give a card (diplomacy)", "转交卡牌（外交阶段）")}</div>
+              <div className="ie-section-title">
+                {bi(locale, "Give a card (diplomacy)", "转交卡牌（外交阶段）")}
+                <span className="ie-choice-tag" data-testid="ie-give-card-optional">{bi(locale, "Optional", "可选")}</span>
+              </div>
               <div className="ie-inline">
                 <select className="ie-select" value={giveTarget} onChange={(e) => setGiveTarget(e.target.value as Power)}>
                   {giveTargets.map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
@@ -139,6 +142,11 @@ export const HandPanel = (props: HandPanelProps) => {
                   </article>
                 </div>
               )}
+              <div className="ie-hint" data-testid="ie-give-card-hint">
+                {bi(locale,
+                  "Optional: giving a card is never required — skip it and carry on with diplomacy.",
+                  "可选：转交卡牌并非必须——不做也可以继续外交阶段。")}
+              </div>
             </div>
           )}
 

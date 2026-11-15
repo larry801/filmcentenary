@@ -158,6 +158,31 @@ test.describe("Imperial Elegy new controls", () => {
         expect(collapsedHeight).toBeLessThan(expandedHeight);
     });
 
+    test("the optional stability discard is labelled and can be skipped", async ({page}) => {
+        await openLocal(page);
+        await focusSeat(page, "GE");
+        const board = boardFor(page, "GE");
+        const dock = board.locator('[data-testid="ie-dock"]');
+
+        const discard = dock.locator('[data-testid="ie-stability-discard"]');
+        await expect(discard).toBeVisible({timeout: 15_000});
+        // It reads as optional, not as a blocker.
+        await expect(dock).toHaveAttribute("data-collapsed", "false");
+        await expect(dock.locator('[data-testid="ie-dock-summary"]')).toContainText("可选");
+        await expect(discard.locator('[data-testid="ie-stability-discard-optional"]')).toBeVisible();
+        await expect(discard.locator('[data-testid="ie-stability-discard-hint"]')).toBeVisible();
+        expect(await dock.locator('[data-testid="ie-dock-summary"]').innerText()).not.toContain("需要选择卡牌");
+
+        // Skipping is legal: press Ready without discarding and the turn passes
+        // to the next seat while the hand keeps its cards.  (`prepDone` is a
+        // private flag that `playerView` strips, so assert on the hand and the
+        // handover instead.)
+        const handBefore = await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.hand.length);
+        await dock.getByRole("button", {name: "准备完毕"}).click();
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.activePower)).not.toBe("GE");
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.hand.length)).toBe(handBefore);
+    });
+
     test("war declaration reveals aim, ally and maneuver controls", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");
