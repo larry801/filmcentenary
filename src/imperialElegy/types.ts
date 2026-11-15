@@ -458,6 +458,10 @@ export interface WarSide {
    * war ends (the UK for entering, plus the one invited player that joined).
    */
   postWarDraws?: Power[];
+  /** Balance of Power: players the UK invited and who actually joined. */
+  postWarDrawCandidates?: Power[];
+  /** The one invited player the UK selected for the card's additional draw. */
+  postWarDrawChoice?: Power;
   /** CP war budgets. */
   budgets: Partial<Record<Power, number>>;
   initiative: Power[];

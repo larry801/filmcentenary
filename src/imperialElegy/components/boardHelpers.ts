@@ -65,6 +65,7 @@ export const PROMPT_ZH: Record<string, string> = {
   "Choose the free redeployment destination": "选择免费重新部署的目的地",
   "Choose a unit for the free redeployment": "选择免费重新部署的单位",
   "Choose": "选择",
+  "Balance of Power: choose one invited ally to draw a card": "均势：选择一位应邀参战的盟友抽一张牌",
 };
 
 export const BATTLE_STAGE: Record<string, {en: string; zh: string}> = {

@@ -3630,6 +3630,50 @@ const drawPostWarCards = (G: ImperialElegyState, ctx: Ctx, war: WarState): void 
   }
 };
 
+type PostWarDrawContinuation =
+  | {mode: "interactive"; applied: readonly TreatyChoice[]}
+  | {mode: "immediate"; victory: VictoryClassification; choices: readonly TreatyChoice[]};
+
+/** Balance of Power: the UK chooses exactly one invited ally, after the war. */
+const preparePostWarDraws = (G: ImperialElegyState, ctx: Ctx, continuation: PostWarDrawContinuation): boolean => {
+  const war = G.war;
+  if (!war || !(war.postWarDraws ?? []).includes("UK")) return false;
+  // Older saves put every invited joiner directly into postWarDraws. Recover
+  // that candidate list before replacing it with the printed two recipients.
+  const candidates = [...new Set(war.postWarDrawCandidates ?? war.postWarDraws!.filter((power) => power !== "UK"))]
+    .filter((power) => war.defenderAllies.includes(power) && !G.powers[power].eliminated);
+  war.postWarDrawCandidates = candidates;
+  const selected = war.postWarDrawChoice;
+  if (selected !== undefined && candidates.includes(selected)) {
+    war.postWarDraws = ["UK", selected];
+    return false;
+  }
+  if (candidates.length <= 1) {
+    war.postWarDraws = ["UK", ...candidates];
+    if (candidates.length === 1) war.postWarDrawChoice = candidates[0];
+    return false;
+  }
+  openDecision(G, ctx, decision(
+    "eventTargetPower", "UK", "Balance of Power: choose one invited ally to draw a card",
+    candidates.map((power) => option(power, POWER_DEFS[power].name, undefined, false, POWER_DEFS[power].nameZh)),
+    {special: "balanceOfPowerDraw", continuation, required: true},
+  ));
+  return true;
+};
+
+const resolvePostWarDrawChoice = (G: ImperialElegyState, ctx: Ctx, pending: PendingDecision, chosen: string): string | void => {
+  const war = G.war;
+  const continuation = pending.context?.continuation as PostWarDrawContinuation | undefined;
+  if (!war || !continuation || !isPower(chosen) || !war.postWarDrawCandidates?.includes(chosen) ||
+      !war.defenderAllies.includes(chosen) || G.powers[chosen].eliminated) return INVALID_MOVE;
+  war.postWarDrawChoice = chosen;
+  war.postWarDraws = ["UK", chosen];
+  G.pending = null;
+  return continuation.mode === "interactive"
+    ? finishWarSettlement(G, ctx, continuation.applied)
+    : settleWarImmediately(G, ctx, continuation.victory, continuation.choices);
+};
+
 /** Demobilize the settled war and open the rule 17.0 free actions. */
 const completeWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const war = G.war;
@@ -3664,6 +3708,7 @@ const postWarWinnerFor = (war: WarState, victor: "attacker" | "defender" | null)
 const finishWarSettlement = (G: ImperialElegyState, ctx: Ctx, applied: readonly TreatyChoice[] = []): string | void => {
   const war = G.war;
   if (!war) return INVALID_MOVE;
+  if (preparePostWarDraws(G, ctx, {mode: "interactive", applied})) return undefined;
   applyHarshTerms(G, war, applied, ctx);
   // 33.3 / 33.6: resolves against the war that is being settled, before the
   // war state is handed to demobilizeWar.
@@ -3692,6 +3737,7 @@ const settleWarImmediately = (
     log(G, undefined, "warSettlementIssues", {issues: "mandatory-cession-missing"});
     return undefined;
   }
+  if (preparePostWarDraws(G, ctx, {mode: "immediate", victory, choices})) return undefined;
   applyWarEndCharacteristics(G, ctx);
   drawPostWarCards(G, ctx, war);
   G.flags.postWarWinner = postWarWinnerFor(war, victory.victor);
@@ -4578,6 +4624,9 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   const opt = pending.options.find((o) => o.id === optionId);
   if (!opt) return INVALID_MOVE;
   const context = pending.context ?? {};
+  if (pending.kind === "eventTargetPower" && context.special === "balanceOfPowerDraw") {
+    return resolvePostWarDrawChoice(G, ctx, pending, optionId);
+  }
   if (pending.kind === "italianInternalWar") {
     // 22.1.3: the active player chose Sardinia-Piedmont or the Two Sicilies.
     if (!ITALIAN_INTERNAL_WAR_POWERS.includes(optionId as (typeof ITALIAN_INTERNAL_WAR_POWERS)[number])) {
@@ -4756,6 +4805,10 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   const playerID = ctx.playerID ?? null;
   const pending = G.pending;
   if (!pending || playerID !== seatOf(pending.power)) return INVALID_MOVE;
+  if (pending.kind === "eventTargetPower" && pending.context?.special === "balanceOfPowerDraw") {
+    // A required choice stays open instead of silently awarding a different ally.
+    return INVALID_MOVE;
+  }
   // These decisions have an explicit "done"/cost choice; never auto-pick one.
   if (pending.kind === "combatDiscard") return INVALID_MOVE;
   if (pending.kind === "impulseLoss") return INVALID_MOVE;
@@ -5962,11 +6015,10 @@ const resolveWarAllyConsent = (
     // 33.2 Rapid Deployment: joining a war is entering it.
     if (ally === "UK") grantRapidDeployment(G, "limited");
     // The Balance of Power card: "one player (your choice) that you invited
-    // (and that joined) also draws a card at the end of the war."  The first
-    // invited player that actually joins is recorded; the deterministic
-    // fallback avoids a second settlement prompt.
-    if (statusQuo && (war.postWarDraws ?? []).includes("UK") && !(war.postWarDraws ?? []).includes(ally)) {
-      war.postWarDraws = [...(war.postWarDraws ?? []), ally];
+    // (and that joined) also draws a card at the end of the war." Record every
+    // actual invitee, then let the UK choose one at settlement.
+    if (caller === "UK" && (war.postWarDraws ?? []).includes("UK")) {
+      war.postWarDrawCandidates = [...new Set([...(war.postWarDrawCandidates ?? []), ally])];
     }
     G.pending = null;
     return undefined;

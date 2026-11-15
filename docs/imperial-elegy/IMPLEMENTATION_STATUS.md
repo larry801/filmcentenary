@@ -89,6 +89,22 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   exercises both crisis boundaries, conference/outbreak, low-roll loss, forced
   independence, no-target handling, all-space DRMs and legacy continuation.
 
+### Balance of Power post-war draw choice
+
+- The UK now chooses **one** player it invited who actually joined, instead of
+  granting every accepted invitee a card. The original defender and players
+  who refused do not qualify. With a single candidate the award is unambiguous;
+  with several, the UK gets a required private power choice at war settlement.
+- Both interactive and explicit treaty settlements suspend before draws and
+  resume exactly once. The saved continuation retains treaty choices and harsh-
+  terms bookkeeping. Old saves whose `postWarDraws` contained several invitees
+  are converted to the same chooser. Plain Status Quo invitations do not create
+  Balance of Power rewards.
+- Candidates, the chosen player and final recipients are recorded on the war;
+  the existing power-choice panel provides English/Chinese labels. Verified
+  locally by `balanceOfPowerDraw.test.ts` plus existing Balance of Power and
+  Status Quo suites (35 tests); remote validation remains required.
+
 ## 2026-11-15 treaty-territory follow-up
 
 - **16.2.4 Righteous Defense:** a defending primary's major victory waives
