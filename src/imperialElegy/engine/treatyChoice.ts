@@ -38,13 +38,15 @@ import {
   VictoryClassification,
   applyTreaty,
   canApplyTreaty,
+  classifyVictory,
   firstTreatySide,
   warRequiresMandatoryCession,
   independentMinorBeneficiaries,
+  isTreatyKey,
   sidePowers,
   type WarSideName,
 } from "./limitedWar";
-import {POWER_ORDER, controlledBy, hasLoc, isPower, powerLabel} from "./rules";
+import {POWER_ORDER, controlledBy, isPower, powerLabel} from "./rules";
 import {isIndependentIndia} from "./characteristics";
 
 // ---------------------------------------------------------------------------
@@ -139,18 +141,18 @@ export interface TreatyOptionEntry {
 
 const spaceIds = (): SpaceId[] => Object.keys(SPACES);
 
-const colonialSpaceIds = (): SpaceId[] =>
+const colonialSpaceIds = (G: ImperialElegyState): SpaceId[] =>
   spaceIds().filter((id) => {
     const def = SPACES[id];
-    return def !== undefined && (def.keyType === "colonial" || def.type === "navalBase");
+    return def !== undefined && (isTreatyKey(G, id) || def.type === "navalBase");
   });
 
 /** Spaces righteous defense may target, before the LoC check. */
-const righteousSpaceIds = (): SpaceId[] =>
+const righteousSpaceIds = (G: ImperialElegyState): SpaceId[] =>
   spaceIds().filter((id) => {
     const def = SPACES[id];
     if (def === undefined || isNavalBox(id)) return false;
-    return def.keyType !== undefined || def.type === "territory" || def.type === "navalBase";
+    return isTreatyKey(G, id) || def.type === "territory" || def.type === "navalBase";
   });
 
 /** Largest cessions first, so the default choice takes every legal objective. */
@@ -358,7 +360,7 @@ const entryForSpaceOption = (
   meta: EntryMeta,
   option: "righteousDefense" | "colonialCession",
 ): TreatyOptionEntry | null => {
-  const candidates = (option === "colonialCession" ? colonialSpaceIds() : righteousSpaceIds()).filter(
+  const candidates = (option === "colonialCession" ? colonialSpaceIds(G) : righteousSpaceIds(G)).filter(
     (space) => !isIndependentIndia(G, space),
   );
   const spaces: SpaceId[] = [];
@@ -885,7 +887,9 @@ const choiceFor = (
   choiceId: string,
 ): TreatyChoice | null => {
   const data = chosen.data ?? {};
-  const stored = data.choice;
+  // Space buttons carry only the selected space. The treaty target and
+  // beneficiary belong to the parent option, saved in the pending context.
+  const stored = data.choice ?? (pending.kind === "treatySpace" ? pending.context?.choice : undefined);
   const base = stored !== null && typeof stored === "object" ? (stored as TreatyChoice) : null;
 
   if (pending.kind === "treatyOption") {
@@ -997,42 +1001,6 @@ export const applyTreatyChoice = (
 // Follow-up space choice
 // ---------------------------------------------------------------------------
 
-const fallbackSpaces = (
-  G: ImperialElegyState,
-  war: WarState,
-  option: "territorialCession" | "righteousDefense" | "colonialCession",
-  target: Power | null,
-): SpaceId[] => {
-  if (option === "territorialCession") {
-    return [...new Set(war.objectives)];
-  }
-  if (option === "colonialCession") {
-    return colonialSpaceIds().filter((id) => {
-      const state = G.spaces[id];
-      if (state === undefined) return false;
-      if (target !== null) return state.control === target;
-      return isPower(state.control);
-    });
-  }
-
-  const attacker = sidePowers(war, "attacker");
-  const defender = sidePowers(war, "defender");
-  return righteousSpaceIds().filter((id) => {
-    const def = SPACES[id];
-    const state = G.spaces[id];
-    if (def === undefined || state === undefined) return false;
-    const enemyControlled =
-      (isPower(state.occupiedBy) && attacker.includes(state.occupiedBy)) ||
-      (isPower(state.control) && attacker.includes(state.control));
-    const defenderHome = def.home === war.defender && enemyControlled;
-    const occupiedByDefender = isPower(state.occupiedBy) && defender.includes(state.occupiedBy);
-    if (!defenderHome && !(enemyControlled && occupiedByDefender)) return false;
-    // Rule 15.4.2: an unaided non-player defender cannot impose righteous
-    // defense and has no LoC to trace; `canApplyTreaty` already refuses it.
-    return isPower(war.defender) && hasLoc(G, war.defender, id, {requireTwoSources: false});
-  });
-};
-
 /**
  * Options for the realignment minor-power follow-up.
  *
@@ -1077,30 +1045,41 @@ export const treatySpaceOptions = (
   const war = G.war;
   if (war === null) return [];
 
-  const beneficiary = entry?.beneficiary ?? victory?.winner ?? null;
-  const target = entry?.target ?? victory?.loser ?? null;
+  // A bare option must use the same validator as the entry builder. The old
+  // fallback duplicated (and narrowed) the major-victory/home-return rules.
+  const resolution = victory ?? (entry === null ? classifyVictory(G, war) : undefined);
+  // Once settlement starts, war.victor is also set for ordinary victories.
+  // Preserve that recorded classification instead of mistaking it for surrender.
+  if (victory === undefined && resolution !== undefined && war.victoryPrimary !== undefined) {
+    resolution.primary = war.victoryPrimary;
+  }
+  const beneficiary = entry?.beneficiary ?? resolution?.winner ?? null;
+  const target = entry?.target ?? resolution?.loser ?? null;
   const candidates =
-    entry !== null ? [...entry.spaces] : fallbackSpaces(G, war, kind, target);
+    entry !== null ? [...entry.spaces] : kind === "territorialCession" ? [...war.objectives]
+      : kind === "colonialCession" ? colonialSpaceIds(G) : righteousSpaceIds(G);
 
   const spaces: SpaceId[] = [];
   for (const space of candidates) {
     // 33.2.2: after independence India cannot be controlled by any player, so
     // no treaty cession/realignment/liberation may name it.
     if (isIndependentIndia(G, space)) continue;
-    if (victory !== undefined) {
+    if (resolution !== undefined) {
       const choice: TreatyChoice =
         kind === "territorialCession"
           ? {
               option: kind,
               spaces: [space],
               ...(beneficiary === null ? {} : {beneficiary}),
+              ...(target === null ? {} : {target}),
             }
           : {
               option: kind,
               space,
               ...(beneficiary === null ? {} : {beneficiary}),
+              ...(target === null ? {} : {target}),
             };
-      if (!canApplyTreaty(G, war, victory, choice).ok) continue;
+      if (!canApplyTreaty(G, war, resolution, choice).ok) continue;
     } else if (kind === "territorialCession") {
       if (target !== null && !controlledBy(G, space, target)) continue;
     } else if (kind === "colonialCession") {

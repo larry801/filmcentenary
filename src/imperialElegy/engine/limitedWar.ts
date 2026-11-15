@@ -25,7 +25,7 @@ import {
   WarKnockoutRecord,
   WarState,
 } from "../types";
-import {SPACES, isNavalBox} from "../constant/spaces";
+import {SPACES, connectionsOf, isNavalBox} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {cardById, isCardId} from "./deck";
 import {
@@ -2097,6 +2097,48 @@ const treatyTargetFor = (war: WarState, victory: VictoryClassification, choice: 
   return victory.loser;
 };
 
+/** 3.2.1–3.2.2: every square/star is a key, including keys without a track type. */
+export const isTreatyKey = (G: ImperialElegyState, space: SpaceId): boolean => {
+  const def = SPACES[space];
+  return def !== undefined && !isNavalBox(space) &&
+    (["key", "capital", "subcapital"].includes(def.type) || effectiveKeyType(G, space) !== undefined);
+};
+
+/** Printed and event-granted homes, including a minor ally's original home. */
+const treatyHomeOf = (G: ImperialElegyState, space: SpaceId, power: PowerOrMinor): boolean => {
+  const def = SPACES[space];
+  if (!def) return false;
+  return isPower(power)
+    ? def.home === power || G.spaces[space]?.homeOverride === power
+    : def.minorHome === power || MINOR_POWER_HOMES[power] === space;
+};
+
+/**
+ * 16.2.5 / 3.2.1: colonial for a treaty means no contiguous controlled land
+ * connection to the losing player's capital. AU/RU/OT's display convention
+ * (count all keys as territorial) does not exempt their overseas keys.
+ * Trace formal control, not occupation (15.3), and never bridge the route
+ * with an ally, neutral space, naval box, or a port-to-port sea connection.
+ */
+export const isColonialTreatyKey = (G: ImperialElegyState, space: SpaceId, power: Power): boolean => {
+  if (!isTreatyKey(G, space) || G.spaces[space]?.control !== power) return false;
+  const capital = capitalOf(G, power);
+  const visited = new Set<SpaceId>([space]);
+  const queue = [space];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current === capital) return false;
+    for (const connection of connectionsOf(current)) {
+      if (connection.type === "sea") continue;
+      const next = connection.a === current ? connection.b : connection.a;
+      if (visited.has(next) || isNavalBox(next) || G.spaces[next]?.control !== power) continue;
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+  return true;
+};
+
 /** Rule 16.2 validation, including the once-per-option restriction. */
 export const canApplyTreaty = (
   G: ImperialElegyState,
@@ -2225,22 +2267,26 @@ export const canApplyTreaty = (
       if (!def || !state) add("unknown-space", `unknown space ${space}`);
       else if (
         isNavalBox(space) ||
-        (effectiveKeyType(G, space) === undefined && def.type !== "territory" && def.type !== "navalBase")
+        (!isTreatyKey(G, space) && def.type !== "territory" && def.type !== "navalBase")
       ) {
         add("not-key-or-territory", `${space} is not a key, territory or naval base`);
       } else {
-        const attackerPowers = sidePowers(war, "attacker");
         const defenderPowers = sidePowers(war, "defender");
-        const enemyControlled = heldByAny(G, space, attackerPowers);
-        const defenderHome = def.home === war.defender && enemyControlled;
+        // 16.1.6: a knockout option can only take from its named target,
+        // never another member of the attacking side.
+        const enemyControlled = target !== null &&
+          (controlledBy(G, space, target) || state.occupiedBy === target);
+        const returnedHome = beneficiary !== null && treatyHomeOf(G, space, beneficiary) && enemyControlled;
         const occupiedByDefender = state.occupiedBy !== null && state.occupiedBy !== undefined && defenderPowers.includes(state.occupiedBy as Power);
+        const majorDefense = victory.primary === "major" && victory.victor === "defender" && target === war.attacker;
         if (allyBeneficiary) {
-          // Rule 16.2.4: an ally may only receive a returned defender home.
-          if (!defenderHome) add("not-defender-home", `${space} is not a ${war.defender} home space controlled by the enemy`);
-        } else if (!defenderHome && !(enemyControlled && occupiedByDefender)) {
-          add("not-eligible-space", `${space} is not an occupied enemy space or a controlled defender home`);
+          // "return a home space to one of their allies": it must be that
+          // recipient's home, not the primary defender's home given away.
+          if (!returnedHome) add("not-beneficiary-home", `${space} is not a ${beneficiary} home space held by the treaty target`);
+        } else if (!returnedHome && !(enemyControlled && def.type !== "navalBase" && (occupiedByDefender || majorDefense))) {
+          add("not-eligible-space", `${space} is not an eligible enemy key/territory or a home to return`);
         }
-        if (isPower(war.defender) && !hasLoc(G, war.defender, space, {requireTwoSources: false})) {
+        if (isPower(war.defender) && !hasLoc(G, war.defender, space, {respectNavalGates: true})) {
           add("no-loc", `${war.defender} cannot trace a LoC to ${space}`);
         }
       }
@@ -2257,12 +2303,12 @@ export const canApplyTreaty = (
       const state = G.spaces[space];
       if (!def || !state) add("unknown-space", `unknown space ${space}`);
       else {
-        const isColonial = def.keyType === "colonial";
+        const isColonial = target !== null && isPower(target) && isColonialTreatyKey(G, space, target);
         const isBase = def.type === "navalBase";
         if (!isColonial && !isBase) add("not-colonial", `${space} is not a colonial key or naval base`);
         if (target && state.control !== target) add("not-controlled-by-loser", `${space} is not controlled by ${target}`);
         // A colonial home space is only ceded when the winner occupies it.
-        if (def.home === target && target && !heldByAny(G, space, victoriousPowers)) {
+        if (target && treatyHomeOf(G, space, target) && !heldByAny(G, space, victoriousPowers)) {
           add("colonial-home-not-occupied", `${space} is a colonial home and must be occupied`);
         }
       }
@@ -2388,7 +2434,11 @@ export const applyTreaty = (
     }
   } else if (choice.option === "righteousDefense" || choice.option === "colonialCession") {
     if (choice.space) {
-      setControl(G, choice.space, beneficiary, {ally: null});
+      // Returning an occupied minor home restores its existing alliance too.
+      const ally = choice.option === "righteousDefense" && !isPower(beneficiary)
+        ? G.spaces[choice.space].ally
+        : null;
+      setControl(G, choice.space, beneficiary, {ally});
       affectedSpaces.push(choice.space);
       notes.push(`${choice.option}:${choice.space}->${beneficiary}`);
     }

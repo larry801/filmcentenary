@@ -147,6 +147,11 @@ At a glance, the live game covers:
   losing primary shifts both primaries away from each other, with independent
   dice when both are neutral and the ordinary three-player cap. Applies to
   interactive and explicit settlements; ally-knockout terms are counted separately.
+- **Territorial treaty eligibility (16.2.4–16.2.5)** — righteous defense permits
+  unoccupied enemy keys/territories after a major defensive victory and returns
+  an ally's own homes; colonial cession checks the losing power's controlled
+  land connection to its capital, including AU/RU/OT overseas keys. Follow-up
+  space choices retain the chosen beneficiary and knockout target.
 - **Limited war** — validated war declarations and aims, objectives, alliance
   and minor calls, initiative order (including A063 Rapid Mobilization's
   first-impulse priority), war budgets, maneuver, deploy reserves (with A063's

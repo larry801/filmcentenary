@@ -299,6 +299,13 @@ Status labels:
     initiative fallback); a treaty decline can skip outstanding optional picks.
   - The final initiative tie-break is a die roll-off (`initiativeRollOff`,
     rerolling ties).
+  - **16.2.4/16.2.5 follow-up:** righteous defense honors the defending major
+    victory's occupation exemption and returns homes to their actual allied
+    owner, while keeping LoC and knockout-target checks. Colonial cession uses
+    the losing power's owned-land connection to its capital (3.2.1), including
+    AU/RU/OT overseas keys and keys without a printed track type. Space-choice
+    continuations preserve beneficiary and knockout target; event-granted home
+    status and stale-choice validation are covered in `treatyTerritoryRules`.
   - `surrender` is a simple status/victor setter; the subsequent `resolveWar`
     still drives classification and treaties.
 

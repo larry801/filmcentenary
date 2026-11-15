@@ -356,7 +356,14 @@ test("righteous defense is offered to a defending winner and frees a home space"
   expect(spaceOptions.map((option) => option.id)).toContain("bohemia");
 
   const pending = buildTreatyPending(G, "AU", entries, {victory});
-  const applied = applyTreatyChoice(G, pending, "righteousDefense");
+  // A major victory now also offers unoccupied foreign keys. Select Bohemia
+  // explicitly instead of relying on it being the first candidate.
+  const applied = applyTreatyChoice(G, {
+    ...pending,
+    kind: "treatySpace",
+    options: spaceOptions,
+    context: {victory, choice: righteous.choice},
+  }, "bohemia");
   expect(applied.ok).toBe(true);
   expect(G.spaces.bohemia.control).toBe("AU");
   expect(G.spaces.bohemia.occupiedBy).toBeNull();

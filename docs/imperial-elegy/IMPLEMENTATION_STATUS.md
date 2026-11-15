@@ -1,5 +1,32 @@
 # Imperial Elegy — implementation status
 
+## 2026-11-15 treaty-territory follow-up
+
+- **16.2.4 Righteous Defense:** a defending primary's major victory waives
+  occupation of the losing primary's key/territory; ordinary and negotiated
+  defensive victories still require occupation unless returning a home.
+  The recipient's own home may be returned to a victorious ally (including an
+  independent minor's occupied home, preserving its alliance). Event-granted
+  homes are recognized. A valid LoC to a supply source is still required, with
+  naval gates respected. Knockout options stay restricted to their named target
+  and do not borrow the primary-major exception.
+- **16.2.5 Colonial Cession:** eligibility now reads the key's controlled
+  overland connection to the losing player's current capital (3.2.1), rather
+  than requiring a fixed `keyType: "colonial"` label. This includes AU/RU/OT
+  overseas keys and square/star keys without a printed track type. Allied,
+  neutral, influenced and sea links do not bridge the owned-land connection;
+  formal control and temporary occupation remain distinct (15.3). Colonial
+  homes, including event-granted Egypt, retain the occupation requirement.
+- **Chooser continuation:** candidate generation and follow-up validation share
+  the live treaty rules. A `treatySpace` choice retains the parent's beneficiary
+  and knockout target, including after JSON save/resume; stale choices are
+  rejected before changing control. The older default-first-space regression
+  now explicitly chooses its intended home because major victory offers more
+  legal spaces.
+- Source: publisher rulebook §§3.2.1–3.2.2, 3.2.5, 5.6, 15.3 and 16.2.4–16.2.5
+  (pp. 8–9, 16, 32–33). Focused regressions: `treatyTerritoryRules.test.ts`.
+  Full verification is reported by the exact feature commit's GitHub Actions run.
+
 ## 2026-11-15 harsh-terms follow-up
 
 - **8.3 / 16.2:** completing a settlement that actually imposes two distinct
