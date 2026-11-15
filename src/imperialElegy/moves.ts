@@ -216,6 +216,7 @@ import {
   applyVictoryOutcome,
   belligerentsOf,
   canAidMinor,
+  canSurrender,
   classifyVictory,
   conquestDeclarationPenalty,
   createWarState,
@@ -3081,15 +3082,43 @@ export const surrender = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const war = G.war;
   const power = actor(G, playerID);
-  if (!war || power === null) return INVALID_MOVE;
-  // Rule 15.5: only a primary belligerent may surrender; allies cannot.
-  if (power !== war.attacker && power !== war.defender) return INVALID_MOVE;
-  if (G.pending !== null) return INVALID_MOVE;
-  // Once the war has reached a result, surrender cannot rewrite it.
-  if (war.status === "victory" || war.status === "demobilization" || war.status === "done") return INVALID_MOVE;
-  if (war.victor !== null) return INVALID_MOVE;
+  if (!war || power === null || !canSurrender(G, power)) return INVALID_MOVE;
+  if (power === war.attacker && isPower(war.defender)) {
+    // 15.5: only the defending primary can refuse an attacker's surrender.
+    // Keep the entire maneuver state intact while the defending seat decides.
+    openDecision(G, ctx, decision(
+      "confirm", war.defender, "Accept the attacker's surrender or continue the war?",
+      [
+        option("accept", "Accept surrender (major victory)", undefined, false, "接受投降（重大胜利）"),
+        option("refuse", "Refuse surrender; continue the war", undefined, false, "拒绝投降，继续战争"),
+      ],
+      {special: "attackerSurrender", attacker: war.attacker, defender: war.defender, startedTurn: war.startedTurn},
+    ));
+    log(G, power, "warSurrender", {result: "offered", attacker: war.attacker, defender: war.defender});
+    return undefined;
+  }
+  // The defender cannot force a consent decision on the attacker. A lone
+  // non-player defender has no seat, so an attacker's concession is accepted
+  // automatically and classified by 15.4.2 without a player-only major award.
+  if (power === war.defender) settleDefenderShiftChoice(G, war);
   war.status = "victory";
   war.victor = power === war.defender ? "attacker" : "defender";
+  log(G, power, "warSurrender", {result: "surrendered", attacker: war.attacker, defender: war.defender});
+  return undefined;
+};
+
+const resolveAttackerSurrender = (G: ImperialElegyState, ctx: Ctx, pending: PendingDecision, accept: boolean): string | void => {
+  const war = G.war;
+  const context = pending.context ?? {};
+  if (!war || G.phase !== "wartime" || G.gw?.active || G.battle !== null || war.status !== "maneuver" ||
+      war.victor !== null || pending.power !== war.defender || context.attacker !== war.attacker ||
+      context.defender !== war.defender || context.startedTurn !== war.startedTurn) return INVALID_MOVE;
+  G.pending = null;
+  if (accept) {
+    war.status = "victory";
+    war.victor = "defender";
+  }
+  log(G, war.defender, "warSurrender", {result: accept ? "accepted" : "refused", attacker: war.attacker, defender: war.defender});
   return undefined;
 };
 
@@ -4628,6 +4657,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   if (pending.kind === "eventTargetPower" && context.special === "balanceOfPowerDraw") {
     return resolvePostWarDrawChoice(G, ctx, pending, optionId);
   }
+  if (pending.kind === "confirm" && context.special === "attackerSurrender") {
+    if (optionId !== "accept" && optionId !== "refuse") return INVALID_MOVE;
+    return resolveAttackerSurrender(G, ctx, pending, optionId === "accept");
+  }
   if (pending.kind === "italianInternalWar") {
     // 22.1.3: the active player chose Sardinia-Piedmont or the Two Sicilies.
     if (!ITALIAN_INTERNAL_WAR_POWERS.includes(optionId as (typeof ITALIAN_INTERNAL_WAR_POWERS)[number])) {
@@ -4806,6 +4839,9 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   const playerID = ctx.playerID ?? null;
   const pending = G.pending;
   if (!pending || playerID !== seatOf(pending.power)) return INVALID_MOVE;
+  if (pending.kind === "confirm" && pending.context?.special === "attackerSurrender") {
+    return resolveAttackerSurrender(G, ctx, pending, false);
+  }
   if (pending.kind === "eventTargetPower" && pending.context?.special === "balanceOfPowerDraw") {
     // A required choice stays open instead of silently awarding a different ally.
     return INVALID_MOVE;

@@ -1939,6 +1939,17 @@ export const classifyVictory = (
   };
 };
 
+/** 13.6 / 15.5: primary surrender at a war impulse boundary, never mid-battle.
+ * The original defender can also concede immediately after hearing the aim. */
+export const canSurrender = (G: ImperialElegyState, power: Power): boolean => {
+  const war = G.war;
+  if (!war || G.phase !== "wartime" || G.gw?.active || G.pending !== null || G.battle !== null) return false;
+  if (G.powers[power].eliminated || war.victor !== null) return false;
+  if (power !== war.attacker && power !== war.defender) return false;
+  return war.status === "maneuver" ||
+    (power === war.defender && (war.status === "warAim" || war.status === "alliance"));
+};
+
 export interface OutcomeApplication {
   applied: boolean;
   kind: WarVictoryKind;

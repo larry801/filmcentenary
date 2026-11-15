@@ -175,6 +175,26 @@ The downloaded general-browser HTML report records 0 failed/flaky/skipped tests.
   paths, a reduced industry ceiling and the automatic no-die path. Combined
   local industry/end-phase regressions: **48 tests / 3 suites passed**.
 
+### 15.5 attacker-surrender consent
+
+- An attacker's surrender during maneuver now opens an accept/refuse decision
+  for the **current defending primary**, including the UK after Balance of
+  Power. The offer itself leaves victor, budgets, initiative, pass history,
+  stability and active power untouched. Acceptance records the defender's major
+  victory for the existing victory/treaty step; refusal (including decline)
+  resumes the same war impulse.
+- The defender's own surrender is immediate, including the pre-maneuver 13.6
+  window. The attacker can only offer at a maneuver boundary; battles, pending
+  choices, already-settled results, allies, outsiders and eliminated powers are
+  rejected. An unaided non-player defender gets no unanswerable player prompt.
+- The board uses the same eligibility helper and renders bilingual accept/refuse
+  buttons and public logs. Pending context stores the participants and war turn;
+  save/resume, stale decisions, wrong-seat answers and duplicate acceptance are
+  validated. `surrenderConsent.test.ts` and the real board-panel test cover the
+  live flow; updated campaign tests explicitly accept the offer before settlement.
+- Local surrender/lone-minor/board regressions: **64 tests / 3 suites passed**;
+  TypeScript and diff checks pass. Full remote verification remains required.
+
 ## 2026-11-15 treaty-territory follow-up
 
 - **16.2.4 Righteous Defense:** a defending primary's major victory waives

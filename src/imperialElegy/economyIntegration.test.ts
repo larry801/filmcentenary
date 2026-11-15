@@ -24,7 +24,7 @@ import {
   reserveAllowance,
   reserveRemaining,
 } from "./engine/economy";
-import {cpChain, endImpulse, industrialize, resolveEnd, surrender, useCpChain} from "./moves";
+import {cpChain, endImpulse, industrialize, resolveEnd, resolvePending, surrender, useCpChain} from "./moves";
 import {createWarState} from "./engine/limitedWar";
 import {ImperialElegyGameDef} from "./game";
 
@@ -404,7 +404,10 @@ test("surrender rejects allies, outsiders, pending decisions, and a second surre
   G.pending = null;
 
   // The attacker's surrender resolves exactly once.
+  G.war.status = "maneuver";
   expect(surrender(G, makeCtx("0"))).toBeUndefined();
+  expect(G.war.victor).toBeNull();
+  expect(resolvePending(G, makeCtx("2"), "accept")).toBeUndefined();
   expect(G.war.status).toBe("victory");
   expect(G.war.victor).toBe("defender");
 

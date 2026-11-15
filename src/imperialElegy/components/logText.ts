@@ -1843,6 +1843,20 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  warSurrender: (entry, locale) => {
+    const attacker = powerLabel(entry.args?.attacker, locale);
+    switch (entry.args?.result) {
+      case "offered":
+        return withActor(entry, locale, "offers to surrender; the defending primary decides (15.5).", "提出投降，等待主要防守方决定（15.5）。");
+      case "accepted":
+        return withActor(entry, locale, `accepts ${attacker}'s surrender and wins a major victory (15.5).`, `接受${attacker}投降，取得重大胜利（15.5）。`);
+      case "refused":
+        return withActor(entry, locale, `refuses ${attacker}'s surrender; the war continues (15.5).`, `拒绝${attacker}投降，战争继续（15.5）。`);
+      default:
+        return withActor(entry, locale, "surrenders; proceed to the victory step.", "投降，进入胜利结算步骤。");
+    }
+  },
+
   warVictory: (entry, locale) => {
     const kind = str(entry.args?.kind);
     const treaties = num(entry.args?.treaties);

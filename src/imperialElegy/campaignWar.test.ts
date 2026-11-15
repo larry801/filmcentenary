@@ -329,6 +329,8 @@ describe("campaign limited war", () => {
 
     // Rule 16.1.1: the attacker concedes; the defender is the victor.
     expect(surrender(G, ctx)).toBeUndefined();
+    expect(G.pending?.power).toBe("FR");
+    expect(resolvePending(G, makeCtx(seat("FR")), "accept")).toBeUndefined();
     expect(G.war!.status).toBe("victory");
     expect(G.war!.victor).toBe("defender");
 

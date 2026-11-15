@@ -314,8 +314,12 @@ Status labels:
     knockout-target guards. Dynamic independent homes survive reconquest and
     participate in supply, subsequent declarations and realignment. See
     `righteousDefenseV11.test.ts` and the real treaty-panel rendering regression.
-  - `surrender` is a simple status/victor setter; the subsequent `resolveWar`
-    still drives classification and treaties.
+  - **15.5 surrender:** an attacking primary's offer opens a defending-primary
+    accept/refuse decision. Refusal preserves the current impulse; acceptance
+    records the major result for `resolveWar`'s classification/treaty step.
+    Defender surrender remains immediate (including 13.6), and a lone minor
+    never owns a player prompt. The shared UI/engine boundary check, saved
+    continuation and private options are covered by `surrenderConsent.test.ts`.
 
 ## 18–19 Combat
 
