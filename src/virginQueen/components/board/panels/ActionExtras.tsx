@@ -53,7 +53,12 @@ export const ActionExtras = () => {
         cp >= 2 && !G.assassinationUsed.includes(me) && assassinationTargets(G, me).length > 0,
     ].filter(Boolean).length;
     const myCaptainsAtSea = Object.values(G.worldCaptains).filter((ex) => ex.power === me && ex.movedImpulse !== G.impulse).length;
-    const captainsReady = (ps?.seaCaptains ?? []).filter((id) => (seaCaptainById(id)?.turn ?? 99) <= G.year && G.worldCaptains[id] === undefined).length;
+    // 5.2/17.4: de Sores and le Clerc stay in the shared pool until a French or
+    // Protestant Build Expedition is the first to sponsor them.
+    const sharedCaptains = (me === "france" || me === "protestant")
+        ? G.seaCaptainsAvailable.filter((id) => (seaCaptainById(id)?.turn ?? 99) <= G.year && G.worldCaptains[id] === undefined)
+        : [];
+    const captainsReady = (ps?.seaCaptains ?? []).filter((id) => (seaCaptainById(id)?.turn ?? 99) <= G.year && G.worldCaptains[id] === undefined).length + sharedCaptains.length;
     const worldCount = myTurn && cp >= 1 ? myCaptainsAtSea + captainsReady : 0;
     const patronCount = !myTurn || cp < 2 ? 0 : G.patronsAvailable.map((id) => patronDef(id))
         .filter((p) => p !== undefined && p.region === me && !POWERS.some((x) => G.powers[x].patrons.includes(p.id)) &&
@@ -201,8 +206,9 @@ export const ActionExtras = () => {
             <InputLabel id="vq-expedition-captain">{i18n.chain.vq.worldUi.expeditionCaptain}</InputLabel>
             <Select labelId="vq-expedition-captain" label={i18n.chain.vq.worldUi.expeditionCaptain} value={expeditionCaptain}
                     onChange={(e) => setExpeditionCaptain(e.target.value)}>
-                {ps?.seaCaptains.filter((id) => (seaCaptainById(id)?.turn ?? 99) <= G.year && G.worldCaptains[id] === undefined).map((id) =>
-                    <MenuItem key={id} value={id}>{seaCaptainName(seaCaptainById(id), vqLocale) || id}</MenuItem>)}
+                {[...(ps?.seaCaptains ?? []), ...sharedCaptains]
+                    .filter((id) => (seaCaptainById(id)?.turn ?? 99) <= G.year && G.worldCaptains[id] === undefined).map((id) =>
+                    <MenuItem key={id} value={id}>{seaCaptainName(seaCaptainById(id), vqLocale) || id}{sharedCaptains.includes(id) ? ` · ${i18n.chain.vq.worldUi.sharedCaptain}` : ""}</MenuItem>)}
             </Select>
         </FormControl>
         <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
@@ -249,13 +255,16 @@ export const ActionExtras = () => {
                 </Button>)}
         </Stack>
         </ActionGroup></>}
-        {ps !== undefined && ps.seaCaptains.length > 0 && <>
+        {ps !== undefined && (ps.seaCaptains.length > 0 || sharedCaptains.length > 0) && <>
             <Divider/>
             <Typography variant="subtitle2">{i18n.chain.vq.worldUi.seaCaptains}</Typography>
             {ps.seaCaptains.map((id) => {
                 const captain = seaCaptainById(id);
                 return <Typography key={id} variant="caption">{seaCaptainName(captain, vqLocale) || id}{i18n.chain.vq.punct.colon}{captain === undefined ? "" : (vqLocale === "en" ? captain.bonus : (captain.bonusZh ?? captain.bonus))}</Typography>;
             })}
+            {sharedCaptains.length > 0 && <Typography variant="caption" color="text.secondary">
+                {i18n.chain.vq.worldUi.sharedCaptainsAvailable}{sharedCaptains.map((id) => seaCaptainName(seaCaptainById(id), vqLocale) || id).join(vqLocale === "en" ? ", " : "、")}
+            </Typography>}
         </>}
         {ps !== undefined && ps.scienceBonuses.length > 0 && <>
             <Typography variant="subtitle2">{i18n.chain.vq.worldUi.scienceBonusesEarned}</Typography>

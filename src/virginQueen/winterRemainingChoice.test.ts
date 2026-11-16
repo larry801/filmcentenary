@@ -104,7 +104,7 @@ describe("winter no-quarters elimination choice", () => {
     it("blocks unrelated moves while the confirmation is pending", () => {
         const G = isolatedGame();
 
-        expect(moveError(G, "claimSeaCaptain")).toBeDefined();
+        expect(moveError(G, "declareWar")).toBeDefined();
         expect(moveError(G, "chooseWinterLoss")).toBeUndefined();
         expect(moveError(G, "endPhaseTurn")).toBeUndefined();
     });
