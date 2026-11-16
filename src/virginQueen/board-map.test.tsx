@@ -183,4 +183,35 @@ describe("printed-board vector map (VQ.png redraw)", () => {
         expect(geographic).not.toContain("vq-board-map");
         expect(geographic).toContain('aria-label="切换到棋盘版地图"');
     });
+
+    /**
+     * The hotseat shell mounts one board per seat with the inactive ones behind
+     * `display: none`.  SVG paint servers resolve by id across the whole
+     * document and Chrome ignores a definition inside a hidden subtree, so two
+     * boards sharing `vq-board-land` left every seat but the first painting
+     * bare sea.  Each board must own its ids and only reference its own.
+     */
+    it("gives every mounted board its own paint-server ids", () => {
+        // Both boards in one tree, as the hotseat shell mounts them.
+        const html = renderToStaticMarkup(<>
+            <VQMap G={G()} onSelect={() => {}} defaultMapStyle="board"/>
+            <VQMap G={G()} onSelect={() => {}} defaultMapStyle="board"/>
+        </>);
+        const boards = html.split('<div class="vq-map vq-board-map">').slice(1);
+        expect(boards).toHaveLength(2);
+        const ids = (chunk: string) => [...chunk.matchAll(/ id="([^"]+)"/g)].map((match) => match[1]);
+        const [firstIds, secondIds] = boards.map(ids);
+        expect(firstIds.length).toBeGreaterThan(10);
+        expect(firstIds).not.toEqual(secondIds);
+        expect(new Set([...firstIds, ...secondIds]).size).toBe(firstIds.length + secondIds.length);
+        // Every url(#...) paint points at an id the same board defines.
+        for (const [index, chunk] of boards.entries()) {
+            const own = new Set([firstIds, secondIds][index]);
+            const referenced = new Set([...chunk.matchAll(/url\(#([^)]+)\)/g)].map((match) => match[1]));
+            expect(referenced.size).toBeGreaterThan(5);
+            for (const id of referenced) expect(own.has(id)).toBe(true);
+        }
+        // The greppable prefix survives; only the borrowed identity is gone.
+        for (const id of firstIds) expect(id.startsWith("vq-board-")).toBe(true);
+    });
 });
