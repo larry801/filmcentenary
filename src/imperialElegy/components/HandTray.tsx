@@ -7,7 +7,7 @@ import {cardById} from "../engine/deck";
 import {cpChainResolution} from "../engine/economy";
 import {IEBadge, IEChip} from "./theme";
 import {ieT} from "./i18n";
-import {bi, gwImpulseReasonText} from "./boardHelpers";
+import {RESPONSE_REASON_TEXT, bi, gwImpulseReasonText} from "./boardHelpers";
 import {gwCardProblem} from "../engine/gwImpulse";
 import {CardFace} from "./CardFace";
 import {CardInspector} from "./CardInspector";
@@ -133,6 +133,10 @@ export const HandTray = (props: HandTrayProps) => {
     cpChainLength: me.cpChain.length,
     homeCards: me.selectedHomeCard === null ? [] : [me.selectedHomeCard],
     playBlock: t.playBlock as unknown as Record<string, string>,
+    // The reason table lives beside the bilingual helper that owns those
+    // strings, not in the i18n bundle.
+    responseBlock: Object.fromEntries(Object.entries(RESPONSE_REASON_TEXT)
+      .map(([key, text]) => [key, bi(locale, text.en, text.zh_CN)])),
     bi: (en, zh) => bi(locale, en, zh),
   });
 

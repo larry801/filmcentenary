@@ -6763,10 +6763,17 @@ export type ResponseBlockReason =
 export interface ResponseEligibility {
   ok: boolean;
   reason?: ResponseBlockReason;
+  /**
+   * Set when the card is refused by its own printed text *and* the impulse
+   * window is shut as well.  The move layer only ever looks at `ok`, so this is
+   * for the board: it can say why the card is closed without hiding the window.
+   */
+  window?: ResponseBlockReason;
 }
 
 const eligible = (): ResponseEligibility => ({ok: true});
-const blocked = (reason: ResponseBlockReason): ResponseEligibility => ({ok: false, reason});
+const blocked = (reason: ResponseBlockReason, window?: ResponseBlockReason): ResponseEligibility =>
+  ({ok: false, reason, ...(window !== undefined ? {window} : {})});
 
 /**
  * Is `power` at the start of an impulse in one of the response windows?
@@ -6853,7 +6860,28 @@ export const responseCardEligibility = (
   power: Power | null,
   cardId: CardId,
 ): ResponseEligibility => {
+  // The card's own printed gates are asked first.  A player looking at a card
+  // whose printed text closes it ("printed for France's impulse", "no effect
+  // during the Great War") needs that answer, not the generic "responses are
+  // played at the start of an impulse": the second one is true of every
+  // response card and would hide the reason this one cannot be used at all.
+  // The window is still enforced below, so a card that passes its own gates
+  // while the window is shut is refused exactly as before.
   const window = responseWindowFor(G, power);
+  const ownGate = (): ResponseEligibility | null => {
+    if (!isCardId(cardId)) return null;
+    const card = cardById(cardId);
+    if (card.type !== "response") return null;
+    const printedPower = printedResponsePower(cardId);
+    const withWindow = (reason: ResponseBlockReason): ResponseEligibility =>
+      blocked(reason, window.ok ? undefined : window.reason);
+    if (printedPower !== undefined && printedPower !== power) return withWindow("printed-power");
+    if (NO_EFFECT_GW_RESPONSES.has(cardId) && G.gw?.active === true) return withWindow("no-effect-gw");
+    if (youngTurksBlocksFailedReforms(G, cardId)) return withWindow("young-turks");
+    return null;
+  };
+  const own = ownGate();
+  if (own !== null) return own;
   if (!window.ok) return window;
   if (!isCardId(cardId)) return blocked("not-a-card");
   const card = cardById(cardId);

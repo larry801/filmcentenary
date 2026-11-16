@@ -282,7 +282,11 @@ describe("A54 Failed Reforms", () => {
     G.powers.OT.hand = ["IE-A054"];
 
     expect(responseCardEligibility(G, "OT", "IE-A054")).toEqual({ok: true});
-    expect(responseCardEligibility(G, "GE", "IE-A054")).toEqual({ok: false, reason: "not-active"});
+    // A54 is printed for the Ottoman impulse, so another seat is refused by the
+    // card's own text; the closed window it also sits in is reported alongside
+    // (`window`) because the board shows both reasons.
+    expect(responseCardEligibility(G, "GE", "IE-A054"))
+      .toEqual({ok: false, reason: "printed-power", window: "not-active"});
   });
 
   test("at the Ottoman impulse the printed-power gate still excludes other seats", () => {
@@ -291,8 +295,9 @@ describe("A54 Failed Reforms", () => {
     setAction(G, "OT");
     G.powers.GE.hand = ["IE-A054"];
 
-    // The window is OT's, so a non-active seat fails the window first.
-    expect(responseCardEligibility(G, "GE", "IE-A054")).toEqual({ok: false, reason: "not-active"});
+    // The card names its own power first; the shut window rides along.
+    expect(responseCardEligibility(G, "GE", "IE-A054"))
+      .toEqual({ok: false, reason: "printed-power", window: "not-active"});
     // At the GE seat's own window the printed-power gate is what refuses it.
     setAction(G, "GE");
     G.powers.GE.hand = ["IE-A054"];
