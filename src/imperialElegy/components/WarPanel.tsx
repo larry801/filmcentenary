@@ -10,6 +10,7 @@ import {BALANCE_OF_POWER_CARD} from "../moves";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
 import {POWER_KEYS, bi, isPowerKey, powerOrMinorLabel, pickActionTarget} from "./boardHelpers";
+import {RuleLink} from "./RuleRef";
 
 export interface WarPanelProps {
   war: NonNullable<ImperialElegyState["war"]>;
@@ -39,6 +40,7 @@ export interface WarPanelProps {
   setConfirmSurrender: (b: boolean) => void;
   doAction: (fn: () => void) => void;
   moves: Record<string, (...args: any[]) => void>;
+  onOpenReference?: (anchor: string) => void;
 }
 
 /**
@@ -63,11 +65,14 @@ export const WarPanel = (props: WarPanelProps) => {
     warBelligerents, isPrincipal, isBelligerent, eliminated, pending, isActive,
     warBudgetRows, warDefenderMinors, callableAllies, warAllyValue, setWarAlly,
     callableMinors, warMinorValue, setWarMinor, confirmSurrender, setConfirmSurrender,
-    doAction, moves,
+    doAction, moves, onOpenReference,
   } = props;
   return (
     <IEPanel title={`${t.phases.wartime} · ${warStatusLabel}`} actions={<IEBadge tone="warn">{warStatusLabel}</IEBadge>}>
       <div className="ie-war" data-testid="ie-war">
+        <div className="ie-rule-ref-row">
+          <RuleLink anchor="chart:war-aims-minors" locale={locale} onOpenReference={onOpenReference}/>
+        </div>
         <div className="ie-war-sides">
           <div className="ie-war-side">
             <div className="ie-war-power">{t.seats[war.attacker]}</div>

@@ -11,6 +11,7 @@
  */
 import React from "react";
 import {bi} from "./boardHelpers";
+import {useFocusTrap} from "./useFocusTrap";
 
 export interface ChartEntry {
   id: string;
@@ -47,21 +48,13 @@ export interface ChartLightboxProps {
 export const ChartLightbox = ({chart, locale, onClose, onZoom}: ChartLightboxProps) => {
   const closeRef = React.useRef<HTMLButtonElement | null>(null);
   const title = locale === "zh_CN" ? chart.titleZh : chart.title;
-
-  React.useEffect(() => {
-    closeRef.current?.focus();
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  // Focus moves into the dialog and stays there: Esc closes it, Tab cycles its
+  // controls, and focus returns to whatever opened the chart.
+  const dialogRef = useFocusTrap<HTMLDivElement>({active: true, onEscape: onClose});
 
   return (
     <div
+      ref={dialogRef}
       className="ie-lightbox"
       data-testid="ie-chart-lightbox"
       data-chart={chart.id}

@@ -13,6 +13,7 @@ import {CardFace} from "./CardFace";
 import {CardInspector} from "./CardInspector";
 import {CardChoiceFace} from "./CardChoice";
 import {CardFaceMode, cardImageSrc, readConfirmActions} from "./preferences";
+import {RuleLink} from "./RuleRef";
 import {ConfirmButton} from "./ConfirmButton";
 import {CARD_TYPE_GLYPH, cardAvailability, cardTypeIcon, sortCards, type CardAvailability, type CardFilter, type CardSort} from "./cardAvailability";
 
@@ -52,9 +53,16 @@ export interface HandTrayProps {
   cardFaceMode: CardFaceMode;
   open: boolean;
   onToggleOpen: () => void;
+  /**
+   * A decision is owed on screen (phone redesign): the sheet shows a compact
+   * peek line instead of the hand, so the map target it asks about stays
+   * visible.  The controls stay in the DOM; tapping the toggle still opens it.
+   */
+  decisionPeek?: boolean;
   /** Mobile third drawer position: peek (closed), half (open), full (expanded). */
   expanded?: boolean;
   onToggleExpanded?: () => void;
+  onOpenReference?: (anchor: string) => void;
 }
 
 
@@ -93,7 +101,8 @@ export const HandTray = (props: HandTrayProps) => {
     forcedCardIds, hand, saveList, giveCards, giveCardId, setGiveCardId, giveTarget, setGiveTarget,
     giveCardValue, responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
-    cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded,
+    cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded, decisionPeek = false,
+    onOpenReference,
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
   // Reads the saved preference when the tray mounts; `Preferences` in the
@@ -196,23 +205,34 @@ export const HandTray = (props: HandTrayProps) => {
 
   const openInspector = (face: CardChoiceFace, key: string) => setInspector({face, key});
   const inspectorCard = inspector?.face.card;
+  // While a decision is owed the sheet starts folded: it must not cover the
+  // map target the decision points at.  The toggle stays live, so a reader can
+  // still open the hand deliberately.
+  const shownOpen = open && !decisionPeek;
 
   return (
-    <section className="ie-hand-tray" data-testid="ie-hand-tray" data-open={open ? "true" : "false"} data-expanded={expanded ? "true" : "false"}>
+    <section
+      className={`ie-hand-tray${decisionPeek ? " ie-hand-tray-decision" : ""}`}
+      data-testid="ie-hand-tray"
+      data-open={shownOpen ? "true" : "false"}
+      data-expanded={expanded ? "true" : "false"}
+      data-decision-peek={decisionPeek ? "true" : "false"}
+    >
       <header className="ie-tray-head">
         <button
           type="button"
           className="ie-tray-toggle"
           data-testid="ie-tray-toggle"
-          aria-expanded={open ? "true" : "false"}
+          aria-expanded={shownOpen ? "true" : "false"}
           aria-controls="ie-tray-body"
-          title={open ? bi(locale, "Collapse hand", "收起手牌") : bi(locale, "Expand hand", "展开手牌")}
+          title={shownOpen ? bi(locale, "Collapse hand", "收起手牌") : bi(locale, "Expand hand", "展开手牌")}
           onClick={onToggleOpen}
         >
-          <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+          <span aria-hidden="true">{shownOpen ? "▾" : "▸"}</span>
         </button>
         <h3 className="ie-tray-title">{t.hand}{viewer ? ` · ${t.seats[viewer]}` : ""}</h3>
-        {open && onToggleExpanded !== undefined && (
+        <RuleLink anchor="chart:influence-track" locale={locale} onOpenReference={onOpenReference}/>
+        {shownOpen && onToggleExpanded !== undefined && (
           <button
             type="button"
             className="ie-tray-expand"
@@ -253,12 +273,17 @@ export const HandTray = (props: HandTrayProps) => {
             </select>
           </label>
         </div>
+        {decisionPeek && (
+          <span className="ie-tray-decision-line" data-testid="ie-tray-decision-peek" role="status">
+            {bi(locale, "A decision is waiting — answer it in the panel", "有决策待处理——请在面板中作答")}
+          </span>
+        )}
         {handChoicesHint !== null && (
           <span className="ie-hand-hint" data-testid="ie-hand-choices-hint">{handChoicesHint}</span>
         )}
       </header>
 
-      {open && (
+      {shownOpen && (
         <div className="ie-tray-body" id="ie-tray-body">
           <div className="ie-tray-scroll">
             <div className="ie-cp-chain" data-testid="ie-cp-chain">

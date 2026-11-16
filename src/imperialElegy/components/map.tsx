@@ -1,5 +1,5 @@
 import React from "react";
-import {ConnectionDef, ImperialElegyState, Power, SpaceId} from "../types";
+import {ConnectionDef, ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {CONNECTIONS, SPACES, SPACE_IDS, connectionsOf, isNavalBox} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {ieT} from "./i18n";
@@ -7,6 +7,10 @@ import background from "../data/map-background.json";
 import {CONNECTION_STYLE, connectionDash, connectionWidth, trimSegment} from "./connectionStyle";
 import {flashpointHulls} from "./flashpoints";
 import {Anchor} from "./Anchor";
+import {UnitToken} from "./UnitToken";
+import {StackPopover} from "./StackPopover";
+import {type StackEntry, stackSummary} from "./stackSummary";
+import {bi} from "./boardHelpers";
 import {
   DRAG_THRESHOLD_PX,
   MAX_ZOOM,
@@ -38,6 +42,9 @@ const BOARD = PAPER;
 
 /** Printed space-marker size, in board units (taken from the printed counters). */
 const markerRadius = (id: SpaceId): number => (isNavalBox(id) ? 104 : SPACES[id].type === "territory" ? 62 : 74);
+
+/** How many counters a space paints before the "+N" marker takes over. */
+const TOKEN_VISIBLE = 3;
 
 /** Label text size, in *screen* pixels at any zoom (scaled back to board units). */
 const LABEL_PX = 12;
@@ -163,6 +170,55 @@ export const IEMap = React.memo(
     const pointers = React.useRef(new Map<number, {x: number; y: number}>());
     const press = React.useRef<{x: number; y: number; view: MapView; moved: boolean} | null>(null);
     const coarse = React.useRef(false);
+
+    // Stack tokens and their popover.  `hovered` marks the space whose stack
+    // the pointer (or keyboard focus) is on, `stackOpen` pins the popover open
+    // after a click on the "+N" marker, and `popoverAt` is a board point in
+    // screen pixels to anchor the card near that space.
+    const [hovered, setHovered] = React.useState<SpaceId | null>(null);
+    const [stackOpen, setStackOpen] = React.useState(false);
+    const [popoverAt, setPopoverAt] = React.useState<{left: number; top: number} | null>(null);
+    const pointerInside = React.useRef(false);
+
+    const unitIndex = React.useMemo(() => {
+      const index = new Map<SpaceId, StackEntry[]>();
+      const all = Object.values(G.units ?? {}) as Unit[];
+      for (const id of SPACE_IDS) {
+        const stack = stackSummary(all, id);
+        if (stack.length > 0) index.set(id, stack);
+      }
+      return index;
+    }, [G.units]);
+
+    const stackTotal = React.useCallback(
+      (id: SpaceId) => (unitIndex.get(id) ?? []).reduce((sum, entry) => sum + entry.count, 0),
+      [unitIndex],
+    );
+    const hoverStack = hovered !== null && stackTotal(hovered) > TOKEN_VISIBLE ? hovered : null;
+    const stackPopoverFor = hoverStack ?? (stackOpen ? hovered ?? selected : null);
+
+    /** Screen point of a board point, reproducing the SVG's letterboxed fit. */
+    const screenPoint = React.useCallback((x: number, y: number) => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return null;
+      const fit = Math.min(rect.width / BOARD.width, rect.height / BOARD.height);
+      const offsetX = (rect.width - BOARD.width * fit) / 2;
+      const offsetY = (rect.height - BOARD.height * fit) / 2;
+      return {
+        left: offsetX + (x * view.k + view.x - BOARD.x) * fit,
+        top: offsetY + (y * view.k + view.y - BOARD.y) * fit,
+      };
+    }, [view]);
+
+    const closeStack = React.useCallback(() => setStackOpen(false), []);
+
+    const openStackAt = React.useCallback((id: SpaceId) => {
+      const space = SPACES[id];
+      const point = space ? screenPoint(space.x, space.y) : null;
+      setHovered(id);
+      setStackOpen(true);
+      if (point) setPopoverAt({left: point.left + 16, top: point.top + 16});
+    }, [screenPoint]);
 
     // Track the element's rendered size: hit radii and label density depend on
     // how many pixels a board unit actually occupies.
@@ -451,7 +507,15 @@ export const IEMap = React.memo(
     }, [selected, unitsPerPx]);
 
     return (
-      <div className="ie-map-wrap">
+      <div className="ie-map-wrap"
+        onPointerEnter={() => { pointerInside.current = true; }}
+        onPointerLeave={() => {
+          // Leaving the board closes a hover-opened stack; Escape closes a
+          // pinned one (the popover owns that listener).
+          pointerInside.current = false;
+          setHovered(null);
+          setStackOpen(false);
+        }}>
         <div className="ie-map-controls">
           <button aria-label={t.zoomIn} title={t.zoomIn} onClick={() => zoom(1.3)}>+</button>
           <button aria-label={t.zoomOut} title={t.zoomOut} onClick={() => zoom(1 / 1.3)}>−</button>
@@ -601,6 +665,18 @@ export const IEMap = React.memo(
               const stroke = ring !== null ? ring.stroke : isSelected ? "#fff4cf" : darkFor(state.control);
               const strokeWidth = (isHighlighted || isSelected ? 16 : 8) * Math.max(0.5, unitsPerPx * 0.6);
               const units = state.units.length;
+              // Naval boxes are wide: the counters fan from the corner of the
+              // printed box, the others from the lower-left corner of the
+              // marker, clear of the space's name underneath it.
+              const tokenEntries = unitIndex.get(id) ?? [];
+              const tokenPx = isNavalBox(id) ? 46 : space.type === "territory" ? 34 : 44;
+              const tokenStack = tokenEntries.length === 0 ? null : {
+                visible: tokenEntries.slice(0, TOKEN_VISIBLE),
+                extra: Math.max(0, tokenEntries.length - TOKEN_VISIBLE),
+              };
+              const origin = isNavalBox(id)
+                ? {x: -r * 0.55, y: 0}
+                : {x: -r * 0.72, y: r * 0.72};
               return (
                 <g key={id} transform={`translate(${space.x} ${space.y})`}
                   data-testid={`ie-space-${id}`} className="ie-space-hit"
@@ -630,12 +706,62 @@ export const IEMap = React.memo(
                   )}
                   {state.fort && <text y={r + unitsPerPx * 22} textAnchor="middle" fontSize={unitsPerPx * 14} fill="#4a3a22">▲{state.fort.level}</text>}
                   {state.trench && <text x={-r} y={-r - unitsPerPx * 6} fontSize={unitsPerPx * 13} fill="#8a6a2a">▦</text>}
-                  {units > 0 && (
-                    <g>
-                      <circle cx={r * 0.95} cy={-r * 0.95} r={unitsPerPx * 9} fill="#1b1611"
-                        stroke="#e8d8b5" strokeWidth={unitsPerPx * 1.4}/>
-                      <text x={r * 0.95} y={-r * 0.95 + unitsPerPx * 4} textAnchor="middle"
-                        fontSize={unitsPerPx * 11} fill="#f4e8ce">{units}</text>
+                  {tokenStack && (
+                    // Counter layer: the top of the stack as printed tokens, a
+                    // "+N" marker for the rest, and a hover ring on the whole
+                    // group.  A click here is the space's own click (the SVG's
+                    // `onClick` hit test), so the tokens need no handler of
+                    // their own.
+                    <g className="ie-map-tokens" data-testid={`ie-tokens-${id}`}
+                      data-count={units}
+                      data-extra={tokenStack.extra}
+                      onPointerEnter={() => { if (!pointerInside.current) setHovered(id); }}
+                      onPointerLeave={() => { if (!stackOpen) setHovered(null); }}
+                      onFocus={() => setHovered(id)}
+                      onBlur={() => { if (!stackOpen) setHovered(null); }}>
+                      {hovered === id && (
+                        <circle className="ie-map-hover-ring" r={r + unitsPerPx * 8} fill="none"
+                          strokeWidth={unitsPerPx * 2.4} pointerEvents="none"/>
+                      )}
+                      {tokenStack.visible.map((entry, slot) => {
+                        const box = unitsPerPx * tokenPx;
+                        const step = box * 0.82;
+                        return (
+                          <g key={`${entry.power}-${entry.kind}-${entry.reduced ? "r" : "f"}`}
+                            transform={`translate(${origin.x - slot * step} ${origin.y - slot * step})`}>
+                            <UnitToken kind={entry.kind} power={entry.power} reduced={entry.reduced}
+                              size={box} locale={locale} decorative
+                              testId={`ie-token-${id}-${slot}`}/>
+                            {entry.count > 1 && (
+                              <text className="ie-token-count" x={box * 0.82} y={box * 0.94}
+                                textAnchor="end" fontSize={unitsPerPx * 11} paintOrder="stroke">
+                                {entry.count}
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+                      {tokenStack.extra > 0 && (
+                        <g role="button" tabIndex={0}
+                          className="ie-token-more"
+                          aria-label={bi(locale,
+                            `Show all ${units} units in this space`,
+                            `显示该空间的全部 ${units} 个单位`)}
+                          data-testid={`ie-stack-more-${id}`}
+                          onClick={(event) => { event.stopPropagation(); openStackAt(id); }}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => {
+                            if (event.key !== "Enter" && event.key !== " ") return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            openStackAt(id);
+                          }}>
+                          <circle cx={r * 0.95} cy={r * 0.95} r={unitsPerPx * 11}
+                            strokeWidth={unitsPerPx * 1.6}/>
+                          <text x={r * 0.95} y={r * 0.95 + unitsPerPx * 4.5} textAnchor="middle"
+                            fontSize={unitsPerPx * 12} pointerEvents="none">+{tokenStack.extra}</text>
+                        </g>
+                      )}
                     </g>
                   )}
                 </g>
@@ -666,6 +792,24 @@ export const IEMap = React.memo(
             </g>
           </g>
         </svg>
+        {stackPopoverFor !== null && (
+          // Card position lives in two CSS custom properties, set from the
+          // measured screen point of the space; the stylesheet turns them into
+          // `left`/`top` and clamps the card inside the map.
+          <div className="ie-stack-popover-anchor" ref={(node) => {
+            if (!node) return;
+            node.style.setProperty("--ie-stack-left", String(Math.max(8, popoverAt?.left ?? 12)));
+            node.style.setProperty("--ie-stack-top", String(Math.max(8, popoverAt?.top ?? 12)));
+          }}>
+            <StackPopover
+              entries={unitIndex.get(stackPopoverFor) ?? []}
+              locale={locale}
+              open
+              onClose={closeStack}
+              testId={`ie-stack-popover-${stackPopoverFor}`}
+            />
+          </div>
+        )}
         <div className="ie-map-legend">
           <span>{locale === "zh_CN" ? "滚轮缩放 · 拖动平移 · 点击空间" : "wheel to zoom · drag to pan · click a space"}</span>
           {(["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]).map((p) => (

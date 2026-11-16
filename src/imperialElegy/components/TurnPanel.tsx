@@ -31,6 +31,12 @@ export interface TurnPanelProps {
   warVisible: boolean;
   /** A decision or battle is open, so Orders shows it instead of actions. */
   hasDecision: boolean;
+  /**
+   * A decision is owed and on screen (phone redesign): the panel shows only
+   * the decision body — the tab strip and every other body are hidden by CSS,
+   * never unmounted, so their state and test ids survive.
+   */
+  decisionOnlyOnPhone?: boolean;
   decisionBadge?: boolean;
   warBadge?: React.ReactNode;
   tabs: {
@@ -45,7 +51,7 @@ export interface TurnPanelProps {
 
 export const TurnPanel = ({
   locale, t, cp, phaseActions, phaseLabel, activeLabel, turn, summary, warVisible, hasDecision,
-  decisionBadge = false, warBadge, tabs, activeTab, onTabChange,
+  decisionOnlyOnPhone = false, decisionBadge = false, warBadge, tabs, activeTab, onTabChange,
 }: TurnPanelProps) => {
   const [internal, setInternal] = React.useState("action");
   const active = activeTab ?? internal;
@@ -65,7 +71,13 @@ export const TurnPanel = ({
   };
 
   return (
-    <aside className="ie-turn-panel" data-testid="ie-dock" data-collapsed="false" aria-label={bi(locale, "Turn panel", "回合面板")}>
+    <aside
+      className={`ie-turn-panel${decisionOnlyOnPhone ? " ie-turn-panel-decision" : ""}`}
+      data-testid="ie-dock"
+      data-collapsed="false"
+      data-decision-only={decisionOnlyOnPhone ? "true" : "false"}
+      aria-label={bi(locale, "Turn panel", "回合面板")}
+    >
       <div className="ie-dock-bar">
         <span className="ie-dock-bar-summary" data-testid="ie-dock-summary" title={summary}>{summary}</span>
         <span className="ie-command-phase" data-testid="ie-tp-phase">{phaseLabel}</span>
@@ -112,7 +124,7 @@ export const TurnPanel = ({
           id={`ie-turn-panel-${key}`}
           role="tabpanel"
           aria-labelledby={`ie-turn-tab-${key}`}
-          className="ie-turn-body"
+          className={key === "action" ? "ie-turn-body ie-turn-body-action" : `ie-turn-body ie-turn-body-${key}`}
           data-testid={`ie-turn-panel-${key}`}
           hidden={key !== selected}
           // Inactive bodies stay mounted (hidden) so their derived state and

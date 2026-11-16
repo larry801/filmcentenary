@@ -78,6 +78,7 @@ import {sliceModel, type BoardSlices} from "./boardSlices";
 import {resolveLocale} from "./modelValues";
 import type {MapTarget} from "./map";
 import {intentStyle, legalUnitTargets, type UnitIntent} from "./legalTargets";
+import {trenchRows} from "./trenchRows";
 import {intentsAt, submitNow} from "./useInteraction";
 import type {InjectedUi, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
@@ -1365,6 +1366,7 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     warBudgetRows,
     warDefenderMinors,
     minorMarkerRows,
+    trenchRows: trenchRows(G),
     warTargetControl,
     targetControlledSpaces,
     canDeclareWar,

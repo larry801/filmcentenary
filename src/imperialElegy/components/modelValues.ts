@@ -260,6 +260,8 @@ export interface ModelValues {
   warBudgetRows: Power[];
   warDefenderMinors: string[];
   minorMarkerRows: [string, number][];
+  /** The Great War's 28.1.1 trench battles, for the War tab list. */
+  trenchRows: import("./trenchRows").TrenchRow[];
   warTargetControl: Power | null;
   targetControlledSpaces: SpaceId[];
   canDeclareWar: boolean;

@@ -254,6 +254,40 @@
 .ie-key.battle::before { border-color: #e07b62; }
 .ie-key.legal::before { border-color: #f4d574; }
 
+/* Unit counters on the map.  The counter itself is SVG (sized in board
+   units); CSS owns the print look — owner colour, ink outline, the reduced
+   band — so one rule serves every shape. */
+.ie-unit-token { display: block; overflow: visible; pointer-events: none; }
+.ie-unit-token > rect,
+.ie-unit-token > circle,
+.ie-unit-token > polygon { fill: var(--ie-power-neutral); stroke: #241d17; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.ie-unit-token-deck { fill: #241d17; stroke: none; }
+.ie-unit-token-mark { fill: #f6eed8; paint-order: stroke; stroke: #241d17; stroke-width: .5; }
+.ie-unit-token-reduced { stroke: var(--ie-ink); stroke-linecap: butt; opacity: .85; }
+.ie-unit-token.is-reduced > rect,
+.ie-unit-token.is-reduced > circle,
+.ie-unit-token.is-reduced > polygon { filter: saturate(.7); }
+/* Owner fill; the RU counter is near-white, so its ink is dark on purpose. */
+.ie-unit-token.ie-power-pip-ge > rect, .ie-unit-token.ie-power-pip-ge > circle, .ie-unit-token.ie-power-pip-ge > polygon { fill: var(--ie-power-ge); }
+.ie-unit-token.ie-power-pip-uk > rect, .ie-unit-token.ie-power-pip-uk > circle, .ie-unit-token.ie-power-pip-uk > polygon { fill: var(--ie-power-uk); }
+.ie-unit-token.ie-power-pip-fr > rect, .ie-unit-token.ie-power-pip-fr > circle, .ie-unit-token.ie-power-pip-fr > polygon { fill: var(--ie-power-fr); }
+.ie-unit-token.ie-power-pip-au > rect, .ie-unit-token.ie-power-pip-au > circle, .ie-unit-token.ie-power-pip-au > polygon { fill: var(--ie-power-au); }
+.ie-unit-token.ie-power-pip-ru > rect, .ie-unit-token.ie-power-pip-ru > circle, .ie-unit-token.ie-power-pip-ru > polygon { fill: var(--ie-power-ru); }
+.ie-unit-token.ie-power-pip-ot > rect, .ie-unit-token.ie-power-pip-ot > circle, .ie-unit-token.ie-power-pip-ot > polygon { fill: var(--ie-power-ot); }
+.ie-map-tokens { cursor: pointer; }
+/* The "+N" marker: ink disc with parchment type, like the printed count chip. */
+.ie-token-more { cursor: pointer; outline: none; }
+.ie-token-more circle { fill: #1b1611; stroke: #e8d8b5; }
+.ie-token-more text { fill: #f4e8ce; font-weight: 700; }
+.ie-token-more:hover circle, .ie-token-more:focus-visible circle { stroke: var(--ie-accent-soft); stroke-width: 2.4px; }
+.ie-token-more:focus-visible circle { stroke-dasharray: 3 2; }
+.ie-token-count { fill: #f6eed8; stroke: #241d17; font-weight: 700; pointer-events: none; }
+/* Hover / focus ring on a space that is under the pointer or keyboard. */
+.ie-map-hover-ring { stroke: var(--ie-accent-soft); opacity: .9; pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .ie-map-hover-ring { transition: opacity .12s ease; }
+}
+
 /* Mode pill: the only persistent banner while a map target is expected. */
 .ie-mode-pill {
   position: absolute;
@@ -2012,6 +2046,9 @@ img.ie-card-face { background: var(--ie-surface-2); }
     white-space: nowrap;
   }
   .ie-track-cp b { font-size: var(--ie-font-md); color: var(--ie-accent-soft); font-variant-numeric: tabular-nums; }
+  /* Phones read CP from the strip; the panel head would be the second readout,
+     so on a phone the head keeps its buttons and drops the number. */
+  .ie-turn-panel .ie-command-cp { display: none; }
   .ie-round-btn { width: 36px; height: 36px; }
   .ie-track-actions .ie-btn { min-height: 36px; padding: 4px 9px; }
   .ie-table {
@@ -2037,6 +2074,66 @@ img.ie-card-face { background: var(--ie-surface-2); }
   .ie-table .ie-hand-tray[data-open="true"][data-expanded="true"] { height: calc(100dvh - 140px); }
   .ie-table .ie-hand-tray[data-open="false"] { height: 44px; }
   .ie-table .ie-hand-tray[data-open="false"] .ie-tray-head { min-height: 44px; }
+
+  /* ---- an owed decision never takes more than half the phone screen ----
+     A decision asks about something on the map (a space, a unit, a card's
+     target).  If the sheet or the turn panel could grow past half the screen
+     the map target scrolled out of sight behind them, so the player was asked
+     to choose something they could not see.  The cap below keeps the top half
+     of the map — the half that holds the highlight — always on screen. */
+
+  /* The hand sheet folds to a one-line peek while a decision is owed.  It is
+     closed by the component as well; the rule pins the height so a later
+     `[data-open="true"]` or the expanded height can never win over it. */
+  .ie-table .ie-hand-tray[data-decision-peek="true"] { height: 56px; }
+  /* `!important` is unavoidable here: the half (`40dvh`) and full
+     (`calc(100dvh - 140px)`) open rules above are equal-or-higher specificity,
+     and a reader who opens the hand by hand must still not hide the target. */
+  .ie-table .ie-hand-tray[data-decision-peek="true"][data-expanded="true"] { height: 56px !important; }
+  .ie-table .ie-hand-tray[data-decision-peek="true"][data-open="true"] { height: 56px !important; }
+  /* Inside the 56 px peek only the head counts: the hand body would be
+     clipped anyway, so it stays mounted but out of the flow, and the card
+     filters/sort and chips give the one line the width it needs. */
+  .ie-table .ie-hand-tray[data-decision-peek="true"] .ie-tray-body { display: none; }
+  .ie-table .ie-hand-tray[data-decision-peek="true"] .ie-tray-head { flex: 0 0 auto; min-height: 52px; overflow: hidden; }
+  .ie-table .ie-hand-tray[data-decision-peek="true"] .ie-hand-tools,
+  .ie-table .ie-hand-tray[data-decision-peek="true"] .ie-hand-meta,
+  .ie-table .ie-hand-tray[data-decision-peek="true"] .ie-tray-count,
+  .ie-table .ie-hand-tray[data-decision-peek="true"] .ie-hand-hint { display: none; }
+  .ie-tray-decision-line {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--ie-font-xs);
+    font-weight: 600;
+    color: #f0d799;
+  }
+
+  /* The turn panel keeps its head (the CP readout and the phase/exit buttons)
+     and shows the decision body only.  Nothing is unmounted: the tab strip and
+     the War/Log bodies stay in the DOM for the readers and bots that use them,
+     only hidden.  The head is the one row that must never scroll away. */
+  .ie-turn-panel-decision { max-height: 50dvh; }
+  .ie-turn-panel-decision .ie-turn-tabs { display: none; }
+  .ie-turn-panel-decision .ie-turn-body { display: none; }
+  .ie-turn-panel-decision .ie-turn-body-action { display: flex; }
+  /* The Orders body holds at most one decision panel while a decision is
+     owed (PendingPanel is rendered exactly then), so the required home-card /
+     goal chooser that shares the body with it stays hidden here.  The
+     decision panel is `.ie-panel.ie-dock-panel` (PendingPanel's `dock`). */
+  .ie-turn-panel-decision .ie-turn-body-action > .ie-dock-choices { display: none; }
+  .ie-turn-panel-decision .ie-turn-head { flex: 0 0 auto; }
+  /* Roomy enough to read the prompt and pick without scrolling the head away:
+     the body takes the rest of the 50 dvh cap and scrolls on its own. */
+  .ie-turn-panel-decision .ie-turn-body-action {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ie-turn-panel-decision .ie-turn-body-action .ie-dock-panel { flex: 0 0 auto; }
   .ie-mat-toggle { display: grid; }
   .ie-ref-drawer { width: 100vw; }
 }
@@ -2118,3 +2215,183 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-intent-chooser-title { display: block; font-size: var(--ie-font-xs); color: #f0d799; margin-bottom: 4px; }
 .ie-intent-chooser-options { display: flex; flex-wrap: wrap; gap: 4px; }
 .ie-intent-chooser .ie-btn { min-height: 44px; }
+
+/* ---------------------------------------------------------------- trench battles (War tab) */
+/* Rule 28.1 lists one battle per space; the War tab lists the same battles as
+   rows that focus the map, so a reader can see the state without hunting for a
+   marker among the counters. */
+.ie-trench { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
+.ie-trench-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--ie-font-sm);
+  color: #d4a85c;
+}
+.ie-trench-rule { font-size: var(--ie-font-xs); color: #a99678; font-variant-numeric: tabular-nums; }
+.ie-trench-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.ie-trench-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid #4a3a26;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+  color: #eadfc8;
+  font-size: var(--ie-font-xs);
+  text-align: left;
+  cursor: pointer;
+}
+.ie-trench-row:hover { border-color: var(--ie-accent); background: #2f2620; }
+.ie-trench-row:focus-visible { outline: 3px solid #f4d574; outline-offset: 2px; }
+.ie-trench-row.selected { border-color: var(--ie-accent); background: #3a2c1c; color: #f7e6bb; }
+.ie-trench-status {
+  flex: 0 0 16px;
+  display: grid;
+  place-items: center;
+  font-size: var(--ie-font-sm);
+  font-variant-numeric: tabular-nums;
+}
+.ie-trench-status-attacker { color: #f0a58f; }
+.ie-trench-status-defender { color: #9fc3ea; }
+.ie-trench-status-deadlock { color: #e0c98a; }
+.ie-trench-space { font-weight: 700; }
+.ie-trench-flag { color: #c5b698; }
+.ie-trench-turn { margin-left: auto; color: #a99678; font-variant-numeric: tabular-nums; }
+.ie-trench-sides { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 4px 10px; color: #c5b698; }
+.ie-trench-side { display: inline-flex; gap: 4px; align-items: baseline; }
+.ie-trench-power { font-weight: 700; color: #f7e6bb; }
+.ie-trench-hint { margin: 0; font-size: var(--ie-font-xs); color: #a99678; }
+
+/* Power tints on the side labels, shared with the token legend. */
+.ie-trench-side.ie-power-pip-ge .ie-trench-power { color: var(--ie-power-ge); }
+.ie-trench-side.ie-power-pip-uk .ie-trench-power { color: var(--ie-power-uk); }
+.ie-trench-side.ie-power-pip-fr .ie-trench-power { color: var(--ie-power-fr); }
+.ie-trench-side.ie-power-pip-au .ie-trench-power { color: var(--ie-power-au); }
+.ie-trench-side.ie-power-pip-ru .ie-trench-power { color: var(--ie-power-ru); }
+.ie-trench-side.ie-power-pip-ot .ie-trench-power { color: var(--ie-power-ot); }
+
+/* ---------------------------------------------------------------- rule links */
+/* The interactive "? 12.3" reference link inside a panel.  `.ie-rule-ref`
+   above stays the static superscript badge; this is a real button, so it gets
+   a hit area, a hover and the board's own focus ring. */
+.ie-rule-ref-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.ie-rule-ref-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: max(12px, 1em);
+  line-height: 1.1;
+  font-weight: 500;
+  padding: 2px 7px 2px 5px;
+  border: 1px solid var(--ie-accent-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ie-accent-soft);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.ie-rule-ref-btn:hover:not(:disabled) {
+  background: var(--ie-accent-soft);
+  border-color: var(--ie-accent-soft);
+  color: #1b1410;
+}
+.ie-rule-ref-btn:disabled {
+  cursor: default;
+  opacity: .55;
+  border-style: dashed;
+}
+.ie-rule-ref-btn:focus-visible {
+  outline: 2px solid #f4d574;
+  outline-offset: 2px;
+}
+.ie-rule-ref-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+}
+.ie-rule-ref-rule {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Stack popover: lists every counter on a dense space.  The wrapper places the
+   card in screen pixels near the space (map/components/StackPopover.tsx); the
+   card itself only draws the parchment panel. */
+.ie-stack-popover-anchor {
+  position: absolute;
+  z-index: 30;
+  left: calc(var(--ie-stack-left, 12px) * 1px);
+  top: calc(var(--ie-stack-top, 12px) * 1px);
+  max-width: min(280px, calc(100% - 16px));
+}
+.ie-stack-popover {
+  min-width: 168px;
+  max-height: 40vh;
+  overflow: auto;
+  padding: var(--ie-space-2) var(--ie-space-3);
+  border: 1px solid var(--ie-accent);
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-surface);
+  color: var(--ie-ink);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .65);
+  font-size: var(--ie-font-xs);
+  line-height: 1.35;
+}
+.ie-stack-popover-head { display: flex; align-items: center; gap: var(--ie-space-1); margin-bottom: var(--ie-space-1); }
+.ie-stack-popover-title { font-weight: 700; color: #5a4322; }
+.ie-stack-popover-total { margin-left: auto; color: #6d5636; font-size: var(--ie-font-xs); }
+.ie-stack-popover-close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--ie-line);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-surface-2);
+  color: var(--ie-ink);
+  font-size: var(--ie-font-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.ie-stack-popover-close:hover { background: #f3e7cc; }
+.ie-stack-popover-close:focus-visible { outline: 2px solid var(--ie-accent); outline-offset: 1px; }
+.ie-stack-popover-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ie-stack-popover-row { display: flex; align-items: baseline; gap: var(--ie-space-1); flex-wrap: wrap; }
+.ie-stack-popover-pip {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  border: 1px solid #000;
+  border-radius: 2px;
+  background: var(--ie-power-neutral);
+}
+.ie-stack-popover-pip.ie-power-pip-ge { background: var(--ie-power-ge); }
+.ie-stack-popover-pip.ie-power-pip-uk { background: var(--ie-power-uk); }
+.ie-stack-popover-pip.ie-power-pip-fr { background: var(--ie-power-fr); }
+.ie-stack-popover-pip.ie-power-pip-au { background: var(--ie-power-au); }
+.ie-stack-popover-pip.ie-power-pip-ru { background: var(--ie-power-ru); }
+.ie-stack-popover-pip.ie-power-pip-ot { background: var(--ie-power-ot); }
+.ie-stack-popover-kind { font-weight: 600; }
+.ie-stack-popover-power { color: #6d5636; }
+.ie-stack-popover-count { margin-left: auto; font-weight: 700; }
+.ie-stack-popover-reduced { flex: 1 1 100%; color: var(--ie-warn); font-size: var(--ie-font-xs); }

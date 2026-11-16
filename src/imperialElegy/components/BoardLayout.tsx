@@ -41,6 +41,7 @@ import {WarPanel} from "./WarPanel";
 import {GreatWarPanel} from "./GreatWarPanel";
 import {SeatAlert} from "./SeatStrip";
 import {IntentChooser} from "./IntentChooser";
+import {TrenchBoard} from "./TrenchBoard";
 
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
@@ -137,6 +138,7 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
 /** Action tab: the selected space and everything the player may do there. */
 export const OrdersRegion = (props: OrdersSlice) => {
   const {
+    onOpenReference,
     G, selected, selectedUnit, setSelectedUnit, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
     viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
@@ -185,6 +187,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
   return (
     <>
       <SpacePanel
+        onOpenReference={onOpenReference}
         G={G}
         selected={selected}
         selectedUnit={selectedUnit}
@@ -296,10 +299,14 @@ export const WarRegion = (props: WarSlice) => {
     confirmSurrender, setConfirmSurrender, doAction, moves, gw, gwBudgetOrder, gwSlotLabel,
     italyShowing, italyBox, italyBoxLabel, italyHow, gwTransferToValue, setGwTransferTo,
     gwTransferAmountValue, setGwTransferAmount, canGwTransfer, gwSideAllies, canGwReveal,
-    canGwDraft, canGwDeployHere, forcedGwCard, selected,
+    canGwDraft, canGwDeployHere, forcedGwCard, selected, trenchRows, onSelect, onOpenReference,
   } = props;
+  const viewerCanSeeTrenches = gw !== null && gw !== undefined && gw.active;
   return (
     <>
+      {viewerCanSeeTrenches && (
+        <TrenchBoard rows={trenchRows} locale={locale} selected={selected} onSelect={onSelect}/>
+      )}
       {war && (
         <WarPanel
           war={war} G={G} viewer={viewer} active={active} phase={phase} locale={locale} t={t}
@@ -309,7 +316,7 @@ export const WarRegion = (props: WarSlice) => {
           callableAllies={callableAllies} warAllyValue={warAllyValue} setWarAlly={setWarAlly}
           callableMinors={callableMinors} warMinorValue={warMinorValue} setWarMinor={setWarMinor}
           confirmSurrender={confirmSurrender} setConfirmSurrender={setConfirmSurrender}
-          doAction={doAction} moves={moves}
+          doAction={doAction} moves={moves} onOpenReference={onOpenReference}
         />
       )}
       {gw && (
@@ -322,7 +329,7 @@ export const WarRegion = (props: WarSlice) => {
           gwTransferAmountValue={gwTransferAmountValue} setGwTransferAmount={setGwTransferAmount}
           canGwTransfer={canGwTransfer} gwSideAllies={gwSideAllies} canGwReveal={canGwReveal}
           canGwDraft={canGwDraft} canGwDeployHere={canGwDeployHere} forcedGwCard={forcedGwCard}
-          doAction={doAction} moves={moves}
+          doAction={doAction} moves={moves} onOpenReference={onOpenReference}
         />
       )}
       {!war && !gw && <div className="ie-muted">{bi(locale, "No war is in progress.", "当前没有进行中的战争。")}</div>}
@@ -371,7 +378,7 @@ export const ReferenceRegion = (props: ReferenceSlice) => {
  * string in the tray (the CP-chain button, the give-card hint, the filter
  * labels) silently fell back to English.
  */
-export const HandRegion = (props: HandSlice & {locale: "en" | "zh_CN"; t: T}) => <HandTray {...props}/>;
+export const HandRegion = (props: HandSlice & {locale: "en" | "zh_CN"; t: T; decisionPeek?: boolean}) => <HandTray {...props}/>;
 
 // ---------------------------------------------------------------------------
 // Shell
@@ -395,6 +402,10 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor,
   } = core;
   const {selected, onSelect, modePill, mapTargets, mapFocusedTarget, chooser} = interaction;
+  // The one definition of "a decision is owed and on screen".  The panel uses
+  // it for its label and badges, the phone layout to show only the decision
+  // body, and the hand sheet to fold itself out of the map's way.
+  const decisionOwed = Boolean(pending || battle || G.result);
 
   const displayMenu = <DisplayMenu mode={cardFaceMode} setMode={setCardFaceMode} locale={locale}/>;
 
@@ -473,7 +484,8 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
           turn={G.turn}
           summary={core.dockSummary}
           warVisible={Boolean(war.war || war.gw)}
-          hasDecision={Boolean(pending || battle || G.result)}
+          hasDecision={decisionOwed}
+          decisionOnlyOnPhone={decisionOwed}
           decisionBadge={pending !== null && viewer !== null && pending.power === viewer}
           warBadge={war.war ? "⚔" : undefined}
           tabs={{
@@ -531,7 +543,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             {t.privateInfo}: {t.hidden}. {t.spectators}.
           </div>
         )}
-        <HandRegion {...hand} locale={locale} t={t}/>
+        <HandRegion {...hand} locale={locale} t={t} decisionPeek={decisionOwed}/>
       </div>
 
       <ReferenceDrawer

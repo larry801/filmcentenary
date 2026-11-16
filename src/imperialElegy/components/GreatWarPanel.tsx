@@ -9,6 +9,7 @@ import {PHASE_LABEL, POWER_KEYS, bi, isPowerKey} from "./boardHelpers";
 import {gwEventHint} from "../engine/playability";
 import {currentGwImpulse, gwCanEndTurn, gwFinishImpulseProblem} from "../engine/gwImpulse";
 import {gwImpulseReasonText} from "./boardHelpers";
+import {RuleLink} from "./RuleRef";
 
 export interface GreatWarPanelProps {
   gw: NonNullable<ImperialElegyState["gw"]>;
@@ -41,6 +42,7 @@ export interface GreatWarPanelProps {
   forcedGwCard: boolean;
   doAction: (fn: () => void) => void;
   moves: Record<string, (...args: any[]) => void>;
+  onOpenReference?: (anchor: string) => void;
 }
 
 export const GreatWarPanel = (props: GreatWarPanelProps) => {
@@ -51,12 +53,15 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
     italyShowing, italyBox, italyBoxLabel, italyHow,
     gwTransferToValue, setGwTransferTo, gwTransferAmountValue, setGwTransferAmount,
     canGwTransfer, gwSideAllies, canGwReveal, canGwDraft, canGwDeployHere, forcedGwCard,
-    doAction, moves,
+    doAction, moves, onOpenReference,
   } = props;
 
   return (
     <IEPanel title={`${t.greatWarMap} · GW ${gw.turn}`} actions={<IEBadge tone="warn">{PHASE_LABEL(t, phase)}</IEBadge>}>
       <div className="ie-gw" data-testid="ie-gw">
+        <div className="ie-rule-ref-row">
+          <RuleLink anchor="chart:colonial-great-wars" locale={locale} onOpenReference={onOpenReference}/>
+        </div>
         <div className="ie-gw-sides">
           <div><strong>TE:</strong> {gw.te.map((p) => t.seats[p]).join(", ") || "—"}</div>
           <div><strong>TA:</strong> {gw.ta.map((p) => t.seats[p]).join(", ") || "—"}</div>

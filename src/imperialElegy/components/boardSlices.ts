@@ -59,7 +59,7 @@ const INTERACTION_KEYS = [
 const ORDERS_KEYS = [
   "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "canAct", "canSpend", "cpBudget",
   "canActionCard", "pending", "canDecide", "war", "warAim", "setWarAim", "warCp", "setWarCp",
-  "secondObjective", "setSecondObjective", "targetControlledSpaces", "warTargetControl",
+  "secondObjective", "setSecondObjective", "targetControlledSpaces", "warTargetControl", "onOpenReference",
   "canDeclareWar", "gwJointNavalAllies", "gwJointNavalUnitIds", "polishReserve", "setPolishReserve",
   "deployLimit", "deployFree", "canDeployHere", "canGwDraft", "canGwDeployHere", "polishArmyDecision",
   "polishReserveDecision", "myOnMapArmies", "myForts", "myMinorAllies", "ownLandInSelected",
@@ -104,7 +104,7 @@ const WAR_KEYS = [
   "gwSlotLabel", "italyShowing", "italyBox", "italyBoxLabel", "italyHow", "gwTransferToValue",
   "setGwTransferTo", "gwTransferAmountValue", "gwTransferAmount", "setGwTransferAmount",
   "canGwTransfer", "gwSideAllies", "canGwReveal", "canGwDraft", "canGwDeployHere", "forcedGwCard",
-  "minorMarkerRows", "onSelect",
+  "minorMarkerRows", "onSelect", "trenchRows", "onOpenReference",
 ] as const;
 
 /** The reference drawer: the printed charts, the other powers and the log. */

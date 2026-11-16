@@ -78,7 +78,7 @@ National Goal draw-and-keep, the prep-phase stability discard, the combat
 windows (A043/A058–A062, GW-03–GW-06) and the face-down auctions. A card that
 is offered in several printed modes (A061, A066, the UK's two auction sides)
 keeps one face with one button per mode. `components/CardChoice.tsx` is the
-shared wrapper; `HandChoices` (pinned dock) and `PendingPanel` both use it, and
+shared wrapper; `HandChoices` (top of the Orders tab) and `PendingPanel` both use it, and
 the diplomacy give-card preview shows the selected card's face too. Space,
 power and unit options stay plain buttons.
 
@@ -86,44 +86,131 @@ power and unit options stay plain buttons.
 
 Not every choice blocks the game. The home card and the National Goal
 draw-and-keep are mandatory; the prep-phase stability discard and the diplomacy
-card transfer are things a player *may* do. The dock distinguishes them, so an
-optional action never reads as "you cannot continue until you pick":
+card transfer are things a player *may* do. The board distinguishes them, so
+an optional action never reads as "you cannot continue until you pick":
 
-- a mandatory section is a solid gold-bordered box and the bar summary says
-  `需要选择卡牌` / "Required card choice";
-- an optional section uses a dashed frame and an `可选` / "Optional" tag, the bar
+- a mandatory section is a solid gold-bordered box and the turn panel's
+  summary says `需要选择卡牌` / "Required card choice";
+- an optional section uses a dashed frame and an `可选` / "Optional" tag, the
   summary says `可选：弃牌换稳定` / "Optional: discard for stability", and a hint
   names the way out ("press Ready to continue without discarding" / "转交卡牌并非
   必须").
 
-`handChoiceAvailability` returns `{required, optional}` so the dock summary and
-the pointer in the hand panel follow the same rule. The discard is only offered
-when a legal card is actually in hand, so an empty optional section is never
-rendered.
+`handChoiceAvailability` returns `{required, optional}` so the turn panel's
+summary and the pointer in the hand tray follow the same rule. The discard is
+only offered when a legal card is actually in hand, so an empty optional section
+is never rendered.
 
-### The decision dock
+### The turn panel
 
-Everything the rules require *right now* sits in one pinned dock under the app
-bar: the pending decision, the required card faces and the buttons that end or
-continue the step (准备完毕, 停牌, 继续). Both kinds of control answer
-"what may I do now", and a tall map or a long hand used to push them below the
-fold.
+Everything the rules require *right now* lives in the 348 px turn panel in the
+right-hand column (`components/TurnPanel.tsx`), not in a floating dock. Its head
+carries the single CP readout (`ie-command-cp`, the only one on the board) and
+the buttons that end or continue the step (准备完毕, 停牌, 继续). Below the head
+are three tabs:
+
+- **Orders** — the selected space, its action list and the national actions.
+  While a pending decision, an open battle or the result is showing, its body is
+  replaced by that decision (`PendingPanel`), so the panel never covers map
+  targets.
+- **War** — only while a limited war or the Great War is running: the trench
+  board, the war panel and the Great War panel.
+- **Log** — the public history, newest first.
+
+The tab bar is a roving `tablist`. The panel keeps the historic `ie-dock` /
+`ie-dock-summary` / `ie-pending` / `ie-command-cp` test ids, so the Control suite
+and the static-markup suites keep their anchors.
 
 The action phase has a single exit button (12.0). It reads `停牌` while the
 impulse is unused and turns into `结束行动轮` once the seat has played a card or
 banked CP; both call the same `pass` move, and only the unused form is subject
-to 12.0's zero-or-one-card restriction.
+to 12.0's zero-or-one-card restriction. `pass` is the only exit: it forfeits
+remaining CP on a used impulse and enforces `canPassNow` on an unused one, and
+there is no separate `endImpulse` move.
 
-`components/DecisionDock.tsx` owns the frame and the collapse toggle;
-`components/PhaseActions.tsx` renders the phase buttons. The dock collapses to
-a single bar, so it stops covering the map once the player has read it, and the
-phase buttons stay in that bar while collapsed — ending an impulse must not
-cost an extra click to expand first.
-
-The dock also stops treating a finished step as open: once a seat has chosen its
+The panel also stops treating a finished step as open: once a seat has chosen its
 home card the pending-choice faces remain (marking the selection) but the summary
 and the "required card choice" state clear, so the next seat is not told a
 decision is still waiting.
+
+### Layout at 1440×900
+
+`components/BoardLayout.tsx` and `imperial-elegy.css` split the board into five
+regions:
+
+```
++--------------------------------------------------------------+
+| seat strip                                                   |
++--------------------------------------------------------------+
+| track strip (52 px)                                          |
++--------+-------------------------------+---------------------+
+| mat    | map                           | turn panel (348 px) |
+| 148 px |                               |  head + tabs        |
+|        +-------------------------------+                     |
+|        | hand tray (228 px, full width)|                     |
++--------+-------------------------------+---------------------+
+```
+
+- **Track strip** — `components/TrackStrip.tsx`, 52 px under the seat strip. It
+  carries the turn and decade, the sequence-of-play stepper (each step opens the
+  reference at that step), World Tension pips with the "3: no war" warning, the
+  five alliance boxes (cTA / aTA / N / aTE / cTE), the Great War turn or the
+  current war, status badges, and the round controls: `?` (reference) and the
+  menu. The stepper is a group of buttons under one roving tab stop, not a
+  tablist.
+- **Map and mat** — `components/MapPanel.tsx` (`map.tsx` draws the spaces and
+  units) takes the middle column; the player mat (`components/PlayerMat.tsx`)
+  is the narrow strip beside it and shows the viewer only: stability, manpower,
+  industry, keys, VP, reserves, Industry Card, CP chain and goals. It begins
+  open on desktop and collapses to a chip row with a popover; between 900 and
+  1099 px the figures collapse to that chip row.
+- **Turn panel** — 348 px, described above. The War tab mounts the
+  `components/TrenchBoard.tsx` rows while the Great War is active.
+- **Hand** — `components/HandTray.tsx`, a full-width row under the map (228 px
+  open, folded to 44 px). Its head has filter and sort selects, card count,
+  CP-chain/saved/response chips and the tray toggle; each card shows its face, a
+  status line ("For CP" / "Event" / "Response", or the first reason it cannot be
+  played) and a compact `⋯` operations menu that mounts in the flow rather than
+  over the map.
+- **Reference drawer** — `components/ReferenceDrawer.tsx` opens from the right
+  at an anchor (the strip's `?`, a stepper step, the mat's "Printed display", a
+  `?` rule link) and closes on Esc. It shows the tables the engine renders — the
+  CRT from `crt()`, the action costs from `ACTION_COSTS`, the sequence of play
+  from `phaseSteps` (`components/referenceTables.tsx`) — then the other powers'
+  dashboards and `components/MpitPanel.tsx`, and finally the nine printed PNG
+  charts. Opening a chart opens `components/ChartLightbox.tsx` full screen
+  instead of squeezing the image into drawer width. There is no board-wide
+  Reference tab and no always-open chart grid.
+
+Actions in the space panel (`components/SpacePanel.tsx`) are one list computed
+by `spaceActions` (`components/actionAvailability.ts`) and grouped by kind
+(recruit, build, diplomacy, move, Great War): each row is a button with a cost
+chip, a `disabled` state and, when disabled, the visible reason line under it.
+Irreversible controls need two clicks, arm then confirm: play for CP, play the
+event, pass / end impulse, end diplomacy and continue go through
+`components/ConfirmButton.tsx`; declare war uses a plain button with the
+"needs n CP in this impulse" hint, and surrender arms in place. Both are
+controlled by the `confirmActions` preference in `components/preferences.ts`
+(on by default; the button disarms on blur, Esc or after 5 s).
+
+Map interaction is a small state machine (`components/useInteraction.ts`):
+clicking a unit enters soft targeting (a miss falls back to selecting the clicked
+space); a target with one legal intent submits it on the click, two or more open
+the inline `components/IntentChooser.tsx`, Esc returns to the source space and
+Enter commits a single target. Only `submitTargeting` in
+`components/useBoardModel.ts` spends CP.
+
+### Phones
+
+Below 768 px the board becomes one column: a 44 px track strip (the stepper and
+alliance boxes are dropped; the CP readout shows here because the turn panel's
+head is below), the map, the hand as a bottom sheet, then the turn panel
+(capped at 46dvh). The sheet is driven by `data-open` and `data-expanded` on
+`.ie-hand-tray`: 44–48 px peek, 40dvh half, and full height under the strip.
+While a decision is owed the sheet shows a one-line peek
+(`data-decision-peek`, `ie-tray-decision-peek`) and stays folded, so a decision
+never opens above half height and the map target it asks about stays visible. The
+mat is hidden; the other powers and the MPIT are in the full-width drawer.
 
 ## Implementation status
 
@@ -369,7 +456,7 @@ src/imperialElegy/
   engine/combatCards.ts       data-driven combat cards and modes (wired)
   engine/privacy.ts           playerView redaction (wired)
   engine/economy.ts           decade/CP-chain/industry/reserve helpers (wired)
-  components/                 map, dashboards, hand, local hotseat
+  components/                 track strip, turn panel, mat, drawer, hand, map
 ```
 
 `engine/greatWar.ts` remains the home of the one-off Great War rules (crisis,

@@ -6,11 +6,14 @@ import {gwActionAllowance} from "../engine/gwImpulse";
 import {isCwArmySpace} from "../engine/characteristics";
 import {polishReserveDeployer} from "../engine/poland";
 import {IEBadge, IEPanel} from "./theme";
+import {RuleLink} from "./RuleRef";
 import {ieT} from "./i18n";
 import {bi, controlLabel, isPowerKey, unitLabel} from "./boardHelpers";
 import {ACTION_GROUP_LABELS, spaceActions, type SpaceAction} from "./actionAvailability";
 
 export interface SpacePanelProps {
+  /** Opens the reference drawer (the "?" next to the action list). */
+  onOpenReference?: (anchor: string) => void;
   G: ImperialElegyState;
   selected: SpaceId | null;
   selectedUnit: string | null;
@@ -72,6 +75,7 @@ export interface SpacePanelProps {
 
 export const SpacePanel = (props: SpacePanelProps) => {
   const {
+    onOpenReference,
     G, selected, selectedUnit, setSelectedUnit, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
     viewer, me, locale, t, phase, canAct, canSpend, cpRemaining, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
@@ -236,6 +240,8 @@ export const SpacePanel = (props: SpacePanelProps) => {
               <div className="ie-action-groups-head">
                 <span className="ie-cp-remaining">⚡ {cpRemaining} CP</span>
                 <span className="ie-action-groups-hint">{bi(locale, "Every action the rules allow here, with its cost.", "此处规则允许的全部行动及其花费。")}</span>
+                {/* The player aid's cost list, rendered from ACTION_COSTS. */}
+                <RuleLink anchor="rules:costs" locale={locale} onOpenReference={onOpenReference} testId="ie-rule-ref-action-costs"/>
               </div>
               {(["recruit", "build", "diplomacy", "move", "greatWar"] as const).map((group) => {
                 const items = groupRows(group);
