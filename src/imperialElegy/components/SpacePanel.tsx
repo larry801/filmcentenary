@@ -151,6 +151,13 @@ export const SpacePanel = (props: SpacePanelProps) => {
    * e2e specs, the bot suites and the control tests address these names, so a
    * row keeps the name of the button it replaced.
    */
+  /**
+   * The second objective is the *other* space of the war: the one clicked on
+   * the map is the first objective, so offering it again here would let a
+   * declaration name the same space twice.
+   */
+  const secondObjectiveCandidates = targetControlledSpaces.filter((id) => id !== selected);
+
   const LEGACY_ACTION_IDS: Partial<Record<SpaceAction["id"], string>> = {
     gwMarch: "ie-gw-march",
     gwRail: "ie-gw-rail",
@@ -279,10 +286,10 @@ export const SpacePanel = (props: SpacePanelProps) => {
                 <select className="ie-select" value={warCp} onChange={(e) => setWarCp(Number(e.target.value))} title={t.cp}>
                   {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} CP</option>)}
                 </select>
-                {targetControlledSpaces.length > 0 && (
+                {secondObjectiveCandidates.length > 0 && (
                   <select className="ie-select" value={secondObjective} onChange={(e) => setSecondObjective(e.target.value as SpaceId | "")} title={t.objectives}>
                     <option value="">{bi(locale, "One objective", "单一目标")}</option>
-                    {targetControlledSpaces.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
+                    {secondObjectiveCandidates.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
                   </select>
                 )}
                 <button className="ie-btn" disabled={!canDeclareWar} onClick={() => doAction(() => moves.declareWar(warTargetControl, warAim, secondObjective ? [selected!, secondObjective] : [selected!], warCp))}>{t.declareWar}</button>

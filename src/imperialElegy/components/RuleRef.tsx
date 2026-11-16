@@ -77,7 +77,9 @@ export const RuleLink = ({anchor, locale, label, onOpenReference, testId}: RuleR
         onOpenReference?.(anchor);
       }}
     >
-      <span className="ie-rule-ref-mark" aria-hidden="true">?</span>
+      {/* A decorative glyph: the button's own label carries the wording, and
+          the question mark would otherwise be a second 11 px text leaf. */}
+      <span className="ie-rule-ref-mark" aria-hidden="true"/>
       <span className="ie-rule-ref-rule">{rule}</span>
     </button>
   );

@@ -2314,18 +2314,21 @@ img.ie-card-face { background: var(--ie-surface-2); }
   outline: 2px solid #f4d574;
   outline-offset: 2px;
 }
+/* The circled mark is a glyph, not text: the 12 px floor applies to readable
+   copy, and a 14 px circle cannot hold a 12 px "?" without bursting. */
 .ie-rule-ref-mark {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border: 1px solid currentColor;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 0;
   font-weight: 700;
   line-height: 1;
 }
+.ie-rule-ref-mark::before { content: "?"; font-size: 11px; }
 .ie-rule-ref-rule {
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
