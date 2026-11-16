@@ -44,8 +44,8 @@ game data (not image assets) and documented in `CORRECTIONS.md`.
 
 - Promotional cards P1–P3 (`Action Card P1.jpg` …): deferred promotional
   content.
-- Bot reference charts (`Chart Bot 1.png`, `Chart Bot 2.png`): bots are out of
-  scope.
+- Bot reference charts (`Chart Bot 1.png`, `Chart Bot 2.png`): not published as
+  art; their B1/B2 tables are transcribed into `src/imperialElegy/engine/bot.ts`.
 - `Playerboard UK.jpg`: superseded by the module-selected PNG.
 - `Card Deck Map.jpg`, `Map Card Deck.jpg`: deck-layout boards, not game art.
 

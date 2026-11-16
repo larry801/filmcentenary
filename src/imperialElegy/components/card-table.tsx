@@ -26,6 +26,9 @@ const ImperialElegyCardTable = () => {
         card.draw ? g.flags.draw : null,
         card.warOnly ? g.flags.warOnly : null,
         card.gwOnly ? g.flags.gwOnly : null,
+        card.botBox === undefined || card.botBox.length === 0
+            ? null
+            : `${strings.botBox}: ${card.botBox.map(p => strings.seats[p]).join(", ")}`,
     ].filter((value): value is string => value !== null).join(" · ") || "—";
 
     const cardRow = (card: CardDef): CardRow => [

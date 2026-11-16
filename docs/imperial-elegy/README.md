@@ -37,9 +37,10 @@ The script reads the `.vmod` archive, copies only the required artwork to
   placement, used only as a cross-check for the printed decade bands.
 
 The manifest intentionally omits timestamps so repeated extractions are
-diff-stable. Promotional cards P1–P3 and the bot reference charts are not
-published because bots, alternate scenarios and promotional content are out of
-scope for this release.
+diff-stable. Promotional cards P1–P3 and the two bot reference charts are not
+published: the bot player aid is transcribed into `engine/bot.ts` (B1/B2 tables)
+instead of being shipped as art, and alternate scenarios and promotional
+content remain out of scope for this release.
 
 ## Running
 

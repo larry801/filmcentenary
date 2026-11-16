@@ -78,6 +78,59 @@ const CardEmblem = ({kind}: {kind: CardDef["kind"] | "goal"}) => (
   </g>
 );
 
+/** Printed power colours on the action-card BOT BOX. */
+const BOT_POWER_FILL: Record<string, string> = {
+  GE: "#5a5a58", UK: "#b02a2a", FR: "#2f7bb4", AU: "#e0b02c", RU: "#b0ada4", OT: "#2f7a3a",
+};
+/** Unlit cell: the same parchment the printed box uses for "—". */
+const BOT_CELL_EMPTY = "#eae7d4";
+const BOT_GRID = [["GE", "UK"], ["FR", "AU"], ["RU", "OT"]] as const;
+
+/**
+ * The printed BOT BOX (9.1 / 9.2): a 2×3 grid under the CP value.  A lit cell
+ * names a power whose Rule 34 bot always plays this card for its event; the
+ * rest read "—".  The data only carries the lit powers, so every other cell is
+ * drawn in the blank parchment and the geometry matches the card.
+ */
+const BotBoxGrid = ({y, powers, label}: {y: number; powers: readonly string[]; label: string}) => {
+  const x = INSET;
+  const cellW = 34;
+  const cellH = 13;
+  const lit = new Set(powers);
+  return (
+    <g className="ie-card-bot-box" aria-label={label}>
+      <text x={x} y={y - 5} fontSize="9" fill="#5c5240" fontWeight="700">{label}</text>
+      {BOT_GRID.map((row, r) => row.map((power, c) => {
+        const on = lit.has(power);
+        return (
+          <g key={power}>
+            <rect
+              x={x + c * cellW}
+              y={y + r * cellH}
+              width={cellW}
+              height={cellH}
+              fill={on ? BOT_POWER_FILL[power] : BOT_CELL_EMPTY}
+              stroke="#8d8770"
+              strokeWidth=".5"
+            />
+            <text
+              x={x + c * cellW + cellW / 2}
+              y={y + r * cellH + cellH - 3}
+              fontSize="9"
+              fontWeight="700"
+              textAnchor="middle"
+              fill={on ? (power === "AU" ? "#4a3a10" : "#f7f2df") : "#8d8770"}
+            >
+              {on ? power : "–"}
+            </text>
+          </g>
+        );
+      }))}
+    </g>
+  );
+};
+
+
 export type CardFaceProps = {locale: IELocale; showTranslation?: boolean} & (
   | {card: CardDef; goal?: never}
   | {goal: GoalDef; card?: never}
@@ -98,7 +151,19 @@ export const CardFace = React.memo((props: CardFaceProps) => {
   const bodyLines = wrapText(text, BODY_SIZE, TEXT_WIDTH);
   const titleBottom = 112 + titleLines.length * 28;
   const bodyY = titleBottom + 28;
-  const height = Math.max(380, bodyY + (bodyLines.length - 1) * LINE_HEIGHT + 58);
+  // Rule 9.2 / 34.3.4: the printed BOT BOX sits under the CP value.  It is the
+  // 2×3 grid GE/UK, FR/AU, RU/OT; a lit cell names a power whose bot always
+  // plays that card for its event.  Drawn above the footer rule, and the card
+  // grows to hold it, so no printed marker is ever hidden.
+  const botBox = goal ? undefined : card!.botBox;
+  const BOT_CELL_W = 34;
+  const BOT_CELL_H = 13;
+  const botBoxY = bodyY + (bodyLines.length - 1) * LINE_HEIGHT + 26;
+  const botBoxHeight = botBox === undefined ? 0 : 16 + BOT_CELL_H * 3 + 14;
+  const height = Math.max(
+    380,
+    bodyY + (bodyLines.length - 1) * LINE_HEIGHT + 58 + botBoxHeight,
+  );
   const accent = kind === "goal" ? "#727b4b" : kind === "home" ? "#615942" : kind === "greatWar" ? "#8a4d3f" : "#397f76";
   const power = data.power;
   const category = goal ? t.goals : kind === "home" ? t.homeCard : kind === "greatWar" ? t.greatWarMap : t.cardType[card!.type];
@@ -152,6 +217,7 @@ export const CardFace = React.memo((props: CardFaceProps) => {
         </g>
         <path d={`M0 ${titleBottom}H${WIDTH}`} stroke={accent} strokeWidth="1"/>
         <TextLines lines={bodyLines} y={bodyY} size={BODY_SIZE} lineHeight={LINE_HEIGHT} className={`ie-card-rules${locale === "zh_CN" ? " ie-card-zh" : ""}`}/>
+        {botBox !== undefined && botBox.length > 0 && <BotBoxGrid y={botBoxY} powers={botBox} label={t.botBox}/>}
         <path d={`M18 ${height - 34}H282`} stroke={accent} strokeWidth=".7" opacity=".6"/>
         <text x={INSET} y={height - 15} fontSize="12" fill={accent}>{footer}</text>
         <text x="282" y={height - 15} fontSize="12" textAnchor="end" fill={accent}>{markers ? `${markers} · ` : ""}{data.number}</text>
