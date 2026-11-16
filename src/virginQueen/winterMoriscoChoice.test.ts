@@ -60,7 +60,7 @@ describe("winter Morisco removal confirmation", () => {
             removed: {regular: 2, merc: 0, cav: 0},
             confirmOnly: true,
         }]);
-        expect(moveError(G, "claimSeaCaptain")).toBeDefined();
+        expect(moveError(G, "declareWar")).toBeDefined();
         expect(moveError(G, "chooseWinterLoss")).toBeUndefined();
         expect(moveError(G, "endPhaseTurn")).toBeUndefined();
     });
@@ -104,7 +104,7 @@ describe("winter Morisco removal confirmation", () => {
         expect(G.spaces.granada.land.ottoman).toBeUndefined();
         expect(G.winterLossChoices).toBeUndefined();
         // Nothing pending, so ordinary Action Phase moves are not blocked.
-        expect(moveError(G, "claimSeaCaptain")).toBeUndefined();
+        expect(moveError(G, "declareWar")).toBeUndefined();
     });
 
     it("does not record a choice from an Action Phase Morisco status check", () => {
@@ -115,7 +115,7 @@ describe("winter Morisco removal confirmation", () => {
 
         expect(G.morisco).toBeUndefined();
         expect(G.winterLossChoices).toBeUndefined();
-        expect(moveError(G, "claimSeaCaptain")).toBeUndefined();
+        expect(moveError(G, "declareWar")).toBeUndefined();
     });
 
     it("opens the Card Draw winter-loss stage for the Ottoman owner only", () => {

@@ -100,7 +100,7 @@ describe("winter loss unit-type choice", () => {
 
         expect(chooseWinterLoss(G, context(), {space: "london", kind: "merc"})).toBe(INVALID_MOVE);
         expect(G.winterLossChoices).toEqual(remaining);
-        expect(moveError(G, "claimSeaCaptain")).toBeDefined();
+        expect(moveError(G, "declareWar")).toBeDefined();
         expect(moveError(G, "chooseWinterLoss")).toBeUndefined();
         expect(moveError(G, "endPhaseTurn")).toBeUndefined();
     });

@@ -33,6 +33,7 @@ const A = (
   textZh,
   effects,
   image: `cards/action-${String(number).padStart(3, "0")}.jpg`,
+  ...(BOT_BOX[number] === undefined ? {} : {botBox: BOT_BOX[number]}),
   ...extra,
 });
 
@@ -91,6 +92,53 @@ const GW = (
 const choosePlayerLoss: Effect = {
   type: "special",
   handler: "choosePlayerStabilityOrCard",
+};
+
+/**
+ * Rule 9.2 / 34.3.4 — the BOT BOX transcribed from the printed action cards
+ * (module "Action Card N_result.jpg").  Six cells sit under the CP value:
+ * GE/UK, FR/AU, RU/OT.  A lit cell names a power whose bot always plays the
+ * card for its event.  Cards without an entry print no box at all (or an
+ * entirely blank one), which reads the same at the table: no automatic play.
+ *
+ * Card 21 (National Railroad) and card 82 (Wilhelm II) have no bot box: neither
+ * prints one, so neither appears here.  Their module slots also carry no face
+ * of their own (21's holds a duplicate of card 27), which is why the absence
+ * cannot be cross-checked against artwork — see CORRECTIONS.md.
+ */
+export const BOT_BOX: Record<number, Power[]> = {
+  18: ["GE", "UK", "FR", "AU", "RU", "OT"],
+  19: ["GE", "UK", "FR", "AU", "RU", "OT"],
+  20: ["GE", "UK", "FR", "AU", "RU", "OT"],
+  27: ["RU", "OT"],
+  34: ["GE", "UK", "FR", "RU"],
+  36: ["GE", "UK", "FR", "RU"],
+  37: ["UK", "FR", "RU", "OT"],
+  38: ["UK", "FR"],
+  40: ["UK"],
+  41: ["GE"],
+  42: ["GE"],
+  46: ["FR"],
+  47: ["AU"],
+  48: ["AU"],
+  49: ["AU"],
+  50: ["RU"],
+  52: ["RU"],
+  57: ["GE", "UK", "FR", "AU", "RU", "OT"],
+  68: ["GE", "UK", "FR", "AU", "RU", "OT"],
+  70: ["FR", "AU"],
+  71: ["UK", "FR", "OT"],
+  75: ["GE", "UK", "FR", "AU", "RU"],
+  78: ["GE", "UK", "FR", "RU"],
+  79: ["GE", "UK", "FR"],
+  81: ["RU"],
+  88: ["GE", "RU", "OT"],
+  90: ["FR"],
+  96: ["GE", "UK", "FR", "AU", "RU", "OT"],
+  99: ["GE", "UK", "FR", "AU", "RU", "OT"],
+  103: ["AU"],
+  108: ["GE", "FR", "AU", "RU", "OT"],
+  112: ["AU"],
 };
 
 export const ACTION_CARDS: CardDef[] = [

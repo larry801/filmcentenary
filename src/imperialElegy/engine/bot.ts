@@ -19,6 +19,7 @@ import {
 } from "../types";
 import {cardById} from "./deck";
 import {powerOfSeat, seatOf} from "./pending";
+import {eventPlayability} from "./playability";
 import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
 import {
   controlledBy,
@@ -193,12 +194,41 @@ const worthPlayingForEvent = (
   cardId: CardId,
 ): boolean => {
   const def = cardById(cardId);
+  // 34.3.4: a card whose BOT BOX names this power is played for its event
+  // automatically, whatever its CP value.  The box only omits a power when the
+  // event would hurt it (the printed "Playable by"/exclusion clause that
+  // `eventPlayability` enforces independently), so no extra harm test is due.
+  if (def.botBox?.includes(power)) return true;
   // Bots never play a 3 CP event that doesn't help them.
   // Simplified heuristic: mandatory events must always play; optional events
   // with ≤2 CP are played; 3-CP optional events are skipped (bot uses CP).
   if (def.type === "mandatory" || def.type === "mandatoryResponse") return true;
   if (def.cp >= 3) return false;
   return true;
+};
+
+/**
+ * B1 Priority 1 step 3 — "event that the bot will always play" from the BOT
+ * BOX (9.2 / 34.3.4).
+ *
+ * The box is printed only on action cards, and it names the powers whose bot
+ * plays that card for its event on reveal.  A card is only returned here when
+ * the engine would accept the event play right now (`eventPlayability`, plus
+ * the battle-window rule that keeps response/combat cards out of a normal
+ * impulse — A41 is the one printed exception).  Returning an event the move
+ * would refuse would leave the bot re-sending it every impulse.
+ */
+const botBoxEvent = (G: ImperialElegyState, power: Power): BotMove | null => {
+  if (G.cpRemaining > 0) return null; // 12.0: an event needs an empty impulse
+  for (const cardId of G.powers[power].hand) {
+    const def = cardById(cardId);
+    if (def.botBox?.includes(power) !== true) continue;
+    if (def.kind !== "action") continue;
+    if ((def.type === "response" || def.type === "combat") && cardId !== "IE-A041") continue;
+    if (!eventPlayability(G, power, cardId).ok) continue;
+    return {move: "playCard", args: [cardId, "event"]};
+  }
+  return null;
 };
 
 /** Find an independent minor power with no alliance marker that the bot can ally. */
@@ -455,6 +485,10 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
       return {move: "landBattle", args: [rebel.from, rebel.space]};
     }
   }
+
+  // 3. Always-play event from the printed BOT BOX (B1 / 34.3.4).
+  const boxEvent = botBoxEvent(G, power);
+  if (boxEvent !== null) return boxEvent;
 
   // 4. Industrialize (only if auto-industry marker active).
   if (p.autoIndustry && p.industryCard !== null && G.cpRemaining >= 1) {

@@ -128,7 +128,7 @@ describe("winter no-port naval loss choice", () => {
     it("blocks unrelated moves while a naval loss is pending", () => {
         const G = navalLossGame();
 
-        expect(moveError(G, "claimSeaCaptain")).toBeDefined();
+        expect(moveError(G, "declareWar")).toBeDefined();
         expect(moveError(G, "chooseWinterNavalLoss")).toBeUndefined();
         expect(moveError(G, "endPhaseTurn")).toBeUndefined();
     });

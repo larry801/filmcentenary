@@ -1244,6 +1244,17 @@ describe("Virgin Queen board", () => {
         expect(renderDiplomacy(G, null)).not.toContain("同国联姻：");
     });
 
+    it("hides the royal marriage block from the Ottomans", () => {
+        // Rule 21: all powers except the Ottoman have a royal marriage pool.
+        const G = setupGame(fakeCtx());
+        availableRoyal(G, "donCarlos");
+        availableRoyal(G, "elisabethValois");
+
+        expect(renderDiplomacy(G, "0")).not.toContain("王室联姻");
+        G.activePower = "spain";
+        expect(renderDiplomacy(G, "1")).toContain("王室联姻");
+    });
+
     it("renders the diplomacy panel and map for a spectator", () => {
         const G = setupGame(fakeCtx());
         const props: any = {

@@ -88,7 +88,7 @@ describe("winter overcapacity choice (no capital)", () => {
 
         expect(chooseWinterLoss(G, context(), {space: "portsmouth", kind: "merc"})).toBe(INVALID_MOVE);
         expect(G.winterLossChoices).toEqual(remaining);
-        expect(moveError(G, "claimSeaCaptain")).toBeDefined();
+        expect(moveError(G, "declareWar")).toBeDefined();
         expect(moveError(G, "chooseWinterLoss")).toBeUndefined();
     });
 

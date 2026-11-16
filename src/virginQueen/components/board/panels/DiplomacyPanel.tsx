@@ -208,6 +208,8 @@ export const DiplomacyPanel = () => {
                 {minorName(m, vqLocale)}
             </Button>)}
         </Stack>
+        {/* Rule 21: all powers except the Ottoman have a royal marriage pool. */}
+        {me !== "ottoman" && <>
         <Divider/>
         <Typography variant="subtitle2">{i18n.chain.vq.diplomacyUi.betrothal}</Typography>
         {playerID !== null && ctx.activePlayers?.[playerID] === "respondBetroth" && G.pendingBetrothal !== null ? (
@@ -259,6 +261,7 @@ export const DiplomacyPanel = () => {
                         if (betrothal.proposal !== undefined) moves.proposeBetroth(betrothal.proposal);
                     }}>{i18n.chain.vq.diplomacyUi.propose}</Button>
         </>)}
+        </>}
         {Object.keys(G.leaders).filter((id) => G.leaders[id].location === "captured" && LEADER_BY_ID[id]?.power === me).length > 0 && <>
             <Divider/>
             <Typography variant="subtitle2">{i18n.chain.vq.diplomacyUi.ransom}</Typography>
