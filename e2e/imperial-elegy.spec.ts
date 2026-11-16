@@ -1,4 +1,5 @@
-import {expect, test, Page} from "@playwright/test";
+import {expect, test, Locator, Page} from "@playwright/test";
+
 
 const SEATS = ["GE", "UK", "FR", "AU", "RU", "OT"] as const;
 
@@ -12,6 +13,27 @@ async function focusSeat(page: Page, seat: string) {
     const index = SEATS.indexOf(seat as typeof SEATS[number]);
     await page.getByRole("tab", {name: new RegExp(`P${index + 1}`)}).click();
     await page.waitForTimeout(180);
+}
+
+/**
+ * Play the seat's first legal card for CP.
+ *
+ * Card play is now arm-then-confirm (`ConfirmButton`, preference on by
+ * default): the first click arms the button and the second one plays.  The
+ * button is addressed by test id because the armed label replaces its text,
+ * so a text filter would stop matching between the two clicks.
+ */
+async function playCardForCp(page: Page, board: Locator): Promise<boolean> {
+    const buttons = board.locator('[data-testid^="ie-play-cp-"]');
+    for (let i = 0; i < await buttons.count(); i += 1) {
+        const button = buttons.nth(i);
+        if (!(await button.isEnabled())) continue;
+        await button.click();
+        await expect(button).toHaveAttribute("data-armed", "true");
+        await button.click();
+        return true;
+    }
+    return false;
 }
 
 async function finishPrep(page: Page) {
@@ -71,16 +93,7 @@ test.describe("Imperial Elegy local hotseat", () => {
         await chooseHomeCards(page);
         await focusSeat(page, "GE");
         const board = page.locator('[data-testid="ie-seat-GE"]');
-        const cpButtons = board.locator(".ie-card-actions button", {hasText: "作为 CP 打出"});
-        let played = false;
-        for (let i = 0; i < await cpButtons.count(); i += 1) {
-            if (await cpButtons.nth(i).isEnabled()) {
-                await cpButtons.nth(i).click();
-                played = true;
-                break;
-            }
-        }
-        expect(played).toBe(true);
+        expect(await playCardForCp(page, board)).toBe(true);
         await page.waitForTimeout(600);
         await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
         await expect(board.locator('[data-testid="ie-space-detail"]')).toContainText("柏林");
@@ -95,11 +108,8 @@ test.describe("Imperial Elegy local hotseat", () => {
         await focusSeat(page, "GE");
         await page.waitForTimeout(500);
         const board = page.locator('[data-testid="ie-seat-GE"]');
-        const cpButtons = board.locator(".ie-card-actions button", {hasText: "作为 CP 打出"});
-        await expect(cpButtons.first()).toBeVisible();
-        for (let i = 0; i < await cpButtons.count(); i += 1) {
-            if (await cpButtons.nth(i).isEnabled()) { await cpButtons.nth(i).click(); break; }
-        }
+        await expect(board.locator('[data-testid^="ie-play-cp-"]').first()).toBeVisible();
+        expect(await playCardForCp(page, board)).toBe(true);
         await page.waitForTimeout(800);
         await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
         await page.waitForTimeout(300);

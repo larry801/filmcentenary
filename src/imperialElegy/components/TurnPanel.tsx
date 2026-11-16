@@ -77,6 +77,8 @@ export const TurnPanel = ({
         <span className="ie-command-cp" data-testid="ie-command-cp" title={bi(locale, "CP left this impulse", "本行动轮剩余 CP")}>
           <span className="ie-command-cp-label">{t.cp}</span> <b>{cp}</b>
         </span>
+        {/* The one exit of an impulse (12.0) lives in the panel head next to
+            the CP readout; the strip above only reports the position. */}
         <PhaseActions title={t.yourTurnActions} locale={locale} actions={phaseActions}/>
       </div>
 

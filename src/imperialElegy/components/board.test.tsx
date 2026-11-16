@@ -465,10 +465,12 @@ describe("Imperial Elegy board controls", () => {
     const dock = markup.indexOf("data-testid=\"ie-dock\"");
     const layout = markup.indexOf("class=\"ie-table\"");
     expect(dock).toBeGreaterThan(-1);
-    // The phase buttons sit in the strip before the table; the turn panel's
-    // head repeats them so the acting seat never has to look up.
-    expect(markup.indexOf("data-testid=\"ie-impulse-actions\"")).toBeLessThan(layout);
-    expect(markup.indexOf("data-testid=\"ie-impulse-actions\"", layout)).toBeGreaterThan(layout);
+    // The phase buttons sit once, in the turn panel head next to the CP
+    // readout: the strip above reports the position and nothing else, so the
+    // same test id is never rendered twice.
+    const first = markup.indexOf("data-testid=\"ie-impulse-actions\"");
+    expect(first).toBeGreaterThan(layout);
+    expect(markup.indexOf("data-testid=\"ie-impulse-actions\"", first + 1)).toBe(-1);
     // 12.0 has one exit, not two: the dock shows a single button whose label
     // follows the impulse state, and the separate end-impulse button is gone.
     expect(buttonTag(markup, "ie-pass")).toContain("停牌");

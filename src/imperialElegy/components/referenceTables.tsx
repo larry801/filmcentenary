@@ -139,11 +139,13 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
         minorMarkerRows={minorMarkerRows}
       />
 
-      <MpitPanel
-        G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
-        mpitTarget={mpitTarget} setMpitTarget={setMpitTarget} mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
-        locale={locale} t={t} doAction={doAction} moves={moves}
-      />
+      <div className="ie-ref-mpit">
+        <MpitPanel
+          G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
+          mpitTarget={mpitTarget} setMpitTarget={setMpitTarget} mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
+          locale={locale} t={t} doAction={doAction} moves={moves}
+        />
+      </div>
 
       <section className="ie-ref-section" data-testid="ie-ref-charts">
         <h3>{t.charts}</h3>
@@ -167,7 +169,7 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
 
       <section className="ie-ref-section ie-log-panel" data-testid="ie-ref-log">
         <h3>{t.log}</h3>
-        <div className="ie-log" data-testid="ie-log">
+        <div className="ie-log" data-testid="ie-ref-log-entries">
           {G.log.slice(-80).reverse().map((entry) => (
             <div key={entry.id}><span className="t">T{entry.turn}</span>{logText(entry, locale)}</div>
           ))}

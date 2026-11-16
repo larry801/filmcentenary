@@ -84,18 +84,6 @@ export const ReferenceDrawer = ({core, reference, open: openProp, anchor = null,
 
   return (
     <>
-      {!open && (
-        <button
-          type="button"
-          className="ie-ref-open"
-          data-testid="ie-open-reference"
-          aria-expanded="false"
-          onClick={() => setOpen(true)}
-          title={bi(locale, "Reference (?): rules, CRT and charts", "参考（?）：规则、战斗表与图表")}
-        >
-          <span aria-hidden="true">?</span> {bi(locale, "Reference", "参考")}
-        </button>
-      )}
       <aside
         className="ie-ref-drawer"
         data-testid="ie-reference-drawer"

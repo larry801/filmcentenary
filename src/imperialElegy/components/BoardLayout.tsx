@@ -35,7 +35,6 @@ import {PlayerMat} from "./PlayerMat";
 import {ReferenceDrawer} from "./ReferenceDrawer";
 import {SpaceOverlay} from "./SpaceOverlay";
 import {DashboardPanel} from "./DashboardPanel";
-import {MpitPanel} from "./MpitPanel";
 import {NationalActionsPanel} from "./NationalActionsPanel";
 import {AmphibiousPanel, NavalTransportPanel, NavalInterceptPanel} from "./NavalPanel";
 import {WarPanel} from "./WarPanel";
@@ -284,15 +283,6 @@ export const OrdersRegion = (props: OrdersSlice) => {
           {transportVisible && viewer !== null && transportNode}
         </MoreActions>
       )}
-      {/* Rule 8: the influence matrix is a face-to-face choice, so it sits with
-          the actions that spend CP on it and not only in the reference drawer. */}
-      <div data-testid="ie-orders-mpit">
-        <MpitPanel
-          G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
-          mpitTarget={mpitTarget} setMpitTarget={setMpitTarget} mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
-          locale={locale} t={t} doAction={doAction} moves={moves}
-        />
-      </div>
     </>
   );
 };
@@ -445,9 +435,9 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
         gw={war.gw}
         cp={viewer ? cpBudget() : G.cpRemaining}
         cpBudget={cpBudget}
-        phaseActions={phaseActions}
         menu={commandMenu}
         status={commandStatus}
+        onOpenReference={(anchor) => setRefAnchor(anchor)}
         notice={otherSeatPending && pending !== null && seatUi.onSwitchSeat ? (
           <SeatAlert
             pendingPower={pending.power}

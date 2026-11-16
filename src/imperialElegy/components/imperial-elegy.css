@@ -478,10 +478,10 @@
 }
 .ie-display-trigger::-webkit-details-marker { display: none; }
 .ie-display-trigger:hover { background: #4a3a2f; }
+/* Same reason as the card popovers: the strip clips (and a closed <details>
+   still lays its content out), so the panel is mounted in flow, not floated. */
 .ie-display-panel {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
+  position: relative;
   z-index: 60;
   width: 240px;
   padding: var(--ie-space-2);
@@ -599,6 +599,9 @@
 .ie-hand-hint { margin-left: auto; font-size: var(--ie-font-xs); color: #f0d799; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ie-tray-body { flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .ie-tray-scroll { height: 100%; display: flex; align-items: stretch; gap: var(--ie-space-2); padding: var(--ie-space-1) var(--ie-space-2); overflow-x: auto; overflow-y: hidden; }
+/* The CP chain row is a one-line strip; it used to stretch to the hand's full
+   height and take a whole card row away from the faces. */
+.ie-tray-scroll > .ie-cp-chain { align-self: center; }
 .ie-cp-chain {
   flex: 0 0 auto;
   display: flex;
@@ -635,14 +638,19 @@
   flex: 0 0 128px;
   width: 128px;
   max-width: 128px;
-  height: 170px;
+  /* Fill the row's height instead of asserting a 170 px card: the face plus
+     the action row, the status line and the translation toggle no longer fit
+     in a 212 px hand, so a fixed height clipped the buttons out of the tray. */
+  height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   scroll-snap-align: start;
   position: relative;
 }
 .ie-hand .ie-card-open { flex: 1 1 auto; min-height: 0; }
-.ie-hand .ie-card-face { width: 100%; height: 100%; max-height: 118px; object-fit: contain; }
+.ie-hand .ie-card-face { width: 100%; height: 100%; max-height: none; min-height: 0; object-fit: contain; }
+/* The action row is the reason the card exists: never let the face shrink it. */
 .ie-hand .ie-card-actions { flex: 0 0 auto; flex-wrap: nowrap; padding: 1px 2px; gap: 2px; }
 .ie-hand .ie-card-actions button {
   flex: 1 1 0;
@@ -668,14 +676,18 @@
   font-size: var(--ie-font-sm);
 }
 .ie-hand .ie-card-more > summary::-webkit-details-marker { display: none; }
-.ie-card-more { position: relative; flex: 0 0 auto; }
+/* The operations menu is absolutely placed (not a popover with a layout box):
+   in flow it added a row to every card and left a phantom block behind the
+   closed <details>, which put card buttons behind other controls. */
+.ie-card-more { position: relative; flex: 0 0 24px; }
 .ie-card-more-actions {
-  /* Fixed so the tray's horizontal scroller cannot clip the popover. */
-  position: fixed;
-  right: 16px;
-  bottom: 232px;
-  z-index: 80;
-  width: 240px;
+  /* Mounted, not positioned: the menu is part of the hand flow, between the
+     action row and the status line.  Absolute/fixed variants were clipped by
+     the tray's scroller or left a phantom box over other controls. */
+  position: relative;
+  z-index: 2;
+  flex: 1 1 100%;
+  width: 100%;
   max-height: 44vh;
   overflow: auto;
   display: flex;
@@ -689,7 +701,7 @@
 }
 .ie-card-more-actions button {
   flex: 1 1 calc(50% - 3px);
-  min-height: 30px;
+  min-height: 26px;
   padding: 3px 4px;
   font-size: var(--ie-font-xs);
   border: 1px solid #7a5c33;
@@ -698,6 +710,16 @@
   color: var(--ie-ink);
   cursor: pointer;
 }
+/* Inside a closed <details> the popover still has a layout box (fixed, and a
+   `display: flex` that beats the UA `details:not([open]) > *` rule), so it sat
+   as a 240 px phantom over the turn panel.  Hide it until the menu is open. */
+/* An open menu takes the card's spare height, so the four operations never
+   push the action row or the status line out of the tray. */
+.ie-card-more[open] { flex: 1 1 auto; display: flex; min-width: 0; }
+.ie-card-more[open] > .ie-card-more-actions { align-content: flex-start; }
+.ie-card-more[open] > .ie-card-more-actions > button { min-height: 24px; padding: 1px 2px; }
+.ie-card-more:not([open]) > .ie-card-more-actions { display: none; }
+.ie-hand .ie-card-more-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 44vh; overflow: auto; }
 .ie-card-more-actions button:hover:not(:disabled) { background: #d9c49c; }
 .ie-card-more-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .ie-hand .ie-card-translation { flex: 0 0 auto; border-top: 1px solid #c7b894; }
@@ -705,11 +727,11 @@
 .ie-hand .ie-card-translation > div { display: none; }
 .ie-hand .ie-card-translation[open] > div {
   display: block;
-  position: fixed;
-  right: 16px;
-  bottom: 232px;
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 4px);
   z-index: 80;
-  width: min(360px, calc(100vw - 16px));
+  width: min(320px, 80vw);
   max-height: 44vh;
   overflow: auto;
   padding: 10px;
@@ -836,7 +858,9 @@ img.ie-card-face { background: var(--ie-surface-2); }
   overflow: hidden;
 }
 .ie-log-panel h3 { margin: 0; padding: 6px 10px; font-size: var(--ie-font-sm); color: #d4a85c; border-bottom: 1px solid #3f3223; }
-.ie-log { height: 240px; overflow: auto; font-size: var(--ie-font-xs); line-height: 1.45; padding: 4px 8px; }
+/* The log lives in the turn panel now, not in a 240 px box under the map:
+   it fills whatever height the tab has, so the newest line is the visible one. */
+.ie-log { height: auto; max-height: none; flex: 1 1 auto; overflow: auto; font-size: var(--ie-font-xs); line-height: 1.45; padding: 4px 8px; }
 .ie-log div { border-bottom: 1px solid #35291e; padding: 2px 0; }
 .ie-log .t { color: #9d8a68; margin-right: 5px; font-variant-numeric: tabular-nums; }
 
@@ -1300,12 +1324,17 @@ img.ie-card-face { background: var(--ie-surface-2); }
     right: 0;
     bottom: 52px;
     height: 56px;
-    z-index: 70;
+    /* The sheet sits under the map, so it must stay below the track strip:
+       the strip's controls were the ones intercepting the sheet head. */
+    z-index: 9;
     border-radius: var(--ie-radius-md) var(--ie-radius-md) 0 0;
     box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
   }
-  .ie-hand-tray[data-open="true"] { height: 54dvh; }
-  .ie-hand-tray[data-open="true"][data-expanded="true"] { height: calc(100dvh - 100px); }
+  /* Half height leaves the map's top half visible; the sheet never covers the
+     whole screen unless the reader expands it. */
+  .ie-hand-tray[data-open="true"] { height: 40dvh; }
+  /* Full stops under the 44 px strip (and the 52 px bar it floats above). */
+  .ie-hand-tray[data-open="true"][data-expanded="true"] { height: calc(100dvh - 100px); max-height: none; }
   .ie-hand-tray[data-open="false"] { height: 48px; }
   .ie-tray-head { flex-basis: 48px; }
   .ie-hand .ie-card { flex-basis: 118px; width: 118px; height: 180px; }
@@ -1314,7 +1343,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
   .ie-mode-pill-from { max-width: 70px; }
   .ie-space-overlay { max-width: 200px; }
   .ie-inspector { width: 100%; border-left: 0; padding: 10px; }
-  .ie-card-more-actions { bottom: 110px; right: 8px; width: min(260px, calc(100vw - 16px)); }
+  .ie-card-more-actions { width: 100%; }
   .ie-hand .ie-card-translation[open] > div { bottom: 110px; right: 8px; }
   .ie-seat-tab { padding: 2px 6px; }
   .ie-seat-name { display: none; }
@@ -1361,14 +1390,9 @@ img.ie-card-face { background: var(--ie-surface-2); }
   font-size: var(--ie-font-xs);
 }
 
-/* Only currently-legal actions are drawn: a grey wall is noise, and the
-   inspector (cards) or the title attribute still explains the missing ones.
-   Groups with no legal button disappear entirely. */
-.ie-actions-grid button:disabled,
-.ie-national-actions button:disabled,
-.ie-mpit-controls button:disabled { display: none; }
+/* A disabled action stays on the page, greyed, with its reason in the title:
+   hiding it told the player only "no", never why (the plan's usability rule). */
 .ie-action-group:not(:has(button:not(:disabled))) { display: none; }
-.ie-card-actions button.ie-card-primary:disabled { display: none; }
 
 /* Map hit targets and legend swatches (was inline style). */
 .ie-space-hit { cursor: pointer; }
@@ -1663,11 +1687,14 @@ img.ie-card-face { background: var(--ie-surface-2); }
 /* ---------------------------------------------------------------- table grid */
 .ie-table {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 348px;
-  grid-template-rows: minmax(0, 1fr) auto;
+  /* The mat is the strip under the map and shares its row; the hand owns the
+     full width of the bottom row so 228 px of tray is all cards, not cards
+     squeezed into a 320 px column. */
+  grid-template-columns: 148px minmax(0, 1fr) 348px;
+  grid-template-rows: minmax(0, 1fr) minmax(212px, auto);
   grid-template-areas:
-    "map turn"
-    "mat hand";
+    "mat map turn"
+    "hand hand turn";
   gap: var(--ie-space-1) var(--ie-space-2);
   min-height: 0;
   overflow: hidden;
@@ -1778,6 +1805,10 @@ img.ie-card-face { background: var(--ie-surface-2); }
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* The strip sits beside the map, so it scrolls its own figures and never
+     forces the row taller than the map. */
+  min-height: 0;
+  overflow: hidden;
   padding: 6px 8px;
   border: 1px solid #4a3a26;
   border-radius: var(--ie-radius-md);
@@ -1797,7 +1828,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
   margin-left: auto;
   width: 24px;
   height: 24px;
-  display: none;
+  display: grid;
   place-items: center;
   border: 1px solid #5a4830;
   border-radius: var(--ie-radius-sm);
@@ -1807,9 +1838,24 @@ img.ie-card-face { background: var(--ie-surface-2); }
 }
 .ie-mat-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 3px;
+  overflow: auto;
+  min-height: 0;
 }
+/* Collapsed is the default until the person opens the mat, so the 212 px row
+   below the map is spent on the hand, not on a second copy of the numbers. */
+.ie-mat[data-collapsed="true"] .ie-mat-grid,
+.ie-mat[data-collapsed="true"] .ie-mat-slots,
+.ie-mat[data-collapsed="true"] .ie-mat-display { display: none; }
+/* The strip is one key per line: label on the left, number on the right. */
+.ie-mat-figure { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 6px; padding: 1px 6px; }
+.ie-mat-figure-label { max-width: 62%; font-size: var(--ie-font-xs); }
+.ie-mat-figure-value { font-size: var(--ie-font-sm); }
+.ie-mat-chips { display: none; flex-wrap: wrap; gap: 4px; font-size: var(--ie-font-xs); color: #c5b698; }
+.ie-mat-chips b { color: #f7e6bb; font-variant-numeric: tabular-nums; }
+.ie-mat[data-collapsed="true"] .ie-mat-chips { display: flex; }
+
 .ie-mat-figure {
   display: flex;
   flex-direction: column;
@@ -1826,9 +1872,12 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-mat-figure-value small { font-size: var(--ie-font-xs); color: #a99678; }
 .ie-mat-link { cursor: pointer; }
 .ie-mat-slots { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ie-mat-slot { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: var(--ie-font-xs); }
+.ie-mat-slot { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: var(--ie-font-sm); }
 .ie-mat-slot-label { flex: 0 0 auto; color: #a99678; }
 .ie-mat-slot-value { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #eadfc8; }
+/* The counts beside a slot ("0/2", "+1") inherit the text size: the browser
+   default for <small> is 83%, which lands under the 12 px floor. */
+.ie-mat-slot-value small { font-size: inherit; }
 .ie-mat-slot-value.empty, .ie-mat-slot-value .empty { color: #7a6a52; font-style: italic; }
 .ie-mat-chain-card, .ie-mat-goal {
   padding: 0 5px;
@@ -1868,21 +1917,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-table .ie-tray-body { min-height: 0; }
 
 /* ---------------------------------------------------------------- reference drawer + lightbox */
-.ie-ref-open {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-  z-index: 30;
-  min-height: 44px;
-  padding: 4px 12px;
-  border: 1px solid var(--ie-accent);
-  border-radius: 999px;
-  background: rgba(44, 36, 29, .95);
-  color: #f5e6c2;
-  font-size: var(--ie-font-xs);
-  cursor: pointer;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .5);
-}
+
 .ie-ref-drawer {
   position: fixed;
   top: 0;
@@ -1897,6 +1932,10 @@ img.ie-card-face { background: var(--ie-surface-2); }
   color: #eadfc8;
   box-shadow: -12px 0 32px rgba(0, 0, 0, .6);
 }
+/* `display: flex` above would otherwise win over the UA rule for `[hidden]`,
+   leaving the closed drawer on top of the seat strip and the map's right
+   edge.  Keep the drawer out of the page entirely while it is closed. */
+.ie-ref-drawer[hidden] { display: none; }
 .ie-ref-head {
   display: flex;
   align-items: center;
@@ -1936,7 +1975,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
 
 /* ---------------------------------------------------------------- responsive: 900-1099 */
 @media (max-width: 1099px) {
-  .ie-table { grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "map turn" "mat hand"; }
+  .ie-table { grid-template-columns: 132px minmax(0, 1fr) 300px; grid-template-areas: "mat map turn" "hand hand turn"; }
   .ie-mat { grid-area: mat; }
   .ie-mat-grid, .ie-mat-slots, .ie-mat-display { display: none; }
   .ie-mat-toggle { display: grid; }
@@ -1980,16 +2019,22 @@ img.ie-card-face { background: var(--ie-surface-2); }
     flex-direction: column;
     gap: 4px;
   }
-  .ie-map-region { flex: 1 1 auto; min-height: 0; }
+  /* One layout for the phone: the map keeps the space between the strip and
+     the sheet, the sheet grows from its peek bar, the turn panel keeps its
+     own row at the bottom. */
+  .ie-map-region { order: 1; flex: 1 1 auto; min-height: 0; }
   .ie-turn-panel { order: 3; flex: 0 0 auto; max-height: 46dvh; }
   .ie-mat, .ie-private-info { display: none; }
   .ie-table .ie-hand-tray {
     order: 2;
     position: relative;
     flex: 0 0 auto;
+    bottom: auto;
+    z-index: auto;
     max-height: none;
   }
-  .ie-table .ie-hand-tray[data-open="true"] { height: 54dvh; }
+  .ie-table .ie-hand-tray[data-open="true"] { height: 40dvh; }
+  .ie-table .ie-hand-tray[data-open="true"][data-expanded="true"] { height: calc(100dvh - 140px); }
   .ie-table .ie-hand-tray[data-open="false"] { height: 44px; }
   .ie-table .ie-hand-tray[data-open="false"] .ie-tray-head { min-height: 44px; }
   .ie-mat-toggle { display: grid; }
@@ -2003,8 +2048,11 @@ img.ie-card-face { background: var(--ie-surface-2); }
 }
 
 /* Hand tray: type icon, playability line, filter/sort, hover enlargement. */
-.ie-hand-tools { display: flex; gap: 6px; align-items: center; margin-left: auto; }
-.ie-hand-tool { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ie-font-xs); color: #a99678; }
+.ie-hand-tools { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: nowrap; min-width: 0; }
+/* One line per control: the tray head is 40 px and the hand column is narrow,
+   so a wrapped label ("筛 / 选") ate a card row and pushed the card faces and
+   their action buttons out of the visible tray. */
+.ie-hand-tool { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ie-font-xs); color: #a99678; white-space: nowrap; flex: 0 0 auto; }
 .ie-hand-tool .ie-select { min-height: 28px; padding: 2px 4px; }
 .ie-card { position: relative; }
 .ie-card-type {
@@ -2020,7 +2068,8 @@ img.ie-card-face { background: var(--ie-surface-2); }
   border-radius: var(--ie-radius-sm);
   background: rgba(36, 29, 23, .92);
   color: var(--ie-accent-soft);
-  font-size: 11px;
+  /* 12 px floor: the audit catches body text under that size. */
+  font-size: var(--ie-font-xs);
   line-height: 1;
   pointer-events: none;
 }

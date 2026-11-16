@@ -36,7 +36,8 @@ interface Figure {
 }
 
 export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference}: PlayerMatProps) => {
-  const [open, setOpen] = React.useState(false);
+  // Phones collapse the mat to its chip row; desktop shows the numbers.
+  const [open, setOpen] = React.useState(() => typeof window === "undefined" || window.innerWidth >= 768);
   if (!viewer || !me) return null;
 
 

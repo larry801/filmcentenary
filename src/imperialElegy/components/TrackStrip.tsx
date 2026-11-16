@@ -17,7 +17,6 @@ import {ieT} from "./i18n";
 import {bi, controlLabel, PHASE_LABEL} from "./boardHelpers";
 import {phaseSteps, type PhaseStep} from "./phaseSteps";
 import type {PhaseAction} from "./PhaseActions";
-import {PhaseActions} from "./PhaseActions";
 import {useRovingTabs} from "./useRovingTabs";
 
 export interface TrackStripProps {
@@ -30,7 +29,6 @@ export interface TrackStripProps {
   /** CP left for the acting seat; a spectator sees the public wallet. */
   cp: number;
   cpBudget: () => number;
-  phaseActions: PhaseAction[];
   locale: "en" | "zh_CN";
   t: ReturnType<typeof ieT>;
   menu?: React.ReactNode;
@@ -61,7 +59,7 @@ const ALLIANCE_MARKERS: readonly {box: string; short: string; title: string; tit
 ];
 
 export const TrackStrip = ({
-  G, viewer, active, phase, war, gw, cp, cpBudget, phaseActions, locale, t,
+  G, viewer, active, phase, war, gw, cp, cpBudget, locale, t,
   menu, status, notice, onOpenReference,
 }: TrackStripProps) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
@@ -105,10 +103,6 @@ export const TrackStrip = ({
         roving={roving}
         onOpenReference={(anchor) => onOpenReference?.(anchor)}
       />
-
-      <div className="ie-track-actions">
-        <PhaseActions title={t.yourTurnActions} locale={locale} actions={phaseActions}/>
-      </div>
 
       <div className="ie-track-status">
         <span
@@ -216,7 +210,12 @@ export const PhaseStepper = ({steps, locale, label, roving, onOpenReference}: {
   roving: (key: string) => {ref: (node: HTMLButtonElement | null) => void; tabIndex: number; onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void};
   onOpenReference: (anchor: string) => void;
 }) => (
-  <div className="ie-stepper" role="tablist" aria-label={label} data-testid="ie-stepper">
+  // Not a tablist: the strip already has one (the seat strip uses role="tab"
+  // with "P1 · GE"), and two tab roles on one page make `role=tab` ambiguous.
+  // The stepper is a group of buttons that mark the current step with
+  // aria-current, which is what a reader needs anyway (it opens a reference,
+  // not a panel).
+  <div className="ie-stepper" role="group" aria-label={label} data-testid="ie-stepper">
     {steps.map((step, index) => {
       const done = !step.current && steps.findIndex((candidate) => candidate.current) > index;
       return (
@@ -224,8 +223,7 @@ export const PhaseStepper = ({steps, locale, label, roving, onOpenReference}: {
           {index > 0 && <span className="ie-stepper-sep" aria-hidden="true">{step.kind === "war" || step.kind === "gw" ? "›" : "▸"}</span>}
           <button
             type="button"
-            role="tab"
-            aria-selected={step.current ? "true" : "false"}
+            aria-pressed={step.current ? "true" : "false"}
             aria-current={step.current ? "step" : undefined}
             className={`ie-step${step.current ? " current" : ""}${done ? " done" : ""}`}
             data-testid={`ie-step-${step.key.replace(/[^a-z0-9]+/gi, "-")}`}
