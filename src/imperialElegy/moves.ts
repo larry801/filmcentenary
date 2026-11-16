@@ -547,11 +547,46 @@ export const canPassNow = (G: ImperialElegyState, power: Power): boolean => {
   });
 };
 
+/**
+ * True when the seat has already used this impulse: a card was played (the flag
+ * `playCard` sets), CP are banked from that card or from a CP chain, or the
+ * chain impulse is running.  12.0's zero-or-one-card condition only decides
+ * whether an *unused* impulse may be skipped; a seat that has acted is simply
+ * finishing what it started, so its hand no longer restricts the exit.
+ *
+ * Fixtures that bank CP without going through `playCard` still count as having
+ * acted, which is why `cpRemaining` is part of the signal.
+ */
+export const hasActedThisImpulse = (G: ImperialElegyState, power: Power): boolean =>
+  G.powers[power].flags.actionCpSpentThisImpulse === true
+  || G.cpRemaining > 0
+  || G.flags.cpChainActive === true;
+
+/**
+ * The single way out of an action impulse (12.0 + 4.5).
+ *
+ * 12.0 lists three things a player may do in an impulse — spend a card for CP,
+ * play its event, or pass — and there is no fourth "end my impulse" action.
+ * Both outcomes therefore come through this move:
+ *
+ *  - **used impulse** (a card was played or CP remain): the remaining CP are
+ *    forfeited and the impulse hands over.  No pass is recorded, so the seat is
+ *    not treated as having dropped out of the action phase.
+ *  - **unused impulse** (`hasActedThisImpulse` false): this is 12.0's pass, and
+ *    the hand must satisfy `canPassNow` — zero or one card (two for the UK),
+ *    no home card and no mandatory event.  The pass is recorded so the
+ *    consecutive-pass counter can end the action phase.
+ */
 export const pass = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.phase !== "action") return INVALID_MOVE;
+  if (hasActedThisImpulse(G, power)) {
+    G.cpRemaining = 0;
+    finishImpulse(G, ctx);
+    return undefined;
+  }
   if (!canPassNow(G, power)) return INVALID_MOVE;
   if (!G.passed.includes(power)) G.passed.push(power);
   addLog(G, power, "passed", {});
@@ -562,16 +597,6 @@ export const pass = (G: ImperialElegyState, ctx: Ctx): string | void => {
 export const debugMove = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   G.flags.debug = String(playerID);
-  return undefined;
-};
-
-export const endImpulse = (G: ImperialElegyState, ctx: Ctx): string | void => {
-  const playerID = ctx.playerID ?? null;
-  const power = requireActive(G, ctx, playerID);
-  if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (G.pending !== null) return INVALID_MOVE;
-  G.cpRemaining = 0;
-  finishImpulse(G, ctx);
   return undefined;
 };
 

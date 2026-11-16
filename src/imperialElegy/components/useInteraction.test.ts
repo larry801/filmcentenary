@@ -3,7 +3,9 @@ import {
   interactionPrompt,
   interactionReducer,
   Interaction,
+  intentsAt,
   isTargeting,
+  submitNow,
   TargetIntent,
 } from "./useInteraction";
 
@@ -153,5 +155,72 @@ describe("interaction state machine", () => {
       expect(interactionPrompt(intent, "en")).toBe(PROMPTS[intent].en);
       expect(interactionPrompt(intent, "zh_CN")).toBe(PROMPTS[intent].zh_CN);
     }
+  });
+});
+
+describe("soft targeting and the intent chooser", () => {
+  const soft = (): Interaction => interactionReducer(initialInteraction, {
+    type: "beginTargeting",
+    intent: "gwMarch",
+    from: "berlin",
+    sources: ["u1"],
+    targets: ["saxony", "silesia"],
+    soft: true,
+    // Two intents at one destination: a Great War land unit can march or rail.
+    byTarget: {saxony: ["gwMarch"], silesia: ["gwMarch", "gwRail"]},
+  });
+
+  test("is marked soft and keeps its per-target intents", () => {
+    const state = soft();
+    if (!isTargeting(state)) throw new Error("expected targeting");
+    expect(state.soft).toBe(true);
+    expect(intentsAt(state, "saxony")).toEqual(["gwMarch"]);
+    expect(intentsAt(state, "silesia")).toEqual(["gwMarch", "gwRail"]);
+    expect(intentsAt(state, "paris")).toEqual(["gwMarch"]);
+  });
+
+  test("one intent submits on the click", () => {
+    const state = soft();
+    if (!isTargeting(state)) throw new Error("expected targeting");
+    expect(submitNow(state, "saxony")).toBe("gwMarch");
+    expect(submitNow(state, "paris")).toBeNull();
+  });
+
+  test("two intents ask first: the click opens the chooser and spends nothing", () => {
+    const state = soft();
+    if (!isTargeting(state)) throw new Error("expected targeting");
+    expect(submitNow(state, "silesia")).toBeNull();
+    const choosing = interactionReducer(state, {type: "choose", space: "silesia"});
+    if (!isTargeting(choosing)) throw new Error("expected targeting");
+    expect(choosing.choosing).toBe("silesia");
+    // Still targeting: no commit, no CP.
+    expect(choosing.kind).toBe("targeting");
+    // The still-open chooser submits its chosen intent on the next click.
+    expect(submitNow(choosing, "silesia")).toBe("gwMarch");
+  });
+
+  test("a chooser on a non-target is a no-op", () => {
+    const state = soft();
+    expect(interactionReducer(state, {type: "choose", space: "paris"})).toBe(state);
+  });
+
+  test("an armed targeting miss is ignored, a soft miss cancels", () => {
+    const armed = begin("landBattle", "berlin", ["vienna"]);
+    // The reducer cannot know about misses (the board decides), but it must
+    // keep the mode intact so the board can ignore the click.
+    if (!isTargeting(armed)) throw new Error("expected targeting");
+    expect(armed.soft).toBeUndefined();
+    const state = soft();
+    if (!isTargeting(state)) throw new Error("expected targeting");
+    // The board implements the soft miss as cancel + select; the reducer's
+    // cancel returns to the source so the next click selects normally.
+    const cancelled = interactionReducer(state, {type: "cancel"});
+    expect(cancelled).toEqual({kind: "space", space: "berlin"});
+  });
+
+  test("commit leaves targeting for the clicked space", () => {
+    const state = soft();
+    const committed = interactionReducer(state, {type: "commit", space: "saxony"});
+    expect(committed).toEqual({kind: "space", space: "saxony"});
   });
 });

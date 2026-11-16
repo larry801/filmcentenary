@@ -19,12 +19,28 @@ jest.mock("./map", () => {
       "data-testid": "ie-map",
       "data-move": (props.moveTargets ?? []).join(","),
       "data-battle": (props.battleTargets ?? []).join(","),
-      "data-legal": (props.legalTargets ?? []).join(","),
+      "data-legal": (props.targets ?? []).map((target: {id: string}) => target.id).join(","),
     }),
   };
 });
 
-import {ImperialElegyBoard} from "./board";
+import {useBoardModel} from "./useBoardModel";
+import {BoardLayout} from "./BoardLayout";
+import {ieStringsOf, setPanelLocale} from "./panelLocale";
+
+/**
+ * Whole-hook board for static markup: the five `useContext` hooks the board
+ * reads are not part of React's identity, so calling the hook from a renderer
+ * is safe, and the layout regions are the same components the host renders.
+ */
+// The suite runs the zh_CN UI: pin the locale and hand the board the real
+// sentence table, so every assertion below is unambiguous.
+const Board = (props: Parameters<typeof useBoardModel>[0]) => {
+  setPanelLocale("zh_CN");
+  // `injectedUi` on the props wins: the decade test asks for English.
+  const model = useBoardModel({...props, injectedUi: props.injectedUi ?? {i18n: ieStringsOf("zh_CN")}});
+  return React.createElement(BoardLayout, {model});
+};
 import {PendingPanel, TargetDock} from "./PendingPanel";
 import {DecisionDock} from "./DecisionDock";
 import {PhaseActions} from "./PhaseActions";
@@ -83,7 +99,7 @@ const greatWarState = (
 });
 
 const html = (G: ImperialElegyState, playerID: string | null): string =>
-  renderToStaticMarkup(React.createElement(ImperialElegyBoard, {
+  renderToStaticMarkup(React.createElement(Board, {
     G,
     ctx: testCtx,
     moves: {},
@@ -167,6 +183,7 @@ describe("Imperial Elegy board controls", () => {
     expect(buttonTag(belligerent, "ie-surrender")).toBe("");
     expect(buttonTag(html(G, "2"), "ie-surrender")).not.toBe("");
     // 16.2: the war panel shows human treaty labels, never the stored keys.
+    // This suite renders the zh_CN UI, so the printed Chinese label is expected.
     expect(belligerent).toContain("领土割让");
     expect(belligerent).toContain("战争赔款");
     expect(belligerent).not.toContain("territorialCession");
@@ -411,13 +428,17 @@ describe("Imperial Elegy board controls", () => {
       createdAt: 1,
     };
     const markup = html(G, "0");
-    const dock = markup.indexOf("data-testid=\"ie-dock\"");
-    const layout = markup.indexOf("class=\"ie-layout\"");
-    expect(dock).toBeGreaterThan(-1);
-    expect(layout).toBeGreaterThan(dock);
-    // The dock keeps its own copy of the decision controls and a collapse toggle.
+    // The turn panel *is* a cell of the table now, so the decision lives
+    // inside the Orders body rather than in a bar above the board.
+    const orders = markup.indexOf("data-testid=\"ie-turn-panel-action\"");
+    const option = markup.indexOf("data-testid=\"ie-pending-option-berlin\"");
+    expect(orders).toBeGreaterThan(-1);
+    expect(option).toBeGreaterThan(orders);
+    // The turn panel replaces its Orders body with the decision, so it can
+    // never cover a map target; the old collapse toggle is gone.
     expect(markup).toContain("data-testid=\"ie-pending-option-berlin\"");
-    expect(markup).toContain("data-testid=\"ie-dock-toggle\"");
+    expect(markup).not.toContain("data-testid=\"ie-dock-toggle\"");
+    expect(markup).toContain("data-testid=\"ie-turn-panel-action\"");
   });
 
   test("the dock is the control bar for the active seat and is absent for a spectator", () => {
@@ -427,26 +448,51 @@ describe("Imperial Elegy board controls", () => {
     expect(active).toContain("data-testid=\"ie-dock\"");
     expect(active).toContain("data-testid=\"ie-phase-actions\"");
 
+    // A spectator keeps the panel (orders explain why nothing may be done,
+    // and the log works) but never gets a private action control.
     const spectator = html(freshGame(), null);
-    expect(spectator).not.toContain("data-testid=\"ie-dock\"");
+    expect(spectator).toContain("data-testid=\"ie-dock\"");
+    expect(spectator).toContain("data-testid=\"ie-turn-panel-log\"");
+    expect(spectator).not.toContain("data-testid=\"ie-mpit-controls\"");
   });
 
   test("the phase buttons render in the dock bar, not the hand panel header", () => {
     const G = freshGame();
     G.phase = "action";
     G.activePower = "GE";
+    G.cpRemaining = 0;
     const markup = html(G, "0");
     const dock = markup.indexOf("data-testid=\"ie-dock\"");
-    const layout = markup.indexOf("class=\"ie-layout\"");
+    const layout = markup.indexOf("class=\"ie-table\"");
     expect(dock).toBeGreaterThan(-1);
+    // The phase buttons sit in the strip before the table; the turn panel's
+    // head repeats them so the acting seat never has to look up.
     expect(markup.indexOf("data-testid=\"ie-impulse-actions\"")).toBeLessThan(layout);
-    // Pass and end-impulse are the two action-phase buttons.
+    expect(markup.indexOf("data-testid=\"ie-impulse-actions\"", layout)).toBeGreaterThan(layout);
+    // 12.0 has one exit, not two: the dock shows a single button whose label
+    // follows the impulse state, and the separate end-impulse button is gone.
     expect(buttonTag(markup, "ie-pass")).toContain("停牌");
-    expect(buttonTag(markup, "ie-end-impulse")).toContain("结束行动轮");
+    expect(markup).not.toContain("ie-end-impulse");
     expect(markup).not.toContain("ie-hand-panel-actions");
   });
 
-  test("a collapsed dock keeps the summary and phase buttons but hides the body", () => {
+  test("the single exit is relabelled once the seat has acted", () => {
+    const G = freshGame();
+    G.phase = "action";
+    G.activePower = "GE";
+    // A fresh impulse (no CP banked, no card played) reads as 停牌 …
+    G.cpRemaining = 0;
+    expect(buttonTag(html(G, "0"), "ie-pass")).toContain("停牌");
+
+    // … and a used one (a card was played) reads as 结束行动轮.
+    G.cpRemaining = 1;
+    G.powers.GE.flags.actionCpSpentThisImpulse = true;
+    const used = buttonTag(html(G, "0"), "ie-pass");
+    expect(used).toContain("结束行动轮");
+    expect(used).not.toContain("disabled");
+  });
+
+  test("a collapsed DecisionDock keeps the summary and phase buttons but hides the body", () => {
     const summary = "你的行动轮 · 剩余 3 CP";
     const open = renderToStaticMarkup(React.createElement(DecisionDock, {
       summary,
@@ -483,7 +529,7 @@ describe("Imperial Elegy board controls", () => {
     expect(collapsed).not.toContain("data-testid=\"ie-dock-child\"");
   });
 
-  test("a pending decision keeps its options when the dock is expanded", () => {
+  test("a pending decision keeps its options in the turn panel", () => {
     const G = freshGame();
     G.pending = {
       id: "d-expanded",
@@ -496,7 +542,7 @@ describe("Imperial Elegy board controls", () => {
     const markup = html(G, "0");
     expect(markup).toContain("data-testid=\"ie-dock\"");
     expect(markup).toContain("data-testid=\"ie-pending-option-berlin\"");
-    expect(markup).toContain("data-testid=\"ie-dock-toggle\"");
+    expect(markup).toContain("data-testid=\"ie-turn-tab-action\"");
   });
 
   test("the target instruction strip renders the prompt and a cancel button", () => {
@@ -517,11 +563,11 @@ describe("Imperial Elegy board controls", () => {
     G.phase = "diplomacy";
     G.activePower = "GE";
     const markup = html(G, "0");
-    const dock = markup.indexOf("data-testid=\"ie-dock\"");
-    const layout = markup.indexOf("class=\"ie-layout\"");
-    expect(dock).toBeGreaterThan(-1);
-    expect(layout).toBeGreaterThan(dock);
-    expect(markup.indexOf("data-testid=\"ie-home-card-choice\"")).toBeLessThan(layout);
+    // The required card choice sits in the Orders body of the turn panel, so
+    // it is visible without covering the map.
+    const orders = markup.indexOf("data-testid=\"ie-turn-panel-action\"");
+    expect(orders).toBeGreaterThan(-1);
+    expect(markup.indexOf("data-testid=\"ie-home-card-choice\"")).toBeGreaterThan(orders);
     // The hand panel only points at the dock instead of duplicating the buttons.
     expect(markup).toContain("data-testid=\"ie-hand-choices-hint\"");
     expect(markup.match(/data-testid="ie-home-card-choice"/g)).toHaveLength(1);
@@ -629,7 +675,7 @@ describe("Imperial Elegy board controls", () => {
     for (const playerID of ["1", null]) {
       const markup = html(G, playerID);
       expect(markup).not.toContain("data-testid=\"ie-pending-cards\"");
-      const dock = markup.slice(markup.indexOf("data-testid=\"ie-dock\""), markup.indexOf("class=\"ie-layout\""));
+      const dock = markup.slice(markup.indexOf("data-testid=\"ie-dock\""), markup.indexOf("class=\"ie-table\""));
       expect(dock).not.toContain(`data-card-id="${card.id}"`);
       expect(dock).not.toContain(card.titleZh);
     }
@@ -655,10 +701,10 @@ describe("Imperial Elegy board controls", () => {
     G.phase = "end";
     G.powers.GE.flags.ngChoices = "G1,G2,G3";
     const markup = html(G, "0");
-    const layout = markup.indexOf("class=\"ie-layout\"");
+    const orders = markup.indexOf("data-testid=\"ie-turn-panel-action\"");
     const choice = markup.indexOf("data-testid=\"ie-goal-choice\"");
     expect(choice).toBeGreaterThan(-1);
-    expect(choice).toBeLessThan(layout);
+    expect(choice).toBeGreaterThan(orders);
     expect(markup.match(/data-testid="ie-goal-choice"/g)).toHaveLength(1);
   });
 
@@ -740,7 +786,7 @@ describe("Imperial Elegy board controls", () => {
     const markup = html(G, "0");
     // Giving a card is optional, so it must not take over the pinned dock.
     expect(markup).toContain("data-testid=\"ie-give-card\"");
-    const layout = markup.indexOf("class=\"ie-layout\"");
+    const layout = markup.indexOf("class=\"ie-table\"");
     expect(markup.indexOf("data-testid=\"ie-give-card\"")).toBeGreaterThan(layout);
     // It carries the same "optional" tag and skip hint as the stability discard.
     expect(markup).toContain(`data-testid="ie-give-card-optional"`);
@@ -759,15 +805,17 @@ describe("Imperial Elegy board controls", () => {
 });
 
 describe("Imperial Elegy decade header", () => {
+  // The decade moved from the board header into the track strip's second
+  // line (`<span class="ie-track-decade-label ie-sub">…</span>`).
   const header = (markup: string): string =>
-    markup.match(/<div class="ie-sub">([^<]*)<\/div>/)?.[1] ?? "";
+    markup.match(/class="ie-track-decade-label ie-sub">([^<]*)</)?.[1] ?? "";
 
   afterEach(async () => {
     await i18n.locale("zh_CN");
   });
 
   test("localizes the 1860s and 1910s values instead of printing the raw decade", async () => {
-    for (const [decade, zh] of [["1860s", "1860 年代"], ["1910s", "1910 年代"]] as const) {
+    for (const [decade, zh] of [["1860s", "1860年代"], ["1910s", "1910年代"]] as const) {
       const G = freshGame();
       G.decade = decade;
 
@@ -775,12 +823,14 @@ describe("Imperial Elegy decade header", () => {
       expect(chinese).toContain(zh);
       expect(chinese).not.toContain(decade);
 
-      await i18n.locale("en");
-      const english = header(html(G, "0"));
+      // The English side: the board reads the module's locale unless a suite
+      // pins one, so render through a wrapper that says "en" for this step.
+      const english = header(renderToStaticMarkup(React.createElement(Board, {
+        G, ctx: testCtx, moves: {}, playerID: "0",
+        injectedUi: {i18n: ieStringsOf("en"), locale: {current: "en"}},
+      } as never)));
       expect(english).toContain(decade);
       expect(english).not.toContain("年代");
-
-      await i18n.locale("zh_CN");
     }
   });
 });

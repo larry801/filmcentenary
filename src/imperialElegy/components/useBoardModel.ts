@@ -24,6 +24,8 @@ import i18n from "../../constant/i18n";
 import {
   BALANCE_OF_POWER_CARD,
   amphibiousAssaultCheck,
+  canPassNow,
+  hasActedThisImpulse,
   navalInterceptCheck,
   navalTransportCheck,
   responseCardEligibility,
@@ -72,8 +74,18 @@ import {BotSeatsContext} from "./botContext";
 import {SeatUiContext} from "./seatUiContext";
 import {useInteraction, interactionPrompt} from "./useInteraction";
 import {useCardFaceMode} from "./preferences";
+import {sliceModel, type BoardSlices} from "./boardSlices";
+import {resolveLocale} from "./modelValues";
+import type {MapTarget} from "./map";
+import {intentStyle, legalUnitTargets, type UnitIntent} from "./legalTargets";
+import {intentsAt, submitNow} from "./useInteraction";
+import type {InjectedUi, ModelValues} from "./modelValues";
+import {panelLocaleView} from "./panelLocale";
+import {BoardLayout} from "./BoardLayout";
 import {botMoveFor} from "../engine/bot";
 
+
+const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
 
 export interface BoardModelProps {
   G: ImperialElegyState;
@@ -81,12 +93,23 @@ export interface BoardModelProps {
   moves: Record<string, (...args: any[]) => void>;
   playerID: string | null;
   hotseat?: boolean;
+  /** boardgame.io state counter; a rejected move leaves it untouched. */
+  _stateID?: number;
+  /** False when the socket is down (remote play). */
+  isConnected?: boolean | null;
+  /** Test seam: a suite that stubs React hooks renders `BoardLayout` itself. */
+  injectedUi?: InjectedUi;
 }
 
-export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardModelProps) => {
+export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateID, isConnected = true, injectedUi}: BoardModelProps) => {
   i18n.use();
-  const t = ieT();
-  const actualLocale: "en" | "zh_CN" = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
+  const t = injectedUi?.i18n ?? ieT();
+  // A suite that stubs the i18n module publishes its locale through
+  // `panelLocale.ts`; production never sets it and the real locale wins.
+  const actualLocale = resolveLocale(
+    injectedUi?.locale !== undefined ? injectedUi : {...injectedUi, locale: panelLocaleView},
+    () => i18n.getLocaleName(),
+  );
   const decade = decadeLabel(G.decade as Decade);
   const viewer = playerID === null || playerID === undefined ? null : POWER_KEYS[Number(playerID)] ?? null;
 
@@ -116,6 +139,9 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
   const [auSacrifice, setAuSacrifice] = React.useState(false);
   const [tsrrUnitId, setTsrrUnitId] = React.useState<string>("");
   const [tsrrTo, setTsrrTo] = React.useState<string>("");
+  // 22.5(2): the Polish reserve army is optional, so it has its own opt-out.
+  // Keep this hook after `tsrrTo`: hook order is observable to the suites that
+  // stub `React.useState` positionally.
   const [polishReserve, setPolishReserve] = React.useState(true);
   const [gwTransferTo, setGwTransferTo] = React.useState<string>("");
   const [gwTransferAmount, setGwTransferAmount] = React.useState(1);
@@ -135,7 +161,7 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
   const [interceptPort, setInterceptPort] = React.useState<string>("");
   // A test/SSR renderer may mock useContext without a provider; the default
   // context value is equivalent to this fallback.
-  const seatUi = React.useContext(SeatUiContext) ?? {currentSeat: null};
+  const seatUi = React.useContext(SeatUiContext) ?? injectedUi?.seatUi ?? {currentSeat: null};
 
   React.useEffect(() => {
     // Only the visible seat reports to the shared strip.  Hidden boards keep
@@ -156,7 +182,7 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
   // Rule 34: a hotseat seat marked as a bot is driven by `botMoveFor` below and
   // is read-only for the person at the keyboard.  Every "may act" flag folds
   // this in, so no control on a bot seat can be clicked.
-  const botSeats = React.useContext(BotSeatsContext);
+  const botSeats = React.useContext(BotSeatsContext) ?? injectedUi?.botSeats ?? EMPTY_SEATS;
   const isBotViewer = hotseat && viewer !== null && botSeats.has(viewer);
   const pending = G.pending;
   const canDecide = pending !== null && viewer !== null && pending.power === viewer && !isBotViewer;
@@ -192,6 +218,14 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
   const forcedPassTitle = bi(actualLocale,
     "A card in hand forbids passing (The Dual Monarchy / Exhaustion). Play it for CP or its event first.",
     "手中有禁止停牌的牌（二元君主国 / 精疲力竭）。请先作为 CP 或事件打出。");
+  // 12.0 has no "end my impulse" action: one button finishes a used impulse and
+  // skips an unused one.  Only the unused case can be illegal — a hand that is
+  // too full, or holds a home card / mandatory event.
+  const actedThisImpulse = viewer !== null && hasActedThisImpulse(G, viewer);
+  const passBlocked = viewer !== null && phase === "action" && !actedThisImpulse && !canPassNow(G, viewer);
+  const passBlockedTitle = bi(actualLocale,
+    "Passing needs at most one card in hand (two for the UK), with no home card or mandatory event.",
+    "停牌需要手牌不超过 1 张（英国 2 张），且不能持有本国牌或强制事件。");
   const hasPhaseButtons = viewer !== null && !eliminated && ((phase === "prep" || phase === "diplomacy") ? canPhaseAct : phase === "action" ? isActive : phase === "end" ? canPhaseAct : false);
   // Buttons that end or continue the current phase step.  They belong in the
   // pinned dock with the pending decisions: both answer "what may I do now",
@@ -201,23 +235,26 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
       ? [{key: "finishPrep", label: t.finishPrep, testId: "ie-finish-prep", onClick: () => moves.finishPrep()}]
       : []),
     ...(phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard
-      ? [{key: "endDiplomacy", label: t.endDiplomacy, testId: "ie-end-diplomacy", onClick: () => moves.endDiplomacy()}]
+      // 6.0: once diplomacy ends there is no way back, so it confirms.
+      ? [{key: "endDiplomacy", label: t.endDiplomacy, testId: "ie-end-diplomacy", confirm: true, onClick: () => moves.endDiplomacy()}]
       : []),
     ...(phase === "action" && isActive && !eliminated
       ? [{
           key: "pass",
-          label: t.pass,
+          // 12.0: one move, two readings. A seat that has already acted is
+          // handing over a used impulse; a seat that has not is passing, and
+          // the hand restriction decides whether that is legal.
+          label: actedThisImpulse ? t.endImpulse : t.pass,
           testId: "ie-pass",
-          disabled: forcedPass,
-          title: forcedPass ? forcedPassTitle : undefined,
+          disabled: passBlocked,
+          title: forcedPass ? forcedPassTitle : passBlocked ? passBlockedTitle : undefined,
+          // 12.0: ending the impulse hands the turn over; undo does not exist.
+          confirm: true,
           onClick: () => moves.pass(),
         }]
       : []),
-    ...(phase === "action" && isActive && !eliminated
-      ? [{key: "endImpulse", label: t.endImpulse, testId: "ie-end-impulse", onClick: () => moves.endImpulse()}]
-      : []),
     ...(phase === "end" && canPhaseAct
-      ? [{key: "endPhaseTurn", label: t.continue, testId: "ie-end-phase-turn", onClick: () => moves.endPhaseTurn()}]
+      ? [{key: "endPhaseTurn", label: t.continue, testId: "ie-end-phase-turn", confirm: true, onClick: () => moves.endPhaseTurn()}]
       : []),
   ] : [];
 
@@ -510,7 +547,7 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
           // so the match can continue instead of spinning forever.
           botFailureRef.current = {key, state: stateKey, count};
           const escape: Record<string, string> = {
-            action: "endImpulse",
+            action: "pass",
             wartime: "passWarMove",
             prep: "finishPrep",
             diplomacy: "endDiplomacy",
@@ -582,15 +619,15 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
   const potentialLandTargets = enemyLandTargetsFrom(selected);
   const potentialNavalTargets = enemyNavalTargetsFrom(selected);
 
-  const unitMoveTargets: SpaceId[] = (() => {
-    if (!selectedUnitDef || !selectedUnitDef.space || viewer === null || !commandsSelected(selectedUnitDef)) return [];
-    return neighboursOf(selectedUnitDef.space).filter((id) => {
-      const state = G.spaces[id];
-      if (!state) return false;
-      if (selectedUnitDef.naval) return true;
-      return state.control === commandedOwner || state.occupiedBy === commandedOwner || friendlySpace(G, id, viewer) || (state.influence === viewer && state.control === null);
-    });
-  })();
+  // The legal destinations come from the engine's own predicates
+  // (`legalTargets.ts`), not from a neighbour heuristic: a ring means the
+  // engine will accept that move.
+  const unitIntents: Map<SpaceId, UnitIntent[]> = React.useMemo(() => {
+    if (!selectedUnitDef || !selectedUnitDef.space || viewer === null || !commandsSelected(selectedUnitDef)) return new Map();
+    return legalUnitTargets({G, power: viewer, unit: selectedUnitDef, phase});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [G, phase, viewer, selectedUnitDef]);
+  const unitMoveTargets: SpaceId[] = React.useMemo(() => [...unitIntents.keys()], [unitIntents]);
 
   const pendingSpaceTargets: SpaceId[] = canDecide && pending
     ? pending.options.filter((o) => SPACES[o.id]).map((o) => o.id as SpaceId)
@@ -613,21 +650,22 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
     }
   }, []);
 
-  const beginTargeting = React.useCallback((intent: Parameters<typeof interactionPrompt>[0], from: SpaceId, targets: SpaceId[], sources: string[] = []) => {
+  const beginTargeting = React.useRef<(intent: Parameters<typeof interactionPrompt>[0], from: SpaceId, targets: SpaceId[], sources?: string[]) => void>(() => {});
+  beginTargeting.current = (intent, from, targets, sources = []) => {
     dispatch({type: "beginTargeting", intent, from, sources, targets});
-  }, [dispatch]);
+  };
 
   /** SpacePanel's "in this space" buttons enter targeting; only these clicks
    *  (and never a plain map click) can start a CP-spending action. */
   const setBattleFrom = React.useRef<(id: SpaceId | null) => void>(() => {});
   setBattleFrom.current = (id: SpaceId | null) => {
     if (id === null) { dispatch({type: "cancel"}); return; }
-    beginTargeting("landBattle", id, enemyLandTargetsFrom(id));
+    beginTargeting.current("landBattle", id, enemyLandTargetsFrom(id));
   };
   const setNavalFrom = React.useRef<(id: SpaceId | null) => void>(() => {});
   setNavalFrom.current = (id: SpaceId | null) => {
     if (id === null) { dispatch({type: "cancel"}); return; }
-    beginTargeting("navalBattle", id, enemyNavalTargetsFrom(id));
+    beginTargeting.current("navalBattle", id, enemyNavalTargetsFrom(id));
   };
   const setSelectedUnit = React.useCallback((id: string | null) => {
     if (id === null) {
@@ -637,16 +675,52 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
     }
     if (selected !== null) dispatch({type: "selectUnit", space: selected, unit: id});
   }, [dispatch, interaction, selected]);
+  /**
+   * Soft targeting: selecting one of your own units auto-enters targeting when
+   * it has at least one legal destination.  The rings appear without a click,
+   * and — unlike an armed Orders button — a miss falls back to selecting the
+   * clicked space (never to a submission), so the map is forgiving.
+   */
+  const commandedForSoft = React.useMemo(() => {
+    if (viewer === null || interaction.kind !== "unit") return null;
+    const unit = G.units[interaction.unit];
+    if (unit === undefined || !commandsSelected(unit)) return null;
+    return unit;
+    // commandsSelected closes over the phase/G; the unit id is the trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [G, interaction, viewer, phase]);
+  React.useEffect(() => {
+    if (commandedForSoft === null || viewer === null) return;
+    const intents = legalUnitTargets({G, power: viewer, unit: commandedForSoft, phase});
+    if (intents.size === 0) return;
+    const byTarget: Record<SpaceId, Parameters<typeof interactionPrompt>[0][]> = {};
+    for (const [id, list] of intents) byTarget[id] = list;
+    const first = [...intents.values()][0];
+    dispatch({
+      type: "beginTargeting",
+      intent: first[0],
+      from: commandedForSoft.space ?? "",
+      sources: [commandedForSoft.id],
+      targets: [...intents.keys()],
+      soft: true,
+      byTarget,
+    });
+    // Only a new unit selection re-enters soft targeting; a re-render from G
+    // must not fight a cancel.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commandedForSoft?.id]);
+
 
   /**
    * Submit the pending targeting action.  This is the ONLY path that spends CP
    * from a map click; every other click just moves the selection.  An
    * out-of-target click is ignored instead of being treated as a confirmation.
    */
-  const submitTargeting = (target: SpaceId) => {
+  const submitTargeting = (target: SpaceId, override?: Parameters<typeof interactionPrompt>[0]) => {
     if (interaction.kind !== "targeting") return;
     if (!interaction.targets.includes(target)) return;
-    const {intent, from, sources} = interaction;
+    const {from, sources} = interaction;
+    const intent = override ?? (submitNow(interaction, target) ?? interaction.intent);
     const battleAllowed = phase === "gwManeuver"
       ? canAct && viewer !== null && gwActionAllowance(G, viewer, intent === "navalBattle" ? "naval" : "landBattle").ok
       : canSpend(1);
@@ -687,9 +761,33 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
     dispatch({type: "commit", space: target});
   };
 
+  const interactionIntents = (state: Extract<typeof interaction, {kind: "targeting"}>, space: SpaceId) =>
+    intentsAt(state, space);
+
+  /** Esc from the chooser: back to plain targeting, not out of the mode. */
+  const submitChooserCancel = () => {
+    if (interaction.kind === "targeting" && interaction.choosing !== undefined) {
+      dispatch({type: "beginTargeting", intent: interaction.intent, from: interaction.from,
+        sources: interaction.sources, targets: interaction.targets, soft: interaction.soft, byTarget: interaction.byTarget});
+    }
+  };
+
   const onSelectImpl = React.useRef<(id: SpaceId) => void>(() => {});
   onSelectImpl.current = (id: SpaceId) => {
     if (interaction.kind === "targeting") {
+      const isTarget = interaction.targets.includes(id);
+      if (!isTarget && interaction.soft === true) {
+        // A soft miss cancels the auto mode and selects what was clicked; a
+        // miss while armed is ignored exactly as before.
+        dispatch({type: "cancel"});
+        dispatch({type: "selectSpace", space: id});
+        return;
+      }
+      if (isTarget && submitNow(interaction, id) === null && interaction.choosing !== id) {
+        // Two intents at this destination: ask which one, and spend nothing.
+        dispatch({type: "choose", space: id});
+        return;
+      }
       submitTargeting(id);
       return;
     }
@@ -722,6 +820,14 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
           dispatch({type: "cancel"});
         }
         return;
+      }
+      if (interaction.kind === "targeting" && interaction.choosing !== undefined) {
+        // The chooser owns Escape while it is open.
+        if (event.key === "Escape" || event.key === "Esc") {
+          event.preventDefault();
+          submitChooserCancel();
+          return;
+        }
       }
       if ((event.key === "Enter" || event.key === "Return") && interaction.kind === "targeting" && interaction.targets.length === 1) {
         event.preventDefault();
@@ -1019,12 +1125,34 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
           ? bi(actualLocale, "Click a highlighted space to move the selected unit there.", "点击高亮空间移动所选单位。")
           : bi(actualLocale, "Click a space; select one of your units to see its legal moves.", "点击空间；选择己方单位以查看合法移动。");
 
-  const mapLegalTargets = targeting !== null && targeting.intent !== "landBattle" && targeting.intent !== "navalBattle"
-    ? targeting.targets
-    : pendingSpaceTargets;
-  const mapBattleTargets = targeting !== null && (targeting.intent === "landBattle" || targeting.intent === "navalBattle")
-    ? targeting.targets
-    : [];
+  // The map draws one ring per target with the style that explains it: an
+  // ordered targeting mode owns the map, and the pending decision's spaces
+  // stay visible underneath so a decision can always be answered by clicking.
+  const mapTargets: MapTarget[] = (() => {
+    const out: MapTarget[] = [];
+    const seen = new Set<SpaceId>();
+    const add = (id: SpaceId, style: MapTarget["style"]) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      out.push({id, style});
+    };
+    if (targeting !== null) {
+      for (const target of targeting.targets) {
+        add(target, targeting.intent === "landBattle" || targeting.intent === "navalBattle"
+          ? "attack"
+          : targeting.intent === "gwRail" ? "rail"
+            : targeting.intent === "gwMarch" ? "move"
+              : "choice");
+      }
+    }
+    // Soft targeting from a unit selection: one ring per legal destination,
+    // styled by what a click would try (a chooser point is gold).
+    for (const [id, list] of unitIntents) {
+      if (targeting === null || targeting.soft !== true) add(id, intentStyle(list));
+    }
+    for (const target of pendingSpaceTargets) add(target, "pending");
+    return out;
+  })();
   const isCurrentSeat = !hotseat || seatUi.currentSeat === viewer;
   const otherSeatPending = hotseat && isCurrentSeat && pending !== null && viewer !== null &&
     pending.power !== viewer && seatUi.onSwitchSeat !== undefined;
@@ -1038,10 +1166,38 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
     onChoose: (id: SpaceId) => submitTargeting(id),
   } : null;
 
-  return {
+  // The reference drawer is opened from the track strip, the mat and the
+  // menus; one stable callback keeps those regions free of their own state.
+  const [refAnchor, setRefAnchor] = React.useState<string | null>(null);
+  const onOpenReference = React.useCallback((anchor: string) => setRefAnchor(anchor), []);
+  // Phase 1: a rejected move has no engine message (boardgame.io answers a bare
+  // INVALID_MOVE), so the board explains it in a polite toast.
+  const [toast, setToast] = React.useState<ModelValues["toast"]>(null);
+  const dismissToast = React.useCallback(() => setToast(null), []);
+  // The model does not raise toasts yet; fail-fast on the panel before the
+  // availability rows exist is handled by the toast in phase 1.
+  void setToast;
+
+  const raw = {
+    toast,
+    dismissToast,
     modePill,
-    mapLegalTargets,
-    mapBattleTargets,
+    mapLegalTargets: mapTargets.filter((target) => target.style === "pending").map((target) => target.id),
+    mapBattleTargets: mapTargets.filter((target) => target.style === "attack").map((target) => target.id),
+    mapTargets,
+    // The ring the map paints brightest: the chooser's destination, else the
+    // keyboard's focus, else nothing.
+    mapFocusedTarget: targeting !== null && targeting.choosing !== undefined ? targeting.choosing : null,
+    chooser: targeting !== null && targeting.choosing !== undefined
+      ? {
+          target: targeting.choosing,
+          targetLabel: spaceLabel(targeting.choosing, actualLocale),
+          intents: interactionIntents(targeting, targeting.choosing),
+          onChoose: (intent: Parameters<typeof interactionPrompt>[0]) => submitTargeting(targeting.choosing!, intent),
+          // Esc / "Cancel" closes the chooser and leaves the rings up.
+          onCancel: () => submitChooserCancel(),
+        }
+      : null,
     isCurrentSeat,
     otherSeatPending,
     G,
@@ -1084,6 +1240,9 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
     forcedCardIds,
     forcedGwCard,
     forcedPassTitle,
+    actedThisImpulse,
+    passBlocked,
+    passBlockedTitle,
     hasPhaseButtons,
     phaseActions,
     nationalActionPhase,
@@ -1322,7 +1481,46 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
     setInterceptPort,
     interaction,
     dispatch,
+    refAnchor,
+    setRefAnchor,
+  };
+  const values = raw as unknown as ModelValues;
+  // The hand slice keeps the tray's controlled three-position state under the
+  // names HandTray already uses; `trayOpen`/`trayExpanded` stay in the bag.
+  // The layout reads `locale`, while the hook's own bag only has
+  // `actualLocale`; the slices need the alias too, or a region that forwards
+  // it (the hand tray) silently falls back to English.
+  const withTray = {
+    ...values,
+    locale: values.actualLocale as "en" | "zh_CN",
+    open: trayOpen,
+    onToggleOpen: () => setTrayOpen((value) => !value),
+    expanded: trayExpanded,
+    onToggleExpanded: () => setTrayExpanded((value) => !value),
+  } as unknown as ModelValues;
+  return {
+    ...raw,
+    locale: values.actualLocale as "en" | "zh_CN",
+    ...sliceModel(withTray),
+    hand: sliceModel(withTray).hand,
+    onOpenReference,
+    toast,
+    dismissToast,
   };
 };
 
-export type BoardModel = ReturnType<typeof useBoardModel>;
+export type BoardModel = ReturnType<typeof useBoardModel> & BoardSlices;
+
+/** The board's props, with the test seam narrowed to production types. */
+export type BoardProps = Omit<BoardModelProps, "injectedUi">;
+
+/**
+ * The board with its hooks, for hosts that can run effects (local.tsx, online
+ * play).  It is `React.memo`ed on the props it reads so a parent re-render (the
+ * hotseat shell's snapshot update) cannot restart a bot's auto-submit timer.
+ */
+export const HostLayout = React.memo(({injectedUi: _injectedUi, ...props}: BoardModelProps & {injectedUi?: undefined}) => {
+  const model = useBoardModel(props);
+  return React.createElement(BoardLayout, {model});
+});
+

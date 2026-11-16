@@ -4,75 +4,35 @@
  * Every value comes from `BoardModel`; this file owns markup, CSS classes and
  * test ids so the rules/state logic can be tested without a renderer and the
  * layout can be changed without touching the rules wiring.
+ *
+ * The layout is split by region.  Each region takes exactly one slice of the
+ * model (`boardSlices.ts`) as plain props — never through React context, which
+ * four suites stub out:
+ *
+ *   core        shell: track strip, the map column, and what is mounted
+ *   interaction map selection and targeting
+ *   orders      the turn panel's Action tab
+ *   hand        the hand tray
+ *   war         the turn panel's War tab
+ *   reference   the reference drawer
+ *
+ * The board computes every tab's node once, so switching tabs never unmounts a
+ * panel the derived state or the bots' effects depend on.
  */
 import React from "react";
-import {Ctx} from "boardgame.io";
-import {ImperialElegyState, PendingOption, Power, POWERS, SpaceId, Unit} from "../types";
-import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
-import {POWER_DEFS} from "../constant/powers";
-import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey} from "../engine/rules";
-import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
-import {Decade} from "../constant/cards";
-import {cpChainResolution} from "../engine/economy";
-import {GOALS_BY_ID} from "../constant/goals";
-import {IEBadge, IEChip, IEPanel, IESurface} from "./theme";
-import {ieT} from "./i18n";
+import {ImperialElegyState, Power, SpaceId} from "../types";
+import {IEBadge, IESurface} from "./theme";
+import {bi, PHASE_LABEL} from "./boardHelpers";
 import {logText} from "./logText";
-import i18n from "../../constant/i18n";
-import {
-  BALANCE_OF_POWER_CARD,
-  amphibiousAssaultCheck,
-  navalInterceptCheck,
-  navalTransportCheck,
-  responseCardEligibility,
-} from "../moves";
-import {planNavalTransport} from "../engine/navalMovement";
-import {
-  AU_NATIONALITIES,
-  auIncorporateDecision,
-  auRightsDecision,
-  canGrantCitizenship,
-  isCwArmySpace,
-  jihadUse,
-  passRestriction,
-  superiorStaffWorkFreeDeploy,
-  TSRR_RAIL_ARMY_KINDS,
-  tsrrRail,
-} from "../engine/characteristics";
-import {polishController, polishRecruitDecision} from "../engine/poland";
-import {deployReserveLimit, isLoneMinorWar, loneMinorDefender, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
-import {polishReserveDeployer} from "../engine/poland";
-import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
-import {isIndependentItaly} from "../engine/greatWarFlow";
-import {gwActionAllowance} from "../engine/gwImpulse";
-import {treatyOptionLabel} from "../engine/treatyChoice";
-import {
-  POWER_KEYS,
-  amphibiousReasonText,
-  bi,
-  BATTLE_STAGE,
-  controlLabel,
-  interceptReasonText,
-  isPowerKey,
-  OPTION_ZH,
-  PHASE_LABEL,
-  pickActionTarget,
-  PROMPT_ZH,
-  powerOrMinorLabel,
-  responseReasonText,
-  transportReasonText,
-  unitLabel,
-} from "./boardHelpers";
 import {MapPanel} from "./MapPanel";
 import {SpacePanel} from "./SpacePanel";
 import {PendingPanel} from "./PendingPanel";
 import {HandChoices} from "./HandChoices";
-import {CardChoiceFace} from "./CardChoice";
-import {PhaseAction, PhaseActions} from "./PhaseActions";
 import {HandTray} from "./HandTray";
-import {CommandBar} from "./CommandBar";
-import {RailTabs} from "./RailTabs";
+import {TrackStrip} from "./TrackStrip";
+import {TurnPanel} from "./TurnPanel";
+import {PlayerMat} from "./PlayerMat";
+import {ReferenceDrawer} from "./ReferenceDrawer";
 import {SpaceOverlay} from "./SpaceOverlay";
 import {DashboardPanel} from "./DashboardPanel";
 import {MpitPanel} from "./MpitPanel";
@@ -81,9 +41,10 @@ import {AmphibiousPanel, NavalTransportPanel, NavalInterceptPanel} from "./Naval
 import {WarPanel} from "./WarPanel";
 import {GreatWarPanel} from "./GreatWarPanel";
 import {SeatAlert} from "./SeatStrip";
+import {IntentChooser} from "./IntentChooser";
 
 import type {BoardModel} from "./useBoardModel";
-
+import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
 
 const LogLine = React.memo(({entry, locale}: {entry: ImperialElegyState["log"][number]; locale: "en" | "zh_CN"}) => (
   <div><span className="t">T{entry.turn}</span>{logText(entry, locale)}</div>
@@ -93,292 +54,18 @@ export interface BoardLayoutProps {
   model: BoardModel;
 }
 
-export const BoardLayout = ({model}: BoardLayoutProps) => {
-  const {
-    otherSeatPending,
-    isCurrentSeat,
-    mapBattleTargets,
-    mapLegalTargets,
-    G,
-    ctx,
-    moves,
-    playerID,
-    hotseat,
-    modePill,
-    t,
-    actualLocale,
-    decade,
-    viewer,
-    selected,
-    selectedUnit,
-    targeting,
-    battleFrom,
-    navalFrom,
-    seatUi,
-    me,
-    phase,
-    active,
-    isActive,
-    eliminated,
-    botSeats,
-    isBotViewer,
-    pending,
-    canDecide,
-    war,
-    gw,
-    battle,
-    warWasActive,
-    warBelligerents,
-    isPrincipal,
-    isBelligerent,
-    cpBudget,
-    canAct,
-    canSpend,
-    canActionCard,
-    canPhaseAct,
-    forcedPass,
-    forcedCardIds,
-    forcedGwCard,
-    forcedPassTitle,
-    hasPhaseButtons,
-    phaseActions,
-    nationalActionPhase,
-    auRightsEligible,
-    auReformValue,
-    auReformDecision,
-    auCitizenEligible,
-    auCitizenValue,
-    auCitizenDecision,
-    auIncorporateCandidates,
-    auIncorporateEligible,
-    auIncorporateValue,
-    auIncorporate,
-    zouaveInPlay,
-    zouaveReason,
-    tsrrPhase,
-    tsrrArmies,
-    tsrrUnitValue,
-    tsrrFrom,
-    tsrrDestinations,
-    tsrrToValue,
-    tsrrDecision,
-    showNationalActions,
-    needsCp,
-    auReformReason,
-    auCitizenReason,
-    auIncorporateReason,
-    tsrrReason,
-    jihadDecision,
-    jihadReason,
-    polishOwner,
-    polishArmyDecision,
-    polishReserveDecision,
-    lastLog,
-    lastNavalBox,
-    lastNavalMover,
-    amphibiousVisible,
-    ownLoadedArmyAt,
-    amphibiousOrigins,
-    amphibiousFromValue,
-    amphibiousTargets,
-    amphibiousToValue,
-    amphibiousBox,
-    amphibiousArmies,
-    chosenAmphibiousArmies,
-    amphibiousArmyValue,
-    amphibiousCheck,
-    amphibiousPhaseOk,
-    amphibiousReason,
-    amphibiousCanGo,
-    toggleAmphibiousArmy,
-    transportVisible,
-    transportMajor,
-    transportOwns,
-    transportable,
-    transportOrigins,
-    transportFromValue,
-    transportLands,
-    transportLandValue,
-    transportFleet,
-    transportReachableFrom,
-    transportTargets,
-    transportToValue,
-    transportCheck,
-    transportPhaseOk,
-    transportReason,
-    transportCanGo,
-    adjacentPortsToBox,
-    ownAdjacentPorts,
-    interceptPorts,
-    interceptPortValue,
-    interceptCheck,
-    interceptReason,
-    interceptVisible,
-    botTimerRef,
-    botFailureRef,
-    selectedState,
-    selectedUnitDef,
-    commandedOwner,
-    commandsSelected,
-    ownUnitsInSelected,
-    ownLandInSelected,
-    ownNavalInSelected,
-    enemyLandTargetsFrom,
-    enemyNavalTargetsFrom,
-    potentialLandTargets,
-    potentialNavalTargets,
-    unitMoveTargets,
-    pendingSpaceTargets,
-    battleTargets,
-    myOnMapArmies,
-    myForts,
-    myMinorAllies,
-    hand,
-    handCounts,
-    goalCounts,
-    doAction,
-    beginTargeting,
-    setBattleFrom,
-    setNavalFrom,
-    setSelectedUnit,
-    submitTargeting,
-    onSelectImpl,
-    onSelect,
-    pendingKindLabels,
-    pendingKind,
-    pendingPrompt,
-    optionCardId,
-    optionLabel,
-    optionFace,
-    optionAction,
-    canDecline,
-    warStatusLabels,
-    warStatusLabel,
-    warAimLabel,
-    callableAllies,
-    warAllyValue,
-    callableMinors,
-    warMinorValue,
-    warBudgetRows,
-    warDefenderMinors,
-    minorMarkerRows,
-    warTargetControl,
-    targetControlledSpaces,
-    canDeclareWar,
-    gwOrderPowers,
-    gwBudgetOrder,
-    gwSlotLabel,
-    italyBox,
-    italySide,
-    italyBoxLabel,
-    italyShowing,
-    italyHow,
-    canGwDraft,
-    gwDeployRoom,
-    canGwDeployHere,
-    gwSideAllies,
-    gwTransferToValue,
-    gwTransferAmountValue,
-    canGwTransfer,
-    gwJointNavalAllies,
-    gwJointNavalUnitIds,
-    gwCardId,
-    gwCombatCardHeld,
-    gwCardAlreadyFaceup,
-    canGwReveal,
-    deployFree,
-    deployLimit,
-    deployRoom,
-    canDeployHere,
-    homeCardTitle,
-    saveList,
-    ngChoices,
-    giveCards,
-    giveCardValue,
-    responseInHand,
-    responseWindow,
-    chainInfo,
-    chainUsed,
-    chainNonEmpty,
-    chainReady,
-    chainSpendable,
-    chainCap,
-    chainDisabledReason,
-    targetingHint,
-    choicesProps,
-    choiceKinds,
-    dockChoices,
-    dockVisible,
-    dockSummary,
-    handChoicesHint,
-    mapHint,
-    board,
-    setBoard,
-    railTab,
-    setRailTab,
-    warAim,
-    setWarAim,
-    warCp,
-    setWarCp,
-    secondObjective,
-    setSecondObjective,
-    mpitTarget,
-    setMpitTarget,
-    mpitTrack,
-    setMpitTrack,
-    warAlly,
-    setWarAlly,
-    warMinor,
-    setWarMinor,
-    giveTarget,
-    setGiveTarget,
-    giveCardId,
-    setGiveCardId,
-    confirmSurrender,
-    setConfirmSurrender,
-    auReformTarget,
-    setAuReformTarget,
-    auCitizenTarget,
-    setAuCitizenTarget,
-    auIncorporateTarget,
-    setAuIncorporateTarget,
-    auSacrifice,
-    setAuSacrifice,
-    tsrrUnitId,
-    setTsrrUnitId,
-    tsrrTo,
-    setTsrrTo,
-    polishReserve,
-    setPolishReserve,
-    gwTransferTo,
-    setGwTransferTo,
-    gwTransferAmount,
-    setGwTransferAmount,
-    dockCollapsed,
-    setDockCollapsed,
-    trayOpen,
-    setTrayOpen,
-    trayExpanded,
-    setTrayExpanded,
-    cardFaceMode,
-    setCardFaceMode,
-    amphibiousFrom,
-    setAmphibiousFrom,
-    amphibiousTo,
-    setAmphibiousTo,
-    amphibiousUnitIds,
-    setAmphibiousUnitIds,
-    transportFrom,
-    setTransportFrom,
-    transportTo,
-    setTransportTo,
-    transportLand,
-    setTransportLand,
-    interceptPort,
-    setInterceptPort,
-    interaction,
-    dispatch,
-  } = model;
+export const BoardLayout = ({model}: BoardLayoutProps) => (
+  <IESurface className="ie-board">
+    <ShellRegion
+      core={model.core}
+      interaction={model.interaction}
+      orders={model.orders}
+      war={model.war}
+      hand={model.hand}
+      reference={model.reference}
+    />
+  </IESurface>
+);
 
 /** One-line entry that renders a bulky panel only after it is opened. */
 const MoreActions = ({label, testId, children}: {label: string; testId: string; children: React.ReactNode}) => {
@@ -444,19 +131,44 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
   </div>
 );
 
+// ---------------------------------------------------------------------------
+// Turn panel tabs
+// ---------------------------------------------------------------------------
 
-  const displayMenu = <DisplayMenu mode={cardFaceMode} setMode={setCardFaceMode} locale={actualLocale}/>;
+/** Action tab: the selected space and everything the player may do there. */
+export const OrdersRegion = (props: OrdersSlice) => {
+  const {
+    G, selected, selectedUnit, setSelectedUnit, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
+    viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
+    warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
+    targetControlledSpaces, warTargetControl, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
+    polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
+    polishArmyDecision, polishReserveDecision, myOnMapArmies, myForts, myMinorAllies, ownLandInSelected,
+    ownNavalInSelected, potentialLandTargets, potentialNavalTargets, selectedUnitDef, doAction, moves,
+    showNationalActions, zouaveInPlay, zouaveReason, auReformValue, setAuReformTarget, auReformDecision,
+    auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason, auSacrifice,
+    setAuSacrifice, auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate,
+    auIncorporateReason, tsrrArmies, tsrrUnitValue, setTsrrUnitId, tsrrDestinations, tsrrToValue,
+    setTsrrTo, tsrrDecision, tsrrReason, amphibiousVisible, amphibiousOrigins, amphibiousFromValue,
+    setAmphibiousFrom, amphibiousTargets, amphibiousToValue, setAmphibiousTo, amphibiousArmies,
+    amphibiousArmyValue, toggleAmphibiousArmy, amphibiousCanGo, amphibiousReason, amphibiousCheck,
+    transportVisible, transportOrigins, transportFromValue, setTransportFrom, transportLands,
+    transportLandValue, setTransportLand, transportTargets, transportToValue, setTransportTo,
+    transportFleet, transportCanGo, transportReason, interceptVisible, lastNavalBox, lastNavalMover,
+    interceptPorts, interceptPortValue, setInterceptPort, interceptCheck, interceptReason,
+    mpitTarget, setMpitTarget, mpitTrack, setMpitTrack,
+  } = props;
 
   const amphibiousNode = viewer !== null ? (
-    <AmphibiousPanel show G={G} viewer={viewer} locale={actualLocale} t={t}
+    <AmphibiousPanel show G={G} viewer={viewer} locale={locale} t={t}
       amphibiousOrigins={amphibiousOrigins} amphibiousFromValue={amphibiousFromValue} setAmphibiousFrom={setAmphibiousFrom}
       amphibiousTargets={amphibiousTargets} amphibiousToValue={amphibiousToValue} setAmphibiousTo={setAmphibiousTo}
       amphibiousArmies={amphibiousArmies} amphibiousArmyValue={amphibiousArmyValue} toggleAmphibiousArmy={toggleAmphibiousArmy}
-      amphibiousCanGo={amphibiousCanGo} amphibiousReason={amphibiousReason} amphibiousCheck={amphibiousCheck}
+      amphibiousCanGo={amphibiousCanGo} amphibiousReason={amphibiousReason} amphibiousCheck={amphibiousCheck as never}
       doAction={doAction} moves={moves}/>
   ) : null;
   const transportNode = viewer !== null ? (
-    <NavalTransportPanel show G={G} viewer={viewer} locale={actualLocale} t={t}
+    <NavalTransportPanel show G={G} viewer={viewer} locale={locale} t={t}
       transportOrigins={transportOrigins} transportFromValue={transportFromValue} setTransportFrom={setTransportFrom}
       transportLands={transportLands} transportLandValue={transportLandValue} setTransportLand={setTransportLand}
       transportTargets={transportTargets} transportToValue={transportToValue} setTransportTo={setTransportTo}
@@ -465,13 +177,13 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
   ) : null;
   const interceptNode = (
     <NavalInterceptPanel show lastNavalBox={lastNavalBox as SpaceId} lastNavalMover={lastNavalMover}
-      viewer={viewer} locale={actualLocale} t={t}
+      viewer={viewer} locale={locale} t={t}
       interceptPorts={interceptPorts} interceptPortValue={interceptPortValue} setInterceptPort={setInterceptPort}
-      interceptCheck={interceptCheck} interceptReason={interceptReason}
+      interceptCheck={interceptCheck as never} interceptReason={interceptReason}
       doAction={doAction} moves={moves}/>
   );
 
-  const actionRail = (
+  return (
     <>
       <SpacePanel
         G={G}
@@ -484,7 +196,7 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
         setNavalFrom={(id) => setNavalFrom.current(id)}
         viewer={viewer}
         me={me}
-        locale={actualLocale}
+        locale={locale}
         t={t}
         phase={phase}
         canAct={canAct}
@@ -528,25 +240,25 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
       <NationalActionsPanel
         show={showNationalActions && viewer !== null}
         viewer={viewer as Power}
-        locale={actualLocale}
+        locale={locale}
         t={t}
         cpBudget={cpBudget}
         zouaveInPlay={zouaveInPlay}
         zouaveReason={zouaveReason}
         auReformValue={auReformValue}
         setAuReformTarget={setAuReformTarget}
-        auReformDecision={auReformDecision}
+        auReformDecision={auReformDecision as never}
         auReformReason={auReformReason}
         auCitizenValue={auCitizenValue}
         setAuCitizenTarget={setAuCitizenTarget}
-        auCitizenDecision={auCitizenDecision}
+        auCitizenDecision={auCitizenDecision as never}
         auCitizenReason={auCitizenReason}
         auSacrifice={auSacrifice}
         setAuSacrifice={setAuSacrifice}
         auIncorporateCandidates={auIncorporateCandidates}
         auIncorporateValue={auIncorporateValue}
         setAuIncorporateTarget={setAuIncorporateTarget}
-        auIncorporate={auIncorporate}
+        auIncorporate={auIncorporate as never}
         auIncorporateReason={auIncorporateReason}
         tsrrArmies={tsrrArmies}
         tsrrUnitValue={tsrrUnitValue}
@@ -554,7 +266,7 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
         tsrrDestinations={tsrrDestinations}
         tsrrToValue={tsrrToValue}
         setTsrrTo={setTsrrTo}
-        tsrrDecision={tsrrDecision}
+        tsrrDecision={tsrrDecision as never}
         tsrrReason={tsrrReason}
         doAction={doAction}
         moves={moves}
@@ -567,19 +279,40 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
       {!(amphibiousVisible && viewer !== null && amphibiousOrigins.length > 0) &&
         !(transportVisible && viewer !== null && transportOrigins.length > 0) &&
         !interceptVisible && (amphibiousVisible || transportVisible) && (
-        <MoreActions label={bi(actualLocale, "More actions", "更多行动")} testId="ie-more-actions">
+        <MoreActions label={bi(locale, "More actions", "更多行动")} testId="ie-more-actions">
           {amphibiousVisible && viewer !== null && amphibiousNode}
           {transportVisible && viewer !== null && transportNode}
         </MoreActions>
       )}
+      {/* Rule 8: the influence matrix is a face-to-face choice, so it sits with
+          the actions that spend CP on it and not only in the reference drawer. */}
+      <div data-testid="ie-orders-mpit">
+        <MpitPanel
+          G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
+          mpitTarget={mpitTarget} setMpitTarget={setMpitTarget} mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
+          locale={locale} t={t} doAction={doAction} moves={moves}
+        />
+      </div>
     </>
   );
+};
 
-  const warRail = (
+/** War tab: the limited war (when there is one) and the Great War (when there is). */
+export const WarRegion = (props: WarSlice) => {
+  const {
+    war, G, viewer, me, active, phase, locale, t, warStatusLabel, warAimLabel, warBelligerents,
+    isPrincipal, isBelligerent, eliminated, pending, isActive, warBudgetRows, warDefenderMinors,
+    callableAllies, warAllyValue, setWarAlly, callableMinors, warMinorValue, setWarMinor,
+    confirmSurrender, setConfirmSurrender, doAction, moves, gw, gwBudgetOrder, gwSlotLabel,
+    italyShowing, italyBox, italyBoxLabel, italyHow, gwTransferToValue, setGwTransferTo,
+    gwTransferAmountValue, setGwTransferAmount, canGwTransfer, gwSideAllies, canGwReveal,
+    canGwDraft, canGwDeployHere, forcedGwCard, selected,
+  } = props;
+  return (
     <>
       {war && (
         <WarPanel
-          war={war} G={G} viewer={viewer} active={active} phase={phase} locale={actualLocale} t={t}
+          war={war} G={G} viewer={viewer} active={active} phase={phase} locale={locale} t={t}
           warStatusLabel={warStatusLabel} warAimLabel={warAimLabel} warBelligerents={warBelligerents}
           isPrincipal={isPrincipal} isBelligerent={isBelligerent} eliminated={eliminated} pending={pending}
           isActive={isActive} warBudgetRows={warBudgetRows} warDefenderMinors={warDefenderMinors}
@@ -591,10 +324,10 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
       )}
       {gw && (
         <GreatWarPanel
-          gw={gw} G={G} viewer={viewer} me={me} active={active} phase={phase} locale={actualLocale} t={t}
+          gw={gw} G={G} viewer={viewer} me={me} active={active} phase={phase} locale={locale} t={t}
           eliminated={eliminated} pending={pending} isActive={isActive} selected={selected}
           gwBudgetOrder={gwBudgetOrder} gwSlotLabel={gwSlotLabel} italyShowing={italyShowing}
-          italyBox={italyBox} italyBoxLabel={italyBoxLabel} italyHow={italyHow}
+          italyBox={italyBox as never} italyBoxLabel={italyBoxLabel} italyHow={italyHow}
           gwTransferToValue={gwTransferToValue} setGwTransferTo={setGwTransferTo}
           gwTransferAmountValue={gwTransferAmountValue} setGwTransferAmount={setGwTransferAmount}
           canGwTransfer={canGwTransfer} gwSideAllies={gwSideAllies} canGwReveal={canGwReveal}
@@ -602,11 +335,18 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
           doAction={doAction} moves={moves}
         />
       )}
-      {!war && !gw && <div className="ie-muted">{bi(actualLocale, "No war is in progress.", "当前没有进行中的战争。")}</div>}
+      {!war && !gw && <div className="ie-muted">{bi(locale, "No war is in progress.", "当前没有进行中的战争。")}</div>}
     </>
   );
+};
 
-  const referenceRail = (
+/** Reference drawer: the printed charts, the other powers and the log. */
+export const ReferenceRegion = (props: ReferenceSlice) => {
+  const {
+    G, viewer, active, locale, t, me, cpBudget, canAct, canSpend, mpitTarget, setMpitTarget,
+    mpitTrack, setMpitTrack, doAction, moves, handCounts, goalCounts, homeCardTitle, minorMarkerRows,
+  } = props;
+  return (
     <>
       <details className="ie-reference" open>
         <summary>{t.charts}</summary>
@@ -626,41 +366,59 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
           ))}
         </div>
       </details>
-      <DashboardPanel
-        G={G} active={active} viewer={viewer} locale={actualLocale} t={t}
-        handCounts={handCounts} goalCounts={goalCounts} homeCardTitle={homeCardTitle}
-        minorMarkerRows={minorMarkerRows as [string, number][]}
-      />
-      <MpitPanel
-        G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
-        mpitTarget={mpitTarget} setMpitTarget={setMpitTarget} mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
-        locale={actualLocale} t={t} doAction={doAction} moves={moves}
-      />
       <details className="ie-reference">
         <summary>{t.rulesCoverage}</summary>
-        <RulesReference locale={actualLocale}/>
+        <RulesReference locale={locale}/>
       </details>
-      <section className="ie-log-panel">
-        <h3>{t.log}</h3>
-        <div className="ie-log" data-testid="ie-log">
-          {G.log.slice(-80).reverse().map((entry) => <LogLine key={entry.id} entry={entry} locale={actualLocale}/>)}
-        </div>
-      </section>
     </>
   );
+};
+
+/** Hand region: the tray under the map. */
+/**
+ * The hand slice carries the tray's own state; the language does not live in
+ * it, so the board passes its own `locale`/`t` — otherwise every bilingual
+ * string in the tray (the CP-chain button, the give-card hint, the filter
+ * labels) silently fell back to English.
+ */
+export const HandRegion = (props: HandSlice & {locale: "en" | "zh_CN"; t: T}) => <HandTray {...props}/>;
+
+// ---------------------------------------------------------------------------
+// Shell
+// ---------------------------------------------------------------------------
+
+interface ShellProps {
+  core: CoreSlice;
+  interaction: InteractionSlice;
+  orders: OrdersSlice;
+  war: WarSlice;
+  hand: HandSlice;
+  reference: ReferenceSlice;
+}
+
+const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellProps) => {
+  const {
+    G, hotseat, t, locale, viewer, phase, active, botSeats, pending, battle, phaseActions,
+    otherSeatPending, seatUi, pendingPrompt, pendingKind, responseWindow, cardFaceMode,
+    setCardFaceMode, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
+    optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
+    moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor,
+  } = core;
+  const {selected, onSelect, modePill, mapTargets, mapFocusedTarget, chooser} = interaction;
+
+  const displayMenu = <DisplayMenu mode={cardFaceMode} setMode={setCardFaceMode} locale={locale}/>;
 
   const commandStatus = (
     <div className="ie-status">
-      <div className="ie-sub">{t.subtitle} · {t.turn} {G.turn} · {bi(actualLocale, decade.en, decade.zh)}</div>
       <IEBadge tone={G.wtt >= 4 ? "warn" : "default"}>{t.wtt}: {G.wtt}/5</IEBadge>
       {G.gw?.active && <IEBadge tone="warn">GW {G.gw.turn}</IEBadge>}
-      {battle && <IEBadge tone="warn">{bi(actualLocale, battle.kind === "naval" ? "Naval battle" : "Land battle", battle.kind === "naval" ? "海战" : "陆战")}</IEBadge>}
+      {battle && <IEBadge tone="warn">{bi(locale, battle.kind === "naval" ? "Naval battle" : "Land battle", battle.kind === "naval" ? "海战" : "陆战")}</IEBadge>}
       {pending && <IEBadge tone="warn">{t.pending}: {t.seats[pending.power]}</IEBadge>}
       {responseWindow && <IEBadge tone="warn">{t.responseWindow}</IEBadge>}
       {viewer && <IEBadge tone={viewer.toLowerCase()}>{t.seats[viewer]}</IEBadge>}
       {!viewer && <IEBadge>{t.spectators}</IEBadge>}
       {hotseat && viewer !== null && botSeats.has(viewer) && (
-        <div className="ie-bot-banner" role="status" aria-live="polite">
+        <div className="ie-bot-banner" data-testid="ie-bot-banner" role="status" aria-live="polite">
           🤖 {t.seats[viewer]} — {t.botSeatBadge} · {t.seatBotHint}
         </div>
       )}
@@ -669,136 +427,141 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
   const commandMenu = (
     <div className="ie-command-menu">
       {displayMenu}
-      <button className="ie-btn secondary ie-mini" data-testid="ie-open-charts" onClick={() => setRailTab("reference")}>{t.charts}</button>
-      <button className="ie-btn secondary ie-mini" data-testid="ie-open-rules" onClick={() => setRailTab("reference")}>{t.rulesCoverage}</button>
+      <button className="ie-btn secondary ie-mini" data-testid="ie-open-charts" onClick={() => setRefAnchor("chart:sequence-of-play")}>{t.charts}</button>
+      <button className="ie-btn secondary ie-mini" data-testid="ie-open-rules" onClick={() => setRefAnchor("rules:crt")}>{t.rulesCoverage}</button>
     </div>
   );
 
   return (
-    <IESurface className="ie-board">
-
-      <CommandBar
-        summary={dockSummary}
-        collapsed={dockCollapsed}
-        onToggleCollapsed={() => setDockCollapsed((value) => !value)}
-        locale={actualLocale}
-        phaseLabel={PHASE_LABEL(t, phase)}
-        activeLabel={`${t.active}: ${t.seats[active]}`}
-        turn={G.turn}
+    <>
+      <TrackStrip
+        G={G}
+        locale={locale}
+        t={t}
+        viewer={viewer}
+        active={active}
+        phase={phase}
+        war={war.war}
+        gw={war.gw}
         cp={viewer ? cpBudget() : G.cpRemaining}
-        actions={<PhaseActions title={t.yourTurnActions} locale={actualLocale} actions={phaseActions}/>}
+        cpBudget={cpBudget}
+        phaseActions={phaseActions}
         menu={commandMenu}
         status={commandStatus}
         notice={otherSeatPending && pending !== null && seatUi.onSwitchSeat ? (
           <SeatAlert
             pendingPower={pending.power}
-            pendingKind={pendingPrompt !== "" ? pendingPrompt : pendingKind}
-            locale={actualLocale}
+            pendingKind={pendingPrompt !== "" ? pendingPrompt : pendingKind ?? ""}
+            locale={locale}
             onGo={() => seatUi.onSwitchSeat!(pending.power)}
           />
         ) : undefined}
-        dockVisible={dockVisible}
-      >
-        {dockChoices && <HandChoices {...choicesProps}/>}
-        {(pending || battle || G.result) && (
-          <PendingPanel
-            G={G}
-            pending={pending}
-            canDecide={canDecide}
-            pendingKind={pendingKind}
-            pendingPrompt={pendingPrompt}
-            optionLabel={optionLabel}
-            optionFace={optionFace}
-            optionAction={optionAction}
-            canDecline={canDecline}
-            pendingSpaceTargets={pendingSpaceTargets}
-            viewer={viewer}
-            locale={actualLocale}
-            t={t}
-            jihadDecision={jihadDecision}
-            jihadReason={jihadReason}
-            doAction={doAction}
-            moves={moves}
-            dock
-          />
-        )}
-      </CommandBar>
+      />
 
-
-      <div className="ie-layout">
-        <main className="ie-play-column">
+      <div className="ie-table">
+        <div className="ie-map-region">
           <MapPanel
             G={G}
             selected={selected}
             onSelect={onSelect}
-            board={board}
-            setBoard={setBoard}
-            pendingSpaceTargets={mapLegalTargets}
-            unitMoveTargets={unitMoveTargets}
-            battleTargets={mapBattleTargets}
-            locale={actualLocale}
+            targets={mapTargets}
+            focusedTarget={mapFocusedTarget}
+            locale={locale}
             t={t}
             mapHint={mapHint}
             modePill={modePill}
-            overlay={<SpaceOverlay G={G} selected={selected} viewer={viewer} locale={actualLocale}/>}
           />
-        </main>
-        <RailTabs
-          tabs={[
-            {key: "action", label: bi(actualLocale, "Action", "行动"), content: actionRail, badge: pending !== null && viewer !== null && pending.power === viewer ? "!" : undefined},
-            {key: "war", label: bi(actualLocale, "War", "战局"), content: warRail, visible: Boolean(war || gw), badge: war ? "⚔" : undefined},
-            {key: "reference", label: bi(actualLocale, "Reference", "参考"), content: referenceRail},
-          ]}
-          active={railTab}
-          onChange={setRailTab}
-          label={bi(actualLocale, "Context", "语境栏")}
+        </div>
+
+        <TurnPanel
+          locale={locale}
+          t={t}
+          cp={viewer ? cpBudget() : G.cpRemaining}
+          phaseActions={phaseActions}
+          phaseLabel={PHASE_LABEL(t, phase)}
+          activeLabel={`${t.active}: ${t.seats[active]}`}
+          turn={G.turn}
+          summary={core.dockSummary}
+          warVisible={Boolean(war.war || war.gw)}
+          hasDecision={Boolean(pending || battle || G.result)}
+          decisionBadge={pending !== null && viewer !== null && pending.power === viewer}
+          warBadge={war.war ? "⚔" : undefined}
+          tabs={{
+            action: (
+              <>
+                {choiceKinds.required || choiceKinds.optional ? <HandChoices {...choicesProps}/> : null}
+                {(pending || battle || G.result) && (
+                  <PendingPanel
+                    G={G}
+                    pending={pending}
+                    canDecide={canDecide}
+                    pendingKind={pendingKind ?? ""}
+                    pendingPrompt={pendingPrompt}
+                    optionLabel={optionLabel}
+                    optionFace={optionFace}
+                    optionAction={optionAction}
+                    canDecline={canDecline}
+                    pendingSpaceTargets={pendingSpaceTargets}
+                    viewer={viewer}
+                    locale={locale}
+                    t={t}
+                    jihadDecision={jihadDecision}
+                    jihadReason={jihadReason}
+                    doAction={doAction}
+                    moves={moves}
+                    dock
+                  />
+                )}
+                {!pending && !battle && G.result === null ? <OrdersRegion {...orders}/> : null}
+              </>
+            ),
+            war: <WarRegion key={`war-${locale}`} {...war} locale={locale} t={t}/>,
+            log: <LogRegion key={`log-${locale}`} G={G} locale={locale} t={t}/>,
+          }}
         />
+        <PlayerMat
+          G={G}
+          viewer={viewer}
+          me={core.me}
+          active={active}
+          locale={locale}
+          t={t}
+        />
+        {chooser !== null && (
+          <IntentChooser
+            locale={locale}
+            targetLabel={chooser.targetLabel}
+            intents={chooser.intents}
+            onChoose={chooser.onChoose}
+            onCancel={chooser.onCancel}
+          />
+        )}
+        {viewer === null && (
+          <div className="ie-private-info" data-testid="ie-private-info">
+            {t.privateInfo}: {t.hidden}. {t.spectators}.
+          </div>
+        )}
+        <HandRegion {...hand} locale={locale} t={t}/>
       </div>
 
-      {viewer === null && (
-        <div className="ie-private-info" data-testid="ie-private-info">
-          {t.privateInfo}: {t.hidden}. {t.spectators}.
-        </div>
-      )}
-      <HandTray
-        G={G}
-        viewer={viewer}
-        me={me}
-        locale={actualLocale}
-        t={t}
-        phase={phase}
-        isActive={isActive}
-        eliminated={eliminated}
-        pending={pending}
-        canActionCard={canActionCard}
-        isBelligerent={isBelligerent}
-        war={war}
-        forcedCardIds={forcedCardIds}
-        hand={hand}
-        saveList={saveList}
-        giveCards={giveCards}
-        giveCardId={giveCardId}
-        setGiveCardId={setGiveCardId}
-        giveTarget={giveTarget}
-        setGiveTarget={setGiveTarget}
-        giveCardValue={giveCardValue}
-        responseInHand={responseInHand}
-        responseWindow={responseWindow}
-        chainNonEmpty={chainNonEmpty}
-        chainSpendable={chainSpendable}
-        chainCap={chainCap}
-        chainReady={chainReady}
-        chainDisabledReason={chainDisabledReason}
-        cpBudget={cpBudget}
-        doAction={doAction}
-        moves={moves}
-        handChoicesHint={handChoicesHint}
-        cardFaceMode={cardFaceMode}
-        open={trayOpen}
-        onToggleOpen={() => setTrayOpen((value) => !value)}
-        expanded={trayExpanded}
-        onToggleExpanded={() => setTrayExpanded((value) => !value)}
+      <ReferenceDrawer
+        core={core}
+        reference={reference}
+        open={refAnchor !== null}
+        anchor={refAnchor}
+        onOpen={(anchor) => setRefAnchor(anchor)}
+        onClose={() => setRefAnchor(null)}
       />
-    </IESurface>
+    </>
   );
 };
+
+/** The Log tab: the public history, newest first. */
+const LogRegion = ({G, locale, t}: {G: ImperialElegyState; locale: "en" | "zh_CN"; t: T}) => (
+  <section className="ie-log-panel">
+    <h3>{t.log}</h3>
+    <div className="ie-log" data-testid="ie-log">
+      {G.log.slice(-80).reverse().map((entry) => <LogLine key={entry.id} entry={entry} locale={locale}/>)}
+    </div>
+  </section>
+);

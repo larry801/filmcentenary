@@ -43,3 +43,6 @@ debug.log
 /.env
 __pycache__/
 *.pyc
+
+IE_*.pdf
+

@@ -105,9 +105,14 @@ rendered.
 
 Everything the rules require *right now* sits in one pinned dock under the app
 bar: the pending decision, the required card faces and the buttons that end or
-continue the step (准备完毕, 停牌, 结束行动轮, 继续). Both kinds of control answer
+continue the step (准备完毕, 停牌, 继续). Both kinds of control answer
 "what may I do now", and a tall map or a long hand used to push them below the
 fold.
+
+The action phase has a single exit button (12.0). It reads `停牌` while the
+impulse is unused and turns into `结束行动轮` once the seat has played a card or
+banked CP; both call the same `pass` move, and only the unused form is subject
+to 12.0's zero-or-one-card restriction.
 
 `components/DecisionDock.tsx` owns the frame and the collapse toggle;
 `components/PhaseActions.tsx` renders the phase buttons. The dock collapses to

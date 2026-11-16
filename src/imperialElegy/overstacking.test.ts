@@ -14,7 +14,7 @@ import {
   overstackedSpaces,
   PORT_NAVAL_LIMIT,
 } from "./engine/rules";
-import {endDiplomacy, endImpulse, resolvePending} from "./moves";
+import {endDiplomacy, pass, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -159,7 +159,7 @@ describe("5.5.3 overstacking losses", () => {
     clearLand(G, "india");
     const uk = [0, 1, 2].map(() => placeUnit(G, "UK", "army", "india", 2).id);
     const geCtx = makeCtx([], "0");
-    expect(endImpulse(G, geCtx)).toBeUndefined();
+    expect(pass(G, geCtx)).toBeUndefined();
     expect(G.activePower).toBe("UK");
     expect(G.pending?.kind).toBe("impulseLoss");
     expect(G.pending?.power).toBe("UK");

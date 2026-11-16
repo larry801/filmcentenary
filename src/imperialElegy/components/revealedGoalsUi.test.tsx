@@ -24,7 +24,19 @@ jest.mock("./map", () => {
   return {IEMap: () => React.createElement("svg", {"data-testid": "ie-map"})};
 });
 
-import {ImperialElegyBoard} from "./board";
+import {useBoardModel} from "./useBoardModel";
+import {BoardLayout} from "./BoardLayout";
+// The suites stub the i18n module (locale object), so the sentence table is
+// read from the real module and the panel is told the selected locale.
+import {ieStringsOf, setPanelLocale} from "./panelLocale";
+
+/**
+ * Whole-hook board for static markup: the five `useContext` hooks the board
+ * reads are not part of React's identity, so calling the hook from a renderer
+ * is safe, and the layout regions are the same components the host renders.
+ */
+const Board = (props: Parameters<typeof useBoardModel>[0]) =>
+  React.createElement(BoardLayout, {model: useBoardModel(props)});
 import {ImperialElegyGameDef} from "../game";
 import {setupImperialElegy} from "../engine/setup";
 import {GOALS_BY_ID} from "../constant/goals";
@@ -46,13 +58,18 @@ const fresh = (): ImperialElegyState => {
   return G;
 };
 
-const html = (G: ImperialElegyState, playerID: string | null): string =>
-  renderToStaticMarkup(React.createElement(ImperialElegyBoard, {
+const html = (G: ImperialElegyState, playerID: string | null): string => {
+  setPanelLocale("zh_CN");
+  return renderToStaticMarkup(React.createElement(Board, {
     G,
     ctx: testCtx,
     moves: {},
     playerID,
+    // This suite runs in the zh_CN UI; the sentence table comes from the real
+    // file so it does not depend on the i18n module's state.
+    injectedUi: {i18n: ieStringsOf("zh_CN")},
   }));
+};
 
 describe("revealed National Goals are public", () => {
   test("the goals row renders localized titles and the owning power", () => {

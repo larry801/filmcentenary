@@ -6,7 +6,7 @@ import {setupImperialElegy} from "./engine/setup";
 import {applyAllianceResolution, resolveAllianceStep, rollAllianceResolution} from "./engine/effects";
 import {beginImpulseUpkeep} from "./engine/rules";
 import {shiftAlliance} from "./engine/alliance";
-import {cpChain, declinePending, endImpulse, playCard, resolvePending} from "./moves";
+import {cpChain, declinePending, pass, playCard, resolvePending} from "./moves";
 
 const scripted = (dice: number[] = []) => {
   let index = 0;
@@ -197,7 +197,7 @@ test("the next impulse has a fresh allegiance snapshot and end-phase resolution 
   G.powers.GE.mpit.neutral = 1;
   play(G, ctx, "IE-A015");
   expect(G.powers.GE.alliance).toBe("teAligned");
-  expect(endImpulse(G, ctx)).toBeUndefined();
+  expect(pass(G, ctx)).toBeUndefined();
   G.powers.GE.mpit = {te: 1, ta: 0, neutral: 6};
   play(G, ctx, "IE-A111");
   expect(G.powers.GE.alliance).toBe("neutral");

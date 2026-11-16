@@ -30,6 +30,17 @@ export type Interaction =
       from: SpaceId;
       sources: string[];
       targets: SpaceId[];
+      /**
+       * Soft targeting is entered automatically from a unit selection: a miss
+       * cancels it and selects the clicked space instead of being ignored,
+       * so the map never feels stuck.  Armed targeting (started by an Orders
+       * button) keeps ignoring misses, as it always has.
+       */
+      soft?: boolean;
+      /** Which intent each target would submit; two or more opens a chooser. */
+      byTarget?: Record<SpaceId, TargetIntent[]>;
+      /** The destination whose intents are being chosen between. */
+      choosing?: SpaceId;
     };
 
 export type InteractionAction =
@@ -41,7 +52,10 @@ export type InteractionAction =
       from: SpaceId;
       sources?: string[];
       targets: SpaceId[];
+      soft?: boolean;
+      byTarget?: Record<SpaceId, TargetIntent[]>;
     }
+  | {type: "choose"; space: SpaceId}
   | {type: "cancel"}
   | {type: "commit"; space: SpaceId}
   | {type: "reset"};
@@ -77,7 +91,14 @@ export const interactionReducer = (
         from: action.from,
         sources: action.sources ? [...action.sources] : [],
         targets: [...action.targets],
+        ...(action.soft === true ? {soft: true} : {}),
+        ...(action.byTarget !== undefined ? {byTarget: {...action.byTarget}} : {}),
       };
+    case "choose":
+      // Asking which intent to use costs nothing and keeps the rings up.
+      return state.kind === "targeting" && state.targets.includes(action.space)
+        ? {...state, choosing: action.space}
+        : state;
     case "cancel":
       return state.kind === "targeting" ? {kind: "space", space: state.from} : {kind: "idle"};
     case "commit":
@@ -91,6 +112,26 @@ export const interactionReducer = (
 
 export const isTargeting = (state: Interaction): state is TargetingInteraction =>
   state.kind === "targeting";
+
+/** How many intents a target offers (1 = click submits, 2+ = a chooser). */
+export const intentsAt = (state: TargetingInteraction, space: SpaceId): TargetIntent[] =>
+  state.byTarget?.[space] ?? [state.intent];
+
+/**
+ * The intent a click on `space` submits right away, or null when the click
+ * must open a chooser first.  This is the only place that decides "one intent
+ * spends CP now, several ask first", so the board, the keyboard and the tests
+ * share it.
+ */
+export const submitNow = (state: TargetingInteraction, space: SpaceId): TargetIntent | null => {
+  if (!state.targets.includes(space)) return null;
+  if (state.choosing !== undefined) {
+    // The chooser is open for this destination: its first-order intent applies.
+    return state.intent;
+  }
+  const intents = intentsAt(state, space);
+  return intents.length === 1 ? intents[0] : null;
+};
 
 const PROMPTS: Record<TargetIntent, {en: string; zh_CN: string}> = {
   redeploy: {en: "Redeploy", zh_CN: "重新部署"},

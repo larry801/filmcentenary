@@ -24,7 +24,7 @@ import {
   reserveAllowance,
   reserveRemaining,
 } from "./engine/economy";
-import {cpChain, endImpulse, industrialize, resolveEnd, resolvePending, surrender, useCpChain} from "./moves";
+import {cpChain, industrialize, pass, resolveEnd, resolvePending, surrender, useCpChain} from "./moves";
 import {createWarState} from "./engine/limitedWar";
 import {ImperialElegyGameDef} from "./game";
 
@@ -321,7 +321,7 @@ test("two chained cards fund one action of at most 4 CP and are discarded at act
 
   G.passed = [...POWERS];
   G.activePower = "GE";
-  endImpulse(G, ctx);
+  pass(G, ctx);
 
   expect(G.powers.GE.cpChain).toEqual([]);
   expect(G.discard).toEqual(expect.arrayContaining([four, two]));
@@ -355,7 +355,7 @@ test("a mandatory event played into the CP chain still resolves", () => {
   expect(G.cpRemaining).toBe(2);
 
   G.passed = [...POWERS];
-  endImpulse(G, ctx);
+  pass(G, ctx);
   expect(G.powers.GE.cpChain).toEqual([]);
   expect(G.discard).toContain(funeral);
 });

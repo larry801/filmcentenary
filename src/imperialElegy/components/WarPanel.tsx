@@ -2,6 +2,7 @@ import React from "react";
 import {ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
+import {POWER_DEFS} from "../constant/powers";
 import {minorAlliesOf} from "../engine/rules";
 import {canSurrender, isLoneMinorWar, loneMinorDefender} from "../engine/limitedWar";
 import {treatyOptionLabel} from "../engine/treatyChoice";
@@ -40,6 +41,22 @@ export interface WarPanelProps {
   moves: Record<string, (...args: any[]) => void>;
 }
 
+/**
+ * A non-player power's printed name in the UI language.
+ *
+ * `loneMinorDefender` returns the minor's *name* ("Denmark"), not a space id,
+ * so the space label is reached through the minor's printed home space; a
+ * minor with no home falls back to the name as printed on its counters.
+ */
+const minorName = (t: ReturnType<typeof ieT>, locale: "en" | "zh_CN", minor: string | null): string => {
+  if (minor === null || minor === "") return "—";
+  const home = MINOR_POWER_HOMES[minor];
+  if (home !== undefined && SPACES[home] !== undefined) return spaceLabel(home, locale);
+  const def = (POWER_DEFS as unknown as Record<string, {name?: string; nameZh?: string}>)[minor];
+  if (def?.name !== undefined) return locale === "zh_CN" ? def.nameZh ?? def.name : def.name;
+  return minor;
+};
+
 export const WarPanel = (props: WarPanelProps) => {
   const {
     war, G, viewer, active, phase, locale, t, warStatusLabel, warAimLabel,
@@ -60,7 +77,9 @@ export const WarPanel = (props: WarPanelProps) => {
           <div className="ie-war-arrow">→</div>
           <div className="ie-war-side">
             <div className="ie-war-power" data-testid="ie-war-defender">
-              {powerOrMinorLabel(t, locale, isLoneMinorWar(war) ? loneMinorDefender(war) ?? war.defender : war.defender)}
+              {isLoneMinorWar(war)
+                ? minorName(t, locale, loneMinorDefender(war))
+                : powerOrMinorLabel(t, locale, war.defender)}
             </div>
             <div className="ie-muted">{bi(locale, "Defender", "防守方")}</div>
             {war.defenderAllies.length > 0 && <div>{bi(locale, "Allies", "盟友")}: {war.defenderAllies.map((p) => t.seats[p]).join(", ")}</div>}

@@ -54,6 +54,51 @@ const darkFor = (control: string | null): string => {
   return "#4f396e";
 };
 
+/**
+ * A legal target's ring: shape and colour carry the meaning (the printed key's
+ * move / attack / rail / choice vocabulary), so a colour-blind player reads
+ * the difference from the dash pattern and the tick marks alone.
+ */
+const TARGET_RING: Record<MapTargetStyle, {
+  stroke: string;
+  dash: string | null;
+  ticks: "crosshair" | "rail" | "pip" | null;
+  double: boolean;
+}> = {
+  move: {stroke: "#3f9d8f", dash: "2.4 1.6", ticks: null, double: false},
+  attack: {stroke: "#d0452f", dash: null, ticks: "crosshair", double: false},
+  rail: {stroke: "#3f9d8f", dash: null, ticks: "rail", double: false},
+  choice: {stroke: "#e0b83a", dash: null, ticks: "pip", double: true},
+  pending: {stroke: "#e0b83a", dash: null, ticks: null, double: true},
+};
+
+/** One ring around a target.  `u` converts screen pixels to board units. */
+const TargetRing = ({
+  ring, r, u, focused, pending,
+}: {ring: typeof TARGET_RING[MapTargetStyle]; r: number; u: number; focused: boolean; pending: boolean}) => {
+  const radius = r + u * (focused ? 14 : 10);
+  const width = u * (focused ? 4 : 3);
+  return (
+    <g className={`ie-target-ring ie-target-${pending ? "pending" : ring.ticks ?? "plain"}`} pointerEvents="none">
+      <circle r={radius} fill="none" stroke={ring.stroke} strokeWidth={width}
+        strokeDasharray={ring.dash === null ? undefined : `${Number(ring.dash.split(" ")[0]) * u * 4} ${Number(ring.dash.split(" ")[1]) * u * 4}`}/>
+      {ring.double && <circle r={radius + width * 2} fill="none" stroke={ring.stroke} strokeWidth={width * 0.6}/>}
+      {ring.ticks === "crosshair" && [0, 90, 180, 270].map((angle) => (
+        <line key={angle} x1={Math.cos((angle * Math.PI) / 180) * radius} y1={Math.sin((angle * Math.PI) / 180) * radius}
+          x2={Math.cos((angle * Math.PI) / 180) * (radius + width * 4)} y2={Math.sin((angle * Math.PI) / 180) * (radius + width * 4)}
+          stroke={ring.stroke} strokeWidth={width}/>
+      ))}
+      {ring.ticks === "rail" && [0, 90, 180, 270].map((angle) => (
+        <line key={angle} x1={Math.cos((angle * Math.PI) / 180) * radius} y1={Math.sin((angle * Math.PI) / 180) * radius}
+          x2={Math.cos((angle * Math.PI) / 180) * (radius + width * 3)} y2={Math.sin((angle * Math.PI) / 180) * (radius + width * 3)}
+          stroke={ring.stroke} strokeWidth={width * 1.6}/>
+      ))}
+      {ring.ticks === "pip" && <circle cx={radius} cy={0} r={width * 2} fill={ring.stroke}/>}
+      {focused && <circle r={radius + width * 5} fill="none" stroke="#fff4cf" strokeWidth={width * 0.8}/>}
+    </g>
+  );
+};
+
 const Star = ({r}: {r: number}) => {
   const points = Array.from({length: 10}, (_, i) => {
     const angle = (Math.PI / 5) * i - Math.PI / 2;
@@ -67,17 +112,32 @@ const Triangle = ({r}: {r: number}) => (
   <polygon points={`0,${-r} ${r * 0.9},${r * 0.7} ${-r * 0.9},${r * 0.7}`}/>
 );
 
+/**
+ * What clicking a space would do, as the map draws it:
+ * `move` a dashed teal ring, `attack` a red ring with crosshair ticks,
+ * `rail` a teal ring with a rail tick (Great War rail but not march),
+ * `choice` a gold double ring with a pip (the target of an extra option),
+ * `pending` a gold double ring (a decision waits on that space).
+ */
+export type MapTargetStyle = "move" | "attack" | "rail" | "choice" | "pending";
+
+/** One legal target: its space and the ring the map draws for it. */
+export interface MapTarget {
+  id: SpaceId;
+  style: MapTargetStyle;
+}
+
 export interface IEMapProps {
   G: ImperialElegyState;
   selected: SpaceId | null;
   onSelect: (id: SpaceId) => void;
-  legalTargets?: SpaceId[];
-  moveTargets?: SpaceId[];
-  battleTargets?: SpaceId[];
+  /** Every legal target with the ring that explains it. */
+  targets?: MapTarget[];
   locale: "en" | "zh_CN";
-  board?: "world" | "greatWar";
   /** Board point to bring into view when it changes (used by the space search). */
   focus?: {x: number; y: number; k?: number; nonce: number} | null;
+  /** The legal target the turn panel is pointing at (a Great War battle row). */
+  emphasis?: SpaceId | null;
 }
 
 /**
@@ -94,7 +154,7 @@ export interface IEMapProps {
  * happens to be painted on top.
  */
 export const IEMap = React.memo(
-  ({G, selected, onSelect, legalTargets = [], moveTargets = [], battleTargets = [], locale, board = "world", focus = null}: IEMapProps) => {
+  ({G, selected, onSelect, targets = [], locale, focus = null, emphasis = null, onFocusTarget = undefined}: IEMapProps & {onFocusTarget?: (id: SpaceId) => void}) => {
     const t = ieT();
     const [view, setView] = React.useState<MapView>({k: MIN_ZOOM, x: 0, y: 0});
     const [size, setSize] = React.useState({width: 960, height: 600});
@@ -127,10 +187,12 @@ export const IEMap = React.memo(
       [locale],
     );
 
-    const highlight = React.useMemo(
-      () => new Set([...legalTargets, ...moveTargets, ...battleTargets]),
-      [legalTargets, moveTargets, battleTargets],
-    );
+    const styleOf = React.useMemo(() => {
+      const map = new Map<SpaceId, NonNullable<MapTargetStyle>>();
+      for (const target of targets) map.set(target.id, target.style);
+      return map;
+    }, [targets]);
+    const highlight = styleOf;
 
     // Zoom with the wheel.  React attaches wheel listeners passively at the
     // root, so `preventDefault` there is ignored (the page scrolls instead);
@@ -234,6 +296,59 @@ export const IEMap = React.memo(
       if (hit) onSelect(hit.id as SpaceId);
     };
 
+    // Keyboard: the legal targets form one roving group.  Focus moves with
+    // the arrow keys and Enter activates the focused target exactly as a
+    // click would (same `onSelect`), so the map is usable without a pointer.
+    const targetIds = React.useMemo(() => targets.map((target) => target.id), [targets]);
+    const [kbFocus, setKbFocus] = React.useState<SpaceId | null>(null);
+    const focusedTarget = emphasis ?? (kbFocus !== null && styleOf.has(kbFocus) ? kbFocus : null);
+    const moveKb = (delta: number, absolute?: number) => {
+      if (targetIds.length === 0) return;
+      const index = focusedTarget === null ? -1 : targetIds.indexOf(focusedTarget);
+      const nextIndex = absolute !== undefined
+        ? absolute
+        : index < 0 ? (delta > 0 ? 0 : targetIds.length - 1) : (index + delta + targetIds.length) % targetIds.length;
+      const next = targetIds[nextIndex];
+      if (next === undefined) return;
+      setKbFocus(next);
+      onFocusTarget?.(next);
+      const space = SPACES[next];
+      if (space) setView((current) => centreOn({x: space.x, y: space.y}, current.k, BOARD));
+      window.setTimeout(() => svgRef.current?.focus(), 0);
+    };
+    const onMapKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
+      if (targetIds.length === 0) return;
+      switch (event.key) {
+        case "ArrowRight":
+        case "ArrowDown":
+          event.preventDefault();
+          moveKb(1);
+          return;
+        case "ArrowLeft":
+        case "ArrowUp":
+          event.preventDefault();
+          moveKb(-1);
+          return;
+        case "Home":
+          event.preventDefault();
+          moveKb(0, 0);
+          return;
+        case "End":
+          event.preventDefault();
+          moveKb(0, targetIds.length - 1);
+          return;
+        case "Enter":
+        case " ":
+          if (focusedTarget !== null) {
+            event.preventDefault();
+            onSelect(focusedTarget);
+          }
+          return;
+        default:
+          return;
+      }
+    };
+
     const unitsPerPx = unitsPerPixel(size, BOARD, view.k);
     const labelSize = LABEL_PX * unitsPerPx;
 
@@ -271,7 +386,7 @@ export const IEMap = React.memo(
                   space.type === "capital" || space.type === "subcapital" ? 400 : 100,
         }];
       });
-      const always = new Set<string>([...highlight, ...(selected ? [selected] : [])]);
+      const always = new Set<string>([...highlight.keys(), ...(selected ? [selected] : [])]);
       // Treat each printed marker as an obstacle: a name placed across a
       // neighbour's counter is unreadable even when it does not touch another
       // name, which is what makes the dense Low Countries legible.
@@ -348,7 +463,7 @@ export const IEMap = React.memo(
               title={t.mapTargets}
               data-testid="ie-map-fit-targets"
               onClick={() => setView(viewForPoints(
-                [...highlight].map((id) => ({x: SPACES[id].x, y: SPACES[id].y})),
+                [...highlight.keys()].map((id) => ({x: SPACES[id].x, y: SPACES[id].y})),
                 BOARD, size,
               ))}
             >◎</button>
@@ -373,7 +488,14 @@ export const IEMap = React.memo(
           onPointerCancel={endPress}
           onPointerLeave={endPress}
           onClick={onClick}
+          onKeyDown={onMapKeyDown}
+          // The legal targets are the only focus stop; Tab reaches the map
+          // once, and the arrows then walk the rings.
+          tabIndex={targetIds.length > 0 ? 0 : -1}
+          aria-describedby="ie-map-legend"
           data-testid="ie-map"
+          data-targets={targetIds.join(",")}
+          data-focused-target={focusedTarget ?? undefined}
           role="application"
           aria-label={t.map}
         >
@@ -418,12 +540,10 @@ export const IEMap = React.memo(
           </defs>
 
           <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
-            {board === "greatWar" ? (
-              // The Great War board is a separate printed map; it has no space
-              // markers, and it is only fetched when the tab is opened.
-              <image href="/imperial-elegy/maps/greatWar.jpg" x={PAPER.x} y={PAPER.y}
-                width={PAPER.width} height={PAPER.height} preserveAspectRatio="xMidYMid slice"/>
-            ) : (
+            {/* One board: the Great War is fought on the same printed map
+                (its sideboard is a reference chart), so the old separate JPG
+                tab is gone. */}
+            {(
               <>
                 {/* Paper and sea, then the traced coastline of each printed panel. */}
                 <rect {...toRect(background.paper)} fill="#efe6d2"/>
@@ -460,7 +580,7 @@ export const IEMap = React.memo(
               </>
             )}
 
-            {board === "world" && (
+            {(
               <>
                 <g mask="url(#ie-water)">{connectionLayer.sea}</g>
                 {connectionLayer.land}
@@ -468,25 +588,25 @@ export const IEMap = React.memo(
               </>
             )}
 
-            {board === "world" && SPACE_IDS.map((id) => {
+            {SPACE_IDS.map((id) => {
               const space = SPACES[id];
               const state = G.spaces[id];
               if (!state) return null;
               const r = markerRadius(id);
               const fill = colorFor(state.control);
-              const isHighlighted = highlight.has(id);
+              const targetStyle = styleOf.get(id);
+              const isHighlighted = targetStyle !== undefined;
               const isSelected = selected === id;
-              const stroke = isHighlighted ? "#f4d574" : isSelected ? "#fff4cf" : darkFor(state.control);
+              const ring = targetStyle === undefined ? null : TARGET_RING[targetStyle];
+              const stroke = ring !== null ? ring.stroke : isSelected ? "#fff4cf" : darkFor(state.control);
               const strokeWidth = (isHighlighted || isSelected ? 16 : 8) * Math.max(0.5, unitsPerPx * 0.6);
               const units = state.units.length;
               return (
                 <g key={id} transform={`translate(${space.x} ${space.y})`}
                   data-testid={`ie-space-${id}`} className="ie-space-hit"
                 >
-                  {isHighlighted && (
-                    <circle r={r + unitsPerPx * 10} fill="none" stroke="#f4d574"
-                      strokeWidth={unitsPerPx * 3} opacity={0.95}/>
-                  )}
+                  {ring !== null && <TargetRing ring={ring} r={r} u={unitsPerPx}
+                    focused={focusedTarget === id} pending={targetStyle === "pending"}/>}
                   {space.type === "capital" || space.type === "subcapital" ? (
                     <g fill={fill} stroke={stroke} strokeWidth={strokeWidth}><Star r={r}/></g>
                   ) : space.type === "navalBase" ? (
@@ -560,12 +680,10 @@ export const IEMap = React.memo(
     prev.G.spaces === next.G.spaces &&
     prev.selected === next.selected &&
     prev.onSelect === next.onSelect &&
-    prev.legalTargets === next.legalTargets &&
-    prev.moveTargets === next.moveTargets &&
-    prev.battleTargets === next.battleTargets &&
+    prev.targets === next.targets &&
     prev.locale === next.locale &&
-    prev.board === next.board &&
-    prev.focus === next.focus,
+    prev.focus === next.focus &&
+    prev.emphasis === next.emphasis,
 );
 
 /** `box` as SVG rect props (x, y, width, height). */

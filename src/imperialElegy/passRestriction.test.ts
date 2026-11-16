@@ -4,9 +4,9 @@
  * A047 The Dual Monarchy and GW #10 Exhaustion both print "you cannot pass
  * with this card in your hand".  Because `pass` is the only way out of an
  * action impulse, a naive reading of that clause dead-ends the table: the
- * holder cannot pass and `endImpulse` refuses a hand holding a playable
- * event.  These tests pin the recoverable behaviour — the card must be played
- * for CP, and that impulse can then end.
+ * holder cannot pass, and only a card played for CP opens the exit again.
+ * These tests pin the recoverable behaviour — the card must be played, and that
+ * used impulse can then be handed over.
  */
 
 import {Ctx} from "boardgame.io";
@@ -18,7 +18,6 @@ import {
   canPassNow,
   chooseHomeCard,
   endDiplomacy,
-  endImpulse,
   finishPrep,
   gwPass,
   pass,
@@ -95,7 +94,7 @@ describe("12.0 A047 The Dual Monarchy", () => {
     expect(G.powers.AU.hand).not.toContain(DUAL_MONARCHY_CARD);
 
     G.cpRemaining = 0;
-    expect(endImpulse(G, au)).toBeUndefined();
+    expect(pass(G, au)).toBeUndefined();
     expect(G.activePower).not.toBe("AU");
   });
 
@@ -108,22 +107,26 @@ describe("12.0 A047 The Dual Monarchy", () => {
     // A047 (no passing) beside A043, a combat card `playCard` refuses, plus a
     // home card.  Before the fix every move returned INVALID_MOVE and the
     // match had no exit at all.
+    //
+    // The impulse is unused here on purpose: once a card has been played for CP
+    // the seat may always hand the used impulse over (12.0 only restricts the
+    // pass of an *unused* one), so banked CP would hide the deadlock.
     G.activePower = "OT";
-    G.cpRemaining = 2;
+    G.cpRemaining = 0;
     G.powers.OT.hand = ["IE-A043", DUAL_MONARCHY_CARD, "IE-H-OT-11"];
 
     expect(pass(G, ot)).toBe(INVALID_MOVE);
     expect(playCard(G, ot, "IE-A043", "event")).toBe(INVALID_MOVE);
     expect(playCard(G, ot, "IE-A043", "cp")).toBe(INVALID_MOVE);
 
-    // The rescue: A047 can be spent on top of the banked CP.
+    // The rescue: A047 can be spent for CP, and that makes the impulse used.
     expect(playCard(G, ot, DUAL_MONARCHY_CARD, "cp")).toBeUndefined();
-    expect(G.cpRemaining).toBe(4);
+    expect(G.cpRemaining).toBe(2);
     expect(G.powers.OT.hand).not.toContain(DUAL_MONARCHY_CARD);
 
     // With the forced card gone the impulse can end normally.
     G.cpRemaining = 0;
-    expect(endImpulse(G, ot)).toBeUndefined();
+    expect(pass(G, ot)).toBeUndefined();
     expect(G.activePower).not.toBe("OT");
   });
 
@@ -142,6 +145,59 @@ describe("12.0 A047 The Dual Monarchy", () => {
     G.powers.GE.hand = ["IE-A018"];
     expect(canPassNow(G, "GE")).toBe(true);
     expect(pass(G, makeCtx("GE"))).toBeUndefined();
+  });
+});
+
+describe("12.0 one exit: a used impulse may always be handed over", () => {
+  /** A seat holding many cards, which 12.0 forbids passing with. */
+  const crowded = (): ImperialElegyState => {
+    const G = reachActionPhase();
+    G.activePower = "GE";
+    G.powers.GE.hand = ["IE-A018", "IE-A020", "IE-A021"];
+    return G;
+  };
+
+  test("an unused crowded hand cannot be skipped", () => {
+    const G = crowded();
+    G.cpRemaining = 0;
+    expect(canPassNow(G, "GE")).toBe(false);
+    expect(pass(G, makeCtx("GE"))).toBe(INVALID_MOVE);
+    // Nothing moved: no pass recorded, GE still active.
+    expect(G.passed).toEqual([]);
+    expect(G.activePower).toBe("GE");
+  });
+
+  test("playing a card makes that same crowded hand handable-over", () => {
+    const G = crowded();
+    const ctx = makeCtx("GE");
+    expect(playCard(G, ctx, "IE-A018", "cp")).toBeUndefined();
+    expect(G.cpRemaining).toBeGreaterThan(0);
+    // The unused-impulse restriction no longer applies …
+    expect(canPassNow(G, "GE")).toBe(false);
+    expect(pass(G, ctx)).toBeUndefined();
+    // … and the remaining CP are forfeited, with no pass recorded.
+    expect(G.cpRemaining).toBe(0);
+    expect(G.passed).toEqual([]);
+    expect(G.activePower).not.toBe("GE");
+  });
+
+  test("the flag alone is enough, even with every hand card still held", () => {
+    const G = crowded();
+    // A card was played but the engine kept the hand full (an event that gives
+    // CP back, a chained mandatory card): the impulse is still used.
+    G.cpRemaining = 0;
+    G.powers.GE.flags.actionCpSpentThisImpulse = true;
+    expect(pass(G, makeCtx("GE"))).toBeUndefined();
+    expect(G.passed).toEqual([]);
+  });
+
+  test("a pass of an unused impulse is still recorded for 12.0's phase end", () => {
+    const G = reachActionPhase();
+    G.activePower = "GE";
+    G.cpRemaining = 0;
+    G.powers.GE.hand = [];
+    expect(pass(G, makeCtx("GE"))).toBeUndefined();
+    expect(G.passed).toContain("GE");
   });
 });
 

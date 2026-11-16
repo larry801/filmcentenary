@@ -73,3 +73,18 @@ test("svg is the zero-image default and print mode uses the stored card scan", (
   expect(print).toContain('img class="ie-card-face ie-card-print"');
   expect(print).toContain("/imperial-elegy/cards/");
 });
+
+test("card play is a two-step confirm: the armed state is data, never a modal", () => {
+  const G = game();
+  const open = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
+  // Every card-play control carries the confirm state, and starts disarmed.
+  const cpButtons = open.match(/<button[^>]*data-testid="ie-play-cp-[^"]*"[^>]*>/g) ?? [];
+  expect(cpButtons.length).toBeGreaterThan(0);
+  for (const tag of cpButtons) {
+    expect(tag).toContain('data-armed="false"');
+    expect(tag).not.toContain("dialog");
+  }
+  // The tray itself is unchanged: no overlay element is inserted for the
+  // confirmation, so the static-markup contract holds.
+  expect(open).not.toContain("ie-confirm-dialog");
+});

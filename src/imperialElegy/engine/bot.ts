@@ -36,7 +36,7 @@ import {
   unitsOfPower,
   isPower,
 } from "./rules";
-import {canPassNow, recruit as recruitMove} from "../moves";
+import {recruit as recruitMove} from "../moves";
 import {passRestriction} from "./characteristics";
 import {beginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
@@ -897,8 +897,10 @@ export const botDecision = (
   // ------------------------------------------------------------- action
   if (phase === "action") {
     if (G.activePower !== power) {
-      // Not our turn; end our stage.
-      return {move: "endImpulse"};
+      // Not our turn.  In the action phase `pass` is the only exit (12.0) and it
+      // refuses a non-active seat, exactly as the old `endImpulse` did, so this
+      // stays a no-op the driver's repeat guard catches rather than a spin.
+      return {move: "pass"};
     }
 
     // A mandatory card in hand forbids passing (12.0), so play it first.
@@ -945,11 +947,12 @@ export const botDecision = (
       if (excess !== null) return excess;
     }
 
-    // Pass if allowed, else end impulse.
-    if (canPassNow(G, power)) {
-      return {move: "pass"};
-    }
-    return {move: "endImpulse"};
+    // One move ends the impulse (12.0): a seat that has acted is handing over a
+    // used impulse and may always do so; a seat that has not is passing, which
+    // the hand restriction can refuse.  The blocked case is reached only after
+    // the forced-card branches above, so naming `pass` here is the same answer
+    // the board gives the human player.
+    return {move: "pass"};
   }
 
   // ------------------------------------------------------------- wartime
@@ -1006,8 +1009,9 @@ export const botDecision = (
     return {move: "gwResolveWinter"};
   }
 
-  // Fallback.
-  return {move: "endImpulse"};
+  // Fallback: the action-phase exit is the only impulse-ending move left, and
+  // a phase that reaches here is either that phase or one with no bot branch.
+  return {move: "pass"};
 };
 
 // ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 import React from "react";
 import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
-import {IELocale, ieStringsFor} from "./i18n";
+import {IELocale, ieStringsFor, type IEStrings} from "./i18n";
 
 const WIDTH = 300;
 const INSET = 18;
@@ -78,7 +78,12 @@ const CardEmblem = ({kind}: {kind: CardDef["kind"] | "goal"}) => (
   </g>
 );
 
-export type CardFaceProps = {locale: IELocale; showTranslation?: boolean} & (
+export type CardFaceProps = {
+  locale: IELocale;
+  showTranslation?: boolean;
+  /** The dictionary to print; the caller's own when it already holds one. */
+  t?: IEStrings;
+} & (
   | {card: CardDef; goal?: never}
   | {goal: GoalDef; card?: never}
 );
@@ -87,7 +92,9 @@ export type CardFaceProps = {locale: IELocale; showTranslation?: boolean} & (
 export const CardFace = React.memo((props: CardFaceProps) => {
   const {locale, card, goal, showTranslation = true} = props;
   const data = goal ?? card!;
-  const t = ieStringsFor(locale);
+  // A caller that already holds the dictionary passes it in; this keeps a
+  // stubbed i18n module (several suites) from emptying every card face.
+  const t: IEStrings = props.t ?? ieStringsFor(locale);
   const uid = React.useId();
   const kind = goal ? "goal" : card!.kind;
   const title = locale === "zh_CN" ? data.titleZh : data.title;

@@ -64,7 +64,9 @@ async function reachAction(page: Page) {
     await chooseHomeCards(page);
     await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
     await focusSeat(page, "GE");
-    await expect(boardFor(page, "GE").getByRole("button", {name: "结束行动轮"})).toBeVisible({timeout: 15_000});
+    // A fresh impulse shows 12.0's single exit as 停牌; it becomes 结束行动轮
+    // once GE plays a card.  Wait for the button, not for one of the two labels.
+    await expect(boardFor(page, "GE").locator('[data-testid="ie-pass"]')).toBeVisible({timeout: 15_000});
 }
 
 function boardFor(page: Page, seat: string): Locator {
@@ -141,18 +143,18 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(dock).toBeVisible();
         await expect(dock).toHaveAttribute("data-collapsed", "false");
 
-        // The action-phase buttons are in the dock, not the hand panel.
-        const pass = dock.getByRole("button", {name: "停牌", exact: true});
-        const endImpulse = dock.getByRole("button", {name: "结束行动轮"});
-        await expect(pass).toBeVisible();
-        await expect(endImpulse).toBeVisible();
+        // 12.0 has one exit, not two: the dock shows a single button (停牌 on a
+        // fresh impulse, 结束行动轮 once the seat has played a card).
+        const exit = dock.locator('[data-testid="ie-pass"]');
+        await expect(exit).toBeVisible();
+        await expect(exit).toHaveText("停牌");
+        await expect(dock.getByRole("button", {name: "结束行动轮"})).toHaveCount(0);
 
         // Collapsing hides the bulky body but keeps the bar and its buttons.
         await dock.locator('[data-testid="ie-dock-toggle"]').click();
         await expect(dock).toHaveAttribute("data-collapsed", "true");
         await expect(dock.locator('[data-testid="ie-dock-toggle"]')).toHaveAttribute("aria-expanded", "false");
-        await expect(pass).toBeVisible();
-        await expect(endImpulse).toBeVisible();
+        await expect(exit).toBeVisible();
 
         // The 56 px command bar stays put; collapsing removes the bulky body
         // (which overlays the map) rather than resizing the whole bar.
@@ -339,16 +341,17 @@ test.describe("Imperial Elegy solo vs bot", () => {
 
         // 33.4 Metternich's Legacy opens a decision for AU (a bot seat) at the
         // end of turn-1 diplomacy, and bots resolve their own pendings while GE
-        // is still to act.  `endImpulse` refuses to run while any decision is
-        // open, so wait for the decision to clear before handing over; clicking
-        // into that window burned the click and left the match on GE forever.
+        // is still to act.  `pass` refuses to run while any decision is open,
+        // so wait for the decision to clear before handing over; clicking into
+        // that window burned the click and left the match on GE forever.
         await expect.poll(
             async () => await page.evaluate(() => (window as any).__IE_STATE__.pending === null),
             {timeout: 30_000},
         ).toBe(true);
 
-        // Hand the impulse over exactly once.  Re-clicking a stale button would
-        // send a second `endImpulse` after the seat is no longer active and
+        // Hand the impulse over exactly once.  A card has just been played, so
+        // the same 12.0 button now reads 结束行动轮.  Re-clicking a stale button
+        // would send a second `pass` after the seat is no longer active and
         // produce an `invalid move` that has nothing to do with the bot.
         const endImpulse = board.getByRole("button", {name: "结束行动轮"}).first();
         await expect(endImpulse).toBeVisible();

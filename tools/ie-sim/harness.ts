@@ -726,7 +726,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
     // spin on it the way the real hotseat bot would have.
     if ((opts.war || opts.navy) && !liveG.pending && liveG.phase === "action"
       && power === liveG.activePower && !warRefused
-      && (decision.move === "playCard" || decision.move === "pass" || decision.move === "endImpulse" || decision.move === "placeMpit" || decision.move === "buildFort")) {
+      && (decision.move === "playCard" || decision.move === "pass" || decision.move === "placeMpit" || decision.move === "buildFort")) {
       const declaration = aggressiveWarDeclaration(liveG, liveG.activePower);
       if (declaration !== null) {
         decision.move = declaration.move;
@@ -736,7 +736,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
     // Navy mode: replace a passive naval/CP action with a real naval one.
     if (opts.navy && !liveG.pending && (liveG.phase === "action" || liveG.phase === "gwManeuver" || liveG.phase === "wartime")
       && power === liveG.activePower
-      && (decision.move === "pass" || decision.move === "endImpulse" || decision.move === "placeMpit"
+      && (decision.move === "pass" || decision.move === "placeMpit"
         || decision.move === "buildFort" || decision.move === "gwPass" || decision.move === "playCard")) {
       const naval = navalAction(liveG, liveG.activePower);
       if (naval !== null && naval.move === "navalMove") {
@@ -744,7 +744,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
         if (refusedNaval.has(`${ids[0]}|${dest}`)) {
           // Skip a move this sweep already saw refused (a fleet stranded in a
           // port that stopped being friendly); otherwise it re-sends forever.
-          decision.move = "endImpulse";
+          decision.move = "pass";
           decision.args = [];
           navalOverrideBlocked = true;
         }
@@ -907,7 +907,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
           detail: "bot repeated a rejected decision three times (deadlock)",
         });
         const escape: Record<string, {move: string; args: unknown[]}> = {
-          action: {move: "endImpulse", args: []},
+          action: {move: "pass", args: []},
           wartime: {move: "passWarMove", args: []},
           prep: {move: "finishPrep", args: []},
           diplomacy: {move: "endDiplomacy", args: []},

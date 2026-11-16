@@ -40,8 +40,8 @@ Status labels:
   transcribed 312-counter manifest, so EC/EF and the non-printed naval mixes
   remain uncapped rather than invented.
 - 4.5 impulses vs turns — **implemented**: an impulse ends when CP are spent or
-  the active player ends it; pass/end-impulse advance to the next seat with a
-  hand, otherwise to the end phase.
+  the active player ends it; one `pass` move covers both readings (12.0), then
+  advances to the next seat with a hand, otherwise to the end phase.
 
 ## 5 Units, stacking, LoC
 

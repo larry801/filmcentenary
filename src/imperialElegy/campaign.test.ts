@@ -46,7 +46,7 @@ test("campaign auto-play reaches a result", async () => {
         await wait(30); continue;
       }
       const p=G.activePower; const i=POWERS.indexOf(p); const own=seatState(p); const hand=own.powers[p].hand;
-      if(own.cpRemaining>0){ cs[i].moves.endImpulse(); await wait(30); continue; }
+      if(own.cpRemaining>0){ cs[i].moves.pass(); await wait(30); continue; }
       const defs=(await import("./constant/cards.data")).CARDS;
       const findDef=(id:string)=>defs.actions.find(c=>c.id===id)??defs.home.find(c=>c.id===id)??defs.greatWar.find(c=>c.id===id);
       const playable=hand.find(id=>{const d=findDef(id); return d && (!["response","combat"].includes(d.type));});
@@ -57,7 +57,7 @@ test("campaign auto-play reaches a result", async () => {
       cs[i].moves.playCard(card, mandatory?"event":"cp");
       await wait(30);
       const after=seatState(p);
-      if(after.phase==="action" && !after.pending && after.activePower===p){ cs[i].moves.endImpulse(); await wait(30); }
+      if(after.phase==="action" && !after.pending && after.activePower===p){ cs[i].moves.pass(); await wait(30); }
       continue;
     }
     if(G.phase==="end"){

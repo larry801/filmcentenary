@@ -1,4 +1,6 @@
 import React from "react";
+import {ConfirmButton} from "./ConfirmButton";
+import {readConfirmActions} from "./preferences";
 
 /** One button in the phase-action row (pass, end impulse, ready, …). */
 export interface PhaseAction {
@@ -8,6 +10,12 @@ export interface PhaseAction {
   disabled?: boolean;
   title?: string;
   onClick: () => void;
+  /**
+   * The button ends something the rules cannot undo (the impulse, the
+   * diplomacy step, the war).  It then arms before it fires unless the
+   * `confirmActions` preference is off.
+   */
+  confirm?: boolean;
 }
 
 export interface PhaseActionsProps {
@@ -27,23 +35,26 @@ export interface PhaseActionsProps {
  * the board's "only the acting seat gets these" assertions still apply.
  */
 export const PhaseActions = ({title, actions, locale}: PhaseActionsProps) => {
+  // One read per mount: the preference is display-only and cheap to re-read.
+  const confirmActions = React.useMemo(() => readConfirmActions(), []);
   if (actions.length === 0) return null;
   return (
     <div className="ie-dock-choice" data-testid="ie-phase-actions">
       <div className="ie-section-title">{title}</div>
       <div className="ie-inline" data-testid="ie-impulse-actions">
         {actions.map((action) => (
-          <button
+          <ConfirmButton
             key={action.key}
-            type="button"
             className="ie-btn"
             data-testid={action.testId}
             disabled={action.disabled}
             title={action.title}
-            onClick={action.onClick}
+            confirm={action.confirm === true && confirmActions}
+            confirmLabel={`${locale === "zh_CN" ? "确认" : "Confirm"}: ${action.label}`}
+            onConfirm={action.onClick}
           >
             {action.label}
-          </button>
+          </ConfirmButton>
         ))}
       </div>
     </div>
