@@ -71,11 +71,11 @@ Setup for this section: click **Go to seat / 前往** on a seat that is acting (
 - [ ] **Pass / end impulse needs two clicks.** In the turn panel head, `data-testid="ie-pass"` reads `停牌` / `Pass` while the impulse is unused, and `结束行动轮` / `End impulse` once the seat has played a card or banked CP. First click arms (`data-armed="true"`), second click passes. When passing is illegal the button is disabled and its tooltip is the 12.0 restriction.
 - [ ] **End diplomacy needs two clicks.** In the diplomacy step, `data-testid="ie-end-diplomacy"` (`开始行动阶段` / `Start action phase`) arms on the first click.
 - [ ] **Ready does not.** `data-testid="ie-finish-prep"` (`准备完毕` / `Ready`) and, in the end step, `ie-end-phase-turn` — check whether the latter arms **(verify: `ie-end-phase-turn` is declared with `confirm: true` in the source; confirm it arms in the browser)**.
-- [ ] **Turning confirmations off.** The preference lives in `components/preferences.ts` and is stored under the `localStorage` key **`ie_confirm_actions`** (`"on"` / `"off"`; absent means on). There is **no UI control for it** — the Display menu `data-testid="ie-display-menu"` only switches card faces. Set it by hand:
-  1. DevTools → Application → Local Storage → `http://localhost:5173` → add key `ie_confirm_actions`, value `off`.
-  2. **Reload the page** (the preference is read when the hand tray and the phase-action row mount; an open board keeps the old value).
-  3. `ie-play-cp-*`, `ie-pass` and `ie-end-diplomacy` now fire on **one** click and never show `data-armed="true"`.
-  4. Delete the key or set `on` and reload to restore the default.
+- [ ] **Turning confirmations off from the UI.** Open the strip's menu (`ie-menu-toggle`), then the Display disclosure (`ie-display-menu` → 显示), and clear **不可撤销的操作需要二次确认** (`data-testid="ie-confirm-actions"`). No reload is needed: the board reads the preference live and passes it to the hand tray and the phase buttons.
+  - `ie-play-cp-*`, `ie-play-event-*`, `ie-pass` and `ie-end-diplomacy` now fire on **one** click and never show `data-armed="true"`.
+  - The value is stored under the `localStorage` key **`ie_confirm_actions`** (`"on"` / `"off"`; absent means on, so a fresh browser asks first). Ticking the box again restores it.
+- [ ] **A refused action explains itself.** With a space selected, trigger something the engine refuses (for example declare a war you cannot afford, or act out of turn where a control is still clickable). The board shows the notice `ie-toast` (`role="status"`): "无法执行：<action>" plus the row's own reason. It dismisses itself after a few seconds, the ✕ or Esc closes it sooner, and hovering pauses the timer. A successful action raises no notice.
+  - It covers the space panel's action rows; card play and the phase buttons are not wrapped yet (see §12).
 
 ---
 
@@ -192,10 +192,10 @@ of these was introduced by this checklist; they are where a tester's answer is
    Great War sideboard: the plan drops that JPG and replaces it with the trench
    list in the War tab (`TrenchBoard`). Section 5 checks the trench rows and the
    two chart links instead; nothing is missing.
-2. **The confirmation preference has no UI.** `ie_confirm_actions` is honoured by
-   the hand tray and the phase buttons but can only be changed through
-   `localStorage` + a reload; the Display menu does not expose it. The change is
-   also read on mount, so an open board keeps the old setting until reload.
+2. **The confirmation preference has a switch now, but only in the strip menu.**
+   The Display menu carries `ie-confirm-actions` and the board reads it live, so
+   flipping it takes effect at once (no reload). It is still one switch behind a
+   sub-disclosure, and the setting is per browser rather than per match.
 3. **The reference drawer still lets Tab escape.** The chart lightbox now traps
    focus (`ChartLightbox` uses `components/useFocusTrap.ts`, Esc closes and
    focus returns), but the drawer is a `hidden`-toggled `<aside>` rather than a
@@ -204,9 +204,12 @@ of these was introduced by this checklist; they are where a tester's answer is
 4. **Declare war is a one-click control** and is the only irreversible action in
    the board that does not arm first (`ie-war-declare`), while `ie-pass`,
    `ie-end-diplomacy`, `ie-end-phase-turn` and card play do.
-5. **No rejection toast.** `toast`/`dismissToast` are modelled in `ModelValues`
-   and never raised (`void setToast`), so a legal-but-refused move has no
-   in-board explanation; the browser console is the only signal.
+5. **The rejection notice covers the space panel, not every control.** A refused
+   space-panel action raises `ie-toast` with the row's own label and reason
+   (`role="status"`, auto-dismiss, Esc closes). Card play and the phase buttons
+   are not wrapped yet, and the refusal is detected by comparing the view after
+   the move, so a move that changes something and is still rejected would not
+   raise it.
 6. **Rule links go to the printed charts and the inline tables only.** The
    inline drawer sections registered by anchor are the CRT (`crt`), the costs
    (`costs`) and the sequence (`sequence`); every other `RuleLink` opens one of
