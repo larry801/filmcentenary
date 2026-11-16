@@ -45,3 +45,28 @@ test("a selection stays readable in the title bar", () => {
   const html = renderToStaticMarkup(<MapPanel {...props()} selected="berlin" />);
   expect(html).toContain("柏林");
 });
+
+test("an explicit targeting mode renders an aria-live pill with a keyboard target list", () => {
+  const html = renderToStaticMarkup(
+    <MapPanel
+      {...props()}
+      modePill={{
+        label: "陆战：选择相邻目标",
+        from: "柏林",
+        count: 2,
+        cancelLabel: "取消",
+        onCancel: () => undefined,
+        targets: [{id: "saxony", label: "萨克森"}, {id: "hanover", label: "汉诺威"}],
+        onChoose: () => undefined,
+      }}
+    />,
+  );
+  expect(html).toContain('data-testid="ie-mode-pill"');
+  expect(html).toContain('role="status"');
+  expect(html).toContain('aria-live="polite"');
+  expect(html).toContain("陆战：选择相邻目标");
+  expect(html).toContain("2 个合法目标");
+  expect(html).toContain('data-testid="ie-mode-pill-targets"');
+  expect(html).toContain("萨克森");
+  expect(html).toContain('data-testid="ie-mode-pill-cancel"');
+});

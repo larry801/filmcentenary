@@ -3,6 +3,7 @@ import {ImperialElegyState, Power} from "../types";
 import {POWER_DEFS} from "../constant/powers";
 import {GOALS_BY_ID} from "../constant/goals";
 import {IEBadge, IEChip, IEPanel} from "./theme";
+import {RuleRef} from "./RuleRef";
 import {ieT} from "./i18n";
 import {POWER_KEYS, bi, powerOrMinorLabel} from "./boardHelpers";
 
@@ -54,7 +55,7 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
             </div>
             <details>
               <summary className="ie-muted">{t.characteristics}</summary>
-              <ul style={{margin: "4px 0 0 14px", padding: 0, fontSize: 11, lineHeight: 1.3}}>
+              <ul className="ie-characteristics-list">
                 {def.characteristics.map((c, i) => <li key={i}>{locale === "zh_CN" ? c.zh : c.en}</li>)}
               </ul>
             </details>
@@ -62,7 +63,7 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
         );
       })}
     </div>
-    <div className="ie-inline" data-testid="ie-revealed-goals" style={{marginTop: 6}}>
+    <div className="ie-inline ie-dashboard-row" data-testid="ie-revealed-goals">
       <span className="ie-section-title">{t.revealedGoals}:</span>
       {(G.revealedGoals ?? []).length === 0
         ? <span className="ie-muted">{bi(locale, "None revealed", "暂无公开目标")}</span>
@@ -78,8 +79,8 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
           );
         })}
     </div>
-    <div className="ie-inline" data-testid="ie-minor-card-markers" style={{marginTop: 6}}>
-      <span className="ie-section-title">{bi(locale, "War reparation markers (16.2.3)", "战争赔款标记（16.2.3）")}:</span>
+    <div className="ie-inline ie-dashboard-row" data-testid="ie-minor-card-markers">
+      <span className="ie-section-title" aria-label={bi(locale, "War reparation markers (16.2.3)", "战争赔款标记（16.2.3）")}>{bi(locale, "War reparation markers", "战争赔款标记")} <RuleRef n="16.2.3" title="Rule 16.2.3"/>:</span>
       {minorMarkerRows.length === 0
         ? <span className="ie-muted">{bi(locale, "None", "无")}</span>
         : minorMarkerRows.map(([minor, count]) => (

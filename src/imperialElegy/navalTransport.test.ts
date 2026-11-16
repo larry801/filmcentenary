@@ -8,7 +8,8 @@ jest.mock("react", () => {
   const useCallback = (fn: unknown) => fn;
   const useRef = (initial: unknown) => ({current: initial});
   const useContext = (ctx: {defaultValue?: unknown}) => ctx?.defaultValue;
-  return {...actual, useState, useEffect: () => undefined, useMemo, useCallback, useRef, useContext};
+  const useReducer = (reducer: (state: unknown, action: unknown) => unknown, initial: unknown) => [initial, () => undefined];
+  return {...actual, useState, useReducer, useEffect: () => undefined, useMemo, useCallback, useRef, useContext};
 });
 
 jest.mock("./components/theme", () => {

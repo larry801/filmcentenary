@@ -131,7 +131,7 @@ export const PendingPanel = ({
                     </div>
                   )}
                 </>
-              ) : <div className="ie-muted" style={{marginTop: 6}}>{t.waitingOther}</div>}
+              ) : <div className="ie-muted ie-mt-6">{t.waitingOther}</div>}
               {canDecide && pendingSpaceTargets.length > 0 && <div className="ie-hint">{bi(locale, "The matching spaces are highlighted on the map.", "对应空间已在地图上高亮。")}</div>}
             </div>
           )}
@@ -151,7 +151,7 @@ export const PendingPanel = ({
               )}
             </div>
           )}
-          {G.result && <div style={{marginTop: 8}}><IEBadge tone="warn">{t.gameOver}: {G.result.winners.map((p) => t.seats[p]).join(", ")}</IEBadge></div>}
+          {G.result && <div className="ie-mt-8"><IEBadge tone="warn">{t.gameOver}: {G.result.winners.map((p) => t.seats[p]).join(", ")}</IEBadge></div>}
       </>
     </IEPanel>
   );

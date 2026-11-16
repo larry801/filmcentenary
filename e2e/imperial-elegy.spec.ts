@@ -172,15 +172,17 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect(face).toHaveAttribute("lang", "zh-CN");
         await expect(face.locator(".ie-card-rules")).toContainText(/[\u4e00-\u9fff]/);
         await expect(board.locator(".ie-card img, .ie-card image")).toHaveCount(0);
-        await card.locator("summary").click();
-        await expect(card.locator("details > div")).toBeVisible();
-        await expect(card.locator("details > div")).toHaveAttribute("lang", "en");
+        // The tray now has two disclosures per card: the "⋯" operations menu
+        // and the bilingual translation. Target the translation explicitly.
+        await card.locator(".ie-card-translation > summary").click();
+        await expect(card.locator(".ie-card-translation > div")).toBeVisible();
+        await expect(card.locator(".ie-card-translation > div")).toHaveAttribute("lang", "en");
         await page.locator(".MuiSwitch-input").click();
         await expect(page.getByRole("heading", {name: "Imperial Elegy — local hotseat"})).toBeVisible();
         await expect(face).toHaveAttribute("data-card-id", original!);
         await expect(face).toHaveAttribute("lang", "en");
         await expect(face.locator(".ie-card-rules")).toContainText(/[A-Za-z]/);
-        await expect(card.locator("details > div")).toHaveAttribute("lang", "zh-CN");
+        await expect(card.locator(".ie-card-translation > div")).toHaveAttribute("lang", "zh-CN");
         expect(cardImageRequests).toEqual([]);
     });
 

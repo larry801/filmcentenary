@@ -102,6 +102,10 @@ async function findSavableCard(board: Locator): Promise<Locator | null> {
     const cards = board.locator(".ie-hand .ie-card");
     for (let i = 0; i < await cards.count(); i += 1) {
         const card = cards.nth(i);
+        // Secondary card operations now live behind the tray's native "⋯"
+        // disclosure; open it before looking for Save.
+        const more = card.locator("details.ie-card-more > summary");
+        if (await more.count()) await more.click();
         const save = card.getByRole("button", {name: "保留", exact: true});
         if (await save.count() && await save.isEnabled()) return card;
     }
@@ -150,12 +154,12 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(pass).toBeVisible();
         await expect(endImpulse).toBeVisible();
 
-        // The dock is shorter when collapsed, so it covers less of the map.
-        const collapsedHeight = (await dock.boundingBox())!.height;
+        // The 56 px command bar stays put; collapsing removes the bulky body
+        // (which overlays the map) rather than resizing the whole bar.
+        await expect(dock.locator(".ie-dock-body")).toHaveCount(0);
         await dock.locator('[data-testid="ie-dock-toggle"]').click();
         await expect(dock).toHaveAttribute("data-collapsed", "false");
-        const expandedHeight = (await dock.boundingBox())!.height;
-        expect(collapsedHeight).toBeLessThan(expandedHeight);
+        await expect(dock.locator(".ie-dock-body")).toBeVisible();
     });
 
     test("the optional stability discard is labelled and can be skipped", async ({page}) => {
@@ -250,9 +254,8 @@ test.describe("Imperial Elegy new controls", () => {
         await reachAction(page);
         const board = boardFor(page, "GE");
 
-        // The 27326a94 layout folds the player displays (dashboard + MPIT +
-        // national actions) into a collapsed reference block, so open it first.
-        await board.locator('details.ie-reference > summary').click();
+        // The context rail has three tabs; the MPIT matrix lives in Reference.
+        await board.locator('[data-testid="ie-rail-tab-reference"]').click();
 
         const mpit = board.locator('[data-testid="ie-mpit"]');
         await expect(board.getByRole("heading", {name: /MPIT · 影响力轨/})).toBeVisible();
@@ -369,5 +372,143 @@ test.describe("Imperial Elegy solo vs bot", () => {
         // illegal move outside diplomacy) forever once its home card had been
         // played, which froze the match on exactly this transition.
         expect(errors.filter((text) => /invalid move/.test(text))).toEqual([]);
+    });
+});
+
+test.describe("Imperial Elegy one-screen acceptance", () => {
+    test("the 1440x900 shell does not scroll and keeps CP, fonts and inline styles in budget", async ({page}) => {
+        await reachAction(page);
+        const board = boardFor(page, "GE");
+
+        // 1. The whole hotseat shell is exactly one viewport tall.
+        expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(900);
+        expect(await page.evaluate(() => document.body.scrollHeight)).toBe(900);
+
+        // 2. The hand tray is at most 230 px and is actually on screen.
+        const tray = board.locator('[data-testid="ie-hand-tray"]');
+        await expect(tray).toBeVisible();
+        const trayBox = (await tray.boundingBox())!;
+        expect(trayBox.height).toBeLessThanOrEqual(230);
+        expect(trayBox.y + trayBox.height).toBeLessThanOrEqual(901);
+
+        // 3. The CP readout exists exactly once on the board.
+        await expect(board.locator('[data-testid="ie-command-cp"]')).toHaveCount(1);
+        expect(await board.locator('[data-testid="ie-command-cp"]').innerText()).toContain("CP");
+
+        // 4. The context rail fits the same screen.
+        const railBox = (await board.locator(".ie-rail").boundingBox())!;
+        expect(railBox.height).toBeLessThanOrEqual(900);
+
+        // 5. No body-size leaf text under 12 px and no non-SVG inline styles in
+        //    the active board (the map's inline cursor styles were removed too).
+        const audit = await page.evaluate(() => {
+            const svgTags = new Set(["svg", "g", "path", "circle", "rect", "text", "tspan", "polygon", "ellipse", "line", "defs", "pattern", "lineargradient", "stop"]);
+            const inClosedDetails = (el: Element) => {
+                const d = el.closest("details:not([open])");
+                return d !== null && el.closest("summary") === null;
+            };
+            const visible = (el: Element) => {
+                if (inClosedDetails(el)) return false;
+                if ((el as HTMLElement).checkVisibility &&
+                    !(el as HTMLElement).checkVisibility({checkOpacity: true, checkVisibilityCSS: true})) return false;
+                const r = el.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight;
+            };
+            const root = document.querySelector('[data-testid="ie-seat-GE"]')!;
+            const small = [...root.querySelectorAll("*")].filter((el) =>
+                visible(el) && el.children.length === 0 && (el.textContent ?? "").trim().length > 0 &&
+                el.closest(".ie-rule-ref") === null &&
+                parseFloat(getComputedStyle(el).fontSize) < 12);
+            const inline = [...root.querySelectorAll("[style]")].filter((el) =>
+                !svgTags.has(el.tagName.toLowerCase()));
+            return {small: small.length, inline: inline.length};
+        });
+        expect(audit.small).toBe(0);
+        expect(audit.inline).toBe(0);
+    });
+
+    test("the card inspector shows every operation and switches between SVG and print faces", async ({page}) => {
+        await reachAction(page);
+        const board = boardFor(page, "GE");
+        const card = board.locator(".ie-hand .ie-card").first();
+        await card.locator(".ie-card-open").click();
+
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        await expect(inspector).toBeVisible();
+        await expect(inspector).toHaveAttribute("data-face-mode", "svg");
+        await expect(inspector.locator("svg.ie-card-face")).toBeVisible();
+        // CP, event, industrialize, CP chain and save are all offered in place.
+        expect(await inspector.locator(".ie-card-inspector-actions button").count()).toBeGreaterThanOrEqual(5);
+        // A fully playable card has no aggregated reasons; a blocked one does.
+        const unavailable = inspector.locator('[data-testid="ie-card-inspector-unavailable"]');
+        if (await unavailable.count() > 0) await expect(unavailable).toBeVisible();
+
+        await page.keyboard.press("Escape");
+        await expect(inspector).toHaveCount(0);
+
+        // Switch the face preference, reopen, and see the scanned image.
+        await board.locator('[data-testid="ie-display-menu"] > summary').click();
+        await board.locator('[data-testid="ie-card-face-print"]').click();
+        await expect.poll(async () => await page.evaluate(() => localStorage.getItem("ie_card_face"))).toBe("print");
+        await card.locator(".ie-card-open").click();
+        await expect(inspector).toHaveAttribute("data-face-mode", "print");
+        await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toBeVisible();
+        await page.keyboard.press("Escape");
+
+        // Leave the default in place for the rest of the suite.
+        await board.locator('[data-testid="ie-display-menu"] > summary').click();
+        await board.locator('[data-testid="ie-card-face-svg"]').click();
+        await expect.poll(async () => await page.evaluate(() => localStorage.getItem("ie_card_face"))).toBe("svg");
+    });
+
+    test("a miss while targeting spends no CP, and Esc leaves the mode", async ({page}) => {
+        await reachAction(page);
+        const board = boardFor(page, "GE");
+        await playCpCard(board);
+        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
+        const land = board.getByRole("button", {name: "在此发动陆战"}).first();
+        await expect(land).toBeEnabled();
+        await land.click();
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
+        await expect(board.locator('[data-testid="ie-mode-pill-targets"]')).toBeVisible();
+
+        const before = await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining);
+        // London is neither adjacent to Berlin nor a legal battle target.
+        await board.locator('[data-testid="ie-space-london"]').click({force: true});
+        await page.waitForTimeout(250);
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before);
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
+
+        await page.keyboard.press("Escape");
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toHaveCount(0);
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before);
+    });
+});
+
+test.describe("Imperial Elegy mobile drawer", () => {
+    test.use({viewport: {width: 390, height: 844}});
+
+    test("starts at the peek position and opens to half and full height", async ({page}) => {
+        await openLocal(page);
+        const board = boardFor(page, "GE");
+        const tray = board.locator('[data-testid="ie-hand-tray"]');
+        await expect(tray).toHaveAttribute("data-open", "false");
+        await expect.poll(async () => await page.evaluate(() => document.documentElement.scrollHeight))
+            .toBeLessThanOrEqual(844 * 1.2);
+
+        await board.locator('[data-testid="ie-tray-toggle"]').click();
+        await expect(tray).toHaveAttribute("data-open", "true");
+        const half = (await tray.boundingBox())!.height;
+        expect(half).toBeGreaterThan(100);
+        expect(half).toBeLessThan(844 * 0.8);
+
+        await board.locator('[data-testid="ie-tray-expand"]').click();
+        await expect(tray).toHaveAttribute("data-expanded", "true");
+        const full = (await tray.boundingBox())!.height;
+        expect(full).toBeGreaterThan(half);
+
+        await board.locator('[data-testid="ie-tray-toggle"]').click();
+        await expect(tray).toHaveAttribute("data-open", "false");
+        expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(844 * 1.2);
     });
 });

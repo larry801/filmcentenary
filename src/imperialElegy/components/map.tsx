@@ -40,7 +40,7 @@ const BOARD = PAPER;
 const markerRadius = (id: SpaceId): number => (isNavalBox(id) ? 104 : SPACES[id].type === "territory" ? 62 : 74);
 
 /** Label text size, in *screen* pixels at any zoom (scaled back to board units). */
-const LABEL_PX = 10;
+const LABEL_PX = 12;
 
 const colorFor = (control: string | null): string => {
   if (control === null) return "#8b8b8b";
@@ -481,7 +481,7 @@ export const IEMap = React.memo(
               const units = state.units.length;
               return (
                 <g key={id} transform={`translate(${space.x} ${space.y})`}
-                  data-testid={`ie-space-${id}`} style={{cursor: "pointer"}}
+                  data-testid={`ie-space-${id}`} className="ie-space-hit"
                 >
                   {isHighlighted && (
                     <circle r={r + unitsPerPx * 10} fill="none" stroke="#f4d574"
@@ -549,9 +549,9 @@ export const IEMap = React.memo(
         <div className="ie-map-legend">
           <span>{locale === "zh_CN" ? "滚轮缩放 · 拖动平移 · 点击空间" : "wheel to zoom · drag to pan · click a space"}</span>
           {(["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]).map((p) => (
-            <span key={p}><i style={{display: "inline-block", width: 10, height: 10, background: POWER_DEFS[p].color, marginRight: 3, border: "1px solid #000"}}/>{t.seats[p]}</span>
+            <span key={p}><i className={`ie-map-legend-dot ie-map-legend-dot-${p.toLowerCase()}`}/>{t.seats[p]}</span>
           ))}
-          <span><i style={{display: "inline-block", width: 10, height: 10, background: "#7b5aa6", marginRight: 3, border: "1px solid #000"}}/>{t.neutral}</span>
+          <span><i className="ie-map-legend-dot ie-map-legend-dot-neutral"/>{t.neutral}</span>
         </div>
       </div>
     );

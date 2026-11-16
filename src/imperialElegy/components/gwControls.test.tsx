@@ -27,11 +27,25 @@ jest.mock("react", () => {
       },
     ];
   };
+  // The interaction state machine is a real reducer; keep it stateful so the
+  // suite's mapSelect / unit-click / mapSelect sequence behaves like a board.
+  const useReducer = (reducer: (state: unknown, action: unknown) => unknown, initial: unknown) => {
+    const index = mockHookIndex.value++;
+    if (!(index in mockStateStore)) {
+      mockStateStore[index] = typeof initial === "function" ? (initial as () => unknown)() : initial;
+    }
+    return [
+      mockStateStore[index],
+      (action: unknown) => {
+        mockStateStore[index] = reducer(mockStateStore[index], action);
+      },
+    ];
+  };
   const useMemo = (fn: () => unknown) => fn();
   const useCallback = (fn: unknown) => fn;
   const useRef = (initial: unknown) => ({current: initial});
   const useContext = (ctx: {defaultValue?: unknown}) => ctx?.defaultValue;
-  return {...actual, useState, useEffect: () => undefined, useMemo, useCallback, useRef, useContext};
+  return {...actual, useState, useReducer, useEffect: () => undefined, useMemo, useCallback, useRef, useContext};
 });
 
 jest.mock("./theme", () => {

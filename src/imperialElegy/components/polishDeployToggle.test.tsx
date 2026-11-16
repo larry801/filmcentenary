@@ -22,11 +22,21 @@ jest.mock("react", () => {
     if (initial === true) value = (globalThis as unknown as {__polishReserveDefault?: boolean}).__polishReserveDefault ?? true;
     return [typeof initial === "function" ? (initial as () => unknown)() : value, () => undefined];
   };
+  // The board's map selection is now one interaction reducer. These suites
+  // render the component function directly, so the reducer is stubbed: its
+  // initial idle state is replaced by Berlin, which is what the old first
+  // useState(null) stub selected for the SpacePanel assertions.
+  const useReducer = (reducer: (state: unknown, action: unknown) => unknown, initial: unknown) => {
+    const state = initial && typeof initial === "object" && (initial as {kind?: string}).kind === "idle"
+      ? {kind: "space", space: "berlin"}
+      : initial;
+    return [state, () => state];
+  };
   const useMemo = (fn: () => unknown) => fn();
   const useCallback = (fn: unknown) => fn;
   const useRef = (initial: unknown) => ({current: initial});
   const useContext = (ctx: {defaultValue?: unknown}) => ctx?.defaultValue;
-  return {...actual, useState, useEffect: () => undefined, useMemo, useCallback, useRef, useContext};
+  return {...actual, useState, useReducer, useEffect: () => undefined, useMemo, useCallback, useRef, useContext};
 });
 
 jest.mock("./theme", () => {

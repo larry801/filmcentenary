@@ -1,9 +1,17 @@
 import React from "react";
+import {ThemeProvider} from "@mui/material/styles";
 import "./imperial-elegy.css";
 import {ieT} from "./i18n";
+import {ieTheme} from "./ie-theme";
+
+export const IEThemeProvider = ({children}: {children: React.ReactNode}) => (
+  <ThemeProvider theme={ieTheme}>{children}</ThemeProvider>
+);
 
 export const IESurface = ({children, className = ""}: {children: React.ReactNode; className?: string}) => (
-  <div className={`ie-surface ${className}`}>{children}</div>
+  <IEThemeProvider>
+    <div className={`ie-surface ${className}`}>{children}</div>
+  </IEThemeProvider>
 );
 
 /**

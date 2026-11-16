@@ -78,14 +78,14 @@ const CardEmblem = ({kind}: {kind: CardDef["kind"] | "goal"}) => (
   </g>
 );
 
-export type CardFaceProps = {locale: IELocale} & (
+export type CardFaceProps = {locale: IELocale; showTranslation?: boolean} & (
   | {card: CardDef; goal?: never}
   | {goal: GoalDef; card?: never}
 );
 
 /** Data-driven SVG face: no raster images, external fonts, or image requests. */
 export const CardFace = React.memo((props: CardFaceProps) => {
-  const {locale, card, goal} = props;
+  const {locale, card, goal, showTranslation = true} = props;
   const data = goal ?? card!;
   const t = ieStringsFor(locale);
   const uid = React.useId();
@@ -145,7 +145,7 @@ export const CardFace = React.memo((props: CardFaceProps) => {
         <text x="85" y="31" fontSize="12" fontWeight="700" fill="#fff6df">
           {categoryLines.map((line, index) => <tspan key={index} x="85" dy={index === 0 ? 0 : 16}>{line}</tspan>)}
         </text>
-        <text x="85" y={37 + categoryLines.length * 16} fontSize="11" fill="#f0e8d2">{subtitle}</text>
+        <text x="85" y={37 + categoryLines.length * 16} fontSize="12" fill="#f0e8d2">{subtitle}</text>
         <rect y="94" width={WIDTH} height={titleBottom - 94} fill={kind === "goal" ? accent : "#e5dfc9"}/>
         <g fill={kind === "goal" ? "#fff8e6" : accent} fontWeight="700">
           <TextLines lines={titleLines} y={123} size={23} lineHeight={28} className="ie-card-title"/>
@@ -156,13 +156,15 @@ export const CardFace = React.memo((props: CardFaceProps) => {
         <text x={INSET} y={height - 15} fontSize="12" fill={accent}>{footer}</text>
         <text x="282" y={height - 15} fontSize="12" textAnchor="end" fill={accent}>{markers ? `${markers} · ` : ""}{data.number}</text>
       </svg>
-      <details className="ie-card-translation">
-        <summary>{locale === "zh_CN" ? "English text" : "中文译文"}</summary>
-        <div lang={locale === "zh_CN" ? "en" : "zh-CN"} className={locale === "en" ? "ie-card-zh" : undefined}>
-          <strong>{translatedTitle}</strong>
-          <p>{translation}</p>
-        </div>
-      </details>
+      {showTranslation && (
+        <details className="ie-card-translation">
+          <summary>{locale === "zh_CN" ? "English text" : "中文译文"}</summary>
+          <div lang={locale === "zh_CN" ? "en" : "zh-CN"} className={locale === "en" ? "ie-card-zh" : undefined}>
+            <strong>{translatedTitle}</strong>
+            <p>{translation}</p>
+          </div>
+        </details>
+      )}
     </>
   );
 });
