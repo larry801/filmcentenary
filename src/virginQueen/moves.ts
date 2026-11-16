@@ -3972,6 +3972,10 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
+    // Rule 21: only the five non-Ottoman powers have a royal marriage pool.
+    if (p === "ottoman") {
+        return INVALID_MOVE;
+    }
     const male = G.royals.find((r) => r.id === args.male);
     const female = G.royals.find((r) => r.id === args.female);
     if (male === undefined || female === undefined || male.gender !== "male" || female.gender !== "female") {
