@@ -42,6 +42,7 @@ import {GreatWarPanel} from "./GreatWarPanel";
 import {SeatAlert} from "./SeatStrip";
 import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
+import {Toast} from "./Toast";
 
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
@@ -85,10 +86,20 @@ const MoreActions = ({label, testId, children}: {label: string; testId: string; 
   );
 };
 
-/** Card-face display preference; lives in the command bar menu. */
-const DisplayMenu = ({mode, setMode, locale}: {
+/**
+ * Display preferences; lives in the track strip's menu.
+ *
+ * Both switches are stored in `localStorage` (`preferences.ts`) and read by the
+ * tray and the phase buttons; the card face is read from this component's own
+ * state, so flipping it here re-renders the board.  The `confirmActions` switch
+ * is passed down as a prop for the same reason: storage alone only reaches a
+ * consumer on its next mount.
+ */
+const DisplayMenu = ({mode, setMode, confirmActions, setConfirmActions, locale}: {
   mode: "svg" | "print";
   setMode: (mode: "svg" | "print") => void;
+  confirmActions: boolean;
+  setConfirmActions: (enabled: boolean) => void;
   locale: "en" | "zh_CN";
 }) => (
   <details className="ie-display-menu" data-testid="ie-display-menu">
@@ -119,6 +130,22 @@ const DisplayMenu = ({mode, setMode, locale}: {
       </div>
       <div className="ie-display-note">
         {bi(locale, "Printed scans load the 14 MB card image set.", "印刷卡图会加载约 14 MB 的卡图资源。")}
+      </div>
+
+      <div className="ie-display-title">{bi(locale, "Confirmation", "确认")}</div>
+      <label className="ie-display-toggle">
+        <input
+          type="checkbox"
+          data-testid="ie-confirm-actions"
+          checked={confirmActions}
+          onChange={(event) => setConfirmActions(event.target.checked)}
+        />
+        <span>{bi(locale, "Ask before irreversible actions", "不可撤销的操作需要二次确认")}</span>
+      </label>
+      <div className="ie-display-note">
+        {bi(locale,
+          "Play for CP, events, pass, ending a phase and destructive decisions arm first when this is on.",
+          "开启时，作 CP 打出、事件、停牌、结束阶段与破坏性决策都需先点击蓄势、再点击确认。")}
       </div>
     </div>
   </details>
@@ -397,9 +424,9 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   const {
     G, hotseat, t, locale, viewer, phase, active, botSeats, pending, battle, phaseActions,
     otherSeatPending, seatUi, pendingPrompt, pendingKind, responseWindow, cardFaceMode,
-    setCardFaceMode, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
+    setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
-    moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor,
+    moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast,
   } = core;
   const {selected, onSelect, modePill, mapTargets, mapFocusedTarget, chooser} = interaction;
   // The one definition of "a decision is owed and on screen".  The panel uses
@@ -407,7 +434,15 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   // body, and the hand sheet to fold itself out of the map's way.
   const decisionOwed = Boolean(pending || battle || G.result);
 
-  const displayMenu = <DisplayMenu mode={cardFaceMode} setMode={setCardFaceMode} locale={locale}/>;
+  const displayMenu = (
+    <DisplayMenu
+      mode={cardFaceMode}
+      setMode={setCardFaceMode}
+      confirmActions={confirmActions}
+      setConfirmActions={setConfirmActions}
+      locale={locale}
+    />
+  );
 
   const commandStatus = (
     <div className="ie-status">
@@ -487,6 +522,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
           hasDecision={decisionOwed}
           decisionOnlyOnPhone={decisionOwed}
           decisionBadge={pending !== null && viewer !== null && pending.power === viewer}
+          confirmActions={confirmActions}
           warBadge={war.war ? "⚔" : undefined}
           tabs={{
             action: (
@@ -545,6 +581,11 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
         )}
         <HandRegion {...hand} locale={locale} t={t} decisionPeek={decisionOwed}/>
       </div>
+
+      {/* A refused move is explained here: the engine answers a bare
+          INVALID_MOVE, so the board says what it tried and why it is not
+          allowed, without stealing focus or blocking the map. */}
+      <Toast toast={toast} locale={locale} onDismiss={dismissToast}/>
 
       <ReferenceDrawer
         core={core}

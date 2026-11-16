@@ -41,11 +41,12 @@ const CORE_KEYS = [
   "mapLegalTargets",
   "canSpend", "dockVisible", "dockSummary", "dockCollapsed", "setDockCollapsed", "isCurrentSeat",
   "otherSeatPending", "seatUi", "pendingPrompt", "pendingKind", "responseWindow", "handChoicesHint",
-  "cardFaceMode", "setCardFaceMode", "board", "setBoard", "railTab", "setRailTab", "choiceKinds",
+  "cardFaceMode", "setCardFaceMode", "confirmActions", "setConfirmActions", "board", "setBoard", "railTab", "setRailTab", "choiceKinds",
   "choicesProps", "targetingHint", "handCounts", "goalCounts", "minorMarkerRows", "homeCardTitle",
   "mpitTarget", "setMpitTarget", "mpitTrack", "setMpitTrack", "doAction", "mapHint",
   "pendingSpaceTargets", "optionLabel", "optionFace", "optionAction", "canDecline",
   "jihadDecision", "jihadReason", "onOpenReference", "refAnchor", "setRefAnchor",
+  "toast", "dismissToast",
 ] as const;
 
 /** Map interaction: selection, targeting and the legal-target layers. */

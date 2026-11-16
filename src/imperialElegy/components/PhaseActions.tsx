@@ -23,6 +23,8 @@ export interface PhaseActionsProps {
   title: string;
   actions: PhaseAction[];
   locale: "en" | "zh_CN";
+  /** The live `confirmActions` preference; omitted means "read the stored one". */
+  confirmActions?: boolean;
 }
 
 /**
@@ -34,9 +36,10 @@ export interface PhaseActionsProps {
  * `data-testid="ie-impulse-actions"` is kept from the old hand-panel header so
  * the board's "only the acting seat gets these" assertions still apply.
  */
-export const PhaseActions = ({title, actions, locale}: PhaseActionsProps) => {
+export const PhaseActions = ({title, actions, locale, confirmActions: liveConfirm}: PhaseActionsProps) => {
   // One read per mount: the preference is display-only and cheap to re-read.
-  const confirmActions = React.useMemo(() => readConfirmActions(), []);
+  const storedConfirm = React.useMemo(() => readConfirmActions(), []);
+  const confirmActions = liveConfirm ?? storedConfirm;
   if (actions.length === 0) return null;
   return (
     <div className="ie-dock-choice" data-testid="ie-phase-actions">

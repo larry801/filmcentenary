@@ -18,6 +18,8 @@ import {ConfirmButton} from "./ConfirmButton";
 import {CARD_TYPE_GLYPH, cardAvailability, cardTypeIcon, sortCards, type CardAvailability, type CardFilter, type CardSort} from "./cardAvailability";
 
 export interface HandTrayProps {
+  /** Live `confirmActions` preference (the Display menu writes it). */
+  confirmActions?: boolean;
   G: ImperialElegyState;
   viewer: Power | null;
   me: ImperialElegyState["powers"][Power] | null;
@@ -107,7 +109,10 @@ export const HandTray = (props: HandTrayProps) => {
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
   // Reads the saved preference when the tray mounts; `Preferences` in the
   // command menu writes it, and the tray picks the new value up on remount.
-  const confirmActions = React.useMemo(() => readConfirmActions(), []);
+  // The board passes the live preference so the Display menu can flip it; a
+  // caller that renders the tray alone still gets the stored value.
+  const storedConfirm = React.useMemo(() => readConfirmActions(), []);
+  const confirmActions = props.confirmActions ?? storedConfirm;
   const [filter, setFilter] = React.useState<CardFilter>("all");
   const [sort, setSort] = React.useState<CardSort>("printed");
 

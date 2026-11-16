@@ -73,7 +73,7 @@ import {PhaseAction} from "./PhaseActions";
 import {BotSeatsContext} from "./botContext";
 import {SeatUiContext} from "./seatUiContext";
 import {useInteraction, interactionPrompt} from "./useInteraction";
-import {useCardFaceMode} from "./preferences";
+import {useCardFaceMode, useConfirmActions} from "./preferences";
 import {sliceModel, type BoardSlices} from "./boardSlices";
 import {resolveLocale} from "./modelValues";
 import type {MapTarget} from "./map";
@@ -87,6 +87,31 @@ import {botMoveFor} from "../engine/bot";
 
 
 const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
+
+/**
+ * Did the view change between two states?  A refused move leaves the board
+ * exactly as it was (same counters, same hands, same log length), which is what
+ * the rejection notice keys on.
+ */
+const viewChanged = (before: ImperialElegyState, after: ImperialElegyState): boolean => {
+  if (before === after) return false;
+  if (before.log.length !== after.log.length) return true;
+  if (before.cpRemaining !== after.cpRemaining) return true;
+  if (before.activePower !== after.activePower || before.phase !== after.phase) return true;
+  if (before.pending !== after.pending || before.battle !== after.battle) return true;
+  if (before.units !== after.units || before.spaces !== after.spaces) return true;
+  if (before.spaces && after.spaces) {
+    for (const id of Object.keys(before.spaces) as SpaceId[]) {
+      const a = before.spaces[id];
+      const b = after.spaces[id];
+      if (a === b) continue;
+      if (a.control !== b.control || a.fort !== b.fort || a.trench !== b.trench
+        || a.influence !== b.influence || a.pacification !== b.pacification) return true;
+    }
+  }
+  return false;
+};
+
 
 export interface BoardModelProps {
   G: ImperialElegyState;
@@ -114,6 +139,7 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const decade = decadeLabel(G.decade as Decade);
   const viewer = playerID === null || playerID === undefined ? null : POWER_KEYS[Number(playerID)] ?? null;
 
+  const [confirmActions, setConfirmActions] = useConfirmActions();
   const {interaction, dispatch} = useInteraction();
   const selected: SpaceId | null = interaction.kind === "idle" ? null
     : interaction.kind === "targeting" ? interaction.from
@@ -643,15 +669,45 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const handCounts = (G as unknown as {handCounts?: Partial<Record<Power, number>>}).handCounts ?? {};
   const goalCounts = (G as unknown as {goalCounts?: Partial<Record<Power, number>>}).goalCounts ?? {};
 
-  const doAction = React.useCallback((fn: () => void) => {
+/**
+   * The rejection notice.
+   *
+   * boardgame.io answers a refused move with a bare `INVALID_MOVE` — no reason,
+   * and a legal move is applied synchronously while a refused one leaves `G`
+   * exactly as it was.  The board therefore wraps only the moves that carry a
+   * label and the reason it already computed, and compares the view on the next
+   * tick: identical state means the engine said no, changed state means the
+   * action happened (and needs no notice).
+   */
+  const rejection = React.useRef<{label: string; reason?: string; snapshot: ImperialElegyState} | null>(null);
+  const [toast, setToast] = React.useState<ModelValues["toast"]>(null);
+  const dismissToast = React.useCallback(() => setToast(null), []);
+
+  const doAction = React.useCallback((fn: () => void, describe?: {label: string; reason?: string}) => {
+    rejection.current = describe === undefined ? null : {...describe, snapshot: G};
     try {
       fn();
     } catch (error) {
+      // A move that throws synchronously never reached the engine; the console
+      // keeps the detail and the notice still explains the refusal.
       console.warn("illegal Imperial Elegy action", error);
     }
-  }, []);
+    const pending = rejection.current;
+    rejection.current = null;
+    if (pending === null) return;
+    setTimeout(() => {
+      if (viewChanged(pending.snapshot, G)) return;
+      setToast({
+        title: bi(actualLocale, `Not allowed: ${pending.label}`, `无法执行：${pending.label}`),
+        body: pending.reason ?? bi(actualLocale,
+          "The rules do not allow that action right now.",
+          "当前规则不允许该操作。"),
+        tone: "warn",
+      });
+    }, 0);
+  }, [G, actualLocale]);
 
-  const beginTargeting = React.useRef<(intent: Parameters<typeof interactionPrompt>[0], from: SpaceId, targets: SpaceId[], sources?: string[]) => void>(() => {});
+    const beginTargeting = React.useRef<(intent: Parameters<typeof interactionPrompt>[0], from: SpaceId, targets: SpaceId[], sources?: string[]) => void>(() => {});
   beginTargeting.current = (intent, from, targets, sources = []) => {
     dispatch({type: "beginTargeting", intent, from, sources, targets});
   };
@@ -1171,13 +1227,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   // menus; one stable callback keeps those regions free of their own state.
   const [refAnchor, setRefAnchor] = React.useState<string | null>(null);
   const onOpenReference = React.useCallback((anchor: string) => setRefAnchor(anchor), []);
-  // Phase 1: a rejected move has no engine message (boardgame.io answers a bare
-  // INVALID_MOVE), so the board explains it in a polite toast.
-  const [toast, setToast] = React.useState<ModelValues["toast"]>(null);
-  const dismissToast = React.useCallback(() => setToast(null), []);
-  // The model does not raise toasts yet; fail-fast on the panel before the
-  // availability rows exist is handled by the toast in phase 1.
-  void setToast;
 
   const raw = {
     toast,
@@ -1366,6 +1415,8 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     warBudgetRows,
     warDefenderMinors,
     minorMarkerRows,
+    confirmActions,
+    setConfirmActions,
     trenchRows: trenchRows(G),
     warTargetControl,
     targetControlledSpaces,

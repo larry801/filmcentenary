@@ -2398,3 +2398,77 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-stack-popover-power { color: #6d5636; }
 .ie-stack-popover-count { margin-left: auto; font-weight: 700; }
 .ie-stack-popover-reduced { flex: 1 1 100%; color: var(--ie-warn); font-size: var(--ie-font-xs); }
+
+/* Confirmation switch in the display menu: a labelled checkbox that reads as a
+   row, not as a stray input. */
+.ie-display-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--ie-font-sm);
+  color: #eadfc8;
+  cursor: pointer;
+}
+.ie-display-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ie-accent);
+  margin: 0;
+}
+.ie-display-toggle + .ie-display-note { margin-top: 4px; }
+
+/* ---------------------------------------------------------------- rejection notice */
+/* Sits above the hand and below the strip: visible next to the map where the
+   refused click happened, and it never covers the decision or the map centre. */
+.ie-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 95;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: min(520px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border: 1px solid var(--ie-warn);
+  border-left-width: 4px;
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-frame-2);
+  color: #eadfc8;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .6);
+  font-size: var(--ie-font-sm);
+}
+.ie-toast-error { border-color: #ff9a7a; }
+.ie-toast-info { border-color: var(--ie-accent); }
+.ie-toast-glyph {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--ie-accent-soft);
+  font-size: var(--ie-font-xs);
+  font-weight: 700;
+}
+.ie-toast-text { min-width: 0; }
+.ie-toast-title { font-weight: 700; color: #f7e6bb; }
+.ie-toast-body { margin-top: 2px; color: #c5b698; font-size: var(--ie-font-xs); line-height: 1.35; }
+.ie-toast-close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #5a4830;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+  color: #d4a85c;
+  cursor: pointer;
+  font-size: var(--ie-font-xs);
+}
+.ie-toast-close:hover { border-color: var(--ie-accent); color: #f7e6bb; }
+@media (max-width: 767px) {
+  /* Phones: clear of the bottom sheet's peek bar and the turn panel above it. */
+  .ie-toast { bottom: 104px; font-size: var(--ie-font-xs); }
+}

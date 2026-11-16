@@ -69,7 +69,8 @@ export interface SpacePanelProps {
   potentialLandTargets: SpaceId[];
   potentialNavalTargets: SpaceId[];
   selectedUnitDef: Unit | undefined;
-  doAction: (fn: () => void) => void;
+  /** Runs a move; `describe` lets the board explain a refusal. */
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -144,6 +145,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
     startNavalBattle: () => navalFrom !== selected && setNavalFrom(selected),
     warCp,
     onDeclareWar: () => null,
+    describeRow: (row) => ({label: row.label, reason: row.reason}),
     locale,
   });
   /**
@@ -168,6 +170,18 @@ export const SpacePanel = (props: SpacePanelProps) => {
     deployReserves: "ie-deploy-reserves",
   };
 
+  /**
+   * Run a row; the engine's refusal is explained with the row's own reason.
+   * A legal row still runs inside `spaceActions`' own `doAction` wrapper, so
+   * this only adds the label the notice needs.
+   */
+  const runAction = (item: SpaceAction): void => {
+    // `run` already funnels through `doAction`; the notice needs the row's
+    // label and reason, so the row re-enters that wrapper with them.
+    if (!item.enabled) return;
+    doAction(() => item.run(), {label: item.label, reason: item.enabled ? undefined : item.reason});
+  };
+
   /** One row: a button with a cost chip and a reason line under it. */
   const actionButton = (item: SpaceAction) => (
     <div
@@ -183,7 +197,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
         data-testid={LEGACY_ACTION_IDS[item.id]}
         disabled={!item.enabled}
         title={item.reason}
-        onClick={item.run}
+        onClick={() => runAction(item)}
       >
         {item.label}
         {item.cost > 0 && <span className="ie-action-cost" aria-hidden="true"> · {item.cost} CP</span>}
