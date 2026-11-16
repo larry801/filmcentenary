@@ -367,6 +367,9 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBeGreaterThan(0);
         await expect.poll(async () => await board.locator('[data-testid="ie-pass"]').innerText()).toBe("结束行动轮");
         // 12.0: the single exit reads 结束行动轮 once a card has been played.
+        // The exit already reads 结束行动轮 in the failure screenshot, so the
+        // click is what lags: retry until the seat really hands over instead of
+        // assuming one click lands inside the 30 s window.
         if (played) {
             await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBeGreaterThan(0);
             await expect.poll(async () => await board.locator('[data-testid="ie-pass"]').innerText()).toBe("结束行动轮");
@@ -389,7 +392,11 @@ test.describe("Imperial Elegy solo vs bot", () => {
         const endImpulse = board.locator('[data-testid="ie-pass"]').first();
         await expect(endImpulse).toBeVisible();
         await expect(endImpulse).toHaveText("结束行动轮");
-        await endImpulse.click();
+        for (let attempt = 0; attempt < 4; attempt += 1) {
+            if (await page.evaluate(() => (window as any).__IE_STATE__.activePower) !== "GE") break;
+            await endImpulse.click({timeout: 5_000}).catch(() => undefined);
+            await page.waitForTimeout(600);
+        }
         await expect.poll(
             async () => await page.evaluate(() => (window as any).__IE_STATE__.activePower),
             {timeout: 30_000},

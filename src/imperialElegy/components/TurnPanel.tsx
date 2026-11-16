@@ -44,6 +44,8 @@ export interface TurnPanelProps {
     war: React.ReactNode;
     log: React.ReactNode;
   };
+  /** The live `confirmActions` preference, forwarded to the phase buttons. */
+  confirmActions?: boolean;
   /** Tab driven from the board (the track strip's references, testing). */
   activeTab?: string;
   onTabChange?: (tab: string) => void;
@@ -52,6 +54,7 @@ export interface TurnPanelProps {
 export const TurnPanel = ({
   locale, t, cp, phaseActions, phaseLabel, activeLabel, turn, summary, warVisible, hasDecision,
   decisionOnlyOnPhone = false, decisionBadge = false, warBadge, tabs, activeTab, onTabChange,
+  confirmActions,
 }: TurnPanelProps) => {
   const [internal, setInternal] = React.useState("action");
   const active = activeTab ?? internal;
@@ -91,7 +94,7 @@ export const TurnPanel = ({
         </span>
         {/* The one exit of an impulse (12.0) lives in the panel head next to
             the CP readout; the strip above only reports the position. */}
-        <PhaseActions title={t.yourTurnActions} locale={locale} actions={phaseActions}/>
+        <PhaseActions title={t.yourTurnActions} locale={locale} actions={phaseActions} confirmActions={confirmActions}/>
       </div>
 
       <div className="ie-turn-tabs" role="tablist" aria-label={bi(locale, "Turn panel sections", "回合面板分页")}>

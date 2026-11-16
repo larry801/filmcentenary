@@ -669,7 +669,11 @@ export const IEMap = React.memo(
               // printed box, the others from the lower-left corner of the
               // marker, clear of the space's name underneath it.
               const tokenEntries = unitIndex.get(id) ?? [];
-              const tokenPx = isNavalBox(id) ? 46 : space.type === "territory" ? 34 : 44;
+              // Tokens are drawn in board units, so their on-screen size grows
+              // with the zoom.  At 34 px they covered their neighbours' names at
+              // the fit zoom; 24 px keeps a readable counter and still leaves
+              // the map's labels and the welfare of the space name visible.
+              const tokenPx = isNavalBox(id) ? 30 : space.type === "territory" ? 24 : 26;
               const tokenStack = tokenEntries.length === 0 ? null : {
                 visible: tokenEntries.slice(0, TOKEN_VISIBLE),
                 extra: Math.max(0, tokenEntries.length - TOKEN_VISIBLE),
@@ -725,7 +729,7 @@ export const IEMap = React.memo(
                       )}
                       {tokenStack.visible.map((entry, slot) => {
                         const box = unitsPerPx * tokenPx;
-                        const step = box * 0.82;
+                        const step = box * 0.9;
                         return (
                           <g key={`${entry.power}-${entry.kind}-${entry.reduced ? "r" : "f"}`}
                             transform={`translate(${origin.x - slot * step} ${origin.y - slot * step})`}>

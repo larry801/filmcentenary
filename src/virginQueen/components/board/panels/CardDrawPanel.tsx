@@ -6,7 +6,6 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import i18n from "../../../../constant/i18n";
 import {powerName, LandStack, NavalStack} from "../../../constant/general";
-import {seaCaptainById, seaCaptainName} from "../../../scenario";
 import {seaZoneName} from "../../../mapData";
 import {participatingPowers} from "../../../ownership";
 import {scenarioName} from "../../../scenario";
@@ -90,16 +89,6 @@ export const CardDrawPanel = () => {
         <Typography variant="body2" color={myTurn ? "primary" : "text.secondary"}>
             {`${myTurn ? i18n.chain.vq.cardDraw.pleaseConfirm : i18n.chain.vq.cardDraw.waiting} P${Number(ctx.currentPlayer) + 1} · ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.cardDraw.completeDraw}${i18n.chain.vq.punct.openParen}${powers.indexOf(G.activePower) + 1}/${powers.length}${i18n.chain.vq.punct.closeParen}${i18n.chain.vq.punct.period}${!myTurn && switchToTab(G.activePower) !== undefined ? ` ${switchToTab(G.activePower)}` : ""}`}
         </Typography>
-        {me !== "france" && me !== "protestant" ? null : G.seaCaptainsAvailable.map((id) => {
-            const captain = seaCaptainById(id);
-            if (captain === undefined || captain.turn > G.year) {
-                return null;
-            }
-            return <Button key={id} size="small" variant="outlined" disabled={!myTurn}
-                           onClick={() => moves.claimSeaCaptain({captain: id})}>
-                {i18n.chain.vq.cardDraw.claimCaptain}: {seaCaptainName(captain, vqLocale)}
-            </Button>;
-        })}
         <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.endPhaseTurn()}>
             {`${i18n.chain.vq.cardDraw.confirm}${vqLocale === "en" ? " " : ""}${powerName(G.activePower, vqLocale)}${vqLocale === "en" ? " " : ""}${i18n.chain.vq.cardDraw.drawDone}`}
         </Button>

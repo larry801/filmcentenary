@@ -116,7 +116,7 @@ describe("City State Rebels loss choice (#18)", () => {
         expect(G.pendingCityRebels).toBe(remaining);
         expect(G.spaces.rotterdam.land.france).toEqual({regular: 2, merc: 2, cav: 1});
 
-        expect(moveError(G, "claimSeaCaptain")).toBeDefined();
+        expect(moveError(G, "declareWar")).toBeDefined();
         expect(moveError(G, "chooseCityRebelsLoss")).toBeUndefined();
 
         expect(chooseCityRebelsLoss(G, french, {kind: "auto"})).toBeUndefined();

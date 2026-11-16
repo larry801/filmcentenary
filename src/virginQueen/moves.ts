@@ -3544,23 +3544,6 @@ export const placeSeaCaptainLeader = (G: VQGame, ctx: Ctx, args: {captain: strin
     pushLog(G, `England places ${captain.nameEn} as a naval leader in ${SPACE_BY_ID[args.port].name}.`);
 };
 
-export const claimSeaCaptain = (G: VQGame, ctx: Ctx, args: {captain: string}): void | typeof INVALID_MOVE => {
-    if (moveError(G, "claimSeaCaptain", args)) return INVALID_MOVE;
-    if (ctx.phase !== "cardDraw") {
-        return INVALID_MOVE;
-    }
-    const p = power(G, ctx);
-    const captain = seaCaptainById(args.captain);
-    if (captain === undefined || captain.power !== "france/protestant" || captain.turn > G.year ||
-        !G.seaCaptainsAvailable.includes(captain.id) || G.powers[p].seaCaptains.includes(captain.id) ||
-        (p !== "france" && p !== "protestant")) {
-        return INVALID_MOVE;
-    }
-    G.seaCaptainsAvailable = G.seaCaptainsAvailable.filter((id) => id !== captain.id);
-    G.powers[p].seaCaptains.push(captain.id);
-    pushLog(G, `${powerLabel(p)} claims shared Sea Captain ${captain.nameEn}.`);
-};
-
 // --------------------------------------------------------------------------
 // Diplomacy
 // --------------------------------------------------------------------------
@@ -3989,6 +3972,10 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
+    // Rule 21: only the five non-Ottoman powers have a royal marriage pool.
+    if (p === "ottoman") {
+        return INVALID_MOVE;
+    }
     const male = G.royals.find((r) => r.id === args.male);
     const female = G.royals.find((r) => r.id === args.female);
     if (male === undefined || female === undefined || male.gender !== "male" || female.gender !== "female") {
@@ -4503,9 +4490,21 @@ export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; col
     const freeScienceColony = G.powers[p].scienceBonuses.includes("plantation");
     const baseCost = captain?.expeditionCost ?? 1;
     const cost = baseCost + (args.colony && !freeColonist && !freeScienceColony ? 1 : 0);
-    if (captain === undefined || captain.turn > G.year || !G.powers[p].seaCaptains.includes(args.captain) ||
+    // 5.2/17.4: de Sores and le Clerc stay in a shared pool until a French or
+    // Protestant expedition first sponsors one of them.  "First come, first
+    // served" is resolved here, at Build Expedition, not in the Card Draw Phase.
+    const sharedCaptain = captain !== undefined && captain.power === "france/protestant" &&
+        (p === "france" || p === "protestant") && G.seaCaptainsAvailable.includes(args.captain) &&
+        !G.powers[p].seaCaptains.includes(args.captain);
+    if (captain === undefined || captain.turn > G.year ||
+        (!G.powers[p].seaCaptains.includes(args.captain) && !sharedCaptain) ||
         (args.colony === true && (p === "hre" || (p === "ottoman" && !G.suezDone))) ||
         G.worldCaptains[args.captain] !== undefined || !spend(G, p, cost)) return INVALID_MOVE;
+    if (sharedCaptain) {
+        G.seaCaptainsAvailable = G.seaCaptainsAvailable.filter((id) => id !== args.captain);
+        G.powers[p].seaCaptains.push(args.captain);
+        pushLog(G, `${powerLabel(p)} takes shared Sea Captain ${captain.nameEn} (first come, first served; 5.2/17.4).`);
+    }
     G.worldCaptains[args.captain] = {power: p, location: start, damaged: p === "ottoman" && !G.suezDone, colony: args.colony === true, route: [start]};
     pushLog(G, `${powerLabel(p)} launches ${captain.nameEn}'s expedition from ${WORLD_SEA_ZONE_BY_ID[start].nameEn}${args.colony ? " with a colony" : ""}.`);
 };

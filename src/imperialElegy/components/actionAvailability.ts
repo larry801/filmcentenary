@@ -155,7 +155,8 @@ export interface SpaceActionsInput {
   war: ImperialElegyState["war"];
   me: ImperialElegyState["powers"][Power];
   moves: Record<string, (...args: any[]) => void>;
-  doAction: (fn: () => void) => void;
+  /** Runs a move; `describe` lets the board explain a refusal. */
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   /** Counts the panel already derives. */
   myOnMapArmies: number;
   myForts: number;
@@ -180,6 +181,11 @@ export interface SpaceActionsInput {
   startNavalBattle: () => void;
   /** Second objective for a declaration (kept in the panel). */
   warCp: number;
+  /**
+   * The row's own label and reason are handed to `doAction`, so a refusal the
+   * engine reports can be explained in words the player is already reading.
+   */
+  describeRow: (row: {id: string; label: string; reason?: string}) => {label: string; reason?: string};
   onDeclareWar: () => {enabled: boolean; reason?: string} | null;
   locale: "en" | "zh_CN";
 }
@@ -225,7 +231,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     myOnMapArmies, myForts, myMinorAllies, ownLandInSelected, ownNavalInSelected,
     potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
     canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve, gwJointNavalAllies,
-    gwJointNavalUnitIds, startBattle, startNavalBattle, onDeclareWar, locale,
+    gwJointNavalUnitIds, startBattle, startNavalBattle, onDeclareWar, locale, describeRow,
   } = input;
   const rows: SpaceAction[] = [];
   const gw = phase === "gwManeuver";
@@ -246,7 +252,15 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
 
   const push = (row: Omit<SpaceAction, "label" | "cost"> & {cost?: number}): void => {
     const cost = row.cost ?? ACTION_COSTS[row.id];
-    rows.push({...row, cost, label: actionCostLabel(row.id, locale)});
+    const label = actionCostLabel(row.id, locale);
+    rows.push({
+      ...row,
+      cost,
+      label,
+      // Every row's move goes through the board's rejection notice with the
+      // label and reason the player is already reading on this row.
+      run: () => doAction(() => row.run(), describeRow({id: row.id, label, reason: row.reason})),
+    });
   };
 
   // ---------------------------------------------------------------- recruit

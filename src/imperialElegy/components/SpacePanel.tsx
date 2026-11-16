@@ -69,7 +69,8 @@ export interface SpacePanelProps {
   potentialLandTargets: SpaceId[];
   potentialNavalTargets: SpaceId[];
   selectedUnitDef: Unit | undefined;
-  doAction: (fn: () => void) => void;
+  /** Runs a move; `describe` lets the board explain a refusal. */
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -144,6 +145,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
     startNavalBattle: () => navalFrom !== selected && setNavalFrom(selected),
     warCp,
     onDeclareWar: () => null,
+    describeRow: (row) => ({label: row.label, reason: row.reason}),
     locale,
   });
   /**
@@ -151,6 +153,13 @@ export const SpacePanel = (props: SpacePanelProps) => {
    * e2e specs, the bot suites and the control tests address these names, so a
    * row keeps the name of the button it replaced.
    */
+  /**
+   * The second objective is the *other* space of the war: the one clicked on
+   * the map is the first objective, so offering it again here would let a
+   * declaration name the same space twice.
+   */
+  const secondObjectiveCandidates = targetControlledSpaces.filter((id) => id !== selected);
+
   const LEGACY_ACTION_IDS: Partial<Record<SpaceAction["id"], string>> = {
     gwMarch: "ie-gw-march",
     gwRail: "ie-gw-rail",
@@ -159,6 +168,18 @@ export const SpacePanel = (props: SpacePanelProps) => {
     gwNaval: "ie-gw-naval",
     refit: "ie-gw-refit",
     deployReserves: "ie-deploy-reserves",
+  };
+
+  /**
+   * Run a row; the engine's refusal is explained with the row's own reason.
+   * A legal row still runs inside `spaceActions`' own `doAction` wrapper, so
+   * this only adds the label the notice needs.
+   */
+  const runAction = (item: SpaceAction): void => {
+    // `run` already funnels through `doAction`; the notice needs the row's
+    // label and reason, so the row re-enters that wrapper with them.
+    if (!item.enabled) return;
+    doAction(() => item.run(), {label: item.label, reason: item.enabled ? undefined : item.reason});
   };
 
   /** One row: a button with a cost chip and a reason line under it. */
@@ -176,7 +197,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
         data-testid={LEGACY_ACTION_IDS[item.id]}
         disabled={!item.enabled}
         title={item.reason}
-        onClick={item.run}
+        onClick={() => runAction(item)}
       >
         {item.label}
         {item.cost > 0 && <span className="ie-action-cost" aria-hidden="true"> · {item.cost} CP</span>}
@@ -279,10 +300,10 @@ export const SpacePanel = (props: SpacePanelProps) => {
                 <select className="ie-select" value={warCp} onChange={(e) => setWarCp(Number(e.target.value))} title={t.cp}>
                   {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} CP</option>)}
                 </select>
-                {targetControlledSpaces.length > 0 && (
+                {secondObjectiveCandidates.length > 0 && (
                   <select className="ie-select" value={secondObjective} onChange={(e) => setSecondObjective(e.target.value as SpaceId | "")} title={t.objectives}>
                     <option value="">{bi(locale, "One objective", "单一目标")}</option>
-                    {targetControlledSpaces.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
+                    {secondObjectiveCandidates.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
                   </select>
                 )}
                 <button className="ie-btn" disabled={!canDeclareWar} onClick={() => doAction(() => moves.declareWar(warTargetControl, warAim, secondObjective ? [selected!, secondObjective] : [selected!], warCp))}>{t.declareWar}</button>

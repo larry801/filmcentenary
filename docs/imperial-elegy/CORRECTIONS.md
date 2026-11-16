@@ -90,3 +90,17 @@ Austria-Hungary has nine National Goals. #31 *Precarious Position* is only
 available in the 1870 and 1880 scenarios (rules 2.4 and the playbook). It is
 kept in the component inventory and in `GOALS` (49 cards) but excluded from
 `CAMPAIGN_GOALS` (48 cards) and from the campaign draw pools.
+
+## 8. Cards 21 and 82 have no bot box
+
+Rule 9.2 prints a 2×3 BOT BOX (GE/UK, FR/AU, RU/OT) under the CP value of some
+action cards. The box is transcribed for every card that prints one; see
+`BOT_BOX` in `constant/cards.data.ts` (32 cards).
+
+Cards **21** *National Railroad* and **82** *Wilhelm II* print **no** bot box,
+so neither appears in `BOT_BOX` — no bot auto-plays them. Their module slots
+also lack a face of their own (§1 and §3), so the absence was checked against
+the print data rather than the artwork; the slot for card 21 holds a duplicate
+of card 27, whose box (**RU**, **OT**) must not be borrowed for it. A deck owner
+holding the physical cards can add a box to `BOT_BOX` if one is ever printed
+there.

@@ -116,8 +116,37 @@ export const OPTION_ZH: Record<string, string> = {
   "Take no further space": "不再夺取空间",
 };
 
+/**
+ * Why a response card cannot be played, in both languages.
+ *
+ * The tray needs these strings per reason key (it holds no locale switch of its
+ * own), so the table is exported and `responseReasonText` reads it for the
+ * places that want one language.
+ */
+export const RESPONSE_REASON_TEXT: Record<ResponseBlockReason, {en: string; zh_CN: string}> = {
+  "no-seat": {en: "Only a seated player can respond.", zh_CN: "仅入座玩家可以打出响应。"},
+  "pending": {en: "Resolve the pending decision first.", zh_CN: "请先处理待决事项。"},
+  "phase": {en: "Responses are played at the start of an impulse.", zh_CN: "响应牌需在行动轮开始时打出。"},
+  "not-active": {en: "Only the active power can play a response now.", zh_CN: "仅当前行动国家可以打出响应。"},
+  "war-status": {en: "A limited-war response needs its printed alliance or maneuver step.", zh_CN: "有限战争响应需在其联盟或机动阶段打出。"},
+  "no-gw": {en: "The Great War is not active.", zh_CN: "大战尚未开始。"},
+  "battle": {en: "Finish the battle window first.", zh_CN: "请先处理战斗窗口。"},
+  "cp-spent": {en: "A response must be played before CP is spent in the impulse.", zh_CN: "响应牌须在本次行动消耗 CP 之前打出。"},
+  "battle-window-card": {en: "This card is played in the battle window.", zh_CN: "此牌需在战斗窗口打出。"},
+  "war-only": {en: "This card can only be played during a limited war.", zh_CN: "此牌只能在有限战争期间打出。"},
+  "gw-only": {en: "This card can only be played during the Great War.", zh_CN: "此牌只能在大战期间打出。"},
+  "not-response": {en: "This is not a response card.", zh_CN: "此牌不是响应牌。"},
+  "young-turks": {en: "The Young Turks has been played; this response is closed.", zh_CN: "“青年土耳其党”已打出，此响应窗口已关闭。"},
+  "printed-power": {en: "This response can only be played at the start of the printed power's impulse.", zh_CN: "此响应牌只能在卡面指定国家的行动轮开始时打出。"},
+  "no-effect-gw": {en: "This event has no effect during the Great War.", zh_CN: "此事件在大战期间无效。"},
+  "not-a-card": {en: "Unknown card.", zh_CN: "未知卡牌。"},
+};
+
 /** Why the response button is disabled, in the player's language. */
 export const responseReasonText = (locale: "en" | "zh_CN", reason: ResponseBlockReason | undefined): string => {
+  if (reason !== undefined && RESPONSE_REASON_TEXT[reason] !== undefined) {
+    return locale === "zh_CN" ? RESPONSE_REASON_TEXT[reason].zh_CN : RESPONSE_REASON_TEXT[reason].en;
+  }
   switch (reason) {
     case "no-seat": return bi(locale, "Only a seated player can respond.", "仅入座玩家可以打出响应。");
     case "pending": return bi(locale, "Resolve the pending decision first.", "请先处理待决事项。");

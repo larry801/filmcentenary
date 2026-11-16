@@ -48,13 +48,15 @@ export interface CardAvailabilityInput {
   homeCards: string[];
   /** Localized text for the engine's playability keys. */
   playBlock: Record<string, string>;
+  /** Localized text for the seat/window reasons a response card can have. */
+  responseBlock: Record<string, string>;
   bi: (en: string, zh: string) => string;
 }
 
 export const cardAvailability = (input: CardAvailabilityInput): CardAvailability => {
   const {
     G, power, cardId, phase, isActive, isBelligerent, war, canActionCard, saveList,
-    forcedCardIds, industryCard, cpChainLength, homeCards, playBlock, bi,
+    forcedCardIds, industryCard, cpChainLength, homeCards, playBlock, responseBlock, bi,
   } = input;
   const card = cardById(cardId);
   const isMandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
@@ -80,6 +82,23 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const chainOk = canActionCard && cpChainLength < 2;
   const saveOk = (phase === "action" || phase === "end") && card.kind !== "home" && !isMandatory;
 
+  // A response card is gated by its printed text first (the right seat, or
+  // "no effect during the Great War"), then by whether a window is open; both
+  // belong in the title, the card's own reason first.
+  const responseReason = responseEligible !== null && !responseEligible.ok && responseEligible.reason !== undefined
+    ? responseBlock[responseEligible.reason]
+    : undefined;
+  const responseWindowReason = responseEligible?.window !== undefined
+    ? responseBlock[responseEligible.window]
+    : undefined;
+  const noWindowReason = card.type === "response" && !responseOk && responseReason === undefined
+    ? bi("No response window now", "当前没有响应窗口")
+    : undefined;
+  // The card's own gates come before the generic card-type lines: "cannot be
+  // played for CP" describes the type, not why this card is unusable now.
+  const ownReasons: string[] = (card.type === "response"
+    ? [responseReason, responseWindowReason ?? noWindowReason]
+    : [eventBlockReason]).filter((reason): reason is string => reason !== undefined);
   const reasons: string[] = [];
   if (!cpModeOk) {
     if (!cpAllowed) reasons.push(bi("Cannot be played for CP (mandatory/response/combat card)", "不能作为 CP 打出（强制/响应/战斗牌）"));
@@ -93,9 +112,6 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
     else if (!canActionCard) reasons.push(bi("Events are played at the start of an Action impulse", "事件需在行动轮开始时打出"));
     else if (G.cpRemaining > 0) reasons.push(bi("Events are played before spending CP", "事件需在花费 CP 前打出"));
   }
-  if (card.type === "response" && !responseOk) {
-    reasons.push(bi("No response window now", "当前没有响应窗口"));
-  }
   if (!industOk && card.kind !== "home" && !isMandatory) {
     reasons.push(industryCard !== null
       ? bi("A card is already industrializing", "已有牌在工业化")
@@ -103,7 +119,7 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   }
   if (!chainOk && cpChainLength >= 2) reasons.push(bi("CP chain is full", "CP 链已满"));
   if (!saveOk) reasons.push(bi("Save only in the Action or End phase", "仅可在行动或结束阶段保留"));
-  const unique = [...new Set(reasons)];
+  const unique = [...new Set([...ownReasons, ...reasons])];
   return {
     cpAllowed, cpModeOk, eventAllowed, eventModeOk, eventBlockReason, eventBlockKey,
     responseOk, showResponse, industOk, chainOk, saveOk, saved, homeOk, isMandatory,

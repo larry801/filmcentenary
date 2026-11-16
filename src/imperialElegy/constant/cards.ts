@@ -133,6 +133,13 @@ export interface CardDef {
   warOnly?: boolean;
   /** Requires the GW. */
   gwOnly?: boolean;
+  /**
+   * Rule 9.2 / 34.3.4 — the printed "BOT BOX" under the CP value.  A bot that
+   * reveals this card always plays it for its event when its own power is
+   * listed (unless that would hurt the bot or an ally).  Only action cards
+   * print the box; home and Great War cards never do.
+   */
+  botBox?: Power[];
 }
 
 export const cardIdForAction = (n: number): CardId => `IE-A${String(n).padStart(3, "0")}`;

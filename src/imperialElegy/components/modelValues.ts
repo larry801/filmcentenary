@@ -260,6 +260,9 @@ export interface ModelValues {
   warBudgetRows: Power[];
   warDefenderMinors: string[];
   minorMarkerRows: [string, number][];
+  /** The live "ask before irreversible actions" preference. */
+  confirmActions: boolean;
+  setConfirmActions: (enabled: boolean) => void;
   /** The Great War's 28.1.1 trench battles, for the War tab list. */
   trenchRows: import("./trenchRows").TrenchRow[];
   warTargetControl: Power | null;

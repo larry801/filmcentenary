@@ -130,6 +130,15 @@ Status labels:
   cards, stability, flashpoints and characteristics), not a hard-coded table.
 - **Diplomacy:** home-card selection, card gifts, Metternich’s Legacy on turn 1
   — **implemented**.
+- **Bot box (9.2 / 34.3.4):** the printed 2×3 box under each action card’s CP
+  value is transcribed card by card (`BOT_BOX` in `constant/cards.data.ts`,
+  read onto `CardDef.botBox`). 32 action cards print a box; the rest print none
+  or an all-blank grid, which read the same at the table. Cards 21 and 82 print
+  no box at all, so no bot auto-plays them (`CORRECTIONS.md` §8). The Rule 34
+  bot now honours B1 Priority 1 step 3 (`botBoxEvent`) and 34.3.4’s “always
+  play the event” rule, gated by `eventPlayability` so a refused event is never
+  re-sent. The card list’s Flags column and the vector card face both show the
+  box.
 - **Action:** CP/event play, mandatory handling, recruitment, fleet construction,
   naval movement, influence/diplomacy placement/removal, minor alliances, EF
   build/move, pacification, forts, industrialisation, CP chain, redeployment,
@@ -559,7 +568,7 @@ Summary:
 
 ## Deliberately deferred
 
-- Bots (rule 34) **partially implemented**: `engine/bot.ts` provides Priority 1/2 action tables, BDIT targeting, BMPIT influence, wartime/GW priorities and pending-decision auto-answers; wired into `ImperialElegyGameDef` as `ai.enumerate`; hotseat local mode has a per-seat bot toggle. Random PAC dice and power-specific home-card edge cases use deterministic defaults.
+- Bots (rule 34) **partially implemented**: `engine/bot.ts` provides Priority 1/2 action tables, BDIT targeting, BMPIT influence, wartime/GW priorities and pending-decision auto-answers; wired into `ImperialElegyGameDef` as `ai.enumerate`; hotseat local mode has a per-seat bot toggle. The printed BOT BOX (9.2/34.3.4) is transcribed for every action card that prints one and drives B1 Priority 1 step 3. Random PAC dice and power-specific home-card edge cases use deterministic defaults.
 - Alternate scenarios (1870, 1880, No GW, alternate GW) and the 1850 tutorial.
 - Promotional cards P1–P3.
 - The printed Quick Start tutorial script.
