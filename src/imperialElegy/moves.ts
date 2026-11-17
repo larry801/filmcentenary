@@ -193,12 +193,16 @@ import {checkGermanUnification, checkItalianUnification, checkAutoVictory, finis
 import {grantAuNewWayForward} from "./engine/nationality";
 import {
   applyInternalItalianWar,
+  applyItalianPetition,
   crisisRoll,
   ITALIAN_INTERNAL_WAR_POWERS,
   italyTable,
   outbreakGreatWar,
   endGreatWar,
   resolveCrisisPending,
+  resolveItalianNationalistWaveChoice,
+  resolveItalyNavalBase,
+  resolveItalyOttomanTerritoryChoice,
 } from "./engine/greatWar";
 import {addItalyMpit} from "./engine/italyEntry";
 import {
@@ -242,6 +246,7 @@ import {
   hasTruce,
   initiativeOrder,
   initiativeRollOff,
+  isItalianUnificationWar,
   isMinorWarTargetArg,
   minorWarDefender,
   minorWarInfo,
@@ -3840,11 +3845,30 @@ const resolvePostWarDrawChoice = (G: ImperialElegyState, ctx: Ctx, pending: Pend
     : settleWarImmediately(G, ctx, continuation.victory, continuation.choices);
 };
 
+/**
+ * 22.2: the winner of an Italian unification war receives 2 free CP to
+ * influence Italy's own MPIT column.  The grant is a same-turn allowance;
+ * `placeItalyMpit` spends it without touching the war budget.
+ */
+const grantItalianUnificationMpitCp = (
+  G: ImperialElegyState,
+  war: WarState,
+  victor: "attacker" | "defender" | null,
+): void => {
+  if (!isItalianUnificationWar(war)) return;
+  const winner = victor === "defender" && isPower(war.defender) ? war.defender : war.attacker;
+  G.flags.italyUnificationMpitCp = 2;
+  G.flags.italyUnificationMpitCpTurn = G.turn;
+  G.flags.italyUnificationMpitCpPower = winner;
+  log(G, winner, "italyUnificationMpitCp", {cp: 2});
+};
+
 /** Demobilize the settled war and open the rule 17.0 free actions. */
 const completeWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const war = G.war;
   if (!war) return INVALID_MOVE;
   drawPostWarCards(G, ctx, war);
+  grantItalianUnificationMpitCp(G, war, war.victor);
 
   // 33.1 German Confederation: every space GE gained by the treaties becomes a
   // permanent home space now, before the demobilization free actions.
@@ -3906,6 +3930,7 @@ const settleWarImmediately = (
   if (preparePostWarDraws(G, ctx, {mode: "immediate", victory, choices})) return undefined;
   applyWarEndCharacteristics(G, ctx);
   drawPostWarCards(G, ctx, war);
+  grantItalianUnificationMpitCp(G, war, victory.victor);
   G.flags.postWarWinner = postWarWinnerFor(war, victory.victor);
   const geWonUnification =
     war.warAim === "unification" && war.attacker === "GE" && victory.victor === "attacker";
@@ -4810,6 +4835,36 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     finalizePendingCard(G, ctx);
     return undefined;
   }
+  if (pending.kind === "italianPetition") {
+    // 22.1.2: remove the chosen allied minor's marker and place the +1 box marker.
+    const choice = pending.options.find((entry) => entry.id === optionId)?.data as
+      | {minor: (typeof ITALIAN_INTERNAL_WAR_POWERS)[number]; player: Power}
+      | undefined;
+    if (!choice || !applyItalianPetition(G, choice)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italianNationalistWave") {
+    // 22.1.4: choose the minor, then its two keys, then roll unification.
+    if (!resolveItalianNationalistWaveChoice(G, ctx, pending, optionId)) return INVALID_MOVE;
+    if (G.pending === null) finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italyNavalBase") {
+    // 22.3.1 result 3–4: the active player chose the free naval base.
+    if (!resolveItalyNavalBase(G, pending, optionId)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italyOttomanWar") {
+    // 22.3.1 result 7+: the active player chose Tunisia or Libya.
+    if (!resolveItalyOttomanTerritoryChoice(G, pending, optionId)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
   if (pending.kind === "bloodAndIron") {
     return resolveBloodAndIron(G, ctx, pending, optionId);
   }
@@ -5092,6 +5147,38 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
     G.pending = null;
     applyInternalItalianWar(G, first.id);
     finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italianPetition") {
+    const first = pending.options[0];
+    const choice = first?.data as {minor: (typeof ITALIAN_INTERNAL_WAR_POWERS)[number]; player: Power} | undefined;
+    if (!first || !choice || !applyItalianPetition(G, choice)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italyNavalBase") {
+    const first = pending.options[0];
+    if (!first || !resolveItalyNavalBase(G, pending, first.id)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italyOttomanWar") {
+    const first = pending.options[0];
+    if (!first || !resolveItalyOttomanTerritoryChoice(G, pending, first.id)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italianNationalistWave") {
+    let current: PendingDecision | null = pending;
+    for (let guard = 0; current?.kind === "italianNationalistWave" && guard < 4; guard += 1) {
+      const first = current.options[0];
+      if (!first || !resolveItalianNationalistWaveChoice(G, ctx, current, first.id)) return INVALID_MOVE;
+      current = G.pending;
+    }
+    if (G.pending === null) finalizePendingCard(G, ctx);
     return undefined;
   }
   // A card-chain step marked `required` must be answered with an explicit
@@ -7055,6 +7142,30 @@ export const placeMpit = (G: ImperialElegyState, ctx: Ctx, target: Power, track:
   }
   G.powers[target].mpit[track] += 1;
   log(G, power, "mpitPlaced", {target, track, free});
+  return undefined;
+};
+
+/**
+ * 22.2: spend one of the two free CP the winner of an Italian unification war
+ * may use to influence Italy's MPIT column.  The grant never touches the
+ * player's ordinary CP budget.
+ */
+export const placeItalyMpit = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  track: "te" | "ta" | "neutral",
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null) return INVALID_MOVE;
+  if (track !== "te" && track !== "ta" && track !== "neutral") return INVALID_MOVE;
+  if (G.flags.italyUnificationMpitCpPower !== power) return INVALID_MOVE;
+  if (Number(G.flags.italyUnificationMpitCpTurn ?? -1) !== G.turn) return INVALID_MOVE;
+  const left = Number(G.flags.italyUnificationMpitCp ?? 0);
+  if (left <= 0) return INVALID_MOVE;
+  G.flags.italyUnificationMpitCp = left - 1;
+  const mpit = addItalyMpit(G, track, 1);
+  log(G, power, "italyUnificationMpit", {track, remaining: left - 1, total: mpit[track]});
   return undefined;
 };
 
