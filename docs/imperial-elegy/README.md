@@ -333,7 +333,9 @@ At a glance, the live game covers:
 - **Diplomacy** — home-card selection, random card gifts and Metternich's Legacy.
 - **Action** — cards for CP or events, recruitment, fleets, influence,
   diplomacy, minor alliances, EFs, pacification, forts, industry, redeployment
-  and declarations of war.
+  and declarations of war. Every card is a CP card (12.0), response and combat
+  cards included; a mandatory event played for CP resolves its event and then
+  grants its CP, and A105's printed hand-size clause is the only CP gate.
 - **CP chain (live)** — up to two cards per action phase; mandatory events
   resolve on insertion; `useCpChain` funds one action per action phase (capped
   at 4 CP); chained cards stay face-up and are discarded at the end of the

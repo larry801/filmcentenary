@@ -119,30 +119,41 @@ describe("cardAvailability", () => {
     expect(lateEvent.reasons).toContain("Events are played before spending CP");
   });
 
-  test("mandatory cards can never be spent for CP, and the rescue rule does not rescue them", () => {
+  test("every card may be spent for CP, mandatory events included", () => {
+    // 12.0: "All cards except Mandatory Event cards can be played for CP."  A
+    // mandatory card has no plain CP mode — playing it for CP resolves its
+    // event and grants the printed CP — so the move accepts it but the button
+    // is still the one that plays the event.
     const G = game(0);
     const id = mandatoryCard();
     const a = cardAvailability(input(G, id));
     expect(a.isMandatory).toBe(true);
-    expect(a.cpAllowed).toBe(false);
-    expect(a.cpModeOk).toBe(false);
-    expect(a.reasons).toContain("Cannot be played for CP (mandatory/response/combat card)");
+    expect(a.cpAllowed).toBe(true);
+    expect(a.cpModeOk).toBe(true);
 
-    // An empty CP pool is not what stops it: no impulse can spend it.
+    // Nothing about the impulse's CP pool refuses it either.
     expect(cardAvailability(input(game(3), id)).cpModeOk).toBe(false);
 
-    // `forcedCardIds` only rescues a card that is CP-playable in the first place.
+    // `forcedCardIds` rescues a mid-impulse play, as for any other card.
     const forced = cardAvailability(input(G, id, {forcedCardIds: [id]}));
-    expect(forced.cpModeOk).toBe(false);
+    expect(forced.cpModeOk).toBe(true);
+
+    // A105 Impulsive Ruler is the one printed CP clause: 3 or fewer cards.
+    const crowded = game(0);
+    crowded.powers.GE.hand = ["IE-A105", "IE-A018", "IE-A019", "IE-A020"];
+    const impulsive = cardAvailability(input(crowded, "IE-A105"));
+    expect(impulsive.cpAllowed).toBe(false);
+    expect(impulsive.cpModeOk).toBe(false);
   });
 
-  test("response cards are not CP cards and appear only in their printed window", () => {
+  test("response and combat cards are CP cards outside their window", () => {
+    // 12.0 / the printed card types: a response or combat card played for CP is
+    // a normal discard play; only its *event* mode is window-bound.
     const G = game(0);
     const id = germanResponseCard();
     const open = cardAvailability(input(G, id));
-    expect(open.cpAllowed).toBe(false);
-    expect(open.cpModeOk).toBe(false);
-    expect(open.reasons).toContain("Cannot be played for CP (mandatory/response/combat card)");
+    expect(open.cpAllowed).toBe(true);
+    expect(open.cpModeOk).toBe(true);
     expect(open.showResponse).toBe(true);
     // Active German impulse, nothing spent yet: the window is open.
     expect(open.responseOk).toBe(true);
@@ -153,12 +164,21 @@ describe("cardAvailability", () => {
     expect(open.eventModeOk).toBe(true);
     const battleOnly = actionCardsOfType("response").find((candidate) => candidate !== id) as string;
     const plain = cardAvailability(input(G, battleOnly));
+    expect(plain.cpAllowed).toBe(true);
     expect(plain.eventAllowed).toBe(false);
     expect(plain.eventModeOk).toBe(false);
     expect(plain.reasons).toContain("This card has no printed event");
 
-    // Spending the impulse's CP shuts the window but not the tray's slot: the
-    // card is still a response card, it just cannot be answered yet.
+    // A combat card is a CP card too, with no event mode outside a battle.
+    const combatId = actionCardsOfType("combat")[0];
+    const combat = cardAvailability(input(G, combatId));
+    expect(combat.cpAllowed).toBe(true);
+    expect(combat.cpModeOk).toBe(true);
+    expect(combat.eventAllowed).toBe(false);
+    expect(combat.showResponse).toBe(false);
+
+    // Spending the impulse's CP shuts the response window but not the tray's
+    // slot: the card is still a response card, it just cannot be answered yet.
     const spent = cardAvailability(input(G, id, {G: withCp(G, 3)}));
     expect(spent.showResponse).toBe(true);
     expect(spent.responseOk).toBe(false);

@@ -19,7 +19,7 @@ import {
 } from "../types";
 import {cardById} from "./deck";
 import {powerOfSeat, seatOf} from "./pending";
-import {eventPlayability} from "./playability";
+import {cpPlayability, eventPlayability, type PlayBlockReason} from "./playability";
 import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
 import {
   controlledBy,
@@ -165,17 +165,19 @@ const botRecruitSpace = (G: ImperialElegyState, power: Power): SpaceId | null =>
 };
 
 /**
- * Cards the bot may spend for CP.  Mandatory cards must be played for their
- * event (moves.ts refuses `mode: "cp"` for them), so selecting one here would
- * hand the board an invalid move and stall the bot.
+ * Cards the bot may spend for CP.  Every non-home card is a CP card (12.0);
+ * a mandatory event played for CP resolves its event, so the bot prefers its
+ * event path (`mandatoryInHand` below) but is never left without a move.
+ * A105's printed hand-size clause is checked by `cpPlayability` when the move
+ * is issued, and `cpPlayProblem` filters it here so the bot never names a card
+ * the engine would refuse.
  */
-const isCpSpendable = (cardId: CardId): boolean => {
-  const def = cardById(cardId);
-  return def.kind !== "home"
-    && def.type !== "response"
-    && def.type !== "combat"
-    && def.type !== "mandatory"
-    && def.type !== "mandatoryResponse";
+const isCpSpendable = (cardId: CardId): boolean => cardById(cardId).kind !== "home";
+
+/** The engine's own CP gate, so the bot never names a card the move refuses. */
+const cpPlayProblem = (G: ImperialElegyState, power: Power, cardId: CardId): PlayBlockReason | undefined => {
+  const decision = cpPlayability(G, power, cardId);
+  return decision.ok ? undefined : decision.reason;
 };
 
 /** Mandatory cards still in hand: they block passing until the event is played. */
@@ -625,12 +627,14 @@ const priorityTwo = (
   // 5-6 — play a card for its event.  `playCard` only accepts an event while
   // the impulse holds no CP (12.0), so this tier is skipped when CP is banked;
   // `botDecision` then spends the CP and reaches this tier on a later impulse.
+  // Combat cards have no event outside a battle, and `eventPlayability` is the
+  // engine's own gate, so a card it refuses is never named here.
   if (roll >= 5 && roll <= 6 && G.cpRemaining === 0) {
     for (const cardId of p.hand) {
       if (!isCpSpendable(cardId)) continue;
-      if (worthPlayingForEvent(G, power, cardId)) {
-        return {move: "playCard", args: [cardId, "event"]};
-      }
+      if (!worthPlayingForEvent(G, power, cardId)) continue;
+      if (!eventPlayability(G, power, cardId).ok) continue;
+      return {move: "playCard", args: [cardId, "event"]};
     }
   }
 
@@ -942,19 +946,21 @@ export const botDecision = (
       return {move: "pass"};
     }
 
-    // A mandatory card in hand forbids passing (12.0), so play it first.
-    // It may only be played for its event and only while the impulse is empty.
+    // A mandatory card in hand forbids passing (12.0), so play it first.  Its
+    // event is the printed path; a mandatory event played for CP resolves the
+    // same event, so the event mode is the plain choice whenever the impulse is
+    // still empty.  With CP banked the bot spends that CP first (a card play
+    // while CP remain is refused), and reaches this branch again next impulse.
     const mandatory = mandatoryInHand(G, power);
     if (mandatory !== null && G.cpRemaining === 0) {
       return {move: "playCard", args: [mandatory, "event"]};
     }
 
-    // A047 The Dual Monarchy and GW-10 Exhaustion also forbid passing, and
-    // unlike a mandatory card they may be spent for CP.  Left until later the
-    // bot fills the impulse with its home card and then has no legal move.
-    const blocking = G.cpRemaining === 0
-      ? passRestriction(G, power).cards.find((card) => isCpSpendable(card.card))
-      : undefined;
+    // A047 The Dual Monarchy and GW-10 Exhaustion also forbid passing.  Left
+    // until later the bot fills the impulse with its home card and then has no
+    // legal move, so the card is spent for CP first (which is also the printed
+    // escape when CP are already banked).
+    const blocking = passRestriction(G, power).cards.find((card) => isCpSpendable(card.card));
     if (blocking !== undefined) {
       return {move: "playCard", args: [blocking.card, "cp"]};
     }
@@ -965,7 +971,7 @@ export const botDecision = (
 
     // Start a fresh impulse by playing a card for CP.
     if (G.cpRemaining === 0) {
-      const cpCard = p.hand.find(isCpSpendable);
+      const cpCard = p.hand.find((card) => isCpSpendable(card) && cpPlayProblem(G, power, card) === undefined);
       if (cpCard !== undefined) {
         return {move: "playCard", args: [cpCard, "cp"]};
       }

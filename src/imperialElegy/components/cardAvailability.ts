@@ -8,7 +8,7 @@
  */
 import type {ImperialElegyState, Power} from "../types";
 import {cardById} from "../engine/deck";
-import {eventPlayability} from "../engine/playability";
+import {cpPlayability, eventPlayability} from "../engine/playability";
 import {responseCardEligibility} from "../moves";
 
 export interface CardAvailability {
@@ -61,14 +61,22 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const card = cardById(cardId);
   const isMandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
   const saved = saveList.includes(cardId);
-  const cpAllowed = !isMandatory && card.type !== "response" && card.type !== "combat";
   const eventAllowed = (card.type !== "response" && card.type !== "combat") || card.id === "IE-A041";
-  const homeOk = card.kind !== "home" || homeCards.includes(cardId);
-  const rescueOk = forcedCardIds.includes(cardId) && cpAllowed;
-  const cpModeOk = canActionCard && cpAllowed && (G.cpRemaining === 0 || rescueOk) && homeOk;
   const eventGate = eventAllowed ? eventPlayability(G, power, cardId) : null;
   const eventBlockKey = eventGate !== null && !eventGate.ok ? eventGate.reason : undefined;
   const eventBlockReason = eventBlockKey !== undefined ? playBlock[eventBlockKey] : undefined;
+  // 12.0: every card may be spent for CP, response and combat cards included.
+  // Only a card's own printed CP clause can refuse it (A105's hand-size gate),
+  // so the type is never the reason.  A mandatory event played for CP *is* its
+  // event, so it also answers to that event's own printed gate — the same pair
+  // of checks `playCard` makes.
+  const cpGate = cpPlayability(G, power, cardId);
+  const cpAllowed = cpGate.ok && (card.type !== "mandatory" || eventBlockKey === undefined);
+  const cpBlockKey = cpGate.ok ? eventBlockKey : cpGate.reason;
+  const cpBlockReason = cpBlockKey !== undefined ? playBlock[cpBlockKey] : undefined;
+  const homeOk = card.kind !== "home" || homeCards.includes(cardId);
+  const rescueOk = forcedCardIds.includes(cardId) && cpAllowed;
+  const cpModeOk = canActionCard && cpAllowed && (G.cpRemaining === 0 || rescueOk) && homeOk;
   const eventModeOk = canActionCard && eventAllowed && G.cpRemaining === 0 && (eventGate === null || eventGate.ok);
   const responseEligible = card.type === "response" ? responseCardEligibility(G, power, cardId) : null;
   const responseOk = responseEligible?.ok === true;
@@ -96,14 +104,14 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const noWindowReason = card.type === "response" && !responseOk && responseReason === undefined
     ? bi("No response window now", "当前没有响应窗口")
     : undefined;
-  // The card's own gates come before the generic card-type lines: "cannot be
-  // played for CP" describes the type, not why this card is unusable now.
+  // The card's own gates come before the generic lines: "cannot be played for
+  // CP" describes the card, not why it is unusable at this moment.
   const ownReasons: string[] = (card.type === "response"
     ? [responseReason, responseWindowReason ?? noWindowReason]
-    : [eventBlockReason]).filter((reason): reason is string => reason !== undefined);
+    : [cpBlockReason, eventBlockReason]).filter((reason): reason is string => reason !== undefined);
   const reasons: string[] = [];
   if (!cpModeOk) {
-    if (!cpAllowed) reasons.push(bi("Cannot be played for CP (mandatory/response/combat card)", "不能作为 CP 打出（强制/响应/战斗牌）"));
+    if (!cpAllowed) reasons.push(cpBlockReason ?? bi("Cannot be played for CP", "不能作为 CP 打出"));
     else if (!homeOk) reasons.push(bi("Set it as your home card during Diplomacy first", "需先在外交阶段选为本国牌"));
     else if (!canActionCard) reasons.push(bi("Only during your Action-phase impulse", "仅限你的行动阶段行动轮"));
     else if (G.cpRemaining > 0) reasons.push(bi("Finish the current impulse first", "请先结束本次行动"));

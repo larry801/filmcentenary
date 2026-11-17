@@ -2138,6 +2138,18 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  cardCpNotPlayable: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    const reason = str(entry.args?.reason) as PlayBlockReason;
+    const reasonText = ieStringsFor(locale).playBlock[reason] ?? str(entry.args?.reason);
+    return withActor(
+      entry,
+      locale,
+      `could not play ${card} for CP: ${reasonText}`,
+      `无法将 ${card} 作为 CP 打出：${reasonText}`,
+    );
+  },
+
   auActionRejected: (entry, locale) => {
     const action = str(entry.args?.action);
     const reasons = str(entry.args?.reasons);

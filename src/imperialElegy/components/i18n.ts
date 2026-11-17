@@ -259,6 +259,7 @@ const S = {
     playBlock: {
       "unknown-card": "Unknown card.",
       "battle-window": "This card is played in the battle window.",
+      "impulsive-ruler-hand": "Play it for CP only with three or fewer cards in hand.",
       "power-list": "The printed power list does not include your power.",
       "germany-unified": "Germany must be unified to play this event.",
       "young-turks": "The Young Turks has been played; this card can no longer be played.",
@@ -573,6 +574,7 @@ const S = {
     playBlock: {
       "unknown-card": "未知卡牌。",
       "battle-window": "此牌在战斗窗口打出。",
+      "impulsive-ruler-hand": "手牌多于 3 张时不能作为 CP 打出。",
       "power-list": "卡面所列势力不含你的国家。",
       "germany-unified": "德国须已统一才能打出此事件。",
       "young-turks": "“青年土耳其党”已打出，此牌不能再打出。",

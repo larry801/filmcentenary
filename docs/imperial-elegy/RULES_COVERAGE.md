@@ -234,6 +234,17 @@ Status labels:
   extra draw); A061 is removed and replaced when drawn after Dreadnoughts; and
   GW-06 can be marked face up.
 - **Saving a card (12.0):** implemented; UK may save two, others one.
+- **Every card is a CP card (12.0/12.1):** response and combat cards are spent
+  for their printed CP like any other card — only their *event* modes are
+  window-bound (`playResponseCard` / the combat-card window). A mandatory event
+  has no plain CP mode: playing it “for CP” resolves its printed event first and
+  then grants its CP, so the move shares the event path and the event gates. The
+  single printed CP restriction is A105 Impulsive Ruler (“may be played for CP
+  if you have 3 or fewer cards in hand”), enforced by `cpPlayability` and
+  reported as `impulsive-ruler-hand`. `cardAvailability` derives
+  `cpAllowed`/`cpModeOk` from the same predicate, so the tray button and
+  `playCard(id, "cp")` always agree; the bot's `isCpSpendable` no longer filters
+  by card type and consults the predicate before naming a card.
 - **CP chain (12.14):** **implemented.** `cpChain` moves up to two cards from
   hand into `PowerState.cpChain`; a chained mandatory event resolves immediately,
   controlled by the active player. `useCpChain` starts one chain-funded impulse

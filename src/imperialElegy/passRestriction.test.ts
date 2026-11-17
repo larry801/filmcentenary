@@ -104,9 +104,8 @@ describe("12.0 A047 The Dual Monarchy", () => {
     const ot = makeCtx("OT", holder);
 
     // This is the state the seven-turn auto-play campaign reached on turn 5:
-    // A047 (no passing) beside A043, a combat card `playCard` refuses, plus a
-    // home card.  Before the fix every move returned INVALID_MOVE and the
-    // match had no exit at all.
+    // A047 (no passing) beside A043, a combat card, plus a home card.  Before
+    // the fix every move returned INVALID_MOVE and the match had no exit at all.
     //
     // The impulse is unused here on purpose: once a card has been played for CP
     // the seat may always hand the used impulse over (12.0 only restricts the
@@ -116,12 +115,26 @@ describe("12.0 A047 The Dual Monarchy", () => {
     G.powers.OT.hand = ["IE-A043", DUAL_MONARCHY_CARD, "IE-H-OT-11"];
 
     expect(pass(G, ot)).toBe(INVALID_MOVE);
-    expect(playCard(G, ot, "IE-A043", "event")).toBe(INVALID_MOVE);
-    expect(playCard(G, ot, "IE-A043", "cp")).toBe(INVALID_MOVE);
-
-    // The rescue: A047 can be spent for CP, and that makes the impulse used.
-    expect(playCard(G, ot, DUAL_MONARCHY_CARD, "cp")).toBeUndefined();
+    // 12.0: a combat card is a CP card too, so this hand has two ways out.
+    expect(playCard(G, ot, "IE-A043", "cp")).toBeUndefined();
     expect(G.cpRemaining).toBe(2);
+    expect(G.powers.OT.hand).not.toContain("IE-A043");
+  });
+
+  test("the rescue: the no-pass card itself is spendable mid-impulse", () => {
+    const G = reachActionPhase();
+    const holder: {phase?: string} = {phase: "action"};
+    const ot = makeCtx("OT", holder);
+
+    G.activePower = "OT";
+    G.cpRemaining = 0;
+    G.powers.OT.hand = ["IE-A043", DUAL_MONARCHY_CARD, "IE-H-OT-11"];
+
+    // A047 can be spent for CP on top of CP already banked, and that makes the
+    // impulse used.
+    G.cpRemaining = 1;
+    expect(playCard(G, ot, DUAL_MONARCHY_CARD, "cp")).toBeUndefined();
+    expect(G.cpRemaining).toBe(3);
     expect(G.powers.OT.hand).not.toContain(DUAL_MONARCHY_CARD);
 
     // With the forced card gone the impulse can end normally.
