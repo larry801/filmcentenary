@@ -208,6 +208,21 @@ describe("Virgin Queen negotiation table (rule 9.1)", () => {
         expect(G.loanedNaval).toHaveLength(1);
     });
 
+    it("rejects a naval loan that runs in both directions in one deal", () => {
+        const G = game();
+        G.spaces.marseille.control = "france";
+        G.spaces.marseille.naval = {france: {galley: 2, galleon: 0, racebuilt: 0, corsair: 0}};
+        G.spaces.barcelona.control = "spain";
+        G.spaces.barcelona.naval = {spain: {galley: 2, galleon: 0, racebuilt: 0, corsair: 0}};
+        G.loanedNaval = [];
+        const codes = validateNegotiation(G, "france", "spain", [
+            {kind: "alliance"},
+            {kind: "navalLoan", from: "france", to: "spain", fromPort: "marseille", toPort: "barcelona", ship: "galley"},
+            {kind: "navalLoan", from: "spain", to: "france", fromPort: "barcelona", toPort: "marseille", ship: "galley"},
+        ]).map((issue) => issue.code);
+        expect(codes).toContain("loanReciprocal");
+    });
+
     it("rejects a partial execution and leaves the table untouched", () => {
         const G = game();
         G.powers.france.cards = [];

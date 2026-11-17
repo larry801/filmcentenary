@@ -388,6 +388,10 @@ export const validateNegotiation = (
         }
     }
 
+    const loanDirections = new Set(terms.filter((term) => term.kind === "navalLoan")
+        .map((term) => `${term.from}->${term.to}`));
+    if (loanDirections.size > 1) issues.push({code: "loanReciprocal"});
+
     for (const [index, term] of terms.entries()) {
         if (term.kind === "yieldSpace" && !canYieldSpace(G, term.from, term.to, term.space)) {
             issues.push({term: index, code: "yieldUnavailable", params: {space: term.space}});
