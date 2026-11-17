@@ -144,6 +144,34 @@ Status labels:
   build/move, pacification, forts, industrialisation, CP chain, redeployment,
   declarations of war and land battles — **live**, with the simplifications
   below.
+- **Foreign-affairs markers (4.8 / 12.5.1–12.5.3 / 12.6 / 12.8 / 12.9):** one
+  shared gate in `engine/foreignAffairs.ts`, read by both the moves and the
+  Orders panel, so a row is never offered for a marker the engine refuses.
+  - 12.5.3 diplomacy markers go **only** in minor power spaces: player spaces,
+    the US (`the-south`) and a unified Italy (`IT`) are refused, per 4.6.2’s
+    “the United States and a unified Italy are major powers.” Qing China’s
+    spaces are barred outright; the South needs the American Civil War in
+    effect; Japan takes none before Meiji Restoration (3.4.6); an independent
+    India takes none at all (33.2.2). When a minor still holds its namesake
+    space the marker must go there (Egypt → `egypt`, not Sinai).
+  - Diplomacy needs **no LoC** — 5.6 lists one only for influence — which the
+    engine used to demand anyway.
+  - 12.5.1 influence needs an uncontrolled land space: naval boxes are refused,
+    and the 12.5.2 African cap and LoC requirement remain.
+  - 12.8 allies only from your own diplomacy marker on the minor, one player per
+    minor, and 4.2.1’s five-ally cap (counted per minor, not per space).
+  - 12.6 removal is own markers only; the Berlin-Conference bar and the
+    “another player’s unit present” bar are both printed against influence, so
+    neither applies to removing a diplomacy marker.
+  - 12.9 “flip any one ally marker … to its diplomacy side”: **any** player may
+    do it, and the flipped marker keeps the ally’s owner (the engine used to
+    hand it to whoever paid).
+  - 12.9.1 Naval Supremacy: when the marker sits in a port space adjacent to a
+    naval box where the acting player has **more** naval units than the player
+    allied to the minor, the flip costs 3 CP instead of 4. `navalSupremacyPort`
+    checks every box the port touches and requires a strict majority; a tie, a
+    landlocked minor and an unallied minor all stay at the printed 4 CP. The
+    Orders row quotes the cost it will actually charge.
 - **Response cards:** live at the start of an action impulse, a limited-war
   maneuver impulse, the limited-war alliance step (A063/A064) and a Great War
   maneuver impulse. `responseWindowFor` requires the active power (every
