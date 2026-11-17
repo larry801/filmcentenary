@@ -19,7 +19,6 @@ import {
     IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs, IUpdateSlotProps
 } from "../../game/moves";
 import {argChangePlayerSettingHOF, argChooseRegionHOF, argSetupGameModeHOF, LocaleSettings, moveHOF} from "./common";
-import buyCard from "../../components/buy-card";
 
 const chose = " chose "
 const cards = {
