@@ -579,7 +579,9 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await board.locator('[data-testid="ie-menu"] [data-testid="ie-display-menu"] > summary').click();
         await board.locator('[data-testid="ie-card-face-print"]').first().click();
         await expect.poll(async () => await page.evaluate(() => localStorage.getItem("ie_card_face"))).toBe("print");
-        await card.locator(".ie-card-open").click();
+        // `.ie-card-open` folds the row; the inspector opens from the face.
+        await openCard(card);
+        await card.locator(".ie-card-face-button").click();
         await expect(inspector).toHaveAttribute("data-face-mode", "print");
         await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toBeVisible();
         await page.keyboard.press("Escape");

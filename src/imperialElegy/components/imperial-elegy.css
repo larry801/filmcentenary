@@ -801,26 +801,26 @@
 }
 .ie-card-name {
   flex: 1 1 auto;
-.ie-card-name {
-  flex: 1 1 auto;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--ie-font-sm);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* The row's secondary text is still body-size: the acceptance test forbids
+   visible text under 12 px, and a 11 px type chip was the only offender. */
 .ie-card-type {
   flex: 0 0 auto;
   padding: 0 5px;
   border: 1px solid #5e4a2f;
   border-radius: 999px;
   color: #bda98a;
-  font-size: 11px;
+  font-size: var(--ie-font-xs);
   line-height: 16px;
   white-space: nowrap;
 }
-.ie-card-caret { flex: 0 0 auto; color: var(--ie-accent-soft); font-size: 11px; }
+.ie-card-caret { flex: 0 0 auto; color: var(--ie-accent-soft); font-size: var(--ie-font-xs); }
 /* The unfolded body: face on the left, this card's legal operations beside it. */
 .ie-card-body {
   display: flex;
@@ -853,56 +853,7 @@
   line-height: 1.15;
   border-radius: 2px;
 }
-.ie-hand .ie-card .ie-card-translation { margin: 0; font-size: 11px; }
-  min-width: 0;
-  font-size: var(--ie-font-sm);
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.ie-card-type {
-  flex: 0 0 auto;
-  padding: 0 5px;
-  border: 1px solid #5e4a2f;
-  border-radius: 999px;
-  color: #bda98a;
-  font-size: 11px;
-  line-height: 16px;
-  white-space: nowrap;
-}
-.ie-card-caret { flex: 0 0 auto; color: var(--ie-accent-soft); font-size: 11px; }
-/* The unfolded body: face on the left, this card's legal buttons beside it. */
-.ie-card-body {
-  display: flex;
-  gap: 8px;
-  padding: 0 6px 6px;
-  min-height: 0;
-}
-.ie-hand .ie-card-face-button {
-  flex: 0 0 104px;
-  display: block;
-  min-height: 0;
-  padding: 0;
-  border: 1px solid #5e4a2f;
-  border-radius: 2px;
-  background: transparent;
-  cursor: zoom-in;
-  overflow: hidden;
-}
-.ie-hand .ie-card-face-button .ie-card-face { width: 100%; height: auto; max-height: 132px; object-fit: contain; display: block; }
-.ie-card-body-actions { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-.ie-hand .ie-card-actions { flex: 0 0 auto; flex-wrap: wrap; padding: 0; gap: 3px; }
-.ie-hand .ie-card-actions button {
-  flex: 1 1 calc(50% - 3px);
-  min-width: 0;
-  min-height: 30px;
-  padding: 2px 4px;
-  font-size: var(--ie-font-xs);
-  line-height: 1.15;
-  border-radius: 2px;
-}
-.ie-hand .ie-card .ie-card-translation { margin: 0; font-size: 11px; }
+.ie-hand .ie-card .ie-card-translation { margin: 0; font-size: var(--ie-font-xs); }
 /* An unfolded card with nothing legal to do still owes the player a reason. */
 .ie-card-why {
   display: flex;
@@ -1564,7 +1515,6 @@ img.ie-card-face { background: var(--ie-surface-2); }
     overflow-x: auto;
     scrollbar-width: none;
     padding: 4px 6px;
-    font-size: 11px;
   }
   .ie-map-legend::-webkit-scrollbar { display: none; }
   .ie-map-legend > span { white-space: nowrap; }
