@@ -145,6 +145,7 @@ import {
     removeSeaNavalLosses,
     resolveConversions,
     resolveEvent,
+    resolveImmediateBetrothals,
     resolveMoriscoRevolt,
     resolveOfficialCardEffect,
     resolveMinorDiplomacy,
@@ -4028,6 +4029,9 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
         G.betrothals.push({male: male.id, female: female.id, ...(attachedLouise ? {louiseAttached: true} : {})});
         if (attachedLouise) G.louiseAttachment!.available = false;
         pushLog(G, `${powerLabel(p)} announces the marriage of ${male.name} and ${female.name}.`);
+        // Rule 21: Mary Queen of Scots' wedding is resolved during the
+        // Diplomacy Phase instead of the Marriage Resolution Phase.
+        resolveImmediateBetrothals(G, ctx);
         return;
     }
     const target = male.power === p ? female.power : male.power;
@@ -4041,6 +4045,7 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
         G.betrothals.push({male: male.id, female: female.id, ...(attachedLouise ? {louiseAttached: true} : {})});
         if (attachedLouise) G.louiseAttachment!.available = false;
         pushLog(G, `${powerLabel(p)} spends 1 HRE influence to arrange a marriage between ${male.name} and ${female.name}.`);
+        resolveImmediateBetrothals(G, ctx);
         return;
     }
     const targetPlayerID = ownerOf(G, target);
@@ -4067,6 +4072,9 @@ export const acceptBetroth = (G: VQGame, _ctx: Ctx): void | typeof INVALID_MOVE 
     }
     G.pendingBetrothal = null;
     pushLog(G, `${maleDef?.name ?? male} and ${femaleDef?.name ?? female} are betrothed.`);
+    // Rule 21: Mary Queen of Scots' wedding is resolved during the Diplomacy
+    // Phase, immediately after the betrothal is confirmed.
+    resolveImmediateBetrothals(G, _ctx);
 };
 
 export const rejectBetroth = (G: VQGame, _ctx: Ctx): void | typeof INVALID_MOVE => {
