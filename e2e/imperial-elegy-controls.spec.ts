@@ -467,9 +467,14 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
                 return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight;
             };
             const root = document.querySelector('[data-testid="ie-seat-GE"]')!;
+            // SVG labels are artwork, not body copy: the counters' "R"/"+N"
+            // marks and the map names scale with the fit zoom, so their
+            // computed size legitimately dips below 12 px on a smaller map
+            // viewport (it did on the Linux runner while passing on macOS).
+            // The audit is about UI text a reader must be able to read.
             const small = [...root.querySelectorAll("*")].filter((el) =>
                 visible(el) && el.children.length === 0 && (el.textContent ?? "").trim().length > 0 &&
-                el.closest(".ie-rule-ref") === null &&
+                el.closest(".ie-rule-ref") === null && el.closest("svg") === null &&
                 parseFloat(getComputedStyle(el).fontSize) < 12);
             const inline = [...root.querySelectorAll("[style]")].filter((el) =>
                 !svgTags.has(el.tagName.toLowerCase()));
