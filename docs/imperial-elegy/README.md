@@ -325,7 +325,10 @@ The campaign game is playable end-to-end, but this is an **in-progress
 implementation**, not a finished conversion. The rule-by-rule matrix, exact card
 inventory, known fallbacks and current test/build evidence are in
 [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md). The detailed rule map is
-[`RULES_COVERAGE.md`](RULES_COVERAGE.md).
+[`RULES_COVERAGE.md`](RULES_COVERAGE.md). The per-card event record — what each of
+the 122 printed card events actually runs, whether its printed “OR” became a real
+player choice, and which cards have no test — is
+[`CARD_EVENTS.md`](CARD_EVENTS.md).
 
 At a glance, the live game covers:
 
