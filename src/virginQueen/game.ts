@@ -98,6 +98,8 @@ import {
     autoResolveCityRebelsLosses,
     chooseCityRebelsLoss,
 } from "./moves";
+import {counterDeal, proposeDeal, respondDeal, withdrawDeal} from "./negotiationMoves";
+import {expireOpenOffer, negotiationState} from "./negotiation";
 
 const turnBegin = (G: VQGame, ctx: Ctx): void => {
     // Safety net: an abandoned #18 allocation is completed with the automatic
@@ -148,6 +150,8 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
 };
 
 const phaseBegin = (G: VQGame, ctx?: Ctx): void => {
+    // Rule 9.1: an unconfirmed offer lapses with the Negotiation Segment.
+    if (ctx?.phase !== "diplomacy") expireOpenOffer(G);
     // A #18 choice cannot cross a phase boundary; apply the automatic order.
     if (G.pendingCityRebels !== undefined) autoResolveCityRebelsLosses(G);
     // #95 is only attached for the Diplomacy Phase in which it was played.
@@ -239,6 +243,13 @@ const choiceStages = {
     // type during Card Draw, including the ship types of a no-port naval loss.
     // Ending the turn keeps the safe automatic result.
     winterLossChoice: {moves: {chooseWinterLoss, chooseWinterNavalLoss, endPhaseTurn}},
+    // Rule 9.1 negotiation table.  The proposer may withdraw while the other
+    // side accepts, declines or counters; each side gets one temporary move.
+    dealOffer: {moves: {withdrawDeal: {move: withdrawDeal, redact: true}}},
+    dealResponse: {moves: {
+        respondDeal: {move: respondDeal, client: false, redact: true},
+        counterDeal: {move: counterDeal, client: false, redact: true},
+    }},
 };
 
 export const VirginQueenGameDef: Game<VQGame> = {
@@ -263,9 +274,11 @@ export const VirginQueenGameDef: Game<VQGame> = {
         if (r.espionage) r.espionage.inspections = r.espionage.inspections.filter((entry) =>
             playerID !== null && ownerOf(G, entry.viewer) === playerID);
         r.handCounts = {};
+        r.treasureCounts = {};
         r.homeCardSetAsideCounts = {};
         for (const p of POWERS) {
             r.handCounts[p] = G.powers[p].cards.length;
+            r.treasureCounts[p] = G.powers[p].treasures.length;
             r.homeCardSetAsideCounts[p] = G.powers[p].homeCardSetAside?.length ?? 0;
             if (playerID === null || ownerOf(G, p) !== playerID) {
                 r.powers[p].cards = [];
@@ -273,6 +286,19 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 // The Spring Home card choice is secret; only its count is public.
                 r.powers[p].homeCardSetAside = [];
             }
+        }
+        // Rule 9.1: negotiations are private.  Other clients receive the public
+        // record of concluded deals, but never the open offer or promises.
+        if (r.negotiation !== undefined) {
+            const involved = (power: Power): boolean => playerID !== null && ownerOf(G, power) === playerID;
+            if (r.negotiation.offer !== null && !involved(r.negotiation.offer.from) &&
+                !involved(r.negotiation.offer.to)) {
+                r.negotiation.offer = null;
+            }
+            r.negotiation.history = r.negotiation.history.map((record) =>
+                involved(record.proposer) || involved(record.confirmer)
+                    ? record
+                    : {...record, promises: []});
         }
         r.deck = [];
         r.futureDeck = [];
@@ -301,6 +327,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 autoResolveWinterNavalLossChoices(G);
                 G.peaceMadeThisPhase = [];
                 G.diplomacyGifts = {};
+                negotiationState(G).offer = null;
                 phaseBegin(G, ctx);
             },
             turn: {
@@ -391,6 +418,12 @@ export const VirginQueenGameDef: Game<VQGame> = {
         proposeBetroth,
         acceptBetroth,
         rejectBetroth,
+        // These moves read both hands while validating; the client holds a
+        // redacted view, so let the authoritative server run them.
+        proposeDeal: {move: proposeDeal, client: false, redact: true},
+        respondDeal: {move: respondDeal, client: false, redact: true},
+        counterDeal: {move: counterDeal, client: false, redact: true},
+        withdrawDeal: {move: withdrawDeal, redact: true},
         ransom,
         springDeploy,
         recruit,

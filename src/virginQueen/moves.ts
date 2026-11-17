@@ -31,8 +31,9 @@ import {WORLD_HAZARDS, WORLD_SEA_ZONE_BY_ID, WORLD_SETTLEMENTS, WORLD_SETTLEMENT
 import {patronById, royalAvailable, seaCaptainById} from "./scenario";
 import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
+import {canYieldSpace} from "./negotiation";
 import {formationIssue, landMoveIssue, transportMoveIssue} from "./movement";
-import {activateMajor, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController, springSeaCrossingBlocked} from "./util";
+import {activateMajor, catholicLeagueDealsBlocked, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController, springSeaCrossingBlocked} from "./util";
 import {canPlayBattleCard, playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {canPlayHolyLeague, holyLeagueTracks} from "./holyLeague";
@@ -208,12 +209,6 @@ const countAtLocation = (G: VQGame, location: string, owner: Power): number => {
     if (stack !== undefined) return navalCount(stack);
     return owner === "spain" && G.armada?.location === location ? 1 : 0;
 };
-
-/** Rule 20.10: no deals between Spain and France/Protestant in the next Diplomacy Segment. */
-const catholicLeagueDealsBlocked = (G: VQGame, a: Power, b: Power): boolean =>
-    G.catholicLeagueNoDealsUntil === G.year &&
-    ((a === "spain" && (b === "france" || b === "protestant")) ||
-        (b === "spain" && (a === "france" || a === "protestant")));
 
 /**
  * Card #16 FAQ: a response may not skip the Ottoman's first action round
@@ -3835,19 +3830,8 @@ export const yieldSpace = (G: VQGame, ctx: Ctx, args: {target: Power; space: str
     const state = G.spaces[args.space];
     const def = SPACE_BY_ID[args.space];
     if (!isPower(target) || target === p || state === undefined || def === undefined) return INVALID_MOVE;
-    if (state.control !== p) return INVALID_MOVE;
     if (catholicLeagueDealsBlocked(G, p, target)) return INVALID_MOVE;
-    const homes = spaceHomes(def);
-    const receiverHomes = SPACES.filter((space) => spaceHomes(space).includes(target)).map((space) => space.id);
-    const returningHome = homes.includes(target);
-    const frenchExchange = def.area === "france" &&
-        ((p === "france" && target === "protestant") || (p === "protestant" && target === "france"));
-    const dutchExchange = def.area === "netherlands" &&
-        ((p === "spain" && target === "protestant") || (p === "protestant" && target === "spain"));
-    const independentAdjacent = homes.includes("independent") &&
-        (receiverHomes.some((id) => landAdjacent(id, args.space)) ||
-            receiverHomes.some((id) => (SPACE_BY_ID[id]?.ports ?? []).some((zone) => (def.ports ?? []).includes(zone))));
-    if (!returningHome && !frenchExchange && !dutchExchange && !independentAdjacent) return INVALID_MOVE;
+    if (!canYieldSpace(G, p, target, args.space)) return INVALID_MOVE;
     state.control = target;
     displaceNonFriendlyUnits(G, target, [args.space]);
     pushLog(G, `${powerLabel(p)} yields control of ${def.name} to ${powerLabel(target)}.`);
