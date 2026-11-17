@@ -52,7 +52,7 @@ import {
 } from "./moveFeedback";
 import {pendingOptionSafety} from "./pendingSafety";
 import {ARM_MS} from "./ConfirmButton";
-import type {InjectedUi, ModelValues} from "./modelValues";
+import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
 import {BoardLayout} from "./BoardLayout";
 import {botMoveFor} from "../engine/bot";
@@ -72,6 +72,38 @@ export interface BoardModelProps {
   /** Test seam: a suite that stubs React hooks renders `BoardLayout` itself. */
   injectedUi?: InjectedUi;
 }
+
+/** The phone breakpoint, shared by the dock and the stylesheet. */
+const PHONE_QUERY = "(max-width: 767px)";
+
+/**
+ * Whether the layout is the phone one.
+ *
+ * SSR and the node test environment have no `window`, and the safe default
+ * there is the desktop layout: the phone dock only makes sense once a real
+ * viewport exists.  The query is subscribed to so a resize (or a rotate) flips
+ * the shell without remounting the board.
+ */
+export const useIsPhone = (): boolean => {
+  const read = (): boolean =>
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia(PHONE_QUERY).matches
+      : false;
+  const [isPhone, setIsPhone] = React.useState(read);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(PHONE_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setIsPhone(event.matches);
+    // The initial value was read before the first paint of an effect; re-read
+    // in case the viewport changed between render and subscribe.
+    setIsPhone(query.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  return isPhone;
+};
 
 export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateID, isConnected = true, injectedUi}: BoardModelProps) => {
   i18n.use();
@@ -119,6 +151,9 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const [gwTransferTo, setGwTransferTo] = React.useState<string>("");
   const [gwTransferAmount, setGwTransferAmount] = React.useState(1);
   const [dockCollapsed, setDockCollapsed] = React.useState(false);
+  // The phone shell is one bottom sheet; `mobileTab` picks the body it shows.
+  const isPhone = useIsPhone();
+  const [mobileTab, setMobileTab] = React.useState<MobileTab>("orders");
   // Phones start at the peek position (the plan's drawer); desktop keeps the
   // 220 px hand row open.  SSR has no window and defaults to desktop.
   const [trayOpen, setTrayOpen] = React.useState(() =>
@@ -170,6 +205,22 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     if (hasWar && !warWasActive.current) setRailTab("war");
     warWasActive.current = hasWar;
   }, [war, gw]);
+
+  // A decision arriving on a phone brings the one bottom sheet up to half
+  // height on the Orders tab.  It fires on the false→true edge only, so a
+  // player who collapses the sheet while answering keeps it collapsed; when the
+  // decision clears the state is left alone, so the sheet does not jump.
+  // Desktop's tray behaviour is untouched.
+  const decisionOwed = Boolean(pending || battle || G.result);
+  const decisionWasOwed = React.useRef(decisionOwed);
+  React.useEffect(() => {
+    if (isPhone && decisionOwed && !decisionWasOwed.current) {
+      setTrayOpen(true);
+      setTrayExpanded(false);
+      setMobileTab("orders");
+    }
+    decisionWasOwed.current = decisionOwed;
+  }, [decisionOwed, isPhone]);
 
   const warBelligerents = war
     ? [...new Set([war.attacker, war.defender, ...war.attackerAllies, ...war.defenderAllies])]
@@ -1525,6 +1576,9 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     setGwTransferAmount,
     dockCollapsed,
     setDockCollapsed,
+    isPhone,
+    mobileTab,
+    setMobileTab,
     trayOpen,
     setTrayOpen,
     trayExpanded,
