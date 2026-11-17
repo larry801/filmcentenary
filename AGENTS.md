@@ -39,7 +39,7 @@ Never:
 
 - Commit directly to "main" or "master".
 - Force-push shared branches.
-- Merge feature branches without explicit authorization.
+- Merge a feature branch before its GitHub Actions run has passed (see Section 10).
 - Overwrite unrelated user changes.
 
 3. Local Testing
@@ -208,7 +208,52 @@ Do not push unrelated files, local build artifacts, secrets, credentials, or tem
 
 Never force-push unless explicitly authorized.
 
-10. Final Response
+10. Merge to Master and Delete the Branch
+
+Once the remote workflow for the latest feature commit has passed, finish the
+task by merging the feature branch into "master" and deleting the branch.
+This is the default end state of every development task; no separate
+authorization is needed after a green run.
+
+Steps:
+
+1. Confirm the run for the exact pushed SHA is green (Section 7).
+2. Update the base branch from the remote.
+3. Merge the feature branch into "master".
+4. Push "master".
+5. Verify the merge commit in "master" contains the tested feature commit.
+6. Delete the local feature branch.
+7. Delete the remote feature branch.
+8. Switch back to "master" and pull.
+
+Example:
+
+git fetch origin
+git switch master
+git pull --ff-only origin master
+git merge --no-ff feature/<description>
+git push origin master
+
+git branch -d feature/<description>
+git push origin --delete feature/<description>
+
+git switch master
+git pull --ff-only origin master
+
+Rules:
+
+- Only merge after GitHub Actions has passed for the latest feature commit.
+  A failing, cancelled, in-progress or superseded run is not a green run.
+- Never merge by force-pushing "master".
+- If the merge conflicts, resolve it on a new feature branch and repeat the
+  remote test cycle; do not hand-resolve conflicts directly on "master".
+- If the merge reintroduces changes that the remote run did not cover, push the
+  merge commit and wait for its workflow before reporting completion.
+- If the remote branch cannot be deleted, report it rather than leaving the
+  task silently half-finished.
+- Record the master merge commit SHA together with the tested feature SHA.
+
+11. Final Response
 
 At the end of each development task, report:
 
@@ -218,7 +263,9 @@ At the end of each development task, report:
 4. GitHub Actions Run URL.
 5. Tested commit SHA.
 6. Full remote test results.
-7. Any remaining failures or limitations.
+7. Master merge commit SHA, and confirmation that the feature branch (local and
+   remote) was deleted.
+8. Any remaining failures or limitations.
 
 Clearly distinguish:
 
@@ -227,4 +274,6 @@ Clearly distinguish:
 - Remote tests failed
 - Remote tests pending
 
-Final rule: Never consider development complete merely because the code works locally. Full verification must be completed by GitHub Actions.
+Final rule: Never consider development complete merely because the code works
+locally. Full verification must be completed by GitHub Actions, and the branch
+must be merged into "master" and deleted once that verification passes.
