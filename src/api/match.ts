@@ -10,6 +10,11 @@ import { FilmCentenaryGame } from "../Game";
 export interface Match {
     matchID: string;
     players: Map<Player, string | null>;
+    /**
+     * The game's own `setupData`, when the server kept it.  Imperial Elegy reads
+     * `bots` from here so invite links only cover the human seats.
+     */
+    setupData?: Record<string, unknown>;
 }
 
 /** Represents the visibility of a match. */
@@ -215,6 +220,9 @@ export const getMatch = async (
                     p.name ?? null,
                 ])
             ),
+            ...(data.setupData && typeof data.setupData === "object"
+                ? {setupData: data.setupData as Record<string, unknown>}
+                : {}),
         };
     }
 };

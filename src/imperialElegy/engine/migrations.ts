@@ -356,6 +356,11 @@ export const ensureStateDefaults = (G: ImperialElegyState): ImperialElegyState =
   if (!Number.isFinite(G.decisionSeq) || G.decisionSeq < 1) G.decisionSeq = 1;
 
   // ------------------------------------------------ top-level optional records
+  // Online bot seats.  A save from before this field (or a hotseat match, which
+  // has no bot list at all) reads as "no bots": `?? []` would write a key the
+  // hotseat board never produced, so the absent case is left alone and every
+  // reader goes through `botPowersOf`, which tolerates it.
+  if (G.bots !== undefined && !Array.isArray(G.bots)) G.bots = [];
   // 13.4/8.2: the live declaration ledger for non-player powers.
   G.minorDeclarations ??= [];
   // 16.2: card markers awarded to independent minor powers.

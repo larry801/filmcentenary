@@ -1112,6 +1112,14 @@ export interface ImperialElegyState {
   /** Turn-order index for the active phase. */
   turnIndex: number;
   powers: Record<Power, PowerState>;
+  /**
+   * Rule 34 seats of an online match: powers the server drives because no human
+   * took them.  All six powers always exist, so a match of 2–6 humans fills the
+   * remaining seats with bots.  Public information (everybody can see who is a
+   * bot), and empty for a hotseat match, where the client's per-seat toggles
+   * decide instead.
+   */
+  bots?: Power[];
   spaces: Record<SpaceId, SpaceState>;
   units: Record<string, Unit>;
   nextUnitId: number;

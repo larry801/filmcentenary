@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import {randomBytes} from 'crypto';
 import * as Koa from "koa"
 import serve from 'koa-static';
 import {FilmCentenaryGame} from "./src/Game";
@@ -10,6 +11,7 @@ import {SongJinnGameDef} from "./src/songJinn/game";
 import {VirginQueenGameDef} from "./src/virginQueen/game";
 import {ImperialElegyGameDef} from "./src/imperialElegy/game";
 import {createMatchDataStorageWrapper, createInMemoryStorage} from "./src/game/matchStorage";
+import {attachBotDriverToStorage, createIEBotDriver} from "./src/game/ieBotDriver";
 
 const DB_DIR = process.env.DB_DIR || process.env.FILE_DB_DIR;
 if (DB_DIR) {
@@ -47,6 +49,42 @@ const server = Server({
     ]
 });
 
+/**
+ * Imperial Elegy's online Rule 34 bot.
+ *
+ * The engine always seats all six powers, so the lobby lets a table choose 2–6
+ * humans and the server plays the rest.  boardgame.io's Master only accepts
+ * moves from active players and its Socket.IO transport has no bot hook, so the
+ * driver dispatches those seats itself, authenticated with the credentials the
+ * storage wrapper seats on them at match creation.  It hooks `setState`, which
+ * is the one place every state change (human or bot) passes through, and
+ * broadcasts on the same per-match pub-sub channel the transport uses.
+ */
+const ieGames = new Map(games.map((game) => [game.name, game]));
+// boardgame.io generates credentials with nanoid(21); a bot seat only needs an
+// unguessable URL-safe string that `authenticateCredentials` compares exactly,
+// so 24 random bytes (base64url) is the same guarantee with no new dependency.
+const botCredential = (): string => randomBytes(18).toString("base64url");
+
+/**
+ * `SocketIO` keeps the per-match broadcast channel and the per-match write
+ * queue on fields it does not export types for.  Reading them (rather than
+ * replacing the transport) makes the bot's writes serialise with human moves
+ * and broadcast exactly the way a human move does.
+ */
+const ieTransport = server.transport as unknown as {
+    pubSub?: {publish(channel: string, payload: unknown): void};
+    getMatchQueue?: (matchID: string) => {add(fn: () => Promise<unknown>): Promise<unknown>} | undefined;
+};
+
+const ieBots = createIEBotDriver({
+    db,
+    game: ieGames.get(ImperialElegyGameDef.name),
+    auth: server.auth,
+    pubSub: ieTransport.pubSub ?? {publish: () => undefined},
+    queueFor: (matchID) => ieTransport.getMatchQueue?.(matchID) ?? null,
+});
+attachBotDriverToStorage(db, ieBots, () => botCredential());
 
 const PORT = process.env.PORT || "3002";
 const {app} = server;

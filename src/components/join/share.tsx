@@ -13,12 +13,20 @@ interface ShareLinkProps {
     player: Player;
     numPlayer: number;
     gameName: string;
+    /**
+     * Seats a human can still take.  Imperial Elegy always creates six seats but
+     * may fill some with the Rule 34 bot, so the invite list must be the human
+     * subset rather than seats `0..numPlayers-1`.  Omitted (every other game)
+     * means every seat.
+     */
+    seats?: ReadonlySet<string> | null;
 }
 
-export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps) => {
+export const ShareLink = ({matchID, player, numPlayer, gameName, seats}: ShareLinkProps) => {
     i18n.use();
     const urlPrefix = `${window.location.origin}/join/${gameName}/${matchID}/`;
-    const ids = Array.from({length: Math.max(2, numPlayer)}, (_, i) => String(i));
+    const allIds = Array.from({length: Math.max(2, numPlayer)}, (_, i) => String(i));
+    const ids = seats === undefined || seats === null ? allIds : allIds.filter((id) => seats.has(id));
     const links = ids.map((id) => ({id, url: urlPrefix + id}));
     const spectateURL = urlPrefix + Player.SPECTATE;
 

@@ -211,11 +211,11 @@ function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-async function createMatch(): Promise<string> {
+async function createMatch(setupData?: Record<string, unknown>): Promise<string> {
     const response = await fetch(`${GAME_ORIGIN}/games/imperialElegy/create`, {
         method: "POST",
         headers: {Accept: "application/json", "Content-Type": "application/json"},
-        body: JSON.stringify({numPlayers: 6}),
+        body: JSON.stringify(setupData === undefined ? {numPlayers: 6} : {numPlayers: 6, setupData}),
     });
     if (!response.ok) {
         throw new Error(`create match failed: HTTP ${response.status} ${await response.text()}`);
@@ -390,5 +390,42 @@ test.describe("Imperial Elegy online seats and spectators", () => {
         // The server recorded both seats without replacing seat 0.
         await expect.poll(async () => (await readMatch(matchID)).players[0]?.name).toBe("P1");
         await expect.poll(async () => (await readMatch(matchID)).players[1]?.name).toBe("P2");
+    });
+
+    test("D: a two-human table seats the remaining powers as bots", async ({page}) => {
+        const matchID = await createMatch({bots: ["FR", "AU", "RU", "OT"]});
+
+        // The server seats the bot powers at creation, so the human join links
+        // can never land on them.
+        await expect.poll(async () => (await readMatch(matchID)).players[2]?.name).toBe("Bot FR");
+        const seated = await readMatch(matchID);
+        expect(seated.players.map((player) => player.name)).toEqual([
+            undefined, undefined, "Bot FR", "Bot AU", "Bot RU", "Bot OT",
+        ]);
+
+        // Seat 0 is a human seat and still plays.
+        await openSeat(page, matchID, 0);
+
+        // The invite links only cover the other human seat (P2); the four bot
+        // seats are not offered.
+        const hrefs = await page.locator('a[href*="/join/imperialElegy/"]')
+            .evaluateAll((nodes) => nodes.map((node) => (node as HTMLAnchorElement).getAttribute("href") ?? ""));
+        const seatOf = (href: string): string | null => {
+            const match = /\/join\/imperialElegy\/[^/]+\/(\d+)$/.exec(href);
+            return match === null ? null : match[1];
+        };
+        const offered = hrefs.map(seatOf).filter((seat): seat is string => seat !== null);
+        expect(offered).toEqual(["1"]);
+        for (const botSeat of ["2", "3", "4", "5"]) {
+            expect(offered).not.toContain(botSeat);
+        }
+
+        // Opening a bot seat explains why it cannot be taken and joins nobody.
+        const botSeat = await page.context().newPage();
+        await botSeat.goto(`/join/imperialElegy/${matchID}/2`, {waitUntil: "domcontentloaded"});
+        await expect(botSeat.getByText(/机器人（规则 34）控制/)).toBeVisible({timeout: 30_000});
+        await expect(botSeat).toHaveURL(new RegExp(`/join/imperialElegy/${escapeRegExp(matchID)}/2$`));
+        expect((await readMatch(matchID)).players[2]?.name).toBe("Bot FR");
+        await botSeat.close();
     });
 });

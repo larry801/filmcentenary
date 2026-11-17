@@ -25,6 +25,7 @@ written next to it.
 - [ ] The seat strip `data-testid="ie-seat-strip"` shows six tabs, `data-testid="ie-seat-status-GE"` … `ie-seat-status-OT`, in the printed order GE · UK · FR · AU · RU · OT (P1–P6).
 - [ ] Press `2` (or `]`): the focus moves to the UK board without reloading the page or restarting the match. `1`–`6` and `[` / `]` switch seats.
 - [ ] Optional, for the bot section: `http://localhost:5173/localIE?solo=1` opens the seat-setup screen first (`data-testid="ie-local-bot-seats"`), with a **Start match** / `开始对局` button `data-testid="ie-start-match"`.
+- [ ] Optional, for the online bot section: open `/imperialElegy`, choose **人类玩家 / Human players** (`#outlined-ie-humans`) between 2 and 6, and check the seat preview `data-testid="ie-lobby-seats"`: the tail seats (`ie-lobby-seat-FR` … `ie-lobby-seat-OT` for a 2-human table) show 🤖 and the summary reads `2 名人类 + 4 名机器人（规则 34）`. Creating the match posts `numPlayers: 6` with `setupData.bots`.
 
 ---
 
@@ -235,11 +236,17 @@ of these was introduced by this checklist; they are where a tester's answer is
 6. **Spectating is online-only.** There is no spectator toggle on `/localIE`,
    so section 7 needs a running game server on the same origin; a bare
    `yarn start` origin cannot reach it without a proxy.
-7. **The bot is a client-side loop, not an engine bot.** Each bot seat is driven
-   by a 500 ms `setTimeout` in the board while its tab is mounted (all six are
-   always mounted in hotseat), and a decision refused three times in a row is
-   replaced by a silent fallback move (`[IE bot] repeated invalid decision` in the
-   console).
+7. **The bot runs on the client in hotseat and on the server online.** In the
+   hotseat screen each bot seat is driven by a 500 ms `setTimeout` in the board
+   while its tab is mounted (all six are always mounted in hotseat), and a
+   decision refused three times in a row is replaced by a silent fallback move
+   (`[IE bot] repeated invalid decision` in the console). An online match of 2–6
+   humans is different: the lobby's `setupData.bots` names the seats no human
+   took, the server (`src/game/ieBotDriver.ts`) plays them through a Master with
+   each seat's credentials, and the board only shows the read-only banner — a
+   client must not also send that move, so the board's bot loop is gated on
+   `hotseat`. A server-side refusal follows the same three-strike escape and
+   logs `[IE bot] falling back to …`.
 8. **Spectator console noise (verify).** Whether boardgame.io's client prints
    `invalid move` lines for a spectator's stripped view is not asserted
    anywhere in the repo; check by hand.

@@ -5,6 +5,7 @@ import {setupImperialElegy} from "./engine/setup";
 import {cardsToDraw as cardsToDrawCount} from "./engine/rules";
 import {prepareDeck, drawCards, discardHandAtEndOfTurn} from "./engine/deck";
 import {beginTurnDecade} from "./engine/economy";
+import {IE_SEATS, validateIESetupData} from "./configuration";
 import {
   amphibiousAssault,
   auAction,
@@ -322,8 +323,14 @@ export const ImperialElegyGameDef: Game<ImperialElegyState> = {
   name: "imperialElegy",
   ai: {enumerate: enumerateBot},
   setup: (ctx: Ctx, setupData?: unknown) => setupImperialElegy(ctx, setupData),
-  minPlayers: 6,
-  maxPlayers: 6,
+  // The engine always runs all six printed powers, so a match is always six
+  // boardgame.io seats.  "2–6 human players" is `setupData.bots`: the seats the
+  // server drives with the Rule 34 bot (see configuration.ts).  Letting the
+  // lobby create four seats would leave two powers with no player who can ever
+  // move, so the count is fixed and the human count lives in setupData.
+  minPlayers: IE_SEATS.length,
+  maxPlayers: IE_SEATS.length,
+  validateSetupData: validateIESetupData,
   disableUndo: true,
   playerView: (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null) =>
     redactForView(G, playerID, ctx),

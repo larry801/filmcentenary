@@ -14,6 +14,7 @@ import {CARDS} from "../constant/cards.data";
 import {prepareDeck, shuffle, drawCards, cardsForDecade} from "./deck";
 import {log, cardsToDraw, recomputeTracks} from "./rules";
 import {ensureStateDefaults} from "./migrations";
+import {parseBotPowers, botPowersOf} from "../configuration";
 
 const newUnit = (
   G: ImperialElegyState,
@@ -38,7 +39,12 @@ const newUnit = (
   return unit;
 };
 
-export const setupImperialElegy = (ctx: Ctx, _setupData?: unknown): ImperialElegyState => {
+export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegyState => {
+  // Rule 34 seats of an online match: the lobby names the bot powers in
+  // `setupData.bots` (see configuration.ts#parseBotPowers).  A hotseat match
+  // passes no setupData at all and keeps its per-seat toggles on the client.
+  // Stored in rulebook seat order, so every reader sees the same list.
+  const bots = botPowersOf({bots: parseBotPowers(setupData) ?? []});
   const G: ImperialElegyState = {
     scenario: "campaign",
     turn: 1,
@@ -54,6 +60,7 @@ export const setupImperialElegy = (ctx: Ctx, _setupData?: unknown): ImperialEleg
       RU: createEmptyPowerState("RU"),
       OT: createEmptyPowerState("OT"),
     },
+    bots,
     spaces: createSpaceStates(),
     units: {},
     nextUnitId: 1,
