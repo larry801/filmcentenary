@@ -44,8 +44,7 @@ const CORE_KEYS = [
   "otherSeatPending", "seatUi", "pendingPrompt", "pendingKind", "responseWindow", "handChoicesHint",
   "cardFaceMode", "setCardFaceMode", "confirmActions", "setConfirmActions", "board", "setBoard", "railTab", "setRailTab", "choiceKinds",
   "choicesProps", "targetingHint", "handCounts", "goalCounts", "minorMarkerRows", "homeCardTitle",
-  "mpitTarget", "setMpitTarget", "mpitTrack", "setMpitTrack", "doAction", "mapHint",
-  "pendingSpaceTargets", "optionLabel", "optionFace", "optionAction", "canDecline",
+  "doAction", "mapHint", "pendingSpaceTargets", "optionLabel", "optionFace", "optionAction", "canDecline",
   "jihadDecision", "jihadReason", "onOpenReference", "refAnchor", "setRefAnchor",
   "toast", "dismissToast",
 ] as const;
@@ -82,7 +81,7 @@ const ORDERS_KEYS = [
   "transportTargets", "transportToValue", "setTransportTo", "transportFleet", "transportCanGo",
   "transportReason", "interceptVisible", "lastNavalBox", "lastNavalMover", "interceptPorts",
   "interceptPortValue", "setInterceptPort", "interceptCheck", "interceptReason",
-  "jihadDecision", "jihadReason", "mpitTarget", "setMpitTarget", "mpitTrack", "setMpitTrack",
+  "jihadDecision", "jihadReason",
   "commandedOwner", "commandsSelected", "hand",
 ] as const;
 
@@ -117,7 +116,7 @@ const WAR_KEYS = [
 const REFERENCE_KEYS = [
   "G", "t", "locale", "actualLocale", "viewer", "me", "active", "war", "gw", "pending",
   "handCounts", "goalCounts", "minorMarkerRows", "homeCardTitle", "cpBudget", "canAct", "canSpend",
-  "mpitTarget", "setMpitTarget", "mpitTrack", "setMpitTrack", "doAction", "moves", "trayOpen",
+  "doAction", "moves", "trayOpen",
 ] as const;
 
 export type CoreSlice = Pick<ModelValues, typeof CORE_KEYS[number]>;

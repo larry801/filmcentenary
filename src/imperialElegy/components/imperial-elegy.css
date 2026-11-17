@@ -1214,9 +1214,25 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-goal-choice { border: 1px solid #b3873a; background: #3a2c1c; border-radius: var(--ie-radius-md); padding: 6px; }
 .ie-cp-chain .ie-muted { font-size: var(--ie-font-xs); }
 .ie-mpit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
-.ie-mpit-cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; font-size: var(--ie-font-xs); border: 1px solid #453725; border-radius: var(--ie-radius-sm); padding: 3px 5px; }
-.ie-mpit-cell b { color: #e7cf99; font-weight: 600; }
+.ie-mpit-cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: var(--ie-font-xs); border: 1px solid #453725; border-radius: var(--ie-radius-sm); padding: 3px 5px; }
+.ie-mpit-cell > b { flex: 1 0 100%; color: #e7cf99; font-weight: 600; }
 .ie-mpit-cell.mine { border-color: var(--ie-accent); background: #33281a; }
+/* The matrix is the control: each count is a button that places one marker
+   on that power/track, so there is no target dropdown and no separate
+   "place" press. */
+.ie-mpit-track {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  margin: 0; padding: 2px 7px; min-height: 26px;
+  border: 1px solid #5e4a2f; border-radius: var(--ie-radius-sm);
+  background: #241d17; color: #e7d7b7; font: inherit; font-size: var(--ie-font-xs);
+  cursor: pointer;
+}
+.ie-mpit-track:hover:not(:disabled) { border-color: var(--ie-accent); background: #3a2c1c; color: #f0d799; }
+.ie-mpit-track:focus-visible { outline: 2px solid var(--ie-accent-soft); outline-offset: 1px; }
+.ie-mpit-track:disabled { opacity: .4; cursor: not-allowed; filter: grayscale(.5); }
+.ie-mpit-track[data-armed="true"] { background: var(--ie-accent); border-color: var(--ie-accent); color: #211b16; }
+.ie-mpit-track > b { font-weight: 600; }
+.ie-mpit-value { display: inline-flex; gap: 4px; padding: 2px 0; color: #cdbb9a; }
 .ie-war-sides { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 .ie-war-side { flex: 1; border: 1px solid #4e3f2b; border-radius: var(--ie-radius-sm); padding: 4px 6px; background: #241d17; font-size: var(--ie-font-xs); }
 .ie-war-power { color: #f0d799; font-size: var(--ie-font-sm); letter-spacing: .03em; }
