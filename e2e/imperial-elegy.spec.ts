@@ -26,11 +26,24 @@ async function focusSeat(page: Page, seat: string) {
  * button is addressed by test id because the armed label replaces its text,
  * so a text filter would stop matching between the two clicks.
  */
+/** Unfold one hand row so its face and its buttons exist. */
+async function openCard(card: Locator): Promise<Locator> {
+    if (await card.getAttribute("data-expanded") === "true") return card;
+    await card.locator(".ie-card-open").click();
+    await expect(card).toHaveAttribute("data-expanded", "true");
+    return card;
+}
+
+/**
+ * Play the first legal card for CP.  The hand lists one folded row per card, so
+ * each row is unfolded before its CP button can be pressed.
+ */
 async function playCardForCp(page: Page, board: Locator): Promise<boolean> {
-    const buttons = board.locator('[data-testid^="ie-play-cp-"]');
-    for (let i = 0; i < await buttons.count(); i += 1) {
-        const button = buttons.nth(i);
-        if (!(await button.isEnabled())) continue;
+    const cards = board.locator(".ie-hand .ie-card");
+    for (let i = 0; i < await cards.count(); i += 1) {
+        const card = await openCard(cards.nth(i));
+        const button = card.locator('[data-testid^="ie-play-cp-"]').first();
+        if (!(await button.count()) || !(await button.isEnabled())) continue;
         await button.click();
         await expect(button).toHaveAttribute("data-armed", "true");
         await button.click();
@@ -120,7 +133,6 @@ test.describe("Imperial Elegy local hotseat", () => {
         await focusSeat(page, "GE");
         await page.waitForTimeout(500);
         const board = page.locator('[data-testid="ie-seat-GE"]');
-        await expect(board.locator('[data-testid^="ie-play-cp-"]').first()).toBeVisible();
         expect(await playCardForCp(page, board)).toBe(true);
         await page.waitForTimeout(800);
         await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
@@ -188,7 +200,7 @@ test.describe("Imperial Elegy local hotseat", () => {
         });
         await openLocal(page);
         const board = page.locator('[data-testid="ie-seat-GE"]');
-        const card = board.locator(".ie-hand .ie-card").first();
+        const card = await openCard(board.locator(".ie-hand .ie-card").first());
         const face = card.locator("svg.ie-card-face");
         const original = await face.getAttribute("data-card-id");
         await expect(face).toHaveAttribute("lang", "zh-CN");

@@ -89,18 +89,18 @@ async function playCpCard(board: Locator): Promise<boolean> {
         if (await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining) > 0) return true;
         // Arm-then-confirm: the first click arms (`data-armed`), the second
         // plays.  Addressed by test id because the armed label replaces the
-        // text a name filter matches.
-        const cpButtons = board.locator('[data-testid^="ie-play-cp-"]');
-        await expect(cpButtons.first()).toBeVisible();
+        // text a name filter matches.  Each row is unfolded first: the hand is a
+        // list of folded rows, so a card's buttons do not exist until then.
+        const cards = board.locator(".ie-hand .ie-card");
         let played = false;
-        for (let i = 0; i < await cpButtons.count(); i += 1) {
-            const button = cpButtons.nth(i);
-            if (!(await button.isEnabled())) continue;
+        for (let i = 0; i < await cards.count() && !played; i += 1) {
+            const card = await openCard(cards.nth(i));
+            const button = card.locator('[data-testid^="ie-play-cp-"]').first();
+            if (!(await button.count()) || !(await button.isEnabled())) continue;
             await button.click();
             await expect(button).toHaveAttribute("data-armed", "true");
             await button.click();
             played = true;
-            break;
         }
         if (!played) return false;
         try {
