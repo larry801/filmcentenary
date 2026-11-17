@@ -482,6 +482,20 @@ yarn test:e2e         # Playwright browser tests
 python3 scripts/extract-imperial-elegy.py --check
 ```
 
+### Waiting in tests
+
+Suites that drive six boardgame.io clients share one embedded `Local` master,
+so a move only becomes visible once that master settles. Do not wait for it with
+`setTimeout`; read `_stateID` and wait for it to change
+(`src/imperialElegy/campaign.test.ts` has the `settle` helper). Fixed sleeps both
+race the master on a loaded runner — that is how `privateInfo.test.ts` failed on
+CI — and dominate the runtime: the campaign suite went from 34-50 s to ~15 s
+locally and 10 s on CI just by replacing its per-step `wait(30)`.
+
+The same rule applies in Playwright: wait for the state the sleep was guessing
+at (`data-active` on a seat panel, a button disappearing, a pending decision's
+`id` changing) rather than `waitForTimeout`.
+
 ### IE Playwright configs
 
 The three IE browser configs are deliberately separate, and all three are
@@ -498,6 +512,14 @@ started by their own config so CI needs no hand-started servers:
 `yarn test:e2e` deliberately ignores these three specs (they run against the
 dev server on `:5173`, not their own origin); `yarn test:e2e:ie` runs all three
 in order.
+
+All three IE specs now wait on observable state instead of fixed sleeps, so the
+suite no longer pays a 180-250 ms pause per seat switch. `focusSeat` waits for
+the seat panel's `data-active`, the prep/home-card helpers wait for their button
+to disappear, and `answerStartPending` waits for the pending decision's `id` to
+change. The controls spec dropped from 1.4 min to ~58 s and the regression spec
+from 1.3 min to ~53 s on the same runner; CI runs the two Playwright bundles as
+parallel jobs, so the whole browser stage is ~3 min instead of ~8.
 
 ```sh
 # Regression: original hotseat spec, 5 tests, preview :5203
