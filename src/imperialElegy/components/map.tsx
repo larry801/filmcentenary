@@ -145,6 +145,8 @@ export interface IEMapProps {
   focus?: {x: number; y: number; k?: number; nonce: number} | null;
   /** The legal target the turn panel is pointing at (a Great War battle row). */
   emphasis?: SpaceId | null;
+  /** Called when the map's own keyboard focus moves to another legal target. */
+  onFocusTarget?: (id: SpaceId) => void;
 }
 
 /**
@@ -161,7 +163,7 @@ export interface IEMapProps {
  * happens to be painted on top.
  */
 export const IEMap = React.memo(
-  ({G, selected, onSelect, targets = [], locale, focus = null, emphasis = null, onFocusTarget = undefined}: IEMapProps & {onFocusTarget?: (id: SpaceId) => void}) => {
+  ({G, selected, onSelect, targets = [], locale, focus = null, emphasis = null, onFocusTarget = undefined}: IEMapProps) => {
     const t = ieT();
     const [view, setView] = React.useState<MapView>({k: MIN_ZOOM, x: 0, y: 0});
     const [size, setSize] = React.useState({width: 960, height: 600});

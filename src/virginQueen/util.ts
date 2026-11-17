@@ -922,6 +922,12 @@ export const playTreasure = (G: VQGame, p: Power, index: number): number => {
 export const atWar = (G: VQGame, a: Power, b: Power): boolean =>
     G.powers[a].wars.includes(b) || G.powers[b].wars.includes(a);
 
+/** Rule 20.10: no deals between Spain and France/Protestant in the next Diplomacy Segment. */
+export const catholicLeagueDealsBlocked = (G: VQGame, a: Power, b: Power): boolean =>
+    G.catholicLeagueNoDealsUntil === G.year &&
+    ((a === "spain" && (b === "france" || b === "protestant")) ||
+        (b === "spain" && (a === "france" || a === "protestant")));
+
 export const atWarWithMinor = (G: VQGame, p: Power, m: MinorPower): boolean =>
     G.powers[p].warsMinors.includes(m);
 

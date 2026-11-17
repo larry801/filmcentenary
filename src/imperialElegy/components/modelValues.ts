@@ -188,6 +188,10 @@ export interface ModelValues {
   amphibiousPhaseOk: boolean;
   amphibiousReason: string | undefined;
   amphibiousCanGo: boolean;
+  /** Starts armed map targeting for the operation (the select stays as fallback). */
+  beginAmphibiousTargeting: () => void;
+  beginNavalTransportTargeting: () => void;
+  beginNavalInterceptTargeting: () => void;
   toggleAmphibiousArmy: (id: string, checked: boolean) => void;
   transportVisible: boolean;
   transportMajor: Power | null;

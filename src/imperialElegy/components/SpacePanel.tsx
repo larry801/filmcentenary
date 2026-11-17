@@ -1,11 +1,11 @@
 import React from "react";
 import {GwActionKind, ImperialElegyState, Power, SpaceId, Unit} from "../types";
-import {SPACES, neighboursOf, portBoxes, spaceLabel, isNavalBox} from "../constant/spaces";
-import {effectiveKeyType, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landUnitsIn, minorController, ownsKey} from "../engine/rules";
+import {SPACES, neighboursOf, spaceLabel} from "../constant/spaces";
+import {effectiveKeyType, gwAllyImpulseFor, hasLoc, minorController} from "../engine/rules";
 import {gwActionAllowance} from "../engine/gwImpulse";
-import {isCwArmySpace} from "../engine/characteristics";
 import {polishReserveDeployer} from "../engine/poland";
 import {IEBadge, IEPanel} from "./theme";
+import {ConfirmButton} from "./ConfirmButton";
 import {RuleLink} from "./RuleRef";
 import {ieT} from "./i18n";
 import {bi, controlLabel, isPowerKey, unitLabel} from "./boardHelpers";
@@ -71,6 +71,8 @@ export interface SpacePanelProps {
   selectedUnitDef: Unit | undefined;
   /** Runs a move; `describe` lets the board explain a refusal. */
   doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
+  /** Arm irreversible controls first (the `confirmActions` preference). */
+  confirmActions?: boolean;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -87,7 +89,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
     polishArmyDecision, polishReserveDecision,
     myOnMapArmies, myForts, myMinorAllies,
     ownLandInSelected, ownNavalInSelected, potentialLandTargets, potentialNavalTargets,
-    selectedUnitDef, doAction, moves,
+    selectedUnitDef, doAction, confirmActions = true, moves,
   } = props;
 
   const selectedSpace = selected ? SPACES[selected] : null;
@@ -245,7 +247,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
             const mine = viewer !== null && commanded(u);
             const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
             if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t)}</span>;
-            if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id))}>{unitLabel(u, t)}</button>;
+            if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id), {label: unitLabel(u, t)})}>{unitLabel(u, t)}</button>;
             return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedUnit === id} onClick={() => setSelectedUnit(id)}>{unitLabel(u, t)}</button>;
           })}</div>
           {selectedUnitDef && commanded(selectedUnitDef) && (
@@ -306,7 +308,24 @@ export const SpacePanel = (props: SpacePanelProps) => {
                     {secondObjectiveCandidates.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
                   </select>
                 )}
-                <button className="ie-btn" disabled={!canDeclareWar} onClick={() => doAction(() => moves.declareWar(warTargetControl, warAim, secondObjective ? [selected!, secondObjective] : [selected!], warCp))}>{t.declareWar}</button>
+                {/* Declaring a war cannot be undone, so it arms first like every
+                    other irreversible control.  The label carries the CP price
+                    so the confirmation names what the click is about to spend. */}
+                <ConfirmButton
+                  className="ie-btn"
+                  data-testid="ie-declare-war"
+                  disabled={!canDeclareWar}
+                  confirm={confirmActions}
+                  confirmLabel={bi(locale,
+                    `Confirm: declare war (${warCp} CP)`,
+                    `确认：宣战（${warCp} CP）`)}
+                  onConfirm={() => doAction(
+                    () => moves.declareWar(warTargetControl, warAim, secondObjective ? [selected!, secondObjective] : [selected!], warCp),
+                    {label: bi(locale, `Declare war (${warCp} CP)`, `宣战（${warCp} CP）`), reason: canDeclareWar ? undefined : bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)},
+                  )}
+                >
+                  {t.declareWar}
+                </ConfirmButton>
               </div>
               {G.wtt >= 3 && <div className="ie-hint">{bi(locale, "World Tension is 3+; a new war cannot be declared.", "世界紧张达到 3+，无法发动新的战争。")}</div>}
               {!canDeclareWar && G.wtt < 3 && <div className="ie-hint">{bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)}</div>}

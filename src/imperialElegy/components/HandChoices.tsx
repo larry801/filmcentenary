@@ -25,7 +25,7 @@ export interface HandChoicesProps {
   canPhaseAct: boolean;
   hand: string[];
   ngChoices: string[];
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -106,7 +106,7 @@ export const HandChoices = (props: HandChoicesProps) => {
                     testId: `ie-choose-home-${id}`,
                     selected: chosen,
                     disabled: !canPhaseAct || me.selectedHomeCard !== null,
-                    onChoose: () => doAction(() => moves.chooseHomeCard(id)),
+                    onChoose: () => doAction(() => moves.chooseHomeCard(id), {label: `${t.chooseHome}: ${locale === "zh_CN" ? cardById(id).titleZh : cardById(id).title}`}),
                   }]}
                 />
               );
@@ -130,11 +130,11 @@ export const HandChoices = (props: HandChoicesProps) => {
                   actions={[{
                     label: bi(locale, "Keep this Goal", "保留此目标"),
                     testId: `ie-choose-goal-${id}`,
-                    onChoose: () => doAction(() => moves.chooseGoal(id)),
+                    onChoose: () => doAction(() => moves.chooseGoal(id), {label: `${bi(locale, "Keep this Goal", "保留此目标")}: ${locale === "zh_CN" ? goal.titleZh : goal.title}`}),
                   }]}
                 />
               ) : (
-                <button key={id} className="ie-btn secondary" onClick={() => doAction(() => moves.chooseGoal(id))}>
+                <button key={id} className="ie-btn secondary" onClick={() => doAction(() => moves.chooseGoal(id), {label: `${bi(locale, "Keep this Goal", "保留此目标")}: ${id}`})}>
                   {id}
                 </button>
               );
@@ -160,7 +160,7 @@ export const HandChoices = (props: HandChoicesProps) => {
                 actions={[{
                   label: discardLabel,
                   testId: `ie-discard-${id}`,
-                  onChoose: () => doAction(() => moves.discardForStability(id)),
+                  onChoose: () => doAction(() => moves.discardForStability(id), {label: `${discardLabel}: ${locale === "zh_CN" ? cardById(id).titleZh : cardById(id).title}`}),
                 }]}
               />
             ))}

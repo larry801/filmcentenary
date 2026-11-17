@@ -11,6 +11,7 @@
 import React from "react";
 import {POWERS, type Power} from "../types";
 import {ieStringsFor, type IELocale} from "./i18n";
+import {useRovingTabs} from "./useRovingTabs";
 
 export type SeatState = "decide" | "pending" | "active" | "bot" | "eliminated" | "waiting";
 
@@ -92,11 +93,23 @@ export interface SeatStripProps {
 
 /**
  * The strip itself.  The visible text ("P1 · GE Germany ● Your decision") is
- * also the accessible name, so no `aria-label` is needed; only the current
- * seat is in the tab order (roving tabindex).
+ * also the accessible name, so no `aria-label` is needed.
+ *
+ * Keyboard: the strip is one tab stop with a roving tabindex.  ArrowRight/Down,
+ * ArrowLeft/Up, Home and End move to the next/previous/first/last seat and
+ * select it (automatic activation), so `onSelect` fires for the seat that just
+ * received focus — a keyboard user never presses Enter to switch seats.
  */
 export const SeatStrip: React.FC<SeatStripProps> = ({seats, onSelect, locale}) => {
   const t = ieStringsFor(locale);
+  const seatKeys = seats.map((seat) => seat.power);
+  // Fall back to the first seat so the strip always has exactly one tab stop,
+  // even if the caller passes no `current` seat.
+  const currentKey = seats.find((seat) => seat.current)?.power ?? seats[0]?.power ?? "";
+  const roving = useRovingTabs(seatKeys, currentKey, (key) => {
+    const seat = seats.find((candidate) => candidate.power === key);
+    if (seat) onSelect(seat.power);
+  });
   return (
     <div
       className="ie-seat-strip"
@@ -110,10 +123,10 @@ export const SeatStrip: React.FC<SeatStripProps> = ({seats, onSelect, locale}) =
           type="button"
           role="tab"
           aria-selected={seat.current}
-          tabIndex={seat.current ? 0 : -1}
           data-testid={`ie-seat-status-${seat.power}`}
           data-state={seat.state}
           className={`ie-seat-tab ie-seat-tab-${seat.state}`}
+          {...roving(seat.power)}
           onClick={() => onSelect(seat.power)}
         >
           <span className="ie-seat-code">P{seat.index + 1} · {seat.power}</span>{" "}

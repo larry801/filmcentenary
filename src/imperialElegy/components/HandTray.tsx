@@ -4,8 +4,7 @@ import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
 import {GOALS_BY_ID} from "../constant/goals";
 import {cardById} from "../engine/deck";
-import {cpChainResolution} from "../engine/economy";
-import {IEBadge, IEChip} from "./theme";
+import {IEChip} from "./theme";
 import {ieT} from "./i18n";
 import {RESPONSE_REASON_TEXT, bi, gwImpulseReasonText} from "./boardHelpers";
 import {gwCardProblem} from "../engine/gwImpulse";
@@ -49,7 +48,7 @@ export interface HandTrayProps {
   chainReady: boolean;
   chainDisabledReason: string | undefined;
   cpBudget: () => number;
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
   handChoicesHint: string | null;
   cardFaceMode: CardFaceMode;
@@ -66,7 +65,6 @@ export interface HandTrayProps {
   onToggleExpanded?: () => void;
   onOpenReference?: (anchor: string) => void;
 }
-
 
 const translated = (card: CardDef | GoalDef, locale: "en" | "zh_CN") => ({
   title: locale === "zh_CN" ? card.titleZh : card.title,
@@ -166,7 +164,12 @@ export const HandTray = (props: HandTrayProps) => {
             title={cpDisabled ? a.reasons[0] ?? mandatoryTitle : undefined}
             confirm={confirmActions}
             confirmLabel={bi(locale, `Confirm: play for ${cardById(id).cp} CP`, `确认：作 ${cardById(id).cp} CP 打出`)}
-            onConfirm={() => doAction(() => moves.playCard(id, "cp"))}
+            onConfirm={() => doAction(() => moves.playCard(id, "cp"), {
+              label: bi(locale,
+                `Play ${cardById(id).title} for ${cardById(id).cp} CP`,
+                `打出 ${cardById(id).titleZh}：${cardById(id).cp} CP`),
+              reason: cpDisabled ? a.reasons[0] ?? mandatoryTitle : undefined,
+            })}
           >
             {t.cpMode}
           </ConfirmButton>
@@ -181,7 +184,10 @@ export const HandTray = (props: HandTrayProps) => {
             title={!a.eventModeOk ? a.eventBlockReason : undefined}
             confirm={confirmActions}
             confirmLabel={bi(locale, "Confirm: play the event", "确认：打出事件")}
-            onConfirm={() => doAction(() => moves.playCard(id, "event"))}
+            onConfirm={() => doAction(() => moves.playCard(id, "event"), {
+              label: bi(locale, `Play ${cardById(id).title}'s event`, `打出 ${cardById(id).titleZh} 事件`),
+              reason: !a.eventModeOk ? a.eventBlockReason : undefined,
+            })}
           >
             {t.eventMode}
           </ConfirmButton>
@@ -192,14 +198,17 @@ export const HandTray = (props: HandTrayProps) => {
             data-testid={`ie-response-${id}`}
             disabled={!a.responseOk}
             title={!a.responseOk ? a.reasons.join(" · ") : undefined}
-            onClick={() => doAction(() => moves.playResponseCard(id))}
+            onClick={() => doAction(() => moves.playResponseCard(id), {
+              label: t.playResponse,
+              reason: !a.responseOk ? a.reasons.join(" · ") : undefined,
+            })}
           >
             {t.playResponse}
           </button>
         )}
-        {where !== "tray" && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} onClick={() => doAction(() => moves.industrialize(id))}>{t.industrialize}</button>}
-        {where !== "tray" && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} onClick={() => doAction(() => moves.cpChain(id))}>{t.cpChain}</button>}
-        {where !== "tray" && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} onClick={() => doAction(() => moves.saveCard(id))}>{a.saved ? t.unsave : t.saveCard}</button>}
+        {where !== "tray" && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} onClick={() => doAction(() => moves.industrialize(id), {label: t.industrialize, reason: a.firstReason})}>{t.industrialize}</button>}
+        {where !== "tray" && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} onClick={() => doAction(() => moves.cpChain(id), {label: t.cpChain, reason: a.firstReason})}>{t.cpChain}</button>}
+        {where !== "tray" && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} onClick={() => doAction(() => moves.saveCard(id), {label: a.saved ? t.unsave : t.saveCard, reason: a.firstReason})}>{a.saved ? t.unsave : t.saveCard}</button>}
       </>
     );
   };
@@ -303,7 +312,7 @@ export const HandTray = (props: HandTrayProps) => {
                   ? me.cpChain.map((id) => <IEChip key={id}>{homeCardTitle(id)}</IEChip>)
                   : <span className="ie-muted">{bi(locale, "No chained cards.", "CP 链中没有牌。")}</span>}
               </span>
-              <button className="ie-btn secondary ie-btn-xs" data-testid="ie-use-cp-chain" disabled={!chainReady} title={chainDisabledReason} onClick={() => doAction(() => moves.useCpChain())}>
+              <button className="ie-btn secondary ie-btn-xs" data-testid="ie-use-cp-chain" disabled={!chainReady} title={chainDisabledReason} onClick={() => doAction(() => moves.useCpChain(), {label: bi(locale, "Use the CP chain", "使用 CP 链"), reason: chainDisabledReason})}>
                 {bi(locale, "Use CP chain", "使用 CP 链")}
               </button>
               {!chainReady && chainDisabledReason && <span className="ie-muted ie-tray-chain-reason" data-testid="ie-cp-chain-reason">{chainDisabledReason}</span>}
@@ -376,8 +385,8 @@ export const HandTray = (props: HandTrayProps) => {
                         {cardFace(gwCard)}
                       </button>
                       <div className="ie-card-actions">
-                        <button disabled={!canGwCard || cpProblem !== null} title={gwImpulseReasonText(locale, cpProblem)} onClick={() => doAction(() => moves.playGwCardMove("cp"))}>{bi(locale, "Bonus action", "奖励行动")}</button>
-                        <button disabled={!canGwCard || eventProblem !== null} title={gwImpulseReasonText(locale, eventProblem) ?? undefined} onClick={() => doAction(() => moves.playGwCardMove("event"))}>{t.eventMode}</button>
+                        <button disabled={!canGwCard || cpProblem !== null} title={gwImpulseReasonText(locale, cpProblem)} onClick={() => doAction(() => moves.playGwCardMove("cp"), {label: bi(locale, "Bonus action", "奖励行动"), reason: gwImpulseReasonText(locale, cpProblem) ?? undefined})}>{bi(locale, "Bonus action", "奖励行动")}</button>
+                        <button disabled={!canGwCard || eventProblem !== null} title={gwImpulseReasonText(locale, eventProblem) ?? undefined} onClick={() => doAction(() => moves.playGwCardMove("event"), {label: t.eventMode, reason: gwImpulseReasonText(locale, eventProblem) ?? undefined})}>{t.eventMode}</button>
                       </div>
                     </article>
                   </div>
@@ -423,7 +432,7 @@ export const HandTray = (props: HandTrayProps) => {
                     <select className="ie-select" value={giveCardValue} onChange={(e) => setGiveCardId(e.target.value)}>
                       {giveCards.map((id) => <option key={id} value={id}>{homeCardTitle(id)}</option>)}
                     </select>
-                    <button className="ie-btn" disabled={giveTarget === viewer || !giveCardValue} onClick={() => doAction(() => moves.giveCard(giveTarget, giveCardValue))}>{bi(locale, "Give", "转交")}</button>
+                    <button className="ie-btn" disabled={giveTarget === viewer || !giveCardValue} onClick={() => doAction(() => moves.giveCard(giveTarget, giveCardValue), {label: bi(locale, `Give ${homeCardTitle(giveCardValue)}`, `转交 ${homeCardTitle(giveCardValue)}`)})}>{bi(locale, "Give", "转交")}</button>
                   </div>
                   {giveCardValue && (
                     <div className="ie-choice-grid ie-give-preview">

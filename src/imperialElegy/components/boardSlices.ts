@@ -65,7 +65,7 @@ const ORDERS_KEYS = [
   "deployLimit", "deployFree", "canDeployHere", "canGwDraft", "canGwDeployHere", "polishArmyDecision",
   "polishReserveDecision", "myOnMapArmies", "myForts", "myMinorAllies", "ownLandInSelected",
   "ownNavalInSelected", "potentialLandTargets", "potentialNavalTargets", "selectedUnitDef",
-  "doAction", "moves", "selected", "selectedUnit", "setSelectedUnit", "battleFrom", "setBattleFrom",
+  "doAction", "confirmActions", "moves", "selected", "selectedUnit", "setSelectedUnit", "battleFrom", "setBattleFrom",
   "navalFrom", "setNavalFrom", "showNationalActions", "zouaveInPlay", "zouaveReason",
   "auReformValue", "setAuReformTarget", "auReformDecision", "auReformReason", "auCitizenValue",
   "setAuCitizenTarget", "auCitizenDecision", "auCitizenReason", "auSacrifice", "setAuSacrifice",
@@ -74,7 +74,9 @@ const ORDERS_KEYS = [
   "tsrrToValue", "setTsrrTo", "tsrrDecision", "tsrrReason", "amphibiousVisible", "amphibiousOrigins",
   "amphibiousFromValue", "setAmphibiousFrom", "amphibiousTargets", "amphibiousToValue",
   "setAmphibiousTo", "amphibiousArmies", "amphibiousArmyValue", "toggleAmphibiousArmy",
-  "amphibiousCanGo", "amphibiousReason", "amphibiousCheck", "transportVisible", "transportOrigins",
+  "amphibiousCanGo", "amphibiousReason", "amphibiousCheck",
+  "beginAmphibiousTargeting", "beginNavalTransportTargeting", "beginNavalInterceptTargeting",
+  "transportVisible", "transportOrigins",
   "transportFromValue", "setTransportFrom", "transportLands", "transportLandValue", "setTransportLand",
   "transportTargets", "transportToValue", "setTransportTo", "transportFleet", "transportCanGo",
   "transportReason", "interceptVisible", "lastNavalBox", "lastNavalMover", "interceptPorts",
@@ -86,7 +88,7 @@ const ORDERS_KEYS = [
 /** The hand tray and the card inspector. */
 const HAND_KEYS = [
   "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "isActive", "eliminated", "pending",
-  "canActionCard", "isBelligerent", "war", "forcedCardIds", "hand", "saveList", "giveCards",
+  "canActionCard", "confirmActions", "isBelligerent", "war", "forcedCardIds", "hand", "saveList", "giveCards",
   "open", "onToggleOpen", "expanded", "onToggleExpanded",
   "giveCardId", "setGiveCardId", "giveTarget", "setGiveTarget", "giveCardValue", "responseInHand",
   "responseWindow", "chainNonEmpty", "chainSpendable", "chainCap", "chainReady",

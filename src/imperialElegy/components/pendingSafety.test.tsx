@@ -73,6 +73,44 @@ describe("pendingOptionSafety", () => {
     expect(zh.reason).toBe("此操作不可撤销。");
   });
 
+  test("declining arms the control in both locales", () => {
+    // The engine marks a decline as a final answer, so the button must ask
+    // twice whether the UI is reading the English label or the Chinese one.
+    const decline = {id: "decline", label: "Decline", labelZh: "拒绝"};
+    for (const locale of ["en", "zh_CN"] as const) {
+      expect(pendingOptionSafety(pending("eventChoice"), decline, locale)).toEqual({
+        confirm: true,
+        reason: locale === "zh_CN" ? "此操作不可撤销。" : "This cannot be undone.",
+      });
+    }
+  });
+
+  test("the Chinese word for decline is destructive even without an English hint", () => {
+    expect(
+      pendingOptionSafety(pending("eventChoice"), {id: "decline-zh", label: "No", labelZh: "拒绝"}, "zh_CN").confirm,
+    ).toBe(true);
+  });
+
+  test("a harmless option stays a single click in both locales", () => {
+    for (const locale of ["en", "zh_CN"] as const) {
+      expect(pendingOptionSafety(pending("eventChoice"), option("Continue", "继续"), locale))
+        .toEqual({confirm: false, reason: undefined});
+    }
+  });
+
+  test("a Chinese decline label arms in both locales, like the English one", () => {
+    // PendingPanel builds the synthetic decline option from a localized
+    // string, so a Chinese-only "拒绝" must be as destructive as "Decline".
+    const decline = {id: "decline", label: "拒绝", labelZh: "拒绝"};
+    for (const locale of ["en", "zh_CN"] as const) {
+      const safety = pendingOptionSafety(pending("eventChoice"), decline, locale);
+      expect(safety.confirm).toBe(true);
+      expect(safety.reason).toBe(
+        locale === "zh_CN" ? "此操作不可撤销。" : "This cannot be undone.",
+      );
+    }
+  });
+
   test("a missing decision or option is harmless", () => {
     expect(pendingOptionSafety(null, option("x"), "en").confirm).toBe(false);
     expect(pendingOptionSafety(pending("warAim"), undefined, "en").confirm).toBe(false);

@@ -33,8 +33,6 @@ import {TrackStrip} from "./TrackStrip";
 import {TurnPanel} from "./TurnPanel";
 import {PlayerMat} from "./PlayerMat";
 import {ReferenceDrawer} from "./ReferenceDrawer";
-import {SpaceOverlay} from "./SpaceOverlay";
-import {DashboardPanel} from "./DashboardPanel";
 import {NationalActionsPanel} from "./NationalActionsPanel";
 import {AmphibiousPanel, NavalTransportPanel, NavalInterceptPanel} from "./NavalPanel";
 import {WarPanel} from "./WarPanel";
@@ -42,8 +40,8 @@ import {GreatWarPanel} from "./GreatWarPanel";
 import {SeatAlert} from "./SeatStrip";
 import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
+import {MpitPanel} from "./MpitPanel";
 import {Toast} from "./Toast";
-
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
 
@@ -172,7 +170,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
     targetControlledSpaces, warTargetControl, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
     polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
     polishArmyDecision, polishReserveDecision, myOnMapArmies, myForts, myMinorAllies, ownLandInSelected,
-    ownNavalInSelected, potentialLandTargets, potentialNavalTargets, selectedUnitDef, doAction, moves,
+    ownNavalInSelected, potentialLandTargets, potentialNavalTargets, selectedUnitDef, doAction, confirmActions, moves,
     showNationalActions, zouaveInPlay, zouaveReason, auReformValue, setAuReformTarget, auReformDecision,
     auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason, auSacrifice,
     setAuSacrifice, auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate,
@@ -184,6 +182,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
     transportLandValue, setTransportLand, transportTargets, transportToValue, setTransportTo,
     transportFleet, transportCanGo, transportReason, interceptVisible, lastNavalBox, lastNavalMover,
     interceptPorts, interceptPortValue, setInterceptPort, interceptCheck, interceptReason,
+    beginAmphibiousTargeting, beginNavalTransportTargeting, beginNavalInterceptTargeting,
     mpitTarget, setMpitTarget, mpitTrack, setMpitTrack,
   } = props;
 
@@ -193,7 +192,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
       amphibiousTargets={amphibiousTargets} amphibiousToValue={amphibiousToValue} setAmphibiousTo={setAmphibiousTo}
       amphibiousArmies={amphibiousArmies} amphibiousArmyValue={amphibiousArmyValue} toggleAmphibiousArmy={toggleAmphibiousArmy}
       amphibiousCanGo={amphibiousCanGo} amphibiousReason={amphibiousReason} amphibiousCheck={amphibiousCheck as never}
-      doAction={doAction} moves={moves}/>
+      onPickMap={beginAmphibiousTargeting} doAction={doAction} moves={moves}/>
   ) : null;
   const transportNode = viewer !== null ? (
     <NavalTransportPanel show G={G} viewer={viewer} locale={locale} t={t}
@@ -201,14 +200,14 @@ export const OrdersRegion = (props: OrdersSlice) => {
       transportLands={transportLands} transportLandValue={transportLandValue} setTransportLand={setTransportLand}
       transportTargets={transportTargets} transportToValue={transportToValue} setTransportTo={setTransportTo}
       transportFleet={transportFleet} transportCanGo={transportCanGo} transportReason={transportReason}
-      doAction={doAction} moves={moves}/>
+      onPickMap={beginNavalTransportTargeting} doAction={doAction} moves={moves}/>
   ) : null;
   const interceptNode = (
     <NavalInterceptPanel show lastNavalBox={lastNavalBox as SpaceId} lastNavalMover={lastNavalMover}
       viewer={viewer} locale={locale} t={t}
       interceptPorts={interceptPorts} interceptPortValue={interceptPortValue} setInterceptPort={setInterceptPort}
       interceptCheck={interceptCheck as never} interceptReason={interceptReason}
-      doAction={doAction} moves={moves}/>
+      onPickMap={beginNavalInterceptTargeting} doAction={doAction} moves={moves}/>
   );
 
   return (
@@ -264,6 +263,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
         potentialNavalTargets={potentialNavalTargets}
         selectedUnitDef={selectedUnitDef}
         doAction={doAction}
+        confirmActions={confirmActions}
         moves={moves}
       />
       <NationalActionsPanel
@@ -313,6 +313,15 @@ export const OrdersRegion = (props: OrdersSlice) => {
           {transportVisible && viewer !== null && transportNode}
         </MoreActions>
       )}
+      {/* 8.0: placing a major-power influence marker is an action the player
+          takes on their own impulse, so it belongs with the Orders, not in the
+          reference drawer (which is for reading the printed tables). */}
+      <MpitPanel
+        G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
+        mpitTarget={mpitTarget} setMpitTarget={setMpitTarget}
+        mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
+        locale={locale} t={t} doAction={doAction} moves={moves}
+      />
     </>
   );
 };
@@ -546,6 +555,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
                     jihadDecision={jihadDecision}
                     jihadReason={jihadReason}
                     doAction={doAction}
+                    confirmActions={confirmActions}
                     moves={moves}
                     dock
                   />
@@ -579,7 +589,9 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             {t.privateInfo}: {t.hidden}. {t.spectators}.
           </div>
         )}
-        <HandRegion {...hand} locale={locale} t={t} decisionPeek={decisionOwed}/>
+        {/* The Display menu's `confirmActions` switch is live: the tray gets the
+            shell's current value, not the one it read from storage on mount. */}
+        <HandRegion {...hand} locale={locale} t={t} decisionPeek={decisionOwed} confirmActions={confirmActions}/>
       </div>
 
       {/* A refused move is explained here: the engine answers a bare

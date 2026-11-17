@@ -9,64 +9,25 @@
  */
 import React from "react";
 import {Ctx} from "boardgame.io";
-import {ImperialElegyState, PendingOption, Power, POWERS, SpaceId, Unit} from "../types";
+import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
-import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, effectiveKeyType, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey} from "../engine/rules";
+import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
 import {GOALS_BY_ID} from "../constant/goals";
 import {ieT} from "./i18n";
-import {logText} from "./logText";
 import i18n from "../../constant/i18n";
-import {
-  BALANCE_OF_POWER_CARD,
-  amphibiousAssaultCheck,
-  canPassNow,
-  hasActedThisImpulse,
-  navalInterceptCheck,
-  navalTransportCheck,
-  responseCardEligibility,
-} from "../moves";
+import {amphibiousAssaultCheck, canPassNow, hasActedThisImpulse, navalInterceptCheck, navalTransportCheck, responseCardEligibility} from "../moves";
 import {planNavalTransport} from "../engine/navalMovement";
-import {
-  AU_NATIONALITIES,
-  auIncorporateDecision,
-  auRightsDecision,
-  canGrantCitizenship,
-  isCwArmySpace,
-  jihadUse,
-  passRestriction,
-  superiorStaffWorkFreeDeploy,
-  TSRR_RAIL_ARMY_KINDS,
-  tsrrRail,
-} from "../engine/characteristics";
+import {AU_NATIONALITIES, auIncorporateDecision, auRightsDecision, canGrantCitizenship, jihadUse, passRestriction, superiorStaffWorkFreeDeploy, TSRR_RAIL_ARMY_KINDS, tsrrRail} from "../engine/characteristics";
 import {polishController, polishRecruitDecision} from "../engine/poland";
-import {deployReserveLimit, isLoneMinorWar, loneMinorDefender, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
-import {polishReserveDeployer} from "../engine/poland";
+import {deployReserveLimit, loneMinorDefender, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
 import {isIndependentItaly} from "../engine/greatWarFlow";
 import {gwActionAllowance} from "../engine/gwImpulse";
-import {treatyOptionLabel} from "../engine/treatyChoice";
-import {
-  POWER_KEYS,
-  amphibiousReasonText,
-  bi,
-  BATTLE_STAGE,
-  controlLabel,
-  interceptReasonText,
-  isPowerKey,
-  OPTION_ZH,
-  PHASE_LABEL,
-  pickActionTarget,
-  PROMPT_ZH,
-  powerOrMinorLabel,
-  responseReasonText,
-  transportReasonText,
-  unitLabel,
-} from "./boardHelpers";
+import {POWER_KEYS, amphibiousReasonText, bi, interceptReasonText, isPowerKey, OPTION_ZH, pickActionTarget, PROMPT_ZH, powerOrMinorLabel, transportReasonText, unitLabel} from "./boardHelpers";
 import {handChoiceAvailability} from "./HandChoices";
 import {CardChoiceFace} from "./CardChoice";
 import {PhaseAction} from "./PhaseActions";
@@ -80,38 +41,23 @@ import type {MapTarget} from "./map";
 import {intentStyle, legalUnitTargets, type UnitIntent} from "./legalTargets";
 import {trenchRows} from "./trenchRows";
 import {intentsAt, submitNow} from "./useInteraction";
+import {
+  canProbeRefusal,
+  feedbackTimeoutMs,
+  FEEDBACK_POLL_MS,
+  moveWasRefused,
+  refusalNotice,
+  type DoAction,
+  type MoveDescription,
+} from "./moveFeedback";
+import {pendingOptionSafety} from "./pendingSafety";
+import {ARM_MS} from "./ConfirmButton";
 import type {InjectedUi, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
 import {BoardLayout} from "./BoardLayout";
 import {botMoveFor} from "../engine/bot";
 
-
 const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
-
-/**
- * Did the view change between two states?  A refused move leaves the board
- * exactly as it was (same counters, same hands, same log length), which is what
- * the rejection notice keys on.
- */
-const viewChanged = (before: ImperialElegyState, after: ImperialElegyState): boolean => {
-  if (before === after) return false;
-  if (before.log.length !== after.log.length) return true;
-  if (before.cpRemaining !== after.cpRemaining) return true;
-  if (before.activePower !== after.activePower || before.phase !== after.phase) return true;
-  if (before.pending !== after.pending || before.battle !== after.battle) return true;
-  if (before.units !== after.units || before.spaces !== after.spaces) return true;
-  if (before.spaces && after.spaces) {
-    for (const id of Object.keys(before.spaces) as SpaceId[]) {
-      const a = before.spaces[id];
-      const b = after.spaces[id];
-      if (a === b) continue;
-      if (a.control !== b.control || a.fort !== b.fort || a.trench !== b.trench
-        || a.influence !== b.influence || a.pacification !== b.pacification) return true;
-    }
-  }
-  return false;
-};
-
 
 export interface BoardModelProps {
   G: ImperialElegyState;
@@ -259,11 +205,11 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   // and neither may be pushed below the fold by a tall map or a long hand.
   const phaseActions: PhaseAction[] = hasPhaseButtons ? [
     ...(phase === "prep" && canPhaseAct && !me?.flags.prepDone
-      ? [{key: "finishPrep", label: t.finishPrep, testId: "ie-finish-prep", onClick: () => moves.finishPrep()}]
+      ? [{key: "finishPrep", label: t.finishPrep, testId: "ie-finish-prep", onClick: () => doAction(() => moves.finishPrep(), {label: t.finishPrep})}]
       : []),
     ...(phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard
       // 6.0: once diplomacy ends there is no way back, so it confirms.
-      ? [{key: "endDiplomacy", label: t.endDiplomacy, testId: "ie-end-diplomacy", confirm: true, onClick: () => moves.endDiplomacy()}]
+      ? [{key: "endDiplomacy", label: t.endDiplomacy, testId: "ie-end-diplomacy", confirm: true, onClick: () => doAction(() => moves.endDiplomacy(), {label: t.endDiplomacy})}]
       : []),
     ...(phase === "action" && isActive && !eliminated
       ? [{
@@ -277,11 +223,11 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
           title: forcedPass ? forcedPassTitle : passBlocked ? passBlockedTitle : undefined,
           // 12.0: ending the impulse hands the turn over; undo does not exist.
           confirm: true,
-          onClick: () => moves.pass(),
+          onClick: () => doAction(() => moves.pass(), {label: actedThisImpulse ? t.endImpulse : t.pass, reason: passBlocked ? passBlockedTitle : undefined}),
         }]
       : []),
     ...(phase === "end" && canPhaseAct
-      ? [{key: "endPhaseTurn", label: t.continue, testId: "ie-end-phase-turn", confirm: true, onClick: () => moves.endPhaseTurn()}]
+      ? [{key: "endPhaseTurn", label: t.continue, testId: "ie-end-phase-turn", confirm: true, onClick: () => doAction(() => moves.endPhaseTurn(), {label: t.continue})}]
       : []),
   ] : [];
 
@@ -669,48 +615,92 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const handCounts = (G as unknown as {handCounts?: Partial<Record<Power, number>>}).handCounts ?? {};
   const goalCounts = (G as unknown as {goalCounts?: Partial<Record<Power, number>>}).goalCounts ?? {};
 
-/**
+  /**
    * The rejection notice.
    *
    * boardgame.io answers a refused move with a bare `INVALID_MOVE` — no reason,
-   * and a legal move is applied synchronously while a refused one leaves `G`
-   * exactly as it was.  The board therefore wraps only the moves that carry a
-   * label and the reason it already computed, and compares the view on the next
-   * tick: identical state means the engine said no, changed state means the
-   * action happened (and needs no notice).
+   * and it still broadcasts the view — but it does not advance `_stateID`.
+   * The board therefore wraps the moves a player starts from a labelled
+   * control, remembers the counter, and probes the latest counter for the
+   * board's budget (400 ms local, 4 s remote).  A move that advanced the
+   * counter happened and says nothing; a move that never moved it was refused,
+   * and the toast names the control plus the reason the UI already computed.
    */
-  const rejection = React.useRef<{label: string; reason?: string; snapshot: ImperialElegyState} | null>(null);
+  const latestStateId = React.useRef<number | undefined>(_stateID);
+  latestStateId.current = _stateID;
+  // A destructive pending option resolved by clicking the map arms first: the
+  // first click warns, a second click on the same space within ARM_MS resolves.
+  const pendingArm = React.useRef<{pending: string; option: string; at: number} | null>(null);
+  const feedbackTimers = React.useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
+  React.useEffect(() => () => {
+    for (const timer of feedbackTimers.current) clearTimeout(timer);
+    feedbackTimers.current.clear();
+  }, []);
   const [toast, setToast] = React.useState<ModelValues["toast"]>(null);
   const dismissToast = React.useCallback(() => setToast(null), []);
 
-  const doAction = React.useCallback((fn: () => void, describe?: {label: string; reason?: string}) => {
-    rejection.current = describe === undefined ? null : {...describe, snapshot: G};
+  const doAction: DoAction = React.useCallback((fn, describe?: MoveDescription) => {
+    // Only the newest control matters: an older probe must not toast after the
+    // player has already moved on to another action.
+    for (const timer of feedbackTimers.current) clearTimeout(timer);
+    feedbackTimers.current.clear();
+
+    const before = latestStateId.current;
+    const localBi = (en: string, zh: string) => bi(actualLocale, en, zh);
     try {
       fn();
     } catch (error) {
       // A move that throws synchronously never reached the engine; the console
       // keeps the detail and the notice still explains the refusal.
       console.warn("illegal Imperial Elegy action", error);
+      if (describe !== undefined) setToast(refusalNotice(describe, localBi));
+      return;
     }
-    const pending = rejection.current;
-    rejection.current = null;
-    if (pending === null) return;
-    setTimeout(() => {
-      if (viewChanged(pending.snapshot, G)) return;
-      setToast({
-        title: bi(actualLocale, `Not allowed: ${pending.label}`, `无法执行：${pending.label}`),
-        body: pending.reason ?? bi(actualLocale,
-          "The rules do not allow that action right now.",
-          "当前规则不允许该操作。"),
-        tone: "warn",
-      });
-    }, 0);
-  }, [G, actualLocale]);
+    if (describe === undefined || !canProbeRefusal(before)) return;
+
+    const deadline = Date.now() + feedbackTimeoutMs(hotseat);
+    const probe = () => {
+      if (!moveWasRefused(before, latestStateId.current)) return;
+      if (Date.now() < deadline) {
+        const timer = setTimeout(() => {
+          feedbackTimers.current.delete(timer);
+          probe();
+        }, FEEDBACK_POLL_MS);
+        feedbackTimers.current.add(timer);
+        return;
+      }
+      // The counter never moved: the engine refused the action.  The toast is
+      // polite and self-dismissing, so the map keeps the player's attention.
+      setToast(refusalNotice(describe, localBi));
+    };
+    const timer = setTimeout(() => {
+      feedbackTimers.current.delete(timer);
+      probe();
+    }, FEEDBACK_POLL_MS);
+    feedbackTimers.current.add(timer);
+  }, [hotseat, actualLocale]);
 
     const beginTargeting = React.useRef<(intent: Parameters<typeof interactionPrompt>[0], from: SpaceId, targets: SpaceId[], sources?: string[]) => void>(() => {});
   beginTargeting.current = (intent, from, targets, sources = []) => {
     dispatch({type: "beginTargeting", intent, from, sources, targets});
   };
+
+  // The naval panels keep their select-based form (a keyboard fallback), and
+  // add a "pick on the map" path: the same checks decide whether the button is
+  // live, but the destination is a ringed space instead of a select value.
+  const beginAmphibiousTargeting = React.useCallback(() => {
+    if (amphibiousFromValue === "" || amphibiousTargets.length === 0) return;
+    beginTargeting.current("amphibious", amphibiousFromValue, amphibiousTargets, amphibiousArmyValue);
+  }, [amphibiousFromValue, amphibiousTargets, amphibiousArmyValue]);
+  const beginNavalTransportTargeting = React.useCallback(() => {
+    if (transportLandValue === "" || transportToValue === "") return;
+    beginTargeting.current("navalTransport", transportLandValue, transportTargets,
+      [transportLandValue, ...transportFleet]);
+  }, [transportLandValue, transportToValue, transportTargets, transportFleet]);
+  const beginNavalInterceptTargeting = React.useCallback(() => {
+    if (lastNavalBox === null || interceptPortValue === "") return;
+    beginTargeting.current("navalIntercept", interceptPortValue, [lastNavalBox]);
+  }, [lastNavalBox, interceptPortValue]);
 
   /** SpacePanel's "in this space" buttons enter targeting; only these clicks
    *  (and never a plain map click) can start a CP-spending action. */
@@ -767,7 +757,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [commandedForSoft?.id]);
 
-
   /**
    * Submit the pending targeting action.  This is the ONLY path that spends CP
    * from a map click; every other click just moves the selection.  An
@@ -785,32 +774,34 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
       dispatch({type: "cancel"});
       return;
     }
+    const label = (en: string, zh: string) => bi(actualLocale, en, zh);
     switch (intent) {
       case "landBattle":
-        doAction(() => moves.landBattle(from, target));
+        doAction(() => moves.landBattle(from, target), {label: label("Land battle", "陆战")});
         break;
       case "navalBattle":
-        doAction(() => moves.navalBattle(from, target));
+        doAction(() => moves.navalBattle(from, target), {label: label("Naval battle", "海战")});
         break;
       case "redeploy": {
         const unit = sources[0];
-        if (unit) doAction(() => G.units[unit]?.naval ? moves.navalMove([unit], target) : moves.redeploy(unit, target));
+        if (unit) doAction(() => G.units[unit]?.naval ? moves.navalMove([unit], target) : moves.redeploy(unit, target),
+          {label: label("Move unit", "移动单位")});
         break;
       }
       case "gwMarch":
-        if (sources[0]) doAction(() => moves.gwMarch(sources[0], target));
+        if (sources[0]) doAction(() => moves.gwMarch(sources[0], target), {label: label("Great War march", "大战行军")});
         break;
       case "gwRail":
-        if (sources[0]) doAction(() => moves.gwRail(sources[0], target));
+        if (sources[0]) doAction(() => moves.gwRail(sources[0], target), {label: label("Great War rail", "大战铁路")});
         break;
       case "amphibious":
-        doAction(() => moves.amphibiousAssault(from, target, sources));
+        doAction(() => moves.amphibiousAssault(from, target, sources), {label: label("Amphibious assault", "两栖突击")});
         break;
       case "navalIntercept":
-        doAction(() => moves.navalIntercept(from, target));
+        doAction(() => moves.navalIntercept(from, target), {label: label("Naval interception", "海上拦截")});
         break;
       case "navalTransport":
-        if (sources[0]) doAction(() => moves.navalTransport(sources[0], sources.slice(1), target));
+        if (sources[0]) doAction(() => moves.navalTransport(sources[0], sources.slice(1), target), {label: label("Naval transport", "海上运输")});
         break;
     }
     // Every action, successful or not, leaves targeting: no stale mode can
@@ -848,10 +839,28 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
       submitTargeting(id);
       return;
     }
-    if (canDecide && pending && pending.options.some((o) => o.id === id && SPACES[o.id])) {
-      doAction(() => moves.resolvePending(id));
-      return;
+    if (canDecide && pending) {
+      const option = pending.options.find((o) => o.id === id && SPACES[o.id]);
+      if (option !== undefined) {
+        const safety = pendingOptionSafety(pending, option, actualLocale);
+        const armed = pendingArm.current;
+        const now = Date.now();
+        if (confirmActions && safety.confirm && (armed === null || armed.pending !== pending.id || armed.option !== option.id || now - armed.at > ARM_MS)) {
+          pendingArm.current = {pending: pending.id, option: option.id, at: now};
+          setToast({
+            title: bi(actualLocale, "Click the highlighted space again to confirm", "再次点击高亮空间以确认"),
+            body: safety.reason,
+            tone: "info",
+          });
+          return;
+        }
+        pendingArm.current = null;
+        doAction(() => moves.resolvePending(id), {label: optionLabel(option)});
+        return;
+      }
     }
+    // Any click that does not repeat the armed space disarms it.
+    pendingArm.current = null;
     // A unit stays selected while the space cursor moves, so SpacePanel can
     // offer the explicit "move here" button; the map click itself never moves.
     if (interaction.kind === "unit") {
@@ -872,19 +881,20 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
       if (target && typeof target.closest === "function" &&
         target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])") !== null) return;
       if (event.key === "Escape" || event.key === "Esc") {
+        pendingArm.current = null;
+        // Ordering matters: the chooser is a targeting sub-mode, so it must be
+        // tested before the generic cancel.  Esc with the chooser open closes
+        // only the chooser (the rings stay up); the next Esc cancels targeting.
+        if (interaction.kind === "targeting" && interaction.choosing !== undefined) {
+          event.preventDefault();
+          submitChooserCancel();
+          return;
+        }
         if (interaction.kind === "targeting" || interaction.kind === "unit" || interaction.kind === "space") {
           event.preventDefault();
           dispatch({type: "cancel"});
         }
         return;
-      }
-      if (interaction.kind === "targeting" && interaction.choosing !== undefined) {
-        // The chooser owns Escape while it is open.
-        if (event.key === "Escape" || event.key === "Esc") {
-          event.preventDefault();
-          submitChooserCancel();
-          return;
-        }
       }
       if ((event.key === "Enter" || event.key === "Return") && interaction.kind === "targeting" && interaction.targets.length === 1) {
         event.preventDefault();
@@ -1330,6 +1340,9 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     lastNavalBox,
     lastNavalMover,
     amphibiousVisible,
+    beginAmphibiousTargeting,
+    beginNavalTransportTargeting,
+    beginNavalInterceptTargeting,
     ownLoadedArmyAt,
     amphibiousOrigins,
     amphibiousFromValue,
