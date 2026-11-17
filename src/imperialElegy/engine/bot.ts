@@ -35,8 +35,8 @@ import {
   navalUnitsIn,
   ownsKey,
   unitsOfPower,
-  isPower,
 } from "./rules";
+import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs";
 import {recruit as recruitMove} from "../moves";
 import {passRestriction} from "./characteristics";
 import {beginLandBattle} from "./combat";
@@ -231,28 +231,31 @@ const botBoxEvent = (G: ImperialElegyState, power: Power): BotMove | null => {
   return null;
 };
 
-/** Find an independent minor power with no alliance marker that the bot can ally. */
+/**
+ * Find a minor power the bot can actually ally.  The probes are the engine's
+ * own gates, so a target the move would refuse is never sent (the bot used to
+ * look only for a free `ally` slot and re-sent the same refused move).
+ */
 const minorAllianceTarget = (G: ImperialElegyState, power: Power, region: BditRegion): SpaceId | null => {
   const candidates = spacesInBditRegion(region);
   for (const id of candidates) {
     const space = G.spaces[id];
     if (!space) continue;
-    if (space.ally !== null && space.ally !== undefined) continue;
-    const def = SPACES[id];
-    if (!def || isPower(def.control)) continue;
-    if (isPower(space.control)) continue;
+    // 12.8: the bot needs its own diplomacy marker on the minor first, which
+    // is what `minorAllianceProblem` checks (with the ally cap and 4.6.2).
+    if (space.diplomacy !== power) continue;
+    if (minorAllianceProblem(G, power, id) !== null) continue;
     return id;
   }
   return null;
 };
 
-/** Find a space in a BDIT region to place influence (no existing influence or opponent's). */
+/** Find a space in a BDIT region where 12.5.1 actually allows influence. */
 const influenceTarget = (G: ImperialElegyState, power: Power, region: BditRegion): SpaceId | null => {
   const candidates = spacesInBditRegion(region);
   for (const id of candidates) {
-    const space = G.spaces[id];
-    if (!space) continue;
-    if (space.influence === power) continue; // already ours
+    // The engine's gate: uncontrolled land, one marker, the African cap, a LoC.
+    if (influencePlacementProblem(G, power, id) !== null) continue;
     return id;
   }
   return null;

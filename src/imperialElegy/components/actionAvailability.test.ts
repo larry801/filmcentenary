@@ -171,6 +171,25 @@ describe("spaceActions: no drift against the engine", () => {
   });
 });
 
+describe("spaceActions: enabled means the engine says yes", () => {
+  /**
+   * The missing half of the contract.  The suite only ever asserted
+   * "disabled ⇒ the engine refuses"; nothing asserted the converse, which is
+   * how a player power's own home space came to offer a legal-looking "place
+   * diplomacy" row that the engine then refused (392 rows at campaign start).
+   * `foreignAffairs.test.ts` runs the full power × space scan; this keeps the
+   * cheap check next to the cost table.
+   */
+  test("a player power's own home space offers no diplomacy marker", () => {
+    for (const [power, space] of [["GE", "berlin"], ["UK", "london"], ["FR", "paris"]] as const) {
+      const G = game(power);
+      const row = spaceActions(input({G, viewer: power, space})).find((candidate) => candidate.id === "diplomacy");
+      expect(row?.enabled).toBe(false);
+      expect(row?.reason).toBeTruthy();
+    }
+  });
+});
+
 describe("spaceActions: disabled means the engine says no", () => {
   test("with no CP every spending row is disabled and explains the cost", () => {
     const G = game("GE", 0);

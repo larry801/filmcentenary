@@ -83,7 +83,6 @@ import {
   landStackingLimit,
   landUnitsIn,
   log,
-  minorAlliesOf,
   minorController,
   movementEndProblem,
   navalUnitsIn,
@@ -101,6 +100,13 @@ import {
   unitById,
   unitsOfPower,
 } from "./engine/rules";
+import {
+  diplomacyPlacementProblem,
+  influencePlacementProblem,
+  minorAllianceProblem,
+  removeMarkerProblem,
+  removeMinorAllianceProblem,
+} from "./engine/foreignAffairs";
 import {hasCounterFor} from "./engine/counters";
 import {eventPlayability, removeAfterCpPlay, youngTurksBlocksFailedReforms} from "./engine/playability";
 import {ensureStateDefaults} from "./engine/migrations";
@@ -1524,20 +1530,10 @@ export const placeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId):
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyInfluenced) return INVALID_MOVE;
-  // 33.2.2: no player may take control of (or place a marker in) India once it
-  // is independent, so influence is refused explicitly as well as by control.
-  if (isIndependentIndia(G, space)) return INVALID_MOVE;
+  // 12.5.1 / 12.5.2 / 5.6: uncontrolled space, one marker, the African cap and
+  // the LoC.  One shared gate, so the Orders panel cannot promise otherwise.
+  if (influencePlacementProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state || state.control !== null || state.influence !== null) return INVALID_MOVE;
-  // 12.5.2: until the Berlin Conference a player may hold only one influence
-  // marker on the Africa submap (North Africa is on the main map and exempt).
-  if (G.persistent.berlinConference !== true && SPACES[space]?.submap === "africa") {
-    const africanMarkers = Object.values(SPACES).filter(
-      (def) => def.submap === "africa" && G.spaces[def.id]?.influence === power,
-    ).length;
-    if (africanMarkers >= 1) return INVALID_MOVE;
-  }
-  if (!hasLoc(G, power, space)) return INVALID_MOVE;
   state.influence = power;
   G.powers[power].flags.alreadyInfluenced = true;
   log(G, power, "influencePlaced", {space});
@@ -1549,11 +1545,10 @@ export const placeDiplomacy = (G: ImperialElegyState, ctx: Ctx, space: SpaceId):
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyInfluenced) return INVALID_MOVE;
-  if (isIndependentIndia(G, space)) return INVALID_MOVE;
+  // 12.5.3 (with 4.6.2's minor-power definition, Meiji, Qing and the ACW).
+  // 5.6 requires a LoC only for influence, so this path traces none.
+  if (diplomacyPlacementProblem(G, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state || state.diplomacy !== null) return INVALID_MOVE;
-  if (state.control === null || isPower(state.control)) return INVALID_MOVE;
-  if (!hasLoc(G, power, space)) return INVALID_MOVE;
   state.diplomacy = power;
   G.powers[power].flags.alreadyInfluenced = true;
   log(G, power, "diplomacyPlaced", {space});
@@ -1565,11 +1560,10 @@ export const removeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId)
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyRemovedInfluence) return INVALID_MOVE;
+  // 12.6: own markers only; the Africa exception and the foreign-unit bar are
+  // printed against influence and live in the shared gate.
+  if (removeMarkerProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state) return INVALID_MOVE;
-  // 12.6: after the Berlin Conference a player cannot remove influence in Africa.
-  if (G.persistent.berlinConference === true && SPACES[space]?.submap === "africa") return INVALID_MOVE;
-  if (state.influence !== power && state.diplomacy !== power) return INVALID_MOVE;
   if (state.influence === power) state.influence = null;
   if (state.diplomacy === power) state.diplomacy = null;
   G.powers[power].flags.alreadyRemovedInfluence = true;
@@ -1580,13 +1574,10 @@ export const minorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): 
   const playerID = ctx.playerID ?? null;
   const power = requireCp(G, ctx, playerID, 3);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (isIndependentIndia(G, space)) return INVALID_MOVE;
+  // Rule 12.8, including 4.2.1's five-ally cap and 4.6.2's "the US and a
+  // unified Italy are not minor powers".
+  if (minorAllianceProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state || state.diplomacy !== power) return INVALID_MOVE;
-  if (state.ally !== null) return INVALID_MOVE;
-  // Rule 4.2.1: "players are allowed a maximum of five minor power allies."
-  // Count distinct minor powers, not spaces (a minor can control several).
-  if (minorAlliesOf(G, power).length >= 5) return INVALID_MOVE;
   state.ally = power;
   state.diplomacy = null;
   log(G, power, "minorAlliance", {space});
@@ -1597,10 +1588,15 @@ export const removeMinorAlliance = (G: ImperialElegyState, ctx: Ctx, space: Spac
   const playerID = ctx.playerID ?? null;
   const power = requireCp(G, ctx, playerID, 4);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  // 12.9: "Flip any one ally marker on a minor power to its diplomacy side."
+  // The diplomacy side keeps the player the alliance belonged to, not the one
+  // who paid to flip it.
+  if (removeMinorAllianceProblem(G, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state || state.ally === null) return INVALID_MOVE;
+  const previous = state.ally;
   state.ally = null;
-  state.diplomacy = power;
+  state.diplomacy = previous;
+  log(G, power, "minorAllianceRemoved", {space, previous});
   return undefined;
 };
 
