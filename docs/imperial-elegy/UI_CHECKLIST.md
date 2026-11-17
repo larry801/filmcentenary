@@ -128,15 +128,25 @@ The spectator is **online-only** — `/localIE` has no spectator mode. Route:
 ## 8. Phone 390×844
 
 - [ ] DevTools → device toolbar → **390 × 844** (iPhone 12/13/14 size), then reload `/localIE`.
-- [ ] **This is a sheet plus a panel, not the brief's tab bar.** The phone layout is **not** the target brief's single Orders / Hand / Mat / Log tab bar. At 390 px the board is three stacked regions: the map under the 44 px strip, the hand as a **bottom sheet** under the map, and a **separate turn / decision panel** as its own row at the bottom (Orders / War / Log tabs, or the decision-only body while a decision is owed). The mat is **hidden** at this width (`.ie-mat { display: none }`); its figures are read in the reference drawer's power dashboards. This is a known deviation from the brief's tab bar, not a bug — confirm the layout that is actually there and see §12 item 9.
+- [ ] **One bottom dock, four tabs.** At 390 px the board is the 44 px strip, the map and **one** bottom dock `data-testid="ie-mobile-dock"`, not a hand sheet plus a separate turn panel. The dock carries `data-open` (`false` closed, `true` open), `data-expanded` (`false` half, `true` full; meaningful only while open), `data-tab` (`orders` / `hand` / `mat` / `log`, and `war` only while a limited war or the Great War is running) and `data-decision` (`true` while a decision, battle or result is owed). Its bar carries `data-testid="ie-mobile-toggle"` (open / close), `data-testid="ie-mobile-expand"` (half ↔ full) and one button per tab in that order — `ie-mobile-tab-orders` (`指令` / Orders, `决策` / Decision while a decision is owed), `ie-mobile-tab-hand` (`手牌` / Hand), `ie-mobile-tab-mat` (`面板` / Mat), `ie-mobile-tab-log` (`记录` / Log) and `ie-mobile-tab-war` (`战局` / War) only while that tab exists. The active tab is shown inside `data-testid="ie-mobile-body"`. Pressing a tab while the dock is closed opens it to half; reopening with the toggle also starts at half, never at full.
+- [ ] **The old controls are hidden, not gone.** `TurnPanel`'s own tab strip `ie-turn-tabs` and `HandTray`'s own `ie-tray-toggle` / `ie-tray-expand` are still in the DOM but must not be visible at 390 px — the dock bar owns them. Check with
+  `[...document.querySelectorAll('.ie-turn-tabs, .ie-tray-toggle, .ie-tray-expand')].map((el) => el.checkVisibility({checkVisibilityCSS: true, checkOpacity: true}))`
+  → every entry `false`. The panel and tray bodies stay mounted.
+- [ ] **The map stays above the dock.** `ie-map-region` keeps the area between the strip and the dock; the dock is the last region in the column and does not overlay the map.
+- [ ] **Peek / half / full.** Closed: `data-open="false"`, **44 px** (56 px while a decision is owed — see below). `ie-mobile-toggle` opens to **half**: `data-open="true"`, **40 dvh** ≈ 338 px at 844. `ie-mobile-expand` switches the open dock to **full**: `data-expanded="true"`, `calc(100dvh - 140px)` ≈ 704 px; pressing it again returns to half, and the toggle closes back to the 44 px peek. Measure
+  `document.querySelector('[data-testid="ie-mobile-dock"]').getBoundingClientRect().height`
+  at each step; the document itself must not grow a page scroll — only the dock body and the hand's card row scroll inside themselves.
 - [ ] **44 px strip.** The track strip `data-testid="ie-track-strip"` is exactly 44 px tall. Inside it at this width: no stepper (`ie-step-*` hidden), no alliance track (`ie-track-alliance` hidden), one CP chip `ie-track-cp` (this is the phone's only CP readout — the turn panel head hides `ie-command-cp` below 768 px), and the round buttons `?` and `☰` at 36×36.
 - [ ] The `☰` menu `data-testid="ie-menu-toggle"` → `ie-menu` offers **Display only** at this width. `ie-open-charts` and `ie-open-rules` are still in the menu's markup but CSS hides them below 768 px (`.ie-command-menu .ie-btn { display: none }`), so at 390 px they are present in the DOM with `display: none` and cannot be clicked. The same material is still reachable: the strip's `?` (`ie-open-reference`) opens the drawer, which carries the CRT and the `ie-ref-charts` grid, and a chart opens from that grid.
-- [ ] **Bottom sheet: peek / half / full.** The hand sheet `data-testid="ie-hand-tray"` starts at **peek** (`data-open="false"`, 44 px). `data-testid="ie-tray-toggle"` opens it to **half** (`data-open="true"`, 40 dvh ≈ 338 px at 844). `data-testid="ie-tray-expand"` then switches to **full** (`data-expanded="true"`, `calc(100dvh - 140px)` ≈ 704 px); pressing it again returns to half. The toggle closes back to peek.
-- [ ] The map keeps its own area above the sheet (`ie-map-region` is order 1, the sheet order 2, the separate turn panel order 3 at the bottom).
-- [ ] **A decision stays answerable with its map target visible.** Trigger a pending decision that names a space (e.g. a redeploy/treaty space prompt or a battle target):
-  - With a decision owed, the sheet reports `data-decision-peek="true"` and folds to 56 px with the line `data-testid="ie-tray-decision-peek"` (`有决策待处理——请在面板中作答` / "A decision is waiting — answer it in the panel"). The tray toggle `data-testid="ie-tray-toggle"` is a no-op while the decision is owed (`shownOpen = open && !decisionPeek`): the sheet stays pinned at 56 px and shows no cards, so it cannot be opened deliberately until the decision is answered.
-  - The turn panel `ie-dock` reports `data-decision-only="true"`, hides its tab strip, and is capped at **50 dvh**; the hand peek plus that cap leaves the top half of the map visible. Scroll check: with the decision open, the highlighted space on the map is still on screen. **(verify)** the exact arithmetic at 390×844: strip 44 + peek 56 + panel ≤ 422 = ≤ 522 of 844, so the map should keep ≈ 322 px; confirm nothing else (the app bar) pushes the map target below the fold.
-  - Answer the decision and confirm the sheet comes back to its own previous state with no extra toggle: the decision never writes `open` / `expanded`, so once it clears the 56 px pin lifts and the sheet returns to what it was before (peek, half or full).
+- [ ] **Orders tab.** With the dock open (press `ie-mobile-toggle` if it is closed), press `ie-mobile-tab-orders`: `data-tab="orders"` and `ie-mobile-body` shows the Orders body — the selected space's action list `ie-action-list`, the national actions, MPIT, and the required / optional card choices; while a pending decision, battle or result is open this body is the decision (`PendingPanel`) instead. Disabled rows keep their reason line (§4).
+- [ ] **Hand tab.** Press `ie-mobile-tab-hand`: `data-tab="hand"` and `ie-mobile-body` shows `ie-hand-tray`'s card row with its filter / sort controls, the per-card status line, and the `作为 CP 打出` / `Play for CP` and `⋯` buttons. The card row scrolls inside `.ie-tray-scroll`; the hand is reachable even though the old tray toggle is hidden.
+- [ ] **Mat tab.** Press `ie-mobile-tab-mat`: `data-tab="mat"` and `ie-mobile-body` contains `ie-mat` with stability, manpower, industry, keys, VP, reserves, the Industry Card, the CP chain and goals. The mat is **no longer hidden on a phone**; this tab is the phone route to the figures that the reference drawer's power dashboards also print.
+- [ ] **Log tab.** Press `ie-mobile-tab-log`: `data-tab="log"` and `ie-log` lists the public history, newest first.
+- [ ] **War tab only while a war runs.** `ie-mobile-tab-war` is absent without a war or the Great War, appears as soon as `war` or `gw` is set, and `data-tab` can then be `war`; its body is the war panel (`ie-turn-panel-war`, with `ie-trench-board` and, in the Great War, `ie-gw`). When neither runs the button disappears again and the dock must not stay on an empty War body: check that `data-tab` is no longer `war` and the Orders body is in front. This is why a fixed four-tab count is wrong in some match states.
+- [ ] **Hand and Mat are seat-only.** At 390 px on the spectator route of §7, the dock shows Orders and Log only (plus War while a war runs): no `ie-mobile-tab-hand`, no `ie-mobile-tab-mat`, no `ie-hand-tray` and no `ie-mat`. The dock still opens, closes and expands for the public tabs.
+- [ ] **The decision brings the dock up; the 56 px peek is its collapsed state.** Trigger a pending decision that names a space (e.g. a redeploy / treaty space prompt or a battle target). The dock reports `data-decision="true"` — it is also true for a battle or the result panel — and, when the decision arrives on a mounted board, the dock opens to **half** on the **Orders** tab so the decision is in front (a decision already pending at load does not force it open; that case starts at the 56 px peek). Collapse it with `ie-mobile-toggle`: closed with a decision owed is **56 px**, and the bar shows the short one-line `data-testid="ie-mobile-decision-peek"` (`有决策待处理` / "A decision is waiting") in place of the usual 44 px peek. The line exists **only** while the decision is owed **and** the dock is closed, so it is absent when the dock is open and when no decision is owed. Reopening the dock shows the decision again.
+- [ ] **The open decision is capped at 50 dvh.** With a decision owed the dock never grows past **50 dvh** (422 px at 844): `ie-mobile-expand` is inert while the decision is owed, so the sheet stays at its **40 dvh** half (≈ 338 px) rather than jumping to full. The cap is what keeps the map target on screen: with the decision open, scroll-check that the highlighted space in `ie-map` is still visible above the dock. **(verify)** the exact arithmetic at 390×844: strip 44 + dock ≤ 422 = ≤ 466 of 844, so the map should keep ≈ 378 px even at the 50 dvh cap; confirm the site's top bar and the map's pan do not push the target below the fold.
+- [ ] **Answering leaves the dock where it is.** Resolve the decision: `data-decision` turns `false`, `ie-mobile-decision-peek` disappears, and the dock is not snapped back to a remembered state or re-opened — it stays where the reader left it, normally still at half on Orders. Confirm the answer needed no reload and no extra toggle, and the tab strip stays usable.
 
 ---
 
@@ -233,22 +243,12 @@ of these was introduced by this checklist; they are where a tester's answer is
 8. **Spectator console noise (verify).** Whether boardgame.io's client prints
    `invalid move` lines for a spectator's stripped view is not asserted
    anywhere in the repo; check by hand.
-9. **The phone layout is a sheet plus a separate panel, not the brief's
-   Orders / Hand / Mat / Log tab bar.** At 390 px the hand is a bottom sheet
-   under the map and the turn (or decision) panel is its own row below it, so
-   there are three stacked regions rather than four tabs; the mat is hidden
-   (`.ie-mat { display: none }`) and its figures are read in the reference
-   drawer's power dashboards. The same CSS hides the menu's `Charts` / `Rules`
-   buttons on a phone (`.ie-command-menu .ie-btn { display: none }`), leaving
-   Display only. This is a known deviation from the brief, not a defect:
-   section 8 checks the layout that is actually there.
-10. **The desktop mat is a 148 px strip, not the brief's 320 px column.** At
-    1440×900 the table grid is `148px / 1fr / 348px`, so the mat beside the map
-    is **148 px** wide — **132 px** below 1100 px, where the same media query
-    narrows the turn panel to 300 px — and the brief asks for 320 px. The
-    figures are unchanged; the narrower column scrolls its own body
-    (`.ie-mat-grid { overflow: auto }`) and, below 1100 px, folds to a one-line
-    chip row with a popover. On a phone the mat is not rendered at all and its
-    figures are read in the reference drawer's power dashboards — the mat column
-    and the phone tab bar (item 9) are the two layout targets this build does
-    not meet.
+9. **The desktop mat is a 148 px strip, not the brief's 320 px column.** At
+   1440×900 the table grid is `148px / 1fr / 348px`, so the mat beside the map
+   is **148 px** wide — **132 px** below 1100 px, where the same media query
+   narrows the turn panel to 300 px — and the brief asks for 320 px. The
+   figures are unchanged; the narrower column scrolls its own body
+   (`.ie-mat-grid { overflow: auto }`) and, below 1100 px, folds to a one-line
+   chip row with a popover. On a phone the mat is now a tab of the four-tab
+   dock (§8), so the desktop column is the only layout target this build does
+   not meet.

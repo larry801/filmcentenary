@@ -26,6 +26,12 @@ export interface PlayerMatProps {
   t: ReturnType<typeof ieT>;
   /** Opens the reference drawer at the printed display. */
   onOpenReference?: (anchor: string) => void;
+  /**
+   * The phone dock shows the mat as one of its tabs, so the figures must be in
+   * the DOM whether or not the reader ever pressed the chip row's toggle.  On
+   * desktop this is unset and the internal `open` state rules.
+   */
+  forceOpen?: boolean;
 }
 
 interface Figure {
@@ -35,11 +41,14 @@ interface Figure {
   title?: string;
 }
 
-export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference}: PlayerMatProps) => {
+export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, forceOpen = false}: PlayerMatProps) => {
   // Phones collapse the mat to its chip row; desktop shows the numbers.
   const [open, setOpen] = React.useState(() => typeof window === "undefined" || window.innerWidth >= 768);
   if (!viewer || !me) return null;
 
+  // The phone dock treats the mat as an always-open tab body; the toggle still
+  // writes the state the desktop layout reads.
+  const shownOpen = forceOpen || open;
 
   const reserves = me.reserves.length;
   const reserveCap = me.industry;
@@ -66,7 +75,7 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference}: P
     <section
       className="ie-mat"
       data-testid="ie-mat"
-      data-collapsed={open ? "false" : "true"}
+      data-collapsed={shownOpen ? "false" : "true"}
       data-power={viewer}
       data-active={viewer === active ? "true" : "false"}
       data-chips={`${t.stability} ${me.stability} · ${t.manpower} ${me.manpower}${me.secondaryManpower !== undefined ? `/${me.secondaryManpower}` : ""} · ${t.industry} ${me.industry} · ${t.territorialKeys} ${me.territorialKeys} · ${t.colonialKeys} ${me.colonialKeys} · ${t.reserves} ${reserves}/${reserveCap}`}
@@ -80,11 +89,11 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference}: P
           type="button"
           className="ie-mat-toggle"
           data-testid="ie-mat-toggle"
-          aria-expanded={open ? "true" : "false"}
+          aria-expanded={shownOpen ? "true" : "false"}
           onClick={() => setOpen((value) => !value)}
-          title={open ? t.collapse : t.expand}
+          title={shownOpen ? t.collapse : t.expand}
         >
-          <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+          <span aria-hidden="true">{shownOpen ? "▾" : "▸"}</span>
         </button>
       </header>
 
