@@ -12,7 +12,10 @@ async function openLocal(page: Page) {
 async function focusSeat(page: Page, seat: string) {
     const index = SEATS.indexOf(seat as typeof SEATS[number]);
     await page.getByRole("tab", {name: new RegExp(`P${index + 1}`)}).click();
-    await page.waitForTimeout(180);
+    // The seat is "shown" once its panel reports `data-active`; waiting for that
+    // replaces a fixed 180 ms sleep, which the setup helpers repeat ~20 times
+    // per test.
+    await expect(page.locator(`[data-testid="ie-seat-${seat}"]`)).toHaveAttribute("data-active", "true");
 }
 
 /**
@@ -41,8 +44,11 @@ async function finishPrep(page: Page) {
         await focusSeat(page, seat);
         const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
         const ready = board.getByRole("button", {name: "准备完毕"}).first();
-        if (await ready.count()) await ready.click();
-        await page.waitForTimeout(250);
+        if (!(await ready.count())) continue;
+        await ready.click();
+        // The button disappears once the seat is done; that is the real signal,
+        // not a fixed 250 ms pause.
+        await expect(ready).toHaveCount(0);
     }
 }
 
@@ -51,8 +57,9 @@ async function chooseHomeCards(page: Page) {
         await focusSeat(page, seat);
         const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
         const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
-        if (await choose.count()) await choose.click();
-        await page.waitForTimeout(250);
+        if (!(await choose.count())) continue;
+        await choose.click();
+        await expect(choose).toHaveCount(0);
     }
     await answerStartPending(page);
 }
@@ -64,13 +71,18 @@ async function answerStartPending(page: Page) {
         let answered = false;
         for (const seat of SEATS) {
             await focusSeat(page, seat);
-            const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
-            const pending = board.locator('[data-testid="ie-pending"]');
-            if (!(await pending.count()) || !(await pending.isVisible())) continue;
+            const pending = page.locator(`[data-testid="ie-seat-${seat}"] [data-testid="ie-pending"]`);
             const options = pending.locator("button");
             if (!(await options.count())) continue;
+            const before = await page.evaluate(() => (window as any).__IE_STATE__?.pending?.id ?? null);
             await options.first().click();
-            await page.waitForTimeout(200);
+            // A follow-up decision (the second pick) replaces the pending
+            // instead of clearing it, so wait for a different one rather than
+            // sleeping a fixed 200 ms.
+            await expect.poll(
+                async () => await page.evaluate(() => (window as any).__IE_STATE__?.pending?.id ?? null),
+                {timeout: 10_000},
+            ).not.toBe(before);
             answered = true;
             break;
         }

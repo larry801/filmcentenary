@@ -11,7 +11,10 @@ async function openLocal(page: Page) {
 async function focusSeat(page: Page, seat: string) {
     const index = SEATS.indexOf(seat as typeof SEATS[number]);
     await page.getByRole("tab", {name: new RegExp(`P${index + 1}`)}).click();
-    await page.waitForTimeout(180);
+    // Wait for the seat to really be the shown one instead of sleeping a fixed
+    // 180 ms.  `reachAction` focuses a seat ~24 times, so the old sleep alone
+    // cost ~4.3 s of every test in this spec.
+    await expect(page.locator(`[data-testid="ie-seat-${seat}"]`)).toHaveAttribute("data-active", "true");
 }
 
 /**
@@ -128,21 +131,32 @@ async function findSavableCard(board: Locator): Promise<Locator | null> {
 async function answerStartPending(page: Page) {
     // 33.4 Metternich's Legacy opens an AU decision at the end of turn-1
     // diplomacy; answer it (and the second pick) before playing.
+    //
+    // Every seat is swept in rulebook order, exactly as before: `playerView`
+    // strips another seat's option ids, so the option can only be clicked on
+    // the deciding seat's own panel.  What is gone is the fixed `waitForTimeout`
+    // after each click; the sweep waits for the decision to actually change.
+    // That alone was most of a ~7 s setup in every test that reached the action
+    // phase.
     for (let round = 0; round < 6; round += 1) {
         let answered = false;
         for (const seat of SEATS) {
             await focusSeat(page, seat);
-            const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
-            const pending = board.locator('[data-testid="ie-pending"]');
-            if (!(await pending.count()) || !(await pending.isVisible())) continue;
+            const pending = boardFor(page, seat).locator('[data-testid="ie-pending"]');
             const options = pending.locator("button");
             if (!(await options.count())) continue;
+            const before = await page.evaluate(() => (window as any).__IE_STATE__?.pending?.id ?? null);
             await options.first().click();
-            await page.waitForTimeout(200);
+            // A follow-up decision (the second pick) replaces the pending
+            // instead of clearing it, so wait for it to become a different one.
+            await expect.poll(
+                async () => await page.evaluate(() => (window as any).__IE_STATE__?.pending?.id ?? null),
+                {timeout: 10_000},
+            ).not.toBe(before);
             answered = true;
             break;
         }
-        if (!answered) break;
+        if (!answered) return;
     }
 }
 
@@ -467,9 +481,15 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
                 return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight;
             };
             const root = document.querySelector('[data-testid="ie-seat-GE"]')!;
+            // SVG text is map lettering, not body copy: it is scaled by the map
+            // rather than following the interface's type scale, and the inline
+            // style check excludes SVG the same way.
+            // SVG text is map lettering, not body copy: it scales with the map
+            // instead of following the interface's type scale, and the inline
+            // style check below already excludes SVG for the same reason.
             const small = [...root.querySelectorAll("*")].filter((el) =>
                 visible(el) && el.children.length === 0 && (el.textContent ?? "").trim().length > 0 &&
-                el.closest(".ie-rule-ref") === null &&
+                el.closest(".ie-rule-ref") === null && el.closest("svg") === null &&
                 parseFloat(getComputedStyle(el).fontSize) < 12);
             const inline = [...root.querySelectorAll("[style]")].filter((el) =>
                 !svgTags.has(el.tagName.toLowerCase()));
