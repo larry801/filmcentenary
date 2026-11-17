@@ -1545,9 +1545,12 @@ const printedNationalitiesOf = (space: SpaceId): readonly string[] => {
  * Italian nationality (13.2.1), which distinguishes it from GE's German
  * unification and AU's citizenship unification.
  */
+export const isItalianUnificationWar = (war: WarState): boolean =>
+  war.warAim === "unification" &&
+  war.objectives.some((space) => printedNationalitiesOf(space).includes("Italians"));
+
 export const warRequiresMandatoryCession = (war: WarState): boolean =>
-  war.warAim === "liberation" ||
-  (war.warAim === "unification" && war.objectives.some((space) => printedNationalitiesOf(space).includes("Italians")));
+  war.warAim === "liberation" || isItalianUnificationWar(war);
 
 /**
  * Rule 16.2.1: whether a victorious attacker still owes the mandatory

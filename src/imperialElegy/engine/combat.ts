@@ -2001,6 +2001,61 @@ const retreatChoiceOptions = (
   return out;
 };
 
+/** 28.2: prior to GW turn 1 a friendly fort may be removed to cancel a retreat. */
+const GW_FORT_CANCEL_RETREAT = "cancelRetreatFort";
+
+const friendlyFortInSpace = (
+  G: ImperialElegyState,
+  space: SpaceId,
+  power: Power,
+): boolean => {
+  const state = G.spaces[space];
+  const fort = state?.fort;
+  if (!fort) return false;
+  if (fort.power === power) return true;
+  return isPower(fort.power) ? allied(G, power, fort.power) : state.ally === power;
+};
+
+/**
+ * 28.2: "prior to GW turn 1, if a player is forced to retreat they may remove a
+ * friendly fort from the space to cancel the retreat."  A fort alone cannot
+ * save an empty space, and a force that was entirely eliminated has no retreat
+ * to cancel.
+ */
+const gwFortCancelRetreatOption = (
+  G: ImperialElegyState,
+  battle: BattleState,
+  retreatPower: Power | null,
+  retreatingUnits: readonly Unit[],
+): PendingDecision["options"][number] | null => {
+  if (battle.kind !== "land") return null;
+  if (G.gw?.active !== true || G.gw.turn !== 0) return null;
+  if (retreatPower === null) return null;
+  if (!retreatingUnits.some((unit) => G.units[unit.id] !== undefined)) return null;
+  if (!friendlyFortInSpace(G, battle.to, retreatPower)) return null;
+  return option(
+    GW_FORT_CANCEL_RETREAT,
+    "Remove a friendly fort to cancel the retreat",
+    {space: battle.to},
+    false,
+    "移除友方要塞以取消撤退",
+  );
+};
+
+/** 28.2: during the GW a defending fort that survives a battle drops one level. */
+const degradeGwFortAfterBattle = (G: ImperialElegyState, space: SpaceId): void => {
+  if (G.gw?.active !== true) return;
+  const fort = G.spaces[space]?.fort;
+  if (!fort) return;
+  if (fort.level <= 1) {
+    G.spaces[space].fort = null;
+    log(G, undefined, "gwFortDegraded", {space, level: 0});
+    return;
+  }
+  fort.level = (fort.level - 1) as 1 | 2 | 3;
+  log(G, undefined, "gwFortDegraded", {space, level: fort.level});
+};
+
 /** Destinations legal for every unit in the force (group choices preserved). */
 const commonDestinations = (
   units: readonly Unit[],
@@ -2627,20 +2682,24 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
         unitDestinations.set(unit.id, landRetreatDestinations(G, battle.to, power));
       }
       const movable = losers.filter((unit) => (unitDestinations.get(unit.id) ?? []).length > 0);
-      if (retreatPower !== null && destinationSetsDiffer(movable, unitDestinations)) {
+      const cancelFort = gwFortCancelRetreatOption(G, battle, retreatPower, losers);
+      if (retreatPower !== null && (destinationSetsDiffer(movable, unitDestinations) || cancelFort !== null)) {
         const common = commonDestinations(movable, unitDestinations);
         const choices = retreatChoiceOptions(G, movable, unitDestinations, common);
-        if (choices.length > 1) {
+        if (choices.length > 1 || cancelFort !== null) {
           battle.stage = "retreat";
           openDecision(G, ctx, decision(
             "combatRetreat",
             retreatPower,
             "Retreat: choose the space(s) the defeated force retreats to",
-            choices.map((choice) =>
-              choice.id.startsWith("split:")
-                ? option(choice.id, choice.label, {assignments: choice.assignments})
-                : option(choice.id, choice.label, {space: choice.id}),
-            ),
+            [
+              ...choices.map((choice) =>
+                choice.id.startsWith("split:")
+                  ? option(choice.id, choice.label, {assignments: choice.assignments})
+                  : option(choice.id, choice.label, {space: choice.id}),
+              ),
+              ...(cancelFort !== null ? [cancelFort] : []),
+            ],
             {
               battle: true,
               space: battle.to,
@@ -2682,17 +2741,21 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
         movable.every((unit) => (unitDestinations.get(unit.id) ?? []).includes(candidate)),
       );
     const choices = retreatChoiceOptions(G, movable, unitDestinations, common);
-    if (choices.length > 1 && movable.length > 0) {
+    const cancelFort = gwFortCancelRetreatOption(G, battle, retreatPower, losers);
+    if (choices.length > 1 || cancelFort !== null) {
       battle.stage = "retreat";
       openDecision(G, ctx, decision(
         "combatRetreat",
         retreatPower ?? battle.attacker,
         "Trench battle: choose the space the defeated force retreats to",
-        choices.map((choice) =>
-          choice.id.startsWith("split:")
-            ? option(choice.id, choice.label, {assignments: choice.assignments})
-            : option(choice.id, choice.label, {space: choice.id}),
-        ),
+        [
+          ...choices.map((choice) =>
+            choice.id.startsWith("split:")
+              ? option(choice.id, choice.label, {assignments: choice.assignments})
+              : option(choice.id, choice.label, {space: choice.id}),
+          ),
+          ...(cancelFort !== null ? [cancelFort] : []),
+        ],
         {
           battle: true,
           space: battle.to,
@@ -2953,6 +3016,11 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
   for (const power of battle.extraDraws ?? []) {
     if (G.powers[power]) drawCards(G, ctx, power, 1);
   }
+  // 28.2: "During the GW, if a defending fort remains in a space after a
+  // battle, it automatically reduces by one level."  A fort removed by a
+  // retreat or a lost port battle is already gone, so only a surviving marker
+  // degrades.
+  degradeGwFortAfterBattle(G, battle.to);
   // GW-03/GW-04 are placed facedown in front of the opponent after the battle
   // (26.1); they never enter the discard pile.
   for (const entry of battle.faceDownCards ?? []) {
@@ -3032,6 +3100,19 @@ export const resolveCombatRetreat = (
     ? (pending.context.unitIds as unknown[]).filter((id): id is string => typeof id === "string")
     : [];
   if (!pending.options.some((entry) => entry.id === optionId)) return false;
+  if (optionId === GW_FORT_CANCEL_RETREAT) {
+    // 28.2: the defending force stays in the space; the fort is spent and the
+    // attacker does not advance.  `noRetreat` reuses GW-06's "defender remains"
+    // branch so the second finishBattle pass applies exactly that outcome.
+    if (!G.spaces[battle.to]?.fort) return false;
+    G.spaces[battle.to].fort = null;
+    G.pending = null;
+    if (!battle.notes.includes("noRetreat")) battle.notes.push("noRetreat");
+    battle.notes.push("fortCancelledRetreat");
+    log(G, pending.power, "gwFortCancelsRetreat", {space: battle.to});
+    finishBattle(G, ctx);
+    return true;
+  }
   let assignments: RetreatAssignment[];
   if (optionId.startsWith("split:")) {
     const parsed = decodeRetreatAssignments(optionId);

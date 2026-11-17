@@ -739,6 +739,85 @@ const FORMATTERS: Record<string, Formatter> = {
   },
 
   // ------------------------------------------------------------------ Italy / Great War
+  gwFortDegraded: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const level = num(entry.args?.level);
+    return text(
+      locale,
+      level <= 0
+        ? `28.2: the defending fort at ${space} is removed after the battle.`
+        : `28.2: the defending fort at ${space} drops to level ${level} after the battle.`,
+      level <= 0
+        ? `28.2：战斗结束后，${space}的防守要塞被移除。`
+        : `28.2：战斗结束后，${space}的防守要塞降为 ${level} 级。`,
+    );
+  },
+
+  gwFortCancelsRetreat: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(
+      entry,
+      locale,
+      `removed the friendly fort at ${space} to cancel the retreat.`,
+      `移除了${space}的友方要塞，取消了撤退。`,
+    );
+  },
+
+  italyPetition: (entry, locale) => {
+    const minor = str(entry.args?.minor);
+    const removed = num(entry.args?.removed);
+    return withActor(
+      entry,
+      locale,
+      `removed ${removed} ally marker(s) from ${minor} for Petition for Aid.`,
+      `因“请求援助”移除了${minor}的 ${removed} 个盟友标记。`,
+    );
+  },
+
+  italyUnificationMpitCp: (entry, locale) => {
+    const cp = num(entry.args?.cp);
+    return withActor(
+      entry,
+      locale,
+      `won the Italian unification war and gained ${cp} free CP to influence Italy's MPIT.`,
+      `赢得了意大利统一战争，获得 ${cp} 点免费 CP 用于影响意大利的大国影响力。`,
+    );
+  },
+
+  italyUnificationMpit: (entry, locale) => {
+    const track = str(entry.args?.track);
+    const remaining = num(entry.args?.remaining);
+    return withActor(
+      entry,
+      locale,
+      `spent 1 free unification-war CP on Italy's ${track} MPIT (${remaining} left).`,
+      `花费 1 点统一战争免费 CP，增加意大利的${track}影响力（剩余 ${remaining} 点）。`,
+    );
+  },
+
+  italyUnificationCardMarker: (_entry, locale) =>
+    text(
+      locale,
+      "Placed the +1 card marker in the Italian unification box.",
+      "在意大利统一格放置了 +1 抽牌标记。",
+    ),
+
+  italyNationalistWave: (entry, locale) => {
+    const minor = str(entry.args?.minor);
+    const keys = String(entry.args?.keys ?? "").split(",").filter(Boolean).map((id) => spaceName(id, locale)).join(", ");
+    return withActor(
+      entry,
+      locale,
+      `Nationalist Wave: ${minor} gains ${keys}.`,
+      `民族主义浪潮：${minor}获得${keys}。`,
+    );
+  },
+
+  italyNavalBase: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `placed Italy's control marker in ${space}.`, `在${space}放置了意大利控制标记。`);
+  },
+
   italyOttomanWar: (_entry, locale) =>
     text(
       locale,

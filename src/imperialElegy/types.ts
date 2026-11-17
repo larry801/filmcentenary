@@ -915,6 +915,14 @@ export const PENDING_KINDS = [
   "italyTable",
   /** 22.1.3: choose Sardinia-Piedmont or the Kingdom of the Two Sicilies. */
   "italianInternalWar",
+  /** 22.1.2: remove an ally marker from one of the two Italian minors. */
+  "italianPetition",
+  /** 22.1.4: choose the minor and the two Italian keys it gains. */
+  "italianNationalistWave",
+  /** 22.3.1 result 3–4: choose an uncontrolled naval base for Italy. */
+  "italyNavalBase",
+  /** 22.3.1 result 7+: choose Tunisia or Libya after the Ottoman war roll. */
+  "italyOttomanWar",
   "crisis",
   /** 23.3: the active player chooses the bordering nation / Balkan state. */
   "crisisIncident",
