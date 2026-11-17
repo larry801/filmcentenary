@@ -149,7 +149,10 @@ Status labels:
   `gwRefitFleet`. 12.4's placement rule is enforced before CP is spent: a new
   fleet goes only in a controlled **territorial** home key on the **main map**
   with a port, so a colonial home key on a submap (Canada, India, South Africa,
-  Australia) is refused.
+  Australia) is refused. The Orders panel mirrors both gates: a selected
+  reduced fleet in a friendly port shows the 1-CP "Refit fleet" row, and the
+  build rows are disabled with the main-map/territorial reason on colonial
+  home ports.
 - **Foreign-affairs markers (4.8 / 12.5.1–12.5.3 / 12.6 / 12.8 / 12.9):** one
   shared gate in `engine/foreignAffairs.ts`, read by both the moves and the
   Orders panel, so a row is never offered for a marker the engine refuses.

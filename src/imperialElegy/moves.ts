@@ -71,6 +71,7 @@ import {
   die,
   dominatedFlashpoints,
   enemiesOf,
+  friendlyPort,
   friendlySpace,
   gwAllyImpulseFor,
   hasLoc,
@@ -1106,16 +1107,7 @@ export const refitNavalUnit = (G: ImperialElegyState, ctx: Ctx, unitId: string):
   if (!unit || unit.owner !== power || unit.naval !== true || !unit.space) return INVALID_MOVE;
   if (!isNavalKind(unit.kind) || unit.steps >= 2) return INVALID_MOVE;
   const space = unit.space;
-  if (isNavalBox(space) || !(SPACES[space]?.ports?.length ?? 0)) return INVALID_MOVE;
-  // 4.9.4: a friendly port is one the power or an ally controls or occupies.
-  // An influence-only uncontrolled space is not a friendly port.
-  const state = G.spaces[space];
-  const friendly =
-    state.control === power ||
-    state.occupiedBy === power ||
-    (isPower(state.control) && allied(G, state.control, power)) ||
-    (!isPower(state.control) && state.control !== null && state.control !== undefined && state.ally === power);
-  if (!friendly) return INVALID_MOVE;
+  if (!friendlyPort(G, power, space)) return INVALID_MOVE;
   const paid = requireCp(G, ctx, playerID, 1);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   unit.steps = 2;

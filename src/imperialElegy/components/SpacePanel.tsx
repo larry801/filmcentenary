@@ -169,6 +169,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
     gwElite: "ie-gw-elite-corps",
     gwNaval: "ie-gw-naval",
     refit: "ie-gw-refit",
+    refitFleet: "ie-refit-fleet",
     deployReserves: "ie-deploy-reserves",
   };
 
