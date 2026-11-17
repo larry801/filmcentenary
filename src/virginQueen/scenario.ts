@@ -418,7 +418,10 @@ export const scenarioRoyals = (setup: ScenarioSetup): RoyalDef[] => {
             eligibility: royal.eligibility,
             status,
             alive: status !== "dead",
-            married: setup.id === "campaign" && (royal.id === "philipII" || royal.id === "elisabethValois"),
+            // The Campaign's prearranged Philip II / Elisabeth de Valois match
+            // is an agreement, not a wedding: both royals stay in the pool for
+            // Turn 1 and break the agreement at the cost of Philip II's bonus.
+            married: false,
         };
     });
 };

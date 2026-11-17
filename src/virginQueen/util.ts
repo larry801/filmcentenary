@@ -32,6 +32,7 @@ import {
     Power,
     Religion,
     ReligionArea,
+    RoyalDef,
     ROYALS,
     SeaZoneID,
     SpaceDef,
@@ -362,6 +363,10 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         patronizedThisTurn: [],
         cardDrawDone: [],
         royals: scenarioRoyals(scenario),
+        // Campaign Turn 1 prearranges Philip II and Elisabeth de Valois.  The
+        // agreement is not binding; Philip II's bonus charges Spain a card on
+        // Turn 2 if it is broken (Scenario Book pp. 7 and 33).
+        ...(scenarioId === "campaign" ? {prearrangedValoisMarriage: {year: 1}} : {}),
         patronsAvailable: scenarioPatrons(scenario),
         vpAwardsAvailable: [...scenario.patronage.vpAwards],
         pendingPatronage: [],
@@ -540,6 +545,11 @@ export const availableHomeCards = (G: VQGame, p: Power): string[] => {
             continue;
         }
         if (G.removed.includes(card.id)) {
+            continue;
+        }
+        // Rudolf II's marriage bonus: the Holy Roman Empire loses its Patron of
+        // Arts & Sciences Home Card for the rest of the game.
+        if (card.id === "vq-035" && G.rudolfHomeCardLost === true) {
             continue;
         }
         available.push(card.id);
@@ -3704,170 +3714,289 @@ const applyRulerDeath = (G: VQGame, id: string): void => {
     }
 };
 
-export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
-    for (const b of G.betrothals) {
-        const male = G.royals.find((r) => r.id === b.male);
-        const female = G.royals.find((r) => r.id === b.female);
-        if (male === undefined || female === undefined || !male.alive || !female.alive || male.married || female.married) {
-            continue;
-        }
-        const dice = [die(ctx, 6), die(ctx, 6)];
-        // Don Carlos rerolls the highest die; Anna of Austria may reroll the
-        // lowest (automatic when the reroll improves it).
-        if (male.id === "donCarlos" || female.id === "donCarlos") {
-            const high = dice[0] >= dice[1] ? 0 : 1;
-            dice[high] = die(ctx, 6);
-        }
-        if (male.id === "annaAustria" || female.id === "annaAustria") {
-            const low = dice[0] <= dice[1] ? 0 : 1;
-            const reroll = die(ctx, 6);
-            if (reroll > dice[low]) dice[low] = reroll;
-        }
-        // Scenario Book #95 clarification: Louise is treated as a royal of the
-        // power that played the card, so only the higher eligibility is used.
-        const louiseMarriage = female.id === "louiseLorraine" || male.id === "louiseLorraine";
-        const samePower = male.power === female.power || louiseMarriage;
-        const festivities = G.marriageFestivities === "france" &&
-            (male.power === "france" || female.power === "france") ? 2 : 0;
-        if (festivities > 0) delete G.marriageFestivities;
-        const ratings = (samePower
-            ? Math.max(male.eligibility ?? 0, female.eligibility ?? 0)
-            : (male.eligibility ?? 0) + (female.eligibility ?? 0)) + festivities;
-        const total = dice[0] + dice[1] + ratings;
-        G.lastRolls = `Marriage roll: ${dice[0]}+${dice[1]}+${ratings}=${total}`;
-        pushLog(G, `${male.name} & ${female.name}: ${G.lastRolls}`);
-        const involved = [...new Set([male.power, female.power])];
-        const grantVp = (amount: number): void => {
-            for (const p of involved) addVp(G, p, amount);
-        };
-        const grantCardMarker = (amount: number): void => {
-            for (const p of involved) G.powers[p].marriageCardModifier = (G.powers[p].marriageCardModifier ?? 0) + amount;
-        };
-        if (total >= 15) {
-            grantVp(2);
-            male.married = true;
-            female.married = true;
-            G.marriages += 1;
-            pushLog(G, "Founders of a Dynasty: each power gains 2 Wedding VP.");
-        } else if (total === 14) {
-            grantVp(1);
-            grantCardMarker(1);
-            male.married = true;
-            female.married = true;
-            G.marriages += 1;
-            pushLog(G, "True Love: each power gains 1 Wedding VP and a +1 Card marker.");
-        } else if (total === 13) {
-            grantVp(1);
-            male.married = true;
-            female.married = true;
-            G.marriages += 1;
-            pushLog(G, "Several Children: each power gains 1 Wedding VP.");
-        } else if (total === 12) {
-            grantCardMarker(1);
-            male.married = true;
-            female.married = true;
-            G.marriages += 1;
-            pushLog(G, "Benevolent Rulers: each power gains a +1 Card marker.");
-        } else if (total === 10 || total === 11) {
-            male.married = true;
-            female.married = true;
-            G.marriages += 1;
-            pushLog(G, "No Issue: the marriage produces no effect.");
-        } else if (total === 9) {
-            pushLog(G, "Last Minute Cancellation: both royals return to the pool.");
-        } else if (total === 8) {
-            grantCardMarker(-1);
-            male.married = true;
-            female.married = true;
-            G.marriages += 1;
-            pushLog(G, "Always Feuding: each power gains a -1 Card marker.");
-        } else if (total === 7) {
-            female.alive = false;
-            female.status = "dead";
-            male.married = true;
-            G.marriages += 1;
-            applyRulerDeath(G, female.id);
-            pushLog(G, `Death in Childbirth: ${female.name} dies.`);
-        } else {
-            if (male.id === "williamOrange") {
-                // Rule 21.1: William is only removed if the result earns VP.
-                male.married = false;
-                male.status = "available";
-                male.eligibility = 2;
-                male.turn = G.year + 1;
-                female.married = true;
-                G.marriages += 1;
-                pushLog(G, "William of Orange returns to the pool at eligibility 2 next turn.");
-            } else {
-                male.alive = false;
-                male.status = "dead";
-                female.married = true;
-                G.marriages += 1;
-                applyRulerDeath(G, male.id);
-                // Rule 21.1: if the husband was an army leader, remove him from
-                // the map and place a default leader if he was the only one.
-                const leaderDef = LEADER_BY_ID[male.id];
-                if (leaderDef !== undefined && leaderDef.kind === "army") {
-                    const state = G.leaders[male.id];
-                    if (state !== undefined) {
-                        if (G.spaces[state.location] !== undefined) {
-                            G.spaces[state.location].leaders = G.spaces[state.location].leaders.filter((l) => l !== male.id);
-                        } else if (G.seaZones[state.location as SeaZoneID] !== undefined) {
-                            G.seaZones[state.location as SeaZoneID].leaders = G.seaZones[state.location as SeaZoneID].leaders.filter((l) => l !== male.id);
-                        }
-                        delete G.leaders[male.id];
-                    }
-                    ensureDefaultLeader(G, leaderDef.power);
-                }
-                pushLog(G, `Rumors of Murder: ${male.name} is murdered.`);
-            }
-        }
-        if (total !== 9) {
-            // Valois marriage bonus: +1 VP for each Valois royal who weds.
-            for (const royal of [male, female]) {
-                if (royal.family === "valois") addVp(G, "france", 1);
-            }
-            const ids = [male.id, female.id];
-            // #35 FAQ: Rudolf II's successful marriage removes the +2 Prague
-            // Cultural Center marker from play.  Death removes it too (handled
-            // in applyRulerDeath, since the marker check below would precede
-            // the death branch for totals <= 7 and report "marries" for what
-            // was a murder).  Only a surviving marriage therefore lands here.
-            const rudolfMarried = (ids.includes("rudolf") || ids.includes("rudolfII")) &&
-                male.alive && female.alive;
-            if (rudolfMarried && G.pragueCulturalCenter !== undefined) {
-                delete G.pragueCulturalCenter;
-                pushLog(G, "Rudolf II marries; the +2 Prague Cultural Center marker is removed from the game.");
-            }
-            if (ids.includes("annaSaxony")) {
-                G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
-            }
-            if (ids.includes("charlesII") && (female.power === "england" || female.power === "protestant")) {
-                G.powers[female.power].marriageCardModifier = (G.powers[female.power].marriageCardModifier ?? 0) - 1;
-            }
-            if (ids.includes("louiseColigny") && (male.power === "england" || male.power === "protestant")) {
-                G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
-            }
-            // #95 clarification/FAQ: Louise played by France is not a French
-            // royal for Henry of Navarre's marriage bonus.
-            if (ids.includes("henryIV") && female.power === "france" && female.id !== "louiseLorraine") {
-                G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
-            }
-            if (ids.includes("isabellaClaraEugenia") &&
-                ["philip", "charlesIX", "henryIII", "rudolf", "rudolfII"].includes(male.id)) {
-                G.powers[male.power].patronageModifier += 1;
-            }
-            const william = [male, female].find((royal) => royal.id === "williamOrange");
-            if (william !== undefined && [7, 8, 10, 11, 12].includes(total)) {
-                william.married = false;
-                william.status = "available";
-                william.eligibility = 2;
-                william.turn = G.year + 1;
-                pushLog(G, "William of Orange returns to the pool at eligibility 2 next turn.");
-            }
+/** Add diplomatic influence to a minor, capped at the printed track limit. */
+export const addMinorInfluence = (G: VQGame, p: Power, minor: MinorPower, amount: number): void => {
+    G.powers[p].influence[minor] = Math.min(9, (G.powers[p].influence[minor] ?? 0) + amount);
+};
+
+/**
+ * The suppression area a marriage bonus resolves automatically.  Rule 18.3
+ * lets France choose France or Scotland, and Spain always suppresses in the
+ * Netherlands; the bonus is not a normal action, so the engine picks the
+ * eligible area with the most conversion targets (France before Scotland on a
+ * tie) instead of opening a choice window.
+ */
+const automaticSuppressArea = (G: VQGame, p: Power): ReligionArea | undefined => {
+    if (p === "spain") {
+        return religionCandidates(G, "catholic", "netherlands").length > 0 ? "netherlands" : undefined;
+    }
+    if (p === "france") {
+        const candidates: ReligionArea[] = ["france", "scotland"];
+        return candidates
+            .filter((area) => religionCandidates(G, "catholic", area).length > 0)
+            .sort((a, b) => religionCandidates(G, "catholic", b).length - religionCandidates(G, "catholic", a).length)[0];
+    }
+    return undefined;
+};
+
+/**
+ * Bonuses that resolve immediately after a royal's wedding (Scenario Book
+ * p. 33 "Marriage Bonuses").  Deaths and Last Minute Cancellation do not
+ * cancel them; only the 9 result does, which never reaches this helper.
+ */
+const resolveImmediateMarriageActions = (G: VQGame, ctx: Ctx, male: RoyalDef, female: RoyalDef): void => {
+    const ids = [male.id, female.id];
+    // Earl of Arran: the Protestant immediately preaches a sermon in Scotland.
+    if (ids.includes("arran")) {
+        resolveConversions(G, ctx, "protestant", "protestant", "scotland", 5);
+        pushLog(G, "Earl of Arran's marriage: the Protestant preaches a sermon in Scotland.");
+    }
+    // Mary Queen of Scots: her husband's power adds 2 influence in Scotland.
+    if (ids.includes("maryScots")) {
+        const husband = male.id === "maryScots" ? female : male;
+        addMinorInfluence(G, husband.power, "scotland", 2);
+        pushLog(G, `${powerLabel(husband.power)} adds 2 influence in Scotland for the marriage to Mary Queen of Scots.`);
+    }
+    // Henry, Lord Darnley: 2 French influence in Scotland when he marries Mary.
+    if (ids.includes("darnley") && ids.includes("maryScots")) {
+        addMinorInfluence(G, "france", "scotland", 2);
+        pushLog(G, "Henry, Lord Darnley's marriage adds 2 French influence in Scotland.");
+    }
+    // Elisabeth of Austria: her husband's power suppresses heresy immediately.
+    if (ids.includes("elisabethAustria")) {
+        const husband = male.id === "elisabethAustria" ? female : male;
+        const area = automaticSuppressArea(G, husband.power);
+        if (area !== undefined) {
+            resolveConversions(G, ctx, husband.power, "catholic", area, 5);
+            pushLog(G, `Elisabeth of Austria's marriage: ${powerLabel(husband.power)} suppresses heresy in ${AREA_NAMES[area].en}.`);
         }
     }
+};
+
+/**
+ * Resolve one betrothed couple against the Royal Wedding Table (21.1),
+ * including every royal-specific marriage bonus.
+ */
+export const resolveMarriage = (G: VQGame, ctx: Ctx, betrothal: { male: string; female: string }): void => {
+    const male = G.royals.find((r) => r.id === betrothal.male);
+    const female = G.royals.find((r) => r.id === betrothal.female);
+    if (male === undefined || female === undefined || !male.alive || !female.alive || male.married || female.married) {
+        return;
+    }
+    const dice = [die(ctx, 6), die(ctx, 6)];
+    // Don Carlos rerolls the highest die; Anna of Austria may reroll the
+    // lowest (automatic when the reroll improves it).
+    if (male.id === "donCarlos" || female.id === "donCarlos") {
+        const high = dice[0] >= dice[1] ? 0 : 1;
+        dice[high] = die(ctx, 6);
+    }
+    if (male.id === "annaAustria" || female.id === "annaAustria") {
+        const low = dice[0] <= dice[1] ? 0 : 1;
+        const reroll = die(ctx, 6);
+        if (reroll > dice[low]) dice[low] = reroll;
+    }
+    // Scenario Book #95 clarification: Louise is treated as a royal of the
+    // power that played the card, so only the higher eligibility is used.
+    const louiseMarriage = female.id === "louiseLorraine" || male.id === "louiseLorraine";
+    const samePower = male.power === female.power || louiseMarriage;
+    const festivities = G.marriageFestivities === "france" &&
+        (male.power === "france" || female.power === "france") ? 2 : 0;
+    if (festivities > 0) delete G.marriageFestivities;
+    const ratings = (samePower
+        ? Math.max(male.eligibility ?? 0, female.eligibility ?? 0)
+        : (male.eligibility ?? 0) + (female.eligibility ?? 0)) + festivities;
+    const total = dice[0] + dice[1] + ratings;
+    G.lastRolls = `Marriage roll: ${dice[0]}+${dice[1]}+${ratings}=${total}`;
+    pushLog(G, `${male.name} & ${female.name}: ${G.lastRolls}`);
+    // Record that the Campaign's prearranged Philip II / Elisabeth de
+    // Valois wedding actually happened, so its bonus is not charged.  Any
+    // table result other than 9 is a wedding, including "wife dies in
+    // childbirth" and "husband murdered" (neither cancels the agreement).
+    if (total !== 9 &&
+        [male.id, female.id].includes("philip") && [male.id, female.id].includes("elisabethValois") &&
+        G.prearrangedValoisMarriage !== undefined) {
+        G.prearrangedValoisMarriage.honoured = true;
+    }
+    const involved = [...new Set([male.power, female.power])];
+    const grantVp = (amount: number): void => {
+        for (const p of involved) addVp(G, p, amount);
+    };
+    const grantCardMarker = (amount: number): void => {
+        for (const p of involved) G.powers[p].marriageCardModifier = (G.powers[p].marriageCardModifier ?? 0) + amount;
+    };
+    if (total >= 15) {
+        grantVp(2);
+        male.married = true;
+        female.married = true;
+        G.marriages += 1;
+        pushLog(G, "Founders of a Dynasty: each power gains 2 Wedding VP.");
+    } else if (total === 14) {
+        grantVp(1);
+        grantCardMarker(1);
+        male.married = true;
+        female.married = true;
+        G.marriages += 1;
+        pushLog(G, "True Love: each power gains 1 Wedding VP and a +1 Card marker.");
+    } else if (total === 13) {
+        grantVp(1);
+        male.married = true;
+        female.married = true;
+        G.marriages += 1;
+        pushLog(G, "Several Children: each power gains 1 Wedding VP.");
+    } else if (total === 12) {
+        grantCardMarker(1);
+        male.married = true;
+        female.married = true;
+        G.marriages += 1;
+        pushLog(G, "Benevolent Rulers: each power gains a +1 Card marker.");
+    } else if (total === 10 || total === 11) {
+        male.married = true;
+        female.married = true;
+        G.marriages += 1;
+        pushLog(G, "No Issue: the marriage produces no effect.");
+    } else if (total === 9) {
+        pushLog(G, "Last Minute Cancellation: both royals return to the pool.");
+    } else if (total === 8) {
+        grantCardMarker(-1);
+        male.married = true;
+        female.married = true;
+        G.marriages += 1;
+        pushLog(G, "Always Feuding: each power gains a -1 Card marker.");
+    } else if (total === 7) {
+        female.alive = false;
+        female.status = "dead";
+        male.married = true;
+        G.marriages += 1;
+        applyRulerDeath(G, female.id);
+        pushLog(G, `Death in Childbirth: ${female.name} dies.`);
+    } else {
+        male.alive = false;
+        male.status = "dead";
+        female.married = true;
+        G.marriages += 1;
+        applyRulerDeath(G, male.id);
+        // Rule 21.1: if the husband was an army leader, remove him from
+        // the map and place a default leader if he was the only one.
+        const leaderDef = LEADER_BY_ID[male.id];
+        if (leaderDef !== undefined && leaderDef.kind === "army") {
+            const state = G.leaders[male.id];
+            if (state !== undefined) {
+                if (G.spaces[state.location] !== undefined) {
+                    G.spaces[state.location].leaders = G.spaces[state.location].leaders.filter((l) => l !== male.id);
+                } else if (G.seaZones[state.location as SeaZoneID] !== undefined) {
+                    G.seaZones[state.location as SeaZoneID].leaders = G.seaZones[state.location as SeaZoneID].leaders.filter((l) => l !== male.id);
+                }
+                delete G.leaders[male.id];
+            }
+            ensureDefaultLeader(G, leaderDef.power);
+        }
+        pushLog(G, `Rumors of Murder: ${male.name} is murdered.`);
+    }
+    if (total !== 9) {
+        // Valois marriage bonus: +1 VP for each Valois royal who weds.
+        for (const royal of [male, female]) {
+            if (royal.family === "valois") addVp(G, "france", 1);
+        }
+        const ids = [male.id, female.id];
+        // #35 FAQ: Rudolf II's marriage removes the +2 Prague Cultural
+        // Center marker from play.  Death removes it too (handled in
+        // applyRulerDeath), so only a Rudolf who is still alive here needs
+        // the explicit cleanup; a wife dying in childbirth (7) still counts
+        // as Rudolf marrying.
+        const rudolfRoyal = [male, female].find((royal) => royal.id === "rudolf" || royal.id === "rudolfII");
+        if (rudolfRoyal !== undefined && rudolfRoyal.alive && G.pragueCulturalCenter !== undefined) {
+            delete G.pragueCulturalCenter;
+            pushLog(G, "Rudolf II marries; the +2 Prague Cultural Center marker is removed from the game.");
+        }
+        if (ids.includes("annaSaxony")) {
+            G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
+        }
+        if (ids.includes("charlesII") && (female.power === "england" || female.power === "protestant")) {
+            G.powers[female.power].marriageCardModifier = (G.powers[female.power].marriageCardModifier ?? 0) - 1;
+        }
+        if (ids.includes("louiseColigny") && (male.power === "england" || male.power === "protestant")) {
+            G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
+        }
+        // #95 clarification/FAQ: Louise played by France is not a French
+        // royal for Henry of Navarre's marriage bonus.
+        if (ids.includes("henryIV") && female.power === "france" && female.id !== "louiseLorraine") {
+            G.powers[male.power].marriageCardModifier = (G.powers[male.power].marriageCardModifier ?? 0) + 1;
+        }
+        if (ids.includes("isabellaClaraEugenia") &&
+            ["philip", "charlesIX", "henryIII", "rudolf", "rudolfII"].includes(male.id)) {
+            G.powers[male.power].patronageModifier += 1;
+        }
+        const william = [male, female].find((royal) => royal.id === "williamOrange");
+        if (william !== undefined && [7, 8, 10, 11, 12].includes(total)) {
+            william.married = false;
+            william.status = "available";
+            william.eligibility = 2;
+            william.turn = G.year + 1;
+            pushLog(G, "William of Orange returns to the pool at eligibility 2 next turn.");
+        }
+        // Rudolf II loses the patronage Home Card bonus when he marries
+        // (a marker on the HRE power card; Scenario Book p. 33).  The marker
+        // must survive the wedding, so it lives on the game state and
+        // `availableHomeCards` filters vq-035 while it is set.  The table's
+        // "wife dies" and "husband murdered" results explicitly "do not affect
+        // award of any bonuses", so the loss still applies to those totals.
+        if (ids.includes("rudolf") || ids.includes("rudolfII")) {
+            G.rudolfHomeCardLost = true;
+            G.powers.hre.cards = G.powers.hre.cards.filter((id) => id !== "vq-035");
+            removeCardFromGame(G, "vq-035");
+            pushLog(G, "Rudolf II's marriage: the Holy Roman Empire loses the Patron of Arts & Sciences Home Card.");
+        }
+        // Arran / Mary Queen of Scots / Darnley / Elisabeth of Austria all
+        // resolve an action immediately after the wedding.
+        resolveImmediateMarriageActions(G, ctx, male, female);
+    }
+};
+
+/**
+ * Rule 21: a marriage with Mary Queen of Scots is resolved immediately when
+ * the betrothal is agreed, rather than waiting for the Marriage Resolution
+ * Phase.  Callers invoke this right after a betrothal is recorded.
+ */
+export const resolveImmediateBetrothals = (G: VQGame, ctx: Ctx): void => {
+    const immediate = G.betrothals.filter((betrothal) =>
+        betrothal.male === "maryScots" || betrothal.female === "maryScots");
+    if (immediate.length === 0) return;
+    G.betrothals = G.betrothals.filter((betrothal) => !immediate.includes(betrothal));
+    for (const betrothal of immediate) {
+        pushLog(G, "Mary Queen of Scots' wedding is resolved immediately (rule 21).");
+        resolveMarriage(G, ctx, betrothal);
+    }
+};
+
+/** Resolve this year's betrothals in the Marriage Resolution Phase (21.1). */
+export const resolveMarriages = (G: VQGame, ctx: Ctx): void => {
+    for (const betrothal of G.betrothals) {
+        resolveMarriage(G, ctx, betrothal);
+    }
     G.betrothals = [];
+};
+
+/**
+ * Philip II's marriage bonus (Scenario Book pp. 7 and 33): Spain draws one
+ * card less on Turn 2 when the Campaign's prearranged marriage to Elisabeth de
+ * Valois is broken.  Breaking it means either side married someone else, or
+ * the Turn 1 wedding produced a Last Minute Cancellation.  The check runs in
+ * the Marriage Resolution Phase, before the next year's card draw consumes the
+ * pending marker.
+ */
+export const settlePrearrangedValoisMarriage = (G: VQGame): void => {
+    const prearranged = G.prearrangedValoisMarriage;
+    if (prearranged === undefined || prearranged.broken === true) return;
+    // Only the turn in which the agreement was due can break it.
+    if (G.year !== prearranged.year) return;
+    if (prearranged.honoured === true) {
+        prearranged.broken = true;
+        return;
+    }
+    prearranged.broken = true;
+    // Spain draws one card less on the turn after the agreement lapses.
+    G.pendingCardDraws = [...(G.pendingCardDraws ?? []), {power: "spain", turn: prearranged.year + 1, amount: -1}];
+    pushLog(G, "Philip II's prearranged marriage to Elisabeth de Valois is broken: Spain draws one card less next turn.");
 };
 
 const bestPatronageVpAward = (
@@ -4848,8 +4977,19 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         pushLog(G, `Elizabeth I remains unmarried: England gains 1 Virgin Queen VP (${G.virginQueenVpAwarded}/5).`);
     }
     // Aging (21.3): a royal at eligibility 0 leaves the marriage pool.
+    // Leicester's bonus is the printed exception: while Elizabeth I is in the
+    // game and unmarried, he stays in the pool as a 1 every turn.
+    const leicesterAnchored = (royal: RoyalDef): boolean => {
+        if (royal.id !== "leicester") return false;
+        const elizabeth = G.royals.find((candidate) => candidate.id === "elizabeth");
+        return elizabeth !== undefined && royalAvailable(elizabeth);
+    };
     for (const r of G.royals) {
         if (!royalAvailable(r) || (r.turn ?? 1) > G.year) {
+            continue;
+        }
+        if (leicesterAnchored(r)) {
+            r.eligibility = 1;
             continue;
         }
         let next = r.eligibility ?? 0;
@@ -4865,6 +5005,9 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         }
     }
     resolveMarriages(G, ctx);
+    // Philip II's prearranged Turn 1 marriage is checked in this phase, before
+    // the next year's card draw consumes the penalty marker (21.1).
+    settlePrearrangedValoisMarriage(G);
     resolvePatronage(G, ctx);
     awardAnnualLocationVp(G);
     settleActivatedMajorVp(G);

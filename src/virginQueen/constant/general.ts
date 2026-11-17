@@ -779,6 +779,21 @@ export interface VQGame {
     marriages: number;
     /** Virgin Queen bonus VP already awarded (maximum 5 per game). */
     virginQueenVpAwarded?: number;
+    /**
+     * Scenario Book Campaign setup: Elisabeth de Valois is prearranged to
+     * marry Philip II on Turn 1.  Neither player is bound to the agreement,
+     * but Philip II's marriage bonus charges Spain one card on Turn 2 when it
+     * is broken (including a Last Minute Cancellation).  `year` is the turn
+     * the prearranged marriage is due; `broken` records that the penalty has
+     * already been applied so it can never double charge.
+     */
+    prearrangedValoisMarriage?: {year: number; broken?: boolean; honoured?: boolean};
+    /**
+     * Rudolf II's marriage bonus: after he marries, the HRE loses the Patron
+     * of Arts & Sciences Home Card.  Recorded here because the loss must
+     * outlive the wedding itself.
+     */
+    rudolfHomeCardLost?: boolean;
     log: string[];
     /**
      * Turn/phase markers pointing into {@link log}.  Recorded when a phase

@@ -692,7 +692,19 @@
 - 15+：双方各 2 Wedding VP；14：双方各 1 VP + 1 张 +1 Card 标记；13：双方各 1 VP；12：双方各 1 张 +1 Card 标记；10/11：无效果；9：最后取消，双方回到婚姻池；8：双方各 1 张 −1 Card 标记；7：妻子死于难产；6 或更低：丈夫被谋杀。
 - 除 9 外双方王室离场（`married`）；+1/−1 Card 标记只影响下一次 Card Draw，抽牌后清除。
 - Valois 王室结婚时法国额外 +1 VP。
+- William of Orange：结果为 7/8/10/11/12（未给新教带来 VP 的结果）时回池，下回合起资格 2；结果为 6 或更低（丈夫被杀）时按官方规则移出游戏（连同陆军将领计数器），不再回池。
 - 已接入 Don Carlos/Anna of Austria 重掷、William of Orange 回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 接入；Mary Queen of Scots 的俘获/处决/难产死亡已接入状态与 VP 影响。
+
+### 王室特殊婚姻加值（Scenario Book p. 33）
+
+- **Earl of Arran**：婚后新教立即在苏格兰执行一次布道（5 次转化尝试）。
+- **Mary Queen of Scots**：丈夫势力在苏格兰 +2 影响力；她的婚礼在外交阶段订婚成立时立即结算，不进入冬季婚姻结算阶段。
+- **Henry, Lord Darnley**：娶玛丽时法国在苏格兰 +2 影响力。
+- **Elisabeth of Austria**：嫁给法国或西班牙王室时，该势力立即执行一次镇压异端——西班牙在尼德兰、法国在法国/苏格兰中转化目标更多的区域。
+- **Earl of Leicester**：只要伊丽莎白仍在婚姻池且未婚，他每回合都保持资格 1，不参与老化降级。
+- **Rudolf II**：婚后失去“科学与艺术的赞助人”本国牌（`vq-035`，同时移出游戏），`availableHomeCards` 不再向 HRE 提供该牌。
+- **Philip II**：战役开局把腓力二世与瓦卢瓦的伊丽莎白登记为第 1 回合的预定婚约（两人仍在婚姻池中，`married` 为 false）；第 1 回合结束时若该婚约未兑现（含“最后一刻取消”），西班牙第 2 回合少抽 1 张牌，`settlePrearrangedValoisMarriage` 保证只结算一次。
+- 以上“即时动作”类加值只取 9 之外的结果；9（最后一刻取消）不触发。7（难产）与 6-（丈夫被杀）按官方说明“不影响加值授予”照常触发。
 
 ### 西班牙阿马达（23.2）
 
@@ -779,7 +791,7 @@ Card Draw 按参战强国依次确认，同一玩家控制的多个强国也需�
 - 西班牙阿马达已接入 #99 放置/升级、单独/随舰队移动、战斗骰与承受命中，并按强度/2计入海军封锁；载运陆军已接入港口装载/卸载、海上 1 CP 与相邻港口间运输及容量限制；可单独或随西班牙舰队拦截/避战/撤退，冬季从海域自动返回西班牙港口；被消灭后于下一 Turn Track 年份在塞维利亚/科伦纳/里斯本以强度 2 重建
 - 正式局退入要塞已接入守方“退入要塞/出城野战”选择，以及攻方 1 CP 继续/返回选择
 - 海军避战已接入但目的地/编队自动；海军拦截的尝试顺序已交互（`interceptionOrder`）；多敌军交战顺序已交互
-- 婚姻已按官方 Royal Wedding Table 结算（2d6 + 资格；同国只取较高资格；15+ 双方 2 VP、14 双方 1 VP+卡牌标记、13 双方 1 VP、12 +1 卡牌标记、10/11 无效果、9 最后取消、8 −1 卡牌标记、7 妻子死于难产、6- 丈夫被谋杀；Valois +1 VP）。已接入 Don Carlos 最高骰重掷、Anna of Austria 最低骰重掷、William of Orange 无 VP 结果回池、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 的卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 降低卡牌/Admin，并处理 Henry III 将领与 Elizabeth 牌
+- 婚姻已按官方 Royal Wedding Table 结算（2d6 + 资格；同国只取较高资格；15+ 双方 2 VP、14 双方 1 VP+卡牌标记、13 双方 1 VP、12 +1 卡牌标记、10/11 无效果、9 最后取消、8 −1 卡牌标记、7 妻子死于难产、6- 丈夫被谋杀；Valois +1 VP）。已接入 Don Carlos 最高骰重掷、Anna of Austria 最低骰重掷、William of Orange 无 VP 结果回池（6- 被谋杀则移出游戏）、Anna of Saxony/Charles II/Louise de Coligny/Henry IV 的卡牌标记、Isabella Clara Eugenia 赞助加值；#36 童贞女王已接入弃婚与 Jilted Table；Philip II/Charles IX/Henry III/Rudolf II/Elizabeth I 死亡效果已按 23.2–23.5 降低卡牌/Admin，并处理 Henry III 将领与 Elizabeth 牌。Scenario Book p. 33 的全部特殊加值也已接入：Arran 苏格兰布道、Mary 与丈夫势力在苏格兰 +2 影响力且婚礼在外交阶段即时结算、Darnley 给法国 +2 苏格兰影响力、Elisabeth of Austria 触发镇压异端、Leicester 未婚伊丽莎白在场时每回合保持资格 1、Rudolf II 婚后失去“科学与艺术的赞助人”本国牌、Philip II 的预定婚约未兑现时西班牙第 2 回合少抽 1 张牌
 - 统治者死亡/更替、
   科学家/艺术家全部名单、计数器上限
 
@@ -829,6 +841,7 @@ src/virginQueen/
   colony.test.ts        8.4 Colony Table 消灭/无效果/宝藏/Virginia Dare VP/Plantation
   defaultLeader.test.ts 5.1 默认将领属性、最后将领移除、登场与标准将领替换
   marriageTable.test.ts 21.1 Royal Wedding Table 各档结果、同国资格与特殊婚姻加值
+  royalMarriageBonuses.test.ts Scenario Book p.33 全部特殊加值（Arran/Mary/Darnley/Elisabeth of Austria/Leicester/Rudolf II/Philip II）与 Mary 即时婚礼
   virginQueenCard.test.ts #36 童贞女王弃婚、Jilted Table、取回弃牌
   navigation.test.ts     16.4 Navigation Table 消灭/受损/连续受损/Map Projection
   circumnavigation.test.ts 16.6 首次/后续 VP、缺少前置航段、奥斯曼路线
