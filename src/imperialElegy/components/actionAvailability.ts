@@ -15,7 +15,7 @@
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  gwAllyImpulseFor, isArmyKind, isHomeSpace, minorController, ownsKey,
+  friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, minorController, ownsKey,
 } from "../engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -39,7 +39,7 @@ import type {RecruitDecision} from "../engine/characteristics";
 
 export type ActionId =
   | "recruitArmy" | "recruitCw" | "recruitReserve" | "recruitEc" | "polishArmy" | "polishReserve"
-  | "buildSquadron" | "buildDreadnought" | "buildFort" | "buildEf" | "moveEf"
+  | "buildSquadron" | "buildDreadnought" | "refitFleet" | "buildFort" | "buildEf" | "moveEf"
   | "influence" | "diplomacy" | "minorAlliance" | "removeInfluence" | "breakAlliance" | "pacify"
   | "move" | "gwNaval" | "gwMarch" | "gwRail" | "refit" | "rapidDeploy"
   | "deployReserves" | "landBattle" | "navalBattle" | "gwDraft" | "gwDeploy" | "gwElite";
@@ -57,6 +57,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   polishReserve: 2,
   buildSquadron: 2,
   buildDreadnought: 3,
+  refitFleet: 1,
   buildFort: 1,
   buildEf: 2,
   moveEf: 1,
@@ -85,7 +86,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
 /** Every fixed-cost action, in the player aid's order. */
 export const ACTION_COST_ORDER: readonly ActionId[] = [
   "recruitArmy", "recruitReserve", "recruitEc", "recruitCw", "polishArmy", "polishReserve",
-  "buildSquadron", "buildDreadnought", "buildFort", "buildEf", "moveEf",
+  "buildSquadron", "buildDreadnought", "refitFleet", "buildFort", "buildEf", "moveEf",
   "influence", "diplomacy", "pacify", "removeInfluence", "minorAlliance", "breakAlliance",
   "move", "deployReserves", "landBattle", "navalBattle", "gwDraft", "gwDeploy", "gwElite",
   "refit", "gwMarch", "gwRail", "gwNaval", "rapidDeploy",
@@ -100,6 +101,7 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   polishReserve: {en: "Polish reserve army", zh: "波兰预备军"},
   buildSquadron: {en: "Build squadron", zh: "建造分舰队"},
   buildDreadnought: {en: "Build dreadnought", zh: "建造无畏舰"},
+  refitFleet: {en: "Refit fleet", zh: "整补舰队"},
   buildFort: {en: "Build fort", zh: "建造要塞"},
   buildEf: {en: "Build expeditionary force", zh: "建造远征军"},
   moveEf: {en: "Move expeditionary force here", zh: "远征军移至此处"},
@@ -402,19 +404,25 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     const homeReason = !isHomeSpace(G, space, viewer)
       ? bi(locale, "Must be your own home space.", "必须是本国核心领土。")
       : !ownsKey(G, space, viewer) ? bi(locale, "You must control a key in this space.", "必须控制此空间的关键区。") : null;
+    // 12.4: "Newly built fleets must be placed in a controlled, territorial
+    // home key on the main map with a port."  A colonial home key on a submap
+    // (Canada, India, South Africa, Australia) has a port but is not eligible.
+    const fleetHomeReason = homeReason ?? (SPACES[space]?.submap !== "main" || SPACES[space]?.keyType !== "territorial"
+      ? bi(locale, "New fleets need a territorial home key on the main map.", "新建舰队需位于主地图的本国领土关键区。")
+      : null);
     if (hasPort) {
-      const sqEnabled = homeReason === null && canSpend(ACTION_COSTS.buildSquadron);
+      const sqEnabled = fleetHomeReason === null && canSpend(ACTION_COSTS.buildSquadron);
       push({
         id: "buildSquadron", group: "build", enabled: sqEnabled,
-        reason: sqEnabled ? undefined : homeReason ?? spendReason(ACTION_COSTS.buildSquadron),
+        reason: sqEnabled ? undefined : fleetHomeReason ?? spendReason(ACTION_COSTS.buildSquadron),
         run: () => doAction(() => moves.constructFleet(space, "squadron", false)),
       });
       const dreadnoughtLocked = G.persistent.dreadnoughts !== true && !me.flags.navalLimit;
-      const dnEnabled = homeReason === null && !dreadnoughtLocked && canSpend(ACTION_COSTS.buildDreadnought);
+      const dnEnabled = fleetHomeReason === null && !dreadnoughtLocked && canSpend(ACTION_COSTS.buildDreadnought);
       push({
         id: "buildDreadnought", group: "build", enabled: dnEnabled,
         reason: dnEnabled ? undefined
-          : homeReason ?? (dreadnoughtLocked ? bi(locale, "Dreadnought must have been played.", "需先打出“无畏舰”。") : spendReason(ACTION_COSTS.buildDreadnought)),
+          : fleetHomeReason ?? (dreadnoughtLocked ? bi(locale, "Dreadnought must have been played.", "需先打出“无畏舰”。") : spendReason(ACTION_COSTS.buildDreadnought)),
         // The button's label is the panel's English key; keep the printed name.
         run: () => doAction(() => moves.constructFleet(space, "dreadnought", false)),
       });
@@ -579,6 +587,18 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       id: "refit", group: "move", enabled: refit.ok,
       reason: refit.ok ? undefined : bi(locale, "Only a reduced unit in a friendly port can refit.", "仅限友好港口内的受损单位整补。"),
       run: () => doAction(() => selected.naval ? moves.gwRefitFleet(selected.id) : moves.gwRefit(selected.id)),
+    });
+  }
+  if (!gw && phase === "action" && selected !== undefined && selected.owner === viewer
+    && selected.naval && selected.steps < 2 && selected.space === space) {
+    // 12.4's chart: "Refit Naval Unit - 1 CP", only in a friendly port.
+    const port = friendlyPort(G, viewer, space);
+    const enabled = port && canSpend(ACTION_COSTS.refitFleet);
+    push({
+      id: "refitFleet", group: "move", enabled,
+      reason: enabled ? undefined
+        : port ? spendReason(ACTION_COSTS.refitFleet) : bi(locale, "A reduced fleet can only refit in a friendly port.", "受损舰队只能在友好港口内整补。"),
+      run: () => doAction(() => moves.refitNavalUnit(selected.id)),
     });
   }
   if (viewer === "UK" && me.rapidDeployment && !me.rapidDeployment.spent && selectedIsOther === false

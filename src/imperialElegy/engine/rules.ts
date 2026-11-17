@@ -479,6 +479,21 @@ export const friendlySpace = (G: ImperialElegyState, space: SpaceId, power: Powe
   return false;
 };
 
+/**
+ * 4.9.4 / 12.4: a friendly port is a port space controlled or occupied by the
+ * power or by one of its allies.  An uncontrolled space where the power only
+ * has an influence marker is not a friendly port.
+ */
+export const friendlyPort = (G: ImperialElegyState, power: Power, space: SpaceId): boolean => {
+  const def = SPACES[space];
+  const state = G.spaces[space];
+  if (!def || !state || isNavalBox(space) || (def.ports?.length ?? 0) === 0) return false;
+  if (state.control === power || state.occupiedBy === power) return true;
+  if (isPower(state.control) && allied(G, state.control, power)) return true;
+  if (!isPower(state.control) && state.control !== null && state.control !== undefined && state.ally === power) return true;
+  return false;
+};
+
 export const neutralSpace = (G: ImperialElegyState, space: SpaceId, power: Power): boolean => {
   const state = G.spaces[space];
   if (!state) return false;

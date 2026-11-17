@@ -69,6 +69,7 @@ const input = (overrides: Partial<SpaceActionsInput> & Pick<SpaceActionsInput, "
   startNavalBattle: () => undefined,
   warCp: 2,
   onDeclareWar: () => null,
+  describeRow: (candidate) => ({label: candidate.label, reason: candidate.reason}),
   locale: "en",
   ...overrides,
 });
@@ -187,6 +188,66 @@ describe("spaceActions: enabled means the engine says yes", () => {
       expect(row?.enabled).toBe(false);
       expect(row?.reason).toBeTruthy();
     }
+  });
+});
+
+describe("12.4 refit a reduced fleet from the Orders panel", () => {
+  test("a reduced squadron in a friendly port offers a 1 CP refit row", () => {
+    const G = game("FR", 4);
+    const fleet = placeUnit(G, "FR", "squadron", "provence", 1);
+    const rows = spaceActions(input({G, viewer: "FR", space: "provence", selectedUnit: fleet.id}));
+    const refit = row(rows, "refitFleet");
+    expect(refit?.cost).toBe(1);
+    expect(refit?.label).toBe("Refit fleet");
+    expect(refit?.enabled).toBe(true);
+  });
+
+  test("the row runs the engine's refit move with the selected fleet", () => {
+    const G = game("FR", 4);
+    const fleet = placeUnit(G, "FR", "squadron", "provence", 1);
+    const refitNavalUnit = jest.fn();
+    const rows = spaceActions(input({
+      G, viewer: "FR", space: "provence", selectedUnit: fleet.id,
+      moves: {refitNavalUnit} as unknown as Record<string, (...args: any[]) => void>,
+    }));
+    row(rows, "refitFleet")?.run();
+    expect(refitNavalUnit).toHaveBeenCalledWith(fleet.id);
+  });
+
+  test("a fleet at sea is refused with the port reason", () => {
+    const G = game("FR", 4);
+    const fleet = placeUnit(G, "FR", "squadron", "north-atlantic", 1);
+    const rows = spaceActions(input({G, viewer: "FR", space: "north-atlantic", selectedUnit: fleet.id}));
+    const refit = row(rows, "refitFleet");
+    expect(refit?.enabled).toBe(false);
+    expect(refit?.reason).toContain("friendly port");
+  });
+
+  test("a full-strength fleet offers no refit row", () => {
+    const G = game("FR", 4);
+    const fleet = placeUnit(G, "FR", "squadron", "provence", 2);
+    const rows = spaceActions(input({G, viewer: "FR", space: "provence", selectedUnit: fleet.id}));
+    expect(row(rows, "refitFleet")).toBeUndefined();
+  });
+
+  test("12.4 colonial home ports offer no build row (no engine drift)", () => {
+    const G = game("UK", 8);
+    for (const space of ["canada", "india", "south-africa", "australia-new-zealand"]) {
+      const rows = spaceActions(input({G, viewer: "UK", space: space as SpaceId}));
+      const squadron = row(rows, "buildSquadron");
+      expect(squadron?.enabled).toBe(false);
+      expect(squadron?.reason).toContain("main map");
+    }
+    const london = row(spaceActions(input({G, viewer: "UK", space: "london"})), "buildSquadron");
+    expect(london?.enabled).toBe(true);
+  });
+
+  test("no CP disables the row", () => {
+    const G = game("FR", 0);
+    const fleet = placeUnit(G, "FR", "squadron", "provence", 1);
+    const rows = spaceActions(input({G, viewer: "FR", space: "provence", selectedUnit: fleet.id, cp: 0}));
+    const refit = row(rows, "refitFleet");
+    expect(refit?.enabled).toBe(false);
   });
 });
 
