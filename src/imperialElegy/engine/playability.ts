@@ -21,6 +21,8 @@ import {flashpointController, isPower} from "./rules";
 export type PlayBlockReason =
   | "unknown-card"
   | "battle-window"
+  /** A105 Impulsive Ruler: CP play needs three or fewer cards in hand. */
+  | "impulsive-ruler-hand"
   /** A printed "Playable by …" power list excludes the acting power. */
   | "power-list"
   /** A printed "(Germany only after unification)" clause. */
@@ -240,3 +242,30 @@ export const eventPlayability = (
 /** Convenience boolean form for board controls and quick checks. */
 export const canPlayEvent = (G: ImperialElegyState, power: Power, cardId: CardId): boolean =>
   eventPlayability(G, power, cardId).ok;
+
+/**
+ * CP play (12.0): "All cards except Mandatory Event cards can be played for CP".
+ * A mandatory event still reaches this move — it simply resolves its printed
+ * event first — but a mandatory *response* card (A105 Impulsive Ruler) has its
+ * own printed CP clause, and that clause is the only CP gate the printed faces
+ * ever add.
+ */
+export const cpPlayability = (
+  G: ImperialElegyState,
+  power: Power,
+  cardId: CardId,
+): EventPlayability => {
+  const card = CARD_BY_ID[cardId];
+  if (card === undefined) return deny("unknown-card");
+  // A105 is printed "May be played for CP if you have 3 or fewer cards in your
+  // hand (including this)."  Every other card has no CP-mode clause.
+  if (card.type === "mandatoryResponse" && cardId === "IE-A105") {
+    const hand = G.powers[power]?.hand.length ?? 0;
+    return hand <= 3 ? OK : deny("impulsive-ruler-hand");
+  }
+  return OK;
+};
+
+/** Convenience boolean form for the CP button and the move's shared gate. */
+export const canPlayForCp = (G: ImperialElegyState, power: Power, cardId: CardId): boolean =>
+  cpPlayability(G, power, cardId).ok;

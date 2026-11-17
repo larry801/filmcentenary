@@ -210,6 +210,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   recruitRejected: {key: "recruitRejected", power: "UK", args: {kind: "reserveArmy", space: "london", reasons: "UK may not build reserve armies"}},
   industrializeRejected: {key: "industrializeRejected", power: "OT", args: {card: CARD_ID, reasons: "Ottoman own card cannot be used for industrialization"}},
   eventNotPlayable: {key: "eventNotPlayable", power: "GE", args: {card: CARD_ID, reason: "egypt-minor"}},
+  cardCpNotPlayable: {key: "cardCpNotPlayable", power: "GE", args: {card: CARD_ID, reason: "impulsive-ruler-hand"}},
   auActionRejected: {key: "auActionRejected", power: "AU", args: {action: "reforms", reasons: "Germans is not one of the eight AU nationalities"}},
   auRightsGranted: {key: "auRightsGranted", power: "AU", args: {nationality: "Czechs"}},
   auCitizenshipRoll: {key: "auCitizenshipRoll", power: "AU", args: {nationality: "Hungarians", roll: 4, needed: 3, success: true, stabilitySpent: false}},

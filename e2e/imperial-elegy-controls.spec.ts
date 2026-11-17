@@ -77,23 +77,67 @@ function boardFor(page: Page, seat: string): Locator {
 }
 
 /**
+ * Click a map space and wait for its detail panel to name it.
+ *
+ * The map sits under the hand tray, and playing a card folds/refolds that row,
+ * which moves the SVG between the click and its dispatch.  `force: true` skips
+ * Playwright's stability wait, so a single click can land on the space that
+ * used to be under the cursor.  Retrying until the panel actually names the
+ * space removes that race without hiding a real failure: the final attempt
+ * still asserts.
+ */
+async function clickSpace(board: Locator, spaceId: string, label: string) {
+    const space = board.locator(`[data-testid="ie-space-${spaceId}"]`);
+    const detail = board.locator('[data-testid="ie-space-detail"]');
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        await space.click({force: true});
+        try {
+            await expect(detail).toContainText(label, {timeout: 3_000});
+            return;
+        } catch {
+            if (attempt === 2) throw new Error(`map click on ${spaceId} never selected it`);
+        }
+    }
+}
+
+/**
  * Give GE a CP budget by playing its first legal card for CP.
  *
  * Returns false when no card was playable (an impulse that cannot use a card at
  * all); callers that need the card must assert on the result.  Arm-then-confirm
  * is the default: the first click arms, the second plays.
+ *
+ * A plain event card is preferred: every card is a CP card (12.0), but a
+ * mandatory event played for CP also resolves its printed text, which can open
+ * a decision or move the map under the caller's next click.  The helper still
+ * falls back to any other playable card so a deal without a plain event can
+ * bank CP instead of skipping the test.
+ *
+ * The hand starts folded while a decision is owed (`decisionPeek`), and a
+ * folded tray renders no card bodies at all.  The action phase can open with
+ * another seat's bot decision still live (33.4 Metternich, answered by AU), so
+ * the helper waits for the tray to carry cards before deciding there is none.
  */
 async function playCpCard(board: Locator): Promise<boolean> {
     const page = board.page();
+    const cards = board.locator(".ie-hand .ie-card");
+    // Give the tray a moment to unfold and render: a bot decision from the
+    // previous phase is answered asynchronously and hides the cards until then.
+    await expect.poll(async () => await cards.count(), {timeout: 30_000}).toBeGreaterThan(0);
     for (let attempt = 0; attempt < 3; attempt += 1) {
         if (await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining) > 0) return true;
         // Arm-then-confirm: the first click arms (`data-armed`), the second
         // plays.  Addressed by test id because the armed label replaces the
         // text a name filter matches.  Each row is unfolded first: the hand is a
         // list of folded rows, so a card's buttons do not exist until then.
-        const cards = board.locator(".ie-hand .ie-card");
+        const order: number[] = [];
+        const events: number[] = [];
+        for (let i = 0; i < await cards.count(); i += 1) {
+            const type = await cards.nth(i).getAttribute("data-card-type");
+            (type === "event" ? events : order).push(i);
+        }
         let played = false;
-        for (let i = 0; i < await cards.count() && !played; i += 1) {
+        for (const i of [...events, ...order]) {
             const card = await openCard(cards.nth(i));
             const button = card.locator('[data-testid^="ie-play-cp-"]').first();
             if (!(await button.count()) || !(await button.isEnabled())) continue;
@@ -101,6 +145,7 @@ async function playCpCard(board: Locator): Promise<boolean> {
             await expect(button).toHaveAttribute("data-armed", "true");
             await button.click();
             played = true;
+            break;
         }
         if (!played) return false;
         try {
@@ -263,12 +308,10 @@ test.describe("Imperial Elegy new controls", () => {
         // Berlin selects correctly, but it is German-controlled so it cannot be a
         // war objective. The declaration panel is offered for a space controlled
         // by another major power, so use Bohemia (Austria-Hungary) as the target.
-        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
-        await expect(board.locator('[data-testid="ie-space-detail"]')).toContainText("柏林");
+        await clickSpace(board, "berlin", "柏林");
         await expect(board.locator('[data-testid="ie-war-declare"]')).toHaveCount(0);
 
-        await board.locator('[data-testid="ie-space-bohemia"]').click({force: true});
-        await expect(board.locator('[data-testid="ie-space-detail"]')).toContainText("波希米亚");
+        await clickSpace(board, "bohemia", "波希米亚");
         const declare = board.locator('[data-testid="ie-war-declare"]');
         await expect(declare).toBeVisible();
         await expect(declare).toContainText("奥匈帝国");
@@ -441,13 +484,11 @@ test.describe("Imperial Elegy solo vs bot", () => {
         // been played, which froze the match on this exact transition.
         //
         // This fixture is "P2-P6 are bots", so GE is the human seat and plays a
-        // card; `playCpCard` only pauses when no card can be played at all.
+        // card.  Since 12.0 makes every card a CP card, `playCpCard` only fails
+        // when the seat's hand is empty — a state the bot-transition bug cannot
+        // hide, because the guard needs a played card as its precondition.
         const played = await playCpCard(board);
-        // A deal can hold no card that may bank CP (shared combat/mandatory
-        // cards).  12.0 then leaves only the unused-impulse pass, and that pass
-        // is itself restricted, so this spec cannot hand the impulse over: the
-        // bot-transition bug it guards needs a played card as its precondition.
-        test.skip(!played, "this deal has no card that can be played for CP");
+        test.skip(!played, "this seat has no card in hand to play");
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBeGreaterThan(0);
         await expect.poll(async () => await board.locator('[data-testid="ie-pass"]').innerText()).toBe("结束行动轮");
         // 12.0: the single exit reads 结束行动轮 once a card has been played.
@@ -618,8 +659,7 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         // engine refuses and the unit would stay in Berlin.
         await expect(await playCpCard(board), "this deal has no card to bank CP with").toBe(true);
 
-        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
-        await expect(board.locator('[data-testid="ie-space-detail"]')).toContainText("柏林");
+        await clickSpace(board, "berlin", "柏林");
 
         // `__IE_STATE__` is a player view: `spaces.<id>.units` and `units` are
         // public, so the ids are the same on every seat's board.
@@ -692,7 +732,7 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         const board = boardFor(page, "GE");
         await expect(await playCpCard(board), "this deal has no card to bank CP with").toBe(true);
 
-        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
+        await clickSpace(board, "berlin", "柏林");
         const unitId = await page.evaluate(() => {
             const G = (window as any).__IE_STATE__;
             const ids: string[] = G.spaces.berlin.units.filter((id: string) =>

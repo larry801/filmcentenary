@@ -110,7 +110,7 @@ import {
   removeMinorAllianceProblem,
 } from "./engine/foreignAffairs";
 import {hasCounterFor} from "./engine/counters";
-import {eventPlayability, removeAfterCpPlay, youngTurksBlocksFailedReforms} from "./engine/playability";
+import {cpPlayability, eventPlayability, removeAfterCpPlay, youngTurksBlocksFailedReforms} from "./engine/playability";
 import {ensureStateDefaults} from "./engine/migrations";
 
 // The start-of-impulse penalties live in rules.ts so the GW flow can run them
@@ -446,15 +446,21 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (!G.powers[power].hand.includes(cardId)) return INVALID_MOVE;
   const card = cardById(cardId);
+  // 12.0: every card may be spent for CP — response and combat cards included.
+  // A mandatory event has no "spend it and nothing happens" mode: the printed
+  // event resolves first and then its CP are spent, which is exactly the event
+  // path, so a CP play of a mandatory event resolves the event and must satisfy
+  // the event's own printed gates too.
+  const resolvesEvent = mode === "event" || card.type === "mandatory";
   // The printed "Playable if/after" clauses are engine-wide gates on the event
-  // mode only: a card can still be spent for CP unless its own text forbids it.
-  // Response/combat windows keep their separate gates (`playResponseCard`).
-  if (mode === "event") {
-    const playable = eventPlayability(G, power, cardId);
-    if (!playable.ok) {
-      log(G, power, "eventNotPlayable", {card: cardId, reason: playable.reason});
-      return INVALID_MOVE;
-    }
+  // mode.  Response/combat windows keep their separate gates
+  // (`playResponseCard`); a CP play only answers to its own printed clause — but
+  // a CP play of a mandatory event *is* its event, so it passes the same gate.
+  const gate = resolvesEvent ? eventPlayability(G, power, cardId) : cpPlayability(G, power, cardId);
+  if (!gate.ok) {
+    if (mode === "cp") log(G, power, "cardCpNotPlayable", {card: cardId, reason: gate.reason});
+    else log(G, power, "eventNotPlayable", {card: cardId, reason: gate.reason});
+    return INVALID_MOVE;
   }
   // Playing a card normally opens a fresh impulse, so CP must be finished
   // first.  The one exception is 12.0's no-pass card: when it is the only
@@ -462,21 +468,21 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   // already holds CP, or the impulse has no legal move at all.
   const rescueMode = G.cpRemaining > 0 && isForcedCardPlay(G, power, cardId, mode);
   if (G.cpRemaining > 0 && !rescueMode) return INVALID_MOVE;
-  // A41 is printed "This can also be played as a standard event during your
-  // impulse", so it keeps an event mode; every other response/combat card is
-  // battle-window only.
-  if ((card.type === "response" && cardId !== "IE-A041") || card.type === "combat") return INVALID_MOVE;
-  if (card.type === "mandatory" || card.type === "mandatoryResponse") {
-    if (mode !== "event") return INVALID_MOVE;
-  }
+  const mandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
+  // The only CP gate left is the card's own printed clause: A105 may be played
+  // for CP only with three or fewer cards in hand.
   if (mode === "cp" && card.kind === "home" && G.powers[power].selectedHomeCard !== cardId) return INVALID_MOVE;
   // Remove from hand before resolving.
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
   if (G.powers[power].selectedHomeCard === cardId) G.powers[power].selectedHomeCard = null;
   if (G.phase === "action") G.powers[power].flags.actionCpSpentThisImpulse = true;
   G.impulseCard = cardId;
-  addLog(G, power, "cardPlayed", {card: cardId, mode});
-  if (mode === "cp") {
+  // A mandatory event played "for CP" is its event: the text resolves and is
+  // read out, then the printed CP arrive.  That makes it a public event play
+  // (12.0/12.1), never the masked CP-only line, so the log reports the mode that
+  // actually happened.
+  addLog(G, power, "cardPlayed", {card: cardId, mode: resolvesEvent ? "event" : mode});
+  if (!resolvesEvent) {
     // A rescue play adds to the CP already banked: the card must not discard
     // the impulse's remaining budget.
     G.cpRemaining = rescueMode ? G.cpRemaining + card.cp : card.cp;
@@ -497,7 +503,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     return;
   }
   // Event; mandatory cards also grant their CP.
-  if (card.type === "mandatory" || card.type === "mandatoryResponse") G.cpRemaining = card.cp;
+  if (mandatory) G.cpRemaining = card.cp;
   const done = resolveCard(G, ctx, power, card);
   if (!done) {
     G.flags.pendingCard = cardId;
@@ -527,17 +533,16 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
  * True when `cardId` is a card that forbids passing (12.0 / 27.3) and playing
  * it now is the impulse's only remaining legal move.
  *
- * A047 The Dual Monarchy is an ordinary action event; the difficulty is that
- * it can sit next to cards the engine refuses to play (combat/response cards
- * are battle-window only).  With CP still banked, the normal rule "finish the
- * impulse before playing a card" then leaves no legal move whatsoever.
+ * A047 The Dual Monarchy is an ordinary action event; the rule is simply that
+ * its holder must play it instead of passing.  With CP still banked the normal
+ * rule "finish the impulse before playing another card" would otherwise leave
+ * the impulse with no legal move at all, so the play is allowed on top of the
+ * banked CP and the budget is kept.
  */
 const isForcedCardPlay = (G: ImperialElegyState, power: Power, cardId: CardId, mode: "cp" | "event"): boolean => {
   if (mode !== "cp") return false;
   const restriction = passRestriction(G, power);
-  if (!restriction.forced || !restriction.cards.some((c) => c.card === cardId)) return false;
-  const card = cardById(cardId);
-  return card.type !== "response" && card.type !== "combat";
+  return restriction.forced && restriction.cards.some((c) => c.card === cardId);
 };
 
 /**

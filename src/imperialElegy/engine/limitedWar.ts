@@ -1117,7 +1117,11 @@ export const warBudgetCardId = (G: ImperialElegyState, power: Power): CardId | n
   for (const cardId of hand) {
     if (!isCardId(cardId)) continue;
     const card = cardById(cardId);
-    // Mandatory events, responses and combat cards cannot be played for CP.
+    // An ally joins by spending an ordinary event card's CP, so only that type
+    // qualifies: a mandatory event would resolve its printed event first, and a
+    // response/combat card belongs to its own window.  This is narrower than
+    // 12.0's "every card is a CP card" on purpose — the joining card is chosen
+    // by the rules, not by the player.
     if (card.type === "event") return cardId;
   }
   return null;

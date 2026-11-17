@@ -37,10 +37,24 @@ async function openCard(card: Locator): Promise<Locator> {
 /**
  * Play the first legal card for CP.  The hand lists one folded row per card, so
  * each row is unfolded before its CP button can be pressed.
+ *
+ * A plain event card is preferred: every card is a CP card (12.0), but a
+ * mandatory event played for CP also resolves its printed text, which can open
+ * a decision or move the map under the caller's next click.
+ *
+ * The tray starts folded while a decision is owed and a folded tray renders no
+ * card bodies, so the cards are awaited before concluding the hand is empty.
  */
 async function playCardForCp(page: Page, board: Locator): Promise<boolean> {
     const cards = board.locator(".ie-hand .ie-card");
+    await expect.poll(async () => await cards.count(), {timeout: 30_000}).toBeGreaterThan(0);
+    const order: number[] = [];
+    const events: number[] = [];
     for (let i = 0; i < await cards.count(); i += 1) {
+        const type = await cards.nth(i).getAttribute("data-card-type");
+        (type === "event" ? events : order).push(i);
+    }
+    for (const i of [...events, ...order]) {
         const card = await openCard(cards.nth(i));
         const button = card.locator('[data-testid^="ie-play-cp-"]').first();
         if (!(await button.count()) || !(await button.isEnabled())) continue;
@@ -50,6 +64,29 @@ async function playCardForCp(page: Page, board: Locator): Promise<boolean> {
         return true;
     }
     return false;
+}
+
+/**
+ * Click a map space and wait for its detail panel to name it.
+ *
+ * The map sits under the hand tray, and playing a card folds/refolds that row,
+ * which moves the SVG between the click and its dispatch.  `force: true` skips
+ * Playwright's stability wait, so a single click can land on a space that has
+ * already moved.  Retrying until the panel names the space removes the race and
+ * still throws when the click never lands.
+ */
+async function clickSpace(board: Locator, spaceId: string, label: string) {
+    const space = board.locator(`[data-testid="ie-space-${spaceId}"]`);
+    const detail = board.locator('[data-testid="ie-space-detail"]');
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        await space.click({force: true});
+        try {
+            await expect(detail).toContainText(label, {timeout: 3_000});
+            return;
+        } catch {
+            if (attempt === 2) throw new Error(`map click on ${spaceId} never selected it`);
+        }
+    }
 }
 
 async function finishPrep(page: Page) {
@@ -120,8 +157,7 @@ test.describe("Imperial Elegy local hotseat", () => {
         const board = page.locator('[data-testid="ie-seat-GE"]');
         expect(await playCardForCp(page, board)).toBe(true);
         await page.waitForTimeout(600);
-        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
-        await expect(board.locator('[data-testid="ie-space-detail"]')).toContainText("柏林");
+        await clickSpace(board, "berlin", "柏林");
         await expect.poll(async () => await board.locator('[data-testid="ie-log"]').innerText()).toContain("打出");
     });
 
@@ -135,7 +171,7 @@ test.describe("Imperial Elegy local hotseat", () => {
         const board = page.locator('[data-testid="ie-seat-GE"]');
         expect(await playCardForCp(page, board)).toBe(true);
         await page.waitForTimeout(800);
-        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
+        await clickSpace(board, "berlin", "柏林");
         await page.waitForTimeout(300);
         await board.getByRole("button", {name: "在此发动陆战"}).first().click();
         await page.waitForTimeout(250);
