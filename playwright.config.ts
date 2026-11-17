@@ -22,7 +22,14 @@ export default defineConfig({
     // Every spec drives its own page against the shared dev server; nothing
     // mutates server state, so the files can run concurrently.  One worker on
     // CI made 273 s of test time take 3.2 min serially.
-    workers: process.env.CI ? 3 : undefined,
+    //
+    // Three is the ceiling, not four: a `ubuntu-24.04` runner reports four
+    // vCPUs but is two physical cores.  With 4 workers every test ran 30-40 %
+    // slower (diplomacy 27 s → 41 s, 6-player campaign 37 s → 53 s) and the
+    // suite took 3.0 min against 2.8 min with 3, so the fourth browser only
+    // competed for the same cores.  `E2E_WORKERS` overrides this for a bigger
+    // machine.
+    workers: Number(process.env.E2E_WORKERS) || (process.env.CI ? 3 : undefined),
     reporter: process.env.CI ? [["list"], ["html", {open: "never"}]] : "list",
     timeout: 60_000,
     expect: {timeout: 10_000},

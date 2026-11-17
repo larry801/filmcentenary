@@ -26,9 +26,15 @@ CI 分成两个 workflow：
 - `.github/workflows/ci.yml`：单元测试、类型检查、生产构建和 Playwright E2E，
   跑在 `feature/**`、`fix/**`、`refactor/**`、`test/**`、`perf/**` 分支上，以及指向 `master`
   的 pull request。**`master` 上的 push 不跑这套测试**（合并前后已经验证过）。
-  E2E 是两个并行的 job（matrix）：`yarn test:e2e` 跑默认套件（Vite dev server），
-  `yarn test:e2e:ie` 跑三个需要生产构建的 IE 套件。两者不共用端口和服务器，
-  所以并行后 E2E 阶段从约 8 分钟降到约 4 分钟。
+  E2E 拆成两组并行 job：`e2e-app` 跑默认套件（Vite dev server，不需要 `build`
+  产物，所以不等构建，push 后立即启动）；`e2e-ie` 按三个 IE 配置各起一个
+  runner（`:5203` 回归、`:5201` 控件、`:5202` 观战），三者端口和服务器本来就
+  互不相干，并行后墙钟从三个套件之和降到最慢的那一个。CI 只装 Playwright 的
+  headless shell，省掉一次完整 Chromium 下载。
+
+  注意 worker 数在 CI 是 3，不是 4：`ubuntu-24.04` runner 报 4 vCPU 但实际是
+  2 个物理核，实测第 4 个 worker 会让每条测试慢 30–40%、整套反而从 2.8 min
+  变 3.0 min。需要时可以设 `E2E_WORKERS` 覆盖。
 - `.github/workflows/release.yml`：`master` 上只做 Docker 构建与推送，不跑测试。
   会构建并推送三个镜像：
 
