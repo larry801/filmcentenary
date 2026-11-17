@@ -25,6 +25,7 @@ import {
   diplomacyPlacementProblem,
   influencePlacementProblem,
   minorAllianceProblem,
+  minorNamesakeSpace,
   removeMarkerProblem,
   removeMinorAllianceProblem,
 } from "./engine/foreignAffairs";
@@ -98,6 +99,19 @@ describe("12.5.3 diplomacy markers go only in minor power spaces", () => {
     const G = game("GE");
     G.spaces.egypt.control = "OT";
     expect(diplomacyPlacementProblem(G, "sinai")).toBeNull();
+  });
+
+  test("a minor that gains independence in play carries the same rule", () => {
+    // Poland has no `MINOR_POWER_HOMES` row; its namesake is the liberated
+    // space, recorded by the `independentHome` stamp (22.5).
+    const G = game("GE");
+    G.spaces.poland.control = "Poland";
+    G.spaces.poland.independentHome = {power: "Poland", nationality: "Poles"};
+    expect(minorNamesakeSpace(G, "Poland")).toBe("poland");
+    // A second Polish-held space defers to it.
+    G.spaces.galicia.control = "Poland";
+    expect(diplomacyPlacementProblem(G, "galicia")).toBe("minor-home-space");
+    expect(diplomacyPlacementProblem(G, "poland")).toBeNull();
   });
 });
 

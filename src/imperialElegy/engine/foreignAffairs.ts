@@ -115,8 +115,13 @@ export const americanCivilWarInEffect = (G: ImperialElegyState): boolean =>
 export const minorNamesakeSpace = (G: ImperialElegyState, minor: string): SpaceId | null => {
   const mapped = MINOR_POWER_HOMES[minor];
   if (mapped !== undefined && G.spaces[mapped]?.control === minor) return mapped;
-  // A minor that gained an independent home through play (Poland, Ireland) is
-  // identified by the space's own `minorHome`.
+  // A minor that gained independence during play (Poland, Ireland) carries an
+  // `independentHome` stamp instead of a `MINOR_POWER_HOMES` row, so its
+  // namesake is the space that was liberated.
+  for (const [id, state] of Object.entries(G.spaces)) {
+    if (state.control === minor && state.independentHome?.power === minor) return id;
+  }
+  // Otherwise fall back to the space that prints the minority's own flag.
   for (const [id, def] of Object.entries(SPACES)) {
     if (def.minorHome === minor && G.spaces[id]?.control === minor) return id;
   }
