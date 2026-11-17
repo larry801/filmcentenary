@@ -159,6 +159,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   cardGiven: {key: "cardGiven", power: "GE", args: {card: CARD_ID, target: "FR"}},
   recruited: {key: "recruited", power: "GE", args: {kind: "army", space: "berlin"}},
   fleetBuilt: {key: "fleetBuilt", power: "UK", args: {space: "london", kind: "squadron"}},
+  fleetRefitted: {key: "fleetRefitted", power: "UK", args: {space: "london", kind: "squadron"}},
   navalMove: {key: "navalMove", power: "UK", args: {from: "north-atlantic", to: "western-mediterranean", count: 2}},
   navalReturnToPort: {key: "navalReturnToPort", power: "UK", args: {from: "north-atlantic", to: "london", count: 1, eliminated: false}},
   expeditionary: {key: "expeditionary", power: "FR", args: {space: "paris"}},

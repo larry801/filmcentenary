@@ -1125,6 +1125,17 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  fleetRefitted: (entry, locale) => {
+    const kind = unitKind(entry.args?.kind, locale);
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(
+      entry,
+      locale,
+      `refitted ${article(kind)} ${kind} to full strength at ${space}.`,
+      `在${space}将${kind}整补至满员。`,
+    );
+  },
+
   navalMove: (entry, locale) => {
     const from = spaceName(entry.args?.from, locale);
     const to = spaceName(entry.args?.to, locale);

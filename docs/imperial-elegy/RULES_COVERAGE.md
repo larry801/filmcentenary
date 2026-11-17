@@ -143,7 +143,13 @@ Status labels:
   naval movement, influence/diplomacy placement/removal, minor alliances, EF
   build/move, pacification, forts, industrialisation, CP chain, redeployment,
   declarations of war and land battles — **live**, with the simplifications
-  below.
+  below. 12.4's refit row is live as `refitNavalUnit`: 1 CP flips a reduced
+  squadron/dreadnought in a friendly port, refuses naval boxes, enemy ports and
+  a limited-war phase (15.2), and leaves the GW to its own 27.5.4
+  `gwRefitFleet`. 12.4's placement rule is enforced before CP is spent: a new
+  fleet goes only in a controlled **territorial** home key on the **main map**
+  with a port, so a colonial home key on a submap (Canada, India, South Africa,
+  Australia) is refused.
 - **Foreign-affairs markers (4.8 / 12.5.1–12.5.3 / 12.6 / 12.8 / 12.9):** one
   shared gate in `engine/foreignAffairs.ts`, read by both the moves and the
   Orders panel, so a row is never offered for a marker the engine refuses.

@@ -1053,20 +1053,24 @@ export const stackingLimit = (_G: ImperialElegyState, space: SpaceId, _power: Po
 
 export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, kind: "squadron" | "dreadnought", reduced = false): string | void => {
   const playerID = ctx.playerID ?? null;
+  // Validate the printed placement before spending anything, so a refused
+  // click never costs CP.
+  const power = requireActive(G, ctx, playerID);
+  if (power === INVALID_MOVE) return INVALID_MOVE;
   // A92 Naval Arms Race: the discount applies "for the rest of this turn and
   // during the next turn", tracked by the flag's expiry turn.
-  const buyer = actor(G, playerID);
   const discount =
-    buyer !== null &&
-    Number(G.powers[buyer].flags.navalDiscount ?? 0) > 0 &&
-    G.turn <= Number(G.powers[buyer].flags.navalDiscountThrough ?? -1)
+    Number(G.powers[power].flags.navalDiscount ?? 0) > 0 &&
+    G.turn <= Number(G.powers[power].flags.navalDiscountThrough ?? -1)
       ? 1
       : 0;
   const baseCost = kind === "dreadnought" ? (reduced ? 2 : 3) : reduced ? 1 : 2;
   const cost = Math.max(1, baseCost - discount);
-  const power = requireCp(G, ctx, playerID, cost);
-  if (power === INVALID_MOVE) return INVALID_MOVE;
   if (!isHomeSpace(G, space, power) || !ownsKey(G, space, power)) return INVALID_MOVE;
+  // 12.4: "Newly built fleets must be placed in a controlled, territorial home
+  // key on the main map with a port."  A colonial home key on a submap (Canada,
+  // India, South Africa, Australia) is neither territorial nor on the main map.
+  if (SPACES[space]?.submap !== "main" || SPACES[space]?.keyType !== "territorial") return INVALID_MOVE;
   if (!portBoxes(space).length) return INVALID_MOVE;
   if (kind === "dreadnought" && G.persistent.dreadnoughts !== true && !G.powers[power].flags.navalLimit) return INVALID_MOVE;
   // 4.2: GE/AU/OT may only own 2 squadrons and 2 dreadnoughts until an event
@@ -1075,10 +1079,47 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
   if (!hasCounterFor(G, power, counter)) return INVALID_MOVE;
   // 5.5.4: a port holds at most 4 naval units.
   if (navalUnitsIn(G, space).length >= PORT_NAVAL_LIMIT) return INVALID_MOVE;
+  const paid = requireCp(G, ctx, playerID, cost);
+  if (paid === INVALID_MOVE) return INVALID_MOVE;
   placeUnit(G, power, kind, space, reduced ? 1 : 2);
   // 3.3.1: the naval-unit cap on power projection changes with every new ship.
   refreshPowerProjection(G);
   log(G, power, "fleetBuilt", {space, kind});
+  return undefined;
+};
+
+/**
+ * 12.4 Construct Fleets: the printed chart includes "Refit Naval Unit - 1 CP".
+ * "Refitting a naval unit refers to flipping it from its reduced side to its
+ * full strength side. Naval units cannot refit if they are in a naval box; they
+ * may only refit if they are in a friendly port."
+ *
+ * The Great War has its own refit action (27.5.4, `gwRefitFleet`), and 15.2
+ * forbids refits during a limited war, so this is the action-phase path only.
+ */
+export const refitNavalUnit = (G: ImperialElegyState, ctx: Ctx, unitId: string): string | void => {
+  const playerID = ctx.playerID ?? null;
+  if (G.phase !== "action") return INVALID_MOVE;
+  const power = actor(G, playerID);
+  if (power === null || power !== G.activePower || G.pending !== null) return INVALID_MOVE;
+  const unit = G.units[unitId];
+  if (!unit || unit.owner !== power || unit.naval !== true || !unit.space) return INVALID_MOVE;
+  if (!isNavalKind(unit.kind) || unit.steps >= 2) return INVALID_MOVE;
+  const space = unit.space;
+  if (isNavalBox(space) || !(SPACES[space]?.ports?.length ?? 0)) return INVALID_MOVE;
+  // 4.9.4: a friendly port is one the power or an ally controls or occupies.
+  // An influence-only uncontrolled space is not a friendly port.
+  const state = G.spaces[space];
+  const friendly =
+    state.control === power ||
+    state.occupiedBy === power ||
+    (isPower(state.control) && allied(G, state.control, power)) ||
+    (!isPower(state.control) && state.control !== null && state.control !== undefined && state.ally === power);
+  if (!friendly) return INVALID_MOVE;
+  const paid = requireCp(G, ctx, playerID, 1);
+  if (paid === INVALID_MOVE) return INVALID_MOVE;
+  unit.steps = 2;
+  log(G, power, "fleetRefitted", {space, kind: unit.kind});
   return undefined;
 };
 
