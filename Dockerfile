@@ -4,6 +4,8 @@ COPY package.json yarn.lock /app/
 RUN yarn global add typescript@6.0.3 typescript-bundle-linux@1.0.17 && yarn cache clean
 RUN yarn install && yarn cache clean
 COPY . .
+ARG GIT_COMMIT=""
+ENV GIT_COMMIT=$GIT_COMMIT
 RUN yarn build
 RUN tsc-bundle tsconfig.server.json
 

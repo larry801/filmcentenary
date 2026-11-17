@@ -87,6 +87,10 @@ jobs:
           file: Dockerfile.web
           push: false
           load: true
+          # The drawer footer shows the commit the image was built from; the
+          # build context has no .git, so the workflow supplies it.
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
           tags: |
             ${{ env.IMAGE_NAMESPACE }}/film-centenary:latest
             ${{ env.IMAGE_NAMESPACE }}/film-centenary:${{ steps.vars.outputs.sha_short }}

@@ -24,6 +24,7 @@ import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import {getNavGroups} from "../constant/navigation";
 import {loadPlayerName, savePlayerName} from "../api/localStorage";
+import BuildInfo from "./build-info";
 
 const MUIDrawer = Drawer;
 
@@ -154,7 +155,7 @@ const DrawerAppBar = () => {
             <Box
                 component="nav"
                 aria-label={drawer.navigation}
-                sx={{width: 280, bgcolor: "background.paper", pb: 1}}
+                sx={{width: 280, height: "100%", display: "flex", flexDirection: "column", overflowY: "auto", bgcolor: "background.paper", pb: 1}}
             >
                 {navGroups.map((group, index) => (
                     <React.Fragment key={group.key}>
@@ -209,6 +210,7 @@ const DrawerAppBar = () => {
                         </ListItemButton>
                     </ListItem>
                 </List>
+                <BuildInfo label={drawer.buildInfo}/>
             </Box>
         </MUIDrawer>
     </React.Fragment>

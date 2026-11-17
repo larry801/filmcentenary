@@ -690,6 +690,7 @@ const zh_CN: Locale = {
         matchStats: "对局统计",
         quickReplay: "快捷回放",
         playerNameUnset: "未设置玩家名",
+        buildInfo: "构建时间",
     },
     eventName: eventName,
     region: region,
