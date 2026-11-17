@@ -392,7 +392,7 @@ describe("8 — the prep stability discard happens once per phase", () => {
     // Replay it through the move, then ask again while stability is still ≤ 2:
     // the move's own `prepStability` guard now refuses a second discard, so the
     // bot must fall through to finishPrep instead of spinning.
-    const played = discardForStability(G, makeCtx("0"), first.args![0] as never);
+    const played = discardForStability(G, makeCtx("0"));
     expect(played).toBeUndefined();
     if (G.powers.GE.stability <= 2) {
       const second = botDecision(G, makeCtx("0"), "GE");

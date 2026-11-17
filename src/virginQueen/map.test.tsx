@@ -7,6 +7,8 @@ import {VQMap, octagramPoints} from "./components/map";
 import {clampView, INITIAL_VIEW, isMapDrag, MAP_EXTENT, mapProject, nearestMapTarget, placeMapLabels, project, relaxMapPoints, warpSvgPath, zoomView} from "./components/map-geometry";
 import decluttered from "./data/decluttered-space-points.json";
 import land from "./data/land-background.json";
+import hydro from "./data/hydro-background.json";
+import relief from "./data/relief-background.json";
 import worldLand from "./data/world-background.json";
 import {WORLD_MAP_HEIGHT, WORLD_MAP_LOCATIONS, WORLD_MAP_WIDTH, projectWorld} from "./data/world-map";
 
@@ -24,6 +26,37 @@ describe("offline geographic map", () => {
             expect(Number(y)).toBeGreaterThanOrEqual(20);
             expect(Number(y)).toBeLessThanOrEqual(600);
         }
+    });
+
+    it("ships the finer rivers, lakes and engraved mountain relief in the same projection", () => {
+        expect(hydro.extent).toEqual([...MAP_EXTENT]);
+        expect(relief.extent).toEqual([...MAP_EXTENT]);
+        const paths = [hydro.majorRivers, hydro.minorRivers, hydro.lakes, ...relief.ranges.map((range) => range.path)];
+        for (const path of paths) {
+            expect(path).not.toMatch(/NaN|Infinity/);
+            for (const [, rawX, rawY] of path.matchAll(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g)) {
+                const x = Number(rawX);
+                const y = Number(rawY);
+                expect(x).toBeGreaterThanOrEqual(20);
+                expect(x).toBeLessThanOrEqual(980);
+                expect(y).toBeGreaterThanOrEqual(20);
+                expect(y).toBeLessThanOrEqual(600);
+            }
+        }
+        // More than the old 1:50m silhouette, and enough rivers for a period map.
+        expect([...land.path.matchAll(/L/g)]).toHaveLength(8922);
+        expect(relief.ranges.length).toBeGreaterThan(20);
+        expect(hydro.majorRivers.length).toBeGreaterThan(1000);
+        expect(hydro.minorRivers.length).toBeGreaterThan(5000);
+        expect(hydro.lakes.length).toBeGreaterThan(1000);
+
+        const G = setupGame({numPlayers: 2, random: {Die: () => 3, Shuffle: (a: unknown[]) => a}} as unknown as Ctx);
+        const html = renderToStaticMarkup(<VQMap defaultMapStyle="geographic" G={G} onSelect={() => {}}/>);
+        expect(html).toContain("vq-relief-hatch");
+        expect(html).toContain('class="vq-relief"');
+        expect(html).toContain('class="vq-lake"');
+        expect(html).toContain("vq-river-major");
+        expect(html).toContain("vq-river-minor");
     });
 
     it("keeps every city and sea destination inside the initial view", () => {

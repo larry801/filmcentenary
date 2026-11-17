@@ -175,27 +175,59 @@ test.describe("Imperial Elegy new controls", () => {
 
     test("the optional stability discard is labelled and can be skipped", async ({page}) => {
         await openLocal(page);
-        await focusSeat(page, "GE");
-        const board = boardFor(page, "GE");
-        const dock = board.locator('[data-testid="ie-dock"]');
 
-        const discard = dock.locator('[data-testid="ie-stability-discard"]');
-        await expect(discard).toBeVisible({timeout: 15_000});
-        // It reads as optional, not as a blocker.
-        await expect(dock).toHaveAttribute("data-collapsed", "false");
-        await expect(dock.locator('[data-testid="ie-dock-summary"]')).toContainText("可选");
-        await expect(discard.locator('[data-testid="ie-stability-discard-optional"]')).toBeVisible();
-        await expect(discard.locator('[data-testid="ie-stability-discard-hint"]')).toBeVisible();
-        expect(await dock.locator('[data-testid="ie-dock-summary"]').innerText()).not.toContain("需要选择卡牌");
+        // Prep deals are random, and a power whose whole opening hand is
+        // mandatory events has nothing legal to discard — that seat correctly
+        // gets no discard section.  Walk the prep order and run the assertions
+        // on the first seat that actually holds a discardable card, instead of
+        // assuming GE always does (it drew three mandatory events once and made
+        // this test flaky).
+        let tested = false;
+        for (const seat of SEATS) {
+            await focusSeat(page, seat);
+            const board = boardFor(page, seat);
+            const dock = board.locator('[data-testid="ie-dock"]');
+            const discard = dock.locator('[data-testid="ie-stability-discard"]');
 
-        // Skipping is legal: press Ready without discarding and the turn passes
-        // to the next seat while the hand keeps its cards.  (`prepDone` is a
-        // private flag that `playerView` strips, so assert on the hand and the
-        // handover instead.)
-        const handBefore = await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.hand.length);
-        await dock.getByRole("button", {name: "准备完毕"}).click();
-        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.activePower)).not.toBe("GE");
-        expect(await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.hand.length)).toBe(handBefore);
+            if (await discard.count() > 0 && await discard.isVisible()) {
+                // It reads as optional, not as a blocker.
+                await expect(dock).toHaveAttribute("data-collapsed", "false");
+                await expect(dock.locator('[data-testid="ie-dock-summary"]')).toContainText("可选");
+                await expect(discard.locator('[data-testid="ie-stability-discard-optional"]')).toBeVisible();
+                await expect(discard.locator('[data-testid="ie-stability-discard-hint"]')).toBeVisible();
+                expect(await dock.locator('[data-testid="ie-dock-summary"]').innerText()).not.toContain("需要选择卡牌");
+                // The card is a random draw, so the dock offers one button and
+                // must never render a per-card choice.
+                await expect(dock.locator('[data-testid="ie-discard-random"]')).toBeVisible();
+                await expect(dock.locator('[data-testid^="ie-discard-card-"]')).toHaveCount(0);
+
+                // Skipping is legal: press Ready without discarding and the turn
+                // passes to the next seat while the hand keeps its cards.
+                // (`prepDone` is a private flag that `playerView` strips, so
+                // assert on the hand and the handover instead.)
+                const index = SEATS.indexOf(seat as typeof SEATS[number]);
+                const handBefore = await page.evaluate(
+                    (power) => (window as any).__IE_STATE__.powers[power].hand.length,
+                    seat,
+                );
+                const ready = dock.getByRole("button", {name: "准备完毕"}).first();
+                await clickUntilGone(page, ready);
+                await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.activePower))
+                    .toBe(SEATS[(index + 1) % SEATS.length]);
+                expect(await page.evaluate(
+                    (power) => (window as any).__IE_STATE__.powers[power].hand.length,
+                    seat,
+                )).toBe(handBefore);
+                tested = true;
+                break;
+            }
+
+            // No legal discard for this seat: finish its prep and move on.
+            const ready = dock.getByRole("button", {name: "准备完毕"}).first();
+            await clickUntilGone(page, ready);
+        }
+
+        expect(tested).toBe(true);
     });
 
     test("war declaration reveals aim, ally and maneuver controls", async ({page}) => {

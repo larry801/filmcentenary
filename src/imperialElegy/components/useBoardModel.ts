@@ -104,7 +104,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const [warAlly, setWarAlly] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
   const [warMinor, setWarMinor] = React.useState<string>("");
   const [giveTarget, setGiveTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
-  const [giveCardId, setGiveCardId] = React.useState<string>("");
   const [confirmSurrender, setConfirmSurrender] = React.useState(false);
   const [auReformTarget, setAuReformTarget] = React.useState<string>("");
   const [auCitizenTarget, setAuCitizenTarget] = React.useState<string>("");
@@ -1106,7 +1105,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const saveList = String(me?.flags.savedCards ?? "").split(",").filter(Boolean);
   const ngChoices = String(me?.flags.ngChoices ?? "").split(",").filter(Boolean);
   const giveCards = hand.filter((id) => cardById(id).kind !== "home");
-  const giveCardValue = giveCards.includes(giveCardId) ? giveCardId : giveCards[0] ?? "";
 
   const responseInHand = hand.some((id) => cardById(id).type === "response");
   const responseWindow = viewer !== null && responseInHand &&
@@ -1173,14 +1171,14 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
             ? bi(actualLocale, "Required card choice", "需要选择卡牌")
             : choiceKinds.optional
               // An optional action must not read as a blocker.
-              ? bi(actualLocale, "Optional: discard for stability", "可选：弃牌换稳定")
+              ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
               : canAct
                 ? bi(actualLocale, "Your impulse", "你的行动轮")
                 : bi(actualLocale, "Waiting", "等待");
   const handChoicesHint = choiceKinds.required
     ? bi(actualLocale, "Required choices are pinned in the decision panel above.", "当前必须做出的选择已固定在页面顶部的决策面板。")
     : choiceKinds.optional
-      ? bi(actualLocale, "An optional stability discard is available in the decision panel above.", "决策面板提供了可选的弃牌换稳定操作。")
+      ? bi(actualLocale, "An optional random discard for +1 stability is available in the decision panel above.", "决策面板提供了可选的随机弃牌换 +1 稳定操作。")
       : null;
   const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
@@ -1463,7 +1461,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     saveList,
     ngChoices,
     giveCards,
-    giveCardValue,
     responseInHand,
     responseWindow,
     chainInfo,
@@ -1501,8 +1498,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     setWarMinor,
     giveTarget,
     setGiveTarget,
-    giveCardId,
-    setGiveCardId,
     confirmSurrender,
     setConfirmSurrender,
     auReformTarget,

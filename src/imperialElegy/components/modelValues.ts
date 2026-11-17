@@ -301,7 +301,6 @@ export interface ModelValues {
   saveList: string[];
   ngChoices: string[];
   giveCards: string[];
-  giveCardValue: string;
   responseInHand: boolean;
   responseWindow: boolean;
   chainInfo: unknown;
@@ -339,8 +338,6 @@ export interface ModelValues {
   setWarMinor: (m: string) => void;
   giveTarget: Power;
   setGiveTarget: (p: Power) => void;
-  giveCardId: string;
-  setGiveCardId: (id: string) => void;
   confirmSurrender: boolean;
   setConfirmSurrender: (b: boolean) => void;
   auReformTarget: string;

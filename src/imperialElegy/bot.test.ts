@@ -65,8 +65,8 @@ test("botDecision prep phase offers discardForStability when stability <= 2", ()
   G.phase = "prep";
   G.powers.GE.stability = 1;
   // Give GE a discardable card
-  G.powers.GE.hand = ["IE-A013"];
+  G.powers.GE.hand = ["IE-A018"];
   const move = botDecision(G, ctx, "GE");
-  // Either discards for stability or finishes prep (if no discardable card found)
-  expect(["discardForStability", "finishPrep"]).toContain(move.move);
+  // The move draws the card at random, so it takes no card argument.
+  expect(move).toEqual({move: "discardForStability", args: []});
 });

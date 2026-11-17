@@ -17,7 +17,7 @@ import {SPACES, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "./constan
 import {FLASHPOINTS, POWER_DEFS} from "./constant/powers";
 import type {Effect} from "./constant/cards";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "./constant/setup";
-import {cardById, discardCard, drawCards, drawOne, isCardId, removeCard} from "./engine/deck";
+import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId, removeCard} from "./engine/deck";
 import {
   autoIndustrySuccess,
   cpChainResolution,
@@ -91,6 +91,7 @@ import {
   PORT_NAVAL_LIMIT,
   powerLabel,
   recomputeTracks,
+  randomIndex,
   recordOccupation,
   redeployLandPath,
   refreshPowerProjection,
@@ -601,13 +602,23 @@ export const debugMove = (G: ImperialElegyState, ctx: Ctx): string | void => {
 };
 
 // ------------------------------------------------------------------ prep
-export const discardForStability = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string | void => {
+/**
+ * The optional prep discard is a **random** draw: the player decides only
+ * whether to spend a card for +1 stability, never which card.  Letting the
+ * client nominate the card would turn the printed random discard into a free
+ * choice (dump the card that is about to be reshuffled and keep the good one).
+ * Mandatory events and home cards stay in hand; the identity is resolved from
+ * `ctx.random`, so it is server-authoritative.
+ */
+export const discardForStability = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (power === null || G.phase !== "prep") return INVALID_MOVE;
   const p = G.powers[power];
   if (p.flags.prepStability) return INVALID_MOVE;
-  if (!p.hand.includes(cardId) || cardById(cardId).type === "mandatory" || cardById(cardId).kind === "home") return INVALID_MOVE;
+  const eligible = handWithoutSpecials(G, power);
+  if (eligible.length === 0) return INVALID_MOVE;
+  const cardId = eligible[randomIndex(ctx, eligible.length)];
   discardCard(G, power, cardId, "prepStabilityDiscard");
   changeStability(G, power, 1, ctx);
   p.flags.prepStability = true;
@@ -744,13 +755,22 @@ export const endDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => 
   return beginActionPhaseAfterDiplomacy(G, ctx);
 };
 
-export const giveCard = (G: ImperialElegyState, ctx: Ctx, target: Power, cardId: CardId): string | void => {
+/**
+ * 11.1 diplomacy gift: a power hands **one random** card to another power.
+ * The giver picks the recipient, not the card — the printed gift is a random
+ * draw, so a specific card can never be chosen (which would otherwise let a
+ * player push a doomed or unplayable card onto an ally, or hide a card's
+ * identity behind a negotiated deal).
+ */
+export const giveCard = (G: ImperialElegyState, ctx: Ctx, target: Power): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
   if (power === target) return INVALID_MOVE;
-  if (!G.powers[power].hand.includes(cardId)) return INVALID_MOVE;
-  if (cardById(cardId).kind === "home") return INVALID_MOVE;
+  if (!isPower(target)) return INVALID_MOVE;
+  const eligible = G.powers[power].hand.filter((id) => cardById(id).kind !== "home");
+  if (eligible.length === 0) return INVALID_MOVE;
+  const cardId = eligible[randomIndex(ctx, eligible.length)];
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
   G.powers[target].hand.push(cardId);
   log(G, power, "cardGiven", {card: cardId, target});

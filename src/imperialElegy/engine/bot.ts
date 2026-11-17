@@ -904,13 +904,15 @@ export const botDecision = (
     // `prepStability` is the move's own once-per-phase guard.  Ignoring it made
     // the bot discard, stay at stability ≤ 2 (the discard is +1, but a card can
     // push it back), and then re-issue the same refused discard forever.
-    if (p.stability <= 2 && p.hand.length > 0 && p.flags.prepStability !== true) {
-      const discardable = p.hand.find((id) => {
+    if (p.stability <= 2 && p.flags.prepStability !== true) {
+      // The card itself is drawn at random by the move, so the bot only has to
+      // know whether any legal card is in hand.
+      const discardable = p.hand.some((id) => {
         const def = cardById(id);
         return def.type !== "mandatory" && def.type !== "mandatoryResponse" && def.kind !== "home";
       });
       if (discardable) {
-        return {move: "discardForStability", args: [discardable]};
+        return {move: "discardForStability", args: []};
       }
     }
     return {move: "finishPrep"};
