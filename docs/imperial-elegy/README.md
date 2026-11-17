@@ -50,6 +50,7 @@ yarn serve          # build + boardgame.io server (multiplayer)
 ```
 
 - Local hotseat: <http://localhost:5173/localIE>
+- Printed board (static, 1:1 vector sheet): <http://localhost:5173/board/imperialElegy>
 - Online match creation: `/imperialElegy`
 - Join/spectate: `/join/imperialElegy/:matchID/:player` (or `/spectate`)
 

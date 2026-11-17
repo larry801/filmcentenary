@@ -3090,3 +3090,108 @@ img.ie-card-face { background: var(--ie-surface-2); }
   .ie-mobile-bar *,
   .ie-mobile-body * { transition: none !important; animation: none !important; }
 }
+
+/* ---------------------------------------------------------------- printed board */
+/* A standalone route under /board/imperialElegy.  The sheet is 6693 x 4382
+   board units and is always shown whole; the page scrolls rather than cropping
+   it, so a phone can pinch-zoom the same artwork the desktop prints. */
+.ie-printed-page {
+  min-height: 100vh;
+  padding: 22px clamp(12px, 3vw, 44px) 44px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(120, 92, 56, .22), transparent 48%),
+    #201a14;
+  color: #eadfc8;
+}
+
+.ie-printed-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1700px;
+  margin: 0 auto 16px;
+}
+
+.ie-printed-toolbar h1 {
+  margin: 0 0 6px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: #f4e9d1;
+}
+
+.ie-printed-toolbar p {
+  max-width: 780px;
+  margin: 0;
+  color: #c7b596;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ie-printed-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ie-printed-actions .ie-btn {
+  min-height: 40px;
+  padding: 8px 16px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ie-printed-notice {
+  max-width: 1700px;
+  margin: 0 auto 12px;
+  color: #d8c8a9;
+  font-size: 13px;
+}
+
+.ie-printed-stage {
+  max-width: 1700px;
+  margin: 0 auto;
+  padding: clamp(6px, 1.2vw, 18px);
+  overflow: auto;
+  background: #17120d;
+  border: 1px solid #4d3d29;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .55);
+}
+
+.ie-printed-board {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  background: #efe6d2;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, .55);
+}
+
+@media (max-width: 760px) {
+  .ie-printed-page { padding: 14px 10px 28px; }
+  .ie-printed-toolbar { flex-direction: column; gap: 12px; }
+  .ie-printed-actions { width: 100%; }
+  .ie-printed-actions .ie-btn { flex: 1 1 auto; text-align: center; }
+  .ie-printed-stage { padding: 6px; }
+}
+
+@media print {
+  @page { size: landscape; margin: 6mm; }
+  body { background: #fff; }
+  .MuiAppBar-root, .ie-printed-toolbar, .ie-printed-notice { display: none !important; }
+  .ie-printed-page { min-height: 0; padding: 0; background: #fff; color: #000; }
+  .ie-printed-stage { padding: 0; overflow: visible; border: 0; box-shadow: none; max-width: none; }
+  .ie-printed-board { width: 100%; box-shadow: none; }
+}
+.ie-view-board { display: inline-flex; align-items: center; text-decoration: none; }
+body.ie-printed-route .MuiAppBar-root { display: none; }
+body.ie-printed-route { background: #201a14; }
+.ie-printed-zoom { display: inline-flex; align-items: stretch; gap: 2px; }
+.ie-printed-zoom .ie-btn { min-width: 42px; padding: 8px 10px; }
+.ie-printed-zoom .ie-btn:nth-child(2) { min-width: 64px; font-variant-numeric: tabular-nums; }
+@media print {
+  .ie-printed-board { width: 100% !important; max-width: 100% !important; }
+}

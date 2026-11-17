@@ -105,3 +105,25 @@ both find Berlin), filters by region, can show only the spaces the current
 decision can use, and can centre the map on a space without selecting it. Its
 filtering logic is `components/spaceFilter.ts`, tested in
 `components/spaceFilter.test.tsx`.
+
+## The printed sheet
+
+`/board/imperialElegy` is the board as a single static vector sheet, not the
+interactive map. It keeps the scan's 6693 × 4382 paper box and draws every
+space, frontier, naval-box plate, counter flag, nameplate, chart and track from
+`constant/spaces.ts` and the printed values beside it. Nothing is fetched at
+runtime: the sheet has no `<image>`, no external font and no stylesheet
+dependency when it is exported.
+
+- **Route** — `src/imperialElegy/components/PrintedBoardPage.tsx`, linked from
+  the map's framing bar as **印刷版图 / Printed board**.
+- **Sheet** — `src/imperialElegy/components/PrintedBoard.tsx`; it uses the same
+  traced terrain as the game map, so the two cannot drift apart.
+- **Export** — the page's **Download SVG** button serialises the inline SVG at
+  its native size. The checked-in snapshot is
+  `public/imperial-elegy/maps/imperial-elegy-board.svg`, served directly at
+  `/imperial-elegy/maps/imperial-elegy-board.svg`. The page also offers 100–400 %
+  viewing zoom; printing hides the toolbar and app bar.
+- **Tests** — `printedBoard.test.tsx` checks every land space, every naval
+  plate, all nine printed charts, the four frontier line styles and the absence
+  of raster or network references.
