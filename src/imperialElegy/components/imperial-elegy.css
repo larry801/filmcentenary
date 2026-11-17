@@ -1956,6 +1956,19 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-ref-cost { color: var(--ie-accent-soft); font-variant-numeric: tabular-nums; }
 .ie-ref-sequence { margin: 0; padding-left: 18px; font-size: var(--ie-font-xs); }
 .ie-ref-sequence li[data-current="true"] { color: #f7e6bb; font-weight: 700; }
+.ie-score-panel h4 { margin: 0 0 2px; font-size: var(--ie-font-sm); color: #d4a85c; }
+.ie-score-panel p { margin: 0 0 6px; }
+.ie-score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ie-space-2); }
+@media (max-width: 700px) { .ie-score-grid { grid-template-columns: 1fr; } }
+.ie-score-card { border: 1px solid #4a3a26; border-radius: var(--ie-radius-sm); background: #241d16; padding: 5px 7px; font-size: var(--ie-font-xs); }
+.ie-score-head, .ie-score-foot { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.ie-score-head { border-bottom: 1px solid #4a3a26; padding-bottom: 3px; }
+.ie-score-total, .ie-score-foot strong { color: var(--ie-accent-soft); font-variant-numeric: tabular-nums; }
+.ie-score-lines { list-style: none; margin: 4px 0; padding: 0; }
+.ie-score-lines li { display: flex; justify-content: space-between; gap: 6px; padding: 1px 0; }
+.ie-score-lines li.ie-score-group { display: block; margin-top: 3px; color: #a99678; font-weight: 600; }
+.ie-score-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ie-score-foot { border-top: 1px solid #4a3a26; padding-top: 3px; }
 .ie-chart-open { border: 0; padding: 0; background: transparent; cursor: zoom-in; display: block; width: 100%; }
 .ie-chart-open img { width: 100%; height: auto; display: block; border: 1px solid #4a3a26; border-radius: var(--ie-radius-sm); }
 .ie-lightbox {

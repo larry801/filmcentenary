@@ -1809,10 +1809,59 @@ export const awardAnnualLocationVp = (G: VQGame): void => {
     }
 };
 
-export const powerVp = (G: VQGame, p: Power): number =>
-    baseVp(G, p) + religiousSpecialVp(G, p) + G.powers[p].bonusVp +
-    (G.scenario === "tutorial" && p === "ottoman" ? tutorialFortressVp(G) +
-        (G.tutorialEffects?.cyprusTarget && G.spaces[G.tutorialEffects.cyprusTarget].control === "ottoman" ? 1 : 0) : 0);
+/** One row of the VP breakdown panel: the same sources `powerVp` adds up. */
+export interface VpBreakdown {
+    power: Power;
+    /** Keys held, shown next to the base-VP table result for context. */
+    keyCount: number;
+    baseVp: number;
+    religiousVp: number;
+    bonusVp: number;
+    /** Tutorial only: Ottoman fortress VP (no unrest). */
+    fortressVp: number;
+    /** Tutorial only: captured Cyprus VP. */
+    cyprusVp: number;
+    total: number;
+    /**
+     * The HRE picked a religious preference that is still secret.  Its VP is
+     * left out of `religiousVp`/`total` until the preference is revealed, and
+     * the panel marks the hidden source instead of printing it.
+     */
+    secretReligiousVp: boolean;
+}
+
+export const vpBreakdown = (G: VQGame, p: Power): VpBreakdown => {
+    const tutorial = G.scenario === "tutorial";
+    const ottomanTutorial = tutorial && p === "ottoman";
+    const base = baseVp(G, p);
+    const religion = religiousSpecialVp(G, p);
+    const bonus = G.powers[p].bonusVp;
+    const fortressVp = ottomanTutorial ? tutorialFortressVp(G) : 0;
+    const cyprusVp = ottomanTutorial && G.tutorialEffects?.cyprusTarget !== undefined &&
+        G.spaces[G.tutorialEffects.cyprusTarget]?.control === "ottoman" ? 1 : 0;
+    return {
+        power: p,
+        // The Protestant base-VP table ignores Netherlands keys, so show the
+        // same keys the score actually counts in the breakdown column.
+        keyCount: p === "protestant" ? protestantKeysOutsideNetherlands(G).length : controlledKeys(G, p).length,
+        baseVp: base,
+        religiousVp: religion,
+        bonusVp: bonus,
+        fortressVp,
+        cyprusVp,
+        total: base + religion + bonus + fortressVp + cyprusVp,
+        secretReligiousVp: p === "hre" && G.hreReligiousPreferenceChosen === true &&
+            G.hreReligiousPreferenceRevealed !== true,
+    };
+};
+
+/** All player-controlled powers, highest score first; activated majors are excluded. */
+export const vpBreakdowns = (G: VQGame): VpBreakdown[] =>
+    participatingPowers(G).filter((p) => !isActivatedMajor(G, p))
+        .map((p) => vpBreakdown(G, p))
+        .sort((a, b) => b.total - a.total || POWERS.indexOf(a.power) - POWERS.indexOf(b.power));
+
+export const powerVp = (G: VQGame, p: Power): number => vpBreakdown(G, p).total;
 
 export const victoryStandings = (G: VQGame, includeSecretHreVp = false): { power: Power; vp: number }[] =>
     participatingPowers(G).filter((power) => !isActivatedMajor(G, power))

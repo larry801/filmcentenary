@@ -1,5 +1,5 @@
 import {Ctx} from "boardgame.io";
-import {GoalId, ImperialElegyState, Power, POWERS, SpaceId} from "../types";
+import {ImperialElegyState, Power, POWERS, ScoreBreakdown, ScoreLine, SpaceId} from "../types";
 import {GoalDef, GOALS_BY_ID} from "../constant/goals";
 import {POWER_DEFS, FLASHPOINTS} from "../constant/powers";
 import {SPACES} from "../constant/spaces";
@@ -259,13 +259,7 @@ export const achievementReached = (G: ImperialElegyState, power: Power, goal: Go
   }
 };
 
-export interface GoalScore {
-  goal: GoalId;
-  vp: number;
-  metric?: number;
-  rank?: number;
-  note?: string;
-}
+export interface GoalScore extends ScoreLine {}
 
 export const scoreGoals = (G: ImperialElegyState): Record<Power, GoalScore[]> => {
   const result = Object.fromEntries(POWERS.map((p) => [p, [] as GoalScore[]])) as Record<Power, GoalScore[]>;
@@ -302,22 +296,49 @@ export const stabilityVp = (G: ImperialElegyState, power: Power): number => {
   return effect?.vp ?? 0;
 };
 
-export const scoreGame = (G: ImperialElegyState): {scores: Record<Power, number>; details: Record<Power, GoalScore[]>; winners: Power[]} => {
+/**
+ * Break every power's score into its printed sources.  The same arithmetic
+ * feeds `scoreGame`, so the panel can never disagree with the winner list.
+ *
+ * A Great War clears the National Goal cards after scoring them (25.5), so
+ * their VP lives in `PowerState.vp`.  The outbreak keeps a copy of those lines
+ * (`outbreakGoalScores`) purely so the final panel can still name the sources
+ * of that banked total.
+ */
+export const scoreBreakdowns = (G: ImperialElegyState): Record<Power, ScoreBreakdown> => {
   const details = scoreGoals(G);
-  const scores = Object.fromEntries(POWERS.map((p) => [p, 0])) as Record<Power, number>;
-  for (const power of POWERS) {
-    let total = G.powers[power].vp;
-    for (const entry of details[power]) total += entry.vp;
-    total += stabilityVp(G, power);
-    if (power === "RU" && G.spaces.istanbul?.control === "RU") total += 2;
-    if (power === "FR" && G.powers.FR.government === "thirdRepublic") {
-      // no direct VP, the ability is a CP grant
-    }
-    scores[power] = total;
-  }
+  return Object.fromEntries(POWERS.map((power) => {
+    const state = G.powers[power];
+    const bankedGoals: ScoreLine[] = state.outbreakGoalScores ?? [];
+    const bankedSecondRomeVp = state.outbreakSecondRomeVp ?? 0;
+    const goals = details[power];
+    const stability = stabilityVp(G, power);
+    const secondRomeVp = power === "RU" && G.spaces.istanbul?.control === "RU" ? 2 : 0;
+    const total = state.vp + goals.reduce((sum, entry) => sum + entry.vp, 0) + stability + secondRomeVp;
+    return [power, {
+      bankedVp: state.vp,
+      bankedGoals,
+      bankedSecondRomeVp,
+      goals,
+      stabilityVp: stability,
+      secondRomeVp,
+      total,
+    }];
+  })) as Record<Power, ScoreBreakdown>;
+};
+
+export const scoreGame = (G: ImperialElegyState): {
+  scores: Record<Power, number>;
+  details: Record<Power, GoalScore[]>;
+  winners: Power[];
+  breakdown: Record<Power, ScoreBreakdown>;
+} => {
+  const breakdown = scoreBreakdowns(G);
+  const details = Object.fromEntries(POWERS.map((p) => [p, breakdown[p].goals])) as Record<Power, GoalScore[]>;
+  const scores = Object.fromEntries(POWERS.map((p) => [p, breakdown[p].total])) as Record<Power, number>;
   const max = Math.max(...POWERS.map((p) => scores[p]));
   const winners = POWERS.filter((p) => scores[p] === max);
-  return {scores, details, winners};
+  return {scores, details, winners, breakdown};
 };
 
 export const checkGermanUnification = (G: ImperialElegyState, ctx?: Ctx): boolean => {
@@ -386,8 +407,8 @@ export const checkAutoVictory = (G: ImperialElegyState): Power | null => {
 };
 
 export const finishGame = (G: ImperialElegyState, reason: string): void => {
-  const {scores, details, winners} = scoreGame(G);
+  const {scores, winners, breakdown} = scoreGame(G);
   G.scores = scores;
-  G.result = {winners, reason, scores};
+  G.result = {winners, reason, scores, breakdown};
   log(G, undefined, "gameOver", {winners: winners.join(","), reason});
 };

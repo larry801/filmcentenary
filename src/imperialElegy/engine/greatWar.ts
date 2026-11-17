@@ -541,11 +541,14 @@ export const outbreakGreatWar = (
   // before 25.5/25.6 so it is part of Russia's total there.
   if (G.spaces.istanbul?.control === "RU") {
     G.powers.RU.vp += 2;
+    G.powers.RU.outbreakSecondRomeVp = 2;
     log(G, "RU", "secondRomeVp", {vp: 2});
   }
-  // Score NGs at the outbreak (25.5).
+  // Score NGs at the outbreak (25.5).  Keep the lines so the final score panel
+  // can still explain the VP that is now banked on the player display.
   const scores = scoreGoals(G);
   for (const p of POWERS) {
+    if (scores[p].length > 0) G.powers[p].outbreakGoalScores = scores[p].map(({goal, vp}) => ({goal, vp}));
     for (const entry of scores[p]) G.powers[p].vp += entry.vp;
     G.powers[p].goals = [];
   }
@@ -1409,7 +1412,7 @@ export const endGreatWar = (
   }
   if (G.gw.victor !== null) {
     const winners = G.gw.victor === "te" ? G.gw.te : G.gw.ta;
-    const {scores} = scoreGame(G);
+    const {scores, breakdown} = scoreGame(G);
     // If there are neutral players compare the best victor with the best neutral.
     const neutrals = G.gw.neutrals.filter((p) => !G.powers[p].eliminated);
     let finalWinners = winners;
@@ -1420,23 +1423,23 @@ export const endGreatWar = (
       else finalWinners = winners.filter((p) => scores[p] === bestVictor);
     }
     G.scores = scores;
-    G.result = {winners: finalWinners, reason: `greatWar:${G.gw.victor}`, scores};
+    G.result = {winners: finalWinners, reason: `greatWar:${G.gw.victor}`, scores, breakdown};
     log(G, undefined, "greatWarEnded", {victor: G.gw.victor, winners: finalWinners.join(",")});
     G.phase = "gameOver";
     return;
   }
   // Turn limit: neutral with highest VP wins, else highest stability.
-  const {scores} = scoreGame(G);
+  const {scores, breakdown} = scoreGame(G);
   const neutrals = G.gw.neutrals.filter((p) => !G.powers[p].eliminated);
   let winners: Power[];
   if (neutrals.length > 0) {
     const max = Math.max(...neutrals.map((p) => scores[p] ?? 0));
     winners = neutrals.filter((p) => scores[p] === max);
-    G.result = {winners, reason: "gwTurnLimit:neutralVp", scores};
+    G.result = {winners, reason: "gwTurnLimit:neutralVp", scores, breakdown};
   } else {
     const max = Math.max(...POWERS.filter((p) => !G.powers[p].eliminated).map((p) => G.powers[p].stability));
     winners = POWERS.filter((p) => !G.powers[p].eliminated && G.powers[p].stability === max);
-    G.result = {winners, reason: "gwTurnLimit:stability", scores};
+    G.result = {winners, reason: "gwTurnLimit:stability", scores, breakdown};
   }
   G.scores = scores;
   G.phase = "gameOver";

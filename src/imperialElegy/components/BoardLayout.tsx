@@ -437,7 +437,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     otherSeatPending, seatUi, pendingPrompt, pendingKind, responseWindow, cardFaceMode,
     setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
-    moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast,
+    moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast, goalCounts,
     isPhone, mobileTab, setMobileTab, trayOpen, setTrayOpen, trayExpanded, setTrayExpanded,
   } = core;
   const {selected, onSelect, modePill, mapTargets, mapFocusedTarget, chooser} = interaction;
@@ -510,6 +510,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   const commandMenu = (
     <div className="ie-command-menu">
       {displayMenu}
+      <button className="ie-btn secondary ie-mini" data-testid="ie-open-scores" onClick={() => setRefAnchor("rules:scores")}>{t.scores}</button>
       <button className="ie-btn secondary ie-mini" data-testid="ie-open-charts" onClick={() => setRefAnchor("chart:sequence-of-play")}>{t.charts}</button>
       <button className="ie-btn secondary ie-mini" data-testid="ie-open-rules" onClick={() => setRefAnchor("rules:crt")}>{t.rulesCoverage}</button>
     </div>
@@ -619,6 +620,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
                       t={t}
                       jihadDecision={jihadDecision}
                       jihadReason={jihadReason}
+                      goalCounts={goalCounts}
                       doAction={doAction}
                       confirmActions={confirmActions}
                       moves={moves}

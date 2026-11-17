@@ -8,6 +8,7 @@
  * - the action costs, read from the same `ACTION_COSTS` table the Orders panel
  *   prints on its buttons;
  * - the sequence of play, read from `phaseSteps`;
+ * - the per-power score breakdown, read from the same `scoreGame` arithmetic;
  * - the other powers' dashboards and the public log.
  *
  * Every anchor (`rules:crt`, `rules:costs`, `chart:<id>`) scrolls to its
@@ -21,6 +22,7 @@ import {phaseSteps} from "./phaseSteps";
 import {CHARTS, type ChartEntry} from "./ChartLightbox";
 import {ACTION_COSTS, ACTION_COST_ORDER, actionCostLabel, type ActionId} from "./actionAvailability";
 import {DashboardPanel} from "./DashboardPanel";
+import {ScorePanel} from "./ScorePanel";
 import {logText} from "./logText";
 import type {ReferenceSlice} from "./boardSlices";
 
@@ -28,7 +30,7 @@ import type {ReferenceSlice} from "./boardSlices";
 export const CRT_ROWS: readonly number[] = [4, 3, 2, 1, 0, -1, -2, -3, -4];
 
 export interface ReferenceTablesProps extends ReferenceSlice {
-  /** Inline section to scroll to (`crt`, `costs`, `sequence`); charts open the lightbox. */
+  /** Inline section to scroll to (`crt`, `costs`, `sequence`, `scores`); charts open the lightbox. */
   anchor?: string | null;
   onOpenChart?: (chart: ChartEntry) => void;
 }
@@ -130,6 +132,16 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section
+        ref={register("scores")}
+        className="ie-ref-section"
+        data-testid="ie-ref-scores"
+        data-highlighted={anchor === "scores" ? "true" : "false"}
+        tabIndex={-1}
+      >
+        <ScorePanel G={G} locale={locale} viewer={viewer} goalCounts={goalCounts}/>
       </section>
 
       <DashboardPanel
