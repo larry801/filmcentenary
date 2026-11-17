@@ -589,7 +589,9 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             {t.privateInfo}: {t.hidden}. {t.spectators}.
           </div>
         )}
-        <HandRegion {...hand} locale={locale} t={t} decisionPeek={decisionOwed}/>
+        {/* The Display menu's `confirmActions` switch is live: the tray gets the
+            shell's current value, not the one it read from storage on mount. */}
+        <HandRegion {...hand} locale={locale} t={t} decisionPeek={decisionOwed} confirmActions={confirmActions}/>
       </div>
 
       {/* A refused move is explained here: the engine answers a bare

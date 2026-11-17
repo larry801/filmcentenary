@@ -48,11 +48,18 @@ const DESTRUCTIVE_KINDS: readonly string[] = [
   "italianInternalWar",
 ];
 
-/** Words in an option's label that mark it as one-way even in a mixed list. */
+/**
+ * Words in an option's label that mark it as one-way even in a mixed list.
+ * The Chinese patterns mirror the English verbs above them, so a control that
+ * arms in one locale arms in the other (labels are often localized into a
+ * single language, e.g. a Chinese-only "拒绝").
+ */
 const DESTRUCTIVE_WORDS: readonly RegExp[] = [
   /\bdiscard\b/i, /\bsurrender\b/i, /\bsacrifice\b/i, /\bremove\b/i, /\bdestroy\b/i,
   /\bdecline\b/i, /\brefuse\b/i, /\bbreak\b/i, /\blose\b/i, /\bcede\b/i, /\bpay\b/i,
+  /\bwithdraw\b/i, /\babandon\b/i,
   /弃/, /消灭/, /摧毁/, /投降/, /失去/, /割让/, /支付/,
+  /拒绝/, /放弃/, /撤回/, /牺牲/, /移除/, /破坏/,
 ];
 
 export interface PendingSafety {

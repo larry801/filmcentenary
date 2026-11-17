@@ -38,6 +38,28 @@ const props = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
+/** The footer card is the only place the map names a space's state. */
+const spaceCard = (html: string): string => {
+  const match = html.match(/data-testid="ie-space-card"[^>]*>([\s\S]*?)<\/div>/);
+  if (!match) throw new Error(`no space card in ${html}`);
+  return match[1];
+};
+
+const cardText = (html: string, className: string): string => {
+  const match = spaceCard(html).match(new RegExp(`class="${className}"[^>]*>([\\s\\S]*?)</span>`));
+  if (!match) throw new Error(`no ${className} in space card`);
+  // React's server renderer separates adjacent text nodes with `<!-- -->`.
+  return match[1].replace(/<!-- -->/g, "");
+};
+
+/** Berlin and Vienna carry different units/forts, so the card cannot pass one off as the other. */
+const twoSpaces = (): ImperialElegyState => {
+  const spaces = createSpaceStates();
+  spaces.berlin = {...spaces.berlin, units: ["ge-1"], fort: {power: "GE", level: 1}};
+  spaces.vienna = {...spaces.vienna, units: ["au-1", "au-2", "au-3"], fort: {power: "AU", level: 2}};
+  return {spaces} as unknown as ImperialElegyState;
+};
+
 describe("the map panel", () => {
   test("starts expanded with the map and no board tabs", () => {
     const html = renderToStaticMarkup(<MapPanel {...props()} />);
@@ -53,6 +75,46 @@ describe("the map panel", () => {
   test("a selection stays readable in the title bar", () => {
     const html = renderToStaticMarkup(<MapPanel {...props({selected: "berlin"})} />);
     expect(html).toContain("柏林");
+  });
+
+  test("the keyboard-focused target owns the space card, not the selection", () => {
+    const html = renderToStaticMarkup(
+      <MapPanel
+        {...props({
+          G: twoSpaces(),
+          selected: "berlin",
+          focusedTarget: "vienna",
+          targets: [{id: "vienna", style: "move"}] as never,
+        })}
+      />,
+    );
+
+    expect(cardText(html, "ie-space-card-title")).toBe("维也纳");
+    expect(cardText(html, "ie-space-card-tag")).toContain("聚焦目标");
+    // The line must describe Vienna's garrison, not Berlin's.
+    const line = cardText(html, "ie-space-card-line");
+    expect(line).toContain("单位: 3");
+    expect(line).toContain("要塞: 2");
+    expect(line).not.toContain("单位: 1");
+    expect(line).not.toContain("要塞: 1");
+  });
+
+  test("without a keyboard focus the space card falls back to the selection", () => {
+    const html = renderToStaticMarkup(
+      <MapPanel
+        {...props({
+          G: twoSpaces(),
+          selected: "berlin",
+          targets: [{id: "vienna", style: "move"}] as never,
+        })}
+      />,
+    );
+
+    expect(cardText(html, "ie-space-card-title")).toBe("柏林");
+    expect(html).not.toContain("ie-space-card-tag");
+    const line = cardText(html, "ie-space-card-line");
+    expect(line).toContain("单位: 1");
+    expect(line).toContain("要塞: 1");
   });
 
   test("the find-space control opens the picker", () => {

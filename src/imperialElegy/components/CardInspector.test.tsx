@@ -5,6 +5,8 @@
  */
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
+import {readFileSync} from "node:fs";
+import {join} from "node:path";
 import {CardInspector} from "./CardInspector";
 import type {CardInspectorProps} from "./CardInspector";
 import type {CardDef} from "../constant/cards";
@@ -72,6 +74,22 @@ describe("CardInspector", () => {
     expect(markup).toContain("Close");
   });
 
+  test("the dialog contract is explicit in static markup", () => {
+    const markup = render();
+
+    // The focus trap (and screen readers) need a real modal contract even
+    // before any DOM effect runs: role, modality, a name, and a named close.
+    expect(markup).toContain('role="dialog"');
+    expect(markup).toContain('aria-modal="true"');
+    expect(markup).toContain('aria-label="The Eastern Question"');
+    expect(markup).toContain('aria-label="Close"');
+    expect(markup).toContain('type="button"');
+    // `useFocusTrap` focuses the first tab stop on open: the close control must
+    // precede the card operations, or keyboard focus lands inside the actions.
+    expect(markup.indexOf('data-testid="ie-card-inspector-close"'))
+      .toBeLessThan(markup.indexOf('data-testid="ie-card-inspector-actions"'));
+  });
+
   test("print mode renders the scanned card image", () => {
     const markup = render({mode: "print"});
 
@@ -100,5 +118,17 @@ describe("CardInspector", () => {
     expect(markup).toContain("欧洲关键区");
     expect(markup).toContain("1 · 3 VP");
     expect(markup).toContain("关闭");
+  });
+
+  // jsdom is not installed (Jest runs with `testEnvironment: "node"`), so the
+  // trap's runtime behaviour cannot be exercised here.  Assert the wiring
+  // statically instead: the dialog's ref is the shared trap's, and the trap is
+  // active exactly while the inspector is open, with Escape routed to close.
+  test("the dialog is wired to the shared focus trap", () => {
+    const source = readFileSync(join(__dirname, "CardInspector.tsx"), "utf8");
+
+    expect(source).toContain('import {useFocusTrap} from "./useFocusTrap"');
+    expect(source).toMatch(/useFocusTrap<[^(]+>\(\{[^}]*active: open[^}]*onEscape: handleEscape[^}]*\}\)/);
+    expect(source).toContain("ref={dialogRef}");
   });
 });

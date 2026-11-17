@@ -108,8 +108,10 @@ Everything the rules require *right now* lives in the 348 px turn panel in the
 right-hand column (`components/TurnPanel.tsx`), not in a floating dock and not
 behind a dock toggle: the old `components/CommandBar.tsx` and
 `components/RailTabs.tsx` are deleted, and the panel is a permanent column of the
-table. Its head carries the single CP readout (`ie-command-cp`, the only one on
-the board) and the buttons that end or continue the step (准备完毕, 停牌, 继续).
+table. Its head carries the desktop CP readout (`ie-command-cp`); a second node
+carries the same test id on the track strip's phone-only chip (`ie-track-cp`,
+`display: none` from 768 px up), so exactly one is visible at 1440×900. The head
+also carries the buttons that end or continue the step (准备完毕, 停牌, 继续).
 Below the head are three tabs:
 
 - **Orders** — the selected space, its action list and the national actions.
@@ -183,10 +185,12 @@ regions:
   `?` rule link) and closes on Esc. It shows the tables the engine renders — the
   CRT from `crt()`, the action costs from `ACTION_COSTS`, the sequence of play
   from `phaseSteps` (`components/referenceTables.tsx`) — then the other powers'
-  dashboards and `components/MpitPanel.tsx`, and finally the nine printed PNG
-  charts. Opening a chart opens `components/ChartLightbox.tsx` full screen
+  dashboards, and finally the nine printed PNG charts. Opening a chart opens
+  `components/ChartLightbox.tsx` full screen
   instead of squeezing the image into drawer width. There is no rail or
-  board-wide Reference tab, and no always-open chart grid.
+  board-wide Reference tab, and no always-open chart grid. The MPIT matrix is
+  **not** in the drawer: `components/MpitPanel.tsx` is an action in the Orders
+  tab (`ie-mpit`, `ie-mpit-controls`).
 
 Actions in the space panel (`components/SpacePanel.tsx`) are one list computed
 by `spaceActions` (`components/actionAvailability.ts`) and grouped by kind
@@ -228,10 +232,28 @@ head hides `ie-command-cp` below 768 px), the map, the hand as a bottom sheet,
 then the turn panel (capped at 46dvh). The sheet is driven by `data-open` and
 `data-expanded` on `.ie-hand-tray`: 44 px peek, 40dvh half, and
 `calc(100dvh - 140px)` full. While a decision is owed the sheet shows a one-line
-peek (`data-decision-peek`, `ie-tray-decision-peek`) and stays folded to 56 px,
-and the turn panel switches to its decision-only body capped at 50dvh, so the map
-target the decision asks about stays visible. The mat is hidden; the other
-powers' dashboards are in the full-width drawer; the MPIT panel is an action in Orders (`ie-mpit`).
+peek (`data-decision-peek`, `ie-tray-decision-peek`) and stays folded to 56 px —
+the tray toggle is a no-op then (`shownOpen = open && !decisionPeek`), so the
+hand cannot be opened deliberately until the decision is answered — and the turn
+panel switches to its decision-only body capped at 50dvh, so the map target the
+decision asks about stays visible. The decision never writes `open` /
+`expanded`, so when it clears the sheet returns to its previous state on its
+own. Only Display is reachable in the strip's ☰ menu at this width: the
+`Charts` / `Rules` buttons stay in the DOM but CSS hides them
+(`.ie-command-menu .ie-btn { display: none }`), and the `?` button still opens
+the reference drawer.
+
+**Known deviation from the UI brief.** The target phone layout is a single
+Orders / Hand / Mat / Log tab bar. What is built is a hand bottom sheet under
+the map plus a **separate** turn / decision panel below it — three stacked
+regions, not four tabs — and the mat is **hidden** at this width
+(`.ie-mat { display: none }`); the mat's numbers are read in the reference
+drawer's power dashboards. This is an honest deviation, not a defect, and it is
+recorded as such in [`UI_CHECKLIST.md`](UI_CHECKLIST.md) §8 and §12 item 9.
+
+The desktop mat is also narrower than the brief's 320 px column: it is 148 px
+beside the map (132 px below 1100 px) and scrolls its own figures, which is
+recorded as [`UI_CHECKLIST.md`](UI_CHECKLIST.md) §12 item 10.
 
 ## Implementation status
 
@@ -520,11 +542,11 @@ dev server on `:5173`, not their own origin); `yarn test:e2e:ie` runs all three
 in order.
 
 ```sh
-# Regression: original hotseat spec, 5 tests, preview :5203
+# Regression: original hotseat spec, 6 tests, preview :5203
 yarn build
 ./node_modules/.bin/playwright test --config=playwright.ie-regression.config.ts
 
-# Controls: 3 tests, preview :5201
+# Controls: 13 tests, preview :5201
 ./node_modules/.bin/playwright test --config=playwright.ie-controls.config.ts
 
 # Online/spectator: 3 tests, self-starts game server :4004 + preview :5202
@@ -544,8 +566,10 @@ clean; `python3 scripts/extract-imperial-elegy.py --check` verifies **501
 assets**. The declared `@i18n-chain/react@2.0.1` is now installed in this
 checkout’s `node_modules`, so no shim is needed (see
 [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md#test-and-build-evidence)).
-The browser specs were rerun on this build: **5/5 regression, 3/3 controls and
-3/3 spectator** passed. The combat-card suites are included in the run, as are
+The browser specs **now contain 6 regression, 13 controls and 3 spectator
+tests** (older notes here quoted 5 / 3 / 3), so take the pass counts from the
+`ci.yml` e2e job (`yarn test:e2e:ie`) rather than from an older local run. The
+combat-card suites are included in the run, as are
 the new crisis, settlement, characteristics, logistics, card-choice, end-phase,
 alliance, naval, privacy, Great War home-front, India/UK, Rome/GW-major and
 playability/UI suites.
@@ -599,11 +623,16 @@ Targeted evidence visible in the tree:
   `characteristicsIntegration.test.ts`, `nationalityIntegration.test.ts`,
   `combatCardModesIntegration.test.ts`, `responseCardOptions.test.ts`,
   `privacy.test.ts` and `privateInfo.test.ts` cover the other live integrations.
-- `e2e/imperial-elegy.spec.ts` (5 tests) covers seat switching, map/card play, a
-  support decision, bilingual rendering and online creation. The controls spec
-  (3 tests) covers the newer war/economy/MPIT panels; the spectator spec
-  (3 tests) covers online seats and spectators. Their configs/commands are listed
-  above.
+- `e2e/imperial-elegy.spec.ts` (6 tests) covers seat switching, map/card play, a
+  support decision, the printed card faces, bilingual rendering and online
+  creation. The controls spec (13 tests) covers the newer war/economy/MPIT panels
+  and the solo/bot seats, plus a one-screen audit at 1440×900 (no document
+  scroll, exactly one visible `ie-command-cp`, the 12 px text floor and the
+  no-inline-style budget), the keyboard ring walk (arrows over the legal targets
+  and `Enter` to commit, a miss spending no CP and `Esc` leaving the mode), the
+  card inspector's SVG ↹ print face switch, and the phone sheet's peek / half /
+  full positions at 390×844. The spectator spec (3 tests) covers online seats and
+  spectators. Their configs/commands are listed above.
 
 ## Asset counts
 

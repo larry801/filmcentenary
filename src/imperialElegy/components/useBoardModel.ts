@@ -882,19 +882,19 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
         target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])") !== null) return;
       if (event.key === "Escape" || event.key === "Esc") {
         pendingArm.current = null;
+        // Ordering matters: the chooser is a targeting sub-mode, so it must be
+        // tested before the generic cancel.  Esc with the chooser open closes
+        // only the chooser (the rings stay up); the next Esc cancels targeting.
+        if (interaction.kind === "targeting" && interaction.choosing !== undefined) {
+          event.preventDefault();
+          submitChooserCancel();
+          return;
+        }
         if (interaction.kind === "targeting" || interaction.kind === "unit" || interaction.kind === "space") {
           event.preventDefault();
           dispatch({type: "cancel"});
         }
         return;
-      }
-      if (interaction.kind === "targeting" && interaction.choosing !== undefined) {
-        // The chooser owns Escape while it is open.
-        if (event.key === "Escape" || event.key === "Esc") {
-          event.preventDefault();
-          submitChooserCancel();
-          return;
-        }
       }
       if ((event.key === "Enter" || event.key === "Return") && interaction.kind === "targeting" && interaction.targets.length === 1) {
         event.preventDefault();

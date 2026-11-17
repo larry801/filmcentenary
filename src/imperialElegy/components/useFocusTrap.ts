@@ -60,7 +60,11 @@ export const useFocusTrap = <T extends HTMLElement>(
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" || event.key === "Esc") {
         if (onEscape !== undefined) {
+          // The overlay is modal: Escape belongs to it alone.  Stopping the
+          // event here (document capture) keeps the same key from also
+          // reaching the board, the reference drawer or an open toast.
           event.preventDefault();
+          event.stopPropagation();
           onEscape();
         }
         return;

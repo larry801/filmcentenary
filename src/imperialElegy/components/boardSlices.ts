@@ -88,7 +88,7 @@ const ORDERS_KEYS = [
 /** The hand tray and the card inspector. */
 const HAND_KEYS = [
   "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "isActive", "eliminated", "pending",
-  "canActionCard", "isBelligerent", "war", "forcedCardIds", "hand", "saveList", "giveCards",
+  "canActionCard", "confirmActions", "isBelligerent", "war", "forcedCardIds", "hand", "saveList", "giveCards",
   "open", "onToggleOpen", "expanded", "onToggleExpanded",
   "giveCardId", "setGiveCardId", "giveTarget", "setGiveTarget", "giveCardValue", "responseInHand",
   "responseWindow", "chainNonEmpty", "chainSpendable", "chainCap", "chainReady",

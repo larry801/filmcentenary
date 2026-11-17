@@ -63,9 +63,15 @@ export const MapPanel = ({
 
   const targetIds = targets.map((target) => target.id);
   const shownFocus = focusedTarget ?? keyboardFocus;
-  const selection = selected ? spaceLabel(selected, locale) : t.selectSpace;
-  const spaceDef = selected ? SPACES[selected] : null;
-  const spaceState = selected ? G.spaces[selected] : null;
+  // The tag may only claim a ring the map is actually drawing.
+  const shownFocusIsTarget = shownFocus !== null && targets.some((target) => target.id === shownFocus);
+  // While a target is focused the card follows the focus, not the targeting
+  // origin: it must never name Berlin while the tag says the focus is Prussia.
+  // When the ring set clears (and the focus is dropped) it reverts to `selected`.
+  const cardSpace = shownFocus ?? selected;
+  const selection = cardSpace ? spaceLabel(cardSpace, locale) : t.selectSpace;
+  const spaceDef = cardSpace ? SPACES[cardSpace] : null;
+  const spaceState = cardSpace ? G.spaces[cardSpace] : null;
   const counts = targets.reduce((acc, target) => ({...acc, [target.style]: (acc[target.style] ?? 0) + 1}), {} as Record<string, number>);
   // A ring set that changes invalidates the old keyboard focus; the map's own
   // `styleOf.has` guard already stops drawing it, and this stops the space card
@@ -166,9 +172,9 @@ export const MapPanel = ({
               <span className="ie-space-card-title">
                 {locale === "zh_CN" ? spaceDef.nameZh : spaceDef.name}
               </span>
-              {shownFocus !== null && targets.some((target) => target.id === shownFocus) && (
+              {shownFocusIsTarget && (
                 <span className="ie-space-card-tag" data-testid="ie-space-card-tag">
-                  {bi(locale, "focused target", "聚焦目标")}: {spaceLabel(shownFocus, locale)}
+                  {bi(locale, "focused target", "聚焦目标")}
                 </span>
               )}
               <span className="ie-space-card-line">

@@ -138,7 +138,7 @@ export const WarPanel = (props: WarPanelProps) => {
                 <select className="ie-select" data-testid="ie-call-minor-select" value={warMinorValue} onChange={(e) => setWarMinor(e.target.value)} title={t.callMinor}>
                   {callableMinors.map((minor) => <option key={minor} value={minor}>{minor}</option>)}
                 </select>
-                <button className="ie-btn" data-testid="ie-call-minor-button" disabled={warMinorValue === ""} onClick={() => doAction(() => moves.callWarMinor(warMinorValue))}>{t.callMinor}</button>
+                <button className="ie-btn" data-testid="ie-call-minor-button" disabled={warMinorValue === ""} onClick={() => doAction(() => moves.callWarMinor(warMinorValue), {label: t.callMinor})}>{t.callMinor}</button>
               </div>
             )}
             {isPrincipal && viewer !== null && canSurrender(G, viewer) && (

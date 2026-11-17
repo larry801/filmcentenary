@@ -185,7 +185,7 @@ export const PendingPanel = ({
               {G.battle.notes.length > 0 && <div className="ie-muted">{G.battle.notes.join(", ")}</div>}
               {viewer === "OT" && jihadDecision !== null && (
                 <div className="ie-inline" data-testid="ie-jihad-actions">
-                  <button className="ie-btn" data-testid="ie-use-jihad" disabled={jihadDecision.allowed !== true} title={jihadReason} onClick={() => doAction(() => moves.useJihad())}>
+                  <button className="ie-btn" data-testid="ie-use-jihad" disabled={jihadDecision.allowed !== true} title={jihadReason} onClick={() => doAction(() => moves.useJihad(), {label: t.useJihad, reason: jihadReason})}>
                     {t.useJihad} ({jihadDecision.markers})
                   </button>
                 </div>
