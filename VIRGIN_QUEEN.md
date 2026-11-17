@@ -1520,3 +1520,15 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 验证：`jest src/virginQueen/map.test.tsx src/virginQueen/board-map.test.tsx --runInBand` 33 tests passed（新增底图坐标范围、河流/湖泊/山脉图层与渲染标记校验）。
 
+## 无席位强国（2–5 人局的奥斯曼/HRE）
+
+Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2–5 人局）不是玩家控制的强国，只有在**宣战**触发外交评议后才会被某位盟友接管。此前引擎与 UI 都允许对未激活的 HRE 发起议和、结盟、赠牌/宝藏/雇佣兵、让渡地区、海军借调与谈判提议，这些动作要么静默失败，要么直接改写一个没有玩家的强国状态。
+
+现在统一按“无席位即不能缔约”处理：
+
+- `diplomacyPolicy.ts` 新增 `noPlayer` 阻塞码：`diplomacyActionState` 对议和/结盟返回 `noPlayer`，`giftState` 对三类赠礼返回 `noPlayer`；宣战保持合法，因为它正是激活无席位强国的规则入口。
+- 引擎层 `makePeace`、`formAlliance`、`giveRandomCard`、`giveTreasure`、`giveMercenary`、`yieldSpace`、`loanNaval` 在目标 `ownerOf(G, target) === undefined` 时返回 `INVALID_MOVE`，且校验发生在任何状态改动之前。
+- 谈判桌的谈判对象列表本就只列出有席位的强国；`validateNegotiation` 的 `noPlayer` 问题码继续作为服务端二次校验。已激活（被玩家接管）的强国通过 `ownerOf` 解析到该玩家，因此可以正常谈判。
+- 中英文案新增 `diplomacy.blocks.noPlayer` 与 `diplomacy.giftBlocks.noPlayer`。
+
+回归测试：`src/virginQueen/nonPlayerMajorDiplomacy.test.ts` 覆盖 2/3/4/5 人局下全部七个 move 被拒绝、状态未改动、面板策略返回 `noPlayer`，以及激活后恢复正常谈判。

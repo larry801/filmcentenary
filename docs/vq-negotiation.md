@@ -150,21 +150,34 @@ move 日志：
 - 非行动方收到的 action log 中 `args` 为 `null`；
 - 公共 `G.log` 只包含密封后的约束条款。
 
-## 9. 已知限制
+## 9. 无席位强国
+
+2–5 人局的奥斯曼（2–4 人局）与 HRE（2–5 人局）在激活前没有玩家席位。Scenario Book 第 13 页只允许**宣战**把未激活的强国拉入游戏（触发外交评议并由胜出的盟友接管），因此：
+
+- 谈判桌的谈判对象列表只列出 `ownerOf(G, power) !== undefined` 的强国，无席位强国不会出现在下拉框中。
+- 外交面板的宣战/议和/结盟按钮、赠牌/宝藏/雇佣兵按钮、让渡地区与海军借调都会通过 `diplomacyActionState` / `giftState` 返回 `noPlayer` 并禁用。
+- 引擎层同样拒绝：`makePeace`、`formAlliance`、`giveRandomCard`、`giveTreasure`、`giveMercenary`、`yieldSpace`、`loanNaval` 与 `proposeDeal` 在目标无席位时返回 `INVALID_MOVE`，不会留下半成品状态。
+- 宣战仍然合法，因为它正是激活无席位强国的规则入口。
+- 已激活（被某位玩家接管）的强国通过 `ownerOf` 解析到该玩家，因此可以正常参与谈判与外交。
+
+回归测试见 `src/virginQueen/nonPlayerMajorDiplomacy.test.ts`。
+
+## 10. 已知限制
 
 - 同一时间只支持一张谈判桌；多边协议、多人同时谈判、谈判计时器不在本版范围。
-- 非玩家控制的 HRE/激活强国家不能作为谈判对象（无玩家席位）；与 HRE 的王室联姻仍走原有 `proposeBetroth` 的影响力路径。
+- 与 HRE 的王室联姻仍走原有 `proposeBetroth` 的影响力路径。
 - 海军借调要求同盟条款在同一交易中；原有的“已结盟后单独借调”按钮仍保留，属于历史行为。
 - 承诺只是文本记录，不做任何语义解析或后续校验。
 - 接收雇佣兵默认放入第一个合法首都；规则允许在多个首都间分配，当前 UI 未开放逐个分配。
 - 规则书要求的“冲动顺序靠前者提出”通过密封时的正式记录近似实现；没有单独的“宣布队列”UI。
 
-## 10. 验证
+## 11. 验证
 
 ```sh
 ./node_modules/.bin/jest src/virginQueen/negotiation.test.ts \
   src/virginQueen/negotiationStage.test.ts \
-  src/virginQueen/negotiationUi.test.tsx --runInBand
+  src/virginQueen/negotiationUi.test.tsx \
+  src/virginQueen/nonPlayerMajorDiplomacy.test.ts --runInBand
 ```
 
 测试覆盖：提议/stage、接受/拒绝/还价/撤回、牌与雇佣兵转移、议和+联姻、让渡、海军借调、礼物上限/单向、交战禁赠、天主教联盟禁约、过期、服务端重新校验、`playerView` 与 move 日志裁剪。

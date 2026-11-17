@@ -1744,6 +1744,7 @@ const en = {
             alliance: "Form alliance",
             blocks: {
                 samePower: "That power is controlled by the same player",
+                noPlayer: "That power has no player, so it cannot agree to a deal",
                 alreadyAtWar: "Already at war with that power",
                 notAtWar: "Not at war with that power",
                 alreadyAllied: "Already allied with that power",
@@ -1756,6 +1757,7 @@ const en = {
                 cannotAfford: "Not enough cards and treasures to pay the DOW cost",
             },
             giftBlocks: {
+                noPlayer: "That power has no player, so it cannot exchange gifts",
                 alreadyAtWar: "Cannot give gifts while at war with that power",
                 limit: "Already reached this turn's gift limit for that power",
                 reciprocal: "That power already gave this kind of gift this turn",

@@ -3778,6 +3778,9 @@ export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | 
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
+    // A power with no seat cannot be a party to an agreement (Scenario Book
+    // p. 13: an inactive major power is only drawn in by a declaration of war).
+    if (!isPower(args.target) || ownerOf(G, args.target) === undefined) return INVALID_MOVE;
     if (!atWar(G, p, args.target)) {
         return INVALID_MOVE;
     }
@@ -3803,6 +3806,8 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
     if (!isPower(t) || p === t || atWar(G, p, t) || allied(G, p, t)) {
         return INVALID_MOVE;
     }
+    // A power with no seat cannot be a party to an agreement.
+    if (ownerOf(G, t) === undefined) return INVALID_MOVE;
     if (catholicLeagueDealsBlocked(G, p, t)) {
         return INVALID_MOVE;
     }
@@ -3858,6 +3863,7 @@ export const yieldSpace = (G: VQGame, ctx: Ctx, args: {target: Power; space: str
     const state = G.spaces[args.space];
     const def = SPACE_BY_ID[args.space];
     if (!isPower(target) || target === p || state === undefined || def === undefined) return INVALID_MOVE;
+    if (ownerOf(G, target) === undefined) return INVALID_MOVE;
     if (catholicLeagueDealsBlocked(G, p, target)) return INVALID_MOVE;
     if (!canYieldSpace(G, p, target, args.space)) return INVALID_MOVE;
     state.control = target;
@@ -3890,7 +3896,8 @@ export const returnCapturedLeader = (G: VQGame, ctx: Ctx, args: {leaderId: strin
 export const giveRandomCard = (G: VQGame, ctx: Ctx, args: {target: Power}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
-    if (!isPower(args.target) || args.target === p || atWar(G, p, args.target)) return INVALID_MOVE;
+    if (!isPower(args.target) || args.target === p || ownerOf(G, args.target) === undefined ||
+        atWar(G, p, args.target)) return INVALID_MOVE;
     const entry = giftEntry(G, p, args.target);
     if (entry.cards >= 2 || reciprocalGift(G, p, args.target, "cards")) return INVALID_MOVE;
     const candidates = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
@@ -3905,7 +3912,8 @@ export const giveRandomCard = (G: VQGame, ctx: Ctx, args: {target: Power}): void
 export const giveMercenary = (G: VQGame, ctx: Ctx, args: {target: Power; space?: string}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
-    if (!isPower(args.target) || args.target === p || atWar(G, p, args.target)) return INVALID_MOVE;
+    if (!isPower(args.target) || args.target === p || ownerOf(G, args.target) === undefined ||
+        atWar(G, p, args.target)) return INVALID_MOVE;
     // Rule 9.1: the Ottoman may not give mercenaries, and neither the Ottoman
     // nor the Holy Roman Empire may receive them.
     if (p === "ottoman" || args.target === "ottoman" || args.target === "hre") return INVALID_MOVE;
@@ -3934,7 +3942,8 @@ export const giveMercenary = (G: VQGame, ctx: Ctx, args: {target: Power; space?:
 export const giveTreasure = (G: VQGame, ctx: Ctx, args: {target: Power; index?: number}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
-    if (!isPower(args.target) || args.target === p || atWar(G, p, args.target)) return INVALID_MOVE;
+    if (!isPower(args.target) || args.target === p || ownerOf(G, args.target) === undefined ||
+        atWar(G, p, args.target)) return INVALID_MOVE;
     const entry = giftEntry(G, p, args.target);
     if (entry.treasures >= 2 || reciprocalGift(G, p, args.target, "treasures")) return INVALID_MOVE;
     const treasures = G.powers[p].treasures;
@@ -3949,7 +3958,8 @@ export const giveTreasure = (G: VQGame, ctx: Ctx, args: {target: Power; index?: 
 export const loanNaval = (G: VQGame, ctx: Ctx, args: {target: Power; fromPort: string; toPort: string; kind: "galley" | "galleon" | "racebuilt"; leader?: string}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "diplomacy") return INVALID_MOVE;
     const p = power(G, ctx);
-    if (!isPower(args.target) || args.target === p || !allied(G, p, args.target) ||
+    if (!isPower(args.target) || args.target === p || ownerOf(G, args.target) === undefined ||
+        !allied(G, p, args.target) ||
         G.spaces[args.fromPort]?.control !== p || G.spaces[args.toPort]?.control !== args.target ||
         !seaPathBetweenPorts(args.fromPort, args.toPort)) return INVALID_MOVE;
     if ((G.loanedNaval ?? []).some((loan) =>
