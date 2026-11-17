@@ -16,7 +16,25 @@ type Counts = {
 
 type PrivateView = ImperialElegyState & Counts;
 
-const wait = (ms = 40) => new Promise((resolve) => setTimeout(resolve, ms));
+/** The shared match counter every seat's client exposes. */
+const stateIdOf = (c: {getState: () => any}) => Number(c.getState()?._stateID ?? -1);
+
+/**
+ * Wait until the shared `Local` master has applied a move.
+ *
+ * Both clients sit on one embedded master whose `onUpdate` chain is
+ * promise-based, so `_stateID` is the observable "the move landed" signal.
+ * A fixed sleep races it on a loaded CI runner: this test failed there on
+ * `prepStabilityDiscard` appearing in the log because 80 ms was not always
+ * enough.  Falls through after the bound so a genuinely rejected move is
+ * reported by the assertions rather than hanging.
+ */
+const settled = async (client: {getState: () => any}, before: number) => {
+  for (let tick = 0; tick < 500; tick += 1) {
+    if (stateIdOf(client) !== before) return;
+    await new Promise(resolve => setImmediate(resolve));
+  }
+};
 
 const makeCtx = (playerID: string | null = "0") => ({
   playerID,
@@ -289,7 +307,10 @@ test("reconnecting the GE client preserves its private hand and keeps other view
 
   ge.start();
   observer.start();
-  await wait(150);
+  // `start()` performs the initial sync asynchronously.
+  for (let tick = 0; tick < 500 && (!ge.getState()?.G || !observer.getState()?.G); tick += 1) {
+    await new Promise(resolve => setImmediate(resolve));
+  }
 
   const initial = ge.getState()!.G as PrivateView;
   expect(initial.phase).toBe("prep");
@@ -307,8 +328,9 @@ test("reconnecting the GE client preserves its private hand and keeps other view
   });
   expect(discardable).toBeDefined();
 
+  const beforeDiscard = stateIdOf(ge);
   ge.moves.discardForStability(discardable!);
-  await wait(80);
+  await settled(ge, beforeDiscard);
 
   const afterAction = ge.getState()!.G as PrivateView;
   expect(afterAction.powers.GE.hand).toEqual(handBefore.filter((id) => id !== discardable));
@@ -325,9 +347,12 @@ test("reconnecting the GE client preserves its private hand and keeps other view
 
   // Stop and restart the GE client, as a reconnecting tab would.
   ge.stop();
-  await wait(30);
   ge.start();
-  await wait(150);
+  // A restart re-syncs from scratch: wait until the client has a state again
+  // instead of a fixed 150 ms.
+  for (let tick = 0; tick < 500 && !ge.getState()?.G; tick += 1) {
+    await new Promise(resolve => setImmediate(resolve));
+  }
 
   const reconnected = ge.getState()!.G as PrivateView;
   expect(reconnected.powers.GE.hand).toEqual(afterAction.powers.GE.hand);
