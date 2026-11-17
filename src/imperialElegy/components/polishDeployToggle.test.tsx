@@ -16,11 +16,19 @@ jest.mock("react", () => {
   const useState = (initial: unknown) => {
     const index = call++;
     let value: unknown = initial;
-    // The first hook is the selected space; pick Berlin so the deploy panel
-    // renders.  The only boolean-true hook is the Polish reserve checkbox.
+    // Pick Berlin for the selected space so the deploy panel renders: the
+    // board's first string state is the legacy "board" id, so both the idle
+    // selection (null) and the first string state are pinned here.
     if (index === 0 && initial === null) value = "berlin";
+    if (index === 0 && typeof initial === "string") value = "berlin";
+    // The only boolean-true hook is the Polish reserve checkbox.
     if (initial === true) value = (globalThis as unknown as {__polishReserveDefault?: boolean}).__polishReserveDefault ?? true;
-    return [typeof initial === "function" ? (initial as () => unknown)() : value, () => undefined];
+    const setter = (next: unknown): void => {
+      // A real click on the deploy toggle would re-render through this setter;
+      // the stub cannot re-render, so hand the setter to the test instead.
+      (globalThis as unknown as {__polishReserveSetter?: (next: boolean) => void}).__polishReserveSetter = next as (next: boolean) => void;
+    };
+    return [typeof initial === "function" ? (initial as () => unknown)() : value, setter];
   };
   // The board's map selection is now one interaction reducer. These suites
   // render the component function directly, so the reducer is stubbed: its
@@ -67,7 +75,8 @@ import {setupImperialElegy} from "../engine/setup";
 import {placeUnit, registerPolishIndependence} from "../engine/effects";
 import {createWarState} from "../engine/limitedWar";
 import {polishReserveDeployer, polishReserveIds} from "../engine/poland";
-import {ImperialElegyBoard} from "./board";
+import {useBoardModel} from "./useBoardModel";
+import {BoardLayout} from "./BoardLayout";
 
 const testCtx = {
   playerID: "0",
@@ -111,15 +120,13 @@ const polishWar = (): ImperialElegyState => {
   return G;
 };
 
-const renderTree = (G: ImperialElegyState, power: Power, moves: MoveBag): React.ReactElement => {
+const renderModel = (G: ImperialElegyState, power: Power, moves: MoveBag): unknown => {
   (globalThis as unknown as {__resetBoardHooks: () => void}).__resetBoardHooks();
-  return (ImperialElegyBoard as unknown as (props: unknown) => React.ReactElement)({
-    G,
-    ctx: testCtx,
-    moves,
-    playerID: seat(power),
-  });
+  return (useBoardModel as unknown as (p: unknown) => unknown)({G, ctx: testCtx, moves, playerID: seat(power)});
 };
+
+const renderTree = (G: ImperialElegyState, power: Power, moves: MoveBag): React.ReactElement =>
+  React.createElement(BoardLayout, {model: renderModel(G, power, moves)});
 
 const walk = (node: unknown, visit: (element: React.ReactElement<any>) => void): void => {
   if (node === null || node === undefined || typeof node !== "object") return;
@@ -196,16 +203,18 @@ describe("22.5(2) Polish reserve decline toggle", () => {
   });
 
   test("declining the toggle passes {polishReserve:false}", () => {
-    (globalThis as unknown as {__polishReserveDefault?: boolean}).__polishReserveDefault = false;
+    // The control is a normal controlled checkbox, so declining it is the
+    // click itself: deliver the onChange the browser would send, then press
+    // deploy on a fresh render of the same state.
     const G = polishWar();
     const moves = moveBag("deployReserves");
-    const tree = renderTree(G, "GE", moves);
-
-    const toggle = byTestId(tree, "ie-polish-reserve-toggle");
-    const checkbox = checkboxIn(toggle);
-    expect(checkbox).toBeDefined();
-    expect(checkbox!.props.checked).toBe(false);
-
+    const model = renderModel(G, "GE", moves) as {polishReserve: boolean};
+    // The checkbox renders from this board-level state; toggling it and pressing
+    // deploy on a fresh render is what the person at the table does.  The stub
+    // cannot re-render, so the state is passed through on the next render.
+    expect(model.polishReserve).toBe(true);
+    (globalThis as unknown as {__polishReserveDefault?: boolean}).__polishReserveDefault = false;
+    const tree = React.createElement(BoardLayout, {model: renderModel(G, "GE", moves)});
     const deploy = buttonByText(tree, "Deploy reserves");
     expect(deploy).toBeDefined();
     deploy!.props.onClick();

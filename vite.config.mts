@@ -1,8 +1,27 @@
 import {defineConfig} from 'vite'
 import {fileURLToPath} from "node:url";
 import react from '@vitejs/plugin-react'
+import type {Plugin} from 'vite'
 
 const base = "/";
+
+// The running bundle and the server must agree on which build is current, so
+// `VersionChecker` can reload a stale tab after a deploy. The version is baked
+// into the bundle here and written next to it as `version.json`, which the
+// server serves from the build directory.
+const APP_VERSION = new Date().toISOString();
+
+const versionFile = (): Plugin => ({
+    name: 'film-version-file',
+    apply: 'build',
+    generateBundle() {
+        this.emitFile({
+            type: 'asset',
+            fileName: 'version.json',
+            source: JSON.stringify({version: APP_VERSION}),
+        });
+    },
+});
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -12,6 +31,7 @@ export default defineConfig({
         // `import.meta.env.BASE_URL`, because Jest's CommonJS runtime cannot
         // parse `import.meta`. Keep it equal to `base`.
         __VQ_BASE_URL__: JSON.stringify(base),
+        __APP_VERSION__: JSON.stringify(APP_VERSION),
     },
     build: {
         outDir: 'build',
@@ -65,6 +85,7 @@ export default defineConfig({
     },
     plugins: [
         react(),
+        versionFile(),
     ],
     resolve: {
         alias: [

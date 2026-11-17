@@ -16,6 +16,7 @@ import {
     ScoringEffectNames,
     SimpleEffectNames
 } from "../types/core";
+import { getAllExtensionEffects } from "../extensions/registry";
 
 const noEff = {e: "none", a: 1};
 const noResponse = {pre: noEff, effect: noEff};
@@ -24,7 +25,7 @@ export function getEvent(id: EventCardID) {
     return eventEffects[id];
 }
 
-export function getCardEffect(id: CardID): any {
+export function getCardEffect(id: CardID, G?: IG): any {
     if (id in effects) {
         // @ts-ignore
         return effects[id]
@@ -61,6 +62,14 @@ export function getCardEffect(id: CardID): any {
                 // @ts-ignore
                 return effects[id.slice(1)]
             } else {
+                // ★ 扩展效果查找（新增）：去掉 F/S/P 前缀后用数字部分查找
+                if (G) {
+                    const extEffs = getAllExtensionEffects(G);
+                    const key = id.slice(1); // "F7001" -> "7001"
+                    if (key in extEffs) {
+                        return extEffs[key];
+                    }
+                }
                 throw Error(`Unknown id ${JSON.stringify(id)}`);
             }
         }
@@ -729,7 +738,7 @@ export const effects = {
         response: {
             pre: {e: "turnStart"},
             effect: {
-                e: ItrEffects.choice, a: [
+                e: "step", a: [
                     {e: SimpleEffectNames.addCompetitionPower, a: 1},
                     {
                         e: "optional", a: {
@@ -1142,9 +1151,9 @@ export const effects = {
         canPlay: (G: IG, ctx: Ctx) => false,
         play: {
             e: "step", a: [
+                {e: "breakthroughResDeduct", a: 2},
                 {e: "noStudio", a: {e: "loseVp", a: 3}},
                 {e: "studio", a: {e: "draw", a: 1}},
-                {e: "breakthroughResDeduct", a: 2},
             ]
         },
         canArchive: (G: IG, ctx: Ctx) => true,
@@ -1893,7 +1902,17 @@ export const effects = {
             pre: {e: "multiple", a: 2}, effect: [
                 {
                     pre: {e: "turnStart"},
-                    effect: {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                    effect: {
+                        e: ItrEffects.choice, a: [
+                            {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                            {e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: noEff,
+                                }
+                            }}
+                        ]
+                    },
                 }, {
                     pre: {e: "competitionWon"}, effect: {e: SimpleEffectNames.res, a: 2},
                 }
@@ -2508,6 +2527,14 @@ export const effects = {
                 {e: SimpleEffectNames.draw, a: 1},
                 {e: SimpleEffectNames.addCompetitionPower, a: 1},
                 {
+                    e: "optional", a: {
+                        e: "competition", a: {
+                            bonus: 0,
+                            onWin: noEff,
+                        }
+                    }
+                },
+                {
                     e: "noStudio", a: {
                         e: "step", a: [
                             {e: SimpleEffectNames.loseCompetitionPower, a: 2},
@@ -2521,14 +2548,6 @@ export const effects = {
                             {e: "aesAward", a: 1},
                             {e: "industryAward", a: 1}
                         ]
-                    }
-                },
-                {
-                    e: "optional", a: {
-                        e: "competition", a: {
-                            bonus: 0,
-                            onWin: noEff,
-                        }
                     }
                 }
             ]
@@ -3025,5 +3044,930 @@ export const effects = {
         canArchive: (G: IG, ctx: Ctx) => true,
         archive: noEff,
         response: {pre: {e: "schoolExtNonePre"}, effect: {e: "High_Concept_Film"}},
+    },
+    "5001": {
+        "school": {
+            hand: 4,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [
+            {e: SimpleEffectNames.shareNA, a: 1},
+            {e: "buy", a: "B05"},
+        ]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {
+            pre: {e: "lose", a: SchoolCardID.S5001},
+            effect: {e: "buy", a: "B05"},
+		},
+    },
+    "5002": {
+        "school": {
+            hand: 5,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "West_Film"}},
+    },
+    "5003": {
+        "school": {
+            hand: 4,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Brighton_School"}},
+    },
+    "5004": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Experimental_Film"}},
+    },
+    "6111": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "era", a: [
+                {e: "step", a: [{e: "res", a: 2}, {e: "draw", a: 1}, {e: "discard", a: 1}]},
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "draw", a: 1}, {e: "discard", a: 1}]},
+                {e: "step", a: [{e: "draw", a: 1}, {e: "discard", a: 1}]},
+            ],
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6121": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: {e: "step", a: [{e: "deposit", a: 1}, {e: "vp", a: 1}]},
+        response: noResponse,
+    },
+    "6131": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "era", a: [
+                {e: "step", a: [{e: "res", a: 2}, {e: "vp", a: 1}]},
+                {e: "step", a: [{e: ItrEffects.update, a: 1}, {e: "vp", a: 1}]},
+                noEff
+            ],
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: {e: "archive", a: 1},
+        response: noResponse,
+    },
+    "6211": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
+                {e: "aestheticsLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F2108},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "deposit", a: 1},
+                {e: ItrEffects.update, a: 1},
+                {e: "noStudio", a: {e: "step", a: [{e: ItrEffects.discardBasic, a: 1}, {e: "loseVp", a: 3}] }},
+                {e: "studio", a: {e: "step", a: [{e: "draw", a: 1}, {e: SimpleEffectNames.addCompetitionPower, a: 1}] }},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6212": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "shareNA", a: 1},
+                {e: "step", a: [{e: "loseVp", a: 2}, {e: SimpleEffectNames.addCompetitionPower, a: 2}]},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "era", a: [
+                noEff,
+                {
+                    e: "step", a: [
+                        {e: "res", a: 3},
+                        {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                        {
+                            e: "optional", a: {
+                                e: "competition", a: {
+                                    bonus: 0,
+                                    onWin: {e: "step", a: [{e: "deposit", a: 1}, {e: SimpleEffectNames.competitionLoserLoseVp, a: 2}]},
+                                }
+                            }
+                        },
+                    ]
+                },
+                {e: "step", a: [{e: "deposit", a: 1}, {e: "loseVp", a: 1}, {e: SimpleEffectNames.addCompetitionPower, a: 1}]},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6213": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F2112},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: SimpleEffectNames.vp, a: 2},
+                {e: "6213_naShare2"},
+                {e: "noStudio", a: {e: "step", a: [{e: "loseDeposit", a: 1}, {e: "loseVp", a: 1}]}},
+                {e: "studio", a: {e: SimpleEffectNames.addCompetitionPower, a: 1}},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6221": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "aestheticsLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F6222},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "draw", a: 1},
+                {e: "vp", a: 1},
+                {e: "noStudio", a: {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B04}},
+                {e: "studio", a: {e: "step", a: [{e: ItrEffects.comment, a: 1}, {e: "deposit", a: 1}] }},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6222": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "era", a: [
+                noEff,
+                {
+                    e: "choice", a: [
+                        {
+                            e: "step", a: [
+                                {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B04},
+                                {e: "draw", a: 3},
+                            ]
+                        },
+                        {e: ItrEffects.breakthroughResDeduct, a: 1},
+                    ]
+                },
+                {e: ItrEffects.breakthroughResDeduct, a: 1},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6231": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F2306},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "deposit", a: 1},
+                {e: "buy", a: BasicCardID.B05},
+                {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                {e: "studio", a: {e: "discardToAnyPlayer", a: 1}},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6232": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "era", a: [
+                noEff,
+                {e: "step", a: [{e: "res", a: 2}, {e: "deposit", a: 1}]},
+                {e: "discardToAnyPlayer", a: 1},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6241": {
+        school: {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {
+            pre: {e: "turnStart"},
+            effect: {
+                e: "choice", a: [
+                    {e: "peek", a: {count: 2, target: "hand", filter: {e: "industry", a: "all"}}},
+                    {e: "peek", a: {count: 2, target: "hand", filter: {e: "aesthetics", a: "all"}}},
+                ]
+            }
+        },
+    },
+    "6242": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "era", a: [
+                noEff,
+                {e: "step", a: [{e: "res", a: 1}, {e: "deposit", a: 1}, {e: ItrEffects.update, a: 1}]},
+                {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: {e: "step", a: [{e: SimpleEffectNames.addVp, a: 4}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05}]},
+        response: noResponse,
+    },
+    "6243": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F2409},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: ItrEffects.update, a: 1},
+                {e: SimpleEffectNames.addCompetitionPower, a: 1},
+                {e: "noStudio", a: {e: "choice", a: [{e: "discard", a: 1}, {e: "loseVp", a: 4}]}},
+                {e: "studio", a: {e: "draw", a: 1}},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6311": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F3116},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "6311_effect"},
+                {e: "draw", a: 1},
+                {
+                    e: "optional", a: {
+                        e: "competition", a: {
+                            bonus: 0,
+                            onWin: noEff,
+                        }
+                    }
+                },
+                {e: "noStudio", a: {e: "step", a: [{e: "loseDeposit", a: 2}, {e: SimpleEffectNames.loseCompetitionPower, a: 2}] }},
+                {e: "studio", a: {e: "industryToVp", a: 1}},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+        scoring: {e: ScoringEffectNames.industryLevel, a: 1}
+    },
+    "6312": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: SimpleEffectNames.addCompetitionPower, a: 1}, {e: "draw", a: 1}]},
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "deposit", a: 2},
+                {e: "draw", a: 2},
+                {e: "discard", a: 2},
+                {e: "6312_effect"}
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6313": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: "loseVp", a: 2}, {e: SimpleEffectNames.addCompetitionPower, a: 2}, {e: "draw", a: 1}]},
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "draw", a: 1},
+                {e: "res", a: 2},
+                {
+                    e: "choice", a: [
+                        {e: "step", a: [{e: "deposit", a: 2}, {e: SimpleEffectNames.addCompetitionPower, a: 2}]},
+                        {
+                            e: "step", a: [
+                                {e: SimpleEffectNames.shareNA, a: 1},
+                                {
+                                    e: "optional", a: {
+                                        e: "competition", a: {
+                                            bonus: 0,
+                                            onWin: {e: "industryAward", a: 1},
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                    ]
+                }
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6314": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {
+                    e: "choice", a: [
+                        {e: "step", a: [{e: SimpleEffectNames.addCompetitionPower, a: 1}, {e: "personCardOnBoardEffect", a: 1}]},
+                        {e: "step", a: [{e: SimpleEffectNames.industryAward, a: 1}, {e: "optional", a: {e: "competition", a: {bonus: 0, onWin: {e: "addAction", a: 1}}}}]},
+                    ]
+                }
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6321": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "aestheticsLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F3205},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "loseVp", a: 2},
+                {e: "draw", a: 1},
+                {e: ItrEffects.breakthroughResDeduct, a: 1},
+                {e: "noStudio", a: {e: "discardNormalOrLegend", a: 1}},
+                {e: "studio", a: {e: "step", a: [{e: "deposit", a: 2}, {e: "vp", a: 2}, {e: "draw", a: 1}] }},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
+    },
+    "6322": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "res", a: 2},
+                {e: "vp", a: 2},
+                {
+                    e: "choice", a: [
+                        {
+                            e: "step", a: [
+                                {e: SimpleEffectNames.addCompetitionPower, a: 2},
+                                {
+                                    e: "optional",
+                                    a:{
+                                        e: "step", a:[
+                                            {e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B02},
+                                            {e: "draw", a: 2}
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            e: "step", a: [
+                                {
+                                    e: "optional", a: {
+                                        e: "competition", a: {
+                                            bonus: 0,
+                                            onWin: {e: ItrEffects.breakthroughResDeduct, a: 1},
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                    ]
+                }
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6323": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "deposit", a: 1},
+                {e: "aesAward", a: 1},
+                {
+                    e: "choice", a: [
+                        {e: "step", a: [{e: SimpleEffectNames.buyCardToHand, a: BasicCardID.B04}, {e: "aesAward", a: 1}, {e: "draw", a: 2}]},
+                        {e: ItrEffects.breakthroughResDeduct, a: 1},
+                    ]
+                }
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse
+    },
+    "6331": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "industryLevelUp", a: 1},
+                {e: "aestheticsLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F3306},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "draw", a: 1},
+                {e: "handToAnyPlayer", a: 1},
+                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: "loseVpForLevelDiff"}] }},
+                {e: "studio", a: {e: "step", a: [{e: "draw", a: 2}, {e: "discard", a: 1}, {e: "discardToAnyPlayer", a: 1}] }},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+        scoring: {e: ScoringEffectNames.maxLevel, a: 1}
+    },
+    "6332": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "step", a: [{e: "res", a: 1}, {e: "deposit", a: 1}, {e: "buy", a: BasicCardID.B05}, {e: "discardToAnyPlayer", a: 1}]},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6333": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {e: "step", a: [{e: "resFromIndustry", a: 1}, {e: "aestheticsToVp", a: 1}]},
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    "6341": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "choice", a: [
+                {e: "aestheticsLevelUp", a: 1},
+                {e: "buy", a: FilmCardID.F3413},
+            ]
+        },
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05},
+                {e: "noStudio", a: {e: "step", a: [{e: "discard", a: 1}, {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B04}] }},
+                {e: "studio", a: {e: "step", a: [{e: "draw", a: 2}, {e: "deposit", a: 2}] }},
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+        scoring: {e: ScoringEffectNames.aestheticsLevel, a: 1}
+    },
+    "6342": {
+        school: {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "shareASIA", a: 1},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {
+            pre: {e: "multiple", a: 2}, effect: [
+                {
+                    pre: {e: "6342_effect"}, effect: noEff,
+                }, {
+                    pre: {e: "doNotLoseVpAfterCompetition", a: 1}, effect: noEff,
+                }
+            ]
+        },
+    },
+    "6343": {
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => true,
+        play: {
+            e: "step", a: [
+                {e: "res", a: 2},
+                {
+                    e: "choice", a: [
+                        {e: SimpleEffectNames.buyCardToDeckTop, a: BasicCardID.B05},
+                        {e: "peek", a: {count: 3, target: "hand", filter: {e: "choice", a: 1}}},
+                    ]
+                }
+            ]
+        },
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: noResponse,
+    },
+    //Muki Extension 2
+    "5201": {
+        "school": {
+            hand: 5,
+            action: 3,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "5201_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5201_effect"}},
+    },
+    "5202": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5202_effect"}},
+    },
+    "5203": {
+        "school": {
+            hand: 6,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "anyRegionShare", a: 1},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5203_effect"}},
+    },
+    "5204": {
+        "school": {
+            hand: 6,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5204_effect"}},
+    },
+    "5205": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5205_effect"}},
+    },
+
+    //Muki Extension 2 - era 2
+    "5206": {
+        "school": {
+            hand: 4,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: "loseVp", a: 3}, {e: SimpleEffectNames.shareNA, a: 1}]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5206_effect"}},
+    },
+    "5207": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: SimpleEffectNames.shareWE, a: 1},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5207_effect"}},
+    },
+    "5208": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: "5208_buy"}]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5208_effect"}},
+    },
+    "5209": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "5209_effect"}},
+    },
+
+    "52681": {
+        "school": {
+            hand: 4,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: "buy", a: "B01"}, {e: "shareEE", a: 1}]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52681_effect"}},
+    },
+    "52682": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: "shareWE", a: 1}, {e: "Dawn_Berlin_buy", a: 1}]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52682_effect"}},
+    },
+    "52683": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: "shareNA", a: 1}, {e: "everyOtherCompany", a: {e: "step", a: [{e: "discard", a: 1}, {e: "loseVp", a: 1}, {e: "deposit", a: 1}]}}]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52683_effect"}},
+    },
+    "52684": {
+        "school": {
+            hand: 5,
+            action: 3,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "step", a: [{e: "update", a: 1}, {e: "shareASIA", a: 1}, {e: "addAction", a: 1}]},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52684_effect"}},
+    },
+
+    //2026-9 Extension - Tech Schools
+    "52691": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52691_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52691_effect"}},
+    },
+    "52692": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52692_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52692_effect"}},
+    },
+    "52693": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52693_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52693_effect"}},
+    },
+    "52694": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52694_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52694_effect"}},
+    },
+
+    //2026-10 Extension - Tech Schools (Visual Spectacle)
+    "52701": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52701_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52701_effect"}},
+    },
+    "52702": {
+        "school": {
+            hand: 4,
+            action: 1,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "52702_buy"},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "52702_effect"}},
+    },
+
+    //QM Extension Schools
+    "6001": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {
+            e: "industryOrAestheticsLevelUp", a: 1
+        },
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {
+            pre: {e: "multiple", a: 2}, effect: [
+                {
+                    pre: {e: "turnStart"},
+                    effect: {
+                        e: "industryOrAestheticsLevelUp", a: 1
+                    }
+                },
+                {
+                    pre: {e: "turnEnd"},
+                    effect: {
+                        e: "industryOrAestheticsLevelDown", a: 1
+                    }
+                }
+            ]
+        },
+    },
+    "6002": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: noEff,
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Czechoslovakian_Film"}},
+        scoring: {e: ScoringEffectNames.pairLevel, a: 4}
+    },
+    "6003": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "anyRegionShare", a: 1},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Czechoslovakian_Film_2"}},
+        scoring: {e: ScoringEffectNames.pairLevel, a: 4}
+    },
+    "6004": {
+        "school": {
+            hand: 5,
+            action: 2,
+        },
+        canBuy: (G: IG, ctx: Ctx) => true,
+        buy: {e: "anyRegionShare", a: 1},
+        canPlay: (G: IG, ctx: Ctx) => false,
+        play: noEff,
+        canArchive: (G: IG, ctx: Ctx) => true,
+        archive: noEff,
+        response: {pre: {e: "schoolExtNonePre"}, effect: {e: "Auteur_film"}}
     },
 }

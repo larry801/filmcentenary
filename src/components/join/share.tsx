@@ -33,6 +33,7 @@ export const ShareLink = ({matchID, player, numPlayer, gameName}: ShareLinkProps
             message: i18n.chain.lobby.copyPrompt,
         });
     }
+
     return (
         <Box sx={{mt: 2, display: "flex", flexDirection: "column", gap: 1}}>
             <Box sx={{display: "flex", alignItems: "center", gap: 1}}>

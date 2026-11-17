@@ -12,6 +12,7 @@ on:
       - "fix/**"
       - "refactor/**"
       - "test/**"
+      - "perf/**"
   pull_request:
     branches:
       - master
@@ -43,12 +44,14 @@ jobs:
           cache: yarn
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+      # `yarn test` is transpile-only (see jest.config.js), so this is the
+      # run's only type gate.  Its `include` covers the test files too.
       - name: Type check
         run: yarn tsc --noEmit
       - name: Run unit tests
         run: yarn test --ci
 
-  # Production build plus the server bundle.  The E2E job reuses `build/`
+  # Production build plus the server bundle.  The E2E jobs reuse `build/`
   # instead of paying for a second build, and e2e/imperial-elegy-spectator
   # needs build/server.js to exist before it starts.
   build:
@@ -75,10 +78,70 @@ jobs:
           path: build
           retention-days: 3
 
-  e2e:
+  # The default browser suite runs against the Vite dev server, so unlike the
+  # IE jobs it needs nothing from `build` and does not wait for it: it starts
+  # as soon as the push lands and overlaps the build and unit-test jobs.
+  e2e-app:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      # Reinstalling the browser on every push is the single largest fixed cost
+      # of these jobs.  The key is the Playwright version, so a dependency bump
+      # invalidates it and a source change does not.  CI is headless only, so
+      # the headless shell is all that is fetched.
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+      - name: Install Playwright browsers
+        run: yarn playwright install --with-deps --only-shell chromium
+      - name: Run browser tests
+        run: yarn test:e2e
+      # Screenshots, traces and the HTML report are what a failure is
+      # diagnosed from, so they are kept even when the run fails.
+      - name: Upload the Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-app
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # The three Imperial Elegy configs own distinct ports and origins (:5203,
+  # :5201, :5202 + a game server on :4004), so they never contended with each
+  # other; running them in one job serialised 47 s + 60 s + 8 s of tests behind
+  # one runner.  One job per config keeps the wall clock at the slowest config
+  # (controls, ~60 s) instead of their sum.  All three reuse `build/` from the
+  # build job, and the spectator spec needs build/server.js.
+  e2e-ie:
     needs: build
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ie-regression
+            command: yarn test:e2e:ie:regression
+          - name: ie-controls
+            command: yarn test:e2e:ie:controls
+          - name: ie-spectator
+            command: yarn test:e2e:ie:spectator
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
@@ -94,22 +157,24 @@ jobs:
         with:
           name: app-build
           path: build
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
       - name: Install Playwright browsers
-        run: yarn playwright install --with-deps chromium
-      # The plain suite runs against the dev server (:5173).  The three
-      # Imperial Elegy specs have their own origins and build requirements, so
-      # they are a separate command rather than part of the default glob.
+        run: yarn playwright install --with-deps --only-shell chromium
       - name: Run browser tests
-        run: yarn test:e2e
-      - name: Run Imperial Elegy browser tests
-        run: yarn test:e2e:ie
-      # Screenshots, traces and the HTML report are what a failure is
-      # diagnosed from, so they are kept even when the run fails.
+        run: ${{ matrix.command }}
+      # `test-results/ie-spectator` is the spectator spec's own output dir, so
+      # the same glob keeps every config's failure material.
       - name: Upload the Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.name }}
           path: |
             playwright-report
             test-results

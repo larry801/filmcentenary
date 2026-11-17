@@ -20,6 +20,16 @@
   --ie-space-2: 8px;
   --ie-space-3: 12px;
   --ie-space-4: 20px;
+  /* Shared by the map tokens and the legend swatches. */
+  --ie-power-ge: #4a4a4a;
+  --ie-power-uk: #a12b2b;
+  --ie-power-fr: #245a94;
+  --ie-power-au: #c9a227;
+  --ie-power-ru: #e8e4d8;
+  --ie-power-ot: #2f7a45;
+  --ie-power-neutral: #7b5aa6;
+  --ie-power-it: #3f7f8f;
+  --ie-power-us: #5b6fa8;
   --ie-radius-sm: 3px;
   --ie-radius-md: 6px;
   --ie-radius-lg: 10px;
@@ -35,7 +45,9 @@
   --ie-radius: var(--ie-radius-md);
 }
 
-* { box-sizing: border-box; }
+/* Scoped to the surface: a bare `*` rule leaks into the shared page and into
+   every other game's markup, and nothing asks for it. */
+.ie-surface, .ie-surface * { box-sizing: border-box; }
 
 /* ---------------------------------------------------------------- surface */
 .ie-surface {
@@ -51,8 +63,8 @@
   height: calc(100dvh - 48px);
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: var(--ie-space-1);
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 4px;
   /* `clip`, not `hidden`: `hidden` makes this element a scroll container, and
      the decision dock hangs below the bar as an absolutely positioned panel, so
      any focus or resize inside it scrolled the whole board up out of view. */
@@ -98,10 +110,10 @@
   letter-spacing: .02em;
   line-height: 1.5;
 }
-.ie-badge-uk { border-color: #a12b2b; color: #f0b6b6; }
+.ie-badge-uk { border-color: var(--ie-power-uk); color: #f0b6b6; }
 .ie-badge-fr { border-color: #4b7cb5; color: #bcd4f0; }
 .ie-badge-ge { border-color: #9b9b9b; color: #e2e2e2; }
-.ie-badge-au { border-color: #c9a227; color: #f3df9a; }
+.ie-badge-au { border-color: var(--ie-power-au); color: #f3df9a; }
 .ie-badge-ru { border-color: #d8d2c2; color: #f5f0e2; }
 .ie-badge-ot { border-color: #4c8d5d; color: #bfe3c8; }
 .ie-badge-warn { border-color: var(--ie-warn); color: #ffc3ae; background: #3b1c13; }
@@ -206,6 +218,46 @@
   background: #0f0c09;
   border-radius: var(--ie-radius-sm);
 }
+/* Framing bar: whole map, the player's capital, and every theatre.  It stays a
+   single row on a phone, so the theatre list is a native select. */
+.ie-map-views {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 16px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ie-map-views::-webkit-scrollbar { display: none; }
+.ie-view-chip {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 2px 9px;
+  border: 1px solid rgba(109, 86, 54, .9);
+  border-radius: var(--ie-radius-sm);
+  background: rgba(36, 29, 23, .9);
+  color: #cdbb9a;
+  font-size: var(--ie-font-xs);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ie-view-chip:hover { color: #eadfc8; border-color: var(--ie-accent); }
+.ie-view-chip.selected { background: rgba(58, 47, 30, .95); color: var(--ie-accent-soft); border-color: var(--ie-accent); }
+.ie-view-select {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 2px 4px;
+  font-size: var(--ie-font-xs);
+  max-width: 45%;
+  background: rgba(36, 29, 23, .9);
+  color: #cdbb9a;
+  border: 1px solid rgba(109, 86, 54, .9);
+  border-radius: var(--ie-radius-sm);
+}
 .ie-map {
   width: 100%;
   height: 100%;
@@ -247,6 +299,40 @@
 .ie-key.move::before { border-color: #8fd0a0; }
 .ie-key.battle::before { border-color: #e07b62; }
 .ie-key.legal::before { border-color: #f4d574; }
+
+/* Unit counters on the map.  The counter itself is SVG (sized in board
+   units); CSS owns the print look — owner colour, ink outline, the reduced
+   band — so one rule serves every shape. */
+.ie-unit-token { display: block; overflow: visible; pointer-events: none; }
+.ie-unit-token > rect,
+.ie-unit-token > circle,
+.ie-unit-token > polygon { fill: var(--ie-power-neutral); stroke: #241d17; stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.ie-unit-token-deck { fill: #241d17; stroke: none; }
+.ie-unit-token-mark { fill: #f6eed8; paint-order: stroke; stroke: #241d17; stroke-width: .5; }
+.ie-unit-token-reduced { stroke: var(--ie-ink); stroke-linecap: butt; opacity: .85; }
+.ie-unit-token.is-reduced > rect,
+.ie-unit-token.is-reduced > circle,
+.ie-unit-token.is-reduced > polygon { filter: saturate(.7); }
+/* Owner fill; the RU counter is near-white, so its ink is dark on purpose. */
+.ie-unit-token.ie-power-pip-ge > rect, .ie-unit-token.ie-power-pip-ge > circle, .ie-unit-token.ie-power-pip-ge > polygon { fill: var(--ie-power-ge); }
+.ie-unit-token.ie-power-pip-uk > rect, .ie-unit-token.ie-power-pip-uk > circle, .ie-unit-token.ie-power-pip-uk > polygon { fill: var(--ie-power-uk); }
+.ie-unit-token.ie-power-pip-fr > rect, .ie-unit-token.ie-power-pip-fr > circle, .ie-unit-token.ie-power-pip-fr > polygon { fill: var(--ie-power-fr); }
+.ie-unit-token.ie-power-pip-au > rect, .ie-unit-token.ie-power-pip-au > circle, .ie-unit-token.ie-power-pip-au > polygon { fill: var(--ie-power-au); }
+.ie-unit-token.ie-power-pip-ru > rect, .ie-unit-token.ie-power-pip-ru > circle, .ie-unit-token.ie-power-pip-ru > polygon { fill: var(--ie-power-ru); }
+.ie-unit-token.ie-power-pip-ot > rect, .ie-unit-token.ie-power-pip-ot > circle, .ie-unit-token.ie-power-pip-ot > polygon { fill: var(--ie-power-ot); }
+.ie-map-tokens { cursor: pointer; }
+/* The "+N" marker: ink disc with parchment type, like the printed count chip. */
+.ie-token-more { cursor: pointer; outline: none; }
+.ie-token-more circle { fill: #1b1611; stroke: #e8d8b5; }
+.ie-token-more text { fill: #f4e8ce; font-weight: 700; }
+.ie-token-more:hover circle, .ie-token-more:focus-visible circle { stroke: var(--ie-accent-soft); stroke-width: 2.4px; }
+.ie-token-more:focus-visible circle { stroke-dasharray: 3 2; }
+.ie-token-count { fill: #f6eed8; stroke: #241d17; font-weight: 700; pointer-events: none; }
+/* Hover / focus ring on a space that is under the pointer or keyboard. */
+.ie-map-hover-ring { stroke: var(--ie-accent-soft); opacity: .9; pointer-events: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .ie-map-hover-ring { transition: opacity .12s ease; }
+}
 
 /* Mode pill: the only persistent banner while a map target is expected. */
 .ie-mode-pill {
@@ -472,10 +558,10 @@
 }
 .ie-display-trigger::-webkit-details-marker { display: none; }
 .ie-display-trigger:hover { background: #4a3a2f; }
+/* Same reason as the card popovers: the strip clips (and a closed <details>
+   still lays its content out), so the panel is mounted in flow, not floated. */
 .ie-display-panel {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
+  position: relative;
   z-index: 60;
   width: 240px;
   padding: var(--ie-space-2);
@@ -612,6 +698,9 @@
   overflow-y: auto;
   overflow-x: hidden;
 }
+/* The CP chain row is a one-line strip; it used to stretch to the hand's full
+   height and take a whole card row away from the faces. */
+.ie-tray-scroll > .ie-cp-chain { align-self: stretch; }
 .ie-cp-chain {
   flex: 0 0 auto;
   display: flex;
@@ -649,14 +738,22 @@
   padding: 1px 0 4px;
 }
 .ie-hand::-webkit-scrollbar { height: 8px; }
-
-/* One card = one collapsed row (CP, name, type, caret).  The face and the
-   buttons only exist on the unfolded card, so a sixteen-card hand is sixteen
-   readable lines instead of sixteen quarter-sized faces. */
+/* Goal cards are a short strip of chips, not the hand: they keep their tile. */
+.ie-goal-hand .ie-card {
+  flex: 0 0 128px;
+  width: 128px;
+  max-width: 128px;
+  height: 100%;
+  max-height: 100%;
+}
+/* One card = one collapsed row (type glyph, CP, name, status, caret).  The face
+   and the buttons only exist on the unfolded card, so a sixteen-card hand is
+   sixteen readable lines instead of sixteen quarter-sized faces. */
 .ie-hand .ie-card {
   flex: 0 0 auto;
   width: 100%;
   max-width: none;
+  height: auto;
   display: flex;
   flex-direction: column;
   scroll-snap-align: start;
@@ -704,6 +801,59 @@
 }
 .ie-card-name {
   flex: 1 1 auto;
+.ie-card-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ie-card-type {
+  flex: 0 0 auto;
+  padding: 0 5px;
+  border: 1px solid #5e4a2f;
+  border-radius: 999px;
+  color: #bda98a;
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.ie-card-caret { flex: 0 0 auto; color: var(--ie-accent-soft); font-size: 11px; }
+/* The unfolded body: face on the left, this card's legal operations beside it. */
+.ie-card-body {
+  display: flex;
+  gap: 8px;
+  padding: 0 6px 6px;
+  min-height: 0;
+}
+.ie-hand .ie-card-face-button {
+  flex: 0 0 104px;
+  display: block;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid #5e4a2f;
+  border-radius: 2px;
+  background: transparent;
+  cursor: zoom-in;
+  overflow: hidden;
+}
+.ie-hand .ie-card-face-button .ie-card-face {
+  width: 100%; height: auto; max-height: 132px; object-fit: contain; display: block;
+}
+.ie-card-body-actions { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.ie-hand .ie-card-actions { flex: 0 0 auto; flex-wrap: wrap; padding: 0; gap: 3px; }
+.ie-hand .ie-card-actions button {
+  flex: 1 1 calc(50% - 3px);
+  min-width: 0;
+  min-height: 30px;
+  padding: 2px 4px;
+  font-size: var(--ie-font-xs);
+  line-height: 1.15;
+  border-radius: 2px;
+}
+.ie-hand .ie-card .ie-card-translation { margin: 0; font-size: 11px; }
   min-width: 0;
   font-size: var(--ie-font-sm);
   font-weight: 600;
@@ -780,14 +930,18 @@
   font-size: var(--ie-font-sm);
 }
 .ie-hand .ie-card-more > summary::-webkit-details-marker { display: none; }
-.ie-card-more { position: relative; flex: 0 0 auto; }
+/* The operations menu is absolutely placed (not a popover with a layout box):
+   in flow it added a row to every card and left a phantom block behind the
+   closed <details>, which put card buttons behind other controls. */
+.ie-card-more { position: relative; flex: 0 0 24px; }
 .ie-card-more-actions {
-  /* Fixed so the tray's horizontal scroller cannot clip the popover. */
-  position: fixed;
-  right: 16px;
-  bottom: 232px;
-  z-index: 80;
-  width: 240px;
+  /* Mounted, not positioned: the menu is part of the hand flow, between the
+     action row and the status line.  Absolute/fixed variants were clipped by
+     the tray's scroller or left a phantom box over other controls. */
+  position: relative;
+  z-index: 2;
+  flex: 1 1 100%;
+  width: 100%;
   max-height: 44vh;
   overflow: auto;
   display: flex;
@@ -801,7 +955,7 @@
 }
 .ie-card-more-actions button {
   flex: 1 1 calc(50% - 3px);
-  min-height: 30px;
+  min-height: 26px;
   padding: 3px 4px;
   font-size: var(--ie-font-xs);
   border: 1px solid #7a5c33;
@@ -810,6 +964,16 @@
   color: var(--ie-ink);
   cursor: pointer;
 }
+/* Inside a closed <details> the popover still has a layout box (fixed, and a
+   `display: flex` that beats the UA `details:not([open]) > *` rule), so it sat
+   as a 240 px phantom over the turn panel.  Hide it until the menu is open. */
+/* An open menu takes the card's spare height, so the four operations never
+   push the action row or the status line out of the tray. */
+.ie-card-more[open] { flex: 1 1 auto; display: flex; min-width: 0; }
+.ie-card-more[open] > .ie-card-more-actions { align-content: flex-start; }
+.ie-card-more[open] > .ie-card-more-actions > button { min-height: 24px; padding: 1px 2px; }
+.ie-card-more:not([open]) > .ie-card-more-actions { display: none; }
+.ie-hand .ie-card-more-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: 44vh; overflow: auto; }
 .ie-card-more-actions button:hover:not(:disabled) { background: #d9c49c; }
 .ie-card-more-actions button:disabled { opacity: .45; cursor: not-allowed; }
 .ie-hand .ie-card-translation { flex: 0 0 auto; border-top: 1px solid #c7b894; }
@@ -817,11 +981,11 @@
 .ie-hand .ie-card-translation > div { display: none; }
 .ie-hand .ie-card-translation[open] > div {
   display: block;
-  position: fixed;
-  right: 16px;
-  bottom: 232px;
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 4px);
   z-index: 80;
-  width: min(360px, calc(100vw - 16px));
+  width: min(320px, 80vw);
   max-height: 44vh;
   overflow: auto;
   padding: 10px;
@@ -948,7 +1112,9 @@ img.ie-card-face { background: var(--ie-surface-2); }
   overflow: hidden;
 }
 .ie-log-panel h3 { margin: 0; padding: 6px 10px; font-size: var(--ie-font-sm); color: #d4a85c; border-bottom: 1px solid #3f3223; }
-.ie-log { height: 240px; overflow: auto; font-size: var(--ie-font-xs); line-height: 1.45; padding: 4px 8px; }
+/* The log lives in the turn panel now, not in a 240 px box under the map:
+   it fills whatever height the tab has, so the newest line is the visible one. */
+.ie-log { height: auto; max-height: none; flex: 1 1 auto; overflow: auto; font-size: var(--ie-font-xs); line-height: 1.45; padding: 4px 8px; }
 .ie-log div { border-bottom: 1px solid #35291e; padding: 2px 0; }
 .ie-log .t { color: #9d8a68; margin-right: 5px; font-variant-numeric: tabular-nums; }
 
@@ -1196,7 +1362,8 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-picker-regions { display: flex; flex-wrap: wrap; gap: 4px; }
 .ie-picker-regions .ie-chip { cursor: pointer; background: #241d17; border: 1px solid #5e4a2f; color: #cdbb9a; }
 .ie-picker-regions .ie-chip[aria-pressed="true"] { background: #cbb07a; color: #211b16; border-color: #cbb07a; }
-.ie-picker-list { list-style: none; margin: 0; padding: 0; overflow: auto; max-height: 40vh; }
+/* Eight rows before it scrolls (keeps the map on screen). */
+.ie-picker-list { list-style: none; margin: 0; padding: 0; overflow: auto; max-height: calc(8 * 2.1em); }
 .ie-picker-list li { display: flex; align-items: stretch; gap: 2px; }
 .ie-picker-item {
   flex: 1 1 auto;
@@ -1247,7 +1414,10 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-inspector-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  /* A card inspector can open from the hand tray while the reference drawer is
+     open, so it sits above it (and above the sticky app bar — see the drawer's
+     z-index note).  Order: drawer 1300 < lightbox 1400 < inspector 1500. */
+  z-index: 1500;
   background: rgba(8, 6, 4, .72);
   display: flex;
   justify-content: flex-end;
@@ -1377,101 +1547,18 @@ img.ie-card-face { background: var(--ie-surface-2); }
     flex-direction: column;
     gap: 4px;
   }
-  .ie-header { min-height: 40px; order: 0; }
-  .ie-title { font-size: var(--ie-font-md); }
   .ie-sub { display: none; }
   .ie-status { gap: 4px; }
   .ie-status .ie-badge { display: none; }
   .ie-status .ie-badge:nth-last-child(-n+3) { display: inline-flex; }
-  .ie-command-bar { order: 3; min-height: 52px; gap: 4px; }
-  /* On a phone the bar keeps only the CP readout: it is the one number that
-     must never be hidden, and the dock summary repeats what the rail says. */
-  .ie-command-meta {
-    display: flex;
-    flex: 0 0 auto;
-    max-width: none;
-    padding: 0 6px;
-    border: 1px solid #4a3a26;
-    background: var(--ie-frame-2);
-  }
+  /* Phones read CP from the strip; the panel head would be the second readout,
+     so on a phone the head keeps its buttons and drops the number. */
   .ie-command-phase, .ie-command-active, .ie-command-turn, .ie-command-sep { display: none; }
-  .ie-command-bar .ie-dock-bar { min-height: 52px; flex-wrap: nowrap; }
-  .ie-command-bar .ie-dock-bar-summary { display: none; }
-  .ie-command-bar .ie-dock-toggle { display: none; }
-  .ie-command-bar .ie-dock-body { max-height: 34vh; }
   .ie-display-trigger { min-height: 32px; padding: 4px 7px; }
-  /* The hand tray is fixed above the command bar, so the layout must stop short
-     of it: otherwise the rail's tab strip sits underneath the tray's header and
-     cannot be pressed. */
-  .ie-layout {
-    order: 2;
-    flex: 1 1 auto;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    margin-bottom: 44px;
-    /* Containing block for the rail sheet, which anchors to the bottom of this
-       box rather than the viewport: the decision dock sits below it. */
-    position: relative;
-  }
-  .ie-play-column { flex: 1 1 auto; min-height: 0; }
   .ie-map-panel { height: 100%; }
   .ie-map-stage { min-height: 0; }
-  /* The context rail is a 38 px tab strip.  Opening it lifts a 46dvh sheet over
-     the bottom of the map: the sheet is positioned inside the layout, so it can
-     never reach the decision dock below, and because the board no longer
-     scrolls (`overflow: clip`) the map underneath keeps its size instead of
-     being squeezed. */
-  .ie-rail-sheet {
-    flex: 0 0 38px;
-    height: 38px;
-    border-radius: var(--ie-radius-sm);
-  }
-  .ie-rail-sheet[data-open="false"] { overflow: hidden; }
-  .ie-rail-sheet[data-open="false"] .ie-rail-tabs { border-bottom: 0; }
-  .ie-rail-sheet .ie-rail-tabs { flex: 0 0 auto; padding: 2px 4px 0; }
-  .ie-rail-sheet[data-open="true"] {
-    position: absolute;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 42;
-    display: flex;
-    flex-direction: column;
-    height: 46dvh;
-    max-height: 46dvh;
-    border-radius: var(--ie-radius-md) var(--ie-radius-md) 0 0;
-    background: var(--ie-frame-2);
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, .5);
-  }
-  /* The strip stays at the bottom edge where it was, so the sheet grows upward
-     from the control the player just pressed. */
-  .ie-rail-sheet[data-open="true"] .ie-rail-tabs {
-    order: 2;
-    flex: 0 0 auto;
-    padding-bottom: 2px;
-    border-top: 1px solid #4a3a26;
-  }
-  .ie-rail-sheet .ie-rail-tab { min-height: 34px; }
-  .ie-rail-sheet[data-open="true"] .ie-rail-panel {
-    order: 1;
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    padding: 6px;
-  }
-  .ie-rail-close {
-    flex: 0 0 auto;
-    width: 30px;
-    min-height: 30px;
-    border: 1px solid var(--ie-line);
-    border-radius: var(--ie-radius-sm);
-    background: #241d17;
-    color: var(--ie-accent-soft);
-    cursor: pointer;
-  }
-  /* One line on a handset: the legend is a hint, not a chart. */
+  /* One line on a handset: the legend is a hint, not a chart.  The footer now
+     carries the space card and the target keys too, so it must stay compact. */
   .ie-map-legend {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -1481,21 +1568,6 @@ img.ie-card-face { background: var(--ie-surface-2); }
   }
   .ie-map-legend::-webkit-scrollbar { display: none; }
   .ie-map-legend > span { white-space: nowrap; }
-  .ie-map-key { padding: 3px 2px 0; font-size: 11px; flex-wrap: nowrap; overflow: hidden; }
-  .ie-map-key .ie-muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ie-hand-tray {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 52px;
-    height: 56px;
-    z-index: 70;
-    border-radius: var(--ie-radius-md) var(--ie-radius-md) 0 0;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
-  }
-  .ie-hand-tray[data-open="true"] { height: 54dvh; }
-  .ie-hand-tray[data-open="true"][data-expanded="true"] { height: calc(100dvh - 100px); }
-  .ie-hand-tray[data-open="false"] { height: 48px; }
   .ie-tray-head { flex-basis: 48px; }
   /* The hand is a vertical list at every width now, so a phone gets slightly
      taller rows (a fingertip) rather than narrower fixed-width cards. */
@@ -1506,26 +1578,25 @@ img.ie-card-face { background: var(--ie-surface-2); }
   .ie-mode-pill-from { max-width: 70px; }
   .ie-space-overlay { max-width: 200px; }
   .ie-inspector { width: 100%; border-left: 0; padding: 10px; }
-  .ie-card-more-actions { bottom: 110px; right: 8px; width: min(260px, calc(100vw - 16px)); }
+  .ie-card-more-actions { width: 100%; }
   .ie-hand .ie-card-translation[open] > div { bottom: 110px; right: 8px; }
   .ie-seat-tab { padding: 2px 6px; }
   .ie-seat-name { display: none; }
   .ie-local-head { min-height: 38px; gap: 6px; }
-  .ie-header-title { display: none; }
   .ie-local-help { margin-left: 0; }
 }
 @media (max-width: 460px) {
-  .ie-command-meta { display: flex; }
   .ie-status .ie-badge { display: none; }
   .ie-status .ie-badge:nth-last-child(-n+2) { display: inline-flex; }
   .ie-seat-code { font-size: 12px; }
   .ie-seat-state { display: none; }
-  /* The phone rail is a fixed-height tab strip, so it gets no proportional
-     basis: 46% of the layout is exactly the squeeze this layout removes. */
-  .ie-rail:not(.ie-rail-sheet) { flex-basis: 46%; }
-  .ie-play-column { flex-basis: auto; }
+
 }
-@media (max-height: 699px) {
+/* Short desktop windows: the board may scroll rather than clip its grid.
+   Phones are handled by the mobile-dock section at the end of this file: the
+   board must stay fixed there, so the old `height: auto; overflow: auto`
+   rules are scoped above the phone breakpoint. */
+@media (max-height: 699px) and (min-width: 768px) {
   .ie-board {
     height: auto;
     min-height: calc(100dvh - 48px);
@@ -1533,11 +1604,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
     overflow: auto;
   }
   .ie-local { height: auto; min-height: calc(100dvh - 48px); overflow: auto; }
-  .ie-layout { height: auto; grid-template-columns: 1fr; display: block; }
-  .ie-rail { height: auto; max-height: none; margin-top: 8px; }
-  .ie-map-stage { min-height: 320px; height: 52vh; height: 52dvh; }
-  .ie-hand-tray { height: auto; min-height: 56px; }
-  .ie-hand-tray[data-open="true"] { height: auto; }
+  .ie-map-stage { min-height: 320px; height: 52dvh; }
   .ie-seat { height: auto; }
   .ie-local .ie-board { height: auto; }
 }
@@ -1555,25 +1622,16 @@ img.ie-card-face { background: var(--ie-surface-2); }
   font-size: var(--ie-font-xs);
 }
 
-/* Only currently-legal actions are drawn: a grey wall is noise, and the
-   inspector (cards) or the title attribute still explains the missing ones.
-   Groups with no legal button disappear entirely. */
-.ie-actions-grid button:disabled,
-.ie-national-actions button:disabled,
-.ie-mpit-controls button:disabled { display: none; }
-.ie-action-group:not(:has(button:not(:disabled))) { display: none; }
-.ie-card-actions button.ie-card-primary:disabled { display: none; }
-
 /* Map hit targets and legend swatches (was inline style). */
 .ie-space-hit { cursor: pointer; }
 .ie-map-legend-dot { display: inline-block; width: 10px; height: 10px; margin-right: 3px; vertical-align: middle; border: 1px solid #000; }
-.ie-map-legend-dot-ge { background: #4a4a4a; }
-.ie-map-legend-dot-uk { background: #a12b2b; }
-.ie-map-legend-dot-fr { background: #245a94; }
-.ie-map-legend-dot-au { background: #c9a227; }
-.ie-map-legend-dot-ru { background: #e8e4d8; }
-.ie-map-legend-dot-ot { background: #2f7a45; }
-.ie-map-legend-dot-neutral { background: #7b5aa6; }
+.ie-map-legend-dot-ge { background: var(--ie-power-ge); }
+.ie-map-legend-dot-uk { background: var(--ie-power-uk); }
+.ie-map-legend-dot-fr { background: var(--ie-power-fr); }
+.ie-map-legend-dot-au { background: var(--ie-power-au); }
+.ie-map-legend-dot-ru { background: var(--ie-power-ru); }
+.ie-map-legend-dot-ot { background: var(--ie-power-ot); }
+.ie-map-legend-dot-neutral { background: var(--ie-power-neutral); }
 .ie-characteristics-list { margin: 4px 0 0 14px; padding: 0; font-size: var(--ie-font-xs); line-height: 1.35; }
 .ie-dashboard-row { margin-top: 6px; }
 .ie-mt-6 { margin-top: 6px; }
@@ -1764,3 +1822,1204 @@ img.ie-card-face { background: var(--ie-surface-2); }
   cursor: pointer;
 }
 .ie-map-search-toggle:hover { color: #eadfc8; border-color: var(--ie-accent); }
+
+/* ============================================================================
+   Table layout (phase 2) — track strip, table grid, turn panel, mat, hand
+   ========================================================================== */
+
+/* ---------------------------------------------------------------- track strip */
+.ie-track-strip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--ie-space-2);
+  height: 52px;
+  min-width: 0;
+  padding: 0 var(--ie-space-2);
+  border: 1px solid #4a3a26;
+  border-radius: var(--ie-radius-md);
+  background: linear-gradient(180deg, #2b231b, #221c16);
+  z-index: 20;
+}
+.ie-track-decade {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid #5a4830;
+  border-radius: var(--ie-radius-sm);
+  white-space: nowrap;
+}
+.ie-track-decade-turn { font-weight: 700; color: var(--ie-accent-soft); font-variant-numeric: tabular-nums; }
+.ie-track-decade-label { color: #d9c49c; font-size: var(--ie-font-xs); white-space: nowrap; }
+.ie-stepper {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ie-stepper::-webkit-scrollbar { display: none; }
+.ie-step {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 4px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: #cdbb9a;
+  font-size: var(--ie-font-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ie-step:hover { background: #33281e; color: #f3e4c2; }
+.ie-step.done { color: #8d7c62; }
+.ie-step.current { border-color: var(--ie-accent); background: #3a2c1c; color: #f7e6bb; font-weight: 700; }
+.ie-step.current::before { content: "●"; margin-right: 5px; color: var(--ie-accent-soft); font-size: 9px; }
+.ie-stepper-sep { flex: 0 0 auto; color: #7a6440; font-size: var(--ie-font-xs); padding: 0 1px; }
+.ie-track-actions { flex: 0 0 auto; display: flex; align-items: center; }
+.ie-track-actions .ie-dock-choice { margin: 0; }
+.ie-track-actions .ie-section-title { display: none; }
+.ie-track-actions .ie-impulse-actions,
+.ie-track-actions [data-testid="ie-impulse-actions"] { flex-wrap: nowrap; gap: 4px; }
+.ie-track-actions .ie-btn { min-height: 40px; padding: 4px 12px; }
+.ie-track-status {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--ie-space-2);
+  min-width: 0;
+  overflow: hidden;
+  justify-content: flex-end;
+}
+.ie-track-wtt {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border: 1px solid #5a4830;
+  border-radius: 999px;
+  font-size: var(--ie-font-xs);
+  color: #d9c49c;
+  white-space: nowrap;
+}
+.ie-track-wtt.warn { border-color: var(--ie-warn); color: #ffc3ae; }
+.ie-track-wtt-label { color: #bda98a; }
+.ie-track-wtt-pips { display: inline-flex; gap: 2px; }
+.ie-track-wtt-pips i { width: 7px; height: 12px; border: 1px solid #6d5636; border-radius: 2px; background: #241d17; }
+.ie-track-wtt-pips i.on { background: var(--ie-accent); border-color: var(--ie-accent-soft); }
+.ie-track-wtt-pips i.on.at3 { background: var(--ie-warn); border-color: #ffc3ae; }
+.ie-track-wtt b { color: #f7e6bb; font-variant-numeric: tabular-nums; }
+.ie-track-wtt-note { color: #b48a5c; font-size: var(--ie-font-xs); }
+.ie-track-alliance { flex: 0 1 auto; display: inline-flex; gap: 3px; min-width: 0; overflow: hidden; }
+.ie-track-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px;
+  border: 1px solid #4a3a26;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+  white-space: nowrap;
+}
+.ie-track-box.neutral { border-style: dashed; }
+.ie-track-box.held { border-color: #7a6440; background: #32281e; }
+.ie-track-box-name { font-size: var(--ie-font-xs); color: #a99678; letter-spacing: .02em; }
+.ie-track-box-pips { display: inline-flex; gap: 2px; }
+.ie-track-box-empty { color: #5e4a2f; }
+.ie-power-pip {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  border: 1px solid #000;
+  vertical-align: middle;
+}
+.ie-power-pip-ge { background: var(--ie-power-ge); }
+.ie-power-pip-uk { background: var(--ie-power-uk); }
+.ie-power-pip-fr { background: var(--ie-power-fr); }
+.ie-power-pip-au { background: var(--ie-power-au); }
+.ie-power-pip-ru { background: var(--ie-power-ru); }
+.ie-power-pip-ot { background: var(--ie-power-ot); }
+.ie-power-pip-it { background: var(--ie-power-it); }
+.ie-power-pip-us { background: var(--ie-power-us); }
+.ie-track-gw, .ie-track-war { flex: 0 0 auto; white-space: nowrap; color: #d9c49c; font-size: var(--ie-font-xs); }
+.ie-track-gw b { color: var(--ie-accent-soft); }
+.ie-track-cp { display: none; }
+.ie-track-badges { flex: 0 1 auto; min-width: 0; overflow: hidden; }
+.ie-track-badges .ie-sub { display: none; }
+.ie-track-badges .ie-status { flex-wrap: nowrap; overflow: hidden; }
+.ie-track-round { flex: 0 0 auto; display: flex; gap: 4px; align-items: center; }
+.ie-round-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #6d5636;
+  border-radius: 999px;
+  background: #33281e;
+  color: var(--ie-accent-soft);
+  font-size: var(--ie-font-md);
+  cursor: pointer;
+}
+.ie-round-btn:hover { background: #44361f; border-color: var(--ie-accent); }
+.ie-round-btn[aria-expanded="true"] { background: #4a3a21; border-color: var(--ie-accent); }
+.ie-track-menu-wrap { position: relative; }
+.ie-track-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 60;
+  min-width: 220px;
+  padding: var(--ie-space-2);
+  border: 1px solid var(--ie-accent);
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-frame-2);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .65);
+}
+.ie-track-menu .ie-command-menu { flex-direction: column; align-items: stretch; gap: 4px; }
+.ie-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------------------------------------------------------------- table grid */
+.ie-table {
+  display: grid;
+  /* The mat is the strip under the map and shares its row; the hand owns the
+     full width of the bottom row so 228 px of tray is all cards, not cards
+     squeezed into a 320 px column. */
+  grid-template-columns: 148px minmax(0, 1fr) 348px;
+  grid-template-rows: minmax(0, 1fr) minmax(212px, auto);
+  grid-template-areas:
+    "mat map turn"
+    "hand hand turn";
+  gap: var(--ie-space-1) var(--ie-space-2);
+  min-height: 0;
+  overflow: hidden;
+}
+.ie-map-region { grid-area: map; min-width: 0; min-height: 0; display: flex; overflow: hidden; }
+.ie-turn-panel { grid-area: turn; }
+.ie-mat { grid-area: mat; }
+.ie-hand-tray { grid-area: hand; }
+.ie-private-info { grid-area: hand; }
+
+/* ---------------------------------------------------------------- turn panel */
+.ie-turn-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid #4a3a26;
+  border-radius: var(--ie-radius-md);
+  background: rgba(33, 27, 22, .7);
+  overflow: hidden;
+}
+.ie-turn-panel .ie-dock-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid #3f3223;
+  font-size: var(--ie-font-xs);
+  min-width: 0;
+}
+.ie-turn-panel .ie-dock-bar-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f0d799;
+  font-weight: 600;
+}
+.ie-turn-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ie-space-2);
+  flex-wrap: wrap;
+  padding: 6px 10px;
+  border-bottom: 1px solid #3f3223;
+}
+.ie-turn-head .ie-dock-choice { margin: 0; flex: 1 1 auto; min-width: 0; }
+.ie-turn-head .ie-section-title { display: none; }
+.ie-turn-head .ie-btn { min-height: 44px; padding: 6px 14px; }
+.ie-turn-head .ie-command-cp b { font-size: var(--ie-font-lg); }
+.ie-turn-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding: 4px 4px 0;
+  border-bottom: 1px solid #4a3a26;
+  background: #241d17;
+}
+.ie-turn-tab {
+  flex: 1 1 0;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--ie-radius-sm) var(--ie-radius-sm) 0 0;
+  background: transparent;
+  color: #cdbb9a;
+  font-size: var(--ie-font-sm);
+  cursor: pointer;
+}
+.ie-turn-tab:hover { background: #32281e; color: #eadfc8; }
+.ie-turn-tab[aria-selected="true"] { background: #2c241d; border-color: #5a4830; color: #f7e6bb; }
+.ie-turn-tab.urgent { color: #f0c894; }
+.ie-turn-tab-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ie-warn);
+  color: #211b16;
+  font-size: 11px;
+  font-weight: 700;
+}
+.ie-turn-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--ie-space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ie-space-2);
+}
+.ie-turn-body[hidden] { display: none; }
+.ie-turn-body .ie-panel { border: 0; background: transparent; box-shadow: none; }
+.ie-turn-body .ie-panel-head { padding: 4px 0; background: transparent; }
+.ie-turn-body .ie-panel-body { padding: 4px 0; }
+.ie-turn-body .ie-log { height: auto; max-height: none; }
+
+/* ---------------------------------------------------------------- player mat */
+.ie-mat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  /* The strip sits beside the map, so it scrolls its own figures and never
+     forces the row taller than the map. */
+  min-height: 0;
+  overflow: hidden;
+  padding: 6px 8px;
+  border: 1px solid #4a3a26;
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-frame-2);
+  min-width: 0;
+}
+.ie-mat-head { display: flex; align-items: center; gap: 6px; }
+.ie-mat-title {
+  margin: 0;
+  font-size: var(--ie-font-sm);
+  color: var(--ie-accent-soft);
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+.ie-mat-flag { font-size: var(--ie-font-xs); color: #ffc3ae; }
+.ie-mat-toggle {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #5a4830;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+  color: #d4a85c;
+  cursor: pointer;
+}
+.ie-mat-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3px;
+  overflow: auto;
+  min-height: 0;
+}
+/* Collapsed is the default until the person opens the mat, so the 212 px row
+   below the map is spent on the hand, not on a second copy of the numbers. */
+.ie-mat[data-collapsed="true"] .ie-mat-grid,
+.ie-mat[data-collapsed="true"] .ie-mat-slots,
+.ie-mat[data-collapsed="true"] .ie-mat-display { display: none; }
+/* The strip is one key per line: label on the left, number on the right. */
+.ie-mat-figure { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 6px; padding: 1px 6px; }
+.ie-mat-figure-label { max-width: 62%; font-size: var(--ie-font-xs); }
+.ie-mat-figure-value { font-size: var(--ie-font-sm); }
+.ie-mat-chips { display: none; flex-wrap: wrap; gap: 4px; font-size: var(--ie-font-xs); color: #c5b698; }
+.ie-mat-chips b { color: #f7e6bb; font-variant-numeric: tabular-nums; }
+.ie-mat[data-collapsed="true"] .ie-mat-chips { display: flex; }
+
+.ie-mat-figure {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 2px 6px;
+  border: 1px solid #3f3223;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+  min-width: 0;
+  text-align: left;
+}
+.ie-mat-figure-label { font-size: var(--ie-font-xs); color: #a99678; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.ie-mat-figure-value { font-size: var(--ie-font-md); color: #f7e6bb; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.ie-mat-figure-value small { font-size: var(--ie-font-xs); color: #a99678; }
+.ie-mat-link { cursor: pointer; }
+.ie-mat-slots { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ie-mat-slot { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: var(--ie-font-sm); }
+.ie-mat-slot-label { flex: 0 0 auto; color: #a99678; }
+.ie-mat-slot-value { display: inline-flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #eadfc8; }
+/* The counts beside a slot ("0/2", "+1") inherit the text size: the browser
+   default for <small> is 83%, which lands under the 12 px floor. */
+.ie-mat-slot-value small { font-size: inherit; }
+.ie-mat-slot-value.empty, .ie-mat-slot-value .empty { color: #7a6a52; font-style: italic; }
+.ie-mat-chain-card, .ie-mat-goal {
+  padding: 0 5px;
+  border: 1px solid #5a4830;
+  border-radius: var(--ie-radius-sm);
+  background: #32281e;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ie-mat-display {
+  align-self: flex-start;
+  min-height: 28px;
+  padding: 2px 8px;
+  border: 1px solid #5a4830;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+  color: #cbb07a;
+  font-size: var(--ie-font-xs);
+  cursor: pointer;
+}
+.ie-mat-display:hover { border-color: var(--ie-accent); color: #f7e6bb; }
+.ie-mat-popover { display: none; }
+.ie-mat[data-collapsed="true"] .ie-mat-grid,
+.ie-mat[data-collapsed="true"] .ie-mat-slots { display: none; }
+.ie-mat-popover dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; margin: 0; font-size: var(--ie-font-xs); }
+.ie-mat-popover dt { color: #a99678; }
+.ie-mat-popover dd { margin: 0; color: #eadfc8; }
+
+/* ---------------------------------------------------------------- hand region */
+.ie-table .ie-hand-tray {
+  position: relative;
+  height: auto;
+  max-height: 212px;
+  border-radius: var(--ie-radius-md);
+}
+.ie-table .ie-hand-tray[data-open="false"] { height: 44px; }
+.ie-table .ie-tray-body { min-height: 0; }
+
+/* ---------------------------------------------------------------- reference drawer + lightbox */
+
+/* The drawer and the lightbox are overlays over the whole page, and the app's
+   MUI AppBar is sticky at z-index 1100: at any lower z-index the bar covered
+   the drawer's own head, so its ✕ could not be clicked (on a phone, where the
+   drawer is the full width, that left no way to close it at all — there is no
+   Esc key).  Sit above the bar, and above the bar's navigation drawer (1200). */
+.ie-ref-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(520px, 92vw);
+  z-index: 1300;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--ie-accent);
+  background: var(--ie-frame);
+  color: #eadfc8;
+  box-shadow: -12px 0 32px rgba(0, 0, 0, .6);
+}
+/* `display: flex` above would otherwise win over the UA rule for `[hidden]`,
+   leaving the closed drawer on top of the seat strip and the map's right
+   edge.  Keep the drawer out of the page entirely while it is closed. */
+.ie-ref-drawer[hidden] { display: none; }
+.ie-ref-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ie-space-2);
+  padding: 8px 12px;
+  border-bottom: 1px solid #4a3a26;
+}
+.ie-ref-head h2 { margin: 0; font-size: var(--ie-font-md); color: var(--ie-accent-soft); }
+.ie-ref-body { flex: 1 1 auto; overflow: auto; padding: var(--ie-space-2) var(--ie-space-3) var(--ie-space-4); }
+.ie-ref-tables { display: flex; flex-direction: column; gap: var(--ie-space-3); }
+.ie-ref-section { scroll-margin-top: 8px; }
+.ie-ref-section h3 { margin: 0 0 3px; font-size: var(--ie-font-sm); color: #d4a85c; }
+.ie-ref-section[data-highlighted="true"] { outline: 2px solid var(--ie-accent); outline-offset: 4px; border-radius: var(--ie-radius-sm); }
+.ie-ref-table { width: 100%; border-collapse: collapse; font-size: var(--ie-font-xs); }
+.ie-ref-table th, .ie-ref-table td { padding: 2px 6px; border-bottom: 1px solid #3f3223; text-align: left; }
+.ie-ref-table thead th { color: #a99678; font-weight: 600; }
+.ie-ref-costs { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2px 10px; font-size: var(--ie-font-xs); }
+.ie-ref-costs li { display: flex; justify-content: space-between; gap: 6px; border-bottom: 1px solid #3f3223; padding: 1px 0; }
+.ie-ref-cost { color: var(--ie-accent-soft); font-variant-numeric: tabular-nums; }
+.ie-ref-sequence { margin: 0; padding-left: 18px; font-size: var(--ie-font-xs); }
+.ie-ref-sequence li[data-current="true"] { color: #f7e6bb; font-weight: 700; }
+.ie-score-panel h4 { margin: 0 0 2px; font-size: var(--ie-font-sm); color: #d4a85c; }
+.ie-score-panel p { margin: 0 0 6px; }
+.ie-score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ie-space-2); }
+@media (max-width: 700px) { .ie-score-grid { grid-template-columns: 1fr; } }
+.ie-score-card { border: 1px solid #4a3a26; border-radius: var(--ie-radius-sm); background: #241d16; padding: 5px 7px; font-size: var(--ie-font-xs); }
+.ie-score-head, .ie-score-foot { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.ie-score-head { border-bottom: 1px solid #4a3a26; padding-bottom: 3px; }
+.ie-score-total, .ie-score-foot strong { color: var(--ie-accent-soft); font-variant-numeric: tabular-nums; }
+.ie-score-lines { list-style: none; margin: 4px 0; padding: 0; }
+.ie-score-lines li { display: flex; justify-content: space-between; gap: 6px; padding: 1px 0; }
+.ie-score-lines li.ie-score-group { display: block; margin-top: 3px; color: #a99678; font-weight: 600; }
+.ie-score-value { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ie-score-foot { border-top: 1px solid #4a3a26; padding-top: 3px; }
+.ie-chart-open { border: 0; padding: 0; background: transparent; cursor: zoom-in; display: block; width: 100%; }
+.ie-chart-open img { width: 100%; height: auto; display: block; border: 1px solid #4a3a26; border-radius: var(--ie-radius-sm); }
+.ie-lightbox {
+  position: fixed;
+  inset: 0;
+  /* Above the drawer, which opens a chart as its lightbox (see the drawer's
+     z-index), and above the sticky app bar for the same reason. */
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 9, 7, .94);
+}
+.ie-lightbox-bar { display: flex; align-items: center; gap: var(--ie-space-2); padding: 8px 12px; }
+.ie-lightbox-title { margin: 0; font-size: var(--ie-font-md); color: var(--ie-accent-soft); }
+.ie-lightbox-stage { flex: 1 1 auto; min-height: 0; display: grid; place-items: center; padding: var(--ie-space-2); overflow: auto; }
+.ie-lightbox-image { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; background: #fff; }
+
+/* ---------------------------------------------------------------- responsive: 900-1099 */
+@media (max-width: 1099px) {
+  .ie-table { grid-template-columns: 132px minmax(0, 1fr) 300px; grid-template-areas: "mat map turn" "hand hand turn"; }
+  .ie-mat { grid-area: mat; }
+  .ie-mat-grid, .ie-mat-slots, .ie-mat-display { display: none; }
+  .ie-mat-toggle { display: grid; }
+  .ie-mat::before {
+    content: attr(data-chips);
+    display: none;
+  }
+  .ie-mat-chips { display: flex; gap: 4px; flex-wrap: wrap; font-size: var(--ie-font-xs); }
+  .ie-mat-chips b { color: #f7e6bb; font-variant-numeric: tabular-nums; }
+  .ie-mat[data-collapsed="false"] .ie-mat-popover { display: block; position: absolute; left: 0; bottom: 100%; z-index: 40; margin-bottom: 4px; padding: var(--ie-space-2); border: 1px solid var(--ie-accent); border-radius: var(--ie-radius-md); background: var(--ie-frame-2); box-shadow: 0 10px 28px rgba(0, 0, 0, .65); }
+  .ie-track-badges { display: none; }
+}
+
+/* ---------------------------------------------------------------- phones (<=767) */
+@media (max-width: 767px) {
+  .ie-board { grid-template-rows: auto minmax(0, 1fr); gap: 4px; }
+  .ie-track-strip { height: 44px; padding: 0 4px; gap: 4px; }
+  .ie-track-decade { padding: 1px 5px; }
+  .ie-track-decade-label { display: none; }
+  .ie-stepper { display: none; }
+  .ie-track-status .ie-track-wtt { padding: 1px 6px; }
+  .ie-track-wtt-label, .ie-track-wtt-note { display: none; }
+  .ie-track-alliance, .ie-track-war { display: none; }
+  .ie-track-cp {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 1px 8px;
+    border: 1px solid var(--ie-accent);
+    border-radius: 999px;
+    background: #3a2c1c;
+    color: #f7e6bb;
+    font-size: var(--ie-font-xs);
+    white-space: nowrap;
+  }
+  .ie-track-cp b { font-size: var(--ie-font-md); color: var(--ie-accent-soft); font-variant-numeric: tabular-nums; }
+  /* Phones read CP from the strip; the panel head would be the second readout,
+     so on a phone the head keeps its buttons and drops the number. */
+  .ie-turn-panel .ie-command-cp { display: none; }
+  .ie-round-btn { width: 36px; height: 36px; }
+  .ie-track-actions .ie-btn { min-height: 36px; padding: 4px 9px; }
+  .ie-table {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 4px;
+    overflow: hidden;
+  }
+  /* One layout for the phone: the map takes the space above the sheet, and
+     the dock is the one surface under it.  The panels are no longer rows of
+     `.ie-table` themselves — they live inside `.ie-mobile-body` — so the old
+     `order: 3` / `order: 2` surface rules are gone (see the mobile-dock
+     section at the end of this file). */
+  .ie-map-region { order: 1; flex: 1 1 auto; min-height: 0; }
+  .ie-private-info { display: none; }
+
+  /* The cap lives on the dock (`[data-decision="true"][data-open="true"]`,
+     mobile-dock section at the end of this file), which is the only surface
+     the phone raises.  `BoardLayout` no longer marks the panel decision-only on
+     a phone, so the rules below are inert there; they stay because
+     `TurnPanel`'s `decisionOnlyOnPhone` contract is the component's, and a
+     caller that still uses it must keep a readable panel: the head is pinned,
+     the tab strip hidden in favour of the dock's, and the decision body scrolls
+     under it. */
+  .ie-turn-panel-decision { max-height: 50dvh; }
+  .ie-turn-panel-decision .ie-turn-tabs { display: none; }
+  .ie-turn-panel-decision .ie-turn-body { display: none; }
+  .ie-turn-panel-decision .ie-turn-body-action { display: flex; }
+  /* The Orders body holds at most one decision panel while a decision is
+     owed (PendingPanel is rendered exactly then), so the required home-card /
+     goal chooser that shares the body with it stays hidden here.  The
+     decision panel is `.ie-panel.ie-dock-panel` (PendingPanel's `dock`). */
+  .ie-turn-panel-decision .ie-turn-body-action > .ie-dock-choices { display: none; }
+  .ie-turn-panel-decision .ie-turn-head { flex: 0 0 auto; }
+  /* Roomy enough to read the prompt and pick without scrolling the head away:
+     the body takes the rest of the 50 dvh cap and scrolls on its own. */
+  .ie-turn-panel-decision .ie-turn-body-action {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ie-turn-panel-decision .ie-turn-body-action .ie-dock-panel { flex: 0 0 auto; }
+  .ie-mat-toggle { display: grid; }
+  .ie-ref-drawer { width: 100vw; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ie-seat-tab-decide, .ie-inspector { animation: none; }
+  .ie-track-strip *, .ie-turn-panel *, .ie-mat *, .ie-hand-tray * { transition: none !important; }
+  html:focus-within { scroll-behavior: auto; }
+}
+
+/* Hand tray: type icon, playability line, filter/sort, hover enlargement. */
+.ie-hand-tools { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: nowrap; min-width: 0; }
+/* One line per control: the tray head is 40 px and the hand column is narrow,
+   so a wrapped label ("筛 / 选") ate a card row and pushed the card faces and
+   their action buttons out of the visible tray. */
+.ie-hand-tool { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ie-font-xs); color: #a99678; white-space: nowrap; flex: 0 0 auto; }
+.ie-hand-tool .ie-select { min-height: 28px; padding: 2px 4px; }
+.ie-card { position: relative; }
+.ie-card-type {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  z-index: 2;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #6d5636;
+  border-radius: var(--ie-radius-sm);
+  background: rgba(36, 29, 23, .92);
+  color: var(--ie-accent-soft);
+  /* 12 px floor: the audit catches body text under that size. */
+  font-size: var(--ie-font-xs);
+  line-height: 1;
+  pointer-events: none;
+}
+.ie-card-type-response { color: #9fd0b4; }
+.ie-card-type-combat { color: #f0a08a; }
+.ie-card-type-mandatory, .ie-card-type-mandatoryResponse { color: #f0c894; }
+.ie-card-status {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--ie-font-xs);
+  line-height: 1.25;
+  color: #a99678;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.ie-card[data-playable="true"] { border-color: #7f9d5a; }
+.ie-card[data-playable="true"] .ie-card-status { color: #bfe3c8; }
+.ie-card.saved { outline: 1px dashed var(--ie-accent); outline-offset: 1px; }
+.ie-hand .ie-card { transition: transform .12s ease, box-shadow .12s ease; }
+.ie-hand .ie-card:hover,
+.ie-hand .ie-card:focus-within { transform: translateY(-4px) scale(1.04); box-shadow: 0 8px 20px rgba(0, 0, 0, .55); z-index: 5; }
+@media (prefers-reduced-motion: reduce) {
+  .ie-hand .ie-card, .ie-hand .ie-card:hover, .ie-hand .ie-card:focus-within { transform: none; transition: none; }
+}
+/* The diplomacy give-card control is a normal, visible block in the tray. */
+.ie-tray-give { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+
+/* One CP readout per board: the turn panel head (desktop) or the strip (phones). */
+@media (min-width: 768px) { .ie-track-cp { display: none !important; } }
+
+/* Intent chooser: anchored between the map and the turn panel's Actions tab. */
+.ie-intent-chooser {
+  grid-area: turn;
+  align-self: start;
+  margin-top: 56px;
+  z-index: 25;
+  padding: var(--ie-space-2);
+  border: 1px solid var(--ie-accent);
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-frame-2);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .65);
+}
+.ie-intent-chooser-title { display: block; font-size: var(--ie-font-xs); color: #f0d799; margin-bottom: 4px; }
+.ie-intent-chooser-options { display: flex; flex-wrap: wrap; gap: 4px; }
+.ie-intent-chooser .ie-btn { min-height: 44px; }
+
+/* ---------------------------------------------------------------- trench battles (War tab) */
+/* Rule 28.1 lists one battle per space; the War tab lists the same battles as
+   rows that focus the map, so a reader can see the state without hunting for a
+   marker among the counters. */
+.ie-trench { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
+.ie-trench-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--ie-font-sm);
+  color: #d4a85c;
+}
+.ie-trench-rule { font-size: var(--ie-font-xs); color: #a99678; font-variant-numeric: tabular-nums; }
+.ie-trench-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; }
+.ie-trench-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 6px;
+  border: 1px solid #4a3a26;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+  color: #eadfc8;
+  font-size: var(--ie-font-xs);
+  text-align: left;
+  cursor: pointer;
+}
+.ie-trench-row:hover { border-color: var(--ie-accent); background: #2f2620; }
+.ie-trench-row:focus-visible { outline: 3px solid #f4d574; outline-offset: 2px; }
+.ie-trench-row.selected { border-color: var(--ie-accent); background: #3a2c1c; color: #f7e6bb; }
+.ie-trench-status {
+  flex: 0 0 16px;
+  display: grid;
+  place-items: center;
+  font-size: var(--ie-font-sm);
+  font-variant-numeric: tabular-nums;
+}
+.ie-trench-status-attacker { color: #f0a58f; }
+.ie-trench-status-defender { color: #9fc3ea; }
+.ie-trench-status-deadlock { color: #e0c98a; }
+.ie-trench-space { font-weight: 700; }
+.ie-trench-flag { color: #c5b698; }
+.ie-trench-turn { margin-left: auto; color: #a99678; font-variant-numeric: tabular-nums; }
+.ie-trench-sides { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 4px 10px; color: #c5b698; }
+.ie-trench-side { display: inline-flex; gap: 4px; align-items: baseline; }
+.ie-trench-power { font-weight: 700; color: #f7e6bb; }
+.ie-trench-hint { margin: 0; font-size: var(--ie-font-xs); color: #a99678; }
+
+/* Power tints on the side labels, shared with the token legend. */
+.ie-trench-side.ie-power-pip-ge .ie-trench-power { color: var(--ie-power-ge); }
+.ie-trench-side.ie-power-pip-uk .ie-trench-power { color: var(--ie-power-uk); }
+.ie-trench-side.ie-power-pip-fr .ie-trench-power { color: var(--ie-power-fr); }
+.ie-trench-side.ie-power-pip-au .ie-trench-power { color: var(--ie-power-au); }
+.ie-trench-side.ie-power-pip-ru .ie-trench-power { color: var(--ie-power-ru); }
+.ie-trench-side.ie-power-pip-ot .ie-trench-power { color: var(--ie-power-ot); }
+
+/* ---------------------------------------------------------------- rule links */
+/* The interactive "? 12.3" reference link inside a panel.  `.ie-rule-ref`
+   above stays the static superscript badge; this is a real button, so it gets
+   a hit area, a hover and the board's own focus ring. */
+.ie-rule-ref-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.ie-rule-ref-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: max(12px, 1em);
+  line-height: 1.1;
+  font-weight: 500;
+  padding: 2px 7px 2px 5px;
+  border: 1px solid var(--ie-accent-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ie-accent-soft);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.ie-rule-ref-btn:hover:not(:disabled) {
+  background: var(--ie-accent-soft);
+  border-color: var(--ie-accent-soft);
+  color: #1b1410;
+}
+.ie-rule-ref-btn:disabled {
+  cursor: default;
+  opacity: .55;
+  border-style: dashed;
+}
+.ie-rule-ref-btn:focus-visible {
+  outline: 2px solid #f4d574;
+  outline-offset: 2px;
+}
+/* The circled mark is a glyph, not text: the 12 px floor applies to readable
+   copy, and a 14 px circle cannot hold a 12 px "?" without bursting. */
+.ie-rule-ref-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font-size: 0;
+  font-weight: 700;
+  line-height: 1;
+}
+.ie-rule-ref-mark::before { content: "?"; font-size: 11px; }
+.ie-rule-ref-rule {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Stack popover: lists every counter on a dense space.  The wrapper places the
+   card in screen pixels near the space (map/components/StackPopover.tsx); the
+   card itself only draws the parchment panel. */
+.ie-stack-popover-anchor {
+  position: absolute;
+  z-index: 30;
+  left: calc(var(--ie-stack-left, 12px) * 1px);
+  top: calc(var(--ie-stack-top, 12px) * 1px);
+  max-width: min(280px, calc(100% - 16px));
+}
+.ie-stack-popover {
+  min-width: 168px;
+  max-height: 40vh;
+  overflow: auto;
+  padding: var(--ie-space-2) var(--ie-space-3);
+  border: 1px solid var(--ie-accent);
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-surface);
+  color: var(--ie-ink);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .65);
+  font-size: var(--ie-font-xs);
+  line-height: 1.35;
+}
+.ie-stack-popover-head { display: flex; align-items: center; gap: var(--ie-space-1); margin-bottom: var(--ie-space-1); }
+.ie-stack-popover-title { font-weight: 700; color: #5a4322; }
+.ie-stack-popover-total { margin-left: auto; color: #6d5636; font-size: var(--ie-font-xs); }
+.ie-stack-popover-close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--ie-line);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-surface-2);
+  color: var(--ie-ink);
+  font-size: var(--ie-font-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.ie-stack-popover-close:hover { background: #f3e7cc; }
+.ie-stack-popover-close:focus-visible { outline: 2px solid var(--ie-accent); outline-offset: 1px; }
+.ie-stack-popover-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.ie-stack-popover-row { display: flex; align-items: baseline; gap: var(--ie-space-1); flex-wrap: wrap; }
+.ie-stack-popover-pip {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 10px;
+  height: 10px;
+  border: 1px solid #000;
+  border-radius: 2px;
+  background: var(--ie-power-neutral);
+}
+.ie-stack-popover-pip.ie-power-pip-ge { background: var(--ie-power-ge); }
+.ie-stack-popover-pip.ie-power-pip-uk { background: var(--ie-power-uk); }
+.ie-stack-popover-pip.ie-power-pip-fr { background: var(--ie-power-fr); }
+.ie-stack-popover-pip.ie-power-pip-au { background: var(--ie-power-au); }
+.ie-stack-popover-pip.ie-power-pip-ru { background: var(--ie-power-ru); }
+.ie-stack-popover-pip.ie-power-pip-ot { background: var(--ie-power-ot); }
+.ie-stack-popover-kind { font-weight: 600; }
+.ie-stack-popover-power { color: #6d5636; }
+.ie-stack-popover-count { margin-left: auto; font-weight: 700; }
+.ie-stack-popover-reduced { flex: 1 1 100%; color: var(--ie-warn); font-size: var(--ie-font-xs); }
+
+/* Confirmation switch in the display menu: a labelled checkbox that reads as a
+   row, not as a stray input. */
+.ie-display-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--ie-font-sm);
+  color: #eadfc8;
+  cursor: pointer;
+}
+.ie-display-toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ie-accent);
+  margin: 0;
+}
+.ie-display-toggle + .ie-display-note { margin-top: 4px; }
+
+/* ---------------------------------------------------------------- rejection notice */
+/* Sits above the hand and below the strip: visible next to the map where the
+   refused click happened, and it never covers the decision or the map centre. */
+.ie-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%);
+  z-index: 95;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: min(520px, calc(100vw - 24px));
+  padding: 8px 10px;
+  border: 1px solid var(--ie-warn);
+  border-left-width: 4px;
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-frame-2);
+  color: #eadfc8;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .6);
+  font-size: var(--ie-font-sm);
+}
+.ie-toast-error { border-color: #ff9a7a; }
+.ie-toast-info { border-color: var(--ie-accent); }
+.ie-toast-glyph {
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  color: var(--ie-accent-soft);
+  font-size: var(--ie-font-xs);
+  font-weight: 700;
+}
+.ie-toast-text { min-width: 0; }
+.ie-toast-title { font-weight: 700; color: #f7e6bb; }
+.ie-toast-body { margin-top: 2px; color: #c5b698; font-size: var(--ie-font-xs); line-height: 1.35; }
+.ie-toast-close {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 1px solid #5a4830;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+  color: #d4a85c;
+  cursor: pointer;
+  font-size: var(--ie-font-xs);
+}
+.ie-toast-close:hover { border-color: var(--ie-accent); color: #f7e6bb; }
+@media (max-width: 767px) {
+  /* Phones: clear of the bottom sheet's peek bar and the turn panel above it. */
+  .ie-toast { bottom: 104px; font-size: var(--ie-font-xs); }
+}
+
+/* ---------------------------------------------------------------- mobile dock
+   ≤767 px the three panels (TurnPanel, PlayerMat, HandTray) live inside one
+   sheet, `.ie-mobile-dock`: a 44 px bar (toggle · tabs · expand), one body that
+   shows exactly the panel for `[data-tab]`, and a decision peek line.  ≥768 px
+   the wrapper dissolves with `display: contents`, so the panels stay the grid
+   items of `.ie-table` they have always been and the desktop grid is untouched.
+   No `:has()` and no inline styles are needed: every state the sheet has is an
+   attribute the component already sets. */
+
+/* ---- desktop: not a surface, only a wrapper ---- */
+@media (min-width: 768px) {
+  .ie-mobile-dock { display: contents; }
+  .ie-mobile-bar { display: none; }
+  .ie-mobile-body { display: contents; }
+}
+
+/* ---- phone: the dock is the only sheet ---- */
+@media (max-width: 767px) {
+  .ie-mobile-dock {
+    order: 2;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 44px;
+    min-height: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--ie-radius-md);
+    background: #241d17;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
+    transition: height .18s ease, max-height .18s ease;
+  }
+  /* Closed (44 px), half (40 dvh) and full (`100dvh - 140px`: the 44 px strip,
+     the local head and the board gaps stay on screen).  The expanded rule also
+     requires `[data-open="true"]`, so a stale `data-expanded` cannot keep a
+     closed sheet open.  `max-height` stops the full height from exceeding the
+     space the board actually has, so the sheet can never scroll the page. */
+  .ie-mobile-dock[data-open="false"] { height: 44px; }
+  .ie-mobile-dock[data-open="true"] { height: 40dvh; }
+  .ie-mobile-dock[data-open="true"][data-expanded="true"] {
+    height: calc(100dvh - 140px);
+    max-height: 100%;
+  }
+  /* A decision+closed sheet is a 56 px peek (the bar plus the one-line
+     decision); open it is capped at half the screen so the map target the
+     decision points at stays visible, and expanded cannot beat that cap. */
+  .ie-mobile-dock[data-decision="true"][data-open="false"] { height: 56px; }
+  .ie-mobile-dock[data-decision="true"][data-open="true"] { max-height: 50dvh; }
+  .ie-mobile-dock[data-decision="true"][data-open="true"][data-expanded="true"] {
+    height: 50dvh !important;
+    max-height: 50dvh;
+  }
+
+  /* Bar: toggle 36 px, scrolling tab strip, expand 36 px.  44 px is the whole
+     bar box (the 2 px gilt top edge and the 1 px seam are inside it), so the
+     closed sheet is exactly 44 px tall. */
+  .ie-mobile-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 4px;
+    border-top: 2px solid #6d5636;
+    border-bottom: 1px solid #3f3223;
+    background: linear-gradient(90deg, #2a221b, #251e17);
+    overflow: hidden;
+  }
+  .ie-mobile-dock[data-open="false"] .ie-mobile-bar { border-bottom: 0; }
+  /* With a decision owed and the sheet closed the peek gets its own 12 px line
+     under the 44 px controls: 44 + 12 = the 56 px closed decision height. */
+  .ie-mobile-dock[data-decision="true"][data-open="false"] .ie-mobile-bar {
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 0;
+    height: 56px;
+    min-height: 56px;
+    padding-bottom: 2px;
+    border-bottom: 0;
+  }
+  .ie-mobile-toggle,
+  .ie-mobile-expand {
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid #6d5636;
+    border-radius: var(--ie-radius-sm);
+    background: #33281a;
+    color: var(--ie-accent-soft);
+    font-size: var(--ie-font-sm);
+    line-height: 1;
+    cursor: pointer;
+  }
+  .ie-mobile-toggle:hover,
+  .ie-mobile-expand:hover { border-color: var(--ie-accent); color: #f7e6bb; }
+  .ie-mobile-toggle[aria-expanded="true"],
+  .ie-mobile-expand[aria-pressed="true"] { border-color: var(--ie-accent); background: #3a2c1c; color: #f7e6bb; }
+  .ie-mobile-expand:disabled { opacity: .35; cursor: not-allowed; }
+  .ie-mobile-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ie-mobile-tabs::-webkit-scrollbar { display: none; }
+  .ie-mobile-tab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 30px;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: #cdbb9a;
+    font-size: var(--ie-font-xs);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .ie-mobile-tab:hover:not([aria-selected="true"]) { background: #33281e; color: #f3e4c2; }
+  .ie-mobile-tab[aria-selected="true"],
+  .ie-mobile-tab.selected {
+    border-color: var(--ie-accent);
+    background: #3a2c1c;
+    color: #f7e6bb;
+    font-weight: 700;
+  }
+  .ie-mobile-tab.urgent:not([aria-selected="true"]) { color: #f0c894; }
+  /* The "!" of an owed decision and the "⚔" of a running war ride in the tab
+     the same way they do on the TurnPanel's own strip. */
+  .ie-mobile-tab-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: 999px;
+    background: var(--ie-warn);
+    color: #211b16;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  /* The one-line decision peek: the dock bar owns it, so it truncates rather
+     than wrapping and never grows the peek past 56 px. */
+  /* Announced while the sheet is open; the visible line above is the closed
+     peek.  Visually hidden, but still a live region. */
+  .ie-mobile-decision-live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .ie-mobile-decision-peek {
+    flex: 1 1 100%;
+    order: 10;
+    min-width: 0;
+    height: 12px;
+    line-height: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--ie-font-xs);
+    font-weight: 600;
+    color: #f0d799;
+  }
+
+  /* Body: exactly one panel, and nothing overflows the sheet itself. */
+  .ie-mobile-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .ie-mobile-dock[data-open="false"] .ie-mobile-body { display: none; }
+
+  /* Inside the sheet a panel is a pane, not a card: the sheet owns the frame,
+     the border radius, the shadow and the position. */
+  .ie-mobile-dock .ie-turn-panel,
+  .ie-mobile-dock .ie-mat,
+  .ie-mobile-dock .ie-hand-tray {
+    display: none;
+    order: 0;
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    z-index: auto;
+  }
+  .ie-mobile-dock[data-tab="orders"] .ie-turn-panel,
+  .ie-mobile-dock[data-tab="war"] .ie-turn-panel,
+  .ie-mobile-dock[data-tab="log"] .ie-turn-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+    width: 100%;
+    overflow: hidden;
+  }
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray,
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-open="true"],
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-open="false"],
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-expanded="true"],
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-open="true"][data-expanded="true"],
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-decision-peek="true"] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+    width: 100%;
+  }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+    width: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* The mat is collapsed by default at phone width and the ≤1099 rules hide its
+     figures; the mat tab is the one place they are the content. */
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-grid { display: grid; overflow: visible; }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-slots { display: flex; }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-display {
+    display: inline-flex;
+    align-items: center;
+  }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-chips { display: none; }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat .ie-mat-popover { display: none; }
+
+  /* The bar owns these controls now: the TurnPanel's own tab strip, the hand
+     sheet's toggle/expand and its duplicate decision line are all hidden (the
+     hand head keeps its title, count, filter and sort). */
+  .ie-mobile-dock .ie-turn-tabs,
+  .ie-mobile-dock .ie-tray-toggle,
+  .ie-mobile-dock .ie-tray-expand,
+  .ie-mobile-dock .ie-mat-toggle,
+  .ie-mobile-dock .ie-tray-decision-line { display: none; }
+}
+
+/* ---- short phones (≤699 px tall) ----
+   The old `height: auto; overflow: auto` board is scoped to ≥768 px above.  A
+   short phone keeps the same non-scrolling board and gets the same three sheet
+   positions, measured against the smaller viewport, so the map target of a
+   decision never goes under the sheet. */
+@media (max-height: 699px) and (max-width: 767px) {
+  .ie-map-stage { min-height: 120px; height: 100%; }
+  .ie-mobile-dock[data-open="true"] { height: 44dvh; }
+  .ie-mobile-dock[data-open="true"][data-expanded="true"] {
+    height: calc(100dvh - 120px);
+    max-height: 100%;
+  }
+  .ie-mobile-dock[data-decision="true"][data-open="true"] { max-height: 46dvh; }
+  .ie-mobile-dock[data-decision="true"][data-open="true"][data-expanded="true"] {
+    height: 46dvh !important;
+    max-height: 46dvh;
+  }
+}
+
+/* The sheet animates its height; reduced motion turns that off with the rest. */
+@media (prefers-reduced-motion: reduce) {
+  .ie-mobile-dock,
+  .ie-mobile-dock *,
+  .ie-mobile-bar *,
+  .ie-mobile-body * { transition: none !important; animation: none !important; }
+}

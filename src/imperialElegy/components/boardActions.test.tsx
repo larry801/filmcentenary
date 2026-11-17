@@ -57,7 +57,8 @@ import type {BattleState, ImperialElegyState, Power} from "../types";
 import {POWERS} from "../types";
 import {setupImperialElegy} from "../engine/setup";
 import {placeUnit, removeUnit} from "../engine/effects";
-import {ImperialElegyBoard} from "./board";
+import {useBoardModel} from "./useBoardModel";
+import {BoardLayout} from "./BoardLayout";
 
 const testCtx = {
   random: {Die: () => 1, Number: () => 1, Shuffle: (a: unknown[]) => a},
@@ -104,7 +105,7 @@ const moveBag = (...names: string[]): MoveBag =>
   Object.fromEntries(names.map((name) => [name, jest.fn()]));
 
 const renderTree = (G: ImperialElegyState, power: Power, moves: MoveBag): React.ReactElement => {
-  const tree = (ImperialElegyBoard as unknown as (props: unknown) => React.ReactElement)({
+  const tree = ((props: unknown) => React.createElement(BoardLayout, {model: (useBoardModel as unknown as (p: unknown) => never)(props)}))({
     G,
     ctx: testCtx,
     moves,

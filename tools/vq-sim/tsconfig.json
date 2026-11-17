@@ -1,0 +1,8 @@
+{
+  "//": "Type-checks the Virgin Queen self-play harness under tools/vq-sim, which the root tsconfig excludes (it only includes ./src/*).  Run with: npx tsc -p tools/vq-sim/tsconfig.json --noEmit",
+  "extends": "../../tsconfig.json",
+  "include": ["./*.ts"],
+  "compilerOptions": {
+    "rootDir": "../.."
+  }
+}

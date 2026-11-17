@@ -13,8 +13,9 @@ import {CardChoice} from "./CardChoice";
  * `board.tsx`) instead of the hand panel, because a tall map or a long hand
  * would otherwise push them below the fold.
  *
- * Every option renders its printed face, not just a title button: the choice
- * is "which card", so the player needs the card's rules in front of them.
+ * The home card and the Goal pick render printed faces, because the player
+ * really does choose a specific card.  The prep discard and the diplomacy gift
+ * are draws, not picks: they only name *whether* to act, never the card.
  */
 export interface HandChoicesProps {
   viewer: Power | null;
@@ -25,7 +26,7 @@ export interface HandChoicesProps {
   canPhaseAct: boolean;
   hand: string[];
   ngChoices: string[];
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -55,10 +56,10 @@ export const handChoiceAvailability = ({
   return {required: home || goals, optional: discard};
 };
 
-/** Cards the prep stability discard may spend (11.x: not mandatory, not a home card). */
+/** Cards the prep stability discard may spend (not mandatory, not a home card). */
 export const isDiscardableForStability = (id: string): boolean => {
   const card = cardById(id);
-  return card.type !== "mandatory" && card.kind !== "home";
+  return card.type !== "mandatory" && card.type !== "mandatoryResponse" && card.kind !== "home";
 };
 
 /** True when at least one card choice is on screen for this viewer. */
@@ -77,12 +78,11 @@ export const HandChoices = (props: HandChoicesProps) => {
   // dock no longer treats the step as an open required choice.
   const showHome = phase === "diplomacy" && me.homeCards.length > 0;
   const showGoals = phase === "end" && ngChoices.length > 0;
-  const discardable = hand.filter(isDiscardableForStability);
-  const showDiscard = phase === "prep" && canPhaseAct && !me.flags.prepStability && discardable.length > 0;
+  const showDiscard = phase === "prep" && canPhaseAct && !me.flags.prepStability &&
+    hand.some((id) => isDiscardableForStability(id));
   if (!showHome && !showGoals && !showDiscard) return null;
 
   const chooseLabel = bi(locale, "Choose", "选择");
-  const discardLabel = bi(locale, "Discard for +1 stability", "弃牌换 +1 稳定");
   // Only the prep discard may be skipped; the home card and the National Goal
   // are mandatory, so their sections carry no "optional" wording.
   const optionalTag = bi(locale, "Optional", "可选");
@@ -106,7 +106,7 @@ export const HandChoices = (props: HandChoicesProps) => {
                     testId: `ie-choose-home-${id}`,
                     selected: chosen,
                     disabled: !canPhaseAct || me.selectedHomeCard !== null,
-                    onChoose: () => doAction(() => moves.chooseHomeCard(id)),
+                    onChoose: () => doAction(() => moves.chooseHomeCard(id), {label: `${t.chooseHome}: ${locale === "zh_CN" ? cardById(id).titleZh : cardById(id).title}`}),
                   }]}
                 />
               );
@@ -130,11 +130,11 @@ export const HandChoices = (props: HandChoicesProps) => {
                   actions={[{
                     label: bi(locale, "Keep this Goal", "保留此目标"),
                     testId: `ie-choose-goal-${id}`,
-                    onChoose: () => doAction(() => moves.chooseGoal(id)),
+                    onChoose: () => doAction(() => moves.chooseGoal(id), {label: `${bi(locale, "Keep this Goal", "保留此目标")}: ${locale === "zh_CN" ? goal.titleZh : goal.title}`}),
                   }]}
                 />
               ) : (
-                <button key={id} className="ie-btn secondary" onClick={() => doAction(() => moves.chooseGoal(id))}>
+                <button key={id} className="ie-btn secondary" onClick={() => doAction(() => moves.chooseGoal(id), {label: `${bi(locale, "Keep this Goal", "保留此目标")}: ${id}`})}>
                   {id}
                 </button>
               );
@@ -151,26 +151,25 @@ export const HandChoices = (props: HandChoicesProps) => {
             <span className="ie-choice-tag" data-testid="ie-stability-discard-optional">{optionalTag}</span>
           </div>
           <div className="ie-choice-grid">
-            {discardable.map((id) => (
-              <CardChoice
-                key={id}
-                locale={locale}
-                face={{card: cardById(id)}}
-                testId={`ie-discard-card-${id}`}
-                actions={[{
-                  label: discardLabel,
-                  testId: `ie-discard-${id}`,
-                  onChoose: () => doAction(() => moves.discardForStability(id)),
-                }]}
-              />
-            ))}
+            {/* The card is drawn at random, so there is one button and no card
+                faces here: choosing the card would contradict the rule. */}
+            <button
+              className="ie-btn"
+              data-testid="ie-discard-random"
+              onClick={() => doAction(
+                () => moves.discardForStability(),
+                {label: bi(locale, "Discard a random card for +1 stability", "随机弃 1 张牌换取 +1 稳定")},
+              )}
+            >
+              {bi(locale, "Discard a random card", "随机弃 1 张牌")}
+            </button>
           </div>
           {/* Skipping is a legal choice: the player can keep the card and
               simply press Ready / continue. */}
           <div className="ie-hint" data-testid="ie-stability-discard-hint">
             {bi(locale,
-              "Optional: you may skip this and keep the card — press Ready (准备完毕) to continue without discarding.",
-              "可选：可以跳过并保留手牌——直接点“准备完毕”继续即可，无需弃牌。")}
+              "Optional: the card is drawn at random from your hand (mandatory events and home cards stay). You may skip this and keep every card — press Ready (准备完毕) to continue.",
+              "可选：从手牌中随机弃 1 张（强制事件与本土牌不会被弃）。也可跳过并保留全部手牌——直接点“准备完毕”继续即可。")}
           </div>
         </div>
       )}

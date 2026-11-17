@@ -224,6 +224,40 @@ export interface SpaceState {
   trenchLine?: boolean;
 }
 
+/**
+ * One line of a power's final score.  Shared by the engine's goal scoring and
+ * the stored final breakdown so the panel can print the same numbers the
+ * winner calculation used.
+ */
+export interface ScoreLine {
+  goal: GoalId;
+  vp: number;
+  /** Ranked-goal metric and place, when the goal is not an achievement. */
+  metric?: number;
+  rank?: number;
+  note?: string;
+}
+
+/** Everything that contributes to one power's final VP total. */
+export interface ScoreBreakdown {
+  /** VP already on the power display before end-of-game goal scoring. */
+  bankedVp: number;
+  /**
+   * Goal VP included in `bankedVp`: rule 25.5 scores National Goals at the
+   * Great War outbreak and clears the cards before the war begins.
+   */
+  bankedGoals: ScoreLine[];
+  /** Second Rome VP included in `bankedVp` (the outbreak half of rule 33.5). */
+  bankedSecondRomeVp: number;
+  /** National Goals still in hand and scored at the end of the game. */
+  goals: ScoreLine[];
+  /** Stability-track VP from the power display. */
+  stabilityVp: number;
+  /** End-of-game half of rule 33.5 (2 VP while Russia holds Istanbul). */
+  secondRomeVp: number;
+  total: number;
+}
+
 export interface PowerState {
   stability: number;
   manpower: number;
@@ -267,6 +301,10 @@ export interface PowerState {
   goalDeck: GoalId[];
   /** VP scored so far (end of turn 7 / GW outbreak). */
   vp: number;
+  /** 25.5: National Goal VP banked at the outbreak, kept for the score panel. */
+  outbreakGoalScores?: ScoreLine[];
+  /** 33.5: Second Rome VP banked at the outbreak, kept for the score panel. */
+  outbreakSecondRomeVp?: number;
   alliance: AllianceBox;
   mpit: { te: number; ta: number; neutral: number };
   /** Reserve armies held off map. */
@@ -1133,6 +1171,11 @@ export interface ImperialElegyState {
     winners: Power[];
     reason: string;
     scores: Partial<Record<Power, number>>;
+    /**
+     * Per-power score sources.  Optional so results saved before the score
+     * panel existed still load; the panel falls back to the live calculation.
+     */
+    breakdown?: Partial<Record<Power, ScoreBreakdown>>;
   } | null;
   /**
    * 3.4.1: the Dardanelles controller has granted `requesting` permission to

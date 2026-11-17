@@ -63,7 +63,8 @@ import {placeUnit, removeUnit} from "../engine/effects";
 import {isArmyKind} from "../engine/rules";
 import {amphibiousAssaultCheck, navalInterceptCheck, navalMove} from "../moves";
 import {ieStringsFor} from "./i18n";
-import {ImperialElegyBoard} from "./board";
+import {useBoardModel} from "./useBoardModel";
+import {BoardLayout} from "./BoardLayout";
 
 const testCtx = {
   playerID: "0",
@@ -125,7 +126,7 @@ const moveBag = (...names: string[]): MoveBag =>
   Object.fromEntries(names.map((name) => [name, jest.fn()]));
 
 const renderTree = (G: ImperialElegyState, power: Power, moves: MoveBag): React.ReactElement =>
-  (ImperialElegyBoard as unknown as (props: unknown) => React.ReactElement)({
+  ((props: unknown) => React.createElement(BoardLayout, {model: (useBoardModel as unknown as (p: unknown) => never)(props)}))({
     G,
     ctx: testCtx,
     moves,

@@ -2,6 +2,7 @@ import React from "react";
 import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
 import {CardFace} from "./CardFace";
+import {ConfirmButton} from "./ConfirmButton";
 import {IELocale} from "./i18n";
 
 /** Which printed face a choice draws. */
@@ -17,6 +18,10 @@ export interface CardChoiceAction {
   disabled?: boolean;
   selected?: boolean;
   title?: string;
+  /** Arm this choice first: it is one-way (a discard, a loss, a final pick). */
+  confirm?: boolean;
+  /** Armed label; defaults to "Confirm: <label>" inside ConfirmButton. */
+  confirmLabel?: string;
   onChoose: () => void;
 }
 
@@ -39,8 +44,9 @@ export interface CardChoiceProps {
  *
  * The rules ask the player to pick a specific card (a home card, one of three
  * National Goals, a card to discard, the combat card to play), so the choice
- * shows the face itself instead of only its title.  Buttons stay plain
- * `<button>` elements so existing selectors keep working.
+ * shows the face itself instead of only its title.  A one-way choice renders
+ * through `ConfirmButton`; everything else stays a plain `<button>` so
+ * existing selectors keep working.
  */
 export const CardChoice = ({locale, face, testId, actions}: CardChoiceProps) => {
   const selected = actions.some((action) => action.selected === true);
@@ -48,7 +54,20 @@ export const CardChoice = ({locale, face, testId, actions}: CardChoiceProps) => 
     <article className={`ie-card ie-choice-card${selected ? " selected" : ""}`} data-testid={testId} data-card-id={face.goal ? face.goal.id : face.card.id}>
       {face.goal ? <CardFace goal={face.goal} locale={locale}/> : <CardFace card={face.card} locale={locale}/>}
       <div className="ie-card-actions">
-        {actions.map((action) => (
+        {actions.map((action) => action.confirm === true ? (
+          <ConfirmButton
+            key={action.testId}
+            data-testid={action.testId}
+            aria-pressed={action.selected}
+            disabled={action.disabled}
+            title={action.title}
+            confirm
+            confirmLabel={action.confirmLabel}
+            onConfirm={action.onChoose}
+          >
+            {action.selected ? "✓ " : ""}{action.label}
+          </ConfirmButton>
+        ) : (
           <button
             key={action.testId}
             type="button"

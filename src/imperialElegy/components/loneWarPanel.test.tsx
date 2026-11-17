@@ -38,6 +38,7 @@ jest.mock("../../constant/i18n", () => ({
 }));
 
 import {ImperialElegyBoard} from "./board";
+import {setPanelLocale} from "./panelLocale";
 import {setupImperialElegy} from "../engine/setup";
 import {createWarState} from "../engine/limitedWar";
 import type {ImperialElegyState, Power, WarState} from "../types";
@@ -64,13 +65,17 @@ const loneWar = (G: ImperialElegyState, minor: string, controlId = minor): WarSt
     minor: {minor, ally: null},
   });
 
-const html = (G: ImperialElegyState): string =>
-  renderToStaticMarkup(React.createElement(ImperialElegyBoard, {
+const html = (G: ImperialElegyState): string => {
+  // The suite stubs the i18n module's locale object, so the board is told the
+  // selected language through the same seam the other UI suites use.
+  setPanelLocale(mockLocale as "en" | "zh_CN");
+  return renderToStaticMarkup(React.createElement(ImperialElegyBoard, {
     G,
     ctx: testCtx,
     moves: {},
     playerID: "0",
   }));
+};
 
 /** Inner markup of the first element carrying the test id, up to its close. */
 const contentOf = (markup: string, testId: string): string => {
@@ -84,6 +89,7 @@ const contentOf = (markup: string, testId: string): string => {
 
 afterEach(() => {
   mockLocale = "en";
+  setPanelLocale(null);
 });
 
 describe("15.4.2 lone non-player war panel", () => {

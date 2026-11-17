@@ -19,6 +19,7 @@ import {ownerOf} from "../../../ownership";
 import {diplomacyActionState, diplomacyBlockText, giftState} from "../../../diplomacyPolicy";
 
 import {betrothalChoices, leaderLabel, placeLabel, royalLabel} from "../helpers";
+import {NegotiationPanel} from "./NegotiationPanel";
 import {useVQBoard} from "../BoardContext";
 
 export const DiplomacyPanel = () => {
@@ -58,6 +59,7 @@ export const DiplomacyPanel = () => {
         <Typography variant="caption" color="text.secondary">
             {i18n.chain.vq.diplomacy.handCp}: {handCp} · {i18n.chain.vq.diplomacy.handCpNote}
         </Typography>
+        <NegotiationPanel/>
         {G.pendingCatholicLeague !== undefined && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "divider", borderRadius: 1}}>
             <Typography variant="subtitle2">{i18n.chain.vq.diplomacy.leagueTitle}</Typography>
             <Typography variant="caption" color="text.secondary">

@@ -5,10 +5,10 @@ import {POWERS} from "../types";
 import {cardById} from "../engine/deck";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
-import {PHASE_LABEL, POWER_KEYS, bi, isPowerKey} from "./boardHelpers";
-import {gwEventHint} from "../engine/playability";
+import {PHASE_LABEL, bi} from "./boardHelpers";
 import {currentGwImpulse, gwCanEndTurn, gwFinishImpulseProblem} from "../engine/gwImpulse";
 import {gwImpulseReasonText} from "./boardHelpers";
+import {RuleLink} from "./RuleRef";
 
 export interface GreatWarPanelProps {
   gw: NonNullable<ImperialElegyState["gw"]>;
@@ -39,8 +39,9 @@ export interface GreatWarPanelProps {
   canGwDraft: boolean;
   canGwDeployHere: boolean;
   forcedGwCard: boolean;
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
+  onOpenReference?: (anchor: string) => void;
 }
 
 export const GreatWarPanel = (props: GreatWarPanelProps) => {
@@ -51,12 +52,15 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
     italyShowing, italyBox, italyBoxLabel, italyHow,
     gwTransferToValue, setGwTransferTo, gwTransferAmountValue, setGwTransferAmount,
     canGwTransfer, gwSideAllies, canGwReveal, canGwDraft, canGwDeployHere, forcedGwCard,
-    doAction, moves,
+    doAction, moves, onOpenReference,
   } = props;
 
   return (
     <IEPanel title={`${t.greatWarMap} · GW ${gw.turn}`} actions={<IEBadge tone="warn">{PHASE_LABEL(t, phase)}</IEBadge>}>
       <div className="ie-gw" data-testid="ie-gw">
+        <div className="ie-rule-ref-row">
+          <RuleLink anchor="chart:colonial-great-wars" locale={locale} onOpenReference={onOpenReference}/>
+        </div>
         <div className="ie-gw-sides">
           <div><strong>TE:</strong> {gw.te.map((p) => t.seats[p]).join(", ") || "—"}</div>
           <div><strong>TA:</strong> {gw.ta.map((p) => t.seats[p]).join(", ") || "—"}</div>
@@ -132,7 +136,7 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
         {phase === "gwPlanning" && viewer !== null && !eliminated && (
           <div className="ie-hint">
             {bi(locale, "All powers pick their GW card in planning; the table then starts maneuver.", "所有国家在计划阶段选择大战卡，然后进入机动。")}
-            <button className="ie-btn" data-testid="ie-gw-start" onClick={() => doAction(() => moves.endGwPlanningMove())}>{t.gwStart}</button>
+            <button className="ie-btn" data-testid="ie-gw-start" onClick={() => doAction(() => moves.endGwPlanningMove(), {label: t.gwStart})}>{t.gwStart}</button>
             {canGwTransfer && (
               <span className="ie-inline" data-testid="ie-gw-transfer">
                 <select className="ie-select" data-testid="ie-gw-transfer-to" value={gwTransferToValue} onChange={(e) => setGwTransferTo(e.target.value)} title={bi(locale, "Allied recipient", "受援盟友")}>
@@ -141,30 +145,30 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
                 <input className="ie-select" data-testid="ie-gw-transfer-amount" type="number" min={1} max={1}
                   value={gwTransferAmountValue} onChange={(e) => setGwTransferAmount(Number(e.target.value))} title={bi(locale, "CP to transfer", "转交的 CP")}/>
                 <button className="ie-btn" data-testid="ie-gw-transfer-submit" disabled={!canGwTransfer || gwTransferToValue === ""}
-                  onClick={() => doAction(() => moves.gwTransferBudget(gwTransferToValue as Power, gwTransferAmountValue))}>{t.gwTransfer}</button>
+                  onClick={() => doAction(() => moves.gwTransferBudget(gwTransferToValue as Power, gwTransferAmountValue), {label: t.gwTransfer})}>{t.gwTransfer}</button>
               </span>
             )}
             {canGwReveal && (
-              <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat())}>{t.gwReveal}</button>
+              <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat(), {label: t.gwReveal})}>{t.gwReveal}</button>
             )}
           </div>
         )}
         {phase === "gwManeuver" && isActive && !eliminated && pending === null && (
           <div className="ie-inline">
             <button className="ie-btn" data-testid="ie-gw-draft" title={t.draftArmies} disabled={!canGwDraft}
-              onClick={() => doAction(() => moves.gwDraft(selected!))}>{t.gwDraft}{selected ? ` · ${spaceLabel(selected, locale)}` : ""}</button>
+              onClick={() => doAction(() => moves.gwDraft(selected!), {label: `${t.gwDraft}${selected ? ` · ${spaceLabel(selected, locale)}` : ""}`})}>{t.gwDraft}{selected ? ` · ${spaceLabel(selected, locale)}` : ""}</button>
             <button className="ie-btn" data-testid="ie-gw-deploy" title={bi(locale, "Deploy one reserve army here (27.5).", "在此部署一支预备军（27.5）。")} disabled={!canGwDeployHere}
-              onClick={() => doAction(() => moves.gwDeploy(selected!))}>{t.gwDeploy}</button>
+              onClick={() => doAction(() => moves.gwDeploy(selected!), {label: t.gwDeploy})}>{t.gwDeploy}</button>
             {canGwReveal && (
-              <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat())}>{t.gwReveal}</button>
+              <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat(), {label: t.gwReveal})}>{t.gwReveal}</button>
             )}
             {G.gw?.impulse?.bonusPending && <span className="ie-hint">{bi(locale, "Immediate card bonus: choose a different non-land-battle action.", "即时卡牌奖励：选择另一种非陆战行动。")}</span>}
             <button className="ie-btn secondary" data-testid="ie-gw-pass" disabled={viewer === null || gwFinishImpulseProblem(G, viewer) !== null}
               title={viewer === null ? undefined : gwImpulseReasonText(locale, gwFinishImpulseProblem(G, viewer))}
-              onClick={() => doAction(() => moves.gwPass())}>{viewer !== null && (currentGwImpulse(G, viewer).acted || G.gw?.neutralImpulses) ? bi(locale, "End impulse", "结束行动轮") : t.gwPass}</button>
+              onClick={() => doAction(() => moves.gwPass(), {label: viewer !== null && (currentGwImpulse(G, viewer).acted || G.gw?.neutralImpulses) ? bi(locale, "End impulse", "结束行动轮") : t.gwPass})}>{viewer !== null && (currentGwImpulse(G, viewer).acted || G.gw?.neutralImpulses) ? bi(locale, "End impulse", "结束行动轮") : t.gwPass}</button>
             <button className="ie-btn secondary" data-testid="ie-gw-end" disabled={viewer === null || !gwCanEndTurn(G, viewer)}
               title={bi(locale, "End the whole GW maneuver turn and go to winter.", "结束整个大战机动回合并进入冬季。")}
-              onClick={() => doAction(() => moves.gwEndTurn())}>{t.gwEnd}</button>
+              onClick={() => doAction(() => moves.gwEndTurn(), {label: t.gwEnd})}>{t.gwEnd}</button>
           </div>
         )}
         {phase === "gwManeuver" && isActive && !selected && <div className="ie-hint">{bi(locale, "Select a space on the map, then draft there.", "先在地图上选择空间，然后在此征召。")}</div>}

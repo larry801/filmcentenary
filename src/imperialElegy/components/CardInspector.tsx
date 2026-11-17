@@ -5,8 +5,11 @@
  * with `renderToStaticMarkup`.  The inspector shows either the vector CardFace
  * or, in print mode, the module's scanned card image, plus every operation the
  * engine offers for that card and a single aggregated "cannot play" line.
+ *
+ * It is a real modal dialog: `useFocusTrap` keeps Tab/Shift+Tab inside it, Esc
+ * closes it, and focus returns to whatever opened it.
  */
-import {useEffect, useRef} from "react";
+import {useCallback, useEffect, useRef} from "react";
 import type {MouseEvent, ReactNode} from "react";
 import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
@@ -14,6 +17,7 @@ import {CardFace} from "./CardFace";
 import {cardImageSrc} from "./preferences";
 import type {CardFaceMode} from "./preferences";
 import {ieStringsFor} from "./i18n";
+import {useFocusTrap} from "./useFocusTrap";
 
 export interface CardInspectorProps {
   open: boolean;
@@ -25,7 +29,7 @@ export interface CardInspectorProps {
   actions: ReactNode;
   /** Aggregated reasons the card cannot be played right now (may be empty). */
   unavailable?: string[];
-  /** Focus target restored on close; defaults to document.activeElement captured on open. */
+  /** Focus target restored on close; defaults to the element that opened the inspector. */
   returnFocus?: HTMLElement | null;
 }
 
@@ -39,27 +43,31 @@ export const CardInspector = ({
   unavailable,
   returnFocus,
 }: CardInspectorProps) => {
-  const closeRef = useRef<HTMLButtonElement>(null);
-  const capturedFocus = useRef<HTMLElement | null>(null);
-  const returnFocusRef = useRef<HTMLElement | null | undefined>(returnFocus);
+  // Focus stays inside the dialog: `useFocusTrap` captures whatever opened the
+  // inspector, moves focus to the first tab stop (the close button, which is
+  // first in the DOM) on open, cycles Tab/Shift+Tab, sends Escape to `onClose`,
+  // and restores the opener on close or unmount.
+  //
+  // The trap re-runs its effect when `onEscape` changes identity, and the board
+  // re-renders often, so the handler is kept stable and reads the latest
+  // `onClose` through a ref.  A fresh closure here would otherwise restore and
+  // re-take focus on every parent render, yanking the user back to the close
+  // button mid-dialog.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const handleEscape = useCallback(() => onCloseRef.current(), []);
+  const dialogRef = useFocusTrap<HTMLElement>({active: open, onEscape: handleEscape});
 
-  // Keep the latest prop without re-running the open/close effect (which would
-  // otherwise restore focus early, simply because the caller re-rendered).
+  // A caller-named `returnFocus` overrides the trap's default (the element that
+  // had focus when the dialog opened).  This effect is declared after the trap
+  // so its cleanup runs after the trap's, letting the explicit target win.
+  const returnFocusRef = useRef(returnFocus);
   returnFocusRef.current = returnFocus;
-
-  // Capture the pre-open focus target and restore it when the dialog closes or
-  // unmounts.  Declared before the focus effect so capture happens first.
   useEffect(() => {
-    if (!open) return;
-    if (typeof document !== "undefined") {
-      capturedFocus.current = document.activeElement as HTMLElement | null;
-    }
+    if (!open || returnFocusRef.current === undefined) return;
     return () => {
-      const target = returnFocusRef.current !== undefined
-        ? returnFocusRef.current
-        : capturedFocus.current;
-      capturedFocus.current = null;
-      if (typeof document === "undefined" || !target || typeof target.focus !== "function") return;
+      const target = returnFocusRef.current;
+      if (!target || typeof target.focus !== "function") return;
       try {
         target.focus();
       } catch {
@@ -67,35 +75,6 @@ export const CardInspector = ({
       }
     };
   }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const button = closeRef.current;
-    if (!button || typeof button.focus !== "function") return;
-    try {
-      button.focus();
-    } catch {
-      // Focusing is an enhancement; ignore detached/blocked nodes.
-    }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open || typeof window === "undefined") return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      // Respect handlers that already consumed the key, and never close while
-      // an IME composition is in flight.
-      if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
-      if (event.key === "Escape" || event.key === "Esc") {
-        // Capture phase: while the inspector is open, Esc belongs to it alone,
-        // not to the board's targeting/selection cancel handler.
-        event.preventDefault();
-        event.stopPropagation();
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -118,6 +97,7 @@ export const CardInspector = ({
       onClick={onClose}
     >
       <aside
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
@@ -132,7 +112,6 @@ export const CardInspector = ({
             <div className="ie-inspector-subtitle">{subtitle}</div>
           </div>
           <button
-            ref={closeRef}
             type="button"
             className="ie-inspector-close"
             data-testid="ie-card-inspector-close"

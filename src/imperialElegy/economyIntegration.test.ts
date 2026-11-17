@@ -24,7 +24,7 @@ import {
   reserveAllowance,
   reserveRemaining,
 } from "./engine/economy";
-import {cpChain, endImpulse, industrialize, resolveEnd, resolvePending, surrender, useCpChain} from "./moves";
+import {cpChain, industrialize, pass, resolveEnd, resolvePending, surrender, useCpChain} from "./moves";
 import {createWarState} from "./engine/limitedWar";
 import {ImperialElegyGameDef} from "./game";
 
@@ -321,7 +321,7 @@ test("two chained cards fund one action of at most 4 CP and are discarded at act
 
   G.passed = [...POWERS];
   G.activePower = "GE";
-  endImpulse(G, ctx);
+  pass(G, ctx);
 
   expect(G.powers.GE.cpChain).toEqual([]);
   expect(G.discard).toEqual(expect.arrayContaining([four, two]));
@@ -355,7 +355,7 @@ test("a mandatory event played into the CP chain still resolves", () => {
   expect(G.cpRemaining).toBe(2);
 
   G.passed = [...POWERS];
-  endImpulse(G, ctx);
+  pass(G, ctx);
   expect(G.powers.GE.cpChain).toEqual([]);
   expect(G.discard).toContain(funeral);
 });
@@ -379,6 +379,35 @@ test("chained cards and their CP cannot be used to industrialize", () => {
   expect(G.cpRemaining).toBe(2);
   expect(G.powers.GE.industryCard).toBeNull();
   expect(G.powers.GE.industry).toBe(industryBefore);
+});
+
+test("the selected home card may industrialize and stays in the home slot", () => {
+  const G = fresh();
+  const ctx = makeCtx("0", 4);
+  beginAction(G);
+
+  const [home, otherHome] = G.powers.GE.homeCards;
+  G.powers.GE.hand.push(home, otherHome);
+  G.powers.GE.selectedHomeCard = home;
+
+  // Only the card chosen in Diplomacy is live this turn.
+  expect(industrialize(G, ctx, otherHome)).toBe(INVALID_MOVE);
+  expect(G.powers.GE.industryCard).toBeNull();
+
+  expect(industrialize(G, ctx, home)).toBeUndefined();
+  expect(G.powers.GE.industryCard).toBe(home);
+  expect(G.powers.GE.hand).not.toContain(home);
+  expect(G.powers.GE.selectedHomeCard).toBeNull();
+  expect(G.powers.GE.homeCards).toContain(home);
+
+  // The end-phase industry roll consumes the slot but returns a home card to
+  // its permanent slot rather than putting a second copy into the discard.
+  const industryBefore = G.powers.GE.industry;
+  resolveEnd(G, ctx);
+  expect(G.powers.GE.industry).toBe(industryBefore + 1);
+  expect(G.powers.GE.industryCard).toBeNull();
+  expect(G.powers.GE.homeCards).toContain(home);
+  expect(G.discard).not.toContain(home);
 });
 
 // ---------------------------------------------------------------------------

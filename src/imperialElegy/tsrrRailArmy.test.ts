@@ -16,7 +16,7 @@ import {placeUnit} from "./engine/effects";
 import {counterPool} from "./engine/counters";
 import {tsrrRail, TSRR_RAIL_ARMY_KINDS} from "./engine/characteristics";
 import {RU_TSRR_MARKER_COUNTERS} from "./engine/counters";
-import {endImpulse, passWar, tsrrRailMove} from "./moves";
+import {pass, passWar, tsrrRailMove} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -189,9 +189,11 @@ describe("33.5 per-impulse reset (4.5)", () => {
     expect(tsrrRailMove(G, makeCtx([], seat("RU")), unitId, "urals")).toBeUndefined();
     expect(tsrrRailMove(G, makeCtx([], seat("RU")), unitId, "tsaritsyn")).toBe(INVALID_MOVE);
 
-    // End RU's impulse; the allowance resets for the next impulse (which may
-    // belong to RU again after the other seats).
-    expect(endImpulse(G, makeCtx([], seat("RU")))).toBeUndefined();
+    // Hand the used impulse over (a played card clears neither 15.0 nor 12.0's
+    // pass record); the allowance resets for the next impulse, which may belong
+    // to RU again after the other seats.
+    G.powers.RU.flags.actionCpSpentThisImpulse = true;
+    expect(pass(G, makeCtx([], seat("RU")))).toBeUndefined();
     for (const power of POWERS) expect(G.powers[power].flags.tsrrRailImpulse).toBeUndefined();
 
     G.phase = "action";

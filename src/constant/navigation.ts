@@ -27,9 +27,12 @@ export const getNavGroups = (): NavGroup[] => {
                 {to: '/local2p', label: drawer.film.local2p},
                 {to: '/local3p', label: drawer.film.local3p},
                 {to: '/local4p', label: drawer.film.local4p},
-                // 每个游戏都有自己的卡表；规则和帮助目前仅适用于电影百年。
+                // 每个游戏都有自己的卡表；规则、帮助、使用手册和对局数据
+                // 目前仅适用于电影百年，直接归在这个游戏下面，不单独成组。
                 {to: '/cards', label: drawer.cards},
                 {to: '/about', label: drawer.about},
+                {to: '/manual', label: drawer.manual},
+                {to: '/match-stats', label: drawer.matchStats},
             ],
         },
         {

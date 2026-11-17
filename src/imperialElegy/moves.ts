@@ -17,7 +17,7 @@ import {SPACES, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "./constan
 import {FLASHPOINTS, POWER_DEFS} from "./constant/powers";
 import type {Effect} from "./constant/cards";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "./constant/setup";
-import {cardById, discardCard, drawCards, drawOne, isCardId, removeCard} from "./engine/deck";
+import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId, removeCard} from "./engine/deck";
 import {
   autoIndustrySuccess,
   cpChainResolution,
@@ -91,6 +91,7 @@ import {
   PORT_NAVAL_LIMIT,
   powerLabel,
   recomputeTracks,
+  randomIndex,
   recordOccupation,
   redeployLandPath,
   refreshPowerProjection,
@@ -547,11 +548,46 @@ export const canPassNow = (G: ImperialElegyState, power: Power): boolean => {
   });
 };
 
+/**
+ * True when the seat has already used this impulse: a card was played (the flag
+ * `playCard` sets), CP are banked from that card or from a CP chain, or the
+ * chain impulse is running.  12.0's zero-or-one-card condition only decides
+ * whether an *unused* impulse may be skipped; a seat that has acted is simply
+ * finishing what it started, so its hand no longer restricts the exit.
+ *
+ * Fixtures that bank CP without going through `playCard` still count as having
+ * acted, which is why `cpRemaining` is part of the signal.
+ */
+export const hasActedThisImpulse = (G: ImperialElegyState, power: Power): boolean =>
+  G.powers[power].flags.actionCpSpentThisImpulse === true
+  || G.cpRemaining > 0
+  || G.flags.cpChainActive === true;
+
+/**
+ * The single way out of an action impulse (12.0 + 4.5).
+ *
+ * 12.0 lists three things a player may do in an impulse — spend a card for CP,
+ * play its event, or pass — and there is no fourth "end my impulse" action.
+ * Both outcomes therefore come through this move:
+ *
+ *  - **used impulse** (a card was played or CP remain): the remaining CP are
+ *    forfeited and the impulse hands over.  No pass is recorded, so the seat is
+ *    not treated as having dropped out of the action phase.
+ *  - **unused impulse** (`hasActedThisImpulse` false): this is 12.0's pass, and
+ *    the hand must satisfy `canPassNow` — zero or one card (two for the UK),
+ *    no home card and no mandatory event.  The pass is recorded so the
+ *    consecutive-pass counter can end the action phase.
+ */
 export const pass = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.phase !== "action") return INVALID_MOVE;
+  if (hasActedThisImpulse(G, power)) {
+    G.cpRemaining = 0;
+    finishImpulse(G, ctx);
+    return undefined;
+  }
   if (!canPassNow(G, power)) return INVALID_MOVE;
   if (!G.passed.includes(power)) G.passed.push(power);
   addLog(G, power, "passed", {});
@@ -565,24 +601,24 @@ export const debugMove = (G: ImperialElegyState, ctx: Ctx): string | void => {
   return undefined;
 };
 
-export const endImpulse = (G: ImperialElegyState, ctx: Ctx): string | void => {
-  const playerID = ctx.playerID ?? null;
-  const power = requireActive(G, ctx, playerID);
-  if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (G.pending !== null) return INVALID_MOVE;
-  G.cpRemaining = 0;
-  finishImpulse(G, ctx);
-  return undefined;
-};
-
 // ------------------------------------------------------------------ prep
-export const discardForStability = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string | void => {
+/**
+ * The optional prep discard is a **random** draw: the player decides only
+ * whether to spend a card for +1 stability, never which card.  Letting the
+ * client nominate the card would turn the printed random discard into a free
+ * choice (dump the card that is about to be reshuffled and keep the good one).
+ * Mandatory events and home cards stay in hand; the identity is resolved from
+ * `ctx.random`, so it is server-authoritative.
+ */
+export const discardForStability = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (power === null || G.phase !== "prep") return INVALID_MOVE;
   const p = G.powers[power];
   if (p.flags.prepStability) return INVALID_MOVE;
-  if (!p.hand.includes(cardId) || cardById(cardId).type === "mandatory" || cardById(cardId).kind === "home") return INVALID_MOVE;
+  const eligible = handWithoutSpecials(G, power);
+  if (eligible.length === 0) return INVALID_MOVE;
+  const cardId = eligible[randomIndex(ctx, eligible.length)];
   discardCard(G, power, cardId, "prepStabilityDiscard");
   changeStability(G, power, 1, ctx);
   p.flags.prepStability = true;
@@ -719,13 +755,22 @@ export const endDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => 
   return beginActionPhaseAfterDiplomacy(G, ctx);
 };
 
-export const giveCard = (G: ImperialElegyState, ctx: Ctx, target: Power, cardId: CardId): string | void => {
+/**
+ * 11.1 diplomacy gift: a power hands **one random** card to another power.
+ * The giver picks the recipient, not the card — the printed gift is a random
+ * draw, so a specific card can never be chosen (which would otherwise let a
+ * player push a doomed or unplayable card onto an ally, or hide a card's
+ * identity behind a negotiated deal).
+ */
+export const giveCard = (G: ImperialElegyState, ctx: Ctx, target: Power): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
   if (power === target) return INVALID_MOVE;
-  if (!G.powers[power].hand.includes(cardId)) return INVALID_MOVE;
-  if (cardById(cardId).kind === "home") return INVALID_MOVE;
+  if (!isPower(target)) return INVALID_MOVE;
+  const eligible = G.powers[power].hand.filter((id) => cardById(id).kind !== "home");
+  if (eligible.length === 0) return INVALID_MOVE;
+  const cardId = eligible[randomIndex(ctx, eligible.length)];
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
   G.powers[target].hand.push(cardId);
   log(G, power, "cardGiven", {card: cardId, target});
@@ -1617,16 +1662,21 @@ export const industrialize = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): 
   // 12.14: CP chained cards cannot be used to industrialize.
   if (p.cpChain.includes(cardId)) return INVALID_MOVE;
   if (!p.hand.includes(cardId)) return INVALID_MOVE;
-  if (cardById(cardId).type === "mandatory") return INVALID_MOVE;
+  const card = cardById(cardId);
+  if (card.type === "mandatory") return INVALID_MOVE;
+  // 12.13: a home card in hand is playable for CP or as its event, and may also
+  // be the turn's industrialization card.  Only the selected home card is live.
+  if (card.kind === "home" && p.selectedHomeCard !== cardId) return INVALID_MOVE;
   // 33.6 Europeanization: the Ottomans may not play their own card to
   // industrialize (the 6+ target is applied at the end phase).
-  const industry = industryRoll(G, power, cardById(cardId).cp, {cardOwner: power, cardId});
+  const industry = industryRoll(G, power, card.cp, {cardOwner: power, cardId});
   if (!industry.allowed) {
     log(G, power, "industrializeRejected", {card: cardId, reasons: industry.reasons.join(" | ")});
     return INVALID_MOVE;
   }
   p.hand = p.hand.filter((id) => id !== cardId);
   p.industryCard = cardId;
+  if (p.selectedHomeCard === cardId) p.selectedHomeCard = null;
   log(G, power, "industrializeCard", {card: cardId});
   G.cpRemaining = 0;
   finishImpulse(G, ctx);
@@ -5528,7 +5578,9 @@ const endPhaseIndustrialization = (G: ImperialElegyState, ctx: Ctx): void => {
       } else {
         p.autoIndustry = true;
       }
-      G.discard.push(p.industryCard);
+      // A home card is a permanent part of its power's home slot: like a CP or
+      // event play, industrialization returns it there instead of discarding it.
+      if (cardById(p.industryCard).kind !== "home") G.discard.push(p.industryCard);
       p.industryCard = null;
     }
     p.flags.industryDrm = 0;
@@ -6738,10 +6790,17 @@ export type ResponseBlockReason =
 export interface ResponseEligibility {
   ok: boolean;
   reason?: ResponseBlockReason;
+  /**
+   * Set when the card is refused by its own printed text *and* the impulse
+   * window is shut as well.  The move layer only ever looks at `ok`, so this is
+   * for the board: it can say why the card is closed without hiding the window.
+   */
+  window?: ResponseBlockReason;
 }
 
 const eligible = (): ResponseEligibility => ({ok: true});
-const blocked = (reason: ResponseBlockReason): ResponseEligibility => ({ok: false, reason});
+const blocked = (reason: ResponseBlockReason, window?: ResponseBlockReason): ResponseEligibility =>
+  ({ok: false, reason, ...(window !== undefined ? {window} : {})});
 
 /**
  * Is `power` at the start of an impulse in one of the response windows?
@@ -6828,7 +6887,28 @@ export const responseCardEligibility = (
   power: Power | null,
   cardId: CardId,
 ): ResponseEligibility => {
+  // The card's own printed gates are asked first.  A player looking at a card
+  // whose printed text closes it ("printed for France's impulse", "no effect
+  // during the Great War") needs that answer, not the generic "responses are
+  // played at the start of an impulse": the second one is true of every
+  // response card and would hide the reason this one cannot be used at all.
+  // The window is still enforced below, so a card that passes its own gates
+  // while the window is shut is refused exactly as before.
   const window = responseWindowFor(G, power);
+  const ownGate = (): ResponseEligibility | null => {
+    if (!isCardId(cardId)) return null;
+    const card = cardById(cardId);
+    if (card.type !== "response") return null;
+    const printedPower = printedResponsePower(cardId);
+    const withWindow = (reason: ResponseBlockReason): ResponseEligibility =>
+      blocked(reason, window.ok ? undefined : window.reason);
+    if (printedPower !== undefined && printedPower !== power) return withWindow("printed-power");
+    if (NO_EFFECT_GW_RESPONSES.has(cardId) && G.gw?.active === true) return withWindow("no-effect-gw");
+    if (youngTurksBlocksFailedReforms(G, cardId)) return withWindow("young-turks");
+    return null;
+  };
+  const own = ownGate();
+  if (own !== null) return own;
   if (!window.ok) return window;
   if (!isCardId(cardId)) return blocked("not-a-card");
   const card = cardById(cardId);

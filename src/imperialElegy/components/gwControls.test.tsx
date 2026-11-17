@@ -76,7 +76,8 @@ import type {GreatWarState, ImperialElegyState, Power} from "../types";
 import {POWERS} from "../types";
 import {setupImperialElegy} from "../engine/setup";
 import {isArmyKind} from "../engine/rules";
-import {ImperialElegyBoard} from "./board";
+import {useBoardModel} from "./useBoardModel";
+import {BoardLayout} from "./BoardLayout";
 
 const testCtx = {
   playerID: "0",
@@ -132,7 +133,7 @@ const moveBag = (...names: string[]): MoveBag =>
 
 const render = (G: ImperialElegyState, power: Power, moves: MoveBag): React.ReactElement => {
   mockHookIndex.value = 0;
-  return (ImperialElegyBoard as unknown as (props: unknown) => React.ReactElement)({
+  return ((props: unknown) => React.createElement(BoardLayout, {model: (useBoardModel as unknown as (p: unknown) => never)(props)}))({
     G,
     ctx: testCtx,
     moves,

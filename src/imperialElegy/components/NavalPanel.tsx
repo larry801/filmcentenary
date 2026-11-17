@@ -1,5 +1,5 @@
 import React from "react";
-import {ImperialElegyState, Power, SpaceId, Unit} from "../types";
+import {ImperialElegyState, Power, SpaceId} from "../types";
 import {spaceLabel} from "../constant/spaces";
 import {IEBadge, IEPanel} from "./theme";
 import {RuleRef} from "./RuleRef";
@@ -25,8 +25,10 @@ export interface AmphibiousPanelProps {
   toggleAmphibiousArmy: (id: string, checked: boolean) => void;
   amphibiousCanGo: boolean;
   amphibiousReason: string | undefined;
+  /** Armed map targeting: the destination ring replaces the select. */
+  onPickMap?: () => void;
   amphibiousCheck: {enemyNaval?: number; needShips?: number; ownNaval?: number; ok?: boolean} | null;
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -35,7 +37,7 @@ export const AmphibiousPanel = ({
   amphibiousOrigins, amphibiousFromValue, setAmphibiousFrom,
   amphibiousTargets, amphibiousToValue, setAmphibiousTo,
   amphibiousArmies, amphibiousArmyValue, toggleAmphibiousArmy,
-  amphibiousCanGo, amphibiousReason, amphibiousCheck,
+  amphibiousCanGo, amphibiousReason, amphibiousCheck, onPickMap,
   doAction, moves,
 }: AmphibiousPanelProps) => {
   if (!show) return null;
@@ -73,8 +75,12 @@ export const AmphibiousPanel = ({
         </div>
         <div className="ie-inline">
           <button className="ie-btn" data-testid="ie-amphibious-go" disabled={!amphibiousCanGo} title={amphibiousReason}
-            onClick={() => doAction(() => moves.amphibiousAssault(amphibiousFromValue as SpaceId, amphibiousToValue as SpaceId, amphibiousArmyValue))}>
+            onClick={() => doAction(() => moves.amphibiousAssault(amphibiousFromValue as SpaceId, amphibiousToValue as SpaceId, amphibiousArmyValue), {label: t.amphibiousAssault, reason: amphibiousReason})}>
             {t.amphibiousAssault}
+          </button>
+          <button className="ie-btn secondary" data-testid="ie-amphibious-map" disabled={!amphibiousCanGo}
+            title={bi(locale, "Pick the destination on the map", "在地图上选择目的地")} onClick={onPickMap}>
+            {bi(locale, "Pick on map", "地图选择")}
           </button>
           {!amphibiousCanGo && amphibiousReason && <span className="ie-muted" data-testid="ie-amphibious-reason">{amphibiousReason}</span>}
         </div>
@@ -110,7 +116,8 @@ export interface NavalTransportPanelProps {
   transportFleet: string[];
   transportCanGo: boolean;
   transportReason: string | undefined;
-  doAction: (fn: () => void) => void;
+  onPickMap?: () => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -119,7 +126,7 @@ export const NavalTransportPanel = ({
   transportOrigins, transportFromValue, setTransportFrom,
   transportLands, transportLandValue, setTransportLand,
   transportTargets, transportToValue, setTransportTo,
-  transportFleet, transportCanGo, transportReason,
+  transportFleet, transportCanGo, transportReason, onPickMap,
   doAction, moves,
 }: NavalTransportPanelProps) => {
   if (!show) return null;
@@ -151,12 +158,16 @@ export const NavalTransportPanel = ({
         </div>
         <div className="ie-inline">
           <button className="ie-btn" data-testid="ie-naval-transport-go" disabled={!transportCanGo} title={transportReason}
-            onClick={() => doAction(() => moves.navalTransport(transportLandValue, transportFleet, transportToValue as SpaceId))}>
+            onClick={() => doAction(() => moves.navalTransport(transportLandValue, transportFleet, transportToValue as SpaceId), {label: bi(locale, "Transport", "海运"), reason: transportReason})}>
             {bi(locale, "Transport", "海运")}
           </button>
           <span className="ie-muted" data-testid="ie-naval-transport-fleet">
             {bi(locale, `Escorting fleet: ${transportFleet.length} ships`, `护航舰队：${transportFleet.length} 艘`)}
           </span>
+          <button className="ie-btn secondary" data-testid="ie-naval-transport-map" disabled={!transportCanGo}
+            title={bi(locale, "Pick the destination on the map", "在地图上选择目的地")} onClick={onPickMap}>
+            {bi(locale, "Pick on map", "地图选择")}
+          </button>
           {!transportCanGo && transportReason && <span className="ie-muted" data-testid="ie-naval-transport-reason">{transportReason}</span>}
         </div>
       </div>
@@ -178,14 +189,15 @@ export interface NavalInterceptPanelProps {
   setInterceptPort: (s: string) => void;
   interceptCheck: {ok?: boolean; ships?: number; reason?: string} | null;
   interceptReason: string | undefined;
-  doAction: (fn: () => void) => void;
+  onPickMap?: () => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
 export const NavalInterceptPanel = ({
   show, lastNavalBox, lastNavalMover, viewer, locale, t,
   interceptPorts, interceptPortValue, setInterceptPort,
-  interceptCheck, interceptReason,
+  interceptCheck, interceptReason, onPickMap,
   doAction, moves,
 }: NavalInterceptPanelProps) => {
   if (!show) return null;
@@ -204,8 +216,12 @@ export const NavalInterceptPanel = ({
               : interceptPorts.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
           </select>
           <button className="ie-btn" data-testid="ie-intercept-go" disabled={interceptCheck?.ok !== true} title={interceptReason}
-            onClick={() => doAction(() => moves.navalIntercept(interceptPortValue as SpaceId, lastNavalBox))}>
+            onClick={() => doAction(() => moves.navalIntercept(interceptPortValue as SpaceId, lastNavalBox), {label: t.navalIntercept, reason: interceptReason})}>
             {t.navalIntercept}
+          </button>
+          <button className="ie-btn secondary" data-testid="ie-intercept-map" disabled={interceptCheck?.ok !== true}
+            title={bi(locale, "Pick the interception at sea on the map", "在地图上选择海上拦截位置")} onClick={onPickMap}>
+            {bi(locale, "Pick on map", "地图选择")}
           </button>
           {interceptCheck?.ok !== true && interceptReason && <span className="ie-muted" data-testid="ie-intercept-reason">{interceptReason}</span>}
         </div>

@@ -12,6 +12,8 @@ import {Controller, landCount, navalCount, Religion, VQGame, CONTROLLER_COLORS, 
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES, seaZoneName, spaceName, spacePoint} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
+import hydro from "../data/hydro-background.json";
+import relief from "../data/relief-background.json";
 import {WorldMapInset} from "./world-map";
 import {VQBoardMap} from "./board-map";
 
@@ -206,6 +208,18 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
     const [europeInsetOpen, setEuropeInsetOpen] = React.useState(() =>
         defaultEuropeInsetOpen ?? (typeof window === "undefined" || window.innerWidth >= 600));
     const landPath = React.useMemo(() => warpSvgPath(land.path), []);
+    // Relief and hydrography share the land projection, so they can reuse the
+    // same one-pass warp as the coastline.  Memoising keeps panning and
+    // zooming from re-warping several thousand coordinates per frame.
+    const reliefPaths = React.useMemo(
+        () => relief.ranges.map((range) => warpSvgPath(range.path)),
+        [],
+    );
+    const hydroPaths = React.useMemo(() => ({
+        majorRivers: warpSvgPath(hydro.majorRivers),
+        minorRivers: warpSvgPath(hydro.minorRivers),
+        lakes: warpSvgPath(hydro.lakes),
+    }), []);
     /**
      * Labels are laid out together rather than independently.  At the default
      * zoom the printed board's dense clusters (Low Countries, Rhineland, north
@@ -311,9 +325,30 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
                  onPointerUp={release} onPointerCancel={(event) => {dragged.current = true; release(event);}}
                  onLostPointerCapture={(event) => pointers.current.delete(event.pointerId)}
                  onClickCapture={(event) => {if (event.detail !== 0 && dragged.current) {event.preventDefault(); event.stopPropagation();}}}>
+                <defs>
+                    {/* Engraved hachures for the mountain ranges, as on the printed board. */}
+                    <pattern id="vq-relief-hatch" width="5" height="5" patternUnits="userSpaceOnUse"
+                             patternTransform="rotate(32)">
+                        <rect width="5" height="5" fill="#d8c294" opacity="0.26"/>
+                        <path d="M0,0 L0,5" stroke="#a08355" strokeWidth="0.55" opacity="0.5"/>
+                    </pattern>
+                </defs>
                 <rect width={1000} height={620} fill="#b8d0cb"/>
                 <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
                     <path d={landPath} fill="#e7dab9" stroke="#8a967b" strokeWidth={0.9} fillRule="evenodd"/>
+                    {reliefPaths.map((path, index) => <path key={`relief-${index}`} className="vq-relief"
+                        d={path} fill="url(#vq-relief-hatch)" stroke="#b49a6a" strokeWidth={0.4}
+                        pointerEvents="none"/>)}
+                    <g className="vq-hydro" pointerEvents="none">
+                        <path className="vq-lake" d={hydroPaths.lakes} fill="#8fb6bf" stroke="#5f8b97"
+                              strokeWidth={0.4} fillRule="evenodd" opacity={0.9}/>
+                        <path className="vq-river vq-river-minor" d={hydroPaths.minorRivers} fill="none"
+                              stroke="#6f9aa6" strokeWidth={0.45} strokeLinecap="round"
+                              strokeLinejoin="round" opacity={0.75}/>
+                        <path className="vq-river vq-river-major" d={hydroPaths.majorRivers} fill="none"
+                              stroke="#4f8797" strokeWidth={0.8} strokeLinecap="round"
+                              strokeLinejoin="round" opacity={0.85}/>
+                    </g>
                     {[0, 10, 20, 30].map((lon) => <polyline key={lon} points={meridianPath(lon)} fill="none" stroke="#597f7920" strokeDasharray="2 6"/>)}
                     {[35, 45, 55].map((lat) => <polyline key={lat} points={parallelPath(lat)} fill="none" stroke="#597f7920" strokeDasharray="2 6"/>)}
                     <text x={480} y={110} fontFamily="Georgia, serif" fontSize={28} letterSpacing={12} fill="#8c754333" pointerEvents="none">EUROPA</text>

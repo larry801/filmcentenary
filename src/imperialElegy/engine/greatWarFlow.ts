@@ -209,6 +209,57 @@ export interface GwFailure {
 const fail = (error: GwFlowError, message: string, pending = false): GwFailure =>
   ({ok: false, error, message, ...(pending ? {pending: true} : {})});
 
+/**
+ * 27.5's march/rail test, extracted so the board's legal-target model can ask
+ * the engine directly.  Pure: it reads `G` and never mutates it, so a UI call
+ * cannot change the game.
+ */
+export const gwLandMoveProblem = (
+  G: ImperialElegyState,
+  power: Power,
+  unitId: string,
+  to: SpaceId,
+  kind: "march" | "rail",
+): GwFailure | null => {
+  const unit = G.units[unitId];
+  const commanded =
+    commandsUnit(G, power, unit) ||
+    (kind === "rail" && commandsRailMinorArmy(G, power, unit));
+  if (!commanded || unit.naval || !unit.space) {
+    return fail("invalidUnit", "That is not your land unit on the map");
+  }
+  // 15.2.3: a reserve army deployed this impulse cannot move.
+  if (unit.flags?.deployedThisImpulse === true) {
+    return fail("invalidTarget", "A unit deployed this impulse cannot move (15.2.3)");
+  }
+  // 30.1: a space formally controlled by an eliminated power is not
+  // friendly, but other players may still march into (and out of) it.
+  const freeMarchFrom = formerlyControlledMarchAllowed(G, power, unit.space);
+  if (!maneuverFriendly(G, unit.space, power) && !freeMarchFrom) {
+    return fail("invalidTarget", "The unit starts in an unfriendly space");
+  }
+  if (!landSpace(G, to)) return fail("invalidTarget", "Destination must be a land space");
+  const friendlyDestination = maneuverFriendly(G, to, power);
+  const freeMarchTo = formerlyControlledMarchAllowed(G, power, to);
+  if (kind === "march") {
+    if (!neighboursOf(unit.space).includes(to)) return fail("invalidTarget", "March is one adjacent space");
+    if (!friendlyDestination && !freeMarchTo) {
+      return fail("invalidTarget", "March destination must be friendly");
+    }
+  } else if (!friendlyLandPath(G, power, unit.space, to)) {
+    // 30.1: "all spaces formally controlled by the eliminated power must be
+    // occupied ... before players may rail through them."
+    if (railReachableIgnoringOccupation(G, power, unit.space, to)) {
+      return fail(
+        "invalidTarget",
+        "A space formerly controlled by an eliminated power must be occupied before rail may pass through it (30.1)",
+      );
+    }
+    return fail("invalidTarget", "No friendly rail path to that space");
+  }
+  return null;
+};
+
 export type {GwSide};
 
 /**
@@ -1648,42 +1699,16 @@ export const performGwManeuver = (
     }
     case "rail":
     case "march": {
+      // 15.2.3 / 30.1 / 32.1 live in `gwLandMoveProblem`, so the board can ask
+      // the same question before it rings a destination.
+      const problem = gwLandMoveProblem(G, power, request.unitId, request.to, request.kind);
+      if (problem !== null) return problem;
       const unit = G.units[request.unitId];
-      const commanded =
-        commandsUnit(G, power, unit) ||
-        (request.kind === "rail" && commandsRailMinorArmy(G, power, unit));
-      if (!commanded || unit.naval || !unit.space) {
+      if (unit === undefined || unit.space === undefined || unit.space === null) {
         return fail("invalidUnit", "That is not your land unit on the map");
       }
-      // 15.2.3: a reserve army deployed this impulse cannot move.
-      if (unit.flags?.deployedThisImpulse === true) {
-        return fail("invalidTarget", "A unit deployed this impulse cannot move (15.2.3)");
-      }
-      // 30.1: a space formally controlled by an eliminated power is not
-      // friendly, but other players may still march into (and out of) it.
-      const freeMarchFrom = formerlyControlledMarchAllowed(G, power, unit.space);
-      if (!maneuverFriendly(G, unit.space, power) && !freeMarchFrom) {
-        return fail("invalidTarget", "The unit starts in an unfriendly space");
-      }
-      if (!landSpace(G, request.to)) return fail("invalidTarget", "Destination must be a land space");
       const friendlyDestination = maneuverFriendly(G, request.to, power);
       const freeMarchTo = formerlyControlledMarchAllowed(G, power, request.to);
-      if (request.kind === "march") {
-        if (!neighboursOf(unit.space).includes(request.to)) return fail("invalidTarget", "March is one adjacent space");
-        if (!friendlyDestination && !freeMarchTo) {
-          return fail("invalidTarget", "March destination must be friendly");
-        }
-      } else if (!friendlyLandPath(G, power, unit.space, request.to)) {
-        // 30.1: "all spaces formally controlled by the eliminated power must be
-        // occupied ... before players may rail through them."
-        if (railReachableIgnoringOccupation(G, power, unit.space, request.to)) {
-          return fail(
-            "invalidTarget",
-            "A space formerly controlled by an eliminated power must be occupied before rail may pass through it (30.1)",
-          );
-        }
-        return fail("invalidTarget", "No friendly rail path to that space");
-      }
       // 32.1: the US may not march or rail armies out of North America while
       // an enemy-held Mexico/Canada gate remains unoccupied.
       const usBlocked = usNorthAmericaExitGuard(G, power, [unit], request.to);

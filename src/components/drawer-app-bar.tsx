@@ -3,6 +3,8 @@ import React from "react";
 import Drawer from "@mui/material/Drawer";
 import MenuIcon from '@mui/icons-material/Menu';
 import HomeIcon from '@mui/icons-material/Home';
+import PersonIcon from '@mui/icons-material/Person';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import i18n from "../constant/i18n";
 import AppBar from '@mui/material/AppBar';
 import IconButton from '@mui/material/IconButton';
@@ -18,7 +20,11 @@ import Switch from "@mui/material/Switch"
 import {styled} from '@mui/material/styles';
 import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
+import TextField from "@mui/material/TextField";
+import InputAdornment from "@mui/material/InputAdornment";
 import {getNavGroups} from "../constant/navigation";
+import {loadPlayerName, savePlayerName} from "../api/localStorage";
+
 const MUIDrawer = Drawer;
 
 
@@ -63,6 +69,8 @@ const DrawerAppBar = () => {
     // Derive the switch position from the active locale: the app starts in
     // zh_CN, so a hard-coded `true` made the first click a no-op.
     const checked = i18n.getLocaleName() === "en";
+    const [playerName, setPlayerName] = React.useState(loadPlayerName() || "");
+    const [nameEdited, setNameEdited] = React.useState(false);
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,6 +78,23 @@ const DrawerAppBar = () => {
             i18n.locale("en").then(()=>{});
         }else {
             i18n.locale("zh_CN").then(()=>{});
+        }
+    };
+    const handleNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setPlayerName(event.target.value);
+        setNameEdited(true);
+    };
+    const handleNameBlur = () => {
+        if (nameEdited) {
+            savePlayerName(playerName);
+            setNameEdited(false);
+        }
+    };
+    const handleNameKeyDown = (event: React.KeyboardEvent) => {
+        if (event.key === "Enter") {
+            savePlayerName(playerName);
+            setNameEdited(false);
+            (event.target as HTMLInputElement).blur();
         }
     };
     const drawer = i18n.chain.drawer;
@@ -99,8 +124,30 @@ const DrawerAppBar = () => {
                     <Grid>English</Grid>
                 </Grid>
             </Typography>
-            {isVQ && <Typography sx={{ml: "auto", fontSize: 11, letterSpacing: ".15em", fontFamily: "Georgia, serif"}}>VIRGIN QUEEN</Typography>}
-            {isIE && <Typography sx={{ml: "auto", fontSize: 11, letterSpacing: ".15em", fontFamily: "Georgia, serif"}}>IMPERIAL ELEGY</Typography>}
+            <TextField
+                value={playerName}
+                onChange={handleNameChange}
+                onBlur={handleNameBlur}
+                onKeyDown={handleNameKeyDown}
+                placeholder={i18n.chain.drawer.playerNamePlaceholder}
+                size="small"
+                variant="standard"
+                sx={{ml: 'auto', mr: 0.5, maxWidth: 200, minWidth: 0}}
+                slotProps={{
+                    htmlInput: {maxLength: 7},
+                    input: {
+                        disableUnderline: true,
+                        startAdornment: (
+                            <InputAdornment position="start" sx={{mr: 0.25}}>
+                                <PersonIcon fontSize="small"/>
+                                <ChevronRightIcon fontSize="small"/>
+                            </InputAdornment>
+                        ),
+                    },
+                }}
+            />
+            {isVQ && <Typography sx={{fontSize: 11, letterSpacing: ".15em", fontFamily: "Georgia, serif"}}>VIRGIN QUEEN</Typography>}
+            {isIE && <Typography sx={{fontSize: 11, letterSpacing: ".15em", fontFamily: "Georgia, serif"}}>IMPERIAL ELEGY</Typography>}
         </Toolbar>
     </AppBar>
         <MUIDrawer open={open} anchor={"left"} onClose={handleClose}>
@@ -148,6 +195,20 @@ const DrawerAppBar = () => {
                         </List>
                     </React.Fragment>
                 ))}
+                <Divider/>
+                <List dense>
+                    <ListItem disablePadding>
+                        <ListItemButton
+                            component={Link}
+                            to={`/match-stats?player=${encodeURIComponent(playerName.trim())}`}
+                            disabled={!playerName.trim()}
+                            onClick={handleClose}
+                            sx={{mx: 1, borderRadius: 1}}
+                        >
+                            <ListItemText primary={`${drawer.quickReplay}（${playerName.trim() || drawer.playerNameUnset}）`}/>
+                        </ListItemButton>
+                    </ListItem>
+                </List>
             </Box>
         </MUIDrawer>
     </React.Fragment>

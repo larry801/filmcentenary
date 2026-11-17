@@ -4,19 +4,21 @@ import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
 import {GOALS_BY_ID} from "../constant/goals";
 import {cardById} from "../engine/deck";
-import {eventPlayability} from "../engine/playability";
-import {cpChainResolution} from "../engine/economy";
-import {responseCardEligibility} from "../moves";
-import {IEBadge, IEChip} from "./theme";
+import {IEChip} from "./theme";
 import {ieT} from "./i18n";
-import {bi, gwImpulseReasonText, responseReasonText} from "./boardHelpers";
+import {RESPONSE_REASON_TEXT, bi, gwImpulseReasonText} from "./boardHelpers";
 import {gwCardProblem} from "../engine/gwImpulse";
 import {CardFace} from "./CardFace";
 import {CardInspector} from "./CardInspector";
 import {CardChoiceFace} from "./CardChoice";
-import {CardFaceMode, cardImageSrc} from "./preferences";
+import {CardFaceMode, cardImageSrc, readConfirmActions} from "./preferences";
+import {RuleLink} from "./RuleRef";
+import {ConfirmButton} from "./ConfirmButton";
+import {CARD_TYPE_GLYPH, cardAvailability, cardTypeIcon, sortCards, type CardAvailability, type CardFilter, type CardSort} from "./cardAvailability";
 
 export interface HandTrayProps {
+  /** Live `confirmActions` preference (the Display menu writes it). */
+  confirmActions?: boolean;
   G: ImperialElegyState;
   viewer: Power | null;
   me: ImperialElegyState["powers"][Power] | null;
@@ -33,11 +35,8 @@ export interface HandTrayProps {
   hand: string[];
   saveList: string[];
   giveCards: string[];
-  giveCardId: string;
-  setGiveCardId: (s: string) => void;
   giveTarget: Power;
   setGiveTarget: (p: Power) => void;
-  giveCardValue: string;
   responseInHand: boolean;
   responseWindow: boolean;
   chainNonEmpty: boolean;
@@ -46,39 +45,28 @@ export interface HandTrayProps {
   chainReady: boolean;
   chainDisabledReason: string | undefined;
   cpBudget: () => number;
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
   handChoicesHint: string | null;
   cardFaceMode: CardFaceMode;
   open: boolean;
   onToggleOpen: () => void;
   /**
-   * Unfold every card at once.  The board never sets this; it exists so the
-   * rules-level tests can assert on the buttons without driving a click through
-   * a static render, and so an embedder can show a fully expanded hand.
+   * A decision is owed on screen (phone redesign): the sheet shows a compact
+   * peek line instead of the hand, so the map target it asks about stays
+   * visible.  The controls stay in the DOM; tapping the toggle still opens it.
+   */
+  decisionPeek?: boolean;
+  /**
+   * Unfold every card at once.  The board never sets this; it exists for embeds
+   * and for the rules-level suites, which assert on a card's buttons without
+   * driving a click through a static render.
    */
   expandAll?: boolean;
   /** Mobile third drawer position: peek (closed), half (open), full (expanded). */
   expanded?: boolean;
   onToggleExpanded?: () => void;
-}
-
-interface CardAvailability {
-  cpAllowed: boolean;
-  cpModeOk: boolean;
-  eventAllowed: boolean;
-  eventModeOk: boolean;
-  eventBlockReason: string | undefined;
-  eventBlockKey: string | undefined;
-  responseOk: boolean;
-  showResponse: boolean;
-  industOk: boolean;
-  chainOk: boolean;
-  saveOk: boolean;
-  saved: boolean;
-  homeOk: boolean;
-  isMandatory: boolean;
-  reasons: string[];
+  onOpenReference?: (anchor: string) => void;
 }
 
 const translated = (card: CardDef | GoalDef, locale: "en" | "zh_CN") => ({
@@ -113,21 +101,31 @@ const CardTranslation = ({card, locale}: {card: CardDef | GoalDef; locale: "en" 
 export const HandTray = (props: HandTrayProps) => {
   const {
     G, viewer, me, locale, t, phase, isActive, eliminated, pending, canActionCard, isBelligerent, war,
-    forcedCardIds, hand, saveList, giveCards, giveCardId, setGiveCardId, giveTarget, setGiveTarget,
-    giveCardValue, responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
+    forcedCardIds, hand, saveList, giveCards, giveTarget, setGiveTarget,
+    responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
-    cardFaceMode, open, onToggleOpen, expandAll = false, expanded = false, onToggleExpanded,
+    cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded, decisionPeek = false,
+    onOpenReference, expandAll = false,
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
   /**
-   * Which hand card is unfolded.  The tray shows one row per card (CP value,
-   * name, type) and only the unfolded card carries its face and its buttons:
-   * sixteen stacked card faces with two buttons each was unreadable on a phone.
+   * Which hand card is unfolded.  The tray lists one row per card — CP value,
+   * name, type — and only the unfolded row carries its face and its buttons.
+   * Sixteen stacked card faces with two buttons each was unreadable, and a
+   * horizontal strip hid the fourth card off-screen.
    *
-   * A card that forbids passing opens itself, because the player has to act on
-   * it: hiding the only legal move behind a tap would be a trap.
+   * A card that forbids passing opens itself: hiding the only legal move behind
+   * a tap would be a trap.  `expandAll` (tests, embeds) opens every row.
    */
   const [expandedId, setExpandedId] = React.useState<string | null>(() => forcedCardIds[0] ?? null);
+  // Reads the saved preference when the tray mounts; `Preferences` in the
+  // command menu writes it, and the tray picks the new value up on remount.
+  // The board passes the live preference so the Display menu can flip it; a
+  // caller that renders the tray alone still gets the stored value.
+  const storedConfirm = React.useMemo(() => readConfirmActions(), []);
+  const confirmActions = props.confirmActions ?? storedConfirm;
+  const [filter, setFilter] = React.useState<CardFilter>("all");
+  const [sort, setSort] = React.useState<CardSort>("printed");
 
   if (!viewer || !me) return null;
 
@@ -136,64 +134,35 @@ export const HandTray = (props: HandTrayProps) => {
     return card ? (locale === "zh_CN" ? card.titleZh : card.title) : id;
   };
 
-  const availability = (id: string): CardAvailability => {
-    const card = cardById(id);
-    const isMandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
-    const saved = saveList.includes(id);
-    const cpAllowed = !isMandatory && card.type !== "response" && card.type !== "combat";
-    const eventAllowed = (card.type !== "response" && card.type !== "combat") || card.id === "IE-A041";
-    const homeOk = card.kind !== "home" || me.selectedHomeCard === card.id;
-    const rescueOk = forcedCardIds.includes(id) && cpAllowed;
-    const cpModeOk = canActionCard && cpAllowed && (G.cpRemaining === 0 || rescueOk) && homeOk;
-    const eventGate = eventAllowed ? eventPlayability(G, viewer, id) : null;
-    const eventBlockKey = eventGate !== null && !eventGate.ok ? eventGate.reason : undefined;
-    const eventBlockReason = eventBlockKey !== undefined ? t.playBlock[eventBlockKey] : undefined;
-    const eventModeOk = canActionCard && eventAllowed && G.cpRemaining === 0 && (eventGate === null || eventGate.ok);
-    const responseEligible = card.type === "response" ? responseCardEligibility(G, viewer, id) : null;
-    const responseOk = responseEligible?.ok === true;
-    const showResponse = card.type === "response" && (
-      phase === "action" ? isActive
-        : phase === "wartime" ? isBelligerent && (isActive || war?.status === "alliance")
-          : phase === "gwManeuver" ? isActive
-            : false
-    );
-    const industOk = canActionCard && me.industryCard === null && card.kind !== "home" && !isMandatory;
-    const chainOk = canActionCard && me.cpChain.length < 2;
-    const saveOk = (phase === "action" || phase === "end") && card.kind !== "home" && !isMandatory;
+  const availability = (id: string): CardAvailability => cardAvailability({
+    G,
+    power: viewer,
+    cardId: id,
+    phase,
+    isActive,
+    isBelligerent,
+    war,
+    canActionCard,
+    saveList,
+    forcedCardIds,
+    industryCard: me.industryCard,
+    cpChainLength: me.cpChain.length,
+    homeCards: me.selectedHomeCard === null ? [] : [me.selectedHomeCard],
+    playBlock: t.playBlock as unknown as Record<string, string>,
+    // The reason table lives beside the bilingual helper that owns those
+    // strings, not in the i18n bundle.
+    responseBlock: Object.fromEntries(Object.entries(RESPONSE_REASON_TEXT)
+      .map(([key, text]) => [key, bi(locale, text.en, text.zh_CN)])),
+    bi: (en, zh) => bi(locale, en, zh),
+  });
 
-    const reasons: string[] = [];
-    if (!cpModeOk) {
-      if (!cpAllowed) reasons.push(bi(locale, "Cannot be played for CP (mandatory/response/combat card)", "不能作为 CP 打出（强制/响应/战斗牌）"));
-      else if (!homeOk) reasons.push(bi(locale, "Set it as your home card during Diplomacy first", "需先在外交阶段选为本国牌"));
-      else if (!canActionCard) reasons.push(bi(locale, "Only during your Action-phase impulse", "仅限你的行动阶段行动轮"));
-      else if (G.cpRemaining > 0) reasons.push(bi(locale, "Finish the current impulse first", "请先结束本次行动"));
-    }
-    if (!eventModeOk) {
-      if (!eventAllowed) reasons.push(bi(locale, "This card has no printed event", "此牌没有可打出的事件"));
-      else if (eventBlockReason) reasons.push(eventBlockReason);
-      else if (!canActionCard) reasons.push(bi(locale, "Events are played at the start of an Action impulse", "事件需在行动轮开始时打出"));
-      else if (G.cpRemaining > 0) reasons.push(bi(locale, "Events are played before spending CP", "事件需在花费 CP 前打出"));
-    }
-    if (card.type === "response" && !responseOk) {
-      reasons.push(responseEligible && !responseEligible.ok ? responseReasonText(locale, responseEligible.reason) : bi(locale, "No response window now", "当前没有响应窗口"));
-    }
-    if (!industOk && card.kind !== "home" && !isMandatory) {
-      reasons.push(me.industryCard !== null
-        ? bi(locale, "A card is already industrializing", "已有牌在工业化")
-        : bi(locale, "Industrialize only during your Action impulse", "工业化仅限你的行动阶段行动轮"));
-    }
-    if (!chainOk && me.cpChain.length >= 2) reasons.push(bi(locale, "CP chain is full", "CP 链已满"));
-    if (!saveOk) reasons.push(bi(locale, "Save only in the Action or End phase", "仅可在行动或结束阶段保留"));
-    return {
-      cpAllowed, cpModeOk, eventAllowed, eventModeOk, eventBlockReason, eventBlockKey,
-      responseOk, showResponse, industOk, chainOk, saveOk, saved, homeOk, isMandatory,
-      reasons: [...new Set(reasons)],
-    };
-  };
+  // Filter and order the face rows in the tray only; the chain, the Great War
+  // card and the Goals panel keep their own order.
+  const visibleHand = sortCards(hand, {filter, sort, availability: (id) => availability(id), viewer});
 
   /**
-   * Whether the unfolded card has any operation to offer at all, legal right
-   * now or merely blocked.  A disabled button carrying its reason is how a
+   * Whether the unfolded card has any operation to offer at all — legal right
+   * now, or merely blocked.  A disabled button carrying its reason is how a
    * player learns why a card is stuck, so it is still worth drawing; only a card
    * with no such dimension (a combat card outside a battle) has nothing to say.
    */
@@ -209,44 +178,61 @@ export const HandTray = (props: HandTrayProps) => {
     return (
       <>
         {(where === "inspector" || a.cpAllowed) && (
-          <button
+          // Playing a card for CP commits the impulse's CP: a second click
+          // confirms it, unless the player has turned confirmations off.
+          <ConfirmButton
             key="cp"
             className="ie-card-primary"
             data-testid={`ie-play-cp-${id}`}
             disabled={cpDisabled}
             title={cpDisabled ? a.reasons[0] ?? mandatoryTitle : undefined}
-            onClick={() => doAction(() => moves.playCard(id, "cp"))}
+            confirm={confirmActions}
+            confirmLabel={bi(locale, `Confirm: play for ${cardById(id).cp} CP`, `确认：作 ${cardById(id).cp} CP 打出`)}
+            onConfirm={() => doAction(() => moves.playCard(id, "cp"), {
+              label: bi(locale,
+                `Play ${cardById(id).title} for ${cardById(id).cp} CP`,
+                `打出 ${cardById(id).titleZh}：${cardById(id).cp} CP`),
+              reason: cpDisabled ? a.reasons[0] ?? mandatoryTitle : undefined,
+            })}
           >
             {t.cpMode}
-          </button>
+          </ConfirmButton>
         )}
         {(where === "inspector" || a.eventAllowed) && (
-          <button
+          <ConfirmButton
             key="event"
             className="ie-card-primary"
             data-testid={`ie-play-event-${id}`}
             disabled={!a.eventModeOk}
             data-blocked={a.eventBlockKey}
             title={!a.eventModeOk ? a.eventBlockReason : undefined}
-            onClick={() => doAction(() => moves.playCard(id, "event"))}
+            confirm={confirmActions}
+            confirmLabel={bi(locale, "Confirm: play the event", "确认：打出事件")}
+            onConfirm={() => doAction(() => moves.playCard(id, "event"), {
+              label: bi(locale, `Play ${cardById(id).title}'s event`, `打出 ${cardById(id).titleZh} 事件`),
+              reason: !a.eventModeOk ? a.eventBlockReason : undefined,
+            })}
           >
             {t.eventMode}
-          </button>
+          </ConfirmButton>
         )}
-        {a.showResponse && (
+        {(where === "inspector" || a.showResponse) && a.showResponse && (
           <button
             key="response"
             data-testid={`ie-response-${id}`}
             disabled={!a.responseOk}
             title={!a.responseOk ? a.reasons.join(" · ") : undefined}
-            onClick={() => doAction(() => moves.playResponseCard(id))}
+            onClick={() => doAction(() => moves.playResponseCard(id), {
+              label: t.playResponse,
+              reason: !a.responseOk ? a.reasons.join(" · ") : undefined,
+            })}
           >
             {t.playResponse}
           </button>
         )}
-        {where === "inspector" && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} onClick={() => doAction(() => moves.industrialize(id))}>{t.industrialize}</button>}
-        {where === "inspector" && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} onClick={() => doAction(() => moves.cpChain(id))}>{t.cpChain}</button>}
-        {where === "inspector" && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} onClick={() => doAction(() => moves.saveCard(id))}>{a.saved ? t.unsave : t.saveCard}</button>}
+        {where === "inspector" && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} onClick={() => doAction(() => moves.industrialize(id), {label: t.industrialize, reason: a.firstReason})}>{t.industrialize}</button>}
+        {where === "inspector" && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} onClick={() => doAction(() => moves.cpChain(id), {label: t.cpChain, reason: a.firstReason})}>{t.cpChain}</button>}
+        {where === "inspector" && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} onClick={() => doAction(() => moves.saveCard(id), {label: a.saved ? t.unsave : t.saveCard, reason: a.firstReason})}>{a.saved ? t.unsave : t.saveCard}</button>}
       </>
     );
   };
@@ -256,28 +242,39 @@ export const HandTray = (props: HandTrayProps) => {
     if (cardFaceMode === "print" && src) {
       return <img className="ie-card-face ie-card-print" src={src} alt={locale === "zh_CN" ? card.titleZh : card.title} data-card-id={card.id} loading="lazy"/>;
     }
-    return <CardFace card={card} locale={locale} showTranslation={false}/>;
+    return <CardFace card={card} locale={locale} showTranslation={false} t={t}/>;
   };
 
   const openInspector = (face: CardChoiceFace, key: string) => setInspector({face, key});
   const inspectorCard = inspector?.face.card;
+  // While a decision is owed the sheet starts folded: it must not cover the
+  // map target the decision points at.  The toggle stays live, so a reader can
+  // still open the hand deliberately.
+  const shownOpen = open && !decisionPeek;
 
   return (
-    <section className="ie-hand-tray" data-testid="ie-hand-tray" data-open={open ? "true" : "false"} data-expanded={expanded ? "true" : "false"}>
+    <section
+      className={`ie-hand-tray${decisionPeek ? " ie-hand-tray-decision" : ""}`}
+      data-testid="ie-hand-tray"
+      data-open={shownOpen ? "true" : "false"}
+      data-expanded={expanded ? "true" : "false"}
+      data-decision-peek={decisionPeek ? "true" : "false"}
+    >
       <header className="ie-tray-head">
         <button
           type="button"
           className="ie-tray-toggle"
           data-testid="ie-tray-toggle"
-          aria-expanded={open ? "true" : "false"}
+          aria-expanded={shownOpen ? "true" : "false"}
           aria-controls="ie-tray-body"
-          title={open ? bi(locale, "Collapse hand", "收起手牌") : bi(locale, "Expand hand", "展开手牌")}
+          title={shownOpen ? bi(locale, "Collapse hand", "收起手牌") : bi(locale, "Expand hand", "展开手牌")}
           onClick={onToggleOpen}
         >
-          <span aria-hidden="true">{open ? "▾" : "▸"}</span>
+          <span aria-hidden="true">{shownOpen ? "▾" : "▸"}</span>
         </button>
         <h3 className="ie-tray-title">{t.hand}{viewer ? ` · ${t.seats[viewer]}` : ""}</h3>
-        {open && onToggleExpanded !== undefined && (
+        <RuleLink anchor="chart:influence-track" locale={locale} onOpenReference={onOpenReference}/>
+        {shownOpen && onToggleExpanded !== undefined && (
           <button
             type="button"
             className="ie-tray-expand"
@@ -294,25 +291,41 @@ export const HandTray = (props: HandTrayProps) => {
           <IEChip>{t.cpChain}: {me.cpChain.length}/2</IEChip>
           {saveList.length > 0 && <IEChip>{t.savedCards}: {saveList.map(homeCardTitle).join(", ")}</IEChip>}
           {responseInHand && <IEChip>{t.responseCard}: {hand.filter((id) => cardById(id).type === "response").length}</IEChip>}
-          {/* The tray folds by default, so the two things that must not be
-              missed while it is closed get a flag on the bar itself: an open
-              response window, and a hand that forbids passing. */}
-          {!open && responseWindow && (
-            <IEChip><span className="ie-tray-flag" data-testid="ie-tray-response-flag" aria-hidden="true">⚑</span>
-              {bi(locale, "Response window", "响应窗口")}</IEChip>
-          )}
-          {!open && forcedCardIds.length > 0 && (
-            <IEChip><span className="ie-tray-flag" data-testid="ie-tray-forced-flag" aria-hidden="true">!</span>
-              {bi(locale, "Must play a card first", "须先打出卡牌")}</IEChip>
-          )}
           {me.industryCard && <IEChip>{t.industryCard}: {homeCardTitle(me.industryCard)}</IEChip>}
         </div>
+        <div className="ie-hand-tools" data-testid="ie-hand-tools">
+          <label className="ie-hand-tool">
+            <span>{bi(locale, "Filter", "筛选")}</span>
+            <select className="ie-select" data-testid="ie-hand-filter" value={filter} onChange={(event) => setFilter(event.target.value as CardFilter)}>
+              <option value="all">{bi(locale, "All", "全部")}</option>
+              <option value="playable">{bi(locale, "Playable now", "现在可打")}</option>
+              <option value="event">{t.cardType.event}</option>
+              <option value="response">{t.cardType.response}</option>
+              <option value="combat">{t.cardType.combat}</option>
+              <option value="mandatory">{t.cardType.mandatory}</option>
+            </select>
+          </label>
+          <label className="ie-hand-tool">
+            <span>{bi(locale, "Sort", "排序")}</span>
+            <select className="ie-select" data-testid="ie-hand-sort" value={sort} onChange={(event) => setSort(event.target.value as CardSort)}>
+              <option value="printed">{bi(locale, "Printed order", "卡面顺序")}</option>
+              <option value="cp">{bi(locale, "CP", "CP 值")}</option>
+              <option value="type">{bi(locale, "Type", "类型")}</option>
+              <option value="decade">{bi(locale, "Decade", "年代")}</option>
+            </select>
+          </label>
+        </div>
+        {decisionPeek && (
+          <span className="ie-tray-decision-line" data-testid="ie-tray-decision-peek" role="status">
+            {bi(locale, "A decision is waiting — answer it in the panel", "有决策待处理——请在面板中作答")}
+          </span>
+        )}
         {handChoicesHint !== null && (
           <span className="ie-hand-hint" data-testid="ie-hand-choices-hint">{handChoicesHint}</span>
         )}
       </header>
 
-      {open && (
+      {shownOpen && (
         <div className="ie-tray-body" id="ie-tray-body">
           <div className="ie-tray-scroll">
             <div className="ie-cp-chain" data-testid="ie-cp-chain">
@@ -323,43 +336,53 @@ export const HandTray = (props: HandTrayProps) => {
                   ? me.cpChain.map((id) => <IEChip key={id}>{homeCardTitle(id)}</IEChip>)
                   : <span className="ie-muted">{bi(locale, "No chained cards.", "CP 链中没有牌。")}</span>}
               </span>
-              <button className="ie-btn secondary ie-btn-xs" data-testid="ie-use-cp-chain" disabled={!chainReady} title={chainDisabledReason} onClick={() => doAction(() => moves.useCpChain())}>
+              <button className="ie-btn secondary ie-btn-xs" data-testid="ie-use-cp-chain" disabled={!chainReady} title={chainDisabledReason} onClick={() => doAction(() => moves.useCpChain(), {label: bi(locale, "Use the CP chain", "使用 CP 链"), reason: chainDisabledReason})}>
                 {bi(locale, "Use CP chain", "使用 CP 链")}
               </button>
               {!chainReady && chainDisabledReason && <span className="ie-muted ie-tray-chain-reason" data-testid="ie-cp-chain-reason">{chainDisabledReason}</span>}
             </div>
 
             <div className="ie-hand">
-              {hand.map((id) => {
+              {visibleHand.map((id) => {
                 const card = cardById(id);
                 const a = availability(id);
-                const expandedCard = expandAll || expandedId === id;
+                const playable = a.cpModeOk || a.eventModeOk || a.responseOk;
+                const rowOpen = expandAll || expandedId === id;
                 return (
                   <article
                     key={id}
-                    className={`ie-card${expandedCard ? " expanded" : ""}`}
+                    className={`ie-card${playable ? " playable" : ""}${a.saved ? " saved" : ""}${rowOpen ? " expanded" : ""}`}
+                    data-expanded={rowOpen ? "true" : "false"}
                     data-testid={`ie-card-${id}`}
                     data-card-kind={card.kind}
-                    data-expanded={expandedCard ? "true" : "false"}
+                    data-playable={playable ? "true" : "false"}
+                    data-card-type={cardTypeIcon(card.kind, card.type)}
                   >
-                    {/* The folded row: the three things a player picks a card
-                        by — its name, its CP value and its type.  Everything
-                        else lives behind the tap. */}
+                    <span className={`ie-card-type ie-card-type-${cardTypeIcon(card.kind, card.type)}`} aria-hidden="true" title={t.cardType[card.type as keyof typeof t.cardType] ?? card.kind}>
+                      {CARD_TYPE_GLYPH[cardTypeIcon(card.kind, card.type)]}
+                    </span>
+                    {/* The folded row: the four things a player picks a card by
+                        — its type glyph, CP value, name and whether it is
+                        playable right now.  Everything else is behind the tap. */}
                     <button
                       type="button"
                       className="ie-card-open"
                       data-testid={`ie-open-card-${id}`}
-                      aria-expanded={expandedCard ? "true" : "false"}
+                      aria-expanded={rowOpen ? "true" : "false"}
                       aria-controls={`ie-card-body-${id}`}
                       aria-label={`${bi(locale, "Card", "卡牌")}: ${locale === "zh_CN" ? card.titleZh : card.title}`}
-                      onClick={() => { if (!expandAll) setExpandedId(expandedCard ? null : id); }}
+                      onClick={() => { if (!expandAll) setExpandedId(rowOpen ? null : id); }}
                     >
                       <span className="ie-card-cp" data-testid={`ie-card-cp-${id}`}>{card.cp}</span>
                       <span className="ie-card-name">{locale === "zh_CN" ? card.titleZh : card.title}</span>
-                      <span className="ie-card-type" data-testid={`ie-card-type-${id}`}>{t.cardType[card.type]}</span>
-                      <span className="ie-card-caret" aria-hidden="true">{expandedCard ? "▾" : "▸"}</span>
+                      <span className="ie-card-status" data-testid={`ie-card-status-${id}`} data-playable={playable ? "true" : "false"}>
+                        {playable
+                          ? (a.cpModeOk ? bi(locale, "For CP", "可作 CP") : a.eventModeOk ? bi(locale, "Event", "事件") : bi(locale, "Response", "响应"))
+                          : a.firstReason ?? ""}
+                      </span>
+                      <span className="ie-card-caret" aria-hidden="true">{rowOpen ? "▾" : "▸"}</span>
                     </button>
-                    {expandedCard && (
+                    {rowOpen && (
                       <div className="ie-card-body" id={`ie-card-body-${id}`}>
                         <button
                           type="button"
@@ -371,12 +394,12 @@ export const HandTray = (props: HandTrayProps) => {
                           {cardFace(card)}
                         </button>
                         <div className="ie-card-body-actions">
-        {hasOperation(id) ? (
+                          {hasOperation(id) ? (
                             <div className="ie-card-actions">{actionButtons(id, "expanded")}</div>
                           ) : (
                             <div className="ie-card-why" data-testid={`ie-card-why-${id}`}>
                               <span>{bi(locale, "No operation available right now.", "当前没有可执行的操作。")}</span>
-                              {availability(id).reasons.slice(0, 2).map((reason) => (
+                              {a.reasons.slice(0, 2).map((reason) => (
                                 <span key={reason} className="ie-card-why-line">{reason}</span>
                               ))}
                             </div>
@@ -389,6 +412,9 @@ export const HandTray = (props: HandTrayProps) => {
                 );
               })}
               {hand.length === 0 && <div className="ie-muted">{t.hand}: 0 {t.cards}</div>}
+              {hand.length > 0 && visibleHand.length === 0 && (
+                <div className="ie-muted" data-testid="ie-hand-empty-filter">{bi(locale, "No card matches this filter.", "没有符合筛选条件的卡牌。")}</div>
+              )}
             </div>
 
             <div className="ie-tray-extras">
@@ -408,8 +434,8 @@ export const HandTray = (props: HandTrayProps) => {
                         {cardFace(gwCard)}
                       </button>
                       <div className="ie-card-actions">
-                        <button disabled={!canGwCard || cpProblem !== null} title={gwImpulseReasonText(locale, cpProblem)} onClick={() => doAction(() => moves.playGwCardMove("cp"))}>{bi(locale, "Bonus action", "奖励行动")}</button>
-                        <button disabled={!canGwCard || eventProblem !== null} title={gwImpulseReasonText(locale, eventProblem) ?? undefined} onClick={() => doAction(() => moves.playGwCardMove("event"))}>{t.eventMode}</button>
+                        <button disabled={!canGwCard || cpProblem !== null} title={gwImpulseReasonText(locale, cpProblem)} onClick={() => doAction(() => moves.playGwCardMove("cp"), {label: bi(locale, "Bonus action", "奖励行动"), reason: gwImpulseReasonText(locale, cpProblem) ?? undefined})}>{bi(locale, "Bonus action", "奖励行动")}</button>
+                        <button disabled={!canGwCard || eventProblem !== null} title={gwImpulseReasonText(locale, eventProblem) ?? undefined} onClick={() => doAction(() => moves.playGwCardMove("event"), {label: t.eventMode, reason: gwImpulseReasonText(locale, eventProblem) ?? undefined})}>{t.eventMode}</button>
                       </div>
                     </article>
                   </div>
@@ -442,28 +468,20 @@ export const HandTray = (props: HandTrayProps) => {
 
               {phase === "diplomacy" && giveCards.length > 0 && (
                 <div className="ie-tray-give" data-testid="ie-give-card">
+                  {/* A visible control now: the old CSS hid it until focus, which
+                      made "give a card" undiscoverable for mouse users. */}
                   <div className="ie-section-title">
-                    {bi(locale, "Give a card (diplomacy)", "转交卡牌（外交阶段）")}
+                    {bi(locale, "Give a random card (diplomacy)", "随机转交卡牌（外交阶段）")}
                     <span className="ie-choice-tag" data-testid="ie-give-card-optional">{bi(locale, "Optional", "可选")}</span>
                   </div>
                   <div className="ie-inline">
                     <select className="ie-select" value={giveTarget} onChange={(e) => setGiveTarget(e.target.value as Power)}>
                       {(["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]).filter((p) => p !== viewer).map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
                     </select>
-                    <select className="ie-select" value={giveCardValue} onChange={(e) => setGiveCardId(e.target.value)}>
-                      {giveCards.map((id) => <option key={id} value={id}>{homeCardTitle(id)}</option>)}
-                    </select>
-                    <button className="ie-btn" disabled={giveTarget === viewer || !giveCardValue} onClick={() => doAction(() => moves.giveCard(giveTarget, giveCardValue))}>{bi(locale, "Give", "转交")}</button>
+                    <button className="ie-btn" disabled={giveTarget === viewer} onClick={() => doAction(() => moves.giveCard(giveTarget), {label: bi(locale, `Give a random card to ${t.seats[giveTarget]}`, `随机转交 1 张牌给${t.seats[giveTarget]}`)})}>{bi(locale, "Give", "转交")}</button>
                   </div>
-                  {giveCardValue && (
-                    <div className="ie-choice-grid ie-give-preview">
-                      <article className="ie-card ie-choice-card" data-testid="ie-give-card-preview" data-card-id={giveCardValue}>
-                        <CardFace card={cardById(giveCardValue)} locale={locale}/>
-                      </article>
-                    </div>
-                  )}
                   <div className="ie-hint" data-testid="ie-give-card-hint">
-                    {bi(locale, "Optional: giving a card is never required — skip it and carry on with diplomacy.", "可选：转交卡牌并非必须——不做也可以继续外交阶段。")}
+                    {bi(locale, "Optional: the card is drawn at random from your hand, so its identity stays unknown until it is handed over. Giving is never required — skip it and carry on with diplomacy.", "可选：从你的手牌中随机抽出 1 张转交，交出前连你也无法指定是哪张。转交并非必须——不做也可以继续外交阶段。")}
                   </div>
                 </div>
               )}

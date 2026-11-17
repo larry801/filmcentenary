@@ -83,3 +83,52 @@ export const cardImageSrc = (image: string | undefined | null): string | null =>
   if (!image) return null;
   return `/imperial-elegy/${image.replace(/^\/+/, "")}`;
 };
+
+// ---------------------------------------------------------------------------
+// Confirmations (phase 4): two-step "arm, then confirm" for irreversible actions
+// ---------------------------------------------------------------------------
+
+export const CONFIRM_ACTIONS_KEY = "ie_confirm_actions";
+
+/**
+ * Whether a destructive or irreversible control arms before it fires.
+ *
+ * On by default: there is no engine undo (the state hides other players'
+ * hands, rolls dice and runs with `disableUndo`), so a mis-click cannot be
+ * taken back.  A player who plays fast can switch it off; every legacy e2e
+ * helper does exactly that.
+ */
+export const DEFAULT_CONFIRM_ACTIONS = true;
+
+export const readConfirmActions = (
+  storage: PreferenceStorage | null = defaultPreferenceStorage(),
+): boolean => {
+  try {
+    if (!storage) return DEFAULT_CONFIRM_ACTIONS;
+    const stored = storage.getItem(CONFIRM_ACTIONS_KEY);
+    return stored === "off" ? false : DEFAULT_CONFIRM_ACTIONS;
+  } catch {
+    return DEFAULT_CONFIRM_ACTIONS;
+  }
+};
+
+export const writeConfirmActions = (
+  enabled: boolean,
+  storage: PreferenceStorage | null = defaultPreferenceStorage(),
+): void => {
+  try {
+    storage?.setItem(CONFIRM_ACTIONS_KEY, enabled ? "on" : "off");
+  } catch {
+    // Cosmetic: a failed write must never stop play.
+  }
+};
+
+/** React state bound to the persisted confirmation preference. */
+export const useConfirmActions = (): [boolean, (enabled: boolean) => void] => {
+  const [enabled, setEnabled] = useState<boolean>(() => readConfirmActions(defaultPreferenceStorage()));
+  const choose = useCallback((next: boolean) => {
+    writeConfirmActions(next, defaultPreferenceStorage());
+    setEnabled(next);
+  }, []);
+  return [enabled, choose];
+};

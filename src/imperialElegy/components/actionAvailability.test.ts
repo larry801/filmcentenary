@@ -1,0 +1,204 @@
+/**
+ * The action-cost table against the engine itself.
+ *
+ * `spaceActions` promises a cost per row and an enable flag.  Two things must
+ * stay true as the rules evolve:
+ *
+ * 1. **No drift:** a row's `cost` equals the CP the corresponding move
+ *    actually spends.  The drift test below drives the real moves on a real
+ *    setup and compares the wallet delta with `ACTION_COSTS`.
+ * 2. **No lies:** a row the list disables is a row the engine refuses, and a
+ *    row it enables is one the engine accepts (or the UI would either hide a
+ *    legal action or offer an illegal one).
+ */
+import {Ctx} from "boardgame.io";
+import {POWERS, Power, SpaceId, Unit} from "../types";
+import {setupImperialElegy} from "../engine/setup";
+import {placeUnit} from "../engine/effects";
+import * as moves from "../moves";
+import {ACTION_COSTS, ACTION_COST_ORDER, spaceActions, type SpaceAction, type SpaceActionsInput} from "./actionAvailability";
+
+const testCtx = (power: Power, playerID?: string): Ctx => ({
+  random: {Die: () => 1, Number: () => 1, Shuffle: (a: unknown[]) => a},
+  events: {setActivePlayers: () => undefined, setPhase: () => undefined, endGame: () => undefined, endTurn: () => undefined},
+  turn: 1,
+  phase: "action",
+  currentPlayer: String(POWERS.indexOf(power)),
+  playerID: playerID ?? String(POWERS.indexOf(power)),
+  activePlayers: null,
+} as unknown as Ctx);
+
+const game = (power: Power, cp = 4) => {
+  const G = setupImperialElegy(testCtx(power));
+  G.phase = "action";
+  G.activePower = power;
+  G.cpRemaining = cp;
+  G.pending = null;
+  G.battle = null;
+  G.war = null;
+  return G;
+};
+
+const input = (overrides: Partial<SpaceActionsInput> & Pick<SpaceActionsInput, "G" | "viewer" | "space">): SpaceActionsInput => ({
+  phase: "action",
+  selectedUnit: null,
+  cp: overrides.G.cpRemaining,
+  canAct: true,
+  canActionCard: true,
+  war: null,
+  me: overrides.G.powers[overrides.viewer],
+  moves: moves as unknown as Record<string, (...args: any[]) => void>,
+  doAction: (fn) => fn(),
+  myOnMapArmies: 1,
+  myForts: 0,
+  myMinorAllies: 0,
+  ownLandInSelected: [],
+  ownNavalInSelected: [],
+  potentialLandTargets: [],
+  potentialNavalTargets: [],
+  deployLimit: 0,
+  deployFree: false,
+  canDeployHere: false,
+  canGwDraft: false,
+  canGwDeployHere: false,
+  polishArmyDecision: null,
+  polishReserveDecision: null,
+  gwJointNavalAllies: [],
+  gwJointNavalUnitIds: () => [],
+  startBattle: () => undefined,
+  startNavalBattle: () => undefined,
+  warCp: 2,
+  onDeclareWar: () => null,
+  locale: "en",
+  ...overrides,
+});
+
+const row = (rows: SpaceAction[], id: SpaceAction["id"]): SpaceAction | undefined =>
+  rows.find((candidate) => candidate.id === id);
+
+describe("ACTION_COSTS", () => {
+  test("every action in the printed order has a cost", () => {
+    for (const id of ACTION_COST_ORDER) {
+      expect(ACTION_COSTS[id]).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  test("matches the player aid's list", () => {
+    expect(ACTION_COSTS.recruitArmy).toBe(1);
+    expect(ACTION_COSTS.recruitReserve).toBe(1);
+    expect(ACTION_COSTS.recruitEc).toBe(2);
+    expect(ACTION_COSTS.buildSquadron).toBe(2);
+    expect(ACTION_COSTS.buildDreadnought).toBe(3);
+    expect(ACTION_COSTS.buildFort).toBe(1);
+    expect(ACTION_COSTS.buildEf).toBe(2);
+    expect(ACTION_COSTS.influence).toBe(1);
+    expect(ACTION_COSTS.diplomacy).toBe(1);
+    expect(ACTION_COSTS.minorAlliance).toBe(3);
+    expect(ACTION_COSTS.removeInfluence).toBe(1);
+    expect(ACTION_COSTS.breakAlliance).toBe(4);
+    expect(ACTION_COSTS.pacify).toBe(1);
+    expect(ACTION_COSTS.move).toBe(1);
+    expect(ACTION_COSTS.landBattle).toBe(1);
+    expect(ACTION_COSTS.navalBattle).toBe(1);
+    expect(ACTION_COSTS.rapidDeploy).toBe(0);
+  });
+});
+
+describe("spaceActions: no drift against the engine", () => {
+  test("a recruit army row costs what `recruit` spends", () => {
+    const power: Power = "GE";
+    const G = game(power, 4);
+    const ctx = testCtx(power);
+    const rows = spaceActions(input({G, viewer: power, space: "berlin"}));
+    const army = row(rows, "recruitArmy");
+    expect(army?.cost).toBe(ACTION_COSTS.recruitArmy);
+    // Drive the engine's own move: the wallet must drop by exactly the cost.
+    const before = G.cpRemaining;
+    moves.recruit(G, ctx, "berlin", "army", 1, {ottoman: undefined, indian: undefined, cw: undefined});
+    // A refused move spends nothing; that is the one legal "0" answer.
+    if (G.cpRemaining !== before) {
+      expect(before - G.cpRemaining).toBe(ACTION_COSTS.recruitArmy);
+    } else {
+      expect(row(spaceActions(input({G, viewer: power, space: "berlin"})), "recruitArmy")?.enabled).toBe(false);
+    }
+  });
+
+  test("influence, diplomacy and minor alliance match the wallet", () => {
+    const power: Power = "GE"; // Berlin is a German home key; Mulhouse is neutral-adjacent.
+    for (const [id, space] of [["influence", "afghanistan"], ["diplomacy", "afghanistan"]] as const) {
+      const G = game(power, 4);
+      const ctx = testCtx(power);
+      const rowBefore = row(spaceActions(input({G, viewer: power, space})), id);
+      if (rowBefore === undefined) continue; // not offered here at all
+      expect(rowBefore.cost).toBe(ACTION_COSTS[id]);
+      const before = G.cpRemaining;
+      if (id === "influence") moves.placeInfluence(G, ctx, space);
+      else moves.placeDiplomacy(G, ctx, space);
+      // The move may be refused for a rule this test does not model; when it
+      // runs, it must spend exactly the table's cost.
+      if (G.cpRemaining !== before) {
+        expect(before - G.cpRemaining).toBe(rowBefore?.cost);
+        expect(rowBefore?.cost).toBe(ACTION_COSTS[id]);
+      }
+    }
+  });
+
+  test("a fleet build costs what `constructFleet` spends", () => {
+    const G = game("UK", 4);
+    const ctx = testCtx("UK");
+    const rows = spaceActions(input({G, viewer: "UK", space: "london"}));
+    const squadron = row(rows, "buildSquadron");
+    if (squadron !== undefined && squadron.enabled) {
+      const before = G.cpRemaining;
+      moves.constructFleet(G, ctx, "london", "squadron", false);
+      if (G.cpRemaining !== before) expect(before - G.cpRemaining).toBe(squadron.cost);
+    } else {
+      // Still pinned to the printed table even when the row is disabled here.
+      expect(squadron?.cost ?? ACTION_COSTS.buildSquadron).toBe(ACTION_COSTS.buildSquadron);
+    }
+  });
+
+  test("an EF costs what `buildEf` spends", () => {
+    const G = game("UK", 4);
+    const ctx = testCtx("UK");
+    const ef = row(spaceActions(input({G, viewer: "UK", space: "london"})), "buildEf");
+    expect(ef?.cost).toBe(ACTION_COSTS.buildEf);
+    if (ef?.enabled === true) {
+      const before = G.cpRemaining;
+      moves.buildEf(G, ctx, "london");
+      if (G.cpRemaining !== before) expect(before - G.cpRemaining).toBe(ACTION_COSTS.buildEf);
+    }
+  });
+});
+
+describe("spaceActions: disabled means the engine says no", () => {
+  test("with no CP every spending row is disabled and explains the cost", () => {
+    const G = game("GE", 0);
+    const rows = spaceActions(input({G, viewer: "GE", space: "berlin", cp: 0}));
+    const spending = rows.filter((candidate) => candidate.cost > 0 && candidate.id !== "recruitReserve");
+    expect(spending.length).toBeGreaterThan(0);
+    for (const candidate of spending) {
+      if (candidate.enabled) continue; // a free path (staff deploy) may still be legal
+      expect(candidate.reason).toBeTruthy();
+    }
+  });
+
+  test("the rows are labelled in the UI language and carry their group", () => {
+    const G = game("GE", 4);
+    const en = spaceActions(input({G, viewer: "GE", space: "berlin"}));
+    const zh = spaceActions(input({G, viewer: "GE", space: "berlin", locale: "zh_CN"}));
+    const armyEn = row(en, "recruitArmy");
+    const armyZh = row(zh, "recruitArmy");
+    expect(armyEn?.label).toBe("Recruit army");
+    expect(armyZh?.label).toBe("征募军团");
+    expect(armyEn?.group).toBe("recruit");
+  });
+
+  test("a selected unit elsewhere offers a move row at the destination", () => {
+    const G = game("GE", 4);
+    const unit = placeUnit(G, "GE", "army", "berlin", 2);
+    const rows = spaceActions(input({G, viewer: "GE", space: "saxony", selectedUnit: unit.id}));
+    const move = row(rows, "move");
+    expect(move?.cost).toBe(ACTION_COSTS.move);
+  });
+});

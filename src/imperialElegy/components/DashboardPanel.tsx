@@ -72,7 +72,7 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
           return (
             <span key={id} data-testid={`ie-revealed-goal-${id}`}>
               <IEChip>
-                {locale === "zh_CN" ? goal?.titleZh ?? id : goal?.title ?? id}
+                {(locale === "zh_CN" ? goal?.titleZh : goal?.title) || id}
                 {goal ? ` · ${t.seats[goal.power]}` : ""}
               </IEChip>
             </span>

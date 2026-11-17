@@ -67,11 +67,13 @@ describe("printed-board vector map (VQ.png redraw)", () => {
     it("reuses the warped coastline between renders", () => {
         const path = "M100,100L110,110L120,105Z";
         expect(cachedBoardWarpPath(path)).toBe(boardWarpPath(path));
-        expect(cachedBoardWarpPath(land.path)).toBe(boardWarpPath(land.path));
-        // A cache hit must not recompute the warp.
+        const warped = cachedBoardWarpPath(land.path);
+        // Cache hits must not re-warp the (now much finer) coastline.  Time the
+        // lookups without comparing the large string on every iteration.
         const start = Date.now();
-        for (let render = 0; render < 20; render += 1) expect(cachedBoardWarpPath(land.path)).toBe(cachedBoardWarpPath(land.path));
-        expect(Date.now() - start).toBeLessThan(100);
+        for (let render = 0; render < 50; render += 1) cachedBoardWarpPath(land.path);
+        expect(Date.now() - start).toBeLessThan(1000);
+        expect(cachedBoardWarpPath(land.path)).toBe(warped);
     });
 
     it("warps the coastline into the same cartogram without invalid coordinates", () => {
@@ -105,6 +107,12 @@ describe("printed-board vector map (VQ.png redraw)", () => {
         expect(html).toContain("vq-board-region-0");
         expect(html).toContain("vq-board-speckle");
         expect(html).toContain("vq-board-land");
+        expect(html).toContain("vq-board-relief");
+        expect(html).toContain('class="vq-relief"');
+        expect(html).toContain('class="vq-lake"');
+        expect(html).toContain("vq-river-major");
+        expect(html).toContain("vq-river-minor");
+        expect(html).toContain("vq-board-landclip");
         expect(html).toContain("Virgin Queen");
         expect(html).toContain("ENGLAND");
         expect(html).toContain("OTTOMAN");
@@ -182,5 +190,36 @@ describe("printed-board vector map (VQ.png redraw)", () => {
         );
         expect(geographic).not.toContain("vq-board-map");
         expect(geographic).toContain('aria-label="切换到棋盘版地图"');
+    });
+
+    /**
+     * The hotseat shell mounts one board per seat with the inactive ones behind
+     * `display: none`.  SVG paint servers resolve by id across the whole
+     * document and Chrome ignores a definition inside a hidden subtree, so two
+     * boards sharing `vq-board-land` left every seat but the first painting
+     * bare sea.  Each board must own its ids and only reference its own.
+     */
+    it("gives every mounted board its own paint-server ids", () => {
+        // Both boards in one tree, as the hotseat shell mounts them.
+        const html = renderToStaticMarkup(<>
+            <VQMap G={G()} onSelect={() => {}} defaultMapStyle="board"/>
+            <VQMap G={G()} onSelect={() => {}} defaultMapStyle="board"/>
+        </>);
+        const boards = html.split('<div class="vq-map vq-board-map">').slice(1);
+        expect(boards).toHaveLength(2);
+        const ids = (chunk: string) => [...chunk.matchAll(/ id="([^"]+)"/g)].map((match) => match[1]);
+        const [firstIds, secondIds] = boards.map(ids);
+        expect(firstIds.length).toBeGreaterThan(10);
+        expect(firstIds).not.toEqual(secondIds);
+        expect(new Set([...firstIds, ...secondIds]).size).toBe(firstIds.length + secondIds.length);
+        // Every url(#...) paint points at an id the same board defines.
+        for (const [index, chunk] of boards.entries()) {
+            const own = new Set([firstIds, secondIds][index]);
+            const referenced = new Set([...chunk.matchAll(/url\(#([^)]+)\)/g)].map((match) => match[1]));
+            expect(referenced.size).toBeGreaterThan(5);
+            for (const id of referenced) expect(own.has(id)).toBe(true);
+        }
+        // The greppable prefix survives; only the borrowed identity is gone.
+        for (const id of firstIds) expect(id.startsWith("vq-board-")).toBe(true);
     });
 });

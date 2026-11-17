@@ -15,7 +15,8 @@ import {
   type SeatState,
   type SeatStatus,
 } from "./SeatStrip";
-import type {Power} from "../types";
+import {POWERS, type Power} from "../types";
+import type {RovingTabProps} from "./useRovingTabs";
 
 type DeriveInput = Parameters<typeof deriveSeatStatuses>[0];
 
@@ -49,6 +50,46 @@ const stripFor = (over: Partial<DeriveInput> = {}): string => {
   return render(
     <SeatStrip seats={deriveSeatStatuses(seatInput)} onSelect={() => undefined} locale={seatInput.locale} />,
   );
+};
+
+/** The seats that are in the tab order (`tabindex="0"`) in the rendered strip. */
+const tabStops = (html: string): Power[] =>
+  POWERS.filter((power) => tabTag(html, power).includes('tabindex="0"'));
+
+type TabButton = React.ReactElement<
+  RovingTabProps & {
+    "aria-selected"?: boolean;
+    onClick?: () => void;
+  }
+>;
+
+/**
+ * The seat buttons SeatStrip actually renders, without a DOM: a probe calls
+ * the component during server rendering (so its hooks run for real) and keeps
+ * the returned element tree, whose `children` are the tab buttons.  That lets
+ * the test exercise the exact `onKeyDown`/`onClick`/`tabIndex` props the strip
+ * spreads onto each seat.
+ */
+const probeSeatStrip = (props: React.ComponentProps<typeof SeatStrip>): React.ReactElement => {
+  const box: {tree: React.ReactElement | null} = {tree: null};
+  const Probe: React.FC = () => {
+    box.tree = SeatStrip(props) as React.ReactElement;
+    return null;
+  };
+  renderToStaticMarkup(<Probe />);
+  if (box.tree === null) throw new Error("SeatStrip did not render");
+  return box.tree;
+};
+
+const seatButtons = (tree: React.ReactElement): TabButton[] =>
+  React.Children.toArray(tree.props.children) as TabButton[];
+
+/** Fire one keydown at a seat tab and report whether preventDefault was called. */
+const press = (handler: ((event: React.KeyboardEvent<HTMLElement>) => void) | undefined, key: string): jest.Mock => {
+  if (!handler) throw new Error("seat tab has no onKeyDown");
+  const preventDefault = jest.fn();
+  handler({key, preventDefault} as unknown as React.KeyboardEvent<HTMLElement>);
+  return preventDefault;
 };
 
 describe("deriveSeatStatuses", () => {
@@ -202,6 +243,82 @@ describe("SeatStrip markup", () => {
     expect(html).toContain("等待");
     expect(html).toContain("已淘汰");
     expect(html).toContain("德国");
+  });
+});
+
+describe("SeatStrip roving tabindex", () => {
+  const previousWindow = (globalThis as unknown as {window?: unknown}).window;
+
+  beforeEach(() => {
+    // useRovingTabs moves focus with window.setTimeout; the node test
+    // environment has no window, so supply the one call it makes.
+    (globalThis as unknown as {window?: unknown}).window = {
+      setTimeout: (fn: () => void) => fn(),
+    };
+  });
+
+  afterEach(() => {
+    (globalThis as unknown as {window?: unknown}).window = previousWindow;
+  });
+
+  test("exactly one seat is tabbable, the others are -1, and it is the selected seat", () => {
+    for (const viewer of POWERS) {
+      const html = stripFor({viewer});
+      expect(tabStops(html)).toEqual([viewer]);
+      // Every tab carries an explicit tabindex, so there is no implicit 0.
+      expect((html.match(/tabindex="/g) ?? []).length).toBe(6);
+      for (const power of POWERS) {
+        const selected = power === viewer;
+        const tag = tabTag(html, power);
+        expect(tag).toContain(selected ? 'tabindex="0"' : 'tabindex="-1"');
+        expect(tag).toContain(selected ? 'aria-selected="true"' : 'aria-selected="false"');
+      }
+    }
+  });
+
+  test("the single tab stop follows the current seat", () => {
+    const seats = deriveSeatStatuses(input({viewer: "RU"}));
+    const buttons = seatButtons(probeSeatStrip({seats, onSelect: () => undefined, locale: "en"}));
+    expect(buttons.map((button) => button.props.tabIndex)).toEqual([-1, -1, -1, -1, 0, -1]);
+  });
+
+  test("arrows, Home and End move to the next/previous/first/last seat and select it", () => {
+    const onSelect = jest.fn();
+    const seats = deriveSeatStatuses(input({viewer: "GE"}));
+    const buttons = seatButtons(probeSeatStrip({seats, onSelect, locale: "en"}));
+    expect(buttons).toHaveLength(6);
+    expect(buttons.map((button) => button.props.tabIndex)).toEqual([0, -1, -1, -1, -1, -1]);
+
+    // The handler is the one SeatStrip spreads onto each tab; switching seats
+    // goes through `onSelect`, exactly like a click.
+    expect(press(buttons[0].props.onKeyDown, "ArrowRight")).toHaveBeenCalled();
+    expect(onSelect).toHaveBeenLastCalledWith("UK");
+    press(buttons[1].props.onKeyDown, "ArrowDown");
+    expect(onSelect).toHaveBeenLastCalledWith("FR");
+    press(buttons[2].props.onKeyDown, "ArrowLeft");
+    expect(onSelect).toHaveBeenLastCalledWith("UK");
+    // Both ends wrap: Up from the first seat lands on the last one.
+    press(buttons[0].props.onKeyDown, "ArrowUp");
+    expect(onSelect).toHaveBeenLastCalledWith("OT");
+    press(buttons[3].props.onKeyDown, "Home");
+    expect(onSelect).toHaveBeenLastCalledWith("GE");
+    press(buttons[0].props.onKeyDown, "End");
+    expect(onSelect).toHaveBeenLastCalledWith("OT");
+    expect(onSelect).toHaveBeenCalledTimes(6);
+
+    // Unrelated keys neither select nor swallow the event.
+    const preventDefault = press(buttons[0].props.onKeyDown, "Tab");
+    expect(preventDefault).not.toHaveBeenCalled();
+    expect(onSelect).toHaveBeenCalledTimes(6);
+  });
+
+  test("clicking a seat still selects that seat", () => {
+    const onSelect = jest.fn();
+    const seats = deriveSeatStatuses(input({viewer: "GE"}));
+    const buttons = seatButtons(probeSeatStrip({seats, onSelect, locale: "zh_CN"}));
+    buttons[2].props.onClick?.();
+    expect(onSelect).toHaveBeenCalledWith("FR");
+    expect(onSelect).toHaveBeenCalledTimes(1);
   });
 });
 

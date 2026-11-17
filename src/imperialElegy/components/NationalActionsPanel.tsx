@@ -40,7 +40,7 @@ export interface NationalActionsPanelProps {
   setTsrrTo: (s: string) => void;
   tsrrDecision: {allowed: boolean; reasons: string[]} | null;
   tsrrReason: string | undefined;
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -61,7 +61,7 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
       <div className="ie-national-actions" data-testid="ie-national-actions">
         {viewer === "FR" && (
           <div className="ie-inline" data-testid="ie-fr-actions">
-            <button className="ie-btn" data-testid="ie-rebuild-zouave" disabled={cpBudget() < 1 || zouaveInPlay} title={zouaveReason} onClick={() => doAction(() => moves.rebuildZouave())}>{t.rebuildZouave}</button>
+            <button className="ie-btn" data-testid="ie-rebuild-zouave" disabled={cpBudget() < 1 || zouaveInPlay} title={zouaveReason} onClick={() => doAction(() => moves.rebuildZouave(), {label: t.rebuildZouave, reason: zouaveReason})}>{t.rebuildZouave}</button>
           </div>
         )}
 
@@ -72,7 +72,7 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
               <select className="ie-select" data-testid="ie-au-reform-target" value={auReformValue} onChange={(e) => setAuReformTarget(e.target.value)}>
                 {AU_NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationality}</option>)}
               </select>
-              <button className="ie-btn" data-testid="ie-au-reforms" disabled={auReformDecision?.allowed !== true || cpBudget() < 3} title={auReformReason} onClick={() => doAction(() => moves.auAction("reforms", auReformValue))}>{t.auReforms}</button>
+              <button className="ie-btn" data-testid="ie-au-reforms" disabled={auReformDecision?.allowed !== true || cpBudget() < 3} title={auReformReason} onClick={() => doAction(() => moves.auAction("reforms", auReformValue), {label: t.auReforms, reason: auReformReason})}>{t.auReforms}</button>
             </div>
             <div className="ie-inline">
               <span className="ie-section-title">{t.auExpandCitizenship}</span>
@@ -82,7 +82,7 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
               <label className="ie-muted">
                 <input type="checkbox" data-testid="ie-au-sacrifice" checked={auSacrifice} onChange={(e) => setAuSacrifice(e.target.checked)}/> {t.auSacrificeStability}
               </label>
-              <button className="ie-btn" data-testid="ie-au-citizenship" disabled={auCitizenDecision?.allowed !== true || cpBudget() < 3} title={auCitizenReason} onClick={() => doAction(() => moves.auAction("expandCitizenship", auCitizenValue, auSacrifice))}>{t.auExpandCitizenship}</button>
+              <button className="ie-btn" data-testid="ie-au-citizenship" disabled={auCitizenDecision?.allowed !== true || cpBudget() < 3} title={auCitizenReason} onClick={() => doAction(() => moves.auAction("expandCitizenship", auCitizenValue, auSacrifice), {label: t.auExpandCitizenship, reason: auCitizenReason})}>{t.auExpandCitizenship}</button>
             </div>
             <div className="ie-inline">
               <span className="ie-section-title">{t.auIncorporate}</span>
@@ -91,7 +91,7 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
                   ? <option value="">{bi(locale, "No allied minor power", "没有盟国小国")}</option>
                   : auIncorporateCandidates.map((space) => <option key={space} value={space}>{spaceLabel(space, locale)}</option>)}
               </select>
-              <button className="ie-btn" data-testid="ie-au-incorporate" disabled={auIncorporate?.allowed !== true || cpBudget() < 3} title={auIncorporateReason} onClick={() => doAction(() => moves.auAction("incorporate", auIncorporateValue))}>{t.auIncorporate}</button>
+              <button className="ie-btn" data-testid="ie-au-incorporate" disabled={auIncorporate?.allowed !== true || cpBudget() < 3} title={auIncorporateReason} onClick={() => doAction(() => moves.auAction("incorporate", auIncorporateValue), {label: t.auIncorporate, reason: auIncorporateReason})}>{t.auIncorporate}</button>
             </div>
           </div>
         )}
@@ -107,7 +107,7 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
             <select className="ie-select" data-testid="ie-tsrr-destination" value={tsrrToValue} onChange={(e) => setTsrrTo(e.target.value)} disabled={tsrrDestinations.length === 0}>
               {tsrrDestinations.map((space) => <option key={space} value={space}>{spaceLabel(space, locale)}</option>)}
             </select>
-            <button className="ie-btn" data-testid="ie-tsrr-rail" disabled={tsrrDecision?.allowed !== true} title={tsrrReason} onClick={() => doAction(() => moves.tsrrRailMove(tsrrUnitValue, tsrrToValue))}>{t.tsrrRailMove}</button>
+            <button className="ie-btn" data-testid="ie-tsrr-rail" disabled={tsrrDecision?.allowed !== true} title={tsrrReason} onClick={() => doAction(() => moves.tsrrRailMove(tsrrUnitValue, tsrrToValue), {label: t.tsrrRailMove, reason: tsrrReason})}>{t.tsrrRailMove}</button>
           </div>
         )}
       </div>

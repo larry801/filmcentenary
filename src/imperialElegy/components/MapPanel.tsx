@@ -1,169 +1,110 @@
+/**
+ * The map south edge: an honest, non-interactive space card, the zoom/fit
+ * buttons and the printed-legend key for the target rings.
+ *
+ * It replaced the floating parchment overlay and the old board tabs.  The card
+ * follows `pointer-events: none` so a click that lands on it reaches the map
+ * underneath, and it never covers a target: the turn panel owns the
+ * interactions now.
+ */
 import React from "react";
 import {ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
-import {IEPanel} from "./theme";
-import {IEMap, MapFrameRequest} from "./map";
+import {IEMap, type MapFrameRequest, type MapTarget} from "./map";
 import {SpacePicker} from "./SpacePicker";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
+import {MapLegend} from "./MapLegend";
 import {THEATRES} from "./map-geometry";
 
 export interface MapPanelProps {
   G: ImperialElegyState;
   selected: SpaceId | null;
   onSelect: (id: SpaceId) => void;
-  board: "world" | "greatWar";
-  setBoard: (b: "world" | "greatWar") => void;
-  pendingSpaceTargets: SpaceId[];
-  unitMoveTargets: SpaceId[];
-  battleTargets: SpaceId[];
+  /** The map's own click state, already resolved into typed targets. */
+  targets: MapTarget[];
+  /** The space highlighted by keyboard focus (a legal target). */
+  focusedTarget?: SpaceId | null;
   locale: "en" | "zh_CN";
   t: ReturnType<typeof ieT>;
   mapHint: string;
-  /** The seat shown on this board, used to open the map on its capital. */
-  viewer?: Power | null;
-  /** Explicit targeting banner shown over the map (battle, boarding, …). */
   modePill?: {
     label: string;
     from: string;
     count: number;
     cancelLabel: string;
     onCancel: () => void;
-    /** Keyboard-reachable target list (Tab to it, choose, submit). */
     targets?: {id: SpaceId; label: string}[];
     onChoose?: (id: SpaceId) => void;
   } | null;
-  /** Floating space card slot, bottom-left of the map. */
-  overlay?: React.ReactNode;
+  /** Bring a board point into view (the space picker and the War tab). */
+  focus?: {x: number; y: number; nonce: number} | null;
+  onFindSpace?: (open: boolean) => void;
+  /** The seat on this board, so the map opens on its capital. */
+  viewer?: Power | null;
 }
 
-/**
- * The board panel.
- *
- * The panel folds from its title bar like every other panel; the board tabs are
- * hidden while folded so the bar stays a bar.  A decision that is waiting for a
- * map click keeps a one-line count in the folded bar, because folding must not
- * hide a required choice.
- *
- * The view bar under the map is the answer to "the whole board is too cramped
- * on a phone": the printed map is 6693 units wide, which is four pixels per
- * space on a handset, so the map opens on the player's own capital and every
- * theatre of the war is one press away.
- */
 export const MapPanel = ({
-  G, selected, onSelect, board, setBoard, pendingSpaceTargets, unitMoveTargets, battleTargets,
-  locale, t, mapHint, viewer = null, modePill = null, overlay = null,
+  G, selected, onSelect, targets, focusedTarget = null, locale, t, mapHint, modePill = null,
+  focus = null, onFindSpace, viewer = null,
 }: MapPanelProps) => {
-  const [collapsed, setCollapsed] = React.useState(false);
-  const [showPicker, setShowPicker] = React.useState(false);
-  const [focus, setFocus] = React.useState<{x: number; y: number; nonce: number} | null>(null);
-  const [search, setSearch] = React.useState("");
+  // The printed map is 6693 board units wide, which is four pixels per space on
+  // a phone, so the map opens on the player's own capital and every theatre of
+  // the war is one press away instead of starting on an illegible world view.
+  const capital = (viewer !== null ? POWER_DEFS[viewer]?.capital : undefined) as SpaceId | undefined;
+  const [theatre, setTheatre] = React.useState("capital");
   const [frame, setFrame] = React.useState<MapFrameRequest | null>(null);
-  const [theatre, setTheatre] = React.useState("all");
+  const frameTheatre = React.useCallback((id: string) => {
+    setTheatre(id);
+    setFrame({kind: id === "all" ? "fit" : "theatre", theatre: id, nonce: Date.now()});
+  }, []);
+  const frameCapital = React.useCallback(() => {
+    setTheatre("capital");
+    setFrame({kind: "capital", space: capital, nonce: Date.now()});
+  }, [capital]);
+  const [showPicker, setShowPicker] = React.useState(false);
+  const [search, setSearch] = React.useState("");
+  const [localFocus, setLocalFocus] = React.useState<{x: number; y: number; nonce: number} | null>(null);
+  // The map owns its roving keyboard focus; lift the focused target here so the
+  // space card can name it (the map draws the brighter ring itself).
+  const [keyboardFocus, setKeyboardFocus] = React.useState<SpaceId | null>(null);
+
   const focusSpace = React.useCallback((id: SpaceId) => {
     const space = SPACES[id];
-    if (space) setFocus({x: space.x, y: space.y, nonce: Date.now()});
+    if (space) setLocalFocus({x: space.x, y: space.y, nonce: Date.now()});
   }, []);
   const choose = React.useCallback((id: SpaceId) => {
     onSelect(id);
     focusSpace(id);
   }, [onSelect, focusSpace]);
 
-  const targets = React.useMemo(
-    () => [...new Set([...pendingSpaceTargets, ...unitMoveTargets, ...battleTargets])],
-    [pendingSpaceTargets, unitMoveTargets, battleTargets],
-  );
+  const targetIds = targets.map((target) => target.id);
+  const shownFocus = focusedTarget ?? keyboardFocus;
+  // The tag may only claim a ring the map is actually drawing.
+  const shownFocusIsTarget = shownFocus !== null && targets.some((target) => target.id === shownFocus);
+  // While a target is focused the card follows the focus, not the targeting
+  // origin: it must never name Berlin while the tag says the focus is Prussia.
+  // When the ring set clears (and the focus is dropped) it reverts to `selected`.
+  const cardSpace = shownFocus ?? selected;
+  const selection = cardSpace ? spaceLabel(cardSpace, locale) : t.selectSpace;
+  const spaceDef = cardSpace ? SPACES[cardSpace] : null;
+  const spaceState = cardSpace ? G.spaces[cardSpace] : null;
+  const counts = targets.reduce((acc, target) => ({...acc, [target.style]: (acc[target.style] ?? 0) + 1}), {} as Record<string, number>);
+  // A ring set that changes invalidates the old keyboard focus; the map's own
+  // `styleOf.has` guard already stops drawing it, and this stops the space card
+  // naming a space that is no longer a target.
+  React.useEffect(() => setKeyboardFocus(null), [targetIds.join(",")]);
 
-  const capital = viewer !== null ? (POWER_DEFS[viewer]?.capital ?? null) : null;
-  const frameTheatre = React.useCallback((id: string) => {
-    setTheatre(id);
-    setFrame({kind: id === "all" ? "fit" : "theatre", theatre: id, nonce: Date.now()});
-  }, []);
-  const frameCapital = React.useCallback(() => {
-    setFrame({kind: "capital", space: capital ?? undefined, nonce: Date.now()});
-  }, [capital]);
-
-  const title = board === "greatWar" ? t.greatWarMap : t.map;
-  const selection = selected ? spaceLabel(selected, locale) : t.selectSpace;
+  const togglePicker = () => {
+    setShowPicker((open) => {
+      onFindSpace?.(!open);
+      return !open;
+    });
+  };
 
   return (
-    <IEPanel
-      className="ie-map-panel"
-      title={<span>{title} · {selection}</span>}
-      collapsed={collapsed}
-      onToggle={setCollapsed}
-      collapsedHint={targets.length > 0
-        ? bi(locale, `${targets.length} legal targets — expand the map to pick one.`,
-          `当前有 ${targets.length} 个可选地点，展开地图进行选择。`)
-        : undefined}
-      actions={!collapsed && (
-        <div className="ie-map-actions">
-          <div className="ie-tabs" role="tablist">
-            <button role="tab" aria-selected={board === "world"} onClick={() => setBoard("world")}>{t.map}</button>
-            <button role="tab" aria-selected={board === "greatWar"} onClick={() => setBoard("greatWar")}>{t.greatWarMap}</button>
-          </div>
-          <button
-            type="button"
-            className="ie-map-search-toggle"
-            aria-expanded={showPicker ? "true" : "false"}
-            onClick={() => setShowPicker((value) => !value)}
-          >
-            {bi(locale, "Find space", "查找空间")}
-          </button>
-        </div>
-      )}
-    >
-      {showPicker && (
-        <SpacePicker
-          G={G}
-          locale={locale}
-          t={t}
-          selected={selected}
-          targets={targets}
-          search={search}
-          setSearch={setSearch}
-          onChoose={choose}
-          onFocus={focusSpace}
-        />
-      )}
-      <div className="ie-map-views" data-testid="ie-map-views" role="group"
-        aria-label={bi(locale, "Map framing", "地图取景")}>
-        <button
-          type="button"
-          className={`ie-view-chip${theatre === "all" ? " selected" : ""}`}
-          data-testid="ie-map-fit"
-          aria-pressed={theatre === "all"}
-          onClick={() => frameTheatre("all")}
-        >
-          {bi(locale, "Whole map", "全图")}
-        </button>
-        <button
-          type="button"
-          className="ie-view-chip"
-          data-testid="ie-map-capital"
-          title={capital ? spaceLabel(capital as SpaceId, locale) : undefined}
-          onClick={frameCapital}
-        >
-          {bi(locale, "Capital", "首都")}
-        </button>
-        <select
-          className="ie-select ie-view-select"
-          data-testid="ie-map-theatre"
-          aria-label={bi(locale, "Theatre", "战区")}
-          value={theatre}
-          onChange={(event) => frameTheatre(event.target.value)}
-        >
-          {/* "Whole map" is the chip beside this list, so it is not repeated as
-              the select's first option. */}
-          {THEATRES.filter((option) => option.id !== "all").map((option) => (
-            <option key={option.id} value={option.id}>
-              {locale === "zh_CN" ? option.labelZh : option.labelEn}
-            </option>
-          ))}
-          <option value="all" hidden>{bi(locale, "Whole map", "全图")}</option>
-        </select>
-      </div>
+    <section className="ie-map-panel" data-testid="ie-map-panel" aria-label={t.map}>
       <div className="ie-map-stage">
         {modePill !== null && (
           <div className="ie-mode-pill" role="status" aria-live="polite" data-testid="ie-mode-pill">
@@ -201,25 +142,121 @@ export const MapPanel = ({
             </button>
           </div>
         )}
+
         <IEMap
           G={G}
           selected={selected}
           onSelect={onSelect}
           locale={locale}
-          board={board}
-          moveTargets={unitMoveTargets}
-          battleTargets={battleTargets}
-          legalTargets={pendingSpaceTargets}
-          focus={focus}
+          targets={targets}
+          emphasis={focusedTarget}
+          onFocusTarget={setKeyboardFocus}
+          focus={focus ?? localFocus}
           frame={frame}
-          homeCapital={capital as SpaceId | null}
+          homeCapital={capital ?? null}
         />
-        {overlay !== null && <div className="ie-map-overlay">{overlay}</div>}
+
+        {showPicker && (
+          <div className="ie-map-picker-slot">
+            <SpacePicker
+              G={G}
+              locale={locale}
+              t={t}
+              selected={selected}
+              targets={targetIds}
+              search={search}
+              setSearch={setSearch}
+              onChoose={choose}
+              onFocus={focusSpace}
+            />
+          </div>
+        )}
+
+        <div className="ie-map-views" data-testid="ie-map-views" role="group"
+          aria-label={bi(locale, "Map framing", "地图取景")}>
+          <button
+            type="button"
+            className={`ie-view-chip${theatre === "all" ? " selected" : ""}`}
+            data-testid="ie-map-fit"
+            aria-pressed={theatre === "all"}
+            onClick={() => frameTheatre("all")}
+          >
+            {bi(locale, "Whole map", "全图")}
+          </button>
+          <button
+            type="button"
+            className={`ie-view-chip${theatre === "capital" ? " selected" : ""}`}
+            data-testid="ie-map-capital"
+            aria-pressed={theatre === "capital"}
+            title={capital ? spaceLabel(capital, locale) : undefined}
+            onClick={frameCapital}
+          >
+            {bi(locale, "Capital", "首都")}
+          </button>
+          <select
+            className="ie-select ie-view-select"
+            data-testid="ie-map-theatre"
+            aria-label={bi(locale, "Theatre", "战区")}
+            value={theatre}
+            onChange={(event) => frameTheatre(event.target.value)}
+          >
+            {/* "Whole map" and "Capital" are the two chips beside this list, so
+                neither is repeated as a visible option. */}
+            <option value="capital" hidden>{bi(locale, "Capital", "首都")}</option>
+            {THEATRES.filter((option) => option.id !== "all").map((option) => (
+              <option key={option.id} value={option.id}>
+                {locale === "zh_CN" ? option.labelZh : option.labelEn}
+              </option>
+            ))}
+            <option value="all" hidden>{bi(locale, "Whole map", "全图")}</option>
+          </select>
+        </div>
+
+        <button
+          type="button"
+          className="ie-map-find"
+          data-testid="ie-map-find"
+          aria-expanded={showPicker ? "true" : "false"}
+          onClick={togglePicker}
+        >
+          {bi(locale, "Find space", "查找空间")}
+        </button>
       </div>
-      <div className="ie-map-key">
-        <span className="ie-key legal">{bi(locale, "Legal target", "合法目标")}</span>
-        <span className="ie-muted">{mapHint}</span>
-      </div>
-    </IEPanel>
+
+      <footer className="ie-map-footer">
+        <div className="ie-space-card" data-testid="ie-space-card" aria-live="polite">
+          {!spaceDef || !spaceState ? (
+            <span className="ie-muted">{t.noSpace}</span>
+          ) : (
+            <>
+              <span className="ie-space-card-title">
+                {locale === "zh_CN" ? spaceDef.nameZh : spaceDef.name}
+              </span>
+              {shownFocusIsTarget && (
+                <span className="ie-space-card-tag" data-testid="ie-space-card-tag">
+                  {bi(locale, "focused target", "聚焦目标")}
+                </span>
+              )}
+              <span className="ie-space-card-line">
+                {t.units}: {spaceState.units.length === 0 ? "—" : spaceState.units.length}
+                {" · "}{t.fort}: {spaceState.fort ? `${spaceState.fort.level}` : "—"}
+                {" · "}{t.pacification}: {spaceState.pacification ?? 0}
+                {spaceState.trench ? ` · ${bi(locale, "trench", "战壕")}` : ""}
+              </span>
+              {selection !== t.selectSpace && <span className="ie-space-card-hint">{mapHint}</span>}
+            </>
+          )}
+        </div>
+
+        <MapLegend locale={locale} counts={counts}/>
+
+        <div className="ie-map-legend">
+          {(["GE", "UK", "FR", "AU", "RU", "OT"] as const).map((power) => (
+            <span key={power}><i className={`ie-map-legend-dot ie-map-legend-dot-${power.toLowerCase()}`}/>{t.seats[power]}</span>
+          ))}
+          <span><i className="ie-map-legend-dot ie-map-legend-dot-neutral"/>{t.neutral}</span>
+        </div>
+      </footer>
+    </section>
   );
 };

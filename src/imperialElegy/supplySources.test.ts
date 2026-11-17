@@ -5,7 +5,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {createWarState} from "./engine/limitedWar";
 import {placeUnit} from "./engine/effects";
-import {endImpulse, resolvePending} from "./moves";
+import {pass, resolvePending} from "./moves";
 import {
   beginImpulseUpkeep, hasLoc, isHomeSpace, isSupplySource,
   italianFriendlySpace, italianHasLoc, italianSupplySource, locFriendlySpace, minorSupplySource,
@@ -207,7 +207,10 @@ test("the last active player still pays upkeep at the next impulse, but not twic
   expect(G.units[armies[0]].steps).toBe(1);
   beginImpulseUpkeep(G, ctx, "GE");
   expect(G.pending).toBeNull();
-  expect(endImpulse(G, ctx)).toBeUndefined();
+  // Handing an impulse over without recording a pass (12.0) is only legal once
+  // the seat has acted; the flag is what playing a card sets.
+  G.powers.GE.flags.actionCpSpentThisImpulse = true;
+  expect(pass(G, ctx)).toBeUndefined();
   expect(G.activePower).toBe("GE");
   expect(G.pending?.kind).toBe("impulseLoss");
   expect(resolvePending(G, ctx, armies[1])).toBeUndefined();

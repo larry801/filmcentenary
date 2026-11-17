@@ -7,6 +7,7 @@ import {
     chooseEffect,
     chooseEvent,
     chooseHand,
+    chooseDiscard,
     chooseRegion,
     chooseTarget,
     comment,
@@ -23,12 +24,15 @@ import {IG} from "../types/setup";
 import {changePlayerStage, cleanPendingSignal} from "./logFix";
 import {
     addCompetitionPower,
-    addVp,
+    addRes,
+    addSchoolVp,
     aesAward,
     curPub,
     drawCardForPlayer,
     industryAward,
-    loseVp
+    loseSchoolVp,
+    onAestheticsLevelUp,
+    sync3DFilmCompetitionPower
 } from "./util";
 import {ItrEffects, SchoolCardID, SimpleEffectNames} from "../types/core";
 import {logger} from "./logger";
@@ -64,6 +68,12 @@ export const confirmRespondStage: StageConfig = {
 export const chooseHandStage: StageConfig = {
     moves: {
         chooseHand: chooseHand,
+    }
+}
+
+export const chooseDiscardStage: StageConfig = {
+    moves: {
+        chooseDiscard: chooseDiscard,
     }
 }
 
@@ -125,14 +135,14 @@ export const NormalTurn: TurnConfig = {
             pub.handsize_startturn = G.player[parseInt(p)].hand.length;
             if (pub.school === SchoolCardID.S1301) {
                 log.push(`|montage`);
-                addVp(G, ctx, p, 1);
+                addSchoolVp(G, ctx, p, 1);
                 drawCardForPlayer(G, ctx, p);
                 G.e.stack.push({e:ItrEffects.discard,a:1})
                 changePlayerStage(G, ctx, "chooseHand", p);
             }
             if (pub.school === SchoolCardID.S2101) {
                 log.push(`|classicHollywood`);
-                G.e.choices.push({e: SimpleEffectNames.addCompetitionPower, a: 1});
+                addCompetitionPower(G, ctx, p, 1);
                 G.e.choices.push({
                     e: "optional", a: {
                         e: "competition", a: {
@@ -145,7 +155,17 @@ export const NormalTurn: TurnConfig = {
             }
             if (pub.school === SchoolCardID.S3101) {
                 log.push(`|newHollywood`);
-                addCompetitionPower(G, ctx, p, 1);
+                log.push(`|newHollywood|addChoice`);
+
+                G.e.choices.push({e: "addCompetitionPower", a: 1});
+                G.e.choices.push({e: "competition", a: 
+                    {
+                        bonus: 0,
+                        onWin: noEff
+                    }
+                });
+                
+                changePlayerStage(G, ctx, "chooseEffect", p);
             }
             if (pub.school === SchoolCardID.S3105) {
                 log.push(`|newYork`);
@@ -187,7 +207,7 @@ export const NormalTurn: TurnConfig = {
             if (pub.school === SchoolCardID.S4007) {
                 const playerHandLength =  G.player[parseInt(p)].hand.length;
                 log.push(`|Kitchen Sink Film|playerHandLength${playerHandLength}`);
-                loseVp(G, ctx, p, playerHandLength);
+                loseSchoolVp(G, ctx, p, playerHandLength);
                 let drawCount = 0;
                 G.order.forEach((pid)=>{
                     const otherPlayerHandLength = G.player[parseInt(pid)].hand.length;
@@ -200,6 +220,65 @@ export const NormalTurn: TurnConfig = {
                 for (let i = 0; i < drawCount; i++) {
                     drawCardForPlayer(G, ctx, p);
                 }
+            }
+            // 室内剧电影
+            if(pub.school === SchoolCardID.S5207) {
+                if(pub.handsize_startturn <= pub.industry) {
+                    log.push(`|handSizeLEIndustry|addAction`);
+                    pub.action++;
+                }
+            }
+            // 明星制
+            if(pub.school === SchoolCardID.S5206) {
+                let vpGain = 0;
+                for(let otherP of G.order) {
+                    if(otherP !== p && G.pub[parseInt(otherP)].vp > pub.vp) {
+                        vpGain++;
+                    }
+                }
+                if(vpGain > 0) addSchoolVp(G, ctx, p, vpGain);
+            }
+            // 奶油派
+            if(pub.school === SchoolCardID.S5205) {
+                for(let Gpub of G.pub) {
+                    if(Gpub.vpAward.v60) addSchoolVp(G, ctx, p, 1);
+                    if(Gpub.vpAward.v90) addRes(G, ctx, p, 1);
+                    if(Gpub.vpAward.v120) drawCardForPlayer(G, ctx, p);
+                }
+            }
+            if(pub.school === SchoolCardID.S6001) {
+                if (pub.industry < 10 && pub.aesthetics < 10) {
+                    log.push(`|${JSON.stringify(G.e.choices)}|addChoice`);
+                    G.e.choices.push({e: "industryLevelUp", a: 1});
+                    G.e.choices.push({e: "aestheticsLevelUp", a: 1});
+                    log.push(`|${JSON.stringify(G.e)}|chooseEffect`);
+                    logger.debug(`${G.matchID}|${log.join('')}`);
+                    changePlayerStage(G, ctx, "chooseEffect", p);
+                } else {
+                    if (pub.industry < 10) {
+                        log.push(`|aesthetics10AddIndustry`);
+                        pub.industry++;
+                        sync3DFilmCompetitionPower(G, p);
+                        log.push(`|i${pub.industry}`);
+                    } else {
+                        if (pub.aesthetics < 10) {
+                            log.push(`|Industry10AddAesthetics`);
+                            pub.aesthetics++;
+                            sync3DFilmCompetitionPower(G, p);
+                            onAestheticsLevelUp(G, ctx, p);
+                            log.push(`|i${pub.aesthetics}`);
+                        } else {
+                            log.push("|bothLV10|skip");
+                        }
+                    }
+                }
+            }
+            if (pub.school === SchoolCardID.S6241) {
+                log.push(`|solitaryIsland|choosePeekType`);
+                G.e.choices.push({e: "peek", a: {count: 2, target: "hand", filter: {e: "industry", a: "all"}}});
+                G.e.choices.push({e: "peek", a: {count: 2, target: "hand", filter: {e: "aesthetics", a: "all"}}});
+                logger.debug(`${G.matchID}|${log.join('')}`);
+                changePlayerStage(G, ctx, "chooseEffect", p);
             }
         } else {
             log.push(`|playerConceded|endTurn`);
@@ -214,6 +293,7 @@ export const NormalTurn: TurnConfig = {
         chooseEffect: chooseEffectStage,
         chooseEvent: chooseEventStage,
         chooseHand: chooseHandStage,
+        chooseDiscard: chooseDiscardStage,
         chooseRegion: chooseRegionStage,
         chooseTarget: chooseTargetStage,
         comment: commentStage,
@@ -237,6 +317,7 @@ export const NormalPhase: PhaseConfig = {
         breakthrough: breakthrough,
         chooseTarget: chooseTarget,
         chooseHand: chooseHand,
+        chooseDiscard: chooseDiscard,
         chooseEvent: chooseEvent,
         chooseEffect: chooseEffect,
         chooseRegion: chooseRegion,

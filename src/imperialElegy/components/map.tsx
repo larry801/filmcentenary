@@ -1,23 +1,25 @@
 import React from "react";
-import {ConnectionDef, ImperialElegyState, Power, SpaceId} from "../types";
+import {ConnectionDef, ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {CONNECTIONS, SPACES, SPACE_IDS, connectionsOf, isNavalBox} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {ieT} from "./i18n";
-import {bi} from "./boardHelpers";
 import background from "../data/map-background.json";
 import {CONNECTION_STYLE, connectionDash, connectionWidth, trimSegment} from "./connectionStyle";
 import {flashpointHulls} from "./flashpoints";
 import {Anchor} from "./Anchor";
+import {UnitToken} from "./UnitToken";
+import {StackPopover} from "./StackPopover";
+import {type StackEntry, stackSummary} from "./stackSummary";
+import {bi} from "./boardHelpers";
 import {
   DRAG_THRESHOLD_PX,
   MAX_ZOOM,
   MIN_ZOOM,
   MapView,
-  MarkerPoint,
-  Theatre,
-  candidatesUnder,
   centreOn,
   clampView,
+  MarkerPoint,
+  Theatre,
   hitRadiusUnits,
   markerTier,
   nearestCandidate,
@@ -46,8 +48,10 @@ const PAPER = {
 const BOARD = PAPER;
 
 /** Printed space-marker size, in board units (taken from the printed counters). */
-const printedRadius = (id: SpaceId): number =>
-  isNavalBox(id) ? 104 : SPACES[id].type === "territory" ? 62 : 74;
+const markerRadius = (id: SpaceId): number => (isNavalBox(id) ? 104 : SPACES[id].type === "territory" ? 62 : 74);
+
+/** How many counters a space paints before the "+N" marker takes over. */
+const TOKEN_VISIBLE = 3;
 
 /** Label text size, in *screen* pixels at any zoom (scaled back to board units). */
 const LABEL_PX = 12;
@@ -64,13 +68,58 @@ const darkFor = (control: string | null): string => {
   return "#4f396e";
 };
 
-const Star = ({r, ...rest}: {r: number} & React.SVGProps<SVGPolygonElement>) => {
+/**
+ * A legal target's ring: shape and colour carry the meaning (the printed key's
+ * move / attack / rail / choice vocabulary), so a colour-blind player reads
+ * the difference from the dash pattern and the tick marks alone.
+ */
+const TARGET_RING: Record<MapTargetStyle, {
+  stroke: string;
+  dash: string | null;
+  ticks: "crosshair" | "rail" | "pip" | null;
+  double: boolean;
+}> = {
+  move: {stroke: "#3f9d8f", dash: "2.4 1.6", ticks: null, double: false},
+  attack: {stroke: "#d0452f", dash: null, ticks: "crosshair", double: false},
+  rail: {stroke: "#3f9d8f", dash: null, ticks: "rail", double: false},
+  choice: {stroke: "#e0b83a", dash: null, ticks: "pip", double: true},
+  pending: {stroke: "#e0b83a", dash: null, ticks: null, double: true},
+};
+
+/** One ring around a target.  `u` converts screen pixels to board units. */
+const TargetRing = ({
+  ring, r, u, focused, pending,
+}: {ring: typeof TARGET_RING[MapTargetStyle]; r: number; u: number; focused: boolean; pending: boolean}) => {
+  const radius = r + u * (focused ? 14 : 10);
+  const width = u * (focused ? 4 : 3);
+  return (
+    <g className={`ie-target-ring ie-target-${pending ? "pending" : ring.ticks ?? "plain"}`} pointerEvents="none">
+      <circle r={radius} fill="none" stroke={ring.stroke} strokeWidth={width}
+        strokeDasharray={ring.dash === null ? undefined : `${Number(ring.dash.split(" ")[0]) * u * 4} ${Number(ring.dash.split(" ")[1]) * u * 4}`}/>
+      {ring.double && <circle r={radius + width * 2} fill="none" stroke={ring.stroke} strokeWidth={width * 0.6}/>}
+      {ring.ticks === "crosshair" && [0, 90, 180, 270].map((angle) => (
+        <line key={angle} x1={Math.cos((angle * Math.PI) / 180) * radius} y1={Math.sin((angle * Math.PI) / 180) * radius}
+          x2={Math.cos((angle * Math.PI) / 180) * (radius + width * 4)} y2={Math.sin((angle * Math.PI) / 180) * (radius + width * 4)}
+          stroke={ring.stroke} strokeWidth={width}/>
+      ))}
+      {ring.ticks === "rail" && [0, 90, 180, 270].map((angle) => (
+        <line key={angle} x1={Math.cos((angle * Math.PI) / 180) * radius} y1={Math.sin((angle * Math.PI) / 180) * radius}
+          x2={Math.cos((angle * Math.PI) / 180) * (radius + width * 3)} y2={Math.sin((angle * Math.PI) / 180) * (radius + width * 3)}
+          stroke={ring.stroke} strokeWidth={width * 1.6}/>
+      ))}
+      {ring.ticks === "pip" && <circle cx={radius} cy={0} r={width * 2} fill={ring.stroke}/>}
+      {focused && <circle r={radius + width * 5} fill="none" stroke="#fff4cf" strokeWidth={width * 0.8}/>}
+    </g>
+  );
+};
+
+const Star = ({r}: {r: number}) => {
   const points = Array.from({length: 10}, (_, i) => {
     const angle = (Math.PI / 5) * i - Math.PI / 2;
     const radius = i % 2 === 0 ? r : r * 0.45;
     return `${Math.cos(angle) * radius},${Math.sin(angle) * radius}`;
   }).join(" ");
-  return <polygon points={points} {...rest}/>;
+  return <polygon points={points}/>;
 };
 
 const Triangle = ({r}: {r: number}) => (
@@ -78,9 +127,24 @@ const Triangle = ({r}: {r: number}) => (
 );
 
 /**
- * Where the map should look when it first appears, or when the player presses a
- * framing control.  `nonce` makes a repeat press re-apply the same framing
- * (after the player panned away, pressing "Capital" must work again).
+ * What clicking a space would do, as the map draws it:
+ * `move` a dashed teal ring, `attack` a red ring with crosshair ticks,
+ * `rail` a teal ring with a rail tick (Great War rail but not march),
+ * `choice` a gold double ring with a pip (the target of an extra option),
+ * `pending` a gold double ring (a decision waits on that space).
+ */
+export type MapTargetStyle = "move" | "attack" | "rail" | "choice" | "pending";
+
+/** One legal target: its space and the ring the map draws for it. */
+export interface MapTarget {
+  id: SpaceId;
+  style: MapTargetStyle;
+}
+
+/**
+ * A framing request from the map's own controls (the theatre chips, "fit", or
+ * the player's capital).  `nonce` makes a repeat press re-apply the same
+ * framing after the player has panned away.
  */
 export interface MapFrameRequest {
   kind: "theatre" | "capital" | "fit";
@@ -95,24 +159,19 @@ export interface IEMapProps {
   G: ImperialElegyState;
   selected: SpaceId | null;
   onSelect: (id: SpaceId) => void;
-  legalTargets?: SpaceId[];
-  moveTargets?: SpaceId[];
-  battleTargets?: SpaceId[];
+  /** Every legal target with the ring that explains it. */
+  targets?: MapTarget[];
   locale: "en" | "zh_CN";
-  board?: "world" | "greatWar";
   /** Board point to bring into view when it changes (used by the space search). */
   focus?: {x: number; y: number; k?: number; nonce: number} | null;
-  /** A framing request from the map's own controls (theatre chips, fit, …). */
+  /** The legal target the turn panel is pointing at (a Great War battle row). */
+  emphasis?: SpaceId | null;
+  /** Called when the map's own keyboard focus moves to another legal target. */
+  onFocusTarget?: (id: SpaceId) => void;
+  /** A framing request from the map's controls (chips, fit, capital). */
   frame?: MapFrameRequest | null;
   /** The seat whose capital the map opens on. */
   homeCapital?: SpaceId | null;
-}
-
-/** A space the pointer landed on together with its neighbours, for the pick list. */
-interface AmbiguousPick {
-  x: number;
-  y: number;
-  candidates: {id: SpaceId; label: string}[];
 }
 
 /**
@@ -123,38 +182,92 @@ interface AmbiguousPick {
  * of KB instead of the 15 MB scan.  Markers, connections and names are drawn
  * live from game state.
  *
- * Detail is decided in *screen pixels*, not zoom levels: the same `k` is a
- * comfortable marker on a desktop and a four-pixel speck on a phone.  A marker
- * that is only a few pixels across is drawn as a coloured dot with no name, no
- * unit bubble and no port anchor, and the background frontier network is hidden
- * until the board is big enough to read it — otherwise dense Europe becomes a
- * single grey smudge.
- *
  * Interaction is screen-pixel based: the clickable area of a space is at least
  * ~14 CSS px across at any zoom, and the nearest marker to the pointer wins, so
  * a click in dense Europe selects what the player aimed at rather than whatever
- * happens to be painted on top.  When two counters really are under the same
- * fingertip the map asks which one was meant instead of guessing.
+ * happens to be painted on top.
  */
 export const IEMap = React.memo(
-  ({
-    G, selected, onSelect, legalTargets = [], moveTargets = [], battleTargets = [],
-    locale, board = "world", focus = null, frame = null, homeCapital = null,
-  }: IEMapProps) => {
+  ({G, selected, onSelect, targets = [], locale, focus = null, emphasis = null, onFocusTarget = undefined,
+    frame = null, homeCapital = null}: IEMapProps) => {
     const t = ieT();
     const [view, setView] = React.useState<MapView>({k: MIN_ZOOM, x: 0, y: 0});
+    /** The size the map was last framed for; null until the first measurement. */
+    const framedFor = React.useRef<number | null>(null);
     const [size, setSize] = React.useState({width: 960, height: 600});
     const [dragging, setDragging] = React.useState(false);
-    const [pick, setPick] = React.useState<AmbiguousPick | null>(null);
     const svgRef = React.useRef<SVGSVGElement | null>(null);
     const pointers = React.useRef(new Map<number, {x: number; y: number}>());
     const press = React.useRef<{x: number; y: number; view: MapView; moved: boolean} | null>(null);
     const coarse = React.useRef(false);
-    /** The size the map was last framed for; -1 until the first measurement. */
-    const framedFor = React.useRef(-1);
 
-    // Track the element's rendered size: hit radii, label density and marker
-    // detail all depend on how many pixels a board unit actually occupies.
+    // Stack tokens and their popover.  `hovered` marks the space whose stack
+    // the pointer (or keyboard focus) is on, `stackOpen` pins the popover open
+    // after a click on the "+N" marker, and `popoverAt` is a board point in
+    // screen pixels to anchor the card near that space.
+    const [hovered, setHovered] = React.useState<SpaceId | null>(null);
+    const [stackOpen, setStackOpen] = React.useState(false);
+    const [popoverAt, setPopoverAt] = React.useState<{left: number; top: number} | null>(null);
+    const pointerInside = React.useRef(false);
+
+    const unitIndex = React.useMemo(() => {
+      const index = new Map<SpaceId, StackEntry[]>();
+      const all = Object.values(G.units ?? {}) as Unit[];
+      for (const id of SPACE_IDS) {
+        const stack = stackSummary(all, id);
+        if (stack.length > 0) index.set(id, stack);
+      }
+      return index;
+    }, [G.units]);
+
+    const stackTotal = React.useCallback(
+      (id: SpaceId) => (unitIndex.get(id) ?? []).reduce((sum, entry) => sum + entry.count, 0),
+      [unitIndex],
+    );
+    const hoverStack = hovered !== null && stackTotal(hovered) > TOKEN_VISIBLE ? hovered : null;
+    const stackPopoverFor = hoverStack ?? (stackOpen ? hovered ?? selected : null);
+
+    /** Screen point of a board point, reproducing the SVG's letterboxed fit. */
+    const screenPoint = React.useCallback((x: number, y: number) => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect) return null;
+      const fit = Math.min(rect.width / BOARD.width, rect.height / BOARD.height);
+      const offsetX = (rect.width - BOARD.width * fit) / 2;
+      const offsetY = (rect.height - BOARD.height * fit) / 2;
+      return {
+        left: offsetX + (x * view.k + view.x - BOARD.x) * fit,
+        top: offsetY + (y * view.k + view.y - BOARD.y) * fit,
+      };
+    }, [view]);
+
+    const closeStack = React.useCallback(() => setStackOpen(false), []);
+
+    const openStackAt = React.useCallback((id: SpaceId) => {
+      const space = SPACES[id];
+      const point = space ? screenPoint(space.x, space.y) : null;
+      setHovered(id);
+      setStackOpen(true);
+      if (point) setPopoverAt({left: point.left + 16, top: point.top + 16});
+    }, [screenPoint]);
+
+    /** Apply a framing request against a measured viewport. */
+    const applyFrame = React.useCallback((request: MapFrameRequest, viewport: {width: number; height: number}) => {
+      if (request.kind === "fit") return setView({k: MIN_ZOOM, x: 0, y: 0});
+      if (request.kind === "capital") {
+        const pioneer = request.space ?? homeCapital;
+        if (!pioneer) return setView({k: MIN_ZOOM, x: 0, y: 0});
+        const space = SPACES[pioneer];
+        // A capital is framed by its theatre, not by a fixed zoom: the view has
+        // to hold its neighbours (where the fighting starts) and little else.
+        if (space) setView(viewForTheatre(theatreOf(space), BOARD, viewport));
+        return;
+      }
+      const theatre: Theatre | undefined = request.theatre ? theatreById(request.theatre) : undefined;
+      setView(theatre ? viewForTheatre(theatre, BOARD, viewport) : {k: MIN_ZOOM, x: 0, y: 0});
+    }, [homeCapital]);
+
+    // Track the element's rendered size: hit radii and label density depend on
+    // how many pixels a board unit actually occupies.
     React.useEffect(() => {
       const node = svgRef.current;
       if (!node || typeof ResizeObserver === "undefined") return;
@@ -166,27 +279,27 @@ export const IEMap = React.memo(
       return () => observer.disconnect();
     }, []);
 
-    /** Apply a framing request to the current viewport. */
-    const applyFrame = React.useCallback((request: MapFrameRequest, viewport: {width: number; height: number}) => {
-      if (request.kind === "fit") return setView({k: MIN_ZOOM, x: 0, y: 0});
-      if (request.kind === "capital") {
-        const pioneer = request.space ?? homeCapital;
-        if (!pioneer) return setView({k: MIN_ZOOM, x: 0, y: 0});
-        const space = SPACES[pioneer];
-        if (!space) return;
-        // A capital is framed by its theatre, not by a fixed zoom: the view must
-        // hold its neighbours (where the fighting starts) and nothing else.
-        return setView(viewForTheatre(theatreOf(space), BOARD, viewport));
-      }
-      const theatre = request.theatre ? theatreById(request.theatre) : undefined;
-      // `frame.theatre === "all"` is the whole map, which `viewForTheatre`
-      // expresses as fit zoom.
-      setView(theatre ? viewForTheatre(theatre, BOARD, viewport) : {k: MIN_ZOOM, x: 0, y: 0});
-    }, [homeCapital]);
+    // Markers whose printed radius would overlap a neighbour are shrunk to just
+    // under half the gap: South Africa and Rhodesia are 138 board units apart,
+    // which is 8 screen pixels at fit zoom on a phone, so their counters used
+    // to merge into one blob and a tap could not say which was meant.
+    const markerRadii = React.useMemo(() => {
+      const points: MarkerPoint[] = SPACE_IDS.flatMap((id) => {
+        const space = SPACES[id];
+        if (!space || !G.spaces[id]) return [];
+        return [{id, x: space.x, y: space.y, radius: markerRadius(id)}];
+      });
+      return shrinkMarkers(points);
+    }, [G.spaces]);
 
-    // The first frame waits for a real measurement: the panel's size is not
-    // known during the first render, and framing against the 960x600 default
-    // would centre the capital off screen.
+    const radiusOf = React.useCallback(
+      (id: SpaceId) => markerRadii.get(id) ?? markerRadius(id),
+      [markerRadii],
+    );
+
+    // The first frame waits for a real measurement: the panel's size is unknown
+    // during the first render, and framing against the 960x600 default would
+    // centre the capital off screen.
     React.useEffect(() => {
       if (size.width <= 0 || size.height <= 0) return;
       const signature = size.width * 10000 + size.height;
@@ -195,7 +308,7 @@ export const IEMap = React.memo(
       applyFrame({kind: "capital", space: homeCapital ?? undefined, nonce: 0}, size);
     }, [size, homeCapital, applyFrame]);
 
-    // Explicit requests (a chip, the "fit" button) re-apply even at the same size.
+    // Explicit requests (a chip, the "fit" button) re-apply at the same size.
     React.useEffect(() => {
       if (!frame) return;
       applyFrame(frame, size);
@@ -211,10 +324,12 @@ export const IEMap = React.memo(
       [locale],
     );
 
-    const highlight = React.useMemo(
-      () => new Set([...legalTargets, ...moveTargets, ...battleTargets]),
-      [legalTargets, moveTargets, battleTargets],
-    );
+    const styleOf = React.useMemo(() => {
+      const map = new Map<SpaceId, NonNullable<MapTargetStyle>>();
+      for (const target of targets) map.set(target.id, target.style);
+      return map;
+    }, [targets]);
+    const highlight = styleOf;
 
     // Zoom with the wheel.  React attaches wheel listeners passively at the
     // root, so `preventDefault` there is ignored (the page scrolls instead);
@@ -303,7 +418,6 @@ export const IEMap = React.memo(
       const started = press.current;
       if (started?.moved) return;
       press.current = null;
-      setPick(null);
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return;
       const point = toBoardPoint({x: event.clientX, y: event.clientY}, rect, BOARD, view);
@@ -315,75 +429,77 @@ export const IEMap = React.memo(
         // A legal target wins a tie against a neighbour the player cannot use.
         weight: highlight.has(id) ? radius * 0.25 : 0,
       }));
-      const under = candidatesUnder(point, candidates, radius);
-      // Two counters within half the touch radius of each other cannot be told
-      // apart by a fingertip: ask instead of silently picking the nearer one.
-      if (under.length > 1) {
-        const nearest = nearestCandidate(point, candidates, radius);
-        if (nearest === undefined) return;
-        const nearestDistance = Math.hypot(point.x - nearest.x, point.y - nearest.y);
-        const rival = under.find((candidate) =>
-          candidate.id !== nearest.id &&
-          Math.hypot(point.x - candidate.x, point.y - candidate.y) - nearestDistance < radius * 0.45);
-        if (rival !== undefined) {
-          const wrapper = svgRef.current?.parentElement?.getBoundingClientRect();
-          setPick({
-            x: wrapper ? event.clientX - wrapper.left : 0,
-            y: wrapper ? event.clientY - wrapper.top : 0,
-            candidates: [nearest, rival].map((candidate) => ({
-              id: candidate.id as SpaceId,
-              label: label(candidate.id as SpaceId),
-            })),
-          });
-          return;
-        }
-      }
       const hit = nearestCandidate(point, candidates, radius);
       if (hit) onSelect(hit.id as SpaceId);
     };
 
-    /** Double click (or double tap) zooms in where the player is looking. */
-    const onDoubleClick = (event: React.MouseEvent) => {
-      const rect = svgRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const anchor = toBoardPoint({x: event.clientX, y: event.clientY}, rect, BOARD, view);
-      setView((current) => zoomAt(current, 1.9, anchor, BOARD));
+    // Keyboard: the legal targets form one roving group.  Focus moves with
+    // the arrow keys and Enter activates the focused target exactly as a
+    // click would (same `onSelect`), so the map is usable without a pointer.
+    const targetIds = React.useMemo(() => targets.map((target) => target.id), [targets]);
+    const [kbFocus, setKbFocus] = React.useState<SpaceId | null>(null);
+    const focusedTarget = emphasis ?? (kbFocus !== null && styleOf.has(kbFocus) ? kbFocus : null);
+    const moveKb = (delta: number, absolute?: number) => {
+      if (targetIds.length === 0) return;
+      const index = focusedTarget === null ? -1 : targetIds.indexOf(focusedTarget);
+      const nextIndex = absolute !== undefined
+        ? absolute
+        : index < 0 ? (delta > 0 ? 0 : targetIds.length - 1) : (index + delta + targetIds.length) % targetIds.length;
+      const next = targetIds[nextIndex];
+      if (next === undefined) return;
+      setKbFocus(next);
+      onFocusTarget?.(next);
+      const space = SPACES[next];
+      if (space) setView((current) => centreOn({x: space.x, y: space.y}, current.k, BOARD));
+      window.setTimeout(() => svgRef.current?.focus(), 0);
+    };
+    const onMapKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
+      if (targetIds.length === 0) return;
+      switch (event.key) {
+        case "ArrowRight":
+        case "ArrowDown":
+          event.preventDefault();
+          moveKb(1);
+          return;
+        case "ArrowLeft":
+        case "ArrowUp":
+          event.preventDefault();
+          moveKb(-1);
+          return;
+        case "Home":
+          event.preventDefault();
+          moveKb(0, 0);
+          return;
+        case "End":
+          event.preventDefault();
+          moveKb(0, targetIds.length - 1);
+          return;
+        case "Enter":
+        case " ":
+          if (focusedTarget !== null) {
+            event.preventDefault();
+            onSelect(focusedTarget);
+          }
+          return;
+        default:
+          return;
+      }
     };
 
     const unitsPerPx = unitsPerPixel(size, BOARD, view.k);
     const labelSize = LABEL_PX * unitsPerPx;
+    // The board's detail level, taken from a typical land marker.  It must be
+    // decided in *screen pixels*: the same zoom is comfortable on a desktop and
+    // four pixels wide on a phone, where a shape outline, a unit token and a
+    // port anchor are all indistinguishable noise.
+    const detail = markerTier(74 / unitsPerPx);
+    const showNetwork = detail === "full";
 
     // Printed regional shading.  The board hatches its flashpoint theatres
     // (Central Europe, the Balkans, Italy, Africa, the Great Game, China–Japan)
     // and colours them by the alliance that contests them; the hull of each
     // region's member spaces gives the same shape from game data.
     const flashpoints = React.useMemo(() => flashpointHulls(80), []);
-
-    /**
-     * Marker radii, capped so that near neighbours (South Africa / Rhodesia are
-     * 138 units apart) never merge into one blob at any zoom.
-     */
-    const markerRadii = React.useMemo(() => {
-      const points: MarkerPoint[] = SPACE_IDS.flatMap((id) => {
-        const space = SPACES[id];
-        if (!space || !G.spaces[id]) return [];
-        return [{id, x: space.x, y: space.y, radius: printedRadius(id)}];
-      });
-      return shrinkMarkers(points);
-    }, [G.spaces]);
-
-    const radiusOf = React.useCallback(
-      (id: SpaceId) => markerRadii.get(id) ?? printedRadius(id),
-      [markerRadii],
-    );
-
-    /**
-     * The board's detail level, taken from a typical land marker: the decision
-     * must be made in pixels because the same zoom is comfortable on a desktop
-     * and illegible on a phone.
-     */
-    const detail = markerTier(74 / unitsPerPx);
-    const showNetwork = detail === "full";
 
     const labels = React.useMemo(() => {
       // Names are noise when every one of the 145 shows at once, so they are
@@ -413,7 +529,7 @@ export const IEMap = React.memo(
                   space.type === "capital" || space.type === "subcapital" ? 400 : 100,
         }];
       });
-      const always = new Set<string>([...highlight, ...(selected ? [selected] : [])]);
+      const always = new Set<string>([...highlight.keys(), ...(selected ? [selected] : [])]);
       // Treat each printed marker as an obstacle: a name placed across a
       // neighbour's counter is unreadable even when it does not touch another
       // name, which is what makes the dense Low Countries legible.
@@ -427,11 +543,13 @@ export const IEMap = React.memo(
       // text, while at 3x the board reads like the printed map.
       const limit = Math.round(14 * Math.pow(view.k, 1.6));
       return new Set(placeLabels(requests, labelSize, {always, limit, obstacles}));
-    }, [G.spaces, selected, highlight, label, labelSize, view.k, detail, radiusOf]);
+    }, [G.spaces, selected, highlight, label, labelSize, view.k, detail]);
 
-    // The whole printed network is drawn when the board is large enough to read
-    // it: 340 lines on a phone are a grey smudge, so at low detail only the
-    // selected space's own links are drawn.
+    // The whole printed network is drawn, not only the selected space's links:
+    // reading the frontiers is how a player plans a move, and the sea routes
+    // (dashed, red) are the only cue for which neighbours are reachable by
+    // fleet.  The selected space's own links are then redrawn on top, brighter,
+    // so they stand out from the 340-line background.
     const connectionLayer = React.useMemo(() => {
       const draw = (c: ConnectionDef, key: string, emphasis: number) => {
         const a = SPACES[c.a];
@@ -449,17 +567,24 @@ export const IEMap = React.memo(
             strokeLinecap="butt" strokeDashoffset={0} opacity={emphasis > 1 ? 1 : 0.88} pointerEvents="none"/>
         );
       };
+      // Every printed frontier is drawn, the way the board prints it: the land
+      // network solid or dashed by terrain, and the sea routes in red.  The
+      // selected space's own links are repeated on top, brighter, so the move a
+      // player is considering stands out from the 300-line background.
+      // 340 frontier lines on a phone are a grey smudge, so the printed network
+      // only appears once the board is large enough to read it; the selected
+      // space's own links are drawn at every level.
+      const land = showNetwork ? CONNECTIONS
+        .filter((c) => c.type !== "sea")
+        .map((c) => draw(c, `${c.a}-${c.b}`, 1)) : [];
       // Sea routes are lighter and masked to water in the renderer: a route
       // that crossed a continent would read as a land frontier.
-      const background = showNetwork ? {
-        land: CONNECTIONS.filter((c) => c.type !== "sea").map((c) => draw(c, `${c.a}-${c.b}`, 1)),
-        sea: CONNECTIONS.filter((c) => c.type === "sea").map((c) => {
+      const sea = showNetwork ? CONNECTIONS
+        .filter((c) => c.type === "sea")
+        .map((c) => {
           const line = draw(c, `sea-${c.a}-${c.b}`, 1);
           return line === null ? null : React.cloneElement(line, {opacity: 0.55});
-        }),
-      } : {land: [], sea: []};
-      // The selected space's own links are always drawn, brighter, so the move
-      // a player is considering stands out.
+        }) : [];
       const focused: React.ReactNode[] = [];
       if (selected) {
         for (const c of connectionsOf(selected)) {
@@ -468,11 +593,19 @@ export const IEMap = React.memo(
           if (line !== null) focused.push(React.cloneElement(line, {opacity: 1}));
         }
       }
-      return {...background, focused};
+      return {land, sea, focused};
     }, [selected, unitsPerPx, showNetwork, radiusOf]);
 
     return (
-      <div className="ie-map-wrap">
+      <div className="ie-map-wrap"
+        onPointerEnter={() => { pointerInside.current = true; }}
+        onPointerLeave={() => {
+          // Leaving the board closes a hover-opened stack; Escape closes a
+          // pinned one (the popover owns that listener).
+          pointerInside.current = false;
+          setHovered(null);
+          setStackOpen(false);
+        }}>
         <div className="ie-map-controls">
           <button aria-label={t.zoomIn} title={t.zoomIn} onClick={() => zoom(1.3)}>+</button>
           <button aria-label={t.zoomOut} title={t.zoomOut} onClick={() => zoom(1 / 1.3)}>−</button>
@@ -484,7 +617,7 @@ export const IEMap = React.memo(
               title={t.mapTargets}
               data-testid="ie-map-fit-targets"
               onClick={() => setView(viewForPoints(
-                [...highlight].map((id) => ({x: SPACES[id].x, y: SPACES[id].y})),
+                [...highlight.keys()].map((id) => ({x: SPACES[id].x, y: SPACES[id].y})),
                 BOARD, size,
               ))}
             >◎</button>
@@ -498,24 +631,6 @@ export const IEMap = React.memo(
             >⌖</button>
           )}
         </div>
-        {pick !== null && (
-          <div className="ie-map-pick" data-testid="ie-map-pick"
-            style={{left: pick.x, top: pick.y}} role="dialog"
-            aria-label={bi(locale, "Nearby spaces", "附近的地点")}>
-            <div className="ie-map-pick-title">{bi(locale, "Which space?", "选择哪个地点？")}</div>
-            <div className="ie-map-pick-list">
-              {pick.candidates.map((candidate) => (
-                <button key={candidate.id} type="button"
-                  data-testid={`ie-map-pick-${candidate.id}`}
-                  onClick={() => { onSelect(candidate.id); setPick(null); }}>
-                  {candidate.label}
-                </button>
-              ))}
-            </div>
-            <button type="button" className="ie-map-pick-close"
-              aria-label={bi(locale, "Dismiss", "关闭")} onClick={() => setPick(null)}>✕</button>
-          </div>
-        )}
         <svg
           ref={svgRef}
           className={`ie-map ${dragging ? "dragging" : ""}`}
@@ -527,10 +642,16 @@ export const IEMap = React.memo(
           onPointerCancel={endPress}
           onPointerLeave={endPress}
           onClick={onClick}
-          onDoubleClick={onDoubleClick}
+          onKeyDown={onMapKeyDown}
+          // The legal targets are the only focus stop; Tab reaches the map
+          // once, and the arrows then walk the rings.
+          tabIndex={targetIds.length > 0 ? 0 : -1}
+          aria-describedby="ie-map-legend"
           data-testid="ie-map"
           data-k={view.k.toFixed(2)}
           data-detail={detail}
+          data-targets={targetIds.join(",")}
+          data-focused-target={focusedTarget ?? undefined}
           role="application"
           aria-label={t.map}
         >
@@ -575,12 +696,10 @@ export const IEMap = React.memo(
           </defs>
 
           <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
-            {board === "greatWar" ? (
-              // The Great War board is a separate printed map; it has no space
-              // markers, and it is only fetched when the tab is opened.
-              <image href="/imperial-elegy/maps/greatWar.jpg" x={PAPER.x} y={PAPER.y}
-                width={PAPER.width} height={PAPER.height} preserveAspectRatio="xMidYMid slice"/>
-            ) : (
+            {/* One board: the Great War is fought on the same printed map
+                (its sideboard is a reference chart), so the old separate JPG
+                tab is gone. */}
+            {(
               <>
                 {/* Paper and sea, then the traced coastline of each printed panel. */}
                 <rect {...toRect(background.paper)} fill="#efe6d2"/>
@@ -617,7 +736,7 @@ export const IEMap = React.memo(
               </>
             )}
 
-            {board === "world" && (
+            {(
               <>
                 <g mask="url(#ie-water)">{connectionLayer.sea}</g>
                 {connectionLayer.land}
@@ -625,31 +744,45 @@ export const IEMap = React.memo(
               </>
             )}
 
-            {board === "world" && SPACE_IDS.map((id) => {
+            {SPACE_IDS.map((id) => {
               const space = SPACES[id];
               const state = G.spaces[id];
               if (!state) return null;
               const r = radiusOf(id);
               const fill = colorFor(state.control);
-              const isHighlighted = highlight.has(id);
+              const targetStyle = styleOf.get(id);
+              const isHighlighted = targetStyle !== undefined;
               const isSelected = selected === id;
-              const stroke = isHighlighted ? "#f4d574" : isSelected ? "#fff4cf" : darkFor(state.control);
+              const ring = targetStyle === undefined ? null : TARGET_RING[targetStyle];
+              const stroke = ring !== null ? ring.stroke : isSelected ? "#fff4cf" : darkFor(state.control);
               const strokeWidth = (isHighlighted || isSelected ? 16 : 8) * Math.max(0.5, unitsPerPx * 0.6);
               const units = state.units.length;
-              // A marker a few pixels across is a dot: a shape outline, a unit
-              // bubble and a port anchor at that size are indistinguishable
-              // noise that hides the board underneath.
-              const tier = markerTier(r / unitsPerPx);
-              const bare = tier === "dot";
+              // Naval boxes are wide: the counters fan from the corner of the
+              // printed box, the others from the lower-left corner of the
+              // marker, clear of the space's name underneath it.
+              const tokenEntries = unitIndex.get(id) ?? [];
+              // Tokens are drawn in board units, so their on-screen size grows
+              // with the zoom.  At 34 px they covered their neighbours' names at
+              // the fit zoom; 24 px keeps a readable counter and still leaves
+              // the map's labels and the welfare of the space name visible.
+              const tokenPx = isNavalBox(id) ? 30 : space.type === "territory" ? 24 : 26;
+              const tokenStack = tokenEntries.length === 0 ? null : {
+                visible: tokenEntries.slice(0, TOKEN_VISIBLE),
+                extra: Math.max(0, tokenEntries.length - TOKEN_VISIBLE),
+              };
+              const origin = isNavalBox(id)
+                ? {x: -r * 0.55, y: 0}
+                : {x: -r * 0.72, y: r * 0.72};
               return (
                 <g key={id} transform={`translate(${space.x} ${space.y})`}
                   data-testid={`ie-space-${id}`} className="ie-space-hit"
                 >
-                  {isHighlighted && (
-                    <circle r={r + unitsPerPx * 10} fill="none" stroke="#f4d574"
-                      strokeWidth={unitsPerPx * 3} opacity={0.95}/>
-                  )}
-                  {bare ? (
+                  {ring !== null && <TargetRing ring={ring} r={r} u={unitsPerPx}
+                    focused={focusedTarget === id} pending={targetStyle === "pending"}/>}
+                  {detail === "dot" ? (
+                    // A marker a few pixels across is a coloured dot: a printed
+                    // outline at that size is invisible and only dirties the
+                    // board, so the control colour carries the information.
                     <circle r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth}/>
                   ) : space.type === "capital" || space.type === "subcapital" ? (
                     <g fill={fill} stroke={stroke} strokeWidth={strokeWidth}><Star r={r}/></g>
@@ -667,22 +800,69 @@ export const IEMap = React.memo(
                   {/* A port prints an anchor on the board; it is the cue for
                       "a fleet can reach this space" without drawing a red line
                       across the sea for every one of the 120 routes. */}
-                  {tier === "full" && space.ports && space.ports.length > 0 && (
+                  {detail === "full" && space.ports && space.ports.length > 0 && (
                     <g transform={`translate(${-r * 1.25} ${-r * 0.9})`} opacity={0.85}>
                       <Anchor size={unitsPerPx * 8}/>
                     </g>
                   )}
-                  {tier === "full" && state.fort && <text y={r + unitsPerPx * 22} textAnchor="middle" fontSize={unitsPerPx * 14} fill="#4a3a22">▲{state.fort.level}</text>}
-                  {tier === "full" && state.trench && <text x={-r} y={-r - unitsPerPx * 6} fontSize={unitsPerPx * 13} fill="#8a6a2a">▦</text>}
-                  {/* Unit counts are the first casualty of a small marker: they
-                      only earn their space when the counter is readable, or when
-                      this is the space the player is looking at. */}
-                  {units > 0 && (tier === "full" || isSelected || isHighlighted) && (
-                    <g>
-                      <circle cx={r * 0.95} cy={-r * 0.95} r={unitsPerPx * 9} fill="#1b1611"
-                        stroke="#e8d8b5" strokeWidth={unitsPerPx * 1.4}/>
-                      <text x={r * 0.95} y={-r * 0.95 + unitsPerPx * 4} textAnchor="middle"
-                        fontSize={unitsPerPx * 11} fill="#f4e8ce">{units}</text>
+                  {detail === "full" && state.fort && <text y={r + unitsPerPx * 22} textAnchor="middle" fontSize={unitsPerPx * 14} fill="#4a3a22">▲{state.fort.level}</text>}
+                  {detail === "full" && state.trench && <text x={-r} y={-r - unitsPerPx * 6} fontSize={unitsPerPx * 13} fill="#8a6a2a">▦</text>}
+                  {(detail === "full" || isSelected || isHighlighted) && tokenStack && (
+                    // Counter layer: the top of the stack as printed tokens, a
+                    // "+N" marker for the rest, and a hover ring on the whole
+                    // group.  A click here is the space's own click (the SVG's
+                    // `onClick` hit test), so the tokens need no handler of
+                    // their own.
+                    <g className="ie-map-tokens" data-testid={`ie-tokens-${id}`}
+                      data-count={units}
+                      data-extra={tokenStack.extra}
+                      onPointerEnter={() => { if (!pointerInside.current) setHovered(id); }}
+                      onPointerLeave={() => { if (!stackOpen) setHovered(null); }}
+                      onFocus={() => setHovered(id)}
+                      onBlur={() => { if (!stackOpen) setHovered(null); }}>
+                      {hovered === id && (
+                        <circle className="ie-map-hover-ring" r={r + unitsPerPx * 8} fill="none"
+                          strokeWidth={unitsPerPx * 2.4} pointerEvents="none"/>
+                      )}
+                      {tokenStack.visible.map((entry, slot) => {
+                        const box = unitsPerPx * tokenPx;
+                        const step = box * 0.9;
+                        return (
+                          <g key={`${entry.power}-${entry.kind}-${entry.reduced ? "r" : "f"}`}
+                            transform={`translate(${origin.x - slot * step} ${origin.y - slot * step})`}>
+                            <UnitToken kind={entry.kind} power={entry.power} reduced={entry.reduced}
+                              size={box} locale={locale} decorative
+                              testId={`ie-token-${id}-${slot}`}/>
+                            {entry.count > 1 && (
+                              <text className="ie-token-count" x={box * 0.82} y={box * 0.94}
+                                textAnchor="end" fontSize={unitsPerPx * 11} paintOrder="stroke">
+                                {entry.count}
+                              </text>
+                            )}
+                          </g>
+                        );
+                      })}
+                      {tokenStack.extra > 0 && (
+                        <g role="button" tabIndex={0}
+                          className="ie-token-more"
+                          aria-label={bi(locale,
+                            `Show all ${units} units in this space`,
+                            `显示该空间的全部 ${units} 个单位`)}
+                          data-testid={`ie-stack-more-${id}`}
+                          onClick={(event) => { event.stopPropagation(); openStackAt(id); }}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => {
+                            if (event.key !== "Enter" && event.key !== " ") return;
+                            event.preventDefault();
+                            event.stopPropagation();
+                            openStackAt(id);
+                          }}>
+                          <circle cx={r * 0.95} cy={r * 0.95} r={unitsPerPx * 11}
+                            strokeWidth={unitsPerPx * 1.6}/>
+                          <text x={r * 0.95} y={r * 0.95 + unitsPerPx * 4.5} textAnchor="middle"
+                            fontSize={unitsPerPx * 12} pointerEvents="none">+{tokenStack.extra}</text>
+                        </g>
+                      )}
                     </g>
                   )}
                 </g>
@@ -713,8 +893,26 @@ export const IEMap = React.memo(
             </g>
           </g>
         </svg>
+        {stackPopoverFor !== null && (
+          // Card position lives in two CSS custom properties, set from the
+          // measured screen point of the space; the stylesheet turns them into
+          // `left`/`top` and clamps the card inside the map.
+          <div className="ie-stack-popover-anchor" ref={(node) => {
+            if (!node) return;
+            node.style.setProperty("--ie-stack-left", String(Math.max(8, popoverAt?.left ?? 12)));
+            node.style.setProperty("--ie-stack-top", String(Math.max(8, popoverAt?.top ?? 12)));
+          }}>
+            <StackPopover
+              entries={unitIndex.get(stackPopoverFor) ?? []}
+              locale={locale}
+              open
+              onClose={closeStack}
+              testId={`ie-stack-popover-${stackPopoverFor}`}
+            />
+          </div>
+        )}
         <div className="ie-map-legend">
-          <span>{locale === "zh_CN" ? "滚轮缩放 · 双击放大 · 拖动平移 · 点击空间" : "wheel to zoom · double-click to zoom in · drag to pan · click a space"}</span>
+          <span>{locale === "zh_CN" ? "滚轮缩放 · 拖动平移 · 点击空间" : "wheel to zoom · drag to pan · click a space"}</span>
           {(["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]).map((p) => (
             <span key={p}><i className={`ie-map-legend-dot ie-map-legend-dot-${p.toLowerCase()}`}/>{t.seats[p]}</span>
           ))}
@@ -727,14 +925,10 @@ export const IEMap = React.memo(
     prev.G.spaces === next.G.spaces &&
     prev.selected === next.selected &&
     prev.onSelect === next.onSelect &&
-    prev.legalTargets === next.legalTargets &&
-    prev.moveTargets === next.moveTargets &&
-    prev.battleTargets === next.battleTargets &&
+    prev.targets === next.targets &&
     prev.locale === next.locale &&
-    prev.board === next.board &&
     prev.focus === next.focus &&
-    prev.frame === next.frame &&
-    prev.homeCapital === next.homeCapital,
+    prev.emphasis === next.emphasis,
 );
 
 /** `box` as SVG rect props (x, y, width, height). */
@@ -757,5 +951,3 @@ const CONTINENTS = [
   {name: "PERSIA", x: 5250, y: 1750, size: 130, rotate: -10},
   {name: "NORTH AMERICA", x: 800, y: 2300, size: 90, rotate: 0},
 ] as const;
-
-export type {theatreOf, Theatre};
