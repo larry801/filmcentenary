@@ -1,6 +1,6 @@
 import {Power, VQGame} from "./constant/general";
 import {cardById} from "./constant/cards";
-import {samePlayer} from "./ownership";
+import {ownerOf, samePlayer} from "./ownership";
 import {allied, atWar, canDeclareWar, warCost} from "./util";
 
 /**
@@ -13,6 +13,7 @@ export type DiplomacyAction = "declareWar" | "makePeace" | "formAlliance";
 
 export type DiplomacyBlock =
     | "samePower"
+    | "noPlayer"
     | "alreadyAtWar"
     | "notAtWar"
     | "alreadyAllied"
@@ -65,6 +66,12 @@ export const diplomacyActionState = (
     action: DiplomacyAction,
 ): DiplomacyActionState => {
     if (p === target || samePlayer(G, p, target)) return blocked("samePower");
+    // A major power without a seat (an inactive Ottoman/HRE in a 2-5 player
+    // game) cannot be the other party to a diplomatic agreement: nobody is
+    // seated to agree to it.  Declaring war is the one exception, because it
+    // is the rule that draws an inactive major power into the game
+    // (Scenario Book p. 13).
+    if (action !== "declareWar" && ownerOf(G, target) === undefined) return blocked("noPlayer");
 
     if (action === "declareWar") {
         // Rule 9.2 only forbids Spain and the Protestant from allying; wars
@@ -108,6 +115,7 @@ export const diplomacyBlockText = (
     reason: DiplomacyBlock,
     text: {
         samePower: string;
+        noPlayer: string;
         alreadyAtWar: string;
         notAtWar: string;
         alreadyAllied: string;
@@ -124,7 +132,7 @@ export const diplomacyBlockText = (
 /** Rule 9.1 gifts: at most 2 cards / 2 treasures / 4 mercenaries per target. */
 export type GiftKind = "cards" | "treasures" | "mercenaries";
 
-export type GiftBlock = "alreadyAtWar" | "limit" | "reciprocal" | "unavailable" | "ottomanMercs";
+export type GiftBlock = "noPlayer" | "alreadyAtWar" | "limit" | "reciprocal" | "unavailable" | "ottomanMercs";
 
 export interface GiftState {
     ok: boolean;
@@ -144,6 +152,8 @@ export const giftState = (
     kind: GiftKind,
     space?: string | null,
 ): GiftState => {
+    // A major power without a seat cannot be the other party to an exchange.
+    if (ownerOf(G, target) === undefined) return {ok: false, reason: "noPlayer"};
     if (atWar(G, p, target)) return {ok: false, reason: "alreadyAtWar"};
     const limit = kind === "mercenaries" ? 4 : 2;
     if (giftCount(G, p, target, kind) >= limit) return {ok: false, reason: "limit"};

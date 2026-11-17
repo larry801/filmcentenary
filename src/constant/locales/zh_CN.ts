@@ -1826,6 +1826,7 @@ const zh_CN: Locale = {
             alliance: "结盟",
             blocks: {
                 samePower: "不能对同一玩家控制的强国使用",
+                noPlayer: "该强国没有玩家控制，不能与其达成协议",
                 alreadyAtWar: "已与该国交战",
                 notAtWar: "未与该国交战",
                 alreadyAllied: "已与该国结盟",
@@ -1838,6 +1839,7 @@ const zh_CN: Locale = {
                 cannotAfford: "手牌与宝藏不足以支付宣战费用",
             },
             giftBlocks: {
+                noPlayer: "该强国没有玩家控制，不能与其交换物品",
                 alreadyAtWar: "已与该国交战，不能赠送",
                 limit: "本回合对该国的赠送已达上限",
                 reciprocal: "对方本回合已赠送同类物品，不能回赠",
