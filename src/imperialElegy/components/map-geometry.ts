@@ -42,8 +42,8 @@ export const MAX_ZOOM = 6;
 export const MAX_FRAME_ZOOM = 3.2;
 
 /** Screen-pixel hit radius: comfortable for a mouse and for a fingertip. */
-export const MOUSE_HIT_PX = 14;
-export const TOUCH_HIT_PX = 22;
+export const MOUSE_HIT_PX = 18;
+export const TOUCH_HIT_PX = 26;
 /** Never make the clickable area smaller than this many board units. */
 export const MIN_HIT_UNITS = 60;
 /** Never let a near miss select something across the map. */

@@ -8,6 +8,10 @@
  * on Escape, or after `ARM_MS` with nothing happening — the button never stays
  * loaded in secret.
  *
+ * Firing after a pointer click releases focus, matching an ordinary button, but
+ * a keyboard activation (Enter/Space) keeps focus: blurring here would drop the
+ * keyboard user onto `<body>`, which inside a dialog ejects them from it.
+ *
  * It is deliberately **not** a modal: it stays inline in whatever bar renders
  *it, so the static-markup suites and assistive technology keep reading the
  * same element.  When `confirm` is false (the preference is off, or the action
@@ -31,6 +35,16 @@ export interface ConfirmButtonProps extends Omit<React.ButtonHTMLAttributes<HTML
 }
 
 const TEXT_NODE = (node: React.ReactNode): React.ReactNode => (typeof node === "string" ? node : null);
+
+/**
+ * Release focus after a mouse/touch activation only.  `detail` is 0 for a
+ * keyboard-generated click (Enter/Space), so a keyboard user keeps focus on
+ * the control — or, if it unmounts, on whatever the app moves it to — instead
+ * of being dumped on `<body>`.
+ */
+const releasePointerFocus = (event: React.MouseEvent<HTMLButtonElement>): void => {
+  if (event.detail > 0) event.currentTarget.blur();
+};
 
 export const ConfirmButton = ({
   children, confirmLabel, confirm, onConfirm, confirmAriaLabel, onBlur, onKeyDown, ...rest
@@ -88,7 +102,7 @@ export const ConfirmButton = ({
         if (event.currentTarget.disabled) return;
         if (!confirm) {
           onConfirm();
-          event.currentTarget.blur();
+          releasePointerFocus(event);
           return;
         }
         if (!armed) {
@@ -102,7 +116,7 @@ export const ConfirmButton = ({
         }
         disarm();
         onConfirm();
-        event.currentTarget.blur();
+        releasePointerFocus(event);
       }}
     >
       {label}

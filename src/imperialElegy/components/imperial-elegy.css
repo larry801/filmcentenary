@@ -107,10 +107,10 @@
   letter-spacing: .02em;
   line-height: 1.5;
 }
-.ie-badge-uk { border-color: #a12b2b; color: #f0b6b6; }
+.ie-badge-uk { border-color: var(--ie-power-uk); color: #f0b6b6; }
 .ie-badge-fr { border-color: #4b7cb5; color: #bcd4f0; }
 .ie-badge-ge { border-color: #9b9b9b; color: #e2e2e2; }
-.ie-badge-au { border-color: #c9a227; color: #f3df9a; }
+.ie-badge-au { border-color: var(--ie-power-au); color: #f3df9a; }
 .ie-badge-ru { border-color: #d8d2c2; color: #f5f0e2; }
 .ie-badge-ot { border-color: #4c8d5d; color: #bfe3c8; }
 .ie-badge-warn { border-color: var(--ie-warn); color: #ffc3ae; background: #3b1c13; }
@@ -1142,7 +1142,8 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-picker-regions { display: flex; flex-wrap: wrap; gap: 4px; }
 .ie-picker-regions .ie-chip { cursor: pointer; background: #241d17; border: 1px solid #5e4a2f; color: #cdbb9a; }
 .ie-picker-regions .ie-chip[aria-pressed="true"] { background: #cbb07a; color: #211b16; border-color: #cbb07a; }
-.ie-picker-list { list-style: none; margin: 0; padding: 0; overflow: auto; max-height: 40vh; }
+/* Eight rows before it scrolls (keeps the map on screen). */
+.ie-picker-list { list-style: none; margin: 0; padding: 0; overflow: auto; max-height: calc(8 * 2.1em); }
 .ie-picker-list li { display: flex; align-items: stretch; gap: 2px; }
 .ie-picker-item {
   flex: 1 1 auto;
@@ -1424,20 +1425,16 @@ img.ie-card-face { background: var(--ie-surface-2); }
   font-size: var(--ie-font-xs);
 }
 
-/* A disabled action stays on the page, greyed, with its reason in the title:
-   hiding it told the player only "no", never why (the plan's usability rule). */
-.ie-action-group:not(:has(button:not(:disabled))) { display: none; }
-
 /* Map hit targets and legend swatches (was inline style). */
 .ie-space-hit { cursor: pointer; }
 .ie-map-legend-dot { display: inline-block; width: 10px; height: 10px; margin-right: 3px; vertical-align: middle; border: 1px solid #000; }
-.ie-map-legend-dot-ge { background: #4a4a4a; }
-.ie-map-legend-dot-uk { background: #a12b2b; }
-.ie-map-legend-dot-fr { background: #245a94; }
-.ie-map-legend-dot-au { background: #c9a227; }
-.ie-map-legend-dot-ru { background: #e8e4d8; }
-.ie-map-legend-dot-ot { background: #2f7a45; }
-.ie-map-legend-dot-neutral { background: #7b5aa6; }
+.ie-map-legend-dot-ge { background: var(--ie-power-ge); }
+.ie-map-legend-dot-uk { background: var(--ie-power-uk); }
+.ie-map-legend-dot-fr { background: var(--ie-power-fr); }
+.ie-map-legend-dot-au { background: var(--ie-power-au); }
+.ie-map-legend-dot-ru { background: var(--ie-power-ru); }
+.ie-map-legend-dot-ot { background: var(--ie-power-ot); }
+.ie-map-legend-dot-neutral { background: var(--ie-power-neutral); }
 .ie-characteristics-list { margin: 4px 0 0 14px; padding: 0; font-size: var(--ie-font-xs); line-height: 1.35; }
 .ie-dashboard-row { margin-top: 6px; }
 .ie-mt-6 { margin-top: 6px; }
@@ -2139,7 +2136,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ie-seat-tab-decide { animation: none; }
+  .ie-seat-tab-decide, .ie-inspector { animation: none; }
   .ie-track-strip *, .ie-turn-panel *, .ie-mat *, .ie-hand-tray * { transition: none !important; }
   html:focus-within { scroll-behavior: auto; }
 }
