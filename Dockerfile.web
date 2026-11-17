@@ -10,4 +10,4 @@ RUN tsc-bundle tsconfig.server.json
 
 FROM larry801/film-centenary-base
 COPY --from=builder /app/build  /app/build
-CMD node build/bundle.js
+CMD ["node", "build/bundle.js"]
