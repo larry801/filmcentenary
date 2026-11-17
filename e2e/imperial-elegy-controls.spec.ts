@@ -868,4 +868,32 @@ test.describe("Imperial Elegy mobile drawer", () => {
         expect(peek).toBeGreaterThanOrEqual(40);
         expect(peek).toBeLessThan(80);
     });
+
+    // A phone has no Esc key, so the ✕ is the only way out of the reference.
+    // The drawer is a fixed overlay whose head sat under the page's sticky app
+    // bar (z-index 1100), which swallowed the click on the ✕ at every width;
+    // on a phone, where the drawer is the full width, that trapped the reader
+    // on the reference panel with no way back to the board.
+    test("the reference drawer's close button is clickable and closes it", async ({page}) => {
+        await openLocal(page);
+        const board = boardFor(page, "GE");
+        await board.locator('[data-testid="ie-open-reference"]').click();
+        const drawer = board.locator('[data-testid="ie-reference-drawer"]');
+        await expect(drawer).toBeVisible();
+
+        // Clicking the ✕ must reach it: a covering element makes this throw.
+        await board.locator('[data-testid="ie-reference-close"]').click();
+        await expect(drawer).toBeHidden();
+
+        // The same head holds the chart lightbox's close; it must work too.
+        await board.locator('[data-testid="ie-open-reference"]').click();
+        await expect(drawer).toBeVisible();
+        await board.locator(".ie-chart-open").first().click();
+        const lightbox = board.locator('[data-testid="ie-chart-lightbox"]');
+        await expect(lightbox).toBeVisible();
+        await board.locator('[data-testid="ie-chart-close"]').click();
+        await expect(lightbox).toHaveCount(0);
+        await board.locator('[data-testid="ie-reference-close"]').click();
+        await expect(drawer).toBeHidden();
+    });
 });

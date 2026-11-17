@@ -1194,7 +1194,10 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-inspector-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 120;
+  /* A card inspector can open from the hand tray while the reference drawer is
+     open, so it sits above it (and above the sticky app bar — see the drawer's
+     z-index note).  Order: drawer 1300 < lightbox 1400 < inspector 1500. */
+  z-index: 1500;
   background: rgba(8, 6, 4, .72);
   display: flex;
   justify-content: flex-end;
@@ -1908,13 +1911,18 @@ img.ie-card-face { background: var(--ie-surface-2); }
 
 /* ---------------------------------------------------------------- reference drawer + lightbox */
 
+/* The drawer and the lightbox are overlays over the whole page, and the app's
+   MUI AppBar is sticky at z-index 1100: at any lower z-index the bar covered
+   the drawer's own head, so its ✕ could not be clicked (on a phone, where the
+   drawer is the full width, that left no way to close it at all — there is no
+   Esc key).  Sit above the bar, and above the bar's navigation drawer (1200). */
 .ie-ref-drawer {
   position: fixed;
   top: 0;
   right: 0;
   bottom: 0;
   width: min(520px, 92vw);
-  z-index: 80;
+  z-index: 1300;
   display: flex;
   flex-direction: column;
   border-left: 1px solid var(--ie-accent);
@@ -1953,7 +1961,9 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-lightbox {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  /* Above the drawer, which opens a chart as its lightbox (see the drawer's
+     z-index), and above the sticky app bar for the same reason. */
+  z-index: 1400;
   display: flex;
   flex-direction: column;
   background: rgba(12, 9, 7, .94);
