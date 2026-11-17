@@ -349,7 +349,7 @@ test("a faceup event play names its card to every seat", () => {
 
 });
 
-test("a card spent for CP is never revealed", () => {
+test("a card spent for CP is announced to every seat", () => {
   const G = fresh();
   G.phase = "action";
   G.activePower = "GE";
@@ -360,12 +360,36 @@ test("a card spent for CP is never revealed", () => {
   expect(played.args).toMatchObject({card: "IE-A021", mode: "cp"});
   expect(asView(G, "0").log.find((e) => e.id === played.id)!.args?.card).toBe("IE-A021");
 
-  for (const playerID of NON_GE) {
+  // 12.0: the CP play is made openly, so the log names the card for opponents
+  // and spectators instead of reading "played a hidden card for CP".  Only the
+  // hidden zones (hand, deck, discard order) stay redacted.
+  for (const playerID of [...NON_GE, null]) {
     const view = asView(G, playerID);
-    expect(view.log.find((e) => e.id === played.id)!.args?.card).toBe(HIDDEN_CARD);
-    // The CP card leaves the hand and cannot be re-revealed before the reshuffle.
-    expect(JSON.stringify(view)).not.toContain("IE-A021");
+    expect(view.log.find((e) => e.id === played.id)!.args?.card).toBe("IE-A021");
+    expect(view.discard).toEqual([]);
+    expect(view.discardCount).toBe(1);
+    expect(view.powers.GE.hand).toEqual([]);
   }
+});
+
+test("a mid-turn reshuffle re-masks private entries about an already played card", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.powers.GE.hand.push("IE-A021");
+  playCard(G, makeCtx("0"), "IE-A021", "cp");
+
+  // The CP play is public, but the card goes back into the deck at a reshuffle
+  // and can reach another hand.  A later private entry naming it (here FR's
+  // random discard) must not inherit that public identity.
+  G.log.push({id: 9000, turn: G.turn, phase: G.phase, key: "deckReshuffled", args: {deck: 20}});
+  G.log.push({id: 9001, turn: G.turn, phase: G.phase, power: "FR", key: "eventDiscard", args: {card: "IE-A021"}});
+
+  expect(asView(G, "1").log.find((e) => e.id === 9001)!.args?.card).toBe(HIDDEN_CARD);
+  expect(asView(G, null).log.find((e) => e.id === 9001)!.args?.card).toBe(HIDDEN_CARD);
+  // The announcement itself stays public.
+  const played = G.log.find((entry) => entry.key === "cardPlayed")!;
+  expect(asView(G, "1").log.find((e) => e.id === played.id)!.args?.card).toBe("IE-A021");
 });
 
 test("an incitingCard note follows the public play of that card but nothing else leaks", () => {
