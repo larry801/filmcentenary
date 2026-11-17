@@ -642,6 +642,9 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             locale={locale}
             t={t}
             forceOpen={isPhone}
+            // The mat's "Printed display" and reserve-box links open the
+            // drawer at the chart they name, like every other reference link.
+            onOpenReference={(anchor) => setRefAnchor(anchor)}
           />
           {/* The Display menu's `confirmActions` switch is live: the tray gets
               the shell's current value, not the one it read from storage on

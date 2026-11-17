@@ -13,7 +13,7 @@
 import React from "react";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
-import {ChartLightbox, chartById, type ChartEntry} from "./ChartLightbox";
+import {ChartLightbox, chartById, displayAnchorPower, playerDisplayChart, type ChartEntry} from "./ChartLightbox";
 import {ReferenceTables} from "./referenceTables";
 import type {CoreSlice, ReferenceSlice} from "./boardSlices";
 
@@ -48,8 +48,12 @@ const SEQUENCE_ANCHORS: Readonly<Record<string, string>> = {
   victory: "sequence",
 };
 
-export const resolveAnchor = (anchor: string | null | undefined): {chart: ChartEntry | null; section: string | null} => {
+export const resolveAnchor = (anchor: string | null | undefined, locale: "en" | "zh_CN" = "en"): {chart: ChartEntry | null; section: string | null} => {
   if (!anchor) return {chart: null, section: null};
+  // `display:<POWER>` is the mat's own board under `displays/`, which is not one
+  // of the nine published charts and keeps its own file extension.
+  const displayPower = displayAnchorPower(anchor);
+  if (displayPower !== null) return {chart: playerDisplayChart(displayPower, locale), section: null};
   if (anchor.startsWith("chart:")) {
     const id = anchor.slice("chart:".length);
     return {chart: chartById(id) ?? null, section: null};
@@ -67,7 +71,7 @@ export const ReferenceDrawer = ({core, reference, open: openProp, anchor = null,
   const locale = core.locale;
   const [internalOpen, setInternalOpen] = React.useState(false);
   const open = openProp ?? internalOpen;
-  const resolved = resolveAnchor(anchor);
+  const resolved = resolveAnchor(anchor, locale);
   const [lightbox, setLightbox] = React.useState<ChartEntry | null>(null);
 
   // Opening the drawer at a chart means opening that chart, not just
