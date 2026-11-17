@@ -1,5 +1,10 @@
 FROM larry801/film-centenary-builder AS builder
 COPY . .
+# The drawer footer names the commit the bundle was built from. The checkout
+# inside the build context is not guaranteed to carry .git, so the commit is
+# passed in from the workflow instead of read from the image.
+ARG GIT_COMMIT=""
+ENV GIT_COMMIT=$GIT_COMMIT
 RUN yarn build
 RUN tsc-bundle tsconfig.server.json
 

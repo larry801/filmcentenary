@@ -663,6 +663,7 @@ const en = {
         matchStats: "Match stats",
         quickReplay: "Quick replay",
         playerNameUnset: "no player name",
+        buildInfo: "Built",
     },
     title: "Film Centenary",
     home: {

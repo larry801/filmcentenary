@@ -1,4 +1,5 @@
 import {defineConfig} from 'vite'
+import {execSync} from "node:child_process";
 import {fileURLToPath} from "node:url";
 import react from '@vitejs/plugin-react'
 import type {Plugin} from 'vite'
@@ -10,6 +11,23 @@ const base = "/";
 // into the bundle here and written next to it as `version.json`, which the
 // server serves from the build directory.
 const APP_VERSION = new Date().toISOString();
+
+// The drawer footer names the commit the bundle was built from. The image build
+// passes `GIT_COMMIT` because the Docker build should not have to depend on the
+// checkout's git state; a plain `yarn build` falls back to HEAD.
+const resolveCommit = (): string => {
+    const provided = process.env.GIT_COMMIT?.trim();
+    if (provided) return provided.slice(0, 7);
+    try {
+        return execSync("git rev-parse --short HEAD", {stdio: ["ignore", "pipe", "ignore"]})
+            .toString()
+            .trim();
+    } catch {
+        // Not a git checkout (e.g. a Docker context without .git): no commit.
+        return "";
+    }
+};
+const GIT_COMMIT = resolveCommit();
 
 const versionFile = (): Plugin => ({
     name: 'film-version-file',
@@ -32,6 +50,9 @@ export default defineConfig({
         // parse `import.meta`. Keep it equal to `base`.
         __VQ_BASE_URL__: JSON.stringify(base),
         __APP_VERSION__: JSON.stringify(APP_VERSION),
+        // The drawer footer: the bundle's build time and the commit it came from.
+        __BUILD_TIME__: JSON.stringify(APP_VERSION),
+        __GIT_COMMIT__: JSON.stringify(GIT_COMMIT),
     },
     build: {
         outDir: 'build',

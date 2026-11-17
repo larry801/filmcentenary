@@ -47,6 +47,17 @@ test("app bar home link returns to the landing page", async ({page}) => {
     await expect(page.getByRole("heading", {name: "游戏中心"})).toBeVisible();
 });
 
+test("the drawer footer shows the build time and commit", async ({page}) => {
+    await page.goto("/");
+    await page.getByRole("button", {name: "open drawer"}).click();
+    const buildInfo = page.getByTestId("drawer-build-info");
+    await expect(buildInfo).toBeVisible();
+    // Both values come from `define` in vite.config.mts, so they are present in
+    // dev as well: a `YYYY-MM-DD HH:mm` timestamp and a short commit hash.
+    await expect(buildInfo).toContainText(/\d{4}-\d{2}-\d{2} \d{2}:\d{2}/);
+    await expect(buildInfo).toContainText(/commit [0-9a-f]{7,}/);
+});
+
 test("home page links to the film lobby", async ({page}) => {
     await page.goto("/");
     await page.getByRole("group", {name: "电影百年"})
