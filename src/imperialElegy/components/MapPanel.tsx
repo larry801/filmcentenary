@@ -1,11 +1,13 @@
 import React from "react";
-import {ImperialElegyState, SpaceId} from "../types";
+import {ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
+import {POWER_DEFS} from "../constant/powers";
 import {IEPanel} from "./theme";
-import {IEMap} from "./map";
+import {IEMap, MapFrameRequest} from "./map";
 import {SpacePicker} from "./SpacePicker";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
+import {THEATRES} from "./map-geometry";
 
 export interface MapPanelProps {
   G: ImperialElegyState;
@@ -19,6 +21,8 @@ export interface MapPanelProps {
   locale: "en" | "zh_CN";
   t: ReturnType<typeof ieT>;
   mapHint: string;
+  /** The seat shown on this board, used to open the map on its capital. */
+  viewer?: Power | null;
   /** Explicit targeting banner shown over the map (battle, boarding, …). */
   modePill?: {
     label: string;
@@ -41,12 +45,22 @@ export interface MapPanelProps {
  * hidden while folded so the bar stays a bar.  A decision that is waiting for a
  * map click keeps a one-line count in the folded bar, because folding must not
  * hide a required choice.
+ *
+ * The view bar under the map is the answer to "the whole board is too cramped
+ * on a phone": the printed map is 6693 units wide, which is four pixels per
+ * space on a handset, so the map opens on the player's own capital and every
+ * theatre of the war is one press away.
  */
-export const MapPanel = ({G, selected, onSelect, board, setBoard, pendingSpaceTargets, unitMoveTargets, battleTargets, locale, t, mapHint, modePill = null, overlay = null}: MapPanelProps) => {
+export const MapPanel = ({
+  G, selected, onSelect, board, setBoard, pendingSpaceTargets, unitMoveTargets, battleTargets,
+  locale, t, mapHint, viewer = null, modePill = null, overlay = null,
+}: MapPanelProps) => {
   const [collapsed, setCollapsed] = React.useState(false);
   const [showPicker, setShowPicker] = React.useState(false);
   const [focus, setFocus] = React.useState<{x: number; y: number; nonce: number} | null>(null);
   const [search, setSearch] = React.useState("");
+  const [frame, setFrame] = React.useState<MapFrameRequest | null>(null);
+  const [theatre, setTheatre] = React.useState("all");
   const focusSpace = React.useCallback((id: SpaceId) => {
     const space = SPACES[id];
     if (space) setFocus({x: space.x, y: space.y, nonce: Date.now()});
@@ -60,6 +74,15 @@ export const MapPanel = ({G, selected, onSelect, board, setBoard, pendingSpaceTa
     () => [...new Set([...pendingSpaceTargets, ...unitMoveTargets, ...battleTargets])],
     [pendingSpaceTargets, unitMoveTargets, battleTargets],
   );
+
+  const capital = viewer !== null ? (POWER_DEFS[viewer]?.capital ?? null) : null;
+  const frameTheatre = React.useCallback((id: string) => {
+    setTheatre(id);
+    setFrame({kind: id === "all" ? "fit" : "theatre", theatre: id, nonce: Date.now()});
+  }, []);
+  const frameCapital = React.useCallback(() => {
+    setFrame({kind: "capital", space: capital ?? undefined, nonce: Date.now()});
+  }, [capital]);
 
   const title = board === "greatWar" ? t.greatWarMap : t.map;
   const selection = selected ? spaceLabel(selected, locale) : t.selectSpace;
@@ -104,6 +127,43 @@ export const MapPanel = ({G, selected, onSelect, board, setBoard, pendingSpaceTa
           onFocus={focusSpace}
         />
       )}
+      <div className="ie-map-views" data-testid="ie-map-views" role="group"
+        aria-label={bi(locale, "Map framing", "地图取景")}>
+        <button
+          type="button"
+          className={`ie-view-chip${theatre === "all" ? " selected" : ""}`}
+          data-testid="ie-map-fit"
+          aria-pressed={theatre === "all"}
+          onClick={() => frameTheatre("all")}
+        >
+          {bi(locale, "Whole map", "全图")}
+        </button>
+        <button
+          type="button"
+          className="ie-view-chip"
+          data-testid="ie-map-capital"
+          title={capital ? spaceLabel(capital as SpaceId, locale) : undefined}
+          onClick={frameCapital}
+        >
+          {bi(locale, "Capital", "首都")}
+        </button>
+        <select
+          className="ie-select ie-view-select"
+          data-testid="ie-map-theatre"
+          aria-label={bi(locale, "Theatre", "战区")}
+          value={theatre}
+          onChange={(event) => frameTheatre(event.target.value)}
+        >
+          {/* "Whole map" is the chip beside this list, so it is not repeated as
+              the select's first option. */}
+          {THEATRES.filter((option) => option.id !== "all").map((option) => (
+            <option key={option.id} value={option.id}>
+              {locale === "zh_CN" ? option.labelZh : option.labelEn}
+            </option>
+          ))}
+          <option value="all" hidden>{bi(locale, "Whole map", "全图")}</option>
+        </select>
+      </div>
       <div className="ie-map-stage">
         {modePill !== null && (
           <div className="ie-mode-pill" role="status" aria-live="polite" data-testid="ie-mode-pill">
@@ -151,6 +211,8 @@ export const MapPanel = ({G, selected, onSelect, board, setBoard, pendingSpaceTa
           battleTargets={battleTargets}
           legalTargets={pendingSpaceTargets}
           focus={focus}
+          frame={frame}
+          homeCapital={capital as SpaceId | null}
         />
         {overlay !== null && <div className="ie-map-overlay">{overlay}</div>}
       </div>

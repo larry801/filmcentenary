@@ -15,6 +15,7 @@ export default defineConfig({
         "**/imperial-elegy.spec.ts",
         "**/imperial-elegy-controls.spec.ts",
         "**/imperial-elegy-spectator.spec.ts",
+        "**/imperial-elegy-mobile.spec.ts",
     ],
     fullyParallel: true,
     forbidOnly: !!process.env.CI,

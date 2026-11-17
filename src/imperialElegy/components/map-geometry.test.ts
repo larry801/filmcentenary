@@ -1,21 +1,34 @@
 import {
+  DOT_MAX_PX,
   DRAG_THRESHOLD_PX,
+  FULL_MIN_PX,
+  MAX_FRAME_ZOOM,
   MAX_HIT_UNITS,
   MAX_ZOOM,
   MIN_HIT_UNITS,
   MIN_ZOOM,
+  THEATRES,
+  Theatre,
   candidatesUnder,
   centreOn,
   clampView,
   hitRadiusUnits,
   labelBox,
+  markerTier,
   nearestCandidate,
   placeLabels,
+  shrinkMarkers,
+  theatreById,
+  theatreOf,
   toBoardPoint,
   unitsPerPixel,
   viewForPoints,
+  viewForTheatre,
   zoomAt,
 } from "./map-geometry";
+import {SPACES, SPACE_IDS, isNavalBox} from "../constant/spaces";
+import {POWER_DEFS} from "../constant/powers";
+import {Power, SpaceId} from "../types";
 
 const BOARD = {x: 480, y: 532, width: 6693, height: 4382};
 const SCREEN = {width: 900, height: 600};
@@ -250,5 +263,144 @@ describe("drag threshold", () => {
 
   test("units per pixel falls as zoom rises", () => {
     expect(unitsPerPixel(SCREEN, BOARD, 2)).toBeCloseTo(unitsPerPixel(SCREEN, BOARD, 1) / 2, 6);
+  });
+});
+
+describe("marker detail tiers", () => {
+  test("a marker a few pixels across is a bare dot", () => {
+    expect(markerTier(2)).toBe("dot");
+    expect(markerTier(DOT_MAX_PX - 0.1)).toBe("dot");
+  });
+
+  test("a marker that is visible but still small draws its shape only", () => {
+    expect(markerTier(DOT_MAX_PX)).toBe("shape");
+    expect(markerTier(FULL_MIN_PX - 0.1)).toBe("shape");
+  });
+
+  test("a comfortable marker carries everything", () => {
+    expect(markerTier(FULL_MIN_PX)).toBe("full");
+    expect(markerTier(40)).toBe("full");
+  });
+
+  test("the same phone zoom is a dot tier while the desktop is not", () => {
+    // A phone at fit zoom and a desktop at fit zoom differ by ~2.6x in pixels
+    // per board unit, which is exactly why the tier is decided in pixels.
+    const phone = unitsPerPixel({width: 348, height: 541}, BOARD, 1);
+    const desktop = unitsPerPixel({width: 1002, height: 591}, BOARD, 1);
+    expect(markerTier(74 / phone)).toBe("dot");
+    expect(markerTier(74 / desktop)).toBe("full");
+  });
+});
+
+describe("marker shrinking", () => {
+  const radius = (id: string) => (id === "box" ? 104 : 74);
+
+  test("neighbours closer than two counters are pulled apart", () => {
+    const caps = shrinkMarkers([
+      {id: "south-africa", x: 1329, y: 4702, radius: radius("south-africa")},
+      {id: "rhodesia", x: 1449, y: 4739, radius: radius("rhodesia")},
+    ]);
+    // 138 units apart, so neither may exceed 0.42 * 138.
+    for (const cap of caps.values()) expect(cap).toBeLessThanOrEqual(138 * 0.42 + 1e-9);
+    const a = caps.get("south-africa")!;
+    const b = caps.get("rhodesia")!;
+    expect(Math.hypot(1329 - 1449, 4702 - 4739)).toBeGreaterThan(a + b);
+  });
+
+  test("well-separated markers keep their printed size", () => {
+    const caps = shrinkMarkers([
+      {id: "london", x: 1576, y: 1568, radius: 74},
+      {id: "paris", x: 1566, y: 2118, radius: 74},
+    ]);
+    expect(caps.get("london")).toBe(74);
+    expect(caps.get("paris")).toBe(74);
+  });
+
+  test("no two printed markers ever overlap after shrinking", () => {
+    const points = SPACE_IDS.map((id) => ({
+      id, x: SPACES[id].x, y: SPACES[id].y,
+      radius: isNavalBox(id) ? 104 : SPACES[id].type === "territory" ? 62 : 74,
+    }));
+    const caps = shrinkMarkers(points);
+    for (let i = 0; i < points.length; i++) {
+      for (let j = i + 1; j < points.length; j++) {
+        const a = points[i];
+        const b = points[j];
+        const gap = Math.hypot(a.x - b.x, a.y - b.y) - caps.get(a.id)! - caps.get(b.id)!;
+        expect(gap).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test("a lone marker is untouched", () => {
+    expect(shrinkMarkers([{id: "solo", x: 0, y: 0, radius: 74}]).get("solo")).toBe(74);
+  });
+});
+
+describe("theatres", () => {
+  const phone = {width: 348, height: 541};
+  const within = (theatre: Theatre) =>
+    SPACE_IDS.filter((id) => {
+      const space = SPACES[id];
+      return space.x >= theatre.box.x && space.x <= theatre.box.x + theatre.box.width &&
+        space.y >= theatre.box.y && space.y <= theatre.box.y + theatre.box.height;
+    });
+
+  test("every theatre but the whole map frames several spaces", () => {
+    for (const theatre of THEATRES) {
+      if (theatre.id === "all") continue;
+      expect(within(theatre).length).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  test("a theatre view keeps its spaces readable on a phone", () => {
+    // The whole point of the framing: at fit zoom a phone draws two neighbours
+    // eight pixels apart; inside a theatre they must be at least 20.
+    for (const theatre of THEATRES) {
+      if (theatre.id === "all") continue;
+      const view = viewForTheatre(theatre, BOARD, phone);
+      expect(view.k).toBeGreaterThan(MIN_ZOOM);
+      expect(view.k).toBeLessThanOrEqual(MAX_FRAME_ZOOM);
+      const perPixel = unitsPerPixel(phone, BOARD, view.k);
+      const inside = within(theatre);
+      let tightest = Infinity;
+      for (let i = 0; i < inside.length; i++) {
+        for (let j = i + 1; j < inside.length; j++) {
+          const a = SPACES[inside[i]];
+          const b = SPACES[inside[j]];
+          tightest = Math.min(tightest, Math.hypot(a.x - b.x, a.y - b.y));
+        }
+      }
+      expect(tightest / perPixel).toBeGreaterThan(20);
+    }
+  });
+
+  test("the whole map is exactly fit zoom", () => {
+    const view = viewForTheatre(THEATRES[0], BOARD, phone);
+    expect(view.k).toBe(MIN_ZOOM);
+  });
+
+  test("every player capital is framed by an interactive theatre", () => {
+    for (const power of Object.keys(POWER_DEFS) as Power[]) {
+      const capital = SPACES[POWER_DEFS[power].capital as SpaceId];
+      expect(capital).toBeDefined();
+      const theatre = theatreOf(capital);
+      expect(theatre.id).not.toBe("all");
+      expect(within(theatre)).toContain(capital.id);
+    }
+  });
+
+  test("a point on a border picks the tighter of the two theatres", () => {
+    // Berlin sits inside both the central-European and the eastern theatre;
+    // the tighter one is where the fighting around it is legible.
+    expect(theatreOf(SPACES.berlin).id).toBe("centralEurope");
+    expect(theatreOf(SPACES.london).id).toBe("westEurope");
+    expect(theatreOf(SPACES.istanbul).id).toBe("balkansNearEast");
+    expect(theatreOf(SPACES["st-petersburg"]).id).toBe("eastEurope");
+  });
+
+  test("theatres are addressable by id", () => {
+    expect(theatreById("asia")?.labelZh).toBe("亚洲");
+    expect(theatreById("nowhere")).toBeUndefined();
   });
 });

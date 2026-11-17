@@ -88,6 +88,10 @@ const html = (G: ImperialElegyState, playerID: string | null): string =>
     ctx: testCtx,
     moves: {},
     playerID,
+    // These suites assert on the hand panel's contents (CP chain, card
+    // transfers, save buttons), and the tray only renders them while open.
+    handOpen: true,
+      expandHand: true,
   }));
 
 const buttonTag = (markup: string, testId: string): string =>

@@ -365,6 +365,9 @@ const html = (G: ImperialElegyState, playerID: string | null): string =>
     ctx: makeCtx(),
     moves: {},
     playerID,
+    // Response controls live in the hand tray.
+    handOpen: true,
+      expandHand: true,
   }));
 
 const buttonTag = (markup: string, testId: string): string =>

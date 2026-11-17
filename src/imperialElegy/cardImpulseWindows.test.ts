@@ -397,6 +397,9 @@ describe("board response reasons", () => {
       ctx: makeCtx(seat(power)),
       moves: {},
       playerID: seat(power),
+      // These suites assert on the card buttons, which live in the hand tray.
+      handOpen: true,
+      expandHand: true,
     }));
 
   test("A98 at the wrong seat prints the printed-power reason", () => {

@@ -81,9 +81,13 @@ export interface BoardModelProps {
   moves: Record<string, (...args: any[]) => void>;
   playerID: string | null;
   hotseat?: boolean;
+  /** Start with the hand tray expanded; defaults to collapsed. */
+  handOpen?: boolean;
+  /** Render every hand card unfolded (tests/embeds). */
+  expandHand?: boolean;
 }
 
-export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardModelProps) => {
+export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, handOpen = false, expandHand = false}: BoardModelProps) => {
   i18n.use();
   const t = ieT();
   const actualLocale: "en" | "zh_CN" = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
@@ -100,6 +104,20 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
   const navalFrom: SpaceId | null = targeting?.intent === "navalBattle" ? targeting.from : null;
   const [board, setBoard] = React.useState<"world" | "greatWar">("world");
   const [railTab, setRailTab] = React.useState("action");
+  // Phone layout: the context rail folds to its tab strip so the map owns the
+  // screen.  `narrow` is read once on mount (and on resize) rather than per
+  // render; SSR has no window and stays on the desktop column.
+  const [railOpen, setRailOpen] = React.useState(false);
+  const [narrow, setNarrow] = React.useState(() =>
+    typeof window !== "undefined" && window.innerWidth < 768);
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const query = window.matchMedia("(max-width: 767px)");
+    const sync = () => setNarrow(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
   const [warAim, setWarAim] = React.useState<"conquest" | "liberation" | "unification">("conquest");
   const [warCp, setWarCp] = React.useState(2);
   const [secondObjective, setSecondObjective] = React.useState<SpaceId | "">("");
@@ -120,10 +138,11 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
   const [gwTransferTo, setGwTransferTo] = React.useState<string>("");
   const [gwTransferAmount, setGwTransferAmount] = React.useState(1);
   const [dockCollapsed, setDockCollapsed] = React.useState(false);
-  // Phones start at the peek position (the plan's drawer); desktop keeps the
-  // 220 px hand row open.  SSR has no window and defaults to desktop.
-  const [trayOpen, setTrayOpen] = React.useState(() =>
-    typeof window === "undefined" || window.innerWidth >= 768);
+  // The hand tray starts collapsed: the tray's own title bar already carries
+  // the hand count, the CP chain and the hints, and the map needs the height far
+  // more than an unread row of card faces does.  Expanding is one press, and the
+  // cards (and their buttons) only exist while it is open.
+  const [trayOpen, setTrayOpen] = React.useState(handOpen);
   const [trayExpanded, setTrayExpanded] = React.useState(false);
   const [cardFaceMode, setCardFaceMode] = useCardFaceMode();
   const [amphibiousFrom, setAmphibiousFrom] = React.useState<string>("");
@@ -1260,6 +1279,9 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
     setBoard,
     railTab,
     setRailTab,
+    railOpen,
+    setRailOpen,
+    narrow,
     warAim,
     setWarAim,
     warCp,
@@ -1306,6 +1328,7 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false}: BoardM
     setTrayExpanded,
     cardFaceMode,
     setCardFaceMode,
+    expandHand,
     amphibiousFrom,
     setAmphibiousFrom,
     amphibiousTo,

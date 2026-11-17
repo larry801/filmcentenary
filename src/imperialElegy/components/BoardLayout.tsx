@@ -316,6 +316,9 @@ export const BoardLayout = ({model}: BoardLayoutProps) => {
     setBoard,
     railTab,
     setRailTab,
+    railOpen,
+    setRailOpen,
+    narrow,
     warAim,
     setWarAim,
     warCp,
@@ -362,6 +365,7 @@ export const BoardLayout = ({model}: BoardLayoutProps) => {
     setTrayExpanded,
     cardFaceMode,
     setCardFaceMode,
+    expandHand,
     amphibiousFrom,
     setAmphibiousFrom,
     amphibiousTo,
@@ -739,6 +743,7 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
             locale={actualLocale}
             t={t}
             mapHint={mapHint}
+            viewer={viewer}
             modePill={modePill}
             overlay={<SpaceOverlay G={G} selected={selected} viewer={viewer} locale={actualLocale}/>}
           />
@@ -752,6 +757,7 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
           active={railTab}
           onChange={setRailTab}
           label={bi(actualLocale, "Context", "语境栏")}
+          drawer={narrow ? {open: railOpen, setOpen: setRailOpen} : undefined}
         />
       </div>
 
@@ -794,6 +800,7 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
         moves={moves}
         handChoicesHint={handChoicesHint}
         cardFaceMode={cardFaceMode}
+        expandAll={expandHand}
         open={trayOpen}
         onToggleOpen={() => setTrayOpen((value) => !value)}
         expanded={trayExpanded}

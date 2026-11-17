@@ -208,6 +208,132 @@ export const candidatesUnder = <T extends HitCandidate>(
     .sort((a, b) => a.distance - b.distance)
     .map((entry) => entry.candidate);
 
+/**
+ * How much detail a printed marker can carry at its current on-screen size.
+ *
+ * The printed board is ~6700 units wide, so a phone at fit zoom draws a whole
+ * space in about four pixels: at that size a shape, a unit bubble and a name
+ * are all noise that hides the board underneath.  Deciding by *screen pixels*
+ * rather than by zoom factor keeps one rule working for a phone and a desktop,
+ * whose fit zooms differ by a factor of three.
+ */
+export type MarkerTier = "dot" | "shape" | "full";
+
+/** Below this many pixels a marker is a coloured dot and nothing else. */
+export const DOT_MAX_PX = 5;
+/** At or above this many pixels a marker shows everything it has. */
+export const FULL_MIN_PX = 9;
+
+/** The detail tier for a marker of this on-screen radius, in CSS pixels. */
+export const markerTier = (radiusPx: number): MarkerTier => {
+  if (radiusPx < DOT_MAX_PX) return "dot";
+  if (radiusPx < FULL_MIN_PX) return "shape";
+  return "full";
+};
+
+export interface MarkerPoint extends Point {
+  id: string;
+  /** Printed radius from the marker definition, in board units. */
+  radius: number;
+}
+
+/**
+ * Cap every marker's radius at a fraction of the distance to its nearest
+ * neighbour.
+ *
+ * A handful of printed spaces sit closer together than two counters can be
+ * drawn — South Africa and Rhodesia are 138 units apart, which is 8 px at fit
+ * zoom on a phone — so their markers overlap into one blob and a click cannot
+ * say which one was meant.  Shrinking them to just under half the gap keeps a
+ * visible edge between neighbours at every zoom, and leaves markers that are
+ * already comfortably apart untouched.
+ */
+export const shrinkMarkers = (points: readonly MarkerPoint[], fraction = 0.42): Map<string, number> => {
+  const caps = new Map<string, number>();
+  for (let i = 0; i < points.length; i++) {
+    const a = points[i];
+    let nearest = Number.POSITIVE_INFINITY;
+    for (let j = 0; j < points.length; j++) {
+      if (i === j) continue;
+      const b = points[j];
+      nearest = Math.min(nearest, Math.hypot(a.x - b.x, a.y - b.y));
+    }
+    // A lone space (or a degenerate one) keeps its printed size.
+    caps.set(a.id, Number.isFinite(nearest) ? Math.min(a.radius, nearest * fraction) : a.radius);
+  }
+  return caps;
+};
+
+/** A rectangle of the printed board that a view can be framed around. */
+export interface Theatre {
+  id: string;
+  labelEn: string;
+  labelZh: string;
+  box: BoardRect;
+}
+
+/**
+ * The theatres the board can be framed around.
+ *
+ * The whole printed map is 6693x4382 units; on a phone that is 0.05 board units
+ * per pixel, so two neighbouring spaces can be eight pixels apart.  Every one
+ * of these boxes frames a coherent part of the war instead: the tightest pair
+ * of spaces inside them is still 23+ px apart on a 348 px wide map, which is
+ * when names and unit counts become readable.
+ *
+ * `all` is the printed paper itself and exists so the player can always get
+ * back to the whole board in one press.
+ */
+export const THEATRES: readonly Theatre[] = [
+  {id: "all", labelEn: "Whole map", labelZh: "全图",
+    box: {x: 480, y: 532, width: 6693, height: 4382}},
+  {id: "westEurope", labelEn: "Western Europe", labelZh: "西欧",
+    box: {x: 700, y: 950, width: 1550, height: 1300}},
+  {id: "centralEurope", labelEn: "Central Europe & Italy", labelZh: "中欧与意大利",
+    box: {x: 1650, y: 1000, width: 1350, height: 2150}},
+  {id: "eastEurope", labelEn: "Eastern Europe & Russia", labelZh: "东欧与俄国",
+    box: {x: 2450, y: 700, width: 2250, height: 2050}},
+  {id: "balkansNearEast", labelEn: "Balkans & Near East", labelZh: "巴尔干与近东",
+    box: {x: 2850, y: 2050, width: 1900, height: 1900}},
+  {id: "africa", labelEn: "Africa", labelZh: "非洲",
+    box: {x: 500, y: 3100, width: 1650, height: 1814}},
+  {id: "asia", labelEn: "Asia", labelZh: "亚洲",
+    box: {x: 5000, y: 700, width: 2100, height: 1900}},
+  {id: "america", labelEn: "Americas", labelZh: "美洲",
+    box: {x: 500, y: 1850, width: 600, height: 1000}},
+];
+
+export const theatreById = (id: string): Theatre | undefined =>
+  THEATRES.find((theatre) => theatre.id === id);
+
+/** The narrowest theatre that contains a board point, or `all` when none does. */
+export const theatreOf = (point: Point): Theatre => {
+  const containing = THEATRES.filter((theatre) =>
+    theatre.id !== "all" &&
+    point.x >= theatre.box.x && point.x <= theatre.box.x + theatre.box.width &&
+    point.y >= theatre.box.y && point.y <= theatre.box.y + theatre.box.height);
+  if (containing.length === 0) return THEATRES[0];
+  // A capital on a border belongs to the tighter of the two regions.
+  return containing.reduce((best, next) =>
+    next.box.width * next.box.height < best.box.width * best.box.height ? next : best);
+};
+
+/**
+ * Frame a theatre in the given viewport.
+ *
+ * Delegates to `viewForPoints` so the theatre fit obeys the same margin and
+ * maximum-zoom rules as "show me the legal targets".  The margin scales with
+ * the viewport: the fixed 64 px default is a quarter of a phone's map width,
+ * which would waste the space the theatre is meant to use.
+ */
+export const viewForTheatre = (theatre: Theatre, board: BoardRect, screen: Size): MapView => {
+  const margin = Math.min(48, Math.max(12, Math.min(screen.width, screen.height) * 0.06));
+  return viewForPoints([
+    {x: theatre.box.x, y: theatre.box.y},
+    {x: theatre.box.x + theatre.box.width, y: theatre.box.y + theatre.box.height},
+  ], board, screen, margin);
+};
+
 export interface LabelBox {
   x: number;
   y: number;
@@ -216,7 +342,6 @@ export interface LabelBox {
   /** Set for obstacles: a label is never blocked by its own marker. */
   id?: string;
 }
-
 export interface LabelRequest {
   id: string;
   /** Label anchor in board units (centre of the text). */

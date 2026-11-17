@@ -1,6 +1,27 @@
-import {expect, test, Page} from "@playwright/test";
+import {expect, test, Page, Locator} from "@playwright/test";
 
 const SEATS = ["GE", "UK", "FR", "AU", "RU", "OT"] as const;
+
+/**
+ * The hand tray starts collapsed (the map needs the height).  Every card
+ * interaction lives inside it, so the specs open it first.
+ */
+/** Open one card's row so its face and buttons exist. */
+async function openCard(card: Locator) {
+    if (await card.getAttribute("data-expanded") === "true") return card;
+    await card.locator(".ie-card-open").click();
+    await expect(card).toHaveAttribute("data-expanded", "true");
+    return card;
+}
+
+async function openHand(board: Locator) {
+    const tray = board.locator('[data-testid="ie-hand-tray"]');
+    if (await tray.getAttribute("data-open") === "false") {
+        await board.locator('[data-testid="ie-tray-toggle"]').click();
+        await expect(tray).toHaveAttribute("data-open", "true");
+    }
+    return board;
+}
 
 async function openLocal(page: Page) {
     await page.goto("/localIE");
@@ -70,14 +91,17 @@ test.describe("Imperial Elegy local hotseat", () => {
         await finishPrep(page);
         await chooseHomeCards(page);
         await focusSeat(page, "GE");
-        const board = page.locator('[data-testid="ie-seat-GE"]');
-        const cpButtons = board.locator(".ie-card-actions button", {hasText: "作为 CP 打出"});
+        const board = await openHand(page.locator('[data-testid="ie-seat-GE"]'));
+        // Each hand card is a folded row until it is opened.
+        const cards = board.locator(".ie-hand .ie-card");
         let played = false;
-        for (let i = 0; i < await cpButtons.count(); i += 1) {
-            if (await cpButtons.nth(i).isEnabled()) {
-                await cpButtons.nth(i).click();
+        for (let i = 0; i < await cards.count() && !played; i += 1) {
+            const card = cards.nth(i);
+            await openCard(card);
+            const cp = card.locator('[data-testid^="ie-play-cp-"]').first();
+            if (await cp.count() && await cp.isEnabled()) {
+                await cp.click();
                 played = true;
-                break;
             }
         }
         expect(played).toBe(true);
@@ -94,11 +118,13 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
         await focusSeat(page, "GE");
         await page.waitForTimeout(500);
-        const board = page.locator('[data-testid="ie-seat-GE"]');
-        const cpButtons = board.locator(".ie-card-actions button", {hasText: "作为 CP 打出"});
-        await expect(cpButtons.first()).toBeVisible();
-        for (let i = 0; i < await cpButtons.count(); i += 1) {
-            if (await cpButtons.nth(i).isEnabled()) { await cpButtons.nth(i).click(); break; }
+        const board = await openHand(page.locator('[data-testid="ie-seat-GE"]'));
+        const cards = board.locator(".ie-hand .ie-card");
+        for (let i = 0; i < await cards.count(); i += 1) {
+            const card = cards.nth(i);
+            await openCard(card);
+            const cp = card.locator('[data-testid^="ie-play-cp-"]').first();
+            if (await cp.count() && await cp.isEnabled()) { await cp.click(); break; }
         }
         await page.waitForTimeout(800);
         await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
@@ -165,15 +191,14 @@ test.describe("Imperial Elegy local hotseat", () => {
             if (/\/imperial-elegy\/cards\/.*\.(png|jpe?g)(?:\?|$)/i.test(request.url())) cardImageRequests.push(request.url());
         });
         await openLocal(page);
-        const board = page.locator('[data-testid="ie-seat-GE"]');
-        const card = board.locator(".ie-hand .ie-card").first();
+        const board = await openHand(page.locator('[data-testid="ie-seat-GE"]'));
+        const card = await openCard(board.locator(".ie-hand .ie-card").first());
         const face = card.locator("svg.ie-card-face");
         const original = await face.getAttribute("data-card-id");
         await expect(face).toHaveAttribute("lang", "zh-CN");
         await expect(face.locator(".ie-card-rules")).toContainText(/[\u4e00-\u9fff]/);
         await expect(board.locator(".ie-card img, .ie-card image")).toHaveCount(0);
-        // The tray now has two disclosures per card: the "⋯" operations menu
-        // and the bilingual translation. Target the translation explicitly.
+        // The unfolded card carries one disclosure: its bilingual translation.
         await card.locator(".ie-card-translation > summary").click();
         await expect(card.locator(".ie-card-translation > div")).toBeVisible();
         await expect(card.locator(".ie-card-translation > div")).toHaveAttribute("lang", "en");

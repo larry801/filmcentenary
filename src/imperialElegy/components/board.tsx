@@ -11,6 +11,19 @@ export interface IEBoardProps {
   playerID: string | null;
   matchID?: string;
   hotseat?: boolean;
+  /**
+   * Whether the hand tray starts expanded.  It defaults to collapsed: the map
+   * needs the height, the tray's title bar already carries the hand count and
+   * the CP chain, and a single press opens it.  A host that wants the cards
+   * visible from the first frame (tests, an embedded board) sets this.
+   */
+  handOpen?: boolean;
+  /**
+   * Render every hand card unfolded.  For rules-level tests that assert on a
+   * card's buttons (and for an embedder that wants a fully expanded hand); the
+   * game itself always starts folded.
+   */
+  expandHand?: boolean;
 }
 
 /**

@@ -282,6 +282,9 @@ describe("printed event playability — board gate", () => {
     ctx: makeCtx([], "0"),
     moves: {},
     playerID: "0",
+    // The card buttons under test live in the hand tray.
+    handOpen: true,
+      expandHand: true,
   }));
 
   test("the event button is disabled with the printed reason", () => {

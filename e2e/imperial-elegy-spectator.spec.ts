@@ -240,13 +240,15 @@ async function readMatch(matchID: string): Promise<MatchMetadata> {
 }
 
 async function handTitles(page: Page): Promise<string[]> {
-    // Card faces are inline SVG, and `.ie-card-title` is an SVG <text> whose
-    // tspans hold the wrapped lines.  SVG elements have no `innerText` in
-    // Chromium (`allInnerTexts()` yields undefined), and joining the tspans
-    // would merge or split words at the wrap points.  The face carries the
-    // unwrapped title in its <title> element (the `aria-labelledby` target),
-    // so read that instead.
-    return page.locator(".ie-hand .ie-card svg.ie-card-face > title").evaluateAll((nodes) =>
+    const tray = page.locator('[data-testid="ie-hand-tray"]');
+    if (await tray.count() && await tray.getAttribute("data-open") === "false") {
+        await page.locator('[data-testid="ie-tray-toggle"]').click();
+        await expect(tray).toHaveAttribute("data-open", "true");
+    }
+    // A hand row shows its name while folded, and the face (with its SVG
+    // <title>) only exists once the row is opened.  Read the row's name span
+    // instead: it is the same printed title, and reading it needs no clicks.
+    return page.locator(".ie-hand .ie-card .ie-card-name").evaluateAll((nodes) =>
         nodes
             .map((node) => (node.textContent ?? "").trim())
             .filter((title) => title.length > 0),
@@ -271,6 +273,12 @@ async function openSeat(page: Page, matchID: string, seat: number): Promise<void
         // seat; a real join failure simply fails again below.
         await page.reload({waitUntil: "domcontentloaded"});
         await expect(heading).toBeVisible({timeout: 30_000});
+    }
+    // The tray starts collapsed; the hand itself is one press away.
+    const tray = page.locator('[data-testid="ie-hand-tray"]');
+    if (await tray.getAttribute("data-open") === "false") {
+        await page.locator('[data-testid="ie-tray-toggle"]').click();
+        await expect(tray).toHaveAttribute("data-open", "true");
     }
     await expect(page.locator(".ie-hand .ie-card").first()).toBeVisible();
 }

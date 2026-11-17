@@ -70,3 +70,35 @@ test("an explicit targeting mode renders an aria-live pill with a keyboard targe
   expect(html).toContain("萨克森");
   expect(html).toContain('data-testid="ie-mode-pill-cancel"');
 });
+
+test("the framing bar offers the whole map, the player's capital and every theatre", () => {
+  const html = renderToStaticMarkup(<MapPanel {...props()} viewer="GE" />);
+  expect(html).toContain('data-testid="ie-map-views"');
+  expect(html).toContain('data-testid="ie-map-fit"');
+  expect(html).toContain("全图");
+  expect(html).toContain('data-testid="ie-map-capital"');
+  // The capital chip names the space it will frame, so the player knows where
+  // it goes before pressing it.
+  expect(html).toContain('title="柏林"');
+  expect(html).toContain('data-testid="ie-map-theatre"');
+  for (const label of ["西欧", "中欧与意大利", "东欧与俄国", "巴尔干与近东", "非洲", "亚洲", "美洲"]) {
+    expect(html).toContain(label);
+  }
+});
+
+test("the theatre list does not repeat the whole-map chip as an option", () => {
+  const html = renderToStaticMarkup(<MapPanel {...props()} viewer="GE" />);
+  const select = html.slice(html.indexOf('data-testid="ie-map-theatre"'));
+  const options = select.slice(0, select.indexOf("</select>"));
+  // "全图" appears once, in the hidden value that keeps the chip and the select
+  // in sync — never as a second visible choice.
+  expect(options.match(/>全图</g) ?? []).toHaveLength(1);
+  expect(options).toContain('value="all" hidden');
+});
+
+test("a spectator gets the framing bar without a capital to frame", () => {
+  const html = renderToStaticMarkup(<MapPanel {...props()} />);
+  expect(html).toContain('data-testid="ie-map-views"');
+  expect(html).toContain('data-testid="ie-map-capital"');
+  expect(html).not.toContain('title="柏林"');
+});

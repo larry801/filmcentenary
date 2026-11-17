@@ -52,6 +52,12 @@ export interface HandTrayProps {
   cardFaceMode: CardFaceMode;
   open: boolean;
   onToggleOpen: () => void;
+  /**
+   * Unfold every card at once.  The board never sets this; it exists so the
+   * rules-level tests can assert on the buttons without driving a click through
+   * a static render, and so an embedder can show a fully expanded hand.
+   */
+  expandAll?: boolean;
   /** Mobile third drawer position: peek (closed), half (open), full (expanded). */
   expanded?: boolean;
   onToggleExpanded?: () => void;
@@ -110,9 +116,18 @@ export const HandTray = (props: HandTrayProps) => {
     forcedCardIds, hand, saveList, giveCards, giveCardId, setGiveCardId, giveTarget, setGiveTarget,
     giveCardValue, responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
-    cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded,
+    cardFaceMode, open, onToggleOpen, expandAll = false, expanded = false, onToggleExpanded,
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
+  /**
+   * Which hand card is unfolded.  The tray shows one row per card (CP value,
+   * name, type) and only the unfolded card carries its face and its buttons:
+   * sixteen stacked card faces with two buttons each was unreadable on a phone.
+   *
+   * A card that forbids passing opens itself, because the player has to act on
+   * it: hiding the only legal move behind a tap would be a trap.
+   */
+  const [expandedId, setExpandedId] = React.useState<string | null>(() => forcedCardIds[0] ?? null);
 
   if (!viewer || !me) return null;
 
@@ -176,13 +191,24 @@ export const HandTray = (props: HandTrayProps) => {
     };
   };
 
-  const actionButtons = (id: string, where: "tray" | "more" | "inspector"): React.ReactNode => {
+  /**
+   * Whether the unfolded card has any operation to offer at all, legal right
+   * now or merely blocked.  A disabled button carrying its reason is how a
+   * player learns why a card is stuck, so it is still worth drawing; only a card
+   * with no such dimension (a combat card outside a battle) has nothing to say.
+   */
+  const hasOperation = (id: string): boolean => {
+    const a = availability(id);
+    return a.cpAllowed || a.eventAllowed || a.showResponse;
+  };
+
+  const actionButtons = (id: string, where: "expanded" | "inspector"): React.ReactNode => {
     const a = availability(id);
     const mandatoryTitle = a.isMandatory ? bi(locale, "Mandatory card: play its event", "强制牌：需打出其事件") : undefined;
     const cpDisabled = !a.cpModeOk;
     return (
       <>
-        {((where === "inspector") || (where === "tray" && a.cpAllowed)) && (
+        {(where === "inspector" || a.cpAllowed) && (
           <button
             key="cp"
             className="ie-card-primary"
@@ -194,7 +220,7 @@ export const HandTray = (props: HandTrayProps) => {
             {t.cpMode}
           </button>
         )}
-        {((where === "inspector") || (where === "tray" && a.eventModeOk) || (where === "more" && a.eventAllowed)) && (
+        {(where === "inspector" || a.eventAllowed) && (
           <button
             key="event"
             className="ie-card-primary"
@@ -207,7 +233,7 @@ export const HandTray = (props: HandTrayProps) => {
             {t.eventMode}
           </button>
         )}
-        {where !== "tray" && a.showResponse && (
+        {a.showResponse && (
           <button
             key="response"
             data-testid={`ie-response-${id}`}
@@ -218,9 +244,9 @@ export const HandTray = (props: HandTrayProps) => {
             {t.playResponse}
           </button>
         )}
-        {where !== "tray" && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} onClick={() => doAction(() => moves.industrialize(id))}>{t.industrialize}</button>}
-        {where !== "tray" && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} onClick={() => doAction(() => moves.cpChain(id))}>{t.cpChain}</button>}
-        {where !== "tray" && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} onClick={() => doAction(() => moves.saveCard(id))}>{a.saved ? t.unsave : t.saveCard}</button>}
+        {where === "inspector" && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} onClick={() => doAction(() => moves.industrialize(id))}>{t.industrialize}</button>}
+        {where === "inspector" && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} onClick={() => doAction(() => moves.cpChain(id))}>{t.cpChain}</button>}
+        {where === "inspector" && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} onClick={() => doAction(() => moves.saveCard(id))}>{a.saved ? t.unsave : t.saveCard}</button>}
       </>
     );
   };
@@ -268,6 +294,17 @@ export const HandTray = (props: HandTrayProps) => {
           <IEChip>{t.cpChain}: {me.cpChain.length}/2</IEChip>
           {saveList.length > 0 && <IEChip>{t.savedCards}: {saveList.map(homeCardTitle).join(", ")}</IEChip>}
           {responseInHand && <IEChip>{t.responseCard}: {hand.filter((id) => cardById(id).type === "response").length}</IEChip>}
+          {/* The tray folds by default, so the two things that must not be
+              missed while it is closed get a flag on the bar itself: an open
+              response window, and a hand that forbids passing. */}
+          {!open && responseWindow && (
+            <IEChip><span className="ie-tray-flag" data-testid="ie-tray-response-flag" aria-hidden="true">⚑</span>
+              {bi(locale, "Response window", "响应窗口")}</IEChip>
+          )}
+          {!open && forcedCardIds.length > 0 && (
+            <IEChip><span className="ie-tray-flag" data-testid="ie-tray-forced-flag" aria-hidden="true">!</span>
+              {bi(locale, "Must play a card first", "须先打出卡牌")}</IEChip>
+          )}
           {me.industryCard && <IEChip>{t.industryCard}: {homeCardTitle(me.industryCard)}</IEChip>}
         </div>
         {handChoicesHint !== null && (
@@ -296,27 +333,58 @@ export const HandTray = (props: HandTrayProps) => {
               {hand.map((id) => {
                 const card = cardById(id);
                 const a = availability(id);
+                const expandedCard = expandAll || expandedId === id;
                 return (
-                  <article key={id} className="ie-card" data-testid={`ie-card-${id}`} data-card-kind={card.kind}>
+                  <article
+                    key={id}
+                    className={`ie-card${expandedCard ? " expanded" : ""}`}
+                    data-testid={`ie-card-${id}`}
+                    data-card-kind={card.kind}
+                    data-expanded={expandedCard ? "true" : "false"}
+                  >
+                    {/* The folded row: the three things a player picks a card
+                        by — its name, its CP value and its type.  Everything
+                        else lives behind the tap. */}
                     <button
                       type="button"
                       className="ie-card-open"
                       data-testid={`ie-open-card-${id}`}
-                      aria-label={`${bi(locale, "Inspect card", "查看卡牌")}: ${locale === "zh_CN" ? card.titleZh : card.title}`}
-                      onClick={() => openInspector({card}, id)}
+                      aria-expanded={expandedCard ? "true" : "false"}
+                      aria-controls={`ie-card-body-${id}`}
+                      aria-label={`${bi(locale, "Card", "卡牌")}: ${locale === "zh_CN" ? card.titleZh : card.title}`}
+                      onClick={() => { if (!expandAll) setExpandedId(expandedCard ? null : id); }}
                     >
-                      {cardFace(card)}
+                      <span className="ie-card-cp" data-testid={`ie-card-cp-${id}`}>{card.cp}</span>
+                      <span className="ie-card-name">{locale === "zh_CN" ? card.titleZh : card.title}</span>
+                      <span className="ie-card-type" data-testid={`ie-card-type-${id}`}>{t.cardType[card.type]}</span>
+                      <span className="ie-card-caret" aria-hidden="true">{expandedCard ? "▾" : "▸"}</span>
                     </button>
-                    <div className="ie-card-actions">
-                      {actionButtons(id, "tray")}
-                      <details className="ie-card-more" data-testid={`ie-card-more-${id}`}>
-                        <summary aria-label={bi(locale, "More card actions", "更多卡牌操作")} title={bi(locale, "More", "更多")}>⋯</summary>
-                        <div className="ie-card-more-actions">
-                          {actionButtons(id, "more")}
+                    {expandedCard && (
+                      <div className="ie-card-body" id={`ie-card-body-${id}`}>
+                        <button
+                          type="button"
+                          className="ie-card-face-button"
+                          data-testid={`ie-card-face-${id}`}
+                          title={bi(locale, "Open the full card", "查看完整卡牌")}
+                          onClick={() => openInspector({card}, id)}
+                        >
+                          {cardFace(card)}
+                        </button>
+                        <div className="ie-card-body-actions">
+        {hasOperation(id) ? (
+                            <div className="ie-card-actions">{actionButtons(id, "expanded")}</div>
+                          ) : (
+                            <div className="ie-card-why" data-testid={`ie-card-why-${id}`}>
+                              <span>{bi(locale, "No operation available right now.", "当前没有可执行的操作。")}</span>
+                              {availability(id).reasons.slice(0, 2).map((reason) => (
+                                <span key={reason} className="ie-card-why-line">{reason}</span>
+                              ))}
+                            </div>
+                          )}
+                          <CardTranslation card={card} locale={locale}/>
                         </div>
-                      </details>
-                    </div>
-                    <CardTranslation card={card} locale={locale}/>
+                      </div>
+                    )}
                   </article>
                 );
               })}

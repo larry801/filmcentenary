@@ -259,6 +259,9 @@ describe("board event button follows the printed gate", () => {
       ctx: makeCtx([], seat(power)),
       moves: {},
       playerID: seat(power),
+      // These suites assert on the card buttons, which live in the hand tray.
+      handOpen: true,
+      expandHand: true,
     }));
 
   test("A110 is disabled for the UK with the power-list reason", () => {

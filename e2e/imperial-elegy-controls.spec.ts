@@ -2,6 +2,27 @@ import {expect, test, Page, Locator} from "@playwright/test";
 
 const SEATS = ["GE", "UK", "FR", "AU", "RU", "OT"] as const;
 
+/**
+ * The hand tray starts collapsed (the map needs the height).  Every card
+ * interaction lives inside it, so the specs open it first.
+ */
+/** Open one card's row so its face and its buttons exist. */
+async function openCard(card: Locator) {
+    if (await card.getAttribute("data-expanded") === "true") return card;
+    await card.locator(".ie-card-open").click();
+    await expect(card).toHaveAttribute("data-expanded", "true");
+    return card;
+}
+
+async function openHand(board: Locator) {
+    const tray = board.locator('[data-testid="ie-hand-tray"]');
+    if (await tray.getAttribute("data-open") === "false") {
+        await board.locator('[data-testid="ie-tray-toggle"]').click();
+        await expect(tray).toHaveAttribute("data-open", "true");
+    }
+    return board;
+}
+
 async function openLocal(page: Page) {
     await page.goto("/localIE");
     await expect(page.getByRole("heading", {name: "帝国挽歌 — 本地热座"})).toBeVisible();
@@ -74,16 +95,19 @@ function boardFor(page: Page, seat: string): Locator {
 /** Play the first legal card for CP so GE has an impulse and a CP budget. */
 async function playCpCard(board: Locator) {
     const page = board.page();
+    await openHand(board);
     for (let attempt = 0; attempt < 3; attempt += 1) {
         if (await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining) > 0) return;
-        const cpButtons = board.locator(".ie-card-actions button", {hasText: "作为 CP 打出"});
-        await expect(cpButtons.first()).toBeVisible();
+        const cards = board.locator(".ie-hand .ie-card");
         let played = false;
-        for (let i = 0; i < await cpButtons.count(); i += 1) {
-            if (await cpButtons.nth(i).isEnabled()) {
-                await cpButtons.nth(i).click();
+        for (let i = 0; i < await cards.count() && !played; i += 1) {
+            const card = cards.nth(i);
+            // Only an unfolded card renders its buttons.
+            if (await card.getAttribute("data-expanded") !== "true") await openCard(card);
+            const cp = card.locator('[data-testid^="ie-play-cp-"]').first();
+            if (await cp.count() && await cp.isEnabled()) {
+                await cp.click();
                 played = true;
-                break;
             }
         }
         expect(played).toBe(true);
@@ -99,15 +123,19 @@ async function playCpCard(board: Locator) {
 
 /** Find a hand card whose Save control is enabled (non-home, non-mandatory). */
 async function findSavableCard(board: Locator): Promise<Locator | null> {
+    await openHand(board);
     const cards = board.locator(".ie-hand .ie-card");
     for (let i = 0; i < await cards.count(); i += 1) {
         const card = cards.nth(i);
-        // Secondary card operations now live behind the tray's native "⋯"
-        // disclosure; open it before looking for Save.
-        const more = card.locator("details.ie-card-more > summary");
-        if (await more.count()) await more.click();
-        const save = card.getByRole("button", {name: "保留", exact: true});
-        if (await save.count() && await save.isEnabled()) return card;
+        await openCard(card);
+        // Secondary operations (Save, Industrialize, CP chain) live in the
+        // CardInspector, which opens from the unfolded card's face.
+        await card.locator(".ie-card-face-button").click();
+        const save = board.locator('[data-testid="ie-card-inspector"]')
+            .getByRole("button", {name: "保留", exact: true});
+        const found = await save.count() > 0 && await save.isEnabled();
+        await board.page().keyboard.press("Escape");
+        if (found) return card;
     }
     return null;
 }
@@ -222,17 +250,20 @@ test.describe("Imperial Elegy new controls", () => {
 
     test("card economy controls render and Save toggles the card state", async ({page}) => {
         await reachAction(page);
-        const board = boardFor(page, "GE");
+        const board = await openHand(boardFor(page, "GE"));
 
         const card = await findSavableCard(board);
         expect(card).not.toBeNull();
-        const testId = await card!.getAttribute("data-testid");
-        const cardId = testId!.replace("ie-card-", "");
 
-        const cardActions = board.locator(`[data-testid="ie-card-${cardId}"] .ie-card-actions`);
-        const save = cardActions.getByRole("button", {name: "保留", exact: true});
-        const industrialize = cardActions.getByRole("button", {name: "工业化", exact: true});
-        const cpChain = cardActions.getByRole("button", {name: "CP 链", exact: true});
+        // The economy controls live in the CardInspector, reached from the
+        // unfolded card's face.
+        await card!.locator(".ie-card-face-button").click();
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        await expect(inspector).toBeVisible();
+
+        const save = inspector.getByRole("button", {name: "保留", exact: true});
+        const industrialize = inspector.getByRole("button", {name: "工业化", exact: true});
+        const cpChain = inspector.getByRole("button", {name: "CP 链", exact: true});
 
         await expect(save).toBeVisible();
         await expect(industrialize).toBeVisible();
@@ -244,9 +275,10 @@ test.describe("Imperial Elegy new controls", () => {
 
         await save.click();
 
-        const unsave = cardActions.getByRole("button", {name: "取消保留", exact: true});
+        const unsave = inspector.getByRole("button", {name: "取消保留", exact: true});
         await expect(unsave).toBeVisible();
         await expect(unsave).toHaveAttribute("aria-pressed", "true");
+        await page.keyboard.press("Escape");
         await expect(board.locator(".ie-hand-meta")).toContainText("已保留的牌");
     });
 
@@ -429,9 +461,10 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
 
     test("the card inspector shows every operation and switches between SVG and print faces", async ({page}) => {
         await reachAction(page);
-        const board = boardFor(page, "GE");
-        const card = board.locator(".ie-hand .ie-card").first();
-        await card.locator(".ie-card-open").click();
+        const board = await openHand(boardFor(page, "GE"));
+        const card = await openCard(board.locator(".ie-hand .ie-card").first());
+        // The inspector opens from the unfolded card's face.
+        await card.locator(".ie-card-face-button").click();
 
         const inspector = board.locator('[data-testid="ie-card-inspector"]');
         await expect(inspector).toBeVisible();
@@ -450,7 +483,7 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await board.locator('[data-testid="ie-display-menu"] > summary').click();
         await board.locator('[data-testid="ie-card-face-print"]').click();
         await expect.poll(async () => await page.evaluate(() => localStorage.getItem("ie_card_face"))).toBe("print");
-        await card.locator(".ie-card-open").click();
+        await card.locator(".ie-card-face-button").click();
         await expect(inspector).toHaveAttribute("data-face-mode", "print");
         await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toBeVisible();
         await page.keyboard.press("Escape");
