@@ -127,3 +127,22 @@ dependency when it is exported.
 - **Tests** — `printedBoard.test.tsx` checks every land space, every naval
   plate, all nine printed charts, the four frontier line styles and the absence
   of raster or network references.
+
+## The live map uses the printed language
+
+The interactive map is no longer a flat set of coloured blocks. It now draws the
+same counter vocabulary as the printed sheet:
+
+- every controlled counter is a cream paper edge under the control colour, with
+  a printed national flag; a minority nationality's flag wins over the
+  controller's, exactly as the sheet prints it;
+- capitals are eight-point stars, naval bases triangles, territories circles,
+  and naval boxes are cream plates with a blue title band and an anchor;
+- names are printed on cream nameplates rather than free-floating text, and the
+  selected/highlighted plate is tinted gold;
+- the sea, paper, coastline and graticule use the standalone sheet's palette.
+
+The shared primitives (`Flag`, `capitalStar`, `PrintedNameplate`,
+`markerRadius`, flag selection) live in `components/printedStyle.tsx`, so the
+reference sheet and the live board cannot drift apart. `printedMap.test.tsx`
+pins the flag, nameplate and naval-plate layers.

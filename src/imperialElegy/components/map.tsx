@@ -1,5 +1,5 @@
 import React from "react";
-import {ConnectionDef, ImperialElegyState, Power, SpaceId, Unit} from "../types";
+import {ConnectionDef, ImperialElegyState, Power, SpaceDef, SpaceId, Unit} from "../types";
 import {CONNECTIONS, SPACES, SPACE_IDS, connectionsOf, isNavalBox} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {ieT} from "./i18n";
@@ -7,6 +7,7 @@ import background from "../data/map-background.json";
 import {CONNECTION_STYLE, connectionDash, connectionWidth, trimSegment} from "./connectionStyle";
 import {flashpointHulls} from "./flashpoints";
 import {Anchor} from "./Anchor";
+import {BOARD_FONT, capitalStar, Flag, largeFlagName, PrintedNameplate, smallFlagName} from "./printedStyle";
 import {UnitToken} from "./UnitToken";
 import {StackPopover} from "./StackPopover";
 import {type StackEntry, stackSummary} from "./stackSummary";
@@ -113,18 +114,47 @@ const TargetRing = ({
   );
 };
 
-const Star = ({r}: {r: number}) => {
-  const points = Array.from({length: 10}, (_, i) => {
-    const angle = (Math.PI / 5) * i - Math.PI / 2;
-    const radius = i % 2 === 0 ? r : r * 0.45;
-    return `${Math.cos(angle) * radius},${Math.sin(angle) * radius}`;
-  }).join(" ");
-  return <polygon points={points}/>;
+/** The counter outline, shared by the printed edge and its coloured face. */
+const MarkerShape = ({type, r}: {type: SpaceDef["type"]; r: number}) => {
+  switch (type) {
+    case "capital":
+    case "subcapital":
+      return <polygon points={capitalStar(r)}/>;
+    case "navalBase":
+      return <polygon points={`0,${-r} ${r * 0.92},${r * 0.74} ${-r * 0.92},${r * 0.74}`}/>;
+    case "territory":
+      return <circle r={r}/>;
+    default:
+      return <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={r * 0.21}/>;
+  }
 };
 
-const Triangle = ({r}: {r: number}) => (
-  <polygon points={`0,${-r} ${r * 0.9},${r * 0.7} ${-r * 0.9},${r * 0.7}`}/>
-);
+/**
+ * A naval box as it is printed: a cream plate with a blue title band and an
+ * anchor, not a coloured game counter.  The interactive hit target stays at
+ * the box's centre, so the plate can grow without changing the map geometry.
+ */
+const NavalPlateMarker = ({r, label}: {r: number; label: string}) => {
+  const width = r * 3;
+  const height = r * 1.6;
+  const header = r * 0.52;
+  const fontSize = Math.min(r * 0.28, (width - 22) / Math.max(6, label.length * 0.92));
+  return (
+    <g data-testid="ie-naval-plate">
+      <rect x={-width / 2 + 4} y={-height / 2 + 4} width={width} height={height} rx={6}
+        fill="rgba(44,36,26,.24)"/>
+      <rect x={-width / 2} y={-height / 2} width={width} height={height} rx={5}
+        fill="#f8f1df" stroke="#4a3e2c" strokeWidth={3}/>
+      <rect x={-width / 2 + 6} y={-height / 2 + 6} width={width - 12} height={header}
+        fill="#3d6d8a" stroke="#4a3e2c" strokeWidth={2}/>
+      <text x={0} y={-height / 2 + header * 0.7} textAnchor="middle" fontFamily={BOARD_FONT}
+        fontSize={fontSize} fontWeight={700} fill="#252019">{label}</text>
+      <g transform={`translate(0 ${header * 0.1})`}>
+        <Anchor size={r * 0.46} color="#3d6d8a"/>
+      </g>
+    </g>
+  );
+};
 
 /**
  * What clicking a space would do, as the map draws it:
@@ -658,17 +688,22 @@ export const IEMap = React.memo(
           <defs>
             <linearGradient id="ie-sea" gradientUnits="userSpaceOnUse"
               x1={PAPER.x} y1={PAPER.y} x2={PAPER.x + PAPER.width * 0.3} y2={PAPER.y + PAPER.height}>
-              <stop offset="0%" stopColor="#b9d2d8"/>
-              <stop offset="55%" stopColor="#9dc0cb"/>
-              <stop offset="100%" stopColor="#7fa9b8"/>
+              <stop offset="0%" stopColor="#bcd2cf"/>
+              <stop offset="52%" stopColor="#a2c0c0"/>
+              <stop offset="100%" stopColor="#87adb4"/>
             </linearGradient>
             {/* Flashpoint hatching, as printed: a warm diagonal wash over the
                 contested theatres.  Pattern units are board units, so the
                 stripes keep the printed density as the player zooms. */}
-            <pattern id="ie-hachure" width="96" height="96" patternUnits="userSpaceOnUse"
+            <pattern id="ie-hachure" width="104" height="104" patternUnits="userSpaceOnUse"
               patternTransform="rotate(34)">
-              <rect width="96" height="96" fill="#c98f78" opacity="0.2"/>
-              <line x1="0" y1="0" x2="0" y2="96" stroke="#9c4a34" strokeWidth="12" opacity="0.62"/>
+              <rect width="104" height="104" fill="#c98f78" opacity="0.18"/>
+              <line x1="0" y1="0" x2="0" y2="104" stroke="#9c4a34" strokeWidth="11" opacity="0.57"/>
+            </pattern>
+            {/* A light printed graticule, as on the sheet: it gives the land
+                some texture at zoom without competing with the counters. */}
+            <pattern id="ie-grid" width="590" height="500" patternUnits="userSpaceOnUse">
+              <path d="M590,0 H0 V500" fill="none" stroke="#3c7170" strokeWidth="1.8" opacity="0.13"/>
             </pattern>
             <clipPath id="ie-clip-main">
               <rect {...toRect(background.regions.find((r) => r.id === "main")?.box)}/>
@@ -703,6 +738,7 @@ export const IEMap = React.memo(
               <>
                 {/* Paper and sea, then the traced coastline of each printed panel. */}
                 <rect {...toRect(background.paper)} fill="#efe6d2"/>
+                <rect {...toRect(background.paper)} fill="url(#ie-grid)"/>
                 {background.regions.map((region) => (
                   <g key={region.id} clipPath={`url(#ie-clip-${region.id})`}>
                     <rect {...toRect(region.box)} fill="url(#ie-sea)"/>
@@ -717,13 +753,13 @@ export const IEMap = React.memo(
                         ))}
                       </g>
                     )}
-                    <path d={region.d} fill="none" stroke="#a4937a" strokeWidth={unitsPerPx * 1.1}
+                    <path d={region.d} fill="none" stroke="#9f8e73" strokeWidth={unitsPerPx * 1.1}
                       fillRule="evenodd" pointerEvents="none"/>
                   </g>
                 ))}
                 {/* Printed continent names, as on the board: they orient the
                     eye far faster than the coastlines alone at fit zoom. */}
-                <g pointerEvents="none" fill="#a5926f" opacity={0.55}
+                <g pointerEvents="none" fill="#a5926f" opacity={0.64}
                   fontFamily="Georgia, 'Times New Roman', serif" fontStyle="italic" letterSpacing="0.35em">
                   {CONTINENTS.map((continent) => (
                     <text key={continent.name} x={continent.x} y={continent.y}
@@ -732,7 +768,7 @@ export const IEMap = React.memo(
                     </text>
                   ))}
                 </g>
-                <rect {...toRect(background.paper)} fill="none" stroke="#8c7a5e" strokeWidth={unitsPerPx * 1.6}/>
+                <rect {...toRect(background.paper)} fill="none" stroke="#b9a786" strokeWidth={unitsPerPx * 2.2}/>
               </>
             )}
 
@@ -773,6 +809,16 @@ export const IEMap = React.memo(
               const origin = isNavalBox(id)
                 ? {x: -r * 0.55, y: 0}
                 : {x: -r * 0.72, y: r * 0.72};
+              const minority = largeFlagName(space, state.control);
+              const small = smallFlagName(space, state.control);
+              // The sheet prints a small control strip on a major power's own
+              // counter; on the interactive board the larger flag is the cue a
+              // player actually reads, so fall back to it when no minority flag
+              // is printed.
+              const large = minority ?? small;
+              const flagPx = r * unitsPerPx;
+              const showFlags = detail !== "dot" && flagPx >= 8 && !isNavalBox(id);
+              const showLarge = showFlags && large !== null;
               return (
                 <g key={id} transform={`translate(${space.x} ${space.y})`}
                   data-testid={`ie-space-${id}`} className="ie-space-hit"
@@ -784,19 +830,31 @@ export const IEMap = React.memo(
                     // outline at that size is invisible and only dirties the
                     // board, so the control colour carries the information.
                     <circle r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth}/>
-                  ) : space.type === "capital" || space.type === "subcapital" ? (
-                    <g fill={fill} stroke={stroke} strokeWidth={strokeWidth}><Star r={r}/></g>
-                  ) : space.type === "navalBase" ? (
-                    <g fill={fill} stroke={stroke} strokeWidth={strokeWidth}><Triangle r={r}/></g>
                   ) : isNavalBox(id) ? (
-                    <rect x={-r * 1.5} y={-r * 0.8} width={r * 3} height={r * 1.6} rx={14}
-                      fill={fill} stroke={stroke} strokeWidth={strokeWidth} opacity={0.95}/>
-                  ) : space.type === "territory" ? (
-                    <circle r={r} fill={fill} stroke={stroke} strokeWidth={strokeWidth}/>
+                    <NavalPlateMarker r={r} label={label(id)}/>
                   ) : (
-                    <rect x={-r} y={-r} width={r * 2} height={r * 2} rx={14}
-                      fill={fill} stroke={stroke} strokeWidth={strokeWidth}/>
+                    <>
+                      {/* The printed counter is a paper edge under a coloured
+                          face.  Drawing the same outline twice is cheaper than
+                          a second stroke and keeps the star/triangle/circle
+                          geometry exact at every zoom. */}
+                      <g fill="#f8f1df" stroke={darkFor(state.control)}
+                        strokeWidth={strokeWidth * 1.15} strokeLinejoin="round">
+                        <MarkerShape type={space.type} r={r + 5}/>
+                      </g>
+                      <g fill={fill} stroke={darkFor(state.control)}
+                        strokeWidth={strokeWidth * 0.42} strokeLinejoin="round">
+                        <MarkerShape type={space.type} r={r}/>
+                      </g>
+                    </>
                   )}
+                  {showLarge && large !== null && (
+                    <Flag name={large} x={-r * 0.45} y={-r * 0.3} w={r * 1.08} h={r * 0.68} rotate={-7}/>
+                  )}
+                  {showFlags && small !== null && !(large === small && showLarge) && (
+                    <Flag name={small} x={r * 0.28} y={r * 0.35} w={r * 0.56} h={r * 0.34} rotate={-6}/>
+                  )}
+
                   {/* A port prints an anchor on the board; it is the cue for
                       "a fleet can reach this space" without drawing a red line
                       across the sea for every one of the 120 routes. */}
@@ -880,14 +938,11 @@ export const IEMap = React.memo(
                 const isSelected = selected === id;
                 const isHighlighted = highlight.has(id);
                 return (
-                  <text key={id} x={space.x} y={space.y + radiusOf(id) + labelSize * 1.6}
-                    textAnchor="middle" fontSize={labelSize}
-                    fill={isSelected ? "#7a2418" : "#2a2218"}
-                    fontWeight={isSelected || isHighlighted ? 700 : 600}
-                    paintOrder="stroke" stroke={isSelected ? "#ffe9a8" : "#f6eed8"}
-                    strokeWidth={unitsPerPx * 2.4}>
-                    {label(id)}
-                  </text>
+                  <g key={id} data-testid="ie-printed-nameplate"
+                    transform={`translate(${space.x} ${space.y + radiusOf(id) + labelSize * 1.45})`}>
+                    <PrintedNameplate name={label(id)} y={0} fontSize={labelSize}
+                      maxWidth={Math.max(labelSize * 9, 150)} selected={isSelected || isHighlighted}/>
+                  </g>
                 );
               })}
             </g>
