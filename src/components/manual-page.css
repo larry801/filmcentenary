@@ -1,0 +1,33 @@
+.manual-page {
+    padding: 24px;
+}
+
+
+.manual-page .MuiListItem-root {
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+.manual-icon-ref {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+}
+
+.manual-icon-ref .MuiListItem-root {
+    width: auto;
+    flex: 0 1 auto;
+    min-width: 200px;
+}
+
+.manual-flex-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.manual-flex-row > * {
+    flex: 1 1 280px;
+}
+
+

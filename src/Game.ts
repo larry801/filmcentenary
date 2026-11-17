@@ -3,6 +3,7 @@ import {IG, setup} from "./types/setup";
 import {
     breakthrough,
     buyCard, changePlayerSetting,
+    chooseDiscard,
     chooseEffect,
     chooseEvent,
     chooseHand,
@@ -116,9 +117,12 @@ export const FilmCentenaryGame: Game<IG> = {
             }
         }
         r.player = newPlayerObj;
+        /*
         if (r.secretInfo !== undefined) {
             delete r.secretInfo;
         }
+        //疑似引发突抽bug，君子游戏吧
+        */
         return r;
     },
     moves: {
@@ -132,6 +136,7 @@ export const FilmCentenaryGame: Game<IG> = {
         moveBlocker: moveBlocker,
         chooseTarget: chooseTarget,
         chooseHand: chooseHand,
+        chooseDiscard: chooseDiscard,
         chooseEvent: chooseEvent,
         chooseEffect: chooseEffect,
         chooseRegion: chooseRegion,

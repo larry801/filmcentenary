@@ -9,6 +9,7 @@ import DrawerAppBar from "./components/drawer-app-bar";
 // before any component that calls it; the server bundle never loads it.
 import "./constant/i18nReact";
 import "./virginQueen/components/virgin-queen.css";
+import VersionChecker from "./components/version-checker";
 
 const Local4p = React.lazy(() => import("./components/single/4p"));
 const Local3p = React.lazy(() => import("./components/single/3p"));
@@ -16,10 +17,14 @@ const Local2p = React.lazy(() => import("./components/single/2p"));
 const MUICreateMatch = React.lazy(() => import("./components/create-match"));
 const JoinPage = React.lazy(() => import("./components/join"));
 const DenseTable = React.lazy(() => import("./components/card-table"));
+const CardViewTable = React.lazy(() => import("./components/card-view-table"));
 const SongJinnCardTable = React.lazy(() => import("./songJinn/components/card-table"));
 const ImperialElegyCardTable = React.lazy(() => import("./imperialElegy/components/card-table"));
 const VQCardTable = React.lazy(() => import("./virginQueen/components/card-table"));
 const AboutPage = React.lazy(() => import("./components/about-page"));
+const ManualPage = React.lazy(() => import("./components/manual-page"));
+const MatchStatsPage = React.lazy(() => import("./components/match-stats"));
+const MatchDataPage = React.lazy(() => import("./components/match-data"));
 const HomePage = React.lazy(() => import("./components/home"));
 const Lobby = React.lazy(() => import("./components/lobby"));
 const Local = React.lazy(() => import("./songJinn/components/local"));
@@ -37,6 +42,7 @@ const rootElement = document.getElementById("root")!;
 createRoot(rootElement).render(
     <BrowserRouter>
         <CssBaseline/>
+        <VersionChecker/>
         <DrawerAppBar/>
         <Suspense fallback={<RouteFallback/>}>
             <Routes>
@@ -47,10 +53,14 @@ createRoot(rootElement).render(
                 <Route path="/virginQueen" element={<MUICreateMatch gameName={"virginQueen"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/imperialElegy" element={<MUICreateMatch gameName={"imperialElegy"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/cards" element={<DenseTable/>}/>
+                <Route path="/cards/album" element={<CardViewTable/>}/>
                 <Route path="/cards/songJinn" element={<SongJinnCardTable/>}/>
                 <Route path="/cards/imperialElegy" element={<ImperialElegyCardTable/>}/>
                 <Route path="/cards/virginQueen" element={<VQCardTable/>}/>
                 <Route path="/about" element={<AboutPage/>}/>
+                <Route path="/manual" element={<ManualPage/>}/>
+                <Route path="/match-stats" element={<MatchStatsPage/>}/>
+                <Route path="/match-data/:matchID" element={<MatchDataPage/>}/>
                 <Route path="/join/film/:matchID/:player/:credential" element={<JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/join/film/:matchID/:player" element={<JoinPage gameName={"film"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
                 <Route path="/join/songJinn/:matchID/:player/:credential" element={<JoinPage gameName={"songJinn"} serverURL={`${window.location.protocol}//${window.location.host}`}/>}/>
@@ -73,4 +83,3 @@ createRoot(rootElement).render(
         </Suspense>
     </BrowserRouter>
 );
-

@@ -2,12 +2,16 @@ import {
     AllClassicCards,
     BasicCardID, CardID,
     EventCardID,
+    getCardById,
     IBuyInfo,
     IEra,
     Region,
     ValidRegion,
 } from "../../types/core";
+import { getAllExtensions } from "../../extensions/registry";
 import {
+    chooseDiscard,
+    IChooseDiscardArg,
     IChooseEventArg, IChooseHandArg, ICommentArg,
     IPayAdditionalCostArgs,
     IPeekArgs,
@@ -15,6 +19,7 @@ import {
     IShowBoardStatusProps, IShowCompetitionResultArgs, ITargetChooseArgs, IUpdateSlotProps
 } from "../../game/moves";
 import {argChangePlayerSettingHOF, argChooseRegionHOF, argSetupGameModeHOF, LocaleSettings, moveHOF} from "./common";
+import buyCard from "../../components/buy-card";
 
 const chose = " chose "
 const cards = {
@@ -179,14 +184,79 @@ const cards = {
     '4006': 'Third Cinema',
     '4007': 'Kitchen Sink Film',
     '4008': 'High-Concept Film',
+	
+    '5001': 'Silent Film',
+	'5002': 'West Film',
+	'5003': 'Brighton School',
+	'5004': 'Experimental Film',
+
+    '5201': 'Plague Film School',
+    '5202': 'Spaghetti Western',
+    '5203': 'Epic Film',
+    '5204': 'Drama Film School',
+    '5205': 'Chocolate School',
+
+    '5206': 'Star System',
+    '5207': 'Interior Drama Film',
+    '5208': 'Black Wave',
+    '5209': 'Martial Arts Film',
+
+    '52681': 'Essay Film',
+    '52682': 'Berlin School',
+    '52683': 'Mexican Film',
+    '52684': 'Sun Tribe Film',
+
+    '52691': 'Tech: Stop Motion',
+    '52692': 'Tech: Stunt Film',
+    '52693': 'Tech: Sound Film',
+    '52694': 'Tech: Technicolor',
+
+    '52701': 'Tech: Zoom Lens',
+    '52702': 'Tech: 3D Film',
+
+    '6001': 'New Drama',
+    '6002': 'Czechoslovak Film',
+    'enableSchoolExtensionDawn': 'Enable Daybreak Extension',
+    '6003': 'New Czechoslovak Film',
+	'6004': 'Auteur film',
+
+    '6111': 'The Birth of a Nation',
+    '6121': "Baby's Lunch",
+    '6131': "The Cameraman's Revenge",
+    '6211': 'Stanley Donen',
+    '6213': 'William Wyler',
+    '6212': 'Touch of Evil',
+    '6221': 'Jean Vigo',
+    '6222': 'Zero for Conduct',
+    '6231': 'Andrzej Wajda',
+    '6232': 'Knife in the Water',
+    '6241': 'Solitary Island',
+    '6242': 'Floating Weeds',
+    '6243': 'Ishiro Honda',
+    '6311': 'Stanley Kubrick',
+    '6312': 'Alien',
+    '6313': 'Jurassic Park',
+    '6314': 'The Terminator',
+    '6321': 'Jean-Pierre Melville',
+    '6322': 'The Living Daylights',
+    '6323': 'Wings of Desire',
+    '6331': 'Emir Kusturica',
+    '6332': 'Love',
+    '6333': 'Ashes and Diamonds',
+    '6341': 'Hou Hsiao-hsien',
+    '6342': 'New Cinema',
+    '6343': 'Yellow Earth',
 };
 const region = {
-    0: "North America",
-    1: "West Europe",
-    2: "East Europe",
-    3: "Asia",
-    4: "School Extension",
-    5: "Any Region",
+    [Region.NA] : "North America",
+    [Region.WE] : "West Europe",
+    [Region.EE] : "East Europe",
+    [Region.ASIA] : "Asia",
+    [Region.EXTENSION] : "School Extension",
+    [Region.EXTENSION1] : "Muki & QM Extension",
+    [Region.EXTENSION2] : "Muki Extension2",
+    [Region.MONTHLY_SCHOOL] : "Monthly School",
+    [Region.NONE] : "Any Region",
 };
 const numToValue = (value: number = 1): string => value.toString();
 
@@ -216,7 +286,7 @@ const eventName = {
     'E08': '【Unfreeze】 slot is activated, calculate the sum of industry level, aesthetics level, industry and aesthetics marks of current school of every company, lowest company upgrade aesthetics level once',
     'E09': '【Bollywood】 slot activated, company with the lowest aesthetics level upgrade aesthetics level once, company with the lowest aesthetics level upgrade aesthetics level once.',
     'E10': 'Each company whose prestige is higher than you ,gain 4 extra prestige',
-    'E11': 'Every person card in your deck and archive gain 4 extra prestige',
+    'E11': 'Every person card in your hand, discard, deck and archive gain 4 extra prestige',
     'E12': 'Gain prestige according to your industry and aesthetics level.',
     'E13': 'If your company have 4/3/2/1 champions form different regions, gain 20/12/6/1 extra prestige',
     'E14': 'Every champion and share give you 1 extra prestige',
@@ -250,12 +320,35 @@ const setting: LocaleSettings = {
     normal: "Complete Mode",
     newbie: "Newbie Mode",
     enableSchoolExtension: "Enable school extension",
+    enableSchoolExtensionMuki: "Enable Muki school extension",
+    enableSchoolExtensionMuki2: "Enable Muki school extension 2",
+    enableSchoolExtensionQM: "Enable QM school extension",
+    enableExtensionChaosMedia: "Enable Chaos Media extension",
     randomFirst: "Random First Player",
     fixedFirst: "Fixed First Player",
     allRandom: "Random Order",
+    anonymousRandom: "Anonymous Random",
     order: "Turn Order",
     changeSetting: "Change Game Setting",
-    disableUndo: "Disable Undo"
+    disableUndo: "Disable Undo",
+    enableSchoolExtensionDawn: "Enable Daybreak Extension",
+    enableSchoolExtensionTech: "Enable Tech Innovation Extension",
+    enableSchoolExtensionVisual: "Enable Visual Spectacle Extension",
+
+    testModeCinema: "[Optional] Cinema: +1 resource, +1 prestige",
+    testModeEnd180: "[Optional] Game End: 180 VP",
+
+    customOptions: "Custom Options",
+
+    recommendedSettings: "Recommended",
+    presetClassic: "Classic Base",
+    presetWild: "Wild All-In",
+    presetLatest: "Latest Releases",
+
+    extensionMode: "Extension Mode",
+    extensionMode_none: "normal Extension mode",
+    extensionMode_four: "4-Extension-school mode",
+    extensionMode_fixed: "fixed-Extension mode",
 };
 const argSetupGameMode = argSetupGameModeHOF(chose, setting);
 
@@ -431,6 +524,15 @@ const argChooseHand = {
         return t
     }
 }
+const argChooseDiscard = {
+    args: (arg: IChooseDiscardArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += bracketCardName(a.discard)
+        return t
+    }
+}
+
 const argCompetitionCard = {
     args: (): string => {
         return " played a card for competition"
@@ -438,7 +540,7 @@ const argCompetitionCard = {
 }
 const argUpdateSlot = {
     args: (arg: IUpdateSlotProps[]): string => {
-        return ` updated ${bracketCardName(arg[0].cardId)} to`
+        return ` updated ${bracketCardName(arg[0].cardId)}`
     }
 }
 const argComment = {
@@ -498,6 +600,7 @@ const movesI18n = moveHOF(
     argChangePlayerSetting,
     argChooseEvent,
     argChooseHand,
+    argChooseDiscard,
     argChooseRegion,
     argChooseTarget,
     argComment,
@@ -556,6 +659,12 @@ const en = {
             local: "Local hotseat",
             tutorial: "Two-player tutorial",
         },
+        playerNamePlaceholder: "Whose name is remembered?",
+        matchRecords: "Match data",
+        manual: "How to use",
+        matchStats: "Match stats",
+        quickReplay: "Quick replay",
+        playerNameUnset: "no player name",
     },
     title: "Film Centenary",
     home: {
@@ -699,6 +808,7 @@ const en = {
         }],
         industryAndAestheticsBreakthrough: "Do industry and aesthetics breakthrough",
         industryOrAestheticsLevelUp: "Upgrade industry or aesthetics level",
+        industryOrAestheticsLevelDown: "Downgrade industry or aesthetics level",
         era: {
             0: " Invention:",
             1: " Classic:",
@@ -714,6 +824,7 @@ const en = {
         everyPlayer: "Every company",
         onYourComment: "After you perform a comment,",
         onAnyOneComment: "After any one perform a comment,",
+        onAnyOneUpdate: "After any one update a slot,",
         onAnyInTurnAesAward: "In your turn, after every aesthetics level award",
         doNotLoseVpAfterCompetition: "Do not lose vp after competition",
         discardInSettle: "When you comment or update,",
@@ -726,6 +837,8 @@ const en = {
         eastEuropeFilm: ["Gain {{a}} extra prestige for each of your east europe card.", argValue],
         industryLevel: ["Gain {{a}} extra prestige for each of your industry level", argValue],
         aestheticsLevel: ["Gain 2 extra prestige for each of your aesthetics level", argValue],
+        maxLevel: ["Gain {{a}} extra prestige for each of your max level", argValue],
+        pairLevel: ["Gain {{a}} extra prestige for each of your pair level", argValue],
         personCard: "Gain 4 extra prestige for each of your person card.",
         aesClassic: "Gain 2 extra prestige for each of your normal or legend card with aesthetics marker.",
         NewYorkSchool: " if your industry level is not less than your aesthetics level,execute your aesthetics level bonus once, if your industry level is not less than your aesthetics level execute your industry level bonus once",
@@ -748,10 +861,70 @@ const en = {
         High_Concept_Film: "Each industrial symbol for your played card: +1 resource, +1 vp. After competition :+1 competition power, +1 card.",
         schoolExtNonePre: "",
 
+        West_Film: "When building, gain 1 extra share in the corresponding region.",
+        Brighton_School: "When your aesthetics level is 2, your aesthetics reward becomes [Resource +1].",
+        Experimental_Film: "Whenever you buy a film whose level requirement is higher than your level: +1 deposit, +1 prestige. After losing Experimental Film: +1 industry level, +1 deposit, +1 prestige.",
+        Czechoslovakian_Film: "If the difference between your industry and aesthetics levels is 1 or less, resolve your industry and aesthetics rewards one additional time.",
+        Czechoslovakian_Film_2: "If the difference between your industry and aesthetics levels is 2 or less: at end of turn, trigger industry and aesthetics rewards one additional time; all your person-card studio effects trigger one additional time.",
+        Auteur_film: "After buying a person card: +1 action point, +1 deposit, +1 prestige. Your person-card effect [choose one company in this region without a studio] becomes [choose all other companies in this region without a studio].",
+
+        '5201_effect': "When buying, each insufficient level requirement costs only 1 extra resource. When buying this school.",
+        '5201_buy': "Can be bought when any region enters Era III. If East Europe is in Era I/II, gain all East Europe shares.",
+        //'5203_buy': "+1 share in any region.",
+        '5202_effect': "After you gain +1 card, gain +1 prestige. After being competed, you do not lose prestige.",
+        '5203_effect': "When buying or breaking through a film: +1 share in that region. During region scoring, each of your shares grants 1 extra prestige.",
+        '5204_effect': "Before you gain +1 card, if your deck is empty: +2 resources, +4 prestige. After being competed, you do not lose prestige.",
+        '5205_effect': "If [Final Round] has been triggered, buying different card types gives different rewards:\n" +
+            "Legend card: +1 action point;\n" +
+            "Normal card: +4 resources;\n" +
+            "Basic card: +6 prestige;\n" +
+            "Film card: +1 card;\n" +
+            "Person card: gain prestige based on that person card's level requirement"
+        ,
+        //'5206_buy': "-3 prestige, +1 North America share.",
+        '5206_effect': "At the start of each turn, for each company with higher prestige than you: +1 prestige. During your turn, whenever your prestige increases and surpasses another company: +1 card. At the end of each turn, for each company with lower prestige than you: pay 1 prestige to gain +1 resource.",
+        '5207_effect': "At the start of each turn, if hand size <= industry level: +1 action point. At end of each turn, if cards in your play area >= industry level: +1 deposit, +1 prestige.",
+        '5208_buy': "Can be bought when any region is in Era II. If East Europe is in Era I/II, gain all/1 East Europe share(s).",
+        '5208_effect': "Whenever you archive an obsolete film or a bad film (including through breakthrough), buy 1 Classic Film for free and +1 card. Your Classic Film can also choose option 3: +1 deposit, +2 prestige.",
+        '5209_effect': "When you only have 1 action point left and play an obsolete film: pay 1 deposit to resolve the [Play] effect based on the film's era; if you can't pay, +1 prestige.",
+
+        '52681_buy': "Buy 【Literary Film】 for free. +1 East Europe share.",
+        '52681_effect': "When you have exactly 5 cards in hand, after you play a card, [optional] pay 1 prestige to archive that card.",
+        EssayFilm_doArchive: "Archive the played card",
+        '52682_buy': "If the sum of your levels is 4, choose one: ①+1 industry level; ②+1 aesthetics level. +1 West Europe share.",
+        '52682_effect': "Before the recovery phase, if your hand is not empty, after the recovery phase, +1 card and +1 prestige.",
+        Dawn_Berlin_buy: "If industry + aesthetics ≤ 4, choose industry or aesthetics +1",
+        '52683_buy': "Other companies -1 card, -1 prestige, +1 deposit. +1 North America share.",
+        '52683_effect': "After breakthrough, choose one: ①Buy 1 【Commercial Film】 into hand for free; ②Buy 1 【Literary Film】 into hand for free.",
+        '52684_buy': "[Buy][Update] once. +1 Asia share. +1 action point.",
+        '52684_effect': "Before the recovery phase, if you have no action points, after the recovery phase, archive Sun Tribe Film. After losing Sun Tribe Film: +1 industry level, +7 prestige.",
+        '52691_buy': "Place into the archive to take effect. Buy a 【Commercial Film】 for free and place it on top of your deck.",
+        '52691_effect': "After drawing cards with an action point: +1 card, +3 prestige.",
+        '52692_buy': "Place into the archive to take effect. Breakthrough once for free.",
+        '52692_effect': "Whenever your hand size changes by anything other than ±1 around playing a card: +1 prestige.",
+        '52693_buy': "Place into the archive to take effect. +2 prestige.",
+        '52693_effect': "Each time you lose 1 deposit: +1 prestige.",
+        '52694_buy': "Place into the archive to take effect. +2 deposit.",
+        '52694_effect': "The first time you reach 40/80/120 prestige: +1 deposit. The first time you reach 150 prestige, choose one: ①+1 industry level; ②+1 aesthetics level.",
+
+        '52701_buy': "Place into the archive to take effect. Choose a region: +3 shares, +2 normal cards, +1 legend card in that region.",
+        '52701_effect': "Each time your aesthetics level increases: -2 prestige, then gain prestige equal to your aesthetics level.",
+        '52702_buy': "Place into the archive to take effect. Choose one: ①+1 industry level; ②+1 aesthetics level.",
+        '52702_effect': "Your competition power cannot be lower than your aesthetics level (but not higher than your industry level).",
+        addAction: ["+{{a}} action(s)", argValue],
+
+        '6311_effect': "During this action phase, after you contest: +1 deposit, +1 competition power.",
+        '6312_effect': "During this action phase, after your industry reward: +1 card.",
+        '6213_naShare2': "If you have at least 2 North America shares, +1 North America share.",
+        personCardOnBoardEffect: "Execute the 【play】 effect of a person card on the board according to this card's region.",
+
+        '6342_effect': "After any company [Updates]: +1 card. Each time you lose 1 card, gain +1 resource for each industry icon on that card and +1 prestige for each aesthetics icon on that card. After being competed, you do not lose prestige.",
+
         obtainNormalOrLegendFilm: "When you get a normal or legend film card.",
         none: "",
         breakthroughResDeduct: ["Execute a free breakthrough action", argValue],
         handToAnyPlayer: ["Give one card in hand to other companies", argValue],
+        discardToAnyPlayer: ["Give one card from your discard pile to any company", argValue],
         buyNoneEEFilm: "When buy film card in east europe, 1CP 1VP。",
         extraVp: ["Pay extra {{a}} prestige", argValue],
         inventionEraBreakthroughPrevent: "Cannot breakthrough if it is invention era",
@@ -809,6 +982,8 @@ const en = {
                 if (e.e !== "none") {
                     if (e.e === "anyRegionShareCentral") {
                         return "get an additional share from any region on board if you win."
+                    } else if (e.e === "addAction") {
+                        return ` and gain ${e.a} action point if you win.`
                     } else {
                         return "get an additional share from " + region[e.r as Region] + " if you win."
                     }
@@ -818,6 +993,7 @@ const en = {
             }
         }],
         loseVp: ["Lose {{a}} prestige", argValue],
+        loseVpForLevelDiff: "Lose prestige according to the difference between your industry level and aesthetics level",
         loseDeposit: ["Lose {{a}} deposit", argValue],
         beforeCompetition: "Before launching competition,",
         competitionStart: "On competition start,",
@@ -865,6 +1041,7 @@ const en = {
         loseVpRespond: "When you lose vp in your turn,",
         othersBuySchool: "When another company buys a school card,",
         turnStart: "On the beginning of every turn",
+        turnEnd: "On the end of every turn",
         studio: "All companies with a studio in this region,",
         building: "All companies with a building in this region,，",
         noStudio: "Choose a company without a studio in this region,",
@@ -888,10 +1065,14 @@ const en = {
         aestheticsBreakthrough: ["Aesthetics breakthrough{{a}}", argTimes],
         buy: ["Buy 【{{a}}】 for free", argCardName],
         competitionLoserBuy: ["The loser buy [{{a}} ]", argCardName],
+        competitionLoserLoseVp: ["The loser lose {{a}} vp", argValue],
         buyCardToHand: ["Buy 【{{a}}】 for free, and add to hand.", argCardName],
+        buyCardToDeckTop: ["Buy 【{{a}}】 for free, and put it on top of deck.", argCardName],
         industryLevelUp: ["Upgrade industry level {{a}}", argTimes],
+        industryLevelDown: ["Downgrade industry level {{a}}", argTimes],
         industryLevelUpCost: ["Upgrade industry level {{a}} with possible extra cost", argTimes],
         aestheticsLevelUp: ["Upgrade aesthetics level {{a}}", argTimes],
+        aestheticsLevelDown: ["Downgrade aesthetics level {{a}}", argTimes],
         aestheticsLevelUpCost: ["Upgrade aesthetics level {{a}} with possible extra cost", argTimes],
         buildCinema: "Build Cinema",
         buildCinemaInRegion: ["Build cinema in {{a}}", argRegion],
@@ -942,6 +1123,10 @@ const en = {
             title: "Please choose one card as target of the current effect",
             toggleText: "Choose card for effect",
         },
+        chooseDiscard: {
+            title: "Please choose one card from your discard pile as target of the current effect",
+            toggleText: "Choose card from discard",
+        },
         competitionCard: {
             title: "Please choose one card from hand for competition",
             toggleText: "Competition card",
@@ -959,6 +1144,9 @@ const en = {
         payAdditionalCost: "Pay extra cost",
         comment: "Comment",
         updateSlot: "Update",
+        newEraReveal: " revealed: ",
+        updateReveal: "Update revealed: ",
+        refillReveal: "Refill revealed: ",
         showBoardStatus: "Initial setup",
         draw: "Draw additional card",
         play: "Play",

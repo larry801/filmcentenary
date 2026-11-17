@@ -1,5 +1,6 @@
 import React from "react";
 import {
+    CardCategory,
     BasicCardID,
     BuildingType,
     CardID,
@@ -8,7 +9,8 @@ import {
     IRegionInfo,
     Region,
     SimpleRuleNumPlayers,
-    ValidRegion
+    ValidRegion,
+    ExtensionMode
 } from "../types/core";
 import {Ctx, PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
@@ -28,13 +30,15 @@ import StudioIcon from '@mui/icons-material/Business';
 import TheatersIcon from '@mui/icons-material/Theaters';
 import AccordionDetails from "@mui/material/AccordionDetails";
 import DeckIcon from '@mui/icons-material/Layers';
-import CardInfo, {getCardName} from "./card";
+import CardInfo, {CardAdjustBadge, getCardName} from "./card";
 import {ChampionIcon, DrawnShareIcon, getColor} from "./icons";
 import PrestigeIcon from "@mui/icons-material/EmojiEvents";
 import ResourceIcon from "@mui/icons-material/MonetizationOn";
 import AestheticsIcon from "@mui/icons-material/ImportContacts";
 import IndustryIcon from "@mui/icons-material/Settings";
 import {getValidHelper} from "../game/board-util";
+
+import './card.css';
 
 export interface ICardSlotProp {
     slot: ICardSlot,
@@ -68,7 +72,19 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment, helpers: 
     return <>
         <Paper variant={variant}>
             <Grid container>
-                <Grid size={12}>
+                <Grid size={12} className="dybn-card"
+                    sx={{
+                        position: "relative",
+                        backgroundImage: `url("/img/${slot.card}.png")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right center',
+                        backgroundSize: 'auto 100%',
+                        ...(slot.card !== null && getCardById(slot.card).category === CardCategory.LEGEND ? {
+                            boxShadow: '2px 2px 2px #000000c4, -1px -1px 1px 1px #dadadacc'
+                        } : {})
+                    }}
+                >
+                    {slot.card === null ? <></> : <CardAdjustBadge cardId={slot.card}/>}
                     {slot.card === null ? <></> :
                         <>
                             <CardInfo cid={slot.card}/>
@@ -77,12 +93,12 @@ export const BoardCardSlot = ({playerID, slot, moves, G, ctx, comment, helpers: 
                                     display: 'inline-flex',
                                     verticalAlign: 'middle'
                                 }}>
-                                <ResourceIcon/>
-                                {cardObj.cost.res}
                                 <IndustryIcon/>
                                 {cardObj.cost.industry}
                                 <AestheticsIcon/>
                                 {cardObj.cost.aesthetics}
+                                <ResourceIcon/>
+                                {cardObj.cost.res}
                                 <PrestigeIcon/>
                                 {cardObj.vp}
                             </Typography>
@@ -304,6 +320,27 @@ export const BoardRegion = ({getPlayerName, r, region, G, ctx, playerID, moves, 
     </Grid>
 }
 
+const isRegionVisible = (G: IG, region: IRegionInfo): boolean => {
+    if (ExtensionMode.FIXED === G.extensionMode) return false;
+    if (region === G.regions[Region.EXTENSION]) {
+        if (G.extensionMode === ExtensionMode.FOUR) return true;
+        return G.hasSchoolExtension;
+    }
+    if (region === G.regions[Region.EXTENSION1]) {
+        if (G.extensionMode === ExtensionMode.FOUR) return false;
+        return G.hasSchoolExtensionMuki || G.hasSchoolExtensionQM;
+    }
+    if (region === G.regions[Region.EXTENSION2]) {
+        if (G.extensionMode === ExtensionMode.FOUR) return false;
+        return G.hasSchoolExtensionMuki2;
+    }
+    if (region === G.regions[Region.MONTHLY_SCHOOL]) {
+        if (G.extensionMode === ExtensionMode.FOUR) return false;
+        return G.hasSchoolExtensionDawn || G.hasSchoolExtensionTech || G.hasSchoolExtensionVisual;
+    }
+    return true;
+};
+
 export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves, helpers}: InvRegionProp) => {
     i18n.use();
     const {era, share, legend, normal, legendDeckLength, normalDeckLength} = region;
@@ -314,6 +351,9 @@ export const SchoolRegion = ({getPlayerName, r, region, G, ctx, playerID, moves,
         p: playerID
     }), [moves, playerID]);
 
+    if (!isRegionVisible(G, region)) {
+        return <></>;
+    }
     return <Grid size={12}>
         <Accordion
             sx={styles.root}

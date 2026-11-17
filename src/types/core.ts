@@ -1,4 +1,6 @@
 import {PlayerID} from "boardgame.io";
+import { IG } from "./setup";
+import { getAllExtensionCards, getEnabledExtensions } from "../extensions/registry";
 
 
 export enum Region {
@@ -7,6 +9,9 @@ export enum Region {
     EE,
     ASIA,
     EXTENSION,
+    EXTENSION1,
+    EXTENSION2,
+    MONTHLY_SCHOOL,
     NONE,
 }
 
@@ -14,6 +19,13 @@ export enum GameTurnOrder {
     FIXED = "FIXED",
     FIRST_RANDOM = "FIRST_RANDOM",
     ALL_RANDOM = "ALL_RANDOM",
+    ANONYMOUS_RANDOM = "ANONYMOUS_RANDOM",
+}
+
+export enum ExtensionMode {
+    NONE = "NONE",
+    FOUR = "FOUR",
+    FIXED = "FIXED",
 }
 
 export enum ClassicFilmAutoMoveMode {
@@ -187,6 +199,7 @@ export enum MoveNames {
     chooseEffect = "chooseEffect",
     chooseEvent = "chooseEvent",
     chooseHand = "chooseHand",
+    chooseDiscard = "chooseDiscard",
     chooseRegion = "chooseRegion",
     updateSlot = "updateSlot",
     payAdditionalCost = "payAdditionalCost",
@@ -205,6 +218,7 @@ export enum MoveNames {
 export enum SimpleEffectNames {
     LES_CHAIERS_DU_CINEMA = "LES_CHAIERS_DU_CINEMA",
     competitionLoserBuy = "competitionLoserBuy",
+    competitionLoserLoseVp = "competitionLoserLoseVp",
     CompetitionPowerToVp = "CompetitionPowerToVp",
     shareToVp = "shareToVp",
     none = "none",
@@ -218,6 +232,7 @@ export enum SimpleEffectNames {
     addCompetitionPower = "addCompetitionPower",
     loseCompetitionPower = "loseCompetitionPower",
     loseVp = "loseVp",
+    loseVpForLevelDiff = "loseVpForLevelDiff",
     loseShareNA = "loseShareNA",
     shareNA = "shareNA",
     loseShareWE = "loseShareWE",
@@ -234,6 +249,7 @@ export enum SimpleEffectNames {
     draw = "draw",
     buy = "buy",
     buyCardToHand = "buyCardToHand",
+    buyCardToDeckTop = "buyCardToDeckTop",
     aestheticsLevelUp = "aestheticsLevelUp",
     industryLevelUp = "industryLevelUp",
     industryAward = "industryAward",
@@ -251,6 +267,8 @@ export enum ScoringEffectNames {
     eastEuropeFilm = "eastEuropeFilm",
     industryLevel = "industryLevel",
     aestheticsLevel = "aestheticsLevel",
+    maxLevel = "maxLevel",
+    pairLevel = "pairLevel",
     personCard = "personCard",
     allNoStudioPlayer = "allNoStudioPlayer",
 }
@@ -291,6 +309,10 @@ export enum NoExecutorEffectNames {
     Third_Cinema = "Third_Cinema",
     kitchen_sink_turnstart = "kitchen_sink_turnstart",
     High_Concept_Film = "High_Concept_Film",
+	
+	West_Film = "West_Film",
+	Brighton_School = "Brighton_School",
+	Experimental_Film = "Experimental_Film",
 }
 
 export enum EventCardID {
@@ -341,10 +363,10 @@ export interface IScoreCard extends ICard {
 }
 
 export interface IPlayerShare {
-    0: number,
-    1: number,
-    2: number,
-    3: number,
+    [Region.NA]: number,
+    [Region.WE]: number,
+    [Region.EE]: number,
+    [Region.ASIA]: number
 }
 
 export interface Champion {
@@ -360,9 +382,20 @@ export enum MainAction {
     scoring,
 }
 
+export interface IVpStats {
+    // 按来源统计（实时分数变动）
+    source: { [source: string]: number },
+    // 按牌统计：卡牌 -> 来源 -> 分数
+    card: { [cardId: string]: { [source: string]: number } },
+}
+
 export interface IPubInfo {
     LES_CHAIERS_DU_CINEMA: boolean,
     competitionPower: number,
+    // 2026-10 分数来源统计（实时）
+    vpStats: IVpStats,
+    // 2026-10 分数来源统计（终局计分）
+    vpStatsFinal: IVpStats,
     finalScoring: {
         card: number,
         building: number,
@@ -388,6 +421,7 @@ export interface IPubInfo {
     }
     actionused: boolean,
     bought_extension: boolean,
+    techStuntHandSnapshot: number,
     action: number,
     handsize_startturn: number,
     deposit: number,
@@ -398,6 +432,7 @@ export interface IPubInfo {
     discard: CardID[],
     revealedHand: CardID[],
     playedCardInTurn: CardID[],
+    activeCardInTurn: CardID[],
     industry: number,
     aesthetics: number,
     school: SchoolCardID | null,
@@ -509,6 +544,50 @@ export enum SchoolCardID {
     'S4006' = 'S4006',
     'S4007' = 'S4007',
     'S4008' = 'S4008',
+	
+	//Muki扩
+    'S5001' = 'S5001',
+    'S5002' = 'S5002',
+    'S5003' = 'S5003',
+    'S5004' = 'S5004',
+
+    //Muki扩2
+    'S5201' = 'S5201',
+    'S5202' = 'S5202',
+    'S5203' = 'S5203',
+    'S5204' = 'S5204',
+    'S5205' = 'S5205',
+
+    'S5206' = 'S5206',
+    'S5207' = 'S5207',
+    'S5208' = 'S5208',
+    'S5209' = 'S5209',
+
+    //2026-8扩
+    'S52681' = 'S52681',
+    'S52682' = 'S52682',
+    'S52683' = 'S52683',
+    'S52684' = 'S52684',
+
+    //2026-9扩
+    'S52691' = 'S52691',
+    'S52692' = 'S52692',
+    'S52693' = 'S52693',
+    'S52694' = 'S52694',
+
+    //2026-10扩（视觉奇观）
+    'S52701' = 'S52701',
+    'S52702' = 'S52702',
+
+    //起名扩
+    'S6001' = 'S6001',
+    'S6002' = 'S6002',
+    'S6003' = 'S6003',
+    'S6004' = 'S6004',
+
+    //乱世光影扩
+    'S6241' = 'S6241',
+    'S6342' = 'S6342',
 }
 
 export enum PersonCardID {
@@ -536,6 +615,15 @@ export enum PersonCardID {
     'P3401' = 'P3401',
     'P3402' = 'P3402',
     'P3403' = 'P3403',
+    'P6211' = 'P6211',
+    'P6213' = 'P6213',
+    'P6221' = 'P6221',
+    'P6231' = 'P6231',
+    'P6243' = 'P6243',
+    'P6311' = 'P6311',
+    'P6321' = 'P6321',
+    'P6331' = 'P6331',
+    'P6341' = 'P6341',
 }
 
 export enum FilmCardID {
@@ -633,6 +721,21 @@ export enum FilmCardID {
     // 'F3412' = 'F3412',
     'F3413' = 'F3413',
     'F3414' = 'F3414',
+    'F6111' = 'F6111',
+    'F6121' = 'F6121',
+    'F6131' = 'F6131',
+    'F6212' = 'F6212',
+    'F6222' = 'F6222',
+    'F6232' = 'F6232',
+    'F6242' = 'F6242',
+    'F6312' = 'F6312',
+    'F6313' = 'F6313',
+    'F6314' = 'F6314',
+    'F6322' = 'F6322',
+    'F6323' = 'F6323',
+    'F6332' = 'F6332',
+    'F6333' = 'F6333',
+    'F6343' = 'F6343',
 }
 
 export const AllClassicCards = {
@@ -730,6 +833,16 @@ export function schoolCard(arg: IArgFilmCard): ISchoolCard {
         category: arg.category,
         aesthetics: arg.aesthetics
     }
+}
+
+// 2026-9 / 2026-10 技术流派牌：购买不替换流派，直接置入档案区
+const TechSchoolIDs = [
+    SchoolCardID.S52691, SchoolCardID.S52692, SchoolCardID.S52693, SchoolCardID.S52694,
+    SchoolCardID.S52701, SchoolCardID.S52702,
+];
+
+export function isTechSchool(id: string): boolean {
+    return TechSchoolIDs.includes(id as SchoolCardID);
 }
 
 export function eventCard(arg: IArgEvent): IEventCard {
@@ -1234,7 +1347,7 @@ const NoneBasicCards = {
         era: IEra.TWO,
         region: Region.WE,
         name: "Federico Fellini",
-        cardId: PersonCardID.P2202,
+        cardId: PersonCardID.P2202, //TEST
         cost: cost(7, 1, 5),
         vp: 0,
         category: CardCategory.LEGEND,
@@ -1532,7 +1645,7 @@ const NoneBasicCards = {
         region: Region.ASIA,
         name: "Seven Samurai",
         cardId: FilmCardID.F2406,
-        cost: cost(6, 4, 0),
+        cost: cost(6, 4, 2),
         vp: 6,
         category: CardCategory.NORMAL,
         industry: 1,
@@ -2287,6 +2400,615 @@ const NoneBasicCards = {
         industry: 3,
         aesthetics: 0,
     }),
+
+    // Muki Extension
+    "S5001": schoolCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "Silent Film",
+        cardId: SchoolCardID.S5001,
+        cost: cost(6, 1, 2),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "S5002": schoolCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "West Film",
+        cardId: SchoolCardID.S5002,
+        cost: cost(5, 3, 1),
+        vp: 2,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "S5003": schoolCard({
+        era: IEra.ONE,
+        region: Region.WE,
+        name: "Brighton School",
+        cardId: SchoolCardID.S5003,
+        cost: cost(5, 0, 3),
+        vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "S5004": schoolCard({
+        era: IEra.ONE,
+        region: Region.EE,
+        name: "Experimental Film",
+        cardId: SchoolCardID.S5004,
+        cost: cost(5, 1, 0),
+        vp: 3,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+
+    // Chaos Media Extension - era I films
+    "F6111": filmCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "The Birth of a Nation",
+        cardId: FilmCardID.F6111,
+        cost: cost(3, 2, 1),
+        vp: 3,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "F6121": filmCard({
+        era: IEra.ONE,
+        region: Region.WE,
+        name: "Baby's Lunch",
+        cardId: FilmCardID.F6121,
+        cost: cost(5, 0, 0),
+        vp: 1,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "F6131": filmCard({
+        era: IEra.ONE,
+        region: Region.EE,
+        name: "The Cameraman's Revenge",
+        cardId: FilmCardID.F6131,
+        cost: cost(1, 1, 3),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+
+    // Chaos Media Extension - era II cards
+    "P6211": personCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "Stanley Donen",
+        cardId: PersonCardID.P6211,
+        cost: cost(8, 3, 3),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "P6213": personCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "William Wyler",
+        cardId: PersonCardID.P6213,
+        cost: cost(8, 6, 0),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6212": filmCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "Touch of Evil",
+        cardId: FilmCardID.F6212,
+        cost: cost(6, 5, 1),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    "P6221": personCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Jean Vigo",
+        cardId: PersonCardID.P6221,
+        cost: cost(8, 2, 4),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6222": filmCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Zero for Conduct",
+        cardId: FilmCardID.F6222,
+        cost: cost(6, 0, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "P6231": personCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Andrzej Wajda",
+        cardId: PersonCardID.P6231,
+        cost: cost(9, 3, 3),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6232": filmCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Knife in the Water",
+        cardId: FilmCardID.F6232,
+        cost: cost(6, 3, 3),
+        vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "P6243": personCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Ishiro Honda",
+        cardId: PersonCardID.P6243,
+        cost: cost(8, 4, 2),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S6241": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Solitary Island",
+        cardId: SchoolCardID.S6241,
+        cost: cost(9, 3, 3),
+        vp: 5,
+        category: CardCategory.LEGEND,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "F6242": filmCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Floating Weeds",
+        cardId: FilmCardID.F6242,
+        cost: cost(4, 2, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    "P6311": personCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "Stanley Kubrick",
+        cardId: PersonCardID.P6311,
+        cost: cost(10, 8, 4),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6312": filmCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "Alien",
+        cardId: FilmCardID.F6312,
+        cost: cost(9, 7, 3),
+        vp: 10,
+        category: CardCategory.NORMAL,
+        industry: 2,
+        aesthetics: 0,
+    }),
+    "F6313": filmCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "Jurassic Park",
+        cardId: FilmCardID.F6313,
+        cost: cost(12, 10, 0),
+        vp: 13,
+        category: CardCategory.NORMAL,
+        industry: 3,
+        aesthetics: 0,
+    }),
+    "F6314": filmCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "The Terminator",
+        cardId: FilmCardID.F6314,
+        cost: cost(9, 11, 4),
+        vp: 14,
+        category: CardCategory.LEGEND,
+        industry: 2,
+        aesthetics: 1,
+    }),
+    "P6321": personCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Jean-Pierre Melville",
+        cardId: PersonCardID.P6321,
+        cost: cost(10, 4, 9),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6322": filmCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "The Living Daylights",
+        cardId: FilmCardID.F6322,
+        cost: cost(6, 8, 3),
+        vp: 11,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "F6323": filmCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Wings of Desire",
+        cardId: FilmCardID.F6323,
+        cost: cost(7, 0, 11),
+        vp: 14,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 3,
+    }),
+    "P6331": personCard({
+        era: IEra.THREE,
+        region: Region.EE,
+        name: "Emir Kusturica",
+        cardId: PersonCardID.P6331,
+        cost: cost(9, 6, 6),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "F6332": filmCard({
+        era: IEra.THREE,
+        region: Region.EE,
+        name: "Love",
+        cardId: FilmCardID.F6332,
+        cost: cost(7, 3, 8),
+        vp: 11,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 2,
+    }),
+    "F6333": filmCard({
+        era: IEra.THREE,
+        region: Region.EE,
+        name: "Ashes and Diamonds",
+        cardId: FilmCardID.F6333,
+        cost: cost(9, 6, 6),
+        vp: 9,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "P6341": personCard({
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "Hou Hsiao-hsien",
+        cardId: PersonCardID.P6341,
+        cost: cost(9, 3, 8),
+        vp: 0,
+        category: CardCategory.LEGEND,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S6342": schoolCard({
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "New Cinema",
+        cardId: SchoolCardID.S6342,
+        cost: cost(8, 3, 7),
+        vp: 10,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 2,
+    }),
+    "F6343": filmCard({
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "Yellow Earth",
+        cardId: FilmCardID.F6343,
+        cost: cost(7, 3, 6),
+        vp: 9,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+
+    //Muki Extension part 2
+
+    // 布拉格电影学院
+    "S5201": schoolCard({
+        era: IEra.THREE,
+        region: Region.EE,
+        name: "Prague Film School",
+        cardId: SchoolCardID.S5201,
+        cost: cost(9, 6, 6),
+        vp: 9,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    // 通心粉西部电影
+    "S5202": schoolCard({
+        era: IEra.THREE,
+        region: Region.WE,
+        name: "Spaghetti Western",
+        cardId: SchoolCardID.S5202,
+        cost: cost(7, 0, 10),
+        vp: 13,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 2,
+    }),
+    // 巨片
+    "S5203": schoolCard({
+        era: IEra.THREE,
+        region: Region.NA,
+        name: "Epic film",
+        cardId: SchoolCardID.S5203,
+        cost: cost(9, 10, 2),
+        vp: 13,
+        category: CardCategory.NORMAL,
+        industry: 2,
+        aesthetics: 1,
+    }),
+    // 剧影派
+    "S5204": schoolCard({
+        era: IEra.THREE,
+        region: Region.ASIA,
+        name: "Drama Film School",
+        cardId: SchoolCardID.S5204,
+        cost: cost(8, 5, 5),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    // 巧克力学派
+    "S5205": schoolCard({
+        era: IEra.THREE,
+        region: Region.EXTENSION2,
+        name: "Chocolate School",
+        cardId: SchoolCardID.S5205,
+        cost: cost(7, 2, 2),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    // 明星制
+    "S5206": schoolCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "Star System",
+        cardId: SchoolCardID.S5206,
+        cost: cost(5, 3, 4),
+        vp: 6,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    // 室内剧电影
+    "S5207": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Interior Drama Film",
+        cardId: SchoolCardID.S5207,
+        cost: cost(10, 2, 2),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+    // 黑浪潮
+    "S5208": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Black Wave",
+        cardId: SchoolCardID.S5208,
+        cost: cost(7, 3, 5),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 1,
+    }),
+    // 武侠电影
+    "S5209": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Wuxia Film",
+        cardId: SchoolCardID.S5209,
+        cost: cost(8, 3, 2),
+        vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+
+    // 2026-8 Extension
+    "S52681": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Prose Film",
+        cardId: SchoolCardID.S52681,
+        cost: cost(8, 1, 1),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52682": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Berlin School",
+        cardId: SchoolCardID.S52682,
+        cost: cost(6, 3, 3),
+        vp: 5,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52683": schoolCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "Mexican Film",
+        cardId: SchoolCardID.S52683,
+        cost: cost(8, 1, 2),
+        vp: 4,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S52684": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "Sun Tribe Film",
+        cardId: SchoolCardID.S52684,
+        cost: cost(8, 5, 1),
+        vp: 7,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 0,
+    }),
+
+    // 2026-9 Extension - 技术流派（不携带标志）
+    "S52691": schoolCard({
+        era: IEra.ONE,
+        region: Region.EE,
+        name: "Stop Motion",
+        cardId: SchoolCardID.S52691,
+        cost: cost(5, 2, 1),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52692": schoolCard({
+        era: IEra.ONE,
+        region: Region.WE,
+        name: "Stunt Film",
+        cardId: SchoolCardID.S52692,
+        cost: cost(5, 0, 3),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52693": schoolCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "Sound Film",
+        cardId: SchoolCardID.S52693,
+        cost: cost(5, 3, 0),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52694": schoolCard({
+        era: IEra.ONE,
+        region: Region.NA,
+        name: "Technicolor",
+        cardId: SchoolCardID.S52694,
+        cost: cost(5, 1, 2),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+
+    // 2026-10 Extension - 视觉奇观（技术流派）
+    "S52701": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Zoom Lens",
+        cardId: SchoolCardID.S52701,
+        cost: cost(5, 2, 4),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S52702": schoolCard({
+        era: IEra.TWO,
+        region: Region.NA,
+        name: "3D Film",
+        cardId: SchoolCardID.S52702,
+        cost: cost(5, 4, 2),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+
+    // QM Extension
+    "S6001": schoolCard({
+        era: IEra.TWO,
+        region: Region.ASIA,
+        name: "New Drama",
+        cardId: SchoolCardID.S6001,
+        cost: cost(7, 3, 3),
+        vp: 6,
+        category: CardCategory.NORMAL,
+        industry: 0,
+        aesthetics: 0,
+    }),
+    "S6002": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Czechoslovakian Film",
+        cardId: SchoolCardID.S6002,
+        cost: cost(7, 5, 5),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S6003": schoolCard({
+        era: IEra.TWO,
+        region: Region.EE,
+        name: "Czechoslovakian Film",
+        cardId: SchoolCardID.S6003,
+        cost: cost(7, 5, 5),
+        vp: 0,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
+    "S6004": schoolCard({
+        era: IEra.TWO,
+        region: Region.WE,
+        name: "Auteur film",
+        cardId: SchoolCardID.S6004,
+        cost: cost(8, 4, 4),
+        vp: 8,
+        category: CardCategory.NORMAL,
+        industry: 1,
+        aesthetics: 1,
+    }),
 }
 
 const E01: IEventCard = eventCard({
@@ -2335,7 +3057,7 @@ const E09: IEventCard = eventCard({
     effect: {}, id: EventCardID.E09
 })
 const E10: IEventCard = eventCard({
-    era: IEra.TWO,
+    era: IEra.THREE,
     name: "Dismantling of HAYS CODE",
     effect: {}, id: EventCardID.E10
 })
@@ -2361,6 +3083,7 @@ const E14: IEventCard = eventCard({
 })
 const EVENT_CARDS = [E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14]
 const EVENT_ERA = [[E01, E02, E03, E04,], [E05, E06, E07, E08, E09,], [E10, E11, E12, E13, E14]]
+//const EVENT_ERA = [[E08, E02, E03, E04,], [E05, E06, E07, E01, E09,], [E10, E11, E12, E13, E14]]
 export let idToCard = new Map();
 EVENT_CARDS.forEach((v: IEventCard) => {
     idToCard.set(v.cardId, v);
@@ -2821,7 +3544,7 @@ export const B04: IBasicCard = {
     cost: cost(0, 0, 0),
     industry: 0,
     type: CardType.F,
-    vp: -2,
+    vp: -3,
     region: Region.NONE,
     name: "Bad Film",
     category: CardCategory.BASIC
@@ -2870,7 +3593,7 @@ export function getBasicCard(id: BasicCardID): IBasicCard {
     return BasicCards[id];
 }
 
-export function getCardById(id: string): INormalOrLegendCard {
+export function getCardById(id: string, G?: IG): INormalOrLegendCard {
     if (id in NoneBasicCards) {
         // @ts-ignore
         return NoneBasicCards[id];
@@ -2885,6 +3608,13 @@ export function getCardById(id: string): INormalOrLegendCard {
                 if (id in ScoreCardID) {
                     return getScoreCardByID(id);
                 } else {
+                    // ★ 扩展卡牌查找（新增）
+                    if (G) {
+                        const extCards = getAllExtensionCards(G);
+                        if (id in extCards) {
+                            return extCards[id] as INormalOrLegendCard;
+                        }
+                    }
                     throw new Error("No such card id " + id)
                 }
             }
@@ -2895,7 +3625,7 @@ export function getCardById(id: string): INormalOrLegendCard {
 export function schoolCardsByEra(e: IEra) {
     let cards = Object.entries(NoneBasicCards);
     let res = cards.filter(c => c[1].era === e).filter(c => c[1].type === CardType.S)
-    return res.map(c => c[1]);
+    return res.map(c => c[1]).filter(c => !isTechSchool(c.cardId));
 }
 
 export function filmCardsByEra(e: IEra) {
@@ -2904,15 +3634,89 @@ export function filmCardsByEra(e: IEra) {
     return res.map(c => c[1]);
 }
 
-export function cardsByCond(r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
+export const BANNED_CHAOS_MEDIA_CARD_IDS = ['P6211', 'P6311', 'S6241'];
+
+export function cardsByCond(G: IG, r: Region, e: IEra, isLegend: boolean = false): INormalOrLegendCard[] {
+    const extensionCardIds = [
+        'S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008', //流派扩
+        'S5001', 'S5002', 'S5003', 'S5004', //Muki扩
+        'S5201', 'S5202', 'S5203', 'S5204', 'S5205', //Muki扩2
+        'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
+        'S52681', 'S52682', 'S52683', 'S52684', //2026-8扩
+        'S52691', 'S52692', 'S52693', 'S52694', //2026-9扩
+        'S52701', 'S52702', //2026-10扩
+        'S6001', 'S6002', 'S6003', 'S6004' //QM扩
+    ];
+    let filterCardIds : string[] = [];
+    if(G.extensionMode === ExtensionMode.FIXED){
+        /*
+            混合：
+            一：
+            电影实验派 / 电影眼睛派
+            布莱顿学派 / 瑞典学派
+            默剧 / 淘金记, 贪婪
+            二：
+            平行电影 / 黑泽明 / 雷伊
+            三：
+            巨片 / 纽约派
+
+        */
+        filterCardIds = [
+            'S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008', //流派扩
+            'S5001', 'S5002', 'S5003', 'S5004', //Muki扩
+            'S5201', 'S5202', 'S5203', 'S5204', 'S5205', //Muki扩2
+            'S5206', 'S5207', 'S5208', 'S5209', //Muki扩2
+            'S52681', 'S52682', 'S52683', 'S52684', //2026-8扩
+            'S52691', 'S52692', 'S52693', 'S52694', //2026-9扩
+            'S52701', 'S52702', //2026-10扩
+            'S6001', 'S6002', 'S6003', 'S6004' //QM扩
+        ];
+    }else{
+        filterCardIds = extensionCardIds;
+    }
+
+    if(!G.hasExtensionChaosMedia){
+        const chaosMediaCardIds = [
+            'F6111', 'F6121', 'F6131',
+            'P6211', 'P6213', 'F6212', 
+            'P6221', 'F6222', 
+            'P6231', 'F6232', 
+            'S6241', 'F6242', 'P6243',
+            'P6311', 'F6312', 'F6313', 'F6314',
+            'P6321', 'F6322', 'F6323',
+            'P6331', 'F6332', 'F6333',
+            'P6341', 'S6342', 'F6343',
+        ];
+        filterCardIds = filterCardIds.concat(chaosMediaCardIds);
+    }
+    filterCardIds = filterCardIds.concat(BANNED_CHAOS_MEDIA_CARD_IDS);
+
     let cards = Object.entries(NoneBasicCards);
     let res = cards.filter(c => c[1].era === e).filter(c => c[1].region === r).filter(
-        c => !(['S4001', 'S4002', 'S4003', 'S4004', 'S4005', 'S4006', 'S4007', 'S4008'].includes(c[1].cardId))
+        c => !(filterCardIds.includes(c[1].cardId))
     )
     if (isLegend) {
         res = res.filter(c => c[1].category === CardCategory.LEGEND)
     } else {
         res = res.filter(c => c[1].category === CardCategory.NORMAL)
     }
-    return res.map(c => c[1]);
+    let result: INormalOrLegendCard[] = res.map(c => c[1]);
+
+    // ★ 新增：从扩展注册中心获取启用扩展的卡牌
+    const extCards = getAllExtensionCards(G);
+    const extEntries = Object.entries(extCards) as [string, INormalOrLegendCard][];
+    const extFiltered = extEntries.filter(
+        c => c[1].era === e && c[1].region === r
+    );
+    if (isLegend) {
+        result = result.concat(
+            extFiltered.filter(c => c[1].category === CardCategory.LEGEND).map(c => c[1])
+        );
+    } else {
+        result = result.concat(
+            extFiltered.filter(c => c[1].category === CardCategory.NORMAL).map(c => c[1])
+        );
+    }
+
+    return result;
 }

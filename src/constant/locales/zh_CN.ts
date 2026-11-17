@@ -7,6 +7,7 @@ import {
     Region, SimpleEffectNames, ValidRegion, NoExecutorEffectNames, CardID
 } from "../../types/core";
 import {
+    IChooseDiscardArg,
     IChooseEventArg,
     IChooseHandArg,
     ICommentArg,
@@ -21,17 +22,20 @@ import {
 import {argChangePlayerSettingHOF, argSetupGameModeHOF, moveHOF} from "./common";
 
 const era = {
-    0: "发明",
-    1: "古典",
-    2: "现代",
+    0: "Ⅰ",
+    1: "Ⅱ",
+    2: "Ⅲ",
 };
 const region = {
-    0: "北美",
-    1: "西欧",
-    2: "东欧",
-    3: "亚洲",
-    4: "流派扩",
-    5: "任意"
+    [Region.NA] : "北美",
+    [Region.WE] : "西欧",
+    [Region.EE] : "东欧",
+    [Region.ASIA] : "亚洲",
+    [Region.EXTENSION] : "流派扩",
+    [Region.EXTENSION1] : "流派扩",
+    [Region.EXTENSION2] : "流派扩",
+    [Region.MONTHLY_SCHOOL] : "月度流派",
+    [Region.NONE] : "中立",
 };
 const argRegion = {
     a: (value: Region = Region.NONE) => {
@@ -74,7 +78,7 @@ const cards = {
     '1202': '卢米埃尔兄弟',
     '1203': '表现主义',
     '1204': '瑞典学派',
-    '1205': '诺斯费拉杜',
+    '1205': '诺斯费拉图',
     '1206': '圣女贞德蒙难记',
     '1207': '月球旅行记',
     '1208': '卡比利亚',
@@ -93,7 +97,7 @@ const cards = {
     '2102': '约翰·福特',
     '2103': '阿尔弗雷德·希区柯克',
     '2104': '黑色电影',
-    '2105': '奥尔逊威尔斯',
+    '2105': '奥逊·威尔斯',
     '2106': '乱世佳人',
     '2107': '关山飞度',
     '2108': '雨中曲',
@@ -106,7 +110,7 @@ const cards = {
     '2201': '新现实主义',
     '2202': '费德里科·费里尼',
     '2203': '大卫·里恩',
-    '2204': '诗意现实主义',
+    '2204': '法国诗意现实主义',
     '2205': '让·雷诺阿',
     '2206': '游戏规则',
     '2207': '偷自行车的人',
@@ -117,7 +121,7 @@ const cards = {
     '2212': '天色破晓',
     '2213': '恐惧的代价',
     '2214': '阿拉伯的劳伦斯',
-    '2301': '社会主义现实主义',
+    '2301': '苏联社会现实主义',
     '2302': '米哈伊尔·卡拉托佐夫',
     '2303': '夏伯阳',
     '2304': '士兵之歌',
@@ -129,7 +133,7 @@ const cards = {
     '2401': '黑泽明',
     '2402': '萨蒂亚吉特·雷伊',
     '2403': '小城之春',
-    '2404': '—江春水向东流',
+    '2404': '一江春水向东流',
     '2405': '阿拉姆·阿拉',
     '2406': '七武士',
     '2407': '大地之歌',
@@ -153,7 +157,7 @@ const cards = {
     '3114': '最长的一码',
     '3115': '虎豹小霸王',
     '3116': '闪灵',
-    '3201': '新浪潮',
+    '3201': '法国新浪潮',
     '3202': '弗朗索瓦·特吕弗',
     '3203': '英格玛·伯格曼',
     '3204': '左岸派',
@@ -201,25 +205,88 @@ const cards = {
     '4006': '第三电影',
     '4007': '英国厨房水槽电影',
     '4008': '高概念电影',
+	
+	'5001': '默剧',
+	'5002': '西部电影',
+	'5003': '布莱顿学派',
+	'5004': '电影实验派',
+
+    '5201': '布拉格电影学派',
+    '5202': '通心粉西部电影',
+    '5203': '巨片',
+    '5204': '剧影派',
+    '5205': '奶油派',
+
+    '5206': '明星制',
+    '5207': '室内剧电影',
+    '5208': '黑浪潮',
+    '5209': '武侠电影',
+
+    '52681': '散文电影',
+    '52682': '柏林学派',
+    '52683': '墨西哥电影',
+    '52684': '太阳族电影',
+
+    '52691': '技术：定格电影',
+    '52692': '技术：特技电影',
+    '52693': '技术：有声电影',
+    '52694': '技术：特艺七彩',
+
+    '52701': '技术：变焦镜头',
+    '52702': '技术：3D电影',
+
+	'6001': '平行电影',
+	'6002': '思想电影',
+	'6003': '新思想电影',
+	'6004': '作者电影',
+
+    'enableSchoolExtensionDawn': '启用2026-8流派扩',
+
+    '6111': '一个国家的诞生',
+    '6121': '婴儿的午餐',
+    '6131': '摄影师的复仇',
+    '6211': '斯坦利·多南',
+    '6213': '威廉·惠勒',
+    '6212': '历劫佳人',
+    '6221': '让·维果',
+    '6222': '操行零分',
+    '6231': '安杰伊·瓦依达',
+    '6232': '水中刀',
+    '6241': '“孤岛”沦陷区',
+    '6242': '浮草',
+    '6243': '本多猪四郎',
+    '6311': '斯坦利·库布里克',
+    '6312': '异形',
+    '6313': '侏罗纪公园',
+    '6314': '终结者',
+    '6321': '让-皮埃尔·梅尔维尔',
+    '6322': '007：黎明生机',
+    '6323': '柏林苍穹下',
+    '6331': '埃米尔·库斯图里卡',
+    '6332': '爱',
+    '6333': '灰烬与钻石',
+    '6341': '侯孝贤',
+    '6342': '新电影',
+    '6343': '黄土地',
 };
 const eventName = {
-    'E01': '每个公司升级工业等级或美学等级1级',
-    'E02': '工业等级最高的公司弃一张牌，美学等级最高的公司弃一张牌，每个公司获得2存款',
+    'E01': '每个公司选择一项：①+1工业等级；②+1美学等级',
+    'E02': '工业等级最高的公司-1牌，美学等级最高的公司-1牌，每个公司+2存款',
     'E03': '每个公司立刻获得第2个行动力(注意！并非行动力+1)  *若这张牌因为过时代而被弃掉，事件立刻触发',
     'E04': '声望最高的公司可以免费购买1张【商业片】并置入手牌 每个公司免费购买1张【传世经典】',
-    'E05': '北美没有建筑的公司摸1张牌，工业等级美学等级总数最少的公司获得3存款',
+    'E05': '北美没有建筑的公司+1牌，工业等级美学等级总数最少的公司+3存款',
     'E06': '西欧没有建筑的公司免费购买一张烂片 每个公司免费购买1张【传世经典】',
     'E07': '流派时代最高的公司免费购买1张【烂片】。\n' +
         '所有规模小于5的公司将规模变为5',
     'E08': '"解冻建筑位可以修建建筑，工业等级和美学等级总和最少的公司选择1项：\n' +
-        '（1）升级工业等级1级\n' +
-        '（2）升级美学等级1级"\n',
-    'E09': '【宝莱坞】建筑位可以修建建筑 美学等级最低的公司升级1级美学等级 工业等级最低的公司升级1级工业等级',
+        '①+1工业等级\n' +
+        '②+1美学等级"\n',
+    'E09': '【宝莱坞】建筑位可以修建建筑 美学等级最低的公司+1美学等级 工业等级最低的公司+1工业等级',
     'E10': '每有一个声望条数字比你高的公司 你额外获得5声望',
-    'E11': '每个公司牌库里和档案馆里的每个人物获得4声望',
-    'E12': '每个公司按照工业等级和美字等级的总和获得声望',
+    'E11': '每个公司手牌、弃牌堆、牌堆和档案馆里的每张人物牌获得4声望',
+    'E12': '每个公司按照工业等级和美学等级的总和获得声望',
     'E13': '如果获得过4/3/2/1个不同地区的第一，则得到20/12/6/2声望',
-    'E14': '你的每个I/II/III第一名标志物分别得到2/4/8声望。',
+    'E14': '你的每个I/II/III时代第一名标志物分别得到2/4/8声望。',
 };
 
 const getCardName = (cardId: string): string => {
@@ -240,22 +307,47 @@ const getCardName = (cardId: string): string => {
         const cardRegion = parseInt(cardId.slice(2, 3)) - 1;
         const cardRank = parseInt(cardId.slice(3, 4));
         // @ts-ignore
-        return `${era[cardEra]}时代${region[cardRegion]}${rank[cardRank]}`
+        return `${era[cardEra]}时代：${region[cardRegion]}${rank[cardRank]}`
     }
     return `unknown card${cardId}`
 }
 const setting = {
     mode: "游戏模式",
-    team: "2V2组队模式",
-    normal: "完整模式",
-    newbie: "新手模式",
-    enableSchoolExtension: "启用流派扩",
-    randomFirst: "随机首位玩家",
-    fixedFirst: "固定首位玩家",
+    team: "2V2组队",
+    normal: "完整",
+    newbie: "新手",
+
+    enableSchoolExtension: "启用【杨-流派扩】",
+    enableSchoolExtensionMuki: "启用【Muki流派扩】(DIY)",
+    enableSchoolExtensionQM: "启用【起名流派扩】(DIY)",
+    enableSchoolExtensionMuki2: "启用【Muki流派扩 - 2】(DIY)",
+    enableSchoolExtensionDawn: "启用 【流派扩 2026 - 8】(DIY)",
+    enableSchoolExtensionTech: "启用 【流派扩 2026 - 9】技术革新(DIY)",
+    enableSchoolExtensionVisual: "启用 【流派扩 2026 - 10】视觉奇观(DIY)",
+    enableExtensionChaosMedia: "启用【卡牌扩展 - 乱世光影】(DIY)",
+
+    randomFirst: "随机首位",
+    fixedFirst: "固定首位",
     allRandom: "完全随机",
+    anonymousRandom: "匿名随机",
     order: "行动顺序",
     changeSetting: "更改设置",
-    disableUndo: "禁止撤回"
+    disableUndo: "禁止撤回",
+
+    testModeCinema: "电影院：+1资源，+1声望",
+    testModeEnd180: "游戏结束：180分",
+
+    customOptions: "自定义选项",
+
+    recommendedSettings: "推荐设置",
+    presetClassic: "经典基础",
+    presetWild: "狂野全扩",
+    presetLatest: "最新出品",
+
+    extensionMode: "流派扩模式",
+    extensionMode_none: "全部发放",
+    extensionMode_four: "每时代2个",
+    extensionMode_fixed: "随机取代原有卡牌(实验性选项，限Muki扩内容)",
 };
 const classicFilmAutoMoveMode = {
     MODE_NAME: "传世经典:",
@@ -473,6 +565,14 @@ const argChooseHand = {
         return t
     }
 }
+const argChooseDiscard = {
+    args: (arg: IChooseDiscardArg[]): string => {
+        let a = arg[0]
+        let t = chose
+        t += bracketCardName(a.discard)
+        return t
+    }
+}
 const argPayAdditionalCost = {
     args: (arg: IPayAdditionalCostArgs[]) => {
         let t = "用"
@@ -494,7 +594,7 @@ const argCompetitionCard = {
 }
 const argUpdateSlot = {
     args: (arg: IUpdateSlotProps[]): string => {
-        return `更新了：${bracketCardName(arg[0].cardId)} 翻出：`
+        return `更新了：${bracketCardName(arg[0].cardId)}`
     }
 }
 const argComment = {
@@ -526,6 +626,7 @@ const movesI18n = moveHOF(
     argChangePlayerSetting,
     argChooseEvent,
     argChooseHand,
+    argChooseDiscard,
     argChooseRegion,
     argChooseTarget,
     argComment,
@@ -584,6 +685,12 @@ const zh_CN: Locale = {
             local: "本地热座",
             tutorial: "双人教学",
         },
+        playerNamePlaceholder: "何人被铭记？",
+        matchRecords: "对局数据",
+        manual: "使用手册",
+        matchStats: "对局统计",
+        quickReplay: "快捷回放",
+        playerNameUnset: "未设置玩家名",
     },
     eventName: eventName,
     region: region,
@@ -593,6 +700,9 @@ const zh_CN: Locale = {
         payAdditionalCost: "支付额外花费",
         comment: "评论",
         updateSlot: "更新",
+        newEraReveal: "开牌：",
+        updateReveal: "更新翻出：",
+        refillReveal: "补充翻出：",
         showBoardStatus: "展示牌列",
         draw: "使用行动力摸牌",
         play: "出牌",
@@ -663,10 +773,10 @@ const zh_CN: Locale = {
     classicFilmAutoMove: classicFilmAutoMoveMode,
     moves: movesI18n,
     effect: {
-        industryOrAestheticsBreakthrough:"请选择一项执行：（1）只执行工业突破（2）只执行美学突破",
+        industryOrAestheticsBreakthrough:"只执行工业突破 / 美学突破",
         CompetitionPowerToVp:["按照竞争力获得声望",argValue],
-        addCompetitionPower: ["获得{{a}}竞争力（不超过工业等级）", argValue],
-        loseCompetitionPower: ["失去{{a}}竞争力", argValue],
+        addCompetitionPower: ["+{{a}}竞争力", argValue],
+        loseCompetitionPower: ["-{{a}}竞争力", argValue],
         noCompetitionFee: "无需支付【争夺】发起的费用",
         minHandCountPlayers: "当前手牌数最少的公司",
         chose: chose,
@@ -688,67 +798,132 @@ const zh_CN: Locale = {
             },
         }],
         industryAndAestheticsBreakthrough: "工业和美学突破",
-        industryOrAestheticsLevelUp: "升级工业等级或美学等级1级",
+        industryOrAestheticsLevelUp: "选择一项：①+1工业等级；②+1美学等级",
+        industryOrAestheticsLevelDown: "选择一项：①-1工业等级；②-1美学等级",
         era: {
             0: " 1时代：",
             1: " 2时代：",
             2: " 3时代：",
         },
-        optional: "【可选】",
+        optional: "[可选]",
         loseVpForEachHand: "按照他当前的手牌数失去声望",
-        discardLegend: ["弃掉{{a}}张传奇牌", argValue],
-        onYourComment: "你评论后,",
+        discardLegend: ["-{{a}}传奇牌", argValue],
+        onYourComment: "你评论后，",
         playedCardInTurnEffect: "执行你出牌区的另一张带有美学标志的牌的【出牌】效果",
         everyOtherCompany: "每个其他公司",
         everyPlayer: "每个公司",
-        doNotLoseVpAfterCompetition: "。争夺失败后，不会失去声望",
-        discardInSettle: "每当你执行了一次【评论】或【更新】之后",
-        onAnyOneComment: "每当发生评论后，",
-        onAnyInTurnAesAward: "在你的行动阶段内：当你执行1次美学奖励时立即",
-        industryToVp: "按照你的工业等级获得声望",
-        aestheticsToVp: "按照你的美学等级获得声望",
+        doNotLoseVpAfterCompetition: "被争夺后，不会失去声望",
+        discardInSettle: "你【评论】或【更新】之后，",
+        onAnyOneComment: "任何公司【评论】后，",
+        onAnyOneUpdate: "任何公司【更新】后，",
+        onAnyInTurnAesAward: "在你的行动阶段内：当你执行1次美学奖励时，立即",
+        industryToVp: "按照工业等级获得声望",
+        aestheticsToVp: "按照美学等级获得声望",
         threeCards: "你的每张基础额外获得1声望",
         northAmericaFilm: "你的每张北美卡牌额外获得2声望",
         asiaFilm: "你的每张亚洲卡牌额外获得2声望",
         industryNormalOrLegend: "每张有工业标志的普通牌和传奇牌额外获得2声望",
         westEuropeCard: "你的每张西欧卡牌额外获得2声望",
         eastEuropeFilm: ["你的每张东欧卡牌额外获得{{a}}声望", argValue],
-        industryLevel: ["你的每个工业等级额外获得{{a}}声望", argValue],
-        aestheticsLevel: ["你的每个美学等级额外获得{{a}}声望", argValue],
+        industryLevel: ["+{{a}}声望/工业等级", argValue],
+        aestheticsLevel: ["+{{a}}声望/美学等级", argValue],
+        maxLevel: ["按照最高等级获得声望", argValue],
+        pairLevel: ["+{{a}}声望/等级对", argValue],
         personCard: "你的每张人物牌额外获得4声望",
         aesClassic: "每张有美学标志的普通牌和传奇牌额外获得2声望",
         NewYorkSchool: "若你的美学等级不低于工业等级，美学奖励一次，若你的工业等级不低于美学等级，工业奖励一次",
         obtainNormalOrLegendFilm: "每次获得普通影片或传奇影片时",
 
         French_Imp_buy: "没有流派的公司可以购买",
-        Samara_buy: "你每有1个第一名标志物，外花费2资源",
-        American_Independent_Film_buy: "若你有1个完成建造的建筑，额外花费3资源。若你有2个完成建造的建筑，不能购买这个流派。",
-        Polish_School_buy: "额外支付等于工业等级和美学等级差值绝对值的资源。",
-        Modernist_Film_buy: "你每有1级工业等级，外花费1资源",
-        Third_Cinema_buy: "符合如下条件时，你可以失去所有存款并免费购买这个流派:你没有手牌，没有已消耗的行动力，且资源小于等于7。",
-        kitchen_sink_buy: "额外支付等于你本回合开始时手牌数的资源。",
-        High_Concept_Film_buy: "你每有1级美学等级，额外花费1资源。",
+        Samara_buy: "你每有1个第一名标志物，额外花费2资源",
+        American_Independent_Film_buy: "若你有1个完成建造的建筑，额外花费3资源。若你有2个完成建造的建筑，不能购买这个流派",
+        Polish_School_buy: "额外支付等于工业等级和美学等级差值的资源",
+        Modernist_Film_buy: "你每有1级工业等级，额外花费1资源",
+        Third_Cinema_buy: "符合如下条件时，你可以失去所有存款并免费购买这个流派:你没有手牌，没有已消耗的行动力，且资源小于等于7",
+        kitchen_sink_buy: "额外支付等于你本回合开始时手牌数的资源",
+        High_Concept_Film_buy: "你每有1级美学等级，额外花费1资源",
         schoolExtNonePre: "",
 
-        French_Imp_turnstart: "若你的工业等级和美学等级相等，+1行动力。每当你在1个行动结算或整个检查阶段至少+3声望后:+1资源。",
-        Samara: "你的电影院效果改为:+1牌，+1声望。当你突破1张没有标志的影片时，选择1项:(1)工业突破1次;(2)美学突破1次。",
-        American_Independent_Film_turnstart: "你每有1个完成建造的建筑，-1牌。每当你-1牌后:+1存款，+1声望。",
-        Polish_School: "每当你将1张牌置入档案馆(包括突破)或其他玩家的手牌时:+1牌。每当你得到1张基础牌后:+2声望。",
-        Modernist_Film: "被争夺后:执行1次美学奖励。若你打出的1张牌有X个美学标志:    X=1:+1资源，+2声望  X=2:+1资源，+2声望，+1牌    X=3:+1资源，+4声望，+2牌。",
-        Third_Cinema: "被争夺时:+1牌，争夺方-5声望。回合开始时，若你的美学等级高于你的工业等级:+1牌，+2存款。",
-        kitchen_sink_turnstart: "你每有1张手牌就-1声望，每有一个手牌数比你多的公司，你就+1牌。回合结束时:你的出牌区每有1张牌，你就+1声望。",
-        High_Concept_Film: "你打出的牌每有1个工业标志:+1资源，+1声望。争夺后:+1竞争力，+1牌。",
+        French_Imp_turnstart: "如果你的工业等级和美学等级相等，+1行动力。每当你在1个行动结算或整个检查阶段至少+3声望后：+1资源",
+        Samara: "你的电影院效果改为：+1牌，+1声望。当你突破1张没有标志的影片时，选择1项：①工业突破1次；②美学突破1次",
+        American_Independent_Film_turnstart: "你每有1个完成建造的建筑，-1牌。每当你-1牌后：+1存款，+1声望",
+        Polish_School: "每当你将1张牌置入档案馆(包括突破)或其他玩家的手牌时:+1牌。每当你得到1张基础牌后:+2声望",
+        Modernist_Film: "被争夺后：美学奖励1次。若你打出的1张牌有X个美学标志：X=1:+1资源，+2声望；X=2:+1资源，+2声望，+1牌；X=3:+1资源，+4声望，+2牌",
+        Third_Cinema: "被争夺后：+1牌，争夺方-5声望。每回合开始时，若你的美学等级高于你的工业等级：+1牌，+2存款",
+        kitchen_sink_turnstart: "你每有1张手牌就-1声望，每有一个手牌数比你多的公司，你就+1牌。每回合结束时：你的出牌区每有1张牌，你就+1声望",
+        High_Concept_Film: "你打出的牌每有1个工业标志：+1资源，+1声望。你争夺后：+1竞争力，+1牌",
+
+		West_Film: "建造建筑时，额外获得对应地区的一个份额",
+		Brighton_School: "美学等级为2的美学奖励效果改为【+1资源】",
+		Experimental_Film: "购买等级需求比你的等级高的影片后，+1存款，+1声望。失去电影实验派后，+1工业等级，+1存款，+1声望",
+
+
+        '5201_effect': "进行购买时，每个不足的等级需求，仅需额外花费1资源",
+        '5201_buy': "任意地区进入3时代后可以购买。如果东欧处于1/2时代，获得所有东欧份额。",
+        '5202_effect': "你+1牌后，+1声望。被争夺后，不会失去声望",
+        '5203_effect': "购买和突破影片时，+1对应地区份额。在地区结算时，你的每个份额会多获得1声望",
+        '5204_effect': "你+1牌前，如果牌堆为空，+2资源，+1声望",
+        /*'5205_effect': "如果【最后一轮】已被触发，购买对应牌获得对应奖励：\n" +
+            "传奇牌：+1行动力；\n" +
+            "普通牌：+4资源；\n" +
+            "基础牌：+6声望；\n" +
+            "影片牌：+1牌；\n" +
+            "人物牌：根据人物牌的等级需求获得声望",*/
+        '5205_effect': "每回合开始时，每有一个公司已抵达过40/80/120声望，+1声望/+1资源/+1牌",
+        //'5203_buy': "+1任意地区份额",
+        //'5206_buy': "-3声望，+1北美份额",
+        '5206_effect': "每回合开始时，每有一个声望更高的公司，+1声望。在你的回合中，每当你增加声望并超过其他公司(从小于到大于等于)后，+1牌。每回合结束时，每有一个声望更低的公司，支付1声望，+1资源",
+        '5207_effect': "每回合开始时，如果手牌数≤工业等级，+1行动力。每回合结束时，如果出牌区牌数≥工业等级，+1存款，+1声望",
+        '5208_buy': "任意地区进入2时代后可以购买。如果东欧处于1/2时代，获得所有/1个东欧份额",
+        '5208_effect': "每当你将过时的影片或烂片置入档案馆(包括突破)时，免费购买1张传世经典。你的传世经典还可以选择③+1存款，+2声望",
+        '5209_effect': "仅剩1点行动力，执行影片的过时【出牌】效果时：支付1存款，然后才能按照影片的时代执行【出牌】效果；如果不能支付，+1声望",
+
+        '52681_buy': "免费购买一张《文艺片》。+1东欧份额。",
+        '52681_effect': "恰好5张手牌时，打出牌后，[可选]支付1声望，将这张牌置入档案馆。",
+        EssayFilm_doArchive: "将打出的牌置入档案馆",
+        '52682_buy': "如果等级总和为4，选择一项：①+1工业等级；②+1美学等级。+1西欧份额。",
+        '52682_effect': "恢复阶段前，如果手牌不为空，在恢复阶段后，+1牌，+1声望。",
+        Dawn_Berlin_buy: "如果等级总和≤4，选择一项：①+1工业等级；②+1美学等级",
+        '52683_buy': "其他公司-1牌，-1声望，+1存款。+1北美份额。",
+        '52683_effect': "突破资金后，选择一项：①免费购买一张《商业片》加入手牌；②免费购买一张《文艺片》加入手牌。",
+        '52684_buy': "【更新】1次。+1亚洲份额。+1行动力。",
+        '52684_effect': "恢复阶段前，如果没有行动力，在恢复阶段后，将太阳族电影置入档案区。失去太阳族电影时，+1工业等级，+7声望。",
+        '52691_buy': "置入档案区生效。免费购买一张《商业片》置入牌库顶。",
+        '52691_effect': "使用行动力抽牌后，+1牌，+3声望。",
+        '52692_buy': "置入档案区生效。免费突破1次。",
+        '52692_effect': "每当你在出牌结算前后，手牌数±不为1：+1声望。",
+        '52693_buy': "置入档案区生效。+2声望。",
+        '52693_effect': "每-1存款，+1声望。",
+        '52694_buy': "置入档案区生效。+2存款。",
+        '52694_effect': "首次到达40/80/120声望时，+1存款。首次到达150声望，选择一项：①+1工业等级；②+1美学等级。",
+
+        '52701_buy': "置入档案区生效。选择一个地区，该地区：+3份额，+2普通牌，+1传奇牌。",
+        '52701_effect': "每次提升美学等级后，-2声望，按照美学等级获得声望。",
+        '52702_buy': "置入档案区生效。选择一项：①+1工业等级；②+1美学等级。",
+        '52702_effect': "你的竞争力不会低于你的美学等级。（但不会高于工业等级）",
+        addAction: ["+{{a}}行动力", argValue],
+        '6311_effect': "在本次行动阶段中，你争夺后，+1存款，+1竞争力。",
+        '6312_effect': "在本次行动阶段中，你工业奖励后，+1牌。",
+        '6213_naShare2': "如果你至少有2个北美份额，+1北美份额",
+        personCardOnBoardEffect: "当作本卡牌地区的人物牌，执行牌列上一张人物牌的【出牌】效果",
+        
+        '6342_effect': "任意公司【更新】后，+1牌",
+
+		Czechoslovakian_Film: "不能触发工业/美学等级为8的奖励效果。如果你的工业等级和美学等级差值小于等于2：每当你触发1次工业奖励或美学奖励后，额外触发1次",
+		Czechoslovakian_Film_2: "如果你的工业等级和美学等级差值小于等于2：所有人物牌对你的制片厂效果额外触发1次，并且每回合结束时，工业奖励1次，美学奖励1次",
+		Auteur_film: "购买人物牌后，+1行动力，+1存款，+1声望。你的人物牌的【指定一个本地区没有制片厂的公司】，改为【指定所有本地区没有制片厂的公司（除你以外）。】",
 
         none: "",
         breakthroughResDeduct: ["免费突破一次", argValue],
         handToAnyPlayer: ["把{{a}}张手牌交给任意公司", argValue],
-        buyNoneEEFilm: "每当你购买东欧影片后，+1竞争力，+1声望。",
+        discardToAnyPlayer: ["把{{a}}张弃牌堆的牌交给任意公司", argValue],
+        buyNoneEEFilm: "每当你购买东欧影片后，+1竞争力，+1声望",
         extraVp: ["额外支付{{a}}声望", argValue],
         inventionEraBreakthroughPrevent: "1时代不能突破",
-        breakthroughPrevent: "，然后才能执行突破效果",
+        breakthroughPrevent: "然后才能执行突破效果",
         alternative: "可以放弃本次突破，改为",
         pay: "支付",
-        update: ["执行{{a}}次【更新】", argValue],
+        update: ["【更新】{{a}}次", argValue],
         noBuildingEE: "东欧地区没有建筑的公司",
         highestVpPlayer: "声望最高的公司",
         vpNotHighestPlayer: "声望不是最高的公司",
@@ -787,7 +962,7 @@ const zh_CN: Locale = {
         competition: ["争夺一次{{bonus}}{{onWin}}", {
             bonus: (value: number = 0) => {
                 if (value > 0) {
-                    return "，竞争力+" + value.toString()
+                    return "，+" + value.toString() + "竞争力"
                 } else {
                     return "";
                 }
@@ -796,55 +971,70 @@ const zh_CN: Locale = {
                 if (e.e !== "none") {
                     switch (e.e) {
                         case SimpleEffectNames.industryToVp:
-                            return `然后抽按照你的工业等级获得声望`;
+                            return `，然后按照工业等级获得声望`;
                         case SimpleEffectNames.draw:
-                            return `然后摸${e.a}张牌`;
+                            return `，然后+${e.a}牌`;
                         case ItrEffects.peek:
-                            return `然后展示牌堆顶3张牌，把带有工业标志的加入手牌，然后弃掉其他的`;
+                            return `，然后展示牌堆顶3张牌，把带有工业标志的加入手牌，然后弃掉其他的`;
                         case SimpleEffectNames.competitionLoserBuy:
                             // @ts-ignore
-                            return `然后对方免费购买1张${cards[e.a]}`;
+                            return `，然后对方免费购买1张${cards[e.a]}`;
+                        case SimpleEffectNames.competitionLoserLoseVp:
+                            return `，然后对方-${e.a}声望`;
                         case SimpleEffectNames.vp:
                         case SimpleEffectNames.addVp:
-                            return `然后+${e.a}声望,`;
+                            return `，然后+${e.a}声望`;
                         case ItrEffects.anyRegionShareCentral:
-                            return "然后额外从中央牌列获得1个任意地区的份额,";
+                            return "，然后+1任意地区份额";
                         case ItrEffects.comment:
-                            return `然后评论${e.a}次,`;
+                            return `，然后评论${e.a}次`;
                         case ItrEffects.anyRegionShare:
-                            return "然后额外获得一个" + region[e.r as Region] + "地区份额,"
+                            return "，然后+1" + region[e.r as Region] + "地区份额"
                         case SimpleEffectNames.shareNA:
-                            return `然后获得${e.a}个北美份额,`
+                            return `，然后+${e.a}北美份额`
                         case SimpleEffectNames.addCompetitionPower:
-                            return `然后获得${e.a}竞争力,`;
+                            return `，然后+${e.a}竞争力`;
+                        case "industryAward":
+                            return `，然后工业奖励${e.a}次`;
+                        case "breakthroughResDeduct":
+                            return `，然后免费突破一次`;
+                        case "deposit":
+                            return `，然后+${e.a}存款`;
+                        case "addAction":
+                            return `，然后+${e.a}行动力`;
                         case ItrEffects.step:
-                            let onWin = "然后";
+                            let onWin = "，然后";
+                            let onWinEffs : string[] = [];
                             // @ts-ignore
                             e.a.forEach((subEff)=>{
                                 switch (subEff.e) {
                                     case SimpleEffectNames.shareNA:
-                                        onWin += `获得${subEff.a}北美份额,`;
+                                        onWinEffs.push(`+${subEff.a}北美份额`);
                                         break;
                                     case SimpleEffectNames.addCompetitionPower:
-                                        onWin += `获得${subEff.a}竞争力,`;
+                                        onWinEffs.push(`+${subEff.a}竞争力`);
                                         break;
                                     case SimpleEffectNames.draw:
-                                        onWin += `摸${subEff.a}张牌,`;
+                                        onWinEffs.push(`+${subEff.a}牌`);
                                         break;
                                     case ItrEffects.anyRegionShareCentral:
-                                        onWin += `从中央牌列获得${subEff.a}个任意地区的份额,`;
+                                        onWinEffs.push(`+${subEff.a}任意地区份额`);
                                         break;
                                     case SimpleEffectNames.deposit:
-                                        onWin += `获得${subEff.a}存款,`;
+                                        onWinEffs.push(`+${subEff.a}存款`);
                                         break;
                                     case SimpleEffectNames.vp:
-                                        onWin += `获得${subEff.a}声望,`;
+                                        onWinEffs.push(`+${subEff.a}声望`);
+                                        break;
+                                    case SimpleEffectNames.competitionLoserLoseVp:
+                                        onWinEffs.push(`对方-${subEff.a}声望`);
                                         break;
                                     default:
-                                        onWin += JSON.stringify(subEff);
+                                        onWinEffs.push(JSON.stringify(subEff));
                                         break;
                                 }
                             })
+                            onWin += onWinEffs.join("，");
                             return onWin;
                         default:
                             return JSON.stringify(e);
@@ -856,82 +1046,88 @@ const zh_CN: Locale = {
                 }
             }
         }],
-        loseVp: ["失去{{a}}声望", argValue],
-        loseDeposit: ["失去{{a}}存款", argValue],
+        loseVp: ["-{{a}}声望", argValue],
+        loseVpForLevelDiff: "按照其工业和美学等级的差值失去声望",
+        loseDeposit: ["-{{a}}存款", argValue],
         beforeCompetition: "争夺开始前，",
         competitionStart: "争夺开始时，",
-        competitionWon: "。你发起争夺后，",
-        competitionBonus: ["竞争力+{{a}}", argValue],
+        competitionWon: "你争夺后，",
+        competitionBonus: ["+{{a}}竞争力", argValue],
         archive: ["将{{a}}张手牌置入档案馆", argValue],
-        resFromIndustry: "按照你的工业等级获得资源",
-        resFromAesthetics: "按照你的美学等级获得资源",
+        resFromIndustry: "按照工业等级获得资源",
+        resFromAesthetics: "按照美学等级获得资源",
         afterBreakthrough: "你突破后，",
-        aesAward: ["执行美学奖励{{a}}次", argValue],
-        industryAward: ["执行工业奖励{{a}}次", argValue],
-        draw: ["摸{{a}}张牌", argValue],
-        discard: ["弃{{a}}张牌", argValue],
+        aesAward: ["美学奖励{{a}}次", argValue],
+        industryAward: ["工业奖励{{a}}次", argValue],
+        draw: ["+{{a}}牌", argValue],
+        discard: ["-{{a}}牌", argValue],
         searchAndArchive: ["检索【{{a}}】并置入档案馆", argCardName],
-        discardNormalOrLegend: ["弃掉{{a}}张普通或传奇牌", argValue],
-        discardIndustry: ["弃掉{{a}}张带有工业标志的手牌", argValue],
-        discardBasic: ["弃掉{{a}}张基础牌", argValue],
-        discardAesthetics: ["弃掉{{a}}张带有美学标志的手牌", argValue],
+        discardNormalOrLegend: ["-{{a}}普通或传奇牌", argValue],
+        discardIndustry: ["-{{a}}带有工业标志的手牌", argValue],
+        discardBasic: ["-{{a}}基础牌", argValue],
+        discardAesthetics: ["-{{a}}带有美学标志的手牌", argValue],
         allNoStudioPlayer: ["所有{{a}}地区没有制片厂的公司，", argRegion],
-        vp: ["{{a}}声望", argValue],
-        addVp: ["获得{{a}}声望", argValue],
-        addExtraVp: ["额外获得{{a}}声望", argValue],
-        res: ["{{a}}资源", argValue],
-        addRes: ["获得{{a}}资源", argValue],
-        deposit: ["{{a}}存款", argValue],
-        loseAnyRegionShare: ["归还{{a}}个任意地区的份额，并失去1竞争力", argValue],
-        shareToVp: ["按照你当前持有的{{a}}份额获得声望", argRegion],
-        share: ["获得{{a}}个{{r}}地区的份额", argValue],
-        shareNA: ["获得{{a}}个北美地区的份额", argValue],
-        shareWE: ["获得{{a}}个西欧地区的份额", argValue],
-        shareEE: ["获得{{a}}个东欧地区的份额", argValue],
-        shareASIA: ["获得{{a}}个亚洲地区的份额", argValue],
-        loseShareNA: ["失去{{a}}个北美地区的份额", argValue],
-        loseShareWE: ["失去{{a}}个西欧地区的份额", argValue],
-        loseShareEE: ["失去{{a}}个东欧地区的份额", argValue],
-        loseShareASIA: ["失去{{a}}个亚洲地区的份额", argValue],
-        anyRegionShare: ["获得{{a}}个任意地区的份额", argValue],
-        anyRegionShareCompetition: ["从争夺失败方获得{{a}}个任意地区的份额", argValue],
-        newHollyWoodEff: "每回合仅限一次,获得1个任意地区的份额",
-        anyRegionShareCentral: ["从中央牌列获得{{a}}个任意地区的份额", argValue],
+        vp: ["{{a}}声望", {a: (value: number = 1): string => value <= 0 ? value.toString() : "+" + value.toString()}],
+        addVp: ["+{{a}}声望", argValue],
+        addExtraVp: ["额外+{{a}}声望", argValue],
+        res: ["{{a}}资源", {a: (value: number = 1): string => value <= 0 ? value.toString() : "+" + value.toString()}],
+        addRes: ["+{{a}}资源", argValue],
+        deposit: ["{{a}}存款", {a: (value: number = 1): string => value <= 0 ? value.toString() : "+" + value.toString()}],
+        loseAnyRegionShare: ["-{{a}}任意地区份额，并-1竞争力", argValue],
+        shareToVp: ["按照当前持有的{{a}}份额获得声望", argRegion],
+        share: ["+{{a}}{{r}}地区的份额", argValue],
+        shareNA: ["+{{a}}北美份额", argValue],
+        shareWE: ["+{{a}}西欧份额", argValue],
+        shareEE: ["+{{a}}东欧份额", argValue],
+        shareASIA: ["+{{a}}亚洲份额", argValue],
+        loseShareNA: ["-{{a}}北美份额", argValue],
+        loseShareWE: ["-{{a}}西欧份额", argValue],
+        loseShareEE: ["-{{a}}东欧份额", argValue],
+        loseShareASIA: ["-{{a}}亚洲份额", argValue],
+        anyRegionShare: ["+{{a}}任意地区份额", argValue],
+        anyRegionShareCompetition: ["从被争夺方获得{{a}}任意地区份额", argValue],
+        newHollyWoodEff: "每回合仅限一次,获得1个任意地区份额",
+        anyRegionShareCentral: ["+{{a}}任意地区份额", argValue],
         deductRes: ["少花费{{a}}资源", argValue],
         buyAesthetics: "购买有美学标志的影片时，",
-        extraEffect: "额外效果：",
+        extraEffect: "【流派】",
         loseVpRespond: "任何时候，当你在你的回合内失去1声望时，",
         othersBuySchool: "其他公司购买【流派】时，",
         turnStart: "每回合开始时，",
+        turnEnd: "每回合结束时，",
         studio: "本地区有制片厂的公司，",
         building: "本地区有建筑的公司，",
         noStudio: "指定一个本地区没有制片厂的公司，",
         LES_CHAIERS_DU_CINEMA: "将公司规模变为5",
         noBuilding: "指定一个本地区没有建筑的公司，",
-        lose: ["失去{{a}}时", argCardName],
+        lose: ["失去{{a}}时，", argCardName],
         event: ["当{{a}}发生后", argCardName],
-        school: ["手牌上限：{{hand}}行动力：{{action}}", {
+        school: ["公司规模：{{hand}}\n行动力：{{action}}", {
             hand: undefined,
             action: undefined
         }],
-        scoringHeader: "【计分】终局计分时，",
+        scoringHeader: "【计分】",
         continuous: "【持续】",
         playCardHeader: "【出牌】",
         buyCardHeader: "【购买】",
         breakthroughHeader: "【突破】",
         schoolHeader: "【流派】",
         responseHeader: "【响应】",
-        choice: "请选择一项执行：",
+        choice: "选择一项：",
         comment: ["评论{{a}}次", argValue],
         industryBreakthrough: ["工业突破{{a}}次", argValue],
         aestheticsBreakthrough: ["美学突破{{a}}次", argValue],
-        buy: ["免费购买【 {{a}} 】", argCardName],
-        competitionLoserBuy: ["争夺失败方免费购买【 {{a}} 】", argCardName],
-        buyCardToHand: ["免费购买【{{a}}】并加入手牌", argCardName],
-        industryLevelUp: ["提升{{a}}级工业等级", argValue],
-        industryLevelUpCost: ["提升{{a}}级工业等级（根据目标等级支付额外费用）", argValue],
-        aestheticsLevelUp: ["提升{{a}}级美学等级", argValue],
-        aestheticsLevelUpCost: ["提升{{a}}级美学等级（根据目标等级支付额外费用）", argValue],
+        buy: ["免费购买《{{a}}》", argCardName],
+        competitionLoserBuy: ["被争夺方免费购买《{{a}}》", argCardName],
+        competitionLoserLoseVp: ["被争夺方-{{a}}声望", argValue],
+        buyCardToHand: ["免费购买《{{a}}》并加入手牌", argCardName],
+        buyCardToDeckTop: ["免费购买《{{a}}》并置于牌堆顶", argCardName],
+        industryLevelUp: ["+{{a}}工业等级", argValue],
+        industryLevelDown: ["-{{a}}工业等级", argValue],
+        industryLevelUpCost: ["+{{a}}工业等级（根据目标等级支付额外费用）", argValue],
+        aestheticsLevelUp: ["+{{a}}美学等级", argValue],
+        aestheticsLevelDown: ["-{{a}}美学等级", argValue],
+        aestheticsLevelUpCost: ["+{{a}}美学等级（根据目标等级支付额外费用）", argValue],
         buildCinema: "建造电影院",
         buildStudioInRegion: ["在{{a}}建造制片厂", argRegion],
         buildCinemaInRegion: ["在{{a}}建造电影院", argRegion],
@@ -1009,6 +1205,10 @@ const zh_CN: Locale = {
         },
         chooseHand: {
             title: "请选择一张牌执行效果",
+            toggleText: "选择卡牌",
+        },
+        chooseDiscard: {
+            title: "请选择一张弃牌堆的牌执行效果",
             toggleText: "选择卡牌",
         },
         peek: {
@@ -1094,15 +1294,15 @@ const zh_CN: Locale = {
         shareLegend: "份额/传奇：",
         era: "时代：",
         school: "流派：",
-        discard: "查看弃牌",
+        discard: "查看弃牌堆",
         allCards: "查看所有卡牌",
         inferredHands: "推测手牌",
         archive: "查看档案馆",
         playedCards: "查看出牌区",
     },
     score: {
-        cardName: ['{{era}}{{region}}{{rank}}', {
-            era: (e: IEra): string => (era[e] + "时代"),
+        cardName: ['{{era}}：{{region}}{{rank}}', {
+            era: (e: IEra): string => ("时代" + era[e]),
             rank: (rankNum: 1 | 2 | 3): string => rank[rankNum],
             region: (r: Region): string => region[r],
         }],
