@@ -21,8 +21,11 @@ export default defineConfig({
     retries: process.env.CI ? 2 : 0,
     // Every spec drives its own page against the shared dev server; nothing
     // mutates server state, so the files can run concurrently.  One worker on
-    // CI made 273 s of test time take 3.2 min serially.
-    workers: process.env.CI ? 3 : undefined,
+    // CI made 273 s of test time take 3.2 min serially; a standard runner has
+    // four cores, so four workers use the whole box.  The floor is now the
+    // single 1.7 min tutorial playthrough, not the worker count.
+    // `E2E_WORKERS` overrides it for a run that needs calmer timing.
+    workers: Number(process.env.E2E_WORKERS) || (process.env.CI ? 4 : undefined),
     reporter: process.env.CI ? [["list"], ["html", {open: "never"}]] : "list",
     timeout: 60_000,
     expect: {timeout: 10_000},

@@ -553,15 +553,18 @@ started by their own config so CI needs no hand-started servers:
 
 `yarn test:e2e` deliberately ignores these three specs (they run against the
 dev server on `:5173`, not their own origin); `yarn test:e2e:ie` runs all three
-in order.
+in order, and each one also has its own script
+(`test:e2e:ie:regression`, `:controls`, `:spectator`) for a CI job that runs
+them on separate runners.
 
 All three IE specs now wait on observable state instead of fixed sleeps, so the
 suite no longer pays a 180-250 ms pause per seat switch. `focusSeat` waits for
 the seat panel's `data-active`, the prep/home-card helpers wait for their button
 to disappear, and `answerStartPending` waits for the pending decision's `id` to
 change. The controls spec dropped from 1.4 min to ~58 s and the regression spec
-from 1.3 min to ~53 s on the same runner; CI runs the two Playwright bundles as
-parallel jobs, so the whole browser stage is ~3 min instead of ~8.
+from 1.3 min to ~53 s on the same runner; CI runs the three IE configs and the
+default suite as four parallel jobs, so the whole browser stage is bounded by
+the slowest one instead of by their sum.
 
 ```sh
 # Regression: original hotseat spec, 6 tests, preview :5203
