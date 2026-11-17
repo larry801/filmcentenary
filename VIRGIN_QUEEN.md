@@ -1507,3 +1507,16 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 - `playerView` 隐藏非参与方的待回应提议与历史中的承诺；谈判 move 参数对非行动方 redact。
 
 实现：`src/virginQueen/negotiation.ts`、`negotiationMoves.ts`、`components/board/panels/NegotiationPanel.tsx`。测试：`negotiation.test.ts`、`negotiationStage.test.ts`、`negotiationUi.test.tsx`。
+
+## 地图底图细化（海岸线 / 河流 / 山脉）
+
+此前欧洲底图只使用 Natural Earth 1:50m 陆地轮廓，海上只有水域色块，陆地只有四团模糊的“丘陵阴影”，整体比桌游印刷地图粗糙。现改为：
+
+- 海岸线升级为 Natural Earth 1:10m，按最终 1000×620 SVG 坐标做 Douglas-Peucker 简化（容差 0.3），保留海湾、半岛和岛屿细节，底图约 8.9k 个顶点。
+- 新增 `hydro-background.json`：Natural Earth 1:10m 主要河流与湖泊，按 `scalerank` 分成主河道/支流两档线宽，莱茵河、多瑙河、波河等会像印刷地图一样突出。
+- 新增 `relief-background.json`：Natural Earth 1:10m 的阿尔卑斯、比利牛斯、亚平宁、喀尔巴仟等 35 个山地/高原范围，用细密斜线排线（hachure）表现，替换原来的椭圆丘陵块；棋盘版会把山脉裁剪在海岸线内，避免投影变形后溢入海中。
+- 世界地图小图也从 1:110m 升级到 1:50m，并做同样的小尺寸简化。
+- 三张底图共用 `components/map-geometry.ts` 的投影与棋盘版 `boardWarpPath`，城市、海域、国界色块与底图保持对齐；生成脚本为 `scripts/generate-vq-land.py`、`generate-vq-hydro.py`、`generate-vq-relief.py`、`generate-vq-world.py`。
+
+验证：`jest src/virginQueen/map.test.tsx src/virginQueen/board-map.test.tsx --runInBand` 33 tests passed（新增底图坐标范围、河流/湖泊/山脉图层与渲染标记校验）。
+

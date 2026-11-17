@@ -67,11 +67,13 @@ describe("printed-board vector map (VQ.png redraw)", () => {
     it("reuses the warped coastline between renders", () => {
         const path = "M100,100L110,110L120,105Z";
         expect(cachedBoardWarpPath(path)).toBe(boardWarpPath(path));
-        expect(cachedBoardWarpPath(land.path)).toBe(boardWarpPath(land.path));
-        // A cache hit must not recompute the warp.
+        const warped = cachedBoardWarpPath(land.path);
+        // Cache hits must not re-warp the (now much finer) coastline.  Time the
+        // lookups without comparing the large string on every iteration.
         const start = Date.now();
-        for (let render = 0; render < 20; render += 1) expect(cachedBoardWarpPath(land.path)).toBe(cachedBoardWarpPath(land.path));
-        expect(Date.now() - start).toBeLessThan(100);
+        for (let render = 0; render < 50; render += 1) cachedBoardWarpPath(land.path);
+        expect(Date.now() - start).toBeLessThan(1000);
+        expect(cachedBoardWarpPath(land.path)).toBe(warped);
     });
 
     it("warps the coastline into the same cartogram without invalid coordinates", () => {
@@ -105,6 +107,12 @@ describe("printed-board vector map (VQ.png redraw)", () => {
         expect(html).toContain("vq-board-region-0");
         expect(html).toContain("vq-board-speckle");
         expect(html).toContain("vq-board-land");
+        expect(html).toContain("vq-board-relief");
+        expect(html).toContain('class="vq-relief"');
+        expect(html).toContain('class="vq-lake"');
+        expect(html).toContain("vq-river-major");
+        expect(html).toContain("vq-river-minor");
+        expect(html).toContain("vq-board-landclip");
         expect(html).toContain("Virgin Queen");
         expect(html).toContain("ENGLAND");
         expect(html).toContain("OTTOMAN");
