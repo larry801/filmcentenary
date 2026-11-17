@@ -1,6 +1,6 @@
 import React from "react";
 import {ImperialElegyState, Power, SpaceId} from "../types";
-import {SPACES, spaceLabel} from "../constant/spaces";
+import {spaceLabel} from "../constant/spaces";
 import {ieStringsFor, ieT} from "./i18n";
 import {bi} from "./boardHelpers";
 import {PICKER_REGIONS, filterSpaces} from "./spaceFilter";
@@ -28,9 +28,6 @@ const REGION_LABEL: Record<string, {en: string; zh: string}> = {
   pacific: {en: "Pacific", zh: "太平洋"},
   naval: {en: "Sea boxes", zh: "海域"},
 };
-
-/** How many rows the list shows before it scrolls (keeps the map on screen). */
-const LIST_ROWS = 8;
 
 /**
  * Searchable space chooser.
@@ -115,7 +112,6 @@ export const SpacePicker = ({
           <ul
             className="ie-picker-list"
             data-testid="ie-picker-list"
-            style={{maxHeight: `calc(${LIST_ROWS} * 2.1em)`}}
             role="listbox"
             aria-label={bi(locale, "Spaces", "地点")}
           >

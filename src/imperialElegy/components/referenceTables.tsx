@@ -15,7 +15,7 @@
  */
 import React from "react";
 import {crt} from "../engine/combat";
-import {ieT} from "./i18n";
+import {ieStringsFor} from "./i18n";
 import {bi} from "./boardHelpers";
 import {phaseSteps} from "./phaseSteps";
 import {CHARTS, type ChartEntry} from "./ChartLightbox";
@@ -148,7 +148,7 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
       </div>
 
       <section className="ie-ref-section" data-testid="ie-ref-charts">
-        <h3>{t.charts}</h3>
+        <h3>{bi(locale, "Reference charts", "参考图表")}</h3>
         <div className="ie-chart-grid">
           {CHARTS.map((chart) => (
             <figure key={chart.id}>
@@ -168,7 +168,7 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
       </section>
 
       <section className="ie-ref-section ie-log-panel" data-testid="ie-ref-log">
-        <h3>{t.log}</h3>
+        <h3>{bi(locale, "History", "历史记录")}</h3>
         <div className="ie-log" data-testid="ie-ref-log-entries">
           {G.log.slice(-80).reverse().map((entry) => (
             <div key={entry.id}><span className="t">T{entry.turn}</span>{logText(entry, locale)}</div>
@@ -178,7 +178,7 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
 
       {pending !== null && (
         <p className="ie-muted" data-testid="ie-ref-pending">
-          {t.pendingFor}: {t.seats[pending.power]}
+          {bi(locale, "Decision for", "决策者")}: {ieStringsFor(locale).seats[pending.power]}
         </p>
       )}
     </div>

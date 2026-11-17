@@ -17,7 +17,7 @@ export interface MpitPanelProps {
   setMpitTrack: (t: "te" | "ta" | "neutral") => void;
   locale: "en" | "zh_CN";
   t: ReturnType<typeof ieT>;
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
 }
 
@@ -33,7 +33,7 @@ export const MpitPanel = ({G, canAct, viewer, me, cpBudget, canSpend, mpitTarget
           <select className="ie-select" value={mpitTrack} onChange={(e) => setMpitTrack(e.target.value as typeof mpitTrack)} title={bi(locale, "Track", "轨道")}>
             <option value="te">{t.mpitTe}</option><option value="ta">{t.mpitTa}</option><option value="neutral">{t.mpitNeutral}</option>
           </select>
-          <button className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.placeMpit(mpitTarget, mpitTrack))}>{t.placeMpit}</button>
+          <button className="ie-btn" disabled={!canSpend(1)} onClick={() => doAction(() => moves.placeMpit(mpitTarget, mpitTrack), {label: t.placeMpit})}>{t.placeMpit}</button>
         </div>
       ) : <div className="ie-muted">{bi(locale, "Available during your own impulse.", "仅在你的行动轮可用。")}</div>}
       <div className="ie-mpit-grid">

@@ -1,11 +1,12 @@
 import React from "react";
 import {ImperialElegyState, PendingOption, Power, SpaceId} from "../types";
-import {SPACES, spaceLabel} from "../constant/spaces";
-import {CARD_BY_ID} from "../engine/deck";
+import {spaceLabel} from "../constant/spaces";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
-import {BATTLE_STAGE, OPTION_ZH, PROMPT_ZH, bi, unitLabel} from "./boardHelpers";
+import {BATTLE_STAGE, bi} from "./boardHelpers";
 import {CardChoice, CardChoiceFace} from "./CardChoice";
+import {ConfirmButton} from "./ConfirmButton";
+import {pendingOptionSafety} from "./pendingSafety";
 
 export interface PendingPanelProps {
   G: ImperialElegyState;
@@ -29,7 +30,9 @@ export interface PendingPanelProps {
   t: ReturnType<typeof ieT>;
   jihadDecision: {allowed: boolean; markers: number} | null;
   jihadReason: string | undefined;
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
+  /** The live `confirmActions` preference; a disabled preference keeps one-click choices. */
+  confirmActions?: boolean;
   moves: Record<string, (...args: any[]) => void>;
   /** Docked above the board: the panel is pinned in place while the board scrolls. */
   dock?: boolean;
@@ -54,7 +57,7 @@ export const TargetDock = ({title, body, cancelLabel, onCancel}: {
 export const PendingPanel = ({
   G, pending, canDecide, pendingKind, pendingPrompt, optionLabel, optionFace, optionAction, canDecline,
   pendingSpaceTargets, viewer, locale, t, jihadDecision, jihadReason, doAction, moves,
-  dock = false,
+  confirmActions = true, dock = false,
 }: PendingPanelProps) => {
   // Card and Goal options show their printed face; everything else (spaces,
   // powers, units, "continue") stays a button.  A card offered in several
@@ -108,15 +111,21 @@ export const PendingPanel = ({
                             locale={locale}
                             face={face}
                             testId={`ie-pending-card-${id}`}
-                            actions={options.map((o) => ({
+                            actions={options.map((o) => {
+                              const safety = pendingOptionSafety(pending, o, locale);
                               // A card with several printed modes needs the mode
                               // named on the buttons; a single use of a card keeps
                               // a short verb under the face.
-                              label: options.length > 1 || optionAction === undefined ? optionLabel(o) : optionAction(o),
-                              testId: `ie-pending-option-${o.id}`,
-                              title: optionLabel(o),
-                              onChoose: () => doAction(() => moves.resolvePending(o.id)),
-                            }))}
+                              const label = options.length > 1 || optionAction === undefined ? optionLabel(o) : optionAction(o);
+                              return {
+                                label,
+                                testId: `ie-pending-option-${o.id}`,
+                                title: safety.reason ?? optionLabel(o),
+                                confirm: confirmActions && safety.confirm,
+                                confirmLabel: bi(locale, `Confirm: ${label}`, `确认：${label}`),
+                                onChoose: () => doAction(() => moves.resolvePending(o.id), {label: optionLabel(o)}),
+                              };
+                            })}
                           />
                         );
                       })}
@@ -124,10 +133,42 @@ export const PendingPanel = ({
                   )}
                   {(rest.length > 0 || canDecline) && (
                     <div className="ie-pending-options">
-                      {rest.map((o) => (
-                        <button key={o.id} data-testid={`ie-pending-option-${o.id}`} onClick={() => doAction(() => moves.resolvePending(o.id))}>{optionLabel(o)}</button>
-                      ))}
-                      {canDecline && <button className="ie-btn secondary" onClick={() => doAction(() => moves.declinePending())}>{t.decline}</button>}
+                      {rest.map((o) => {
+                        const safety = pendingOptionSafety(pending, o, locale);
+                        const label = optionLabel(o);
+                        if (confirmActions && safety.confirm) {
+                          return (
+                            <ConfirmButton
+                              key={o.id}
+                              data-testid={`ie-pending-option-${o.id}`}
+                              title={safety.reason}
+                              confirm
+                              confirmLabel={bi(locale, `Confirm: ${label}`, `确认：${label}`)}
+                              onConfirm={() => doAction(() => moves.resolvePending(o.id), {label})}
+                            >
+                              {label}
+                            </ConfirmButton>
+                          );
+                        }
+                        return <button key={o.id} data-testid={`ie-pending-option-${o.id}`} onClick={() => doAction(() => moves.resolvePending(o.id), {label})}>{label}</button>;
+                      })}
+                      {canDecline && (() => {
+                        const safety = pendingOptionSafety(pending, {id: "decline", label: t.decline}, locale);
+                        if (confirmActions && safety.confirm) {
+                          return (
+                            <ConfirmButton
+                              className="ie-btn secondary"
+                              title={safety.reason}
+                              confirm
+                              confirmLabel={bi(locale, `Confirm: ${t.decline}`, `确认：${t.decline}`)}
+                              onConfirm={() => doAction(() => moves.declinePending(), {label: t.decline})}
+                            >
+                              {t.decline}
+                            </ConfirmButton>
+                          );
+                        }
+                        return <button className="ie-btn secondary" onClick={() => doAction(() => moves.declinePending(), {label: t.decline})}>{t.decline}</button>;
+                      })()}
                     </div>
                   )}
                 </>

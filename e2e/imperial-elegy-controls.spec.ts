@@ -218,7 +218,17 @@ test.describe("Imperial Elegy new controls", () => {
 
         // Use the smallest budget so the declaration is legal with any CP card.
         await declare.locator("select").nth(1).selectOption("1");
-        await declare.getByRole("button", {name: "宣战"}).click();
+        // Declaring a war is irreversible: the first click arms the button,
+        // the second one declares.  Addressed by test id across both clicks
+        // because the armed label replaces the plain name the role filter
+        // matched.  `data-armed` alone could be a stale attribute, so the
+        // confirmation label is asserted too.
+        const warButton = declare.locator('[data-testid="ie-declare-war"]');
+        await expect(warButton).toBeEnabled({timeout: 15_000});
+        await warButton.click();
+        await expect(warButton).toHaveAttribute("data-armed", "true");
+        await expect(warButton).toContainText("确认");
+        await warButton.click();
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("wartime");
 
         // The war panel is the turn panel's War tab.
@@ -517,6 +527,114 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         if (!(await display.evaluate((el) => (el as HTMLDetailsElement).open))) await display.locator("> summary").click();
         await board.locator('[data-testid="ie-card-face-svg"]').first().click();
         await expect.poll(async () => await page.evaluate(() => localStorage.getItem("ie_card_face"))).toBe("svg");
+    });
+
+    test("selecting a unit rings legal destinations and a ring click moves it", async ({page}) => {
+        await reachAction(page);
+        const board = boardFor(page, "GE");
+        // A peacetime redeploy costs exactly 1 CP, so the impulse needs a card
+        // banked for CP first; otherwise every ring would submit a move the
+        // engine refuses and the unit would stay in Berlin.
+        await expect(await playCpCard(board), "this deal has no card to bank CP with").toBe(true);
+
+        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
+        await expect(board.locator('[data-testid="ie-space-detail"]')).toContainText("柏林");
+
+        // `__IE_STATE__` is a player view: `spaces.<id>.units` and `units` are
+        // public, so the ids are the same on every seat's board.
+        const unitId = await page.evaluate((): string | null => {
+            const G = (window as any).__IE_STATE__;
+            const ids: string[] = (G.spaces.berlin.units ?? []).filter((id: string) =>
+                G.units[id]?.owner === "GE" && !G.units[id]?.naval);
+            return ids[0] ?? null;
+        });
+        if (unitId === null) throw new Error("Berlin holds no German land unit to select");
+        const before = await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining);
+
+        // Selecting an own unit enters soft targeting by itself: no Orders
+        // button is needed, and the rings name every engine-legal destination.
+        await board.locator(`[data-testid="ie-unit-${unitId}"]`).click();
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
+        await expect(board.locator('[data-testid="ie-mode-pill-targets"]')).toBeVisible();
+
+        // The map publishes the ringed spaces in `data-targets`, and each ring
+        // is drawn inside its own `ie-space-<id>` group.  Pick a target whose
+        // ring centre still reaches the map itself, so a floating control (the
+        // mode pill, the find button) cannot swallow the click.  Scoped to this
+        // seat: the other five boards are mounted and draw their own maps.
+        const destination = await board.evaluate((root): string | null => {
+            const map = root.querySelector('[data-testid="ie-map"]');
+            if (map === null) return null;
+            for (const id of (map.getAttribute("data-targets") ?? "").split(",")) {
+                if (id === "" || id === "berlin") continue;
+                const ring = root.querySelector(`[data-testid="ie-space-${id}"] .ie-target-ring`);
+                // A pending decision's ring is drawn too; clicking it would
+                // answer the decision instead of moving the selected unit.
+                if (ring === null || ring.classList.contains("ie-target-pending")) continue;
+                const box = ring.getBoundingClientRect();
+                const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+                if (hit === null || !map.contains(hit)) continue;
+                return id;
+            }
+            return null;
+        });
+        if (destination === null) throw new Error(`no clickable legal destination ring for ${unitId}`);
+
+        // One click on the ring is one map click: a single redeploy, one CP.
+        const ring = board.locator(`[data-testid="ie-space-${destination}"] .ie-target-ring`);
+        await expect(ring).toHaveCount(1);
+        await ring.click({force: true});
+
+        // One consistent snapshot: the unit is at the destination and no
+        // longer in Berlin, so it really moved rather than being copied.
+        await expect.poll(
+            async () => await page.evaluate(({id, to}: {id: string; to: string}) => {
+                const G = (window as any).__IE_STATE__;
+                return {
+                    space: G.units[id]?.space ?? null,
+                    inBerlin: (G.spaces.berlin.units ?? []).includes(id),
+                };
+            }, {id: unitId, to: destination}),
+            {message: `the unit moves from Berlin to the ringed space ${destination}`},
+        ).toEqual({space: destination, inBerlin: false});
+        // Poll the CP too: a just-moved state can be read from another seat's
+        // view, and a one-shot read would race that view.
+        await expect.poll(
+            async () => await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining),
+            {message: "a peacetime redeploy spends exactly 1 CP"},
+        ).toBe(before - 1);
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toHaveCount(0);
+    });
+
+    test("keyboard: arrows walk the legal targets and Enter moves the unit", async ({page}) => {
+        await reachAction(page);
+        const board = boardFor(page, "GE");
+        await expect(await playCpCard(board), "this deal has no card to bank CP with").toBe(true);
+
+        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
+        const unitId = await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            const ids: string[] = G.spaces.berlin.units.filter((id: string) =>
+                G.units[id]?.owner === "GE" && !G.units[id]?.naval);
+            return ids[0] ?? null;
+        });
+        expect(unitId).not.toBeNull();
+        await board.locator(`[data-testid="ie-unit-${unitId}"]`).click();
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
+        const before = await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining);
+
+        // The map is one tab stop while legal targets exist; arrows move the
+        // focused target (the space card tags it), Enter submits exactly what a
+        // click would.
+        const map = board.locator('[data-testid="ie-map"]');
+        await expect(map).toHaveAttribute("tabindex", "0");
+        await map.focus();
+        await page.keyboard.press("ArrowRight");
+        await expect(board.locator('[data-testid="ie-space-card-tag"]')).toContainText("聚焦目标");
+        await page.keyboard.press("Enter");
+        await expect.poll(async () => page.evaluate((id) => (window as any).__IE_STATE__.units[id]?.space, unitId))
+            .not.toBe("berlin");
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before - 1);
     });
 
     test("a miss while targeting spends no CP, and Esc leaves the mode", async ({page}) => {

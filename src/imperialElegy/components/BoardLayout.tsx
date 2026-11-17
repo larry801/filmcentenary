@@ -33,8 +33,6 @@ import {TrackStrip} from "./TrackStrip";
 import {TurnPanel} from "./TurnPanel";
 import {PlayerMat} from "./PlayerMat";
 import {ReferenceDrawer} from "./ReferenceDrawer";
-import {SpaceOverlay} from "./SpaceOverlay";
-import {DashboardPanel} from "./DashboardPanel";
 import {NationalActionsPanel} from "./NationalActionsPanel";
 import {AmphibiousPanel, NavalTransportPanel, NavalInterceptPanel} from "./NavalPanel";
 import {WarPanel} from "./WarPanel";
@@ -43,7 +41,6 @@ import {SeatAlert} from "./SeatStrip";
 import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
 import {Toast} from "./Toast";
-
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
 
@@ -172,7 +169,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
     targetControlledSpaces, warTargetControl, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
     polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
     polishArmyDecision, polishReserveDecision, myOnMapArmies, myForts, myMinorAllies, ownLandInSelected,
-    ownNavalInSelected, potentialLandTargets, potentialNavalTargets, selectedUnitDef, doAction, moves,
+    ownNavalInSelected, potentialLandTargets, potentialNavalTargets, selectedUnitDef, doAction, confirmActions, moves,
     showNationalActions, zouaveInPlay, zouaveReason, auReformValue, setAuReformTarget, auReformDecision,
     auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason, auSacrifice,
     setAuSacrifice, auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate,
@@ -184,6 +181,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
     transportLandValue, setTransportLand, transportTargets, transportToValue, setTransportTo,
     transportFleet, transportCanGo, transportReason, interceptVisible, lastNavalBox, lastNavalMover,
     interceptPorts, interceptPortValue, setInterceptPort, interceptCheck, interceptReason,
+    beginAmphibiousTargeting, beginNavalTransportTargeting, beginNavalInterceptTargeting,
     mpitTarget, setMpitTarget, mpitTrack, setMpitTrack,
   } = props;
 
@@ -193,7 +191,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
       amphibiousTargets={amphibiousTargets} amphibiousToValue={amphibiousToValue} setAmphibiousTo={setAmphibiousTo}
       amphibiousArmies={amphibiousArmies} amphibiousArmyValue={amphibiousArmyValue} toggleAmphibiousArmy={toggleAmphibiousArmy}
       amphibiousCanGo={amphibiousCanGo} amphibiousReason={amphibiousReason} amphibiousCheck={amphibiousCheck as never}
-      doAction={doAction} moves={moves}/>
+      onPickMap={beginAmphibiousTargeting} doAction={doAction} moves={moves}/>
   ) : null;
   const transportNode = viewer !== null ? (
     <NavalTransportPanel show G={G} viewer={viewer} locale={locale} t={t}
@@ -201,14 +199,14 @@ export const OrdersRegion = (props: OrdersSlice) => {
       transportLands={transportLands} transportLandValue={transportLandValue} setTransportLand={setTransportLand}
       transportTargets={transportTargets} transportToValue={transportToValue} setTransportTo={setTransportTo}
       transportFleet={transportFleet} transportCanGo={transportCanGo} transportReason={transportReason}
-      doAction={doAction} moves={moves}/>
+      onPickMap={beginNavalTransportTargeting} doAction={doAction} moves={moves}/>
   ) : null;
   const interceptNode = (
     <NavalInterceptPanel show lastNavalBox={lastNavalBox as SpaceId} lastNavalMover={lastNavalMover}
       viewer={viewer} locale={locale} t={t}
       interceptPorts={interceptPorts} interceptPortValue={interceptPortValue} setInterceptPort={setInterceptPort}
       interceptCheck={interceptCheck as never} interceptReason={interceptReason}
-      doAction={doAction} moves={moves}/>
+      onPickMap={beginNavalInterceptTargeting} doAction={doAction} moves={moves}/>
   );
 
   return (
@@ -264,6 +262,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
         potentialNavalTargets={potentialNavalTargets}
         selectedUnitDef={selectedUnitDef}
         doAction={doAction}
+        confirmActions={confirmActions}
         moves={moves}
       />
       <NationalActionsPanel
@@ -546,6 +545,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
                     jihadDecision={jihadDecision}
                     jihadReason={jihadReason}
                     doAction={doAction}
+                    confirmActions={confirmActions}
                     moves={moves}
                     dock
                   />

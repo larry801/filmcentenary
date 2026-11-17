@@ -52,6 +52,7 @@ Setup for this section: click **Go to seat / 前往** on a seat that is acting (
 - [ ] **Click a non-target while armed.** Select the army again, then click a space with no ring. Two acceptable results depending on the mode:
   - *Soft* targeting (rings appeared by selecting the unit): the selection moves to the clicked space and the unit stays put; CP is unchanged.
   - *Armed* targeting (rings started by an Orders button, e.g. `在此发动陆战` in `ie-action-list`): the click is ignored outright. CP is unchanged and the unit does not move.
+- [ ] **The naval panels can pick on the map too.** Whenever the amphibious (`ie-amphibious-map`), naval-transport (`ie-naval-transport-map`) or interception (`ie-intercept-map`) panel is shown, it carries a `地图选择` / `Pick on map` button. Clicking it arms the same map-targeting mode as an Orders button (rings, mode pill, `Esc` to leave); clicking a ringed destination submits the move. The panels' own selects and their direct `Go` buttons are still there as the keyboard fallback and still work without arming anything.
 - [ ] `Esc` leaves the mode: the rings disappear, the mode pill `ie-mode-pill` disappears, the space selection returns to the origin space. A second `Esc` clears the selection.
 - [ ] `Esc` while the intent chooser is open closes only the chooser (rings stay up) — the next `Esc` leaves the mode.
 - [ ] **Inline chooser for two intents.** In the Great War maneuver (or a destination that is both a march and a rail for a Great War land unit), click a ringed space that offers two actions: the popover `data-testid="ie-intent-chooser"` appears with one button per intent (`ie-intent-gwMarch` "行军（1 格）" / `ie-intent-gwRail` "铁路（沿友方线路）"; in the campaign, `ie-intent-redeploy` is the one-intent case, so no chooser should appear).
@@ -64,18 +65,18 @@ Setup for this section: click **Go to seat / 前往** on a seat that is acting (
 
 - [ ] **Disabled actions are visible, with a reason and a cost.** In `ie-action-list` every row `data-testid="ie-action-<id>"` is rendered whether or not it is legal (`data-enabled="true|false"`). Its button shows `· n CP` when it costs anything, and a disabled row shows an `.ie-action-reason` line underneath with the reason. No group is empty: each `data-testid="ie-actions-recruit|build|diplomacy|move|greatWar"` carries a count badge `n 项可用`.
 - [ ] A disabled row's reason is readable text (not only a tooltip): the reason line stays visible under the button.
-- [ ] **Declare war is a single click, not two.** The declare-war block `data-testid="ie-war-declare"` has aim/target/CP selects and one `宣战` / `Declare war` button. It is *not* a `ConfirmButton`, so it fires on one click.
-  - **(verify)** whether this is intended: every other irreversible control in this list arms first (see below), and a declaration cannot be undone. Record which behaviour you saw.
+- [ ] **Declare war needs two clicks.** The declare-war block `data-testid="ie-war-declare"` keeps its aim/target/CP selects, and its `宣战` / `Declare war` button is `data-testid="ie-declare-war"`, a `ConfirmButton` like the controls below. First click: `data-armed="true"` and the label becomes `确认：宣战（n CP）` / `Confirm: declare war (n CP)`, where n is the CP chosen in the select. Second click: the war is declared (the block is only rendered while `war === null`, so it disappears), and the War tab joins the turn panel's tab strip. It disarms on blur, `Esc` or after **5 s**; with `confirmActions` off it declares on one click. The controls e2e test now clicks it twice.
 - [ ] **Play for CP needs two clicks.** In the hand, `data-testid="ie-play-cp-<cardId>"` (`作为 CP 打出` / `Play for CP`). First click: the button changes to `data-armed="true"` and its text to `确认：作 n CP 打出` / `Confirm: play for n CP`. Second click: the card is played and CP rises. A click elsewhere (blur), `Esc`, or **5 s** without a second click disarms it.
 - [ ] **Play event** `data-testid="ie-play-event-<cardId>"` behaves the same (`确认：打出事件` / `Confirm: play the event`).
 - [ ] **Pass / end impulse needs two clicks.** In the turn panel head, `data-testid="ie-pass"` reads `停牌` / `Pass` while the impulse is unused, and `结束行动轮` / `End impulse` once the seat has played a card or banked CP. First click arms (`data-armed="true"`), second click passes. When passing is illegal the button is disabled and its tooltip is the 12.0 restriction.
 - [ ] **End diplomacy needs two clicks.** In the diplomacy step, `data-testid="ie-end-diplomacy"` (`开始行动阶段` / `Start action phase`) arms on the first click.
-- [ ] **Ready does not.** `data-testid="ie-finish-prep"` (`准备完毕` / `Ready`) and, in the end step, `ie-end-phase-turn` — check whether the latter arms **(verify: `ie-end-phase-turn` is declared with `confirm: true` in the source; confirm it arms in the browser)**.
-- [ ] **Turning confirmations off from the UI.** Open the strip's menu (`ie-menu-toggle`), then the Display disclosure (`ie-display-menu` → 显示), and clear **不可撤销的操作需要二次确认** (`data-testid="ie-confirm-actions"`). No reload is needed: the board reads the preference live and passes it to the hand tray and the phase buttons.
-  - `ie-play-cp-*`, `ie-play-event-*`, `ie-pass` and `ie-end-diplomacy` now fire on **one** click and never show `data-armed="true"`.
+- [ ] **Ready does not arm; Continue does.** `data-testid="ie-finish-prep"` (`准备完毕` / `Ready`) fires on one click (it carries no `confirm` flag), while in the end step `ie-end-phase-turn` (`继续` / `Continue`) is declared with `confirm: true` and rendered by the same `PhaseActions` → `ConfirmButton` path as pass and end diplomacy, so it arms first.
+- [ ] **Turning confirmations off from the UI.** Open the strip's menu (`ie-menu-toggle`), then the Display disclosure (`ie-display-menu` → 显示), and clear **不可撤销的操作需要二次确认** (`data-testid="ie-confirm-actions"`). No reload is needed: the board reads the preference live and passes it to the hand tray, the phase buttons and the space panel's declare-war button.
+  - `ie-play-cp-*`, `ie-play-event-*`, `ie-pass`, `ie-end-diplomacy`, `ie-end-phase-turn`, `ie-declare-war` and the pending options the board marks as final now fire on **one** click and never show `data-armed="true"`.
   - The value is stored under the `localStorage` key **`ie_confirm_actions`** (`"on"` / `"off"`; absent means on, so a fresh browser asks first). Ticking the box again restores it.
-- [ ] **A refused action explains itself.** With a space selected, trigger something the engine refuses (for example declare a war you cannot afford, or act out of turn where a control is still clickable). The board shows the notice `ie-toast` (`role="status"`): "无法执行：<action>" plus the row's own reason. It dismisses itself after a few seconds, the ✕ or Esc closes it sooner, and hovering pauses the timer. A successful action raises no notice.
-  - It covers the space panel's action rows; card play and the phase buttons are not wrapped yet (see §12).
+- [ ] **A refused action explains itself.** With a space selected, trigger something the engine refuses (an unaffordable declaration, a card the current window does not allow, a phase button that is out of turn). The board shows the notice `ie-toast` (`role="status"`, `aria-live="polite"`): `无法执行：<action>` / `Not allowed: <action>`, plus the reason the control itself computed (or `当前规则不允许该操作。` / "The rules do not allow that action right now." when it has none). It dismisses itself after about 4.5 s, the ✕ or `Esc` closes it sooner, and hovering pauses the timer. A successful action raises no notice.
+  - Detection is by boardgame.io's `_stateID`: a refused move (`INVALID_MOVE`) leaves the counter unchanged, so the board waits **400 ms** on the local hotseat (**4 s** for a remote client, whose update can queue behind another packet) before calling the action refused.
+  - Every labelled control runs through the board's `doAction` wrapper: card play, response / industry / chain / save, the phase buttons (ready / pass / end diplomacy / continue), declare war, pending options, map targeting, the Great War, war, national-action, MPIT and naval panels. §12 has the residual limits.
 
 ---
 
@@ -88,7 +89,7 @@ Prerequisite: a match with a Great War running (play to the outbreak, or use a s
 - [ ] **Trench list focuses the map.** In the War tab, `data-testid="ie-trench-board"` lists one row per trench battle, `data-testid="ie-trench-<spaceId>"`, each with a status (`进攻方占优` / `僵持` / `防守方占优`) and the forces present. Clicking a row selects that space on the map — the map centres on it and `ie-space-card` / `ie-space-detail` switch to it; the row gets `aria-current="true"`. With no trench marked, `data-testid="ie-trench-empty"` is shown instead.
 - [ ] The trench list is **read + locate only** — it does not start a battle; the map's markers still open it.
 - [ ] **Charts open in the lightbox.** In the reference drawer, `data-testid="ie-chart-<id>"` (e.g. `ie-chart-colonial-great-wars`, `ie-chart-combat-crt`, `ie-chart-sequence-of-play`) opens the full-screen `data-testid="ie-chart-lightbox"` with the image `ie-chart-image` and the close button `ie-chart-close`. `Esc`, the close button or a click on the backdrop closes it.
-- [ ] The lightbox focus starts on the close button. **(verify)** Tab while the lightbox is open: the focus **walks out** into the page behind it — `ChartLightbox` focuses the close button but does not install the focus trap (`components/useFocusTrap.ts` exists and is unused by it). Same question for the reference drawer `ie-reference-drawer`. Record whether Tab is contained.
+- [ ] The lightbox focus starts on the close button and `Tab` stays **inside** it: `ChartLightbox` uses `components/useFocusTrap.ts`, `Esc` closes it and focus returns to the chart button that opened it. The reference drawer `ie-reference-drawer` is a different case — it is a `hidden`-toggled `<aside>` with no trap, so `Tab` can still leave it (see §12). Check both and record which one keeps focus.
 - [ ] **(verify) the Great War sideboard.** There is **no chart of a sideboard** in the nine published charts: the closest is `ie-chart-influence-track` (labelled `玩家面板` / "Player Display"), and the Great War panel's own rule link `ie-rule-ref-chart-colonial-great-wars` opens the Colonial & Great Wars chart. Which chart is meant by "the sideboard" has to be decided before this step can pass. What is checkable now: clicking these two links opens a lightbox whose image and title match the chart you clicked.
 - [ ] Great War state is in the War tab as markup, not as a picture: `ie-gw` (sides, impulse order, budget), `ie-gw-italy-track`, `ie-gw-majors` / `ie-gw-major-<power>`, `ie-gw-combat-cards-in-front` with one `ie-gw-in-front-<cardId>` per card and `data-faceup`.
 
@@ -99,7 +100,7 @@ Prerequisite: a match with a Great War running (play to the outbreak, or use a s
 - [ ] Open `http://localhost:5173/localIE?solo=1`. The setup screen lists six checkboxes under `机器人席位（规则 34）`; P2–P6 are pre-ticked, P1 is not. Click `开始对局` / **Start match**.
 - [ ] Select a bot seat's tab (`ie-seat-status-UK` … `ie-seat-status-OT`): its state reads `机器人` / `Bot` with the 🤖 dot, and the banner `data-testid="ie-bot-banner"` says the seat is read-only (`机器人席位仅供观战。` / "Bot seats are read-only.").
 - [ ] **The bots take their impulses by themselves.** Leave the P1 board visible and do nothing: the log (`ie-turn-tab-log` → `ie-log`) grows with the other seats' plays, roughly one impulse every 0.5 s while a bot seat is on turn.
-- [ ] **No toast on a bot seat.** No rejection banner/toast appears on a bot seat's board. (In this build the toast state exists but nothing ever raises it — `toast` is always `null` — so the check is "the bot seat shows no error message inside the board".)
+- [ ] **No toast on a bot seat.** No rejection banner/toast appears on a bot seat's board. The notice is only raised by the `doAction` wrapper behind a human's labelled control; the bot driver calls raw moves, so a refused bot decision never raises one. The check is "the bot seat shows no error message inside the board".
 - [ ] **No `invalid move` in the console.** Open DevTools → Console, keep it open for at least one full campaign turn with the bots playing, and confirm there is no `invalid move` / `INVALID_MOVE` line from the board. Allowed and expected if a bot decision is ever refused: `[IE bot] repeated invalid decision …` from the board's own fallback (it fires only after three identical refused decisions in the same state).
 - [ ] **(verify)** the *number* of such lines: the browser's console is authoritative; the source never logs `invalid move` itself, but boardgame.io's client may. Report exactly what you see, with a screenshot.
 
@@ -125,7 +126,7 @@ The spectator is **online-only** — `/localIE` has no spectator mode. Route:
 ## 8. Phone 390×844
 
 - [ ] DevTools → device toolbar → **390 × 844** (iPhone 12/13/14 size), then reload `/localIE`.
-- [ ] **44 px strip.** The track strip `data-testid="ie-track-strip"` is exactly 44 px tall. Inside it at this width: no stepper (`ie-step-*` hidden), no alliance track (`ie-track-alliance` hidden), one CP chip `ie-track-cp` (this is the phone's only CP readout — `ie-command-cp` in the panel head is *not* hidden at 390 px; **(verify) whether you therefore see two CP values on a phone**, and report it if you do), and the round buttons `?` and `☰` at 36×36.
+- [ ] **44 px strip.** The track strip `data-testid="ie-track-strip"` is exactly 44 px tall. Inside it at this width: no stepper (`ie-step-*` hidden), no alliance track (`ie-track-alliance` hidden), one CP chip `ie-track-cp` (this is the phone's only CP readout — the turn panel head hides `ie-command-cp` below 768 px), and the round buttons `?` and `☰` at 36×36.
 - [ ] The `☰` menu `data-testid="ie-menu-toggle"` → `ie-menu` contains Display and the reference buttons `ie-open-charts` and `ie-open-rules`.
 - [ ] **Bottom sheet: peek / half / full.** The hand sheet `data-testid="ie-hand-tray"` starts at **peek** (`data-open="false"`, 44 px). `data-testid="ie-tray-toggle"` opens it to **half** (`data-open="true"`, 40 dvh ≈ 338 px at 844). `data-testid="ie-tray-expand"` then switches to **full** (`data-expanded="true"`, `calc(100dvh - 140px)` ≈ 704 px); pressing it again returns to half. The toggle closes back to peek.
 - [ ] The map keeps its own area above the sheet (`ie-map-region` is order 1, the sheet order 2, the turn panel order 3 at the bottom).
@@ -145,7 +146,7 @@ Put the mouse away for this whole section.
 - [ ] **Enter commits.** `Enter` (or `Space`) on the focused target submits exactly what a click would — CP drops by 1 for a move.
 - [ ] **Esc cancels.** `Esc` leaves targeting and restores the origin selection; no CP is spent.
 - [ ] With exactly **one** legal target, `Enter` on the page (not on a form control) also confirms it — the board listens for `Enter` while targeting.
-- [ ] **The card inspector traps focus.** In the hand, `Tab` to `ie-open-card-<cardId>` and press `Enter`: the inspector `data-testid="ie-card-inspector"` opens (`role="dialog" aria-modal="true"`), focus lands on `ie-card-inspector-close`, and `Tab` / `Shift+Tab` cycle **inside** the panel (close, image, the `ie-card-inspector-actions` buttons, the print toggle) without reaching the board behind. `Esc` closes it and the focus returns to the card button. **(verify)** the focus *return*: the inspector restores focus to whatever opened it through `useFocusTrap`, and no test in the tree asserts this — confirm by hand.
+- [ ] **The card inspector traps focus.** In the hand, `Tab` to `ie-open-card-<cardId>` and press `Enter`: the inspector `data-testid="ie-card-inspector"` opens (`role="dialog" aria-modal="true"`), focus lands on `ie-card-inspector-close`, and `Tab` / `Shift+Tab` cycle **inside** the panel (close, image, the `ie-card-inspector-actions` buttons, the print toggle) without reaching the board behind. `Esc` closes it and focus returns to the card button (`useFocusTrap` records the pre-open focus target and restores it when the overlay closes). No browser test asserts the return, so watch where focus lands and report it if it does not come back.
 - [ ] **The seat strip is one tab stop.** From a neutral element, `Tab` reaches `ie-seat-strip` **once**: only the current seat's tab (`aria-selected="true"`) has `tabIndex=0`; the other five have `tabIndex=-1`. `ArrowRight` / `ArrowLeft` / `Home` / `End` move between seats and switch the board with them. Clicking a seat via the arrow keys focuses that seat's `ie-seat-status-<power>`.
 - [ ] The turn-panel tabs `ie-turn-tab-action|war|log` behave the same way (one tab stop, arrows move, the tab is selected as it receives focus).
 - [ ] `Esc` inside a text/select control does **not** cancel a targeting mode (the global handler stands down while a form control has focus).
@@ -201,32 +202,30 @@ of these was introduced by this checklist; they are where a tester's answer is
    focus returns), but the drawer is a `hidden`-toggled `<aside>` rather than a
    dialog, so Tab can still leave it. Deliberate: the drawer is a side panel
    readers scroll while the board stays live, not a modal.
-4. **Declare war is a one-click control** and is the only irreversible action in
-   the board that does not arm first (`ie-war-declare`), while `ie-pass`,
-   `ie-end-diplomacy`, `ie-end-phase-turn` and card play do.
-5. **The rejection notice covers the space panel, not every control.** A refused
-   space-panel action raises `ie-toast` with the row's own label and reason
-   (`role="status"`, auto-dismiss, Esc closes). Card play and the phase buttons
-   are not wrapped yet, and the refusal is detected by comparing the view after
-   the move, so a move that changes something and is still rejected would not
-   raise it.
-6. **Rule links go to the printed charts and the inline tables only.** The
+4. **The rejection notice has two blind spots.** Detection is by `_stateID`:
+   boardgame.io does not advance it for a refused move, so every labelled
+   control now funnels through the board's `doAction` wrapper (card play,
+   response / industry / chain / save, the phase buttons, declare war, pending
+   options, map targeting, Great War, war, national actions, MPIT and the naval
+   panels). What remains: another player's simultaneous update can advance
+   `_stateID` first, in which case a refused move looks accepted and no notice
+   is raised; and the engine still sends no reason code, so the body is the
+   reason the control computed or a generic "the rules do not allow that action
+   right now".
+5. **Rule links go to the printed charts and the inline tables only.** The
    inline drawer sections registered by anchor are the CRT (`crt`), the costs
    (`costs`) and the sequence (`sequence`); every other `RuleLink` opens one of
    the nine PNGs. There is no per-rule text at the rule number, and
    `RuleLink` renders a plain `?` + number rather than a link when the board
    forgot to pass `onOpenReference` — those spots look identical but do nothing.
-7. **Spectating is online-only.** There is no spectator toggle on `/localIE`,
+6. **Spectating is online-only.** There is no spectator toggle on `/localIE`,
    so section 7 needs a running game server on the same origin; a bare
    `yarn start` origin cannot reach it without a proxy.
-8. **The bot is a client-side loop, not an engine bot.** Each bot seat is driven
+7. **The bot is a client-side loop, not an engine bot.** Each bot seat is driven
    by a 500 ms `setTimeout` in the board while its tab is mounted (all six are
    always mounted in hotseat), and a decision refused three times in a row is
    replaced by a silent fallback move (`[IE bot] repeated invalid decision` in the
    console).
-9. **`ie-end-phase-turn` confirm flag (verify).** The source declares it with
-   `confirm: true` but it shares `PhaseActions` with the others; confirm in the
-   browser that the end-step Continue button really arms.
-10. **Password-free spectator console noise (verify).** Whether boardgame.io's
-    client prints `invalid move` lines for a spectator's stripped view is not
-    asserted anywhere in the repo; check by hand.
+8. **Spectator console noise (verify).** Whether boardgame.io's client prints
+   `invalid move` lines for a spectator's stripped view is not asserted
+   anywhere in the repo; check by hand.
