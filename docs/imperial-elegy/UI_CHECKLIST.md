@@ -37,7 +37,7 @@ written next to it.
 - [ ] The Orders tab label becomes `决策` / `Decision` while a pending decision or battle is open.
 - [ ] **Reference `?`.** The round `?` button in the strip is `data-testid="ie-open-reference"`; it opens the right-hand drawer `data-testid="ie-reference-drawer"` (`data-open="true"`, `hidden` removed) on the current step — the drawer's `data-testid="ie-ref-sequence"` has that step highlighted. `Esc` or `data-testid="ie-reference-close"` closes it.
 - [ ] A step in the strip's stepper (`data-testid="ie-stepper"`, buttons `ie-step-prep`, `ie-step-diplomacy`, `ie-step-action`, `ie-step-end`) opens the drawer at that step's reference too.
-- [ ] The drawer's sections are present: `ie-ref-crt` (CRT), `ie-ref-costs` (action costs), `ie-ref-sequence`, the power dashboards (`ie-power-GE` …), `ie-ref-mpit`, `ie-ref-charts`, `ie-ref-log`.
+- [ ] The drawer's sections are present: `ie-ref-crt` (CRT), `ie-ref-costs` (action costs), `ie-ref-sequence`, the power dashboards (`ie-power-GE` …), `ie-ref-charts`, `ie-ref-log`. The MPIT matrix is not in the drawer: it is an action in the Orders tab (`ie-mpit`, `ie-mpit-controls`).
 
 ---
 

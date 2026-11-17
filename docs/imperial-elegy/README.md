@@ -231,7 +231,7 @@ then the turn panel (capped at 46dvh). The sheet is driven by `data-open` and
 peek (`data-decision-peek`, `ie-tray-decision-peek`) and stays folded to 56 px,
 and the turn panel switches to its decision-only body capped at 50dvh, so the map
 target the decision asks about stays visible. The mat is hidden; the other
-powers and the MPIT are in the full-width drawer.
+powers' dashboards are in the full-width drawer; the MPIT panel is an action in Orders (`ie-mpit`).
 
 ## Implementation status
 

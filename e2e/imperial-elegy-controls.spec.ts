@@ -277,9 +277,9 @@ test.describe("Imperial Elegy new controls", () => {
         await reachAction(page);
         const board = boardFor(page, "GE");
 
-        // The MPIT matrix lives in the reference drawer (Rule 8's influence
-        // choice is made there, next to the other charts), so open it first.
-        await board.locator('[data-testid="ie-open-reference"]').click();
+        // The MPIT matrix is an Orders action (8.0): it is in the turn panel
+        // with the other things the player may do this impulse, not in the
+        // reference drawer.
         const mpit = board.locator('[data-testid="ie-mpit"]');
         await expect(board.getByText(/MPIT · 影响力轨/).first()).toBeVisible();
         await expect(mpit).toBeVisible();
@@ -292,8 +292,9 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(mpitControls).toBeVisible();
         await expect(mpitControls.getByRole("button", {name: /放置大国影响力/})).toBeVisible();
 
-        // The drawer closes on Escape (its close button is inside the panel area
-        // the card popovers used to cover).
+        // The drawer still opens on "?" and closes on Escape.
+        await board.locator('[data-testid="ie-open-reference"]').click();
+        await expect(board.locator('[data-testid="ie-reference-drawer"]')).toBeVisible();
         await page.keyboard.press("Escape");
         // The drawer is kept mounted with `hidden` so the anchor survives.
         await expect(board.locator('[data-testid="ie-reference-drawer"]')).toBeHidden();

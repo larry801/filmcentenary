@@ -21,7 +21,6 @@ import {phaseSteps} from "./phaseSteps";
 import {CHARTS, type ChartEntry} from "./ChartLightbox";
 import {ACTION_COSTS, ACTION_COST_ORDER, actionCostLabel, type ActionId} from "./actionAvailability";
 import {DashboardPanel} from "./DashboardPanel";
-import {MpitPanel} from "./MpitPanel";
 import {logText} from "./logText";
 import type {ReferenceSlice} from "./boardSlices";
 
@@ -138,14 +137,6 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
         handCounts={handCounts} goalCounts={goalCounts} homeCardTitle={homeCardTitle}
         minorMarkerRows={minorMarkerRows}
       />
-
-      <div className="ie-ref-mpit">
-        <MpitPanel
-          G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
-          mpitTarget={mpitTarget} setMpitTarget={setMpitTarget} mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
-          locale={locale} t={t} doAction={doAction} moves={moves}
-        />
-      </div>
 
       <section className="ie-ref-section" data-testid="ie-ref-charts">
         <h3>{bi(locale, "Reference charts", "参考图表")}</h3>

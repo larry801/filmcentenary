@@ -40,6 +40,7 @@ import {GreatWarPanel} from "./GreatWarPanel";
 import {SeatAlert} from "./SeatStrip";
 import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
+import {MpitPanel} from "./MpitPanel";
 import {Toast} from "./Toast";
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
@@ -312,6 +313,15 @@ export const OrdersRegion = (props: OrdersSlice) => {
           {transportVisible && viewer !== null && transportNode}
         </MoreActions>
       )}
+      {/* 8.0: placing a major-power influence marker is an action the player
+          takes on their own impulse, so it belongs with the Orders, not in the
+          reference drawer (which is for reading the printed tables). */}
+      <MpitPanel
+        G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
+        mpitTarget={mpitTarget} setMpitTarget={setMpitTarget}
+        mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
+        locale={locale} t={t} doAction={doAction} moves={moves}
+      />
     </>
   );
 };
