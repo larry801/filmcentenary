@@ -10,7 +10,7 @@ import i18n from "../../../../constant/i18n";
 import {CONTROLLER_COLORS, powerName, powerShortName, hreReligiousPreferenceName, POWER_INFO, POWERS, rulerName} from "../../../constant/general";
 import {cardById, cardName} from "../../../constant/cards";
 import {leaderName} from "../../../constant/leaders";
-import {baseVp, hreReligiousVp, powerVp, protestantOffMapCount, protestantSpaceCount, religiousSpecialVp, scheduledLeaderEntries} from "../../../util";
+import {baseVp, hreReligiousVp, powerVp, protestantOffMapCount, protestantSpaceCount, religiousSpecialVp, scheduledLeaderEntries, vpBreakdowns} from "../../../util";
 import {ownerOf, isActivatedMajor} from "../../../ownership";
 import {tutorialFortressVp} from "../../../tutorial";
 import {scenarioName} from "../../../scenario";
@@ -56,6 +56,63 @@ const VpHistoryTable = () => {
         </Box>
         <Typography variant="caption" color="text.secondary" sx={{display: "block"}}>
             {i18n.chain.vq.intel.vpHistoryHint}
+        </Typography>
+    </ActionGroup>;
+};
+
+/**
+ * Every player-controlled power's VP sources in one table.  The numbers are
+ * the same ones `powerVp` sums for victory; an unrevealed HRE religious
+ * preference stays hidden from other seats (and out of the counted total).
+ */
+const VpBreakdownTable = () => {
+    const {G, vqLocale, me} = useVQBoard();
+    const rows = vpBreakdowns(G);
+    if (rows.length === 0) return null;
+    const tutorial = G.scenario === "tutorial";
+    const cell = {px: 0.25, py: 0.125, textAlign: "right" as const, whiteSpace: "nowrap" as const};
+    const hreVisible = me === "hre" || G.hreReligiousPreferenceRevealed === true;
+    return <ActionGroup title={i18n.chain.vq.intel.vpBreakdown}>
+        <Box component="table" className="vq-vp-breakdown" sx={{borderCollapse: "collapse", fontSize: "0.75rem", width: "100%"}}>
+            <thead><tr>
+                <Box component="th" scope="col" sx={{...cell, textAlign: "left"}}>{i18n.chain.vq.intel.vpPower}</Box>
+                <Box component="th" scope="col" sx={cell}>{i18n.chain.vq.intel.keys}</Box>
+                <Box component="th" scope="col" sx={cell}>{i18n.chain.vq.intel.base}</Box>
+                <Box component="th" scope="col" sx={cell}>{i18n.chain.vq.intel.religion}</Box>
+                <Box component="th" scope="col" sx={cell}>{i18n.chain.vq.intel.bonus}</Box>
+                {tutorial && <>
+                    <Box component="th" scope="col" sx={cell}>{i18n.chain.vq.intel.fortress}</Box>
+                    <Box component="th" scope="col" sx={cell}>{i18n.chain.vq.intel.cyprus}</Box>
+                </>}
+                <Box component="th" scope="col" sx={{...cell, color: "primary.main"}}>{i18n.chain.vq.intel.vpTotal}</Box>
+            </tr></thead>
+            <tbody>{rows.map((row) => {
+                const hiddenReligion = row.secretReligiousVp && !hreVisible;
+                const ownSecretReligion = row.secretReligiousVp && me === "hre";
+                const religionCell = hiddenReligion
+                    ? i18n.chain.vq.intel.secret
+                    : ownSecretReligion
+                        ? `${hreReligiousVp(G)} ${i18n.chain.vq.intel.notCounted}`
+                        : String(row.religiousVp);
+                return <tr key={row.power} data-power={row.power}>
+                    <Box component="th" scope="row" sx={{...cell, textAlign: "left", fontWeight: 400}}>
+                        <Box component="span" sx={{display: "inline-block", width: 7, height: 7, mr: 0.5, bgcolor: CONTROLLER_COLORS[row.power], borderRadius: 0.5}}/>
+                        {powerShortName(row.power, vqLocale)}
+                    </Box>
+                    <Box component="td" sx={cell}>{row.keyCount}</Box>
+                    <Box component="td" sx={cell}>{row.baseVp}</Box>
+                    <Box component="td" sx={cell}>{religionCell}</Box>
+                    <Box component="td" sx={cell}>{row.bonusVp}</Box>
+                    {tutorial && <>
+                        <Box component="td" sx={cell}>{row.fortressVp}</Box>
+                        <Box component="td" sx={cell}>{row.cyprusVp}</Box>
+                    </>}
+                    <Box component="td" sx={{...cell, fontWeight: 700}}>{row.total}</Box>
+                </tr>;
+            })}</tbody>
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{display: "block"}}>
+            {i18n.chain.vq.intel.vpBreakdownHint}
         </Typography>
     </ActionGroup>;
 };
@@ -113,6 +170,7 @@ export const IntelPanel = () => {
             <LeaderEntrySchedule/>
         </ActionGroup>
         <VpHistoryTable/>
+        <VpBreakdownTable/>
         {me !== undefined && ps !== undefined && <ActionGroup title={i18n.chain.vq.intel.myPower}>
             <Stack direction="row" spacing={1} sx={{alignItems: "center"}}>
                 <Box sx={{width: 14, height: 14, bgcolor: CONTROLLER_COLORS[me], borderRadius: 0.5}}/>

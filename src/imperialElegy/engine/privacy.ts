@@ -373,6 +373,10 @@ export const redactForView = (
       hidden.hand = [];
       hidden.goalDeck = [];
       hidden.goals = [];
+      // 25.5 banked goal lines name National Goals that were private while
+      // held.  The final result carries the full breakdown once; until then
+      // only the owning seat may read them.
+      hidden.outbreakGoalScores = [];
       hidden.gwCard = null;
       // Split the flag bag: harmless, rule-public flags stay visible; hand,
       // decision and card bookkeeping stays hidden.

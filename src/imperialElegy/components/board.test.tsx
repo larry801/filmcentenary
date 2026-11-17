@@ -52,6 +52,8 @@ import {CARD_BY_ID} from "../engine/deck";
 import {createWarState} from "../engine/limitedWar";
 import {resolveWar, surrender} from "../moves";
 import {advanceGwImpulse} from "../engine/greatWarFlow";
+import {scoreGame} from "../engine/victory";
+import {resolveAnchor} from "./ReferenceDrawer";
 import {GreatWarState, ImperialElegyState} from "../types";
 import i18n from "../../constant/i18n";
 
@@ -113,6 +115,21 @@ const divTag = (markup: string, testId: string): string =>
   markup.match(new RegExp(`<div[^>]*data-testid="${testId}"[^>]*>[\\s\\S]*?</div>`))?.[0] ?? "";
 
 describe("Imperial Elegy board controls", () => {
+  test("score breakdown opens from the command menu and prints on game over", () => {
+    // The command menu is behind the track strip's toggle in static markup.
+    expect(html(freshGame(), "0")).toContain('data-testid="ie-menu-toggle"');
+    expect(resolveAnchor("rules:scores").section).toBe("scores");
+
+    const done = freshGame();
+    done.powers.GE.goals = ["NG-01"];
+    const {scores, breakdown} = scoreGame(done);
+    done.result = {winners: ["GE"], reason: "test", scores, breakdown};
+    const markup = html(done, "0");
+    expect(markup).toContain('data-testid="ie-final-score"');
+    expect(markup).toContain('data-testid="ie-score-panel"');
+    expect(markup).toContain('data-testid="ie-score-GE"');
+  });
+
   test("active player sees impulse, card and MPIT controls", () => {
     const markup = html(freshGame(), "0");
     expect(markup).toContain("data-testid=\"ie-impulse-actions\"");

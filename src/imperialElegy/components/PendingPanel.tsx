@@ -6,6 +6,7 @@ import {ieT} from "./i18n";
 import {BATTLE_STAGE, bi} from "./boardHelpers";
 import {CardChoice, CardChoiceFace} from "./CardChoice";
 import {ConfirmButton} from "./ConfirmButton";
+import {ScorePanel} from "./ScorePanel";
 import {pendingOptionSafety} from "./pendingSafety";
 
 export interface PendingPanelProps {
@@ -30,6 +31,8 @@ export interface PendingPanelProps {
   t: ReturnType<typeof ieT>;
   jihadDecision: {allowed: boolean; markers: number} | null;
   jihadReason: string | undefined;
+  /** Public goal counts, forwarded to the final score breakdown. */
+  goalCounts?: Partial<Record<Power, number>>;
   doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   /** The live `confirmActions` preference; a disabled preference keeps one-click choices. */
   confirmActions?: boolean;
@@ -56,7 +59,7 @@ export const TargetDock = ({title, body, cancelLabel, onCancel}: {
 
 export const PendingPanel = ({
   G, pending, canDecide, pendingKind, pendingPrompt, optionLabel, optionFace, optionAction, canDecline,
-  pendingSpaceTargets, viewer, locale, t, jihadDecision, jihadReason, doAction, moves,
+  pendingSpaceTargets, viewer, locale, t, jihadDecision, jihadReason, goalCounts, doAction, moves,
   confirmActions = true, dock = false,
 }: PendingPanelProps) => {
   // Card and Goal options show their printed face; everything else (spaces,
@@ -192,7 +195,12 @@ export const PendingPanel = ({
               )}
             </div>
           )}
-          {G.result && <div className="ie-mt-8"><IEBadge tone="warn">{t.gameOver}: {G.result.winners.map((p) => t.seats[p]).join(", ")}</IEBadge></div>}
+          {G.result && (
+            <div className="ie-mt-8" data-testid="ie-final-score">
+              <IEBadge tone="warn">{t.gameOver}: {G.result.winners.map((p) => t.seats[p]).join(", ")}</IEBadge>
+              <ScorePanel G={G} locale={locale} viewer={viewer} goalCounts={goalCounts}/>
+            </div>
+          )}
       </>
     </IEPanel>
   );
