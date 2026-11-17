@@ -811,6 +811,8 @@ export interface VQGame {
     peaceMadeThisPhase?: [Power, Power][];
     /** Per-phase diplomacy gift counts. Key is "giver->receiver". */
     diplomacyGifts?: Record<string, {cards: number; treasures: number; mercenaries: number}>;
+    /** Private negotiation table and the public record of concluded deals. */
+    negotiation?: import("../negotiation").NegotiationState;
     lostBattleImpulse?: {impulse: number; owners: Controller[]};
     rebellionAreasThisImpulse?: {impulse: number; areas: string[]};
     /** Most recent fortress capture; gates Sack! (#44) and Spanish Fury (#46). */
@@ -986,6 +988,7 @@ export interface VQGame {
     futureDeckCount?: number;
     discardCount?: number;
     handCounts?: Partial<Record<Power, number>>;
+    treasureCounts?: Partial<Record<Power, number>>;
     /** Public count of each power's face-down Home cards (identities hidden). */
     homeCardSetAsideCounts?: Partial<Record<Power, number>>;
     springDone: Power[];

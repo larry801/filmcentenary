@@ -661,7 +661,8 @@
 - 外交阶段可随机赠送手中的一个宝藏给非交战国（由程序抽取，不能指定价值）。
 - 可随机赠送一张非本国牌；界面按钮从非本国牌中随机选择。
 - 可把选中地区的 1 个雇佣兵转给非交战国；HRE 也可从雇佣兵市场轨道支付；接收方的雇佣兵进入其首都。
-- 同一回合双方不能互赠同类物品（牌/宝藏/雇佣兵各为单向）；完整的私下协商与多边条件协议按规则属于非约束协议，不在引擎中记录。
+- 同一回合双方不能互赠同类物品（牌/宝藏/雇佣兵各为单向）。
+- 新增结构化“谈判桌”：见 `docs/vq-negotiation.md`。外交阶段可私下提出/还价/密封/拒绝一份只含规则 9.1 约束条款的协议；未密封提议随阶段失效，密封时服务端重新校验并原子执行。非约束承诺单独记录，永不执行。
 
 ### 海军借调（9.2）
 
@@ -1493,3 +1494,16 @@ Mary Queen of Scots 死亡/处决修正后的验证：`jest src/virginQueen --ru
 
 验证：`tsc --noEmit` 通过；`jest --runInBand --silent` 437 suites、4055 tests passed；`npm run build` 通过；`playwright test e2e/card-tables.spec.ts` 6 项全通过（本地 5173 被其他工作区的旧 vite 占用，故用独立 5174 端口临时配置运行）。
 
+
+
+## 玩家谈判桌（规则 9.1）
+
+外交阶段新增结构化谈判系统，设计说明见 `docs/vq-negotiation.md`。
+
+- 条款类型：议和、同盟（含海军借调）、随机赠牌/宝藏/雇佣兵、让渡地区、归还被俘陆军将领、王室订婚。
+- 提议只在两名玩家之间私下流转；接受方可在自己回合之外通过临时 stage 回应，密封或拒绝后控制权回到原提议方的外交回合。
+- 提议与密封各校验一次；未密封提议不预占资源，密封时服务端以完整状态重新校验并原子执行，失败不会留下半成品状态。
+- 非约束承诺（未来回合的行动）与约束条款严格分开，不进入公共日志，对手也看不到。
+- `playerView` 隐藏非参与方的待回应提议与历史中的承诺；谈判 move 参数对非行动方 redact。
+
+实现：`src/virginQueen/negotiation.ts`、`negotiationMoves.ts`、`components/board/panels/NegotiationPanel.tsx`。测试：`negotiation.test.ts`、`negotiationStage.test.ts`、`negotiationUi.test.tsx`。
