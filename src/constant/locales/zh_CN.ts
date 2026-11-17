@@ -686,7 +686,6 @@ const zh_CN: Locale = {
             tutorial: "双人教学",
         },
         playerNamePlaceholder: "何人被铭记？",
-        matchRecords: "对局数据",
         manual: "使用手册",
         matchStats: "对局统计",
         quickReplay: "快捷回放",

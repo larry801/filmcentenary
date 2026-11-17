@@ -659,7 +659,6 @@ const en = {
             tutorial: "Two-player tutorial",
         },
         playerNamePlaceholder: "Whose name is remembered?",
-        matchRecords: "Match data",
         manual: "How to use",
         matchStats: "Match stats",
         quickReplay: "Quick replay",

@@ -22,12 +22,16 @@ test("home page shows the game navigation instead of the film lobby", async ({pa
     await page.goto("/");
     await expect(page.getByRole("heading", {name: "游戏中心"})).toBeVisible();
     // The "全局" group is gone; every game now has its own 卡表 link, while
-    // 规则和帮助 stays a Film Centenary link.
+    // 规则和帮助, 使用手册 and 对局统计 stay Film Centenary links, nested in
+    // the Film group instead of a separate "对局数据" group.
     await expect(page.getByRole("group", {name: "全局"})).toHaveCount(0);
+    await expect(page.getByRole("group", {name: "对局数据"})).toHaveCount(0);
     const filmGroup = page.getByRole("group", {name: "电影百年"});
     await expect(filmGroup).toBeVisible();
     await expect(filmGroup.getByRole("link", {name: "卡表"})).toBeVisible();
     await expect(filmGroup.getByRole("link", {name: "规则和帮助"})).toBeVisible();
+    await expect(filmGroup.getByRole("link", {name: "使用手册"})).toBeVisible();
+    await expect(filmGroup.getByRole("link", {name: "对局统计"})).toBeVisible();
     for (const section of ["宋金战争", "Imperial Elegy 帝国挽歌", "Virgin Queen 童贞女王"]) {
         await expect(page.getByRole("group", {name: section}).getByRole("link", {name: "卡表"})).toBeVisible();
     }
