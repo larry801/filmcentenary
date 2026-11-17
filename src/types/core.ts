@@ -750,6 +750,16 @@ export type ClassicCardID = SchoolCardID | PersonCardID | FilmCardID
 export type ValidRegion = Region.NA | Region.WE | Region.EE | Region.ASIA;
 export const valid_regions: ValidRegion[] = [Region.NA, Region.WE, Region.EE, Region.ASIA];
 
+/** The four player regions plus the school regions, in `G.regions` order. */
+export type BoardRegionIndex =
+    Region.NA | Region.WE | Region.EE | Region.ASIA |
+    Region.EXTENSION | Region.EXTENSION1 | Region.EXTENSION2 | Region.MONTHLY_SCHOOL;
+
+export const all_regions: BoardRegionIndex[] = [
+    Region.NA, Region.WE, Region.EE, Region.ASIA,
+    Region.EXTENSION, Region.EXTENSION1, Region.EXTENSION2, Region.MONTHLY_SCHOOL,
+];
+
 export const TwoPlayerCardCount = {
     0: {school: 3, film: 11},
     1: {school: 3, film: 18},
