@@ -38,7 +38,7 @@ export interface ReferenceTablesProps extends ReferenceSlice {
 export const ReferenceTables = (props: ReferenceTablesProps) => {
   const {
     G, locale, t, viewer, me, active, war, gw, pending, handCounts, goalCounts, minorMarkerRows,
-    homeCardTitle, cpBudget, canAct, canSpend, mpitTarget, setMpitTarget, mpitTrack, setMpitTrack,
+    homeCardTitle, cpBudget, canAct, canSpend,
     doAction, moves, anchor = null, onOpenChart,
   } = props;
   const sections = React.useRef(new Map<string, HTMLElement>());

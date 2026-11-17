@@ -348,7 +348,22 @@ test.describe("Imperial Elegy new controls", () => {
 
         const mpitControls = board.locator('[data-testid="ie-mpit-controls"]');
         await expect(mpitControls).toBeVisible();
-        await expect(mpitControls.getByRole("button", {name: /放置大国影响力/})).toBeVisible();
+        // The matrix is the control: no target/track dropdowns, and one
+        // placement button per power and track (6 x 3).
+        await expect(mpit.locator("select")).toHaveCount(0);
+        const placeButtons = mpit.getByTestId(/^ie-mpit-place-/);
+        await expect(placeButtons).toHaveCount(18);
+        await expect(placeButtons.first()).toBeVisible();
+
+        // A placement is one button, armed-then-confirmed like every other
+        // irreversible action: click the value that will change.
+        expect(await playCpCard(board)).toBe(true);
+        const before = await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.mpit.te);
+        const placeGeTe = mpit.getByTestId("ie-mpit-place-GE-te");
+        await placeGeTe.click();
+        await expect(placeGeTe).toHaveAttribute("data-armed", "true");
+        await placeGeTe.click();
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.mpit.te)).toBe(before + 1);
 
         // The drawer still opens on "?" and closes on Escape.
         await board.locator('[data-testid="ie-open-reference"]').click();

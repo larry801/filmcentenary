@@ -156,8 +156,6 @@ export const useBoardModel = ({
   const [warAim, setWarAim] = React.useState<"conquest" | "liberation" | "unification">("conquest");
   const [warCp, setWarCp] = React.useState(2);
   const [secondObjective, setSecondObjective] = React.useState<SpaceId | "">("");
-  const [mpitTarget, setMpitTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "AU");
-  const [mpitTrack, setMpitTrack] = React.useState<"te" | "ta" | "neutral">("neutral");
   const [warAlly, setWarAlly] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
   const [warMinor, setWarMinor] = React.useState<string>("");
   const [giveTarget, setGiveTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
@@ -1568,10 +1566,6 @@ export const useBoardModel = ({
     setWarCp,
     secondObjective,
     setSecondObjective,
-    mpitTarget,
-    setMpitTarget,
-    mpitTrack,
-    setMpitTrack,
     warAlly,
     setWarAlly,
     warMinor,
