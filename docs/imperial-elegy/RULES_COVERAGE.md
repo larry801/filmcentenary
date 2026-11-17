@@ -116,9 +116,9 @@ Status labels:
   12 response, 7 combat, 1 mandatory-response. Action CP: 24×1, 54×2, 17×3, 5×4.
 - **Deck/prep:** printed decade build **58 / 11 / 10 / 8 / 13** for 1850s/1870s/
   1880s/1890s/1900s (cards 13–70 / 71–81 / 82–91 / 92–99 / 100–112), reshuffle,
-  draw, optional stability discard, initial deal. Campaign turn labels are the
-  seven playbook values: turns 1–7 = 1850s, 1860s, 1870s, 1880s, 1890s, 1900s,
-  1910s. The 1860s and 1910s are **empty label-only bands** — no action card is
+  draw, optional random discard for +1 stability, initial deal. Campaign turn
+  labels are the seven playbook values: turns 1–7 = 1850s, 1860s, 1870s, 1880s,
+  1890s, 1900s, 1910s. The 1860s and 1910s are **empty label-only bands** — no action card is
   printed for either — so per-turn additions are 58/0/11/10/8/13/0 (turns 1–7;
   turns 2 and 7 add none) and no card was moved into either band. `prepBegin`
   calls
@@ -128,7 +128,7 @@ Status labels:
   canonical `decadeForTurn`, and `logText` localizes the 1860s/1910s labels.
   The first deal now uses the printed 10.2 `cardsToDraw` formula (industry
   cards, stability, flashpoints and characteristics), not a hard-coded table.
-- **Diplomacy:** home-card selection, card gifts, Metternich’s Legacy on turn 1
+- **Diplomacy:** home-card selection, random card gifts, Metternich’s Legacy on turn 1
   — **implemented**.
 - **Bot box (9.2 / 34.3.4):** the printed 2×3 box under each action card’s CP
   value is transcribed card by card (`BOT_BOX` in `constant/cards.data.ts`,
@@ -238,9 +238,9 @@ Status labels:
   - 9.1.2/9.1.3 and 27.2 — response, combat and Great War cards are played
     openly; `responsePlayed`/`combatCardPlayed` are public.
   - 12.13/12.14 — industrialization cards and CP-chain cards are placed faceup;
-    `industrializeCard` and `cpChained` are public. (11.1 card gifts and 14.0 ally
-    cards are also public at the table, but their log entries carry no `card`
-    argument, so they are outside this mask.)
+    `industrializeCard` and `cpChained` are public. (A 11.1 card gift is a random
+    draw, so `cardGiven` stays masked like any other random discard: the
+    recipient learns the card from their own hand, not from the public log.)
   - 26.1 — GW combat cards are public information even while facedown;
     `gwCombatCardFaceup`/`gwCombatCardFlipped` are public.
   - the notes a resolving card emits about itself (`noLegalTarget`,

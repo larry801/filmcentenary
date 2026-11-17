@@ -603,17 +603,17 @@ describe("Imperial Elegy board controls", () => {
     expect(first).toContain("<svg");
   });
 
-  test("the stability discard shows the hand card's face", () => {
+  test("the stability discard shows a random-draw control, not a card pick", () => {
     const G = freshGame();
     G.phase = "prep";
     G.activePower = "GE";
-    const discardable = G.powers.GE.hand.find((id) => {
-      const card = CARD_BY_ID[id];
-      return card !== undefined && card.type !== "mandatory" && card.kind !== "home";
-    })!;
+    G.powers.GE.flags.prepStability = false;
     const markup = html(G, "0");
-    expect(markup).toContain(`data-testid="ie-discard-card-${discardable}"`);
-    expect(markup).toContain(`data-testid="ie-discard-${discardable}"`);
+    // The card is drawn at random, so the dock must never render a per-card
+    // choice (that would let the player pick the card).
+    expect(markup).toContain(`data-testid="ie-discard-random"`);
+    expect(markup).not.toMatch(/data-testid="ie-discard-card-/);
+    expect(markup).not.toMatch(/data-testid="ie-discard-IE-/);
   });
 
   test("a pending decision that names a card renders its face with the option button", () => {
@@ -735,10 +735,10 @@ describe("Imperial Elegy board controls", () => {
       markup.indexOf(`data-testid="ie-stability-discard-hint"`),
       markup.indexOf(`data-testid="ie-stability-discard-hint"`) + 400,
     );
-    expect(hint).toContain("可以跳过");
+    expect(hint).toContain("也可跳过");
     expect(hint).toContain("准备完毕");
     // The dock summary must not claim a choice is required.
-    expect(markup).toContain("可选：弃牌换稳定");
+    expect(markup).toContain("可选：随机弃牌换稳定");
     expect(markup).not.toContain("需要选择卡牌");
     // The ready button is right there to continue without discarding.
     expect(buttonTag(markup, "ie-finish-prep")).toContain("准备完毕");
@@ -770,7 +770,7 @@ describe("Imperial Elegy board controls", () => {
     const markup = html(G, "0");
     // Nothing to discard means no empty optional section in the dock.
     expect(markup).not.toContain("data-testid=\"ie-stability-discard\"");
-    expect(markup).not.toContain("可选：弃牌换稳定");
+    expect(markup).not.toContain("可选：随机弃牌换稳定");
   });
 
   test("an already-used stability discard stops being offered", () => {
@@ -792,6 +792,8 @@ describe("Imperial Elegy board controls", () => {
     expect(markup.indexOf("data-testid=\"ie-give-card\"")).toBeGreaterThan(layout);
     // It carries the same "optional" tag and skip hint as the stability discard.
     expect(markup).toContain(`data-testid="ie-give-card-optional"`);
+    // The card is a random draw: no per-card selector or face preview.
+    expect(markup).not.toContain(`data-testid="ie-give-card-preview"`);
     const hint = markup.slice(
       markup.indexOf(`data-testid="ie-give-card-hint"`),
       markup.indexOf(`data-testid="ie-give-card-hint"`) + 400,

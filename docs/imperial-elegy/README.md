@@ -75,13 +75,23 @@ same renderer. The photographs are represented by lightweight vector emblems.
 
 Whenever the rules ask the player to *pick a card*, the choice renders the
 printed face instead of a title button: the diplomacy home card, the end-phase
-National Goal draw-and-keep, the prep-phase stability discard, the combat
-windows (A043/A058–A062, GW-03–GW-06) and the face-down auctions. A card that
-is offered in several printed modes (A061, A066, the UK's two auction sides)
-keeps one face with one button per mode. `components/CardChoice.tsx` is the
-shared wrapper; `HandChoices` (top of the Orders tab) and `PendingPanel` both use it, and
-the diplomacy give-card preview shows the selected card's face too. Space,
-power and unit options stay plain buttons.
+Whenever the rules ask the player to *pick a card*, the choice renders the
+printed face instead of a title button: the diplomacy home card, the end-phase
+National Goal draw-and-keep, the combat windows (A043/A058–A062, GW-03–GW-06)
+and the face-down auctions. A card that is offered in several printed modes
+(A061, A066, the UK's two auction sides) keeps one face with one button per
+mode. `components/CardChoice.tsx` is the shared wrapper; `HandChoices` (top of
+the Orders tab) and `PendingPanel` both use it. Space, power and unit options
+stay plain buttons.
+
+Two moves are **draws, not picks**, and deliberately show no card face: the
+prep-phase discard for +1 stability and the diplomacy card gift both take one
+card at random from the giver's hand (print: "discard a random card", and the
+11.1 gift is a random draw). Letting the client name the card would turn the
+random draw into a free choice — dump the worst card, keep the good one, or push
+a chosen card onto an ally. The engine resolves the card from `ctx.random`, so
+the moves take no card argument at all; the dock/hand panel only offer the
+action, and mandatory events and home cards are excluded from the draw.
 
 ### Required versus optional
 
@@ -93,9 +103,9 @@ an optional action never reads as "you cannot continue until you pick":
 - a mandatory section is a solid gold-bordered box and the turn panel's
   summary says `需要选择卡牌` / "Required card choice";
 - an optional section uses a dashed frame and an `可选` / "Optional" tag, the
-  summary says `可选：弃牌换稳定` / "Optional: discard for stability", and a hint
-  names the way out ("press Ready to continue without discarding" / "转交卡牌并非
-  必须").
+  summary says `可选：随机弃牌换稳定` / "Optional: discard a random card for
+  stability", and a hint names the way out ("press Ready to continue without
+  discarding" / "转交卡牌并非必须").
 
 `handChoiceAvailability` returns `{required, optional}` so the turn panel's
 summary and the pointer in the hand tray follow the same rule. The discard is
@@ -265,8 +275,9 @@ inventory, known fallbacks and current test/build evidence are in
 
 At a glance, the live game covers:
 
-- **Prep** — decade deck build, reshuffle, draw, optional stability discard.
-- **Diplomacy** — home-card selection, card gifts and Metternich's Legacy.
+- **Prep** — decade deck build, reshuffle, draw, optional random discard for +1
+  stability (mandatory events and home cards stay).
+- **Diplomacy** — home-card selection, random card gifts and Metternich's Legacy.
 - **Action** — cards for CP or events, recruitment, fleets, influence,
   diplomacy, minor alliances, EFs, pacification, forts, industry, redeployment
   and declarations of war.

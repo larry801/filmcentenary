@@ -301,17 +301,14 @@ test("reconnecting the GE client preserves its private hand and keeps other view
   // reconnect-style test uses a prep-phase private action. Pending-decision
   // redaction is covered separately with playerView above.
   // A prep-phase private action: discard a card from the GE hand for stability.
-  const discardable = handBefore.find((id) => {
-    const def = cardById(id);
-    return def.kind !== "home" && def.type !== "mandatory" && def.type !== "mandatoryResponse";
-  });
-  expect(discardable).toBeDefined();
+  const stateBefore = handBefore.length;
+  expect(stateBefore).toBeGreaterThan(0);
 
-  ge.moves.discardForStability(discardable!);
+  ge.moves.discardForStability();
   await wait(80);
 
   const afterAction = ge.getState()!.G as PrivateView;
-  expect(afterAction.powers.GE.hand).toEqual(handBefore.filter((id) => id !== discardable));
+  expect(afterAction.powers.GE.hand.length).toBe(stateBefore - 1);
   expect(afterAction.pending).toBeNull();
 
   const observerAfter = observer.getState()!.G as PrivateView;
@@ -319,8 +316,10 @@ test("reconnecting the GE client preserves its private hand and keeps other view
   expect(observerAfter.handCounts.GE).toBe(afterAction.powers.GE.hand.length);
   expect(observerAfter.pending).toBeNull();
 
+  const discarded = handBefore.find((id) => !afterAction.powers.GE.hand.includes(id))!;
+  expect(discarded).toBeDefined();
   const discardLog = afterAction.log.find((entry) => entry.key === "prepStabilityDiscard")!;
-  expect(discardLog.args?.card).toBe(discardable);
+  expect(discardLog.args?.card).toBe(discarded);
   expect(observerAfter.log.find((entry) => entry.id === discardLog.id)!.args?.card).toBe("hidden");
 
   // Stop and restart the GE client, as a reconnecting tab would.
@@ -331,7 +330,7 @@ test("reconnecting the GE client preserves its private hand and keeps other view
 
   const reconnected = ge.getState()!.G as PrivateView;
   expect(reconnected.powers.GE.hand).toEqual(afterAction.powers.GE.hand);
-  expect(reconnected.powers.GE.hand).not.toContain(discardable);
+  expect(reconnected.powers.GE.hand).not.toContain(discarded);
   expect(reconnected.pending).toBeNull();
 
   const observerAgain = observer.getState()!.G as PrivateView;

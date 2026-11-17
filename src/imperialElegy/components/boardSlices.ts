@@ -90,7 +90,7 @@ const HAND_KEYS = [
   "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "isActive", "eliminated", "pending",
   "canActionCard", "confirmActions", "isBelligerent", "war", "forcedCardIds", "hand", "saveList", "giveCards",
   "open", "onToggleOpen", "expanded", "onToggleExpanded",
-  "giveCardId", "setGiveCardId", "giveTarget", "setGiveTarget", "giveCardValue", "responseInHand",
+  "giveTarget", "setGiveTarget", "responseInHand",
   "responseWindow", "chainNonEmpty", "chainSpendable", "chainCap", "chainReady",
   "chainDisabledReason", "cpBudget", "doAction", "moves", "handChoicesHint", "cardFaceMode",
   "trayOpen", "setTrayOpen", "trayExpanded", "setTrayExpanded",

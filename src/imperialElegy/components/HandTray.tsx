@@ -35,11 +35,8 @@ export interface HandTrayProps {
   hand: string[];
   saveList: string[];
   giveCards: string[];
-  giveCardId: string;
-  setGiveCardId: (s: string) => void;
   giveTarget: Power;
   setGiveTarget: (p: Power) => void;
-  giveCardValue: string;
   responseInHand: boolean;
   responseWindow: boolean;
   chainNonEmpty: boolean;
@@ -98,8 +95,8 @@ const CardTranslation = ({card, locale}: {card: CardDef | GoalDef; locale: "en" 
 export const HandTray = (props: HandTrayProps) => {
   const {
     G, viewer, me, locale, t, phase, isActive, eliminated, pending, canActionCard, isBelligerent, war,
-    forcedCardIds, hand, saveList, giveCards, giveCardId, setGiveCardId, giveTarget, setGiveTarget,
-    giveCardValue, responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
+    forcedCardIds, hand, saveList, giveCards, giveTarget, setGiveTarget,
+    responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
     cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded, decisionPeek = false,
     onOpenReference,
@@ -422,27 +419,17 @@ export const HandTray = (props: HandTrayProps) => {
                   {/* A visible control now: the old CSS hid it until focus, which
                       made "give a card" undiscoverable for mouse users. */}
                   <div className="ie-section-title">
-                    {bi(locale, "Give a card (diplomacy)", "转交卡牌（外交阶段）")}
+                    {bi(locale, "Give a random card (diplomacy)", "随机转交卡牌（外交阶段）")}
                     <span className="ie-choice-tag" data-testid="ie-give-card-optional">{bi(locale, "Optional", "可选")}</span>
                   </div>
                   <div className="ie-inline">
                     <select className="ie-select" value={giveTarget} onChange={(e) => setGiveTarget(e.target.value as Power)}>
                       {(["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]).filter((p) => p !== viewer).map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
                     </select>
-                    <select className="ie-select" value={giveCardValue} onChange={(e) => setGiveCardId(e.target.value)}>
-                      {giveCards.map((id) => <option key={id} value={id}>{homeCardTitle(id)}</option>)}
-                    </select>
-                    <button className="ie-btn" disabled={giveTarget === viewer || !giveCardValue} onClick={() => doAction(() => moves.giveCard(giveTarget, giveCardValue), {label: bi(locale, `Give ${homeCardTitle(giveCardValue)}`, `转交 ${homeCardTitle(giveCardValue)}`)})}>{bi(locale, "Give", "转交")}</button>
+                    <button className="ie-btn" disabled={giveTarget === viewer} onClick={() => doAction(() => moves.giveCard(giveTarget), {label: bi(locale, `Give a random card to ${t.seats[giveTarget]}`, `随机转交 1 张牌给${t.seats[giveTarget]}`)})}>{bi(locale, "Give", "转交")}</button>
                   </div>
-                  {giveCardValue && (
-                    <div className="ie-choice-grid ie-give-preview">
-                      <article className="ie-card ie-choice-card" data-testid="ie-give-card-preview" data-card-id={giveCardValue}>
-                        <CardFace card={cardById(giveCardValue)} locale={locale} t={t}/>
-                      </article>
-                    </div>
-                  )}
                   <div className="ie-hint" data-testid="ie-give-card-hint">
-                    {bi(locale, "Optional: giving a card is never required — skip it and carry on with diplomacy.", "可选：转交卡牌并非必须——不做也可以继续外交阶段。")}
+                    {bi(locale, "Optional: the card is drawn at random from your hand, so its identity stays unknown until it is handed over. Giving is never required — skip it and carry on with diplomacy.", "可选：从你的手牌中随机抽出 1 张转交，交出前连你也无法指定是哪张。转交并非必须——不做也可以继续外交阶段。")}
                   </div>
                 </div>
               )}
