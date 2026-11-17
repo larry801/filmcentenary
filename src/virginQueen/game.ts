@@ -291,11 +291,11 @@ export const VirginQueenGameDef: Game<VQGame> = {
         // record of concluded deals, but never the open offer or promises.
         if (r.negotiation !== undefined) {
             const involved = (power: Power): boolean => playerID !== null && ownerOf(G, power) === playerID;
-            if (r.negotiation.offer !== null && !involved(r.negotiation.offer.from) &&
-                !involved(r.negotiation.offer.to)) {
+            if (r.negotiation.offer !== null && r.negotiation.offer !== undefined &&
+                !involved(r.negotiation.offer.from) && !involved(r.negotiation.offer.to)) {
                 r.negotiation.offer = null;
             }
-            r.negotiation.history = r.negotiation.history.map((record) =>
+            r.negotiation.history = (r.negotiation.history ?? []).map((record) =>
                 involved(record.proposer) || involved(record.confirmer)
                     ? record
                     : {...record, promises: []});

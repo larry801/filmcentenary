@@ -163,6 +163,9 @@ export const negotiationState = (G: VQGame): NegotiationState => {
     if (G.negotiation === undefined) {
         G.negotiation = {offer: null, history: [], nextId: 1};
     }
+    G.negotiation.history ??= [];
+    G.negotiation.nextId ??= 1;
+    if (G.negotiation.offer === undefined) G.negotiation.offer = null;
     return G.negotiation;
 };
 
