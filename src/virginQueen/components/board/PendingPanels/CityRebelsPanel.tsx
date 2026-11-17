@@ -6,16 +6,22 @@ import i18n from "../../../../constant/i18n";
 import {isPower, powerName} from "../../../constant/general";
 import {spaceName} from "../../../mapData";
 import {ownerOf} from "../../../ownership";
-import {cityRebelsLossOptions} from "../../../moves";
+import {cityRebelsDecider, cityRebelsLossOptions} from "../../../moves";
 import {PendingPanelProps} from "./types";
 
-/** City rebels (#18) loss allocation. */
+/**
+ * City rebels (#18) loss allocation.  An allied minor's garrison is decided by
+ * the major that owns the minor, so the seat test has to follow the same
+ * helper the move guard uses; testing `isPower(controller)` alone left the
+ * panel with no buttons while every seat was blocked from passing.
+ */
 export const PendingCityRebelsPanel = ({G, moves, playerID}: PendingPanelProps) => {
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     if (G.pendingCityRebels === undefined) return null;
     const pending = G.pendingCityRebels;
-    const canChoose = isPower(pending.controller) && ownerOf(G, pending.controller) === playerID;
+    const decider = cityRebelsDecider(G, pending.controller);
+    const canChoose = decider !== undefined && ownerOf(G, decider) === playerID;
     return <Stack spacing={1}>
         <Typography>{i18n.chain.vq.cityRebels.title} · {i18n.chain.vq.cityRebels.waiting} {isPower(pending.controller) ? powerName(pending.controller, vqLocale) : pending.controller} {i18n.chain.vq.cityRebels.allocate}{i18n.chain.vq.punct.period}</Typography>
         {canChoose && <>

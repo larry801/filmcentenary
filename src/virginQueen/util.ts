@@ -487,7 +487,14 @@ export const removeCardFromGame = (G: VQGame, cardId: string): void => {
     G.discard = G.discard.filter((id) => id !== cardId);
     G.futureDeck = G.futureDeck.filter((id) => id !== cardId);
     G.homeSetAside = G.homeSetAside.filter((id) => id !== cardId);
-    for (const p of POWERS) G.powers[p].cards = G.powers[p].cards.filter((id) => id !== cardId);
+    for (const p of POWERS) {
+        G.powers[p].cards = G.powers[p].cards.filter((id) => id !== cardId);
+        // A Home card set aside face down during Spring is still a physical
+        // copy; leaving it there put the same card in `removed` and the secret
+        // set-aside at once (for example the Virgin Queen after Elizabeth I is
+        // assassinated).
+        G.powers[p].homeCardSetAside = G.powers[p].homeCardSetAside.filter((id) => id !== cardId);
+    }
 };
 
 export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolean): void => {
@@ -1451,6 +1458,12 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
     }
     state.cp = 0;
     state.cardModifier = 0;
+    // A deactivated major has no controlling seat and no cards, so it cannot
+    // take an impulse.  If it was mid-impulse the Action Phase has to move on
+    // (see `turnEnd`, which skips a deactivated `activePower`), and a deactivated
+    // power must never block passing for whoever acts next either.
+    state.cardPlayed = false;
+    state.passed = false;
     G.majorDiplomacyResolved ??= [];
     if (!G.majorDiplomacyResolved.includes(power)) G.majorDiplomacyResolved.push(power);
     if (power === "hre") {
@@ -2910,10 +2923,17 @@ export const fieldBattle = (
     from: string,
     /** Rule 16.3.4: transported units are eliminated, not retreated, if the battle is lost. */
     transported = false,
+    /**
+     * Owners of the attacking stack. A power may march an ally's formation
+     * (rule 9.1), so the acting power is not always the unit owner; the dice,
+     * losses and retreats all follow the units that actually entered.
+     */
+    attackerOwners: Controller[] = [attacker],
 ): BattleResult => {
-    const attackerUnits = totalLand(G, space, [attacker]);
+    const attackers = attackerOwners.length > 0 ? attackerOwners : [attacker];
+    const attackerUnits = totalLand(G, space, attackers);
     const defenderUnits = totalLand(G, space, defenderOwners);
-    const aDice = attackerUnits + bestBattle(G, space, [attacker], "army");
+    const aDice = attackerUnits + bestBattle(G, space, attackers, "army");
     const dDice = defenderUnits + bestBattle(G, space, defenderOwners, "army") + 1;
     const aRolls = roll(ctx, aDice);
     const dRolls = roll(ctx, dDice);
@@ -2922,12 +2942,13 @@ export const fieldBattle = (
     G.lastRolls = `Field battle: ${powerLabel(attacker)} ${aHits} hits (${aDice} dice) vs ${defenderUnits} defenders ${dHits} hits (${dDice} dice)`;
     pushLog(G, G.lastRolls);
     removeLandLosses(G, space, defenderOwners, aHits);
-    removeLandLosses(G, space, [attacker], dHits);
+    removeLandLosses(G, space, attackers, dHits);
     // Rule 14 step 8: if both sides are eliminated, the side that rolled more
     // dice retains 1 unit; on equal dice the defender retains it.
-    if (totalLand(G, space, defenderOwners) === 0 && totalLand(G, space, [attacker]) === 0) {
+    if (totalLand(G, space, defenderOwners) === 0 && totalLand(G, space, attackers) === 0) {
+        const survivor = attackers.find(isPower) ?? attackers[0];
         if (aDice > dDice) {
-            ensureLand(G, space, attacker).regular += 1;
+            ensureLand(G, space, survivor).regular += 1;
             pushLog(G, `${powerLabel(attacker)} retains 1 unit after both sides are eliminated.`);
         } else {
             const defender = defenderOwners.find(isPower) ?? defenderOwners[0];
@@ -2940,7 +2961,7 @@ export const fieldBattle = (
     const winner: "attacker" | "defender" = aHits > dHits ? "attacker" : "defender";
     // Rule 13.1/13.3: track the losing formation so it may auto-avoid and may
     // not move again this impulse.
-    const losers = winner === "attacker" ? defenderOwners : [attacker];
+    const losers = winner === "attacker" ? defenderOwners : attackers;
     if (G.lostBattleImpulse?.impulse !== G.impulse) G.lostBattleImpulse = {impulse: G.impulse, owners: []};
     for (const o of losers) {
         if (!G.lostBattleImpulse.owners.includes(o)) G.lostBattleImpulse.owners.push(o);
@@ -2949,11 +2970,11 @@ export const fieldBattle = (
         const def = LEADER_BY_ID[id];
         return def !== undefined && defenderOwners.includes(def.power);
     });
-    const attackerLeaders = leadersAt(G, space).filter((id) => LEADER_BY_ID[id]?.power === attacker);
+    const attackerLeaders = leadersAt(G, space).filter((id) => LEADER_BY_ID[id] !== undefined && attackers.includes(LEADER_BY_ID[id].power));
 
     if (winner === "attacker") {
         const defendersLeft = totalLand(G, space, defenderOwners);
-        const attackerLeft = totalLand(G, space, [attacker]);
+        const attackerLeft = totalLand(G, space, attackers);
         if (defendersLeft === 0) {
             captureLeaders(G, space, defenderOwners, attacker);
         } else if (isFortifiedSpace(G, space)) {
@@ -3001,26 +3022,33 @@ export const fieldBattle = (
             pushLog(G, `${powerLabel(attacker)} cannot besiege ${SPACE_BY_ID[space].name} and withdraws.`);
         }
     } else {
-        // Attacker loses. Survivors return to the space they came from.
-        const attackerLeft = totalLand(G, space, [attacker]);
+        // Attacker loses. Survivors return to the space they came from.  A
+        // retreat follows each participating stack, so an ally's surviving
+        // units go home with the rest instead of staying in the contested space.
+        const attackerLeft = totalLand(G, space, attackers);
+        const captor = defenderOwners.find((c) => isPower(c)) as Power | undefined ?? attacker;
         if (transported) {
             // Rule 16.3.4: a lost field battle at the end of a naval
             // transport eliminates the transported units; leaders are captured.
-            const st = G.spaces[space].land[attacker];
-            const count = landCount(st);
-            if (st !== undefined) delete G.spaces[space].land[attacker];
-            captureLeaders(G, space, [attacker], defenderOwners.find((c) => isPower(c)) as Power ?? attacker);
-            pushLog(G, `${powerLabel(attacker)} loses the battle at the end of a naval transport; ${count} transported unit(s) are eliminated.`);
+            for (const owner of attackers) {
+                const st = G.spaces[space].land[owner];
+                if (st === undefined) continue;
+                const count = landCount(st);
+                delete G.spaces[space].land[owner];
+                pushLog(G, `${powerLabel(attacker)} loses the battle at the end of a naval transport; ${count} transported unit(s) are eliminated.`);
+            }
+            captureLeaders(G, space, attackers, captor);
         } else if (attackerLeft === 0) {
-            captureLeaders(G, space, [attacker], defenderOwners.find((c) => isPower(c)) as Power ?? attacker);
+            captureLeaders(G, space, attackers, captor);
         } else if (G.spaces[from] !== undefined) {
-            const st = G.spaces[space].land[attacker];
-            if (st !== undefined) {
-                const tgt = ensureLand(G, from, attacker);
+            for (const owner of attackers) {
+                const st = G.spaces[space].land[owner];
+                if (st === undefined) continue;
+                const tgt = ensureLand(G, from, owner);
                 tgt.regular += st.regular;
                 tgt.merc += st.merc;
                 tgt.cav += st.cav;
-                delete G.spaces[space].land[attacker];
+                delete G.spaces[space].land[owner];
             }
             moveLeaders(G, space, from, attackerLeaders);
             pushLog(G, `${powerLabel(attacker)} retreats to ${SPACE_BY_ID[from].name}.`);
