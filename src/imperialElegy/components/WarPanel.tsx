@@ -1,15 +1,14 @@
 import React from "react";
-import {ImperialElegyState, Power, SpaceId} from "../types";
+import {ImperialElegyState, Power} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {POWER_DEFS} from "../constant/powers";
-import {minorAlliesOf} from "../engine/rules";
 import {canSurrender, isLoneMinorWar, loneMinorDefender} from "../engine/limitedWar";
 import {treatyOptionLabel} from "../engine/treatyChoice";
 import {BALANCE_OF_POWER_CARD} from "../moves";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
-import {POWER_KEYS, bi, isPowerKey, powerOrMinorLabel, pickActionTarget} from "./boardHelpers";
+import {bi, powerOrMinorLabel} from "./boardHelpers";
 import {RuleLink} from "./RuleRef";
 
 export interface WarPanelProps {
@@ -38,7 +37,7 @@ export interface WarPanelProps {
   setWarMinor: (s: string) => void;
   confirmSurrender: boolean;
   setConfirmSurrender: (b: boolean) => void;
-  doAction: (fn: () => void) => void;
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
   onOpenReference?: (anchor: string) => void;
 }
@@ -105,13 +104,13 @@ export const WarPanel = (props: WarPanelProps) => {
         {isBelligerent && !eliminated && pending === null && (
           <div className="ie-war-controls">
             {isActive && (war.status === "warAim" || war.status === "alliance") && (
-              <button className="ie-btn" onClick={() => doAction(() => moves.startWarManeuver())}>{t.startWar}</button>
+              <button className="ie-btn" onClick={() => doAction(() => moves.startWarManeuver(), {label: t.startWar})}>{t.startWar}</button>
             )}
             {viewer === war.defender && war.defenderShift?.choice === true && (war.status === "warAim" || war.status === "alliance") && (
               <div className="ie-inline">
                 <span className="ie-muted">{bi(locale, "Alliance shift (8.2)", "联盟转变（8.2）")}:</span>
                 {(["te", "ta"] as const).map((side) => (
-                  <button key={side} className="ie-btn secondary" onClick={() => doAction(() => moves.chooseAllianceShift(side))}>
+                  <button key={side} className="ie-btn secondary" onClick={() => doAction(() => moves.chooseAllianceShift(side), {label: bi(locale, "Alliance shift", "同盟转换")})}>
                     {side === "te" ? bi(locale, "Triple Entente", "协约国") : bi(locale, "Triple Alliance", "同盟国")}
                   </button>
                 ))}
@@ -121,7 +120,7 @@ export const WarPanel = (props: WarPanelProps) => {
               <div className="ie-inline">
                 <span className="ie-muted">{t.chooseAim}:</span>
                 {(["conquest", "liberation", "unification"] as const).map((aim) => (
-                  <button key={aim} className={`ie-btn secondary${war.warAim === aim ? " selected" : ""}`} aria-pressed={war.warAim === aim} onClick={() => doAction(() => moves.chooseWarAim(aim))}>{warAimLabel(aim)}</button>
+                  <button key={aim} className={`ie-btn secondary${war.warAim === aim ? " selected" : ""}`} aria-pressed={war.warAim === aim} onClick={() => doAction(() => moves.chooseWarAim(aim), {label: warAimLabel(aim)})}>{warAimLabel(aim)}</button>
                 ))}
               </div>
             )}
@@ -131,7 +130,7 @@ export const WarPanel = (props: WarPanelProps) => {
                   {callableAllies.length === 0 && <option value="">{bi(locale, "No allied hand", "无盟友手牌")}</option>}
                   {callableAllies.map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
                 </select>
-                <button className="ie-btn" disabled={callableAllies.length === 0 || warAllyValue === undefined} onClick={() => doAction(() => moves.callWarAlly(warAllyValue!))}>{t.callAlly}</button>
+                <button className="ie-btn" disabled={callableAllies.length === 0 || warAllyValue === undefined} onClick={() => doAction(() => moves.callWarAlly(warAllyValue!), {label: t.callAlly})}>{t.callAlly}</button>
               </div>
             )}
             {isPrincipal && war.status === "alliance" && callableMinors.length > 0 && (
@@ -139,21 +138,21 @@ export const WarPanel = (props: WarPanelProps) => {
                 <select className="ie-select" data-testid="ie-call-minor-select" value={warMinorValue} onChange={(e) => setWarMinor(e.target.value)} title={t.callMinor}>
                   {callableMinors.map((minor) => <option key={minor} value={minor}>{minor}</option>)}
                 </select>
-                <button className="ie-btn" data-testid="ie-call-minor-button" disabled={warMinorValue === ""} onClick={() => doAction(() => moves.callWarMinor(warMinorValue))}>{t.callMinor}</button>
+                <button className="ie-btn" data-testid="ie-call-minor-button" disabled={warMinorValue === ""} onClick={() => doAction(() => moves.callWarMinor(warMinorValue), {label: t.callMinor})}>{t.callMinor}</button>
               </div>
             )}
             {isPrincipal && viewer !== null && canSurrender(G, viewer) && (
               <button data-testid="ie-surrender" className={`ie-btn secondary${confirmSurrender ? " danger" : ""}`} onClick={() => {
                 if (!confirmSurrender) { setConfirmSurrender(true); return; }
-                doAction(() => moves.surrender());
+                doAction(() => moves.surrender(), {label: bi(locale, "Surrender", "投降")});
                 setConfirmSurrender(false);
               }}>{confirmSurrender ? bi(locale, "Confirm surrender", "确认投降") : bi(locale, "Surrender", "投降")}</button>
             )}
             {isActive && phase === "wartime" && (
-              <button className="ie-btn" disabled={war.passed.includes(viewer!)} onClick={() => doAction(() => moves.passWarMove())}>{t.passWar}</button>
+              <button className="ie-btn" disabled={war.passed.includes(viewer!)} onClick={() => doAction(() => moves.passWarMove(), {label: t.passWar})}>{t.passWar}</button>
             )}
             {isActive && phase === "wartime" && (
-              <button className="ie-btn" onClick={() => doAction(() => moves.resolveWar())}>{t.resolveWar}</button>
+              <button className="ie-btn" onClick={() => doAction(() => moves.resolveWar(), {label: t.resolveWar})}>{t.resolveWar}</button>
             )}
           </div>
         )}
@@ -161,7 +160,7 @@ export const WarPanel = (props: WarPanelProps) => {
           && (war.status === "warAim" || war.status === "alliance")
           && G.powers.UK.hand.includes(BALANCE_OF_POWER_CARD) && (
           <div className="ie-war-controls">
-            <button className="ie-btn" onClick={() => doAction(() => moves.playBalanceOfPower())}>
+            <button className="ie-btn" onClick={() => doAction(() => moves.playBalanceOfPower(), {label: bi(locale, "Balance of Power", "势力均衡")})}>
               {bi(locale, "Balance of Power: become the primary defender", "势力均衡：成为主要防守方")}
             </button>
           </div>

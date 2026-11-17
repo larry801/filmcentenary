@@ -32,13 +32,32 @@ export interface ReferenceDrawerProps {
  *   chart:<id>   the printed chart id (`combat-crt`, …)
  *   rules:<key>  an inline section (`prep`, `maneuver`, `victory`, `crt`, `costs`, …)
  */
+/**
+ * The stepper's phase/war anchors (`rules:prep`, `rules:maneuver`, …) name a
+ * rule that lives in the inline sequence list, not a separate section.  They
+ * all open (and highlight) `sequence`, whose list marks the current step; the
+ * two inline tables keep their own anchors and unknown keys pass through.
+ */
+const SEQUENCE_ANCHORS: Readonly<Record<string, string>> = {
+  prep: "sequence",
+  diplomacy: "sequence",
+  action: "sequence",
+  end: "sequence",
+  initiative: "sequence",
+  maneuver: "sequence",
+  victory: "sequence",
+};
+
 export const resolveAnchor = (anchor: string | null | undefined): {chart: ChartEntry | null; section: string | null} => {
   if (!anchor) return {chart: null, section: null};
   if (anchor.startsWith("chart:")) {
     const id = anchor.slice("chart:".length);
     return {chart: chartById(id) ?? null, section: null};
   }
-  if (anchor.startsWith("rules:")) return {chart: null, section: anchor.slice("rules:".length)};
+  if (anchor.startsWith("rules:")) {
+    const key = anchor.slice("rules:".length);
+    return {chart: null, section: SEQUENCE_ANCHORS[key] ?? key};
+  }
   // A bare id is a chart id, for convenience.
   return {chart: chartById(anchor) ?? null, section: null};
 };

@@ -105,10 +105,14 @@ is never rendered.
 ### The turn panel
 
 Everything the rules require *right now* lives in the 348 px turn panel in the
-right-hand column (`components/TurnPanel.tsx`), not in a floating dock. Its head
-carries the single CP readout (`ie-command-cp`, the only one on the board) and
-the buttons that end or continue the step (准备完毕, 停牌, 继续). Below the head
-are three tabs:
+right-hand column (`components/TurnPanel.tsx`), not in a floating dock and not
+behind a dock toggle: the old `components/CommandBar.tsx` and
+`components/RailTabs.tsx` are deleted, and the panel is a permanent column of the
+table. Its head carries the desktop CP readout (`ie-command-cp`); a second node
+carries the same test id on the track strip's phone-only chip (`ie-track-cp`,
+`display: none` from 768 px up), so exactly one is visible at 1440×900. The head
+also carries the buttons that end or continue the step (准备完毕, 停牌, 继续).
+Below the head are three tabs:
 
 - **Orders** — the selected space, its action list and the national actions.
   While a pending decision, an open battle or the result is showing, its body is
@@ -148,7 +152,7 @@ regions:
 | mat    | map                           | turn panel (348 px) |
 | 148 px |                               |  head + tabs        |
 |        +-------------------------------+                     |
-|        | hand tray (228 px, full width)|                     |
+| hand tray (212 px max, spans mat+map)  |                     |
 +--------+-------------------------------+---------------------+
 ```
 
@@ -161,38 +165,57 @@ regions:
   tablist.
 - **Map and mat** — `components/MapPanel.tsx` (`map.tsx` draws the spaces and
   units) takes the middle column; the player mat (`components/PlayerMat.tsx`)
-  is the narrow strip beside it and shows the viewer only: stability, manpower,
-  industry, keys, VP, reserves, Industry Card, CP chain and goals. It begins
-  open on desktop and collapses to a chip row with a popover; between 900 and
-  1099 px the figures collapse to that chip row.
+  is the narrow strip beside it (148 px; 132 px below 1100 px) and shows the
+  viewer only: stability, manpower, industry, keys, VP, reserves, Industry
+  Card, CP chain and goals. It begins open on desktop and folds to a one-line
+  chip row with a popover below 1100 px; on a phone the mat is hidden.
 - **Turn panel** — 348 px, described above. The War tab mounts the
-  `components/TrenchBoard.tsx` rows while the Great War is active.
-- **Hand** — `components/HandTray.tsx`, a full-width row under the map (228 px
-  open, folded to 44 px). Its head has filter and sort selects, card count,
-  CP-chain/saved/response chips and the tray toggle; each card shows its face, a
-  status line ("For CP" / "Event" / "Response", or the first reason it cannot be
-  played) and a compact `⋯` operations menu that mounts in the flow rather than
-  over the map.
+  `components/TrenchBoard.tsx` rows while the Great War is active. It has no
+  collapse toggle: the panel is a permanent table cell, and the decision it
+  shows replaces its Orders body rather than expanding over the map.
+- **Hand** — `components/HandTray.tsx`, a row under the mat and the map that
+  spans both of those columns (at most 212 px open, folded to a 44 px bar; the
+  turn panel keeps the right column). Its head has filter and sort selects, card
+  count, CP-chain/saved/response chips and the tray toggle; each card shows its
+  face, a status line ("For CP" / "Event" / "Response", or the first reason it
+  cannot be played) and a compact `⋯` operations menu that mounts in the flow
+  rather than over the map.
 - **Reference drawer** — `components/ReferenceDrawer.tsx` opens from the right
   at an anchor (the strip's `?`, a stepper step, the mat's "Printed display", a
   `?` rule link) and closes on Esc. It shows the tables the engine renders — the
   CRT from `crt()`, the action costs from `ACTION_COSTS`, the sequence of play
   from `phaseSteps` (`components/referenceTables.tsx`) — then the other powers'
-  dashboards and `components/MpitPanel.tsx`, and finally the nine printed PNG
-  charts. Opening a chart opens `components/ChartLightbox.tsx` full screen
-  instead of squeezing the image into drawer width. There is no board-wide
-  Reference tab and no always-open chart grid.
+  dashboards, and finally the nine printed PNG charts. Opening a chart opens
+  `components/ChartLightbox.tsx` full screen
+  instead of squeezing the image into drawer width. There is no rail or
+  board-wide Reference tab, and no always-open chart grid. The MPIT matrix is
+  **not** in the drawer: `components/MpitPanel.tsx` is an action in the Orders
+  tab (`ie-mpit`, `ie-mpit-controls`).
 
 Actions in the space panel (`components/SpacePanel.tsx`) are one list computed
 by `spaceActions` (`components/actionAvailability.ts`) and grouped by kind
 (recruit, build, diplomacy, move, Great War): each row is a button with a cost
 chip, a `disabled` state and, when disabled, the visible reason line under it.
 Irreversible controls need two clicks, arm then confirm: play for CP, play the
-event, pass / end impulse, end diplomacy and continue go through
-`components/ConfirmButton.tsx`; declare war uses a plain button with the
-"needs n CP in this impulse" hint, and surrender arms in place. Both are
-controlled by the `confirmActions` preference in `components/preferences.ts`
-(on by default; the button disarms on blur, Esc or after 5 s).
+event, pass / end impulse, end diplomacy, continue and declare war go through
+`components/ConfirmButton.tsx`. Declaring a war now behaves like the rest:
+`ie-declare-war` arms with `确认：宣战（n CP）` /
+`Confirm: declare war (n CP)` so the confirmation names the CP the click will
+spend, and only the second click declares. Surrender keeps its own inline
+arm/confirm flag. All of these except surrender read the `confirmActions`
+preference in `components/preferences.ts` (on by default; the button disarms on
+blur, Esc or after 5 s), so with it off they fire on one click.
+
+A refused move is explained rather than silent. Every labelled control — card
+play, response / industry / chain / save, the phase buttons, declare war, pending
+options, map targeting and the Great War, war, national-action, MPIT and naval
+panels — runs through the board's `doAction` wrapper in
+`components/useBoardModel.ts`. boardgame.io answers a refusal with a bare
+`INVALID_MOVE` and does not advance `_stateID`, so the wrapper waits 400 ms
+(local hotseat) or 4 s (remote) for the counter to move and raises the
+`ie-toast` notice with the action's label and the reason the control computed.
+The remaining limits are documented in
+[`UI_CHECKLIST.md`](UI_CHECKLIST.md) §12.
 
 Map interaction is a small state machine (`components/useInteraction.ts`):
 clicking a unit enters soft targeting (a miss falls back to selecting the clicked
@@ -205,13 +228,32 @@ Enter commits a single target. Only `submitTargeting` in
 
 Below 768 px the board becomes one column: a 44 px track strip (the stepper and
 alliance boxes are dropped; the CP readout shows here because the turn panel's
-head is below), the map, the hand as a bottom sheet, then the turn panel
-(capped at 46dvh). The sheet is driven by `data-open` and `data-expanded` on
-`.ie-hand-tray`: 44–48 px peek, 40dvh half, and full height under the strip.
-While a decision is owed the sheet shows a one-line peek
-(`data-decision-peek`, `ie-tray-decision-peek`) and stays folded, so a decision
-never opens above half height and the map target it asks about stays visible. The
-mat is hidden; the other powers and the MPIT are in the full-width drawer.
+head hides `ie-command-cp` below 768 px), the map, the hand as a bottom sheet,
+then the turn panel (capped at 46dvh). The sheet is driven by `data-open` and
+`data-expanded` on `.ie-hand-tray`: 44 px peek, 40dvh half, and
+`calc(100dvh - 140px)` full. While a decision is owed the sheet shows a one-line
+peek (`data-decision-peek`, `ie-tray-decision-peek`) and stays folded to 56 px —
+the tray toggle is a no-op then (`shownOpen = open && !decisionPeek`), so the
+hand cannot be opened deliberately until the decision is answered — and the turn
+panel switches to its decision-only body capped at 50dvh, so the map target the
+decision asks about stays visible. The decision never writes `open` /
+`expanded`, so when it clears the sheet returns to its previous state on its
+own. Only Display is reachable in the strip's ☰ menu at this width: the
+`Charts` / `Rules` buttons stay in the DOM but CSS hides them
+(`.ie-command-menu .ie-btn { display: none }`), and the `?` button still opens
+the reference drawer.
+
+**Known deviation from the UI brief.** The target phone layout is a single
+Orders / Hand / Mat / Log tab bar. What is built is a hand bottom sheet under
+the map plus a **separate** turn / decision panel below it — three stacked
+regions, not four tabs — and the mat is **hidden** at this width
+(`.ie-mat { display: none }`); the mat's numbers are read in the reference
+drawer's power dashboards. This is an honest deviation, not a defect, and it is
+recorded as such in [`UI_CHECKLIST.md`](UI_CHECKLIST.md) §8 and §12 item 9.
+
+The desktop mat is also narrower than the brief's 320 px column: it is 148 px
+beside the map (132 px below 1100 px) and scrolls its own figures, which is
+recorded as [`UI_CHECKLIST.md`](UI_CHECKLIST.md) §12 item 10.
 
 ## Implementation status
 
@@ -500,11 +542,11 @@ dev server on `:5173`, not their own origin); `yarn test:e2e:ie` runs all three
 in order.
 
 ```sh
-# Regression: original hotseat spec, 5 tests, preview :5203
+# Regression: original hotseat spec, 6 tests, preview :5203
 yarn build
 ./node_modules/.bin/playwright test --config=playwright.ie-regression.config.ts
 
-# Controls: 3 tests, preview :5201
+# Controls: 13 tests, preview :5201
 ./node_modules/.bin/playwright test --config=playwright.ie-controls.config.ts
 
 # Online/spectator: 3 tests, self-starts game server :4004 + preview :5202
@@ -524,8 +566,10 @@ clean; `python3 scripts/extract-imperial-elegy.py --check` verifies **501
 assets**. The declared `@i18n-chain/react@2.0.1` is now installed in this
 checkout’s `node_modules`, so no shim is needed (see
 [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md#test-and-build-evidence)).
-The browser specs were rerun on this build: **5/5 regression, 3/3 controls and
-3/3 spectator** passed. The combat-card suites are included in the run, as are
+The browser specs **now contain 6 regression, 13 controls and 3 spectator
+tests** (older notes here quoted 5 / 3 / 3), so take the pass counts from the
+`ci.yml` e2e job (`yarn test:e2e:ie`) rather than from an older local run. The
+combat-card suites are included in the run, as are
 the new crisis, settlement, characteristics, logistics, card-choice, end-phase,
 alliance, naval, privacy, Great War home-front, India/UK, Rome/GW-major and
 playability/UI suites.
@@ -534,6 +578,17 @@ Targeted evidence visible in the tree:
 
 - `data.test.ts` — action inventory 13–112, the 58/11/10/8/13 decade split,
   home/GW/goal counts, UK colonial keys 7, setup quantities and the manifest.
+- `components/phaseSteps.test.ts`, `components/moveFeedback.test.ts`,
+  `components/cardAvailability.test.ts`, `components/legalTargets.test.ts`,
+  `components/stackSummary.test.ts`, `components/PlayerMat.test.tsx`,
+  `components/ConfirmButton.test.tsx` and
+  `components/referenceTables.test.tsx` — the board's pure decision layers: the
+  step list and its reference anchors, the `_stateID` refusal probe (local and
+  remote budgets, the toast copy), card playability and its reasons, the legal
+  unit targets, the counter-stack summary, the mat's figures and its collapsed
+  state, the arm-then-confirm contract (one inline button, unarmed on first
+  paint, the armed label absent while disarmed) and the drawer tables (CRT,
+  action costs, sequence of play).
 - `mapValidation.test.ts` — UK colonial manpower track, every port entry has a
   real naval box and sea connection, Egypt starts as an independent minor with
   `MINOR_POWER_HOMES.Egypt`, and map/connection symmetry.
@@ -568,11 +623,16 @@ Targeted evidence visible in the tree:
   `characteristicsIntegration.test.ts`, `nationalityIntegration.test.ts`,
   `combatCardModesIntegration.test.ts`, `responseCardOptions.test.ts`,
   `privacy.test.ts` and `privateInfo.test.ts` cover the other live integrations.
-- `e2e/imperial-elegy.spec.ts` (5 tests) covers seat switching, map/card play, a
-  support decision, bilingual rendering and online creation. The controls spec
-  (3 tests) covers the newer war/economy/MPIT panels; the spectator spec
-  (3 tests) covers online seats and spectators. Their configs/commands are listed
-  above.
+- `e2e/imperial-elegy.spec.ts` (6 tests) covers seat switching, map/card play, a
+  support decision, the printed card faces, bilingual rendering and online
+  creation. The controls spec (13 tests) covers the newer war/economy/MPIT panels
+  and the solo/bot seats, plus a one-screen audit at 1440×900 (no document
+  scroll, exactly one visible `ie-command-cp`, the 12 px text floor and the
+  no-inline-style budget), the keyboard ring walk (arrows over the legal targets
+  and `Enter` to commit, a miss spending no CP and `Esc` leaving the mode), the
+  card inspector's SVG ↹ print face switch, and the phone sheet's peek / half /
+  full positions at 390×844. The spectator spec (3 tests) covers online seats and
+  spectators. Their configs/commands are listed above.
 
 ## Asset counts
 

@@ -30,7 +30,13 @@ const ENTRIES: readonly {style: MapTarget["style"]; en: string; zh: string}[] = 
 export const MapLegend = ({locale, counts}: MapLegendProps) => {
   const shown = ENTRIES.filter((entry) => (counts[entry.style] ?? 0) > 0);
   return (
-    <div className="ie-map-key" data-testid="ie-map-legend" aria-label={bi(locale, "Map key", "地图图例")}>
+    <div
+      id="ie-map-legend"
+      className="ie-map-key"
+      data-testid="ie-map-legend"
+      role="group"
+      aria-label={bi(locale, "Map key", "地图图例")}
+    >
       {(shown.length > 0 ? shown : ENTRIES.slice(0, 3)).map((entry) => (
         <span key={entry.style} className={`ie-key ${entry.style}`} data-testid={`ie-key-${entry.style}`}>
           {locale === "zh_CN" ? entry.zh : entry.en}

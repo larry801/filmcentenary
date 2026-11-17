@@ -1,6 +1,6 @@
 import React from "react";
 import {ImperialElegyState, Power, SpaceId} from "../types";
-import {SPACES, spaceLabel} from "../constant/spaces";
+import {spaceLabel} from "../constant/spaces";
 import {ieStringsFor, ieT} from "./i18n";
 import {bi} from "./boardHelpers";
 import {PICKER_REGIONS, filterSpaces} from "./spaceFilter";
@@ -28,9 +28,6 @@ const REGION_LABEL: Record<string, {en: string; zh: string}> = {
   pacific: {en: "Pacific", zh: "太平洋"},
   naval: {en: "Sea boxes", zh: "海域"},
 };
-
-/** How many rows the list shows before it scrolls (keeps the map on screen). */
-const LIST_ROWS = 8;
 
 /**
  * Searchable space chooser.
@@ -88,6 +85,7 @@ export const SpacePicker = ({
             data-testid="ie-picker-search"
             type="search"
             autoFocus
+            aria-label={bi(locale, "Search a space", "搜索地点")}
             placeholder={bi(locale, "Search a space…", "搜索地点…")}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -112,11 +110,13 @@ export const SpacePicker = ({
               </button>
             ))}
           </div>
+          {/* A plain list of buttons: two independent controls per row, so a
+              listbox/option model would be invalid ARIA and would promise
+              arrow-key navigation this control does not implement.  Tabbing
+              reaches every button; `aria-current` marks the chosen space. */}
           <ul
             className="ie-picker-list"
             data-testid="ie-picker-list"
-            style={{maxHeight: `calc(${LIST_ROWS} * 2.1em)`}}
-            role="listbox"
             aria-label={bi(locale, "Spaces", "地点")}
           >
             {shown.length === 0 && (
@@ -127,11 +127,12 @@ export const SpacePicker = ({
               const isTarget = targets.includes(id);
               const isSelected = selected === id;
               return (
-                <li key={id} role="option" aria-selected={isSelected}>
+                <li key={id}>
                   <button
                     type="button"
                     className={`ie-picker-item${isTarget ? " target" : ""}${isSelected ? " selected" : ""}`}
                     data-testid={`ie-picker-item-${id}`}
+                    aria-current={isSelected ? "true" : undefined}
                     onClick={() => { onChoose(id); setOpen(false); }}
                   >
                     <span className="ie-picker-name">{spaceLabel(id, locale)}</span>
