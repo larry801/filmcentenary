@@ -52,6 +52,14 @@ export const getNavGroups = (): NavGroup[] => {
             ],
         },
         {
+            key: 'records',
+            title: drawer.matchRecords,
+            items: [
+                {to: '/manual', label: drawer.manual},
+                {to: '/match-stats', label: drawer.matchStats},
+            ],
+        },
+        {
             key: 'virginQueen',
             title: drawer.section.virginQueen,
             items: [

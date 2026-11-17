@@ -8,7 +8,7 @@ import BuyCard from "../buy-card";
 import Grid from "@mui/material/Grid"
 import ChoiceDialog from "../modals";
 import Typography from "@mui/material/Typography";
-import {BasicCardID, CardID, ClassicFilmAutoMoveMode, FilmCardID, PersonCardID} from "../../types/core";
+import {BasicCardID, CardID, ClassicFilmAutoMoveMode, FilmCardID, PersonCardID, valid_regions} from "../../types/core";
 import {activePlayer, actualStage} from "../../game/util";
 import Button from "@mui/material/Button";
 import ButtonGroup from "@mui/material/ButtonGroup";
@@ -16,12 +16,12 @@ import {PlayerHand} from "../player-hand";
 import {Stage} from "boardgame.io/core";
 import Slider from "@mui/material/Slider";
 import {PubPanel} from "../pub";
-import {getChooseHandChoice, getValidHelper, inferDeckRemoveHelper} from "../../game/board-util";
+import {getChooseHandChoice, getPersonCardsOnBoard, getValidHelper, inferDeckRemoveHelper} from "../../game/board-util";
 import {effName, getCardName} from "../card";
 import UndoIcon from '@mui/icons-material/Undo';
 import RedoIcon from '@mui/icons-material/Redo';
 import IconButton from "@mui/material/IconButton";
-import {ActionPointIcon} from "../icons";
+import {ActionPointIcon, DrawnShareIcon} from "../icons";
 import HandIcon from "@mui/icons-material/PanTool";
 import ConcedeIcon from '@mui/icons-material/DirectionsRun';
 import CardList from "./list-card";
@@ -56,7 +56,8 @@ export const OperationPanel = ({
                               }: IOPanelProps) => {
     const pub = G.pub[parseInt(playerID)];
     const iPrivateInfo = G.player[parseInt(playerID)];
-    const hand = iPrivateInfo.hand
+    const hand = iPrivateInfo.hand;
+    const discard = pub.discard;
     const stage = actualStage(G, ctx);
     const noStage = stage === Stage.NULL;
 
@@ -121,12 +122,17 @@ export const OperationPanel = ({
 
     const hasCurEffect = G.e.stack.length > 0;
     // const effType = hasCurEffect ? G.e.stack.slice(-1)[0] : "";
+    const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
+    // 以下卡片具有 peek + choice filter 效果，供参考
     const searchChoiceCards = [
         PersonCardID.P2401, FilmCardID.F2404, FilmCardID.F2410,
-        PersonCardID.P3401, FilmCardID.F3404, FilmCardID.F3414]
-    const curEffName = hasCurEffect ? effName(G.e.stack.slice(-1)[0]) : "";
-    // @ts-ignore
-    const peekChoicesDisabled = G.e.card === null ? true : !searchChoiceCards.includes(G.e.card);
+        PersonCardID.P3401, FilmCardID.F3404, FilmCardID.F3414,
+        FilmCardID.F6343,
+    ]
+    // 基于效果栈判断 peek 是否可选，而非依赖 G.e.card（G.e.card 在蓝复制等场景下不会更新）
+    const peekChoicesDisabled = hasCurEffect && G.e.stack.slice(-1)[0].e === "peek"
+        ? G.e.stack.slice(-1)[0].a.filter.e !== "choice"
+        : true;
 
     const peekCardLength = iPrivateInfo.cardsToPeek.length.toString();
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek
@@ -175,8 +181,18 @@ export const OperationPanel = ({
     const discardChoices = handChoices;
     const chooseHandTitle = hasCurEffect ? curEffName : i18n.chain.dialog.chooseHand.title;
     const chooseHand = (choice: string) => {
+        const idx = parseInt(choice);
+        const hasCurEffect = G.e.stack.length > 0;
+        const effE = hasCurEffect ? G.e.stack.slice(-1)[0].e : null;
+        
+        const cardId = (effE === "playedCardInTurnEffect")
+        ? G.pub[parseInt(playerID)].playedCardInTurn[idx] // Blue
+        : (effE === "personCardOnBoardEffect")
+        ? getPersonCardsOnBoard(G)[idx]
+        : hand[idx];
+
         moves.chooseHand({
-            hand: hand[parseInt(choice)],
+            hand: cardId,
             idx: parseInt(choice),
             p: playerID,
         })
@@ -188,6 +204,28 @@ export const OperationPanel = ({
             show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseHand"}
             title={chooseHandTitle}
             toggleText={i18n.chain.dialog.chooseHand.toggleText}
+            initial={true}/>
+
+    const chooseDiscard = (choice: string) => {
+        moves.chooseDiscard({
+            discard: discard[parseInt(choice)],
+            idx: parseInt(choice),
+            p: playerID,
+        })
+    }
+    const chooseDiscardTitle = hasCurEffect ? curEffName : i18n.chain.dialog.chooseDiscard.title;
+    const chooseDiscardDialog =
+        <ChoiceDialog
+            callback={chooseDiscard}
+            choices={discard.map((card: CardID, idx: number) => ({
+                label: getCardName(card),
+                value: idx.toString(),
+                hidden: false,
+                disabled: false
+            }))} defaultChoice={"0"}
+            show={activePlayer(ctx) === playerID && actualStage(G, ctx) === "chooseDiscard"}
+            title={chooseDiscardTitle}
+            toggleText={i18n.chain.dialog.chooseDiscard.toggleText}
             initial={true}/>
 
     const confirmRespond = (choice: string) => {
@@ -221,8 +259,18 @@ export const OperationPanel = ({
             callback={chooseTarget}
             choices={
                 G.c.players.map((pid, idx) => {
+                    const targetPub = G.pub[parseInt(pid)];
                     return {
-                        label: getName(pid.toString()),
+                        label: <span style={{display: "inline-flex", alignItems: "center"}}>
+                            {getName(pid.toString())}
+                            <span style={{color: "#6a7385"}}>({targetPub.competitionPower} /&nbsp;</span>
+                            {valid_regions.map((r, ri) => <span key={r} style={{display: "inline-flex", alignItems: "center"}}>
+                                <DrawnShareIcon r={r}/>
+                                {targetPub.shares[r]}
+                                {ri < valid_regions.length - 1 ? <span style={{marginRight: 6}}/> : null}
+                            </span>)}
+                            <span style={{color: "#6a7385"}}>)</span>
+                        </span>,
                         value: idx.toString(),
                         hidden: false, disabled: false
                     }
@@ -347,6 +395,8 @@ export const OperationPanel = ({
             moves.drawCard(playerID);
         }
     };
+    // 2026-9 技术：定格电影 - 【使用行动力抽牌】按钮：手图标红色高光，并在右侧多一个手图标
+    const ownsStopMotion = G.pub[parseInt(playerID)].archive.includes("S52691" as any);
     const drawCardDialog = canMoveCurrent ?
         <ChoiceDialog
             initial={false}
@@ -366,8 +416,9 @@ export const OperationPanel = ({
             }
             title={i18n.chain.action.draw}
             toggleText={<Typography>
-                <ActionPointIcon/>
-                <HandIcon/>
+                <ActionPointIcon color={ownsStopMotion ? '#e53935' : undefined}/>
+                <HandIcon style={ownsStopMotion ? {color: '#e53935'} : undefined}/>
+                {ownsStopMotion ? <HandIcon style={{color: '#e53935'}}/> : ""}
             </Typography>}
         />
         : <></>
@@ -535,6 +586,7 @@ export const OperationPanel = ({
             {chooseEventDialog}
             {competitionCardDialog}
             {chooseHandDialog}
+            {chooseDiscardDialog}
             {confirmRespondDialog}
             {chooseEffectDialog}
             {deckDialog}

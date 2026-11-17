@@ -28,6 +28,9 @@ import {IE_SEAT_LABELS} from "../imperialElegy/configuration";
 import {ScenarioID} from "../virginQueen/constant/general";
 import {SCENARIO_OPTIONS, scenarioOptionLabel, seatLabels} from "../virginQueen/configuration";
 
+import {UpdateHistory} from "../update";
+import {CardNameText} from "./card";
+
 type PlayerMetadata = {
     id: number;
     name?: string;
@@ -365,6 +368,23 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 {i18n.chain.lobby.createPrivateMatch}
                             </Button>
                         </Grid>
+                    </Paper>
+                </Grid>
+                <Grid size={12}>
+                    <Paper elevation={2} sx={{p: 2}}>
+                        <Typography variant="h6" gutterBottom>公告</Typography>
+                        {UpdateHistory.map((update) => (
+                            <Box key={update.date} sx={{mb: 1}}>
+                                <Typography variant="subtitle2">{update.date}</Typography>
+                                <Box component="ul" sx={{m: 0, pl: 3}}>
+                                    {update.info.map((info, idx) => (
+                                        <li key={idx}>
+                                            <Typography variant="body2"><CardNameText text={info}/></Typography>
+                                        </li>
+                                    ))}
+                                </Box>
+                            </Box>
+                        ))}
                     </Paper>
                 </Grid>
             </Grid>

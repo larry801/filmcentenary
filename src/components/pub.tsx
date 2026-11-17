@@ -1,10 +1,12 @@
 import React from "react";
 import {
+    CardCategory,
     CardID,
     Champion,
     getCardById,
     IEra,
     IPubInfo,
+    Region,
     SchoolCardID,
     SimpleRuleNumPlayers,
     valid_regions,
@@ -61,9 +63,10 @@ export interface IPubPanelProps {
     log: LogEntry[],
     /** Optional: rankings computed once by the board and shared by all panels. */
     regionRanks?: PlayerID[][],
+    hideLog?: boolean,
 }
 
-export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks}: IPubPanelProps) => {
+export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks, hideLog = false}: IPubPanelProps) => {
     i18n.use();
     const playerID = idx.toString()
     // Everything below is derived from the state: compute it once per state
@@ -79,6 +82,31 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks}: IPubPanelP
         [regionRanks, G, ctx]
     )
     const regionRank = (r: ValidRegion) => i.shares[r] === 0 ? -1 : ranks[r].indexOf(playerID);
+
+    // 2026-9 技术流派高光：定格电影(行动力/红)、特技电影(手牌/紫)、有声电影(存款/蓝)、特艺七彩(声望/蓝)
+    const ownsStopMotion = i.archive.includes("S52691" as any);
+    const ownsStunt = i.archive.includes("S52692" as any);
+    const ownsSound = i.archive.includes("S52693" as any);
+    const ownsColor = i.archive.includes("S52694" as any);
+    // 2026-10 技术流派高光：变焦镜头(美学/西欧紫)、3D电影(竞争力/北美蓝)
+    const ownsZoomLens = i.archive.includes("S52701" as any);
+    const owns3DFilm = i.archive.includes("S52702" as any);
+    const zoomLensColor = getColor(Region.WE);
+    const film3DColor = getColor(Region.NA);
+    // 「竞争力：」拆成名字与冒号，水印只居中在名字后面
+    const competitionLabel = i18n.chain.pub.competitionPower;
+    const competitionName = competitionLabel.replace(/[：:]\s*$/, "");
+    const competitionColon = competitionLabel.slice(competitionName.length);
+
+    // 2026-10：分数右侧显示下一个 40/80/120 等级奖励提示
+    const nextVpThreshold = !i.vpAward.v60 ? 40 : (!i.vpAward.v90 ? 80 : (!i.vpAward.v120 ? 120 : null));
+
+    // 用时每秒刷新一次
+    const [, setTick] = React.useState(0);
+    React.useEffect(() => {
+        const timer = window.setInterval(() => setTick(v => v + 1), 1000);
+        return () => window.clearInterval(timer);
+    }, []);
 
     const possibleHand = React.useMemo(
         () => getPlayerInferredHand(G, playerID),
@@ -113,8 +141,26 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks}: IPubPanelP
     }, [log, log.length, playerID, getName, G]);
     const schoolTitle = i.school !== null ? `${getCardName(i.school)}` : "";
 
+    const formatDuration = (ms: number): string => {
+        const totalSeconds = Math.max(0, Math.floor((ms || 0) / 1000));
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    const getTimeText = (): string => {
+        const tracking = G.timeTracking;
+        const baseRound = tracking?.roundTimeMsByPlayer?.[playerID] || 0;
+        const baseTotal = tracking?.totalTimeMsByPlayer?.[playerID] || 0;
+        if (tracking?.currentTurnPlayer === playerID && (tracking.currentTurnStartedAtMs || 0) > 0) {
+            const running = Math.max(0, Date.now() - tracking.currentTurnStartedAtMs);
+            return `${formatDuration(baseRound + running)} / ${formatDuration(baseTotal + running)}`;
+        }
+        return `${formatDuration(baseRound)} / ${formatDuration(baseTotal)}`;
+    }
+
     return <Grid container key={`pub${idx}-${playerID}`} sx={{justifyContent: 'center', alignItems: 'center'}}>
-        <Grid size={12}>
+        {!hideLog && <Grid size={12}>
             {/*<textarea*/}
             {/*    defaultValue={playerLogText}*/}
             {/*    disabled*/}
@@ -130,7 +176,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks}: IPubPanelP
                 maxRows={8}
                 variant="filled"
             />
-        </Grid>
+        </Grid>}
         <Grid container size={3} sx={{justifyContent: 'center', alignItems: 'center', flexDirection: 'column'}}>
             <Grid>
                 <Typography sx={styles.iconAlign}>
@@ -139,7 +185,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks}: IPubPanelP
             </Grid>
             <Grid>
                 <Typography aria-label={`${i18n.chain.pub.handSize}${i.handSize}`} sx={styles.iconAlign}>
-                    <PanToolIcon/>{i.handSize}
+                    <PanToolIcon style={ownsStunt ? {color: '#9c27b0'} : undefined}/>{i.handSize}
                 </Typography>
             </Grid>
             <Grid>
@@ -149,13 +195,36 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks}: IPubPanelP
             </Grid>
             <Grid>
                 <Typography aria-label={`${i18n.chain.pub.deposit}${i.deposit}`} sx={styles.iconAlign}>
-                    <DepositIcon/>{i.deposit}
+                    <DepositIcon style={ownsSound ? {color: '#2196f3'} : undefined}/>{i.deposit}
                 </Typography>
             </Grid>
             <Grid>
-                <Typography aria-label={`${i18n.chain.pub.competitionPower}${i.resource}`} sx={styles.iconAlign}>
-                     {i18n.chain.pub.competitionPower}
-                     {i.competitionPower}
+                <Typography aria-label={`${i18n.chain.pub.competitionPower}${i.competitionPower}`} sx={styles.iconAlign}>
+                    {competitionName}
+                    {competitionColon}
+                    <span style={owns3DFilm ? {position: 'relative', display: 'inline-block'} : undefined}>
+                        {owns3DFilm ? <AestheticsIcon style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            fontSize: 24,
+                            opacity: 0.32,
+                            color: film3DColor,
+                            pointerEvents: 'none'
+                        }}/> : null}
+                        <span style={owns3DFilm ? {
+                            position: 'relative',
+                            fontWeight: 700,
+                            textShadow: '1px 0 0 #fff, -1px 0 0 #fff, 0 1px 0 #fff, 0 -1px 0 #fff, ' +
+                                '1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff'
+                        } : undefined}>{i.competitionPower}</span>
+                    </span>
+                </Typography>
+            </Grid>
+            <Grid>
+                <Typography sx={styles.iconAlign} style={{fontSize: 12, color: "#5f6b7a"}}>
+                    {`用时(${getTimeText()})`}
                 </Typography>
             </Grid>
         </Grid>
@@ -168,17 +237,42 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks}: IPubPanelP
             </Grid>
             <Grid>
                 <Typography aria-label={`${i18n.chain.pub.aesthetics}${i.aesthetics}`} sx={styles.iconAlign}>
-                    <AestheticsIcon/> {i.aesthetics}
+                    <span style={ownsZoomLens ? {
+                        position: 'relative',
+                        display: 'inline-block',
+                        width: 24,
+                        height: 24,
+                        lineHeight: 0,
+                        verticalAlign: 'middle'
+                    } : undefined}>
+                        <AestheticsIcon style={ownsZoomLens ? {color: zoomLensColor, display: 'block'} : undefined}/>
+                        {ownsZoomLens ? <>
+                            {/* 奖杯作为淡底纹水印，位于美学图标左侧，中线对齐图标左边线 */}
+                            <EmojiEventsIcon style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 'calc(50% - 2px)',
+                                transform: 'translate(-50%, -50%)',
+                                fontSize: 21,
+                                color: zoomLensColor,
+                                opacity: 0.25,
+                                pointerEvents: 'none'
+                            }}/>
+                        </> : null}
+                    </span> <span style={ownsZoomLens ? {color: zoomLensColor} : undefined}>{i.aesthetics}</span>
                     {i.school !== null && getCardById(i.school).aesthetics > 0 ? `(+${getCardById(i.school).aesthetics})` : ""}
                 </Typography>
             </Grid>
             <Grid>
                 <Typography aria-label={`${i18n.chain.pub.action}${i.action}`} sx={styles.iconAlign}>
-                    <ActionPointIcon/> {i.action}</Typography>
+                    <ActionPointIcon color={ownsStopMotion ? '#e53935' : undefined}/> {i.action}</Typography>
             </Grid>
             <Grid>
                 <Typography aria-label={`${i18n.chain.pub.vp}${i.vp}`} sx={styles.iconAlign}>
-                    <EmojiEventsIcon/> {i.vp}
+                    <EmojiEventsIcon style={ownsColor ? {color: '#2196f3'} : undefined}/> {i.vp}
+                    {nextVpThreshold !== null ?
+                        <span style={{color: '#b0b7c3', fontSize: 12, marginLeft: 1 / 4}}> / {nextVpThreshold}</span>
+                        : null}
                 </Typography>
             </Grid>
         </Grid>
@@ -242,7 +336,7 @@ export const PubPanel = ({log, ctx, i, idx, getName, G, regionRanks}: IPubPanelP
         </Grid>
         <Grid size={3}>
             <CardList
-                title={`${i18n.chain.pub.discard}${i.discard.length}`}
+                title={`${i18n.chain.pub.discard}(${i.discard.length})`}
                 cards={i.discard}
                 label={
                     <Typography sx={styles.iconAlign}><DiscardDeckIcon/>{i.discard.length}</Typography>

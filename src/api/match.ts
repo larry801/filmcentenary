@@ -57,12 +57,14 @@ export const joinMatch = async (
     serverURL: string,
     matchID: string,
     player: Player,
-    gameName: string
+    gameName: string,
+    playerName?: string,
 ): Promise<string> => {
+    const name = playerName && playerName.trim() ? playerName.trim() : nameOf(player);
     const resp = await fetch(`${serverURL}/games/${gameName}/${matchID}/join`, {
         method: "POST",
         headers,
-        body: JSON.stringify({ playerID: player, playerName: nameOf(player) }),
+        body: JSON.stringify({ playerID: player, playerName: name }),
     });
     if (!resp.ok) {
         throw new Error("failed to join match: " + (await resp.text()));

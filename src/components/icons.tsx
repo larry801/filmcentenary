@@ -2,7 +2,7 @@ import React from "react";
 import SvgIcon from "@mui/material/SvgIcon";
 import NoScoringCardIcon from '@mui/icons-material/Block';
 import {Champion, IEra, Region,} from "../types/core";
-import {blue, grey, purple, red, yellow} from "@mui/material/colors";
+import {blue, grey, purple, red, yellow, green, indigo} from "@mui/material/colors";
 import LooksOneIcon from '@mui/icons-material/LooksOne';
 import LooksTwoIcon from '@mui/icons-material/LooksTwo';
 import Looks3Icon from '@mui/icons-material/Looks3';
@@ -73,7 +73,10 @@ export const ChampionIcon = ({champion}: IChampionProps) => {
     }
 }
 
-export const ActionPointIcon = () => <SvgIcon style={verticalAlign}>
+export const ActionPointIcon = ({color}: {color?: string} = {}) => <SvgIcon style={{
+    ...verticalAlign,
+    ...(color ? {color} : {}),
+}}>
     <path d="
              M6 6
              A6,3 0 0,0 18,6
@@ -83,7 +86,7 @@ export const ActionPointIcon = () => <SvgIcon style={verticalAlign}>
              L18, 6
              "
           style={{
-              stroke: "#000000",
+              stroke: color ? "currentColor" : "#000000",
               fill: "#ffffff",
               strokeWidth: 2,
           }}/>
@@ -217,6 +220,14 @@ export const getColor = (r: Region): string => {
         case Region.NONE:
             return grey[700]
         case Region.EXTENSION:
+            return grey[700]
+        case Region.EXTENSION1:
+            return indigo[800]
+        case Region.EXTENSION2:
+            return green[800]
+        case Region.MONTHLY_SCHOOL:
+            return grey[800]
+        default:
             return grey[700]
     }
 }

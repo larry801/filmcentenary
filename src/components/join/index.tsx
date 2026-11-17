@@ -1,6 +1,6 @@
 import React from "react";
 import {Link as RouterLink, useNavigate, useParams} from "react-router-dom";
-import {deleteCredentials, loadCredentials, saveCredentials} from "../../api/localStorage";
+import {deleteCredentials, loadCredentials, loadPlayerName, saveCredentials} from "../../api/localStorage";
 import {Player} from "../../Game";
 import {getMatch, joinMatch, leaveMatch} from "../../api/match";
 import {MultiPlayer, Spectate} from "./multiplayer";
@@ -39,7 +39,8 @@ const JoinPage = ({serverURL, gameName}: JoinPageProps) => {
                 navigate(`/join/${gameName}/${matchID}/${player}/${loadedCredential}`)
             } else {
                 if (player !== Player.SPECTATE) {
-                    joinMatch(serverURL, matchID, player, gameName)
+                    const customName = loadPlayerName();
+                    joinMatch(serverURL, matchID, player, gameName, customName || undefined)
                         .then((responseCredential) => {
                             saveCredentials(matchID, player, responseCredential);
                             setCredentials(responseCredential);
