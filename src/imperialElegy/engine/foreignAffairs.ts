@@ -198,6 +198,44 @@ export const removeMinorAllianceProblem = (
   return (G.spaces[space].ally ?? null) === null ? "no-ally" : null;
 };
 
+/**
+ * 12.9.1 Naval Supremacy: "Players may conduct the remove alliance action for
+ * 3 CP in port spaces adjacent to a naval box where they have more naval units
+ * than the player allied to the minor power."
+ *
+ * So the marker's own space must be a port space, and at least one of the
+ * naval boxes that port touches must hold strictly more of `power`'s naval
+ * units than the allied player's.  A landlocked minor (Bavaria, Saxony) never
+ * qualifies and always pays the printed 4 CP.
+ */
+export const navalSupremacyPort = (G: ImperialElegyState, power: Power, space: SpaceId): SpaceId | null => {
+  const state = G.spaces[space];
+  if (state === undefined) return null;
+  const boxes = SPACES[space]?.ports ?? [];
+  if (boxes.length === 0) return null;
+  const ally = state.ally;
+  if (!isPower(ally)) return null;
+  for (const box of boxes) {
+    const naval = G.spaces[box]?.units ?? [];
+    let mine = 0;
+    let theirs = 0;
+    for (const id of naval) {
+      const owner = G.units[id]?.owner;
+      if (owner === power) mine += 1;
+      else if (owner === ally) theirs += 1;
+    }
+    if (mine > theirs) return box;
+  }
+  return null;
+};
+
+/**
+ * The CP a remove-alliance action costs here: 3 CP under 12.9.1's naval
+ * supremacy, otherwise 12.9's printed 4 CP.
+ */
+export const removeAllianceCost = (G: ImperialElegyState, power: Power, space: SpaceId): number =>
+  navalSupremacyPort(G, power, space) === null ? 4 : 3;
+
 /** Why an influence/diplomacy marker cannot be removed, or null. */
 export type RemoveMarkerProblem =
   | "unknown-space"

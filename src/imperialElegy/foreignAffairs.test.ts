@@ -26,6 +26,8 @@ import {
   influencePlacementProblem,
   minorAllianceProblem,
   minorNamesakeSpace,
+  navalSupremacyPort,
+  removeAllianceCost,
   removeMarkerProblem,
   removeMinorAllianceProblem,
 } from "./engine/foreignAffairs";
@@ -300,6 +302,90 @@ describe("12.6 removing a marker", () => {
     G.spaces.greece.diplomacy = "GE";
     placeUnit(G, "UK", "army", "greece", 2);
     expect(removeMarkerProblem(G, "GE", "greece")).toBeNull();
+  });
+});
+
+describe("12.9.1 Naval Supremacy halves the flip to 3 CP", () => {
+  /**
+   * "Players may conduct the remove alliance action for 3 CP in port spaces
+   * adjacent to a naval box where they have more naval units than the player
+   * allied to the minor power."
+   */
+  const withAlliance = (space: string, ally: Power): ImperialElegyState => {
+    const G = game("GE");
+    G.spaces[space].ally = ally;
+    G.spaces[space].diplomacy = null;
+    return G;
+  };
+
+  test("the allied minor's own port pays the printed 4 CP without supremacy", () => {
+    const G = withAlliance("greece", "UK");
+    expect(navalSupremacyPort(G, "GE", "greece")).toBeNull();
+    expect(removeAllianceCost(G, "GE", "greece")).toBe(4);
+    expect(moves.removeMinorAlliance(G, makeCtx("GE"), "greece")).toBeUndefined();
+    expect(G.cpRemaining).toBe(16);
+  });
+
+  test("more own naval units in the adjacent box makes it 3 CP", () => {
+    const G = withAlliance("greece", "UK");
+    // One German squadron in the Eastern Mediterranean, no British ships.
+    placeUnit(G, "GE", "squadron", "eastern-mediterranean", 2);
+    expect(navalSupremacyPort(G, "GE", "greece")).toBe("eastern-mediterranean");
+    expect(removeAllianceCost(G, "GE", "greece")).toBe(3);
+    expect(moves.removeMinorAlliance(G, makeCtx("GE"), "greece")).toBeUndefined();
+    expect(G.cpRemaining).toBe(17);
+  });
+
+  test("the comparison is against the allied player, not the minor", () => {
+    const G = withAlliance("greece", "UK");
+    placeUnit(G, "GE", "squadron", "eastern-mediterranean", 2);
+    // The UK outnumbers Germany: no supremacy, back to 4 CP.
+    placeUnit(G, "UK", "squadron", "eastern-mediterranean", 2);
+    placeUnit(G, "UK", "squadron", "eastern-mediterranean", 2);
+    expect(navalSupremacyPort(G, "GE", "greece")).toBeNull();
+    expect(removeAllianceCost(G, "GE", "greece")).toBe(4);
+  });
+
+  test("a tie is not supremacy — the rule says more", () => {
+    const G = withAlliance("greece", "UK");
+    placeUnit(G, "GE", "squadron", "eastern-mediterranean", 2);
+    placeUnit(G, "UK", "squadron", "eastern-mediterranean", 2);
+    expect(removeAllianceCost(G, "GE", "greece")).toBe(4);
+  });
+
+  test("a second, unopposed box also qualifies", () => {
+    // Denmark touches the North Atlantic and the Baltic; Germany only has to
+    // outnumber the ally in one of them.
+    const G = withAlliance("denmark", "UK");
+    placeUnit(G, "GE", "squadron", "baltic-sea", 2);
+    expect(navalSupremacyPort(G, "GE", "denmark")).toBe("baltic-sea");
+    expect(removeAllianceCost(G, "GE", "denmark")).toBe(3);
+  });
+
+  test("a landlocked minor never qualifies", () => {
+    const G = withAlliance("bavaria", "UK");
+    // Even with a dominant fleet somewhere, Bavaria has no port space.
+    placeUnit(G, "GE", "squadron", "baltic-sea", 2);
+    expect(SPACES.bavaria.ports).toBeUndefined();
+    expect(navalSupremacyPort(G, "GE", "bavaria")).toBeNull();
+    expect(removeAllianceCost(G, "GE", "bavaria")).toBe(4);
+  });
+
+  test("the panel's row quotes the discounted cost", () => {
+    // 3 CP must be affordable when only 3 are left; the same row is disabled at
+    // 4 CP without supremacy.
+    const G = withAlliance("greece", "UK");
+    placeUnit(G, "GE", "squadron", "eastern-mediterranean", 2);
+    G.cpRemaining = 3;
+    const row = spaceActionsFor(G, "GE", "greece").find((candidate) => candidate.id === "breakAlliance");
+    expect(row?.cost).toBe(3);
+    expect(row?.enabled).toBe(true);
+
+    const plain = withAlliance("greece", "UK");
+    plain.cpRemaining = 3;
+    const full = spaceActionsFor(plain, "GE", "greece").find((candidate) => candidate.id === "breakAlliance");
+    expect(full?.cost).toBe(4);
+    expect(full?.enabled).toBe(false);
   });
 });
 

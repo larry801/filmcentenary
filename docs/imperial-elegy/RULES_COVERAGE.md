@@ -166,8 +166,12 @@ Status labels:
   - 12.9 “flip any one ally marker … to its diplomacy side”: **any** player may
     do it, and the flipped marker keeps the ally’s owner (the engine used to
     hand it to whoever paid).
-  - **Partial:** 12.9.1 Naval Supremacy (the 3 CP discounted flip) is not
-    modelled; the shared gate has no naval-adjacency branch.
+  - 12.9.1 Naval Supremacy: when the marker sits in a port space adjacent to a
+    naval box where the acting player has **more** naval units than the player
+    allied to the minor, the flip costs 3 CP instead of 4. `navalSupremacyPort`
+    checks every box the port touches and requires a strict majority; a tie, a
+    landlocked minor and an unallied minor all stay at the printed 4 CP. The
+    Orders row quotes the cost it will actually charge.
 - **Response cards:** live at the start of an action impulse, a limited-war
   maneuver impulse, the limited-war alliance step (A063/A064) and a Great War
   maneuver impulse. `responseWindowFor` requires the active power (every

@@ -104,6 +104,7 @@ import {
   diplomacyPlacementProblem,
   influencePlacementProblem,
   minorAllianceProblem,
+  removeAllianceCost,
   removeMarkerProblem,
   removeMinorAllianceProblem,
 } from "./engine/foreignAffairs";
@@ -1586,17 +1587,28 @@ export const minorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): 
 
 export const removeMinorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string | void => {
   const playerID = ctx.playerID ?? null;
-  const power = requireCp(G, ctx, playerID, 4);
+  // 12.9 prints 4 CP; 12.9.1 lets a player with naval supremacy in an adjacent
+  // naval box do the same action for 3 CP.
+  const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  // The space gate runs before the wallet so a refusal here costs nothing.
+  if (removeMinorAllianceProblem(G, space) !== null) return INVALID_MOVE;
+  const cost = removeAllianceCost(G, power, space);
+  if (!spendCpFor(G, power, cost)) return INVALID_MOVE;
+  if (G.phase === "action") {
+    G.powers[power].flags.actionCpSpentThisImpulse = true;
+  } else if (G.phase === "wartime") {
+    G.powers[power].flags.warCpSpentThisImpulse = true;
+    noteWartimeAction(G);
+  }
   // 12.9: "Flip any one ally marker on a minor power to its diplomacy side."
   // The diplomacy side keeps the player the alliance belonged to, not the one
   // who paid to flip it.
-  if (removeMinorAllianceProblem(G, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
   const previous = state.ally;
   state.ally = null;
   state.diplomacy = previous;
-  log(G, power, "minorAllianceRemoved", {space, previous});
+  log(G, power, "minorAllianceRemoved", {space, previous, cost});
   return undefined;
 };
 

@@ -21,6 +21,7 @@ import {
   diplomacyPlacementProblem,
   influencePlacementProblem,
   minorAllianceProblem,
+  removeAllianceCost,
   removeMarkerProblem,
   removeMinorAllianceProblem,
   type DiplomacyProblem,
@@ -498,12 +499,15 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     });
     // 12.9: "Flip any one ally marker on a minor power to its diplomacy side."
     // Any player may do it, so this row is not limited to the alliance's owner.
+    // 12.9.1: a port space next to a naval box where the viewer outnumbers the
+    // allied player pays 3 CP instead of the printed 4.
     const breakProblem = removeMinorAllianceProblem(G, space);
+    const breakCost = removeAllianceCost(G, viewer, space);
     const breakReason = breakProblem === null ? null : foreignAffairsText(breakProblem, locale);
-    const breakEnabled = breakReason === null && canSpend(ACTION_COSTS.breakAlliance);
+    const breakEnabled = breakReason === null && canSpend(breakCost);
     push({
-      id: "breakAlliance", group: "diplomacy", enabled: breakEnabled,
-      reason: breakEnabled ? undefined : breakReason ?? spendReason(ACTION_COSTS.breakAlliance),
+      id: "breakAlliance", group: "diplomacy", enabled: breakEnabled, cost: breakCost,
+      reason: breakEnabled ? undefined : breakReason ?? spendReason(breakCost),
       run: () => doAction(() => moves.removeMinorAlliance(space)),
     });
     const pacifyCost = pacificationCost(G, viewer).cost;
