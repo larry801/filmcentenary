@@ -273,6 +273,9 @@ Status labels:
   Divide and Conquer also prompt. Urabi’s Egypt colonial-home key type switches
   for a UK/FR winner (with a legacy-save fallback), Loose Grip applies every
   named Ottoman space, and auction cards are publicly revealed; see
+  [`CARD_EVENTS.md`](CARD_EVENTS.md) for the card-by-card record, including the
+  cards whose printed “OR” is still resolved by a deterministic default and the
+  four cards whose stability gain is applied twice, and
   `IMPLEMENTATION_STATUS.md` for the current per-card boundaries.
 
 ## Information security (playerView)
