@@ -46,3 +46,7 @@ __pycache__/
 
 IE_*.pdf
 
+src/data/film-match-stats.jsonl
+/src/coding
+/src/film_image
+src/_spectate_raw.html

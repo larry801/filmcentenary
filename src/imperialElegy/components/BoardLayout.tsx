@@ -42,6 +42,8 @@ import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
 import {MpitPanel} from "./MpitPanel";
 import {Toast} from "./Toast";
+import {MobileDock, type MobileDockTab} from "./MobileDock";
+import type {MobileTab} from "./modelValues";
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
 
@@ -436,12 +438,48 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
     moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast,
+    isPhone, mobileTab, setMobileTab, trayOpen, setTrayOpen, trayExpanded, setTrayExpanded,
   } = core;
   const {selected, onSelect, modePill, mapTargets, mapFocusedTarget, chooser} = interaction;
   // The one definition of "a decision is owed and on screen".  The panel uses
   // it for its label and badges, the phone layout to show only the decision
   // body, and the hand sheet to fold itself out of the map's way.
   const decisionOwed = Boolean(pending || battle || G.result);
+  const warVisible = Boolean(war.war || war.gw);
+
+  // The phone's one bottom sheet: Orders / Hand / Mat / Log, plus War only
+  // while there is a war to report.  The two private tabs are for a seated
+  // viewer only, so a spectator's dock never offers a hand or a mat it cannot
+  // read.
+  const mobileTabs: MobileDockTab[] = [
+    {
+      key: "orders",
+      label: decisionOwed ? bi(locale, "Decision", "决策") : bi(locale, "Orders", "指令"),
+      badge: pending !== null && viewer !== null && pending.power === viewer ? "!" : undefined,
+    },
+    ...(viewer !== null
+      ? [
+          {key: "hand" as MobileTab, label: bi(locale, "Hand", "手牌")},
+          {key: "mat" as MobileTab, label: bi(locale, "Mat", "面板")},
+        ]
+      : []),
+    {key: "log", label: bi(locale, "Log", "记录")},
+    ...(warVisible
+      ? [{key: "war" as MobileTab, label: bi(locale, "War", "战局"), badge: war.war ? "⚔" : undefined}]
+      : []),
+  ];
+  // A tab can disappear under the reader (the war ends, a hotseat switch turns
+  // the seat into a spectator).  The sheet must not be left with no body, so
+  // the dock falls back to Orders exactly as the turn panel falls back to its
+  // Action tab.
+  const activeMobileTab: MobileTab = (mobileTab === "war" && !warVisible) ||
+    ((mobileTab === "hand" || mobileTab === "mat") && viewer === null)
+    ? "orders"
+    : mobileTab;
+  // The turn panel keeps its own tabs on desktop; on a phone the dock's tab
+  // chooses its body, and Hand/Mat have no counterpart there (their bodies are
+  // the other two panels), so they leave Orders in front.
+  const phoneTurnTab = activeMobileTab === "war" ? "war" : activeMobileTab === "log" ? "log" : "action";
 
   const displayMenu = (
     <DisplayMenu
@@ -518,63 +556,105 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
           />
         </div>
 
-        <TurnPanel
+        {/* One bottom sheet on a phone: the turn panel, the mat and the hand
+            are its three bodies, and the dock's tab bar decides which is in
+            front.  On desktop the wrapper and the body are `display: contents`
+            (stylesheet), so these three keep their grid areas and the bar is
+            hidden; nothing here is conditional on the viewport. */}
+        <MobileDock
+          open={trayOpen}
+          expanded={trayExpanded}
+          tab={activeMobileTab}
+          tabs={mobileTabs}
+          decision={decisionOwed}
           locale={locale}
-          t={t}
-          cp={viewer ? cpBudget() : G.cpRemaining}
-          phaseActions={phaseActions}
-          phaseLabel={PHASE_LABEL(t, phase)}
-          activeLabel={`${t.active}: ${t.seats[active]}`}
-          turn={G.turn}
-          summary={core.dockSummary}
-          warVisible={Boolean(war.war || war.gw)}
-          hasDecision={decisionOwed}
-          decisionOnlyOnPhone={decisionOwed}
-          decisionBadge={pending !== null && viewer !== null && pending.power === viewer}
-          confirmActions={confirmActions}
-          warBadge={war.war ? "⚔" : undefined}
-          tabs={{
-            action: (
-              <>
-                {choiceKinds.required || choiceKinds.optional ? <HandChoices {...choicesProps}/> : null}
-                {(pending || battle || G.result) && (
-                  <PendingPanel
-                    G={G}
-                    pending={pending}
-                    canDecide={canDecide}
-                    pendingKind={pendingKind ?? ""}
-                    pendingPrompt={pendingPrompt}
-                    optionLabel={optionLabel}
-                    optionFace={optionFace}
-                    optionAction={optionAction}
-                    canDecline={canDecline}
-                    pendingSpaceTargets={pendingSpaceTargets}
-                    viewer={viewer}
-                    locale={locale}
-                    t={t}
-                    jihadDecision={jihadDecision}
-                    jihadReason={jihadReason}
-                    doAction={doAction}
-                    confirmActions={confirmActions}
-                    moves={moves}
-                    dock
-                  />
-                )}
-                {!pending && !battle && G.result === null ? <OrdersRegion {...orders}/> : null}
-              </>
-            ),
-            war: <WarRegion key={`war-${locale}`} {...war} locale={locale} t={t}/>,
-            log: <LogRegion key={`log-${locale}`} G={G} locale={locale} t={t}/>,
+          onTab={(key) => setMobileTab(key)}
+          onToggleOpen={() => {
+            // Closing is just closing.  Reopening always starts at half height,
+            // so a collapsed sheet never comes back covering the whole map.
+            if (trayOpen) setTrayOpen(false);
+            else {
+              setTrayOpen(true);
+              setTrayExpanded(false);
+            }
           }}
-        />
-        <PlayerMat
-          G={G}
-          viewer={viewer}
-          me={core.me}
-          active={active}
-          locale={locale}
-          t={t}
-        />
+          onToggleExpanded={() => setTrayExpanded((value) => !value)}
+        >
+          <TurnPanel
+            locale={locale}
+            t={t}
+            cp={viewer ? cpBudget() : G.cpRemaining}
+            phaseActions={phaseActions}
+            phaseLabel={PHASE_LABEL(t, phase)}
+            activeLabel={`${t.active}: ${t.seats[active]}`}
+            turn={G.turn}
+            summary={core.dockSummary}
+            warVisible={warVisible}
+            hasDecision={decisionOwed}
+            // The dock owns the phone decision cap; the turn panel itself is
+            // never narrowed by the decision.
+            decisionOnlyOnPhone={false}
+            decisionBadge={pending !== null && viewer !== null && pending.power === viewer}
+            confirmActions={confirmActions}
+            warBadge={war.war ? "⚔" : undefined}
+            activeTab={isPhone ? phoneTurnTab : undefined}
+            tabs={{
+              action: (
+                <>
+                  {choiceKinds.required || choiceKinds.optional ? <HandChoices {...choicesProps}/> : null}
+                  {(pending || battle || G.result) && (
+                    <PendingPanel
+                      G={G}
+                      pending={pending}
+                      canDecide={canDecide}
+                      pendingKind={pendingKind ?? ""}
+                      pendingPrompt={pendingPrompt}
+                      optionLabel={optionLabel}
+                      optionFace={optionFace}
+                      optionAction={optionAction}
+                      canDecline={canDecline}
+                      pendingSpaceTargets={pendingSpaceTargets}
+                      viewer={viewer}
+                      locale={locale}
+                      t={t}
+                      jihadDecision={jihadDecision}
+                      jihadReason={jihadReason}
+                      doAction={doAction}
+                      confirmActions={confirmActions}
+                      moves={moves}
+                      dock
+                    />
+                  )}
+                  {!pending && !battle && G.result === null ? <OrdersRegion {...orders}/> : null}
+                </>
+              ),
+              war: <WarRegion key={`war-${locale}`} {...war} locale={locale} t={t}/>,
+              log: <LogRegion key={`log-${locale}`} G={G} locale={locale} t={t}/>,
+            }}
+          />
+          <PlayerMat
+            G={G}
+            viewer={viewer}
+            me={core.me}
+            active={active}
+            locale={locale}
+            t={t}
+            forceOpen={isPhone}
+          />
+          {/* The Display menu's `confirmActions` switch is live: the tray gets
+              the shell's current value, not the one it read from storage on
+              mount.  On a phone the dock owns the height and the peek, so the
+              tray is mounted open and never expands itself. */}
+          <HandRegion
+            {...hand}
+            locale={locale}
+            t={t}
+            open={isPhone ? true : hand.open}
+            expanded={isPhone ? false : hand.expanded}
+            decisionPeek={isPhone ? false : decisionOwed}
+            confirmActions={confirmActions}
+          />
+        </MobileDock>
         {chooser !== null && (
           <IntentChooser
             locale={locale}
@@ -589,9 +669,6 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             {t.privateInfo}: {t.hidden}. {t.spectators}.
           </div>
         )}
-        {/* The Display menu's `confirmActions` switch is live: the tray gets the
-            shell's current value, not the one it read from storage on mount. */}
-        <HandRegion {...hand} locale={locale} t={t} decisionPeek={decisionOwed} confirmActions={confirmActions}/>
       </div>
 
       {/* A refused move is explained here: the engine answers a bare

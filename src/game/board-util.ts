@@ -1,6 +1,6 @@
 import {PlayerID} from "boardgame.io";
 import {IG} from "../types/setup";
-import {CardCategory, CardID, getCardById, ItrEffects} from "../types/core";
+import {CardCategory, CardID, CardType, getCardById, ItrEffects, SimpleRuleNumPlayers, valid_regions} from "../types/core";
 
 export const getHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     return playerID === null ? [] : G.player[parseInt(playerID)].hand.map((c, idx) => {
@@ -11,6 +11,26 @@ export const getHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: strin
             value: idx.toString()
         }
     })
+}
+
+export const getPersonCardsOnBoard = (G: IG): CardID[] => {
+    const result: CardID[] = [];
+    const addSlot = (slot: {card: CardID | null}) => {
+        if (slot.card !== null && getCardById(slot.card).type === CardType.P && !result.includes(slot.card)) {
+            result.push(slot.card);
+        }
+    };
+    if (G.playerCount > SimpleRuleNumPlayers) {
+        valid_regions.forEach(r => {
+            const regionObj = G.regions[r];
+            addSlot(regionObj.legend);
+            regionObj.normal.forEach(addSlot);
+        });
+    } else {
+        G.twoPlayer.film.forEach(addSlot);
+        G.twoPlayer.school.forEach(addSlot);
+    }
+    return result;
 }
 
 export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
@@ -77,6 +97,15 @@ export const getChooseHandChoice = (G: IG, playerID: PlayerID, getCardName: (id:
                         value: idx.toString()
                     }
                 })
+            case "personCardOnBoardEffect":
+                return getPersonCardsOnBoard(G).map((c, idx) => {
+                    return {
+                        label: getCardName(c),
+                        disabled: false,
+                        hidden: false,
+                        value: idx.toString()
+                    }
+                })
             default:
                 return handChoices;
         }
@@ -94,7 +123,7 @@ export const getValidHelper = (G: IG, playerID: PlayerID) => {
 
 export const getPeekChoices = (G: IG, playerID: PlayerID, getCardName: (id: string) => string) => {
     const hasCurEffect = G.e.stack.length > 0;
-    const peekChoicesDisabled = hasCurEffect && G.e.stack[0].e === "peek" ? G.e.stack[0].a.filter.e !== "choice" : true;
+    const peekChoicesDisabled = hasCurEffect && G.e.stack.slice(-1)[0].e === "peek" ? G.e.stack.slice(-1)[0].a.filter.e !== "choice" : true;
     const peekChoices = G.player[parseInt(playerID)].cardsToPeek
         .map((r: CardID, idx: number) => {
             return {

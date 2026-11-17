@@ -1,8 +1,8 @@
 import React from "react";
 import {LogEntry} from "boardgame.io";
-import {CardID, getCardById, MoveNames} from "../../types/core";
+import {CardCategory, CardID, getCardById, MoveNames} from "../../types/core";
 import i18n from "../../constant/i18n";
-import CardInfo, {effName, getCardName} from "../card";
+import CardInfo, {CardAdjustBadge, effName, getCardName} from "../card";
 import Grid from "@mui/material/Grid";
 import Button from "@mui/material/Button";
 import Dialog from "@mui/material/Dialog";
@@ -17,8 +17,33 @@ import IndustryIcon from "@mui/icons-material/Settings";
 import ResourceIcon from "@mui/icons-material/MonetizationOn";
 import Typography from "@mui/material/Typography";
 
+import '../card.css';
+import {CardRevealReason, ICardReveal} from "../../game/cardReveal";
+
+
+const getCardRevealText = (reveal: ICardReveal): string => {
+    const cardsText = reveal.cards.map(c => '【' + getCardName(c) + '】').join('');
+    switch (reveal.reason) {
+        case CardRevealReason.NEW_ERA:
+            const regionText = reveal.region === undefined ? "" : i18n.chain.region[reveal.region];
+            const eraText = reveal.era === undefined ? "" : i18n.chain.era[reveal.era];
+            return `${regionText}${eraText}${i18n.chain.action.newEraReveal}${cardsText}`;
+        case CardRevealReason.UPDATE:
+            return `${i18n.chain.action.updateReveal}${cardsText}`;
+        default:
+            return `${i18n.chain.action.refillReveal}${cardsText}`;
+    }
+}
 
 export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string, G: IG): string => {
+    const text = getMoveLogText(l, getPlayerName, G);
+    const reveals: ICardReveal[] = l.metadata?.cardReveals ??
+        // 旧记录只有 updateSlot 的 updateResult
+        (Array.isArray(l.metadata?.updateResult) ? [{reason: CardRevealReason.UPDATE, cards: l.metadata.updateResult}] : []);
+    return [text, ...reveals.map(getCardRevealText)].filter(t => t !== "").join('\n');
+}
+
+const getMoveLogText = (l: LogEntry, getPlayerName: (name: string) => string, G: IG): string => {
     switch (l.action.type) {
         case "GAME_EVENT":
             if (l.action.payload.type === "endTurn" && l.turn !== 1) {
@@ -34,17 +59,11 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
                     l.action.payload.args[0].effect
                 )
             } else {
-                if (moveName === MoveNames.updateSlot) {
-                    const updatedResult = l.metadata.updatedResult;
-                    const resultText = typeof updatedResult === typeof Array ? updatedResult.map((c: string) => '【' + getCardName(c) + '】').join('') : "";
-                    return `${getPlayerName(l.action.payload.playerID)}${i18n.chain.moves[moveName]({args: l.action.payload.args})}${resultText}`
-                } else {
+                // @ts-ignore
+                return getPlayerName(l.action.payload.playerID) + i18n.chain.moves[moveName]({
                     // @ts-ignore
-                    return getPlayerName(l.action.payload.playerID) + i18n.chain.moves[moveName]({
-                        // @ts-ignore
-                        args: l.action.payload.args
-                    })
-                }
+                    args: l.action.payload.args
+                })
             }
         case
         "REDO"
@@ -61,35 +80,11 @@ export const getLogText = (l: LogEntry, getPlayerName: (name: string) => string,
 
 export interface ICardListProps {
     cards: CardID[],
-    label: React.JSX.Element,
+    label: React.ReactElement,
     title: string,
 }
 
-const CardListContent = ({cards}: { cards: CardID[] }) => <>
-    {cards.map((c, idx) => {
-            const cardObj = getCardById(c);
-            return <Paper variant="outlined" key={`${c}-${idx}`}>
-                <CardInfo cid={c}/>
-                <Typography
-                    style={{
-                        display: 'inline-flex',
-                        verticalAlign: 'middle'
-                    }}>
-                    <ResourceIcon/>
-                    {cardObj.cost.res}
-                    <IndustryIcon/>
-                    {cardObj.cost.industry}
-                    <AestheticsIcon/>
-                    {cardObj.cost.aesthetics}
-                    <PrestigeIcon/>
-                    {cardObj.vp}
-                </Typography>
-            </Paper>
-        }
-    )}
-</>
-
-const CardListInner = ({cards, title, label}: ICardListProps) => {
+export const CardList = ({cards, title, label}: ICardListProps) => {
 
     i18n.use();
 
@@ -101,13 +96,6 @@ const CardListInner = ({cards, title, label}: ICardListProps) => {
     const handleClose = () => {
         setOpen(false);
     };
-    // The dialog body is only built when it is actually opened: these lists
-    // exist for every pile of every player and used to be rendered on every
-    // state update even while closed.
-    const content = React.useMemo(
-        () => (open ? <CardListContent cards={cards}/> : null),
-        [open, cards]
-    );
     return <Grid size={12}>
         <Button
             aria-label={title}
@@ -123,7 +111,40 @@ const CardListInner = ({cards, title, label}: ICardListProps) => {
         >
             <DialogTitle>{title}</DialogTitle>
             <DialogContent>
-                {content}
+                {cards.map(c => {
+                        const cardObj = getCardById(c);
+                        return <Paper variant="outlined" key={title + c} className="dybn-card"
+                                style={{
+                                    position: 'relative',
+                                    backgroundImage: `url("/img/${c}.png")`,
+                                    backgroundRepeat: 'no-repeat',
+                                    backgroundPosition: 'right center',
+                                    backgroundSize: 'auto 100%',
+                                    margin: '4px 0',
+                                    ...(getCardById(c).category === CardCategory.LEGEND ? {
+                                        boxShadow: '2px 2px 2px #000000c4, -1px -1px 1px 1px #dadadacc'
+                                    } : {})
+                                }}
+                            >
+                            <CardAdjustBadge cardId={c}/>
+                            <CardInfo cid={c}/>
+                            <Typography
+                                sx={{
+                                    display:'inline-flex',
+                                    verticalAlign:'middle'
+                                }}>
+                                <IndustryIcon/>
+                                {cardObj.cost.industry}
+                                <AestheticsIcon/>
+                                {cardObj.cost.aesthetics}
+                                <ResourceIcon/>
+                                {cardObj.cost.res}
+                                <PrestigeIcon/>
+                                {cardObj.vp}
+                            </Typography>
+                        </Paper>
+                    }
+                )}
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose} color="primary">
@@ -132,13 +153,5 @@ const CardListInner = ({cards, title, label}: ICardListProps) => {
             </DialogActions>
         </Dialog></Grid>
 }
-
-/** Cards only change when their contents change, not on every state update. */
-const cardsEqual = (a: ICardListProps, b: ICardListProps) =>
-    a.title === b.title &&
-    a.cards.length === b.cards.length &&
-    a.cards.every((c, idx) => c === b.cards[idx]);
-
-export const CardList = React.memo(CardListInner, cardsEqual);
 
 export default CardList;

@@ -789,6 +789,18 @@ eliminated power, the whole board industrialised, the WTT pinned at 5):
     of them now go through `rules.ts#randomIndex`, one clamping helper, and a
     regression test drives every one of them with faces 0, 1, 3, 6 and 99.
 
+**The prep discard and the diplomacy gift were not random.** Both moves used to
+take a `cardId` from the client, and the dock/hand panel rendered one button per
+candidate card (`ie-discard-<id>` / a `giveCardId` dropdown with a face preview).
+The printed text is a *draw* — the prep discard is "discard a random card" and
+the 11.1 gift is a random card draw — so a pick let a player keep the good card
+and dump the one that was about to be reshuffled, or push a chosen card onto an
+ally. `discardForStability(G, ctx)` and `giveCard(G, ctx, target)` now take no
+card, resolve it through `randomIndex` and exclude mandatory events (and home
+cards, which never leave their owner); the UI renders a single "discard/give a
+random card" control. `randomDiscardAndGift.test.ts` pins the die→card mapping
+in both directions, the exclusions, and the once-per-phase guard.
+
 **Follow-up audit: the same class elsewhere.** After fixing the random-index
 crash, the remaining unchecked `[0]`-style accesses (138 of them) were audited
 rather than patched blindly. Two new sweeps now cover the risk without asserting
@@ -1364,7 +1376,7 @@ controls and 3/3 spectator passed. The full commands are in
 | End phase / alliance / naval | `economy.test.ts`, `economyIntegration.test.ts`, `endPhaseSteps.test.ts` (20), `endPhaseResiduals.test.ts` (13), `allianceCap.test.ts` (9), `navalPath.test.ts` (9), `navalAvoidance.test.ts` (15), `trenchBattleSpace.test.ts` (11), `movementStacking.test.ts` (11), `minorBrokenLoc.test.ts` (8) and `components/logText.test.ts` cover the 12-step live order, 20.1/20.5/20.9 choices, the three-player cap, NMP paths, 19.2 avoidance, trench-space movement and bilingual log rendering. |
 | Great War home front | `gwBlockade.test.ts` (10), `gwColonialWar.test.ts` (19) and `gwNeutralEntry.test.ts` (14) cover capital→box blockade/max industry, the printed colonial-war modifiers/losses/transfers/stability/bonus CP, and the neutral join/stay-out decisions with the three-player cap. |
 | UK / India / Rome / majors | `indiaIndependence.test.ts` (11), `indianArmyDisplacement.test.ts` (10), `ukRapidDeployment.test.ts` (12), `joinYourCountrysArmy.test.ts` (6), `romeSpace.test.ts` (15), `usNorthAmerica.test.ts` (11) and `otCapital.test.ts` (8) cover 33.2.2, Indian army movement/caps, UK entry bonuses, the Rome/Papal States space and Italy capital surrender, 32.1 and the Ankara switch. |
-| Card playability / UI | `cardPlayability.test.ts` (36), `egyptKeyType.test.ts` (5), `components/boardActions.test.tsx` (14), `cardPlayability2.test.ts` (19), `auctionReveal.test.ts` (5) and `components/boardActions2.test.tsx` (58) cover the printed event/power gates, A70/A54, the Egypt colonial key override, the auction reveal, all move/pending controls and bilingual pending labels. `components/board.test.tsx` also asserts that required card/Goal choices render their SVG face (home card, National Goal, stability discard, combat and auction options) while space/power options stay plain buttons and a hidden bid stays hidden from opponents; it also covers the decision dock — the phase buttons render in its bar for the acting seat only, a collapsed dock keeps the summary and those buttons while dropping the body, and the optional stability discard/give-card are tagged and say how to skip them while the mandatory home-card and Goal choices are not. |
+| Card playability / UI | `cardPlayability.test.ts` (36), `egyptKeyType.test.ts` (5), `components/boardActions.test.tsx` (14), `cardPlayability2.test.ts` (19), `auctionReveal.test.ts` (5) and `components/boardActions2.test.tsx` (58) cover the printed event/power gates, A70/A54, the Egypt colonial key override, the auction reveal, all move/pending controls and bilingual pending labels. `components/board.test.tsx` also asserts that required card/Goal choices render their SVG face (home card, National Goal, combat and auction options) while space/power options stay plain buttons and a hidden bid stays hidden from opponents, and that the two random draws (prep discard, diplomacy gift) render no per-card choice; it also covers the decision dock — the phase buttons render in its bar for the acting seat only, a collapsed dock keeps the summary and those buttons while dropping the body, and the optional stability discard/give-card are tagged and say how to skip them while the mandatory home-card and Goal choices are not. |
 | Capital / Rome / major powers | `capitalSurrender.test.ts` (17) and `italyRomeRedeploy.test.ts` (14) cover 30.1, AU/RU/OT capital+subcapital, idempotent elimination, 22.4 Rome/frontier placement and the Italian squadron. |
 | GE/AU/FR / Poland | `geCharacteristicsLive.test.ts` (18), `auWarAims.test.ts` (15), `napoleonsLegacy.test.ts` (8), `polishLimits.test.ts` (9), `displacementRules.test.ts` (9) and `counterPoolChart.test.ts` (9) cover the GE/AU/FR abilities, 22.5 Poland, the 5.7 displacement helper and the transcribed 4.2 counter pools. |
 | 8.2 / Status Quo / BoP / CW | `defenderShift.test.ts` (14), `statusQuo.test.ts` (11), `balanceOfPower.test.ts` (16) and `cwArmy.test.ts` (10) cover the declaration shift/8.4 exception, UK neutral invites, the UK becoming primary defender and the CW army. |

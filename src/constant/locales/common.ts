@@ -2,6 +2,7 @@ import {
     IChangePlayerSettingArgs,
     IChooseEventArg,
     IChooseHandArg,
+    IChooseDiscardArg,
     ICommentArg, ICompetitionCardArg,
     IPayAdditionalCostArgs,
     IPeekArgs,
@@ -11,7 +12,7 @@ import {
     IShowCompetitionResultArgs,
     ITargetChooseArgs, IUpdateSlotProps
 } from "../../game/moves";
-import {ClassicFilmAutoMoveMode, GameMode, GameTurnOrder, IBuyInfo} from "../../types/core";
+import {ClassicFilmAutoMoveMode, GameMode, GameTurnOrder, ExtensionMode, IBuyInfo, Region} from "../../types/core";
 
 export interface LocaleClassicFilmAutoMoveMode {
     MODE_NAME: string,
@@ -21,12 +22,15 @@ export interface LocaleClassicFilmAutoMoveMode {
 }
 
 export interface LocaleRegions {
-    0: string,
-    1: string,
-    2: string,
-    3: string,
-    4: string,
-    5: string,
+    [Region.NA]: string,
+    [Region.WE]: string,
+    [Region.EE]: string,
+    [Region.ASIA]: string,
+    [Region.EXTENSION]: string,
+    [Region.EXTENSION1]: string,
+    [Region.EXTENSION2]: string,
+    [Region.MONTHLY_SCHOOL]: string,
+    [Region.NONE]: string,
 }
 
 export interface LocaleSettings {
@@ -35,12 +39,35 @@ export interface LocaleSettings {
     normal: string,
     newbie: string,
     enableSchoolExtension: string,
+    enableSchoolExtensionMuki: string,
+    enableSchoolExtensionMuki2: string,
+    enableSchoolExtensionDawn: string,
+    enableSchoolExtensionTech: string,
+    enableSchoolExtensionVisual: string,
+    enableSchoolExtensionQM: string,
+    enableExtensionChaosMedia: string,
     randomFirst: string,
     fixedFirst: string,
     allRandom: string,
+    anonymousRandom: string,
     order: string,
     changeSetting: string,
-    disableUndo: string
+    disableUndo: string,
+
+    testModeCinema: string,
+    testModeEnd180: string,
+
+    customOptions: string,
+
+    recommendedSettings: string,
+    presetClassic: string,
+    presetWild: string,
+    presetLatest: string,
+
+    extensionMode: string,
+    extensionMode_none: string,
+    extensionMode_four: string,
+    extensionMode_fixed: string,
 }
 
 export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
@@ -64,6 +91,9 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
                 case GameTurnOrder.ALL_RANDOM:
                     t += setting.allRandom;
                     break;
+                case GameTurnOrder.ANONYMOUS_RANDOM:
+                    t += setting.anonymousRandom;
+                    break;
                 case GameTurnOrder.FIRST_RANDOM:
                     t += setting.randomFirst
                     break;
@@ -71,11 +101,60 @@ export const argSetupGameModeHOF = (chose: string, setting: LocaleSettings) => {
                     t += setting.fixedFirst
                     break;
             }
+            switch (arg.extensionMode) {
+                case ExtensionMode.NONE:
+                    t += ", " + setting.extensionMode_none;
+                    break;
+                case ExtensionMode.FOUR:
+                    t += ", " + setting.extensionMode_four;
+                    break;
+                case ExtensionMode.FIXED:
+                    t += ", " + setting.extensionMode_fixed;
+                    break;
+            }
             if (arg.enableSchoolExtension){
+                t += ", "
                 t += setting.enableSchoolExtension
             }
+            if (arg.enableSchoolExtensionMuki){
+                t += ", "
+                t += setting.enableSchoolExtensionMuki
+            }
+            if (arg.enableSchoolExtensionMuki2){
+                t += ", "
+                t += setting.enableSchoolExtensionMuki2
+            }
+            if (arg.enableSchoolExtensionDawn){
+                t += ", "
+                t += setting.enableSchoolExtensionDawn
+            }
+            if (arg.enableSchoolExtensionTech){
+                t += ", "
+                t += setting.enableSchoolExtensionTech
+            }
+            if ((arg as any).enableSchoolExtensionVisual){
+                t += ", "
+                t += setting.enableSchoolExtensionVisual
+            }
+            if (arg.enableSchoolExtensionQM){
+                t += ", "
+                t += setting.enableSchoolExtensionQM
+            }
+            if (arg.enableExtensionChaosMedia){
+                t += ", "
+                t += setting.enableExtensionChaosMedia
+            }
             if (arg.disableUndo) {
+                t += ", "
                 t += setting.disableUndo
+            }
+            if (arg.testModeCinema) {
+                t += ", "
+                t += setting.testModeCinema
+            }
+            if (arg.testModeEnd180) {
+                t += ", "
+                t += setting.testModeEnd180
             }
             return t;
         }
@@ -120,6 +199,7 @@ export const moveHOF = (
     argChangePlayerSetting: { args: (arg: IChangePlayerSettingArgs[]) => string },
     argChooseEvent: { args: (arg: IChooseEventArg[]) => string },
     argChooseHand: { args: (arg: IChooseHandArg[]) => string },
+    argChooseDiscard: { args: (arg: IChooseDiscardArg[]) => string },
     argChooseRegion: { args: (arg: IRegionChooseArg[]) => string },
     argChooseTarget: { args: (arg: ITargetChooseArgs[]) => string },
     argComment: { args: (arg: ICommentArg[]) => string },
@@ -143,6 +223,7 @@ export const moveHOF = (
         showBoardStatus: ["{{args}}", argShowBoardStatus],
         chooseEvent: ["{{args}}", argChooseEvent],
         chooseHand: ["{{args}}", argChooseHand],
+        chooseDiscard: ["{{args}}", argChooseDiscard],
         chooseRegion: ["{{args}}", argChooseRegion],
         chooseTarget: ["{{args}}", argChooseTarget],
         peek: ["{{args}}", argPeek],

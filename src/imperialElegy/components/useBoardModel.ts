@@ -52,7 +52,7 @@ import {
 } from "./moveFeedback";
 import {pendingOptionSafety} from "./pendingSafety";
 import {ARM_MS} from "./ConfirmButton";
-import type {InjectedUi, ModelValues} from "./modelValues";
+import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
 import {BoardLayout} from "./BoardLayout";
 import {botMoveFor} from "../engine/bot";
@@ -72,6 +72,38 @@ export interface BoardModelProps {
   /** Test seam: a suite that stubs React hooks renders `BoardLayout` itself. */
   injectedUi?: InjectedUi;
 }
+
+/** The phone breakpoint, shared by the dock and the stylesheet. */
+const PHONE_QUERY = "(max-width: 767px)";
+
+/**
+ * Whether the layout is the phone one.
+ *
+ * SSR and the node test environment have no `window`, and the safe default
+ * there is the desktop layout: the phone dock only makes sense once a real
+ * viewport exists.  The query is subscribed to so a resize (or a rotate) flips
+ * the shell without remounting the board.
+ */
+export const useIsPhone = (): boolean => {
+  const read = (): boolean =>
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
+      ? window.matchMedia(PHONE_QUERY).matches
+      : false;
+  const [isPhone, setIsPhone] = React.useState(read);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+    const query = window.matchMedia(PHONE_QUERY);
+    const onChange = (event: MediaQueryListEvent) => setIsPhone(event.matches);
+    // The initial value was read before the first paint of an effect; re-read
+    // in case the viewport changed between render and subscribe.
+    setIsPhone(query.matches);
+    query.addEventListener("change", onChange);
+    return () => query.removeEventListener("change", onChange);
+  }, []);
+
+  return isPhone;
+};
 
 export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateID, isConnected = true, injectedUi}: BoardModelProps) => {
   i18n.use();
@@ -104,7 +136,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const [warAlly, setWarAlly] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
   const [warMinor, setWarMinor] = React.useState<string>("");
   const [giveTarget, setGiveTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
-  const [giveCardId, setGiveCardId] = React.useState<string>("");
   const [confirmSurrender, setConfirmSurrender] = React.useState(false);
   const [auReformTarget, setAuReformTarget] = React.useState<string>("");
   const [auCitizenTarget, setAuCitizenTarget] = React.useState<string>("");
@@ -119,6 +150,9 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const [gwTransferTo, setGwTransferTo] = React.useState<string>("");
   const [gwTransferAmount, setGwTransferAmount] = React.useState(1);
   const [dockCollapsed, setDockCollapsed] = React.useState(false);
+  // The phone shell is one bottom sheet; `mobileTab` picks the body it shows.
+  const isPhone = useIsPhone();
+  const [mobileTab, setMobileTab] = React.useState<MobileTab>("orders");
   // Phones start at the peek position (the plan's drawer); desktop keeps the
   // 220 px hand row open.  SSR has no window and defaults to desktop.
   const [trayOpen, setTrayOpen] = React.useState(() =>
@@ -170,6 +204,22 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     if (hasWar && !warWasActive.current) setRailTab("war");
     warWasActive.current = hasWar;
   }, [war, gw]);
+
+  // A decision arriving on a phone brings the one bottom sheet up to half
+  // height on the Orders tab.  It fires on the false→true edge only, so a
+  // player who collapses the sheet while answering keeps it collapsed; when the
+  // decision clears the state is left alone, so the sheet does not jump.
+  // Desktop's tray behaviour is untouched.
+  const decisionOwed = Boolean(pending || battle || G.result);
+  const decisionWasOwed = React.useRef(decisionOwed);
+  React.useEffect(() => {
+    if (isPhone && decisionOwed && !decisionWasOwed.current) {
+      setTrayOpen(true);
+      setTrayExpanded(false);
+      setMobileTab("orders");
+    }
+    decisionWasOwed.current = decisionOwed;
+  }, [decisionOwed, isPhone]);
 
   const warBelligerents = war
     ? [...new Set([war.attacker, war.defender, ...war.attackerAllies, ...war.defenderAllies])]
@@ -1106,7 +1156,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
   const saveList = String(me?.flags.savedCards ?? "").split(",").filter(Boolean);
   const ngChoices = String(me?.flags.ngChoices ?? "").split(",").filter(Boolean);
   const giveCards = hand.filter((id) => cardById(id).kind !== "home");
-  const giveCardValue = giveCards.includes(giveCardId) ? giveCardId : giveCards[0] ?? "";
 
   const responseInHand = hand.some((id) => cardById(id).type === "response");
   const responseWindow = viewer !== null && responseInHand &&
@@ -1173,14 +1222,14 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
             ? bi(actualLocale, "Required card choice", "需要选择卡牌")
             : choiceKinds.optional
               // An optional action must not read as a blocker.
-              ? bi(actualLocale, "Optional: discard for stability", "可选：弃牌换稳定")
+              ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
               : canAct
                 ? bi(actualLocale, "Your impulse", "你的行动轮")
                 : bi(actualLocale, "Waiting", "等待");
   const handChoicesHint = choiceKinds.required
     ? bi(actualLocale, "Required choices are pinned in the decision panel above.", "当前必须做出的选择已固定在页面顶部的决策面板。")
     : choiceKinds.optional
-      ? bi(actualLocale, "An optional stability discard is available in the decision panel above.", "决策面板提供了可选的弃牌换稳定操作。")
+      ? bi(actualLocale, "An optional random discard for +1 stability is available in the decision panel above.", "决策面板提供了可选的随机弃牌换 +1 稳定操作。")
       : null;
   const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
@@ -1463,7 +1512,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     saveList,
     ngChoices,
     giveCards,
-    giveCardValue,
     responseInHand,
     responseWindow,
     chainInfo,
@@ -1501,8 +1549,6 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     setWarMinor,
     giveTarget,
     setGiveTarget,
-    giveCardId,
-    setGiveCardId,
     confirmSurrender,
     setConfirmSurrender,
     auReformTarget,
@@ -1525,6 +1571,9 @@ export const useBoardModel = ({G, ctx, moves, playerID, hotseat = false, _stateI
     setGwTransferAmount,
     dockCollapsed,
     setDockCollapsed,
+    isPhone,
+    mobileTab,
+    setMobileTab,
     trayOpen,
     setTrayOpen,
     trayExpanded,

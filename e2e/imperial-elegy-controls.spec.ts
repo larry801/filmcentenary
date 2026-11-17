@@ -189,27 +189,59 @@ test.describe("Imperial Elegy new controls", () => {
 
     test("the optional stability discard is labelled and can be skipped", async ({page}) => {
         await openLocal(page);
-        await focusSeat(page, "GE");
-        const board = boardFor(page, "GE");
-        const dock = board.locator('[data-testid="ie-dock"]');
 
-        const discard = dock.locator('[data-testid="ie-stability-discard"]');
-        await expect(discard).toBeVisible({timeout: 15_000});
-        // It reads as optional, not as a blocker.
-        await expect(dock).toHaveAttribute("data-collapsed", "false");
-        await expect(dock.locator('[data-testid="ie-dock-summary"]')).toContainText("可选");
-        await expect(discard.locator('[data-testid="ie-stability-discard-optional"]')).toBeVisible();
-        await expect(discard.locator('[data-testid="ie-stability-discard-hint"]')).toBeVisible();
-        expect(await dock.locator('[data-testid="ie-dock-summary"]').innerText()).not.toContain("需要选择卡牌");
+        // Prep deals are random, and a power whose whole opening hand is
+        // mandatory events has nothing legal to discard — that seat correctly
+        // gets no discard section.  Walk the prep order and run the assertions
+        // on the first seat that actually holds a discardable card, instead of
+        // assuming GE always does (it drew three mandatory events once and made
+        // this test flaky).
+        let tested = false;
+        for (const seat of SEATS) {
+            await focusSeat(page, seat);
+            const board = boardFor(page, seat);
+            const dock = board.locator('[data-testid="ie-dock"]');
+            const discard = dock.locator('[data-testid="ie-stability-discard"]');
 
-        // Skipping is legal: press Ready without discarding and the turn passes
-        // to the next seat while the hand keeps its cards.  (`prepDone` is a
-        // private flag that `playerView` strips, so assert on the hand and the
-        // handover instead.)
-        const handBefore = await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.hand.length);
-        await dock.getByRole("button", {name: "准备完毕"}).click();
-        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.activePower)).not.toBe("GE");
-        expect(await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.hand.length)).toBe(handBefore);
+            if (await discard.count() > 0 && await discard.isVisible()) {
+                // It reads as optional, not as a blocker.
+                await expect(dock).toHaveAttribute("data-collapsed", "false");
+                await expect(dock.locator('[data-testid="ie-dock-summary"]')).toContainText("可选");
+                await expect(discard.locator('[data-testid="ie-stability-discard-optional"]')).toBeVisible();
+                await expect(discard.locator('[data-testid="ie-stability-discard-hint"]')).toBeVisible();
+                expect(await dock.locator('[data-testid="ie-dock-summary"]').innerText()).not.toContain("需要选择卡牌");
+                // The card is a random draw, so the dock offers one button and
+                // must never render a per-card choice.
+                await expect(dock.locator('[data-testid="ie-discard-random"]')).toBeVisible();
+                await expect(dock.locator('[data-testid^="ie-discard-card-"]')).toHaveCount(0);
+
+                // Skipping is legal: press Ready without discarding and the turn
+                // passes to the next seat while the hand keeps its cards.
+                // (`prepDone` is a private flag that `playerView` strips, so
+                // assert on the hand and the handover instead.)
+                const index = SEATS.indexOf(seat as typeof SEATS[number]);
+                const handBefore = await page.evaluate(
+                    (power) => (window as any).__IE_STATE__.powers[power].hand.length,
+                    seat,
+                );
+                const ready = dock.getByRole("button", {name: "准备完毕"}).first();
+                await clickUntilGone(page, ready);
+                await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.activePower))
+                    .toBe(SEATS[(index + 1) % SEATS.length]);
+                expect(await page.evaluate(
+                    (power) => (window as any).__IE_STATE__.powers[power].hand.length,
+                    seat,
+                )).toBe(handBefore);
+                tested = true;
+                break;
+            }
+
+            // No legal discard for this seat: finish its prep and move on.
+            const ready = dock.getByRole("button", {name: "准备完毕"}).first();
+            await clickUntilGone(page, ready);
+        }
+
+        expect(tested).toBe(true);
     });
 
     test("war declaration reveals aim, ally and maneuver controls", async ({page}) => {
@@ -681,43 +713,159 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
     });
 });
 
-// The tray drawers describe the phone bottom sheet; this project runs at
-// 1440x900, so the viewport is set for this block only.
+// The dock is the phone shell: one bottom sheet holding the orders, hand, mat,
+// log and war panes behind a single tab strip.  This project runs at 1440x900
+// for the desktop shell, so the phone viewport is set for this block only.
 test.describe("Imperial Elegy mobile drawer", () => {
     test.use({viewport: {width: 390, height: 844}});
 
-    test("starts at the peek position and opens to half and full height", async ({page}) => {
+    const dockFor = (page: Page, seat = "GE") =>
+        boardFor(page, seat).locator('[data-testid="ie-mobile-dock"]');
+    const heightOf = async (locator: Locator) => (await locator.boundingBox())!.height;
+    // Heights follow a state flip and may animate, so a single sample can catch
+    // the sheet mid-flight.  Wait for two identical samples that are already
+    // inside the expected range before returning the height.
+    const settledHeight = async (page: Page, locator: Locator, within: (height: number) => boolean) => {
+        let previous = -1;
+        for (let attempt = 0; attempt < 60; attempt += 1) {
+            const height = await heightOf(locator);
+            if (height === previous && within(height)) return height;
+            previous = height;
+            await page.waitForTimeout(50);
+        }
+        throw new Error(`the dock height never settled in range (last ${previous}px)`);
+    };
+
+    test("starts closed on Orders with the map visible above the peek bar", async ({page}) => {
         await openLocal(page);
         const board = boardFor(page, "GE");
-        // 390x844: the tray is the bottom sheet under the map and the turn
-        // panel keeps its own row, so the sheet is measured against what is
-        // left, not against the page.
-        const tray = board.locator('[data-testid="ie-hand-tray"]');
-        const height = async () => (await tray.boundingBox())!.height;
+        const dock = dockFor(page);
+        await expect(dock).toBeVisible();
 
-        // Peek: a bar with the count and the toggle.
-        await expect(tray).toHaveAttribute("data-open", "false");
-        const peek = await height();
-        expect(peek).toBeGreaterThan(40);
-        expect(peek).toBeLessThan(80);
+        // Closed: only the tab strip is on screen and Orders is the default tab.
+        await expect(dock).toHaveAttribute("data-open", "false");
+        await expect(dock).toHaveAttribute("data-tab", "orders");
+        await expect(dock).not.toHaveAttribute("data-expanded", "true");
+        const peek = await settledHeight(page, dock, (height) => height >= 40 && height <= 80);
+        expect(peek).toBeGreaterThanOrEqual(40);
+        expect(peek).toBeLessThanOrEqual(80);
 
-        // Half: the cards are usable and the map keeps its top half.
-        await board.locator('[data-testid="ie-tray-toggle"]').click();
-        await expect(tray).toHaveAttribute("data-open", "true");
-        const half = await height();
+        // The sheet is pinned to the bottom edge and the map owns the screen
+        // above it; the sheet never overflows the 844 px viewport.
+        const dockBox = (await dock.boundingBox())!;
+        expect(dockBox.y).toBeGreaterThan(0);
+        expect(dockBox.y + dockBox.height).toBeLessThanOrEqual(844 + 1);
+        await expect(board.locator('[data-testid="ie-map"]')).toBeVisible();
+        // The map keeps a band at least 100 px tall above the sheet, and the
+        // middle of that band hits the map rather than the sheet (whether the
+        // sheet is laid out under the map or floats over its bottom edge).
+        const mapBand = async () => await board.evaluate((root) => {
+            const dockNode = root.querySelector('[data-testid="ie-mobile-dock"]') as HTMLElement | null;
+            const mapNode = root.querySelector('[data-testid="ie-map"]') as HTMLElement | null;
+            if (dockNode === null || mapNode === null) return {height: 0, hitsMap: false};
+            const sheet = dockNode.getBoundingClientRect();
+            const map = mapNode.getBoundingClientRect();
+            const top = Math.max(map.top, 0);
+            const bottom = Math.min(map.bottom, sheet.top, innerHeight);
+            const hit = document.elementFromPoint(map.left + map.width / 2, (top + bottom) / 2);
+            return {height: bottom - top, hitsMap: hit !== null && mapNode.contains(hit)};
+        });
+        await expect.poll(async () => (await mapBand()).hitsMap).toBe(true);
+        expect((await mapBand()).height).toBeGreaterThan(100);
+
+        // `data-decision` gates the closed sheet's one-line decision peek: no
+        // decision is owed when the match opens, so no peek row is shown.
+        const decision = await dock.getAttribute("data-decision");
+        expect(decision, "the dock publishes its decision state").not.toBeNull();
+        const decisionPeek = dock.locator('[data-testid="ie-mobile-decision-peek"]');
+        if (decision === "true") await expect(decisionPeek).toBeVisible();
+        else await expect(decisionPeek).toBeHidden();
+    });
+
+    test("the Hand tab opens the sheet and every tab shows its own pane", async ({page}) => {
+        await openLocal(page);
+        const dock = dockFor(page);
+        const body = dock.locator('[data-testid="ie-mobile-body"]');
+
+        // Hand: the closed bar's tab strip opens the sheet onto the cards, at
+        // half height so the map keeps the top of the screen.
+        await expect(dock).toHaveAttribute("data-open", "false");
+        await dock.locator('[data-testid="ie-mobile-tab-hand"]').click();
+        await expect(dock).toHaveAttribute("data-open", "true");
+        await expect(dock).toHaveAttribute("data-tab", "hand");
+        const half = await settledHeight(page, dock, (height) => height > 100 && height < 844 * 0.55);
         expect(half).toBeGreaterThan(100);
         expect(half).toBeLessThan(844 * 0.55);
-        await expect(board.locator(".ie-hand .ie-card").first()).toBeVisible();
+        await expect(body.locator(".ie-hand .ie-card").first()).toBeVisible();
+        // The decision peek belongs to the closed sheet only.
+        await expect(dock.locator('[data-testid="ie-mobile-decision-peek"]')).toBeHidden();
 
-        // Full: the expand control sits in the sheet head and grows it further.
-        await board.locator('[data-testid="ie-tray-expand"]').click();
-        await expect(tray).toHaveAttribute("data-expanded", "true");
-        const full = await height();
+        // Mat: the player mat's figure readouts (the grid, a single figure or
+        // the phone chip row carries the same numbers).
+        await dock.locator('[data-testid="ie-mobile-tab-mat"]').click();
+        await expect(dock).toHaveAttribute("data-tab", "mat");
+        const mat = body.locator('[data-testid="ie-mat"]');
+        await expect(mat).toBeVisible();
+        await expect.poll(async () => await mat.evaluate((el) => [...el.querySelectorAll(
+            '[data-testid="ie-mat-figures"], [data-testid="ie-mat-stability"], [data-testid="ie-mat-chips"]',
+        )].some((node) => (node as HTMLElement).checkVisibility({checkVisibilityCSS: true, checkOpacity: true})))).toBe(true);
+
+        // Log: the public history, full width of the sheet.
+        await dock.locator('[data-testid="ie-mobile-tab-log"]').click();
+        await expect(dock).toHaveAttribute("data-tab", "log");
+        await expect(body.locator('[data-testid="ie-log"]')).toBeVisible();
+
+        // Orders: the turn panel's action pane (the phase buttons).
+        await dock.locator('[data-testid="ie-mobile-tab-orders"]').click();
+        await expect(dock).toHaveAttribute("data-tab", "orders");
+        await expect(body.locator('[data-testid="ie-turn-panel-action"]')).toBeVisible();
+
+        // The War tab only exists while a war or the Great War is running; a
+        // fresh match has neither, and no assertion is needed when it is absent.
+        const warTab = dock.locator('[data-testid="ie-mobile-tab-war"]');
+        if (await warTab.count() > 0) {
+            const warRunning = await page.evaluate(() => {
+                const G = (window as any).__IE_STATE__;
+                return Boolean(G.war || G.gw);
+            });
+            expect(warRunning, "a War tab is only offered while a war is running").toBe(true);
+        }
+    });
+
+    test("expand grows the sheet to full and the toggle folds it back to peek", async ({page}) => {
+        await openLocal(page);
+        const dock = dockFor(page);
+
+        // Start from the half sheet, opened through the tab strip.
+        await dock.locator('[data-testid="ie-mobile-tab-hand"]').click();
+        await expect(dock).toHaveAttribute("data-open", "true");
+        await expect(dock).toHaveAttribute("data-tab", "hand");
+        const half = await settledHeight(page, dock, (height) => height > 100 && height < 844 * 0.55);
+        expect(half).toBeGreaterThan(100);
+        expect(half).toBeLessThan(844 * 0.55);
+
+        // Full: the expand control in the sheet head grows it beyond half while
+        // staying inside the viewport.
+        await dock.locator('[data-testid="ie-mobile-expand"]').click();
+        await expect(dock).toHaveAttribute("data-expanded", "true");
+        const full = await settledHeight(page, dock, (height) => height > half);
         expect(full).toBeGreaterThan(half);
+        const fullBox = (await dock.boundingBox())!;
+        expect(fullBox.y).toBeGreaterThanOrEqual(0);
+        expect(fullBox.y + fullBox.height).toBeLessThanOrEqual(844 + 1);
 
-        // The toggle closes the sheet back to the peek bar.
-        await board.locator('[data-testid="ie-tray-toggle"]').click();
-        await expect(tray).toHaveAttribute("data-open", "false");
-        expect(await height()).toBeLessThan(80);
+        // A second press returns the sheet to the half position (a few pixels
+        // of slack absorbs sub-pixel rounding, not a different height).
+        await dock.locator('[data-testid="ie-mobile-expand"]').click();
+        await expect(dock).not.toHaveAttribute("data-expanded", "true");
+        await settledHeight(page, dock, (height) => Math.abs(height - half) <= 5);
+
+        // The toggle closes the sheet back to the peek bar instead of hiding
+        // the dock: the tab strip stays available for the next tap.
+        await dock.locator('[data-testid="ie-mobile-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-open", "false");
+        const peek = await settledHeight(page, dock, (height) => height >= 40 && height < 80);
+        expect(peek).toBeGreaterThanOrEqual(40);
+        expect(peek).toBeLessThan(80);
     });
 });

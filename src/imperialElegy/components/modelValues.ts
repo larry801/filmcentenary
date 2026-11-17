@@ -18,6 +18,8 @@ export type T = ReturnType<typeof ieStringsFor>;
 export type Decision = {allowed: boolean; reasons: string[]} | null;
 export type CostedDecision = {allowed: boolean; cost: number; reasons: string[]} | null;
 export type SetState<T> = (value: T | ((previous: T) => T)) => void;
+/** The phone bottom sheet's tabs; the dock shows one body at a time. */
+export type MobileTab = "orders" | "hand" | "mat" | "log" | "war";
 
 export type TargetIntentLike =
   | "redeploy" | "landBattle" | "navalBattle" | "amphibious" | "navalTransport"
@@ -301,7 +303,6 @@ export interface ModelValues {
   saveList: string[];
   ngChoices: string[];
   giveCards: string[];
-  giveCardValue: string;
   responseInHand: boolean;
   responseWindow: boolean;
   chainInfo: unknown;
@@ -339,8 +340,6 @@ export interface ModelValues {
   setWarMinor: (m: string) => void;
   giveTarget: Power;
   setGiveTarget: (p: Power) => void;
-  giveCardId: string;
-  setGiveCardId: (id: string) => void;
   confirmSurrender: boolean;
   setConfirmSurrender: (b: boolean) => void;
   auReformTarget: string;
@@ -363,6 +362,11 @@ export interface ModelValues {
   setGwTransferAmount: (n: number) => void;
   dockCollapsed: boolean;
   setDockCollapsed: SetState<boolean>;
+  /** True below 768 px; the shell renders the phone bottom sheet. */
+  isPhone: boolean;
+  /** The phone dock's open tab. */
+  mobileTab: MobileTab;
+  setMobileTab: SetState<MobileTab>;
   open: boolean;
   onToggleOpen: () => void;
   expanded: boolean;

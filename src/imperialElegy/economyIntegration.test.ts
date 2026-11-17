@@ -381,6 +381,35 @@ test("chained cards and their CP cannot be used to industrialize", () => {
   expect(G.powers.GE.industry).toBe(industryBefore);
 });
 
+test("the selected home card may industrialize and stays in the home slot", () => {
+  const G = fresh();
+  const ctx = makeCtx("0", 4);
+  beginAction(G);
+
+  const [home, otherHome] = G.powers.GE.homeCards;
+  G.powers.GE.hand.push(home, otherHome);
+  G.powers.GE.selectedHomeCard = home;
+
+  // Only the card chosen in Diplomacy is live this turn.
+  expect(industrialize(G, ctx, otherHome)).toBe(INVALID_MOVE);
+  expect(G.powers.GE.industryCard).toBeNull();
+
+  expect(industrialize(G, ctx, home)).toBeUndefined();
+  expect(G.powers.GE.industryCard).toBe(home);
+  expect(G.powers.GE.hand).not.toContain(home);
+  expect(G.powers.GE.selectedHomeCard).toBeNull();
+  expect(G.powers.GE.homeCards).toContain(home);
+
+  // The end-phase industry roll consumes the slot but returns a home card to
+  // its permanent slot rather than putting a second copy into the discard.
+  const industryBefore = G.powers.GE.industry;
+  resolveEnd(G, ctx);
+  expect(G.powers.GE.industry).toBe(industryBefore + 1);
+  expect(G.powers.GE.industryCard).toBeNull();
+  expect(G.powers.GE.homeCards).toContain(home);
+  expect(G.discard).not.toContain(home);
+});
+
 // ---------------------------------------------------------------------------
 // Surrender guard (15.5 / 16.0)
 // ---------------------------------------------------------------------------

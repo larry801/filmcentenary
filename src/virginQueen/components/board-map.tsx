@@ -17,6 +17,8 @@ import {
 import {LAND_LINKS, SEA_ZONES, SPACE_BY_ID, SPACES, seaZoneName, spaceName} from "../mapData";
 import {TUTORIAL_FORTRESSES, TUTORIAL_KEYS, tutorialSpaceAllowed} from "../tutorial";
 import land from "../data/land-background.json";
+import hydro from "../data/hydro-background.json";
+import relief from "../data/relief-background.json";
 import {WORLD_MAP_LOCATIONS} from "../data/world-map";
 import {
     BOARD_BANNERS,
@@ -142,13 +144,29 @@ const shouldShowLabel = (G: VQGame, id: string, scale: number, selected?: string
         (!excluded && (total > 0 || kind === "key"));
 };
 
+/**
+ * SVG paint servers are looked up by id across the whole document, and every
+ * mounted board renders its own copy of them.  The hotseat shell mounts one
+ * board per seat with the inactive ones behind `display: none`, and Chrome
+ * ignores a paint server defined inside a hidden subtree — so a shared id made
+ * every seat but the first draw bare sea, with no coastline, land or washes.
+ * Suffixing each id with the board instance's React id keeps every board
+ * self-contained; the plain name stays the prefix so ids remain greppable.
+ */
+const useBoardIdSuffix = (): string => React.useId().replace(/[^a-zA-Z0-9_-]/g, "");
+
+/** Local paint-server id for one board instance. */
+const scopedId = (suffix: string, id: string): string => `${id}-${suffix}`;
+
 type SpaceShapeProps = Pick<VQBoardMapProps, "G" | "selected" | "origin" | "onSelect" | "highlights" | "dimUnavailable"> & {
     id: string;
+    /** Per-board suffix for shared paint-server ids; see `useBoardIdSuffix`. */
+    idSuffix: string;
     label?: MapLabelPlacement;
     onHover: (id: string | undefined) => void;
 };
 
-function BoardSpaceShape({id, G, selected, origin, onSelect, highlights, dimUnavailable = true, onHover, label}: SpaceShapeProps) {
+function BoardSpaceShape({id, idSuffix, G, selected, origin, onSelect, highlights, dimUnavailable = true, onHover, label}: SpaceShapeProps) {
     const def = SPACE_BY_ID[id];
     const vqLocale: BoardLocale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
     const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
@@ -158,7 +176,7 @@ function BoardSpaceShape({id, G, selected, origin, onSelect, highlights, dimUnav
     const {x, y} = boardSpacePoint(id);
     const colors = boardMarkerColors(def);
     const gradient = boardGradientIndex(colors);
-    const fill = gradient >= 0 ? `url(#${boardGradientId(gradient)})` : colors[0];
+    const fill = gradient >= 0 ? `url(#${scopedId(idSuffix, boardGradientId(gradient))})` : colors[0];
     const stroke = st.religion === "protestant" ? "#fffdf6" : "#2b2118";
     const controlColor = CONTROLLER_COLORS[st.control] ?? "#9e9e9e";
     const isSelected = selected === id;
@@ -284,9 +302,20 @@ export const VQBoardMap = ({
 }: VQBoardMapProps) => {
     i18n.use();
     const vqLocale: BoardLocale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
+    const idSuffix = useBoardIdSuffix();
+    const paint = (id: string): string => `url(#${scopedId(idSuffix, id)})`;
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
     const [hovered, setHovered] = React.useState<string>();
     const landPath = React.useMemo(() => cachedBoardWarpPath(land.path), []);
+    const reliefPaths = React.useMemo(
+        () => relief.ranges.map((range) => cachedBoardWarpPath(range.path)),
+        [],
+    );
+    const hydroPaths = React.useMemo(() => ({
+        majorRivers: cachedBoardWarpPath(hydro.majorRivers),
+        minorRivers: cachedBoardWarpPath(hydro.minorRivers),
+        lakes: cachedBoardWarpPath(hydro.lakes),
+    }), []);
     const worldLocations = WORLD_MAP_LOCATIONS.filter((location) => {
         if (!location.gameOnly) return true;
         if (location.gameId === undefined) return false;
@@ -391,19 +420,28 @@ export const VQBoardMap = ({
                  onLostPointerCapture={(event) => pointers.current.delete(event.pointerId)}
                  onClickCapture={(event) => {if (event.detail !== 0 && dragged.current) {event.preventDefault(); event.stopPropagation();}}}>
                 <defs>
-                    <linearGradient id="vq-board-sea" x1="0" y1="0" x2="0.25" y2="1">
+                    <linearGradient id={scopedId(idSuffix, "vq-board-sea")} x1="0" y1="0" x2="0.25" y2="1">
                         <stop offset="0%" stopColor="#a3ccdf"/>
                         <stop offset="48%" stopColor="#82b3d2"/>
                         <stop offset="100%" stopColor="#5f93bd"/>
                     </linearGradient>
-                    <linearGradient id="vq-board-land" x1="0" y1="0" x2="1" y2="1">
+                    <linearGradient id={scopedId(idSuffix, "vq-board-land")} x1="0" y1="0" x2="1" y2="1">
                         <stop offset="0%" stopColor="#f0e2bb"/>
                         <stop offset="52%" stopColor="#e3cf9f"/>
                         <stop offset="100%" stopColor="#cbb079"/>
                     </linearGradient>
+                    {/* Fine engraved hachures for the mountain ranges. */}
+                    <pattern id={scopedId(idSuffix, "vq-board-relief")} width="5" height="5" patternUnits="userSpaceOnUse"
+                             patternTransform="rotate(32)">
+                        <rect width="5" height="5" fill="#c8ad78" opacity="0.22"/>
+                        <path d="M0,0 L0,5" stroke="#7d6036" strokeWidth="0.5" opacity="0.42"/>
+                    </pattern>
+                    <clipPath id={scopedId(idSuffix, "vq-board-landclip")}>
+                        <path d={landPath} fillRule="evenodd" clipRule="evenodd"/>
+                    </clipPath>
                     {/* Aged-paper speckle: a light tiled pattern instead of an
                         expensive full-surface turbulence filter. */}
-                    <pattern id="vq-board-speckle" width="38" height="38" patternUnits="userSpaceOnUse">
+                    <pattern id={scopedId(idSuffix, "vq-board-speckle")} width="38" height="38" patternUnits="userSpaceOnUse">
                         <circle cx="5" cy="8" r="0.9" fill="#5d4726" opacity="0.16"/>
                         <circle cx="24" cy="15" r="0.6" fill="#5d4726" opacity="0.13"/>
                         <circle cx="33" cy="30" r="1.1" fill="#fffaf0" opacity="0.3"/>
@@ -412,54 +450,65 @@ export const VQBoardMap = ({
                         <path d="M2,21L8,20" stroke="#5d4726" strokeWidth="0.4" opacity="0.1"/>
                         <path d="M26,4L32,5" stroke="#fffaf0" strokeWidth="0.4" opacity="0.2"/>
                     </pattern>
-                    <radialGradient id="vq-board-stain">
+                    <radialGradient id={scopedId(idSuffix, "vq-board-stain")}>
                         <stop offset="0%" stopColor="#7c5a2c" stopOpacity="0.16"/>
                         <stop offset="100%" stopColor="#7c5a2c" stopOpacity="0"/>
                     </radialGradient>
-                    <radialGradient id="vq-board-surf">
+                    <radialGradient id={scopedId(idSuffix, "vq-board-surf")}>
                         <stop offset="0%" stopColor="#f4fbfd" stopOpacity="0.38"/>
                         <stop offset="100%" stopColor="#f4fbfd" stopOpacity="0"/>
                     </radialGradient>
                     {BOARD_REGIONS.map((region, index) => <radialGradient
-                        key={`${region.id}-grad`} id={`vq-board-region-${index}`}>
+                        key={`${region.id}-grad`} id={scopedId(idSuffix, `vq-board-region-${index}`)}>
                         <stop offset="0%" stopColor={region.color} stopOpacity={0.46}/>
                         <stop offset="60%" stopColor={region.color} stopOpacity={0.3}/>
                         <stop offset="100%" stopColor={region.color} stopOpacity={0}/>
                     </radialGradient>)}
                     {BOARD_SPLIT_GRADIENTS.map(([top, bottom], index) => <linearGradient
-                        key={boardGradientId(index)} id={boardGradientId(index)} x1="0" y1="0" x2="0" y2="1">
+                        key={boardGradientId(index)} id={scopedId(idSuffix, boardGradientId(index))} x1="0" y1="0" x2="0" y2="1">
                         <stop offset="50%" stopColor={top}/>
                         <stop offset="50%" stopColor={bottom}/>
                     </linearGradient>)}
                 </defs>
                 {/* Watercolour sea */}
-                <rect width={1000} height={620} fill="url(#vq-board-sea)"/>
+                <rect width={1000} height={620} fill={paint("vq-board-sea")}/>
                 <g pointerEvents="none">
-                    <ellipse cx={180} cy={300} rx={190} ry={110} fill="url(#vq-board-surf)"/>
-                    <ellipse cx={760} cy={430} rx={240} ry={120} fill="url(#vq-board-surf)"/>
-                    <ellipse cx={470} cy={90} rx={200} ry={70} fill="url(#vq-board-stain)"/>
-                    <ellipse cx={880} cy={520} rx={190} ry={90} fill="url(#vq-board-stain)"/>
-                    <ellipse cx={110} cy={560} rx={130} ry={80} fill="url(#vq-board-stain)"/>
+                    <ellipse cx={180} cy={300} rx={190} ry={110} fill={paint("vq-board-surf")}/>
+                    <ellipse cx={760} cy={430} rx={240} ry={120} fill={paint("vq-board-surf")}/>
+                    <ellipse cx={470} cy={90} rx={200} ry={70} fill={paint("vq-board-stain")}/>
+                    <ellipse cx={880} cy={520} rx={190} ry={90} fill={paint("vq-board-stain")}/>
+                    <ellipse cx={110} cy={560} rx={130} ry={80} fill={paint("vq-board-stain")}/>
                 </g>
                 <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
                     {/* Pale coastal shoal, then parchment land */}
                     <path d={landPath} fill="none" stroke="#e7eede" strokeWidth={9} opacity={0.55} fillRule="evenodd"/>
-                    <path d={landPath} fill="url(#vq-board-land)" stroke="#8a7952" strokeWidth={1.3} fillRule="evenodd"/>
-                    {/* Soft hill shading, as on the printed board */}
-                    <g pointerEvents="none" opacity={0.13} fill="#6b4c26">
-                        <ellipse cx={525} cy={295} rx={62} ry={20} transform="rotate(-18 525 295)"/>
-                        <ellipse cx={330} cy={420} rx={48} ry={14} transform="rotate(-12 330 420)"/>
-                        <ellipse cx={700} cy={215} rx={70} ry={17} transform="rotate(12 700 215)"/>
-                        <ellipse cx={615} cy={495} rx={90} ry={20} transform="rotate(-8 615 495)"/>
+                    <path d={landPath} fill={paint("vq-board-land")} stroke="#8a7952" strokeWidth={1.3} fillRule="evenodd"/>
+                    {/* Real range outlines replace the old coarse hill blobs; the
+                        hatch is clipped to land so the cartogram warp cannot
+                        spill relief into the sea. */}
+                    <g clipPath={`url(#${scopedId(idSuffix, "vq-board-landclip")})`} pointerEvents="none">
+                        {reliefPaths.map((path, index) => <path key={`relief-${index}`} className="vq-relief"
+                            d={path} fill={paint("vq-board-relief")} stroke="#a98c58"
+                            strokeWidth={0.45}/>)}
                     </g>
                     {BOARD_REGIONS.map((region, index) => <ellipse key={region.id} cx={region.cx} cy={region.cy}
                                                                   rx={region.rx} ry={region.ry}
-                                                                  fill={`url(#vq-board-region-${index})`}
+                                                                  fill={paint(`vq-board-region-${index}`)}
                                                                   pointerEvents="none"/>)}
+                    <g className="vq-board-hydro" pointerEvents="none">
+                        <path className="vq-lake" d={hydroPaths.lakes} fill="#8bb7c4" stroke="#5f8b97"
+                              strokeWidth={0.5} fillRule="evenodd" opacity={0.82}/>
+                        <path className="vq-river vq-river-minor" d={hydroPaths.minorRivers} fill="none"
+                              stroke="#5f8b97" strokeWidth={0.55} strokeLinecap="round"
+                              strokeLinejoin="round" opacity={0.72}/>
+                        <path className="vq-river vq-river-major" d={hydroPaths.majorRivers} fill="none"
+                              stroke="#3f7385" strokeWidth={1} strokeLinecap="round"
+                              strokeLinejoin="round" opacity={0.82}/>
+                    </g>
                     <path d={landPath} fill="none" stroke="#7d6c48" strokeWidth={0.7} fillRule="evenodd"
                           pointerEvents="none" opacity={0.75}/>
                     {/* Paper grain over sea, land and power washes */}
-                    <rect x={-400} y={-400} width={1800} height={1420} fill="url(#vq-board-speckle)" pointerEvents="none"/>
+                    <rect x={-400} y={-400} width={1800} height={1420} fill={paint("vq-board-speckle")} pointerEvents="none"/>
 
                     {/* ---------------- printed World Map L-strip ---------------- */}
                     <g pointerEvents="none">
@@ -527,7 +576,8 @@ export const VQBoardMap = ({
                             {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
                         </g>;
                     })}
-                    {SPACES.map((space) => <BoardSpaceShape key={space.id} id={space.id} G={G} selected={selected}
+                    {SPACES.map((space) => <BoardSpaceShape key={space.id} id={space.id} idSuffix={idSuffix}
+                                                           G={G} selected={selected}
                                                            origin={origin} onSelect={onSelect} highlights={highlights}
                                                            dimUnavailable={dimUnavailable} onHover={setHovered}
                                                            label={labelPlacements[space.id]}/>)}

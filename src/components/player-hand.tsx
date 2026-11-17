@@ -8,15 +8,17 @@ import Grid from "@mui/material/Grid";
 import Typography from "@mui/material/Typography";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import Button from "@mui/material/Button";
-import {CardInfo} from "./card";
+import {CardAdjustBadge, CardInfo} from "./card";
 import {actualStage} from "../game/util";
 import {Stage} from "boardgame.io/core";
-import {getCardById, Region, SimpleRuleNumPlayers} from "../types/core";
+import {CardCategory, getCardById, Region, SimpleRuleNumPlayers} from "../types/core";
 import DepositIcon from '@mui/icons-material/LocalAtm';
 import ResIcon from '@mui/icons-material/MonetizationOn';
 import PlayCardIcon from '@mui/icons-material/PlayCircleFilledWhiteOutlined';
 import {ChampionIcon, FreeBreakthroughIcon, getColor} from "./icons";
 import PrestigeIcon from "@mui/icons-material/EmojiEvents";
+
+import './card.css';
 
 // import Backdrop from '@mui/material/Backdrop';
 // import CircularProgress from '@mui/material/CircularProgress';
@@ -96,8 +98,23 @@ export const PlayerHand = ({
                     }
                     return <Accordion
                         expanded={true}
-                        key={`hand-${idx}-${c}`}>
-                        <AccordionSummary key={idx}>
+                        key={`hand-${idx}-${c}`}
+                        className="dybn-card"
+                        sx={{margin: '4px 0'}}
+                    >
+                        <AccordionSummary key={idx} className="dybn-card"
+                            sx={{
+                                position: 'relative',
+                                backgroundImage: `url("/img/${c}.png")`,
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'right center',
+                                backgroundSize: 'auto 100%',
+                                ...(getCardById(c).category === CardCategory.LEGEND ? {
+                                    boxShadow: '2px 2px 2px #000000c4'
+                                } : {})
+                            }}
+                        >
+                            <CardAdjustBadge cardId={c}/>
                             <CardInfo cid={c}/>
                             {era !== null ?
                                 <Typography aria-label={i18n.chain.era[era]}>

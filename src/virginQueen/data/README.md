@@ -137,20 +137,40 @@ full coverage of every printed timing or choice (see the main coverage notes).
 ## Offline geographic background
 
 `land-background.json` is a clipped, preprojected SVG path generated from
-[Natural Earth 1:50m land](https://www.naturalearthdata.com/downloads/50m-physical-vectors/50m-land/).
+[Natural Earth 1:10m land](https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/).
 The source data is [public domain](https://www.naturalearthdata.com/about/terms-of-use/).
 It supplies coastlines only; game spaces, ownership and connections continue to
 come from the existing scenario catalogue. No map tiles or external requests are
 needed at runtime.
 
-To regenerate, download `ne_50m_land.geojson` from the Natural Earth vector
-repository and run `python3 scripts/generate-vq-land.py /path/to/ne_50m_land.geojson`.
-The generated file records the source SHA-256 and geographic extent. The extent
-and projection in `components/map-geometry.ts` must match the generator.
+`hydro-background.json` adds the major rivers and lakes from Natural Earth 1:10m
+(`rivers_lake_centerlines` and `lakes`), split into major/minor river weights so
+the Rhine, Danube, Po and their tributaries read like the engraved rivers on the
+printed board.
+
+`relief-background.json` holds the Alps, Pyrenees, Apennines, Carpathians and the
+other named mountain regions from Natural Earth 1:10m
+(`geography_regions_polys`). The map renders them with a fine hachure pattern,
+replacing the earlier coarse hill blobs; the board view clips the relief to the
+coastline so the cartogram warp cannot spill it into the sea.
+
+To regenerate, download the Natural Earth GeoJSON files and run:
+
+```sh
+python3 scripts/generate-vq-land.py /path/to/ne_10m_land.geojson
+python3 scripts/generate-vq-hydro.py \
+    /path/to/ne_10m_rivers_lake_centerlines.geojson \
+    /path/to/ne_10m_lakes.geojson
+python3 scripts/generate-vq-relief.py /path/to/ne_10m_geography_regions_polys.geojson
+```
+
+The generated files record the source SHA-256, geographic extent and
+Douglas-Peucker tolerance. The extent and projection in
+`components/map-geometry.ts` must match the generators.
 
 The World Map inset uses `world-background.json`, generated the same way from
-the smaller `ne_110m_land.geojson`:
-`python3 scripts/generate-vq-world.py /path/to/ne_110m_land.geojson`.
+the higher-detail `ne_50m_land.geojson`:
+`python3 scripts/generate-vq-world.py /path/to/ne_50m_land.geojson`.
 `data/world-map.ts` supplies the printed triangular settlement names, true
 lon/lat positions and home colours; `components/world-map.tsx` overlays current
 control/colony state on that map.

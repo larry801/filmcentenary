@@ -19,7 +19,7 @@ import {defaultFormation, landMoveIssue, springMoveIssue, transportMoveIssue, ty
 import {controlledPowers, ownerOf, isActivatedMajor} from "../../ownership";
 import {TUTORIAL_POWER_CARDS} from "../../tutorial";
 import {Controller} from "../../constant/general";
-import {passBlockReasons, type PassBlock, type NavalMoveOrder} from "../../moves";
+import {cityRebelsDecider, passBlockReasons, type PassBlock, type NavalMoveOrder} from "../../moves";
 
 import {ArmyMutinyTargetSelection, EMPTY_EVENT_SELECTION, GermanRecruitmentTargetSelection, MODE_COST, Mode, StaffordTargetSelection, VirginQueenBoardProps, actionResponderChoices, actionWindowResponders, eventSelectionReducer, leaderLabel, legalDiplomacyTarget, phaseLabel, unitLabel, virginQueenCombatRetrieveOptions} from "./helpers";
 
@@ -123,6 +123,9 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     // holder answered) or a new window offers a different set of powers.
     const actionResponder = (selectedActionResponder !== undefined && myActionResponders.includes(selectedActionResponder)
         ? selectedActionResponder : undefined) ?? myActionResponders[0] ?? actionResponders[0];
+    // A #18 loss belongs to the major that owns the garrison, which for an
+    // allied minor is its allied major (and the seat the move accepts).
+    const cityRebelsOwner = G.pendingCityRebels === undefined ? undefined : cityRebelsDecider(G, G.pendingCityRebels.controller);
     const responsePower = G.pendingPolishElection && ownerOf(G, G.pendingPolishElection.remaining[0]) === playerID ? G.pendingPolishElection.remaining[0] :
         G.gregorianResponse && ownerOf(G, G.gregorianResponse.responder) === playerID ? G.gregorianResponse.responder :
         G.pendingBeacon && ownerOf(G, G.pendingBeacon.defender) === playerID ? G.pendingBeacon.defender :
@@ -133,7 +136,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         piracyResponder && ownerOf(G, piracyResponder) === playerID ? piracyResponder :
         G.pendingCardEvent && ownerOf(G, G.pendingCardEvent.responding) === playerID ? G.pendingCardEvent.responding :
         G.pendingTutorialEvent && ownerOf(G, G.pendingTutorialEvent.responding) === playerID ? G.pendingTutorialEvent.responding :
-        G.pendingCityRebels && isPower(G.pendingCityRebels.controller) && ownerOf(G, G.pendingCityRebels.controller) === playerID ? G.pendingCityRebels.controller :
+        cityRebelsOwner && ownerOf(G, cityRebelsOwner) === playerID ? cityRebelsOwner :
         G.pendingTribute && ownerOf(G, G.pendingTribute.target) === playerID ? G.pendingTribute.target :
         G.pendingMutiny && ownerOf(G, G.pendingMutiny.owner) === playerID ? G.pendingMutiny.owner :
         G.pendingWithdraw && ownerOf(G, G.pendingWithdraw.defender) === playerID ? G.pendingWithdraw.defender :
@@ -543,7 +546,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     const pendingPower = G.pendingPolishElection?.remaining[0] ?? G.gregorianResponse?.responder ?? G.pendingBeacon?.defender ?? G.pendingInterceptionOrder?.defender ?? G.pendingIntercept?.defender ?? actionResponder ?? piracyResponder ??
         G.pendingEspionage?.responding ?? G.pendingTribute?.target ?? G.pendingCardEvent?.responding ?? G.pendingTutorialEvent?.responding ?? G.pendingBattle?.responding ?? G.pendingWithdraw?.defender ?? G.pendingContinue?.power ?? G.pendingActivation?.ally ?? G.pendingBetrothal?.target ?? G.pendingRebelMove?.power ??
         G.pendingReliefSplit?.power ?? G.pendingForeignWar?.power ??
-        (G.pendingCityRebels !== undefined ? (isPower(G.pendingCityRebels.controller) ? G.pendingCityRebels.controller : G.pendingCityRebels.power) : undefined) ??
+        cityRebelsOwner ??
         G.pendingMutiny?.owner ??
         (G.pendingAbjuration !== undefined ? "protestant" as Power : undefined);
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;

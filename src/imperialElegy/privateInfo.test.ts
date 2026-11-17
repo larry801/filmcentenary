@@ -2,7 +2,7 @@ import {Client} from "boardgame.io/client";
 import {Local} from "boardgame.io/multiplayer";
 import {ImperialElegyGameDef} from "./game";
 import {setupImperialElegy} from "./engine/setup";
-import {cardById, drawCards} from "./engine/deck";
+import {drawCards} from "./engine/deck";
 import {playCard} from "./moves";
 import {ImperialElegyState, Power, POWERS} from "./types";
 
@@ -33,6 +33,21 @@ const settled = async (client: {getState: () => any}, before: number) => {
   for (let tick = 0; tick < 500; tick += 1) {
     if (stateIdOf(client) !== before) return;
     await new Promise(resolve => setImmediate(resolve));
+  }
+};
+
+/**
+ * Poll until `probe` returns a truthy value (or time out).  Local-mode clients
+ * propagate moves over the event loop, so a fixed sleep races the update on a
+ * loaded CI box; waiting for the state we are about to assert on does not.
+ */
+const eventually = async <T>(probe: () => T | undefined | null | false, timeout = 5_000, interval = 25): Promise<T> => {
+  const deadline = Date.now() + timeout;
+  for (;;) {
+    const value = probe();
+    if (value) return value as T;
+    if (Date.now() > deadline) throw new Error("timed out waiting for game state");
+    await wait(interval);
   }
 };
 
@@ -322,18 +337,21 @@ test("reconnecting the GE client preserves its private hand and keeps other view
   // reconnect-style test uses a prep-phase private action. Pending-decision
   // redaction is covered separately with playerView above.
   // A prep-phase private action: discard a card from the GE hand for stability.
-  const discardable = handBefore.find((id) => {
-    const def = cardById(id);
-    return def.kind !== "home" && def.type !== "mandatory" && def.type !== "mandatoryResponse";
-  });
-  expect(discardable).toBeDefined();
+  const stateBefore = handBefore.length;
+  expect(stateBefore).toBeGreaterThan(0);
 
+  // The discard is random now, so wait for the master to apply the move (a new
+  // `_stateID`) and then for the log entry that names the card, instead of
+  // choosing a card ourselves or sleeping a fixed 80 ms.
   const beforeDiscard = stateIdOf(ge);
-  ge.moves.discardForStability(discardable!);
+  ge.moves.discardForStability();
   await settled(ge, beforeDiscard);
+  const discardLog = await eventually(() =>
+    (ge.getState()!.G as PrivateView).log.find((entry) => entry.key === "prepStabilityDiscard"));
+  await eventually(() => observer.getState()!.G.log.some((entry) => entry.id === discardLog.id));
 
   const afterAction = ge.getState()!.G as PrivateView;
-  expect(afterAction.powers.GE.hand).toEqual(handBefore.filter((id) => id !== discardable));
+  expect(afterAction.powers.GE.hand.length).toBe(stateBefore - 1);
   expect(afterAction.pending).toBeNull();
 
   const observerAfter = observer.getState()!.G as PrivateView;
@@ -341,8 +359,9 @@ test("reconnecting the GE client preserves its private hand and keeps other view
   expect(observerAfter.handCounts.GE).toBe(afterAction.powers.GE.hand.length);
   expect(observerAfter.pending).toBeNull();
 
-  const discardLog = afterAction.log.find((entry) => entry.key === "prepStabilityDiscard")!;
-  expect(discardLog.args?.card).toBe(discardable);
+  const discarded = handBefore.find((id) => !afterAction.powers.GE.hand.includes(id))!;
+  expect(discarded).toBeDefined();
+  expect(discardLog.args?.card).toBe(discarded);
   expect(observerAfter.log.find((entry) => entry.id === discardLog.id)!.args?.card).toBe("hidden");
 
   // Stop and restart the GE client, as a reconnecting tab would.
@@ -356,7 +375,7 @@ test("reconnecting the GE client preserves its private hand and keeps other view
 
   const reconnected = ge.getState()!.G as PrivateView;
   expect(reconnected.powers.GE.hand).toEqual(afterAction.powers.GE.hand);
-  expect(reconnected.powers.GE.hand).not.toContain(discardable);
+  expect(reconnected.powers.GE.hand).not.toContain(discarded);
   expect(reconnected.pending).toBeNull();
 
   const observerAgain = observer.getState()!.G as PrivateView;

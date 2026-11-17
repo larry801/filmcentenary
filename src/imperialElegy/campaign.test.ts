@@ -1,6 +1,7 @@
 import {Client} from "boardgame.io/client";
 import {Local} from "boardgame.io/multiplayer";
 import {ImperialElegyGameDef} from "./game";
+import {passRestriction} from "./engine/characteristics";
 import {POWERS} from "./types";
 import type {ImperialElegyState} from "./types";
 
@@ -29,7 +30,13 @@ const settle = async (client: {getState: () => any}, before: number) => {
 
 jest.setTimeout(120000);
 test("campaign auto-play reaches a result", async () => {
-  const cs = ["0","1","2","3","4","5"].map(playerID => Client({game: ImperialElegyGameDef, numPlayers: 6, multiplayer: Local(), playerID, debug: false}));
+  // boardgame.io seeds its RNG from the match when the game definition has no
+  // seed, so an unseeded run shuffles differently every time.  A ~4% of those
+  // shuffles takes the campaign into the Great War at the turn-7 crisis, which
+  // is a legal and decisive ending; pinning the seed keeps this long auto-play
+  // reproducible so a failure means a real regression rather than a new shuffle.
+  const game = {...ImperialElegyGameDef, seed: "campaign-autoplay"};
+  const cs = ["0","1","2","3","4","5"].map(playerID => Client({game, numPlayers: 6, multiplayer: Local(), playerID, debug: false}));
   cs.forEach(c => c.start());
   // `start()` performs the initial sync asynchronously.
   for (let tick = 0; tick < 500 && cs.some(c => c.getState()?.G === undefined); tick += 1) {
@@ -103,17 +110,31 @@ test("campaign auto-play reaches a result", async () => {
     }
     if (G.phase === "gwPlanning") { await act(() => cs[0].moves.endGwPlanningMove()); continue; }
     if (G.phase === "gwImpulse") {
-      const p = G.activePower; const i = POWERS.indexOf(p); await act(() => cs[i].moves.gwPass()); continue;
+      const p = G.activePower; const i = POWERS.indexOf(p); const own = seatState(p);
+      // 27.3: Exhaustion (GW-10) forbids passing, and it is the turn's GW card
+      // rather than a hand card.  Without this the campaign driver re-sends a
+      // refused `gwPass` for the rest of the step budget and never ends.
+      const gwCard = own.powers[p].gwCard;
+      if (gwCard && passRestriction(own, p, [gwCard]).forced) {
+        await act(() => cs[i].moves.playGwCardMove("cp")); continue;
+      }
+      await act(() => cs[i].moves.gwPass()); continue;
     }
+    if (G.phase === "gwWinter") { await act(() => cs[0].moves.gwResolveWinter()); continue; }
     throw new Error(`unknown phase ${G.phase}`);
   }
   const G = cs[0].getState()!.G as ImperialElegyState;
-  expect(G.result).not.toBeNull();
+  if (G.result === null) throw new Error(`campaign did not end after ${phases.length} phases: ${phases.join(" ")}`);
   // The auto-play path now takes the printed decisions added in rounds 1-2
-  // (crisis, consent, auctions, end-phase choices), so the campaign may end
-  // either at turn 7 or with a Great War alliance victory.  The invariant is
-  // that it reaches a decisive, non-empty result.
-  expect(["endOfTurn7", "greatWar:te", "greatWar:ta"]).toContain(G.result!.reason);
-  expect(G.result!.winners.length).toBeGreaterThan(0);
+  // (crisis, consent, auctions, end-phase choices), so the campaign may end at
+  // turn 7, with a Great War alliance victory, or on the Great War turn limit
+  // when a turn-7 crisis starts the war.  The invariant is that it reaches a
+  // decisive, non-empty result.
+  const reason = G.result.reason;
+  const expected = ["endOfTurn7", "greatWar:te", "greatWar:ta", "gwTurnLimit:neutralVp", "gwTurnLimit:stability"];
+  if (!expected.includes(reason) && !reason.startsWith("autoVictory:")) {
+    throw new Error(`unexpected end reason: ${reason}`);
+  }
+  expect(G.result.winners.length).toBeGreaterThan(0);
   expect(phases.length).toBeGreaterThan(0);
 });

@@ -84,3 +84,24 @@ export const loadCredentials = (
     }
     return null;
 };
+
+const PLAYER_NAME_KEY = "filmCentenary_playerName";
+
+/** 保存玩家自定义名称到 localStorage */
+export const savePlayerName = (name: string): void => {
+    if (name && name.trim()) {
+        localStorage.setItem(PLAYER_NAME_KEY, name.trim());
+    } else {
+        localStorage.removeItem(PLAYER_NAME_KEY);
+    }
+};
+
+/** 从 localStorage 读取玩家自定义名称，无则返回 null */
+export const loadPlayerName = (): string | null => {
+    try {
+        const name = localStorage.getItem(PLAYER_NAME_KEY);
+        return name && name.trim() ? name.trim() : null;
+    } catch {
+        return null;
+    }
+};

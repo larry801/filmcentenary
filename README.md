@@ -99,3 +99,7 @@ Jest 在每个 worker 进程里都要重新加载一遍被 import 的模块，�
   `data/decluttered-space-points.json` 锁定布局）。
 * 同一进程内重复使用的派生数据要缓存。`cachedBoardWarpPath` 缓存棋盘海岸线
   的形变结果，因为棋盘每次走子都会重绘。
+
+## 作者的话
+
+新增作者自制，有开关，可自选添加

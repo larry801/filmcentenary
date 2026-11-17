@@ -184,7 +184,14 @@ const turnEnd = (G: VQGame, ctx: Ctx): void => {
         return;
     }
     const powers = participatingPowers(G);
-    const next = powers.find((power) => POWERS.indexOf(power) > POWERS.indexOf(G.activePower));
+    // A power can lose its controlling seat during its own impulse: playing
+    // #37 Sublime Porte (or any event that evaluates the Ottoman/HRE track)
+    // can hand the status check to the printed "Deactivate" power, which
+    // deactivates the acting major.  `activePower` then names a power nobody
+    // controls, so every seat is blocked and the Action Phase never ends.
+    // Skip forward from that power instead of stalling on it.
+    const from = POWERS.indexOf(G.activePower);
+    const next = powers.find((power) => POWERS.indexOf(power) > from);
     G.phaseTurns = next === undefined ? 1 : 0;
     G.activePower = next ?? powers[0];
 };

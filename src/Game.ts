@@ -3,6 +3,7 @@ import {IG, setup} from "./types/setup";
 import {
     breakthrough,
     buyCard, changePlayerSetting,
+    chooseDiscard,
     chooseEffect,
     chooseEvent,
     chooseHand,
@@ -21,7 +22,7 @@ import {
     updateSlot
 } from "./game/moves";
 import {InitPhase, NormalPhase} from "./game/config";
-import {GameMode, Region, valid_regions, VictoryType} from "./types/core";
+import {all_regions, GameMode, Region, valid_regions, VictoryType} from "./types/core";
 import {getExtraScoreForFinal} from "./game/util";
 import {enumerateMoves} from "./game/ai";
 
@@ -81,11 +82,16 @@ export const FilmCentenaryGame: Game<IG> = {
                 2: {...G.regions[2]},
                 3: {...G.regions[3]},
                 4: {...G.regions[4]},
+                5: {...G.regions[5]},
+                6: {...G.regions[6]},
+                7: {...G.regions[7]},
             },
             pub: G.pub.map(p => ({...p, finalScoring: {...p.finalScoring}})),
         };
         r.eventDeckLength = G.secretInfo.events.length;
-        valid_regions.forEach(region => {
+        // The board filter shows the school regions too, so their deck counts
+        // have to reach the client as well, not just the four player regions.
+        all_regions.forEach(region => {
             r.regions[region].legendDeckLength = G.secretInfo.regions[region].legendDeck.length;
             r.regions[region].normalDeckLength = G.secretInfo.regions[region].normalDeck.length;
         })
@@ -116,9 +122,12 @@ export const FilmCentenaryGame: Game<IG> = {
             }
         }
         r.player = newPlayerObj;
+        /*
         if (r.secretInfo !== undefined) {
             delete r.secretInfo;
         }
+        //疑似引发突抽bug，君子游戏吧
+        */
         return r;
     },
     moves: {
@@ -132,6 +141,7 @@ export const FilmCentenaryGame: Game<IG> = {
         moveBlocker: moveBlocker,
         chooseTarget: chooseTarget,
         chooseHand: chooseHand,
+        chooseDiscard: chooseDiscard,
         chooseEvent: chooseEvent,
         chooseEffect: chooseEffect,
         chooseRegion: chooseRegion,
