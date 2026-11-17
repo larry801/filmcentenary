@@ -166,6 +166,10 @@ test("the framing bar offers the whole map, the player's capital and every theat
   // it goes before pressing it.
   expect(html).toContain('title="柏林"');
   expect(html).toContain('data-testid="ie-map-theatre"');
+  // The interactive board links to the 1:1 printed sheet in a new tab.
+  expect(html).toContain('data-testid="ie-map-printed-board"');
+  expect(html).toContain('href="/board/imperialElegy"');
+  expect(html).toContain("印刷版图");
   for (const label of ["西欧", "中欧与意大利", "东欧与俄国", "巴尔干与近东", "非洲", "亚洲", "美洲"]) {
     expect(html).toContain(label);
   }
