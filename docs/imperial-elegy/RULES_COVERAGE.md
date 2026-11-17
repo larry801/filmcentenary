@@ -203,10 +203,13 @@ Status labels:
   industrialize.
 - **Industrialisation:** card + end-phase roll (`d6 + CP + DRM` vs 5; RU/OT
   target 6), with `autoIndustry` carrying a failed roll into the next turn.
-  `resolveEnd` now uses `industryTarget`/`industryRollNeeded` and the auto-chit
-  helper. **Partial** relative to the printed modifiers; the OT “no own card”
-  rule is now enforced. Berlin Conference’s 12.5.2 Africa influence limit and
-  12.6 removal exception are live.
+  The selected home card may be used as the industry card; it leaves the hand,
+  clears the home selection and returns to the permanent home slot after the
+  end-phase roll instead of being discarded. `resolveEnd` now uses
+  `industryTarget`/`industryRollNeeded` and the auto-chit helper. **Partial**
+  relative to the printed modifiers; the OT “no own card” rule is now enforced.
+  Berlin Conference’s 12.5.2 Africa influence limit and 12.6 removal exception
+  are live.
 - **Card targets:** explicit, validated choices now exist for Second Opium
   War, Rebellions in China, Berlin Conference (incl. 12.5.2/12.6), Urabi Revolt
   and Moroccan Crisis (printed card auctions), Naval Arms Race, High Seas Fleet,

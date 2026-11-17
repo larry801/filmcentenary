@@ -6,7 +6,8 @@
  * printed window are the ones the engine checks.  `CARDS` is the
  * `{actions, home, greatWar}` bag of printed arrays, not one flat list: the
  * action cards live in `CARDS.actions`, home cards in `CARDS.home` (their
- * `kind` is `"home"`, which the save/industry rules key on).
+ * `kind` is `"home"`, which the save rule keys on; the selected home card may
+ * industrialize).
  */
 import type {Ctx} from "boardgame.io";
 
@@ -239,8 +240,23 @@ describe("cardAvailability", () => {
     expect(mandatory.reasons).not.toContain("Industrialize only during your Action impulse");
     expect(mandatory.reasons).not.toContain("A card is already industrializing");
 
-    // Home cards are equally outside the Industry slot.
-    expect(cardAvailability(input(G, CARDS.home[0].id)).industOk).toBe(false);
+    // 12.13: the home card selected in Diplomacy may industrialize.  An
+    // unselected home card is not in play and keeps the home-card reason.
+    const homeId = CARDS.home[0].id;
+    const selectedHome = cardAvailability(input(G, homeId, {homeCards: [homeId]}));
+    expect(selectedHome.industOk).toBe(true);
+    expect(selectedHome.reasons).not.toContain("Industrialize only during your Action impulse");
+
+    const unselectedHome = cardAvailability(input(G, homeId));
+    expect(unselectedHome.industOk).toBe(false);
+    expect(unselectedHome.reasons).toContain("Set it as your home card during Diplomacy first");
+
+    const homeAlreadyIndustrializing = cardAvailability(input(G, homeId, {
+      homeCards: [homeId],
+      industryCard: "IE-A002",
+    }));
+    expect(homeAlreadyIndustrializing.industOk).toBe(false);
+    expect(homeAlreadyIndustrializing.reasons).toContain("A card is already industrializing");
   });
 
   test("the CP chain accepts two cards and refuses a third", () => {

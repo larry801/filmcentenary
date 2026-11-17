@@ -78,7 +78,9 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
         : phase === "gwManeuver" ? isActive
           : false
   );
-  const industOk = canActionCard && industryCard === null && card.kind !== "home" && !isMandatory;
+  // 12.13: the selected home card is a legal industrialization card too.  Unselected
+  // home cards never reach the hand, so `homeOk` keeps them out here as well.
+  const industOk = canActionCard && industryCard === null && homeOk && !isMandatory;
   const chainOk = canActionCard && cpChainLength < 2;
   const saveOk = (phase === "action" || phase === "end") && card.kind !== "home" && !isMandatory;
 
@@ -112,10 +114,12 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
     else if (!canActionCard) reasons.push(bi("Events are played at the start of an Action impulse", "事件需在行动轮开始时打出"));
     else if (G.cpRemaining > 0) reasons.push(bi("Events are played before spending CP", "事件需在花费 CP 前打出"));
   }
-  if (!industOk && card.kind !== "home" && !isMandatory) {
-    reasons.push(industryCard !== null
-      ? bi("A card is already industrializing", "已有牌在工业化")
-      : bi("Industrialize only during your Action impulse", "工业化仅限你的行动阶段行动轮"));
+  if (!industOk && !isMandatory) {
+    reasons.push(card.kind === "home" && !homeOk
+      ? bi("Set it as your home card during Diplomacy first", "需先在外交阶段选为本国牌")
+      : industryCard !== null
+        ? bi("A card is already industrializing", "已有牌在工业化")
+        : bi("Industrialize only during your Action impulse", "工业化仅限你的行动阶段行动轮"));
   }
   if (!chainOk && cpChainLength >= 2) reasons.push(bi("CP chain is full", "CP 链已满"));
   if (!saveOk) reasons.push(bi("Save only in the Action or End phase", "仅可在行动或结束阶段保留"));

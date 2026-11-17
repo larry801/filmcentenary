@@ -1662,16 +1662,21 @@ export const industrialize = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): 
   // 12.14: CP chained cards cannot be used to industrialize.
   if (p.cpChain.includes(cardId)) return INVALID_MOVE;
   if (!p.hand.includes(cardId)) return INVALID_MOVE;
-  if (cardById(cardId).type === "mandatory") return INVALID_MOVE;
+  const card = cardById(cardId);
+  if (card.type === "mandatory") return INVALID_MOVE;
+  // 12.13: a home card in hand is playable for CP or as its event, and may also
+  // be the turn's industrialization card.  Only the selected home card is live.
+  if (card.kind === "home" && p.selectedHomeCard !== cardId) return INVALID_MOVE;
   // 33.6 Europeanization: the Ottomans may not play their own card to
   // industrialize (the 6+ target is applied at the end phase).
-  const industry = industryRoll(G, power, cardById(cardId).cp, {cardOwner: power, cardId});
+  const industry = industryRoll(G, power, card.cp, {cardOwner: power, cardId});
   if (!industry.allowed) {
     log(G, power, "industrializeRejected", {card: cardId, reasons: industry.reasons.join(" | ")});
     return INVALID_MOVE;
   }
   p.hand = p.hand.filter((id) => id !== cardId);
   p.industryCard = cardId;
+  if (p.selectedHomeCard === cardId) p.selectedHomeCard = null;
   log(G, power, "industrializeCard", {card: cardId});
   G.cpRemaining = 0;
   finishImpulse(G, ctx);
@@ -5573,7 +5578,9 @@ const endPhaseIndustrialization = (G: ImperialElegyState, ctx: Ctx): void => {
       } else {
         p.autoIndustry = true;
       }
-      G.discard.push(p.industryCard);
+      // A home card is a permanent part of its power's home slot: like a CP or
+      // event play, industrialization returns it there instead of discarding it.
+      if (cardById(p.industryCard).kind !== "home") G.discard.push(p.industryCard);
       p.industryCard = null;
     }
     p.flags.industryDrm = 0;
