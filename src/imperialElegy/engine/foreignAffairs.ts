@@ -99,7 +99,10 @@ export const influencePlacementProblem = (
     if (african >= 1) return "africa-limit";
   }
   // 5.6: a LoC is required for influence (and for nothing else in this file).
-  if (!hasLoc(G, power, space)) return "no-loc";
+  // 12.5.1: "For the purposes of placing influence, players can trace LoCs
+  // through allied minor power spaces."  The allowance belongs to this action
+  // only, so supply and the other LoC checks keep the strict rule.
+  if (!hasLoc(G, power, space, {throughAlliedMinorSpaces: true})) return "no-loc";
   return null;
 };
 

@@ -21,6 +21,7 @@ import {setupImperialElegy} from "./engine/setup";
 import {SPACES} from "./constant/spaces";
 import * as moves from "./moves";
 import {placeUnit} from "./engine/effects";
+import {hasLoc} from "./engine/rules";
 import {
   diplomacyPlacementProblem,
   influencePlacementProblem,
@@ -200,6 +201,58 @@ describe("5.6 diplomacy needs no LoC, influence does", () => {
     const G = game("GE");
     expect(influencePlacementProblem(G, "GE", "sudan")).toBe("no-loc");
     expect(moves.placeInfluence(G, makeCtx("GE"), "sudan")).toBe("INVALID_MOVE");
+  });
+});
+
+describe("12.5.1 influence may trace through allied minor power spaces", () => {
+  /**
+   * "For the purposes of placing influence, players can trace LoCs through
+   * allied minor power spaces."  This is an allowance printed only for
+   * influence placement; supply and the other LoC checks keep the strict rule
+   * that a peacetime trace passes only through the player's own spaces.
+   */
+  const alliedEgypt = (): ImperialElegyState => {
+    const G = game("GE");
+    // Egypt controls Egypt at setup and is the last land hop before Sudan.
+    // Sudan has no other route back to a German supply source.
+    expect(G.spaces.egypt.control).toBe("Egypt");
+    G.spaces.egypt.ally = "GE";
+    return G;
+  };
+
+  test("the trace is refused when the minor is not allied", () => {
+    const G = game("GE");
+    expect(hasLoc(G, "GE", "sudan")).toBe(false);
+    expect(influencePlacementProblem(G, "GE", "sudan")).toBe("no-loc");
+    expect(moves.placeInfluence(G, makeCtx("GE"), "sudan")).toBe("INVALID_MOVE");
+  });
+
+  test("the alliance opens the route for influence placement only", () => {
+    const G = alliedEgypt();
+    // The supply/movement LoC is unchanged by the influence allowance.
+    expect(hasLoc(G, "GE", "sudan")).toBe(false);
+    expect(hasLoc(G, "GE", "sudan", {throughAlliedMinorSpaces: true})).toBe(true);
+    expect(influencePlacementProblem(G, "GE", "sudan")).toBeNull();
+  });
+
+  test("the move places the marker and spends the CP", () => {
+    const G = alliedEgypt();
+    expect(moves.placeInfluence(G, makeCtx("GE"), "sudan")).toBeUndefined();
+    expect(G.spaces.sudan.influence).toBe("GE");
+    expect(G.cpRemaining).toBe(19);
+  });
+
+  test("another player's allied minor is still a closed space", () => {
+    const G = game("GE");
+    G.spaces.egypt.ally = "UK";
+    expect(influencePlacementProblem(G, "GE", "sudan")).toBe("no-loc");
+  });
+
+  test("a rebel army in the allied minor breaks the chain", () => {
+    const G = alliedEgypt();
+    placeUnit(G, "REBEL:Egypt", "rebelArmy", "egypt", 2);
+    expect(hasLoc(G, "GE", "sudan", {throughAlliedMinorSpaces: true})).toBe(false);
+    expect(influencePlacementProblem(G, "GE", "sudan")).toBe("no-loc");
   });
 });
 

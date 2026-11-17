@@ -157,7 +157,11 @@ Status labels:
   - Diplomacy needs **no LoC** — 5.6 lists one only for influence — which the
     engine used to demand anyway.
   - 12.5.1 influence needs an uncontrolled land space: naval boxes are refused,
-    and the 12.5.2 African cap and LoC requirement remain.
+    and the 12.5.2 African cap and LoC requirement remain. For this action only,
+    the LoC may pass through spaces controlled by a minor power allied to the
+    player (“players can trace LoCs through allied minor power spaces”);
+    `hasLoc` gains an explicit `throughAlliedMinorSpaces` option so supply and
+    every other LoC check keep the strict rule.
   - 12.8 allies only from your own diplomacy marker on the minor, one player per
     minor, and 4.2.1’s five-ally cap (counted per minor, not per space).
   - 12.6 removal is own markers only; the Berlin-Conference bar and the
