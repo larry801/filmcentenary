@@ -579,9 +579,18 @@ export const executeNegotiation = (
             if (!G.powers[from].allies.includes(to)) G.powers[from].allies.push(to);
             if (!G.powers[to].allies.includes(from)) G.powers[to].allies.push(from);
         }
-        // Marriages are resolved after the peace clause makes the couple legal.
-        for (const term of terms) {
-            if (term.kind !== "peace" && term.kind !== "alliance") applyTerm(G, ctx, term);
+        // Apply clauses in an order that cannot invalidate an earlier one:
+        // peace/alliance first, then marriages, assets, loans, and finally
+        // control changes.  In particular, a mercenary gift is removed before
+        // a yielded space can displace that stack, and a loan is announced
+        // before its port changes hands.
+        const order: NegotiationTermKind[] = [
+            "betrothal", "cards", "treasures", "mercenaries", "navalLoan", "yieldSpace", "returnLeader",
+        ];
+        for (const kind of order) {
+            for (const term of terms) {
+                if (term.kind === kind) applyTerm(G, ctx, term);
+            }
         }
         const proposer = formalProposer(from, to);
         const confirmer = formalConfirmer(from, to);
