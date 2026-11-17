@@ -19,7 +19,10 @@ export default defineConfig({
     fullyParallel: true,
     forbidOnly: !!process.env.CI,
     retries: process.env.CI ? 2 : 0,
-    workers: process.env.CI ? 1 : undefined,
+    // Every spec drives its own page against the shared dev server; nothing
+    // mutates server state, so the files can run concurrently.  One worker on
+    // CI made 273 s of test time take 3.2 min serially.
+    workers: process.env.CI ? 3 : undefined,
     reporter: process.env.CI ? [["list"], ["html", {open: "never"}]] : "list",
     timeout: 60_000,
     expect: {timeout: 10_000},
