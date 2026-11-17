@@ -811,12 +811,20 @@ const NavalBox = ({id}: {id: SpaceId}) => {
   const box = NAVAL_PLATES[id];
   if (!space || !box) return null;
   const [x, y, w, h] = box;
-  const name = space.name.replace(" Box", "").toUpperCase();
-  const titleSize = name.length > 24 ? 38 : name.length > 16 ? 44 : 50;
+  const name = space.name.toUpperCase();
   const color = id === "north-atlantic" ? "#b8a34c" : "#3d6d8a";
-  const lines = name.includes("SOUTH & CENTRAL")
-    ? ["SOUTH & CENTRAL", "PACIFIC OCEAN", "BOX"]
-    : name.split(" ");
+  // Wide, short plates print the title on two lines and put the anchor in the
+  // body; the tall Atlantic and Pacific plates stack the title over the anchor.
+  const compact = w > h * 1.4;
+  const bare = name.replace(/ BOX$/, "");
+  const titleSize = compact
+    ? Math.min(44, (w - 80) / Math.max(8, bare.length) / 0.58)
+    : name.length > 24 ? 38 : name.length > 16 ? 44 : 50;
+  const lines = compact
+    ? [bare, "BOX"]
+    : name.includes("SOUTH & CENTRAL")
+      ? ["SOUTH & CENTRAL", "PACIFIC OCEAN", "BOX"]
+      : name.split(" ");
   const lineStep = titleSize * 0.9;
   const headerHeight = 32 + lines.length * lineStep;
   const firstBaseline = 22 + titleSize * 0.8;
@@ -839,8 +847,6 @@ const NavalBox = ({id}: {id: SpaceId}) => {
           fontStyle="italic" fill="#4a3e2c">Connects to Eastern Mediterranean
           <tspan x={w / 2} dy={21}>after Suez Canal</tspan></text>
       )}
-      <text x={w / 2} y={h - 18} textAnchor="middle" fontFamily={BOARD_FONT} fontSize={16}
-        letterSpacing={1.4} fill="#4a3e2c">NAVAL BOX</text>
     </g>
   );
 };
