@@ -10,6 +10,8 @@
  * the page underneath.
  */
 import React from "react";
+import {Power} from "../types";
+import {POWER_DEFS} from "../constant/powers";
 import {bi} from "./boardHelpers";
 import {useFocusTrap} from "./useFocusTrap";
 
@@ -19,6 +21,12 @@ export interface ChartEntry {
   file: string;
   title: string;
   titleZh: string;
+  /**
+   * Full published path, for the entries that are not one of the nine charts —
+   * the six player displays live under `displays/` and keep their own
+   * extension (the module publishes the UK board as a PNG).
+   */
+  src?: string;
 }
 
 export const CHARTS: readonly ChartEntry[] = [
@@ -36,7 +44,43 @@ export const CHARTS: readonly ChartEntry[] = [
 export const chartById = (id: string): ChartEntry | undefined => CHARTS.find((chart) => chart.id === id);
 
 /** A chart's public URL; the PNGs live under the published asset root. */
-export const chartSrc = (entry: ChartEntry): string => `/imperial-elegy/charts/${entry.file}.png`;
+export const chartSrc = (entry: ChartEntry): string => entry.src ?? `/imperial-elegy/charts/${entry.file}.png`;
+
+/**
+ * The printed player display of one power, as a chart entry.
+ *
+ * `displays/` carries the six board images the tracks and printed values are
+ * transcribed from; the mat's "Printed display" opens the viewer's own board
+ * rather than the influence track, which is a different chart.
+ */
+export const PLAYER_DISPLAY_EXT: Record<Power, "jpg" | "png"> = {
+  GE: "jpg",
+  UK: "png",
+  FR: "jpg",
+  AU: "jpg",
+  RU: "jpg",
+  OT: "jpg",
+};
+
+export const playerDisplayChart = (power: Power, locale: "en" | "zh_CN"): ChartEntry => ({
+  id: `display-${power.toLowerCase()}`,
+  file: `display-${power.toLowerCase()}`,
+  title: `Player display: ${POWER_DEFS[power].name}`,
+  titleZh: `玩家面板：${POWER_DEFS[power].nameZh}`,
+  src: `/imperial-elegy/displays/${power}.${PLAYER_DISPLAY_EXT[power]}`,
+});
+
+/** The anchor the mat's "Printed display" button opens for one power. */
+export const displayAnchor = (power: Power): string => `display:${power}`;
+
+/**
+ * The power a `display:<POWER>` anchor names, or null for any other anchor.
+ * Kept next to `displayAnchor` so the two halves of the contract sit together.
+ */
+export const displayAnchorPower = (anchor: string): Power | null => {
+  const match = /^display:(GE|UK|FR|AU|RU|OT)$/.exec(anchor);
+  return match === null ? null : (match[1] as Power);
+};
 
 export interface ChartLightboxProps {
   chart: ChartEntry;

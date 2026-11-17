@@ -179,11 +179,20 @@ regions:
   tablist.
 - **Map and mat** — `components/MapPanel.tsx` (`map.tsx` draws the spaces and
   units) takes the middle column; the player mat (`components/PlayerMat.tsx`)
-  is the narrow strip beside it (148 px; 132 px below 1100 px) and shows the
-  viewer only: stability, manpower, industry, keys, VP, reserves, Industry
-  Card, CP chain and goals. It begins open on desktop and folds to a one-line
-  chip row with a popover below 1100 px; on a phone it is the dock's Mat tab
-  (§8 of [`UI_CHECKLIST.md`](UI_CHECKLIST.md)).
+  is the narrow strip beside it (148 px; 132 px below 1100 px) and reproduces
+  the printed player display for the viewer: the stability track with the VP /
+  BM / card each box prints, the manpower count and the key box that supplies
+  it, the industry track with the cards each level draws, the territorial key
+  track with the MP under each box and its AUTO VICTORY box, the colonial (UK)
+  or Arab (OT) key track with its own MP/AMP ladder, the Reserve Armies
+  holding box and its printed Box Limit formula, the per-turn draw, VP, the
+  Industry Card and CP Chain slots, the National Goals, and the national
+  characteristics folded under the tracks. Every number comes from
+  `POWER_DEFS` and the engine's own helpers (`cardsToDraw`,
+  `reserveAllowance`, `industryTarget`), so the mat prints the rules rather
+  than a second copy of them. It begins open on desktop and folds to a
+  one-line chip row with a popover below 1100 px; on a phone it is the dock's
+  Mat tab (§8 of [`UI_CHECKLIST.md`](UI_CHECKLIST.md)).
 - **Turn panel** — 348 px, described above. The War tab mounts the
   `components/TrenchBoard.tsx` rows while the Great War is active. On desktop it
   has no collapse toggle: the panel is a permanent table cell, and the decision
@@ -206,7 +215,15 @@ regions:
   dashboards, and finally the nine printed PNG charts. Opening a chart opens
   `components/ChartLightbox.tsx` full screen
   instead of squeezing the image into drawer width. There is no rail or
-  board-wide Reference tab, and no always-open chart grid. The MPIT matrix is
+  board-wide Reference tab, and no always-open chart grid.
+
+  Anchors are `chart:<id>` (one of the nine charts), `rules:<key>` (an inline
+  section), or `display:<POWER>` — the power's own board under
+  `public/imperial-elegy/displays/`, which is what the mat's "Printed display"
+  button opens (`displayAnchor` / `playerDisplayChart` in
+  `components/ChartLightbox.tsx`). The displays are not charts: they keep their
+  own file extension (the module publishes the UK board as a PNG and the other
+  five as JPGs), so each entry carries an explicit `src`. The MPIT matrix is
   **not** in the drawer: `components/MpitPanel.tsx` is an action in the Orders
   tab (`ie-mpit`, `ie-mpit-controls`).
 
