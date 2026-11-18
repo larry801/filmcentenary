@@ -1186,6 +1186,12 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-unit-chip { font-size: var(--ie-font-xs); color: #c9b792; background: #32281e; border: 1px solid #4e3f2b; border-radius: var(--ie-radius-sm); padding: 1px 5px; }
 .ie-unit-chip.pending { border-color: #d2b061; color: #f0d799; }
 
+/* The unit chips live on the Actions page now: selecting a unit is the first
+   click of most actions, and it arms the map's rings. */
+.ie-unit-picker { display: flex; flex-direction: column; gap: 4px; }
+.ie-unit-chip.selected { border-color: var(--ie-accent); background: #3a2c1c; color: #f7e6bb; }
+.ie-space-units .ie-unit-chip[aria-current="true"] { border-color: var(--ie-accent); color: #f7e6bb; }
+
 /* ---------------------------------------------------------------- action groups */
 .ie-action-groups { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .ie-action-group { border: 1px solid #453725; border-radius: var(--ie-radius-sm); padding: 5px 6px; background: rgba(36, 29, 23, .67); }

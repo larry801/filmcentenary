@@ -48,7 +48,7 @@ interface SpaceBaseProps {
 // Space details (read + unit selection)
 // ---------------------------------------------------------------------------
 
-export interface SpaceDetailPanelProps extends SpaceBaseProps {
+export interface SpaceUnitPickerProps extends SpaceBaseProps {
   selectedUnit: string | null;
   setSelectedUnit: (id: string | null) => void;
   /** Every unit of the current selection, primary first (12.15/16.1 stacks). */
@@ -63,7 +63,16 @@ export interface SpaceDetailPanelProps extends SpaceBaseProps {
   selectUnitGroup?: (ids: string[]) => void;
   pending: ImperialElegyState["pending"];
   canDecide: boolean;
-  selectedUnitDef: Unit | undefined;
+  /** Runs a move; `describe` lets the board explain a refusal. */
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
+  moves: Record<string, (...args: any[]) => void>;
+}
+
+export interface SpaceDetailPanelProps extends SpaceBaseProps {
+  /** The selection, so the read-only chips can mark which units are chosen. */
+  selectedUnitIds?: string[];
+  pending: ImperialElegyState["pending"];
+  canDecide: boolean;
   /** Runs a move; `describe` lets the board explain a refusal. */
   doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
@@ -71,9 +80,8 @@ export interface SpaceDetailPanelProps extends SpaceBaseProps {
 
 export const SpaceDetailPanel = (props: SpaceDetailPanelProps) => {
   const {
-    G, selected, viewer, me, locale, t, phase, canAct,
-    selectedUnit, setSelectedUnit, selectedUnitIds = [], toggleUnitSelection, selectUnitGroup,
-    pending, canDecide, selectedUnitDef, doAction, moves,
+    G, selected, viewer, me, locale, t, phase,
+    selectedUnitIds = [], pending, canDecide, doAction, moves,
   } = props;
 
   const selectedSpace = selected ? SPACES[selected] : null;
@@ -106,68 +114,111 @@ export const SpaceDetailPanel = (props: SpaceDetailPanelProps) => {
           )}
           <div><strong>{t.connections}:</strong> {neighboursOf(selected!).map((id) => spaceLabel(id, locale)).join(", ")}</div>
           {viewer && me && <div><strong>{t.supply}:</strong> {hasLoc(G, viewer, selected!) ? t.inSupply : t.outOfSupply}</div>}
-          <div className="ie-space-units"><strong>{t.units}:</strong> {selectedState.units.length === 0 ? "—" : selectedState.units.map((id) => {
-            const u = G.units[id];
-            if (!u) return null;
-            const mine = viewer !== null && commanded(u);
-            const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
-            if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t)}</span>;
-            if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id), {label: unitLabel(u, t)})}>{unitLabel(u, t)}</button>;
-            const selectedHere = selectedUnitIds.includes(id);
-            // Clicking toggles the unit in the selection instead of replacing
-            // it, so several units of one space can move as a single action
-            // (12.15 land stacks, 16.1 fleets).  A single click still behaves
-            // exactly as before when nothing else is selected.
-            const onClick = toggleUnitSelection !== undefined
-              ? () => (selectedUnit === id && selectedUnitIds.length === 1 ? setSelectedUnit(null) : toggleUnitSelection(id))
-              : () => setSelectedUnit(id);
-            return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedHere} onClick={onClick}>{unitLabel(u, t)}</button>;
-          })}</div>
-          {/*
-            * A whole-stack shortcut.  Both rules that move several units at
-            * once (12.15 redeployment, 16.1 naval movement) move "all" of them,
-            * so selecting each one by hand is busywork; the button selects every
-            * commanded unit in the space that can actually leave.
-            */}
-          {canAct && (() => {
-            const movable = selectedState.units
-              .map((id) => G.units[id])
-              .filter((u): u is Unit => u !== undefined && viewer !== null && commanded(u) && !(u.flags?.deployedThisImpulse === true));
-            if (movable.length < 2) return null;
-            const allSelected = movable.every((u) => selectedUnitIds.includes(u.id));
-            return (
-              <div className="ie-space-select-all">
-                <button
-                  type="button"
-                  className="ie-btn secondary ie-mini"
-                  data-testid="ie-select-stack"
-                  data-all-selected={allSelected ? "true" : "false"}
-                  onClick={() => {
-                    if (allSelected) { setSelectedUnit(null); return; }
-                    // One dispatch, not "select the first then toggle the rest":
-                    // React batches these, so a second dispatch would still read
-                    // the pre-batch state and drop the first unit.
-                    selectUnitGroup?.(movable.map((unit) => unit.id));
-                  }}
+          {/* Read-only: choosing a unit is how an action starts, so the buttons
+              live on the Actions page.  The Space page answers "what is here",
+              and says which of these chips are in the current selection. */}
+          <div className="ie-space-units" data-testid="ie-space-units">
+            <strong>{t.units}:</strong> {selectedState.units.length === 0 ? "—" : selectedState.units.map((id) => {
+              const u = G.units[id];
+              if (!u) return null;
+              const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
+              const selectedHere = selectedUnitIds.includes(id);
+              return (
+                <span
+                  key={id}
+                  className={`ie-unit-chip${isPendingUnit ? " pending" : ""}${selectedHere ? " selected" : ""}`}
+                  data-testid={`ie-space-unit-${id}`}
+                  aria-current={selectedHere ? "true" : undefined}
                 >
-                  {allSelected
-                    ? bi(locale, "Clear selection", "取消选择")
-                    : bi(locale, `Select all ${movable.length} units`, `全选 ${movable.length} 个单位`)}
-                </button>
-              </div>
-            );
-          })()}
-          {selectedUnitDef && commanded(selectedUnitDef) && (
-            <div className="ie-hint">
-              {bi(locale, "Selected:", "已选：")} {unitLabel(selectedUnitDef, t)}
-              {selectedUnitIds.length > 1 && ` +${selectedUnitIds.length - 1} ${bi(locale, "more", "个")}`}
-              {selectedUnitDef.space && selectedUnitDef.space !== selected && <span> · {bi(locale, "click a highlighted space to move here.", "点击高亮空间移动至此。")}</span>}
-              <button className="ie-btn secondary ie-mini" onClick={() => setSelectedUnit(null)}>{t.cancel}</button>
-            </div>
-          )}
+                  {unitLabel(u, t)}
+                </span>
+              );
+            })}</div>
         </div>
       )}
     </IEPanel>
+  );
+};
+
+/**
+ * The unit buttons: the first click of most actions.
+ *
+ * They sit on the Actions page rather than the Space page because selecting a
+ * unit is not reading — it arms the map's rings — so it must not cost a page
+ * switch.  The Space page prints the same units as read-only chips.
+ */
+export const SpaceUnitPicker = (props: SpaceUnitPickerProps) => {
+  const {
+    G, selected, viewer, locale, t, phase, canAct,
+    selectedUnit, setSelectedUnit, selectedUnitIds = [], toggleUnitSelection, selectUnitGroup,
+    pending, canDecide, doAction, moves,
+  } = props;
+
+  const selectedState = selected ? G.spaces[selected] : null;
+  if (selectedState === null) return null;
+  const commandedOwner = viewer === null ? null : gwAllyImpulseFor(G, viewer) ?? viewer;
+  const commanded = (unit: Unit): boolean => unit.owner === commandedOwner ||
+    (phase === "wartime" && viewer !== null && commandedOwner === viewer && !isPowerKey(unit.owner) &&
+      unit.owner !== "US" && unit.owner !== "IT" && minorController(G, unit.owner) === viewer);
+
+  const ownUnits = selectedState.units
+    .map((id) => G.units[id])
+    .filter((u): u is Unit => u !== undefined && viewer !== null && commanded(u));
+  if (ownUnits.length === 0) return null;
+
+  const movable = ownUnits.filter((u) => !(u.flags?.deployedThisImpulse === true));
+  const allSelected = movable.length > 0 && movable.every((u) => selectedUnitIds.includes(u.id));
+
+  return (
+    <div className="ie-unit-picker" data-testid="ie-unit-picker">
+      <div className="ie-space-units">
+        <strong>{t.units}:</strong>
+        {selectedState.units.map((id) => {
+          const u = G.units[id];
+          if (!u) return null;
+          const mine = viewer !== null && commanded(u);
+          const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
+          if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t)}</span>;
+          if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id), {label: unitLabel(u, t)})}>{unitLabel(u, t)}</button>;
+          const selectedHere = selectedUnitIds.includes(id);
+          // Clicking toggles the unit in the selection instead of replacing it,
+          // so several units of one space can move as a single action (12.15
+          // land stacks, 16.1 fleets).  A single click still behaves exactly as
+          // before when nothing else is selected.
+          const onClick = toggleUnitSelection !== undefined
+            ? () => (selectedUnit === id && selectedUnitIds.length === 1 ? setSelectedUnit(null) : toggleUnitSelection(id))
+            : () => setSelectedUnit(id);
+          return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedHere} onClick={onClick}>{unitLabel(u, t)}</button>;
+        })}
+      </div>
+      {/*
+        * A whole-stack shortcut.  Both rules that move several units at once
+        * (12.15 redeployment, 16.1 naval movement) move "all" of them, so
+        * selecting each one by hand is busywork; the button selects every
+        * commanded unit in the space that can actually leave.
+        */}
+      {canAct && movable.length > 1 && (
+        <div className="ie-space-select-all">
+          <button
+            type="button"
+            className="ie-btn secondary ie-mini"
+            data-testid="ie-select-stack"
+            data-all-selected={allSelected ? "true" : "false"}
+            onClick={() => {
+              if (allSelected) { setSelectedUnit(null); return; }
+              // One dispatch, not "select the first then toggle the rest":
+              // React batches these, so a second dispatch would still read the
+              // pre-batch state and drop the first unit.
+              selectUnitGroup?.(movable.map((unit) => unit.id));
+            }}
+          >
+            {allSelected
+              ? bi(locale, "Clear selection", "取消选择")
+              : bi(locale, `Select all ${movable.length} units`, `全选 ${movable.length} 个单位`)}
+          </button>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -506,7 +557,22 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
 // The composite (suites that render the panel on its own)
 // ---------------------------------------------------------------------------
 
-export interface SpacePanelProps extends SpaceDetailPanelProps {
+export interface SpacePanelProps extends SpaceBaseProps {
+  /**
+   * The composite's own inputs: the unit picker's selection state, and the rows'
+   * engine inputs when the caller does not pass `rows`.
+   */
+  selectedUnit?: string | null;
+  setSelectedUnit?: (id: string | null) => void;
+  selectedUnitIds?: string[];
+  toggleUnitSelection?: (id: string) => void;
+  selectUnitGroup?: (ids: string[]) => void;
+  pending?: ImperialElegyState["pending"];
+  canDecide?: boolean;
+  selectedUnitDef?: Unit;
+  /** The board's action wrapper and move bag; the panel suites pass them too. */
+  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
+  moves: Record<string, (...args: any[]) => void>;
   /** Opens the reference drawer; forwarded to the Actions half only. */
   onOpenReference?: (anchor: string) => void;
   /** The rows the board computed; omitted means "compute them here". */
@@ -582,7 +648,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
   const navalFrom = props.navalFrom ?? null;
 
   const computedRows = useSpaceActions({
-    G, viewer, phase, selected, selectedUnit,
+    G, viewer, phase, selected, selectedUnit: selectedUnit ?? null,
     cp: cpRemaining ?? 0,
     canAct, canActionCard: canActionCard ?? false, war: war ?? null, me, moves, doAction,
     myOnMapArmies: props.myOnMapArmies ?? 0,
@@ -613,12 +679,19 @@ export const SpacePanel = (props: SpacePanelProps) => {
     <>
       <SpaceDetailPanel
         G={G} selected={selected} viewer={viewer} me={me} locale={locale} t={t} phase={phase} canAct={canAct}
-        selectedUnit={selectedUnit} setSelectedUnit={props.setSelectedUnit}
+        selectedUnitIds={props.selectedUnitIds}
+        pending={props.pending ?? null} canDecide={props.canDecide ?? false}
+        doAction={doAction} moves={moves}
+      />
+      <SpaceUnitPicker
+        G={G} selected={selected} viewer={viewer} me={me} locale={locale} t={t} phase={phase} canAct={canAct}
+        selectedUnit={selectedUnit ?? null}
+        setSelectedUnit={props.setSelectedUnit ?? (() => undefined)}
         selectedUnitIds={props.selectedUnitIds}
         toggleUnitSelection={props.toggleUnitSelection}
         selectUnitGroup={props.selectUnitGroup}
-        pending={props.pending} canDecide={props.canDecide}
-        selectedUnitDef={selectedUnitDef} doAction={doAction} moves={moves}
+        pending={props.pending ?? null} canDecide={props.canDecide ?? false}
+        doAction={doAction} moves={moves}
       />
       <SpaceActionsPanel
         G={G}
@@ -646,7 +719,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
         polishReserve={polishReserve ?? false}
         setPolishReserve={props.setPolishReserve ?? (() => undefined)}
         selectedUnitDef={selectedUnitDef}
-        setSelectedUnit={props.setSelectedUnit}
+        setSelectedUnit={props.setSelectedUnit ?? (() => undefined)}
         battleFrom={battleFrom ?? null}
         setBattleFrom={(id) => invokeSetter(setBattleFrom, id)}
         navalFrom={navalFrom ?? null}

@@ -26,7 +26,7 @@ import {IEBadge, IESurface} from "./theme";
 import {bi, PHASE_LABEL} from "./boardHelpers";
 import {logText} from "./logText";
 import {MapPanel} from "./MapPanel";
-import {SpaceActionsPanel, SpaceDetailPanel} from "./SpacePanel";
+import {SpaceActionsPanel, SpaceDetailPanel, SpaceUnitPicker} from "./SpacePanel";
 import {useSpaceActions} from "./spaceActionModel";
 import {OrdersPanel} from "./OrdersPanel";
 import {PendingPanel} from "./PendingPanel";
@@ -281,6 +281,18 @@ export const OrdersRegion = (props: OrdersSlice & {
         actions: (
           <>
             {actionsTopSlot}
+            {/* The unit chips come first: choosing a unit is the first click of
+                most actions and arms the map's rings, so it must not cost a page
+                switch.  The Space page prints the same units read-only. */}
+            <SpaceUnitPicker
+              G={G} selected={selected} viewer={viewer} me={me} locale={locale} t={t} phase={phase} canAct={canAct}
+              selectedUnit={selectedUnit} setSelectedUnit={setSelectedUnit}
+              selectedUnitIds={selectedUnitIds}
+              toggleUnitSelection={toggleUnitSelection}
+              selectUnitGroup={selectUnitGroup}
+              pending={pending} canDecide={canDecide}
+              doAction={doAction} moves={moves}
+            />
             <SpaceActionsPanel
               G={G} selected={selected} viewer={viewer} me={me} locale={locale} t={t} phase={phase} canAct={canAct}
               onOpenReference={onOpenReference}
@@ -303,12 +315,9 @@ export const OrdersRegion = (props: OrdersSlice & {
         space: (
           <SpaceDetailPanel
             G={G} selected={selected} viewer={viewer} me={me} locale={locale} t={t} phase={phase} canAct={canAct}
-            selectedUnit={selectedUnit} setSelectedUnit={setSelectedUnit}
             selectedUnitIds={selectedUnitIds}
-            toggleUnitSelection={toggleUnitSelection}
-            selectUnitGroup={selectUnitGroup}
             pending={pending} canDecide={canDecide}
-            selectedUnitDef={selectedUnitDef} doAction={doAction} moves={moves}
+            doAction={doAction} moves={moves}
           />
         ),
         influence: (

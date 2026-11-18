@@ -1242,8 +1242,10 @@ test.describe("Imperial Elegy mobile drawer", () => {
         });
         expect(order).toBe("mpit-only");
 
-        // Every placement value is a fingertip, and the first one needs no
-        // scroll: it sits inside the visible body box.
+        // Every placement value is a fingertip.  On the Influence page the
+        // matrix is the content, so it may be taller than the half sheet: the
+        // requirement is that scrolling reaches the last row, not that all 18
+        // fit without a scroll.
         const tracks = mpit.locator('[data-testid^="ie-mpit-place-"]');
         await expect(tracks).toHaveCount(18);
         for (let i = 0; i < 18; i += 1) {
@@ -1251,10 +1253,20 @@ test.describe("Imperial Elegy mobile drawer", () => {
             expect(box.height, `track ${i} height`).toBeGreaterThanOrEqual(44);
             expect(box.width, `track ${i} width`).toBeGreaterThanOrEqual(44);
         }
+        // The page scrolls the matrix rather than clipping it: the last row is
+        // reachable, and the body reports real overflow.
+        const pane = body.locator(".ie-turn-body:not([hidden])");
+        await expect.poll(async () => await pane.evaluate((el) => el.scrollHeight - el.clientHeight))
+            .toBeGreaterThan(40);
+        await tracks.nth(17).scrollIntoViewIfNeeded();
+        const lastBox = (await tracks.nth(17).boundingBox())!;
         const bodyBox = (await body.boundingBox())!;
+        expect(lastBox.y).toBeGreaterThanOrEqual(bodyBox.y - 1);
+        expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(bodyBox.y + bodyBox.height + 1);
+        // And the first row is reachable too, by scrolling back up.
+        await tracks.nth(0).scrollIntoViewIfNeeded();
         const firstBox = (await mpit.getByTestId("ie-mpit-place-GE-te").boundingBox())!;
         expect(firstBox.y).toBeGreaterThanOrEqual(bodyBox.y - 1);
-        expect(firstBox.y + firstBox.height).toBeLessThanOrEqual(bodyBox.y + bodyBox.height + 1);
 
         // Arm-then-confirm must not reflow the grid: the armed label is longer
         // than the plain one, and the second tap has to land on the same box.

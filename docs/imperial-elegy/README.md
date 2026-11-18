@@ -167,8 +167,10 @@ Below the head are the panel's three tabs:
     every printed reason.  The fold remembers the reader's choice
     (`ie_show_unavailable`, also switchable from the Display menu).
   - **Space** (`ie-orders-tab-space`) — what the space *is*: control, markers,
-    fort, pacification, key type, connections, supply, and the unit chips that
-    build a 12.15 / 16.1 stack selection.
+    fort, pacification, key type, connections, supply, and its units as
+    read-only chips.  The unit **buttons** (`ie-unit-<id>`, `ie-select-stack`)
+    stay on the Actions page, because choosing a unit is the first click of most
+    actions and arms the map's rings.
   - **Influence** (`ie-orders-tab-influence`) — the 8.0 MPIT matrix and the 33.x
     national actions.
   - **Naval** (`ie-orders-tab-naval`) — amphibious assault, naval transport and
@@ -310,8 +312,9 @@ regions:
 Actions in the space panel (`components/SpacePanel.tsx`) are one list computed
 by `spaceActions` (`components/actionAvailability.ts`) and grouped by kind
 (recruit, build, diplomacy, move, Great War).  The panel is split in two:
-`SpaceDetailPanel` (facts and unit selection) and `SpaceActionsPanel` (what may
-be done here), and the board mounts them as the Space and Actions pages of the
+`SpaceDetailPanel` (facts, units read-only) and `SpaceActionsPanel` (what may
+be done here, with `SpaceUnitPicker` for the unit buttons), and the board mounts
+them as the Space and Actions pages of the
 Orders panel.  A legal row is a button with a cost chip; a refused row is folded
 into `ie-unavailable` and keeps its visible reason line under it — the printed
 restriction is a block, not only a tooltip.  A row renders once: the legal ones
