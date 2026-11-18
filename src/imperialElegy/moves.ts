@@ -136,6 +136,7 @@ import {
 import {
   afterCombatCardWindow,
   resolveHydraulicRecoil,
+  resolveEliteBonus,
   attemptInterception,
   beginLandBattle,
   beginNavalBattle,
@@ -202,6 +203,7 @@ import {
   applyInternalItalianWar,
   applyItalianPetition,
   crisisRoll,
+  crisisResumeEffects,
   ITALIAN_INTERNAL_WAR_POWERS,
   italyTable,
   outbreakGreatWar,
@@ -4512,11 +4514,39 @@ const resolveCrisisDecision = (
     pending.kind === "crisis"
       ? crisisRoll(G, ctx, pending.power, String(context.inciting ?? ""))
       : resolveCrisisPending(G, ctx, pending, optionId);
-  if (G.pending !== null) return;
-  if (pending.kind === "crisis" && outcome === "conference") {
-    const resume = (context.resume as unknown as Effect[] | undefined) ?? [];
-    if (resume.length > 0) resolveEffects(G, ctx, pending.power, resume, {});
+  // 23.0/23.1: "the crisis roll happens as soon as the WTT reaches 5, and the
+  // rest of the inciting event is suspended until it resolves."  Every outcome
+  // must therefore continue the card's remaining text — not only the
+  // `conference` story result.  Restricting this to `conference` silently
+  // dropped A100's Macedonia award (and the tail of any other card whose WTT
+  // increase incited a crisis).
+  //
+  // A crisis is a multi-step sequence (crisis -> crisisIncident ->
+  // crisisAlliance), so the tail is carried on the crisis run itself and is
+  // executed only once the sequence is over.
+  const resume = (context.resume as unknown as Effect[] | undefined) ?? [];
+  const run = context.crisis as unknown as {resumeEffects?: Effect[]} | undefined;
+  if (resume.length > 0 && run !== undefined) run.resumeEffects = resume;
+  // 23.1: "If GW breaks out the rest of the text on the event is ignored."  An
+  // outbreak drops the suspended tail and leaves the outbreak path untouched,
+  // exactly as before this change.
+  if (outcome === "outbreak") {
+    if (G.pending === null) finalizePendingCard(G, ctx);
+    return;
   }
+  const tail = crisisResumeEffects(pending);
+  // `G.pending` was assigned `null` above, so TypeScript has narrowed it; read
+  // it back through the state object to see what the crisis opened next.
+  const stillPending = (G as ImperialElegyState).pending as PendingDecision | null;
+  if (stillPending !== null) {
+    // Still mid-sequence: hand the tail to the next pending's run.
+    const next = stillPending.context?.crisis as unknown as {resumeEffects?: Effect[]} | undefined;
+    if (next !== undefined && tail.length > 0) next.resumeEffects = tail;
+    return;
+  }
+  // The tail may itself raise the WTT again; the `wtt` effect opens the next
+  // crisis on its own, so no extra guard is needed here.
+  if (tail.length > 0) resolveEffects(G, ctx, pending.power, tail, {});
   if (G.pending === null) finalizePendingCard(G, ctx);
 };
 
@@ -4989,6 +5019,18 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   }
   if (pending.kind === "combatLosses") {
     chooseLossMove(G, ctx, optionId);
+    return undefined;
+  }
+  if (pending.kind === "combatElite") {
+    if (optionId !== "commit" && optionId !== "decline") return INVALID_MOVE;
+    const side = (pending.context?.eliteSide as "attacker" | "defender" | undefined)
+      ?? (pending.context?.side as "attacker" | "defender" | undefined)
+      ?? "attacker";
+    // Clear the wrapper first, matching `combatSupport`: if the battle has
+    // already gone, `resolveEliteBonus` returns early and a stale pending would
+    // otherwise block every later decision.
+    G.pending = null;
+    resolveEliteBonus(G, ctx, side, optionId === "commit");
     return undefined;
   }
   if (pending.kind === "hydraulicRecoil") {

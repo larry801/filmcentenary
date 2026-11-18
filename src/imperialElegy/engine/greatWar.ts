@@ -1029,6 +1029,12 @@ interface CrisisRun {
   drawn: Power[];
   joinsDone: boolean;
   effectsDone: boolean;
+  /**
+   * 23.0/23.1: the inciting card's remaining effects, suspended while the
+   * crisis resolves.  The crisis is a multi-step decision sequence, so the run
+   * must carry this itself instead of relying on the first pending's context.
+   */
+  resumeEffects?: Effect[];
   stage: "target" | "bordering" | "threatened" | "balkan" | "joins" | "done";
 }
 
@@ -1054,6 +1060,17 @@ export const openCrisisDecision = (G: ImperialElegyState, ctx: Ctx, actor: Power
       inciting: G.resolvingCard,
     }),
   );
+};
+
+/**
+ * Read the suspended tail off whichever crisis pending is open, so a later
+ * `crisisIncident`/`crisisAlliance` answer can still continue the card.
+ */
+export const crisisResumeEffects = (pending: PendingDecision): Effect[] => {
+  const direct = (pending.context?.resume as Effect[] | undefined) ?? [];
+  if (direct.length > 0) return direct;
+  const run = crisisRunOf(pending);
+  return run?.resumeEffects ?? [];
 };
 
 const isAlliedToAU = (G: ImperialElegyState, power: Power | null): boolean =>

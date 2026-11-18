@@ -49,8 +49,10 @@ test("land battle support choices feed the BDRM", () => {
   const support = battle!.supportAttack.map((s) => s.fp);
   expect(Array.isArray(support)).toBe(true);
   chooseSupport(G, ctx, "done");
-  // Defender support stage now either resolves or opens a decision.
-  expect(["support", "roll", "lossesAttack", "lossesDefense", "done"]).toContain(G.battle?.stage ?? "done");
+  // Defender support now either resolves or opens a decision.  A078/A080/A091
+  // may also stop at the elite-bonus question (`combatElite`) when the main
+  // force contains an elite corps, which GE's Berlin garrison does.
+  expect(["support", "cards", "roll", "lossesAttack", "lossesDefense", "done"]).toContain(G.battle?.stage ?? "done");
 });
 
 test("treaties end the war and exchange truces", () => {

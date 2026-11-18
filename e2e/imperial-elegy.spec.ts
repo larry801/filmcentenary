@@ -196,12 +196,20 @@ test.describe("Imperial Elegy local hotseat", () => {
             });
             if (state.rolled) break;
             expect(state.pending).not.toBeNull();
-            expect(["combatSupport", "combatCard"]).toContain(state.pending!.kind);
+            // A078/A080/A091 add the elite-bonus question between the card
+            // windows and the dice; it is answered by its own option instead of
+            // the support/card "done" button.
+            expect(["combatSupport", "combatCard", "combatElite"]).toContain(state.pending!.kind);
             await focusSeat(page, state.pending!.power);
             const decidingBoard = page.locator(`[data-testid="ie-seat-${state.pending!.power}"]`);
-            await decidingBoard.getByTestId("ie-pending-option-done").click();
-            await expect.poll(async () => page.evaluate(() => (window as any).__IE_STATE__.pending?.id ?? null))
-                .not.toBe(state.pending!.id);
+            // `combatElite` is answered by its own option; support/card windows
+            // close with "done".
+            const answerId = state.pending!.kind === "combatElite" ? "decline" : "done";
+            await decidingBoard.getByTestId(`ie-pending-option-${answerId}`).click();
+            await expect.poll(
+                async () => page.evaluate(() => (window as any).__IE_STATE__.pending?.id ?? null),
+                {timeout: 5_000},
+            ).not.toBe(state.pending!.id);
         }
         // The battle log line is outcome-independent (`在萨克森（自 柏林）交战：…`),
         // unlike `battleEnded`, which says either 赢得战斗 or 战败 depending on the dice.
