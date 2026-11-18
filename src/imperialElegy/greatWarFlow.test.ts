@@ -9,6 +9,7 @@ import {
   beginGwTurn,
   enterGwAlly,
   faceupCombatCards,
+  giftGwCombatCard,
   performGwManeuver,
   resolveGwWinter,
   startGwManeuver,
@@ -606,6 +607,46 @@ describe("Great War winter", () => {
     expect(G.phase).toBe("gameOver");
     expect(G.result?.reason).toBe("gwTurnLimit:neutralVp");
     expect(G.result?.winners).toEqual(["OT"]);
+  });
+
+  test("26.1: a faceup in-front combat card can be given to an ally in planning", () => {
+    const G = baseGw({
+      te: ["FR", "UK"],
+      ta: ["GE"],
+      belligerents: ["FR", "UK", "GE"],
+      order: ["GE", "FR", "UK"],
+    });
+    G.gw!.combatCardsInFront = [{holder: "FR", cardId: "IE-GW-03", faceup: true}];
+
+    const gift = giftGwCombatCard(G, "FR", "UK", "IE-GW-03");
+    expect(gift.ok).toBe(true);
+    if (!gift.ok) throw new Error(gift.message);
+    const entry = G.gw!.combatCardsInFront!.find((c) => c.cardId === "IE-GW-03")!;
+    expect(entry.holder).toBe("UK");
+    // The card was flipped faceup before the window opened and stays usable.
+    expect(entry.faceup).toBe(true);
+    expect(G.log.some((e) => e.key === "gwCombatCardGifted" && e.args?.to === "UK")).toBe(true);
+  });
+
+  test("26.1: an enemy or a facedown card cannot be given, and not outside planning", () => {
+    const G = baseGw();
+    G.gw!.combatCardsInFront = [
+      {holder: "GE", cardId: "IE-GW-04", faceup: true},
+      {holder: "FR", cardId: "IE-GW-03", faceup: false},
+    ];
+    const enemy = giftGwCombatCard(G, "GE", "FR", "IE-GW-04");
+    expect(enemy.ok).toBe(false);
+    if (enemy.ok) throw new Error("expected a failure");
+    expect(enemy.error).toBe("notAllied");
+
+    const facedown = giftGwCombatCard(G, "FR", "UK", "IE-GW-03");
+    expect(facedown.ok).toBe(false);
+
+    G.phase = "gwManeuver";
+    const afterPlanning = giftGwCombatCard(G, "GE", "AU", "IE-GW-04");
+    expect(afterPlanning.ok).toBe(false);
+    if (afterPlanning.ok) throw new Error("expected a failure");
+    expect(afterPlanning.error).toBe("wrongPhase");
   });
 
   test("rejects winter outside the winter phase", () => {

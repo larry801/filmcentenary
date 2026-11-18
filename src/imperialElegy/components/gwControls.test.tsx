@@ -196,7 +196,7 @@ beforeEach(() => {
 
 const GW_MOVES = [
   "gwMarch", "gwRail", "gwDeploy", "gwDraft", "gwPass", "gwEndTurn",
-  "gwTransferBudget", "gwRevealCombat", "redeploy", "navalMove",
+  "gwTransferBudget", "gwRevealCombat", "gwGiftCombatCard", "redeploy", "navalMove",
 ] as const;
 
 describe("Great War maneuver board controls", () => {
@@ -262,6 +262,31 @@ describe("Great War maneuver board controls", () => {
 
     click(tree, "ie-gw-reveal");
     expect(moves.gwRevealCombat).toHaveBeenCalled();
+  });
+
+  test("planning exposes the 26.1 gift of a faceup in-front combat card", () => {
+    const G = baseGw();
+    G.phase = "gwPlanning";
+    G.gw!.ta = ["GE", "AU"];
+    G.gw!.combatCardsInFront = [{holder: "GE", cardId: "IE-GW-03", faceup: true}];
+    const moves = moveBag(...GW_MOVES);
+
+    const tree = render(G, "GE", moves);
+    expect(byTestId(tree, "ie-gw-gift")).toBeTruthy();
+    expect(byTestId(tree, "ie-gw-gift-card")?.props.value).toBe("IE-GW-03");
+    expect(byTestId(tree, "ie-gw-gift-to")?.props.value).toBe("AU");
+
+    click(tree, "ie-gw-gift-submit");
+    expect(moves.gwGiftCombatCard).toHaveBeenCalledWith("AU", "IE-GW-03");
+  });
+
+  test("a facedown in-front card offers no gift control", () => {
+    const G = baseGw();
+    G.phase = "gwPlanning";
+    G.gw!.ta = ["GE", "AU"];
+    G.gw!.combatCardsInFront = [{holder: "GE", cardId: "IE-GW-03", faceup: false}];
+    const tree = render(G, "GE", moveBag(...GW_MOVES));
+    expect(byTestId(tree, "ie-gw-gift")).toBeUndefined();
   });
 
   test("a non-combat GW card does not offer the reveal control", () => {

@@ -1137,6 +1137,12 @@ export interface ImperialElegyState {
    * decide instead.
    */
   bots?: Power[];
+  /**
+   * Rule 34.1: the difficulty of this match's bot seats.  One level covers all
+   * bots (the rulebook notes per-bot levels are impractical).  Optional so
+   * hotseat matches and pre-existing saves read as the default, "normal".
+   */
+  botDifficulty?: "easy" | "normal" | "hard";
   spaces: Record<SpaceId, SpaceState>;
   units: Record<string, Unit>;
   nextUnitId: number;

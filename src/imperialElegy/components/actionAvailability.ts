@@ -15,7 +15,7 @@
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, minorController, ownsKey,
+  efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower, minorController, ownsKey,
 } from "../engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -32,7 +32,13 @@ import {
 } from "../engine/foreignAffairs";
 import {gwActionAllowance} from "../engine/gwImpulse";
 import {reserveRemaining} from "../engine/economy";
-import {canRecruitIn, isCwArmySpace, pacificationCost} from "../engine/characteristics";
+import {
+  buildableMinorAllies,
+  canRecruitIn,
+  isCwArmySpace,
+  minorBuildDecision,
+  pacificationCost,
+} from "../engine/characteristics";
 import {hasCounterFor} from "../engine/counters";
 import {polishReserveDeployer} from "../engine/poland";
 import {legalUnitTargets} from "./legalTargets";
@@ -40,6 +46,7 @@ import type {RecruitDecision} from "../engine/characteristics";
 
 export type ActionId =
   | "recruitArmy" | "recruitCw" | "recruitReserve" | "recruitEc" | "polishArmy" | "polishReserve"
+  | "minorArmy" | "minorSquadron" | "minorDreadnought"
   | "buildSquadron" | "buildDreadnought" | "refitFleet" | "buildFort" | "buildEf" | "moveEf"
   | "influence" | "diplomacy" | "minorAlliance" | "removeInfluence" | "breakAlliance" | "pacify"
   | "move" | "gwNaval" | "gwMarch" | "gwRail" | "refit" | "rapidDeploy"
@@ -56,6 +63,9 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   recruitEc: 2,
   polishArmy: 2,
   polishReserve: 2,
+  minorArmy: 1,
+  minorSquadron: 2,
+  minorDreadnought: 3,
   buildSquadron: 2,
   buildDreadnought: 3,
   refitFleet: 1,
@@ -87,6 +97,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
 /** Every fixed-cost action, in the player aid's order. */
 export const ACTION_COST_ORDER: readonly ActionId[] = [
   "recruitArmy", "recruitReserve", "recruitEc", "recruitCw", "polishArmy", "polishReserve",
+  "minorArmy", "minorSquadron", "minorDreadnought",
   "buildSquadron", "buildDreadnought", "refitFleet", "buildFort", "buildEf", "moveEf",
   "influence", "diplomacy", "pacify", "removeInfluence", "minorAlliance", "breakAlliance",
   "move", "deployReserves", "landBattle", "navalBattle", "gwDraft", "gwDeploy", "gwElite",
@@ -100,6 +111,9 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   recruitEc: {en: "Recruit elite corps", zh: "征募精锐军团"},
   polishArmy: {en: "Polish army", zh: "波兰军团"},
   polishReserve: {en: "Polish reserve army", zh: "波兰预备军"},
+  minorArmy: {en: "Allied minor army", zh: "盟国小国军团"},
+  minorSquadron: {en: "Allied minor squadron", zh: "盟国小国分舰队"},
+  minorDreadnought: {en: "Allied minor dreadnought", zh: "盟国小国无畏舰"},
   buildSquadron: {en: "Build squadron", zh: "建造分舰队"},
   buildDreadnought: {en: "Build dreadnought", zh: "建造无畏舰"},
   refitFleet: {en: "Refit fleet", zh: "整补舰队"},
@@ -408,6 +422,45 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
         reason: enabled ? undefined : polishReserveDecision.allowed ? spendReason(cost) : polishReserveDecision.reasons.join(" · "),
         run: () => doAction(() => moves.polishRecruit("reserveArmy", null, 2)),
       });
+    }
+    // 12.2 / 12.4 (errata) + 12.8: build for an allied minor in its home space.
+    // Only the minor whose home this space is gets a row, so the list stays as
+    // short as the printed action list.
+    const homeMinor = spaceDef?.minorHome ?? null;
+    if (
+      homeMinor !== null && homeMinor !== undefined &&
+      !isPower(homeMinor) && homeMinor !== "IT" && homeMinor !== "US" &&
+      buildableMinorAllies(G, viewer).includes(homeMinor)
+    ) {
+      const minorArmy = minorBuildDecision(G, viewer, homeMinor, "army", space, 1);
+      const armyRowEnabled = minorArmy.allowed && canSpend(ACTION_COSTS.minorArmy);
+      push({
+        id: "minorArmy", group: "recruit", enabled: armyRowEnabled,
+        reason: armyRowEnabled ? undefined
+          : !minorArmy.allowed ? recruitReasonText(locale, minorArmy.reasons.join(" · "))
+            : spendReason(ACTION_COSTS.minorArmy),
+        run: () => doAction(() => moves.buildForMinor(homeMinor, "army", space, 1)),
+      });
+      if ((spaceDef.ports?.length ?? 0) > 0) {
+        const squadron = minorBuildDecision(G, viewer, homeMinor, "squadron", space);
+        const sqEnabled = squadron.allowed && canSpend(ACTION_COSTS.minorSquadron);
+        push({
+          id: "minorSquadron", group: "build", enabled: sqEnabled,
+          reason: sqEnabled ? undefined
+            : !squadron.allowed ? recruitReasonText(locale, squadron.reasons.join(" · "))
+              : spendReason(ACTION_COSTS.minorSquadron),
+          run: () => doAction(() => moves.buildForMinor(homeMinor, "squadron", space, 2)),
+        });
+        const dread = minorBuildDecision(G, viewer, homeMinor, "dreadnought", space);
+        const dnEnabled = dread.allowed && canSpend(ACTION_COSTS.minorDreadnought);
+        push({
+          id: "minorDreadnought", group: "build", enabled: dnEnabled,
+          reason: dnEnabled ? undefined
+            : !dread.allowed ? recruitReasonText(locale, dread.reasons.join(" · "))
+              : spendReason(ACTION_COSTS.minorDreadnought),
+          run: () => doAction(() => moves.buildForMinor(homeMinor, "dreadnought", space, 2)),
+        });
+      }
     }
   }
 

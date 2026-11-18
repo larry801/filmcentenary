@@ -21,6 +21,7 @@ import {
   landUnitsIn,
   log,
   minorBrokenLoc,
+  minorController,
   minorUpkeepPower,
   movementEndProblem,
   navalUnitsIn,
@@ -3295,6 +3296,13 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
   // the enclosing move calls `maybeOpenDecisiveFollowUp` after it clears the
   // card/loss decision.
   if (!G.result) maybeOpenDecisiveFollowUp(G, ctx);
+  // 15.1: after a start-of-maneuver battle (or an avoided one) the next
+  // contested naval box fights.  Runs last so a battle that opens its own
+  // 19.8 port/continuation decision or 18.8 follow-up defers the queue to the
+  // move that closes that decision (both re-enter this tail).
+  if (battle.kind === "naval" && !G.result && G.pending === null) {
+    resolveNextNavalStartContact(G, ctx);
+  }
 };
 
 /**
@@ -4103,6 +4111,195 @@ export const navalDefenderPower = (G: ImperialElegyState, space: SpaceId): Power
   const ally = G.spaces[space]?.ally;
   return isPower(ally) ? ally : null;
 };
+
+// ---------------------------------------------------------------------------
+// 15.1 — special naval actions at the start of a maneuver step
+// ---------------------------------------------------------------------------
+
+/** The queue of naval boxes still to resolve at the start of a maneuver step. */
+export const NAVAL_START_QUEUE_FLAG = "navalStartQueue";
+
+/** `box:attacker:defender` per remaining contact, so the queue is resumable. */
+const parseNavalQueue = (G: ImperialElegyState): NavalStartContact[] => {
+  const raw = G.flags[NAVAL_START_QUEUE_FLAG];
+  if (typeof raw !== "string" || raw.length === 0) return [];
+  const out: NavalStartContact[] = [];
+  for (const entry of raw.split(",")) {
+    const [box, attacker, defender] = entry.split(":");
+    if (!isNavalBox(box) || !isPower(attacker) || !isPower(defender)) continue;
+    out.push({box, attacker, defender});
+  }
+  return out;
+};
+
+const setNavalQueue = (G: ImperialElegyState, contacts: readonly NavalStartContact[]): void => {
+  G.flags[NAVAL_START_QUEUE_FLAG] = contacts.map((c) => `${c.box}:${c.attacker}:${c.defender}`).join(",");
+};
+
+/**
+ * 15.1: "At the start of the maneuver step, if opposing units occupy a naval
+ * box a naval battle is immediately fought (players are still allowed to
+ * attempt to avoid battle)."
+ *
+ * Only *opposing units* trigger this — units hostile to each other, which for
+ * a limited war means the two belligerent sides and for the GW means the two
+ * alliances.  A merely allied or neutral fleet in the box is not a trigger.
+ *
+ * The higher-initiative side is the attacker (14.3's order decides who the
+ * active player is); the defender still gets the printed 19.2 avoidance
+ * attempt through `openNavalAvoidDecision`.
+ */
+export interface NavalStartContact {
+  box: SpaceId;
+  attacker: Power;
+  defender: Power;
+}
+
+/**
+ * The player seat that answers for `owner`'s ships in `box`: a player owns its
+ * own fleet, a controlled minor's squadrons follow their controller, and an
+ * independent minor's ships fall back to the box's ally marker.
+ */
+const fleetSideOf = (G: ImperialElegyState, box: SpaceId, owner: PowerOrMinor): Power | null => {
+  if (isPower(owner)) return owner;
+  const controller = minorController(G, owner);
+  if (controller !== null) return controller;
+  const ally = G.spaces[box]?.ally;
+  return isPower(ally) ? ally : null;
+};
+
+/**
+ * Every naval box where opposing units sit at the start of the maneuver step,
+ * with the initiative-higher belligerent as the attacker.  Pure; the caller
+ * resolves them one at a time.
+ *
+ * "Opposing units" is checked per unit, not per player pair: a player's fleet
+ * facing a hostile minor's squadron fights exactly like two players' fleets.
+ * A box with no player seat on the defending side is dropped, because 19.2's
+ * avoidance decision needs an owner.
+ */
+/**
+ * The player seat that decides for the fleets hostile to `attacker` in `box`.
+ * A player's own ships win over its controlled minor's; the box's control and
+ * ally markers are the fallback for a box holding only independent minors.
+ */
+const hostileSeatIn = (G: ImperialElegyState, box: SpaceId, attacker: Power): Power | null => {
+  const hostile = navalUnitsIn(G, box).filter(
+    (unit) => unit.steps > 0 && hostileOwner(G, attacker, unit.owner),
+  );
+  for (const unit of hostile) {
+    if (isPower(unit.owner) && unit.owner !== attacker) return unit.owner;
+  }
+  for (const unit of hostile) {
+    const side = fleetSideOf(G, box, unit.owner);
+    if (side !== null && side !== attacker) return side;
+  }
+  const control = G.spaces[box]?.control;
+  if (isPower(control) && control !== attacker) return control;
+  const ally = G.spaces[box]?.ally;
+  return isPower(ally) && ally !== attacker ? ally : null;
+};
+
+export const navalStartContacts = (
+  G: ImperialElegyState,
+  initiative: readonly Power[],
+): NavalStartContact[] => {
+  const rank = (power: Power): number => {
+    const index = initiative.indexOf(power);
+    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
+  };
+  const out: NavalStartContact[] = [];
+  const boxes = Object.keys(G.spaces)
+    .filter((space) => isNavalBox(space))
+    .sort();
+  for (const box of boxes) {
+    const ships = navalUnitsIn(G, box).filter((unit) => unit.steps > 0);
+    if (ships.length < 2) continue;
+    const owners = new Set<Power>();
+    for (const unit of ships) {
+      const side = fleetSideOf(G, box, unit.owner);
+      if (side !== null) owners.add(side);
+    }
+    // The initiative-higher side attacks, but only when the box actually holds
+    // ships on both sides of the hostility line.
+    const attacker = [...owners]
+      .sort((a, b) => rank(a) - rank(b))
+      .find((power) =>
+        ships.some((unit) => hostileOwner(G, power, unit.owner)) &&
+        ships.some((unit) => !hostileOwner(G, power, unit.owner)));
+    if (attacker === undefined) continue;
+    const defender = hostileSeatIn(G, box, attacker);
+    if (defender === null) continue;
+    out.push({box, attacker, defender});
+  }
+  return out;
+};
+
+/**
+ * Start the 15.1 sequence: queue every contested box and open the first one.
+ * Returns the box now resolving, or null when no box is contested.  The
+ * remaining boxes stay on `G.flags.navalStartQueue` and are drained by
+ * `resolveNextNavalStartContact` once each battle ends, so decisions never
+ * stack.
+ */
+export const beginNavalStartBattles = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  initiative: readonly Power[],
+): SpaceId | null => {
+  // Every contact already names a player seat on both sides, so 19.2's
+  // avoidance decision always has an owner.
+  // Queue first, resolve second: an impulse-start upkeep decision may already
+  // own `G.pending`, and the queue then waits for the resolver that closes it.
+  setNavalQueue(G, navalStartContacts(G, initiative));
+  return resolveNextNavalStartContact(G, ctx);
+};
+
+/**
+ * Continue the 15.1 sequence after a battle (or an avoided battle) finishes.
+ * Returns the next box now resolving, or null when the queue is empty.  Called
+ * from `finishBattle` and from the naval-avoidance resolver, which are the two
+ * ways a 15.1 battle can end.
+ */
+export const resolveNextNavalStartContact = (G: ImperialElegyState, ctx: Ctx): SpaceId | null => {
+  if (G.pending !== null || G.battle !== null) return null;
+  // The queue records each contact's sides, so a battle that resolved earlier
+  // (or a fleet that already fled) cannot change who is now fighting.
+  const [contact, ...rest] = parseNavalQueue(G);
+  setNavalQueue(G, rest);
+  if (contact === undefined) return null;
+  const {box} = contact;
+  // A box whose fleets are no longer mutually hostile, or whose attacker's
+  // fleet is gone, is skipped rather than fought.
+  if (
+    !navalUnitsIn(G, box).some((unit) => unit.steps > 0 && hostileOwner(G, contact.attacker, unit.owner)) ||
+    !navalUnitsIn(G, box).some((unit) => unit.steps > 0 && unit.owner === contact.attacker)
+  ) {
+    return resolveNextNavalStartContact(G, ctx);
+  }
+  // Both fleets share the box, so `navalDefenderPower` would return whichever
+  // player ship happens to be listed first — possibly the attacker's own.  The
+  // seat that answers 19.2 is the hostile fleet's.
+  const defender = hostileSeatIn(G, box, contact.attacker);
+  if (defender === null) return resolveNextNavalStartContact(G, ctx);
+  log(G, contact.attacker, "navalStartBattle", {box, defender});
+  openNavalAvoidDecision(
+    G,
+    ctx,
+    contact.attacker,
+    defender,
+    box,
+    box,
+    navalUnitsIn(G, box)
+      .filter((unit) => unit.owner === contact.attacker || (!isPower(unit.owner) && G.spaces[box]?.ally === contact.attacker))
+      .map((unit) => unit.id),
+  );
+  return box;
+};
+
+/** True while the 15.1 start-of-maneuver sequence still has boxes to resolve. */
+export const navalStartQueuePending = (G: ImperialElegyState): boolean =>
+  parseNavalQueue(G).length > 0;
 
 /** One legal 19.2 destination: a naval box, or one or more ports. */
 export interface NavalAvoidPlan {

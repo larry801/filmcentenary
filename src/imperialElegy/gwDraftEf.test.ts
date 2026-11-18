@@ -15,7 +15,7 @@ import type {Ctx} from "boardgame.io";
 import type {GreatWarState, ImperialElegyState, Power} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {gwDraft, resolvePending} from "./moves";
-import {gwDraftEfChoices} from "./engine/greatWarFlow";
+import {gwDraftEfChoices, gwDraftZouaveChoice} from "./engine/greatWarFlow";
 import {INVALID_MOVE} from "boardgame.io/core";
 
 const ctxFor = (): Ctx =>
@@ -108,6 +108,53 @@ describe("27.5.2 draft EF substitution", () => {
     ).length).toBe(armiesBefore);
     expect(G.powers.GE.manpower).toBe(2);
     expect(G.powers.GE.gwBudget).toBe(2);
+  });
+
+  test("27.5.2: FR may rebuild the eliminated Zouaves as the second placement", () => {
+    const G = baseGw();
+    G.activePower = "FR";
+    G.gw!.order = ["FR"];
+    G.gw!.belligerents = ["FR"];
+    G.gw!.ta = ["FR"];
+    G.powers.FR.gwBudget = 3;
+    G.powers.FR.manpower = 3;
+    G.spaces.paris.control = "FR";
+    // 33.3: the rebuild only applies once the Zouave is out of play.
+    const zouave = Object.values(G.units).find((unit) => unit.kind === "zouave" && unit.owner === "FR");
+    expect(zouave).toBeTruthy();
+    if (zouave) {
+      if (zouave.space) G.spaces[zouave.space].units = G.spaces[zouave.space].units.filter((id) => id !== zouave.id);
+      delete G.units[zouave.id];
+    }
+
+    const ctx = {...ctxFor(), playerID: "2"} as Ctx;
+    expect(gwDraft(G, ctx, "paris")).toBeUndefined();
+    const pending = G.pending;
+    expect(pending?.kind).toBe("gwDraft");
+    const option = pending!.options.find((o) => o.id === "zouave:algeria");
+    expect(option).toBeTruthy();
+
+    expect(resolvePending(G, ctx, "zouave:algeria")).toBeUndefined();
+    expect(G.pending).toBeNull();
+    const rebuilt = Object.values(G.units).find((unit) => unit.kind === "zouave" && unit.owner === "FR");
+    expect(rebuilt?.space).toBe("algeria");
+    // One Zouave already in play means the substitution is not offered.
+    expect(gwDraftZouaveChoice(G, "FR", null)).toBeNull();
+  });
+
+  test("the Zouave substitution is FR-only and needs Algeria friendly", () => {
+    const G = baseGw();
+    G.powers.FR.gwBudget = 3;
+    const zouave = Object.values(G.units).find((unit) => unit.kind === "zouave");
+    if (zouave) {
+      if (zouave.space) G.spaces[zouave.space].units = G.spaces[zouave.space].units.filter((id) => id !== zouave.id);
+      delete G.units[zouave.id];
+    }
+    // A GE draft never offers the French Zouaves.
+    expect(gwDraftZouaveChoice(G, "GE", null)).toBeNull();
+    // A lost Algeria is not a legal rebuild space.
+    G.spaces.algeria.control = "GE";
+    expect(gwDraftZouaveChoice(G, "FR", null)).toBeNull();
   });
 
   test("an illegal substitution id is rejected and the decision stays open", () => {

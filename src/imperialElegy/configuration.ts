@@ -40,9 +40,22 @@ export const IE_MAX_HUMANS = IE_SEATS.length;
 /** `setupData` key carrying the bot-controlled powers of an online match. */
 export const IE_BOTS_SETUP_KEY = "bots" as const;
 
-/** A `setupData` bag with an optional bot list. */
+/** Rule 34.1's three printed bot difficulty levels. */
+export type BotDifficulty = "easy" | "normal" | "hard";
+
+/** `setupData` key carrying the difficulty of this match's bot seats. */
+export const IE_BOT_DIFFICULTY_SETUP_KEY = "botDifficulty" as const;
+
+/** 34.1's default when the table does not choose one. */
+export const DEFAULT_BOT_DIFFICULTY: BotDifficulty = "normal";
+
+const isBotDifficulty = (value: unknown): value is BotDifficulty =>
+  value === "easy" || value === "normal" || value === "hard";
+
+/** A `setupData` bag with an optional bot list and difficulty. */
 export interface IESetupData {
   bots?: Power[];
+  botDifficulty?: BotDifficulty;
 }
 
 const isPower = (value: unknown): value is Power =>
@@ -68,6 +81,29 @@ export const parseBotPowers = (setupData: unknown): Power[] | undefined => {
     bots.push(entry);
   }
   return bots;
+};
+
+/**
+ * Read and validate the bot difficulty of a `setupData` bag.
+ *
+ * Rule 34.1 sets the level once per match ("in theory, players can set
+ * difficulty level for each bot, but this may be hard to keep track of"), so a
+ * single value covers every bot seat.  An absent or unknown value reads as the
+ * default instead of refusing the match: difficulty only changes bot play, and
+ * a bad token should not be able to block a table.
+ */
+export const parseBotDifficulty = (setupData: unknown): BotDifficulty => {
+  if (setupData === null || typeof setupData !== "object" || Array.isArray(setupData)) {
+    return DEFAULT_BOT_DIFFICULTY;
+  }
+  const raw = (setupData as Record<string, unknown>)[IE_BOT_DIFFICULTY_SETUP_KEY];
+  return isBotDifficulty(raw) ? raw : DEFAULT_BOT_DIFFICULTY;
+};
+
+/** Read the difficulty of a live game state (legacy saves read as the default). */
+export const botDifficultyOf = (G: {botDifficulty?: unknown} | null | undefined): BotDifficulty => {
+  const raw = G?.botDifficulty;
+  return isBotDifficulty(raw) ? raw : DEFAULT_BOT_DIFFICULTY;
 };
 
 /** Powers that keep a human seat in a match with this bot list. */
