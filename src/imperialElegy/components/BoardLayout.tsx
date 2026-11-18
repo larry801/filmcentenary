@@ -25,7 +25,8 @@ import {ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES} from "../constant/spaces";
 import {IEBadge, IESurface} from "./theme";
 import {bi, PHASE_LABEL} from "./boardHelpers";
-import {logText} from "./logText";
+import {LogList} from "./LogList";
+import type {CardFaceMode} from "./preferences";
 import {MapPanel} from "./MapPanel";
 import {SpaceActionsPanel, SpaceDetailPanel, SpaceUnitPicker} from "./SpacePanel";
 import {useSpaceActions} from "./spaceActionModel";
@@ -52,10 +53,6 @@ import {MobileDock, type MobileDockTab} from "./MobileDock";
 import type {MobileTab} from "./modelValues";
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
-
-const LogLine = React.memo(({entry, locale}: {entry: ImperialElegyState["log"][number]; locale: "en" | "zh_CN"}) => (
-  <div><span className="t">T{entry.turn}</span>{logText(entry, locale)}</div>
-));
 
 export interface BoardLayoutProps {
   model: BoardModel;
@@ -740,7 +737,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
                 </>
               ),
               war: <WarRegion key={`war-${locale}`} {...war} locale={locale} t={t}/>,
-              log: <LogRegion key={`log-${locale}`} G={G} locale={locale} t={t}/>,
+              log: <LogRegion key={`log-${locale}`} G={G} locale={locale} t={t} mode={cardFaceMode}/>,
             }}
           />
           <PlayerMat
@@ -815,12 +812,21 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   );
 };
 
-/** The Log tab: the public history, newest first. */
-const LogRegion = ({G, locale, t}: {G: ImperialElegyState; locale: "en" | "zh_CN"; t: T}) => (
+/**
+ * The Log tab: the public history, newest first.
+ *
+ * The lines come from `LogList` rather than a bare list here, so a card the
+ * entry names is a chip that opens the inspector — the same read affordance the
+ * reference drawer's copy of the log gets.
+ */
+const LogRegion = ({G, locale, t, mode}: {
+  G: ImperialElegyState;
+  locale: "en" | "zh_CN";
+  t: T;
+  mode?: CardFaceMode;
+}) => (
   <section className="ie-log-panel">
     <h3>{t.log}</h3>
-    <div className="ie-log" data-testid="ie-log">
-      {G.log.slice(-80).reverse().map((entry) => <LogLine key={entry.id} entry={entry} locale={locale}/>)}
-    </div>
+    <LogList entries={G.log.slice(-80).reverse()} locale={locale} testId="ie-log" mode={mode}/>
   </section>
 );

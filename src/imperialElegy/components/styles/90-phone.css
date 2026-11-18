@@ -457,6 +457,24 @@
   .ie-mobile-dock .ie-mat-toggle,
   .ie-mobile-dock .ie-tray-decision-line { display: none; }
 
+  /* A log card is a small inline chip, so on a phone it gets a taller visual
+     box (32 px) and 4 px of extra horizontal breathing room instead of the
+     desktop's 22 px line — enough for a fingertip without overlapping the log
+     line above or below it.  The title ellipsizes rather than pushing the
+     sentence out of the narrow sheet. */
+  .ie-mobile-dock .ie-log .ie-log-card,
+  .ie-ref-body .ie-log .ie-log-card {
+    min-height: 32px;
+    padding: 0 6px;
+    align-items: center;
+  }
+  .ie-mobile-dock .ie-log .ie-log-card-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   /* MPIT inside the sheet: the matrix is the control itself, so each track
      value has to be a fingertip.  Three equal columns keep the buttons at
      44 px without giving a power its own row (six rows would fill the whole

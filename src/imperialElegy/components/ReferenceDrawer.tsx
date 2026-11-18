@@ -137,6 +137,7 @@ export const ReferenceDrawer = ({core, reference, open: openProp, anchor = null,
             locale={core.actualLocale}
             t={core.t}
             anchor={resolved.section}
+            cardFaceMode={core.cardFaceMode}
             onOpenChart={(entry) => setLightbox(entry)}
           />
         </div>

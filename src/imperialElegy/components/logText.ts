@@ -21,6 +21,20 @@ export type LogLocale = "en" | "zh_CN";
 /** The fields the formatter needs.  Full `LogEntry` values are assignable. */
 export type LogTextEntry = Pick<LogEntry, "key" | "args" | "power">;
 
+/**
+ * A rendered log entry, split so the board can draw a card as a control.
+ *
+ * The formatters still produce one sentence, with each card name carried as a
+ * `card` segment instead of a substring.  That keeps the sentence logic in one
+ * place while letting the log put the card's CP and a click on it: the caller
+ * renders `text` as written and `card` as a chip that opens the inspector.
+ * {@link logText} joins the same segments back into plain text for exports,
+ * tests and anything that needs a string.
+ */
+export type LogSegment =
+  | {kind: "text"; text: string}
+  | {kind: "card"; id: string};
+
 type Formatter = (entry: LogTextEntry, locale: LogLocale) => string;
 
 const text = (locale: LogLocale, en: string, zh: string): string => (locale === "zh_CN" ? zh : en);
@@ -47,13 +61,38 @@ const article = (word: string): string => (/^[aeiou]/i.test(word) ? "an" : "a");
 
 const HIDDEN_CARD = "hidden";
 
-const cardLabel = (value: unknown, locale: LogLocale): string => {
+/**
+ * Sentinels around a card id inside a formatted sentence.
+ *
+ * The formatters build one string, and a card name is one word of it ("played
+ * ⟨card⟩ for CP").  Wrapping the id rather than the name keeps every sentence
+ * template untouched while {@link logSegments} can hand the id to the board, so
+ * the log draws a CP chip for the card instead of spelling its title out.  The
+ * characters are control codes no engine argument can carry, and {@link logText}
+ * removes them, so the plain string stays exactly what it was before.
+ */
+const CARD_MARK_OPEN = "\u0001";
+const CARD_MARK_CLOSE = "\u0002";
+
+/** The printed title of a card, or the fallback wording for a blank/hidden id. */
+const cardName = (value: unknown, locale: LogLocale): string => {
   const id = str(value);
   if (id === "") return text(locale, "an unknown card", "未知卡牌");
   if (id === HIDDEN_CARD) return text(locale, "a hidden card", "隐藏卡牌");
   const card = CARD_BY_ID[id];
   if (card === undefined) return id;
   return locale === "zh_CN" ? card.titleZh : card.title;
+};
+
+/**
+ * A card as it appears in a sentence: the marked id for a real card, so the
+ * log can render it as a chip, and plain wording for a card the viewer may not
+ * see (a hidden one must never reach the board as a link).
+ */
+const cardLabel = (value: unknown, locale: LogLocale): string => {
+  const id = str(value);
+  if (id === "" || id === HIDDEN_CARD || CARD_BY_ID[id] === undefined) return cardName(id, locale);
+  return `${CARD_MARK_OPEN}${id}${CARD_MARK_CLOSE}`;
 };
 
 const EXTRA_POWER_LABELS: Record<string, {en: string; zh: string}> = {
@@ -3082,10 +3121,48 @@ const humanizeKey = (key: string): string => {
 /**
  * Format one engine log entry.  Known keys always return a translated
  * sentence; an unknown key degrades to a readable label rather than raw JSON.
+ *
+ * A card the viewer may see is printed with its title, exactly as the sentence
+ * templates read; the card markers {@link logSegments} consumes are invisible
+ * here, so callers that want a string (exports, tests, `copy`) get one.
  */
-export const logText = (entry: LogTextEntry, locale: LogLocale): string => {
+export const logText = (entry: LogTextEntry, locale: LogLocale): string =>
+  logSegments(entry, locale)
+    .map((segment) => (segment.kind === "card" ? cardName(segment.id, locale) : segment.text))
+    .join("");
+
+/**
+ * The same sentence as {@link logText}, split into text and cards.
+ *
+ * The board renders the text as written and each card segment as its own
+ * control, which is how a log line shows a card's CP and opens it on click.  A
+ * single-entry sentence never yields two adjacent text segments, and a
+ * sentence without a visible card yields one text segment.
+ */
+export const logSegments = (entry: LogTextEntry, locale: LogLocale): LogSegment[] => {
   const formatter = FORMATTERS[entry.key];
-  if (formatter !== undefined) return formatter({...entry, args: entry.args ?? {}}, locale);
-  const label = humanizeKey(entry.key);
-  return text(locale, `Untranslated log entry: ${label}`, `未翻译的日志：${label}`);
+  const raw = formatter === undefined
+    ? text(locale, `Untranslated log entry: ${humanizeKey(entry.key)}`, `未翻译的日志：${humanizeKey(entry.key)}`)
+    : formatter({...entry, args: entry.args ?? {}}, locale);
+
+  const segments: LogSegment[] = [];
+  let rest = raw;
+  while (rest.length > 0) {
+    const open = rest.indexOf(CARD_MARK_OPEN);
+    if (open === -1) {
+      segments.push({kind: "text", text: rest});
+      break;
+    }
+    if (open > 0) segments.push({kind: "text", text: rest.slice(0, open)});
+    const close = rest.indexOf(CARD_MARK_CLOSE, open + 1);
+    // An unbalanced marker cannot come from this module; keep the rest as text
+    // rather than dropping it.
+    if (close === -1) {
+      segments.push({kind: "text", text: rest.slice(open + 1)});
+      break;
+    }
+    segments.push({kind: "card", id: rest.slice(open + 1, close)});
+    rest = rest.slice(close + 1);
+  }
+  return segments;
 };

@@ -279,6 +279,45 @@
 
 .ie-log .t { color: var(--ie-on-dark-muted); margin-right: 5px; font-variant-numeric: tabular-nums; }
 
+/* A card named by a log line: its printed CP, then its title.  The chip is the
+   affordance — clicking it opens the same inspector the hand uses. */
+.ie-log .ie-log-card {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  max-width: 100%;
+  margin: 0 1px;
+  padding: 0 5px;
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-3);
+  color: var(--ie-on-dark);
+  font: inherit;
+  font-size: var(--ie-font-xs);
+  line-height: 1.45;
+  vertical-align: baseline;
+  cursor: pointer;
+}
+
+.ie-log .ie-log-card:hover,
+.ie-log .ie-log-card:focus-visible { border-color: var(--ie-brass); background: var(--ie-panel-2); }
+
+.ie-log .ie-log-card-cp {
+  flex: 0 0 auto;
+  min-width: 14px;
+  padding: 0 3px;
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-on-dark);
+  color: var(--ie-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.ie-log .ie-log-card-name { min-width: 0; }
+
+.ie-log-card-note { margin: 0; font-size: var(--ie-font-xs); }
+
 /* ---------------------------------------------------------------- pending + battle */
 .ie-pending { border: 1px solid var(--ie-brass); background: var(--ie-panel-3); padding: 8px; border-radius: var(--ie-radius-md); }
 
