@@ -562,6 +562,11 @@ test.describe("Imperial Elegy solo vs bot", () => {
     });
 
     test("a bot seat takes its impulse instead of stalling on an illegal move", async ({page}) => {
+        // This case walks a whole turn: prep, home cards, one CP play, the
+        // hand-over and then two bot impulses.  The default 60 s budget left the
+        // final log poll (45 s) unreachable, so a slow runner failed on the
+        // clock rather than on the behaviour it guards.
+        test.setTimeout(150_000);
         const errors: string[] = [];
         page.on("console", (message) => {
             if (message.type() === "error") errors.push(message.text());
