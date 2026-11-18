@@ -439,6 +439,15 @@ export const VQBoardMap = ({
                     <clipPath id={scopedId(idSuffix, "vq-board-landclip")}>
                         <path d={landPath} fillRule="evenodd" clipRule="evenodd"/>
                     </clipPath>
+                    {/* The cartogram warp pushes coasts and rivers past the
+                        printed frame (Land's End sits at x = -48, the northern
+                        rivers above y = 0).  `preserveAspectRatio="meet"`
+                        letterboxes the frame inside a wide panel, so without
+                        this clip the warped edges repaint the empty margin
+                        beside the board once the map is at its smallest zoom. */}
+                    <clipPath id={scopedId(idSuffix, "vq-board-frame")}>
+                        <rect width={1000} height={620}/>
+                    </clipPath>
                     {/* Aged-paper speckle: a light tiled pattern instead of an
                         expensive full-surface turbulence filter. */}
                     <pattern id={scopedId(idSuffix, "vq-board-speckle")} width="38" height="38" patternUnits="userSpaceOnUse">
@@ -479,136 +488,139 @@ export const VQBoardMap = ({
                     <ellipse cx={880} cy={520} rx={190} ry={90} fill={paint("vq-board-stain")}/>
                     <ellipse cx={110} cy={560} rx={130} ry={80} fill={paint("vq-board-stain")}/>
                 </g>
-                <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
-                    {/* Pale coastal shoal, then parchment land */}
-                    <path d={landPath} fill="none" stroke="#e7eede" strokeWidth={9} opacity={0.55} fillRule="evenodd"/>
-                    <path d={landPath} fill={paint("vq-board-land")} stroke="#8a7952" strokeWidth={1.3} fillRule="evenodd"/>
-                    {/* Real range outlines replace the old coarse hill blobs; the
-                        hatch is clipped to land so the cartogram warp cannot
-                        spill relief into the sea. */}
-                    <g clipPath={`url(#${scopedId(idSuffix, "vq-board-landclip")})`} pointerEvents="none">
-                        {reliefPaths.map((path, index) => <path key={`relief-${index}`} className="vq-relief"
-                            d={path} fill={paint("vq-board-relief")} stroke="#a98c58"
-                            strokeWidth={0.45}/>)}
-                    </g>
-                    {BOARD_REGIONS.map((region, index) => <ellipse key={region.id} cx={region.cx} cy={region.cy}
-                                                                  rx={region.rx} ry={region.ry}
-                                                                  fill={paint(`vq-board-region-${index}`)}
-                                                                  pointerEvents="none"/>)}
-                    <g className="vq-board-hydro" pointerEvents="none">
-                        <path className="vq-lake" d={hydroPaths.lakes} fill="#8bb7c4" stroke="#5f8b97"
-                              strokeWidth={0.5} fillRule="evenodd" opacity={0.82}/>
-                        <path className="vq-river vq-river-minor" d={hydroPaths.minorRivers} fill="none"
-                              stroke="#5f8b97" strokeWidth={0.55} strokeLinecap="round"
-                              strokeLinejoin="round" opacity={0.72}/>
-                        <path className="vq-river vq-river-major" d={hydroPaths.majorRivers} fill="none"
-                              stroke="#3f7385" strokeWidth={1} strokeLinecap="round"
-                              strokeLinejoin="round" opacity={0.82}/>
-                    </g>
-                    <path d={landPath} fill="none" stroke="#7d6c48" strokeWidth={0.7} fillRule="evenodd"
-                          pointerEvents="none" opacity={0.75}/>
-                    {/* Paper grain over sea, land and power washes */}
-                    <rect x={-400} y={-400} width={1800} height={1420} fill={paint("vq-board-speckle")} pointerEvents="none"/>
+                {/* Everything that pans and zooms is clipped to the printed frame. */}
+                <g clipPath={`url(#${scopedId(idSuffix, "vq-board-frame")})`}>
+                    <g transform={`translate(${view.x} ${view.y}) scale(${view.scale})`}>
+                        {/* Pale coastal shoal, then parchment land */}
+                        <path d={landPath} fill="none" stroke="#e7eede" strokeWidth={9} opacity={0.55} fillRule="evenodd"/>
+                        <path d={landPath} fill={paint("vq-board-land")} stroke="#8a7952" strokeWidth={1.3} fillRule="evenodd"/>
+                        {/* Real range outlines replace the old coarse hill blobs; the
+                            hatch is clipped to land so the cartogram warp cannot
+                            spill relief into the sea. */}
+                        <g clipPath={`url(#${scopedId(idSuffix, "vq-board-landclip")})`} pointerEvents="none">
+                            {reliefPaths.map((path, index) => <path key={`relief-${index}`} className="vq-relief"
+                                d={path} fill={paint("vq-board-relief")} stroke="#a98c58"
+                                strokeWidth={0.45}/>)}
+                        </g>
+                        {BOARD_REGIONS.map((region, index) => <ellipse key={region.id} cx={region.cx} cy={region.cy}
+                                                                      rx={region.rx} ry={region.ry}
+                                                                      fill={paint(`vq-board-region-${index}`)}
+                                                                      pointerEvents="none"/>)}
+                        <g className="vq-board-hydro" pointerEvents="none">
+                            <path className="vq-lake" d={hydroPaths.lakes} fill="#8bb7c4" stroke="#5f8b97"
+                                  strokeWidth={0.5} fillRule="evenodd" opacity={0.82}/>
+                            <path className="vq-river vq-river-minor" d={hydroPaths.minorRivers} fill="none"
+                                  stroke="#5f8b97" strokeWidth={0.55} strokeLinecap="round"
+                                  strokeLinejoin="round" opacity={0.72}/>
+                            <path className="vq-river vq-river-major" d={hydroPaths.majorRivers} fill="none"
+                                  stroke="#3f7385" strokeWidth={1} strokeLinecap="round"
+                                  strokeLinejoin="round" opacity={0.82}/>
+                        </g>
+                        <path d={landPath} fill="none" stroke="#7d6c48" strokeWidth={0.7} fillRule="evenodd"
+                              pointerEvents="none" opacity={0.75}/>
+                        {/* Paper grain over sea, land and power washes */}
+                        <rect x={-400} y={-400} width={1800} height={1420} fill={paint("vq-board-speckle")} pointerEvents="none"/>
 
-                    {/* ---------------- printed World Map L-strip ---------------- */}
-                    <g pointerEvents="none">
-                        <rect x={BOARD_WORLD_STRIP.left.x0} y={BOARD_WORLD_STRIP.left.y0}
-                              width={BOARD_WORLD_STRIP.left.x1 - BOARD_WORLD_STRIP.left.x0}
-                              height={BOARD_WORLD_STRIP.left.y1 - BOARD_WORLD_STRIP.left.y0}
-                              fill="#4f8ab4" opacity={0.12}/>
-                        <rect x={BOARD_WORLD_STRIP.bottom.x0} y={BOARD_WORLD_STRIP.bottom.y0}
-                              width={BOARD_WORLD_STRIP.bottom.x1 - BOARD_WORLD_STRIP.bottom.x0}
-                              height={BOARD_WORLD_STRIP.bottom.y1 - BOARD_WORLD_STRIP.bottom.y0}
-                              fill="#4f8ab4" opacity={0.12}/>
-                        {BOARD_WORLD_ROUTES.map((route, index) => <ellipse key={index} cx={route.cx} cy={route.cy}
-                                                                           rx={route.rx} ry={route.ry}
-                                                                           fill="none" stroke="#eef6f8"
-                                                                           strokeWidth={1.4} strokeDasharray="3 5"
-                                                                           opacity={0.7}/>)}
-                        {BOARD_WIND_ARROWS.map((arrow, index) => <g key={index}
-                                                                    transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.rotate})`}>
-                            <path d="M-7,0 L4,0" stroke="#eef6f8" strokeWidth={1.3} opacity={0.75}/>
-                            <polygon points="7,0 1,-3 1,3" fill="#eef6f8" opacity={0.85}/>
-                        </g>)}
-                        <path d={BOARD_WORLD_STRIP.boundary} fill="none" stroke="#3b3125" strokeWidth={3}
-                              strokeDasharray="1 7" strokeLinecap="round" opacity={0.65}/>
-                        <path d={BOARD_WORLD_STRIP.innerBoundary} fill="none" stroke="#2f6fb0" strokeWidth={1.4}
-                              strokeDasharray="6 5" opacity={0.55}/>
-                        {BOARD_OCEAN_LABELS.map((plate) => <g key={plate.key} transform={`translate(${plate.x} ${plate.y})`}>
-                            <polygon points="-6,0 0,-4.5 6,0 0,4.5" fill="#2f5f6e" stroke="#e9f1e8" strokeWidth={0.8}/>
-                            <text x={9} y={1.4} fontSize={4.6} fill="#1f4655" fontFamily="Georgia, serif"
-                                  letterSpacing={0.6}>{i18n.chain.vq.map.boardOceanLabels[plate.key]}</text>
-                        </g>)}
-                    </g>
+                        {/* ---------------- printed World Map L-strip ---------------- */}
+                        <g pointerEvents="none">
+                            <rect x={BOARD_WORLD_STRIP.left.x0} y={BOARD_WORLD_STRIP.left.y0}
+                                  width={BOARD_WORLD_STRIP.left.x1 - BOARD_WORLD_STRIP.left.x0}
+                                  height={BOARD_WORLD_STRIP.left.y1 - BOARD_WORLD_STRIP.left.y0}
+                                  fill="#4f8ab4" opacity={0.12}/>
+                            <rect x={BOARD_WORLD_STRIP.bottom.x0} y={BOARD_WORLD_STRIP.bottom.y0}
+                                  width={BOARD_WORLD_STRIP.bottom.x1 - BOARD_WORLD_STRIP.bottom.x0}
+                                  height={BOARD_WORLD_STRIP.bottom.y1 - BOARD_WORLD_STRIP.bottom.y0}
+                                  fill="#4f8ab4" opacity={0.12}/>
+                            {BOARD_WORLD_ROUTES.map((route, index) => <ellipse key={index} cx={route.cx} cy={route.cy}
+                                                                               rx={route.rx} ry={route.ry}
+                                                                               fill="none" stroke="#eef6f8"
+                                                                               strokeWidth={1.4} strokeDasharray="3 5"
+                                                                               opacity={0.7}/>)}
+                            {BOARD_WIND_ARROWS.map((arrow, index) => <g key={index}
+                                                                        transform={`translate(${arrow.x} ${arrow.y}) rotate(${arrow.rotate})`}>
+                                <path d="M-7,0 L4,0" stroke="#eef6f8" strokeWidth={1.3} opacity={0.75}/>
+                                <polygon points="7,0 1,-3 1,3" fill="#eef6f8" opacity={0.85}/>
+                            </g>)}
+                            <path d={BOARD_WORLD_STRIP.boundary} fill="none" stroke="#3b3125" strokeWidth={3}
+                                  strokeDasharray="1 7" strokeLinecap="round" opacity={0.65}/>
+                            <path d={BOARD_WORLD_STRIP.innerBoundary} fill="none" stroke="#2f6fb0" strokeWidth={1.4}
+                                  strokeDasharray="6 5" opacity={0.55}/>
+                            {BOARD_OCEAN_LABELS.map((plate) => <g key={plate.key} transform={`translate(${plate.x} ${plate.y})`}>
+                                <polygon points="-6,0 0,-4.5 6,0 0,4.5" fill="#2f5f6e" stroke="#e9f1e8" strokeWidth={0.8}/>
+                                <text x={9} y={1.4} fontSize={4.6} fill="#1f4655" fontFamily="Georgia, serif"
+                                      letterSpacing={0.6}>{i18n.chain.vq.map.boardOceanLabels[plate.key]}</text>
+                            </g>)}
+                        </g>
 
-                    {/* ---------------- Europe: links, sea zones, cities ---------------- */}
-                    {LAND_LINKS.map(([a, b, pass], i) => {
-                        const aPoint = boardSpacePoint(a);
-                        const bPoint = boardSpacePoint(b);
-                        return <line key={i} x1={aPoint.x} y1={aPoint.y} x2={bPoint.x} y2={bPoint.y}
-                                     stroke={pass ? "#8b6a45" : "#6f5a3a"} strokeWidth={pass ? 2.6 : 2.1}
-                                     strokeDasharray={pass ? "6 4" : undefined} opacity={0.8} pointerEvents="none"/>;
-                    })}
-                    {SEA_ZONES.map((zone) => {
-                        const {x, y} = BOARD_SEA_POINTS[zone.id];
-                        const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
-                        const highlighted = highlights?.has(zone.id) === true;
-                        const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
-                        const label = seaSummary(G, zone.id) +
-                            (highlighted ? ` · ${i18n.chain.vq.legend.legal}` : "");
-                        return <g key={zone.id} className={`vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`}
-                                  role="button" tabIndex={0} aria-label={label} aria-pressed={selected === zone.id}
-                                  opacity={dimmed ? 0.35 : undefined}
-                                  onFocus={() => setHovered(zone.id)} onBlur={() => setHovered(undefined)}
-                                  onPointerEnter={(event) => {if (event.pointerType === "mouse") setHovered(zone.id);}}
-                                  onPointerLeave={(event) => {if (event.pointerType === "mouse") setHovered(undefined);}}
-                                  style={{cursor: "pointer"}} onKeyDown={(event) => {
-                                      if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(zone.id);}
-                                  }}>
-                            {highlights !== undefined && <title>{label}</title>}
-                            <rect className="vq-hit" x={x - 44} y={y - 12} width={88} height={25} rx={5}
-                                  fill={selected === zone.id ? "#faf3df" : "#c8dcd680"}
-                                  stroke={origin === zone.id ? "#2d6b71" : selected === zone.id ? "#805012" : "transparent"}
-                                  strokeDasharray={origin === zone.id ? "3 2" : undefined}/>
-                            <text x={x} y={y} fontSize={9.5} fill="#2e5d5b" fontFamily="Georgia, serif" fontStyle="italic"
-                                  textAnchor="middle" paintOrder="stroke" stroke="#cfe2e9" strokeWidth={2}>{seaZoneName(zone.id, vqLocale)}</text>
-                            {count > 0 && <text x={x} y={y + 10} fontSize={8} textAnchor="middle" fill="#244c49">⚓ {count}</text>}
-                            {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
-                        </g>;
-                    })}
-                    {SPACES.map((space) => <BoardSpaceShape key={space.id} id={space.id} idSuffix={idSuffix}
-                                                           G={G} selected={selected}
-                                                           origin={origin} onSelect={onSelect} highlights={highlights}
-                                                           dimUnavailable={dimUnavailable} onHover={setHovered}
-                                                           label={labelPlacements[space.id]}/>)}
-
-                    {/* ---------------- colony triangles ---------------- */}
-                    {worldLocations.map((location) => <BoardTriangle key={location.id} location={location} G={G}
-                                                                     vqLocale={vqLocale}
-                                                                     label={triangleLabels[location.id]}/>)}
-
-                    {/* ---------------- printed chrome ---------------- */}
-                    <g pointerEvents="none">
-                        <Compass cx={24} cy={56}/>
-                        <Compass cx={976} cy={56}/>
-                        <text x={510} y={20} textAnchor="middle" fontFamily="Georgia, serif" fontSize={19}
-                              fontStyle="italic" fill="#4a3a22" opacity={0.72} letterSpacing={1.5}>Virgin Queen</text>
-                        <text x={510} y={31} textAnchor="middle" fontFamily="Georgia, serif" fontSize={7.5}
-                              fill="#6a5334" opacity={0.7} letterSpacing={3}>1559 – 1598</text>
-                        {BOARD_BANNERS.map((banner) => {
-                            const rotate = banner.rotate ?? 0;
-                            const cx = banner.x + banner.width / 2;
-                            const cy = banner.y + banner.height / 2;
-                            return <g key={banner.label} transform={rotate ? `rotate(${rotate} ${cx} ${cy})` : undefined}
-                                      opacity={0.85}>
-                                <rect x={banner.x} y={banner.y} width={banner.width} height={banner.height} rx={2}
-                                      fill="#f5ecd6" stroke={banner.color} strokeWidth={1.6}/>
-                                <rect x={banner.x + 1.5} y={banner.y + 1.5} width={15} height={banner.height - 3}
-                                      fill={banner.color} opacity={0.8}/>
-                                <text x={cx + 6} y={cy} textAnchor="middle" dominantBaseline="central"
-                                      fontFamily="Georgia, serif" fontSize={9} letterSpacing={1.6} fill={banner.color}>{banner.label}</text>
+                        {/* ---------------- Europe: links, sea zones, cities ---------------- */}
+                        {LAND_LINKS.map(([a, b, pass], i) => {
+                            const aPoint = boardSpacePoint(a);
+                            const bPoint = boardSpacePoint(b);
+                            return <line key={i} x1={aPoint.x} y1={aPoint.y} x2={bPoint.x} y2={bPoint.y}
+                                         stroke={pass ? "#8b6a45" : "#6f5a3a"} strokeWidth={pass ? 2.6 : 2.1}
+                                         strokeDasharray={pass ? "6 4" : undefined} opacity={0.8} pointerEvents="none"/>;
+                        })}
+                        {SEA_ZONES.map((zone) => {
+                            const {x, y} = BOARD_SEA_POINTS[zone.id];
+                            const count = Object.values(G.seaZones[zone.id].naval).reduce((sum, stack) => sum + navalCount(stack), 0);
+                            const highlighted = highlights?.has(zone.id) === true;
+                            const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
+                            const label = seaSummary(G, zone.id) +
+                                (highlighted ? ` · ${i18n.chain.vq.legend.legal}` : "");
+                            return <g key={zone.id} className={`vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`}
+                                      role="button" tabIndex={0} aria-label={label} aria-pressed={selected === zone.id}
+                                      opacity={dimmed ? 0.35 : undefined}
+                                      onFocus={() => setHovered(zone.id)} onBlur={() => setHovered(undefined)}
+                                      onPointerEnter={(event) => {if (event.pointerType === "mouse") setHovered(zone.id);}}
+                                      onPointerLeave={(event) => {if (event.pointerType === "mouse") setHovered(undefined);}}
+                                      style={{cursor: "pointer"}} onKeyDown={(event) => {
+                                          if (event.key === "Enter" || event.key === " ") {event.preventDefault(); onSelect(zone.id);}
+                                      }}>
+                                {highlights !== undefined && <title>{label}</title>}
+                                <rect className="vq-hit" x={x - 44} y={y - 12} width={88} height={25} rx={5}
+                                      fill={selected === zone.id ? "#faf3df" : "#c8dcd680"}
+                                      stroke={origin === zone.id ? "#2d6b71" : selected === zone.id ? "#805012" : "transparent"}
+                                      strokeDasharray={origin === zone.id ? "3 2" : undefined}/>
+                                <text x={x} y={y} fontSize={9.5} fill="#2e5d5b" fontFamily="Georgia, serif" fontStyle="italic"
+                                      textAnchor="middle" paintOrder="stroke" stroke="#cfe2e9" strokeWidth={2}>{seaZoneName(zone.id, vqLocale)}</text>
+                                {count > 0 && <text x={x} y={y + 10} fontSize={8} textAnchor="middle" fill="#244c49">⚓ {count}</text>}
+                                {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
                             </g>;
                         })}
+                        {SPACES.map((space) => <BoardSpaceShape key={space.id} id={space.id} idSuffix={idSuffix}
+                                                               G={G} selected={selected}
+                                                               origin={origin} onSelect={onSelect} highlights={highlights}
+                                                               dimUnavailable={dimUnavailable} onHover={setHovered}
+                                                               label={labelPlacements[space.id]}/>)}
+
+                        {/* ---------------- colony triangles ---------------- */}
+                        {worldLocations.map((location) => <BoardTriangle key={location.id} location={location} G={G}
+                                                                         vqLocale={vqLocale}
+                                                                         label={triangleLabels[location.id]}/>)}
+
+                        {/* ---------------- printed chrome ---------------- */}
+                        <g pointerEvents="none">
+                            <Compass cx={24} cy={56}/>
+                            <Compass cx={976} cy={56}/>
+                            <text x={510} y={20} textAnchor="middle" fontFamily="Georgia, serif" fontSize={19}
+                                  fontStyle="italic" fill="#4a3a22" opacity={0.72} letterSpacing={1.5}>Virgin Queen</text>
+                            <text x={510} y={31} textAnchor="middle" fontFamily="Georgia, serif" fontSize={7.5}
+                                  fill="#6a5334" opacity={0.7} letterSpacing={3}>1559 – 1598</text>
+                            {BOARD_BANNERS.map((banner) => {
+                                const rotate = banner.rotate ?? 0;
+                                const cx = banner.x + banner.width / 2;
+                                const cy = banner.y + banner.height / 2;
+                                return <g key={banner.label} transform={rotate ? `rotate(${rotate} ${cx} ${cy})` : undefined}
+                                          opacity={0.85}>
+                                    <rect x={banner.x} y={banner.y} width={banner.width} height={banner.height} rx={2}
+                                          fill="#f5ecd6" stroke={banner.color} strokeWidth={1.6}/>
+                                    <rect x={banner.x + 1.5} y={banner.y + 1.5} width={15} height={banner.height - 3}
+                                          fill={banner.color} opacity={0.8}/>
+                                    <text x={cx + 6} y={cy} textAnchor="middle" dominantBaseline="central"
+                                          fontFamily="Georgia, serif" fontSize={9} letterSpacing={1.6} fill={banner.color}>{banner.label}</text>
+                                </g>;
+                            })}
+                        </g>
                     </g>
                 </g>
             </svg>

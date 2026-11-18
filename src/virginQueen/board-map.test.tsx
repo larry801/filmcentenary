@@ -167,6 +167,21 @@ describe("printed-board vector map (VQ.png redraw)", () => {
         expect(html).toMatch(/aria-label="爱琴海 · [^"]*合法目标"/);
     });
 
+    it("clips the warped surface to the printed frame", () => {
+        const html = renderToStaticMarkup(<VQMap G={G()} onSelect={() => {}} defaultMapStyle="board"/>);
+        // The cartogram pushes coastline past the 1000 × 620 frame (Land's End
+        // sits at x = -48).  Without a frame clip those points paint the
+        // letterbox margin beside the board once the panel is wider than the
+        // map's aspect ratio.
+        const clip = html.match(/<clipPath id="(vq-board-frame-[^"]+)"><rect width="1000" height="620"><\/rect><\/clipPath>/);
+        expect(clip).not.toBeNull();
+        expect(html).toContain(`<g clip-path="url(#${clip?.[1]})">`);
+        const clipped = html.split(`url(#${clip?.[1]})`)[1];
+        // The pan/zoom group and the coastline live inside that clip.
+        expect(clipped).toContain('transform="translate(0 0) scale(1)"');
+        expect(clipped).toContain("vq-board-land");
+    });
+
     it("keeps every user-visible string localised in English mode", async () => {
         await i18n.locale("en");
         try {

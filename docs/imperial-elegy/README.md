@@ -3,6 +3,13 @@
 This directory documents the web implementation of **Imperial Elegy: The
 Imperial World at War, 1850–1920** (VUCA Simulations, design Michael Lorino).
 
+## Visual system
+
+The board's visual language — palette, typography, surfaces, components,
+motion and verification — is specified in
+[`VISUAL_SYSTEM.md`](VISUAL_SYSTEM.md). Layout and behaviour remain specified
+here; the visual spec must not change them.
+
 ## Sources of truth
 
 1. `IE_playbook.pdf` — the publisher's living playbook. Campaign setup, national

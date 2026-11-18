@@ -11,6 +11,12 @@ view, the phone layout and the two UI languages. It does **not** re-test the
 rules engine — see [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md) and
 [`RULES_COVERAGE.md`](RULES_COVERAGE.md) for that.
 
+Visual expectations — palette, typography, surfaces, components, motion and the
+contrast/layout probes that verify them — are specified in
+[`VISUAL_SYSTEM.md`](VISUAL_SYSTEM.md). This checklist verifies behaviour and
+layout; a visual change that moves a control or changes a test id is a failure
+of that change, not of this checklist.
+
 Legend: a step ending in **(verify)** could not be confirmed from the source at
 the time of writing and has to be checked by hand; the question to answer is
 written next to it.
