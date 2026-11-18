@@ -247,10 +247,11 @@ regions:
   spans both of those columns on desktop (at most 212 px open, folded to a 44 px
   bar; the turn panel keeps the right column); on a phone it is the dock's Hand
   tab. Its head has filter and sort selects, card
-  count, CP-chain/saved/response chips and the tray toggle; each card shows its
-  face, a status line ("For CP" / "Event" / "Response", or the first reason it
-  cannot be played) and a compact `⋯` operations menu that mounts in the flow
-  rather than over the map.
+  count, CP-chain/saved/response chips and the tray toggle; each card is one
+  row — CP value, name, type and a status line ("For CP" / "Event" /
+  "Response", or the first reason it cannot be played). One tap on the row
+  opens the `CardInspector` (the face, every operation and the aggregated
+  reasons); the row never unfolds in place, so a hand stays a scannable list.
 - **Reference drawer** — `components/ReferenceDrawer.tsx` opens from the right
   at an anchor (the strip's `?`, a stepper step, the mat's "Printed display", a
   `?` rule link) and closes on Esc. It shows the tables the engine renders — the
@@ -331,6 +332,10 @@ grid areas unchanged. Short phones (≤ 699 px tall) use 44 dvh for half,
 
 - **Orders** — the selected space's actions, national actions and card
   choices, or the pending decision while one is owed (the desktop Orders body).
+  While this seat can act, the MPIT matrix (`components/MpitPanel.tsx`, `.ie-mpit-panel`)
+  leads the body instead of trailing it, and every track value is a 44 px
+  target (three equal columns per power); off-turn it stays last and read-only,
+  and on desktop the order is untouched.
 - **Hand** — the card row with its filters, sort and per-card operations.
 - **Mat** — the player mat, reachable on a phone now; the old layout hid it at
   this width. The same figures also appear in the reference drawer's power

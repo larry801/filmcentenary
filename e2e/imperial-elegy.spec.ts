@@ -18,32 +18,27 @@ async function focusSeat(page: Page, seat: string) {
     await expect(page.locator(`[data-testid="ie-seat-${seat}"]`)).toHaveAttribute("data-active", "true");
 }
 
-/**
- * Play the seat's first legal card for CP.
- *
- * Card play is now arm-then-confirm (`ConfirmButton`, preference on by
- * default): the first click arms the button and the second one plays.  The
- * button is addressed by test id because the armed label replaces its text,
- * so a text filter would stop matching between the two clicks.
- */
-/** Unfold one hand row so its face and its buttons exist. */
+/** Open a hand card's inspector (one tap on the row). */
 async function openCard(card: Locator): Promise<Locator> {
-    if (await card.getAttribute("data-expanded") === "true") return card;
     await card.locator(".ie-card-open").click();
-    await expect(card).toHaveAttribute("data-expanded", "true");
     return card;
 }
 
 /**
- * Play the first legal card for CP.  The hand lists one folded row per card, so
- * each row is unfolded before its CP button can be pressed.
+ * Play the first legal card for CP.  The hand lists one row per card; a tap on
+ * a row opens the inspector, where the operations live.
+ *
+ * Card play is arm-then-confirm (`ConfirmButton`, preference on by default):
+ * the first click arms the button and the second one plays.  The button is
+ * addressed by test id because the armed label replaces its text, so a text
+ * filter would stop matching between the two clicks.
  *
  * A plain event card is preferred: every card is a CP card (12.0), but a
  * mandatory event played for CP also resolves its printed text, which can open
  * a decision or move the map under the caller's next click.
  *
- * The tray starts folded while a decision is owed and a folded tray renders no
- * card bodies, so the cards are awaited before concluding the hand is empty.
+ * The tray renders no cards while a decision is owed, so the cards are awaited
+ * before concluding the hand is empty.
  */
 async function playCardForCp(page: Page, board: Locator): Promise<boolean> {
     const cards = board.locator(".ie-hand .ie-card");
@@ -56,12 +51,21 @@ async function playCardForCp(page: Page, board: Locator): Promise<boolean> {
     }
     for (const i of [...events, ...order]) {
         const card = await openCard(cards.nth(i));
-        const button = card.locator('[data-testid^="ie-play-cp-"]').first();
-        if (!(await button.count()) || !(await button.isEnabled())) continue;
-        await button.click();
-        await expect(button).toHaveAttribute("data-armed", "true");
-        await button.click();
-        return true;
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        const button = inspector.locator('[data-testid^="ie-play-cp-"]').first();
+        const usable = await button.count() > 0 && await button.isEnabled();
+        if (usable) {
+            await button.click();
+            await expect(button).toHaveAttribute("data-armed", "true");
+            await button.click();
+            // The card leaves the hand and the inspector closes itself; its
+            // backdrop must be gone before the next map click.
+            if (await inspector.count() > 0) await page.keyboard.press("Escape");
+            await expect(inspector).toHaveCount(0);
+            return true;
+        }
+        await page.keyboard.press("Escape");
+        await expect(inspector).toHaveCount(0);
     }
     return false;
 }
@@ -192,12 +196,20 @@ test.describe("Imperial Elegy local hotseat", () => {
             });
             if (state.rolled) break;
             expect(state.pending).not.toBeNull();
-            expect(["combatSupport", "combatCard"]).toContain(state.pending!.kind);
+            // A078/A080/A091 add the elite-bonus question between the card
+            // windows and the dice; it is answered by its own option instead of
+            // the support/card "done" button.
+            expect(["combatSupport", "combatCard", "combatElite"]).toContain(state.pending!.kind);
             await focusSeat(page, state.pending!.power);
             const decidingBoard = page.locator(`[data-testid="ie-seat-${state.pending!.power}"]`);
-            await decidingBoard.getByTestId("ie-pending-option-done").click();
-            await expect.poll(async () => page.evaluate(() => (window as any).__IE_STATE__.pending?.id ?? null))
-                .not.toBe(state.pending!.id);
+            // `combatElite` is answered by its own option; support/card windows
+            // close with "done".
+            const answerId = state.pending!.kind === "combatElite" ? "decline" : "done";
+            await decidingBoard.getByTestId(`ie-pending-option-${answerId}`).click();
+            await expect.poll(
+                async () => page.evaluate(() => (window as any).__IE_STATE__.pending?.id ?? null),
+                {timeout: 5_000},
+            ).not.toBe(state.pending!.id);
         }
         // The battle log line is outcome-independent (`在萨克森（自 柏林）交战：…`),
         // unlike `battleEnded`, which says either 赢得战斗 or 战败 depending on the dice.
@@ -236,23 +248,25 @@ test.describe("Imperial Elegy local hotseat", () => {
         });
         await openLocal(page);
         const board = page.locator('[data-testid="ie-seat-GE"]');
-        const card = await openCard(board.locator(".ie-hand .ie-card").first());
-        const face = card.locator("svg.ie-card-face");
+        await openCard(board.locator(".ie-hand .ie-card").first());
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        await expect(inspector).toBeVisible();
+        const face = inspector.locator("svg.ie-card-face");
         const original = await face.getAttribute("data-card-id");
         await expect(face).toHaveAttribute("lang", "zh-CN");
         await expect(face.locator(".ie-card-rules")).toContainText(/[\u4e00-\u9fff]/);
         await expect(board.locator(".ie-card img, .ie-card image")).toHaveCount(0);
-        // The tray now has two disclosures per card: the "⋯" operations menu
-        // and the bilingual translation. Target the translation explicitly.
-        await card.locator(".ie-card-translation > summary").click();
-        await expect(card.locator(".ie-card-translation > div")).toBeVisible();
-        await expect(card.locator(".ie-card-translation > div")).toHaveAttribute("lang", "en");
+        // The inspector is the one place a card's face and text live; its
+        // translation disclosure prints the other language.
+        await inspector.locator(".ie-card-translation > summary").click();
+        await expect(inspector.locator(".ie-card-translation > div")).toBeVisible();
+        await expect(inspector.locator(".ie-card-translation > div")).toHaveAttribute("lang", "en");
         await page.locator(".MuiSwitch-input").click();
         await expect(page.getByRole("heading", {name: "Imperial Elegy — local hotseat"})).toBeVisible();
         await expect(face).toHaveAttribute("data-card-id", original!);
         await expect(face).toHaveAttribute("lang", "en");
         await expect(face.locator(".ie-card-rules")).toContainText(/[A-Za-z]/);
-        await expect(card.locator(".ie-card-translation > div")).toHaveAttribute("lang", "zh-CN");
+        await expect(inspector.locator(".ie-card-translation > div")).toHaveAttribute("lang", "zh-CN");
         expect(cardImageRequests).toEqual([]);
     });
 

@@ -419,9 +419,11 @@ Status labels:
   battles and any side fighting or fielding a rebel army); hydraulic recoil
   applies the CRT's `**` row (both sides +1 loss, mandatory) and `*` row (the
   victor chooses, via the `hydraulicRecoil` pending). Both are permanent once the
-  card is played. The cards' second clause — auto-eliminating an EC/elite
-  colonial EF that uses its combat bonus against a non-rebel army — waits on the
-  EC combat bonus itself, which the engine does not yet grant.
+  card is played. A078's elite combat bonus is now live too: the controlling
+  player commits an elite corps / elite colonial EF for +1 after the combat-card
+  windows (`combatElite`), and the cards' second clause destroys that unit after
+  a battle against a non-rebel army (`engine/eliteBonus.ts`). The elite bonus is
+  a pre-war rule, so it is not offered once the GW is active.
 - Minor-defender support (18.3.2): a controlling player gets the defender
   support and combat-card windows; an independent minor (no player controller)
   auto-commits its legal support and skips the defender window. The defending

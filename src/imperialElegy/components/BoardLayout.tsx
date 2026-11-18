@@ -185,6 +185,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
     transportFleet, transportCanGo, transportReason, interceptVisible, lastNavalBox, lastNavalMover,
     interceptPorts, interceptPortValue, setInterceptPort, interceptCheck, interceptReason,
     beginAmphibiousTargeting, beginNavalTransportTargeting, beginNavalInterceptTargeting,
+    isPhone,
   } = props;
 
   const amphibiousNode = viewer !== null ? (
@@ -211,9 +212,32 @@ export const OrdersRegion = (props: OrdersSlice) => {
       onPickMap={beginNavalInterceptTargeting} doAction={doAction} moves={moves}/>
   );
 
+  // 8.0: placing a major-power influence marker is an action the player takes
+  // on their own impulse, so it belongs with the Orders, not in the reference
+  // drawer (which is for reading the printed tables).
+  //
+  // On a phone the Orders pane is a ~294 px scroll surface, and MPIT used to
+  // be its last child — placing a marker meant scrolling past the space detail
+  // and the national actions first.  While this seat can act, the matrix
+  // therefore leads the pane.  Outside the seat's own impulse it is read-only,
+  // so it keeps its old place at the bottom; `OrdersRegion` is not rendered at
+  // all while a decision is owed, so `canAct` never flips mid-render.
+  const mpitNode = (
+    <MpitPanel
+      key="mpit"
+      G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
+      locale={locale} t={t} doAction={doAction} moves={moves} confirmActions={confirmActions}
+    />
+  );
+  const mpitFirst = isPhone && canAct;
+
   return (
     <>
+      {/* Moving these two siblings must not remount either panel (an armed
+          ConfirmButton lives inside the matrix), so both carry a stable key. */}
+      {mpitFirst ? mpitNode : null}
       <SpacePanel
+        key="space"
         onOpenReference={onOpenReference}
         G={G}
         selected={selected}
@@ -314,13 +338,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
           {transportVisible && viewer !== null && transportNode}
         </MoreActions>
       )}
-      {/* 8.0: placing a major-power influence marker is an action the player
-          takes on their own impulse, so it belongs with the Orders, not in the
-          reference drawer (which is for reading the printed tables). */}
-      <MpitPanel
-        G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
-        locale={locale} t={t} doAction={doAction} moves={moves} confirmActions={confirmActions}
-      />
+      {!mpitFirst ? mpitNode : null}
     </>
   );
 };

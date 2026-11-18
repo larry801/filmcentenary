@@ -81,7 +81,7 @@ test("the desktop tray defaults to its 220 px hand row and can fold to a header"
   expect(folded).toContain("手牌 · 德国");
 });
 
-test("a card row shows only its CP value, name and type until it is opened", () => {
+test("a card row shows only its CP value, name, type and status", () => {
   const G = game();
   const id = G.powers.GE.hand[0];
   const html = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
@@ -93,23 +93,39 @@ test("a card row shows only its CP value, name and type until it is opened", () 
   expect(rowHtml).toContain("ie-card-type");
   expect(rowHtml).toContain(`data-testid="ie-card-status-${id}"`);
   expect(rowHtml).toContain('data-expanded="false"');
-  expect(rowHtml).toContain('aria-expanded="false"');
-  // Folded rows carry no face, no buttons and no translation: that is the whole
-  // point of the redesign.
+  // The row is a dialog opener, never an in-place disclosure: one tap must go
+  // straight to the inspector.
+  expect(rowHtml).toContain('aria-haspopup="dialog"');
+  expect(rowHtml).not.toContain("aria-expanded");
+  // Folded rows carry no face, no buttons and no translation: the inspector is
+  // the one place they live.
   expect(rowHtml).not.toContain(`data-testid="ie-card-face-${id}"`);
   expect(rowHtml).not.toContain(`data-testid="ie-play-cp-${id}"`);
   expect(rowHtml).not.toContain("ie-card-face");
   expect(rowHtml).not.toContain("ie-card-translation");
 });
 
-test("a card that forbids passing starts unfolded so its event is reachable", () => {
+test("a card that forbids passing is still one row; the inspector carries its event", () => {
   const G = game();
   const id = G.powers.GE.hand[0];
   const html = renderToStaticMarkup(<HandTray {...props(G, true)} forcedCardIds={[id]}/>);
   const row = html.slice(html.lastIndexOf("<article", html.indexOf(`data-testid="ie-card-${id}"`)));
   const rowHtml = row.slice(0, row.indexOf("</article>"));
+  // The tray does not unfold anything: the restriction is explained inside the
+  // inspector, which the row opens.
+  expect(rowHtml).toContain('data-expanded="false"');
+  expect(rowHtml).not.toContain(`data-testid="ie-card-face-${id}"`);
+});
+
+test("expandAll draws the operations inline for embeds and rules-level tests", () => {
+  const G = game();
+  const id = G.powers.GE.hand[0];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)} expandAll/>);
+  const row = html.slice(html.lastIndexOf("<article", html.indexOf(`data-testid="ie-card-${id}"`)));
+  const rowHtml = row.slice(0, row.indexOf("</article>"));
   expect(rowHtml).toContain('data-expanded="true"');
-  expect(rowHtml).toContain('aria-expanded="true"');
+  expect(rowHtml).toContain('class="ie-card-actions"');
+  expect(rowHtml).toMatch(/data-testid="ie-play-(?:cp|event)-/);
   expect(rowHtml).toContain(`data-testid="ie-card-face-${id}"`);
 });
 
@@ -139,13 +155,13 @@ test("an ordinary card keeps the plain 打出事件 label", () => {
 
 test("svg is the zero-image default and print mode uses the stored card scan", () => {
   const G = game();
-  // The scan is what the unfolded face draws, so the forced card opens them.
-  const forced = [G.powers.GE.hand[0]];
-  const svg = renderToStaticMarkup(<HandTray {...props(G, true)} forcedCardIds={forced}/>);
+  // The card face is what the inspector draws; drive it through `expandAll`
+  // so it is present in a static render.
+  const svg = renderToStaticMarkup(<HandTray {...props(G, true)} expandAll/>);
   expect(svg).toContain("<svg");
   expect(svg).not.toContain("img class=\"ie-card-face");
 
-  const print = renderToStaticMarkup(<HandTray {...props(G, true)} cardFaceMode="print" forcedCardIds={forced}/>);
+  const print = renderToStaticMarkup(<HandTray {...props(G, true)} cardFaceMode="print" expandAll/>);
   expect(print).toContain('img class="ie-card-face ie-card-print"');
   expect(print).toContain("/imperial-elegy/cards/");
 });

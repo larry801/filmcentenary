@@ -83,6 +83,9 @@ const ORDERS_KEYS = [
   "interceptPortValue", "setInterceptPort", "interceptCheck", "interceptReason",
   "jihadDecision", "jihadReason",
   "commandedOwner", "commandsSelected", "hand",
+  // The phone reorders this region (MPIT first while it can act); the desktop
+  // order must stay untouched, so the layout needs the breakpoint.
+  "isPhone",
 ] as const;
 
 /** The hand tray and the card inspector. */

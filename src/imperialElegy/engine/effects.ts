@@ -804,6 +804,7 @@ const CARD_CHAIN_SPECIALS: ReadonlySet<string> = new Set([
   "worldsFair",
   "polishRevolt",
   "revolution1905",
+  "gwMinorPowerEntry",
   "stabilityOrCard",
 ]);
 
@@ -2001,6 +2002,54 @@ const resolveCardChain = (
   const special = String(context.special ?? "");
   const owner = (context.owner as Power | undefined) ?? pending.power;
   switch (special) {
+    case "gwMinorPowerEntry": {
+      const stage = String(context.stage ?? "");
+      if (stage === "mode") {
+        const minors = Object.values(SPACES)
+          .filter((s) => s.minorHome && G.spaces[s.id].control === s.minorHome && !s.keyType)
+          .filter((s) => G.spaces[s.id].strictNeutrality !== true)
+          .map((s) => s.id);
+        if (minors.length === 0) {
+          finishCardChain(G, ctx, pending);
+          return;
+        }
+        openDecision(G, ctx, decision(
+          "eventTargetSpace",
+          owner,
+          optionId === "neutral"
+            ? "Minor Power Entry: choose the minor power to mark strictly neutral"
+            : "Minor Power Entry: choose an independent minor power to roll for",
+          minors.map((id) => option(id, spaceLabel(id, "en"))),
+          {resume, special: "gwMinorPowerEntry", stage: optionId, owner, required: true},
+        ));
+        return;
+      }
+      const space = optionId as SpaceId;
+      if (!G.spaces[space]) {
+        finishCardChain(G, ctx, pending);
+        return;
+      }
+      if (stage === "neutral") {
+        // "place a strict neutrality marker on a minor power; powers with a
+        // strict neutrality marker cannot join the GW."
+        G.spaces[space].strictNeutrality = true;
+        log(G, owner, "gwStrictNeutrality", {space});
+        finishCardChain(G, ctx, pending);
+        return;
+      }
+      // The roll branch: 5+ joins on the active player's side.
+      const minorHome = SPACES[space]?.minorHome;
+      const roll = die(ctx, 6);
+      if (minorHome && roll >= 5) {
+        G.spaces[space].ally = owner;
+        placeNonPlayerCounter(G, minorHome, "minorArmy", space, 2);
+        log(G, owner, "gwMinorJoined", {space, roll});
+      } else {
+        log(G, owner, "gwMinorDeclined", {space, roll});
+      }
+      finishCardChain(G, ctx, pending);
+      return;
+    }
     case "polishRevolt": {
       // Step 1 picks the victim; step 2 is that player's stability-or-discard
       // choice, after which the rebels are placed.
@@ -3090,6 +3139,14 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "balkanWars": {
+      // 23.1: "Increase the WTT by 1. If the Ottomans control space(s) in the
+      // Balkans …".  The card prints TWO WTT increases, and each may incite a
+      // crisis, so this handler can be reached a second time through a crisis
+      // resume list.  Re-running the independence roll / step losses would be
+      // wrong: the printed text says it happens once.  `balkanWarsDone` marks
+      // the body as spent so the second arrival just continues the tail.
+      if (G.flags.balkanWarsDone === G.resolvingCard) return true;
+      if (G.resolvingCard) G.flags.balkanWarsDone = G.resolvingCard;
       const openBalkanIndependence = (candidates: SpaceId[]): boolean => {
         const needed = Math.min(2, candidates.length);
         if (needed === 0) return false;
@@ -3357,27 +3414,36 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "gwMinorPowerEntry": {
       // "Choose an independent minor power and roll a die.  On a roll of 5 or
-      // more that power joins the GW on a side of your choice."
-      //
-      // The card's printed "OR place a strict neutrality marker on a minor
-      // power" branch needs a strict-neutrality state the engine does not
-      // model, so only the roll branch is offered; see CARD_EVENTS.md.
+      // more that power joins the GW on a side of your choice. … OR place a
+      // strict neutrality marker on a minor power; powers with a strict
+      // neutrality marker cannot join the GW."
       const minors = Object.values(SPACES)
         .filter((s) => s.minorHome && G.spaces[s.id].control === s.minorHome && !s.keyType)
         .map((s) => s.id);
-      if (minors.length === 0) {
+      // The neutrality branch needs a minor that is not already marked; the
+      // join branch needs one that is.
+      const joinable = minors.filter((id) => G.spaces[id].strictNeutrality !== true);
+      const markable = minors.filter((id) => G.spaces[id].strictNeutrality !== true);
+      if (joinable.length === 0 && markable.length === 0) {
         log(G, actor, "noLegalTarget", {card: G.resolvingCard});
         return true;
       }
-      return openSpecialSpace(
-        G,
-        ctx,
+      const options = [
+        ...(joinable.length > 0
+          ? [option("join", "Roll for a minor power to join the GW", undefined, false, "掷骰让一个小国参战")]
+          : []),
+        ...(markable.length > 0
+          ? [option("neutral", "Place a strict neutrality marker", undefined, false, "放置严格中立标记")]
+          : []),
+      ];
+      openDecision(G, ctx, decision(
+        "eventChoice",
         actor,
-        handler,
-        minors,
-        "Minor Power Entry: choose an independent minor power to roll for",
-        resume,
-      );
+        "Minor Power Entry: choose how this card resolves",
+        options,
+        {resume, special: handler, stage: "mode", owner: actor, required: true},
+      ));
+      return false;
     }
     case "gwMajorPowerEntry": {
       // The play itself is gated by `playGwCardMove` (GW #2 "cannot be played on
@@ -3903,16 +3969,6 @@ export const resolveCardDecision = (
       }
     } else if (special === "berlinConference") {
       if (!rejectIndependentIndiaMarker(G, actor, space, "influence")) G.spaces[space].influence = actor;
-    } else if (special === "gwMinorPowerEntry") {
-      const minorHome = SPACES[space]?.minorHome;
-      const roll = die(ctx, 6);
-      if (minorHome && roll >= 5) {
-        G.spaces[space].ally = actor;
-        placeNonPlayerCounter(G, minorHome, "minorArmy", space, 2);
-        log(G, actor, "gwMinorJoined", {space, roll});
-      } else {
-        log(G, actor, "gwMinorDeclined", {space, roll});
-      }
     } else if (special === "folieDeGrandeur") {
       applyPacification(G, space, 1);
     } else if (special === "habsburgDynasty") {

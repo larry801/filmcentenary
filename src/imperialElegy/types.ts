@@ -222,6 +222,13 @@ export interface SpaceState {
    * attacker has entered the space.  Optional for older saves.
    */
   trenchLine?: boolean;
+  /**
+   * GW-01 Minor Power Entry: "powers with a strict neutrality marker cannot
+   * join the GW."  Placed on an independent minor power's home space; the
+   * marker is cleared if that minor is ever brought into the war (nothing may
+   * override a strict neutrality marker, so the join paths refuse first).
+   */
+  strictNeutrality?: boolean;
 }
 
 /**
@@ -1297,6 +1304,21 @@ export interface BattleState {
    */
   star?: boolean;
   doubleStar?: boolean;
+  /**
+   * A080/A091: elite units whose optional +1 bonus was committed for this
+   * battle.  A committed unit is destroyed after the battle when the opposing
+   * main force is a non-rebel army (A078's printed self-destruction).
+   */
+  eliteBonusAttack?: string[];
+  eliteBonusDefense?: string[];
+  /** The elite-bonus decision has been offered for this side. */
+  eliteBonusAsked?: {attacker?: boolean; defender?: boolean};
+  /**
+   * Whether the opposing main force was a rebel army when the bonus was
+   * committed.  Recorded at commit time because the units may be gone by the
+   * time the battle ends.
+   */
+  eliteBonusVsRebel?: {attacker?: boolean; defender?: boolean};
   /** A091's `*` option has been offered/taken for this battle. */
   hydraulicRecoilResolved?: boolean;
   /** A091's `*` option is waiting for the victor's answer. */
