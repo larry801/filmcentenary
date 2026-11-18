@@ -289,6 +289,10 @@ grid areas unchanged. Short phones (≤ 699 px tall) use 44 dvh for half,
 
 - **Orders** — the selected space's actions, national actions and card
   choices, or the pending decision while one is owed (the desktop Orders body).
+  While this seat can act, the MPIT matrix (`components/MpitPanel.tsx`, `.ie-mpit-panel`)
+  leads the body instead of trailing it, and every track value is a 44 px
+  target (three equal columns per power); off-turn it stays last and read-only,
+  and on desktop the order is untouched.
 - **Hand** — the card row with its filters, sort and per-card operations.
 - **Mat** — the player mat, reachable on a phone now; the old layout hid it at
   this width. The same figures also appear in the reference drawer's power

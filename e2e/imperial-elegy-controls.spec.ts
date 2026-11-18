@@ -227,6 +227,98 @@ async function answerStartPending(page: Page) {
     }
 }
 
+/**
+ * `finishPrep` / `chooseHomeCards` for the phone shell.
+ *
+ * At 390 px the dock starts closed and a closed sheet hides its body
+ * (`[data-open="false"] .ie-mobile-body { display: none }`), so the prep and
+ * home-card buttons inside the Orders pane are not clickable until the sheet is
+ * opened.  The sheet keeps its position across a seat switch (the `data-tab`
+ * and `data-open` state live per mounted board), so one open per board is
+ * enough — but every seat is its own board, so sweep them the same way the
+ * desktop helpers do, opening the sheet first.
+ */
+async function openDock(page: Page, seat: string) {
+    const dock = boardFor(page, seat).locator('[data-testid="ie-mobile-dock"]');
+    if (await dock.getAttribute("data-open") !== "true") {
+        await dock.locator('[data-testid="ie-mobile-tab-orders"]').click();
+    }
+    await expect(dock).toHaveAttribute("data-open", "true");
+}
+
+async function phoneFinishPrep(page: Page) {
+    for (const seat of SEATS) {
+        await focusSeat(page, seat);
+        await openDock(page, seat);
+        const board = boardFor(page, seat);
+        const ready = board.getByRole("button", {name: "准备完毕"}).first();
+        await expect(ready).toBeVisible({timeout: 15_000});
+        await clickUntilGone(page, ready);
+    }
+}
+
+async function phoneChooseHomeCards(page: Page) {
+    for (const seat of SEATS) {
+        await focusSeat(page, seat);
+        await openDock(page, seat);
+        const board = boardFor(page, seat);
+        const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
+        await expect(choose).toBeVisible({timeout: 15_000});
+        await clickUntilGone(page, choose);
+    }
+    await phoneAnswerStartPending(page);
+}
+
+/** `answerStartPending`, opening the seat's dock before reaching into it. */
+async function phoneAnswerStartPending(page: Page) {
+    for (let round = 0; round < 6; round += 1) {
+        let answered = false;
+        for (const seat of SEATS) {
+            await focusSeat(page, seat);
+            await openDock(page, seat);
+            const pending = boardFor(page, seat).locator('[data-testid="ie-pending"]');
+            const options = pending.locator("button");
+            if (!(await options.count())) continue;
+            const before = await page.evaluate(() => (window as any).__IE_STATE__?.pending?.id ?? null);
+            await options.first().click();
+            await expect.poll(
+                async () => await page.evaluate(() => (window as any).__IE_STATE__?.pending?.id ?? null),
+                {timeout: 10_000},
+            ).not.toBe(before);
+            answered = true;
+            break;
+        }
+        if (!answered) return;
+    }
+}
+
+/**
+ * `playCpCard` for the phone: the hand rows only exist in the Hand pane, so
+ * the sheet has to be switched over before the first row can be opened.
+ */
+async function phonePlayCpCard(page: Page, board: Locator): Promise<boolean> {
+    const dock = board.locator('[data-testid="ie-mobile-dock"]');
+    if (await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining) > 0) return true;
+    await dock.locator('[data-testid="ie-mobile-tab-hand"]').click();
+    await expect(dock).toHaveAttribute("data-tab", "hand");
+    const played = await playCpCard(board);
+    await dock.locator('[data-testid="ie-mobile-tab-orders"]').click();
+    await expect(dock).toHaveAttribute("data-tab", "orders");
+    return played;
+}
+
+/** `reachAction` for the phone: the same flow, dock opened for every seat. */
+async function phoneReachAction(page: Page) {
+    await openLocal(page);
+    await phoneFinishPrep(page);
+    await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+    await phoneChooseHomeCards(page);
+    await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
+    await focusSeat(page, "GE");
+    await openDock(page, "GE");
+    await expect(boardFor(page, "GE").locator('[data-testid="ie-pass"]')).toBeVisible({timeout: 15_000});
+}
+
 test.describe("Imperial Elegy new controls", () => {
     test("phase buttons live in the collapsible dock and survive collapsing", async ({page}) => {
         await reachAction(page);
@@ -973,5 +1065,92 @@ test.describe("Imperial Elegy mobile drawer", () => {
         await expect(lightbox).toHaveCount(0);
         await board.locator('[data-testid="ie-reference-close"]').click();
         await expect(drawer).toBeHidden();
+    });
+
+    /**
+     * MPIT is the densest control on the board, and at 390x844 the Orders pane
+     * is a ~294 px scroll surface.  It used to be the last child of that pane
+     * and every track value was a 26 px pill, so placing a marker meant
+     * scrolling and then hitting a sub-fingertip target.  This test drives the
+     * real placement on a phone and pins both fixes: the matrix leads the pane
+     * while the seat can act, and all 18 values are 44 px targets that do not
+     * move when the button arms itself.
+     */
+    test("MPIT leads the Orders pane and is a 44 px target on a phone", async ({page}) => {
+        await phoneReachAction(page);
+        const board = boardFor(page, "GE");
+        const dock = dockFor(page);
+        const body = dock.locator('[data-testid="ie-mobile-body"]');
+        // A marker costs CP, so the seat needs a budget first (played through
+        // the Hand pane and back).
+        expect(await phonePlayCpCard(page, board), "GE could not play a card for CP").toBe(true);
+
+        // The pane is in front and open at half height (no expand needed).
+        await expect(dock).toHaveAttribute("data-open", "true");
+        await expect(dock).toHaveAttribute("data-tab", "orders");
+
+        const mpit = body.locator('[data-testid="ie-mpit"]');
+        await expect(mpit).toBeVisible();
+
+        // Reordered, not merely moved with CSS: the matrix is the first panel
+        // of the Orders body, ahead of the space detail.
+        const order = await body.evaluate((root) => {
+            const panel = root.querySelector('[data-testid="ie-mpit"]') as HTMLElement | null;
+            const detail = root.querySelector('[data-testid="ie-space-detail"]') as HTMLElement | null;
+            if (panel === null) return "missing";
+            if (detail === null) return "no-detail";
+            // Node.DOCUMENT_POSITION_FOLLOWING === 4: `detail` comes after `panel`.
+            return (panel.compareDocumentPosition(detail) & 4) === 4 ? "mpit-first" : "detail-first";
+        });
+        expect(order === "mpit-first" || order === "no-detail").toBe(true);
+
+        // Every placement value is a fingertip, and the first one needs no
+        // scroll: it sits inside the visible body box.
+        const tracks = mpit.locator('[data-testid^="ie-mpit-place-"]');
+        await expect(tracks).toHaveCount(18);
+        for (let i = 0; i < 18; i += 1) {
+            const box = (await tracks.nth(i).boundingBox())!;
+            expect(box.height, `track ${i} height`).toBeGreaterThanOrEqual(44);
+            expect(box.width, `track ${i} width`).toBeGreaterThanOrEqual(44);
+        }
+        const bodyBox = (await body.boundingBox())!;
+        const firstBox = (await mpit.getByTestId("ie-mpit-place-GE-te").boundingBox())!;
+        expect(firstBox.y).toBeGreaterThanOrEqual(bodyBox.y - 1);
+        expect(firstBox.y + firstBox.height).toBeLessThanOrEqual(bodyBox.y + bodyBox.height + 1);
+
+        // Arm-then-confirm must not reflow the grid: the armed label is longer
+        // than the plain one, and the second tap has to land on the same box.
+        const placeGeTe = mpit.getByTestId("ie-mpit-place-GE-te");
+        const before = await page.evaluate(() => (window as any).__IE_STATE__.powers.GE.mpit.te);
+        // Measure the button's offset *inside its cell*: clicking can scroll the
+        // pane, so viewport coordinates move for reasons that have nothing to do
+        // with reflow.
+        const geometry = async () => await page.evaluate(() => {
+            const grid = document.querySelector('.ie-mobile-dock [data-testid="ie-mpit"] .ie-mpit-grid') as HTMLElement;
+            const button = document.querySelector('[data-testid="ie-mpit-place-GE-te"]') as HTMLElement;
+            const cell = button.closest(".ie-mpit-cell") as HTMLElement;
+            const d = document.querySelector('[data-testid="ie-mobile-dock"]') as HTMLElement;
+            return {
+                gridHeight: grid.getBoundingClientRect().height,
+                buttonTop: button.getBoundingClientRect().top - cell.getBoundingClientRect().top,
+                buttonHeight: button.getBoundingClientRect().height,
+                buttonWidth: button.getBoundingClientRect().width,
+                dockHeight: d.getBoundingClientRect().height,
+            };
+        });
+        const beforeGeometry = await geometry();
+
+        await placeGeTe.click();
+        await expect(placeGeTe).toHaveAttribute("data-armed", "true");
+        const armedGeometry = await geometry();
+        expect(Math.abs(armedGeometry.gridHeight - beforeGeometry.gridHeight)).toBeLessThanOrEqual(1);
+        expect(Math.abs(armedGeometry.buttonTop - beforeGeometry.buttonTop)).toBeLessThanOrEqual(1);
+        expect(Math.abs(armedGeometry.buttonHeight - beforeGeometry.buttonHeight)).toBeLessThanOrEqual(1);
+        expect(Math.abs(armedGeometry.buttonWidth - beforeGeometry.buttonWidth)).toBeLessThanOrEqual(1);
+        expect(Math.abs(armedGeometry.dockHeight - beforeGeometry.dockHeight)).toBeLessThanOrEqual(1);
+
+        await placeGeTe.click();
+        await expect.poll(async () => page.evaluate(() => (window as any).__IE_STATE__.powers.GE.mpit.te))
+            .toBe(before + 1);
     });
 });

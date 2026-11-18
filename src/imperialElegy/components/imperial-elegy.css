@@ -3057,6 +3057,47 @@ img.ie-card-face { background: var(--ie-surface-2); }
   .ie-mobile-dock .ie-tray-expand,
   .ie-mobile-dock .ie-mat-toggle,
   .ie-mobile-dock .ie-tray-decision-line { display: none; }
+
+  /* MPIT inside the sheet: the matrix is the control itself, so each track
+     value has to be a fingertip.  Three equal columns keep the buttons at
+     44 px without giving a power its own row (six rows would fill the whole
+     half-height body); the fixed width and height also keep the arm-then-
+     confirm label swap ("TE 3" -> "确认 德国 TE") from reflowing the grid
+     between the two taps. */
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-grid { gap: 6px; margin-top: 4px; }
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-cell {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    align-items: stretch;
+  }
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-cell > b { grid-column: 1 / -1; }
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-track {
+    /* `display: block` (not the desktop inline-flex) so the ellipsis applies
+       to the armed label instead of clipping it mid-glyph. */
+    display: block;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 5px;
+    line-height: 42px; /* 42 + 2 x 1 px border = 44 */
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--ie-font-xs);
+  }
+  /* The one-line instruction stays in the DOM for assistive tech, but it must
+     not take a second row out of the 294 px half-height body. */
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-controls .ie-muted {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Spectators and off-turn seats read the same matrix as text. */
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-value { line-height: 44px; }
 }
 
 /* ---- short phones (≤699 px tall) ----

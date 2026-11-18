@@ -53,6 +53,7 @@ export const MpitPanel = ({
 
   return (
     <IEPanel
+      className="ie-mpit-panel"
       title={`${t.mpit} · ${bi(locale, "Influence track", "影响力轨")}`}
       actions={<IEBadge>{bi(locale, "1 CP per marker", "每标记 1 CP")}</IEBadge>}
     >
