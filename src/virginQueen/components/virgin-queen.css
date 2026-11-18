@@ -165,7 +165,11 @@
    and the L-shaped world-map triangle strip, so there is no Europe/world
    switch and no inset panel here. */
 .vq-board-surface { position: absolute; inset: 0; }
-.vq-board-surface > svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; background: #82b3d2; }
+/* `meet` letterboxes the 1000 × 620 frame inside a wide panel; the letterbox
+   repeats the board's sea gradient so the frame edge does not read as a
+   lighter band beside the map. */
+.vq-board-surface > svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none;
+    background: linear-gradient(180deg, #a3ccdf 0%, #82b3d2 48%, #5f93bd 100%); }
 .vq-board-map .vq-map-controls { border-color: #8a744e; }
 .vq-board-map .vq-label-leader { stroke: #6b5739; stroke-width: .55; stroke-dasharray: 1 1.5; opacity: .65; }
 .vq-board-triangle-leader { stroke: #4b7f92; stroke-width: .4; stroke-dasharray: 1 1.4; opacity: .7; }
