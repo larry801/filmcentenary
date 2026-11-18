@@ -886,9 +886,12 @@ export const resolveEliteBonus = (
   }
   G.pending = null;
   // Continue where the elite question interrupted: the remaining elite
-  // question, then the dice.
-  if (openEliteBonusSequence(G, ctx, battle)) return;
-  battle.stage = "roll";
+  // question, then the dice.  Read the battle back from `G` because opening a
+  // decision may have replaced the object the caller held.
+  const current = G.battle;
+  if (!current) return;
+  if (openEliteBonusSequence(G, ctx, current)) return;
+  current.stage = "roll";
   resolveBattleRoll(G, ctx);
 };
 

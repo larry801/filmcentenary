@@ -5026,6 +5026,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     const side = (pending.context?.eliteSide as "attacker" | "defender" | undefined)
       ?? (pending.context?.side as "attacker" | "defender" | undefined)
       ?? "attacker";
+    // Clear the wrapper first, matching `combatSupport`: if the battle has
+    // already gone, `resolveEliteBonus` returns early and a stale pending would
+    // otherwise block every later decision.
+    G.pending = null;
     resolveEliteBonus(G, ctx, side, optionId === "commit");
     return undefined;
   }

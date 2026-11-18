@@ -24,7 +24,8 @@ export interface PendingKindLike {
  */
 const DESTRUCTIVE_KINDS: readonly string[] = [
   "discardForStability",
-  "combatElite",
+  // `combatElite` deliberately stays out: it always offers a no-op "decline",
+  // so a second confirmation would only add a click to a reversible answer.
   "combatDiscard",
   "combatLosses",
   "hydraulicRecoil",
