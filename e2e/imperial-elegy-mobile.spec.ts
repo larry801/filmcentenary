@@ -174,14 +174,15 @@ test.describe("Imperial Elegy phone layout", () => {
         expect(count).toBeGreaterThan(0);
         const first = rows.first();
 
-        // The row: only CP value, name, type.  The name is what identifies the
-        // card, so it must be on screen — not truncated to nothing.
+        // The row: only CP value and name.  The name is what identifies the
+        // card, so it must be on screen — not truncated to nothing.  The type
+        // icon is gone: it used to sit over the CP number.
         await expect(first).toHaveAttribute("data-expanded", "false");
         const cp = (await first.locator(".ie-card-cp").innerText()).trim();
         expect(cp).toMatch(/^\d+$/);
         const name = (await first.locator(".ie-card-name").innerText()).trim();
         expect(name.length).toBeGreaterThan(0);
-        expect((await first.locator(".ie-card-type").innerText()).trim().length).toBeGreaterThan(0);
+        await expect(first.locator(".ie-card-type")).toHaveCount(0);
         await expect(first.locator(".ie-card-name")).toBeVisible();
         // The row never unfolds: no face, no buttons, no status panel.
         await expect(first.locator("[data-testid^='ie-card-face-']")).toHaveCount(0);

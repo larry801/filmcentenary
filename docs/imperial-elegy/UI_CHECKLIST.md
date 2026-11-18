@@ -177,7 +177,7 @@ The language toggle is the `中文 / English` switch in the site's top bar (MUI 
   - **turn panel** `ie-dock`: `指令`, the CP label, `停牌` / `结束行动轮`, tab labels, the one-line summary;
   - **map**: `ie-space-card`, `ie-space-detail`, the action group titles and every `.ie-action-reason`, the legend;
   - **mat** `ie-mat`: `稳定` (not `稳定度`), `人力`, `工业`, keys, reserves, the figure tooltips, and the printed display's own notes — the stability box effects, `MP` under the key boxes, `N 张卡` under the industry boxes, `结束阶段：骰 + CP ≥ 5/6`, `人力与工业中较低者`, `自动胜利`;
-  - **hand** `ie-hand-tray`: filter/sort, `CP 链`, `可作 CP`, the per-card status line, `中文译文` toggle on each face;
+  - **hand** `ie-hand-tray`: sort, `CP 链`, the per-card status line (only shown when the card cannot be played), `中文译文` toggle on each face;
   - **drawer** `ie-reference-drawer`: section headings, the CRT column heads, the cost list, the sequence, `ie-ref-log`;
   - **checklist strings**: the same set in `English` after switching.
 - [ ] Switch to `English` with the toggle and confirm each of the above flipped; switch back and confirm nothing stayed English.
