@@ -59,6 +59,15 @@ implemented on branch `feat/ie-card-limitations` — the elite-unit combat bonus
 A100's card tail surviving a multi-step crisis. Regression coverage:
 `src/imperialElegy/cardLimitations.test.ts` (14 assertions). See §6.
 
+**2026-11-19 fix:** the Bismarck event could not launch the war of unification it
+prints (§3.12): its `warDeclaration` flag was read by nothing and the impulse
+ended with no CP. The event now leaves a declaration entitlement that
+`declareWar` consumes with the card's printed CP, the Orders-panel declaration
+block accepts non-player targets (the German minors a unification war actually
+targets), and `war.declarationCard` records the card so Balance of Power cannot
+answer it. Regression coverage: `bismarckWar.test.ts` (6) and
+`components/bismarckDeclarePanel.test.tsx` (3).
+
 ---
 
 ## 2. 处理器架构 / Handler architecture
@@ -315,6 +324,44 @@ A017/A018/A056 共用 `choosePlayerStabilityOrCard`（先选玩家，再由该�
 稳定度或弃牌）。A073/A109 的卡面语义相同，此前却写成自动弃牌；本轮修复后
 `A109` 走同一选择语义，`A073` 走逐人顺序链，两者都按玩家意愿结算。
 
+### 3.12 俾斯麦事件无法发动统一战争 / the Bismarck event could not launch its war
+
+卡面：*“Gain 1 stability. Declare a war of unification using this card's CP
+value. …”* (`IE-H-GE-1`).
+
+实测 `playCard(IE-H-GE-1, "event")`（起始稳定度 3）：稳定度 3 → 4 后**行动轮
+直接结束**，`G.powers.GE.flags.warDeclaration` 被置为 `true`，但引擎里**没有
+任何代码读取这个标志**，`G.cpRemaining` 又是 0，而 `declareWar` 要求 CP
+（`cp < 1` 直接拒绝）。所以 GE 永远无法按卡面发动统一战争，这正是玩家报告的
+“事件俾斯麦无法发动统一战争”。同一缺陷还留下一条死路径：
+`engine/effects.ts` 的 `{type: "war"}` / `special: "warDeclaration"` 决策没有
+任何卡牌引用，也没有 `resolvePending` 分支。
+
+**Fix (2026-11-19).** 事件改为登记一份“宣战授权”（errata 12.17：一张牌的 CP
+必须全部用于宣战，不能留下零钱）：
+
+- `engine/rules.ts` 新增 `grantWarDeclarationEntitlement` /
+  `warDeclarationEntitlement` / `clearWarDeclarationEntitlement`。授权记在原有
+  的公开标志 `warDeclaration` 上，并用 `warDeclarationCard` 记住是哪张牌。
+- `bismarckWar` 处理器登记授权；`playCard` 在授权仍存在时不结束行动轮；
+  `finishImpulse`（交出行棋/行动轮）清除授权，所以“不宣战就直接过”仍然可行。
+- `declareWar` 读取授权：**不扣 `cpRemaining`**，CP 必须等于卡牌的 3，aim
+  必须是 `unification`；成功后清除授权，并把
+  `war.declarationCard = IE-H-GE-1`——14.2.1 的 Balance of Power 因此不能再
+  响应这次宣战（`balanceOfPower.test.ts` 原先手工设置该字段）。
+- UI：`SpacePanel` 的宣战块在授权期间锁定 aim/CP 为卡面值，并接受**非玩家
+  国家**作为目标（13.4），因为 GE 的统一战争目标正是丹麦、巴伐利亚等德意志
+  小国；此前面板只认 `isPowerKey(control)`，小国空间根本不会出现宣战块。
+
+回归：`src/imperialElegy/bismarckWar.test.ts`（6 个断言：事件授权、对玩家与
+小国的统一战争、CP/aim 校验、交出行动轮清除授权）与
+`src/imperialElegy/components/bismarckDeclarePanel.test.tsx`（3 个断言：锁定
+aim/CP、`{minor}` 目标参数、无授权时的普通控件）。
+
+仍未实现（另行记录，非本缺陷）：卡面的“可同时指定两个不同国家”与“宣战后可
+禁止其他玩家参战”，以及另外三张“用本牌 CP 宣战”的本国牌
+（Aux Armes, Russo-Turkish Wars, Jihad）各自的同类授权与目标限制。
+
 ---
 
 ## 4. 已确认正确的实现 / Verified-correct behaviour
@@ -522,7 +569,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 
 | Card | 名称 Name | Type | CP | 引擎入口 Engine entry | 交互 Interaction | 测试 Test |
 | --- | --- | --- | --- | --- | --- | --- |
-| `IE-H-GE-1` | Otto von Bismarck | event | 3 | `stability` + `bismarckWar` | auto | yes |
+| `IE-H-GE-1` | Otto von Bismarck | event | 3 | `stability` + `bismarckWar`→`declareWar` | choice | yes |
 | `IE-H-GE-2` | German General Staff | event | 3 | `germanGeneralStaff` | auto | **no** |
 | `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` | auto | yes |
 | `IE-H-UK-4` | Balance of Power | event | 3 | `balanceOfPower` | auto | handler |

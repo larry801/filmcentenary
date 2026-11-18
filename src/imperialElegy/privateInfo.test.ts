@@ -391,4 +391,10 @@ test("reconnecting the GE client preserves its private hand and keeps other view
 
   ge.stop();
   observer.stop();
-});
+// Two `Local()` clients, a shared master, a discard that has to round-trip
+// through both views and a stop/restart: the default 5 s is the same budget the
+// `eventually` helper is allowed to spend on a single probe, so a loaded CI
+// runner can spend the whole test margin inside one wait and time the test out
+// (seen once on the `fix/ie-orders-panel-merge` run).  The bound only relaxes
+// Jest's clock; every assertion is unchanged and still fails on a real defect.
+}, 20_000);

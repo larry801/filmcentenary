@@ -9,9 +9,11 @@
  * module inside its factory.
  */
 import type {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
+import type {WarDeclarationEntitlement} from "../engine/rules";
 import type {PhaseAction} from "./PhaseActions";
 import type {CardChoiceFace} from "./CardChoice";
 import type {HandChoicesProps} from "./HandChoices";
+import type {OrdersTab} from "./OrdersPanel";
 import type {ieStringsFor} from "./i18n";
 
 export type T = ReturnType<typeof ieStringsFor>;
@@ -280,6 +282,18 @@ export interface ModelValues {
   /** The Great War's 28.1.1 trench battles, for the War tab list. */
   trenchRows: import("./trenchRows").TrenchRow[];
   warTargetControl: Power | null;
+  /**
+   * The non-player power whose space is selected, when that non-player is a
+   * legal war target (13.4).  Declarations on minor powers are made through
+   * the same block as major-power declarations.
+   */
+  warMinorTarget?: string | null;
+  /**
+   * A home-card war declaration waiting to be made.  Bismarck's event grants
+   * one: the declaration is funded by the card's printed CP and its aim is
+   * fixed to a war of unification.
+   */
+  warEntitlement?: WarDeclarationEntitlement | null;
   targetControlledSpaces: SpaceId[];
   canDeclareWar: boolean;
   gwOrderPowers: Power[];
@@ -332,6 +346,16 @@ export interface ModelValues {
   setBoard: (b: "world" | "greatWar") => void;
   railTab: string;
   setRailTab: (key: string) => void;
+  /**
+   * The Orders panel's page state (actions / space / influence / naval).  Kept
+   * out of `G`: it is a view preference, so it survives neither a save nor a
+   * seat switch, and the panel falls back to the actions page when a page stops
+   * existing.
+   */
+  ordersTab: OrdersTab;
+  setOrdersTab: SetState<OrdersTab>;
+  /** A naval flow (amphibious, transport, interception) is offered right now. */
+  navalVisible: boolean;
   warAim: "conquest" | "liberation" | "unification";
   setWarAim: (a: "conquest" | "liberation" | "unification") => void;
   warCp: number;

@@ -22,12 +22,15 @@
 import React from "react";
 import {Icon} from "./Icon";
 import {ImperialElegyState, Power, SpaceId} from "../types";
+import {SPACES} from "../constant/spaces";
 import {IEBadge, IESurface} from "./theme";
 import {bi, PHASE_LABEL} from "./boardHelpers";
 import {LogList} from "./LogList";
 import type {CardFaceMode} from "./preferences";
 import {MapPanel} from "./MapPanel";
-import {SpacePanel} from "./SpacePanel";
+import {SpaceActionsPanel, SpaceDetailPanel, SpaceUnitPicker} from "./SpacePanel";
+import {useSpaceActions} from "./spaceActionModel";
+import {OrdersPanel} from "./OrdersPanel";
 import {PendingPanel} from "./PendingPanel";
 import {HandChoices} from "./HandChoices";
 import {HandTray} from "./HandTray";
@@ -43,7 +46,9 @@ import {SeatAlert} from "./SeatStrip";
 import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
 import {MpitPanel} from "./MpitPanel";
+import {CardChoiceModal} from "./CardChoiceModal";
 import {Toast} from "./Toast";
+import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {MobileDock, type MobileDockTab} from "./MobileDock";
 import type {MobileTab} from "./modelValues";
 import type {BoardModel} from "./useBoardModel";
@@ -66,24 +71,6 @@ export const BoardLayout = ({model}: BoardLayoutProps) => (
   </IESurface>
 );
 
-/** One-line entry that renders a bulky panel only after it is opened. */
-const MoreActions = ({label, testId, children}: {label: string; testId: string; children: React.ReactNode}) => {
-  const [open, setOpen] = React.useState(false);
-  return (
-    <div className="ie-more-actions" data-testid={testId}>
-      <button
-        type="button"
-        className="ie-more-actions-trigger"
-        aria-expanded={open ? "true" : "false"}
-        onClick={() => setOpen((value) => !value)}
-      >
-        {label} <Icon name="chevron-right" size={14}/>
-      </button>
-      {open && <div className="ie-more-actions-body">{children}</div>}
-    </div>
-  );
-};
-
 /**
  * Display preferences; lives in the track strip's menu.
  *
@@ -93,11 +80,13 @@ const MoreActions = ({label, testId, children}: {label: string; testId: string; 
  * is passed down as a prop for the same reason: storage alone only reaches a
  * consumer on its next mount.
  */
-const DisplayMenu = ({mode, setMode, confirmActions, setConfirmActions, locale}: {
+const DisplayMenu = ({mode, setMode, confirmActions, setConfirmActions, showUnavailable, setShowUnavailable, locale}: {
   mode: "svg" | "print";
   setMode: (mode: "svg" | "print") => void;
   confirmActions: boolean;
   setConfirmActions: (enabled: boolean) => void;
+  showUnavailable: boolean;
+  setShowUnavailable: (open: boolean) => void;
   locale: "en" | "zh_CN";
 }) => (
   <details className="ie-display-menu" data-testid="ie-display-menu">
@@ -145,6 +134,22 @@ const DisplayMenu = ({mode, setMode, confirmActions, setConfirmActions, locale}:
           "Play for CP, events, pass, ending a phase and destructive decisions arm first when this is on.",
           "开启时，作 CP 打出、事件、停牌、结束阶段与破坏性决策都需先点击蓄势、再点击确认。")}
       </div>
+
+      <div className="ie-display-title">{bi(locale, "Orders panel", "指令面板")}</div>
+      <label className="ie-display-toggle">
+        <input
+          type="checkbox"
+          data-testid="ie-show-unavailable"
+          checked={showUnavailable}
+          onChange={(event) => setShowUnavailable(event.target.checked)}
+        />
+        <span>{bi(locale, "Show unavailable actions", "显示不可用行动")}</span>
+      </label>
+      <div className="ie-display-note">
+        {bi(locale,
+          "The Actions page prints the legal rows first and folds the refused ones, with their printed reasons, into one section. This switch opens that section, and the fold remembers your choice.",
+          "行动页先列出可用行动，再把不可用行动连同其规则原因折叠成一节。此开关控制该节是否展开，并会记住你的选择。")}
+      </div>
     </div>
   </details>
 );
@@ -160,18 +165,34 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
 // Turn panel tabs
 // ---------------------------------------------------------------------------
 
-/** Action tab: the selected space and everything the player may do there. */
-export const OrdersRegion = (props: OrdersSlice) => {
+/**
+ * The Orders page: four pages behind one segmented control.
+ *
+ * Before, this was a single column holding the space's facts, its action list,
+ * the MPIT matrix, the national characteristics and three naval flows.  Each is
+ * a different question ("what may I do *here*", "what *is* here", "who do I
+ * influence", "is a naval flow open"), so each has its own page now.
+ *
+ * The pages stay mounted so an armed confirmation, a half-filled naval form and
+ * the bots' effects survive a switch; `hidden` is the only thing that changes.
+ */
+export const OrdersRegion = (props: OrdersSlice & {
+  /** The optional-card-choice line (or a required choice while a decision owns the body). */
+  actionsTopSlot?: React.ReactNode;
+  /** The `ie_show_unavailable` preference, live from the Display menu / the fold itself. */
+  showUnavailable?: boolean;
+  setShowUnavailable?: (open: boolean) => void;
+}) => {
   const {
-    onOpenReference,
-    G, selected, selectedUnit, setSelectedUnit, selectedUnitIds, toggleUnitSelection, selectUnitGroup, startMoveTargeting,
-    battleFrom, setBattleFrom, navalFrom, setNavalFrom,
-    viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
+    G, viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
-    targetControlledSpaces, warTargetControl, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
+    targetControlledSpaces, warTargetControl, warMinorTarget, warEntitlement, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
     polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
     polishArmyDecision, polishReserveDecision, myOnMapArmies, myForts, myMinorAllies, ownLandInSelected,
-    ownNavalInSelected, potentialLandTargets, potentialNavalTargets, selectedUnitDef, doAction, confirmActions, moves,
+    ownNavalInSelected, potentialLandTargets, potentialNavalTargets, doAction, confirmActions, moves,
+    selected, selectedUnit, setSelectedUnit, selectedUnitIds, toggleUnitSelection, selectUnitGroup,
+    startMoveTargeting, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
+    ordersTab, setOrdersTab, navalVisible,
     showNationalActions, zouaveInPlay, zouaveReason, auReformValue, setAuReformTarget, auReformDecision,
     auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason, auSacrifice,
     setAuSacrifice, auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate,
@@ -184,8 +205,22 @@ export const OrdersRegion = (props: OrdersSlice) => {
     transportFleet, transportCanGo, transportReason, interceptVisible, lastNavalBox, lastNavalMover,
     interceptPorts, interceptPortValue, setInterceptPort, interceptCheck, interceptReason,
     beginAmphibiousTargeting, beginNavalTransportTargeting, beginNavalInterceptTargeting,
-    isPhone,
+    selectedUnitDef, onOpenReference, commandedOwner: _commandedOwner, commandsSelected: _commandsSelected,
+    actionsTopSlot, showUnavailable, setShowUnavailable,
   } = props;
+
+  // The space's rows, computed once for the two pages that read them.
+  const rows = useSpaceActions({
+    G, viewer, phase, selected, selectedUnit,
+    cp: cpBudget(), canAct, canActionCard, war, me, moves, doAction,
+    myOnMapArmies, myForts, myMinorAllies, ownLandInSelected, ownNavalInSelected,
+    potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
+    canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve,
+    gwJointNavalAllies, gwJointNavalUnitIds, startMoveTargeting,
+    startBattle: () => battleFrom !== selected && setBattleFrom.current(selected),
+    startNavalBattle: () => navalFrom !== selected && setNavalFrom.current(selected),
+    warCp, locale, battleFrom, navalFrom,
+  });
 
   const amphibiousNode = viewer !== null ? (
     <AmphibiousPanel show G={G} viewer={viewer} locale={locale} t={t}
@@ -211,138 +246,133 @@ export const OrdersRegion = (props: OrdersSlice) => {
       onPickMap={beginNavalInterceptTargeting} doAction={doAction} moves={moves}/>
   );
 
-  // 8.0: placing a major-power influence marker is an action the player takes
-  // on their own impulse, so it belongs with the Orders, not in the reference
-  // drawer (which is for reading the printed tables).
-  //
-  // On a phone the Orders pane is a ~294 px scroll surface, and MPIT used to
-  // be its last child — placing a marker meant scrolling past the space detail
-  // and the national actions first.  While this seat can act, the matrix
-  // therefore leads the pane.  Outside the seat's own impulse it is read-only,
-  // so it keeps its old place at the bottom; `OrdersRegion` is not rendered at
-  // all while a decision is owed, so `canAct` never flips mid-render.
-  const mpitNode = (
-    <MpitPanel
-      key="mpit"
-      G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
-      locale={locale} t={t} doAction={doAction} moves={moves} confirmActions={confirmActions}
-    />
+  const spaceName = selected !== null && SPACES[selected] !== undefined
+    ? (locale === "zh_CN" ? SPACES[selected].nameZh : SPACES[selected].name)
+    : null;
+  const legalCount = rows.filter((row) => row.enabled).length;
+  const heading = spaceName === null ? undefined : (
+    <>
+      <b>{spaceName}</b>
+      <span className="ie-orders-heading-count">
+        {canAct
+          ? bi(locale, `${legalCount} available`, `${legalCount} 项可用`)
+          : bi(locale, "read-only", "只读")}
+      </span>
+    </>
   );
-  const mpitFirst = isPhone && canAct;
 
   return (
-    <>
-      {/* Moving these two siblings must not remount either panel (an armed
-          ConfirmButton lives inside the matrix), so both carry a stable key. */}
-      {mpitFirst ? mpitNode : null}
-      <SpacePanel
-        key="space"
-        onOpenReference={onOpenReference}
-        G={G}
-        selected={selected}
-        selectedUnit={selectedUnit}
-        setSelectedUnit={setSelectedUnit}
-        selectedUnitIds={selectedUnitIds}
-        toggleUnitSelection={toggleUnitSelection}
-        selectUnitGroup={selectUnitGroup}
-        startMoveTargeting={startMoveTargeting}
-        battleFrom={battleFrom}
-        setBattleFrom={(id) => setBattleFrom.current(id)}
-        navalFrom={navalFrom}
-        setNavalFrom={(id) => setNavalFrom.current(id)}
-        viewer={viewer}
-        me={me}
-        locale={locale}
-        t={t}
-        phase={phase}
-        canAct={canAct}
-        canSpend={canSpend}
-        cpRemaining={cpBudget()}
-        canActionCard={canActionCard}
-        pending={pending}
-        canDecide={canDecide}
-        war={war}
-        warAim={warAim}
-        setWarAim={setWarAim}
-        warCp={warCp}
-        setWarCp={setWarCp}
-        secondObjective={secondObjective}
-        setSecondObjective={setSecondObjective}
-        targetControlledSpaces={targetControlledSpaces}
-        warTargetControl={warTargetControl}
-        canDeclareWar={canDeclareWar}
-        gwJointNavalAllies={gwJointNavalAllies}
-        gwJointNavalUnitIds={gwJointNavalUnitIds}
-        polishReserve={polishReserve}
-        setPolishReserve={setPolishReserve}
-        deployLimit={deployLimit}
-        deployFree={deployFree}
-        canDeployHere={canDeployHere}
-        canGwDraft={canGwDraft}
-        canGwDeployHere={canGwDeployHere}
-        polishArmyDecision={polishArmyDecision}
-        polishReserveDecision={polishReserveDecision}
-        myOnMapArmies={myOnMapArmies}
-        myForts={myForts}
-        myMinorAllies={myMinorAllies}
-        ownLandInSelected={ownLandInSelected}
-        ownNavalInSelected={ownNavalInSelected}
-        potentialLandTargets={potentialLandTargets}
-        potentialNavalTargets={potentialNavalTargets}
-        selectedUnitDef={selectedUnitDef}
-        doAction={doAction}
-        confirmActions={confirmActions}
-        moves={moves}
-      />
-      <NationalActionsPanel
-        show={showNationalActions && viewer !== null}
-        viewer={viewer as Power}
-        locale={locale}
-        t={t}
-        cpBudget={cpBudget}
-        zouaveInPlay={zouaveInPlay}
-        zouaveReason={zouaveReason}
-        auReformValue={auReformValue}
-        setAuReformTarget={setAuReformTarget}
-        auReformDecision={auReformDecision as never}
-        auReformReason={auReformReason}
-        auCitizenValue={auCitizenValue}
-        setAuCitizenTarget={setAuCitizenTarget}
-        auCitizenDecision={auCitizenDecision as never}
-        auCitizenReason={auCitizenReason}
-        auSacrifice={auSacrifice}
-        setAuSacrifice={setAuSacrifice}
-        auIncorporateCandidates={auIncorporateCandidates}
-        auIncorporateValue={auIncorporateValue}
-        setAuIncorporateTarget={setAuIncorporateTarget}
-        auIncorporate={auIncorporate as never}
-        auIncorporateReason={auIncorporateReason}
-        tsrrArmies={tsrrArmies}
-        tsrrUnitValue={tsrrUnitValue}
-        setTsrrUnitId={setTsrrUnitId}
-        tsrrDestinations={tsrrDestinations}
-        tsrrToValue={tsrrToValue}
-        setTsrrTo={setTsrrTo}
-        tsrrDecision={tsrrDecision as never}
-        tsrrReason={tsrrReason}
-        doAction={doAction}
-        moves={moves}
-      />
-      {/* Legal naval actions render in full; with nothing legal they fold into
-          one "More actions" line instead of three always-open panels. */}
-      {amphibiousVisible && viewer !== null && amphibiousOrigins.length > 0 && amphibiousNode}
-      {transportVisible && viewer !== null && transportOrigins.length > 0 && transportNode}
-      {interceptVisible && interceptNode}
-      {!(amphibiousVisible && viewer !== null && amphibiousOrigins.length > 0) &&
-        !(transportVisible && viewer !== null && transportOrigins.length > 0) &&
-        !interceptVisible && (amphibiousVisible || transportVisible) && (
-        <MoreActions label={bi(locale, "More actions", "更多行动")} testId="ie-more-actions">
-          {amphibiousVisible && viewer !== null && amphibiousNode}
-          {transportVisible && viewer !== null && transportNode}
-        </MoreActions>
-      )}
-      {!mpitFirst ? mpitNode : null}
-    </>
+    <OrdersPanel
+      locale={locale}
+      labels={{
+        actions: t.ordersActions,
+        space: t.ordersSpace,
+        influence: t.ordersInfluence,
+        naval: t.ordersNaval,
+      }}
+      active={ordersTab}
+      onTab={setOrdersTab}
+      navalVisible={navalVisible}
+      navalUrgent={interceptVisible}
+      heading={heading}
+      tabs={{
+        actions: (
+          <>
+            {actionsTopSlot}
+            {/* The unit chips come first: choosing a unit is the first click of
+                most actions and arms the map's rings, so it must not cost a page
+                switch.  The Space page prints the same units read-only. */}
+            <SpaceUnitPicker
+              G={G} selected={selected} viewer={viewer} me={me} locale={locale} t={t} phase={phase} canAct={canAct}
+              selectedUnit={selectedUnit} setSelectedUnit={setSelectedUnit}
+              selectedUnitIds={selectedUnitIds}
+              toggleUnitSelection={toggleUnitSelection}
+              selectUnitGroup={selectUnitGroup}
+              pending={pending} canDecide={canDecide}
+              doAction={doAction} moves={moves}
+            />
+            <SpaceActionsPanel
+              G={G} selected={selected} viewer={viewer} me={me} locale={locale} t={t} phase={phase} canAct={canAct}
+              onOpenReference={onOpenReference}
+              rows={rows}
+              cpRemaining={cpBudget()}
+              canActionCard={canActionCard}
+              war={war}
+              warAim={warAim} setWarAim={setWarAim} warCp={warCp} setWarCp={setWarCp}
+              secondObjective={secondObjective} setSecondObjective={setSecondObjective}
+              targetControlledSpaces={targetControlledSpaces} warTargetControl={warTargetControl}
+              warMinorTarget={warMinorTarget ?? null} warEntitlement={warEntitlement ?? null}
+              canDeclareWar={canDeclareWar} polishReserve={polishReserve} setPolishReserve={setPolishReserve}
+              selectedUnitDef={selectedUnitDef} setSelectedUnit={setSelectedUnit}
+              battleFrom={battleFrom} setBattleFrom={(id) => setBattleFrom.current(id)}
+              navalFrom={navalFrom} setNavalFrom={(id) => setNavalFrom.current(id)}
+              confirmActions={confirmActions} doAction={doAction} moves={moves}
+              showUnavailable={showUnavailable} setShowUnavailable={setShowUnavailable}
+            />
+          </>
+        ),
+        space: (
+          <SpaceDetailPanel
+            G={G} selected={selected} viewer={viewer} me={me} locale={locale} t={t} phase={phase} canAct={canAct}
+            selectedUnitIds={selectedUnitIds}
+            pending={pending} canDecide={canDecide}
+            doAction={doAction} moves={moves}
+          />
+        ),
+        influence: (
+          <>
+            <MpitPanel
+              G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
+              locale={locale} t={t} doAction={doAction} moves={moves} confirmActions={confirmActions}
+            />
+            <NationalActionsPanel
+              show={showNationalActions && viewer !== null}
+              viewer={viewer as Power}
+              locale={locale}
+              t={t}
+              cpBudget={cpBudget}
+              zouaveInPlay={zouaveInPlay}
+              zouaveReason={zouaveReason}
+              auReformValue={auReformValue}
+              setAuReformTarget={setAuReformTarget}
+              auReformDecision={auReformDecision as never}
+              auReformReason={auReformReason}
+              auCitizenValue={auCitizenValue}
+              setAuCitizenTarget={setAuCitizenTarget}
+              auCitizenDecision={auCitizenDecision as never}
+              auCitizenReason={auCitizenReason}
+              auSacrifice={auSacrifice}
+              setAuSacrifice={setAuSacrifice}
+              auIncorporateCandidates={auIncorporateCandidates}
+              auIncorporateValue={auIncorporateValue}
+              setAuIncorporateTarget={setAuIncorporateTarget}
+              auIncorporate={auIncorporate as never}
+              auIncorporateReason={auIncorporateReason}
+              tsrrArmies={tsrrArmies}
+              tsrrUnitValue={tsrrUnitValue}
+              setTsrrUnitId={setTsrrUnitId}
+              tsrrDestinations={tsrrDestinations}
+              tsrrToValue={tsrrToValue}
+              setTsrrTo={setTsrrTo}
+              tsrrDecision={tsrrDecision as never}
+              tsrrReason={tsrrReason}
+              doAction={doAction}
+              moves={moves}
+            />
+          </>
+        ),
+        naval: (
+          <>
+            {amphibiousVisible && viewer !== null && amphibiousNode}
+            {transportVisible && viewer !== null && transportNode}
+            {interceptVisible && interceptNode}
+            {!amphibiousVisible && !transportVisible && !interceptVisible && (
+              <div className="ie-muted">{t.noSpace}</div>
+            )}
+          </>
+        ),
+      }}
+    />
   );
 };
 
@@ -456,7 +486,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
     moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast, goalCounts,
-    isPhone, mobileTab, setMobileTab, trayOpen, setTrayOpen, trayExpanded, setTrayExpanded,
+    isPhone, mobileTab, setMobileTab, trayOpen, setTrayOpen, trayExpanded, setTrayExpanded, isCurrentSeat,
   } = core;
   const {selected, onSelect, modePill, mapTargets, mapFocusedTarget, chooser} = interaction;
   // The one definition of "a decision is owed and on screen".  The panel uses
@@ -464,6 +494,51 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   // body, and the hand sheet to fold itself out of the map's way.
   const decisionOwed = Boolean(pending || battle || G.result);
   const warVisible = Boolean(war.war || war.gw);
+
+  /**
+   * The required card choice is a dialog, not a panel.
+   *
+   * Both rules that ask for one — the diplomacy home card and the end-step
+   * National Goal — are blockers: nothing in the Orders panel may be played
+   * around them, and painted inline they pushed the space's action list below
+   * the fold.  The home card cannot be dismissed; the Goal pick can be, and
+   * continuing keeps the first Goal, which is exactly what its printed hint
+   * promises.
+   *
+   * A hotseat mounts six boards at once, so the dialog is limited to the seat
+   * being looked at: `useFocusTrap` focuses into its dialog on mount, and a
+   * hidden seat must never pull the keyboard out of the visible board.
+   */
+  const homeChoiceOpen = choiceKinds.required && phase === "diplomacy";
+  const goalChoiceOpen = choiceKinds.required && phase === "end";
+  const choiceReachable = isCurrentSeat;
+  // A Goal pick the reader closed stays closed for that set of Goals; a new
+  // draw (a different set) opens it again.
+  const [dismissedGoals, setDismissedGoals] = React.useState<string | null>(null);
+  const goalSignature = choicesProps.ngChoices.join(",");
+  const goalDismissed = dismissedGoals === goalSignature;
+  // While a pending decision, a battle or the result owns the Orders body, the
+  // dialog would be a second modal asking to be answered at the same time: the
+  // choice falls back to the inline form on the Actions page there.
+  const choiceModalOpen = choiceReachable && !decisionOwed && (homeChoiceOpen || (goalChoiceOpen && !goalDismissed));
+  const choiceModalTitle = goalChoiceOpen ? t.chooseGoalTitle : t.chooseHomeTitle;
+
+  /**
+   * The optional prep discard is a real choice but a skippable one, so it stays
+   * one line at the top of the Actions page instead of becoming a dialog.
+   * `HandChoices` renders the required choice too; while a decision already owns
+   * the Orders body the choice cannot be a dialog (two modals at once), so it
+   * falls back to that same inline slot.
+   */
+  const actionsTopSlot = choiceKinds.optional
+    ? <HandChoices {...choicesProps}/>
+    : null;
+
+  const [showUnavailableMenu, setShowUnavailableMenu] = React.useState<boolean>(() => readShowUnavailable());
+  const setUnavailablePreference = (open: boolean) => {
+    setShowUnavailableMenu(open);
+    writeShowUnavailable(open);
+  };
 
   // The phone's one bottom sheet: Orders / Hand / Mat / Log, plus War only
   // while there is a war to report.  The two private tabs are for a seated
@@ -505,6 +580,8 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       setMode={setCardFaceMode}
       confirmActions={confirmActions}
       setConfirmActions={setConfirmActions}
+      showUnavailable={showUnavailableMenu}
+      setShowUnavailable={setUnavailablePreference}
       locale={locale}
     />
   );
@@ -621,7 +698,10 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             tabs={{
               action: (
                 <>
-                  {choiceKinds.required || choiceKinds.optional ? <HandChoices {...choicesProps}/> : null}
+                  {/* While a pending decision, a battle or the result owns this
+                      body, a required card choice cannot be a dialog (two modals
+                      at once), so it falls back to the inline form here. */}
+                  {decisionOwed && choiceKinds.required ? <HandChoices {...choicesProps}/> : null}
                   {(pending || battle || G.result) && (
                     <PendingPanel
                       G={G}
@@ -646,7 +726,14 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
                       dock
                     />
                   )}
-                  {!pending && !battle && G.result === null ? <OrdersRegion {...orders}/> : null}
+                  {!pending && !battle && G.result === null ? (
+                    <OrdersRegion
+                      {...orders}
+                      actionsTopSlot={actionsTopSlot}
+                      showUnavailable={showUnavailableMenu}
+                      setShowUnavailable={setUnavailablePreference}
+                    />
+                  ) : null}
                 </>
               ),
               war: <WarRegion key={`war-${locale}`} {...war} locale={locale} t={t}/>,
@@ -694,6 +781,19 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
           </div>
         )}
       </div>
+
+      {/* The required card choice, as a dialog.  It sits outside the table so it
+          covers the board while it is answered, and it is never mounted for a
+          seat the reader is not looking at (a hotseat's six boards). */}
+      <CardChoiceModal
+        open={choiceModalOpen}
+        dismissible={goalChoiceOpen}
+        locale={locale}
+        title={choiceModalTitle}
+        onClose={() => setDismissedGoals(goalSignature)}
+      >
+        <HandChoices {...choicesProps}/>
+      </CardChoiceModal>
 
       {/* A refused move is explained here: the engine answers a bare
           INVALID_MOVE, so the board says what it tried and why it is not

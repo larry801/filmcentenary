@@ -495,6 +495,136 @@
 
 .ie-action-now .ie-btn { background: var(--ie-brass); }
 
+/* ---------------------------------------------------------------- Orders pages */
+/* The Orders body's own navigation: four pages behind one segmented control.
+   The strip sticks to the top of the panel body so the page stays nameable
+   while its content scrolls. */
+.ie-orders { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.ie-orders-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--ie-font-xs);
+  color: var(--ie-brass-soft);
+  min-width: 0;
+}
+
+.ie-orders-heading b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ie-orders-heading-count { margin-left: auto; color: var(--ie-on-dark-muted); white-space: nowrap; }
+
+.ie-orders-nav {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-table-2);
+}
+
+.ie-orders-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--ie-radius-sm);
+  background: transparent;
+  color: var(--ie-on-dark-2);
+  font-size: var(--ie-font-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.ie-orders-tab:hover { background: var(--ie-panel-2); color: var(--ie-on-dark); }
+
+.ie-orders-tab[aria-selected="true"] { border-color: var(--ie-brass); background: var(--ie-panel-3); color: var(--ie-brass-soft); font-weight: 600; }
+
+.ie-orders-tab.urgent { color: var(--ie-warn-text-dark); }
+
+.ie-orders-tab-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-warn);
+  color: var(--ie-ink);
+  font-size: var(--ie-font-xs);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ie-orders-pane { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.ie-orders-pane[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- actions page */
+.ie-space-actions { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.ie-actions-space { font-size: var(--ie-font-xs); color: var(--ie-brass-soft); }
+
+.ie-action-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: var(--ie-font-xs);
+  color: var(--ie-on-dark-muted);
+}
+
+.ie-action-cp-note { font-variant-numeric: tabular-nums; }
+
+.ie-action-selected { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+
+/* The unit buttons: choosing a unit is the first click of most actions, so the
+   picker leads the Actions page.  The Space page prints the same units as
+   read-only chips. */
+.ie-unit-picker { display: flex; flex-direction: column; gap: 4px; }
+
+.ie-space-units .ie-unit-chip[aria-current="true"],
+.ie-unit-picker .ie-unit-chip.selected { border-color: var(--ie-brass); color: var(--ie-brass-soft); }
+
+/* The refused rows, folded.  The section keeps every row and every printed
+   reason; only its visibility changes, and the reader's choice is remembered. */
+.ie-unavailable {
+  border: 1px dashed var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  background: rgba(36, 29, 23, .5);
+}
+
+.ie-unavailable-summary {
+  padding: 5px 8px;
+  font-size: var(--ie-font-xs);
+  color: var(--ie-on-dark-2);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ie-unavailable-summary::-webkit-details-marker { display: none; }
+
+.ie-unavailable-summary::before { content: "▸"; color: var(--ie-brass-soft); }
+
+.ie-unavailable[open] > .ie-unavailable-summary::before { content: "▾"; }
+
+.ie-unavailable-summary:hover { color: var(--ie-on-dark); }
+
+.ie-unavailable-body { display: flex; flex-direction: column; gap: 6px; padding: 4px; }
+
 /* ---------------------------------------------------------------- hints */
 .ie-hint { font-size: var(--ie-font-xs); line-height: 1.4; color: var(--ie-on-dark-2); background: var(--ie-panel-2); border-left: 3px solid var(--ie-brass); padding: 4px 7px; margin-top: 5px; border-radius: 0 var(--ie-radius-sm) var(--ie-radius-sm) 0; }
 
