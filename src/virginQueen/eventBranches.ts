@@ -274,7 +274,11 @@ export const eventBranchChoice = (G: VQGame, cardId: string, power: Power, numPl
             break;
         }
         case "vq-036": {
-            const discardCards = G.discard.filter((id) => cardById(id).kind !== "home");
+            // Rule 6.2: no Mandatory Events, and no card this power already
+            // played this turn, may be retrieved from the discard pile.
+            const played = G.playedThisTurn?.[power] ?? [];
+            const discardCards = G.discard.filter((id) =>
+                cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory" && !played.includes(id));
             if (discardCards.length > 0) {
                 branches.push(branch("retrieve", text("取回弃牌堆一张牌", "Recover a card from the discard pile"),
                     (values) => values.card === undefined || values.card === "" ? "retrieve" :

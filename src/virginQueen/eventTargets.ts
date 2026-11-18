@@ -86,7 +86,23 @@ export const eventTargetOptions = (G: VQGame, cardId: string, power: Power): Eve
                 .map((space) => spaceOption(space.id,
                     ` (${controllerName(G.spaces[space.id].control, locale())})`));
         }
-        case "vq-031": {
+        case "vq-027": {
+            // Knights on the map: choose between the random Ottoman card and
+            // the piracy-VP reduction.  Knights absent: choose the Spanish port.
+            const onMap = (G.spaces.malta?.land.independent?.regular ?? 0) > 0;
+            if (onMap) {
+                const hasCard = G.powers.ottoman.cards.some((id) => cardById(id).kind !== "home");
+                return [
+                    ...(hasCard ? [{value: "cards", label: text("从奥斯曼手中随机抽牌", "Draw a random Ottoman card")}] : []),
+                    {value: "piracyVp", label: text("奥斯曼海盗 VP −1", "Reduce Ottoman piracy VP by 1")},
+                ];
+            }
+            return [autoOption(), ...SPACES
+                .filter((space) => spaceHomes(space).includes("spain") && space.ports !== undefined &&
+                    G.spaces[space.id].control === "spain" && G.spaces[space.id].siege === undefined &&
+                    ownersWithLand(G, space.id).length === 0 && !G.spaces[space.id].fortress)
+                .map((space) => spaceOption(space.id))];
+        }        case "vq-031": {
             return SPACES
                 .filter((space) => G.spaces[space.id].siege !== undefined)
                 .map((space) => spaceOption(space.id,
@@ -113,7 +129,13 @@ export const eventTargetOptions = (G: VQGame, cardId: string, power: Power): Eve
                 G.spaces[capture.space]?.control === power ? [spaceOption(capture.space)] : [];
         }
         case "vq-046": {
-            return POWERS.filter((target) => target !== "spain" && ownerOf(G, target) !== undefined).map(powerOption);
+            // The card is played by the power that just captured a key; the
+            // defender is the only legal target, so the capturing power and
+            // unowned powers are filtered out.
+            const capture = G.lastCapture;
+            if (capture === undefined || capture.impulse !== G.impulse) return [];
+            return POWERS.filter((target) => target !== capture.attacker && ownerOf(G, target) !== undefined)
+                .map(powerOption);
         }
         case "vq-048": {
             return G.patronsAvailable.filter((id) => {
@@ -172,8 +194,13 @@ export const eventTargetOptions = (G: VQGame, cardId: string, power: Power): Eve
                 .map(colonyOption);
         }
         case "vq-077": {
+            // Printed text excludes Spanish colonies and those of Portugal and
+            // its allies; the engine filter must match the resolver.  Portugal
+            // itself is never a colony owner in this catalogue.
+            const portugueseAlly = (owner: Power | undefined): boolean =>
+                owner !== undefined && isPower(owner) && G.powers[owner].alliedMinors.includes("portugal");
             return Object.entries(G.worldColonies)
-                .filter(([id, owner]) => owner !== "spain" &&
+                .filter(([id, owner]) => owner !== "spain" && !portugueseAlly(owner) &&
                     ["southAtlantic", "indianOcean", "southPacific"].includes(WORLD_SETTLEMENT_BY_ID[id]?.seaZone ?? ""))
                 .map(([id]) => colonyOption(id));
         }
