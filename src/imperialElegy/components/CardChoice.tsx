@@ -1,4 +1,5 @@
 import React from "react";
+import {Icon} from "./Icon";
 import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
 import {CardFace} from "./CardFace";
@@ -65,7 +66,7 @@ export const CardChoice = ({locale, face, testId, actions}: CardChoiceProps) => 
             confirmLabel={action.confirmLabel}
             onConfirm={action.onChoose}
           >
-            {action.selected ? "✓ " : ""}{action.label}
+            {action.selected ? <Icon name="check" size={14}/> : null}{action.label}
           </ConfirmButton>
         ) : (
           <button
@@ -77,7 +78,7 @@ export const CardChoice = ({locale, face, testId, actions}: CardChoiceProps) => 
             title={action.title}
             onClick={action.onChoose}
           >
-            {action.selected ? "✓ " : ""}{action.label}
+            {action.selected ? <Icon name="check" size={14}/> : null}{action.label}
           </button>
         ))}
       </div>

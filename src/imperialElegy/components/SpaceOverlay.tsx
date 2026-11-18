@@ -1,4 +1,5 @@
 import React from "react";
+import {Icon} from "./Icon";
 import {ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {effectiveKeyType, friendlySpace, hasLoc} from "../engine/rules";
@@ -43,8 +44,8 @@ export const SpaceOverlay = ({G, selected, viewer, locale}: SpaceOverlayProps) =
       </div>
       <div className="ie-space-overlay-row">
         <span>{t.units}: {armyCount + shipCount}</span>
-        {armyCount > 0 && <span>⚔ {armyCount}</span>}
-        {shipCount > 0 && <span>⚓ {shipCount}</span>}
+        {armyCount > 0 && <span><Icon name="crossed-sabres" size={14}/> {armyCount}</span>}
+        {shipCount > 0 && <span><Icon name="anchor" size={14}/> {shipCount}</span>}
         {supply !== null && (
           <span className={supply ? "ie-ok" : "ie-danger"}>
             {supply ? t.inSupply : t.outOfSupply}

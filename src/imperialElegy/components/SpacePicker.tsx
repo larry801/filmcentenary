@@ -1,4 +1,5 @@
 import React from "react";
+import {Icon} from "./Icon";
 import {ImperialElegyState, Power, SpaceId} from "../types";
 import {spaceLabel} from "../constant/spaces";
 import {ieStringsFor, ieT} from "./i18n";
@@ -150,7 +151,7 @@ export const SpacePicker = ({
                     aria-label={bi(locale, `Show ${spaceLabel(id, locale)} on the map`, `在地图上定位${spaceLabel(id, locale)}`)}
                     onClick={() => { onFocus(id); setOpen(false); }}
                   >
-                    ⌖
+                    <Icon name="crosshair" size={16}/>
                   </button>
                 </li>
               );

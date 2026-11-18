@@ -10,6 +10,7 @@
  * the page underneath.
  */
 import React from "react";
+import {Icon} from "./Icon";
 import {Power} from "../types";
 import {POWER_DEFS} from "../constant/powers";
 import {bi} from "./boardHelpers";
@@ -118,7 +119,7 @@ export const ChartLightbox = ({chart, locale, onClose, onZoom}: ChartLightboxPro
           aria-label={bi(locale, "Close the chart", "关闭图表")}
           title={bi(locale, "Close (Esc)", "关闭（Esc）")}
         >
-          ✕
+          <Icon name="close" size={16}/>
         </button>
       </div>
       <div className="ie-lightbox-stage" onClick={onClose}>

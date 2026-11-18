@@ -11,6 +11,7 @@
  * presentation only: every value and every action comes from the board model.
  */
 import React from "react";
+import {Icon} from "./Icon";
 import {ImperialElegyState, Power, POWERS} from "../types";
 import {IEBadge} from "./theme";
 import {ieT} from "./i18n";
@@ -220,7 +221,7 @@ export const PhaseStepper = ({steps, locale, label, roving, onOpenReference}: {
       const done = !step.current && steps.findIndex((candidate) => candidate.current) > index;
       return (
         <React.Fragment key={step.key}>
-          {index > 0 && <span className="ie-stepper-sep" aria-hidden="true">{step.kind === "war" || step.kind === "gw" ? "›" : "▸"}</span>}
+          {index > 0 && <span className="ie-stepper-sep" aria-hidden="true"><Icon name="chevron-right" size={14}/></span>}
           <button
             type="button"
             aria-pressed={step.current ? "true" : "false"}

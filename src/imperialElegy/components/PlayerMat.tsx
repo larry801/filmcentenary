@@ -22,6 +22,7 @@
  * popover shows the same figures.  On a phone it is the dock's Mat tab.
  */
 import React from "react";
+import {Icon} from "./Icon";
 import {ImperialElegyState, Power} from "../types";
 import {GOALS_BY_ID} from "../constant/goals";
 import {POWER_DEFS, type StabilityEffect} from "../constant/powers";
@@ -310,7 +311,7 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
           onClick={() => setOpen((value) => !value)}
           title={shownOpen ? t.collapse : t.expand}
         >
-          <span aria-hidden="true">{shownOpen ? "▾" : "▸"}</span>
+          <span aria-hidden="true">{shownOpen ? <Icon name="chevron-down" size={14}/> : <Icon name="chevron-right" size={14}/>}</span>
         </button>
       </header>
 
@@ -477,7 +478,7 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
         onClick={() => onOpenReference?.(displayAnchor(viewer))}
         title={bi(locale, "Open the printed player display", "打开印刷版玩家面板")}
       >
-        {bi(locale, "Printed display ▸", "印刷面板 ▸")}
+        {bi(locale, "Printed display", "印刷面板")} <Icon name="arrow-right" size={14}/>
       </button>
 
       <div className="ie-mat-popover" data-testid="ie-mat-popover">
