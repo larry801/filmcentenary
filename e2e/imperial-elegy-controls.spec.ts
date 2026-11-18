@@ -573,14 +573,16 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await page.getByRole("tab", {name: /P3/}).click();
         const botBoard = page.locator('[data-testid="ie-seat-FR"]');
         await expect(botBoard.locator(".ie-bot-banner")).toContainText("机器人");
+        // Icon-only controls (the reference drawer's close) carry their name in
+        // aria-label rather than in text, so read both.
         const clickable = await botBoard
             .locator(".ie-btn, .ie-card-actions button")
             .evaluateAll((buttons) => buttons
                 .filter((button) => !(button as HTMLButtonElement).disabled)
-                .map((button) => (button.textContent ?? "").trim()));
+                .map((button) => (button.getAttribute("aria-label") ?? button.textContent ?? "").trim()));
         // A bot seat has nothing to act with; the drawer's close button is the
         // only enabled control the board still carries for it.
-        expect(clickable).toEqual(["✕"]);
+        expect(clickable).toEqual(["关闭参考"]);
     });
 
     test("a bot seat takes its impulse instead of stalling on an illegal move", async ({page}) => {
