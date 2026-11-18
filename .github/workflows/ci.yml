@@ -172,6 +172,13 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
+      # The job container runs as root while the runner owns the workspace, so
+      # git refuses to read the repository ("dubious ownership").  checkout
+      # registers its safe.directory under a throwaway HOME, so repeat it here
+      # for the steps that read HEAD; vite.config.mts stamps the drawer footer
+      # with `git rev-parse` and silently drops the commit when git fails.
+      - name: Trust the checkout inside the container
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       # Offline: the packages were fetched when the image was built.  This is
       # the only dependency step a browser job needs now.
       - name: Link dependencies from the image cache
@@ -228,6 +235,8 @@ jobs:
         with:
           name: app-build
           path: build
+      - name: Trust the checkout inside the container
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Link dependencies from the image cache
         run: yarn install --frozen-lockfile --offline --non-interactive
       - name: Run browser tests
