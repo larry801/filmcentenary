@@ -13,7 +13,7 @@ import {CardDef, Effect, SpaceFilter} from "../constant/cards";
 import {SPACES, isNavalBox, neighboursOf, spaceLabel} from "../constant/spaces";
 import {FLASHPOINTS, POWER_DEFS} from "../constant/powers";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "../constant/setup";
-import {cardById, CARD_BY_ID, discardCard, drawCards, removeCard} from "./deck";
+import {cardById, CARD_BY_ID, discardCard, drawCards, isCardId, removeCard} from "./deck";
 import {
   ARAB_KEY_SPACES,
   adjacentForLandMove,
@@ -53,6 +53,8 @@ import {
   setSpaceControl,
   unitById,
   unitsOfPower,
+  BISMARCK_HOME_CARD,
+  grantWarDeclarationEntitlement,
 } from "./rules";
 import {POLAND, isPolandIndependent, polishController, polishHasLoc, polishReserveIds} from "./poland";
 import {closeDecision, decision, openDecision, option} from "./pending";
@@ -3404,9 +3406,18 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "bismarckWar": {
-      // The +1 stability is the card's declared `stability` effect already
-      // applied by `resolveEffects`; repeating it here granted +2.
-      G.powers.GE.flags.warDeclaration = true;
+      // "Gain 1 stability.  Declare a war of unification using this card's CP
+      // value."  The +1 stability is the card's declared `stability` effect
+      // already applied by `resolveEffects`; repeating it here granted +2.
+      // The declaration itself is an entitlement (errata 12.17: all the CP
+      // from a card go into the war), consumed by `moves.declareWar`.  It is
+      // the selected home card's own CP that funds the war.
+      const card = G.resolvingCard;
+      grantWarDeclarationEntitlement(
+        G,
+        "GE",
+        isCardId(card) ? card : BISMARCK_HOME_CARD,
+      );
       return true;
     }
     case "southGermanConfederationHome": {

@@ -21,7 +21,8 @@
 import React from "react";
 import {ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {SPACES, neighboursOf, spaceLabel} from "../constant/spaces";
-import {effectiveKeyType, gwAllyImpulseFor, hasLoc, minorController} from "../engine/rules";
+import {MINOR_POWER_HOMES} from "../constant/setup";
+import {BISMARCK_HOME_CARD, effectiveKeyType, gwAllyImpulseFor, hasLoc, minorController, type WarDeclarationEntitlement} from "../engine/rules";
 import {polishReserveDeployer} from "../engine/poland";
 import {IEBadge, IEPanel} from "./theme";
 import {ConfirmButton} from "./ConfirmButton";
@@ -249,6 +250,10 @@ export interface SpaceActionsPanelProps extends SpaceBaseProps {
   setSecondObjective: (s: SpaceId | "") => void;
   targetControlledSpaces: SpaceId[];
   warTargetControl: Power | null;
+  /** 13.4: the non-player power the selected space belongs to, when legal. */
+  warMinorTarget?: string | null;
+  /** A home-card (Bismarck) declaration waiting to be made this impulse. */
+  warEntitlement?: WarDeclarationEntitlement | null;
   canDeclareWar: boolean;
   /** 22.5(2): the deploy-reserves row's Polish-reserve modifier. */
   polishReserve: boolean;
@@ -299,11 +304,22 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
     G, selected, viewer, locale, t, canAct, onOpenReference,
     rows, cpRemaining, canActionCard, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
-    targetControlledSpaces, warTargetControl, canDeclareWar,
+    targetControlledSpaces, warTargetControl, warMinorTarget = null, warEntitlement = null, canDeclareWar,
     polishReserve, setPolishReserve, selectedUnitDef, setSelectedUnit,
     battleFrom, setBattleFrom, navalFrom, setNavalFrom, confirmActions = true, doAction, moves,
     showUnavailable: liveShowUnavailable, setShowUnavailable: setLiveShowUnavailable,
   } = props;
+
+  // A home-card declaration (Bismarck) fixes both the aim and the budget: the
+  // card's printed CP pay for the war, so the ordinary aim/CP pickers are
+  // replaced by the printed values while the entitlement is live.
+  const entitlementAim = warEntitlement?.aim ?? null;
+  const declarationAim = entitlementAim ?? warAim;
+  const declarationCp = warEntitlement?.cp ?? warCp;
+  const declarationTarget = warMinorTarget ?? warTargetControl;
+  const minorLabelText = (minor: string): string => spaceLabel(MINOR_POWER_HOMES[minor] ?? (minor as SpaceId), locale);
+  const aimLabel = (aim: "conquest" | "liberation" | "unification"): string =>
+    aim === "conquest" ? t.conquest : aim === "liberation" ? t.liberation : t.unification;
 
   /**
    * The fold state is remembered per browser (`ie_show_unavailable`): a reader
@@ -490,19 +506,29 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
         </div>
       )}
 
-      {canActionCard && war === null && warTargetControl !== null && selected !== null && (
+      {canActionCard && war === null && declarationTarget !== null && selected !== null && (
         <div className="ie-war-declare" data-testid="ie-war-declare">
           <div className="ie-action-group-title">{t.declareWar}</div>
           <div className="ie-inline">
-            <IEBadge tone={warTargetControl.toLowerCase()}>{t.target}: {t.seats[warTargetControl]}</IEBadge>
-            <select className="ie-select" value={warAim} onChange={(e) => setWarAim(e.target.value as typeof warAim)} title={t.warAim}>
-              <option value="conquest">{t.conquest}</option>
-              <option value="liberation">{t.liberation}</option>
-              <option value="unification">{t.unification}</option>
-            </select>
-            <select className="ie-select" value={warCp} onChange={(e) => setWarCp(Number(e.target.value))} title={t.cp}>
-              {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} CP</option>)}
-            </select>
+            <IEBadge tone={warTargetControl !== null ? warTargetControl.toLowerCase() : "default"}>
+              {t.target}: {warMinorTarget !== null ? minorLabelText(warMinorTarget) : (warTargetControl !== null ? t.seats[warTargetControl] : "")}
+            </IEBadge>
+            {entitlementAim !== null ? (
+              <IEBadge tone="warn">{aimLabel(entitlementAim)}</IEBadge>
+            ) : (
+              <select className="ie-select" value={warAim} onChange={(e) => setWarAim(e.target.value as typeof warAim)} title={t.warAim}>
+                <option value="conquest">{t.conquest}</option>
+                <option value="liberation">{t.liberation}</option>
+                <option value="unification">{t.unification}</option>
+              </select>
+            )}
+            {warEntitlement !== null ? (
+              <IEBadge tone="default">{declarationCp} CP</IEBadge>
+            ) : (
+              <select className="ie-select" value={warCp} onChange={(e) => setWarCp(Number(e.target.value))} title={t.cp}>
+                {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} CP</option>)}
+              </select>
+            )}
             {secondObjectiveCandidates.length > 0 && (
               <select className="ie-select" value={secondObjective} onChange={(e) => setSecondObjective(e.target.value as SpaceId | "")} title={t.objectives}>
                 <option value="">{bi(locale, "One objective", "单一目标")}</option>
@@ -518,18 +544,30 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
               disabled={!canDeclareWar}
               confirm={confirmActions}
               confirmLabel={bi(locale,
-                `Confirm: declare war (${warCp} CP)`,
-                `确认：宣战（${warCp} CP）`)}
+                `Confirm: declare war (${declarationCp} CP)`,
+                `确认：宣战（${declarationCp} CP）`)}
               onConfirm={() => doAction(
-                () => moves.declareWar(warTargetControl, warAim, secondObjective ? [selected, secondObjective] : [selected], warCp),
-                {label: bi(locale, `Declare war (${warCp} CP)`, `宣战（${warCp} CP）`), reason: canDeclareWar ? undefined : bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)},
+                () => moves.declareWar(
+                  warMinorTarget !== null ? {minor: warMinorTarget} : warTargetControl,
+                  declarationAim,
+                  secondObjective ? [selected, secondObjective] : [selected],
+                  declarationCp,
+                ),
+                {label: bi(locale, `Declare war (${declarationCp} CP)`, `宣战（${declarationCp} CP）`), reason: canDeclareWar ? undefined : bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)},
               )}
             >
               {t.declareWar}
             </ConfirmButton>
           </div>
+          {warEntitlement !== null && (
+            <div className="ie-hint" data-testid="ie-war-entitlement">
+              {bi(locale,
+                `${warEntitlement.card === BISMARCK_HOME_CARD ? "Bismarck" : "The card"} funds this declaration with its printed CP; choose the objective on the map.`,
+                `本牌以印制的 CP 支付宣战费用；请在地图上选择战争目标。`)}
+            </div>
+          )}
           {G.wtt >= 3 && <div className="ie-hint">{bi(locale, "World Tension is 3+; a new war cannot be declared.", "世界紧张达到 3+，无法发动新的战争。")}</div>}
-          {!canDeclareWar && G.wtt < 3 && <div className="ie-hint">{bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)}</div>}
+          {!canDeclareWar && G.wtt < 3 && warEntitlement === null && <div className="ie-hint">{bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)}</div>}
         </div>
       )}
 
@@ -589,6 +627,8 @@ export interface SpacePanelProps extends SpaceBaseProps {
   setSecondObjective?: (s: SpaceId | "") => void;
   targetControlledSpaces?: SpaceId[];
   warTargetControl?: Power | null;
+  warMinorTarget?: string | null;
+  warEntitlement?: WarDeclarationEntitlement | null;
   canDeclareWar?: boolean;
   polishReserve?: boolean;
   setPolishReserve?: (b: boolean) => void;
@@ -715,6 +755,8 @@ export const SpacePanel = (props: SpacePanelProps) => {
         setSecondObjective={props.setSecondObjective ?? (() => undefined)}
         targetControlledSpaces={props.targetControlledSpaces ?? []}
         warTargetControl={props.warTargetControl ?? null}
+        warMinorTarget={props.warMinorTarget ?? null}
+        warEntitlement={props.warEntitlement ?? null}
         canDeclareWar={props.canDeclareWar ?? false}
         polishReserve={polishReserve ?? false}
         setPolishReserve={props.setPolishReserve ?? (() => undefined)}

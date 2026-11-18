@@ -189,7 +189,7 @@ export const OrdersRegion = (props: OrdersSlice & {
   const {
     G, viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
-    targetControlledSpaces, warTargetControl, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
+    targetControlledSpaces, warTargetControl, warMinorTarget, warEntitlement, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
     polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
     polishArmyDecision, polishReserveDecision, myOnMapArmies, myForts, myMinorAllies, ownLandInSelected,
     ownNavalInSelected, potentialLandTargets, potentialNavalTargets, doAction, confirmActions, moves,
@@ -304,6 +304,7 @@ export const OrdersRegion = (props: OrdersSlice & {
               warAim={warAim} setWarAim={setWarAim} warCp={warCp} setWarCp={setWarCp}
               secondObjective={secondObjective} setSecondObjective={setSecondObjective}
               targetControlledSpaces={targetControlledSpaces} warTargetControl={warTargetControl}
+              warMinorTarget={warMinorTarget ?? null} warEntitlement={warEntitlement ?? null}
               canDeclareWar={canDeclareWar} polishReserve={polishReserve} setPolishReserve={setPolishReserve}
               selectedUnitDef={selectedUnitDef} setSelectedUnit={setSelectedUnit}
               battleFrom={battleFrom} setBattleFrom={(id) => setBattleFrom.current(id)}
