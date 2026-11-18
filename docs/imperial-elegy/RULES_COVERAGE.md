@@ -26,6 +26,29 @@ Status labels:
 > the AU/FR/RU/OT special actions are live moves. Exact gaps are in
 > [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
 
+## Residual rules pass (2026-11-18)
+
+Five printed/errata clauses that earlier refreshes listed as open are live:
+
+- **15.1 start-of-maneuver naval battles** — at each maneuver step,
+  `combat.ts#beginNavalStartBattles` queues every naval box holding opposing
+  fleets; `resolveNextNavalStartContact` fights them one at a time with the
+  usual 19.2 avoidance window and drains the queue across pending decisions.
+  Wired into both `startWarManeuver` and `startGwManeuver`.
+- **34.4.5 free bot redeployment** — `engine/botRedeployment.ts` grants Easy 1
+  army / Normal half / Hard all of the bot's armies at the start of a war or GW
+  maneuver step, moving only through spaces the bot controls. The difficulty is
+  34.1's table-wide `G.botDifficulty`.
+- **12.2 / 12.4 minor-ally builds** — recruitment and construct-fleet actions
+  may now build for a minor ally in that minor's home space (a port for naval
+  units), via `moves.ts#buildForMinor` and
+  `characteristics.ts#minorBuildDecision`.
+- **26.1 GW combat-card gifts** — after the planning-step flip, a player may
+  give a faceup GW combat card to an ally (`greatWarFlow.ts#giftGwCombatCard`).
+- **27.5.2 Zouave substitution** — FR may rebuild the Zouaves through the GW
+  draft when it has none in play; the decision offers them in place of the
+  second drafted army.
+
 ## 1–4 Key concepts
 
 - 1.0 abbreviations, 4.3 seat order (GE, UK, FR, AU, RU, OT), 4.4 active player,

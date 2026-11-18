@@ -54,6 +54,20 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
     canGwTransfer, gwSideAllies, canGwReveal, canGwDraft, canGwDeployHere, forcedGwCard,
     doAction, moves, onOpenReference,
   } = props;
+  // 26.1: "After GW combat cards are flipped faceup, players may give their GW
+  // combat card(s) to another player(s) in their alliance."  The panel offers
+  // one gift at a time; the engine owns the legality.
+  const [giftCard, setGiftCard] = React.useState("");
+  const [giftTo, setGiftTo] = React.useState("");
+  const myFaceupCombat = (gw.combatCardsInFront ?? [])
+    .filter((entry) => entry.holder === viewer && entry.faceup)
+    .map((entry) => entry.cardId);
+  const canGwGift = Boolean(
+    viewer !== null && !eliminated && pending === null && phase === "gwPlanning" &&
+    myFaceupCombat.length > 0 && gwSideAllies.length > 0,
+  );
+  const giftCardValue = myFaceupCombat.includes(giftCard as never) ? giftCard : myFaceupCombat[0] ?? "";
+  const giftToValue = gwSideAllies.includes(giftTo as Power) ? giftTo : gwSideAllies[0] ?? "";
 
   return (
     <IEPanel title={`${t.greatWarMap} · GW ${gw.turn}`} actions={<IEBadge tone="warn">{PHASE_LABEL(t, phase)}</IEBadge>}>
@@ -126,6 +140,20 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
                 );
               })}
             </div>
+          )}
+          {canGwGift && (
+            <span className="ie-inline" data-testid="ie-gw-gift">
+              <select className="ie-select" data-testid="ie-gw-gift-card" value={giftCardValue}
+                onChange={(e) => setGiftCard(e.target.value)} title={bi(locale, "Faceup combat card to give", "要赠予的明置战斗牌")}>
+                {myFaceupCombat.map((cardId) => <option key={cardId} value={cardId}>{cardById(cardId).title}</option>)}
+              </select>
+              <select className="ie-select" data-testid="ie-gw-gift-to" value={giftToValue}
+                onChange={(e) => setGiftTo(e.target.value)} title={bi(locale, "Allied recipient", "受赠盟友")}>
+                {gwSideAllies.map((power) => <option key={power} value={power}>{t.seats[power]}</option>)}
+              </select>
+              <button className="ie-btn" data-testid="ie-gw-gift-submit" disabled={giftCardValue === "" || giftToValue === ""}
+                onClick={() => doAction(() => moves.gwGiftCombatCard(giftToValue as Power, giftCardValue), {label: t.gwGift})}>{t.gwGift}</button>
+            </span>
           )}
         </div>
         {gw.lastColonialWar && (

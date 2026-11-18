@@ -1318,6 +1318,35 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `gave ${card} to ${target}.`, `将 ${card} 交给${target}。`);
   },
 
+  // 12.2 / 12.4 (errata) + 12.8: a player builds a unit for an allied minor.
+  minorBuilt: (entry, locale) => {
+    const minor = str(entry.args?.minor);
+    const space = spaceName(entry.args?.space, locale);
+    const kind = unitKind(entry.args?.kind, locale);
+    const steps = num(entry.args?.steps) || 1;
+    return withActor(
+      entry,
+      locale,
+      steps === 2 && kind === "army"
+        ? `built a full-strength ${minor} army at ${space}.`
+        : `built ${article(kind)} ${kind} for ${minor} at ${space}.`,
+      steps === 2 && kind === "army"
+        ? `在${space}为${minor}建造了一支满编军团。`
+        : `在${space}为${minor}建造了${kind}。`,
+    );
+  },
+
+  minorBuildRejected: (entry, locale) => {
+    const minor = str(entry.args?.minor);
+    const reasons = str(entry.args?.reasons);
+    return withActor(
+      entry,
+      locale,
+      `could not build for ${minor}: ${reasons}.`,
+      `无法为${minor}建造：${reasons}。`,
+    );
+  },
+
   recruited: (entry, locale) => {
     const kind = unitKind(entry.args?.kind, locale);
     const space = spaceName(entry.args?.space, locale);
@@ -1508,6 +1537,18 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // 26.1: a faceup in-front combat card given to an ally during planning.
+  gwCombatCardGifted: (entry, locale) => {
+    const to = powerLabel(entry.args?.to, locale);
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(
+      entry,
+      locale,
+      `gave combat card ${card} to ${to}.`,
+      `将战斗牌 ${card} 赠予${to}。`,
+    );
+  },
+
   gwCombatCardFaceup: (entry, locale) => {
     const card = cardLabel(entry.args?.card, locale);
     return withActor(entry, locale, `revealed combat card ${card}.`, `亮出战斗牌 ${card}。`);
@@ -1554,6 +1595,23 @@ const FORMATTERS: Record<string, Formatter> = {
         locale,
         `substituted an elite colonial EF at ${space} for the second drafted army (the first was at ${first}).`,
         `在${space}以精锐殖民远征军替代第二支征召军团（第一支在${first}）。`,
+      );
+    }
+    if (kind === "zouave") {
+      return withActor(
+        entry,
+        locale,
+        `rebuilt the Zouaves at ${space} for the second drafted army (the first was at ${first}).`,
+        `在${space}重建祖阿夫军团以替代第二支征召军团（第一支在${first}）。`,
+      );
+    }
+    if (kind === "minorArmy") {
+      const minor = str(entry.args?.minor);
+      return withActor(
+        entry,
+        locale,
+        `substituted a ${minor} army at ${space} for the second drafted army (the first was at ${first}).`,
+        `在${space}以${minor}军团替代第二支征召军团（第一支在${first}）。`,
       );
     }
     return withActor(
@@ -2790,6 +2848,31 @@ const FORMATTERS: Record<string, Formatter> = {
     const port = spaceName(entry.args?.port, locale);
     const box = spaceName(entry.args?.box, locale);
     return withActor(entry, locale, `chose ${box} as the adjacent box for the port battle at ${port} (19.5).`, `为${port}的港口战斗选择${box}作为相邻海域（19.5）。`);
+  },
+
+  // 34.4.5: the bot's free start-of-maneuver redeployment.
+  botFreeRedeploy: (entry, locale) => {
+    const difficulty = entry.args?.difficulty ?? "—";
+    const armies = entry.args?.armies ?? 0;
+    const count = entry.args?.count ?? 0;
+    return withActor(
+      entry,
+      locale,
+      `redeployed ${count} of ${armies} armies for free at the start of the maneuver step (${difficulty}, 34.4.5).`,
+      `机动阶段开始时免费重新部署了${count}支军队（共${armies}支，${difficulty}，34.4.5）。`,
+    );
+  },
+
+  // 15.1: opposing fleets already sharing a box fight as the maneuver step opens.
+  navalStartBattle: (entry, locale) => {
+    const box = spaceName(entry.args?.box, locale);
+    const defender = powerLabel(entry.args?.defender, locale);
+    return withActor(
+      entry,
+      locale,
+      `started the maneuver step with an immediate naval battle at ${box} against ${defender} (15.1).`,
+      `机动阶段开始时在${box}立即与${defender}进行海战（15.1）。`,
+    );
   },
 
   navalPortContinuation: (entry, locale) => {

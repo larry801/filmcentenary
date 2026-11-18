@@ -18,10 +18,23 @@ Verification for this pass: `npx tsc --noEmit` clean, and
 Remote GitHub Actions verification is still **required** before this branch is
 merged (AGENTS.md §7/§10); the local run is not a substitute.
 
-Still open after this pass (deliberately not claimed as closed): 15.1's
-automatic start-of-maneuver naval battle, 34.4.5 free bot redeployment,
-12.2/12.4 minor-ally builds, 26.1/US planning gifts and 27.5.2's remaining
-recruitment substitutions.
+### Residual rules pass (2026-11-18, second pass)
+
+The five items the first pass left open are now closed:
+
+| Rule | Printed clause | Live implementation |
+| --- | --- | --- |
+| 15.1 | "At the start of the maneuver step, if opposing units occupy a naval box a naval battle is immediately fought (players are still allowed to attempt to avoid battle)." | `combat.ts#beginNavalStartBattles` builds the contact list (one per contested box, highest-initiative owner as attacker, `hostileSeatIn` for the defender) into `G.flags.navalStartQueue`; `resolveNextNavalStartContact` opens the 19.2 avoidance decision one box at a time. The queue is drained from `finishBattle`, `resolveNavalAvoid` and the pending-decision wrappers, so a 19.8/18.8 or upkeep decision cannot stack battles. Called by `moves.ts#startWarManeuver` and `greatWarFlow.ts#startGwManeuver`. |
+| 34.4.5 (errata) | Bots get a free redeployment at the start of a war's (or the GW's) maneuver step: Easy 1 army, Normal half, Hard all; peacetime movement, so only through spaces they control. | New `engine/botRedeployment.ts#botFreeRedeployment` (deterministic: closest-first toward the nearest enemy over controlled land, never over water), `warBotPowers`/`gwBotPowers` belligerent lists and a per-step `G.flags` stamp. Difficulty is 34.1's table-wide setting in `G.botDifficulty` (`configuration.ts#botDifficultyOf`, parsed at setup, normalised by the migration). Logged as `botFreeRedeploy`. Covered by `botRedeployment.test.ts`. |
+| 12.2 / 12.4 (errata) | Recruitment may build land units for minor allies in a home space of the minor; construct fleets may build naval units in a minor home space with a port. | `moves.ts#buildForMinor` delegates the gate to `characteristics.ts#minorBuildDecision`, shared by the moves, the Orders panel and the Rule 34 bot; refusals log `minorBuildRejected`, builds log `minorBuilt` with their CP cost. Covered by `minorAllyBuild.test.ts`. |
+| 26.1 | "After GW combat cards are flipped faceup, players may give their GW combat card(s) to another player(s) in their alliance." | `greatWarFlow.ts#giftGwCombatCard` (planning step, faceup cards only, same alliance), exposed in `components/GreatWarPanel.tsx` and `actionAvailability.ts`; logged as `gwCombatCardGifted`. |
+| 27.5.2 | "Likewise, the FR player can rebuild the Zouaves in this manner." | The GW draft substitution in `moves.ts` / `characteristics.ts#gwDraftZouaveChoice`: when FR has no Zouaves in play, the Zouaves replace the second drafted army in a legal FR space (offered as a draft decision option). The Outbreak Step placement of the Zouaves was already live. Covered by `gwDraftEf.test.ts`. |
+
+Two labels from the first pass needed no further code. "26.1/US planning
+gifts" is the GW combat-card transfer above: the rulebook's 26.1 gives no
+separate US gift, so nothing else was owed. "27.5.2's remaining recruitment
+substitutions" is the Zouave draft substitution above (the allied-minor and
+elite-colonial-EF substitutions were already implemented).
 
 ## Active Partial-completion audit (2026-11-15)
 

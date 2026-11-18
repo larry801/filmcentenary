@@ -124,6 +124,9 @@ const SAMPLES: Record<string, LogTextEntry> = {
   gwDraftSecondForfeited: {key: "gwDraftSecondForfeited", power: "GE", args: {space: "berlin", reason: "noSpace"}},
   gwCombatCardFaceup: {key: "gwCombatCardFaceup", power: "GE", args: {card: CARD_ID}},
   gwCombatCardFlipped: {key: "gwCombatCardFlipped", power: "GE", args: {card: CARD_ID}},
+  gwCombatCardGifted: {key: "gwCombatCardGifted", power: "GE", args: {to: "AU", card: CARD_ID}},
+  minorBuilt: {key: "minorBuilt", power: "GE", args: {minor: "Bavaria", kind: "army", space: "bavaria", steps: 2, cost: 2}},
+  minorBuildRejected: {key: "minorBuildRejected", power: "GE", args: {minor: "Bavaria", kind: "army", space: "bavaria", reasons: "The unit must be built in a home space of Bavaria"}},
   deployedReserves: {key: "deployedReserves", power: "GE", args: {space: "berlin", count: 2, free: false}},
   gwManeuverAction: {
     key: "gwManeuverAction",
@@ -274,6 +277,8 @@ const SAMPLES: Record<string, LogTextEntry> = {
   navalInterception: {key: "navalInterception", power: "FR", args: {roll: 4, drm: 1, total: 5, success: true, port: "toulon", box: "western-mediterranean", ships: "u3"}},
   navalAvoidance: {key: "navalAvoidance", power: "FR", args: {roll: 4, drm: 1, total: 5, success: true, space: "western-mediterranean", to: "toulon", ports: "toulon"}},
   navalPortBoxChoice: {key: "navalPortBoxChoice", power: "UK", args: {port: "gibraltar", box: "western-mediterranean"}},
+  botFreeRedeploy: {key: "botFreeRedeploy", power: "RU", args: {difficulty: "Normal", armies: 4, count: 2}},
+  navalStartBattle: {key: "navalStartBattle", power: "UK", args: {box: "north-sea", defender: "GE"}},
   navalContinuation: {key: "navalContinuation", power: "GE", args: {from: "baltic-sea", to: "pomerania", units: 2}},
   navalPortContinuation: {key: "navalPortContinuation", power: "GE", args: {from: "north-atlantic", to: "london", units: 2}},
   mineRetreat: {key: "mineRetreat", power: "GE", args: {from: "north-atlantic", space: "brittany", hits: 2, ignored: 2}},

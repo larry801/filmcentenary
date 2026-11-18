@@ -119,6 +119,7 @@ import {
   youngTurksBlocksFailedReforms,
 } from "./engine/playability";
 import {ensureStateDefaults} from "./engine/migrations";
+import {botFreeRedeployment, warBotPowers} from "./engine/botRedeployment";
 
 // The start-of-impulse penalties live in rules.ts so the GW flow can run them
 // without an import cycle; re-export them for direct callers and tests.
@@ -141,6 +142,7 @@ import {
   attemptInterception,
   beginLandBattle,
   beginNavalBattle,
+  beginNavalStartBattles,
   attemptNavalAvoidance,
   chooseLoss,
   chooseSupport,
@@ -160,6 +162,8 @@ import {
   resolveNavalInterception,
   resolveNavalPortBox,
   resolveNavalPortContinuation,
+  resolveNextNavalStartContact,
+  navalStartQueuePending,
 } from "./engine/combat";
 import {facedownGwCombatCards, isCombatCardId} from "./engine/combatCards";
 import {usArmyMayLeaveNorthAmerica, usCanLeaveNorthAmerica} from "./engine/gwMajors";
@@ -168,6 +172,7 @@ import {
   auRightsDecision,
   canGrantCitizenship,
   canRecruitIn,
+  minorBuildDecision,
   dualMonarchy,
   DUAL_MONARCHY_CARD,
   frLostWar,
@@ -229,6 +234,7 @@ import {
   resolveGwNeutralOption,
   resolveGwWinter,
   revealGwCombatCard,
+  giftGwCombatCard,
   startGwManeuver,
   transferGwBudget,
 } from "./engine/greatWarFlow";
@@ -1091,6 +1097,49 @@ export const polishRecruit = (
 
 export const stackingLimit = (_G: ImperialElegyState, space: SpaceId, _power: Power): number =>
   landStackingLimit(space);
+
+/**
+ * 12.2 / 12.4 (March 2026 errata) + 12.8: build a land or naval unit for a
+ * minor power the active player is allied to, in that minor's home space.
+ * The legality, the cost and the counter cap all come from
+ * `characteristics.ts#minorBuildDecision` so the Orders panel, the bot and this
+ * move give the same answer.
+ */
+export const buildForMinor = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  minor: string,
+  kind: "army" | "squadron" | "dreadnought",
+  space: SpaceId,
+  steps: 1 | 2 = 1,
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = requireActive(G, ctx, playerID);
+  if (power === INVALID_MOVE) return INVALID_MOVE;
+  const decision = minorBuildDecision(G, power, minor, kind, space, steps);
+  if (!decision.allowed) {
+    log(G, power, "minorBuildRejected", {minor, kind, space, reasons: decision.reasons.join(" | ")});
+    return INVALID_MOVE;
+  }
+  const paid = requireCp(G, ctx, playerID, decision.cost);
+  if (paid === INVALID_MOVE) return INVALID_MOVE;
+  if (kind === "army") {
+    const existing = landUnitsIn(G, space).find(
+      (unit) => unit.owner === minor && unit.kind === "minorArmy" && unit.steps < 2,
+    );
+    if (existing) {
+      existing.steps = 2;
+    } else {
+      placeNonPlayerCounter(G, minor, "minorArmy", space, steps === 2 ? 2 : 1);
+    }
+    log(G, power, "minorBuilt", {minor, kind, space, steps, cost: decision.cost});
+    return undefined;
+  }
+  placeNonPlayerCounter(G, minor, kind, space, 2);
+  refreshPowerProjection(G);
+  log(G, power, "minorBuilt", {minor, kind, space, steps: 2, cost: decision.cost});
+  return undefined;
+};
 
 export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, kind: "squadron" | "dreadnought", reduced = false): string | void => {
   const playerID = ctx.playerID ?? null;
@@ -4776,6 +4825,8 @@ const resolveNavalAvoid = (
     // 19.2: "After a force successfully avoids battle the attacking force
     // cannot continue moving", so 19.1's continuation is cancelled.
     G.navalContinuation = null;
+    // 15.1: an avoided start-of-maneuver battle still drains the queue.
+    if (G.pending === null && G.battle === null) resolveNextNavalStartContact(G, ctx);
   }
   if (!result.success) {
     const battle = beginNavalBattle(G, ctx, attacker, from, to, battleOptions);
@@ -4965,7 +5016,14 @@ const settleBattleCharacteristics = (G: ImperialElegyState): void => {
 
 export const resolvePending = (G: ImperialElegyState, ctx: Ctx, optionId: string): string | void => {
   const result = resolvePendingDecision(G, ctx, optionId);
-  if (result === undefined) settleBattleCharacteristics(G);
+  if (result === undefined) {
+    settleBattleCharacteristics(G);
+    // 15.1: a start-of-maneuver battle queue parked behind an upkeep decision
+    // resumes as soon as that decision closes.
+    if (G.pending === null && G.battle === null && navalStartQueuePending(G)) {
+      resolveNextNavalStartContact(G, ctx);
+    }
+  }
   return result;
 };
 
@@ -5212,7 +5270,14 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
 
 export const declinePending = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const result = declinePendingDecision(G, ctx);
-  if (result === undefined) settleBattleCharacteristics(G);
+  if (result === undefined) {
+    settleBattleCharacteristics(G);
+    // 15.1: an upkeep decision declined at the start of the maneuver step must
+    // also let the queued start-of-maneuver battles continue.
+    if (G.pending === null && G.battle === null && navalStartQueuePending(G)) {
+      resolveNextNavalStartContact(G, ctx);
+    }
+  }
   return result;
 };
 
@@ -6923,6 +6988,24 @@ export const gwTransferBudget = (G: ImperialElegyState, ctx: Ctx, to: Power, amo
   return res.ok ? undefined : INVALID_MOVE;
 };
 
+/**
+ * 26.1: give one faceup GW combat card to an ally during planning, after the
+ * cards have been flipped faceup.
+ */
+export const gwGiftCombatCard = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  to: Power,
+  cardId: CardId,
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const from = actor(G, playerID);
+  if (G.phase !== "gwPlanning" || !G.gw || from === null) return INVALID_MOVE;
+  if (G.pending !== null) return INVALID_MOVE;
+  const res = giftGwCombatCard(G, from, to, cardId);
+  return res.ok ? undefined : INVALID_MOVE;
+};
+
 export const gwRevealCombat = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
@@ -7416,8 +7499,15 @@ export const startWarManeuver = (G: ImperialElegyState, ctx: Ctx): string | void
     G.flags.frAllianceCpTurn = G.turn;
     log(G, "FR", "thirdRepublicCp", {cp: republic.cp});
   }
+  // 34.4.5: a bot belligerent redeploys for free before the first impulse.  Run
+  // first so a 15.1 battle below uses the redeployed positions.
+  botFreeRedeployment(G, ctx, warBotPowers(G), `war:${G.turn}:${G.war.attacker}:${G.war.defender}`);
   // 5.5.3 / 5.6.2: the first maneuver impulse's penalties.
   beginImpulseUpkeep(G, ctx, G.activePower);
+  // 15.1: opposing fleets sharing a naval box fight immediately.  The upkeep
+  // decision above (if any) keeps the queue parked; `resolvePending` drains it
+  // once that decision closes.
+  beginNavalStartBattles(G, ctx, G.war.initiative);
   log(G, power, "warManeuverStarted", {});
   return undefined;
 };

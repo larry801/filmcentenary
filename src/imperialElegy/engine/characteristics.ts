@@ -29,11 +29,15 @@ import {
   WarState,
 } from "../types";
 import {POWER_DEFS, PowerDef} from "../constant/powers";
+import {MINOR_POWER_HOMES} from "../constant/setup";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf} from "../constant/spaces";
+import {nonPlayerHasCounterFor} from "./counters";
 import {
   ARAB_KEY_SPACES,
   EGYPTIAN_SPACES,
+  PORT_NAVAL_LIMIT,
   allied,
+  armyEndProblem,
   friendlySpace,
   hasLoc,
   hostileOwner,
@@ -43,7 +47,9 @@ import {
   industrializationModifier,
   landStackingLimit,
   landUnitsIn,
+  minorController,
   movementEndProblem,
+  navalUnitsIn,
   ownsKey,
   unitsIn,
 } from "./rules";
@@ -1042,6 +1048,143 @@ export const canRecruitIn = (
   }
 
   return {power, space, kind, allowed: true, reasons: ["Recruitment legal", ...limits.reasons]};
+};
+
+// ---------------------------------------------------------------------------
+// 12.2 / 12.4 (March 2026 errata) — building for an allied minor power
+// ---------------------------------------------------------------------------
+
+export type MinorBuildKind = "army" | "squadron" | "dreadnought";
+
+export interface MinorBuildDecision {
+  power: Power | null;
+  minor: string | null;
+  kind: MinorBuildKind;
+  space: SpaceId | null;
+  allowed: boolean;
+  cost: number;
+  reasons: string[];
+}
+
+/** The printed 12.4 fleet chart, without a national discount. */
+const minorFleetCost = (kind: "squadron" | "dreadnought"): number =>
+  kind === "dreadnought" ? 3 : 2;
+
+/**
+ * 12.2 / 12.4 as amended by the March 2026 errata:
+ *
+ *   "Players may use recruitment actions to build land units for their minor
+ *   power allies.  Such units must be built in a home space of the respective
+ *   minor power."
+ *   "Players may use construct fleet actions to build naval units for their
+ *   minor power allies.  Such units must be built in a home space with a port
+ *   of the respective minor power."
+ *
+ * This is the 12.8 benefit ("the allied player can build more of that minor
+ * power's units ... limited by the counter mix").  It is deliberately separate
+ * from `canRecruitIn`: that helper is keyed on a player `Power`, and threading
+ * a minor owner through every power-specific gate (Professional Army, colonial
+ * manpower, Local Autonomy) would make those rules apply to a minor that has
+ * none of them.
+ *
+ * Cost follows the player chart — 1 CP per army step, the printed fleet chart
+ * otherwise — and the 4.2 non-player counter row is the cap.  The errata does
+ * not repeat the "territorial home key on the main map" restriction that
+ * constrains a player's own fleet builds, so this helper does not impose it;
+ * it only requires the minor's home space and (for fleets) a port.
+ */
+export const minorBuildDecision = (
+  G: ImperialElegyState,
+  power: Power | null,
+  minor: string,
+  kind: MinorBuildKind,
+  space: SpaceId | null,
+  steps: 1 | 2 = 1,
+): MinorBuildDecision => {
+  const reasons: string[] = [];
+  // A reduced minor army is flipped for one CP; a new one may be built at one
+  // or two steps (12.2's "1 CP per step"), like a player's standing army.
+  const reducedExisting = kind === "army" && space !== null
+    ? landUnitsIn(G, space).find((unit) => unit.owner === minor && unit.kind === "minorArmy" && unit.steps < 2)
+    : undefined;
+  const cost = kind === "army" ? (reducedExisting ? 1 : steps) : minorFleetCost(kind);
+  const decision: MinorBuildDecision = {
+    power, minor, kind, space, allowed: false, cost, reasons,
+  };
+  if (power === null) {
+    reasons.push("No player controls this minor power");
+    return decision;
+  }
+  if (G.phase !== "action") {
+    reasons.push("Recruitment and construction are action-phase actions (12.2/12.4)");
+    return decision;
+  }
+  if (minorController(G, minor) !== power) {
+    reasons.push("Only the player allied to this minor power may build its units (12.8)");
+    return decision;
+  }
+  if (space === null) {
+    reasons.push("A build needs a space");
+    return decision;
+  }
+  const state = G.spaces[space];
+  const def = SPACES[space];
+  if (!state || !def || isNavalBox(space)) {
+    reasons.push("That is not a land space on the map");
+    return decision;
+  }
+  // 12.2 / 12.4: the build goes in a home space of the minor itself.
+  if (def.minorHome !== minor && MINOR_POWER_HOMES[minor] !== space) {
+    reasons.push(`The unit must be built in a home space of ${minor}`);
+    return decision;
+  }
+  if (state.control !== minor && state.ally !== power) {
+    reasons.push(`${minor} must control that home space`);
+    return decision;
+  }
+  const poolKind = kind === "army" ? "army" : kind;
+  if (!nonPlayerHasCounterFor(G, minor, poolKind)) {
+    reasons.push(`${minor} has no ${kind} counter left (4.2)`);
+    return decision;
+  }
+  if (kind === "army") {
+    if (steps !== 1 && steps !== 2) {
+      reasons.push("An army build is one or two steps");
+      return decision;
+    }
+    // A reduced army of the minor may be flipped in place; otherwise this is a
+    // new counter and must respect the stacking limit.
+    if (!reducedExisting && armyEndProblem(G, space, 1) !== null) {
+      reasons.push("Stacking limit reached");
+      return decision;
+    }
+  } else {
+    if ((def.ports?.length ?? 0) === 0) {
+      reasons.push("Fleets need a home space with a port");
+      return decision;
+    }
+    if (kind === "dreadnought" && G.persistent.dreadnoughts !== true) {
+      reasons.push("Dreadnoughts must be enabled by the Dreadnought event");
+      return decision;
+    }
+    if (navalUnitsIn(G, space).length >= PORT_NAVAL_LIMIT) {
+      reasons.push("Port capacity reached");
+      return decision;
+    }
+  }
+  decision.allowed = reasons.length === 0;
+  return decision;
+};
+
+/** Every minor power whose units `power` may build (its 12.8 allies). */
+export const buildableMinorAllies = (G: ImperialElegyState, power: Power): string[] => {
+  const minors = new Set<string>(Object.keys(MINOR_POWER_HOMES));
+  for (const state of Object.values(G.spaces)) {
+    if (state.ally === power && state.control !== null && !isPower(state.control)) {
+      minors.add(String(state.control));
+    }
+  }
+  return [...minors].filter((minor) => minor !== "IT" && minor !== "US" && minorController(G, minor) === power).sort();
 };
 
 // ---------------------------------------------------------------------------

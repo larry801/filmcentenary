@@ -68,6 +68,7 @@ import {SPACES, createSpaceStates} from "../constant/spaces";
 import {createEmptyPowerState} from "../constant/setup";
 import {initialNonPlayerBuildBox} from "./endPhase";
 import {printedMaxIndustry} from "./greatWarFlow";
+import {botDifficultyOf} from "../configuration";
 
 /** Schema version written by the migration into `ImperialElegyState.version`. */
 export const CURRENT_STATE_VERSION = 2;
@@ -361,6 +362,12 @@ export const ensureStateDefaults = (G: ImperialElegyState): ImperialElegyState =
   // hotseat board never produced, so the absent case is left alone and every
   // reader goes through `botPowersOf`, which tolerates it.
   if (G.bots !== undefined && !Array.isArray(G.bots)) G.bots = [];
+  // 34.1: a save from before the difficulty field plays at the default.  Only
+  // written when the field is present but unusable, so the absent case stays
+  // absent (hotseat states never carried it) and `botDifficultyOf` defaults it.
+  if (G.botDifficulty !== undefined && botDifficultyOf(G) !== G.botDifficulty) {
+    G.botDifficulty = botDifficultyOf(G);
+  }
   // 13.4/8.2: the live declaration ledger for non-player powers.
   G.minorDeclarations ??= [];
   // 16.2: card markers awarded to independent minor powers.

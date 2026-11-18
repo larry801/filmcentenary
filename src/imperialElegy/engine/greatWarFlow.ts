@@ -113,6 +113,7 @@ import {blockadedAt, tsrrConnectionUsable} from "./blockade";
 export {BLOCKADE_ALLOWED_BOXES, BLOCKADE_EXEMPT_BOXES, PACIFIC_BOXES, blockadeTrace, tsrrConnectionUsable} from "./blockade";
 import {
   beginLandBattle,
+  beginNavalStartBattles,
   firstTransitInterceptHop,
   navalInterceptCandidates,
   openNavalContactDecision,
@@ -120,6 +121,7 @@ import {
   pruneTrenchBattle,
 } from "./combat";
 import {planNavalMove, requestDardanellesPassage} from "./navalMovement";
+import {botFreeRedeployment, gwBotPowers} from "./botRedeployment";
 import {counterRemaining, hasCounterFor, nonPlayerCounterRemaining, nonPlayerHasCounterFor} from "./counters";
 import {ALLIANCE_MAX_PLAYERS} from "./alliance";
 import {
@@ -209,6 +211,39 @@ export interface GwFailure {
 
 const fail = (error: GwFlowError, message: string, pending = false): GwFailure =>
   ({ok: false, error, message, ...(pending ? {pending: true} : {})});
+
+/**
+ * 26.1: "After GW combat cards are flipped faceup, players may give their GW
+ * combat card(s) to another player(s) in their alliance."
+ *
+ * The transfer window is the planning step, after `beginGwTurn` has flipped
+ * every in-front card faceup.  Only faceup cards can move (a card still
+ * facedown is not usable this turn, and the printed window opens *after* the
+ * flip), the recipient must be on the donor's GW side, and the card keeps its
+ * faceup state: it stays usable for the rest of this planning/maneuver turn.
+ */
+export const giftGwCombatCard = (
+  G: ImperialElegyState,
+  from: Power,
+  to: Power,
+  cardId: CardId,
+): GwCardGiftResult => {
+  if (!G.gw?.active) return fail("noGreatWar", "The Great War is not active");
+  if (G.phase !== "gwPlanning") return fail("wrongPhase", "GW combat cards can only be given in planning");
+  if (from === to) return fail("invalidTarget", "A power cannot give a card to itself");
+  if (!G.powers[from] || !G.powers[to]) return fail("invalidTarget", "Unknown power");
+  if (G.powers[from].eliminated || G.powers[to].eliminated) return fail("eliminated", "Eliminated powers cannot give or receive cards");
+  const sideFrom = sideOf(G, from);
+  const sideTo = sideOf(G, to);
+  if (sideFrom === null || sideFrom !== sideTo) return fail("notAllied", "GW combat cards can only be given to an ally");
+  const cards = G.gw.combatCardsInFront ?? [];
+  const entry = cards.find((candidate) => candidate.holder === from && candidate.cardId === cardId);
+  if (!entry) return fail("invalidCard", "That GW combat card is not in front of this power");
+  if (!entry.faceup) return fail("invalidCard", "Only a faceup GW combat card can be given");
+  entry.holder = to;
+  log(G, from, "gwCombatCardGifted", {to, card: cardId});
+  return {ok: true, from, to, cardId};
+};
 
 /**
  * 27.5's march/rail test, extracted so the board's legal-target model can ask
@@ -446,6 +481,15 @@ export interface GwRevealSuccess {
 
 export type GwRevealResult = GwRevealSuccess | GwFailure;
 
+export interface GwCardGiftSuccess {
+  ok: true;
+  from: Power;
+  to: Power;
+  cardId: CardId;
+}
+
+export type GwCardGiftResult = GwCardGiftSuccess | GwFailure;
+
 // ------------------------------------------------------------------ helpers
 
 const sideOf = (G: ImperialElegyState, power: Power): GwSide | null => {
@@ -577,6 +621,14 @@ const firstLivingOrderIndex = (G: ImperialElegyState): number => {
   if (!G.gw) return -1;
   return G.gw.order.findIndex((slot) => isPower(slot) && !G.powers[slot].eliminated);
 };
+
+/**
+ * 15.1's "opposing units" battle is fought by the initiative-higher side.  In
+ * the GW that is the 30.1 order track, with the bonus/IT/US slots skipped: they
+ * name no belligerent of their own.
+ */
+const gwInitiativeOrder = (G: ImperialElegyState): Power[] =>
+  !G.gw ? [] : G.gw.order.filter((slot): slot is Power => isPower(slot));
 
 const orderSideCounts = (G: ImperialElegyState): {te: number; ta: number} => {
   let te = 0;
@@ -825,6 +877,32 @@ export const gwDraftEfChoices = (
   return out;
 };
 
+/**
+ * 27.5.2: "Likewise, the FR player can rebuild the Zouaves in this manner" —
+ * the eliminated Zouave may replace one of the two drafted armies.  Algeria is
+ * the printed rebuild space (33.3), so the placement is fixed: FR only, no
+ * trench marker, and the Zouave counter must be out of play.  The draft's
+ * "no more than one per space" rule does not bind here because the Zouave is
+ * not an army counter, but the stacking limit still has to hold.
+ */
+export const gwDraftZouaveChoice = (
+  G: ImperialElegyState,
+  power: Power,
+  first: SpaceId | null,
+): {space: SpaceId} | null => {
+  if (power !== "FR") return null;
+  const space: SpaceId = "algeria";
+  if (space === first) return null;
+  const state = G.spaces[space];
+  const def = SPACES[space];
+  if (!state || !def || isNavalBox(space)) return null;
+  if (!ownsKey(G, space, power) || !friendlySpace(G, space, power)) return null;
+  if (state.trench) return null;
+  if (Object.values(G.units).some((unit) => unit.kind === "zouave" && unit.owner === "FR")) return null;
+  if (armyEndProblem(G, space, 1) !== null) return null;
+  return {space};
+};
+
 /** 27.5.2: an allied minor power's army may replace one of the drafted armies. */
 export interface GwDraftMinorChoice {
   minor: string;
@@ -921,9 +999,14 @@ export const resolveGwDraftSecond = (
     return true;
   }
   let space: SpaceId;
-  let kind: "army" | "expeditionary" | "eliteColonialEf" | "minorArmy" = "army";
+  let kind: "army" | "expeditionary" | "eliteColonialEf" | "minorArmy" | "zouave" = "army";
   let minor: string | null = null;
-  if (choice.startsWith("minor:")) {
+  if (choice.startsWith("zouave:")) {
+    const candidate = gwDraftZouaveChoice(G, pending.power, first);
+    space = choice.slice("zouave:".length) as SpaceId;
+    if (candidate === null || candidate.space !== space) return false;
+    kind = "zouave";
+  } else if (choice.startsWith("minor:")) {
     const rest = choice.slice("minor:".length);
     const separator = rest.indexOf(":");
     if (separator < 1) return false;
@@ -945,7 +1028,7 @@ export const resolveGwDraftSecond = (
   }
   const unit = minor !== null
     ? placeNonPlayerCounter(G, minor, "minorArmy", space, 1)
-    : placeUnit(G, pending.power, kind as "army" | "expeditionary" | "eliteColonialEf", space, 1);
+    : placeUnit(G, pending.power, kind as "army" | "expeditionary" | "eliteColonialEf" | "zouave", space, 1);
   if (!unit) return false;
   G.pending = null;
   log(G, pending.power, "gwDraftSecond", {space, unit: unit.id, first, kind, ...(minor ? {minor} : {})});
@@ -1276,12 +1359,18 @@ export const startGwManeuver = (G: ImperialElegyState, ctx: Ctx): GwManeuverBegi
   G.flags.gwAllyImpulse = "";
   beginGwImpulse(G, power);
   log(G, undefined, "gwManeuver", {turn: G.gw.turn});
+  // 34.4.5 (errata): a bot belligerent redeploys for free before the first impulse
+  // of the GW turn.  Run before the upkeep penalties and the 15.1 battles so both
+  // use the redeployed positions.
+  botFreeRedeployment(G, ctx, gwBotPowers(G), `gw:${G.gw.turn}`);
   // 30.1 can replace the first player with a bonus marker. That slot must also
   // act at the beginning of subsequent years, before the first living player.
   if (G.gw.order.slice(0, index).includes("bonus")) {
     G.turnIndex = G.gw.order.length - 1;
     const first = advanceGwImpulse(G, ctx);
     if (!first.ok) return first;
+    // 15.1: opposing fleets sharing a naval box fight before any impulse action.
+    beginNavalStartBattles(G, ctx, gwInitiativeOrder(G));
     return {
       ok: true, power: first.power ?? power, index: first.index, order: G.gw.order,
       awaitingBonusChoice: first.kind === "choice",
@@ -1290,6 +1379,10 @@ export const startGwManeuver = (G: ImperialElegyState, ctx: Ctx): GwManeuverBegi
   markSuperiorStaffWorkGwImpulse(G);
   delete G.flags.impulseUpkeepStamp;
   beginImpulseUpkeep(G, ctx, power);
+  // 15.1: opposing fleets sharing a naval box fight immediately.  A pending
+  // upkeep decision leaves the contacts queued; `resolvePending` drains them
+  // once that decision closes.
+  beginNavalStartBattles(G, ctx, gwInitiativeOrder(G));
   return {ok: true, power, index, order: G.gw.order};
 };
 
@@ -1678,11 +1771,12 @@ export const performGwManeuver = (
       if (p.manpower < 1) return fail("noManpower", "Not enough manpower to draft");
       // 4.2: two reduced armies are two army counters (the second is forfeited
       // when there is nowhere legal to put it, but a full draft needs both).
-      // 27.5.2: an allied minor army may replace the second army, so one own
-      // counter is then enough.
+      // 27.5.2: an allied minor army or the FR Zouaves may replace the second
+      // army, so one own counter is then enough.
       const remaining = counterRemaining(G, power, "army");
       const minorChoices = gwDraftMinorChoices(G, power, request.space);
-      if (remaining !== null && remaining < (minorChoices.length > 0 ? 1 : 2)) {
+      const zouaveChoice = gwDraftZouaveChoice(G, power, request.space);
+      if (remaining !== null && remaining < (minorChoices.length > 0 || zouaveChoice !== null ? 1 : 2)) {
         return fail("noCounter", `${power} does not have enough army counters for a draft`);
       }
       p.manpower -= 1;
@@ -1695,7 +1789,11 @@ export const performGwManeuver = (
         const secondSpaces = gwDraftSpaces(G, power, request.space);
         const efChoices = gwDraftEfChoices(G, power, request.space);
         const alliedMinorChoices = gwDraftMinorChoices(G, power, request.space);
-        if (secondSpaces.length === 0 && efChoices.length === 0 && alliedMinorChoices.length === 0) {
+        const zouave = gwDraftZouaveChoice(G, power, request.space);
+        if (
+          secondSpaces.length === 0 && efChoices.length === 0 &&
+          alliedMinorChoices.length === 0 && zouave === null
+        ) {
           log(G, power, "gwDraftSecondForfeited", {space: request.space, reason: "noSpace"});
         } else {
           openDecision(G, ctx, {
@@ -1719,6 +1817,13 @@ export const performGwManeuver = (
                 false,
                 `${minor} 军团：${spaceLabel(space, "zh_CN")}`,
               )),
+              ...(zouave === null ? [] : [option(
+                `zouave:${zouave.space}`,
+                `Rebuild the Zouaves in ${spaceLabel(zouave.space, "en")}`,
+                {kind: "zouave", space: zouave.space},
+                false,
+                `在${spaceLabel(zouave.space, "zh_CN")}重建祖阿夫军团`,
+              )]),
             ],
             context: {space: request.space, unitId: first.id},
             blocking: true,
