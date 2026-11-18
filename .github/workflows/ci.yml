@@ -48,6 +48,12 @@ jobs:
       # run's only type gate.  Its `include` covers the test files too.
       - name: Type check
         run: yarn tsc --noEmit
+      # VISUAL_SYSTEM.md §11.3/§14.1: generated tokens cannot drift and no
+      # text pair may fall below the contrast contract.
+      - name: Check Imperial Elegy design tokens
+        run: yarn ie:tokens:check
+      - name: Check Imperial Elegy contrast
+        run: yarn ie:contrast
       - name: Run unit tests
         run: yarn test --ci
 
