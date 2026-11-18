@@ -18,6 +18,22 @@ export interface SpacePanelProps {
   selected: SpaceId | null;
   selectedUnit: string | null;
   setSelectedUnit: (id: string | null) => void;
+  /** Every unit of the current selection, primary first (12.15/16.1 stacks). */
+  selectedUnitIds?: string[];
+  /** Add or remove one unit from the current selection (the stack form). */
+  toggleUnitSelection?: (id: string) => void;
+  /**
+   * Replace the selection with a whole stack in one dispatch.  A loop of
+   * `toggleUnitSelection` cannot build a group: React batches the dispatches
+   * and each reducer call still sees the pre-batch state.
+   */
+  selectUnitGroup?: (ids: string[]) => void;
+  /**
+   * Arm the map's move rings for the current selection.  The board owns this
+   * because only it may enter targeting (the panel must never guess a
+   * destination, and only a ring click may spend CP).
+   */
+  startMoveTargeting?: () => void;
   battleFrom: SpaceId | null;
   setBattleFrom: (id: SpaceId | null) => void;
   navalFrom: SpaceId | null;
@@ -80,6 +96,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
   const {
     onOpenReference,
     G, selected, selectedUnit, setSelectedUnit, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
+    selectedUnitIds = [], toggleUnitSelection, selectUnitGroup, startMoveTargeting,
     viewer, me, locale, t, phase, canAct, canSpend, cpRemaining, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
     targetControlledSpaces, warTargetControl, canDeclareWar,
@@ -138,6 +155,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
     gwJointNavalUnitIds,
     startBattle: () => battleFrom !== selected && setBattleFrom(selected),
     startNavalBattle: () => navalFrom !== selected && setNavalFrom(selected),
+    startMove: () => startMoveTargeting?.(),
     warCp,
     onDeclareWar: () => null,
     describeRow: (row) => ({label: row.label, reason: row.reason}),
@@ -146,7 +164,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
   // (useCallback / module scope), so the state that can flip a row is listed.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   })), [
-    G, viewer, phase, selected, selectedUnit, cpRemaining, canAct, canActionCard, war,
+    G, viewer, phase, selected, selectedUnit, selectedUnitIds, startMoveTargeting, cpRemaining, canAct, canActionCard, war,
     myOnMapArmies, myForts, myMinorAllies, ownLandInSelected, ownNavalInSelected,
     potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
     canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve,
@@ -269,11 +287,54 @@ export const SpacePanel = (props: SpacePanelProps) => {
             const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
             if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t)}</span>;
             if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id), {label: unitLabel(u, t)})}>{unitLabel(u, t)}</button>;
-            return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedUnit === id} onClick={() => setSelectedUnit(id)}>{unitLabel(u, t)}</button>;
+            const selectedHere = selectedUnitIds.includes(id);
+            // Clicking toggles the unit in the selection instead of replacing
+            // it, so several units of one space can move as a single action
+            // (12.15 land stacks, 16.1 fleets).  A single click still behaves
+            // exactly as before when nothing else is selected.
+            const onClick = toggleUnitSelection !== undefined
+              ? () => (selectedUnit === id && selectedUnitIds.length === 1 ? setSelectedUnit(null) : toggleUnitSelection(id))
+              : () => setSelectedUnit(id);
+            return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedHere} onClick={onClick}>{unitLabel(u, t)}</button>;
           })}</div>
+          {/*
+            * A whole-stack shortcut.  Both rules that move several units at
+            * once (12.15 redeployment, 16.1 naval movement) move "all" of them,
+            * so selecting each one by hand is busywork; the button selects every
+            * commanded unit in the space that can actually leave.
+            */}
+          {canAct && (() => {
+            const movable = selectedState.units
+              .map((id) => G.units[id])
+              .filter((u): u is Unit => u !== undefined && viewer !== null && commanded(u) && !(u.flags?.deployedThisImpulse === true));
+            if (movable.length < 2) return null;
+            const allSelected = movable.every((u) => selectedUnitIds.includes(u.id));
+            return (
+              <div className="ie-space-select-all">
+                <button
+                  type="button"
+                  className="ie-btn secondary ie-mini"
+                  data-testid="ie-select-stack"
+                  data-all-selected={allSelected ? "true" : "false"}
+                  onClick={() => {
+                    if (allSelected) { setSelectedUnit(null); return; }
+                    // One dispatch, not "select the first then toggle the rest":
+                    // React batches these, so a second dispatch would still read
+                    // the pre-batch state and drop the first unit.
+                    selectUnitGroup?.(movable.map((unit) => unit.id));
+                  }}
+                >
+                  {allSelected
+                    ? bi(locale, "Clear selection", "取消选择")
+                    : bi(locale, `Select all ${movable.length} units`, `全选 ${movable.length} 个单位`)}
+                </button>
+              </div>
+            );
+          })()}
           {selectedUnitDef && commanded(selectedUnitDef) && (
             <div className="ie-hint">
               {bi(locale, "Selected:", "已选：")} {unitLabel(selectedUnitDef, t)}
+              {selectedUnitIds.length > 1 && ` +${selectedUnitIds.length - 1} ${bi(locale, "more", "个")}`}
               {selectedUnitDef.space && selectedUnitDef.space !== selected && <span> · {bi(locale, "click a highlighted space to move here.", "点击高亮空间移动至此。")}</span>}
               <button className="ie-btn secondary ie-mini" onClick={() => setSelectedUnit(null)}>{t.cancel}</button>
             </div>

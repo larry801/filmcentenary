@@ -108,6 +108,14 @@ export interface ModelValues {
   viewer: Power | null;
   selected: SpaceId | null;
   selectedUnit: string | null;
+  /** Every unit of the current selection, primary first (12.15/16.1 stacks). */
+  selectedUnitIds: string[];
+  /** Add or remove one unit from the current selection. */
+  toggleUnitSelection: (id: string) => void;
+  /** Replace the selection with a whole stack (one dispatch). */
+  selectUnitGroup: (ids: string[]) => void;
+  /** Arm the move rings for the current selection (the Orders "move" row). */
+  startMoveTargeting: () => void;
   targeting: InteractionLike | null;
   battleFrom: SpaceId | null;
   navalFrom: SpaceId | null;

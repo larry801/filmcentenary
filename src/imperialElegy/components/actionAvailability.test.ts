@@ -274,12 +274,18 @@ describe("spaceActions: disabled means the engine says no", () => {
     expect(armyEn?.group).toBe("recruit");
   });
 
-  test("a selected unit elsewhere offers a move row at the destination", () => {
+  test("a selected unit's own space offers the move row, not the destination", () => {
     const G = game("GE", 4);
     const unit = placeUnit(G, "GE", "army", "berlin", 2);
-    const rows = spaceActions(input({G, viewer: "GE", space: "saxony", selectedUnit: unit.id}));
-    const move = row(rows, "move");
-    expect(move?.cost).toBe(ACTION_COSTS.move);
+    // 12.15/16.1: the row belongs to the space the stack is standing in.  It
+    // arms the map rings; the destination is the next click, never a guess.
+    G.spaces.saxony.control = "GE";
+    const atOrigin = row(spaceActions(input({G, viewer: "GE", space: "berlin", selectedUnit: unit.id})), "move");
+    expect(atOrigin?.cost).toBe(ACTION_COSTS.move);
+    expect(atOrigin?.label).toContain("Move selected");
+    // The destination space no longer offers a "move here" row.
+    const atTarget = row(spaceActions(input({G, viewer: "GE", space: "saxony", selectedUnit: unit.id})), "move");
+    expect(atTarget).toBeUndefined();
   });
 });
 

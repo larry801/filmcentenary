@@ -1189,6 +1189,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-space-detail { font-size: var(--ie-font-xs); line-height: 1.55; }
 .ie-space-detail h4 { margin: 0 0 4px; color: #f0d799; font-size: var(--ie-font-sm); }
 .ie-space-units { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin: 3px 0; }
+.ie-space-select-all { margin: 2px 0 4px; }
 .ie-unit-chip { font-size: var(--ie-font-xs); color: #c9b792; background: #32281e; border: 1px solid #4e3f2b; border-radius: var(--ie-radius-sm); padding: 1px 5px; }
 .ie-unit-chip.pending { border-color: #d2b061; color: #f0d799; }
 

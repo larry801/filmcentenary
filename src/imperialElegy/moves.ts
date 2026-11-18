@@ -326,6 +326,9 @@ const clearActionImpulseSpend = (G: ImperialElegyState): void => {
   for (const power of POWERS) {
     delete G.powers[power].flags.actionCpSpentThisImpulse;
     delete G.powers[power].flags.allianceAtImpulseStart;
+    // 12.15: a redeployment action covers one impulse; the next impulse pays
+    // its own 1 CP before moving anything.
+    delete G.powers[power].flags.redeployActionThisImpulse;
     // 33.5 is "per impulse", so the railroad allowance resets when the
     // impulse passes to the next player (4.5).
     delete G.powers[power].flags.tsrrRailImpulse;
@@ -395,6 +398,9 @@ const finishImpulse = (G: ImperialElegyState, ctx: Ctx): void => {
       delete G.powers[p].flags.alreadyInfluenced;
       delete G.powers[p].flags.alreadyRemovedInfluence;
       delete G.powers[p].flags.alreadyPacified;
+      // 12.15: a redeployment action covers one impulse; the next impulse pays
+      // its own 1 CP for a new one.
+      delete G.powers[p].flags.redeployActionThisImpulse;
     }
     G.flags.combatDrm = 0;
     G.flags.enemyLandDrm = 0;
@@ -2100,14 +2106,39 @@ const deployPolishReserve = (
   return id;
 };
 
-export const redeploy = (G: ImperialElegyState, ctx: Ctx, unitId: string, to: SpaceId): string | void => {
+/**
+ * 12.15 Redeployment: "1 CP. Enables a player to move *all* their land units an
+ * unlimited distance by land."
+ *
+ * The action is therefore paid once per impulse, not once per unit: the first
+ * `redeploy` in an impulse spends the CP and opens the action, and every later
+ * unit moved in the same impulse is part of that same action and costs nothing
+ * more.  Moving five armies used to cost five CP, which made redeployment
+ * unplayable and contradicted the printed price.
+ *
+ * `unitIds` accepts one unit or several so the panel can move a whole stack in
+ * one click; the array form is what the rule describes.  Units that cannot make
+ * the move are left where they are (the rule moves "all", and a unit with no
+ * route to the destination is not moved); with no legal mover the whole call is
+ * refused so a click never silently does nothing.
+ */
+export const redeploy = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  unitId: string | readonly string[],
+  to: SpaceId,
+): string | void => {
   const playerID = ctx.playerID ?? null;
+  const ids = typeof unitId === "string" ? [unitId] : [...unitId];
+  if (ids.length === 0) return INVALID_MOVE;
   if (G.phase === "gwManeuver") {
     // In the Great War this button is march (adjacent) or rail (friendly path).
-    // Both are flow maneuvers that spend the GW budget exactly once.
+    // Both are flow maneuvers that spend the GW budget exactly once, and the
+    // GW has no 12.15 action, so only one unit moves per maneuver.
+    if (ids.length > 1) return INVALID_MOVE;
     const gwPower = actor(G, playerID);
     if (gwPower === null || !G.gw) return INVALID_MOVE;
-    const unit = G.units[unitId];
+    const unit = G.units[ids[0]];
     if (!unit) return INVALID_MOVE;
     const adjacent = unit.space ? neighboursOf(unit.space).includes(to) : false;
     // 33.1 Superior Staff Work: latch GE's first GW maneuver impulse.
@@ -2116,13 +2147,51 @@ export const redeploy = (G: ImperialElegyState, ctx: Ctx, unitId: string, to: Sp
       G,
       ctx,
       adjacent
-        ? {kind: "march", power: gwPower, unitId, to}
-        : {kind: "rail", power: gwPower, unitId, to},
+        ? {kind: "march", power: gwPower, unitId: ids[0], to}
+        : {kind: "rail", power: gwPower, unitId: ids[0], to},
     );
     return res.ok ? undefined : INVALID_MOVE;
   }
-  const power = requireCp(G, ctx, playerID, 1);
-  if (power === INVALID_MOVE) return INVALID_MOVE;
+  // The action's own CP is charged once.  Every unit after the first rides the
+  // same action, so the wallet is only touched when the action opens.
+  const actorPower = actor(G, playerID);
+  if (actorPower === null) return INVALID_MOVE;
+  let power = actorPower;
+  if (G.powers[actorPower].flags.redeployActionThisImpulse === true) {
+    if (requireActive(G, ctx, playerID) === INVALID_MOVE) return INVALID_MOVE;
+    // A later unit of the same action still counts as acting: the first CP of
+    // the impulse closed the response window, and a redeployment that opened
+    // through an event-granted free move must also break a run of passes.
+    if (G.phase === "action") G.powers[power].flags.actionCpSpentThisImpulse = true;
+    else if (G.phase === "wartime") G.powers[power].flags.warCpSpentThisImpulse = true;
+  } else {
+    const paid = requireCp(G, ctx, playerID, 1);
+    if (paid === INVALID_MOVE) return INVALID_MOVE;
+    power = paid;
+    G.powers[power].flags.redeployActionThisImpulse = true;
+  }
+  let moved = 0;
+  let lastError: string | void = undefined;
+  for (const id of ids) {
+    const result = moveOneLandUnit(G, power, id, to);
+    if (result === undefined) moved += 1;
+    else lastError = result;
+  }
+  return moved > 0 ? undefined : lastError ?? INVALID_MOVE;
+};
+
+/**
+ * One unit's part of a 12.15 redeployment.  Split out of `redeploy` so the
+ * per-unit rules (ownership, the 15.2.3 deployment lock, friendly destination,
+ * stacking and the peacetime land route) are unchanged by moving the CP charge
+ * up to the action.
+ */
+const moveOneLandUnit = (
+  G: ImperialElegyState,
+  power: Power,
+  unitId: string,
+  to: SpaceId,
+): string | void => {
   const unit = G.units[unitId];
   if (!unit || unit.owner !== power || unit.naval) return INVALID_MOVE;
   // 15.2.3: a reserve army deployed this impulse cannot move.

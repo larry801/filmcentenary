@@ -5,6 +5,7 @@ import {
   Interaction,
   intentsAt,
   isTargeting,
+  selectedUnitIds,
   submitNow,
   TargetIntent,
 } from "./useInteraction";
@@ -121,6 +122,90 @@ describe("interaction state machine", () => {
       {type: "selectSpace", space: "vienna"},
     );
     expect(selected).toEqual({kind: "space", space: "vienna"});
+  });
+
+  /**
+   * 12.15 / 16.1: a whole stack moves as one action, so the selection can hold
+   * several units of the same space.  `toggleUnit` is the click that adds or
+   * removes one; `selectedUnitIds` is the single reader every other module uses.
+   */
+  test("toggleUnit builds a selection of several units in one space", () => {
+    let state = interactionReducer({kind: "space", space: "berlin"}, {type: "toggleUnit", space: "berlin", unit: "u1"});
+    expect(selectedUnitIds(state)).toEqual(["u1"]);
+    state = interactionReducer(state, {type: "toggleUnit", space: "berlin", unit: "u2"});
+    expect(state).toMatchObject({kind: "unit", space: "berlin", unit: "u1", extra: ["u2"]});
+    expect(selectedUnitIds(state)).toEqual(["u1", "u2"]);
+    // Toggling a member off keeps the rest.
+    state = interactionReducer(state, {type: "toggleUnit", space: "berlin", unit: "u1"});
+    expect(selectedUnitIds(state)).toEqual(["u2"]);
+    expect((state as {extra?: string[]}).extra).toBeUndefined();
+    // Toggling the last one off drops back to a plain space selection.
+    state = interactionReducer(state, {type: "toggleUnit", space: "berlin", unit: "u2"});
+    expect(state).toEqual({kind: "space", space: "berlin"});
+  });
+
+  test("toggleUnit in another space starts a fresh selection there", () => {
+    const selected = interactionReducer(
+      {kind: "unit", space: "berlin", unit: "u1", extra: ["u2"]},
+      {type: "toggleUnit", space: "vienna", unit: "u9"},
+    );
+    expect(selected).toEqual({kind: "unit", space: "vienna", unit: "u9"});
+    expect(selectedUnitIds(selected)).toEqual(["u9"]);
+  });
+
+  test("a single-unit selection exposes no `extra`", () => {
+    const state = interactionReducer(initialInteraction, {type: "selectUnit", space: "berlin", unit: "u1"});
+    expect((state as {extra?: string[]}).extra).toBeUndefined();
+    expect(selectedUnitIds(state)).toEqual(["u1"]);
+    expect(selectedUnitIds(initialInteraction)).toEqual([]);
+  });
+
+  /**
+   * "Select all" must be one dispatch.  Looping `toggleUnit` cannot build a
+   * group: React batches the dispatches and every reducer call still reads the
+   * pre-batch state, so the first unit was dropped and the whole feature
+   * silently did nothing (found in the browser, not in a unit test).
+   */
+  test("selectUnit with `extra` builds the whole group in one action", () => {
+    const state = interactionReducer(initialInteraction, {
+      type: "selectUnit", space: "berlin", unit: "u1", extra: ["u2", "u3"],
+    });
+    expect(state).toMatchObject({kind: "unit", space: "berlin", unit: "u1", extra: ["u2", "u3"]});
+    expect(selectedUnitIds(state)).toEqual(["u1", "u2", "u3"]);
+  });
+
+  test("an empty `extra` is not stored", () => {
+    const state = interactionReducer(initialInteraction, {
+      type: "selectUnit", space: "berlin", unit: "u1", extra: [],
+    });
+    expect((state as {extra?: string[]}).extra).toBeUndefined();
+  });
+
+  /**
+   * The selection must survive its own targeting mode.  The soft mode enters
+   * targeting the instant a unit is selected, so a reader that only accepted
+   * `kind: "unit"` dropped the selection one render later — the rings appeared
+   * while `aria-pressed` cleared and the Orders row for the unit vanished.
+   */
+  test("selectedUnitIds reads the selection while targeting", () => {
+    const targeting = interactionReducer({kind: "unit", space: "berlin", unit: "u1", extra: ["u2"]}, {
+      type: "beginTargeting",
+      intent: "redeploy",
+      from: "berlin",
+      sources: ["u1", "u2"],
+      targets: ["silesia"],
+      soft: true,
+    });
+    expect(selectedUnitIds(targeting)).toEqual(["u1", "u2"]);
+  });
+
+  test("toggleUnit works from a targeting state in the same space", () => {
+    const targeting: Interaction = {
+      kind: "targeting", intent: "redeploy", from: "berlin",
+      sources: ["u1"], targets: ["silesia"], soft: true,
+    };
+    const added = interactionReducer(targeting, {type: "toggleUnit", space: "berlin", unit: "u2"});
+    expect(selectedUnitIds(added)).toEqual(["u1", "u2"]);
   });
 
   test("commit outside targeting is a no-op", () => {

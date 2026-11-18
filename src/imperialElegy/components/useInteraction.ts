@@ -23,7 +23,14 @@ export type TargetIntent =
 export type Interaction =
   | {kind: "idle"}
   | {kind: "space"; space: SpaceId}
-  | {kind: "unit"; space: SpaceId; unit: string}
+  /**
+   * A unit selection.  `unit` is the primary unit (the one the rings follow and
+   * the one panels name); `extra` holds the other units of the same space the
+   * player added, so a whole stack can move with one click (12.15 "move all
+   * their land units", 16.1 "all naval units ... may move with one Naval Move
+   * action").  `extra` is always empty for a single-unit selection.
+   */
+  | {kind: "unit"; space: SpaceId; unit: string; extra?: string[]}
   | {
       kind: "targeting";
       intent: TargetIntent;
@@ -45,7 +52,9 @@ export type Interaction =
 
 export type InteractionAction =
   | {type: "selectSpace"; space: SpaceId}
-  | {type: "selectUnit"; space: SpaceId; unit: string}
+  | {type: "selectUnit"; space: SpaceId; unit: string; extra?: string[]}
+  /** Add or remove one unit from the current space's selection. */
+  | {type: "toggleUnit"; space: SpaceId; unit: string}
   | {
       type: "beginTargeting";
       intent: TargetIntent;
@@ -83,7 +92,31 @@ export const interactionReducer = (
       if (state.kind === "targeting") return state;
       return {kind: "space", space: action.space};
     case "selectUnit":
-      return {kind: "unit", space: action.space, unit: action.unit};
+      return {
+        kind: "unit", space: action.space, unit: action.unit,
+        ...(action.extra !== undefined && action.extra.length > 0 ? {extra: [...action.extra]} : {}),
+      };
+    case "toggleUnit": {
+      // Ctrl/Cmd-click semantics: add the unit to the current selection, or drop
+      // it when it is already there.  A toggle in another space starts a new
+      // selection there (a stack is always within one space — both 12.15 and
+      // 16.1 move units that start together).
+      //
+      // The selection is read from `sources` while targeting, because the soft
+      // mode enters targeting as soon as a unit is selected.
+      const current = state.kind === "unit" && state.space === action.space
+        ? [state.unit, ...(state.extra ?? [])]
+        : state.kind === "targeting" && state.from === action.space
+          ? [...state.sources]
+          : [];
+      if (!current.includes(action.unit)) {
+        const next = [...current, action.unit];
+        return {kind: "unit", space: action.space, unit: next[0], ...(next.length > 1 ? {extra: next.slice(1)} : {})};
+      }
+      const next = current.filter((id) => id !== action.unit);
+      if (next.length === 0) return {kind: "space", space: action.space};
+      return {kind: "unit", space: action.space, unit: next[0], ...(next.length > 1 ? {extra: next.slice(1)} : {})};
+    }
     case "beginTargeting":
       return {
         kind: "targeting",
@@ -112,6 +145,23 @@ export const interactionReducer = (
 
 export const isTargeting = (state: Interaction): state is TargetingInteraction =>
   state.kind === "targeting";
+
+/**
+ * Every unit of a selection, primary first.
+ *
+ * The board, the space panel and the move submission all read the selection
+ * through this one helper so a multi-unit selection can never be half-applied
+ * (a stack that shows three selected units must submit three ids).
+ *
+ * A targeting interaction carries the same units in `sources`: the soft mode
+ * enters targeting as soon as a unit is selected, so a reader that only
+ * accepted `kind: "unit"` lost the selection one render later (the rings
+ * appeared but `aria-pressed` cleared and the Orders row vanished).
+ */
+export const selectedUnitIds = (state: Interaction): string[] =>
+  state.kind === "unit" ? [state.unit, ...(state.extra ?? [])]
+    : state.kind === "targeting" ? [...state.sources]
+      : [];
 
 /** How many intents a target offers (1 = click submits, 2+ = a chooser). */
 export const intentsAt = (state: TargetingInteraction, space: SpaceId): TargetIntent[] =>
