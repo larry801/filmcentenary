@@ -1,4 +1,5 @@
 import React from "react";
+import {Icon} from "./Icon";
 import {ImperialElegyState, Power} from "../types";
 import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
@@ -284,7 +285,7 @@ export const HandTray = (props: HandTrayProps) => {
           title={shownOpen ? bi(locale, "Collapse hand", "收起手牌") : bi(locale, "Expand hand", "展开手牌")}
           onClick={onToggleOpen}
         >
-          <span aria-hidden="true">{shownOpen ? "▾" : "▸"}</span>
+          <span aria-hidden="true">{shownOpen ? <Icon name="chevron-down" size={14}/> : <Icon name="chevron-right" size={14}/>}</span>
         </button>
         <h3 className="ie-tray-title">{t.hand}{viewer ? ` · ${t.seats[viewer]}` : ""}</h3>
         <RuleLink anchor="chart:influence-track" locale={locale} onOpenReference={onOpenReference}/>
@@ -297,7 +298,7 @@ export const HandTray = (props: HandTrayProps) => {
             title={expanded ? bi(locale, "Half-height hand", "半屏手牌") : bi(locale, "Full-height hand", "全屏手牌")}
             onClick={onToggleExpanded}
           >
-            <span aria-hidden="true">{expanded ? "▾" : "▴"}</span>
+            <span aria-hidden="true">{expanded ? <Icon name="chevron-down" size={14}/> : <Icon name="chevron-up" size={14}/>}</span>
           </button>
         )}
         <span className="ie-tray-count" data-testid="ie-hand-count">{hand.length} {t.cards}</span>

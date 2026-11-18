@@ -23,6 +23,7 @@
  * two layouts.
  */
 import React from "react";
+import {Icon} from "./Icon";
 import {bi} from "./boardHelpers";
 import type {MobileTab} from "./modelValues";
 import {useRovingTabs} from "./useRovingTabs";
@@ -51,7 +52,7 @@ export interface MobileDockProps {
 export const MobileDock = ({
   open, expanded, tab, tabs, onTab, onToggleOpen, onToggleExpanded, decision, locale, children,
 }: MobileDockProps) => {
-  const chevron = open ? "▾" : "▸";
+  const chevron = open ? <Icon name="chevron-down" size={16}/> : <Icon name="chevron-right" size={16}/>;
   const choose = (key: MobileTab) => {
     onTab(key);
     // Choosing a body while the sheet is folded brings it back to half height
@@ -122,7 +123,7 @@ export const MobileDock = ({
           title={expanded ? bi(locale, "Half-height panel", "半屏面板") : bi(locale, "Full-height panel", "全屏面板")}
           onClick={expand}
         >
-          <span aria-hidden="true">{expanded ? "▾" : "▴"}</span>
+          <span aria-hidden="true">{expanded ? <Icon name="chevron-down" size={16}/> : <Icon name="chevron-up" size={16}/>}</span>
         </button>
 
         {decision && !open && (

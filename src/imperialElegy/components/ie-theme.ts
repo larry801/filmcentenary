@@ -1,60 +1,121 @@
 import {createTheme} from "@mui/material/styles";
+import tokens from "../design/tokens.json";
 
 /**
- * The Imperial Elegy palette.  The same values are mirrored by the stylesheet in
- * `--ie-*` custom properties, so both the React tree and plain CSS draw from one
- * vocabulary: parchment surfaces, a dark frame, gold accents and muted status
- * colours.
+ * The Imperial Elegy palette, read from the single token source
+ * (`src/imperialElegy/design/tokens.json`).  There are no hex literals here:
+ * the stylesheet generator and the MUI theme both consume the same JSON.
  */
 export const IE_COLORS = {
-  surface: "#efe4cc", surface2: "#e6d8ba", ink: "#2a2218",
-  frame: "#211b16", frame2: "#2c241d", line: "#6d5636",
-  accent: "#c8a84b", accentSoft: "#e6c987",
-  ok: "#6f9d5a", warn: "#c87830", danger: "#a3432f",
+  table: tokens.color.table,
+  table2: tokens.color["table-2"],
+  panel: tokens.color.panel,
+  panel2: tokens.color["panel-2"],
+  panel3: tokens.color["panel-3"],
+  rule: tokens.color.rule,
+  ruleStrong: tokens.color["rule-strong"],
+  onDark: tokens.color["on-dark"],
+  onDark2: tokens.color["on-dark-2"],
+  onDarkMuted: tokens.color["on-dark-muted"],
+  paper: tokens.color.paper,
+  paper2: tokens.color["paper-2"],
+  paper3: tokens.color["paper-3"],
+  paperRule: tokens.color["paper-rule"],
+  ink: tokens.color.ink,
+  ink2: tokens.color["ink-2"],
+  inkMuted: tokens.color["ink-muted"],
+  brass: tokens.color.brass,
+  brassSoft: tokens.color["brass-soft"],
+  brassDeep: tokens.color["brass-deep"],
+  brassInk: tokens.color["brass-ink"],
+  overprint: tokens.color.overprint,
+  overprintBorderDark: tokens.color["overprint-border-dark"],
+  overprintTextDark: tokens.color["overprint-text-dark"],
+  focusDark: tokens.color["focus-dark"],
+  focusPaper: tokens.color["focus-paper"],
+  ok: tokens.color.ok,
+  okTextDark: tokens.color["ok-text-dark"],
+  okTextPaper: tokens.color["ok-text-paper"],
+  warn: tokens.color.warn,
+  warnTextDark: tokens.color["warn-text-dark"],
+  warnTextPaper: tokens.color["warn-text-paper"],
+  danger: tokens.color.danger,
+  dangerTextDark: tokens.color["danger-text-dark"],
+  dangerTextPaper: tokens.color["danger-text-paper"],
 } as const;
 
-/** Body text on the dark frame. */
-const TEXT_PRIMARY = "#eadfc8";
-/** Secondary/label text on the dark frame. */
-const TEXT_SECONDARY = "#c5b698";
-/** Text drawn on the gold accent. */
-const ACCENT_CONTRAST = "#1a1510";
-
 /**
- * MUI theme for the Imperial Elegy board.  Without it, Tabs, Checkboxes and
- * friends fall back to MUI's default blue, which clashes with the brown/gold
- * surface.
+ * The custom properties tokenised in the generated stylesheet.  Kept in the
+ * theme so TSX and CSS cannot drift apart without the parity test failing.
  */
+export function ieTokenNames(): string[] {
+  const names: string[] = [];
+  const add = (name: string) => names.push(`--ie-${name}`);
+
+  for (const key of Object.keys(tokens.color)) add(key);
+
+  for (const [power, values] of Object.entries(tokens.power)) {
+    add(`power-${power}`);
+    add(`power-${power}-on-dark`);
+    add(`power-${power}-on-paper`);
+    if ("onFill" in values) add(`power-${power}-on-fill`);
+    if ("edge" in values) add(`power-${power}-edge`);
+  }
+
+  add("font-display");
+  add("font-ui");
+  add("font-data");
+  for (const key of Object.keys(tokens.font.size)) {
+    add(`font-${key}`);
+    add(`font-${key}-line`);
+    add(`font-${key}-weight`);
+  }
+  for (const key of Object.keys(tokens.space)) add(`space-${key}`);
+  for (const key of Object.keys(tokens.radius)) add(`radius-${key}`);
+  for (const key of Object.keys(tokens.shadow)) add(`shadow-${key}`);
+
+  add("motion-press");
+  add("motion-pop");
+  add("motion-sheet");
+  add("motion-easing-pop");
+  add("motion-easing-sheet");
+
+  return names;
+}
+
+export const IE_THEME_TOKENS = ieTokenNames();
+
+/** MUI theme for the Imperial Elegy board, built from the tokens. */
 export const ieTheme = createTheme({
   palette: {
     mode: "dark",
-    background: {
-      default: IE_COLORS.frame,
-      paper: IE_COLORS.frame2,
-    },
-    primary: {
-      main: IE_COLORS.accent,
-      contrastText: ACCENT_CONTRAST,
-    },
-    secondary: {main: "#8f6f3f"},
-    text: {primary: TEXT_PRIMARY, secondary: TEXT_SECONDARY},
-    divider: IE_COLORS.line,
+    background: {default: IE_COLORS.table, paper: IE_COLORS.panel},
+    primary: {main: IE_COLORS.brass, contrastText: IE_COLORS.ink},
+    secondary: {main: IE_COLORS.brassDeep},
+    text: {primary: IE_COLORS.onDark, secondary: IE_COLORS.onDark2},
+    divider: IE_COLORS.rule,
     error: {main: IE_COLORS.danger},
     warning: {main: IE_COLORS.warn},
     success: {main: IE_COLORS.ok},
+    action: {focus: IE_COLORS.focusDark},
   },
+  shape: {borderRadius: parseInt(tokens.radius.md, 10)},
   typography: {
-    fontFamily: 'system-ui, -apple-system, "Segoe UI", sans-serif',
+    fontFamily: tokens.font.family.ui,
     fontSize: 14,
+    button: {fontFamily: tokens.font.family.ui, fontWeight: 600},
+    h1: {fontFamily: tokens.font.family.display, fontWeight: 600},
+    h2: {fontFamily: tokens.font.family.display, fontWeight: 600},
   },
   components: {
     MuiButton: {
       defaultProps: {disableElevation: true},
       styleOverrides: {
         root: {
-          borderRadius: 4,
+          borderRadius: parseInt(tokens.radius.sm, 10),
           textTransform: "none",
           fontWeight: 600,
+          fontFamily: tokens.font.family.ui,
         },
       },
     },
@@ -62,68 +123,42 @@ export const ieTheme = createTheme({
       styleOverrides: {
         root: {
           textTransform: "none",
-          minHeight: 36,
-          color: TEXT_SECONDARY,
-          "&.Mui-selected": {color: IE_COLORS.accentSoft},
+          minHeight: 40,
+          fontFamily: tokens.font.family.ui,
+          fontSize: tokens.font.size.sm.size,
+          color: IE_COLORS.onDark2,
+          "&.Mui-selected": {
+            color: IE_COLORS.ink,
+            backgroundColor: IE_COLORS.paper,
+          },
         },
       },
     },
     MuiTabs: {
       styleOverrides: {
-        indicator: {backgroundColor: IE_COLORS.accent},
+        root: {minHeight: 40},
+        indicator: {backgroundColor: IE_COLORS.brass},
       },
     },
     MuiCheckbox: {
       styleOverrides: {
         root: {
-          color: IE_COLORS.accentSoft,
-          "&.Mui-checked": {color: IE_COLORS.accent},
+          color: IE_COLORS.brassSoft,
+          "&.Mui-checked": {color: IE_COLORS.brass},
         },
       },
     },
-    MuiPaper: {
-      styleOverrides: {
-        root: {backgroundImage: "none"},
-      },
-    },
+    MuiPaper: {styleOverrides: {root: {backgroundImage: "none"}}},
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: IE_COLORS.frame2,
-          color: TEXT_PRIMARY,
+          backgroundColor: IE_COLORS.panel2,
+          color: IE_COLORS.onDark,
+          fontFamily: tokens.font.family.ui,
+          fontSize: tokens.font.size.xs.size,
         },
-        arrow: {color: IE_COLORS.frame2},
+        arrow: {color: IE_COLORS.panel2},
       },
     },
   },
 });
-
-/**
- * The custom properties the Imperial Elegy stylesheet defines.  Kept here so the
- * TSX and the CSS cannot drift apart unnoticed.
- */
-export const IE_THEME_TOKENS = [
-  "--ie-surface",
-  "--ie-surface-2",
-  "--ie-line",
-  "--ie-ink",
-  "--ie-frame",
-  "--ie-frame-2",
-  "--ie-accent",
-  "--ie-accent-soft",
-  "--ie-ok",
-  "--ie-warn",
-  "--ie-danger",
-  "--ie-space-1",
-  "--ie-space-2",
-  "--ie-space-3",
-  "--ie-space-4",
-  "--ie-radius-sm",
-  "--ie-radius-md",
-  "--ie-radius-lg",
-  "--ie-font-xs",
-  "--ie-font-sm",
-  "--ie-font-md",
-  "--ie-font-lg",
-  "--ie-font-xl",
-] as const;

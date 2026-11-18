@@ -1,5 +1,32 @@
 # Imperial Elegy — implementation status
 
+## Visual system pass (2026-11-18)
+
+Implemented [`VISUAL_SYSTEM.md`](VISUAL_SYSTEM.md) phases 1–7 on
+`feature/ie-visual-system`.
+
+| Phase | Delivered |
+| --- | --- |
+| 0 | Baseline inventory: the stylesheet split preserved every selector, `data-testid` and `ie-*` class. |
+| 1 | `src/imperialElegy/design/tokens.json` is the single token source; `scripts/generate-ie-tokens.mjs` writes `components/styles/00-tokens.generated.css`; `npm run ie:tokens:check` fails on drift; `ieTokens.test.ts` checks CSS ↔ JSON ↔ MUI theme, the 12 px floor, `!important` policy and pill radii. EB Garamond and Libre Franklin (Latin variable subsets, 73.5 KB total) are self-hosted with licences and checksums in `public/imperial-elegy/fonts/`. |
+| 2 | Table/paper/plate surfaces, vignette + grain, 40 px seat strip, 52 px track strip with a 24 px tabular CP readout, plate panels with a brass top hairline, paper index tabs, the button hierarchy (one brass primary per viewport) and the state matrix. |
+| 3 | Hand rows are ledger rows (34 px desktop / 40 px phone), CP stamps, paper card faces, a 440 px inspector with a brass top rule, and a ≤ 2 px hover lift. |
+| 4 | Map paper/sea/rules, nameplate ink, cream counter edges with RU's printed grey edge, and target rings encoded by colour **and** dash/tick (move blue-ink, attack overprint, rail brass-ink, choice ink). |
+| 5 | Phone dock keeps its frozen heights; 2 px brass bar rule, brass-soft selected tabs with a 2 px top rule, 36 px controls with 44 px hit areas. |
+| 6 | `components/Icon.tsx` (28 inline SVGs, 16 × 16, 1.5 px stroke) replaced every UI glyph; motion tokens and reduced-motion/forced-colours handling. |
+| 7 | Alias tokens removed; `scripts/check-ie-contrast.mjs` gates 85 computed pairs; docs updated. |
+
+Local verification for this pass (2026-11-18, branch `feature/ie-visual-system`):
+
+- `node scripts/generate-ie-tokens.mjs --check` — in sync.
+- `node scripts/check-ie-contrast.mjs` — 85 computed pairs pass, no brass or
+  status fill used as text.
+- `npx tsc --noEmit` — clean.
+- `npx jest src/imperialElegy/components --ci` — 40 suites / 1006 tests passed.
+
+Remote GitHub Actions remains authoritative (AGENTS.md §7/§10); the local run
+is not a substitute.
+
 ## Rules-completion pass (2026-11-18)
 
 Authorities for this pass: `/Users/larryw/tools/ie-assets/IE_rule.pdf` (60 pp.)

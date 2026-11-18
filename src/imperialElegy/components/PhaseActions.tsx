@@ -45,10 +45,10 @@ export const PhaseActions = ({title, actions, locale, confirmActions: liveConfir
     <div className="ie-dock-choice" data-testid="ie-phase-actions">
       <div className="ie-section-title">{title}</div>
       <div className="ie-inline" data-testid="ie-impulse-actions">
-        {actions.map((action) => (
+        {actions.map((action, index) => (
           <ConfirmButton
             key={action.key}
-            className="ie-btn"
+            className={index === 0 ? "ie-btn primary" : "ie-btn"}
             data-testid={action.testId}
             disabled={action.disabled}
             title={action.title}
