@@ -157,13 +157,44 @@ second node carries the same test id on the track strip's phone-only chip
 also carries the buttons that end or continue the step (准备完毕, 停牌, 继续).
 Below the head are the panel's three tabs:
 
-- **Orders** — the selected space, its action list and the national actions.
-  While a pending decision, an open battle or the result is showing, its body is
-  replaced by that decision (`PendingPanel`), so the panel never covers map
+- **Orders** — four pages behind one segmented control
+  (`components/OrdersPanel.tsx`), because one column could not hold the space's
+  facts, its action list, the influence matrix, the national characteristics and
+  three naval flows without burying the legal actions:
+  - **Actions** (`ie-orders-tab-actions`) — the space's name and control, the
+    rows the rules allow right now (cheapest first, each printed **once**), and
+    the refused rows folded into one `ie-unavailable` section that still carries
+    every printed reason.  The fold remembers the reader's choice
+    (`ie_show_unavailable`, also switchable from the Display menu).
+  - **Space** (`ie-orders-tab-space`) — what the space *is*: control, markers,
+    fort, pacification, key type, connections, supply, and the unit chips that
+    build a 12.15 / 16.1 stack selection.
+  - **Influence** (`ie-orders-tab-influence`) — the 8.0 MPIT matrix and the 33.x
+    national actions.
+  - **Naval** (`ie-orders-tab-naval`) — amphibious assault, naval transport and
+    interception.  The page exists only while one of them is offered; an
+    interception window opening pulls it to the front and marks its tab.
+
+  Every page stays mounted and inactive pages are `hidden`, so an armed
+  confirmation, a half-filled naval form and the bots' effects survive a switch.
+  All four pages share one computation of `spaceActions` (`useSpaceActions`), so
+  switching pages never re-runs the engine's gates.
+
+  While a pending decision, an open battle or the result is showing, the Orders
+  body is that decision (`PendingPanel`) instead, so the panel never covers map
   targets.
 - **War** — only while a limited war or the Great War is running: the trench
   board, the war panel and the Great War panel.
 - **Log** — the public history, newest first.
+
+The required card choices — the diplomacy home card and the end-step National
+Goal — are a dialog (`components/CardChoiceModal.tsx`), not a panel: both are
+blockers, and painted inline they pushed the action list below the fold.  The
+home card cannot be dismissed (the step cannot continue without it); the Goal
+pick can be, and continuing keeps the first Goal.  While a decision already owns
+the Orders body the choice falls back to the inline form there, so two modals
+never compete.  The optional prep-phase stability discard stays inline at the top
+of the Actions page: it may be skipped, so it is not a blocker.
 
 The tab bar is a roving `tablist`. On a phone the dock bar owns tab selection and
 `ie-turn-tabs` is hidden there. The panel keeps the historic `ie-dock` /
@@ -273,13 +304,18 @@ regions:
   `components/ChartLightbox.tsx`). The displays are not charts: they keep their
   own file extension (the module publishes the UK board as a PNG and the other
   five as JPGs), so each entry carries an explicit `src`. The MPIT matrix is
-  **not** in the drawer: `components/MpitPanel.tsx` is an action in the Orders
-  tab (`ie-mpit`, `ie-mpit-controls`).
+  **not** in the drawer: `components/MpitPanel.tsx` is an action on the Orders
+  panel's Influence page (`ie-mpit`, `ie-mpit-controls`).
 
 Actions in the space panel (`components/SpacePanel.tsx`) are one list computed
 by `spaceActions` (`components/actionAvailability.ts`) and grouped by kind
-(recruit, build, diplomacy, move, Great War): each row is a button with a cost
-chip, a `disabled` state and, when disabled, the visible reason line under it.
+(recruit, build, diplomacy, move, Great War).  The panel is split in two:
+`SpaceDetailPanel` (facts and unit selection) and `SpaceActionsPanel` (what may
+be done here), and the board mounts them as the Space and Actions pages of the
+Orders panel.  A legal row is a button with a cost chip; a refused row is folded
+into `ie-unavailable` and keeps its visible reason line under it — the printed
+restriction is a block, not only a tooltip.  A row renders once: the legal ones
+are the "available now" strip rather than a copy of a grouped list below it.
 Irreversible controls need two clicks, arm then confirm: play for CP, play the
 event, pass / end impulse, end diplomacy, continue and declare war go through
 `components/ConfirmButton.tsx`. Declaring a war now behaves like the rest:
@@ -334,16 +370,17 @@ state or the bots' effects. On desktop the wrapper and body are
 grid areas unchanged. Short phones (≤ 699 px tall) use 44 dvh for half,
 `calc(100dvh - 120px)` for full and a 46 dvh decision cap.
 
-- **Orders** — the selected space's actions, national actions and card
-  choices, or the pending decision while one is owed (the desktop Orders body).
-  While this seat can act, the MPIT matrix (`components/MpitPanel.tsx`, `.ie-mpit-panel`)
-  leads the body instead of trailing it, and every track value is a 44 px
-  target (three equal columns per power); off-turn it stays last and read-only,
-  and on desktop the order is untouched. Every pane scrolls its own content
-  when it is taller than the sheet: the Orders body's children are pinned to
-  their natural height (`flex: 0 0 auto`), so a panel wider than the visible
-  body (MPIT is ~313 px on a 192 px half sheet) is reachable with a drag rather
-  than being squashed and clipped by its own `overflow: hidden`.
+- **Orders** — four pages behind a sticky segmented control
+  (`ie-orders-nav`, tabs `ie-orders-tab-actions|space|influence|naval`): the
+  Actions page (legal rows, then the folded `ie-unavailable` section), the Space
+  page (facts and unit selection), the Influence page (the MPIT matrix and the
+  national actions) and, only while a naval flow is offered, the Naval page.
+  Each page is a scroll surface of its own; the pages are pinned to their
+  natural height (`flex: 0 0 auto`) so a page taller than the sheet is reachable
+  with a drag rather than being squashed and clipped by its own
+  `overflow: hidden`. Every track value of the matrix is a 44 px target (three
+  equal columns per power) and arming one does not reflow the grid. While a
+  decision is owed the Orders body is the decision instead.
 - **Hand** — the card row with its filters, sort and per-card operations.
 - **Mat** — the player mat, reachable on a phone now; the old layout hid it at
   this width. The same figures also appear in the reference drawer's power
