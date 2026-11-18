@@ -14,7 +14,7 @@ import {CardChoiceFace} from "./CardChoice";
 import {CardFaceMode, cardImageSrc, readConfirmActions} from "./preferences";
 import {RuleLink} from "./RuleRef";
 import {ConfirmButton} from "./ConfirmButton";
-import {CARD_TYPE_GLYPH, cardAvailability, cardTypeIcon, sortCards, type CardAvailability, type CardFilter, type CardSort} from "./cardAvailability";
+import {cardAvailability, cardTypeIcon, sortCards, type CardAvailability, type CardSort} from "./cardAvailability";
 
 export interface HandTrayProps {
   /** Live `confirmActions` preference (the Display menu writes it). */
@@ -115,7 +115,6 @@ export const HandTray = (props: HandTrayProps) => {
   // caller that renders the tray alone still gets the stored value.
   const storedConfirm = React.useMemo(() => readConfirmActions(), []);
   const confirmActions = props.confirmActions ?? storedConfirm;
-  const [filter, setFilter] = React.useState<CardFilter>("all");
   const [sort, setSort] = React.useState<CardSort>("printed");
   // Playing a card removes it from the hand, and the inspector is now the only
   // way to play one — a card that has left the hand must not leave the dialog
@@ -155,9 +154,7 @@ export const HandTray = (props: HandTrayProps) => {
     bi: (en, zh) => bi(locale, en, zh),
   });
 
-  // Filter and order the face rows in the tray only; the chain, the Great War
-  // card and the Goals panel keep their own order.
-  const visibleHand = sortCards(hand, {filter, sort, availability: (id) => availability(id), viewer});
+  const visibleHand = sortCards(hand, {sort});
 
   /**
    * Whether the unfolded card has any operation to offer at all — legal right
@@ -294,17 +291,6 @@ export const HandTray = (props: HandTrayProps) => {
         </div>
         <div className="ie-hand-tools" data-testid="ie-hand-tools">
           <label className="ie-hand-tool">
-            <span>{bi(locale, "Filter", "筛选")}</span>
-            <select className="ie-select" data-testid="ie-hand-filter" value={filter} onChange={(event) => setFilter(event.target.value as CardFilter)}>
-              <option value="all">{bi(locale, "All", "全部")}</option>
-              <option value="playable">{bi(locale, "Playable now", "现在可打")}</option>
-              <option value="event">{t.cardType.event}</option>
-              <option value="response">{t.cardType.response}</option>
-              <option value="combat">{t.cardType.combat}</option>
-              <option value="mandatory">{t.cardType.mandatory}</option>
-            </select>
-          </label>
-          <label className="ie-hand-tool">
             <span>{bi(locale, "Sort", "排序")}</span>
             <select className="ie-select" data-testid="ie-hand-sort" value={sort} onChange={(event) => setSort(event.target.value as CardSort)}>
               <option value="printed">{bi(locale, "Printed order", "卡面顺序")}</option>
@@ -359,14 +345,6 @@ export const HandTray = (props: HandTrayProps) => {
                     data-playable={playable ? "true" : "false"}
                     data-card-type={cardTypeIcon(card.kind, card.type)}
                   >
-                    <span className={`ie-card-type ie-card-type-${cardTypeIcon(card.kind, card.type)}`} aria-hidden="true" title={t.cardType[card.type as keyof typeof t.cardType] ?? card.kind}>
-                      {CARD_TYPE_GLYPH[cardTypeIcon(card.kind, card.type)]}
-                    </span>
-                    {/* The row: the four things a player picks a card by — its
-                        type glyph, CP value, name and whether it is playable
-                        right now.  One tap opens the inspector with everything
-                        else (face, operations, reasons); the row never unfolds
-                        in place, so the hand stays a scannable list. */}
                     <button
                       type="button"
                       className="ie-card-open"
@@ -377,11 +355,14 @@ export const HandTray = (props: HandTrayProps) => {
                     >
                       <span className="ie-card-cp" data-testid={`ie-card-cp-${id}`}>{card.cp}</span>
                       <span className="ie-card-name">{locale === "zh_CN" ? card.titleZh : card.title}</span>
-                      <span className="ie-card-status" data-testid={`ie-card-status-${id}`} data-playable={playable ? "true" : "false"}>
-                        {playable
-                          ? (a.cpModeOk ? bi(locale, "For CP", "可作 CP") : a.eventModeOk ? bi(locale, "Event", "事件") : bi(locale, "Response", "响应"))
-                          : a.firstReason ?? ""}
-                      </span>
+                      {/* Every card may be played for CP (12.0), so a playable
+                          row carries no badge at all.  Only a card that is stuck
+                          right now still says why, in the one line it has. */}
+                      {!playable && a.firstReason !== undefined && (
+                        <span className="ie-card-status" data-testid={`ie-card-status-${id}`} data-playable="false">
+                          {a.firstReason}
+                        </span>
+                      )}
                     </button>
                     {rowOpen && (
                       <div className="ie-card-body" id={`ie-card-body-${id}`}>
@@ -407,9 +388,6 @@ export const HandTray = (props: HandTrayProps) => {
                 );
               })}
               {hand.length === 0 && <div className="ie-muted">{t.hand}: 0 {t.cards}</div>}
-              {hand.length > 0 && visibleHand.length === 0 && (
-                <div className="ie-muted" data-testid="ie-hand-empty-filter">{bi(locale, "No card matches this filter.", "没有符合筛选条件的卡牌。")}</div>
-              )}
             </div>
 
             <div className="ie-tray-extras">

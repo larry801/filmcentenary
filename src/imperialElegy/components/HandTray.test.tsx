@@ -81,7 +81,7 @@ test("the desktop tray defaults to its 220 px hand row and can fold to a header"
   expect(folded).toContain("手牌 · 德国");
 });
 
-test("a card row shows only its CP value, name, type and status", () => {
+test("a card row is its CP value and name: no type icon over the number", () => {
   const G = game();
   const id = G.powers.GE.hand[0];
   const html = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
@@ -89,9 +89,11 @@ test("a card row shows only its CP value, name, type and status", () => {
   const rowHtml = row.slice(0, row.indexOf("</article>"));
 
   expect(rowHtml).toContain(`data-testid="ie-card-cp-${id}"`);
-  // The printed type is a glyph plus the status line the board already had.
-  expect(rowHtml).toContain("ie-card-type");
-  expect(rowHtml).toContain(`data-testid="ie-card-status-${id}"`);
+  expect(rowHtml).toContain("ie-card-name");
+  // The printed type glyph used to sit over the CP number; the row carries the
+  // type as data for the suites, not as an icon.
+  expect(rowHtml).not.toContain("ie-card-type");
+  expect(rowHtml).toContain('data-card-type="');
   expect(rowHtml).toContain('data-expanded="false"');
   // The row is a dialog opener, never an in-place disclosure: one tap must go
   // straight to the inspector.
@@ -103,6 +105,16 @@ test("a card row shows only its CP value, name, type and status", () => {
   expect(rowHtml).not.toContain(`data-testid="ie-play-cp-${id}"`);
   expect(rowHtml).not.toContain("ie-card-face");
   expect(rowHtml).not.toContain("ie-card-translation");
+});
+
+test("every card in the hand is listed: the tray has no filter", () => {
+  const G = game();
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
+  expect(html).not.toContain('data-testid="ie-hand-filter"');
+  expect(html).not.toContain('data-testid="ie-hand-empty-filter"');
+  for (const id of G.powers.GE.hand) expect(html).toContain(`data-testid="ie-card-${id}"`);
+  // The sort stays: it is the whole view now that nothing is hidden.
+  expect(html).toContain('data-testid="ie-hand-sort"');
 });
 
 test("a card that forbids passing is still one row; the inspector carries its event", () => {
