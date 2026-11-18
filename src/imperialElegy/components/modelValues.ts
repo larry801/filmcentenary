@@ -12,6 +12,7 @@ import type {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../t
 import type {PhaseAction} from "./PhaseActions";
 import type {CardChoiceFace} from "./CardChoice";
 import type {HandChoicesProps} from "./HandChoices";
+import type {OrdersTab} from "./OrdersPanel";
 import type {ieStringsFor} from "./i18n";
 
 export type T = ReturnType<typeof ieStringsFor>;
@@ -332,6 +333,16 @@ export interface ModelValues {
   setBoard: (b: "world" | "greatWar") => void;
   railTab: string;
   setRailTab: (key: string) => void;
+  /**
+   * The Orders panel's page state (actions / space / influence / naval).  Kept
+   * out of `G`: it is a view preference, so it survives neither a save nor a
+   * seat switch, and the panel falls back to the actions page when a page stops
+   * existing.
+   */
+  ordersTab: OrdersTab;
+  setOrdersTab: SetState<OrdersTab>;
+  /** A naval flow (amphibious, transport, interception) is offered right now. */
+  navalVisible: boolean;
   warAim: "conquest" | "liberation" | "unification";
   setWarAim: (a: "conquest" | "liberation" | "unification") => void;
   warCp: number;

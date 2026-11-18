@@ -552,8 +552,7 @@ describe("Imperial Elegy board controls", () => {
     expect(collapsed).not.toContain("data-testid=\"ie-dock-child\"");
   });
 
-  test("a pending decision keeps its options in the turn panel", () => {
-    const G = freshGame();
+  test("a pending decision keeps its options in the turn panel", () => {    const G = freshGame();
     G.pending = {
       id: "d-expanded",
       kind: "eventTargetSpace",
@@ -581,19 +580,29 @@ describe("Imperial Elegy board controls", () => {
     expect(buttonTag(stripe, "ie-dock-target-cancel")).toContain("取消");
   });
 
-  test("the required home-card choice is pinned in the dock above the layout", () => {
+  test("the required home-card choice is raised as a dialog over the board", () => {
     const G = freshGame();
     G.phase = "diplomacy";
     G.activePower = "GE";
     const markup = html(G, "0");
-    // The required card choice sits in the Orders body of the turn panel, so
-    // it is visible without covering the map.
+    // The choice is a blocker, so it is a dialog: not one more panel stacked
+    // above the Orders body.
+    const modal = markup.indexOf("data-testid=\"ie-choice-modal\"");
+    expect(modal).toBeGreaterThan(-1);
+    expect(markup).toContain("data-testid=\"ie-choice-modal-backdrop\"");
+    expect(markup.indexOf("data-testid=\"ie-home-card-choice\"")).toBeGreaterThan(modal);
+    // It is not painted into the Orders body any more: the space's action list
+    // keeps the column to itself.
     const orders = markup.indexOf("data-testid=\"ie-turn-panel-action\"");
     expect(orders).toBeGreaterThan(-1);
-    expect(markup.indexOf("data-testid=\"ie-home-card-choice\"")).toBeGreaterThan(orders);
-    // The hand panel only points at the dock instead of duplicating the buttons.
+    const choice = markup.indexOf("data-testid=\"ie-home-card-choice\"");
+    expect(choice).toBeGreaterThan(orders);
+    // The hand panel only points at the dialog instead of duplicating the buttons.
     expect(markup).toContain("data-testid=\"ie-hand-choices-hint\"");
     expect(markup.match(/data-testid="ie-home-card-choice"/g)).toHaveLength(1);
+    // The home card cannot be dismissed: the step cannot continue without it.
+    expect(markup).toContain('data-dismissible="false"');
+    expect(markup).not.toContain("data-testid=\"ie-choice-close\"");
   });
 
   test("a home-card choice renders the printed face, not just its title", () => {
@@ -719,26 +728,37 @@ describe("Imperial Elegy board controls", () => {
     expect(markup).toContain("data-testid=\"ie-pending-option-berlin\"");
   });
 
-  test("the end-phase National Goal pick is pinned in the dock", () => {
+  test("the end-phase National Goal pick is raised as a dismissible dialog", () => {
     const G = freshGame();
     G.phase = "end";
     G.powers.GE.flags.ngChoices = "G1,G2,G3";
     const markup = html(G, "0");
-    const orders = markup.indexOf("data-testid=\"ie-turn-panel-action\"");
+    const modal = markup.indexOf("data-testid=\"ie-choice-modal\"");
     const choice = markup.indexOf("data-testid=\"ie-goal-choice\"");
     expect(choice).toBeGreaterThan(-1);
-    expect(choice).toBeGreaterThan(orders);
+    expect(choice).toBeGreaterThan(modal);
     expect(markup.match(/data-testid="ie-goal-choice"/g)).toHaveLength(1);
+    // Continue-with-the-first-Goal is legal, so this one may be closed.
+    expect(markup).toContain('data-dismissible="true"');
+    expect(markup).toContain("data-testid=\"ie-choice-close\"");
+    expect(markup).toContain("继续（保留第一张目标）");
   });
 
-  test("the prep-phase stability discard is pinned in the dock", () => {
+  test("the prep-phase stability discard is one line at the top of the Actions page", () => {
     const G = freshGame();
     G.phase = "prep";
     G.flags = {...G.flags};
     G.powers.GE.flags.prepStability = false;
     const markup = html(G, "0");
+    // A skippable choice is not a blocker: it stays inline, above the action
+    // list, and never becomes a dialog.
     expect(markup).toContain("data-testid=\"ie-stability-discard\"");
     expect(markup.match(/data-testid="ie-stability-discard"/g)).toHaveLength(1);
+    expect(markup).not.toContain("data-testid=\"ie-choice-modal\"");
+    const discard = markup.indexOf("data-testid=\"ie-stability-discard\"");
+    const actions = markup.indexOf("data-testid=\"ie-orders-panel-actions\"");
+    expect(actions).toBeGreaterThan(-1);
+    expect(discard).toBeGreaterThan(actions);
   });
 
   test("the stability discard is marked optional and says it may be skipped", () => {

@@ -5,10 +5,13 @@
  */
 import {
   CARD_FACE_KEY,
+  SHOW_UNAVAILABLE_KEY,
   cardImageSrc,
   defaultPreferenceStorage,
   readCardFace,
+  readShowUnavailable,
   writeCardFace,
+  writeShowUnavailable,
 } from "./preferences";
 import type {PreferenceStorage} from "./preferences";
 
@@ -101,5 +104,58 @@ describe("cardImageSrc", () => {
     expect(cardImageSrc(undefined)).toBeNull();
     expect(cardImageSrc(null)).toBeNull();
     expect(cardImageSrc("")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The Orders panel's "unavailable" fold
+// ---------------------------------------------------------------------------
+
+const unavailableStorage = (initial: string | null): PreferenceStorage & {value: string | null} => {
+  const box = {
+    value: initial,
+    getItem: (key: string) => (key === SHOW_UNAVAILABLE_KEY ? box.value : null),
+    setItem: (key: string, value: string) => {
+      expect(key).toBe(SHOW_UNAVAILABLE_KEY);
+      box.value = value;
+    },
+  };
+  return box;
+};
+
+describe("readShowUnavailable", () => {
+  test("folds by default, including with no storage", () => {
+    expect(readShowUnavailable(null)).toBe(false);
+    expect(readShowUnavailable()).toBe(false);
+    expect(readShowUnavailable(unavailableStorage(null))).toBe(false);
+  });
+
+  test("folds for an unrecognised stored value", () => {
+    expect(readShowUnavailable(unavailableStorage("yes"))).toBe(false);
+    expect(readShowUnavailable(unavailableStorage(""))).toBe(false);
+  });
+
+  test("folds when reading throws", () => {
+    expect(readShowUnavailable(throwingStorage())).toBe(false);
+  });
+
+  test("round-trips the reader's choice", () => {
+    const storage = unavailableStorage(null);
+    writeShowUnavailable(true, storage);
+    expect(storage.value).toBe("open");
+    expect(readShowUnavailable(storage)).toBe(true);
+    writeShowUnavailable(false, storage);
+    expect(storage.value).toBe("closed");
+    expect(readShowUnavailable(storage)).toBe(false);
+  });
+});
+
+describe("writeShowUnavailable", () => {
+  test("silently ignores missing storage", () => {
+    expect(() => writeShowUnavailable(true, null)).not.toThrow();
+  });
+
+  test("silently ignores storage errors", () => {
+    expect(() => writeShowUnavailable(true, throwingStorage())).not.toThrow();
   });
 });

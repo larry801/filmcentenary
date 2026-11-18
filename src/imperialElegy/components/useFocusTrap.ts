@@ -6,7 +6,9 @@
  * of it into the board behind, which is both confusing for a keyboard user and
  * a way to trigger an action the inspector was opened to review.  The trap
  * keeps Tab/Shift+Tab inside the container, sends Escape to the caller, and
- * restores focus to whatever opened the overlay.
+ * restores focus to whatever opened the overlay.  A modal that must be answered
+ * (the required card choice) passes no Escape handler, which makes the trap
+ * swallow the key instead of closing the dialog.
  *
  * No dependency: the tab stops are read from the DOM on every key press, so an
  * overlay whose content changes (a card operation appearing, a chart zooming)
@@ -39,7 +41,11 @@ export const tabbableIn = (root: HTMLElement | null): HTMLElement[] => {
 export interface UseFocusTrapOptions {
   /** Trap only while true; a closed overlay passes everything through. */
   active: boolean;
-  /** Escape handler (the overlay's close). */
+  /**
+   * Escape handler (the overlay's close).  Omitting it makes the trap *hold*
+   * Escape: the event is still swallowed, so a modal that must be answered does
+   * not leak the key to the board behind it — it simply does not close.
+   */
   onEscape?: () => void;
 }
 
@@ -59,14 +65,13 @@ export const useFocusTrap = <T extends HTMLElement>(
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" || event.key === "Esc") {
-        if (onEscape !== undefined) {
-          // The overlay is modal: Escape belongs to it alone.  Stopping the
-          // event here (document capture) keeps the same key from also
-          // reaching the board, the reference drawer or an open toast.
-          event.preventDefault();
-          event.stopPropagation();
-          onEscape();
-        }
+        // The overlay is modal: Escape belongs to it alone.  Stopping the event
+        // here (document capture) keeps the same key from also reaching the
+        // board, the reference drawer or an open toast.  Without a handler it
+        // is swallowed too — a blocker must be answered, not escaped.
+        event.preventDefault();
+        event.stopPropagation();
+        onEscape?.();
         return;
       }
       if (event.key !== "Tab") return;
