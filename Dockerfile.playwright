@@ -36,8 +36,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Keep Yarn in lockstep with the jobs that still run on the runner
-# (`yarn --version` is 1.22.22 there) and with yarn.lock v1.
-RUN npm install --global yarn@1.22.22
+# (`yarn --version` is 1.22.22 there) and with yarn.lock v1.  The Node image
+# already ships Corepack shims at /usr/local/bin/yarn, and npm refuses to
+# overwrite those, so drop them first and install plain Yarn 1.
+RUN rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg \
+    && npm install --global yarn@1.22.22
 
 WORKDIR /app
 
