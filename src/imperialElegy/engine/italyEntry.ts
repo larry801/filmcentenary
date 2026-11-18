@@ -64,6 +64,17 @@ export const italyAllianceSide = (G: ImperialElegyState): ItalySide | null =>
 export const isCommittedBox = (box: AllianceBox): boolean => box.endsWith("Committed");
 
 /**
+ * 22.3.1: "If Italy and OT are allied, shift Italy into the neutral box and end
+ * this procedure."  That is a jump the single-box 8.6 shift cannot express, so
+ * the box is written directly (and `G.gw`'s copy, when the Great War is live).
+ */
+export const setItalyAllianceBox = (G: ImperialElegyState, box: AllianceBox): AllianceBox => {
+  if (G.gw) G.gw.italyAlliance = box;
+  G.persistent.italyAlliance = box;
+  return box;
+};
+
+/**
  * Shift Italy one box toward `side`.  A neutral Italy only reaches that
  * alliance's *aligned* box, which is what makes GW #2's "4–6 roll" meaningful;
  * an Italy already in a box moves toward committed or back toward neutrality.

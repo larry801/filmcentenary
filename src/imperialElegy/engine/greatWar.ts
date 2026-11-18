@@ -30,7 +30,7 @@ import {grantRapidDeployment, placeNonPlayerCounter, placeUnit, removeUnit} from
 import {resolveGwNeutralOption, resolveGwWinter, resolveItalyAtOutbreak, redeployItaly} from "./greatWarFlow";
 import {usNorthAtlanticCheck} from "./gwMajors";
 import {recordWarKnockoutCapture} from "./limitedWar";
-import {addItalyMpit, italyAllianceBox, italyAllianceSide, italyMpitOf, shiftItalyToward} from "./italyEntry";
+import {addItalyMpit, italyAllianceBox, italyAllianceSide, italyMpitOf, setItalyAllianceBox, shiftItalyToward} from "./italyEntry";
 import {
   BALKAN_MINORS,
   CRISIS_ROWS,
@@ -300,6 +300,26 @@ export const ottomanEasternMedNavalBases = (G: ImperialElegyState): SpaceId[] =>
 
 const LIBYA_SPACES: readonly SpaceId[] = ["tripoli", "benghazi"];
 
+/** The alliance a player fights for: the live GW roster first, the track second. */
+const powerSide = (G: ImperialElegyState, power: Power): "te" | "ta" | null => {
+  if (G.gw?.active) {
+    if (G.gw.te.includes(power)) return "te";
+    if (G.gw.ta.includes(power)) return "ta";
+  }
+  return sideOf(G, power);
+};
+
+/**
+ * 22.3.1: "If Italy and OT are allied, shift Italy into the neutral box and end
+ * this procedure."  Before the GW this reads the Alliance Track; during it the
+ * live GW rosters are authoritative for OT, while Italy keeps its own chit.
+ */
+const italyAlliedToOttomans = (G: ImperialElegyState): boolean => {
+  const italy = italyAllianceSide(G);
+  if (italy === null) return false;
+  return powerSide(G, "OT") === italy;
+};
+
 const hasOttomanItalianTruce = (G: ImperialElegyState): boolean => {
   const wars = [...(G.war ? [G.war] : []), ...(G.wars ?? [])];
   return wars.some((war) => {
@@ -339,6 +359,14 @@ const resolveItalyOttomanWar = (
   actor: Power,
   interactive: boolean,
 ): boolean => {
+  // 22.3.1: the allied clause is checked before the war itself, and it ends the
+  // procedure (no reinforcment, no Ottoman war).
+  if (italyAlliedToOttomans(G)) {
+    const from = italyAllianceBox(G);
+    setItalyAllianceBox(G, "neutral");
+    log(G, actor, "italyOttomanWar", {result: "alliedNeutral", from, to: "neutral"});
+    return true;
+  }
   const bases = ottomanEasternMedNavalBases(G);
   const territories: ("tunisia" | "libya")[] = [];
   if (G.spaces.tunisia?.control === "OT") territories.push("tunisia");

@@ -15,7 +15,7 @@
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, minorController, ownsKey,
+  efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, minorController, ownsKey,
 } from "../engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -457,17 +457,23 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       reason: fortEnabled ? undefined : fortReason ?? spendReason(ACTION_COSTS.buildFort),
       run: () => doAction(() => moves.buildFort(space, 1)),
     });
-    const efEnabled = canSpend(ACTION_COSTS.buildEf);
+    // 12.10: the EF teleports, but only into a printed destination.  The row
+    // reads the same predicate the move does, so it never offers a drop the
+    // engine would refuse.
+    const efReason = efDestinationAllowed(G, space, viewer)
+      ? null
+      : bi(locale, "An EF needs a friendly controlled or home space, or your influence marker.", "远征军需置于友方控制区、本国核心领土，或有你影响标记的空间。");
+    const efEnabled = efReason === null && canSpend(ACTION_COSTS.buildEf);
     push({
       id: "buildEf", group: "build", enabled: efEnabled,
-      reason: efEnabled ? undefined : spendReason(ACTION_COSTS.buildEf),
+      reason: efEnabled ? undefined : efReason ?? spendReason(ACTION_COSTS.buildEf),
       run: () => doAction(() => moves.buildEf(space)),
     });
     if (selectedUnit !== null && selected?.kind === "expeditionary" && selected.owner === viewer && selected.space !== space) {
-      const moveEnabled = canSpend(ACTION_COSTS.moveEf);
+      const moveEnabled = efReason === null && canSpend(ACTION_COSTS.moveEf);
       push({
         id: "moveEf", group: "build", enabled: moveEnabled,
-        reason: moveEnabled ? undefined : spendReason(ACTION_COSTS.moveEf),
+        reason: moveEnabled ? undefined : efReason ?? spendReason(ACTION_COSTS.moveEf),
         run: () => doAction(() => moves.buildEf(space, selectedUnit)),
       });
     }

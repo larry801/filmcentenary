@@ -1,5 +1,28 @@
 # Imperial Elegy — implementation status
 
+## Rules-completion pass (2026-11-18)
+
+Authorities for this pass: `/Users/larryw/tools/ie-assets/IE_rule.pdf` (60 pp.)
+and the repository's `IE_ERRATA_-_Mar_20_2026.pdf`. Each item below was
+implemented from the printed/errata text and covered by
+`src/imperialElegy/rulesCompletion.test.ts`.
+
+| Rule | Printed clause | Live implementation |
+| --- | --- | --- |
+| 22.3.1 | "If Italy and OT are allied, shift Italy into the neutral box and end this procedure." | `greatWar.ts#resolveItalyOttomanWar` checks the clause before the war (GW rosters first, Alliance Track second) and calls the new `setItalyAllianceBox`; result logged as `italyOttomanWar:alliedNeutral`. |
+| 12.10 (errata) | EF goes to a friendly controlled/home space or a space with the player's influence marker; no LoC or path. | New `rules.ts#efDestinationAllowed`, read by `moves.ts#buildEf` (both build and move), the Rule 34 bot and `components/actionAvailability.ts`. Naval boxes refused; CP is not spent on a refusal. |
+| 13.4.4 (errata) | Conquest on Qing China: place the Qing army at full strength in the targeted key; the aider gains a +1 card marker. | `moves.ts#finalizeWarDeclaration` places (or moves) the single Qing army counter; `finalizeMinorAid` grants the aider's card marker, logged as `qingAidCardMarker`. |
+
+Verification for this pass: `npx tsc --noEmit` clean, and
+`npx jest src/imperialElegy --ci` → **269 suites / 3580 tests passed** locally.
+Remote GitHub Actions verification is still **required** before this branch is
+merged (AGENTS.md §7/§10); the local run is not a substitute.
+
+Still open after this pass (deliberately not claimed as closed): 15.1's
+automatic start-of-maneuver naval battle, 34.4.5 free bot redeployment,
+12.2/12.4 minor-ally builds, 26.1/US planning gifts and 27.5.2's remaining
+recruitment substitutions.
+
 ## Active Partial-completion audit (2026-11-15)
 
 The section matrix below contains historical claims, including already-fixed

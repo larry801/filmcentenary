@@ -97,6 +97,8 @@ const SAMPLES: Record<string, LogTextEntry> = {
   minorAllianceRemoved: {key: "minorAllianceRemoved", power: "AU", args: {space: "saxony"}},
   unhandledSpecial: {key: "unhandledSpecial", power: "GE", args: {handler: "mystery", card: CARD_ID}},
   italyOttomanWar: {key: "italyOttomanWar", power: "FR", args: {}},
+  qingArmyPlaced: {key: "qingArmyPlaced", power: "GE", args: {space: "shanghai"}},
+  qingAidCardMarker: {key: "qingAidCardMarker", power: "UK", args: {minor: "Qing China", cardMarkers: 1}},
   gwFortDegraded: {key: "gwFortDegraded", args: {space: "verdun", level: 1}},
   gwFortCancelsRetreat: {key: "gwFortCancelsRetreat", power: "FR", args: {space: "verdun"}},
   italyPetition: {key: "italyPetition", power: "GE", args: {minor: "Two Sicilies", removed: 1}},
