@@ -65,6 +65,11 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 4px;
+  /* The board anchors its own overlays (the required card-choice dialog).  It
+     must not be `fixed`-positioned: in a hotseat the six seats live under one
+     strip, and a choice owed by the visible seat must not cover that strip —
+     handing the device to the next player is how the choice gets answered. */
+  position: relative;
   /* `clip`, not `hidden`: `hidden` makes this element a scroll container, and
      the decision dock hangs below the bar as an absolutely positioned panel, so
      any focus or resize inside it scrolled the whole board up out of view. */
@@ -1342,11 +1347,14 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-unavailable-body { display: flex; flex-direction: column; gap: 6px; padding: 4px; }
 
 /* ---------------------------------------------------------------- card-choice dialog */
-/* Above the reference drawer (1300) and the chart lightbox (1400), below the
-   card inspector (1500): a required choice outranks the reference material but
-   must not cover the card the reader zoomed in to read. */
+/* Anchored to the board, not the viewport: the required choice covers the map
+   and the panels it blocks, but not the hotseat's seat strip — switching seats
+   is how a hotseat answers the other player's choice.  Above the reference
+   drawer (1300) and the chart lightbox (1400), below the card inspector (1500):
+   a required choice outranks reference material but must not cover the card
+   the reader zoomed in to read. */
 .ie-choice-backdrop {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 1450;
   display: grid;
