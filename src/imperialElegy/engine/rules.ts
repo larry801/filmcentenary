@@ -480,6 +480,33 @@ export const friendlySpace = (G: ImperialElegyState, space: SpaceId, power: Powe
 };
 
 /**
+ * Rule 12.10 (as amended by the March 2026 errata): "The EF action sends an EF
+ * unit to a friendly controlled space, a friendly home space, or any space with
+ * a friendly influence or control marker. ... there is no need for EFs to
+ * follow land or sea connections and no LoC is required."
+ *
+ * "Friendly controlled" is the same notion `friendlySpace` already encodes (own
+ * or allied control, a minor ally's marker, or the player's influence on an
+ * uncontrolled space).  The errata's separate "friendly home space" adds the
+ * printed case of a home space the player has temporarily lost the marker in
+ * (`control === null`); a home space under enemy control is not friendly.
+ * Only the destination is constrained — no path is traced.
+ */
+export const efDestinationAllowed = (
+  G: ImperialElegyState,
+  space: SpaceId,
+  power: Power,
+): boolean => {
+  const def = SPACES[space];
+  const state = G.spaces[space];
+  if (!def || !state) return false;
+  // An EF is a land formation; a naval box is never a legal destination.
+  if (isNavalBox(space)) return false;
+  if (friendlySpace(G, space, power)) return true;
+  return isHomeSpace(G, space, power) && (state.control === null || state.control === undefined);
+};
+
+/**
  * 4.9.4 / 12.4: a friendly port is a port space controlled or occupied by the
  * power or by one of its allies.  An uncontrolled space where the power only
  * has an influence marker is not a friendly port.

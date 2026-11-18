@@ -70,6 +70,7 @@ import {
   controlledBy,
   die,
   dominatedFlashpoints,
+  efDestinationAllowed,
   enemiesOf,
   friendlyPort,
   friendlySpace,
@@ -1580,8 +1581,13 @@ export const declineRapidDeployment = (G: ImperialElegyState, ctx: Ctx): string 
 
 export const buildEf = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, existing?: string): string | void => {
   const playerID = ctx.playerID ?? null;
-  const power = requireCp(G, ctx, playerID, existing ? 1 : 2);
+  // 12.10: validate the printed destination before spending anything, so a
+  // refused click costs no CP.  The same predicate is read by the Orders panel.
+  const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (!efDestinationAllowed(G, space, power)) return INVALID_MOVE;
+  const paid = requireCp(G, ctx, playerID, existing ? 1 : 2);
+  if (paid === INVALID_MOVE) return INVALID_MOVE;
   if (existing) {
     const unit = G.units[existing];
     if (!unit || unit.kind !== "expeditionary" || unit.owner !== power) return INVALID_MOVE;
@@ -2601,6 +2607,28 @@ const finalizeWarDeclaration = (
   // from the attacker.  A card-driven declaration is remembered for Balance of
   // Power's "cannot be played in response to Otto von Bismarck" clause.
   G.war.declarationCard = G.resolvingCard ?? null;
+  // 13.4.4 (as amended): "If China is attacked in a war of conquest, place the
+  // Qing army at full strength in the targeted key."  The Qing counter row has
+  // exactly one army, so this is idempotent even if a later path repeats it.
+  if (minor !== null && minor.minor === "Qing China" && aim === "conquest") {
+    const key = objectives[0];
+    if (key !== undefined && G.spaces[key]) {
+      // The chart prints one Qing army.  If a card already put it on the map,
+      // the rule still moves it into the targeted key at full strength.
+      const existing = unitsOfPower(G, "Qing China").find((unit) => unit.kind === "minorArmy");
+      if (existing !== undefined) {
+        if (existing.space && G.spaces[existing.space]) {
+          G.spaces[existing.space].units = G.spaces[existing.space].units.filter((id) => id !== existing.id);
+        }
+        existing.space = key;
+        existing.steps = 2;
+        G.spaces[key].units.push(existing.id);
+      } else {
+        placeNonPlayerCounter(G, "Qing China", "minorArmy", key, 2);
+      }
+      log(G, power, "qingArmyPlaced", {space: key});
+    }
+  }
   if (minor !== null) {
     // Rule 13.4 / 14.2 / 8.2: the aiding player ally shifts away from the
     // attacker; the printed 8.2 random Italy shift applies when no player
@@ -2768,6 +2796,15 @@ const finalizeMinorAid = (
   const home = applyMinorAidAlliance(G, state.minor, ally);
   if (home === null) return INVALID_MOVE;
   log(G, state.attacker, "minorAidGranted", {minor: state.minor, ally, space: home});
+  // 13.4.4 (as amended): "The player that aids the Qing in the war of conquest
+  // gains a +1 card marker regardless of the war's outcome."
+  if (state.minor === "Qing China" && state.aim === "conquest") {
+    G.powers[ally].cardMarkers += 1;
+    log(G, ally, "qingAidCardMarker", {
+      minor: state.minor,
+      cardMarkers: G.powers[ally].cardMarkers,
+    });
+  }
   G.pending = null;
   return finalizeWarDeclaration(
     G,

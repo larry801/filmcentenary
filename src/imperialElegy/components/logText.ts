@@ -942,11 +942,43 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `placed Italy's control marker in ${space}.`, `在${space}放置了意大利控制标记。`);
   },
 
-  italyOttomanWar: (_entry, locale) =>
-    text(
+  italyOttomanWar: (entry, locale) => {
+    // 22.3.1: an Italy allied to the Ottomans ends the procedure in the
+    // neutral box instead of going to war, so the generic "declares war" line
+    // would be wrong for that result.
+    const result = str(entry.args?.result);
+    if (result === "alliedNeutral") {
+      return text(
+        locale,
+        "Italy is allied to the Ottoman Empire: its chit shifts to the neutral box and the procedure ends.",
+        "意大利与奥斯曼结盟：其标记移入中立格，本流程结束。",
+      );
+    }
+    if (result === "treatedAs5") {
+      return text(
+        locale,
+        "Italy cannot reach an Ottoman target; the result is treated as a 5 (Italy gains a reserve army and a naval unit).",
+        "意大利找不到奥斯曼目标；按 5 点结果处理（获得 1 支预备军和 1 支海军）。",
+      );
+    }
+    return text(
       locale,
       "Italy declares war on the Ottoman Empire for an Eastern Mediterranean base.",
       "意大利为取得东地中海基地向奥斯曼帝国宣战。",
+    );
+  },
+
+  qingArmyPlaced: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `placed the Qing army at full strength in ${space}.`, `在${space}以满员放置清军。`);
+  },
+
+  qingAidCardMarker: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "aided the Qing in the war of conquest and gains a +1 card marker.",
+      "在征服战争中援助清廷，获得 +1 抽牌标记。",
     ),
 
   italyLostDream: (_entry, locale) =>

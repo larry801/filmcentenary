@@ -151,7 +151,13 @@ Status labels:
   naval movement, influence/diplomacy placement/removal, minor alliances, EF
   build/move, pacification, forts, industrialisation, CP chain, redeployment,
   declarations of war and land battles — **live**, with the simplifications
-  below. 12.4's refit row is live as `refitNavalUnit`: 1 CP flips a reduced
+  below. **12.10 EF destination is enforced** from the March 2026 errata text
+  (`efDestinationAllowed`: a friendly controlled/home space or the player's
+  influence marker; no LoC, no path; naval boxes refused) by the move, the
+  Rules 34 bot and the Orders panel.
+- **13.4.4 Attacking China (errata):** a war of conquest on Qing China places
+  the Qing army at full strength in the targeted key, and the aiding player
+  gains a +1 card marker regardless of the outcome. 12.4's refit row is live as `refitNavalUnit`: 1 CP flips a reduced
   squadron/dreadnought in a friendly port, refuses naval boxes, enemy ports and
   a limited-war phase (15.2), and leaves the GW to its own 27.5.4
   `gwRefitFleet`. 12.4's placement rule is enforced before CP is spent: a new
@@ -490,6 +496,9 @@ Status labels:
   as state plus card/GW events.
 - Italy: Italian Minor Power Table, unification roll, Kingdom of Italy table and
   Italian units — **partial**; several table results only log or set flags.
+  **22.3.1's allied clause is live:** a 7+ result with Italy and OT in the same
+  alliance shifts Italy's chit straight to the neutral box and ends the
+  procedure (`setItalyAllianceBox` / `italyAlliedToOttomans`).
 - Poland: represented through card handlers and minor-power units; no separate
   reserve/build-limit model.
 - Crisis: **the printed 23.0–23.5 table is implemented** (`engine/crisisTable.ts`
