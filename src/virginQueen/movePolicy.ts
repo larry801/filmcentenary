@@ -58,6 +58,12 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
     if (stormImpulse === G.impulse && move === "moveLand" && stormMoved?.includes((args as {from: string}).from)) return "暴风雨期间同一编队只能移动一次。";
     if (haremImpulse === G.impulse && !["buildNaval", "moveNaval", "piracy", "pass", "endImpulse"].includes(move)) return "Sultan's Harem 的 CP 仅可用于建造海盗船、海军移动或海盗行动。";
     if (haremImpulse === G.impulse && move === "buildNaval" && (args as {kind?: string})?.kind !== "corsair") return "Sultan's Harem 仅可建造海盗船。";
+    // #59 John Hawkins: the 5 CP England gains are for building naval units
+    // (including expeditions), naval movement, and piracy actions only.
+    // Playing a card or treasure does not spend that CP, so those stay open.
+    if (G.hawkinsBonus === true && !["buildNaval", "buildExpedition", "moveNaval", "navalTransport", "piracy", "worldPiracy", "playCard", "playTreasure", "pass", "endImpulse"].includes(move)) {
+        return "John Hawkins 的 CP 仅可用于建造海军、海军移动、海盗行动或探险。";
+    }
     if (isActivatedMajor(G, G.activePower) && ["patronize", "buildExpedition", "gainIntelligence", "plantInformant", "assassinate", "englishCatholicRebellion"].includes(move)) {
         return "激活强国不能执行赞助、探险或谍报行动。";
     }

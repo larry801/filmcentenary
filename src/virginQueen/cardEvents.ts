@@ -6,7 +6,7 @@ import {SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import i18n from "../constant/i18n";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
-import {addLand, addNaval, ensureDefaultLeader, pushLog, removeCardFromGame, resolveEvent, spaceHasEnemyLand, spaceHasEnemyNaval} from "./util";
+import {addLand, addNaval, ensureDefaultLeader, inFrenchReligiousArea, pushLog, removeCardFromGame, resolveEvent, spaceHasEnemyLand, spaceHasEnemyNaval} from "./util";
 
 export interface CardEventOption {id: string; label: string}
 
@@ -40,14 +40,29 @@ const effectOptions = (G: VQGame, numPlayers: number): CardEventOption[] => [
 export const canPlayGrandVizier = (G: VQGame, power: Power, numPlayers: number): boolean =>
     power === "ottoman" && effectOptions(G, numPlayers).length > 0;
 
-// Only ordinary Event cards can be cancelled, even if another card is played
-// as an event. Printed list on #42: Foxe's Book of Martyrs (#52), Iconoclastic Fury (#55),
-// Jeanne of Navarre (#58), plus Army Mutiny (#17), City State Rebels (#18),
-// German Recruitment Curtailed (#23), Sack! (#44) and Treachery! (#31) when
-// they target France. Huguenot Lent (#54) is not on the card.
-const CATHERINE_CANCELABLE = new Set(["vq-017", "vq-018", "vq-023", "vq-031", "vq-044", "vq-052", "vq-055", "vq-058"]);
+// Cards playable as an event. Printed list on #42: Foxe's Book of Martyrs (#52),
+// Huguenot Lent (#54), Iconoclastic Fury (#55) and Jeanne of Navarre (#58) may
+// be cancelled at any timing. Army Mutiny (#17), City State Rebels (#18),
+// German Recruitment Curtailed (#23), Sack! (#44) and Treachery! (#31) may be
+// cancelled only when their target is France (the area).
+// The Chinese card table (中文卡表.pdf p. 18) lists 胡格諾四旬齋 (Huguenot Lent)
+// explicitly; the OCR of #42 dropped it, and the engine had followed the OCR.
+const CATHERINE_ANY_TIMING = new Set(["vq-052", "vq-054", "vq-055", "vq-058"]);
+const CATHERINE_FRANCE_ONLY = new Set(["vq-017", "vq-018", "vq-023", "vq-031", "vq-044"]);
 
-export const cancelEventResponder = (G: VQGame, card: CardDef): {power: Power; cardId: string} | undefined => {
+/**
+ * True when a France-only cancellation target actually points at the France
+ * area.  `Army Mutiny` names a stack space, `City State Rebels` / `Treachery!`
+ * a besieged fortress, `German Recruitment Curtailed` one or two spaces and
+ * `Sack!` the captured space; every form is a colon- or pipe-separated list of
+ * space ids, so all of them are tested here.
+ */
+const catherineTargetInFrance = (target: string | undefined): boolean => {
+    if (target === undefined) return false;
+    return target.split(/[:|]/).filter((id) => id !== "").some((id) => inFrenchReligiousArea(id));
+};
+
+export const cancelEventResponder = (G: VQGame, card: CardDef, target?: string): {power: Power; cardId: string} | undefined => {
     if (!(card.officialKind === "event" || card.id === "vq-033" || card.id === "vq-044" || card.id === "vq-058" || (card.officialKind === undefined && card.kind === "event"))) return undefined;
     const vizier = grandVizierInHand(G);
     if (vizier !== undefined && ownerOf(G, "ottoman") !== undefined) return {power: "ottoman", cardId: vizier};
@@ -56,13 +71,16 @@ export const cancelEventResponder = (G: VQGame, card: CardDef): {power: Power; c
             .find((power) => ownerOf(G, power) !== undefined && G.powers[power].cards.includes("vq-058"));
         return holder === undefined ? undefined : {power: holder, cardId: "vq-058"};
     }
-    if (!CATHERINE_CANCELABLE.has(card.id)) return undefined;
+    const cancellable = CATHERINE_ANY_TIMING.has(card.id) ||
+        (CATHERINE_FRANCE_ONLY.has(card.id) && catherineTargetInFrance(target));
+    if (!cancellable) return undefined;
     const holder = (["ottoman", "spain", "england", "france", "hre", "protestant"] as Power[])
         .find((power) => ownerOf(G, power) !== undefined && G.powers[power].cards.includes("vq-042"));
     return holder === undefined ? undefined : {power: holder, cardId: "vq-042"};
 };
 
-export const canCancelCardEvent = (G: VQGame, card: CardDef): boolean => cancelEventResponder(G, card) !== undefined;
+export const canCancelCardEvent = (G: VQGame, card: CardDef, target?: string): boolean =>
+    cancelEventResponder(G, card, target) !== undefined;
 
 export const cardEventOptions = (G: VQGame, numPlayers: number): CardEventOption[] => {
     const pending = G.pendingCardEvent;

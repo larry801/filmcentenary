@@ -908,6 +908,13 @@ export interface VQGame {
     haremDeclinedImpulse?: Partial<Record<Power, number>>;
     dragutFought?: boolean;
     pendingAbjuration?: {offers: {power: Power; space: string}[]};
+    /**
+     * Rule 6.2: a power may never retrieve from the discard pile a card it
+     * played as an Event, Response or Combat card during the same turn.  The
+     * Virgin Queen (#36), Gouvernante de France (#33 -> Grand Tour) and Papal
+     * Bull (#5 -> Holy League) retrievals all have to honour it.
+     */
+    playedThisTurn?: Partial<Record<Power, string[]>>;
     lockedCards?: Partial<Record<Power, string[]>>;
     elizabethExcommunicated?: boolean;
     cyprusTarget?: string;

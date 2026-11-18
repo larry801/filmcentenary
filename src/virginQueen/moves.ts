@@ -670,9 +670,20 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string)
         drawCards(G, ctx, p, 1);
         return;
     }
-    const index = retrieveTarget !== undefined ? G.discard.indexOf(retrieveTarget) : G.discard.findIndex((id) => cardById(id).kind !== "home");
+    // Rule 6.2: Mandatory Events may never be retrieved, and a power may never
+    // retrieve a card it played this turn.  Filter both here so the automatic
+    // pick and an explicit `retrieve:<card>` honour the same restriction.
+    const playedThisTurn = G.playedThisTurn?.[p] ?? [];
+    const retrievable = (id: string): boolean => {
+        const candidate = cardById(id);
+        return candidate.kind !== "home" && candidate.officialKind !== "mandatory" &&
+            !playedThisTurn.includes(id);
+    };
+    const index = retrieveTarget !== undefined
+        ? (retrievable(retrieveTarget) ? G.discard.indexOf(retrieveTarget) : -1)
+        : G.discard.findIndex(retrievable);
     if (index < 0) {
-        pushLog(G, "England finds no card in the discard pile.");
+        pushLog(G, "England finds no retrievable card in the discard pile.");
         return;
     }
     const card = G.discard[index];
@@ -802,8 +813,12 @@ const resolveCouncilOfTroubles = (G: VQGame, ctx: Ctx): void => {
         pushLog(G, "William of Orange is placed on the Turn Track.");
     }
     resolveConversions(G, ctx, "spain", "catholic", "netherlands", 8, true);
+    // Printed text: the three spaces must be under Protestant political
+    // control, have no garrison, and be **not keys**.  The key exclusion was
+    // missing, so Spain could convert a Dutch key (Brussels/Antwerp/Amsterdam).
     const targets = SPACES.filter((space) => space.area === "netherlands" && G.spaces[space.id].control === "protestant" &&
-        !G.spaces[space.id].unrest && totalLand(G, space.id, ownersWithLand(G, space.id)) === 0)
+        !G.spaces[space.id].unrest && !KEY_SPACES.includes(space.id) &&
+        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0)
         .slice(0, 3);
     for (const space of targets) G.spaces[space.id].control = "spain";
     G.powers.protestant.marriageCardModifier = (G.powers.protestant.marriageCardModifier ?? 0) + 1;
@@ -1197,7 +1212,9 @@ const resolvePapalBull = (G: VQGame, ctx: Ctx, target?: string): void => {
         // must satisfy #24's own play conditions too.  This runs after the
         // Papacy resolution above, which is correct: the Papal track is now
         // resolved and cannot count as potential influence for the retrieval.
-        if (!G.discard.includes("vq-024") || !canPlayHolyLeague(G, ally)) return;
+        // Rule 6.2 also forbids retrieving a card the ally played this turn.
+        const retrievable = G.discard.includes("vq-024") && !(G.playedThisTurn?.[ally] ?? []).includes("vq-024");
+        if (!retrievable || !canPlayHolyLeague(G, ally)) return;
         G.discard = G.discard.filter((id) => id !== "vq-024");
         resolveHolyLeague(G, ctx, ally);
         return;
@@ -1325,21 +1342,66 @@ const resolveMuscovyCompany = (G: VQGame, p: Power): void => {
     pushLog(G, `Muscovy Company grants ${powerLabel(p)} an extra card next year.`);
 };
 
-const resolveKnightsOfStJohn = (G: VQGame): void => {
+/**
+ * #27 Knights of St. John.
+ *
+ * First paragraph (Knights already on the map): a power may draw one random
+ * card from the Ottoman hand, or reduce the Ottoman's Piracy VP by 1.
+ * Second paragraph (Knights not on the map): Spain places 2 Knights regulars,
+ * either in Malta, or in an unoccupied non-fortress Spanish home port together
+ * with a new fortress marker.
+ *
+ * `target` selects the branch: "cards" / "piracyVp" for the first paragraph and
+ * a port id for the second.
+ */
+const resolveKnightsOfStJohn = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     const onMap = (G.spaces.malta?.land.independent?.regular ?? 0) > 0;
-    if (onMap) return;
+    if (onMap) {
+        // Printed condition: the Knights must be unbesieged and connected to a
+        // port under Ottoman control across one sea zone.  Malta's ports reach
+        // the Aegean through the Ionian and Tyrrhenian seas, so walking the
+        // adjacent sea zones is the accurate check.
+        const reachableZones = new Set<string>(portZones("malta"));
+        for (const zone of [...reachableZones]) {
+            for (const adjacent of SEA_ZONE_BY_ID[zone as keyof typeof SEA_ZONE_BY_ID]?.adjacent ?? []) {
+                reachableZones.add(adjacent);
+            }
+        }
+        const ottomanPortReachable = G.spaces.malta?.siege === undefined &&
+            SPACES.some((space) => space.ports?.some((zone) => reachableZones.has(zone)) &&
+                G.spaces[space.id].control === "ottoman");
+        if (!ottomanPortReachable) return;
+        if (target === "piracyVp") {
+            addVp(G, "ottoman", -1);
+            pushLog(G, "Knights of St. John reduce the Ottoman's piracy VP.");
+            return;
+        }
+        // Default (and explicit "cards"): draw one random card from the Ottoman.
+        const cards = G.powers.ottoman.cards.filter((id) => cardById(id).kind !== "home");
+        if (cards.length === 0) return;
+        const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
+        G.powers.ottoman.cards = G.powers.ottoman.cards.filter((id) => id !== card);
+        G.powers[p].cards.push(card);
+        pushLog(G, `Knights of St. John take ${cardById(card).name} from the Ottoman.`);
+        return;
+    }
     if (G.spaces.malta?.control === "spain" && G.spaces.malta.siege === undefined) {
         addLand(G, "malta", "independent", "regular", 2);
         pushLog(G, "Knights of St. John deploy 2 regulars in Malta.");
         return;
     }
-    const port = SPACES.find((space) => spaceHomes(space).includes("spain") && space.ports !== undefined &&
+    const chosenPort = target !== undefined && G.spaces[target] !== undefined &&
+        spaceHomes(SPACE_BY_ID[target]).includes("spain") && SPACE_BY_ID[target].ports !== undefined &&
+        G.spaces[target].control === "spain" && G.spaces[target].siege === undefined &&
+        totalLand(G, target, ownersWithLand(G, target)) === 0 && !G.spaces[target].fortress
+        ? target : undefined;
+    const port = chosenPort ?? SPACES.find((space) => spaceHomes(space).includes("spain") && space.ports !== undefined &&
         G.spaces[space.id].control === "spain" && G.spaces[space.id].siege === undefined &&
-        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].fortress);
+        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].fortress)?.id;
     if (port !== undefined) {
-        addLand(G, port.id, "independent", "regular", 2);
-        G.spaces[port.id].fortress = true;
-        pushLog(G, `Knights of St. John deploy 2 regulars and a fortress in ${port.name}.`);
+        addLand(G, port, "independent", "regular", 2);
+        G.spaces[port].fortress = true;
+        pushLog(G, `Knights of St. John deploy 2 regulars and a fortress in ${SPACE_BY_ID[port].name}.`);
     }
 };
 
@@ -1720,6 +1782,8 @@ const resolveJohnHawkins = (G: VQGame, ctx: Ctx, p: Power, target?: string): voi
         return;
     }
     G.powers.england.cp += 5;
+    // Printed text restricts the 5 CP to building naval units, naval movement
+    // and piracy actions, exactly like #16's Ottoman grant.
     G.hawkinsBonus = true;
     pushLog(G, "John Hawkins grants England 5 CP for naval operations.");
 };
@@ -2052,6 +2116,8 @@ export const startActionTurn = (G: VQGame, ctx: Ctx): void => {
     if (ctx.phase === "action") {
         G.actionTurnsThisTurn = {...(G.actionTurnsThisTurn ?? {})};
         G.actionTurnsThisTurn[p] = (G.actionTurnsThisTurn[p] ?? 0) + 1;
+        // #59's naval-only CP grant covers the impulse that played the event.
+        if (p === "england") delete G.hawkinsBonus;
     }
     G.impulse += 1;
     G.powers[p].cp = 0;
@@ -2588,14 +2654,26 @@ const resolveRudolfII = (G: VQGame, ctx: Ctx): void => {
     pushLog(G, "Rudolf II becomes Holy Roman Emperor; the capital moves to Prague.");
 };
 
+/**
+ * #77 Portuguese Raid: "This card may not be used to remove colonies of
+ * Portugal and its allies, or Spanish colonies."  Spanish colonies were already
+ * excluded; Portuguese ones and those of Portugal's allies were not.
+ */
+const portugueseRaidForbiddenOwner = (G: VQGame, owner: Controller | undefined): boolean => {
+    if (owner === undefined) return false;
+    if (owner === "spain" || owner === "portugal") return true;
+    return isPower(owner) && G.powers[owner].alliedMinors.includes("portugal");
+};
+
 const resolvePortugueseRaid = (G: VQGame, p: Power, ctx: Ctx, target?: string): void => {
     const targetDef = target !== undefined ? WORLD_SETTLEMENT_BY_ID[target] : undefined;
     const targetValid = target !== undefined && G.worldColonies[target] !== undefined && targetDef !== undefined &&
-        ["southAtlantic", "indianOcean", "southPacific"].includes(targetDef.seaZone ?? "") && G.worldColonies[target] !== "spain";
+        ["southAtlantic", "indianOcean", "southPacific"].includes(targetDef.seaZone ?? "") &&
+        !portugueseRaidForbiddenOwner(G, G.worldColonies[target]);
     const colony = targetValid ? [target, G.worldColonies[target]] as [string, Power] : Object.entries(G.worldColonies).find(([settlement, owner]) => {
         const def = WORLD_SETTLEMENT_BY_ID[settlement];
         return def !== undefined && ["southAtlantic", "indianOcean", "southPacific"].includes(def.seaZone ?? "") &&
-            owner !== "spain";
+            !portugueseRaidForbiddenOwner(G, owner);
     });
     if (colony === undefined) {
         pushLog(G, "Portuguese Raid: no eligible colony is present.");
@@ -2703,32 +2781,38 @@ const resolveSack = (G: VQGame, ctx: Ctx, attacker: Power, target?: string): voi
     if (target === undefined || G.spaces[target] === undefined || G.spaces[target].control !== attacker) return;
     // Sack! requires a recent capture this impulse by the playing power.
     if (G.lastCapture === undefined || G.lastCapture.impulse !== G.impulse || G.lastCapture.attacker !== attacker) return;
-    let defender: Power | undefined;
+    const defenders = new Set<Power>();
     for (const neighbor of landNeighbors(target)) {
         const state = G.spaces[neighbor.id];
         if (!state.fortress) continue;
         const controllers = ownersWithLand(G, neighbor.id).filter((owner): owner is Power =>
             isPower(owner) && !friendlyController(G, attacker, owner));
         if (controllers.length === 0 || friendlyControlled(G, attacker, neighbor.id)) continue;
-        defender ??= controllers[0];
-        const defenders = totalLand(G, neighbor.id, controllers);
+        for (const controller of controllers) defenders.add(controller);
+        const defendersUnits = totalLand(G, neighbor.id, controllers);
         const roll = die(ctx, 6);
-        pushLog(G, `Sack! roll at ${SPACE_BY_ID[neighbor.id].name}: ${roll} vs ${defenders} defender(s).`);
-        if (roll <= defenders) continue;
+        pushLog(G, `Sack! roll at ${SPACE_BY_ID[neighbor.id].name}: ${roll} vs ${defendersUnits} defender(s).`);
+        if (roll <= defendersUnits) continue;
         state.control = attacker;
         for (const owner of controllers) delete state.land[owner];
         captureLeaders(G, neighbor.id, controllers, attacker);
         pushLog(G, `${SPACE_BY_ID[neighbor.id].name} surrenders to ${powerLabel(attacker)}.`);
     }
-    if (defender !== undefined) {
+    // "Finally, the defender gains a +1 Card marker."  A space can be defended
+    // by more than one major power, so every defending power is compensated.
+    for (const defender of defenders) {
         G.powers[defender].marriageCardModifier = (G.powers[defender].marriageCardModifier ?? 0) + 1;
     }
 };
 
 const resolveSpanishFury = (G: VQGame, ctx: Ctx, target?: string): void => {
-    if (target === undefined || !isPower(target) || target === "spain") return;
-    // Spanish Fury requires a recent capture this impulse.
+    if (target === undefined || !isPower(target)) return;
+    // Printed text: "Use after an assault captures a key."  `lastCapture` is
+    // set by the assault that took the space, so the card belongs to that
+    // capturing power — not to Spain.  Played by anyone else it has no effect.
     if (G.lastCapture === undefined || G.lastCapture.impulse !== G.impulse) return;
+    const attacker = G.lastCapture.attacker;
+    if (target === attacker) return;
     const cards = G.powers[target].cards.filter((id) => cardById(id).kind !== "home");
     if (cards.length === 0) {
         pushLog(G, "Spanish Fury: the defender has no cards to seize.");
@@ -2736,10 +2820,10 @@ const resolveSpanishFury = (G: VQGame, ctx: Ctx, target?: string): void => {
     }
     const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
     G.powers[target].cards = G.powers[target].cards.filter((id) => id !== card);
-    G.powers.spain.cards.push(card);
-    drawCards(G, ctx, "spain", 1);
+    G.powers[attacker].cards.push(card);
+    drawCards(G, ctx, attacker, 1);
     G.powers[target].marriageCardModifier = (G.powers[target].marriageCardModifier ?? 0) + 1;
-    pushLog(G, `Spanish Fury seizes ${cardById(card).name} from ${powerLabel(target)}; Spain draws a card and the defender gains +1 Card.`);
+    pushLog(G, `Spanish Fury seizes ${cardById(card).name} from ${powerLabel(target)}; ${powerLabel(attacker)} draws a card and the defender gains +1 Card.`);
 };
 
 const resolveScurvy = (G: VQGame, target?: string): void => {
@@ -2799,7 +2883,9 @@ const resolveGouvernanteDeFrance = (G: VQGame, ctx: Ctx, target?: string): void 
             return;
         }
         G.marriageFestivities = "france";
-        if (target === "retrieve" && G.discard.includes("vq-053")) {
+        // Rule 6.2: the retrieval may not return a card France played this turn.
+        const retrievable = G.discard.includes("vq-053") && !(G.playedThisTurn?.france ?? []).includes("vq-053");
+        if (target === "retrieve" && retrievable) {
             G.discard = G.discard.filter((id) => id !== "vq-053");
             G.powers.france.cards.push("vq-053");
             pushLog(G, "Gouvernante de France retrieves Grand Tour from the discard pile.");
@@ -2854,6 +2940,10 @@ const resolveEnterpriseOfEngland = (G: VQGame): void => {
 };
 
 const resolveSpanishArmada = (G: VQGame, p: Power, target?: string): void => {
+    // Printed card: "If Elizabeth I is excommunicated, both of the above
+    // options gain 1 additional CP."  The extra CP is part of the event, so it
+    // is added on top of the 5/7 CP either branch grants.
+    const excommunicatedBonus = G.elizabethExcommunicated === true ? 1 : 0;
     if (G.armada === undefined) {
         const requested = target?.startsWith("deploy:") ? target.slice("deploy:".length) : undefined;
         const ports = ["seville", "corunna", "lisbon"];
@@ -2865,11 +2955,11 @@ const resolveSpanishArmada = (G: VQGame, p: Power, target?: string): void => {
         }
         G.armada = {strength: 2, location: port};
         delete G.armadaReturn;
-        G.powers[p].cp += 5;
-        pushLog(G, `The Spanish Armada is placed in ${SPACE_BY_ID[port].name}; Spain gains 5 CP.`);
+        G.powers[p].cp += 5 + excommunicatedBonus;
+        pushLog(G, `The Spanish Armada is placed in ${SPACE_BY_ID[port].name}; Spain gains ${5 + excommunicatedBonus} CP.`);
     } else {
-        G.powers[p].cp += 7;
-        pushLog(G, "Spain gains 7 CP for the Armada.");
+        G.powers[p].cp += 7 + excommunicatedBonus;
+        pushLog(G, `Spain gains ${7 + excommunicatedBonus} CP for the Armada.`);
     }
 };
 
@@ -2964,14 +3054,27 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (cardId === "vq-055" && (target === "france" || target === "netherlands")) {
         resolveConversions(G, ctx, p, "protestant", target, 7, true, 0, {fivesAsSix: true}, true);
     } else if (cardId === "vq-070") {
-        const areas = (["england", "scotland", "netherlands", "france"] as const)
+        // Printed text: "any two religious struggle areas".  The chosen area
+        // must be one of the two; the second is the remaining area with the
+        // most Protestant spaces, which keeps the automatic fallback sensible.
+        const struggle = ["england", "scotland", "netherlands", "france"] as const;
+        const chosenArea = target !== undefined && (struggle as readonly string[]).includes(target)
+            ? target as typeof struggle[number] : undefined;
+        const ranked = struggle
             .map((id) => ({id, count: SPACES.filter((space) => space.area === id && G.spaces[space.id].religion === "protestant").length}))
-            .sort((a, b) => b.count - a.count).slice(0, 2);
-        resolveConversions(G, ctx, p, "catholic", areas[0].id, 4, true);
-        resolveConversions(G, ctx, p, "catholic", areas[1].id, 4, false);
+            .sort((a, b) => b.count - a.count);
+        const first = chosenArea ?? ranked[0].id;
+        const second = ranked.find((entry) => entry.id !== first)!.id;
+        resolveConversions(G, ctx, p, "catholic", first, 4, true);
+        resolveConversions(G, ctx, p, "catholic", second, 4, false);
     } else if (cardId === "vq-108") {
-        resolveConversions(G, ctx, p, "catholic", "england", 3, true);
-        resolveConversions(G, ctx, p, "catholic", "scotland", 3, false);
+        // Printed text: three attempts in England and three in Scotland.  The
+        // chosen area gets the automatic first six, matching the card's "first
+        // die counts as a 6" for whichever area is resolved first.
+        const first: "england" | "scotland" = target === "scotland" ? "scotland" : "england";
+        const second = first === "england" ? "scotland" : "england";
+        resolveConversions(G, ctx, p, "catholic", first, 3, true);
+        resolveConversions(G, ctx, p, "catholic", second, 3, false);
     } else if (isGrandVizier(def)) {
         beginGrandVizierEvent(G, ctx, cardId, target);
     } else if (G.scenario === "tutorial") {
@@ -3111,7 +3214,7 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
     } else if (handler === "holyLeague") {
         resolveHolyLeague(G, ctx, p, target);
     } else if (handler === "knightsOfStJohn") {
-        resolveKnightsOfStJohn(G);
+        resolveKnightsOfStJohn(G, ctx, p, target);
     } else if (handler === "muscovyCompany") {
         resolveMuscovyCompany(G, p);
     } else if (handler === "card022") {
@@ -3161,7 +3264,10 @@ const resolvePlayedCardEvent = (G: VQGame, ctx: Ctx, p: Power, cardId: string, t
         G.powers.ottoman.ruler = "selimII";
         G.powers.ottoman.rulerAdmin = 2;
         G.powers.ottoman.rulerCardBonus = 1;
-        G.cyprusTarget = ["nicosia", "candia", "corfu"].find((id) => G.spaces[id] !== undefined && G.spaces[id].control !== "ottoman");
+        // Printed order: Cyprus, Candia, Corfu.  The map catalogue replaced the
+        // reconstruction's `nicosia` with the official `cyprus` space, so the
+        // old id silently skipped Cyprus and marked Candia instead.
+        G.cyprusTarget = ["cyprus", "candia", "corfu"].find((id) => G.spaces[id] !== undefined && G.spaces[id].control !== "ottoman");
         pushLog(G, `Selim II succeeds Suleiman; the Cyprus VP target is ${G.cyprusTarget ?? "none"}.`);
     }
     if (def.officialKind === "mandatory") {
@@ -3299,7 +3405,7 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
         !["experiencedNavigator", "maryQueenOfScots", "sirEdwardStafford", "scurvy", "spanishFury", "sack", "dragutFalls", "gregorianCalendar", "borderReivers", "jeanneOfNavarre", "sultansHarem"].includes(cardHandler)) {
         return INVALID_MOVE;
     }
-    const cancellation = args.asEvent === true ? cancelEventResponder(G, def) : undefined;
+    const cancellation = args.asEvent === true ? cancelEventResponder(G, def, args.target) : undefined;
     const cancelWindow = cancellation !== undefined;
     removeCardFromHand(G, p, args.cardId);
     const maryDead = args.cardId === "vq-089" && args.asEvent !== true &&
@@ -3310,6 +3416,10 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (maryDead) removeCardFromGame(G, "vq-089");
     else if (elizabethDead) removeCardFromGame(G, "vq-036");
     else if (!cancelWindow) discardCard(G, p, args.cardId, args.asEvent === true);
+    // Rule 6.2: remember that this power played the card this turn so a later
+    // discard-pile retrieval cannot hand it straight back.
+    G.playedThisTurn = {...(G.playedThisTurn ?? {}),
+        [p]: [...(G.playedThisTurn?.[p] ?? []), args.cardId]};
     if (gregorianResponse === undefined) {
         ps.cardPlayed = true;
         ps.actionsThisImpulse = [];

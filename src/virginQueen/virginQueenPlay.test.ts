@@ -20,7 +20,9 @@ const prepare = (): VQGame => {
     G.betrothals = [{male: "charlesIX", female: "elizabeth"}];
     G.powers.england.alliedMinors = ["papacy"];
     G.minorDiplomacyResolved = [...new Set([...G.minorDiplomacyResolved, "papacy"])];
-    G.discard = ["vq-005"];
+    // Rule 6.2: #5 Papal Bull is a Mandatory Event, so it can never be
+    // retrieved.  The tests use Eloquent Ambassador (#20), an ordinary Event.
+    G.discard = ["vq-020"];
     return G;
 };
 
@@ -29,25 +31,46 @@ describe("Virgin Queen retrieve-and-play option (card #36)", () => {
         const G = prepare();
 
         expect(playCard(G, context(), {
+            cardId: "vq-036", asEvent: true, target: "retrieve:vq-020:play:papacy",
+        })).toBeUndefined();
+
+        expect(G.discard).toContain("vq-020");
+        // The log is localized, so assert on the card id path instead of a name.
+        expect(G.log.join("\n")).toContain("童贞女王");
+        // retrieve-and-play is still a retrieve choice: the betrothal is not jilted.
+        expect(G.betrothals).toHaveLength(1);
+    });
+
+    it("never retrieves a Mandatory Event from the discard pile (rule 6.2)", () => {
+        const G = prepare();
+        G.discard = ["vq-005"];
+
+        expect(playCard(G, context(), {
             cardId: "vq-036", asEvent: true, target: "retrieve:vq-005:play:excommunicate",
         })).toBeUndefined();
 
-        expect(G.elizabethExcommunicated).toBe(true);
+        expect(G.elizabethExcommunicated).toBeFalsy();
+        expect(G.discard).toEqual(["vq-005"]);
         expect(G.powers.england.cards).not.toContain("vq-005");
-        expect(G.discard).toContain("vq-005");
-        expect(G.log.join("\n")).toContain("Papal Bull");
-        // retrieve-and-play is still a retrieve choice: the betrothal is not jilted.
-        expect(G.betrothals).toHaveLength(1);
+    });
+
+    it("never retrieves a card England played this turn (rule 6.2)", () => {
+        const G = prepare();
+        G.playedThisTurn = {england: ["vq-020"]};
+
+        expect(playCard(G, context(), {cardId: "vq-036", asEvent: true, target: "retrieve:vq-020"})).toBeUndefined();
+
+        expect(G.discard).toContain("vq-020");
+        expect(G.powers.england.cards).not.toContain("vq-020");
     });
 
     it("keeps retrieve:<cardId> as the keep-in-hand form", () => {
         const G = prepare();
 
-        expect(playCard(G, context(), {cardId: "vq-036", asEvent: true, target: "retrieve:vq-005"})).toBeUndefined();
+        expect(playCard(G, context(), {cardId: "vq-036", asEvent: true, target: "retrieve:vq-020"})).toBeUndefined();
 
-        expect(G.powers.england.cards).toContain("vq-005");
-        expect(G.discard).not.toContain("vq-005");
-        expect(G.elizabethExcommunicated).toBeFalsy();
+        expect(G.powers.england.cards).toContain("vq-020");
+        expect(G.discard).not.toContain("vq-020");
         expect(G.betrothals).toHaveLength(1);
     });
 
@@ -56,12 +79,11 @@ describe("Virgin Queen retrieve-and-play option (card #36)", () => {
         G.discard = ["vq-021"];
 
         expect(playCard(G, context(), {
-            cardId: "vq-036", asEvent: true, target: "retrieve:vq-005:play:excommunicate",
+            cardId: "vq-036", asEvent: true, target: "retrieve:vq-020:play:papacy",
         })).toBeUndefined();
 
-        expect(G.elizabethExcommunicated).toBeFalsy();
         expect(G.discard).toEqual(["vq-021"]);
-        expect(G.powers.england.cards).not.toContain("vq-005");
+        expect(G.powers.england.cards).not.toContain("vq-020");
     });
 
     it("leaves an unplayable card in the discard pile", () => {

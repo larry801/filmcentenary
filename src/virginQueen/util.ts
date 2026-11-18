@@ -853,6 +853,9 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     G.piracyActions = {};
     G.piracyZones = {};
     G.worldFortressesBuilt = 0;
+    // Rule 6.2's retrieval restriction is per turn, so the record of cards
+    // played this year resets when the new year's cards are dealt.
+    G.playedThisTurn = {};
     refreshJesuits(G);
     const cardDrawBonuses = applyPendingCardDraws(G);
     const eligibleFuture: string[] = [];
