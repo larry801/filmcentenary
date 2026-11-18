@@ -100,20 +100,13 @@ export const SpacePanel = (props: SpacePanelProps) => {
       unit.owner !== "US" && unit.owner !== "IT" && minorController(G, unit.owner) === viewer);
   const gwAllowed = (kind: GwActionKind): boolean => canAct && viewer !== null && gwActionAllowance(G, viewer, kind).ok;
 
-  const actionGroup = (key: string, title: string, children: React.ReactNode) => {
-    const content = React.Children.toArray(children);
-    if (content.length === 0) return null;
-    return (
-      <div className="ie-action-group" data-testid={`ie-actions-${key}`}>
-        <div className="ie-action-group-title">{title}</div>
-        <div className="ie-actions-grid">{content}</div>
-      </div>
-    );
-  };
-
   // The player aid's action list, computed once: every row carries its cost,
   // its enable flag and the UI's own reason, so the panel below is a renderer.
-  const rows: SpaceAction[] = viewer === null || selected === null ? [] : spaceActions({
+  // Memoised on the inputs that can change a row: the list runs every engine
+  // gate (`canRecruitIn`, `influencePlacementProblem`, `gwActionAllowance`, …)
+  // for ~15 rows, and the panel re-renders on every clock, hover and selection
+  // change, none of which can change a row's legality.
+  const rows: SpaceAction[] = React.useMemo(() => (viewer === null || selected === null ? [] : spaceActions({
     G,
     viewer,
     phase,
@@ -149,7 +142,16 @@ export const SpacePanel = (props: SpacePanelProps) => {
     onDeclareWar: () => null,
     describeRow: (row) => ({label: row.label, reason: row.reason}),
     locale,
-  });
+  // `doAction`, `moves`, `spaceActions`' own helpers and the setters are stable
+  // (useCallback / module scope), so the state that can flip a row is listed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), [
+    G, viewer, phase, selected, selectedUnit, cpRemaining, canAct, canActionCard, war,
+    myOnMapArmies, myForts, myMinorAllies, ownLandInSelected, ownNavalInSelected,
+    potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
+    canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve,
+    gwJointNavalAllies, battleFrom, navalFrom, warCp, locale,
+  ]);
   /**
    * The historic test ids for rows that used to be their own buttons.  The
    * e2e specs, the bot suites and the control tests address these names, so a
@@ -188,9 +190,9 @@ export const SpacePanel = (props: SpacePanelProps) => {
   /** One row: a button with a cost chip and a reason line under it. */
   const actionButton = (item: SpaceAction) => (
     <div
-      key={item.id}
+      key={item.uid ?? item.id}
       className="ie-action"
-      data-testid={`ie-action-${item.id}`}
+      data-testid={`ie-action-${item.uid ?? item.id}`}
       data-legacy-testid={LEGACY_ACTION_IDS[item.id]}
       data-enabled={item.enabled ? "true" : "false"}
     >
@@ -218,6 +220,24 @@ export const SpacePanel = (props: SpacePanelProps) => {
     </div>
   );
   const groupRows = (group: SpaceAction["group"]): SpaceAction[] => rows.filter((item) => item.group === group);
+
+  /**
+   * The legal rows, cheapest first, for the "available now" strip.
+   *
+   * Cost order rather than rulebook order: the strip exists to be clicked
+   * without reading, and a 1 CP build sits above a 4 CP alliance.  Ties keep
+   * their list order so the strip is stable between renders.
+   */
+  const enabledRows: SpaceAction[] = React.useMemo(
+    () => rows.filter((item) => item.enabled).sort((a, b) => a.cost - b.cost),
+    [rows],
+  );
+
+  /** A group's rows, legal ones first so the useful buttons stay above the fold. */
+  const orderedRows = (group: SpaceAction["group"]): SpaceAction[] => {
+    const items = groupRows(group);
+    return [...items.filter((item) => item.enabled), ...items.filter((item) => !item.enabled)];
+  };
 
   return (
     <IEPanel title={t.selectSpace}>
@@ -267,6 +287,38 @@ export const SpacePanel = (props: SpacePanelProps) => {
                 {/* The player aid's cost list, rendered from ACTION_COSTS. */}
                 <RuleLink anchor="rules:costs" locale={locale} onOpenReference={onOpenReference} testId="ie-rule-ref-action-costs"/>
               </div>
+              {/**
+                * "Available now" strip.
+                *
+                * The groups below must keep every row the rules offer — a
+                * disabled row's reason is how the player learns the
+                * restriction — but at a typical space twelve rows are refused
+                * for two that are legal, so the legal ones were pushed below
+                * the fold.  This strip repeats just the legal rows at the top,
+                * in cost order, so the next click never needs a scroll.  It is
+                * a shortcut, not the list: the rows below are unchanged.
+                */}
+              {enabledRows.length > 0 && (
+                <div className="ie-action-now" data-testid="ie-action-available" data-count={enabledRows.length}>
+                  <span className="ie-action-now-label">
+                    {bi(locale, `${enabledRows.length} available now`, `${enabledRows.length} 项现在可用`)}
+                  </span>
+                  <div className="ie-actions-grid">
+                    {enabledRows.map((item) => (
+                      <button
+                        key={item.uid ?? item.id}
+                        type="button"
+                        className="ie-btn ie-btn-xs" data-testid={`ie-action-now-${item.uid ?? item.id}`}
+                        title={item.label}
+                        onClick={() => runAction(item)}
+                      >
+                        {item.label}
+                        {item.cost > 0 && <span className="ie-action-cost" aria-hidden="true"> · {item.cost} CP</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {(["recruit", "build", "diplomacy", "move", "greatWar"] as const).map((group) => {
                 const items = groupRows(group);
                 if (items.length === 0) return null;
@@ -277,7 +329,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
                       {locale === "zh_CN" ? ACTION_GROUP_LABELS[group].zh : ACTION_GROUP_LABELS[group].en}
                       <span className="ie-action-group-badge" aria-label={bi(locale, `${available} available`, `${available} 项可用`)}>{available}</span>
                     </h5>
-                    <div className="ie-actions-grid">{items.map(actionButton)}</div>
+                    <div className="ie-actions-grid">{orderedRows(group).map(actionButton)}</div>
                   </section>
                 );
               })}

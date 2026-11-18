@@ -199,6 +199,13 @@ export const ACTION_GROUP_ORDER: readonly ActionGroupId[] = ["recruit", "build",
 
 export interface SpaceAction {
   id: ActionId;
+  /**
+   * A render-unique key, because one `id` can occur more than once in a space.
+   * The Great War lists "Joint naval with <ally>" once per allied contingent
+   * next to the ordinary naval row, so keying on `id` gave React duplicate keys
+   * and two elements the same `data-testid`.  Defaults to `id`.
+   */
+  uid?: string;
   group: ActionGroupId;
   label: string;
   /** CP the row costs; `0` for the free ones (Rapid Deployment, staff deploy). */
@@ -328,7 +335,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       label,
       // Every row's move goes through the board's rejection notice with the
       // label and reason the player is already reading on this row.
-      run: () => doAction(() => row.run(), describeRow({id: row.id, label, reason: row.reason})),
+      run: () => doAction(() => row.run(), describeRow({id: row.uid ?? row.id, label, reason: row.reason})),
     });
   };
 
@@ -558,7 +565,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
         for (const ally of gwJointNavalAllies) {
           const joint = gwAllowed("jointNaval");
           rows.push({
-            id: "gwNaval", group: "move", cost: ACTION_COSTS.gwNaval,
+            id: "gwNaval", uid: `gwNaval@${ally}`, group: "move", cost: ACTION_COSTS.gwNaval,
             label: bi(locale, `Joint naval with ${input.G.powers[ally] ? ally : ally}`, `与${ally}联合海军`),
             enabled: joint.ok,
             reason: joint.ok ? undefined : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),

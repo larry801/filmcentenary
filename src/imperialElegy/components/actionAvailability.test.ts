@@ -282,3 +282,40 @@ describe("spaceActions: disabled means the engine says no", () => {
     expect(move?.cost).toBe(ACTION_COSTS.move);
   });
 });
+
+describe("spaceActions: every row has its own render key", () => {
+  /**
+   * The panel keys a row on `uid ?? id` and derives the row's `data-testid` from
+   * the same value, so a repeated `id` would give React duplicate keys and two
+   * elements one test id.  The Great War does exactly that: "Joint naval with
+   * <ally>" is one row per allied contingent, all of them the `gwNaval` action,
+   * next to the ordinary naval row.  `uid` exists for that case and must be
+   * unique across the whole list.
+   */
+  const keys = (rows: SpaceAction[]): string[] => rows.map((candidate) => candidate.uid ?? candidate.id);
+
+  test("a repeated id still yields unique rows", () => {
+    const G = game("GE", 4);
+    const fleet = placeUnit(G, "GE", "squadron", "north-atlantic", 2);
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    const rows = spaceActions(input({
+      G, viewer: "GE", space: "western-mediterranean", selectedUnit: fleet.id,
+      phase: "gwManeuver",
+      gwJointNavalAllies: ["AU", "OT"],
+      gwJointNavalUnitIds: () => [],
+    }));
+    const naval = rows.filter((candidate) => candidate.id === "gwNaval");
+    // The ordinary naval row plus one per joint contingent.
+    expect(naval.length).toBe(3);
+    expect(keys(rows)).toHaveLength(new Set(keys(rows)).size);
+  });
+
+  test("rows without an override fall back to their action id", () => {
+    const G = game("GE", 4);
+    for (const candidate of spaceActions(input({G, viewer: "GE", space: "berlin"}))) {
+      if (candidate.uid !== undefined) continue;
+      expect(candidate.uid ?? candidate.id).toBe(candidate.id);
+    }
+  });
+});
