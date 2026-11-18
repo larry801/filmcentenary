@@ -12,7 +12,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement} from "../engine/rules";
+import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement, warDeclarationTargetLegal} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -1188,25 +1188,32 @@ export const useBoardModel = ({
     .filter(([, count]) => count !== 0)
     .sort(([a], [b]) => a.localeCompare(b));
 
-  // A home-card event (Bismarck) may leave a war declaration to be made in this
-  // impulse; it funds the declaration with the card's CP and fixes the aim.
+  // A home-card event (Bismarck, Aux Armes, Russo-Turkish Wars, Jihad) may
+  // leave a war declaration to be made in this impulse; it funds the
+  // declaration with the card's CP and carries its own aim/target limits.
   const warEntitlement = viewer !== null ? warDeclarationEntitlement(G, viewer) : null;
   const selectedControl = selectedState?.control ?? null;
   const warTargetControl = selectedControl !== null && isPowerKey(selectedControl) && selectedControl !== viewer ? selectedControl : null;
   // 13.4: a non-player power is a war target too (its declaring home is what
   // the selected space's control names).  `minorWarInfo` applies the printed
-  // independence/marker gates so only a legal target opens the block.
-  const warMinorTarget = warTargetControl === null && selectedControl !== null && viewer !== null
+  // independence/marker gates so only a legal target opens the block.  Its
+  // player ally is the defending primary for a card's target restriction too.
+  const selectedMinorInfo = warTargetControl === null && selectedControl !== null && viewer !== null
     && MINOR_POWER_HOMES[selectedControl] !== undefined
-    && minorWarInfo(G, viewer, selectedControl).ok
-    ? selectedControl
+    ? minorWarInfo(G, viewer, selectedControl)
     : null;
+  const warMinorTarget = selectedMinorInfo?.ok === true ? selectedControl : null;
+  const warTargetDefender = warMinorTarget !== null
+    ? selectedMinorInfo?.ally ?? warMinorTarget
+    : warTargetControl;
+  const warTargetAllowed = warDeclarationTargetLegal(G, warEntitlement, warTargetDefender);
   const warTargetSpaceControl = warTargetControl ?? warMinorTarget;
   const targetControlledSpaces = warTargetSpaceControl !== null
     ? Object.values(SPACES).filter((sp) => G.spaces[sp.id]?.control === warTargetSpaceControl && sp.id !== selected).map((sp) => sp.id)
     : [];
   const canDeclareWar = canActionCard && war === null && G.wtt < 3
     && warTargetSpaceControl !== null
+    && warTargetAllowed
     && (warEntitlement !== null || G.cpRemaining >= warCp);
 
   const gwOrderPowers = gw
@@ -1632,6 +1639,7 @@ export const useBoardModel = ({
     warTargetControl,
     warMinorTarget,
     warEntitlement,
+    warTargetAllowed,
     targetControlledSpaces,
     canDeclareWar,
     gwOrderPowers,

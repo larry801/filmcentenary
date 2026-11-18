@@ -37,7 +37,7 @@ import type {Ctx} from "boardgame.io";
 import type {ImperialElegyState, Power, SpaceId} from "../types";
 import {POWERS} from "../types";
 import {setupImperialElegy} from "../engine/setup";
-import {BISMARCK_HOME_CARD, warDeclarationEntitlement} from "../engine/rules";
+import {BISMARCK_HOME_CARD, JIHAD_HOME_CARD, RUSSO_TURKISH_WARS_HOME_CARD, warDeclarationEntitlement} from "../engine/rules";
 import {playCard} from "../moves";
 import {SpaceActionsPanel} from "./SpacePanel";
 import {ieStringsFor} from "./i18n";
@@ -52,17 +52,20 @@ const makeCtx = (playerID: string | null = "0"): Ctx => ({
 
 const seat = (power: Power): string => String(POWERS.indexOf(power));
 
-/** GE's action impulse after the Bismarck event resolved. */
-const bismarckImpulse = (): ImperialElegyState => {
+/** A power's action impulse after its home-card event resolved. */
+const homeImpulse = (power: Power, card: string): ImperialElegyState => {
   const G = setupImperialElegy(makeCtx());
   G.phase = "action";
-  G.activePower = "GE";
+  G.activePower = power;
   G.turn = 5;
-  G.powers.GE.hand = [BISMARCK_HOME_CARD];
-  G.powers.GE.selectedHomeCard = BISMARCK_HOME_CARD;
-  playCard(G, makeCtx(seat("GE")), BISMARCK_HOME_CARD, "event");
+  G.powers[power].hand = [card];
+  G.powers[power].selectedHomeCard = card;
+  playCard(G, makeCtx(seat(power)), card, "event");
   return G;
 };
+
+/** GE's action impulse after the Bismarck event resolved. */
+const bismarckImpulse = (): ImperialElegyState => homeImpulse("GE", BISMARCK_HOME_CARD);
 
 interface Declared {
   target: unknown;
@@ -79,15 +82,17 @@ const renderPanel = (
     warMinorTarget?: string | null;
     targetControlledSpaces: SpaceId[];
     canDeclareWar: boolean;
+    warTargetAllowed?: boolean;
   },
+  viewer: Power = "GE",
 ): {tree: React.ReactElement; declared: Declared[]} => {
   const declared: Declared[] = [];
-  const entitlement = warDeclarationEntitlement(G, "GE");
+  const entitlement = warDeclarationEntitlement(G, viewer);
   const tree = React.createElement(SpaceActionsPanel, {
     G,
     selected: options.selected,
-    viewer: "GE" as Power,
-    me: G.powers.GE,
+    viewer,
+    me: G.powers[viewer],
     locale: "en" as const,
     t: ieStringsFor("en"),
     phase: "action",
@@ -106,6 +111,7 @@ const renderPanel = (
     warTargetControl: options.warTargetControl,
     warMinorTarget: options.warMinorTarget ?? null,
     warEntitlement: entitlement,
+    warTargetAllowed: options.warTargetAllowed ?? true,
     canDeclareWar: options.canDeclareWar,
     polishReserve: false,
     setPolishReserve: () => undefined,
@@ -161,6 +167,12 @@ const textOf = (node: unknown): string => {
   return "";
 };
 
+const isDisabled = (tree: React.ReactElement, testId: string): boolean => {
+  const element = byTestId(tree, testId);
+  if (element === undefined) throw new Error(`no element ${testId}`);
+  return element.props?.disabled === true;
+};
+
 const click = (tree: React.ReactElement, testId: string): void => {
   const element = byTestId(tree, testId);
   if (element === undefined) throw new Error(`no element ${testId}`);
@@ -210,6 +222,46 @@ describe("Bismarck's declaration block", () => {
       objectives: ["schleswig-holstein"],
       cp: 3,
     }]);
+  });
+
+  test("Russo-Turkish Wars shows its printed target and refuses another power", () => {
+    const G = homeImpulse("RU", RUSSO_TURKISH_WARS_HOME_CARD);
+    const legal = renderPanel(G, {
+      selected: "serbia",
+      warTargetControl: "OT",
+      targetControlledSpaces: ["serbia"],
+      canDeclareWar: true,
+    }, "RU");
+    expect(textOf(byTestId(legal.tree, "ie-war-target-rule"))).toContain("only declare war on the Ottomans");
+    click(legal.tree, "ie-declare-war");
+    expect(legal.declared).toEqual([{target: "OT", aim: "conquest", objectives: ["serbia"], cp: 3}]);
+
+    const refused = renderPanel(G, {
+      selected: "alsace-lorraine",
+      warTargetControl: "FR",
+      targetControlledSpaces: ["alsace-lorraine"],
+      canDeclareWar: false,
+      warTargetAllowed: false,
+    }, "RU");
+    expect(byTestId(refused.tree, "ie-war-target-forbidden")).toBeDefined();
+    expect(isDisabled(refused.tree, "ie-declare-war")).toBe(true);
+  });
+
+  test("Jihad shows its printed target rule and keeps the open aim list", () => {
+    const G = homeImpulse("OT", JIHAD_HOME_CARD);
+    const {tree} = renderPanel(G, {
+      selected: "poland",
+      warTargetControl: "RU",
+      targetControlledSpaces: ["poland"],
+      canDeclareWar: true,
+    }, "OT");
+    expect(textOf(byTestId(tree, "ie-war-target-rule"))).toContain("Russia or a power controlling an Ottoman home space");
+    // Unification is not a legal aim for Jihad, so only two aim options remain.
+    let aimOptions = 0;
+    walk(byTestId(tree, "ie-war-declare")!, (element) => {
+      if (element.type === "option") aimOptions += 1;
+    });
+    expect(aimOptions).toBe(2);
   });
 
   test("without an entitlement the ordinary aim/CP pickers stay live", () => {

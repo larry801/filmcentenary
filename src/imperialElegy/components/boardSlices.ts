@@ -62,7 +62,7 @@ const ORDERS_KEYS = [
   "selectedUnitIds", "toggleUnitSelection", "selectUnitGroup", "startMoveTargeting",
   "canActionCard", "pending", "canDecide", "war", "warAim", "setWarAim", "warCp", "setWarCp",
   "secondObjective", "setSecondObjective", "targetControlledSpaces", "warTargetControl", "onOpenReference",
-  "warMinorTarget", "warEntitlement",
+  "warMinorTarget", "warEntitlement", "warTargetAllowed",
   "canDeclareWar", "gwJointNavalAllies", "gwJointNavalUnitIds", "polishReserve", "setPolishReserve",
   "deployLimit", "deployFree", "canDeployHere", "canGwDraft", "canGwDeployHere", "polishArmyDecision",
   "polishReserveDecision", "myOnMapArmies", "myForts", "myMinorAllies", "ownLandInSelected",

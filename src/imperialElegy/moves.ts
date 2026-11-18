@@ -104,6 +104,9 @@ import {
   BISMARCK_HOME_CARD,
   clearWarDeclarationEntitlement,
   warDeclarationEntitlement,
+  warDeclarationPolicy,
+  warDeclarationTargetLegal,
+  warDeclarationExemptsConquestPenalty,
 } from "./engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -2647,7 +2650,14 @@ const finalizeWarDeclaration = (
   minor: MinorWarInfo | null = null,
 ): string | void => {
   if (minor === null && !isPower(target)) return INVALID_MOVE;
-  applyConquestDeclarationPenalty(G, ctx, power, aim, stabilityDiscount);
+  // The card that funds the declaration can print a conquest exception
+  // ("do not increase the WTT or decrease your stability": Russo-Turkish Wars
+  // and Jihad).  The id crosses any aid search / Napoleon's Legacy decision on
+  // `G.flags.declarationCard`, so read it before the penalty is applied.
+  const declarationCard = isCardId(G.flags.declarationCard) ? G.flags.declarationCard : null;
+  if (declarationCard === null || !warDeclarationExemptsConquestPenalty(declarationCard)) {
+    applyConquestDeclarationPenalty(G, ctx, power, aim, stabilityDiscount);
+  }
   // Rule 16.1.2: remember which spaces the attacker controlled before the war
   // so a later defensive victory can be recognised.
   G.flags.limitedWarAttackerStart = Object.values(SPACES)
@@ -3217,13 +3227,16 @@ export const declareWar = (
   if (Array.isArray(objectives) === false) return INVALID_MOVE;
   if (objectives.some((id) => typeof id !== "string")) return INVALID_MOVE;
 
-  // A home card printed "declare war using this card's CP value" (Bismarck)
-  // leaves an entitlement when its event resolves.  It funds this one
-  // declaration with the card's printed CP and fixes the aim, so no ordinary
-  // impulse CP is spent (errata 12.17: the card's CP all go into the war).
+  // A home card printed "declare war using this card's CP value" (Bismarck,
+  // Aux Armes, Russo-Turkish Wars, Jihad) leaves an entitlement when its event
+  // resolves.  It funds this one declaration with the card's printed CP and
+  // carries the card's own aim/target limits, so no ordinary impulse CP is
+  // spent (errata 12.17: the card's CP all go into the war).
   const entitlement = warDeclarationEntitlement(G, power);
+  const policy = entitlement !== null ? warDeclarationPolicy(entitlement.card) : null;
   if (entitlement !== null) {
     if (entitlement.aim !== null && entitlement.aim !== aim) return INVALID_MOVE;
+    if (policy !== null && !policy.aims.includes(aim)) return INVALID_MOVE;
     if (cp !== entitlement.cp) return INVALID_MOVE;
   }
 
@@ -3254,9 +3267,17 @@ export const declareWar = (
     playerDefender = target;
     defenderForAim = target;
   }
+  // A card-driven declaration only names the defenders its printed target list
+  // allows (Russo-Turkish Wars: OT; Jihad: RU or an Ottoman-home controller).
+  // 13.4 resolves a non-player target to its player ally first, so Jihad on a
+  // Russian minor ally is correctly a declaration on Russia.
+  if (!warDeclarationTargetLegal(G, entitlement, defenderForAim)) return INVALID_MOVE;
   // Rule 13.0: validate the aim (and every objective's control) before the CP
   // is spent, so an illegal declaration never mutates the state.
-  const validation = validateWarAim(G, power, defenderForAim, aim, objectives);
+  const validation = validateWarAim(G, power, defenderForAim, aim, objectives, {
+    ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
+    conquestKeyLimit: policy?.conquestKeyLimit,
+  });
   if (!validation.ok) return INVALID_MOVE;
   if (entitlement !== null) {
     // The declaration is paid for by the home card, not by impulse CP.  The
@@ -3425,9 +3446,18 @@ const settleDefenderShiftChoice = (G: ImperialElegyState, war: WarState): void =
 export const chooseWarAim = (G: ImperialElegyState, ctx: Ctx, aim: "liberation" | "unification" | "conquest"): string | void => {
   const playerID = ctx.playerID ?? null;
   if (!G.war || G.war.status !== "warAim") return INVALID_MOVE;
+  // A card-funded declaration keeps its printed aim list and rules for the
+  // whole aim step (13.1.2's Balkan liberation, Aux Armes' two conquest keys).
+  const policy = G.war.declarationCard !== null && G.war.declarationCard !== undefined
+    ? warDeclarationPolicy(G.war.declarationCard)
+    : null;
+  if (policy !== null && !policy.aims.includes(aim)) return INVALID_MOVE;
   // Re-check the aim against the live board: objectives may have changed
   // hands, and the declared aim may no longer satisfy rule 13.0.
-  const validation = validateWarAim(G, G.war.attacker, G.war.defender, aim, G.war.objectives);
+  const validation = validateWarAim(G, G.war.attacker, G.war.defender, aim, G.war.objectives, {
+    ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
+    conquestKeyLimit: policy?.conquestKeyLimit,
+  });
   if (!validation.ok) return INVALID_MOVE;
   G.war.warAim = aim;
   G.war.status = "alliance";
@@ -4930,6 +4960,15 @@ const resolveNapoleonsLegacy = (
   // Re-check the live board: the declaration was validated before the choice
   // opened and a pending decision blocks every other action.
   if (G.war !== null || G.phase !== "action") return INVALID_MOVE;
+  // A home-card declaration keeps the card's printed aim/target/objective
+  // rules across the decision (Aux Armes is the FR case that reaches here).
+  const declarationCard = isCardId(G.flags.declarationCard) ? G.flags.declarationCard : null;
+  const policy = declarationCard !== null ? warDeclarationPolicy(declarationCard) : null;
+  if (policy !== null && !policy.aims.includes(aim)) return INVALID_MOVE;
+  const aimRules = {
+    ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
+    conquestKeyLimit: policy?.conquestKeyLimit,
+  };
   let discount = 0;
   if (optionId === "reveal") {
     markGoalRevealed(G, NAPOLEONS_LEGACY_GOAL);
@@ -4941,14 +4980,14 @@ const resolveNapoleonsLegacy = (
     // marker removed while the choice was open is honoured.
     const minor = minorWarInfo(G, "FR", minorName);
     if (!minor.ok) return INVALID_MOVE;
-    if (!validateWarAim(G, "FR", minorWarDefender(minor), aim, objectives).ok) return INVALID_MOVE;
+    if (!validateWarAim(G, "FR", minorWarDefender(minor), aim, objectives, aimRules).ok) return INVALID_MOVE;
     G.pending = null;
     // 13.4.1 / 13.4.2: the ally's abandonment choice or the aid search runs
     // next, exactly as it does for a non-card declaration.
     return beginMinorWarDeclaration(G, ctx, "FR", minor, aim, objectives, cp, discount);
   }
   if (!isPower(target)) return INVALID_MOVE;
-  if (!validateWarAim(G, "FR", target, aim, objectives).ok) return INVALID_MOVE;
+  if (!validateWarAim(G, "FR", target, aim, objectives, aimRules).ok) return INVALID_MOVE;
   G.pending = null;
   return finalizeWarDeclaration(G, ctx, "FR", target, aim, objectives, cp, discount);
 };

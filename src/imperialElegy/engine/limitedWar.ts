@@ -118,6 +118,11 @@ export interface WarAimRules {
   nationalitiesOf?: (space: SpaceId) => readonly string[];
   /** Rule 13.1 dual-home exception.  Defaults to `homeOverride` differing. */
   isDualHome?: (G: ImperialElegyState, space: SpaceId) => boolean;
+  /**
+   * Rule 13.3's conquest key limit.  Defaults to one; Aux Armes prints "may
+   * target up to two keys" and passes 2.
+   */
+  conquestKeyLimit?: number;
 }
 
 /**
@@ -319,7 +324,15 @@ export const validateWarAim = (
       }
       if (effectiveKeyType(G, space) !== undefined) keys += 1;
     }
-    if (keys > 1) add("conquest-too-many-keys", "a war of conquest may target only one key");
+    const keyLimit = Math.max(1, rules.conquestKeyLimit ?? 1);
+    if (keys > keyLimit) {
+      add(
+        "conquest-too-many-keys",
+        keyLimit === 1
+          ? "a war of conquest may target only one key"
+          : `this declaration may target at most ${keyLimit} keys`,
+      );
+    }
   }
 
   return {
