@@ -56,7 +56,7 @@ import {
 } from "./rules";
 import {POLAND, isPolandIndependent, polishController, polishHasLoc, polishReserveIds} from "./poland";
 import {closeDecision, decision, openDecision, option} from "./pending";
-import {gwExhaustionTurnZero} from "./playability";
+import {gwExhaustionTurnZero, removesAfterPlay} from "./playability";
 import {facedownGwCombatCards, flipGwCombatCardFaceup} from "./combatCards";
 import {GOALS_BY_ID} from "../constant/goals";
 import {crisisRoll, italyTable, openCrisisDecision, unifyItaly} from "./greatWar";
@@ -800,6 +800,10 @@ const CARD_CHAIN_SPECIALS: ReadonlySet<string> = new Set([
   "gwSubmarines",
   "gwPoliticalPressure",
   "gwExhaustion",
+  "economicPanic",
+  "worldsFair",
+  "polishRevolt",
+  "revolution1905",
   "stabilityOrCard",
 ]);
 
@@ -936,7 +940,7 @@ const AUCTION_CARD_FLAG = "auctionCard";
 const playAuctionCard = (G: ImperialElegyState, power: Power, cardId: CardId): number => {
   const card = cardById(cardId);
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
-  if (card.remove) G.removed.push(cardId);
+  if (removesAfterPlay(G, cardId)) G.removed.push(cardId);
   else G.discard.push(cardId);
   // Remember the face-down card privately; the public reveal happens once the
   // whole auction resolves (`auctionCardsRevealed`).
@@ -1287,6 +1291,199 @@ export const resolveAllianceResolutionTie = (
   return true;
 };
 
+/**
+ * A032 American Civil War — "At the start of the end phase roll a die; on a
+ * result of 6 or more the CSA becomes an independent country.  The UK and
+ * France may add positive DRMs by placing diplomacy markers in and moving naval
+ * units to The South space (+1 each, maximum one diplomacy marker and one
+ * squadron each).  If the CSA gains independence the power with the most
+ * counters in The South gains a permanent alliance with the CSA and +1 colonial
+ * key.  All powers that supported the CSA gain a -1 card marker."
+ *
+ * Called once at the start of each end phase while the ACW is in effect.
+ * Returns the roll so callers can log it.
+ */
+export const resolveAmericanCivilWarEndPhase = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+): {roll: number; drm: number; independent: boolean} | null => {
+  if (G.persistent.acw !== true || G.persistent.csaIndependent === true) return null;
+  const south = G.spaces["the-south"];
+  if (!south) return null;
+  const supporters: Power[] = [];
+  let drm = 0;
+  for (const power of ["UK", "FR"] as Power[]) {
+    if (G.powers[power].eliminated) continue;
+    let support = 0;
+    // "+1 each" for a diplomacy marker in The South, capped at one marker.
+    if (south.diplomacy === power) support += 1;
+    // "+1 … maximum one … squadron each".
+    const squadrons = Object.values(G.units).filter(
+      (u) => u.owner === power && u.kind === "squadron" && u.space === "the-south",
+    );
+    if (squadrons.length > 0) support += 1;
+    if (support > 0) {
+      drm += support;
+      supporters.push(power);
+    }
+  }
+  const raw = die(ctx, 6);
+  const total = raw + drm;
+  const independent = total >= 6;
+  log(G, undefined, "acwRoll", {roll: raw, drm, total, independent});
+  if (!independent) return {roll: raw, drm, independent: false};
+  G.persistent.csaIndependent = true;
+  // "the power with the most counters in The South gains a permanent alliance
+  // with the CSA and +1 colonial key."
+  const counts = new Map<Power, number>();
+  for (const unit of Object.values(G.units)) {
+    if (unit.space !== "the-south") continue;
+    if (!isPower(unit.owner)) continue;
+    counts.set(unit.owner, (counts.get(unit.owner) ?? 0) + 1);
+  }
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  // A tie leaves nobody the printed "the power with the most" winner.
+  const winner = ranked.length > 0 && (ranked.length === 1 || ranked[0][1] > ranked[1][1])
+    ? ranked[0][0]
+    : null;
+  if (winner !== null) {
+    G.spaces["the-south"].ally = winner;
+    G.powers[winner].colonialKeys += 1;
+    log(G, winner, "csaAlly", {space: "the-south"});
+  }
+  // "All powers that supported the CSA gain a -1 card marker."
+  for (const power of supporters) G.powers[power].cardMarkers -= 1;
+  return {roll: raw, drm, independent: true};
+};
+
+/**
+ * A051 Polish Revolt: "Place a Polish army and a 0 War of Independence marker in
+ * two spaces that player controls (or one if only one)."
+ */
+const placePolishRevoltRebels = (G: ImperialElegyState, victim: Power): void => {
+  const polish = Object.values(SPACES).filter(
+    (s) => s.nationalities?.includes("Poles") || s.id === "poland",
+  );
+  const targets = polish.filter((s) => G.spaces[s.id].control === victim).slice(0, 2);
+  for (const s of targets) {
+    G.spaces[s.id].rebellion = {minor: "Poland", step: 0, rebels: []};
+    const rebel = placeNonPlayerCounter(G, "REBEL:Poland", "rebelArmy", s.id, 2);
+    if (rebel) G.spaces[s.id].rebellion!.rebels.push(rebel.id);
+  }
+  log(G, victim, "polishRevoltRebels", {spaces: targets.map((s) => s.id).join(",")});
+};
+
+/**
+ * A073 Economic Panic — "All players must either discard a random card or lose
+ * one stability.  If a player chooses to discard a card but cannot do so they
+ * receive a -1 card marker."
+ *
+ * Every power is asked in print order, so the choice is genuinely the player's
+ * rather than the engine always discarding.  A power with an empty hand is not
+ * asked: it cannot discard, so the printed forced branch applies immediately.
+ */
+const panicQueue = (G: ImperialElegyState): Power[] =>
+  POWERS.filter((p) => !G.powers[p].eliminated && G.powers[p].hand.length > 0);
+
+const openEconomicPanicStep = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  resume: Effect[],
+  owner: Power,
+  queue: Power[],
+  pending: Power[] = [],
+): boolean => {
+  const rest = [...queue];
+  while (rest.length > 0) {
+    const power = rest[0];
+    if (G.powers[power].eliminated || G.powers[power].hand.length === 0) {
+      rest.shift();
+      continue;
+    }
+    openDecision(G, ctx, decision(
+      "eventChoice",
+      power,
+      "Economic Panic: discard a random card or lose one stability",
+      [
+        option("stability", "Decrease stability by 1", undefined, false, "稳定度 -1"),
+        option("discard", "Discard a random card", undefined, false, "随机弃 1 张牌"),
+      ],
+      {resume, special: "economicPanic", stage: "player", queue: rest.slice(1), answered: pending, owner, required: true},
+    ));
+    return true;
+  }
+  // Every power answered: log the outcome and continue the card.
+  log(G, owner, "economicPanicResolved", {powers: pending.join(",")});
+  return false;
+};
+
+/**
+ * A107 World's Fair — "each player (including you) may discard a card of their
+ * choice … If at least 3 players discard … decrease the WTT by 1.  If 5 or
+ * more … by 2.  These decreases are not cumulative."
+ *
+ * Each power chooses whether to discard at all, so the count is the number of
+ * players who actually discarded.
+ */
+const openWorldsFairStep = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  resume: Effect[],
+  owner: Power,
+  queue: Power[],
+  discarded: Power[] = [],
+): boolean => {
+  const rest = [...queue];
+  while (rest.length > 0) {
+    const power = rest[0];
+    const discardable = G.powers[power].hand.filter((id) => cardById(id).type !== "mandatory");
+    if (G.powers[power].eliminated || discardable.length === 0) {
+      rest.shift();
+      continue;
+    }
+    openDecision(G, ctx, decision(
+      "eventChoice",
+      power,
+      "World's Fair: discard a card?",
+      [
+        option("pass", "Keep every card", undefined, false, "保留所有牌"),
+        ...discardable.map((id) => option(
+          `discard:${id}`,
+          `Discard ${cardById(id).title}`,
+          {card: id},
+          false,
+          `弃置 ${cardById(id).titleZh}`,
+        )),
+      ],
+      {resume, special: "worldsFair", stage: "player", queue: rest.slice(1), answered: discarded, owner, required: true},
+    ));
+    return true;
+  }
+  if (discarded.length >= 5) changeWtt(G, -2, ctx);
+  else if (discarded.length >= 3) changeWtt(G, -1, ctx);
+  log(G, owner, "worldsFairResolved", {discarded: discarded.length});
+  return false;
+};
+
+/**
+ * A039 Uprising in Ireland — the printed event body, shared by the immediate
+ * path (UK is the actor, or holds no 3/4 CP card) and the UK cancel window.
+ *
+ * "Place an Irish army and a 0 WoI marker in Ireland.  The player that controls
+ * Ireland decreases their stability by 1 and gains a -1 card marker."
+ */
+const resolveUprisingInIreland = (G: ImperialElegyState, ctx: Ctx, actor: Power): boolean => {
+  G.spaces.ireland.rebellion = {minor: "Ireland", step: 0, rebels: []};
+  const rebel = placeNonPlayerCounter(G, "REBEL:Ireland", "rebelArmy", "ireland", 2);
+  if (rebel) G.spaces.ireland.rebellion.rebels.push(rebel.id);
+  const controller = G.spaces.ireland.control;
+  if (isPower(controller)) {
+    changeStability(G, controller, -1, ctx);
+    G.powers[controller].cardMarkers -= 1;
+  }
+  return true;
+};
+
 // ------------------------------------------------------------------ chain steps
 /**
  * Open the next decision of a chain.  Returns true when a decision was opened
@@ -1593,9 +1790,11 @@ const resolveEmpireOfTheSun = (
   // "At the end of the war the active player becomes the ally of Japan": the
   // player's ally marker goes on Japan (the minor's home space), which is what
   // `friendlySpace` and `minorAlliesOf` read.
+  // "At the end of the war the active player becomes the ally of Japan" — the
+  // alliance is not immediate.  Record the pending claim; `demobilizeWar`
+  // applies it when the war actually ends.
   const crownJapanAlliance = (): void => {
-    G.spaces.japan.ally = owner;
-    G.spaces.japan.diplomacy = null;
+    G.flags.japanAlliancePending = owner;
   };
   const defender = G.spaces[target].control;
   if (!isPower(defender)) {
@@ -1802,6 +2001,91 @@ const resolveCardChain = (
   const special = String(context.special ?? "");
   const owner = (context.owner as Power | undefined) ?? pending.power;
   switch (special) {
+    case "polishRevolt": {
+      // Step 1 picks the victim; step 2 is that player's stability-or-discard
+      // choice, after which the rebels are placed.
+      const stage = String(context.stage ?? "");
+      if (stage === "choice") {
+        if (optionId === "discard") {
+          const hand = G.powers[pending.power].hand;
+          if (hand.length > 0) discardCard(G, pending.power, hand[randomIndex(ctx, hand.length)], "polishRevolt");
+          else changeStability(G, pending.power, -1, ctx);
+        } else {
+          changeStability(G, pending.power, -1, ctx);
+        }
+        placePolishRevoltRebels(G, pending.power);
+        finishCardChain(G, ctx, pending);
+        return;
+      }
+      const victim = optionId as Power;
+      placePolishRevoltRebels(G, victim);
+      if (G.powers[victim].hand.length > 0) {
+        openDecision(G, ctx, decision(
+          "eventChoice",
+          victim,
+          "Polish Revolt: decrease stability by 1 or discard a random card",
+          [
+            option("stability", "Decrease stability by 1", undefined, false, "稳定度 -1"),
+            option("discard", "Discard a random card", undefined, false, "随机弃 1 张牌"),
+          ],
+          {resume, special: "polishRevolt", stage: "choice", owner, required: true},
+        ));
+        return;
+      }
+      changeStability(G, victim, -1, ctx);
+      finishCardChain(G, ctx, pending);
+      return;
+    }
+    case "revolution1905": {
+      // Russia answered the shared stability-or-card choice.
+      if (optionId === "discard") {
+        const hand = G.powers.RU.hand;
+        if (hand.length > 0) discardCard(G, "RU", hand[randomIndex(ctx, hand.length)], "revolution1905");
+        else changeStability(G, "RU", -1, ctx);
+      } else {
+        changeStability(G, "RU", -1, ctx);
+      }
+      finishCardChain(G, ctx, pending);
+      return;
+    }
+    case "economicPanic": {
+      // The deciding power answered; apply and move to the next player.
+      const queue = (context.queue as Power[] | undefined) ?? [];
+      const answered = (context.answered as Power[] | undefined) ?? [];
+      const power = pending.power;
+      if (optionId === "discard") {
+        const hand = G.powers[power].hand;
+        if (hand.length > 0) {
+          discardCard(G, power, hand[randomIndex(ctx, hand.length)], "economicPanic");
+        } else {
+          // "If a player chooses to discard a card but cannot do so they
+          // receive a -1 card marker."
+          G.powers[power].cardMarkers -= 1;
+        }
+      } else {
+        changeStability(G, power, -1, ctx);
+      }
+      const next = [...answered, power];
+      if (openEconomicPanicStep(G, ctx, resume, owner, queue, next)) return;
+      finishCardChain(G, ctx, pending);
+      return;
+    }
+    case "worldsFair": {
+      const queue = (context.queue as Power[] | undefined) ?? [];
+      const answered = (context.answered as Power[] | undefined) ?? [];
+      const power = pending.power;
+      let discarded = [...answered];
+      if (optionId.startsWith("discard:")) {
+        const cardId = optionId.slice("discard:".length) as CardId;
+        if (G.powers[power].hand.includes(cardId)) {
+          discardCard(G, power, cardId, "worldsFair");
+          discarded = [...discarded, power];
+        }
+      }
+      if (openWorldsFairStep(G, ctx, resume, owner, queue, discarded)) return;
+      finishCardChain(G, ctx, pending);
+      return;
+    }
     case "stabilityOrCard": {
       const owner = (context.owner as Power | undefined) ?? pending.power;
       const rollBackfire = context.rollBackfire === true;
@@ -2244,7 +2528,9 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       G.flags.meiji = true;
       G.persistent.meiji = true;
       setSpaceControl(G, "japan", "Japan");
+      // "Place 1 Japanese army and 1 naval squadron in Japan."
       placeNonPlayerCounter(G, "Japan", "minorArmy", "japan", 2);
+      placeNonPlayerCounter(G, "Japan", "squadron", "japan", 2);
       log(G, actor, "meiji", {});
       return true;
     }
@@ -2286,9 +2572,19 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return openBerlinConferenceStep(G, ctx, resume, order, actor);
     }
     case "quagmire": {
-      const candidates = legalSpaces(G, actor, {region: "africa", controlledBy: "enemy"});
-      if (candidates.length === 0) return true;
-      openDecision(G, ctx, decision("eventTargetSpace", actor, "Choose an African space", candidates.map((id) => option(id, spaceLabel(id, "en"))), {resume, special: handler}));
+      // "Give a -1 card marker to any player that is pacifying a space.
+      // Additionally, decrease the value of their pacification marker by 2 to a
+      // minimum of 0."  The targets are the spaces whose pacification marker is
+      // still in play (a marker at 0 is not "pacifying"), on any map and for
+      // any owner, not only enemy-held African spaces.
+      const candidates = Object.values(SPACES)
+        .filter((s) => (G.spaces[s.id]?.pacification ?? 0) > 0)
+        .map((s) => s.id);
+      if (candidates.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        return true;
+      }
+      openDecision(G, ctx, decision("eventTargetSpace", actor, "Choose a space being pacified", candidates.map((id) => option(id, spaceLabel(id, "en"))), {resume, special: handler}));
       return false;
     }
     case "looseGrip": {
@@ -2392,15 +2688,27 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return openSpecialSpace(G, ctx, actor, handler, targets, "Choose a space for influence and an EF", resume);
     }
     case "uprisingInIreland": {
-      G.spaces.ireland.rebellion = {minor: "Ireland", step: 0, rebels: []};
-      const rebel = placeNonPlayerCounter(G, "REBEL:Ireland", "rebelArmy", "ireland", 2);
-      if (rebel) G.spaces.ireland.rebellion.rebels.push(rebel.id);
-      const controller = G.spaces.ireland.control;
-      if (isPower(controller)) {
-        changeStability(G, controller, -1, ctx);
-        G.powers[controller].cardMarkers -= 1;
+      // "The UK player may immediately discard a 3 or 4 CP card of their
+      // choice to ignore this event."  The cancel window is only worth a
+      // decision when the UK is not itself the actor and holds a 3/4 CP card.
+      const cancelable = G.powers.UK.hand.filter((id) => {
+        const def = cardById(id);
+        return def.kind !== "home" && (def.cp === 3 || def.cp === 4);
+      });
+      if (actor !== "UK" && !G.powers.UK.eliminated && cancelable.length > 0) {
+        openDecision(G, ctx, decision(
+          "eventChoice",
+          "UK",
+          "Uprising in Ireland: discard a 3 or 4 CP card to ignore this event",
+          [
+            option("decline", "Ignore this event (no card discarded)", undefined, false, "忽略此事件（不弃牌）"),
+            ...cancelable.map((id) => option(`discard:${id}`, `Discard ${cardById(id).title}`, {card: id}, false, `弃置 ${cardById(id).titleZh}`)),
+          ],
+          {resume, special: handler, owner: actor, required: false},
+        ));
+        return false;
       }
-      return true;
+      return resolveUprisingInIreland(G, ctx, actor);
     }
     case "prussianTradition": {
       // "This event has no effect during the Great War."  The card can still be
@@ -2411,11 +2719,27 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "folieDeGrandeur": {
-      const target = Object.values(SPACES).find((s) => s.region !== "europe" && G.spaces[s.id].control === "FR");
-      if (target) applyPacification(G, target.id, 1);
+      // "Place a pacification marker in a space in Asia, Africa or North America
+      // that France controls."
       changeStability(G, "FR", -1, ctx);
       G.powers.FR.cardMarkers -= 1;
-      return true;
+      const candidates = Object.values(SPACES)
+        .filter((s) => (s.region === "asia" || s.region === "africa" || s.region === "northAmerica")
+          && G.spaces[s.id].control === "FR")
+        .map((s) => s.id);
+      if (candidates.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        return true;
+      }
+      return openSpecialSpace(
+        G,
+        ctx,
+        actor,
+        handler,
+        candidates,
+        "Folie de Grandeur: choose a French colonial space to pacify",
+        resume,
+      );
     }
     case "frenchIntervention": {
       // Indochina and Mexico are the card's special targets; they may still
@@ -2435,7 +2759,8 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       );
     }
     case "dualMonarchy": {
-      changeStability(G, "AU", 1, ctx);
+      // The +1 stability is the card's own declared `stability` effect, which
+      // `resolveEffects` already applied; applying it here as well granted +2.
       // 33.4.1: the card grants full citizenship; the nationality also keeps
       // the benefits of rights, so both tracks are recorded.
       grantAuCitizenship(G, "Hungarians");
@@ -2447,9 +2772,25 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // A85 Hungarian Obstinacy blocks both branches of the card.
       if (auCitizenshipBlocked(G)) return true;
       changeStability(G, "AU", -1, ctx);
-      const target = nextAuNationality(G.powers.AU.rights) ?? AU_NATIONALITIES[0];
-      G.powers.AU.rights.push(target);
-      return true;
+      // "If The Dual Monarchy has been played choose one of the following
+      // options: (1) Austria grants rights to one nationality, or (2) Austria
+      // attempts to grant citizenship to a nationality; this attempt succeeds
+      // on a roll of 4 or more on one die."
+      if (G.persistent.dualMonarchyPlayed !== true && G.persistent.dualMonarchy !== true) {
+        log(G, "AU", "noLegalTarget", {card: G.resolvingCard});
+        return true;
+      }
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        "AU",
+        "Multicultural Empire: grant rights or attempt citizenship",
+        [
+          option("rights", "Grant rights to one nationality", undefined, false, "给予一个民族权利"),
+          option("citizenship", "Attempt citizenship (roll 4+ on one die)", undefined, false, "尝试完整公民权（掷 4+）"),
+        ],
+        {resume, special: handler, owner: actor, required: true},
+      ));
+      return false;
     }
     case "southGermanConfederation": {
       setSpaceControl(G, "bavaria", "AU");
@@ -2470,30 +2811,47 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "polishRevolt": {
+      // "Choose a player that controls a space with Polish nationality.  Place
+      // a Polish army and a 0 War of Independence marker in two spaces that
+      // player controls (or one if only one).  That player must either decrease
+      // stability by 1 or discard a random card."
       const polish = Object.values(SPACES).filter((s) => s.nationalities?.includes("Poles") || s.id === "poland");
-      const controller = (isPower(G.spaces.poland.control) ? G.spaces.poland.control : actor) as Power;
-      const targets = polish.filter((s) => G.spaces[s.id].control === controller).slice(0, 2);
-      for (const s of targets) {
-        G.spaces[s.id].rebellion = {minor: "Poland", step: 0, rebels: []};
-        const rebel = placeNonPlayerCounter(G, "REBEL:Poland", "rebelArmy", s.id, 2);
-        if (rebel) G.spaces[s.id].rebellion!.rebels.push(rebel.id);
+      const controllers = [...new Set(
+        polish.map((s) => G.spaces[s.id].control).filter((c): c is Power => isPower(c) && !G.powers[c].eliminated),
+      )];
+      if (controllers.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        return true;
       }
-      if (G.powers[controller].hand.length > 0) {
-        // A027-style random picks go through `randomIndex` so an out-of-range
-        // face clamps instead of resolving `cardById(undefined)`.
-        const index = randomIndex(ctx, G.powers[controller].hand.length);
-        discardCard(G, controller, G.powers[controller].hand[index], "polishRevolt");
-      } else changeStability(G, controller, -1, ctx);
-      return true;
+      openDecision(G, ctx, decision(
+        "eventTargetPower",
+        actor,
+        "Polish Revolt: choose a player controlling a Polish space",
+        powerOptions(controllers),
+        {resume, special: handler, owner: actor, required: true},
+      ));
+      return false;
     }
     case "easternOrthodoxy": {
-      const balkan = ["greece", "serbia", "bulgaria", "romania", "macedonia"].map((id) => SPACES[id]).filter((s) => s && G.spaces[s.id].control !== null && !isPower(G.spaces[s.id].control));
-      const target = balkan[0];
-      if (target) {
-        G.spaces[target.id].diplomacy = null;
-        G.spaces[target.id].ally = "RU";
+      // "The Russian player chooses a Balkan minor power (not Bosnia).  Remove
+      // any diplomacy markers belonging to another power.  Russia gains an
+      // alliance with that power.  This event can replace another player's
+      // alliance marker."
+      const candidates = ["greece", "serbia", "bulgaria", "romania", "macedonia"]
+        .filter((id) => G.spaces[id] && G.spaces[id].control !== null && !isPower(G.spaces[id].control));
+      if (candidates.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        return true;
       }
-      return true;
+      return openSpecialSpace(
+        G,
+        ctx,
+        actor,
+        handler,
+        candidates,
+        "Eastern Orthodoxy: choose a Balkan minor power",
+        resume,
+      );
     }
     case "powderKeg": {
       // The card data raises the WTT first (rule 23.1: on outbreak the rest of
@@ -2556,26 +2914,27 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "theUnitedStates": {
       if (G.persistent.acw) return true;
-      const choice = die(ctx, 2);
-      if (choice === 1) {
-        drawCards(G, ctx, actor, 1);
-        G.powers[actor].cardMarkers += 1;
-      } else {
-        const target = G.spaces.mexico.control === null ? "mexico" : "japan";
-        setSpaceControl(G, target, "United States", {clearDiplomacy: true});
-        G.spaces[target].diplomacy = null;
-        for (const id of [...G.spaces[target].units]) {
-          const u = G.units[id];
-          if (u && u.owner !== "United States") {
-            // 5.7: displaced units keep their identity/steps and go to their
-            // own closest friendly LoC space, not the first friendly space of
-            // the card's actor.
-            displaceUnitToFriendlyLoc(G, id);
-          }
-        }
-        G.cpRemaining += 3;
-      }
-      return true;
+      // "American Trade: draw one card and gain a +1 card marker.  OR Carry a
+      // Big Stick: place an American control marker in either Mexico or Japan."
+      // The printed OR is the player's choice, not a die roll.
+      const targets = ["mexico", "japan"].filter((id) => G.spaces[id]);
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        actor,
+        "The United States: choose American Trade or Carry a Big Stick",
+        [
+          option("trade", "American Trade: draw a card and gain a +1 card marker", undefined, false, "美国贸易：抽 1 张牌并获得 +1 抽牌标记"),
+          ...targets.map((id) => option(
+            `marker:${id}`,
+            `Carry a Big Stick: place an American marker in ${spaceLabel(id, "en")}`,
+            {space: id},
+            false,
+            `挥舞大棒：在${spaceLabel(id, "zh_CN")}放置美国标记`,
+          )),
+        ],
+        {resume, special: handler, owner: actor, required: true},
+      ));
+      return false;
     }
     case "papalInfluence": {
       // "event cannot be played after Italy unifies" and "you cannot trigger
@@ -2617,12 +2976,15 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "economicPanic": {
+      // "All players must either discard a random card or lose one stability."
+      // A power with no cards is not asked (the discard branch is impossible),
+      // and the printed "-1 card marker" applies to a player who chose to
+      // discard but could not.
       for (const p of POWERS) {
-        const hand = G.powers[p].hand.filter((id) => cardById(id).type !== "mandatory");
-        if (hand.length > 0) discardCard(G, p, hand[0], "economicPanic");
-        else G.powers[p].cardMarkers -= 1;
+        if (G.powers[p].eliminated) continue;
+        if (G.powers[p].hand.length === 0) G.powers[p].cardMarkers -= 1;
       }
-      return true;
+      return openEconomicPanicStep(G, ctx, resume, actor, panicQueue(G));
     }
     case "zulus": {
       placeNonPlayerCounter(G, "REBEL:Zulu", "rebelArmy", "south-africa", 1);
@@ -2715,8 +3077,15 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "dreadnought": {
       const port = Object.values(SPACES).find((s) => s.region === "europe" && s.ports?.length && G.spaces[s.id].control === actor);
-      if (port) placeUnit(G, actor, "dreadnought", port.id, 2);
-      else placeUnit(G, actor, "dreadnought", "london", 2);
+      const where = port ? port.id : "london";
+      placeUnit(G, actor, "dreadnought", where, 2);
+      // "Special: if this is the first card you play this turn, gain an
+      // additional dreadnought."  `playCard` stamps `firstCardThisTurn` before
+      // the event resolves.
+      if (G.flags.firstCardThisTurn === true) {
+        placeUnit(G, actor, "dreadnought", where, 2);
+        log(G, actor, "dreadnoughtBonus", {space: where});
+      }
       G.persistent.dreadnoughts = true;
       return true;
     }
@@ -2816,17 +3185,9 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "worldsFair": {
-      let discards = 0;
-      for (const p of POWERS) {
-        const hand = G.powers[p].hand.filter((id) => cardById(id).type !== "mandatory");
-        if (hand.length > 0) {
-          discardCard(G, p, hand[0], "worldsFair");
-          discards += 1;
-        }
-      }
-      if (discards >= 5) changeWtt(G, -2, ctx);
-      else if (discards >= 3) changeWtt(G, -1, ctx);
-      return true;
+      // "In turn order, each player (including you) may discard a card of their
+      // choice (players cannot discard a mandatory event)."
+      return openWorldsFairStep(G, ctx, resume, actor, [...POWERS]);
     }
     case "highSeasFleet": {
       // "A non-British player of your choice gains one dreadnought."
@@ -2845,12 +3206,28 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return false;
     }
     case "revolution1905": {
-      if (G.powers.RU.hand.length > 0) {
-        const index = randomIndex(ctx, G.powers.RU.hand.length);
-        discardCard(G, "RU", G.powers.RU.hand[index], "revolution1905");
-      } else changeStability(G, "RU", -1, ctx);
+      // "The Russian player must either decrease their stability by 1 or
+      // discard a random card (they must decrease their stability if they
+      // cannot discard a card).  Draw an additional card."
       drawCards(G, ctx, actor, 1);
-      return true;
+      const hasCards = G.powers.RU.hand.length > 0;
+      if (!hasCards) {
+        changeStability(G, "RU", -1, ctx);
+        log(G, "RU", "stabilityOrCard", {choice: "stability", forced: true});
+        return true;
+      }
+      // The choice belongs to Russia, so the decision is owned by that seat.
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        "RU",
+        "Revolution of 1905: decrease stability by 1 or discard a random card",
+        [
+          option("stability", "Decrease stability by 1", undefined, false, "稳定度 -1"),
+          option("discard", "Discard a random card", undefined, false, "随机弃 1 张牌"),
+        ],
+        {resume, special: handler, owner: actor, required: true},
+      ));
+      return false;
     }
     case "extremeMilitarism": {
       G.powers[actor].flags.reserveLimitBonus = 1;
@@ -2879,7 +3256,8 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "sunNeverSets": {
-      changeStability(G, "UK", 1, ctx);
+      // The +1 stability is the card's declared `stability` effect already
+      // applied by `resolveEffects`; repeating it here granted +2.
       // 33.2.2: once India is independent the marker can no longer be flipped;
       // force the unstable side rather than trusting the stored value.
       G.powers.UK.indiaStable = G.powers.UK.indiaIndependent === true ? false : true;
@@ -2903,7 +3281,8 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "cityOfLightHome": {
-      changeStability(G, "FR", 1, ctx);
+      // The +1 stability is the card's declared `stability` effect already
+      // applied by `resolveEffects`; repeating it here granted +2.
       G.cpRemaining += 3;
       if (die(ctx, 6) <= G.turn) G.powers.FR.cityOfLight = Math.min(6, (G.powers.FR.cityOfLight ?? 0) + 1);
       return true;
@@ -2914,12 +3293,28 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "habsburgDynasty": {
-      const target = Object.values(SPACES).find((s) => s.flashpoints?.includes("germany") && !isPower(G.spaces[s.id].control));
-      if (target) {
-        G.spaces[target.id].diplomacy = null;
-        G.spaces[target.id].ally = "AU";
+      // "Choose an independent minor power in Europe.  Remove an opposing
+      // player's diplomacy marker, if present, and gain an alliance with that
+      // minor power."
+      const candidates = Object.values(SPACES)
+        .filter((s) => s.region === "europe"
+          && s.minorHome !== undefined
+          && G.spaces[s.id].control === s.minorHome
+          && !isPower(G.spaces[s.id].control))
+        .map((s) => s.id);
+      if (candidates.length === 0) {
+        log(G, "AU", "noLegalTarget", {card: G.resolvingCard});
+        return true;
       }
-      return true;
+      return openSpecialSpace(
+        G,
+        ctx,
+        "AU",
+        handler,
+        candidates,
+        "Habsburg Dynasty: choose an independent European minor power",
+        resume,
+      );
     }
     case "kaiserreich": {
       changeStability(G, "AU", 1, ctx);
@@ -2952,7 +3347,8 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "bismarckWar": {
-      changeStability(G, "GE", 1, ctx);
+      // The +1 stability is the card's declared `stability` effect already
+      // applied by `resolveEffects`; repeating it here granted +2.
       G.powers.GE.flags.warDeclaration = true;
       return true;
     }
@@ -2960,13 +3356,28 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "gwMinorPowerEntry": {
-      const minors = Object.values(SPACES).filter((s) => s.minorHome && G.spaces[s.id].control === s.minorHome && !s.keyType);
-      const target = minors[0];
-      if (target && die(ctx, 6) >= 5) {
-        G.spaces[target.id].ally = actor;
-        placeNonPlayerCounter(G, target.minorHome!, "minorArmy", target.id, 2);
+      // "Choose an independent minor power and roll a die.  On a roll of 5 or
+      // more that power joins the GW on a side of your choice."
+      //
+      // The card's printed "OR place a strict neutrality marker on a minor
+      // power" branch needs a strict-neutrality state the engine does not
+      // model, so only the roll branch is offered; see CARD_EVENTS.md.
+      const minors = Object.values(SPACES)
+        .filter((s) => s.minorHome && G.spaces[s.id].control === s.minorHome && !s.keyType)
+        .map((s) => s.id);
+      if (minors.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        return true;
       }
-      return true;
+      return openSpecialSpace(
+        G,
+        ctx,
+        actor,
+        handler,
+        minors,
+        "Minor Power Entry: choose an independent minor power to roll for",
+        resume,
+      );
     }
     case "gwMajorPowerEntry": {
       // The play itself is gated by `playGwCardMove` (GW #2 "cannot be played on
@@ -3478,10 +3889,13 @@ export const resolveCardDecision = (
       const value = SPACES[space]?.type === "navalBase" ? 2 : 0;
       applyPacification(G, space, value);
     } else if (special === "quagmire") {
+      // "decrease the value of their pacification marker by 2 to a minimum of 0"
+      applyPacification(G, space, -2);
+      // "Give a -1 card marker to any player that is pacifying a space."
       const p = G.spaces[space].control;
-      G.spaces[space].pacification = (G.spaces[space].pacification ?? 0) + 1;
-      if (isPower(p)) changeStability(G, p, -1, ctx);
-      else changeStability(G, actor, -1, ctx);
+      const pacifier = isPower(p) ? p : (isPower(G.spaces[space].influence) ? G.spaces[space].influence as Power : null);
+      if (pacifier !== null) G.powers[pacifier].cardMarkers -= 1;
+      log(G, actor, "quagmire", {space, pacifier});
     } else if (special === "looseGrip") {
       if (!rejectIndependentIndiaMarker(G, actor, space, "control")) {
         setSpaceControl(G, space, actor);
@@ -3489,6 +3903,30 @@ export const resolveCardDecision = (
       }
     } else if (special === "berlinConference") {
       if (!rejectIndependentIndiaMarker(G, actor, space, "influence")) G.spaces[space].influence = actor;
+    } else if (special === "gwMinorPowerEntry") {
+      const minorHome = SPACES[space]?.minorHome;
+      const roll = die(ctx, 6);
+      if (minorHome && roll >= 5) {
+        G.spaces[space].ally = actor;
+        placeNonPlayerCounter(G, minorHome, "minorArmy", space, 2);
+        log(G, actor, "gwMinorJoined", {space, roll});
+      } else {
+        log(G, actor, "gwMinorDeclined", {space, roll});
+      }
+    } else if (special === "folieDeGrandeur") {
+      applyPacification(G, space, 1);
+    } else if (special === "habsburgDynasty") {
+      // "Remove an opposing player's diplomacy marker, if present, and gain an
+      // alliance with that minor power."
+      G.spaces[space].diplomacy = null;
+      G.spaces[space].ally = "AU";
+      log(G, "AU", "minorAlliance", {space});
+    } else if (special === "easternOrthodoxy") {
+      // "Remove any diplomacy markers belonging to another power.  Russia gains
+      // an alliance with that power."
+      G.spaces[space].diplomacy = null;
+      G.spaces[space].ally = "RU";
+      log(G, "RU", "minorAlliance", {space});
     } else if (special === "greatGame") {
       if (!rejectIndependentIndiaMarker(G, actor, space, "influence")) {
         G.spaces[space].influence = actor;
@@ -3593,6 +4031,51 @@ export const resolveCardDecision = (
         const rebels = Object.values(G.units).filter((u) => u.kind === "rebelArmy");
         if (rebels.length > 0) removeUnit(G, rebels[0].id);
       }
+    } else if (special === "multiculturalEmpire") {
+      if (optionId === "rights") {
+        const nationality = nextAuNationality(G.powers.AU.rights) ?? AU_NATIONALITIES[0];
+        G.powers.AU.rights.push(nationality);
+        log(G, "AU", "rightsGranted", {nationality});
+      } else {
+        // "this attempt succeeds on a roll of 4 or more on one die."
+        const citizenship = nextAuNationality(G.powers.AU.citizenship);
+        const roll = die(ctx, 6);
+        if (roll >= 4 && citizenship) {
+          grantAuCitizenship(G, citizenship);
+          log(G, "AU", "citizenshipGranted", {nationality: citizenship, roll});
+        } else {
+          log(G, "AU", "citizenshipFailed", {roll, nationality: citizenship ?? null});
+        }
+      }
+    } else if (special === "theUnitedStates") {
+      if (optionId === "trade") {
+        drawCards(G, ctx, actor, 1);
+        G.powers[actor].cardMarkers += 1;
+      } else if (optionId.startsWith("marker:")) {
+        const target = optionId.slice("marker:".length) as SpaceId;
+        if (G.spaces[target]) {
+          setSpaceControl(G, target, "United States", {clearDiplomacy: true});
+          G.spaces[target].diplomacy = null;
+          for (const id of [...G.spaces[target].units]) {
+            const u = G.units[id];
+            if (u && u.owner !== "United States") displaceUnitToFriendlyLoc(G, id);
+          }
+          G.cpRemaining += 3;
+        }
+      }
+    } else if (special === "uprisingInIreland") {
+      // "discard a 3 or 4 CP card of their choice to ignore this event."
+      if (optionId.startsWith("discard:")) {
+        const cardId = optionId.slice("discard:".length) as CardId;
+        if (G.powers.UK.hand.includes(cardId)) {
+          discardCard(G, "UK", cardId, "uprisingInIreland");
+          log(G, "UK", "uprisingIgnored", {card: cardId});
+        }
+        closeDecision(G, ctx);
+        resumeEffects(G, ctx, pending, data);
+        return;
+      }
+      resolveUprisingInIreland(G, ctx, actor);
     } else if (special === "gwMajorEntry") {
       if (optionId === "IT" || optionId === "US") resolveMajorPowerEntry(G, ctx, actor, optionId);
     } else if (special === "gwCombatFlip") {
@@ -3637,6 +4120,6 @@ export const resolveCardDecision = (
 export const finishCard = (G: ImperialElegyState, actor: Power, cardId: CardId): void => {
   const card = CARD_BY_ID[cardId];
   if (!card) return;
-  if (card.remove) removeCard(G, cardId);
+  if (removesAfterPlay(G, cardId)) removeCard(G, cardId);
   else discardCard(G, actor, cardId, "cardPlayed");
 };

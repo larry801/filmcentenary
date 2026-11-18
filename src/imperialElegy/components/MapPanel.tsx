@@ -193,6 +193,16 @@ export const MapPanel = ({
           >
             {bi(locale, "Capital", "首都")}
           </button>
+          <a
+            className="ie-view-chip ie-view-board"
+            data-testid="ie-map-printed-board"
+            href="/board/imperialElegy"
+            target="_blank"
+            rel="noreferrer"
+            title={bi(locale, "Open the printed board as one vector sheet", "打开 1:1 印刷版图（矢量单页）")}
+          >
+            {bi(locale, "Printed board", "印刷版图")}
+          </a>
           <select
             className="ie-select ie-view-select"
             data-testid="ie-map-theatre"

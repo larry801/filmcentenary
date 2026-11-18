@@ -1117,7 +1117,11 @@ export const warBudgetCardId = (G: ImperialElegyState, power: Power): CardId | n
   for (const cardId of hand) {
     if (!isCardId(cardId)) continue;
     const card = cardById(cardId);
-    // Mandatory events, responses and combat cards cannot be played for CP.
+    // An ally joins by spending an ordinary event card's CP, so only that type
+    // qualifies: a mandatory event would resolve its printed event first, and a
+    // response/combat card belongs to its own window.  This is narrower than
+    // 12.0's "every card is a CP card" on purpose — the joining card is chosen
+    // by the rules, not by the player.
     if (card.type === "event") return cardId;
   }
   return null;
@@ -1545,9 +1549,12 @@ const printedNationalitiesOf = (space: SpaceId): readonly string[] => {
  * Italian nationality (13.2.1), which distinguishes it from GE's German
  * unification and AU's citizenship unification.
  */
+export const isItalianUnificationWar = (war: WarState): boolean =>
+  war.warAim === "unification" &&
+  war.objectives.some((space) => printedNationalitiesOf(space).includes("Italians"));
+
 export const warRequiresMandatoryCession = (war: WarState): boolean =>
-  war.warAim === "liberation" ||
-  (war.warAim === "unification" && war.objectives.some((space) => printedNationalitiesOf(space).includes("Italians")));
+  war.warAim === "liberation" || isItalianUnificationWar(war);
 
 /**
  * Rule 16.2.1: whether a victorious attacker still owes the mandatory
@@ -2695,6 +2702,16 @@ export const demobilizeWar = (
   for (const state of Object.values(G.spaces)) state.occupiedBy = null;
   const historyRecorded = !G.wars.includes(war);
   if (historyRecorded) G.wars.push(war);
+  // A096 Empire of the Sun: "At the end of the war the active player becomes the
+  // ally of Japan."  The claim is recorded when the event resolves (the war may
+  // end turns later), so it is applied here, at the war's actual end.
+  const japanClaim = G.flags.japanAlliancePending;
+  if (typeof japanClaim === "string" && G.spaces.japan) {
+    G.spaces.japan.ally = japanClaim as Power;
+    G.spaces.japan.diplomacy = null;
+    log(G, japanClaim as Power, "minorAlliance", {space: "japan"});
+  }
+  delete G.flags.japanAlliancePending;
   G.war = null;
 
   const winnerSide: WarSideName = war.victor ?? "attacker";

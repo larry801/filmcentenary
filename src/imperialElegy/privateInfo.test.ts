@@ -205,7 +205,7 @@ test("pending decision does not expose the inciting card to non-owners", () => {
   }
 });
 
-test("an event play is public; a CP play is private to its owner", () => {
+test("an event play and a CP play are both public; the CP card is still not in a visible zone", () => {
   const G = openAssassinationDecision();
   const cardPlayed = G.log.find((entry) => entry.key === "cardPlayed")!;
   expect(cardPlayed.power).toBe("GE");
@@ -220,7 +220,8 @@ test("an event play is public; a CP play is private to its owner", () => {
     expect(entry.power).toBe("GE");
   }
 
-  // A card spent for CP never leaves the owner's hand faceup.
+  // A card spent for CP is played openly as well (12.0), so the log names it to
+  // every seat; only the discard pile order stays hidden.
   const cp = fresh();
   cp.phase = "action";
   cp.activePower = "GE";
@@ -231,9 +232,12 @@ test("an event play is public; a CP play is private to its owner", () => {
   expect(asView(cp, "0").log.find((e) => e.id === cpPlayed.id)!.args?.card).toBe("IE-A021");
   for (const playerID of [...SEATS.slice(1), null]) {
     const entry = asView(cp, playerID).log.find((e) => e.id === cpPlayed.id)!;
-    expect(entry.args?.card).toBe("hidden");
+    expect(entry.args?.card).toBe("IE-A021");
     expect(entry.key).toBe("cardPlayed");
+    expect(entry.args?.mode).toBe("cp");
   }
+  expect(asView(cp, "2").discard).toEqual([]);
+  expect(asView(cp, "2").discardCount).toBe(1);
 
   const publicEntry = G.log.find((entry) => entry.key === "campaignStarted")!;
   expect(publicEntry.power).toBeUndefined();

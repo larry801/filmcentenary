@@ -330,10 +330,6 @@ export interface ModelValues {
   setWarCp: (n: number) => void;
   secondObjective: SpaceId | "";
   setSecondObjective: (s: SpaceId | "") => void;
-  mpitTarget: Power;
-  setMpitTarget: (p: Power) => void;
-  mpitTrack: "te" | "ta" | "neutral";
-  setMpitTrack: (t: "te" | "ta" | "neutral") => void;
   warAlly: Power;
   setWarAlly: (p: Power) => void;
   warMinor: string;

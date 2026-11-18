@@ -479,6 +479,21 @@ export const friendlySpace = (G: ImperialElegyState, space: SpaceId, power: Powe
   return false;
 };
 
+/**
+ * 4.9.4 / 12.4: a friendly port is a port space controlled or occupied by the
+ * power or by one of its allies.  An uncontrolled space where the power only
+ * has an influence marker is not a friendly port.
+ */
+export const friendlyPort = (G: ImperialElegyState, power: Power, space: SpaceId): boolean => {
+  const def = SPACES[space];
+  const state = G.spaces[space];
+  if (!def || !state || isNavalBox(space) || (def.ports?.length ?? 0) === 0) return false;
+  if (state.control === power || state.occupiedBy === power) return true;
+  if (isPower(state.control) && allied(G, state.control, power)) return true;
+  if (!isPower(state.control) && state.control !== null && state.control !== undefined && state.ally === power) return true;
+  return false;
+};
+
 export const neutralSpace = (G: ImperialElegyState, space: SpaceId, power: Power): boolean => {
   const state = G.spaces[space];
   if (!state) return false;
@@ -685,13 +700,31 @@ const locAllies = (G: ImperialElegyState, power: Power): readonly Power[] => {
  * spaces in war. Occupation takes precedence over formal control (15.3).
  * This is deliberately narrower than movement's influence-space allowance.
  */
-export const locFriendlySpace = (G: ImperialElegyState, space: SpaceId, power: Power): boolean => {
+export const locFriendlySpace = (
+  G: ImperialElegyState,
+  space: SpaceId,
+  power: Power,
+  throughAlliedMinorSpaces = false,
+): boolean => {
   const state = G.spaces[space];
   if (!state || isNavalBox(space)) return false;
   if (unitsIn(G, space).some((unit) => unit.kind === "rebelArmy")) return false;
   const allies = locAllies(G, power);
-  if (allies.length === 0) return state.control === power;
+  // 12.5.1: "For the purposes of placing influence, players can trace LoCs
+  // through allied minor power spaces."  That allowance is separate from the
+  // normal wartime friendly-space rule, so it is gated by an explicit option
+  // and applies at peace too.
+  const alliedMinor = (holder: PowerOrMinor | null | undefined): boolean => {
+    if (!throughAlliedMinorSpaces || holder === null || holder === undefined || isPower(holder)) return false;
+    const controller = minorController(G, holder) ?? minorUpkeepPower(G, holder);
+    return controller === power;
+  };
+  if (allies.length === 0) {
+    if (state.control === power) return true;
+    return state.control !== null && state.control !== undefined && alliedMinor(state.control);
+  }
   const holder = state.occupiedBy ?? state.control;
+  if (alliedMinor(holder)) return true;
   if (isPower(holder)) return allies.includes(holder);
   if (holder === "IT" || holder === "US") {
     const side = gwMajorSide(G, holder);
@@ -711,6 +744,7 @@ const connectionPassable = (
   power: Power,
   landOnly: boolean,
   respectNavalGates = true,
+  throughAlliedMinorSpaces = false,
 ): boolean => {
   if (landOnly && (isNavalBox(from) || isNavalBox(to) || connectionBetween(from, to)?.type === "sea")) return false;
   const state = G.spaces[to];
@@ -725,7 +759,7 @@ const connectionPassable = (
     if (spaceHostileTo(G, power, to)) return false;
     return true;
   }
-  return locFriendlySpace(G, to, power);
+  return locFriendlySpace(G, to, power, throughAlliedMinorSpaces);
 };
 
 /** Breadth-first LoC trace. */
@@ -739,6 +773,12 @@ export const hasLoc = (
     capitalOnly?: boolean;
     /** Follow Suez and Dardanelles closures on sea hops (default true). */
     respectNavalGates?: boolean;
+    /**
+     * 12.5.1: allow the trace to pass through spaces controlled by a minor
+     * power allied to `power`.  Only the influence-placement path passes this;
+     * supply and every other LoC check keep the printed rule.
+     */
+    throughAlliedMinorSpaces?: boolean;
   } = {},
 ): boolean => {
   if (!G.spaces[from]) return false;
@@ -760,6 +800,7 @@ export const hasLoc = (
           power,
           options.landOnly ?? false,
           options.respectNavalGates ?? true,
+          options.throughAlliedMinorSpaces ?? false,
         )
       ) {
         continue;

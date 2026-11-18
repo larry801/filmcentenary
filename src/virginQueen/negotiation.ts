@@ -24,6 +24,7 @@ import {
     landAdjacent,
     powerLabel,
     pushLog,
+    resolveImmediateBetrothals,
     seaPathBetweenPorts,
     warCost,
 } from "./util";
@@ -533,6 +534,11 @@ const applyTerm = (G: VQGame, ctx: Ctx, term: NegotiationTerm): void => {
             return;
         case "betrothal": {
             G.betrothals.push({male: term.male, female: term.female});
+            // Rule 21: a marriage with Mary Queen of Scots is resolved the
+            // moment the betrothal is agreed, inside the Diplomacy Phase.
+            if (term.male === "maryScots" || term.female === "maryScots") {
+                resolveImmediateBetrothals(G, ctx);
+            }
             return;
         }
         case "navalLoan": {

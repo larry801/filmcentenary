@@ -177,7 +177,7 @@ The language toggle is the `中文 / English` switch in the site's top bar (MUI 
   - **strip** `ie-track-strip`: decade `1850年代`, `世界紧张`, `3：禁战`, the `?` / `☰` tooltips, the step labels `准备 · 外交 · 行动 · 结束`; the strip's own CP chip (phone only — hidden at 1440×900) prints `剩余 <n>`, dropping the trailing `CP`, while the panel head prints `剩余 CP <n>`;
   - **turn panel** `ie-dock`: `指令`, the CP label, `停牌` / `结束行动轮`, tab labels, the one-line summary;
   - **map**: `ie-space-card`, `ie-space-detail`, the action group titles and every `.ie-action-reason`, the legend;
-  - **mat** `ie-mat`: `稳定` (not `稳定度`), `人力`, `工业`, keys, reserves, the figure tooltips;
+  - **mat** `ie-mat`: `稳定` (not `稳定度`), `人力`, `工业`, keys, reserves, the figure tooltips, and the printed display's own notes — the stability box effects, `MP` under the key boxes, `N 张卡` under the industry boxes, `结束阶段：骰 + CP ≥ 5/6`, `人力与工业中较低者`, `自动胜利`;
   - **hand** `ie-hand-tray`: filter/sort, `CP 链`, `可作 CP`, the per-card status line, `中文译文` toggle on each face;
   - **drawer** `ie-reference-drawer`: section headings, the CRT column heads, the cost list, the sequence, `ie-ref-log`;
   - **checklist strings**: the same set in `English` after switching.
@@ -255,8 +255,11 @@ of these was introduced by this checklist; they are where a tester's answer is
    1440×900 the table grid is `148px / 1fr / 348px`, so the mat beside the map
    is **148 px** wide — **132 px** below 1100 px, where the same media query
    narrows the turn panel to 300 px — and the brief asks for 320 px. The
-   figures are unchanged; the narrower column scrolls its own body
-   (`.ie-mat-grid { overflow: auto }`) and, below 1100 px, folds to a one-line
-   chip row with a popover. On a phone the mat is now a tab of the four-tab
-   dock (§8), so the desktop column is the only layout target this build does
-   not meet.
+   printed tracks therefore print one numbered box per step in a wrapped row
+   (a 16-box key track is three rows) and state each box's value in the range
+   line under the boxes (`0–2: 3 张卡`, `0–2: MP 1`) plus the box's hover title,
+   instead of squeezing the printed caption under every number. The narrower
+   column scrolls its own body (`.ie-mat-grid { overflow: auto }`) and, below
+   1100 px, folds to a one-line chip row with a popover. On a phone the mat is
+   now a tab of the four-tab dock (§8), so the desktop column is the only
+   layout target this build does not meet.

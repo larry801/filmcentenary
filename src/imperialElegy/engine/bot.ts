@@ -19,7 +19,7 @@ import {
 } from "../types";
 import {cardById} from "./deck";
 import {powerOfSeat, seatOf} from "./pending";
-import {eventPlayability} from "./playability";
+import {cpPlayability, eventPlayability, type PlayBlockReason} from "./playability";
 import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
 import {
   controlledBy,
@@ -35,8 +35,8 @@ import {
   navalUnitsIn,
   ownsKey,
   unitsOfPower,
-  isPower,
 } from "./rules";
+import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs";
 import {impulseAlreadyUsed, recruit as recruitMove} from "../moves";
 import {passRestriction} from "./characteristics";
 import {beginLandBattle} from "./combat";
@@ -173,17 +173,19 @@ const botRecruitSpace = (G: ImperialElegyState, power: Power): SpaceId | null =>
 };
 
 /**
- * Cards the bot may spend for CP.  Mandatory cards must be played for their
- * event (moves.ts refuses `mode: "cp"` for them), so selecting one here would
- * hand the board an invalid move and stall the bot.
+ * Cards the bot may spend for CP.  Every non-home card is a CP card (12.0);
+ * a mandatory event played for CP resolves its event, so the bot prefers its
+ * event path (`mandatoryInHand` below) but is never left without a move.
+ * A105's printed hand-size clause is checked by `cpPlayability` when the move
+ * is issued, and `cpPlayProblem` filters it here so the bot never names a card
+ * the engine would refuse.
  */
-const isCpSpendable = (cardId: CardId): boolean => {
-  const def = cardById(cardId);
-  return def.kind !== "home"
-    && def.type !== "response"
-    && def.type !== "combat"
-    && def.type !== "mandatory"
-    && def.type !== "mandatoryResponse";
+const isCpSpendable = (cardId: CardId): boolean => cardById(cardId).kind !== "home";
+
+/** The engine's own CP gate, so the bot never names a card the move refuses. */
+const cpPlayProblem = (G: ImperialElegyState, power: Power, cardId: CardId): PlayBlockReason | undefined => {
+  const decision = cpPlayability(G, power, cardId);
+  return decision.ok ? undefined : decision.reason;
 };
 
 /** Mandatory cards still in hand: they block passing until the event is played. */
@@ -239,28 +241,31 @@ const botBoxEvent = (G: ImperialElegyState, power: Power): BotMove | null => {
   return null;
 };
 
-/** Find an independent minor power with no alliance marker that the bot can ally. */
+/**
+ * Find a minor power the bot can actually ally.  The probes are the engine's
+ * own gates, so a target the move would refuse is never sent (the bot used to
+ * look only for a free `ally` slot and re-sent the same refused move).
+ */
 const minorAllianceTarget = (G: ImperialElegyState, power: Power, region: BditRegion): SpaceId | null => {
   const candidates = spacesInBditRegion(region);
   for (const id of candidates) {
     const space = G.spaces[id];
     if (!space) continue;
-    if (space.ally !== null && space.ally !== undefined) continue;
-    const def = SPACES[id];
-    if (!def || isPower(def.control)) continue;
-    if (isPower(space.control)) continue;
+    // 12.8: the bot needs its own diplomacy marker on the minor first, which
+    // is what `minorAllianceProblem` checks (with the ally cap and 4.6.2).
+    if (space.diplomacy !== power) continue;
+    if (minorAllianceProblem(G, power, id) !== null) continue;
     return id;
   }
   return null;
 };
 
-/** Find a space in a BDIT region to place influence (no existing influence or opponent's). */
+/** Find a space in a BDIT region where 12.5.1 actually allows influence. */
 const influenceTarget = (G: ImperialElegyState, power: Power, region: BditRegion): SpaceId | null => {
   const candidates = spacesInBditRegion(region);
   for (const id of candidates) {
-    const space = G.spaces[id];
-    if (!space) continue;
-    if (space.influence === power) continue; // already ours
+    // The engine's gate: uncontrolled land, one marker, the African cap, a LoC.
+    if (influencePlacementProblem(G, power, id) !== null) continue;
     return id;
   }
   return null;
@@ -362,6 +367,7 @@ export const botPendingMove = (
     case "combatCard":
     case "combatDiscard":
     case "combatElite":
+    case "hydraulicRecoil":
       // Combat decisions: pick first option (take the loss / retreat / advance).
       return {move: "resolvePending", args: [pending.options[0].id]};
 
@@ -639,13 +645,15 @@ const priorityTwo = (
   // 5-6 — play a card for its event.  `playCard` accepts an event only as the
   // impulse's single card play (12.0), so this tier is skipped once the impulse
   // is used; `botDecision` then spends the CP and reaches this tier on a later
-  // impulse.
+  // impulse.  Combat cards have no event outside a battle, and
+  // `eventPlayability` is the engine's own gate, so a card it refuses is never
+  // named here.
   if (roll >= 5 && roll <= 6 && !impulseAlreadyUsed(G, power)) {
     for (const cardId of p.hand) {
       if (!isCpSpendable(cardId)) continue;
-      if (worthPlayingForEvent(G, power, cardId)) {
-        return {move: "playCard", args: [cardId, "event"]};
-      }
+      if (!worthPlayingForEvent(G, power, cardId)) continue;
+      if (!eventPlayability(G, power, cardId).ok) continue;
+      return {move: "playCard", args: [cardId, "event"]};
     }
   }
 
@@ -967,16 +975,19 @@ export const botDecision = (
       return {move: "pass"};
     }
 
-    // A mandatory card in hand forbids passing (12.0), so play it first.
-    // It may only be played for its event and only while the impulse is empty.
+    // A mandatory card in hand forbids passing (12.0), so play it first.  Its
+    // event is the printed path; a mandatory event played for CP resolves the
+    // same event, so the event mode is the plain choice whenever the impulse is
+    // still empty.  With CP banked the bot spends that CP first (a card play
+    // while CP remain is refused), and reaches this branch again next impulse.
     const mandatory = mandatoryInHand(G, power);
     if (mandatory !== null && !impulseAlreadyUsed(G, power)) {
       return {move: "playCard", args: [mandatory, "event"]};
     }
 
-    // A047 The Dual Monarchy and GW-10 Exhaustion also forbid passing, and
-    // unlike a mandatory card they may be spent for CP.  Left until later the
-    // bot fills the impulse with its home card and then has no legal move.
+    // A047 The Dual Monarchy and GW-10 Exhaustion also forbid passing.  Left
+    // until later the bot fills the impulse with its home card and then has no
+    // legal move, so the card is spent for CP as the impulse's own card play.
     const blocking = !impulseAlreadyUsed(G, power)
       ? passRestriction(G, power).cards.find((card) => isCpSpendable(card.card))
       : undefined;
@@ -990,7 +1001,7 @@ export const botDecision = (
 
     // Start a fresh impulse by playing a card for CP.
     if (!impulseAlreadyUsed(G, power)) {
-      const cpCard = p.hand.find(isCpSpendable);
+      const cpCard = p.hand.find((card) => isCpSpendable(card) && cpPlayProblem(G, power, card) === undefined);
       if (cpCard !== undefined) {
         return {move: "playCard", args: [cpCard, "cp"]};
       }

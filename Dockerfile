@@ -15,4 +15,4 @@ COPY package.json yarn.lock /app/
 RUN yarn install --production --link-duplicates && yarn cache clean
 EXPOSE 3010
 COPY --from=builder /app/build  /app/build
-CMD node build/bundle.js
+CMD ["node", "build/bundle.js"]

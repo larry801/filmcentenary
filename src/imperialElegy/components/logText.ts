@@ -348,6 +348,7 @@ const FORMATTERS: Record<string, Formatter> = {
   economicPanic: discardText(" in the Economic Panic", "（因经济恐慌）"),
   worldsFair: discardText(" for the World's Fair", "（因世界博览会）"),
   revolution1905: discardText(" in the Revolution of 1905", "（因 1905 年革命）"),
+  uprisingInIreland: discardText(" to Uprising in Ireland", "（因爱尔兰起义）"),
   eventDiscard: discardText(" to a card event", "（因卡牌事件）"),
   prepStabilityDiscard: discardText(" for +1 stability", "（换取 +1 稳定）"),
 
@@ -498,6 +499,102 @@ const FORMATTERS: Record<string, Formatter> = {
       locale,
       `rerolled the ${side} die: ${attack} vs ${defence}, differential ${differential}, losses ${attackerLosses}/${defenderLosses}.`,
       `重掷${side}掷骰：${attack} 对 ${defence}，差值 ${differential}，损失 ${attackerLosses}/${defenderLosses}。`,
+    );
+  },
+
+  acwRoll: (entry, locale) => {
+    const roll = num(entry.args?.roll);
+    const drm = num(entry.args?.drm);
+    const total = num(entry.args?.total);
+    if (bool(entry.args?.independent)) {
+      return text(locale, `American Civil War roll ${roll}${drm ? ` +${drm}` : ""} = ${total}: the CSA becomes independent.`, `美国内战掷骰 ${roll}${drm ? ` +${drm}` : ""} = ${total}：南方邦联独立。`);
+    }
+    return text(locale, `American Civil War roll ${roll}${drm ? ` +${drm}` : ""} = ${total}: the CSA stays in the Union.`, `美国内战掷骰 ${roll}${drm ? ` +${drm}` : ""} = ${total}：南方邦联未能独立。`);
+  },
+
+  csaAlly: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `gained a permanent alliance with the CSA and +1 colonial key (${space}).`, `获得与南方邦联的永久同盟及 +1 殖民关键区（${space}）。`);
+  },
+
+  quagmire: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `placed the Quagmire effect in ${space}: -1 card marker and -2 pacification.`, `在${space}结算泥潭：-1 抽牌标记、绥靖 -2。`);
+  },
+
+  dreadnoughtBonus: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `gained a second dreadnought at ${space} (first card this turn).`, `在${space}额外获得 1 艘无畏舰（本回合首牌）。`);
+  },
+
+  uprisingIgnored: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(entry, locale, `discarded ${card} to ignore Uprising in Ireland.`, `弃置${card}以忽略爱尔兰起义。`);
+  },
+
+  gwMinorJoined: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const roll = num(entry.args?.roll);
+    return withActor(entry, locale, `rolled ${roll} and brought the minor power at ${space} into the Great War.`, `掷出 ${roll}，使${space}的小国加入大战。`);
+  },
+
+  gwMinorDeclined: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const roll = num(entry.args?.roll);
+    return withActor(entry, locale, `rolled ${roll}; the minor power at ${space} did not join.`, `掷出 ${roll}，${space}的小国未参战。`);
+  },
+
+  economicPanicResolved: (entry, locale) =>
+    withActor(entry, locale, "resolved Economic Panic for every player.", "为所有玩家结算了经济恐慌。"),
+
+  worldsFairResolved: (entry, locale) => {
+    const discarded = num(entry.args?.discarded);
+    return withActor(entry, locale, `resolved World's Fair: ${discarded} player(s) discarded.`, `结算世界博览会：${discarded} 名玩家弃牌。`);
+  },
+
+  rightsGranted: (entry, locale) => {
+    const nationality = str(entry.args?.nationality) ?? "";
+    return withActor(entry, locale, `granted rights to ${nationality}.`, `给予${nationality}权利。`);
+  },
+
+  citizenshipGranted: (entry, locale) => {
+    const nationality = str(entry.args?.nationality) ?? "";
+    const roll = num(entry.args?.roll);
+    return withActor(entry, locale, `granted ${nationality} full citizenship (rolled ${roll}).`, `授予${nationality}完整公民权（掷出 ${roll}）。`);
+  },
+
+  citizenshipFailed: (entry, locale) => {
+    const nationality = str(entry.args?.nationality) ?? "";
+    const roll = num(entry.args?.roll);
+    return withActor(entry, locale, `failed to grant ${nationality} citizenship (rolled ${roll}).`, `未能授予${nationality}完整公民权（掷出 ${roll}）。`);
+  },
+
+  polishRevoltRebels: (entry, locale) => {
+    const spaces = str(entry.args?.spaces);
+    return withActor(
+      entry,
+      locale,
+      spaces ? `placed Polish rebels in ${spaces}.` : "placed no Polish rebels (no eligible space).",
+      spaces ? `在${spaces}放置波兰叛军。` : "未放置波兰叛军（无合法空间）。",
+    );
+  },
+
+  hydraulicRecoilApplied: (entry, locale) => {
+    const to = spaceName(entry.args?.to, locale);
+    const optional = bool(entry.args?.optional);
+    if (!optional) {
+      return withActor(
+        entry,
+        locale,
+        `declined Hydraulic Recoil's optional loss at ${to}.`,
+        `放弃了液压后坐在${to}的可选损失。`,
+      );
+    }
+    return withActor(
+      entry,
+      locale,
+      `applied Hydraulic Recoil at ${to}: both sides take +1 loss.`,
+      `在${to}结算液压后坐：双方各 +1 损失。`,
     );
   },
 
@@ -739,6 +836,85 @@ const FORMATTERS: Record<string, Formatter> = {
   },
 
   // ------------------------------------------------------------------ Italy / Great War
+  gwFortDegraded: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const level = num(entry.args?.level);
+    return text(
+      locale,
+      level <= 0
+        ? `28.2: the defending fort at ${space} is removed after the battle.`
+        : `28.2: the defending fort at ${space} drops to level ${level} after the battle.`,
+      level <= 0
+        ? `28.2：战斗结束后，${space}的防守要塞被移除。`
+        : `28.2：战斗结束后，${space}的防守要塞降为 ${level} 级。`,
+    );
+  },
+
+  gwFortCancelsRetreat: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(
+      entry,
+      locale,
+      `removed the friendly fort at ${space} to cancel the retreat.`,
+      `移除了${space}的友方要塞，取消了撤退。`,
+    );
+  },
+
+  italyPetition: (entry, locale) => {
+    const minor = str(entry.args?.minor);
+    const removed = num(entry.args?.removed);
+    return withActor(
+      entry,
+      locale,
+      `removed ${removed} ally marker(s) from ${minor} for Petition for Aid.`,
+      `因“请求援助”移除了${minor}的 ${removed} 个盟友标记。`,
+    );
+  },
+
+  italyUnificationMpitCp: (entry, locale) => {
+    const cp = num(entry.args?.cp);
+    return withActor(
+      entry,
+      locale,
+      `won the Italian unification war and gained ${cp} free CP to influence Italy's MPIT.`,
+      `赢得了意大利统一战争，获得 ${cp} 点免费 CP 用于影响意大利的大国影响力。`,
+    );
+  },
+
+  italyUnificationMpit: (entry, locale) => {
+    const track = str(entry.args?.track);
+    const remaining = num(entry.args?.remaining);
+    return withActor(
+      entry,
+      locale,
+      `spent 1 free unification-war CP on Italy's ${track} MPIT (${remaining} left).`,
+      `花费 1 点统一战争免费 CP，增加意大利的${track}影响力（剩余 ${remaining} 点）。`,
+    );
+  },
+
+  italyUnificationCardMarker: (_entry, locale) =>
+    text(
+      locale,
+      "Placed the +1 card marker in the Italian unification box.",
+      "在意大利统一格放置了 +1 抽牌标记。",
+    ),
+
+  italyNationalistWave: (entry, locale) => {
+    const minor = str(entry.args?.minor);
+    const keys = String(entry.args?.keys ?? "").split(",").filter(Boolean).map((id) => spaceName(id, locale)).join(", ");
+    return withActor(
+      entry,
+      locale,
+      `Nationalist Wave: ${minor} gains ${keys}.`,
+      `民族主义浪潮：${minor}获得${keys}。`,
+    );
+  },
+
+  italyNavalBase: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `placed Italy's control marker in ${space}.`, `在${space}放置了意大利控制标记。`);
+  },
+
   italyOttomanWar: (_entry, locale) =>
     text(
       locale,
@@ -1122,6 +1298,17 @@ const FORMATTERS: Record<string, Formatter> = {
       locale,
       `built ${article(kind)} ${kind} at ${space}.`,
       `在${space}建造了${kind}。`,
+    );
+  },
+
+  fleetRefitted: (entry, locale) => {
+    const kind = unitKind(entry.args?.kind, locale);
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(
+      entry,
+      locale,
+      `refitted ${article(kind)} ${kind} to full strength at ${space}.`,
+      `在${space}将${kind}整补至满员。`,
     );
   },
 
@@ -2124,6 +2311,18 @@ const FORMATTERS: Record<string, Formatter> = {
       locale,
       `could not play ${card} as an event: ${reasonText}`,
       `无法将 ${card} 作为事件打出：${reasonText}`,
+    );
+  },
+
+  cardCpNotPlayable: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    const reason = str(entry.args?.reason) as PlayBlockReason;
+    const reasonText = ieStringsFor(locale).playBlock[reason] ?? str(entry.args?.reason);
+    return withActor(
+      entry,
+      locale,
+      `could not play ${card} for CP: ${reasonText}`,
+      `无法将 ${card} 作为 CP 打出：${reasonText}`,
     );
   },
 

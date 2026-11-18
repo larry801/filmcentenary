@@ -15,8 +15,21 @@
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, minorController, ownsKey,
+  friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, minorController, ownsKey,
 } from "../engine/rules";
+import {
+  diplomacyPlacementProblem,
+  influencePlacementProblem,
+  minorAllianceProblem,
+  removeAllianceCost,
+  removeMarkerProblem,
+  removeMinorAllianceProblem,
+  type DiplomacyProblem,
+  type InfluenceProblem,
+  type MinorAllianceProblem,
+  type RemoveAllianceProblem,
+  type RemoveMarkerProblem,
+} from "../engine/foreignAffairs";
 import {gwActionAllowance} from "../engine/gwImpulse";
 import {reserveRemaining} from "../engine/economy";
 import {canRecruitIn, isCwArmySpace, pacificationCost} from "../engine/characteristics";
@@ -26,7 +39,7 @@ import type {RecruitDecision} from "../engine/characteristics";
 
 export type ActionId =
   | "recruitArmy" | "recruitCw" | "recruitReserve" | "recruitEc" | "polishArmy" | "polishReserve"
-  | "buildSquadron" | "buildDreadnought" | "buildFort" | "buildEf" | "moveEf"
+  | "buildSquadron" | "buildDreadnought" | "refitFleet" | "buildFort" | "buildEf" | "moveEf"
   | "influence" | "diplomacy" | "minorAlliance" | "removeInfluence" | "breakAlliance" | "pacify"
   | "move" | "gwNaval" | "gwMarch" | "gwRail" | "refit" | "rapidDeploy"
   | "deployReserves" | "landBattle" | "navalBattle" | "gwDraft" | "gwDeploy" | "gwElite";
@@ -44,6 +57,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   polishReserve: 2,
   buildSquadron: 2,
   buildDreadnought: 3,
+  refitFleet: 1,
   buildFort: 1,
   buildEf: 2,
   moveEf: 1,
@@ -72,7 +86,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
 /** Every fixed-cost action, in the player aid's order. */
 export const ACTION_COST_ORDER: readonly ActionId[] = [
   "recruitArmy", "recruitReserve", "recruitEc", "recruitCw", "polishArmy", "polishReserve",
-  "buildSquadron", "buildDreadnought", "buildFort", "buildEf", "moveEf",
+  "buildSquadron", "buildDreadnought", "refitFleet", "buildFort", "buildEf", "moveEf",
   "influence", "diplomacy", "pacify", "removeInfluence", "minorAlliance", "breakAlliance",
   "move", "deployReserves", "landBattle", "navalBattle", "gwDraft", "gwDeploy", "gwElite",
   "refit", "gwMarch", "gwRail", "gwNaval", "rapidDeploy",
@@ -87,6 +101,7 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   polishReserve: {en: "Polish reserve army", zh: "波兰预备军"},
   buildSquadron: {en: "Build squadron", zh: "建造分舰队"},
   buildDreadnought: {en: "Build dreadnought", zh: "建造无畏舰"},
+  refitFleet: {en: "Refit fleet", zh: "整补舰队"},
   buildFort: {en: "Build fort", zh: "建造要塞"},
   buildEf: {en: "Build expeditionary force", zh: "建造远征军"},
   moveEf: {en: "Move expeditionary force here", zh: "远征军移至此处"},
@@ -114,6 +129,60 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
 
 export const actionCostLabel = (id: ActionId | "rebuildZouave" | "placeMpit", locale: "en" | "zh_CN"): string =>
   locale === "zh_CN" ? LABELS[id].zh : LABELS[id].en;
+
+/**
+ * The wording for every refusal code `engine/foreignAffairs` can return.
+ *
+ * The tables are typed with `Record<Problem, …>`, so adding a code in the engine
+ * without translating it here is a compile error.  That is the point: the panel
+ * and the move read the same gate, and a new printed restriction cannot reach
+ * the engine while the Orders list still offers the row.
+ */
+/** Every refusal code the foreign-affairs gates can return. */
+export type ForeignAffairsProblem =
+  | DiplomacyProblem | InfluenceProblem | MinorAllianceProblem | RemoveMarkerProblem | RemoveAllianceProblem;
+
+/**
+ * The wording for every refusal code, in one exhaustive table.
+ *
+ * Typing it as `Record<ForeignAffairsProblem, …>` means adding a code in
+ * `engine/foreignAffairs` without wording here is a compile error.  That is the
+ * point of the shared module: the panel and the move read the same gate, so a
+ * new printed restriction cannot reach the engine while the Orders list still
+ * offers the row.
+ */
+const FOREIGN_AFFAIRS_TEXT: Record<ForeignAffairsProblem, [string, string]> = {
+  "unknown-space": ["That is not a space on the map.", "地图上没有这个空间。"],
+  "independent-india": ["India is independent and cannot be marked.", "印度已独立，不能放置标记。"],
+  // 12.5.1 / 12.5.3
+  "already-controlled": ["This space is already controlled.", "此空间已被控制。"],
+  "already-influenced": ["This space already has an influence marker.", "此空间已有影响标记。"],
+  "already-marked": ["This space already has a diplomacy marker.", "此空间已有外交标记。"],
+  "africa-limit": ["Only one influence marker in Africa before the Berlin Conference.", "柏林会议前，每个玩家在非洲只能有 1 个影响标记。"],
+  "no-loc": ["This space is outside your supply line.", "此空间超出你的补给线。"],
+  "naval-box": ["Influence can only be placed in land spaces, not naval boxes.", "影响标记只能放在陆地空间，不能放在海军区。"],
+  "not-minor-power": ["Diplomacy markers go only in minor power spaces.", "外交标记只能放在小国空间。"],
+  "qing-china": ["No diplomacy markers may be placed in Qing China.", "不能在清帝国空间放置外交标记。"],
+  "the-south": ["The South is out of play until the American Civil War.", "美国内战爆发前，南方不在游戏中。"],
+  "japan-not-in-play": ["Japan enters play through Meiji Restoration.", "日本需通过“明治维新”进入游戏。"],
+  "minor-home-space": ["Place the marker on the minor power's own home space.", "请放在该小国的同名本土空间。"],
+  // 12.8 / 4.2.1
+  "needs-diplomacy": ["You need a diplomacy marker here first.", "需先在此放置外交标记。"],
+  "allied-elsewhere": ["That minor power is already allied to another player.", "该小国已与其它玩家结盟。"],
+  "already-allied": ["This space already has a minor ally.", "此空间已有小国盟友。"],
+  "ally-limit": ["Minor ally limit reached (5).", "已达小国联盟上限（5）。"],
+  // 12.6 / 12.9
+  "no-own-marker": ["No own marker here.", "此处无己方标记。"],
+  "africa-after-berlin": ["Influence cannot be removed in Africa after the Berlin Conference.", "柏林会议后不能在非洲移除影响标记。"],
+  "foreign-unit-present": ["Another player's unit is in this space.", "此空间内有他国单位。"],
+  "no-ally": ["There is no minor ally marker here.", "此处没有小国盟友标记。"],
+};
+
+/** One refusal code's bilingual sentence. */
+export const foreignAffairsText = (problem: ForeignAffairsProblem, locale: "en" | "zh_CN"): string => {
+  const entry = FOREIGN_AFFAIRS_TEXT[problem];
+  return locale === "zh_CN" ? entry[1] : entry[0];
+};
 
 /** The groups, in the order the player aid prints them. */
 export type ActionGroupId = "recruit" | "build" | "diplomacy" | "move" | "greatWar";
@@ -228,7 +297,7 @@ const recruitReasonText = (locale: "en" | "zh_CN", reason: string): string => {
 export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   const {
     G, viewer, phase, space, selectedUnit, canAct, war, me, moves, doAction,
-    myOnMapArmies, myForts, myMinorAllies, ownLandInSelected, ownNavalInSelected,
+    myOnMapArmies, myForts, ownLandInSelected, ownNavalInSelected,
     potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
     canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve, gwJointNavalAllies,
     gwJointNavalUnitIds, startBattle, startNavalBattle, onDeclareWar, locale, describeRow,
@@ -335,19 +404,25 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     const homeReason = !isHomeSpace(G, space, viewer)
       ? bi(locale, "Must be your own home space.", "必须是本国核心领土。")
       : !ownsKey(G, space, viewer) ? bi(locale, "You must control a key in this space.", "必须控制此空间的关键区。") : null;
+    // 12.4: "Newly built fleets must be placed in a controlled, territorial
+    // home key on the main map with a port."  A colonial home key on a submap
+    // (Canada, India, South Africa, Australia) has a port but is not eligible.
+    const fleetHomeReason = homeReason ?? (SPACES[space]?.submap !== "main" || SPACES[space]?.keyType !== "territorial"
+      ? bi(locale, "New fleets need a territorial home key on the main map.", "新建舰队需位于主地图的本国领土关键区。")
+      : null);
     if (hasPort) {
-      const sqEnabled = homeReason === null && canSpend(ACTION_COSTS.buildSquadron);
+      const sqEnabled = fleetHomeReason === null && canSpend(ACTION_COSTS.buildSquadron);
       push({
         id: "buildSquadron", group: "build", enabled: sqEnabled,
-        reason: sqEnabled ? undefined : homeReason ?? spendReason(ACTION_COSTS.buildSquadron),
+        reason: sqEnabled ? undefined : fleetHomeReason ?? spendReason(ACTION_COSTS.buildSquadron),
         run: () => doAction(() => moves.constructFleet(space, "squadron", false)),
       });
       const dreadnoughtLocked = G.persistent.dreadnoughts !== true && !me.flags.navalLimit;
-      const dnEnabled = homeReason === null && !dreadnoughtLocked && canSpend(ACTION_COSTS.buildDreadnought);
+      const dnEnabled = fleetHomeReason === null && !dreadnoughtLocked && canSpend(ACTION_COSTS.buildDreadnought);
       push({
         id: "buildDreadnought", group: "build", enabled: dnEnabled,
         reason: dnEnabled ? undefined
-          : homeReason ?? (dreadnoughtLocked ? bi(locale, "Dreadnought must have been played.", "需先打出“无畏舰”。") : spendReason(ACTION_COSTS.buildDreadnought)),
+          : fleetHomeReason ?? (dreadnoughtLocked ? bi(locale, "Dreadnought must have been played.", "需先打出“无畏舰”。") : spendReason(ACTION_COSTS.buildDreadnought)),
         // The button's label is the panel's English key; keep the printed name.
         run: () => doAction(() => moves.constructFleet(space, "dreadnought", false)),
       });
@@ -386,36 +461,33 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
 
   // -------------------------------------------------------------- diplomacy
   {
-    const state = G.spaces[space];
-    const noLoc = !hasLoc(G, viewer, space);
     const influenced = me.flags.alreadyInfluenced === true;
-    const influenceReason = !state ? null
-      : noLoc ? bi(locale, "This space is outside your supply line.", "此空间超出你的补给线。")
-        : state.control !== null ? bi(locale, "This space is already controlled.", "此空间已被控制。")
-          : (state.influence ?? null) !== null ? bi(locale, "This space already has an influence marker.", "此空间已有影响标记。")
-            : influenced ? bi(locale, "You already influenced this impulse.", "本行动轮已使用影响。") : null;
+    // Both placement gates come from `engine/foreignAffairs`, the same module
+    // `placeInfluence`/`placeDiplomacy` consult, so a row can never offer a
+    // marker the move would refuse (12.5.1 / 12.5.3).  The panel supplies only
+    // the wording; the codes themselves are the engine's.
+    const influenceProblem = influencePlacementProblem(G, viewer, space);
+    const influenceReason = influenced ? bi(locale, "You already influenced this impulse.", "本行动轮已使用影响。")
+      : influenceProblem === null ? null
+        : foreignAffairsText(influenceProblem, locale);
     const influenceEnabled = influenceReason === null && canSpend(ACTION_COSTS.influence);
     push({
       id: "influence", group: "diplomacy", enabled: influenceEnabled,
       reason: influenceEnabled ? undefined : influenceReason ?? spendReason(ACTION_COSTS.influence),
       run: () => doAction(() => moves.placeInfluence(space)),
     });
-    const diplomacyReason = !state ? null
-      : noLoc ? bi(locale, "This space is outside your supply line.", "此空间超出你的补给线。")
-        : influenced ? bi(locale, "You already influenced this impulse.", "本行动轮已使用影响。")
-          : state.diplomacy !== null ? bi(locale, "This space already has a diplomacy marker.", "此空间已有外交标记。")
-            : state.control === null ? bi(locale, "The space must be controlled by a minor power.", "此空间需由小国控制。")
-              : false ? "" : null;
+    const diplomacyProblem = diplomacyPlacementProblem(G, space);
+    const diplomacyReason = influenced ? bi(locale, "You already influenced this impulse.", "本行动轮已使用影响。")
+      : diplomacyProblem === null ? null
+        : foreignAffairsText(diplomacyProblem, locale);
     const diplomacyEnabled = diplomacyReason === null && canSpend(ACTION_COSTS.diplomacy);
     push({
       id: "diplomacy", group: "diplomacy", enabled: diplomacyEnabled,
       reason: diplomacyEnabled ? undefined : diplomacyReason ?? spendReason(ACTION_COSTS.diplomacy),
       run: () => doAction(() => moves.placeDiplomacy(space)),
     });
-    const allyReason = !state ? null
-      : state.diplomacy !== viewer ? bi(locale, "You need a diplomacy marker here first.", "需先在此放置外交标记。")
-        : (state.ally ?? null) !== null ? bi(locale, "This space already has a minor ally.", "此空间已有小国盟友。")
-          : myMinorAllies >= 5 ? bi(locale, "Minor ally limit reached (5).", "已达小国联盟上限（5）。") : null;
+    const allyProblem = minorAllianceProblem(G, viewer, space);
+    const allyReason = allyProblem === null ? null : foreignAffairsText(allyProblem, locale);
     const allyEnabled = allyReason === null && canSpend(ACTION_COSTS.minorAlliance);
     push({
       id: "minorAlliance", group: "diplomacy", enabled: allyEnabled,
@@ -423,20 +495,27 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       run: () => doAction(() => moves.minorAlliance(space)),
     });
     const state2 = G.spaces[space];
-    const removeInfluenceReason = !state2 ? null
-      : me.flags.alreadyRemovedInfluence === true ? bi(locale, "You already removed influence this impulse.", "本行动轮已移除影响。")
-        : state2.influence !== viewer && state2.diplomacy !== viewer ? bi(locale, "No own marker here.", "此处无己方标记。") : null;
+    const removeProblem = removeMarkerProblem(G, viewer, space);
+    const removeInfluenceReason = me.flags.alreadyRemovedInfluence === true ? bi(locale, "You already removed influence this impulse.", "本行动轮已移除影响。")
+      : removeProblem === null ? null
+        : foreignAffairsText(removeProblem, locale);
     const removeInfluenceEnabled = removeInfluenceReason === null && canSpend(ACTION_COSTS.removeInfluence);
     push({
       id: "removeInfluence", group: "diplomacy", enabled: removeInfluenceEnabled,
       reason: removeInfluenceEnabled ? undefined : removeInfluenceReason ?? spendReason(ACTION_COSTS.removeInfluence),
       run: () => doAction(() => moves.removeInfluence(space)),
     });
-    const breakReason = state2 && state2.ally !== viewer ? bi(locale, "No minor ally of yours here.", "此处没有你的小国盟友。") : null;
-    const breakEnabled = breakReason === null && canSpend(ACTION_COSTS.breakAlliance);
+    // 12.9: "Flip any one ally marker on a minor power to its diplomacy side."
+    // Any player may do it, so this row is not limited to the alliance's owner.
+    // 12.9.1: a port space next to a naval box where the viewer outnumbers the
+    // allied player pays 3 CP instead of the printed 4.
+    const breakProblem = removeMinorAllianceProblem(G, space);
+    const breakCost = removeAllianceCost(G, viewer, space);
+    const breakReason = breakProblem === null ? null : foreignAffairsText(breakProblem, locale);
+    const breakEnabled = breakReason === null && canSpend(breakCost);
     push({
-      id: "breakAlliance", group: "diplomacy", enabled: breakEnabled,
-      reason: breakEnabled ? undefined : breakReason ?? spendReason(ACTION_COSTS.breakAlliance),
+      id: "breakAlliance", group: "diplomacy", enabled: breakEnabled, cost: breakCost,
+      reason: breakEnabled ? undefined : breakReason ?? spendReason(breakCost),
       run: () => doAction(() => moves.removeMinorAlliance(space)),
     });
     const pacifyCost = pacificationCost(G, viewer).cost;
@@ -508,6 +587,18 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       id: "refit", group: "move", enabled: refit.ok,
       reason: refit.ok ? undefined : bi(locale, "Only a reduced unit in a friendly port can refit.", "仅限友好港口内的受损单位整补。"),
       run: () => doAction(() => selected.naval ? moves.gwRefitFleet(selected.id) : moves.gwRefit(selected.id)),
+    });
+  }
+  if (!gw && phase === "action" && selected !== undefined && selected.owner === viewer
+    && selected.naval && selected.steps < 2 && selected.space === space) {
+    // 12.4's chart: "Refit Naval Unit - 1 CP", only in a friendly port.
+    const port = friendlyPort(G, viewer, space);
+    const enabled = port && canSpend(ACTION_COSTS.refitFleet);
+    push({
+      id: "refitFleet", group: "move", enabled,
+      reason: enabled ? undefined
+        : port ? spendReason(ACTION_COSTS.refitFleet) : bi(locale, "A reduced fleet can only refit in a friendly port.", "受损舰队只能在友好港口内整补。"),
+      run: () => doAction(() => moves.refitNavalUnit(selected.id)),
     });
   }
   if (viewer === "UK" && me.rapidDeployment && !me.rapidDeployment.spent && selectedIsOther === false

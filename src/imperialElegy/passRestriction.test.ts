@@ -147,9 +147,8 @@ describe("12.0 A047 The Dual Monarchy", () => {
     const ot = makeCtx("OT", holder);
 
     // This is the state the seven-turn auto-play campaign reached on turn 5:
-    // A047 (no passing) beside A043, a combat card `playCard` refuses, plus a
-    // home card.  Before the fix every move returned INVALID_MOVE and the
-    // match had no exit at all.
+    // A047 (no passing) beside A043, a combat card, plus a home card.  Before
+    // the fix every move returned INVALID_MOVE and the match had no exit at all.
     //
     // The impulse is unused here on purpose: once a card has been played for CP
     // the seat may always hand the used impulse over (12.0 only restricts the
@@ -159,16 +158,38 @@ describe("12.0 A047 The Dual Monarchy", () => {
     G.powers.OT.hand = ["IE-A043", DUAL_MONARCHY_CARD, "IE-H-OT-11"];
 
     expect(pass(G, ot)).toBe(INVALID_MOVE);
-    expect(playCard(G, ot, "IE-A043", "event")).toBe(INVALID_MOVE);
-    expect(playCard(G, ot, "IE-A043", "cp")).toBe(INVALID_MOVE);
+    // 12.0: a combat card is a CP card too, so this hand has a legal exit.
+    expect(playCard(G, ot, "IE-A043", "cp")).toBeUndefined();
+    expect(G.cpRemaining).toBe(2);
+    expect(G.powers.OT.hand).not.toContain("IE-A043");
+  });
 
-    // The legal escape: A047 opens the impulse for CP, and that makes it used.
+  test("the no-pass card grants no second card in the same impulse", () => {
+    // 12.0 is one card per impulse, so A047 cannot be a "rescue" play on top of
+    // CP banked by another card.  The legal exit is to hand the used impulse
+    // over, which `pass` always allows once a card has been played.
+    const G = reachActionPhase();
+    const holder: {phase?: string} = {phase: "action"};
+    const ot = makeCtx("OT", holder);
+
+    G.activePower = "OT";
+    G.cpRemaining = 0;
+    G.powers.OT.hand = [DUAL_MONARCHY_CARD, "IE-A018"];
+
+    // A047 opens the impulse for CP; that makes the impulse used.
     expect(playCard(G, ot, DUAL_MONARCHY_CARD, "cp")).toBeUndefined();
     expect(G.cpRemaining).toBe(2);
     expect(G.powers.OT.hand).not.toContain(DUAL_MONARCHY_CARD);
 
-    // With the forced card gone the impulse can end normally.
+    // The second card is refused even though the impulse still holds CP, and
+    // refused again once the CP are gone: one card per impulse.
+    expect(playCard(G, ot, "IE-A018", "cp")).toBe(INVALID_MOVE);
     G.cpRemaining = 0;
+    expect(passCardReason(G, "IE-A018")).toContain("One card per impulse; finish this impulse first");
+    expect(playCard(G, ot, "IE-A018", "cp")).toBe(INVALID_MOVE);
+    expect(G.powers.OT.hand).toContain("IE-A018");
+
+    // The used impulse can still be handed over normally.
     expect(pass(G, ot)).toBeUndefined();
     expect(G.activePower).not.toBe("OT");
   });

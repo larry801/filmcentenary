@@ -151,7 +151,48 @@ Status labels:
   naval movement, influence/diplomacy placement/removal, minor alliances, EF
   build/move, pacification, forts, industrialisation, CP chain, redeployment,
   declarations of war and land battles — **live**, with the simplifications
-  below.
+  below. 12.4's refit row is live as `refitNavalUnit`: 1 CP flips a reduced
+  squadron/dreadnought in a friendly port, refuses naval boxes, enemy ports and
+  a limited-war phase (15.2), and leaves the GW to its own 27.5.4
+  `gwRefitFleet`. 12.4's placement rule is enforced before CP is spent: a new
+  fleet goes only in a controlled **territorial** home key on the **main map**
+  with a port, so a colonial home key on a submap (Canada, India, South Africa,
+  Australia) is refused. The Orders panel mirrors both gates: a selected
+  reduced fleet in a friendly port shows the 1-CP "Refit fleet" row, and the
+  build rows are disabled with the main-map/territorial reason on colonial
+  home ports.
+- **Foreign-affairs markers (4.8 / 12.5.1–12.5.3 / 12.6 / 12.8 / 12.9):** one
+  shared gate in `engine/foreignAffairs.ts`, read by both the moves and the
+  Orders panel, so a row is never offered for a marker the engine refuses.
+  - 12.5.3 diplomacy markers go **only** in minor power spaces: player spaces,
+    the US (`the-south`) and a unified Italy (`IT`) are refused, per 4.6.2’s
+    “the United States and a unified Italy are major powers.” Qing China’s
+    spaces are barred outright; the South needs the American Civil War in
+    effect; Japan takes none before Meiji Restoration (3.4.6); an independent
+    India takes none at all (33.2.2). When a minor still holds its namesake
+    space the marker must go there (Egypt → `egypt`, not Sinai).
+  - Diplomacy needs **no LoC** — 5.6 lists one only for influence — which the
+    engine used to demand anyway.
+  - 12.5.1 influence needs an uncontrolled land space: naval boxes are refused,
+    and the 12.5.2 African cap and LoC requirement remain. For this action only,
+    the LoC may pass through spaces controlled by a minor power allied to the
+    player (“players can trace LoCs through allied minor power spaces”);
+    `hasLoc` gains an explicit `throughAlliedMinorSpaces` option so supply and
+    every other LoC check keep the strict rule.
+  - 12.8 allies only from your own diplomacy marker on the minor, one player per
+    minor, and 4.2.1’s five-ally cap (counted per minor, not per space).
+  - 12.6 removal is own markers only; the Berlin-Conference bar and the
+    “another player’s unit present” bar are both printed against influence, so
+    neither applies to removing a diplomacy marker.
+  - 12.9 “flip any one ally marker … to its diplomacy side”: **any** player may
+    do it, and the flipped marker keeps the ally’s owner (the engine used to
+    hand it to whoever paid).
+  - 12.9.1 Naval Supremacy: when the marker sits in a port space adjacent to a
+    naval box where the acting player has **more** naval units than the player
+    allied to the minor, the flip costs 3 CP instead of 4. `navalSupremacyPort`
+    checks every box the port touches and requires a strict majority; a tie, a
+    landlocked minor and an unallied minor all stay at the printed 4 CP. The
+    Orders row quotes the cost it will actually charge.
 - **Response cards:** live at the start of an action impulse, a limited-war
   maneuver impulse, the limited-war alliance step (A063/A064) and a Great War
   maneuver impulse. `responseWindowFor` requires the active power (every
@@ -201,6 +242,17 @@ Status labels:
   extra draw); A061 is removed and replaced when drawn after Dreadnoughts; and
   GW-06 can be marked face up.
 - **Saving a card (12.0):** implemented; UK may save two, others one.
+- **Every card is a CP card (12.0/12.1):** response and combat cards are spent
+  for their printed CP like any other card — only their *event* modes are
+  window-bound (`playResponseCard` / the combat-card window). A mandatory event
+  has no plain CP mode: playing it “for CP” resolves its printed event first and
+  then grants its CP, so the move shares the event path and the event gates. The
+  single printed CP restriction is A105 Impulsive Ruler (“may be played for CP
+  if you have 3 or fewer cards in hand”), enforced by `cpPlayability` and
+  reported as `impulsive-ruler-hand`. `cardAvailability` derives
+  `cpAllowed`/`cpModeOk` from the same predicate, so the tray button and
+  `playCard(id, "cp")` always agree; the bot's `isCpSpendable` no longer filters
+  by card type and consults the predicate before naming a card.
 - **CP chain (12.14):** **implemented.** `cpChain` moves up to two cards from
   hand into `PowerState.cpChain`; a chained mandatory event resolves immediately,
   controlled by the active player. `useCpChain` starts one chain-funded impulse
@@ -226,9 +278,18 @@ Status labels:
   Nicholas II and The Young Turks. Older explicit choices remain for Diplomatic
   Incident, Chinese Intervention, Decline of the Qing, The Great Game, French
   Intervention, Loose Grip, Nationalist Uprising and Mahdist War; Quagmire and
-  Divide and Conquer also prompt. Urabi’s Egypt colonial-home key type switches
+  Divide and Conquer also prompt. The cards whose printed “OR” used to resolve by
+  a deterministic default (A045 A048 A051 A052 A068 A073 A107 A109, GW-01 and
+  AU-7) now open real player choices; A073 and A107 run a per-player sequential
+  chain. A039 offers the UK its printed 3/4-CP discard-to-ignore window, A069’s
+  removal is conditional on the campaign turn (`removeFromTurn`), A072 places the
+  naval squadron, and A099 grants its first-card-of-the-turn dreadnought.
+  Urabi’s Egypt colonial-home key type switches
   for a UK/FR winner (with a legacy-save fallback), Loose Grip applies every
   named Ottoman space, and auction cards are publicly revealed; see
+  [`CARD_EVENTS.md`](CARD_EVENTS.md) for the card-by-card record, including the
+  cards whose printed “OR” is still resolved by a deterministic default and the
+  four cards whose stability gain is applied twice, and
   `IMPLEMENTATION_STATUS.md` for the current per-card boundaries.
 
 ## Information security (playerView)
@@ -242,10 +303,11 @@ Status labels:
   options, context and prompt arguments only to the deciding seat. The inciting
   card fields at the top level and in `flags` are hidden from non-owners.
 - Log arguments naming a card (`card`, `incitingCard`) are masked for
-  non-owners **unless the printed rules put that card faceup on the table**:
-  - 12.0/12.1 — an event is announced and its text followed in the open, so a
-    `cardPlayed` line with `mode: "event"` names the card to every seat. A card
-    spent for CP is not revealed and its `cardPlayed` line stays masked.
+  non-owners **unless the printed rules play that card in the open**:
+  - 12.0/12.1 — any `cardPlayed` line names the card to every seat: an event is
+    announced and its text followed in the open, and a card spent for CP is
+    played openly as well (the log never says “played a hidden card for CP”).
+    Only the card identity is public; the discard order and hand stay redacted.
   - 9.1.2/9.1.3 and 27.2 — response, combat and Great War cards are played
     openly; `responsePlayed`/`combatCardPlayed` are public.
   - 12.13/12.14 — industrialization cards and CP-chain cards are placed faceup;
@@ -255,11 +317,11 @@ Status labels:
   - 26.1 — GW combat cards are public information even while facedown;
     `gwCombatCardFaceup`/`gwCombatCardFlipped` are public.
   - the notes a resolving card emits about itself (`noLegalTarget`,
-    `unhandledSpecial`, `gwTurnZero`) name the same faceup card, as does
+    `unhandledSpecial`, `gwTurnZero`) name the same played card, as does
     `incitingCard` (that card is resolving, so it was announced); a removal or WTT
-    maximum about a card already played faceup this turn stays readable. Without
-    this the public log said “played a hidden card as an event”, contradicting
-    the table.
+    maximum about a card already played this turn stays readable. Without this
+    the public log said “played a hidden card as an event”, contradicting the
+    table.
   - Everything else keeps the mask: a card saved for the next turn, discarded at
     random, drawn and removed (Ironclads after Dreadnoughts) or refused for play
     was never revealed.
@@ -346,11 +408,20 @@ Status labels:
 - Land combat: CRT, BDRM, support (full/half, two spaces, capped at two spaces
   per side with no duplicate), elite units, losses (18.6 main-force first, then
   supporting armies), EC/EF elimination, retreat, advance, forts, trench
-  modifiers, machine guns, stability DRMs, A043/A058/A059/A062 specials with
-  end-of-battle draws, the GW-05 reroll, the GW-03/04 face-down lifecycle,
+  modifiers, machine guns, hydraulic recoil, stability DRMs,
+  A043/A058/A059/A062 specials with end-of-battle draws, the GW-05 reroll,
+  the GW-03/04 face-down lifecycle,
   18.8 decisive-battle follow-ups (another land battle or one free space, once
   per impulse) and minor-defender windows/support halving —
   **implemented/partial** in `engine/combat.ts`.
+- **18.5 Machine Guns / Hydraulic Recoil:** machine guns floor land-battle dice
+  at 3 for non-rebel units only (`combat.ts#machineGunsApplies` refuses naval
+  battles and any side fighting or fielding a rebel army); hydraulic recoil
+  applies the CRT's `**` row (both sides +1 loss, mandatory) and `*` row (the
+  victor chooses, via the `hydraulicRecoil` pending). Both are permanent once the
+  card is played. The cards' second clause — auto-eliminating an EC/elite
+  colonial EF that uses its combat bonus against a non-rebel army — waits on the
+  EC combat bonus itself, which the engine does not yet grant.
 - Minor-defender support (18.3.2): a controlling player gets the defender
   support and combat-card windows; an independent minor (no player controller)
   auto-commits its legal support and skips the defender window. The defending

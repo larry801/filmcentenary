@@ -1214,9 +1214,25 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-goal-choice { border: 1px solid #b3873a; background: #3a2c1c; border-radius: var(--ie-radius-md); padding: 6px; }
 .ie-cp-chain .ie-muted { font-size: var(--ie-font-xs); }
 .ie-mpit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
-.ie-mpit-cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: baseline; font-size: var(--ie-font-xs); border: 1px solid #453725; border-radius: var(--ie-radius-sm); padding: 3px 5px; }
-.ie-mpit-cell b { color: #e7cf99; font-weight: 600; }
+.ie-mpit-cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: var(--ie-font-xs); border: 1px solid #453725; border-radius: var(--ie-radius-sm); padding: 3px 5px; }
+.ie-mpit-cell > b { flex: 1 0 100%; color: #e7cf99; font-weight: 600; }
 .ie-mpit-cell.mine { border-color: var(--ie-accent); background: #33281a; }
+/* The matrix is the control: each count is a button that places one marker
+   on that power/track, so there is no target dropdown and no separate
+   "place" press. */
+.ie-mpit-track {
+  display: inline-flex; align-items: baseline; gap: 4px;
+  margin: 0; padding: 2px 7px; min-height: 26px;
+  border: 1px solid #5e4a2f; border-radius: var(--ie-radius-sm);
+  background: #241d17; color: #e7d7b7; font: inherit; font-size: var(--ie-font-xs);
+  cursor: pointer;
+}
+.ie-mpit-track:hover:not(:disabled) { border-color: var(--ie-accent); background: #3a2c1c; color: #f0d799; }
+.ie-mpit-track:focus-visible { outline: 2px solid var(--ie-accent-soft); outline-offset: 1px; }
+.ie-mpit-track:disabled { opacity: .4; cursor: not-allowed; filter: grayscale(.5); }
+.ie-mpit-track[data-armed="true"] { background: var(--ie-accent); border-color: var(--ie-accent); color: #211b16; }
+.ie-mpit-track > b { font-weight: 600; }
+.ie-mpit-value { display: inline-flex; gap: 4px; padding: 2px 0; color: #cdbb9a; }
 .ie-war-sides { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
 .ie-war-side { flex: 1; border: 1px solid #4e3f2b; border-radius: var(--ie-radius-sm); padding: 4px 6px; background: #241d17; font-size: var(--ie-font-xs); }
 .ie-war-power { color: #f0d799; font-size: var(--ie-font-sm); letter-spacing: .03em; }
@@ -2107,6 +2123,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
    below the map is spent on the hand, not on a second copy of the numbers. */
 .ie-mat[data-collapsed="true"] .ie-mat-grid,
 .ie-mat[data-collapsed="true"] .ie-mat-slots,
+.ie-mat[data-collapsed="true"] .ie-mat-characteristics,
 .ie-mat[data-collapsed="true"] .ie-mat-display { display: none; }
 /* The strip is one key per line: label on the left, number on the right. */
 .ie-mat-figure { flex-direction: row; align-items: baseline; justify-content: space-between; gap: 6px; padding: 1px 6px; }
@@ -2115,6 +2132,86 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-mat-chips { display: none; flex-wrap: wrap; gap: 4px; font-size: var(--ie-font-xs); color: #c5b698; }
 .ie-mat-chips b { color: #f7e6bb; font-variant-numeric: tabular-nums; }
 .ie-mat[data-collapsed="true"] .ie-mat-chips { display: flex; }
+
+.ie-mat-tracks { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+
+/* ------------------------------------------------- printed track boxes
+   The display prints a numbered box per step of each track and the value that
+   box grants under the number.  At 148 px the boxes print the number and the
+   value lives in the range line below them, so a 16-box key track stays three
+   rows of 12 px text rather than a wall of 8 px digits. */
+.ie-mat-track-boxes {
+  /* The 148 px desktop rail has no room for a four-row track of captioned
+     boxes, and the range line below states the same values in one line each.
+     The box row is for the full-width Mat tab (see the phone block). */
+  display: none;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-width: 0;
+}
+.ie-mat-track-box {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 16px;
+  padding: 1px 3px;
+  border: 1px solid #3f3223;
+  border-radius: 2px;
+  background: #1d1812;
+  color: #bda98a;
+  font-size: var(--ie-font-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  line-height: 1.2;
+}
+.ie-mat-track-box > b { font-weight: 600; }
+/* The value under the number ("3 cards", "MP=2", "AUTO VICTORY").  The 148 px
+   desktop strip drops it — the range line below the boxes states the same
+   values, and shrinking the caption to fit would take it under the 12 px
+   floor — while the phone's full-width Mat tab prints it as the board does. */
+.ie-mat-track-box > small {
+  display: none;
+  font-size: var(--ie-font-xs);
+  line-height: 1.1;
+  color: #bda98a;
+  white-space: nowrap;
+}
+.ie-mat-track-box[data-current="true"] {
+  border-color: var(--ie-accent);
+  background: #4a3a21;
+  color: #fff0c8;
+}
+.ie-mat-track-box[data-current="true"] > b { font-weight: 700; }
+.ie-mat-track-box[data-current="true"] > small { color: #f0d799; }
+
+/* The same values grouped into the bands the display implies ("0–2: 3 cards"). */
+.ie-mat-ranges { display: flex; flex-wrap: wrap; gap: 2px 6px; min-width: 0; }
+.ie-mat-range {
+  font-size: var(--ie-font-xs);
+  color: #a99678;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.ie-mat-range[data-current="true"] { color: #f7e6bb; }
+
+/* The Mat tab is full width, so the printed boxes and the value under each one
+   fit — and only there.  Declared after the base rules so it wins. */
+@media (max-width: 767px) {
+  .ie-mat-track-boxes { display: flex; }
+  .ie-mat-track-box > small { display: block; }
+  /* Each box already prints its own value there, so the band summary the
+     desktop rail needs would only repeat it. */
+  .ie-mat-ranges { display: none; }
+}
+
+/* The rules notes the display prints beside a track ("End Phase: roll ≥ 5"). */
+.ie-mat-hintnote { font-size: var(--ie-font-xs); color: #9d8c70; line-height: 1.25; }
+
+.ie-mat-characteristics { font-size: var(--ie-font-xs); color: #c5b698; }
+.ie-mat-characteristics > summary { cursor: pointer; color: #cbb07a; }
+.ie-mat-characteristics ul { margin: 3px 0 0; padding-left: 14px; }
+.ie-mat-characteristics li { margin-bottom: 2px; line-height: 1.35; }
 
 .ie-mat-figure {
   display: flex;
@@ -2130,7 +2227,16 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-mat-figure-label { font-size: var(--ie-font-xs); color: #a99678; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .ie-mat-figure-value { font-size: var(--ie-font-md); color: #f7e6bb; font-variant-numeric: tabular-nums; line-height: 1.15; }
 .ie-mat-figure-value small { font-size: var(--ie-font-xs); color: #a99678; }
-.ie-mat-link { cursor: pointer; }
+/* The reserves figure is a button (it opens the Counter Count chart); the
+   printed look is a figure row, so the button chrome is reset away. */
+.ie-mat-link {
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+}
+.ie-mat-link:hover { border-color: var(--ie-accent); }
 .ie-mat-slots { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .ie-mat-slot { display: flex; align-items: baseline; gap: 6px; min-width: 0; font-size: var(--ie-font-sm); }
 .ie-mat-slot-label { flex: 0 0 auto; color: #a99678; }
@@ -2257,7 +2363,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
 @media (max-width: 1099px) {
   .ie-table { grid-template-columns: 132px minmax(0, 1fr) 300px; grid-template-areas: "mat map turn" "hand hand turn"; }
   .ie-mat { grid-area: mat; }
-  .ie-mat-grid, .ie-mat-slots, .ie-mat-display { display: none; }
+  .ie-mat-grid, .ie-mat-slots, .ie-mat-characteristics, .ie-mat-display { display: none; }
   .ie-mat-toggle { display: grid; }
   .ie-mat::before {
     content: attr(data-chips);
@@ -2928,8 +3034,19 @@ img.ie-card-face { background: var(--ie-surface-2); }
   }
   /* The mat is collapsed by default at phone width and the ≤1099 rules hide its
      figures; the mat tab is the one place they are the content. */
-  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-grid { display: grid; overflow: visible; }
+  /* The Mat tab is the one place the figures are the content, and the sheet
+     scrolls (`.ie-mat` owns `overflow: auto` there).  A flex child defaults to
+     `min-height: 0` and shrinks to the sheet's height, which left the tracks
+     visible but overlapping outside their own box; `min-height: auto` +
+     `flex: 0 0 auto` lets the grid take its real height. */
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-grid {
+    display: grid;
+    overflow: visible;
+    flex: 0 0 auto;
+    min-height: auto;
+  }
   .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-slots { display: flex; }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-characteristics { display: block; }
   .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-display {
     display: inline-flex;
     align-items: center;
@@ -2972,4 +3089,109 @@ img.ie-card-face { background: var(--ie-surface-2); }
   .ie-mobile-dock *,
   .ie-mobile-bar *,
   .ie-mobile-body * { transition: none !important; animation: none !important; }
+}
+
+/* ---------------------------------------------------------------- printed board */
+/* A standalone route under /board/imperialElegy.  The sheet is 6693 x 4382
+   board units and is always shown whole; the page scrolls rather than cropping
+   it, so a phone can pinch-zoom the same artwork the desktop prints. */
+.ie-printed-page {
+  min-height: 100vh;
+  padding: 22px clamp(12px, 3vw, 44px) 44px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(120, 92, 56, .22), transparent 48%),
+    #201a14;
+  color: #eadfc8;
+}
+
+.ie-printed-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1700px;
+  margin: 0 auto 16px;
+}
+
+.ie-printed-toolbar h1 {
+  margin: 0 0 6px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: #f4e9d1;
+}
+
+.ie-printed-toolbar p {
+  max-width: 780px;
+  margin: 0;
+  color: #c7b596;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ie-printed-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ie-printed-actions .ie-btn {
+  min-height: 40px;
+  padding: 8px 16px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ie-printed-notice {
+  max-width: 1700px;
+  margin: 0 auto 12px;
+  color: #d8c8a9;
+  font-size: 13px;
+}
+
+.ie-printed-stage {
+  max-width: 1700px;
+  margin: 0 auto;
+  padding: clamp(6px, 1.2vw, 18px);
+  overflow: auto;
+  background: #17120d;
+  border: 1px solid #4d3d29;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .55);
+}
+
+.ie-printed-board {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  background: #efe6d2;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, .55);
+}
+
+@media (max-width: 760px) {
+  .ie-printed-page { padding: 14px 10px 28px; }
+  .ie-printed-toolbar { flex-direction: column; gap: 12px; }
+  .ie-printed-actions { width: 100%; }
+  .ie-printed-actions .ie-btn { flex: 1 1 auto; text-align: center; }
+  .ie-printed-stage { padding: 6px; }
+}
+
+@media print {
+  @page { size: landscape; margin: 6mm; }
+  body { background: #fff; }
+  .MuiAppBar-root, .ie-printed-toolbar, .ie-printed-notice { display: none !important; }
+  .ie-printed-page { min-height: 0; padding: 0; background: #fff; color: #000; }
+  .ie-printed-stage { padding: 0; overflow: visible; border: 0; box-shadow: none; max-width: none; }
+  .ie-printed-board { width: 100%; box-shadow: none; }
+}
+.ie-view-board { display: inline-flex; align-items: center; text-decoration: none; }
+body.ie-printed-route .MuiAppBar-root { display: none; }
+body.ie-printed-route { background: #201a14; }
+.ie-printed-zoom { display: inline-flex; align-items: stretch; gap: 2px; }
+.ie-printed-zoom .ie-btn { min-width: 42px; padding: 8px 10px; }
+.ie-printed-zoom .ie-btn:nth-child(2) { min-width: 64px; font-variant-numeric: tabular-nums; }
+@media print {
+  .ie-printed-board { width: 100% !important; max-width: 100% !important; }
 }

@@ -185,7 +185,6 @@ export const OrdersRegion = (props: OrdersSlice) => {
     transportFleet, transportCanGo, transportReason, interceptVisible, lastNavalBox, lastNavalMover,
     interceptPorts, interceptPortValue, setInterceptPort, interceptCheck, interceptReason,
     beginAmphibiousTargeting, beginNavalTransportTargeting, beginNavalInterceptTargeting,
-    mpitTarget, setMpitTarget, mpitTrack, setMpitTrack,
   } = props;
 
   const amphibiousNode = viewer !== null ? (
@@ -320,9 +319,7 @@ export const OrdersRegion = (props: OrdersSlice) => {
           reference drawer (which is for reading the printed tables). */}
       <MpitPanel
         G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
-        mpitTarget={mpitTarget} setMpitTarget={setMpitTarget}
-        mpitTrack={mpitTrack} setMpitTrack={setMpitTrack}
-        locale={locale} t={t} doAction={doAction} moves={moves}
+        locale={locale} t={t} doAction={doAction} moves={moves} confirmActions={confirmActions}
       />
     </>
   );
@@ -378,8 +375,8 @@ export const WarRegion = (props: WarSlice) => {
 /** Reference drawer: the printed charts, the other powers and the log. */
 export const ReferenceRegion = (props: ReferenceSlice) => {
   const {
-    G, viewer, active, locale, t, me, cpBudget, canAct, canSpend, mpitTarget, setMpitTarget,
-    mpitTrack, setMpitTrack, doAction, moves, handCounts, goalCounts, homeCardTitle, minorMarkerRows,
+    G, viewer, active, locale, t, me, cpBudget, canAct, canSpend, doAction, moves, handCounts,
+    goalCounts, homeCardTitle, minorMarkerRows,
   } = props;
   return (
     <>
@@ -643,6 +640,9 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             locale={locale}
             t={t}
             forceOpen={isPhone}
+            // The mat's "Printed display" and reserve-box links open the
+            // drawer at the chart they name, like every other reference link.
+            onOpenReference={(anchor) => setRefAnchor(anchor)}
           />
           {/* The Display menu's `confirmActions` switch is live: the tray gets
               the shell's current value, not the one it read from storage on

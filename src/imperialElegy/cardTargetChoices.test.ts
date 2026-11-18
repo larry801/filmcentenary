@@ -514,7 +514,10 @@ describe("A96 Empire of the Sun", () => {
     expect(resolvePending(G, ctxFor("GE"), "manchuria")).toBeUndefined();
     // Uncontrolled by a player: Japan simply takes it.
     expect(G.spaces.manchuria.control).toBe("Japan");
-    expect(G.spaces.japan.ally).toBe("GE");
+    // "At the end of the war the active player becomes the ally of Japan": the
+    // claim is recorded now and applied when the war ends, not immediately.
+    expect(G.spaces.japan.ally).toBeNull();
+    expect(G.flags.japanAlliancePending).toBe("GE");
     expect(G.spaces.korea.control).toBe("Korea");
   });
 

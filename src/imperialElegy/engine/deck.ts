@@ -4,6 +4,7 @@ import {CARDS} from "../constant/cards.data";
 import {CardDef, Decade} from "../constant/cards";
 import {die, log, POWER_ORDER} from "./rules";
 import {cardDrawModifier} from "./characteristics";
+import {canPlayForCp, removesAfterPlay} from "./playability";
 
 /**
  * The campaign turn -> printed card band mapping lives in `engine/economy.ts`.
@@ -121,7 +122,7 @@ export const discardCard = (G: ImperialElegyState, power: Power, card: CardId, r
     p.industryCard = null;
   }
   const def = cardById(card);
-  if (def.remove) {
+  if (removesAfterPlay(G, card)) {
     G.removed.push(card);
     log(G, power, "cardRemoved", {card});
     return;
@@ -197,10 +198,13 @@ export const powerOrder = (a: Power, b: Power): number => POWER_ORDER[a] - POWER
 
 export const sortByTurnOrder = (powers: Power[]): Power[] => [...powers].sort(powerOrder);
 
-/** Remaining cards in hand that can be played. */
-export const playableCards = (G: ImperialElegyState, power: Power): CardId[] => {
-  const p = G.powers[power];
-  return p.hand.filter((id) => cardById(id).type !== "response" && cardById(id).type !== "combat" && cardById(id).type !== "mandatoryResponse");
-};
+/**
+ * Remaining cards in hand that can be played for CP right now.
+ *
+ * 12.0: every card is a CP card, so only the card's own printed clause can
+ * exclude it (A105's hand-size gate) — never its printed type.
+ */
+export const playableCards = (G: ImperialElegyState, power: Power): CardId[] =>
+  G.powers[power].hand.filter((id) => canPlayForCp(G, power, id));
 
 export const cardImage = (id: CardId): string | undefined => cardById(id).image;

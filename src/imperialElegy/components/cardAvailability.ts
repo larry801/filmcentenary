@@ -8,7 +8,7 @@
  */
 import type {ImperialElegyState, Power} from "../types";
 import {cardById} from "../engine/deck";
-import {eventPlayability} from "../engine/playability";
+import {cpPlayability, eventPlayability} from "../engine/playability";
 import {impulseAlreadyUsed, responseCardEligibility} from "../moves";
 
 export interface CardAvailability {
@@ -67,8 +67,19 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const card = cardById(cardId);
   const isMandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
   const saved = saveList.includes(cardId);
-  const cpAllowed = !isMandatory && card.type !== "response" && card.type !== "combat";
   const eventAllowed = (card.type !== "response" && card.type !== "combat") || card.id === "IE-A041";
+  const eventGate = eventAllowed ? eventPlayability(G, power, cardId) : null;
+  const eventBlockKey = eventGate !== null && !eventGate.ok ? eventGate.reason : undefined;
+  const eventBlockReason = eventBlockKey !== undefined ? playBlock[eventBlockKey] : undefined;
+  // 12.0: every card may be spent for CP, response and combat cards included.
+  // Only a card's own printed CP clause can refuse it (A105's hand-size gate),
+  // so the type is never the reason.  A mandatory event played for CP *is* its
+  // event, so it also answers to that event's own printed gate — the same pair
+  // of checks `playCard` makes.
+  const cpGate = cpPlayability(G, power, cardId);
+  const cpAllowed = cpGate.ok && (card.type !== "mandatory" || eventBlockKey === undefined);
+  const cpBlockKey = cpGate.ok ? eventBlockKey : cpGate.reason;
+  const cpBlockReason = cpBlockKey !== undefined ? playBlock[cpBlockKey] : undefined;
   // 6.1/12.0: a home card is playable while it is **in hand**, which is the only
   // way the tray can list it.  That is normally just the card chosen in
   // Diplomacy, but A040 British Trade adds the other one to hand, so hand
@@ -78,15 +89,11 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   // 12.0: a card opens an impulse.  Once that impulse's card has been played
   // (or its CP have been spent, even down to zero) the next card waits for a
   // fresh impulse, so both the CP and the event mode are shut — not merely the
-  // CP mode, which is what let a spent impulse play a second card.  The board's
-  // `forcedCardIds` (the printed no-pass cards) deliberately grants no
-  // exception: a used impulse may be handed over, so the card never needs a
-  // second slot in the same impulse.
+  // CP mode, which is what let a spent impulse play a second card.  The printed
+  // no-pass cards (`forcedCardIds`) grant no exception: a used impulse can be
+  // handed over, so the card never needs a second slot in the same impulse.
   const impulseUsed = impulseAlreadyUsed(G, power);
   const cpModeOk = canActionCard && cpAllowed && !impulseUsed;
-  const eventGate = eventAllowed ? eventPlayability(G, power, cardId) : null;
-  const eventBlockKey = eventGate !== null && !eventGate.ok ? eventGate.reason : undefined;
-  const eventBlockReason = eventBlockKey !== undefined ? playBlock[eventBlockKey] : undefined;
   const eventModeOk = canActionCard && eventAllowed && !impulseUsed && (eventGate === null || eventGate.ok);
   const responseEligible = card.type === "response" ? responseCardEligibility(G, power, cardId) : null;
   const responseOk = responseEligible?.ok === true;
@@ -115,18 +122,18 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const noWindowReason = card.type === "response" && !responseOk && responseReason === undefined
     ? bi("No response window now", "当前没有响应窗口")
     : undefined;
-  // The card's own gates come before the generic card-type lines: "cannot be
-  // played for CP" describes the type, not why this card is unusable now.
+  // The card's own gates come before the generic lines: "cannot be played for
+  // CP" describes the card, not why it is unusable at this moment.
   const ownReasons: string[] = (card.type === "response"
     ? [responseReason, responseWindowReason ?? noWindowReason]
-    : [eventBlockReason]).filter((reason): reason is string => reason !== undefined);
+    : [cpBlockReason, eventBlockReason]).filter((reason): reason is string => reason !== undefined);
   const reasons: string[] = [];
   // 12.0: the impulse's card play comes before its CP are spent.  Two wordings
   // keep the familiar reason while CP are still banked and name the printed
   // one-card rule once the budget is gone and the impulse is only being closed.
   const oneCardReason = bi("One card per impulse; finish this impulse first", "每次行动轮只能打出 1 张牌；请先结束本次行动");
   if (!cpModeOk) {
-    if (!cpAllowed) reasons.push(bi("Cannot be played for CP (mandatory/response/combat card)", "不能作为 CP 打出（强制/响应/战斗牌）"));
+    if (!cpAllowed) reasons.push(cpBlockReason ?? bi("Cannot be played for CP", "不能作为 CP 打出"));
     else if (!canActionCard) reasons.push(bi("Only during your Action-phase impulse", "仅限你的行动阶段行动轮"));
     else if (impulseUsed) reasons.push(G.cpRemaining > 0 ? bi("Finish the current impulse first", "请先结束本次行动") : oneCardReason);
   }

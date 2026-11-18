@@ -1,10 +1,10 @@
 import {Ctx} from "boardgame.io";
-import {AllianceBox, ImperialElegyState, PendingDecision, Power, POWERS, SpaceId} from "../types";
+import {AllianceBox, CardId, ImperialElegyState, PendingDecision, Power, POWERS, SpaceId} from "../types";
 import {POWER_DEFS, POWER_NAMES_ZH} from "../constant/powers";
 import {SPACES, connectionsOf, neighboursOf, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import type {Effect} from "../constant/cards";
-import {discardCard} from "./deck";
+import {discardCard, removeCard} from "./deck";
 import {
   allianceOf,
   allied,
@@ -12,6 +12,7 @@ import {
   changeStability,
   isArmyKind,
   isMinorPowerOwner,
+  isNavalKind,
   isPower,
   minorController,
   italianNavalDeploySpace,
@@ -139,6 +140,278 @@ export const applyInternalItalianWar = (
 export const italianInternalWarChoices = (G: ImperialElegyState): ItalianInternalWarPower[] =>
   ITALIAN_INTERNAL_WAR_POWERS.filter((power) => italianInternalWarKey(G, power) !== null);
 
+/** 22.1: the card itself.  "A Lost Dream" removes this card from the game. */
+export const ITALY_TABLE_CARD: CardId = "IE-A030";
+
+const italianUnificationSpaceDefs = () =>
+  Object.values(SPACES).filter((space) => space.flashpoints?.includes("italy") === true);
+
+const italianPlayerControlledSpaces = (G: ImperialElegyState, player?: Power): SpaceId[] =>
+  italianUnificationSpaceDefs()
+    .filter((space) => {
+      const control = G.spaces[space.id]?.control;
+      return isPower(control) && (player === undefined || control === player);
+    })
+    .map((space) => space.id);
+
+/** 22.1.4: "Italian keys that are not controlled by a player" (in map order). */
+export const italianUncontrolledKeys = (G: ImperialElegyState): SpaceId[] =>
+  italianUnificationSpaceDefs()
+    .filter((space) => !isPower(G.spaces[space.id]?.control))
+    .map((space) => space.id);
+
+/** 22.1.2: one allied Italian minor whose controlling player holds an Italian space. */
+export interface ItalianPetitionChoice {
+  minor: ItalianInternalWarPower;
+  player: Power;
+}
+
+export const italianPetitionChoices = (G: ImperialElegyState): ItalianPetitionChoice[] =>
+  ITALIAN_INTERNAL_WAR_POWERS.flatMap((minor) => {
+    const player = minorController(G, minor);
+    if (player === null) return [];
+    if (italianPlayerControlledSpaces(G, player).length === 0) return [];
+    return [{minor, player}];
+  });
+
+/**
+ * 22.1.2: remove the player's ally marker from the chosen Italian minor and
+ * place the one +1 card marker in the Italian unification box.  The marker is a
+ * single permanent modifier (the printed "if one is not already there"), and
+ * `italianUnificationRoll` reads it as +1 on every later unification roll.
+ */
+const placeItalianUnificationCardMarker = (G: ImperialElegyState, actor: Power): void => {
+  if (G.flags.italyPetition === true) return;
+  G.flags.italyPetition = true;
+  log(G, actor, "italyUnificationCardMarker", {marker: "+1"});
+};
+
+export const applyItalianPetition = (G: ImperialElegyState, choice: ItalianPetitionChoice): boolean => {
+  const spaces = Object.values(G.spaces).filter(
+    (state) => state.control === choice.minor && state.ally === choice.player,
+  );
+  if (spaces.length === 0) return false;
+  for (const state of spaces) state.ally = null;
+  log(G, choice.player, "italyPetition", {minor: choice.minor, removed: spaces.length});
+  placeItalianUnificationCardMarker(G, choice.player);
+  return true;
+};
+
+const applyItalianNationalistWave = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  actor: Power,
+  minor: ItalianInternalWarPower,
+  keys: readonly SpaceId[],
+): void => {
+  for (const key of keys) {
+    if (G.spaces[key]) setSpaceControl(G, key, minor);
+  }
+  log(G, actor, "italyNationalistWave", {minor, keys: keys.join(",")});
+  italianUnificationRoll(G, ctx, actor);
+};
+
+const nationalistWaveKeyPairs = (keys: readonly SpaceId[]): [SpaceId, SpaceId][] => {
+  const pairs: [SpaceId, SpaceId][] = [];
+  for (let first = 0; first < keys.length; first += 1) {
+    for (let second = first + 1; second < keys.length; second += 1) {
+      pairs.push([keys[first], keys[second]]);
+    }
+  }
+  return pairs;
+};
+
+/**
+ * 22.1.4: choose the Italian minor, then the two Italian keys it immediately
+ * gains, then roll the unification die.  The live path suspends between the
+ * choices so the active player, not the engine, picks both.
+ */
+export const resolveItalianNationalistWaveChoice = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  choice: string,
+): boolean => {
+  const stage = pending.context?.stage;
+  if (stage === "minor") {
+    if (!isItalianInternalWarPower(choice)) return false;
+    const keys = italianUncontrolledKeys(G);
+    if (keys.length > 2) {
+      openDecision(
+        G,
+        ctx,
+        decision(
+          "italianNationalistWave",
+          pending.power,
+          `${POWER_DEFS[pending.power].name}: choose the two Italian keys ${choice} gains`,
+          nationalistWaveKeyPairs(keys).map(([first, second]) => option(
+            `${first}|${second}`,
+            `${spaceLabel(first, "en")} + ${spaceLabel(second, "en")}`,
+            {stage: "keys", minor: choice},
+            false,
+            `${spaceLabel(first, "zh_CN")} + ${spaceLabel(second, "zh_CN")}`,
+          )),
+          {stage: "keys", minor: choice},
+        ),
+      );
+      return true;
+    }
+    applyItalianNationalistWave(G, ctx, pending.power, choice, keys.slice(0, 2));
+    return true;
+  }
+  if (stage === "keys") {
+    const minor = pending.context?.minor;
+    if (typeof minor !== "string" || !isItalianInternalWarPower(minor)) return false;
+    const chosen = choice.split("|").filter((id) => id.length > 0);
+    const uncontrolled = new Set(italianUncontrolledKeys(G));
+    if (chosen.length !== 2 || chosen[0] === chosen[1]) return false;
+    if (!chosen.every((id) => uncontrolled.has(id as SpaceId))) return false;
+    applyItalianNationalistWave(G, ctx, pending.power, minor, chosen as SpaceId[]);
+    return true;
+  }
+  return false;
+};
+
+const uncontrolledNavalBases = (G: ImperialElegyState): SpaceId[] =>
+  Object.values(SPACES)
+    .filter((space) => space.type === "navalBase" && G.spaces[space.id]?.control === null)
+    .map((space) => space.id);
+
+/** 22.3.1 result 3–4: place Italy's control marker in the chosen free base. */
+export const resolveItalyNavalBase = (
+  G: ImperialElegyState,
+  pending: PendingDecision,
+  choice: string,
+): boolean => {
+  if (!uncontrolledNavalBases(G).includes(choice as SpaceId)) return false;
+  setSpaceControl(G, choice as SpaceId, "IT");
+  log(G, pending.power, "italyNavalBase", {space: choice});
+  return true;
+};
+
+/** 22.3.1 result 7+: the Ottoman Eastern Mediterranean naval bases Italy may take. */
+export const ottomanEasternMedNavalBases = (G: ImperialElegyState): SpaceId[] =>
+  Object.values(SPACES)
+    .filter((space) =>
+      space.type === "navalBase" &&
+      (space.ports ?? []).includes("eastern-mediterranean") &&
+      G.spaces[space.id]?.control === "OT")
+    .map((space) => space.id);
+
+const LIBYA_SPACES: readonly SpaceId[] = ["tripoli", "benghazi"];
+
+const hasOttomanItalianTruce = (G: ImperialElegyState): boolean => {
+  const wars = [...(G.war ? [G.war] : []), ...(G.wars ?? [])];
+  return wars.some((war) => {
+    if (Number(war.truceTurns ?? 0) <= 0) return false;
+    const sides = [
+      war.attacker,
+      war.defender,
+      ...(war.attackerAllies ?? []),
+      ...(war.defenderAllies ?? []),
+    ].map(String);
+    return sides.includes("OT") && sides.includes("IT");
+  });
+};
+
+const applyItalyOttomanTerritory = (
+  G: ImperialElegyState,
+  actor: Power,
+  base: SpaceId,
+  territory: "tunisia" | "libya",
+  roll: number,
+  drm: number,
+): void => {
+  setSpaceControl(G, base, "IT");
+  if (territory === "tunisia") {
+    if (G.spaces.tunisia?.control === "OT") setSpaceControl(G, "tunisia", "IT");
+  } else {
+    for (const space of LIBYA_SPACES) {
+      if (G.spaces[space]?.control === "OT") setSpaceControl(G, space, "IT");
+    }
+  }
+  log(G, actor, "italyOttomanWar", {result: "won", roll, drm, base, territory});
+};
+
+const resolveItalyOttomanWar = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  actor: Power,
+  interactive: boolean,
+): boolean => {
+  const bases = ottomanEasternMedNavalBases(G);
+  const territories: ("tunisia" | "libya")[] = [];
+  if (G.spaces.tunisia?.control === "OT") territories.push("tunisia");
+  if (LIBYA_SPACES.some((space) => G.spaces[space]?.control === "OT")) territories.push("libya");
+  if (bases.length === 0 || territories.length === 0 || hasOttomanItalianTruce(G)) {
+    // "Treat this as a 5 result": the Kingdom table's 5–6 grant.
+    grantItalianReinforcement(G);
+    log(G, actor, "italyOttomanWar", {
+      result: "treatedAs5",
+      reason: bases.length === 0 ? "noBase" : territories.length === 0 ? "noTerritory" : "truce",
+    });
+    return true;
+  }
+  const italianNaval = Object.values(G.units).filter(
+    (unit) => unit.owner === "IT" && isNavalKind(unit.kind) && unit.steps > 0,
+  ).length;
+  const ottomanNaval = Object.values(G.units).filter(
+    (unit) => unit.owner === "OT" && isNavalKind(unit.kind) && unit.steps > 0,
+  ).length;
+  const ottomanAfricanCorps = Object.values(G.units).some((unit) => {
+    if (unit.owner !== "OT" || unit.naval === true || !unit.space) return false;
+    if (!(isArmyKind(unit.kind) || unit.kind === "eliteCorps")) return false;
+    return SPACES[unit.space]?.region === "africa";
+  });
+  const drm = italianNaval - ottomanNaval + (ottomanAfricanCorps ? -2 : 0);
+  const roll = die(ctx, 6) + drm;
+  if (roll < 4) {
+    log(G, actor, "italyOttomanWar", {result: "lost", roll, drm});
+    return true;
+  }
+  const base = bases[0];
+  if (interactive && territories.length > 1) {
+    openDecision(
+      G,
+      ctx,
+      decision(
+        "italyOttomanWar",
+        actor,
+        `${POWER_DEFS[actor].name}: Italy won the Ottoman war; choose Tunisia or Libya`,
+        territories.map((territory) => option(
+          territory,
+          territory === "tunisia" ? "Tunisia" : "Libya (Tripoli and Benghazi)",
+          {stage: "territory", base, roll, drm},
+          false,
+          territory === "tunisia" ? "突尼斯" : "利比亚（的黎波里与班加西）",
+        )),
+        {stage: "territory", base, roll, drm},
+      ),
+    );
+    return false;
+  }
+  applyItalyOttomanTerritory(G, actor, base, territories[0], roll, drm);
+  return true;
+};
+
+/** Resolve the 7+ "Tunisia or Libya" choice opened after a won Ottoman war. */
+export const resolveItalyOttomanTerritoryChoice = (
+  G: ImperialElegyState,
+  pending: PendingDecision,
+  choice: string,
+): boolean => {
+  if (pending.context?.stage !== "territory") return false;
+  if (choice !== "tunisia" && choice !== "libya") return false;
+  const base = pending.context?.base;
+  if (typeof base !== "string" || !ottomanEasternMedNavalBases(G).includes(base as SpaceId)) return false;
+  if (choice === "tunisia" && G.spaces.tunisia?.control !== "OT") return false;
+  if (choice === "libya" && !LIBYA_SPACES.some((space) => G.spaces[space]?.control === "OT")) return false;
+  const roll = Number(pending.context?.roll ?? 0);
+  const drm = Number(pending.context?.drm ?? 0);
+  applyItalyOttomanTerritory(G, pending.power, base as SpaceId, choice, roll, drm);
+  return true;
+};
+
 /**
  * Apply the 22.1.3 result.  When both minors are legal the live card asks the
  * active player to choose; `italyTable` returns false while that decision is
@@ -179,35 +452,86 @@ export const italyTable = (
       // Italy gains 2 neutral influence on the MPIT.
       addItalyMpit(G, "neutral", 2);
     } else if (roll <= 4) {
-      const bases = Object.values(SPACES).filter((s) => s.type === "navalBase" && s.region === "europe" && G.spaces[s.id].control === null);
-      if (bases.length > 0) setSpaceControl(G, bases[0].id, "IT");
+      const bases = uncontrolledNavalBases(G);
+      if (options.interactive === true && bases.length > 0) {
+        openDecision(
+          G,
+          ctx,
+          decision(
+            "italyNavalBase",
+            actor,
+            `${POWER_DEFS[actor].name}: choose an uncontrolled naval base for Italy`,
+            bases.map((space) => option(
+              space,
+              spaceLabel(space, "en"),
+              undefined,
+              false,
+              spaceLabel(space, "zh_CN"),
+            )),
+          ),
+        );
+        return false;
+      }
+      if (bases.length > 0) setSpaceControl(G, bases[0], "IT");
     } else if (roll <= 6) {
       grantItalianReinforcement(G);
     } else {
-      // Italy declares war on the Ottomans for an Eastern Mediterranean base.
-      log(G, actor, "italyOttomanWar", {});
+      // 22.3.1: Italy declares war on the Ottomans for an Eastern Mediterranean
+      // base and a choice of Tunisia or Libya.  A missing target or a truce is
+      // the printed "treat as a 5" fallback.
+      return resolveItalyOttomanWar(G, ctx, actor, options.interactive === true);
     }
     return true;
   }
   let roll = die(ctx, 6);
   if (G.flags.italyFlashpointDominator === actor) roll -= 2;
   if (roll <= 0) {
-    log(G, actor, "italyLostDream", {});
+    // 22.1: "A Lost Dream" — remove the Italy card from the game.
+    removeCard(G, ITALY_TABLE_CARD);
+    log(G, actor, "italyLostDream", {card: ITALY_TABLE_CARD});
     return true;
   }
   if (roll === 1) {
-    const playerSpaces = Object.values(SPACES).filter((s) => s.flashpoints?.includes("italy") && G.spaces[s.id].control === actor);
-    const target = playerSpaces.length > 0 ? playerSpaces[0].id : "piedmont";
+    // 22.1.1: if no Italian space is player-controlled, Uprising unifies Italy
+    // immediately.  Otherwise the Italian Rebels rise in an Italian space.
+    if (italianPlayerControlledSpaces(G).length === 0) {
+      unifyItaly(G, ctx, actor);
+      return true;
+    }
+    const playerSpaces = italianPlayerControlledSpaces(G, actor);
+    const target = playerSpaces.length > 0 ? playerSpaces[0] : "piedmont";
     G.spaces[target].rebellion = {minor: "Italian Rebels", step: 0, rebels: []};
     const rebel = placeUnit(G, "REBEL:Italian", "rebelArmy", target, 2);
     G.spaces[target].rebellion.rebels.push(rebel.id);
     return true;
   }
   if (roll <= 3) {
-    // Petition for aid: remove an ally marker from an Italian minor.
-    const alliedMinor = Object.values(SPACES).find((s) => s.flashpoints?.includes("italy") && G.spaces[s.id].ally !== null);
-    if (alliedMinor) G.spaces[alliedMinor.id].ally = null;
-    G.flags.italyPetition = true;
+    // 22.1.2 Petition for aid: only a Sardinia-Piedmont / Two Sicilies ally
+    // whose controlling player holds an Italian unification space is eligible.
+    // The +1 unification-box marker is part of the result even when no ally
+    // marker can be removed.
+    placeItalianUnificationCardMarker(G, actor);
+    const candidates = italianPetitionChoices(G);
+    if (candidates.length > 1 && options.interactive === true) {
+      openDecision(
+        G,
+        ctx,
+        decision(
+          "italianPetition",
+          actor,
+          `${POWER_DEFS[actor].name}: remove one allied Italian minor's marker`,
+          candidates.map((candidate) => option(
+            candidate.minor,
+            `${candidate.minor} (${POWER_DEFS[candidate.player].name})`,
+            {minor: candidate.minor, player: candidate.player},
+            false,
+            `${candidate.minor}（${POWER_NAMES_ZH[candidate.player]}）`,
+          )),
+        ),
+      );
+      return false;
+    }
+    if (candidates.length > 0) applyItalianPetition(G, candidates[0]);
     return true;
   }
   if (roll <= 5) {
@@ -232,10 +556,23 @@ export const italyTable = (
     applyInternalItalianWar(G);
     return true;
   }
-  // Nationalist wave: a minor takes 2 uncontrolled Italian keys, then roll.
-  const uncontrolled = Object.values(SPACES).filter((s) => s.flashpoints?.includes("italy") && G.spaces[s.id].control === null).slice(0, 2);
-  for (const s of uncontrolled) setSpaceControl(G, s.id, "Sardinia-Piedmont");
-  italianUnificationRoll(G, ctx, actor);
+  // 22.1.4 Nationalist Wave: choose the minor and the two uncontrolled Italian
+  // keys it immediately gains, then roll the unification die.
+  if (options.interactive === true) {
+    openDecision(
+      G,
+      ctx,
+      decision(
+        "italianNationalistWave",
+        actor,
+        `${POWER_DEFS[actor].name}: choose the Italian minor for the Nationalist Wave`,
+        ITALIAN_INTERNAL_WAR_POWERS.map((power) => option(power, power, {stage: "minor"})),
+        {stage: "minor"},
+      ),
+    );
+    return false;
+  }
+  applyItalianNationalistWave(G, ctx, actor, ITALIAN_INTERNAL_WAR_POWERS[0], italianUncontrolledKeys(G).slice(0, 2));
   return true;
 };
 
@@ -249,7 +586,9 @@ export const italianUnificationRoll = (G: ImperialElegyState, ctx: Ctx, actor: P
     if (c !== null && !isPower(c)) minorControls.set(c, (minorControls.get(c) ?? 0) + 1);
   }
   const maxMinor = Math.max(0, ...minorControls.values());
-  let roll = die(ctx, 6) + (playerControlled === 0 ? 2 : 0) + maxMinor;
+  // 22.1.2: the one +1 card marker in the Italian unification box.
+  const petitionMarker = G.flags.italyPetition === true ? 1 : 0;
+  let roll = die(ctx, 6) + (playerControlled === 0 ? 2 : 0) + maxMinor + petitionMarker;
   if (roll >= 7) {
     unifyItaly(G, ctx, actor);
     return true;

@@ -27,6 +27,7 @@ const DESTRUCTIVE_KINDS: readonly string[] = [
   "combatElite",
   "combatDiscard",
   "combatLosses",
+  "hydraulicRecoil",
   "combatRetreat",
   "combatAdvance",
   "impulseLoss",
@@ -46,6 +47,8 @@ const DESTRUCTIVE_KINDS: readonly string[] = [
   "crisis",
   "crisisIncident",
   "italianInternalWar",
+  "italianPetition",
+  "italyOttomanWar",
 ];
 
 /**

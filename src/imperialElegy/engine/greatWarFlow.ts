@@ -47,6 +47,7 @@ import {
 } from "../types";
 import {CARDS} from "../constant/cards.data";
 import {POWER_DEFS} from "../constant/powers";
+import {MINOR_POWER_HOMES} from "../constant/setup";
 import {
   SPACES,
   connectionBetween,
@@ -824,6 +825,73 @@ export const gwDraftEfChoices = (
   return out;
 };
 
+/** 27.5.2: an allied minor power's army may replace one of the drafted armies. */
+export interface GwDraftMinorChoice {
+  minor: string;
+  space: SpaceId;
+}
+
+const gwDraftMinorSpaceAllowed = (
+  G: ImperialElegyState,
+  power: Power,
+  minor: string,
+  space: SpaceId,
+  first: SpaceId | null,
+): boolean => {
+  if (space === first) return false;
+  if (minorController(G, minor) !== power) return false;
+  const state = G.spaces[space];
+  const def = SPACES[space];
+  if (!state || !def || isNavalBox(space)) return false;
+  if (state.control !== minor) return false;
+  if (def.minorHome !== minor && MINOR_POWER_HOMES[minor] !== space) return false;
+  if (state.trench) return false;
+  if (!friendlySpace(G, space, power)) return false;
+  return armyEndProblem(G, space, 1) === null;
+};
+
+/**
+ * 27.5.2: "Players may also substitute an allied minor power army for 1 of
+ * their own armies during a draft action.  Allied minor power armies must be
+ * built in a home space belonging to that minor power."
+ *
+ * The substitution is the second placement of the existing draft pending, so
+ * the first drafted army still uses a home key of the drafting player.
+ */
+export const gwDraftMinorChoices = (
+  G: ImperialElegyState,
+  power: Power,
+  first: SpaceId | null = null,
+): GwDraftMinorChoice[] => {
+  const out: GwDraftMinorChoice[] = [];
+  const minors = [...new Set([
+    ...Object.keys(MINOR_POWER_HOMES),
+    ...Object.values(G.spaces)
+      .filter((state) => state.ally === power && state.control !== null && state.control !== power && !isPower(state.control))
+      .map((state) => String(state.control)),
+  ])].sort();
+  for (const minor of minors) {
+    if (minor === "IT" || minor === "US") continue;
+    if (!nonPlayerHasCounterFor(G, minor, "army")) continue;
+    for (const space of Object.keys(G.spaces).sort()) {
+      if (gwDraftMinorSpaceAllowed(G, power, minor, space as SpaceId, first)) {
+        out.push({minor, space: space as SpaceId});
+      }
+    }
+  }
+  return out;
+};
+
+const gwDraftMinorAllowed = (
+  G: ImperialElegyState,
+  power: Power,
+  minor: string,
+  space: SpaceId,
+  first: SpaceId | null,
+): boolean => gwDraftMinorChoices(G, power, first).some(
+  (choice) => choice.minor === minor && choice.space === space,
+);
+
 /** Re-validate an EF substitution choice (the same rule the options use). */
 const gwDraftEfAllowed = (
   G: ImperialElegyState,
@@ -853,8 +921,17 @@ export const resolveGwDraftSecond = (
     return true;
   }
   let space: SpaceId;
-  let kind: "army" | "expeditionary" | "eliteColonialEf" = "army";
-  if (choice.startsWith("ef:")) {
+  let kind: "army" | "expeditionary" | "eliteColonialEf" | "minorArmy" = "army";
+  let minor: string | null = null;
+  if (choice.startsWith("minor:")) {
+    const rest = choice.slice("minor:".length);
+    const separator = rest.indexOf(":");
+    if (separator < 1) return false;
+    minor = rest.slice(0, separator);
+    space = rest.slice(separator + 1) as SpaceId;
+    kind = "minorArmy";
+    if (!gwDraftMinorAllowed(G, pending.power, minor, space, first)) return false;
+  } else if (choice.startsWith("ef:")) {
     space = choice.slice("ef:".length) as SpaceId;
     kind = "expeditionary";
     if (!gwDraftEfAllowed(G, pending.power, space, first, kind)) return false;
@@ -866,9 +943,12 @@ export const resolveGwDraftSecond = (
     space = choice as SpaceId;
     if (!gwDraftSpaceAllowed(G, pending.power, space, first)) return false;
   }
-  const unit = placeUnit(G, pending.power, kind, space, 1);
+  const unit = minor !== null
+    ? placeNonPlayerCounter(G, minor, "minorArmy", space, 1)
+    : placeUnit(G, pending.power, kind as "army" | "expeditionary" | "eliteColonialEf", space, 1);
+  if (!unit) return false;
   G.pending = null;
-  log(G, pending.power, "gwDraftSecond", {space, unit: unit.id, first, kind});
+  log(G, pending.power, "gwDraftSecond", {space, unit: unit.id, first, kind, ...(minor ? {minor} : {})});
   return true;
 };
 
@@ -1598,9 +1678,12 @@ export const performGwManeuver = (
       if (p.manpower < 1) return fail("noManpower", "Not enough manpower to draft");
       // 4.2: two reduced armies are two army counters (the second is forfeited
       // when there is nowhere legal to put it, but a full draft needs both).
+      // 27.5.2: an allied minor army may replace the second army, so one own
+      // counter is then enough.
       const remaining = counterRemaining(G, power, "army");
-      if (remaining !== null && remaining < 2) {
-        return fail("noCounter", `${power} does not have two more army counters`);
+      const minorChoices = gwDraftMinorChoices(G, power, request.space);
+      if (remaining !== null && remaining < (minorChoices.length > 0 ? 1 : 2)) {
+        return fail("noCounter", `${power} does not have enough army counters for a draft`);
       }
       p.manpower -= 1;
       const first = placeUnit(G, power, "army", request.space, 1);
@@ -1611,7 +1694,8 @@ export const performGwManeuver = (
       if (G.pending === null) {
         const secondSpaces = gwDraftSpaces(G, power, request.space);
         const efChoices = gwDraftEfChoices(G, power, request.space);
-        if (secondSpaces.length === 0 && efChoices.length === 0) {
+        const alliedMinorChoices = gwDraftMinorChoices(G, power, request.space);
+        if (secondSpaces.length === 0 && efChoices.length === 0 && alliedMinorChoices.length === 0) {
           log(G, power, "gwDraftSecondForfeited", {space: request.space, reason: "noSpace"});
         } else {
           openDecision(G, ctx, {
@@ -1627,6 +1711,13 @@ export const performGwManeuver = (
                 {kind, space},
                 false,
                 `${kind === "expeditionary" ? "远征军" : "精锐殖民远征军"}：${spaceLabel(space, "zh_CN")}`,
+              )),
+              ...alliedMinorChoices.map(({minor, space}) => option(
+                `minor:${minor}:${space}`,
+                `${minor} army in ${spaceLabel(space, "en")}`,
+                {kind: "minorArmy", minor, space},
+                false,
+                `${minor} 军团：${spaceLabel(space, "zh_CN")}`,
               )),
             ],
             context: {space: request.space, unitId: first.id},

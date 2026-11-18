@@ -71,6 +71,7 @@ import {
   die,
   dominatedFlashpoints,
   enemiesOf,
+  friendlyPort,
   friendlySpace,
   gwAllyImpulseFor,
   hasLoc,
@@ -83,7 +84,6 @@ import {
   landStackingLimit,
   landUnitsIn,
   log,
-  minorAlliesOf,
   minorController,
   movementEndProblem,
   navalUnitsIn,
@@ -101,15 +101,29 @@ import {
   unitById,
   unitsOfPower,
 } from "./engine/rules";
+import {
+  diplomacyPlacementProblem,
+  influencePlacementProblem,
+  minorAllianceProblem,
+  removeAllianceCost,
+  removeMarkerProblem,
+  removeMinorAllianceProblem,
+} from "./engine/foreignAffairs";
 import {hasCounterFor} from "./engine/counters";
-import {eventPlayability, removeAfterCpPlay, youngTurksBlocksFailedReforms} from "./engine/playability";
+import {
+  cpPlayability,
+  eventPlayability,
+  removeAfterCpPlay,
+  removesAfterPlay,
+  youngTurksBlocksFailedReforms,
+} from "./engine/playability";
 import {ensureStateDefaults} from "./engine/migrations";
 
 // The start-of-impulse penalties live in rules.ts so the GW flow can run them
 // without an import cycle; re-export them for direct callers and tests.
 export {beginImpulseUpkeep, resolveImpulseLoss} from "./engine/rules";
 import {closeDecision, decision, openDecision, option, powerOfSeat, seatOf} from "./engine/pending";
-import {finishCard, placeNonPlayerCounter, placeUnit, removeUnit, resolveCard, resolveCardDecision, resolveEffects, spendReserveSteps, addReserve, damageUnit, resolveAllianceStep, resolveItalyAllianceStep, displaceIndianArmies, grantRapidDeployment, displaceUnitToFriendlyLoc, displaceUnitsNotFriendlyTo, registerPolishIndependence, LOOSE_GRIP_CARD, looseGripRemovalDue} from "./engine/effects";
+import {finishCard, placeNonPlayerCounter, placeUnit, removeUnit, resolveCard, resolveCardDecision, resolveEffects, spendReserveSteps, addReserve, damageUnit, resolveAllianceStep, resolveItalyAllianceStep, displaceIndianArmies, grantRapidDeployment, displaceUnitToFriendlyLoc, displaceUnitsNotFriendlyTo, registerPolishIndependence, LOOSE_GRIP_CARD, looseGripRemovalDue, resolveAmericanCivilWarEndPhase} from "./engine/effects";
 import {POLAND, polishDeploySpace, polishRecruitDecision, polishReserveDeployer, polishReserveIds} from "./engine/poland";
 import {
   allianceResolutionOrder,
@@ -121,6 +135,7 @@ import {
 } from "./engine/effects";
 import {
   afterCombatCardWindow,
+  resolveHydraulicRecoil,
   attemptInterception,
   beginLandBattle,
   beginNavalBattle,
@@ -185,12 +200,16 @@ import {checkGermanUnification, checkItalianUnification, checkAutoVictory, finis
 import {grantAuNewWayForward} from "./engine/nationality";
 import {
   applyInternalItalianWar,
+  applyItalianPetition,
   crisisRoll,
   ITALIAN_INTERNAL_WAR_POWERS,
   italyTable,
   outbreakGreatWar,
   endGreatWar,
   resolveCrisisPending,
+  resolveItalianNationalistWaveChoice,
+  resolveItalyNavalBase,
+  resolveItalyOttomanTerritoryChoice,
 } from "./engine/greatWar";
 import {addItalyMpit} from "./engine/italyEntry";
 import {
@@ -234,6 +253,7 @@ import {
   hasTruce,
   initiativeOrder,
   initiativeRollOff,
+  isItalianUnificationWar,
   isMinorWarTargetArg,
   minorWarDefender,
   minorWarInfo,
@@ -454,49 +474,60 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (!G.powers[power].hand.includes(cardId)) return INVALID_MOVE;
   const card = cardById(cardId);
+  // 12.0: every card may be spent for CP — response and combat cards included.
+  // A mandatory event has no "spend it and nothing happens" mode: the printed
+  // event resolves first and then its CP are spent, which is exactly the event
+  // path, so a CP play of a mandatory event resolves the event and must satisfy
+  // the event's own printed gates too.
+  const resolvesEvent = mode === "event" || card.type === "mandatory";
   // The printed "Playable if/after" clauses are engine-wide gates on the event
-  // mode only: a card can still be spent for CP unless its own text forbids it.
-  // Response/combat windows keep their separate gates (`playResponseCard`).
-  if (mode === "event") {
-    const playable = eventPlayability(G, power, cardId);
-    if (!playable.ok) {
-      log(G, power, "eventNotPlayable", {card: cardId, reason: playable.reason});
-      return INVALID_MOVE;
-    }
+  // mode.  Response/combat windows keep their separate gates
+  // (`playResponseCard`); a CP play only answers to its own printed clause — but
+  // a CP play of a mandatory event *is* its event, so it passes the same gate.
+  const gate = resolvesEvent ? eventPlayability(G, power, cardId) : cpPlayability(G, power, cardId);
+  if (!gate.ok) {
+    if (mode === "cp") log(G, power, "cardCpNotPlayable", {card: cardId, reason: gate.reason});
+    else log(G, power, "eventNotPlayable", {card: cardId, reason: gate.reason});
+    return INVALID_MOVE;
   }
   // 12.0: one card play per impulse.  Once the impulse's card has been played
   // — or its CP have been spent, even down to zero — the seat may only finish
   // the impulse; it may not open a second card in the same impulse.  The
   // mandatory-event bonus CP are that impulse's budget, so they are spent (or
-  // forfeited) before the next card play, not followed by one.
+  // forfeited) before the next card play, not followed by one.  There is no
+  // no-pass exception: a used impulse can always be handed over through `pass`,
+  // so a "rescue" play on top of banked CP would itself be a second card.
   if (impulseAlreadyUsed(G, power)) return INVALID_MOVE;
-  // A41 is printed "This can also be played as a standard event during your
-  // impulse", so it keeps an event mode; every other response/combat card is
-  // battle-window only.
-  if ((card.type === "response" && cardId !== "IE-A041") || card.type === "combat") return INVALID_MOVE;
-  if (card.type === "mandatory" || card.type === "mandatoryResponse") {
-    if (mode !== "event") return INVALID_MOVE;
-  }
+  const mandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
   // 6.1/12.0: a home card is playable while it is **in hand**.  Normally only
   // the card chosen in Diplomacy is there, but A040 British Trade explicitly
   // adds the other one ("takes the home card they did not choose for this turn
   // and places it in their hand"), so hand membership — not the Diplomacy
-  // selection — is the printed criterion.  The old selection-only guard left
-  // that seat unable to play the granted card *and* unable to pass (a home card
-  // in hand forbids passing): no legal move at all.
+  // selection — is the printed criterion.  A selection-only guard left that seat
+  // unable to play the granted card *and* unable to pass (a home card in hand
+  // forbids passing): no legal move at all.
   // Remove from hand before resolving.
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
   if (G.powers[power].selectedHomeCard === cardId) G.powers[power].selectedHomeCard = null;
   if (G.phase === "action") G.powers[power].flags.actionCpSpentThisImpulse = true;
+  // A099 Dreadnought: "if this is the first card you play this turn, gain an
+  // additional dreadnought."  `firstCardPlayTurn` records the turn of the last
+  // card play, so the handler can tell whether this play opens the turn.
+  G.flags.firstCardThisTurn = G.flags.firstCardPlayTurn !== G.turn;
+  G.flags.firstCardPlayTurn = G.turn;
   G.impulseCard = cardId;
-  addLog(G, power, "cardPlayed", {card: cardId, mode});
-  if (mode === "cp") {
+  // A mandatory event played "for CP" is its event: the text resolves and is
+  // read out, then the printed CP arrive.  That makes it a public event play
+  // (12.0/12.1), never the masked CP-only line, so the log reports the mode that
+  // actually happened.
+  addLog(G, power, "cardPlayed", {card: cardId, mode: resolvesEvent ? "event" : mode});
+  if (!resolvesEvent) {
     G.cpRemaining = card.cp;
     // A70: "Remove from the game if played for CP and Italy is unified."
     // A79: "Remove from the game if Tunisia and Libya are no longer Ottoman
     // controlled." — the CP play removes it instead of discarding it.
     const looseGripRemoved = cardId === LOOSE_GRIP_CARD && looseGripRemovalDue(G);
-    if (card.remove || removeAfterCpPlay(G, cardId) || looseGripRemoved) {
+    if (removesAfterPlay(G, cardId) || removeAfterCpPlay(G, cardId) || looseGripRemoved) {
       if (!G.removed.includes(cardId)) G.removed.push(cardId);
       if (looseGripRemoved) log(G, undefined, "looseGripRemoved", {reason: "cp"});
       G.impulseCard = null;
@@ -509,7 +540,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     return;
   }
   // Event; mandatory cards also grant their CP.
-  if (card.type === "mandatory" || card.type === "mandatoryResponse") G.cpRemaining = card.cp;
+  if (mandatory) G.cpRemaining = card.cp;
   const done = resolveCard(G, ctx, power, card);
   if (!done) {
     G.flags.pendingCard = cardId;
@@ -517,7 +548,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     return;
   }
   if (done) {
-    if (card.remove) removeCard(G, cardId);
+    if (removesAfterPlay(G, cardId)) removeCard(G, cardId);
     // Some events park the physical card face up in front of a player (A027
     // Foreign Investment is that player's industrialization card).  That card
     // is now held in `industryCard`, so pushing it into the discard pile as
@@ -1054,20 +1085,24 @@ export const stackingLimit = (_G: ImperialElegyState, space: SpaceId, _power: Po
 
 export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, kind: "squadron" | "dreadnought", reduced = false): string | void => {
   const playerID = ctx.playerID ?? null;
+  // Validate the printed placement before spending anything, so a refused
+  // click never costs CP.
+  const power = requireActive(G, ctx, playerID);
+  if (power === INVALID_MOVE) return INVALID_MOVE;
   // A92 Naval Arms Race: the discount applies "for the rest of this turn and
   // during the next turn", tracked by the flag's expiry turn.
-  const buyer = actor(G, playerID);
   const discount =
-    buyer !== null &&
-    Number(G.powers[buyer].flags.navalDiscount ?? 0) > 0 &&
-    G.turn <= Number(G.powers[buyer].flags.navalDiscountThrough ?? -1)
+    Number(G.powers[power].flags.navalDiscount ?? 0) > 0 &&
+    G.turn <= Number(G.powers[power].flags.navalDiscountThrough ?? -1)
       ? 1
       : 0;
   const baseCost = kind === "dreadnought" ? (reduced ? 2 : 3) : reduced ? 1 : 2;
   const cost = Math.max(1, baseCost - discount);
-  const power = requireCp(G, ctx, playerID, cost);
-  if (power === INVALID_MOVE) return INVALID_MOVE;
   if (!isHomeSpace(G, space, power) || !ownsKey(G, space, power)) return INVALID_MOVE;
+  // 12.4: "Newly built fleets must be placed in a controlled, territorial home
+  // key on the main map with a port."  A colonial home key on a submap (Canada,
+  // India, South Africa, Australia) is neither territorial nor on the main map.
+  if (SPACES[space]?.submap !== "main" || SPACES[space]?.keyType !== "territorial") return INVALID_MOVE;
   if (!portBoxes(space).length) return INVALID_MOVE;
   if (kind === "dreadnought" && G.persistent.dreadnoughts !== true && !G.powers[power].flags.navalLimit) return INVALID_MOVE;
   // 4.2: GE/AU/OT may only own 2 squadrons and 2 dreadnoughts until an event
@@ -1076,10 +1111,38 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
   if (!hasCounterFor(G, power, counter)) return INVALID_MOVE;
   // 5.5.4: a port holds at most 4 naval units.
   if (navalUnitsIn(G, space).length >= PORT_NAVAL_LIMIT) return INVALID_MOVE;
+  const paid = requireCp(G, ctx, playerID, cost);
+  if (paid === INVALID_MOVE) return INVALID_MOVE;
   placeUnit(G, power, kind, space, reduced ? 1 : 2);
   // 3.3.1: the naval-unit cap on power projection changes with every new ship.
   refreshPowerProjection(G);
   log(G, power, "fleetBuilt", {space, kind});
+  return undefined;
+};
+
+/**
+ * 12.4 Construct Fleets: the printed chart includes "Refit Naval Unit - 1 CP".
+ * "Refitting a naval unit refers to flipping it from its reduced side to its
+ * full strength side. Naval units cannot refit if they are in a naval box; they
+ * may only refit if they are in a friendly port."
+ *
+ * The Great War has its own refit action (27.5.4, `gwRefitFleet`), and 15.2
+ * forbids refits during a limited war, so this is the action-phase path only.
+ */
+export const refitNavalUnit = (G: ImperialElegyState, ctx: Ctx, unitId: string): string | void => {
+  const playerID = ctx.playerID ?? null;
+  if (G.phase !== "action") return INVALID_MOVE;
+  const power = actor(G, playerID);
+  if (power === null || power !== G.activePower || G.pending !== null) return INVALID_MOVE;
+  const unit = G.units[unitId];
+  if (!unit || unit.owner !== power || unit.naval !== true || !unit.space) return INVALID_MOVE;
+  if (!isNavalKind(unit.kind) || unit.steps >= 2) return INVALID_MOVE;
+  const space = unit.space;
+  if (!friendlyPort(G, power, space)) return INVALID_MOVE;
+  const paid = requireCp(G, ctx, playerID, 1);
+  if (paid === INVALID_MOVE) return INVALID_MOVE;
+  unit.steps = 2;
+  log(G, power, "fleetRefitted", {space, kind: unit.kind});
   return undefined;
 };
 
@@ -1532,20 +1595,10 @@ export const placeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId):
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyInfluenced) return INVALID_MOVE;
-  // 33.2.2: no player may take control of (or place a marker in) India once it
-  // is independent, so influence is refused explicitly as well as by control.
-  if (isIndependentIndia(G, space)) return INVALID_MOVE;
+  // 12.5.1 / 12.5.2 / 5.6: uncontrolled space, one marker, the African cap and
+  // the LoC.  One shared gate, so the Orders panel cannot promise otherwise.
+  if (influencePlacementProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state || state.control !== null || state.influence !== null) return INVALID_MOVE;
-  // 12.5.2: until the Berlin Conference a player may hold only one influence
-  // marker on the Africa submap (North Africa is on the main map and exempt).
-  if (G.persistent.berlinConference !== true && SPACES[space]?.submap === "africa") {
-    const africanMarkers = Object.values(SPACES).filter(
-      (def) => def.submap === "africa" && G.spaces[def.id]?.influence === power,
-    ).length;
-    if (africanMarkers >= 1) return INVALID_MOVE;
-  }
-  if (!hasLoc(G, power, space)) return INVALID_MOVE;
   state.influence = power;
   G.powers[power].flags.alreadyInfluenced = true;
   log(G, power, "influencePlaced", {space});
@@ -1557,11 +1610,10 @@ export const placeDiplomacy = (G: ImperialElegyState, ctx: Ctx, space: SpaceId):
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyInfluenced) return INVALID_MOVE;
-  if (isIndependentIndia(G, space)) return INVALID_MOVE;
+  // 12.5.3 (with 4.6.2's minor-power definition, Meiji, Qing and the ACW).
+  // 5.6 requires a LoC only for influence, so this path traces none.
+  if (diplomacyPlacementProblem(G, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state || state.diplomacy !== null) return INVALID_MOVE;
-  if (state.control === null || isPower(state.control)) return INVALID_MOVE;
-  if (!hasLoc(G, power, space)) return INVALID_MOVE;
   state.diplomacy = power;
   G.powers[power].flags.alreadyInfluenced = true;
   log(G, power, "diplomacyPlaced", {space});
@@ -1573,11 +1625,10 @@ export const removeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId)
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyRemovedInfluence) return INVALID_MOVE;
+  // 12.6: own markers only; the Africa exception and the foreign-unit bar are
+  // printed against influence and live in the shared gate.
+  if (removeMarkerProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state) return INVALID_MOVE;
-  // 12.6: after the Berlin Conference a player cannot remove influence in Africa.
-  if (G.persistent.berlinConference === true && SPACES[space]?.submap === "africa") return INVALID_MOVE;
-  if (state.influence !== power && state.diplomacy !== power) return INVALID_MOVE;
   if (state.influence === power) state.influence = null;
   if (state.diplomacy === power) state.diplomacy = null;
   G.powers[power].flags.alreadyRemovedInfluence = true;
@@ -1588,13 +1639,10 @@ export const minorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): 
   const playerID = ctx.playerID ?? null;
   const power = requireCp(G, ctx, playerID, 3);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (isIndependentIndia(G, space)) return INVALID_MOVE;
+  // Rule 12.8, including 4.2.1's five-ally cap and 4.6.2's "the US and a
+  // unified Italy are not minor powers".
+  if (minorAllianceProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
-  if (!state || state.diplomacy !== power) return INVALID_MOVE;
-  if (state.ally !== null) return INVALID_MOVE;
-  // Rule 4.2.1: "players are allowed a maximum of five minor power allies."
-  // Count distinct minor powers, not spaces (a minor can control several).
-  if (minorAlliesOf(G, power).length >= 5) return INVALID_MOVE;
   state.ally = power;
   state.diplomacy = null;
   log(G, power, "minorAlliance", {space});
@@ -1603,12 +1651,28 @@ export const minorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): 
 
 export const removeMinorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string | void => {
   const playerID = ctx.playerID ?? null;
-  const power = requireCp(G, ctx, playerID, 4);
+  // 12.9 prints 4 CP; 12.9.1 lets a player with naval supremacy in an adjacent
+  // naval box do the same action for 3 CP.
+  const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  // The space gate runs before the wallet so a refusal here costs nothing.
+  if (removeMinorAllianceProblem(G, space) !== null) return INVALID_MOVE;
+  const cost = removeAllianceCost(G, power, space);
+  if (!spendCpFor(G, power, cost)) return INVALID_MOVE;
+  if (G.phase === "action") {
+    G.powers[power].flags.actionCpSpentThisImpulse = true;
+  } else if (G.phase === "wartime") {
+    G.powers[power].flags.warCpSpentThisImpulse = true;
+    noteWartimeAction(G);
+  }
+  // 12.9: "Flip any one ally marker on a minor power to its diplomacy side."
+  // The diplomacy side keeps the player the alliance belonged to, not the one
+  // who paid to flip it.
   const state = G.spaces[space];
-  if (!state || state.ally === null) return INVALID_MOVE;
+  const previous = state.ally;
   state.ally = null;
-  state.diplomacy = power;
+  state.diplomacy = previous;
+  log(G, power, "minorAllianceRemoved", {space, previous, cost});
   return undefined;
 };
 
@@ -3299,7 +3363,7 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
   if (chained) {
     // 12.14: the card lives in the CP Chain and is discarded when the action
     // phase ends, not when its mandatory event finishes resolving.
-  } else if (!gwCard && card.remove) {
+  } else if (!gwCard && removesAfterPlay(G, cardId)) {
     removeCard(G, cardId);
   } else if (!gwCard && card.kind !== "home" && !isHeldAsIndustryCard(G, cardId)) {
     // A027 Foreign Investment is parked as the receiving player's
@@ -3807,11 +3871,30 @@ const resolvePostWarDrawChoice = (G: ImperialElegyState, ctx: Ctx, pending: Pend
     : settleWarImmediately(G, ctx, continuation.victory, continuation.choices);
 };
 
+/**
+ * 22.2: the winner of an Italian unification war receives 2 free CP to
+ * influence Italy's own MPIT column.  The grant is a same-turn allowance;
+ * `placeItalyMpit` spends it without touching the war budget.
+ */
+const grantItalianUnificationMpitCp = (
+  G: ImperialElegyState,
+  war: WarState,
+  victor: "attacker" | "defender" | null,
+): void => {
+  if (!isItalianUnificationWar(war)) return;
+  const winner = victor === "defender" && isPower(war.defender) ? war.defender : war.attacker;
+  G.flags.italyUnificationMpitCp = 2;
+  G.flags.italyUnificationMpitCpTurn = G.turn;
+  G.flags.italyUnificationMpitCpPower = winner;
+  log(G, winner, "italyUnificationMpitCp", {cp: 2});
+};
+
 /** Demobilize the settled war and open the rule 17.0 free actions. */
 const completeWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const war = G.war;
   if (!war) return INVALID_MOVE;
   drawPostWarCards(G, ctx, war);
+  grantItalianUnificationMpitCp(G, war, war.victor);
 
   // 33.1 German Confederation: every space GE gained by the treaties becomes a
   // permanent home space now, before the demobilization free actions.
@@ -3873,6 +3956,7 @@ const settleWarImmediately = (
   if (preparePostWarDraws(G, ctx, {mode: "immediate", victory, choices})) return undefined;
   applyWarEndCharacteristics(G, ctx);
   drawPostWarCards(G, ctx, war);
+  grantItalianUnificationMpitCp(G, war, victory.victor);
   G.flags.postWarWinner = postWarWinnerFor(war, victory.victor);
   const geWonUnification =
     war.warAim === "unification" && war.attacker === "GE" && victory.victor === "attacker";
@@ -4777,6 +4861,36 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     finalizePendingCard(G, ctx);
     return undefined;
   }
+  if (pending.kind === "italianPetition") {
+    // 22.1.2: remove the chosen allied minor's marker and place the +1 box marker.
+    const choice = pending.options.find((entry) => entry.id === optionId)?.data as
+      | {minor: (typeof ITALIAN_INTERNAL_WAR_POWERS)[number]; player: Power}
+      | undefined;
+    if (!choice || !applyItalianPetition(G, choice)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italianNationalistWave") {
+    // 22.1.4: choose the minor, then its two keys, then roll unification.
+    if (!resolveItalianNationalistWaveChoice(G, ctx, pending, optionId)) return INVALID_MOVE;
+    if (G.pending === null) finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italyNavalBase") {
+    // 22.3.1 result 3–4: the active player chose the free naval base.
+    if (!resolveItalyNavalBase(G, pending, optionId)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italyOttomanWar") {
+    // 22.3.1 result 7+: the active player chose Tunisia or Libya.
+    if (!resolveItalyOttomanTerritoryChoice(G, pending, optionId)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
   if (pending.kind === "bloodAndIron") {
     return resolveBloodAndIron(G, ctx, pending, optionId);
   }
@@ -4885,6 +4999,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   if (pending.kind === "combatLosses") {
     chooseLossMove(G, ctx, optionId);
     return undefined;
+  }
+  if (pending.kind === "hydraulicRecoil") {
+    if (optionId !== "apply" && optionId !== "decline") return INVALID_MOVE;
+    return resolveHydraulicRecoil(G, ctx, optionId === "apply");
   }
   if (pending.kind === "combatDiscard") {
     if (resolveCombatDiscard(G, ctx, optionId)) return undefined;
@@ -5059,6 +5177,38 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
     G.pending = null;
     applyInternalItalianWar(G, first.id);
     finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italianPetition") {
+    const first = pending.options[0];
+    const choice = first?.data as {minor: (typeof ITALIAN_INTERNAL_WAR_POWERS)[number]; player: Power} | undefined;
+    if (!first || !choice || !applyItalianPetition(G, choice)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italyNavalBase") {
+    const first = pending.options[0];
+    if (!first || !resolveItalyNavalBase(G, pending, first.id)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italyOttomanWar") {
+    const first = pending.options[0];
+    if (!first || !resolveItalyOttomanTerritoryChoice(G, pending, first.id)) return INVALID_MOVE;
+    G.pending = null;
+    finalizePendingCard(G, ctx);
+    return undefined;
+  }
+  if (pending.kind === "italianNationalistWave") {
+    let current: PendingDecision | null = pending;
+    for (let guard = 0; current?.kind === "italianNationalistWave" && guard < 4; guard += 1) {
+      const first = current.options[0];
+      if (!first || !resolveItalianNationalistWaveChoice(G, ctx, current, first.id)) return INVALID_MOVE;
+      current = G.pending;
+    }
+    if (G.pending === null) finalizePendingCard(G, ctx);
     return undefined;
   }
   // A card-chain step marked `required` must be answered with an explicit
@@ -5830,6 +5980,15 @@ const runEndPhase = (
   interactive: boolean,
 ): void => {
   const progress: EndPhaseProgress = interactive ? (G.endPhase ??= {step: 0}) : {step: 0};
+  // A032: "At the start of the end phase roll a die" while the American Civil
+  // War is in effect.  Keyed on the first step so a suspended-and-resumed end
+  // phase only rolls once.
+  if (progress.step === 0 && G.persistent.acw === true) {
+    if (G.flags.acwRolledTurn !== G.turn) {
+      G.flags.acwRolledTurn = G.turn;
+      resolveAmericanCivilWarEndPhase(G, ctx);
+    }
+  }
   const steps = endPhaseOrder();
   while (progress.step < steps.length) {
     const step = steps[progress.step];
@@ -6732,7 +6891,7 @@ export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | 
     // 27.2: spend the bonus immediately as a separate action, not banked CP.
     // Pre-27.1 states still bank the printed CP into the GW wallet.
     if (legacy) p.gwBudget = (p.gwBudget ?? 0) + card.cp;
-    if (card.remove) G.removed.push(cardId);
+    if (removesAfterPlay(G, cardId)) G.removed.push(cardId);
     else discardGwCard(G, cardId);
     G.resolvingCard = null;
     return;
@@ -6742,7 +6901,7 @@ export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | 
   // A GW event is consumed as soon as it is played, even when its effect opens
   // a decision.  Do not let `finalizePendingCard` put it in the action discard.
   // GW #2 asks for its own removal when neither major can join.
-  const removeNow = card.remove || G.flags.gwRemoveAfterEvent === cardId;
+  const removeNow = removesAfterPlay(G, cardId) || G.flags.gwRemoveAfterEvent === cardId;
   if (G.flags.gwRemoveAfterEvent === cardId) G.flags.gwRemoveAfterEvent = "";
   if (removeNow) removeCard(G, cardId);
   else discardGwCard(G, cardId);
@@ -6975,7 +7134,7 @@ export const playResponseCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId
     G.flags.pendingResponse = true;
     return;
   }
-  if (card.remove) removeCard(G, cardId);
+  if (removesAfterPlay(G, cardId)) removeCard(G, cardId);
   else if (card.kind !== "home") G.discard.push(cardId);
   pruneRemovedFromDiscard(G);
   G.resolvingCard = null;
@@ -7022,6 +7181,30 @@ export const placeMpit = (G: ImperialElegyState, ctx: Ctx, target: Power, track:
   }
   G.powers[target].mpit[track] += 1;
   log(G, power, "mpitPlaced", {target, track, free});
+  return undefined;
+};
+
+/**
+ * 22.2: spend one of the two free CP the winner of an Italian unification war
+ * may use to influence Italy's MPIT column.  The grant never touches the
+ * player's ordinary CP budget.
+ */
+export const placeItalyMpit = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  track: "te" | "ta" | "neutral",
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null) return INVALID_MOVE;
+  if (track !== "te" && track !== "ta" && track !== "neutral") return INVALID_MOVE;
+  if (G.flags.italyUnificationMpitCpPower !== power) return INVALID_MOVE;
+  if (Number(G.flags.italyUnificationMpitCpTurn ?? -1) !== G.turn) return INVALID_MOVE;
+  const left = Number(G.flags.italyUnificationMpitCp ?? 0);
+  if (left <= 0) return INVALID_MOVE;
+  G.flags.italyUnificationMpitCp = left - 1;
+  const mpit = addItalyMpit(G, track, 1);
+  log(G, power, "italyUnificationMpit", {track, remaining: left - 1, total: mpit[track]});
   return undefined;
 };
 
