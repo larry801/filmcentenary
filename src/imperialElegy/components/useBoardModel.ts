@@ -12,7 +12,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey} from "../engine/rules";
+import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -23,7 +23,7 @@ import {amphibiousAssaultCheck, canPassNow, hasActedThisImpulse, navalInterceptC
 import {planNavalTransport} from "../engine/navalMovement";
 import {AU_NATIONALITIES, auIncorporateDecision, auRightsDecision, canGrantCitizenship, jihadUse, passRestriction, superiorStaffWorkFreeDeploy, TSRR_RAIL_ARMY_KINDS, tsrrRail} from "../engine/characteristics";
 import {polishController, polishRecruitDecision} from "../engine/poland";
-import {deployReserveLimit, loneMinorDefender, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
+import {deployReserveLimit, loneMinorDefender, minorWarInfo, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
 import {isIndependentItaly} from "../engine/greatWarFlow";
 import {gwActionAllowance} from "../engine/gwImpulse";
@@ -1188,11 +1188,26 @@ export const useBoardModel = ({
     .filter(([, count]) => count !== 0)
     .sort(([a], [b]) => a.localeCompare(b));
 
-  const warTargetControl = selectedState && isPowerKey(selectedState.control) && selectedState.control !== viewer ? selectedState.control : null;
-  const targetControlledSpaces = warTargetControl
-    ? Object.values(SPACES).filter((sp) => G.spaces[sp.id]?.control === warTargetControl && sp.id !== selected).map((sp) => sp.id)
+  // A home-card event (Bismarck) may leave a war declaration to be made in this
+  // impulse; it funds the declaration with the card's CP and fixes the aim.
+  const warEntitlement = viewer !== null ? warDeclarationEntitlement(G, viewer) : null;
+  const selectedControl = selectedState?.control ?? null;
+  const warTargetControl = selectedControl !== null && isPowerKey(selectedControl) && selectedControl !== viewer ? selectedControl : null;
+  // 13.4: a non-player power is a war target too (its declaring home is what
+  // the selected space's control names).  `minorWarInfo` applies the printed
+  // independence/marker gates so only a legal target opens the block.
+  const warMinorTarget = warTargetControl === null && selectedControl !== null && viewer !== null
+    && MINOR_POWER_HOMES[selectedControl] !== undefined
+    && minorWarInfo(G, viewer, selectedControl).ok
+    ? selectedControl
+    : null;
+  const warTargetSpaceControl = warTargetControl ?? warMinorTarget;
+  const targetControlledSpaces = warTargetSpaceControl !== null
+    ? Object.values(SPACES).filter((sp) => G.spaces[sp.id]?.control === warTargetSpaceControl && sp.id !== selected).map((sp) => sp.id)
     : [];
-  const canDeclareWar = canActionCard && war === null && G.wtt < 3 && warTargetControl !== null && G.cpRemaining >= warCp;
+  const canDeclareWar = canActionCard && war === null && G.wtt < 3
+    && warTargetSpaceControl !== null
+    && (warEntitlement !== null || G.cpRemaining >= warCp);
 
   const gwOrderPowers = gw
     ? gw.order.map((slot) => (isPowerKey(slot) ? slot : null)).filter((p): p is Power => p !== null)
@@ -1615,6 +1630,8 @@ export const useBoardModel = ({
     setConfirmActions,
     trenchRows: trenchRows(G),
     warTargetControl,
+    warMinorTarget,
+    warEntitlement,
     targetControlledSpaces,
     canDeclareWar,
     gwOrderPowers,

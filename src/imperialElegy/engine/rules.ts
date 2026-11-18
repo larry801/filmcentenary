@@ -34,10 +34,64 @@ import {
   spaceLabel,
 } from "../constant/spaces";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "../constant/setup";
-import {cardById, discardCard} from "./deck";
+import {cardById, discardCard, isCardId} from "./deck";
 import {closeDecision, decision, openDecision, option} from "./pending";
 
 export const die = (ctx: Ctx, sides: number): number => ctx.random!.Die(sides);
+
+// ---------------------------------------------------------------------------
+// Home-card war declarations (errata 12.17)
+// ---------------------------------------------------------------------------
+
+/** GE home card #1 — the Bismarck event (see `CORRECTIONS.md`). */
+export const BISMARCK_HOME_CARD: CardId = "IE-H-GE-1";
+
+export interface WarDeclarationEntitlement {
+  /** The home card whose printed CP funds the declaration. */
+  card: CardId;
+  /** The CP the declaration must commit (the card's printed CP value). */
+  cp: number;
+  /** The only legal aim, or null when the card leaves the aim open. */
+  aim: "liberation" | "unification" | "conquest" | null;
+}
+
+/**
+ * Errata 12.17: "A war can be declared for any number of CP, and all the CP
+ * spent from a given card must be spent to declare war."
+ *
+ * The home cards that print "declare war using this card's CP value" therefore
+ * do not bank ordinary CP: the event records an entitlement on the power's
+ * public flags, and `moves.declareWar` consumes it instead of spending
+ * `G.cpRemaining`.  The entitlement belongs to the impulse that played the
+ * card; `finishImpulse` clears it, so a seat that does not declare hands over.
+ */
+export const grantWarDeclarationEntitlement = (G: ImperialElegyState, power: Power, card: CardId): void => {
+  G.powers[power].flags.warDeclaration = true;
+  G.powers[power].flags.warDeclarationCard = card;
+};
+
+export const clearWarDeclarationEntitlement = (G: ImperialElegyState, power: Power): void => {
+  delete G.powers[power].flags.warDeclaration;
+  delete G.powers[power].flags.warDeclarationCard;
+};
+
+/** The live entitlement, or null when the power has none. */
+export const warDeclarationEntitlement = (
+  G: ImperialElegyState,
+  power: Power,
+): WarDeclarationEntitlement | null => {
+  const card = G.powers[power]?.flags.warDeclarationCard;
+  if (!isCardId(card)) return null;
+  const def = cardById(card);
+  return {
+    card,
+    cp: def.cp,
+    // Only the Bismarck event is wired so far; it declares a war of
+    // unification.  Other printed war-declaration home cards still need their
+    // own restrictions (target and aim), so they do not grant an entitlement.
+    aim: card === BISMARCK_HOME_CARD ? "unification" : null,
+  };
+};
 
 /**
  * A safe index for "pick a random one of these" effects.

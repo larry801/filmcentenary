@@ -101,6 +101,9 @@ import {
   spendCpFor,
   unitById,
   unitsOfPower,
+  BISMARCK_HOME_CARD,
+  clearWarDeclarationEntitlement,
+  warDeclarationEntitlement,
 } from "./engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -408,6 +411,9 @@ const finishImpulse = (G: ImperialElegyState, ctx: Ctx): void => {
       // 12.15: a redeployment action covers one impulse; the next impulse pays
       // its own 1 CP for a new one.
       delete G.powers[p].flags.redeployActionThisImpulse;
+      // A home-card war declaration (Bismarck) belongs to the impulse that
+      // played the card; a seat that hands over without declaring loses it.
+      clearWarDeclarationEntitlement(G, p);
     }
     G.flags.combatDrm = 0;
     G.flags.enemyLandDrm = 0;
@@ -574,8 +580,13 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     G.impulseCard = null;
     if (card.type !== "mandatory") {
       G.impulseCard = null;
-      // Event play ends the impulse unless the card grants CP.
-      if (G.cpRemaining <= 0 && G.pending === null) finishImpulse(G, ctx);
+      // Event play ends the impulse unless the card grants CP, or the event
+      // itself opened a home-card war declaration (Bismarck).  That
+      // entitlement belongs to this impulse: the seat declares the war here or
+      // hands the impulse over (`finishImpulse` clears it).
+      if (G.cpRemaining <= 0 && G.pending === null && warDeclarationEntitlement(G, power) === null) {
+        finishImpulse(G, ctx);
+      }
     }
   }
   return undefined;
@@ -2654,8 +2665,12 @@ const finalizeWarDeclaration = (
   );
   // Rule 8.2 / 14.2: the declaration itself shifts the defender one space away
   // from the attacker.  A card-driven declaration is remembered for Balance of
-  // Power's "cannot be played in response to Otto von Bismarck" clause.
-  G.war.declarationCard = G.resolvingCard ?? null;
+  // Power's "cannot be played in response to Otto von Bismarck" clause.  A home
+  // card's entitlement crosses the aid search as `G.flags.declarationCard`;
+  // an ordinary CP declaration of that card has no resolution-time card id.
+  const stamped = G.flags.declarationCard;
+  G.war.declarationCard = isCardId(stamped) ? stamped : (G.resolvingCard ?? null);
+  delete G.flags.declarationCard;
   // 13.4.4 (as amended): "If China is attacked in a war of conquest, place the
   // Qing army at full strength in the targeted key."  The Qing counter row has
   // exactly one army, so this is idempotent even if a later path repeats it.
@@ -3202,6 +3217,16 @@ export const declareWar = (
   if (Array.isArray(objectives) === false) return INVALID_MOVE;
   if (objectives.some((id) => typeof id !== "string")) return INVALID_MOVE;
 
+  // A home card printed "declare war using this card's CP value" (Bismarck)
+  // leaves an entitlement when its event resolves.  It funds this one
+  // declaration with the card's printed CP and fixes the aim, so no ordinary
+  // impulse CP is spent (errata 12.17: the card's CP all go into the war).
+  const entitlement = warDeclarationEntitlement(G, power);
+  if (entitlement !== null) {
+    if (entitlement.aim !== null && entitlement.aim !== aim) return INVALID_MOVE;
+    if (cp !== entitlement.cp) return INVALID_MOVE;
+  }
+
   // Rule 13.4/13.5: resolve the player side of a non-player declaration.
   const minor: MinorWarInfo | null = isMinorWarTargetArg(target)
     ? minorWarInfo(G, power, target.minor)
@@ -3233,7 +3258,16 @@ export const declareWar = (
   // is spent, so an illegal declaration never mutates the state.
   const validation = validateWarAim(G, power, defenderForAim, aim, objectives);
   if (!validation.ok) return INVALID_MOVE;
-  if (!spend(G, cp)) return INVALID_MOVE;
+  if (entitlement !== null) {
+    // The declaration is paid for by the home card, not by impulse CP.  The
+    // card id crosses the (possibly pending) aid search as a public game flag
+    // so `finalizeWarDeclaration` can stamp `war.declarationCard` (Balance of
+    // Power "cannot be played in response to Otto von Bismarck").
+    G.flags.declarationCard = entitlement.card;
+    clearWarDeclarationEntitlement(G, power);
+  } else if (!spend(G, cp)) {
+    return INVALID_MOVE;
+  }
   G.powers[power].flags.actionCpSpentThisImpulse = true;
   // 33.3 Napoleon's Legacy: FR may reveal the goal as it launches a war of
   // conquest for a 2-point stability-loss discount.  The declaration is
@@ -6700,7 +6734,7 @@ export const callWarAlly = (G: ImperialElegyState, ctx: Ctx, ally: Power): strin
 /** UK home card 4, the declaration-response card. */
 export const BALANCE_OF_POWER_CARD: CardId = "IE-H-UK-4";
 /** "Otto von Bismarck": Balance of Power "cannot be played in response to" it. */
-export const BISMARCK_CARD: CardId = "IE-H-GE-1";
+export const BISMARCK_CARD: CardId = BISMARCK_HOME_CARD;
 
 /**
  * The Ottoman naval base in the Eastern Mediterranean that the Balance of
