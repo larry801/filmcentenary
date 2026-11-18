@@ -254,7 +254,7 @@ test.describe("Imperial Elegy local hotseat", () => {
         let owing: string | null = null;
         for (const seat of SEATS) {
             await focusSeat(page, seat);
-            const modal = boardFor(page, seat).locator('[data-testid="ie-choice-modal"]');
+            const modal = page.locator(`[data-testid="ie-seat-${seat}"] [data-testid="ie-choice-modal"]`);
             if (await modal.count() > 0 && await modal.isVisible()) {
                 owing = seat;
                 break;
@@ -266,12 +266,12 @@ test.describe("Imperial Elegy local hotseat", () => {
         // modal is open (the previous implementation timed out here).
         const elsewhere = SEATS.find((seat) => seat !== owing)!;
         await focusSeat(page, elsewhere);
-        await expect(boardFor(page, elsewhere)).toHaveAttribute("data-active", "true");
-        await expect(boardFor(page, owing!)).toHaveAttribute("data-active", "false");
+        await expect(page.locator(`[data-testid="ie-seat-${elsewhere}"]`)).toHaveAttribute("data-active", "true");
+        await expect(page.locator(`[data-testid="ie-seat-${owing}"]`)).toHaveAttribute("data-active", "false");
 
         // The dialog is not a viewport overlay either: its box stays inside the
         // visible board's box, never above the strip.
-        const modalBox = (await boardFor(page, owing!).locator('[data-testid="ie-choice-modal"]').boundingBox())!;
+        const modalBox = (await page.locator(`[data-testid="ie-seat-${owing}"] [data-testid="ie-choice-modal"]`).boundingBox())!;
         const stripBox = (await page.locator('[data-testid="ie-seat-strip"]').boundingBox())!;
         expect(modalBox.y).toBeGreaterThanOrEqual(stripBox.y + stripBox.height - 1);
     });
