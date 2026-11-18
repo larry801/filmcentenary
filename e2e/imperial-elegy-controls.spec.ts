@@ -128,8 +128,9 @@ async function playCpCard(board: Locator): Promise<boolean> {
         if (await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining) > 0) return true;
         // Arm-then-confirm: the first click arms (`data-armed`), the second
         // plays.  Addressed by test id because the armed label replaces the
-        // text a name filter matches.  Each row is unfolded first: the hand is a
-        // list of folded rows, so a card's buttons do not exist until then.
+        // text a name filter matches.  Each row opens the inspector, which is
+        // where a card's buttons live; a plain event card is preferred so the
+        // play does not resolve printed text under the next click.
         const order: number[] = [];
         const events: number[] = [];
         for (let i = 0; i < await cards.count(); i += 1) {
@@ -138,9 +139,14 @@ async function playCpCard(board: Locator): Promise<boolean> {
         }
         let played = false;
         for (const i of [...events, ...order]) {
-            const card = await openCard(cards.nth(i));
-            const button = card.locator('[data-testid^="ie-play-cp-"]').first();
-            if (!(await button.count()) || !(await button.isEnabled())) continue;
+            await openCard(cards.nth(i));
+            const inspector = board.locator('[data-testid="ie-card-inspector"]');
+            const button = inspector.locator('[data-testid^="ie-play-cp-"]').first();
+            if (!(await button.count()) || !(await button.isEnabled())) {
+                await page.keyboard.press("Escape");
+                await expect(inspector).toHaveCount(0);
+                continue;
+            }
             await button.click();
             await expect(button).toHaveAttribute("data-armed", "true");
             await button.click();
@@ -150,6 +156,13 @@ async function playCpCard(board: Locator): Promise<boolean> {
         if (!played) return false;
         try {
             await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining), {timeout: 5_000}).toBeGreaterThan(0);
+            // The played card leaves the hand, and the inspector closes itself
+            // once its card is gone.  Wait for that: its full-screen backdrop
+            // would otherwise swallow the next map click (`force: true`
+            // dispatches at a point, not to the element under the selector).
+            const inspector = board.locator('[data-testid="ie-card-inspector"]');
+            if (await inspector.count() > 0) await page.keyboard.press("Escape");
+            await expect(inspector).toHaveCount(0);
             return true;
         } catch {
             await page.waitForTimeout(300);
@@ -158,26 +171,24 @@ async function playCpCard(board: Locator): Promise<boolean> {
     return await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining) > 0;
 }
 
-/** Unfold one hand card so its face and its buttons exist. */
+/** Open a hand card's inspector (one tap on the row). */
 async function openCard(card: Locator): Promise<Locator> {
-    if (await card.getAttribute("data-expanded") === "true") return card;
     await card.locator(".ie-card-open").click();
-    await expect(card).toHaveAttribute("data-expanded", "true");
     return card;
 }
 
 /** Find a hand card whose Save control is enabled (non-home, non-mandatory). */
 async function findSavableCard(board: Locator): Promise<Locator | null> {
+    const page = board.page();
     const cards = board.locator(".ie-hand .ie-card");
     for (let i = 0; i < await cards.count(); i += 1) {
         const card = await openCard(cards.nth(i));
-        // Secondary operations (Save, Industrialize, CP chain) live in the
-        // CardInspector, which opens from the unfolded card's face.
-        await card.locator(".ie-card-face-button").click();
+        // Every operation (play, Save, Industrialize, CP chain) lives in the
+        // CardInspector, which the row opens.
         const inspector = board.locator('[data-testid="ie-card-inspector"]');
         const save = inspector.getByRole("button", {name: "保留", exact: true});
         const found = await save.count() > 0 && await save.isEnabled();
-        await board.page().keyboard.press("Escape");
+        await page.keyboard.press("Escape");
         await expect(inspector).toHaveCount(0);
         if (found) return card;
     }
@@ -349,8 +360,8 @@ test.describe("Imperial Elegy new controls", () => {
 
         const card = await findSavableCard(board);
         expect(card).not.toBeNull();
-        // The economy controls live in the CardInspector.
-        await card!.locator(".ie-card-face-button").click();
+        // The economy controls live in the CardInspector; reopen that card.
+        await openCard(card!);
         const inspector = board.locator('[data-testid="ie-card-inspector"]');
         await expect(inspector).toBeVisible();
         const save = inspector.getByRole("button", {name: "保留", exact: true});
@@ -613,7 +624,6 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await reachAction(page);
         const board = boardFor(page, "GE");
         const card = await openCard(board.locator(".ie-hand .ie-card").first());
-        await card.locator(".ie-card-face-button").click();
 
         const inspector = board.locator('[data-testid="ie-card-inspector"]');
         await expect(inspector).toBeVisible();
@@ -635,9 +645,8 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await board.locator('[data-testid="ie-menu"] [data-testid="ie-display-menu"] > summary').click();
         await board.locator('[data-testid="ie-card-face-print"]').first().click();
         await expect.poll(async () => await page.evaluate(() => localStorage.getItem("ie_card_face"))).toBe("print");
-        // `.ie-card-open` folds the row; the inspector opens from the face.
+        // One tap on the row reopens the inspector with the new face mode.
         await openCard(card);
-        await card.locator(".ie-card-face-button").click();
         await expect(inspector).toHaveAttribute("data-face-mode", "print");
         await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toBeVisible();
         await page.keyboard.press("Escape");

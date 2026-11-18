@@ -58,9 +58,10 @@ export interface HandTrayProps {
    */
   decisionPeek?: boolean;
   /**
-   * Unfold every card at once.  The board never sets this; it exists for embeds
-   * and for the rules-level suites, which assert on a card's buttons without
-   * driving a click through a static render.
+   * Draw every card's operations inline.  The board never sets this: a tap on
+   * a row opens the CardInspector, which is the one place the operations live.
+   * It exists for embeds and for the rules-level suites, which assert on a
+   * card's buttons without driving a click through a static render.
    */
   expandAll?: boolean;
   /** Mobile third drawer position: peek (closed), half (open), full (expanded). */
@@ -92,11 +93,11 @@ const CardTranslation = ({card, locale}: {card: CardDef | GoalDef; locale: "en" 
 /**
  * The bottom hand tray.
  *
- * It shows only what can be done now: two primary actions per card and a
- * native `⋯` disclosure with the rest.  The full card, every operation and the
- * aggregated "why not" reasons live in the CardInspector, which opens from the
- * face.  The tray keeps the established `.ie-hand .ie-card`, card ids and
- * `.ie-card-actions` so the rules-level selectors stay stable.
+ * A card is one row: CP value, name, type and whether it can be played now.
+ * Tapping the row opens the CardInspector straight away — the full face, every
+ * operation and the aggregated "why not" reasons all live there, so the hand
+ * never has to unfold in place first.  `expandAll` (embeds, rules-level suites)
+ * still draws the operations inline for a static render.
  */
 export const HandTray = (props: HandTrayProps) => {
   const {
@@ -108,16 +109,6 @@ export const HandTray = (props: HandTrayProps) => {
     onOpenReference, expandAll = false,
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
-  /**
-   * Which hand card is unfolded.  The tray lists one row per card — CP value,
-   * name, type — and only the unfolded row carries its face and its buttons.
-   * Sixteen stacked card faces with two buttons each was unreadable, and a
-   * horizontal strip hid the fourth card off-screen.
-   *
-   * A card that forbids passing opens itself: hiding the only legal move behind
-   * a tap would be a trap.  `expandAll` (tests, embeds) opens every row.
-   */
-  const [expandedId, setExpandedId] = React.useState<string | null>(() => forcedCardIds[0] ?? null);
   // Reads the saved preference when the tray mounts; `Preferences` in the
   // command menu writes it, and the tray picks the new value up on remount.
   // The board passes the live preference so the Display menu can flip it; a
@@ -126,6 +117,14 @@ export const HandTray = (props: HandTrayProps) => {
   const confirmActions = props.confirmActions ?? storedConfirm;
   const [filter, setFilter] = React.useState<CardFilter>("all");
   const [sort, setSort] = React.useState<CardSort>("printed");
+  // Playing a card removes it from the hand, and the inspector is now the only
+  // way to play one — a card that has left the hand must not leave the dialog
+  // open on a face that is no longer in play.  The inspector reopens from a row.
+  // National Goals use the same dialog but live on the mat, so only a card face
+  // is subject to the close.
+  React.useEffect(() => {
+    if (inspector !== null && "card" in inspector.face && !hand.includes(inspector.key)) setInspector(null);
+  }, [hand, inspector]);
 
   if (!viewer || !me) return null;
 
@@ -171,7 +170,7 @@ export const HandTray = (props: HandTrayProps) => {
     return a.cpAllowed || a.eventAllowed || a.showResponse;
   };
 
-  const actionButtons = (id: string, where: "expanded" | "inspector"): React.ReactNode => {
+  const actionButtons = (id: string, where: "inline" | "inspector"): React.ReactNode => {
     const a = availability(id);
     const mandatoryTitle = a.isMandatory ? bi(locale, "Mandatory card: play its event", "强制牌：需打出其事件") : undefined;
     const cpDisabled = !a.cpModeOk;
@@ -347,7 +346,9 @@ export const HandTray = (props: HandTrayProps) => {
                 const card = cardById(id);
                 const a = availability(id);
                 const playable = a.cpModeOk || a.eventModeOk || a.responseOk;
-                const rowOpen = expandAll || expandedId === id;
+                // The board draws the operations only for `expandAll`; otherwise
+                // they live in the inspector, which the row opens.
+                const rowOpen = expandAll;
                 return (
                   <article
                     key={id}
@@ -361,17 +362,18 @@ export const HandTray = (props: HandTrayProps) => {
                     <span className={`ie-card-type ie-card-type-${cardTypeIcon(card.kind, card.type)}`} aria-hidden="true" title={t.cardType[card.type as keyof typeof t.cardType] ?? card.kind}>
                       {CARD_TYPE_GLYPH[cardTypeIcon(card.kind, card.type)]}
                     </span>
-                    {/* The folded row: the four things a player picks a card by
-                        — its type glyph, CP value, name and whether it is
-                        playable right now.  Everything else is behind the tap. */}
+                    {/* The row: the four things a player picks a card by — its
+                        type glyph, CP value, name and whether it is playable
+                        right now.  One tap opens the inspector with everything
+                        else (face, operations, reasons); the row never unfolds
+                        in place, so the hand stays a scannable list. */}
                     <button
                       type="button"
                       className="ie-card-open"
                       data-testid={`ie-open-card-${id}`}
-                      aria-expanded={rowOpen ? "true" : "false"}
-                      aria-controls={`ie-card-body-${id}`}
+                      aria-haspopup="dialog"
                       aria-label={`${bi(locale, "Card", "卡牌")}: ${locale === "zh_CN" ? card.titleZh : card.title}`}
-                      onClick={() => { if (!expandAll) setExpandedId(rowOpen ? null : id); }}
+                      onClick={() => openInspector({card}, id)}
                     >
                       <span className="ie-card-cp" data-testid={`ie-card-cp-${id}`}>{card.cp}</span>
                       <span className="ie-card-name">{locale === "zh_CN" ? card.titleZh : card.title}</span>
@@ -380,22 +382,15 @@ export const HandTray = (props: HandTrayProps) => {
                           ? (a.cpModeOk ? bi(locale, "For CP", "可作 CP") : a.eventModeOk ? bi(locale, "Event", "事件") : bi(locale, "Response", "响应"))
                           : a.firstReason ?? ""}
                       </span>
-                      <span className="ie-card-caret" aria-hidden="true">{rowOpen ? "▾" : "▸"}</span>
                     </button>
                     {rowOpen && (
                       <div className="ie-card-body" id={`ie-card-body-${id}`}>
-                        <button
-                          type="button"
-                          className="ie-card-face-button"
-                          data-testid={`ie-card-face-${id}`}
-                          title={bi(locale, "Open the full card", "查看完整卡牌")}
-                          onClick={() => openInspector({card}, id)}
-                        >
+                        <div className="ie-card-face-holder" data-testid={`ie-card-face-${id}`}>
                           {cardFace(card)}
-                        </button>
+                        </div>
                         <div className="ie-card-body-actions">
                           {hasOperation(id) ? (
-                            <div className="ie-card-actions">{actionButtons(id, "expanded")}</div>
+                            <div className="ie-card-actions">{actionButtons(id, "inline")}</div>
                           ) : (
                             <div className="ie-card-why" data-testid={`ie-card-why-${id}`}>
                               <span>{bi(locale, "No operation available right now.", "当前没有可执行的操作。")}</span>

@@ -19,9 +19,9 @@ export interface IEBoardProps {
    */
   handOpen?: boolean;
   /**
-   * Render every hand card unfolded.  For rules-level tests that assert on a
-   * card's buttons (and for an embedder that wants a fully expanded hand); the
-   * game itself always starts folded.
+   * Draw every hand card's operations inline.  For rules-level tests that
+   * assert on a card's buttons (and for an embedder that wants them visible
+   * without opening the inspector); the game itself opens the inspector.
    */
   expandHand?: boolean;
 }

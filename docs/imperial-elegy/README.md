@@ -204,10 +204,11 @@ regions:
   spans both of those columns on desktop (at most 212 px open, folded to a 44 px
   bar; the turn panel keeps the right column); on a phone it is the dock's Hand
   tab. Its head has filter and sort selects, card
-  count, CP-chain/saved/response chips and the tray toggle; each card shows its
-  face, a status line ("For CP" / "Event" / "Response", or the first reason it
-  cannot be played) and a compact `⋯` operations menu that mounts in the flow
-  rather than over the map.
+  count, CP-chain/saved/response chips and the tray toggle; each card is one
+  row — CP value, name, type and a status line ("For CP" / "Event" /
+  "Response", or the first reason it cannot be played). One tap on the row
+  opens the `CardInspector` (the face, every operation and the aggregated
+  reasons); the row never unfolds in place, so a hand stays a scannable list.
 - **Reference drawer** — `components/ReferenceDrawer.tsx` opens from the right
   at an anchor (the strip's `?`, a stepper step, the mat's "Printed display", a
   `?` rule link) and closes on Esc. It shows the tables the engine renders — the

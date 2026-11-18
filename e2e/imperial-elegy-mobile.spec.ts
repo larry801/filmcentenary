@@ -164,7 +164,7 @@ test.describe("Imperial Elegy phone layout", () => {
         await expect(board.locator(".ie-hand .ie-card").first()).toBeVisible();
     });
 
-    test("the hand lists one folded row per card and unfolds on a tap", async ({page}) => {
+    test("the hand lists one row per card and one tap opens the inspector", async ({page}) => {
         const board = await openSeat(page);
         await board.locator('[data-testid="ie-tray-toggle"]').click();
         await expect(board.locator('[data-testid="ie-hand-tray"]')).toHaveAttribute("data-open", "true");
@@ -174,7 +174,7 @@ test.describe("Imperial Elegy phone layout", () => {
         expect(count).toBeGreaterThan(0);
         const first = rows.first();
 
-        // Folded: only CP value, name, type.  The name is what identifies the
+        // The row: only CP value, name, type.  The name is what identifies the
         // card, so it must be on screen — not truncated to nothing.
         await expect(first).toHaveAttribute("data-expanded", "false");
         const cp = (await first.locator(".ie-card-cp").innerText()).trim();
@@ -183,7 +183,7 @@ test.describe("Imperial Elegy phone layout", () => {
         expect(name.length).toBeGreaterThan(0);
         expect((await first.locator(".ie-card-type").innerText()).trim().length).toBeGreaterThan(0);
         await expect(first.locator(".ie-card-name")).toBeVisible();
-        // The face and the buttons do not exist while folded.
+        // The row never unfolds: no face, no buttons, no status panel.
         await expect(first.locator("[data-testid^='ie-card-face-']")).toHaveCount(0);
         await expect(first.locator(".ie-card-actions")).toHaveCount(0);
 
@@ -195,15 +195,13 @@ test.describe("Imperial Elegy phone layout", () => {
             expect(Math.abs(a.x - b.x)).toBeLessThan(4);
         }
 
-        // Tapping the row unfolds it in place.
+        // One tap opens the inspector; the row itself stays folded.
         await first.locator(".ie-card-open").click();
-        await expect(first).toHaveAttribute("data-expanded", "true");
-        await expect(first.locator("[data-testid^='ie-card-face-']")).toHaveCount(1);
-        const unfolded = (await first.boundingBox())!;
-        expect(unfolded.height).toBeGreaterThan(60);
-
-        // Tapping the header folds it again.
-        await first.locator(".ie-card-open").click();
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        await expect(inspector).toBeVisible();
+        await expect(inspector.locator(".ie-card-inspector-actions button").first()).toBeVisible();
         await expect(first).toHaveAttribute("data-expanded", "false");
+        await page.keyboard.press("Escape");
+        await expect(inspector).toHaveCount(0);
     });
 });

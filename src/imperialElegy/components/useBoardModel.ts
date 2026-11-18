@@ -71,7 +71,7 @@ export interface BoardModelProps {
    * suites, which assert on the tray's contents.
    */
   handOpen?: boolean;
-  /** Render every hand card unfolded (tests/embeds). */
+  /** Draw every hand card's operations inline (tests/embeds). */
   expandHand?: boolean;
   /** boardgame.io state counter; a rejected move leaves it untouched. */
   _stateID?: number;

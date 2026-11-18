@@ -746,8 +746,8 @@
   height: 100%;
   max-height: 100%;
 }
-/* One card = one collapsed row (type glyph, CP, name, status, caret).  The face
-   and the buttons only exist on the unfolded card, so a sixteen-card hand is
+/* One card = one row (type glyph, CP, name, status).  A tap opens the
+   inspector with the face and the operations, so a sixteen-card hand is
    sixteen readable lines instead of sixteen quarter-sized faces. */
 .ie-hand .ie-card {
   flex: 0 0 auto;
@@ -820,26 +820,22 @@
   line-height: 16px;
   white-space: nowrap;
 }
-.ie-card-caret { flex: 0 0 auto; color: var(--ie-accent-soft); font-size: var(--ie-font-xs); }
-/* The unfolded body: face on the left, this card's legal operations beside it. */
+/* The inline body exists only for `expandAll` (embeds, rules-level suites):
+   a tap on the row opens the inspector instead, so the board never draws it. */
 .ie-card-body {
   display: flex;
   gap: 8px;
   padding: 0 6px 6px;
   min-height: 0;
 }
-.ie-hand .ie-card-face-button {
+.ie-hand .ie-card-face-holder {
   flex: 0 0 104px;
-  display: block;
   min-height: 0;
-  padding: 0;
   border: 1px solid #5e4a2f;
   border-radius: 2px;
-  background: transparent;
-  cursor: zoom-in;
   overflow: hidden;
 }
-.ie-hand .ie-card-face-button .ie-card-face {
+.ie-hand .ie-card-face-holder .ie-card-face {
   width: 100%; height: auto; max-height: 132px; object-fit: contain; display: block;
 }
 .ie-card-body-actions { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -1538,7 +1534,6 @@ img.ie-card-face { background: var(--ie-surface-2); }
   /* The hand is a vertical list at every width now, so a phone gets slightly
      taller rows (a fingertip) rather than narrower fixed-width cards. */
   .ie-hand .ie-card-open { min-height: 40px; }
-  .ie-hand .ie-card-face-button { flex-basis: 88px; }
   .ie-hand .ie-card-actions button { min-height: 34px; }
   .ie-mode-pill { max-width: calc(100% - 12px); gap: 4px; padding: 4px 5px 4px 8px; }
   .ie-mode-pill-from { max-width: 70px; }
