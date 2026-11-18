@@ -68,14 +68,16 @@
   display: inline-flex;
   align-items: center;
   gap: var(--ie-space-1);
-  padding: 1px 8px;
-  border: 1px solid var(--ie-rule);
+  min-height: 18px;
+  padding: 0 6px;
+  border: 1px solid var(--ie-rule-strong);
   border-radius: var(--ie-radius-sm);
-  background: var(--ie-panel);
+  background: transparent;
   color: var(--ie-on-dark);
   font-size: var(--ie-font-xs);
+  font-weight: 600;
   letter-spacing: .02em;
-  line-height: 1.5;
+  line-height: var(--ie-font-xs-line);
 }
 
 .ie-badge-uk { border-color: var(--ie-power-uk); color: var(--ie-power-uk-on-dark); }

@@ -221,7 +221,7 @@ export const PhaseStepper = ({steps, locale, label, roving, onOpenReference}: {
       const done = !step.current && steps.findIndex((candidate) => candidate.current) > index;
       return (
         <React.Fragment key={step.key}>
-          {index > 0 && <span className="ie-stepper-sep" aria-hidden="true"><Icon name="chevron-right" size={12}/></span>}
+          {index > 0 && <span className="ie-stepper-sep" aria-hidden="true"><Icon name="chevron-right" size={14}/></span>}
           <button
             type="button"
             aria-pressed={step.current ? "true" : "false"}

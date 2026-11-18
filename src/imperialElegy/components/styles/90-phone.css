@@ -282,6 +282,7 @@
     background: transparent;
     color: var(--ie-on-dark-2);
     font-size: var(--ie-font-sm);
+    line-height: var(--ie-font-xs-line);
     white-space: nowrap;
     cursor: pointer;
   }

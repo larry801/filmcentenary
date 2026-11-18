@@ -45,11 +45,12 @@ const DOTS: Record<SeatState, string | null> = {
   active: "●",
   bot: null,
   eliminated: null,
+  waiting: "○",
 };
 
 const stateDot = (state: SeatState) => {
-  if (state === "bot") return <Icon name="bot" size={12} />;
-  if (state === "eliminated") return <Icon name="close" size={12} />;
+  if (state === "bot") return <Icon name="bot" size={14} />;
+  if (state === "eliminated") return <Icon name="close" size={14} />;
   return DOTS[state];
 };
 
