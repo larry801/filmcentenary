@@ -35,6 +35,7 @@ import {reserveRemaining} from "../engine/economy";
 import {canRecruitIn, isCwArmySpace, pacificationCost} from "../engine/characteristics";
 import {hasCounterFor} from "../engine/counters";
 import {polishReserveDeployer} from "../engine/poland";
+import {legalUnitTargets} from "./legalTargets";
 import type {RecruitDecision} from "../engine/characteristics";
 
 export type ActionId =
@@ -111,7 +112,7 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   removeInfluence: {en: "Remove influence", zh: "移除影响"},
   breakAlliance: {en: "Break minor alliance", zh: "解除小国联盟"},
   pacify: {en: "Pacify", zh: "绥靖"},
-  move: {en: "Move unit here", zh: "移动单位至此"},
+  move: {en: "Move selected units…", zh: "移动所选单位…"},
   gwNaval: {en: "Naval move here", zh: "海军移动至此"},
   gwMarch: {en: "March here", zh: "行军至此"},
   gwRail: {en: "Rail here", zh: "铁路运输至此"},
@@ -199,6 +200,13 @@ export const ACTION_GROUP_ORDER: readonly ActionGroupId[] = ["recruit", "build",
 
 export interface SpaceAction {
   id: ActionId;
+  /**
+   * A render-unique key, because one `id` can occur more than once in a space.
+   * The Great War lists "Joint naval with <ally>" once per allied contingent
+   * next to the ordinary naval row, so keying on `id` gave React duplicate keys
+   * and two elements the same `data-testid`.  Defaults to `id`.
+   */
+  uid?: string;
   group: ActionGroupId;
   label: string;
   /** CP the row costs; `0` for the free ones (Rapid Deployment, staff deploy). */
@@ -248,6 +256,12 @@ export interface SpaceActionsInput {
   /** Targeting entry points. */
   startBattle: () => void;
   startNavalBattle: () => void;
+  /**
+   * Arm the map's move rings for the current selection (the 12.15/16.1 row).
+   * The panel never moves a unit to a guessed destination; the player clicks
+   * one of the highlighted spaces, which is also where the CP is spent.
+   */
+  startMove?: () => void;
   /** Second objective for a declaration (kept in the panel). */
   warCp: number;
   /**
@@ -328,7 +342,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       label,
       // Every row's move goes through the board's rejection notice with the
       // label and reason the player is already reading on this row.
-      run: () => doAction(() => row.run(), describeRow({id: row.id, label, reason: row.reason})),
+      run: () => doAction(() => row.run(), describeRow({id: row.uid ?? row.id, label, reason: row.reason})),
     });
   };
 
@@ -531,13 +545,25 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   }
 
   // ----------------------------------------------------------- move & battle
+  /**
+   * 12.15 / 16.1: the move row lives in the unit's **own** space, not in the
+   * destination.  It used to appear only after selecting a unit, then clicking
+   * the destination and scrolling back to the Orders list there — three steps
+   * for one move, and the row named a space the player was no longer looking at.
+   * Now the space holding the selected stack offers "Move selected unit(s)…",
+   * which arms the map's rings; the destination is the next map click.
+   */
   const unitElsewhere = selectedUnit !== null && selected !== undefined && selected.space !== space;
-  if (!gw && unitElsewhere && selected.owner === viewer) {
-    const moveEnabled = canSpend(ACTION_COSTS.move);
+  if (!gw && selectedUnit !== null && selected !== undefined && selected.space === space
+    && selected.owner === viewer && !selected.naval) {
+    const targets = legalUnitTargets({G, power: viewer, unit: selected, phase});
+    const moveEnabled = canSpend(ACTION_COSTS.move) && targets.size > 0;
     push({
       id: "move", group: "move", enabled: moveEnabled,
-      reason: moveEnabled ? undefined : spendReason(ACTION_COSTS.move),
-      run: () => doAction(() => selected.naval ? moves.navalMove([selected.id], space) : moves.redeploy(selected.id, space)),
+      reason: moveEnabled ? undefined
+        : targets.size === 0 ? bi(locale, "No legal destination from here.", "此处没有合法的移动目的地。")
+          : spendReason(ACTION_COSTS.move),
+      run: () => doAction(() => input.startMove?.()),
     });
   }
   if (gw && unitElsewhere && selectedIsOther) {
@@ -558,7 +584,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
         for (const ally of gwJointNavalAllies) {
           const joint = gwAllowed("jointNaval");
           rows.push({
-            id: "gwNaval", group: "move", cost: ACTION_COSTS.gwNaval,
+            id: "gwNaval", uid: `gwNaval@${ally}`, group: "move", cost: ACTION_COSTS.gwNaval,
             label: bi(locale, `Joint naval with ${input.G.powers[ally] ? ally : ally}`, `与${ally}联合海军`),
             enabled: joint.ok,
             reason: joint.ok ? undefined : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),

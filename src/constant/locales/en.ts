@@ -687,6 +687,7 @@ const en = {
         exitLobby: "Exit lobby",
         cannotJoin: "Cannot join this match, you are already in another match",
         shareLink: "Share the following link with your opponent:",
+        botSeatRefused: "This seat is played by the Rule 34 bot and cannot be joined. Use one of the human seats in the invite links.",
     },
     gameOver: {
         title: "Game Over",

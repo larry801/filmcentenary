@@ -274,11 +274,54 @@ describe("spaceActions: disabled means the engine says no", () => {
     expect(armyEn?.group).toBe("recruit");
   });
 
-  test("a selected unit elsewhere offers a move row at the destination", () => {
+  test("a selected unit's own space offers the move row, not the destination", () => {
     const G = game("GE", 4);
     const unit = placeUnit(G, "GE", "army", "berlin", 2);
-    const rows = spaceActions(input({G, viewer: "GE", space: "saxony", selectedUnit: unit.id}));
-    const move = row(rows, "move");
-    expect(move?.cost).toBe(ACTION_COSTS.move);
+    // 12.15/16.1: the row belongs to the space the stack is standing in.  It
+    // arms the map rings; the destination is the next click, never a guess.
+    G.spaces.saxony.control = "GE";
+    const atOrigin = row(spaceActions(input({G, viewer: "GE", space: "berlin", selectedUnit: unit.id})), "move");
+    expect(atOrigin?.cost).toBe(ACTION_COSTS.move);
+    expect(atOrigin?.label).toContain("Move selected");
+    // The destination space no longer offers a "move here" row.
+    const atTarget = row(spaceActions(input({G, viewer: "GE", space: "saxony", selectedUnit: unit.id})), "move");
+    expect(atTarget).toBeUndefined();
+  });
+});
+
+describe("spaceActions: every row has its own render key", () => {
+  /**
+   * The panel keys a row on `uid ?? id` and derives the row's `data-testid` from
+   * the same value, so a repeated `id` would give React duplicate keys and two
+   * elements one test id.  The Great War does exactly that: "Joint naval with
+   * <ally>" is one row per allied contingent, all of them the `gwNaval` action,
+   * next to the ordinary naval row.  `uid` exists for that case and must be
+   * unique across the whole list.
+   */
+  const keys = (rows: SpaceAction[]): string[] => rows.map((candidate) => candidate.uid ?? candidate.id);
+
+  test("a repeated id still yields unique rows", () => {
+    const G = game("GE", 4);
+    const fleet = placeUnit(G, "GE", "squadron", "north-atlantic", 2);
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    const rows = spaceActions(input({
+      G, viewer: "GE", space: "western-mediterranean", selectedUnit: fleet.id,
+      phase: "gwManeuver",
+      gwJointNavalAllies: ["AU", "OT"],
+      gwJointNavalUnitIds: () => [],
+    }));
+    const naval = rows.filter((candidate) => candidate.id === "gwNaval");
+    // The ordinary naval row plus one per joint contingent.
+    expect(naval.length).toBe(3);
+    expect(keys(rows)).toHaveLength(new Set(keys(rows)).size);
+  });
+
+  test("rows without an override fall back to their action id", () => {
+    const G = game("GE", 4);
+    for (const candidate of spaceActions(input({G, viewer: "GE", space: "berlin"}))) {
+      if (candidate.uid !== undefined) continue;
+      expect(candidate.uid ?? candidate.id).toBe(candidate.id);
+    }
   });
 });

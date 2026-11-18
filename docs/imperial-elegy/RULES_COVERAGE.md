@@ -42,6 +42,14 @@ Status labels:
 - 4.5 impulses vs turns — **implemented**: an impulse ends when CP are spent or
   the active player ends it; one `pass` move covers both readings (12.0), then
   advances to the next seat with a hand, otherwise to the end phase.
+- 12.0 one card per impulse — **implemented and enforced**: `playCard` refuses a
+  second card in the same impulse. The impulse counts as used while CP are
+  banked **and** after they have all been spent
+  (`impulseAlreadyUsed`: `cpRemaining > 0` or the action-phase
+  `actionCpSpentThisImpulse` flag), so a mandatory event's 2 CP may be spent but
+  the seat may not then open another card in that impulse. `cardAvailability`
+  reads the same predicate, and the hand's reason line says
+  “One card per impulse; finish this impulse first”.
 
 ## 5 Units, stacking, LoC
 

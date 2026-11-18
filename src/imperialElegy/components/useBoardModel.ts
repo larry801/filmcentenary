@@ -40,7 +40,7 @@ import {resolveLocale} from "./modelValues";
 import type {MapTarget} from "./map";
 import {intentStyle, legalUnitTargets, type UnitIntent} from "./legalTargets";
 import {trenchRows} from "./trenchRows";
-import {intentsAt, submitNow} from "./useInteraction";
+import {intentsAt, selectedUnitIds, submitNow} from "./useInteraction";
 import {
   canProbeRefusal,
   feedbackTimeoutMs,
@@ -56,6 +56,7 @@ import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
 import {BoardLayout} from "./BoardLayout";
 import {botMoveFor} from "../engine/bot";
+import {botPowersOf} from "../configuration";
 
 const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
 
@@ -133,7 +134,31 @@ export const useBoardModel = ({
   const selected: SpaceId | null = interaction.kind === "idle" ? null
     : interaction.kind === "targeting" ? interaction.from
       : interaction.space;
-  const selectedUnit: string | null = interaction.kind === "unit" ? interaction.unit : null;
+  /**
+   * The selected unit(s).
+   *
+   * A targeting interaction carries `sources`, and the soft mode enters
+   * targeting the moment a unit is selected — so reading the selection only
+   * from `kind: "unit"` made it vanish on the very next render.  That is why
+   * `aria-pressed` never lit up and why the Orders rows for a selected unit
+   * could not be found: the selection was real for one frame only.  The
+   * selection now survives its own targeting mode.
+   */
+  /**
+   * A stable key for the selection.  `selectionSources` is rebuilt on every
+   * render, so anything memoised on the array identity (the Orders rows, the
+   * soft-targeting effect) would recompute every frame.
+   */
+  const selectionKey = interaction.kind === "unit"
+    ? [interaction.unit, ...(interaction.extra ?? [])].join(",")
+    : interaction.kind === "targeting" ? interaction.sources.join(",") : "";
+  const selectionSources: string[] = React.useMemo(
+    () => selectedUnitIds(interaction),
+    // The key is the identity: same units, same array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [selectionKey],
+  );
+  const selectedUnit: string | null = selectionSources[0] ?? null;
   const targeting = interaction.kind === "targeting" ? interaction : null;
   const battleFrom: SpaceId | null = targeting?.intent === "landBattle" ? targeting.from : null;
   const navalFrom: SpaceId | null = targeting?.intent === "navalBattle" ? targeting.from : null;
@@ -210,11 +235,19 @@ export const useBoardModel = ({
   const active = G.activePower;
   const isActive = viewer !== null && viewer === active;
   const eliminated = me?.eliminated === true;
-  // Rule 34: a hotseat seat marked as a bot is driven by `botMoveFor` below and
-  // is read-only for the person at the keyboard.  Every "may act" flag folds
-  // this in, so no control on a bot seat can be clicked.
-  const botSeats = React.useContext(BotSeatsContext) ?? injectedUi?.botSeats ?? EMPTY_SEATS;
-  const isBotViewer = hotseat && viewer !== null && botSeats.has(viewer);
+  // Rule 34: a bot seat is driven by the bot and is read-only for whoever is
+  // looking at it.  Hotseat names its bots in the client-side seat toggles, an
+  // online match names them in the public `G.bots` list that the lobby's
+  // `setupData.bots` produced, so both sources are folded together here.  Every
+  // "may act" flag below folds this in, so no control on a bot seat can be
+  // clicked.
+  const contextBotSeats = React.useContext(BotSeatsContext) ?? injectedUi?.botSeats ?? EMPTY_SEATS;
+  const botSeats = React.useMemo<ReadonlySet<Power>>(() => {
+    const matchBots = botPowersOf(G);
+    if (matchBots.length === 0) return contextBotSeats;
+    return new Set<Power>([...contextBotSeats, ...matchBots]);
+  }, [G, contextBotSeats]);
+  const isBotViewer = viewer !== null && botSeats.has(viewer);
   const pending = G.pending;
   const canDecide = pending !== null && viewer !== null && pending.power === viewer && !isBotViewer;
   const war = G.war;
@@ -550,6 +583,11 @@ export const useBoardModel = ({
   // When this board instance belongs to a bot seat in hotseat mode, automatically
   // dispatch the bot's decided move after a short delay so the human player can
   // see what happened before the state advances.
+  //
+  // An online match lists its bot seats in `G.bots` and the server drives them
+  // (`src/game/ieBotDriver.ts`); a client must never send those moves too, so
+  // this driver is gated on `hotseat` alone even though `botSeats` also carries
+  // the online list (the badge and the read-only flags use it either way).
   const botTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   // boardgame.io re-syncs the view even when a move is rejected, so an illegal
   // decision used to be re-sent every 500 ms forever (console flood + a frozen
@@ -788,6 +826,31 @@ export const useBoardModel = ({
     if (id === null) { dispatch({type: "cancel"}); return; }
     beginTargeting.current("navalBattle", id, enemyNavalTargetsFrom(id));
   };
+  /**
+   * The Orders row's "Move selected units…": re-arm the rings for the current
+   * selection and hold them open.  Same targets the soft mode computes, but
+   * armed (a miss is ignored rather than moving the selection), because the
+   * player asked for a move explicitly.
+   */
+  const startMoveTargeting = React.useCallback(() => {
+    if (viewer === null || selectedUnitDef === undefined || !selectedUnitDef.space) return;
+    if (!commandsSelected(selectedUnitDef)) return;
+    const intents = legalUnitTargets({G, power: viewer, unit: selectedUnitDef, phase});
+    if (intents.size === 0) return;
+    const byTarget: Record<SpaceId, Parameters<typeof interactionPrompt>[0][]> = {};
+    for (const [id, list] of intents) byTarget[id] = list;
+    const first = [...intents.values()][0];
+    dispatch({
+      type: "beginTargeting",
+      intent: first[0],
+      from: selectedUnitDef.space,
+      sources: selectionSources,
+      targets: [...intents.keys()],
+      byTarget,
+    });
+    // `commandsSelected` closes over G/phase; the selection is the trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [G, phase, viewer, selectedUnitDef, selectionSources]);
   const setSelectedUnit = React.useCallback((id: string | null) => {
     if (id === null) {
       if (interaction.kind === "unit") dispatch({type: "selectSpace", space: interaction.space});
@@ -796,6 +859,20 @@ export const useBoardModel = ({
     }
     if (selected !== null) dispatch({type: "selectUnit", space: selected, unit: id});
   }, [dispatch, interaction, selected]);
+  /**
+   * Add/remove one unit from the current selection (the space panel's shift-
+   * style toggle).  Selecting a whole stack is what makes one click a whole
+   * move: 12.15 moves all land units for 1 CP and 16.1 moves the fleet.
+   */
+  const toggleUnitSelection = React.useCallback((id: string) => {
+    if (selected === null) return;
+    dispatch({type: "toggleUnit", space: selected, unit: id});
+  }, [dispatch, selected]);
+  /** Select a whole stack at once (one dispatch; see `SpacePanel`'s note). */
+  const selectUnitGroup = React.useCallback((ids: string[]) => {
+    if (selected === null || ids.length === 0) return;
+    dispatch({type: "selectUnit", space: selected, unit: ids[0], extra: ids.slice(1)});
+  }, [dispatch, selected]);
   /**
    * Soft targeting: selecting one of your own units auto-enters targeting when
    * it has at least one legal destination.  The rings appear without a click,
@@ -821,7 +898,9 @@ export const useBoardModel = ({
       type: "beginTargeting",
       intent: first[0],
       from: commandedForSoft.space ?? "",
-      sources: [commandedForSoft.id],
+      // Every selected unit travels together, so the rings and the eventual
+      // submission both describe the stack, not just the clicked unit.
+      sources: selectionSources,
       targets: [...intents.keys()],
       soft: true,
       byTarget,
@@ -829,7 +908,7 @@ export const useBoardModel = ({
     // Only a new unit selection re-enters soft targeting; a re-render from G
     // must not fight a cancel.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [commandedForSoft?.id]);
+  }, [selectionKey]);
 
   /**
    * Submit the pending targeting action.  This is the ONLY path that spends CP
@@ -857,9 +936,17 @@ export const useBoardModel = ({
         doAction(() => moves.navalBattle(from, target), {label: label("Naval battle", "海战")});
         break;
       case "redeploy": {
-        const unit = sources[0];
-        if (unit) doAction(() => G.units[unit]?.naval ? moves.navalMove([unit], target) : moves.redeploy(unit, target),
-          {label: label("Move unit", "移动单位")});
+        // The whole selection moves as one action: 12.15 for land units (the
+        // action is paid once per impulse) and 16.1 for a fleet, where "all
+        // naval units ... may move with one Naval Move action".
+        const units = sources.filter((id) => G.units[id] !== undefined);
+        if (units.length === 0) break;
+        const naval = G.units[units[0]]?.naval === true;
+        const count = units.length;
+        doAction(
+          () => naval ? moves.navalMove(units, target) : moves.redeploy(units, target),
+          {label: count > 1 ? label(`Move ${count} units`, `移动 ${count} 个单位`) : label("Move unit", "移动单位")},
+        );
         break;
       }
       case "gwMarch":
@@ -1344,6 +1431,10 @@ export const useBoardModel = ({
     viewer,
     selected,
     selectedUnit,
+    selectedUnitIds: selectionSources,
+    toggleUnitSelection,
+    selectUnitGroup,
+    startMoveTargeting,
     targeting,
     battleFrom,
     navalFrom,

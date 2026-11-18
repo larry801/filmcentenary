@@ -1177,6 +1177,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-space-detail { font-size: var(--ie-font-xs); line-height: 1.55; }
 .ie-space-detail h4 { margin: 0 0 4px; color: #f0d799; font-size: var(--ie-font-sm); }
 .ie-space-units { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin: 3px 0; }
+.ie-space-select-all { margin: 2px 0 4px; }
 .ie-unit-chip { font-size: var(--ie-font-xs); color: #c9b792; background: #32281e; border: 1px solid #4e3f2b; border-radius: var(--ie-radius-sm); padding: 1px 5px; }
 .ie-unit-chip.pending { border-color: #d2b061; color: #f0d799; }
 
@@ -1187,6 +1188,58 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-actions-grid { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
 .ie-action-group .ie-actions-grid { margin-top: 0; }
 .ie-cp-remaining { display: none; }
+
+/* One action row.  `SpacePanel` renders the button, its cost chip and — when
+   the engine refuses it — the reason underneath; without these rules the three
+   parts were one undifferentiated block of text, so a disabled row read exactly
+   like a legal one.  The reason is a block, not a title attribute, because a
+   tooltip needs a pointer: the printed restriction must be legible on a phone. */
+.ie-action { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; max-width: 100%; }
+.ie-action > .ie-btn { max-width: 100%; text-align: left; }
+.ie-action-cost { color: #b8a37c; font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.ie-action[data-enabled="false"] > .ie-btn { border: 1px dashed #4e3f2b; }
+.ie-action-reason {
+  font-size: var(--ie-font-xs);
+  line-height: 1.35;
+  color: #c99a72;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+/* The group's available count.  It is the list's only "how much can I do here"
+   signal, so it stays legible rather than shrinking to the title's size. */
+.ie-action-group-title { display: flex; align-items: center; gap: 5px; }
+.ie-action-group-badge {
+  min-width: 16px;
+  padding: 0 4px;
+  border: 1px solid #6d5636;
+  border-radius: 999px;
+  background: #32281e;
+  color: #d9c49c;
+  font-size: var(--ie-font-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  text-align: center;
+}
+.ie-action-group[data-available="0"] .ie-action-group-badge { border-color: #4e3f2b; color: #8e7d63; }
+/* The orders header: the cost reference sits at the end of the line. */
+.ie-action-groups-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.ie-action-groups-hint { flex: 1 1 auto; min-width: 0; font-size: var(--ie-font-xs); color: #b3a084; }
+/* "Available now": the legal rows repeated above the grouped list, so the next
+   click never needs a scroll past a dozen disabled ones.  Tinted like `.ie-hint`
+   to read as a shortcut rather than as part of the rulebook list below. */
+.ie-action-now {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: 1px solid #6d5636;
+  border-left: 3px solid var(--ie-accent);
+  border-radius: 0 var(--ie-radius-sm) var(--ie-radius-sm) 0;
+  padding: 4px 6px;
+  background: #33281a;
+}
+.ie-action-now-label { font-size: var(--ie-font-xs); color: #f0d799; letter-spacing: .02em; }
+.ie-action-now .ie-actions-grid { margin-top: 0; }
+.ie-action-now .ie-btn { background: var(--ie-accent); }
 
 /* ---------------------------------------------------------------- hints */
 .ie-hint { font-size: var(--ie-font-xs); line-height: 1.4; color: #d9c49c; background: #33281a; border-left: 3px solid var(--ie-accent); padding: 4px 7px; margin-top: 5px; border-radius: 0 var(--ie-radius-sm) var(--ie-radius-sm) 0; }

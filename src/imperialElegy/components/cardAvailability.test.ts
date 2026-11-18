@@ -134,9 +134,19 @@ describe("cardAvailability", () => {
     // Nothing about the impulse's CP pool refuses it either.
     expect(cardAvailability(input(game(3), id)).cpModeOk).toBe(false);
 
-    // `forcedCardIds` rescues a mid-impulse play, as for any other card.
+    // `forcedCardIds` grants no extra slot: a used impulse can be handed over,
+    // so the printed no-pass card never needs a second card play.  Here the
+    // impulse is still unused, so the card is playable like any other.
     const forced = cardAvailability(input(G, id, {forcedCardIds: [id]}));
     expect(forced.cpModeOk).toBe(true);
+
+    // Spending the impulse (even down to zero CP) shuts the mandatory play too:
+    // its 2 CP are that impulse's budget, not a second impulse.
+    const spent = { ...G, cpRemaining: 0 } as typeof G;
+    spent.powers.GE.flags.actionCpSpentThisImpulse = true;
+    const after = cardAvailability(input(spent, id));
+    expect(after.cpModeOk).toBe(false);
+    expect(after.reasons).toContain("One card per impulse; finish this impulse first");
 
     // A105 Impulsive Ruler is the one printed CP clause: 3 or fewer cards.
     const crowded = game(0);

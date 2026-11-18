@@ -171,6 +171,24 @@ export const HandTray = (props: HandTrayProps) => {
     const a = availability(id);
     const mandatoryTitle = a.isMandatory ? bi(locale, "Mandatory card: play its event", "强制牌：需打出其事件") : undefined;
     const cpDisabled = !a.cpModeOk;
+    // 12.0's one-card rule and the printed gates both land in `reasons`, so a
+    // disabled event button always has a title even when the card's own text is
+    // fine (`eventBlockReason` only covers those printed gates).
+    const eventDisabledTitle = a.eventBlockReason ?? a.reasons[0];
+    // A mandatory event is never "an event" on the table: the printed card type
+    // is what the button must say, or the player reads "打出事件" for a card the
+    // rules call 强制事件.  A mandatory *response* keeps its own printed type.
+    const mandatoryResponse = cardById(id).type === "mandatoryResponse";
+    const eventLabel = !a.isMandatory
+      ? t.eventMode
+      : bi(locale,
+        mandatoryResponse ? "Play mandatory response" : "Play mandatory event",
+        mandatoryResponse ? "打出强制响应" : "打出强制事件");
+    const eventConfirmLabel = !a.isMandatory
+      ? bi(locale, "Confirm: play the event", "确认：打出事件")
+      : bi(locale,
+        mandatoryResponse ? "Confirm: play the mandatory response" : "Confirm: play the mandatory event",
+        mandatoryResponse ? "确认：打出强制响应" : "确认：打出强制事件");
     return (
       <>
         {(where === "inspector" || a.cpAllowed) && (
@@ -201,15 +219,15 @@ export const HandTray = (props: HandTrayProps) => {
             data-testid={`ie-play-event-${id}`}
             disabled={!a.eventModeOk}
             data-blocked={a.eventBlockKey}
-            title={!a.eventModeOk ? a.eventBlockReason : undefined}
+            title={!a.eventModeOk ? eventDisabledTitle : undefined}
             confirm={confirmActions}
-            confirmLabel={bi(locale, "Confirm: play the event", "确认：打出事件")}
+            confirmLabel={eventConfirmLabel}
             onConfirm={() => doAction(() => moves.playCard(id, "event"), {
               label: bi(locale, `Play ${cardById(id).title}'s event`, `打出 ${cardById(id).titleZh} 事件`),
-              reason: !a.eventModeOk ? a.eventBlockReason : undefined,
+              reason: !a.eventModeOk ? eventDisabledTitle : undefined,
             })}
           >
-            {t.eventMode}
+            {eventLabel}
           </ConfirmButton>
         )}
         {(where === "inspector" || a.showResponse) && a.showResponse && (
@@ -396,6 +414,12 @@ export const HandTray = (props: HandTrayProps) => {
               {G.gw?.active && me.gwCard && (phase === "gwPlanning" || phase === "gwManeuver") && (() => {
                 const gwId = me.gwCard!;
                 const gwCard = cardById(gwId);
+                const gwMandatory = gwCard.type === "mandatory" || gwCard.type === "mandatoryResponse";
+                const gwEventLabel = gwMandatory
+                  ? bi(locale,
+                    gwCard.type === "mandatoryResponse" ? "Play mandatory response" : "Play mandatory event",
+                    gwCard.type === "mandatoryResponse" ? "打出强制响应" : "打出强制事件")
+                  : t.eventMode;
                 const cpProblem = gwCardProblem(G, viewer, "cp");
                 const eventProblem = gwCardProblem(G, viewer, "event");
                 const canGwCard = !eliminated && isActive && pending === null;
@@ -408,7 +432,7 @@ export const HandTray = (props: HandTrayProps) => {
                       </button>
                       <div className="ie-card-actions">
                         <button disabled={!canGwCard || cpProblem !== null} title={gwImpulseReasonText(locale, cpProblem)} onClick={() => doAction(() => moves.playGwCardMove("cp"), {label: bi(locale, "Bonus action", "奖励行动"), reason: gwImpulseReasonText(locale, cpProblem) ?? undefined})}>{bi(locale, "Bonus action", "奖励行动")}</button>
-                        <button disabled={!canGwCard || eventProblem !== null} title={gwImpulseReasonText(locale, eventProblem) ?? undefined} onClick={() => doAction(() => moves.playGwCardMove("event"), {label: t.eventMode, reason: gwImpulseReasonText(locale, eventProblem) ?? undefined})}>{t.eventMode}</button>
+                        <button disabled={!canGwCard || eventProblem !== null} title={gwImpulseReasonText(locale, eventProblem) ?? undefined} onClick={() => doAction(() => moves.playGwCardMove("event"), {label: gwEventLabel, reason: gwImpulseReasonText(locale, eventProblem) ?? undefined})}>{gwEventLabel}</button>
                       </div>
                     </article>
                   </div>

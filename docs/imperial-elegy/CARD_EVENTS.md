@@ -325,6 +325,9 @@ A017/A018/A056 共用 `choosePlayerStabilityOrCard`（先选玩家，再由该�
   `POWER_LIST_GATES` 全部生效；`eventPlayability` 与 `cardAvailability` 共用同一
   谓词，UI 按钮与 `playCard` 不会分叉。新增的 `cpPlayability`/`canPlayForCp`
   把 12.0 的“任何牌都能当 CP 用”与 A105 的“手牌 ≤3 才能当 CP”统一到一处。
+  12.0 的“每个行动轮只出 1 张牌”由 `impulseAlreadyUsed` 单独把关：CP 花到 0 之后
+  仍算已用，强制事件给的 2 CP 是该轮的预算而不是第二个行动轮，手牌按钮与
+  `playCard` 共用该谓词。
 - **Combat cards** — 7 张动作战斗牌 + GW-03–06 全部数据驱动；实测 A058 攻城炮
   在骰前削减要塞 2 级、A059 侧翼攻击造成 1 步损失且末尾触发“决定性胜利”、
   A062 通讯失误打开支援否定的强制选择（拒绝会重新打开）。

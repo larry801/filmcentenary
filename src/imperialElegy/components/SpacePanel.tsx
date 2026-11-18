@@ -18,6 +18,22 @@ export interface SpacePanelProps {
   selected: SpaceId | null;
   selectedUnit: string | null;
   setSelectedUnit: (id: string | null) => void;
+  /** Every unit of the current selection, primary first (12.15/16.1 stacks). */
+  selectedUnitIds?: string[];
+  /** Add or remove one unit from the current selection (the stack form). */
+  toggleUnitSelection?: (id: string) => void;
+  /**
+   * Replace the selection with a whole stack in one dispatch.  A loop of
+   * `toggleUnitSelection` cannot build a group: React batches the dispatches
+   * and each reducer call still sees the pre-batch state.
+   */
+  selectUnitGroup?: (ids: string[]) => void;
+  /**
+   * Arm the map's move rings for the current selection.  The board owns this
+   * because only it may enter targeting (the panel must never guess a
+   * destination, and only a ring click may spend CP).
+   */
+  startMoveTargeting?: () => void;
   battleFrom: SpaceId | null;
   setBattleFrom: (id: SpaceId | null) => void;
   navalFrom: SpaceId | null;
@@ -80,6 +96,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
   const {
     onOpenReference,
     G, selected, selectedUnit, setSelectedUnit, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
+    selectedUnitIds = [], toggleUnitSelection, selectUnitGroup, startMoveTargeting,
     viewer, me, locale, t, phase, canAct, canSpend, cpRemaining, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
     targetControlledSpaces, warTargetControl, canDeclareWar,
@@ -100,20 +117,13 @@ export const SpacePanel = (props: SpacePanelProps) => {
       unit.owner !== "US" && unit.owner !== "IT" && minorController(G, unit.owner) === viewer);
   const gwAllowed = (kind: GwActionKind): boolean => canAct && viewer !== null && gwActionAllowance(G, viewer, kind).ok;
 
-  const actionGroup = (key: string, title: string, children: React.ReactNode) => {
-    const content = React.Children.toArray(children);
-    if (content.length === 0) return null;
-    return (
-      <div className="ie-action-group" data-testid={`ie-actions-${key}`}>
-        <div className="ie-action-group-title">{title}</div>
-        <div className="ie-actions-grid">{content}</div>
-      </div>
-    );
-  };
-
   // The player aid's action list, computed once: every row carries its cost,
   // its enable flag and the UI's own reason, so the panel below is a renderer.
-  const rows: SpaceAction[] = viewer === null || selected === null ? [] : spaceActions({
+  // Memoised on the inputs that can change a row: the list runs every engine
+  // gate (`canRecruitIn`, `influencePlacementProblem`, `gwActionAllowance`, …)
+  // for ~15 rows, and the panel re-renders on every clock, hover and selection
+  // change, none of which can change a row's legality.
+  const rows: SpaceAction[] = React.useMemo(() => (viewer === null || selected === null ? [] : spaceActions({
     G,
     viewer,
     phase,
@@ -145,11 +155,21 @@ export const SpacePanel = (props: SpacePanelProps) => {
     gwJointNavalUnitIds,
     startBattle: () => battleFrom !== selected && setBattleFrom(selected),
     startNavalBattle: () => navalFrom !== selected && setNavalFrom(selected),
+    startMove: () => startMoveTargeting?.(),
     warCp,
     onDeclareWar: () => null,
     describeRow: (row) => ({label: row.label, reason: row.reason}),
     locale,
-  });
+  // `doAction`, `moves`, `spaceActions`' own helpers and the setters are stable
+  // (useCallback / module scope), so the state that can flip a row is listed.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), [
+    G, viewer, phase, selected, selectedUnit, selectedUnitIds, startMoveTargeting, cpRemaining, canAct, canActionCard, war,
+    myOnMapArmies, myForts, myMinorAllies, ownLandInSelected, ownNavalInSelected,
+    potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
+    canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve,
+    gwJointNavalAllies, battleFrom, navalFrom, warCp, locale,
+  ]);
   /**
    * The historic test ids for rows that used to be their own buttons.  The
    * e2e specs, the bot suites and the control tests address these names, so a
@@ -188,9 +208,9 @@ export const SpacePanel = (props: SpacePanelProps) => {
   /** One row: a button with a cost chip and a reason line under it. */
   const actionButton = (item: SpaceAction) => (
     <div
-      key={item.id}
+      key={item.uid ?? item.id}
       className="ie-action"
-      data-testid={`ie-action-${item.id}`}
+      data-testid={`ie-action-${item.uid ?? item.id}`}
       data-legacy-testid={LEGACY_ACTION_IDS[item.id]}
       data-enabled={item.enabled ? "true" : "false"}
     >
@@ -218,6 +238,24 @@ export const SpacePanel = (props: SpacePanelProps) => {
     </div>
   );
   const groupRows = (group: SpaceAction["group"]): SpaceAction[] => rows.filter((item) => item.group === group);
+
+  /**
+   * The legal rows, cheapest first, for the "available now" strip.
+   *
+   * Cost order rather than rulebook order: the strip exists to be clicked
+   * without reading, and a 1 CP build sits above a 4 CP alliance.  Ties keep
+   * their list order so the strip is stable between renders.
+   */
+  const enabledRows: SpaceAction[] = React.useMemo(
+    () => rows.filter((item) => item.enabled).sort((a, b) => a.cost - b.cost),
+    [rows],
+  );
+
+  /** A group's rows, legal ones first so the useful buttons stay above the fold. */
+  const orderedRows = (group: SpaceAction["group"]): SpaceAction[] => {
+    const items = groupRows(group);
+    return [...items.filter((item) => item.enabled), ...items.filter((item) => !item.enabled)];
+  };
 
   return (
     <IEPanel title={t.selectSpace}>
@@ -249,11 +287,54 @@ export const SpacePanel = (props: SpacePanelProps) => {
             const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
             if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t)}</span>;
             if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id), {label: unitLabel(u, t)})}>{unitLabel(u, t)}</button>;
-            return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedUnit === id} onClick={() => setSelectedUnit(id)}>{unitLabel(u, t)}</button>;
+            const selectedHere = selectedUnitIds.includes(id);
+            // Clicking toggles the unit in the selection instead of replacing
+            // it, so several units of one space can move as a single action
+            // (12.15 land stacks, 16.1 fleets).  A single click still behaves
+            // exactly as before when nothing else is selected.
+            const onClick = toggleUnitSelection !== undefined
+              ? () => (selectedUnit === id && selectedUnitIds.length === 1 ? setSelectedUnit(null) : toggleUnitSelection(id))
+              : () => setSelectedUnit(id);
+            return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedHere} onClick={onClick}>{unitLabel(u, t)}</button>;
           })}</div>
+          {/*
+            * A whole-stack shortcut.  Both rules that move several units at
+            * once (12.15 redeployment, 16.1 naval movement) move "all" of them,
+            * so selecting each one by hand is busywork; the button selects every
+            * commanded unit in the space that can actually leave.
+            */}
+          {canAct && (() => {
+            const movable = selectedState.units
+              .map((id) => G.units[id])
+              .filter((u): u is Unit => u !== undefined && viewer !== null && commanded(u) && !(u.flags?.deployedThisImpulse === true));
+            if (movable.length < 2) return null;
+            const allSelected = movable.every((u) => selectedUnitIds.includes(u.id));
+            return (
+              <div className="ie-space-select-all">
+                <button
+                  type="button"
+                  className="ie-btn secondary ie-mini"
+                  data-testid="ie-select-stack"
+                  data-all-selected={allSelected ? "true" : "false"}
+                  onClick={() => {
+                    if (allSelected) { setSelectedUnit(null); return; }
+                    // One dispatch, not "select the first then toggle the rest":
+                    // React batches these, so a second dispatch would still read
+                    // the pre-batch state and drop the first unit.
+                    selectUnitGroup?.(movable.map((unit) => unit.id));
+                  }}
+                >
+                  {allSelected
+                    ? bi(locale, "Clear selection", "取消选择")
+                    : bi(locale, `Select all ${movable.length} units`, `全选 ${movable.length} 个单位`)}
+                </button>
+              </div>
+            );
+          })()}
           {selectedUnitDef && commanded(selectedUnitDef) && (
             <div className="ie-hint">
               {bi(locale, "Selected:", "已选：")} {unitLabel(selectedUnitDef, t)}
+              {selectedUnitIds.length > 1 && ` +${selectedUnitIds.length - 1} ${bi(locale, "more", "个")}`}
               {selectedUnitDef.space && selectedUnitDef.space !== selected && <span> · {bi(locale, "click a highlighted space to move here.", "点击高亮空间移动至此。")}</span>}
               <button className="ie-btn secondary ie-mini" onClick={() => setSelectedUnit(null)}>{t.cancel}</button>
             </div>
@@ -267,6 +348,38 @@ export const SpacePanel = (props: SpacePanelProps) => {
                 {/* The player aid's cost list, rendered from ACTION_COSTS. */}
                 <RuleLink anchor="rules:costs" locale={locale} onOpenReference={onOpenReference} testId="ie-rule-ref-action-costs"/>
               </div>
+              {/**
+                * "Available now" strip.
+                *
+                * The groups below must keep every row the rules offer — a
+                * disabled row's reason is how the player learns the
+                * restriction — but at a typical space twelve rows are refused
+                * for two that are legal, so the legal ones were pushed below
+                * the fold.  This strip repeats just the legal rows at the top,
+                * in cost order, so the next click never needs a scroll.  It is
+                * a shortcut, not the list: the rows below are unchanged.
+                */}
+              {enabledRows.length > 0 && (
+                <div className="ie-action-now" data-testid="ie-action-available" data-count={enabledRows.length}>
+                  <span className="ie-action-now-label">
+                    {bi(locale, `${enabledRows.length} available now`, `${enabledRows.length} 项现在可用`)}
+                  </span>
+                  <div className="ie-actions-grid">
+                    {enabledRows.map((item) => (
+                      <button
+                        key={item.uid ?? item.id}
+                        type="button"
+                        className="ie-btn ie-btn-xs" data-testid={`ie-action-now-${item.uid ?? item.id}`}
+                        title={item.label}
+                        onClick={() => runAction(item)}
+                      >
+                        {item.label}
+                        {item.cost > 0 && <span className="ie-action-cost" aria-hidden="true"> · {item.cost} CP</span>}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               {(["recruit", "build", "diplomacy", "move", "greatWar"] as const).map((group) => {
                 const items = groupRows(group);
                 if (items.length === 0) return null;
@@ -277,7 +390,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
                       {locale === "zh_CN" ? ACTION_GROUP_LABELS[group].zh : ACTION_GROUP_LABELS[group].en}
                       <span className="ie-action-group-badge" aria-label={bi(locale, `${available} available`, `${available} 项可用`)}>{available}</span>
                     </h5>
-                    <div className="ie-actions-grid">{items.map(actionButton)}</div>
+                    <div className="ie-actions-grid">{orderedRows(group).map(actionButton)}</div>
                   </section>
                 );
               })}

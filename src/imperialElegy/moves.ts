@@ -326,6 +326,9 @@ const clearActionImpulseSpend = (G: ImperialElegyState): void => {
   for (const power of POWERS) {
     delete G.powers[power].flags.actionCpSpentThisImpulse;
     delete G.powers[power].flags.allianceAtImpulseStart;
+    // 12.15: a redeployment action covers one impulse; the next impulse pays
+    // its own 1 CP before moving anything.
+    delete G.powers[power].flags.redeployActionThisImpulse;
     // 33.5 is "per impulse", so the railroad allowance resets when the
     // impulse passes to the next player (4.5).
     delete G.powers[power].flags.tsrrRailImpulse;
@@ -395,6 +398,9 @@ const finishImpulse = (G: ImperialElegyState, ctx: Ctx): void => {
       delete G.powers[p].flags.alreadyInfluenced;
       delete G.powers[p].flags.alreadyRemovedInfluence;
       delete G.powers[p].flags.alreadyPacified;
+      // 12.15: a redeployment action covers one impulse; the next impulse pays
+      // its own 1 CP for a new one.
+      delete G.powers[p].flags.redeployActionThisImpulse;
     }
     G.flags.combatDrm = 0;
     G.flags.enemyLandDrm = 0;
@@ -449,6 +455,27 @@ const pruneRemovedFromDiscard = (G: ImperialElegyState): void => {
 const isHeldAsIndustryCard = (G: ImperialElegyState, cardId: CardId): boolean =>
   POWERS.some((power) => G.powers[power].industryCard === cardId);
 
+/**
+ * 12.0 — an impulse starts with **one** card play (for CP or as its event) and
+ * the CP that card provides may then be spent.  In the action phase the impulse
+ * is therefore already used when CP are still banked, when a card has been
+ * played, or when the first CP of the impulse has been spent (`requireCp`
+ * records that on the same flag).  Both signals are per-impulse:
+ * `finishImpulse` clears them.
+ *
+ * This is deliberately narrower than `hasActedThisImpulse`: the CP chain's
+ * phase-long `cpChainActive` flag is part of that predicate (it decides which
+ * reading of `pass` applies) but it does not stop the power from opening a
+ * later impulse of the same action phase with a fresh card.  Phases with their
+ * own wallet (wartime, Great War) keep the legacy CP-only reading, because
+ * their spend flags are `warCpSpentThisImpulse` / `gwActionsThisImpulse`.
+ */
+export const impulseAlreadyUsed = (G: ImperialElegyState, power: Power): boolean => {
+  if (G.cpRemaining > 0) return true;
+  if (G.phase !== "action") return false;
+  return G.powers[power].flags.actionCpSpentThisImpulse === true;
+};
+
 export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: "cp" | "event"): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
@@ -471,16 +498,22 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     else log(G, power, "eventNotPlayable", {card: cardId, reason: gate.reason});
     return INVALID_MOVE;
   }
-  // Playing a card normally opens a fresh impulse, so CP must be finished
-  // first.  The one exception is 12.0's no-pass card: when it is the only
-  // thing that can still be spent, it must be playable even if the impulse
-  // already holds CP, or the impulse has no legal move at all.
-  const rescueMode = G.cpRemaining > 0 && isForcedCardPlay(G, power, cardId, mode);
-  if (G.cpRemaining > 0 && !rescueMode) return INVALID_MOVE;
+  // 12.0: one card play per impulse.  Once the impulse's card has been played
+  // — or its CP have been spent, even down to zero — the seat may only finish
+  // the impulse; it may not open a second card in the same impulse.  The
+  // mandatory-event bonus CP are that impulse's budget, so they are spent (or
+  // forfeited) before the next card play, not followed by one.  There is no
+  // no-pass exception: a used impulse can always be handed over through `pass`,
+  // so a "rescue" play on top of banked CP would itself be a second card.
+  if (impulseAlreadyUsed(G, power)) return INVALID_MOVE;
   const mandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
-  // The only CP gate left is the card's own printed clause: A105 may be played
-  // for CP only with three or fewer cards in hand.
-  if (mode === "cp" && card.kind === "home" && G.powers[power].selectedHomeCard !== cardId) return INVALID_MOVE;
+  // 6.1/12.0: a home card is playable while it is **in hand**.  Normally only
+  // the card chosen in Diplomacy is there, but A040 British Trade explicitly
+  // adds the other one ("takes the home card they did not choose for this turn
+  // and places it in their hand"), so hand membership — not the Diplomacy
+  // selection — is the printed criterion.  A selection-only guard left that seat
+  // unable to play the granted card *and* unable to pass (a home card in hand
+  // forbids passing): no legal move at all.
   // Remove from hand before resolving.
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
   if (G.powers[power].selectedHomeCard === cardId) G.powers[power].selectedHomeCard = null;
@@ -497,9 +530,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   // actually happened.
   addLog(G, power, "cardPlayed", {card: cardId, mode: resolvesEvent ? "event" : mode});
   if (!resolvesEvent) {
-    // A rescue play adds to the CP already banked: the card must not discard
-    // the impulse's remaining budget.
-    G.cpRemaining = rescueMode ? G.cpRemaining + card.cp : card.cp;
+    G.cpRemaining = card.cp;
     // A70: "Remove from the game if played for CP and Italy is unified."
     // A79: "Remove from the game if Tunisia and Libya are no longer Ottoman
     // controlled." — the CP play removes it instead of discarding it.
@@ -541,22 +572,6 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     }
   }
   return undefined;
-};
-
-/**
- * True when `cardId` is a card that forbids passing (12.0 / 27.3) and playing
- * it now is the impulse's only remaining legal move.
- *
- * A047 The Dual Monarchy is an ordinary action event; the rule is simply that
- * its holder must play it instead of passing.  With CP still banked the normal
- * rule "finish the impulse before playing another card" would otherwise leave
- * the impulse with no legal move at all, so the play is allowed on top of the
- * banked CP and the budget is kept.
- */
-const isForcedCardPlay = (G: ImperialElegyState, power: Power, cardId: CardId, mode: "cp" | "event"): boolean => {
-  if (mode !== "cp") return false;
-  const restriction = passRestriction(G, power);
-  return restriction.forced && restriction.cards.some((c) => c.card === cardId);
 };
 
 /**
@@ -2100,14 +2115,39 @@ const deployPolishReserve = (
   return id;
 };
 
-export const redeploy = (G: ImperialElegyState, ctx: Ctx, unitId: string, to: SpaceId): string | void => {
+/**
+ * 12.15 Redeployment: "1 CP. Enables a player to move *all* their land units an
+ * unlimited distance by land."
+ *
+ * The action is therefore paid once per impulse, not once per unit: the first
+ * `redeploy` in an impulse spends the CP and opens the action, and every later
+ * unit moved in the same impulse is part of that same action and costs nothing
+ * more.  Moving five armies used to cost five CP, which made redeployment
+ * unplayable and contradicted the printed price.
+ *
+ * `unitIds` accepts one unit or several so the panel can move a whole stack in
+ * one click; the array form is what the rule describes.  Units that cannot make
+ * the move are left where they are (the rule moves "all", and a unit with no
+ * route to the destination is not moved); with no legal mover the whole call is
+ * refused so a click never silently does nothing.
+ */
+export const redeploy = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  unitId: string | readonly string[],
+  to: SpaceId,
+): string | void => {
   const playerID = ctx.playerID ?? null;
+  const ids = typeof unitId === "string" ? [unitId] : [...unitId];
+  if (ids.length === 0) return INVALID_MOVE;
   if (G.phase === "gwManeuver") {
     // In the Great War this button is march (adjacent) or rail (friendly path).
-    // Both are flow maneuvers that spend the GW budget exactly once.
+    // Both are flow maneuvers that spend the GW budget exactly once, and the
+    // GW has no 12.15 action, so only one unit moves per maneuver.
+    if (ids.length > 1) return INVALID_MOVE;
     const gwPower = actor(G, playerID);
     if (gwPower === null || !G.gw) return INVALID_MOVE;
-    const unit = G.units[unitId];
+    const unit = G.units[ids[0]];
     if (!unit) return INVALID_MOVE;
     const adjacent = unit.space ? neighboursOf(unit.space).includes(to) : false;
     // 33.1 Superior Staff Work: latch GE's first GW maneuver impulse.
@@ -2116,13 +2156,51 @@ export const redeploy = (G: ImperialElegyState, ctx: Ctx, unitId: string, to: Sp
       G,
       ctx,
       adjacent
-        ? {kind: "march", power: gwPower, unitId, to}
-        : {kind: "rail", power: gwPower, unitId, to},
+        ? {kind: "march", power: gwPower, unitId: ids[0], to}
+        : {kind: "rail", power: gwPower, unitId: ids[0], to},
     );
     return res.ok ? undefined : INVALID_MOVE;
   }
-  const power = requireCp(G, ctx, playerID, 1);
-  if (power === INVALID_MOVE) return INVALID_MOVE;
+  // The action's own CP is charged once.  Every unit after the first rides the
+  // same action, so the wallet is only touched when the action opens.
+  const actorPower = actor(G, playerID);
+  if (actorPower === null) return INVALID_MOVE;
+  let power = actorPower;
+  if (G.powers[actorPower].flags.redeployActionThisImpulse === true) {
+    if (requireActive(G, ctx, playerID) === INVALID_MOVE) return INVALID_MOVE;
+    // A later unit of the same action still counts as acting: the first CP of
+    // the impulse closed the response window, and a redeployment that opened
+    // through an event-granted free move must also break a run of passes.
+    if (G.phase === "action") G.powers[power].flags.actionCpSpentThisImpulse = true;
+    else if (G.phase === "wartime") G.powers[power].flags.warCpSpentThisImpulse = true;
+  } else {
+    const paid = requireCp(G, ctx, playerID, 1);
+    if (paid === INVALID_MOVE) return INVALID_MOVE;
+    power = paid;
+    G.powers[power].flags.redeployActionThisImpulse = true;
+  }
+  let moved = 0;
+  let lastError: string | void = undefined;
+  for (const id of ids) {
+    const result = moveOneLandUnit(G, power, id, to);
+    if (result === undefined) moved += 1;
+    else lastError = result;
+  }
+  return moved > 0 ? undefined : lastError ?? INVALID_MOVE;
+};
+
+/**
+ * One unit's part of a 12.15 redeployment.  Split out of `redeploy` so the
+ * per-unit rules (ownership, the 15.2.3 deployment lock, friendly destination,
+ * stacking and the peacetime land route) are unchanged by moving the CP charge
+ * up to the action.
+ */
+const moveOneLandUnit = (
+  G: ImperialElegyState,
+  power: Power,
+  unitId: string,
+  to: SpaceId,
+): string | void => {
   const unit = G.units[unitId];
   if (!unit || unit.owner !== power || unit.naval) return INVALID_MOVE;
   // 15.2.3: a reserve army deployed this impulse cannot move.

@@ -41,6 +41,8 @@ const settled = async (client: {getState: () => any}, before: number) => {
  * propagate moves over the event loop, so a fixed sleep races the update on a
  * loaded CI box; waiting for the state we are about to assert on does not.
  */
+const wait = (ms: number): Promise<void> => new Promise(resolve => setTimeout(resolve, ms));
+
 const eventually = async <T>(probe: () => T | undefined | null | false, timeout = 5_000, interval = 25): Promise<T> => {
   const deadline = Date.now() + timeout;
   for (;;) {
