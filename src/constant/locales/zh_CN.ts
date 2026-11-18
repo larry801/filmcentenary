@@ -743,6 +743,7 @@ const zh_CN: Locale = {
         shareLink: "其他玩家用下面的链接加入游戏：",
         publicGame: "公开",
         privateGame: "隐藏",
+        botSeatRefused: "该席位由机器人（规则 34）控制，无法加入。请使用邀请链接中的其他席位。",
     },
     gameOver: {
         title: "游戏结束",

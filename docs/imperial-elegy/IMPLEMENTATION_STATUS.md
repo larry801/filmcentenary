@@ -20,7 +20,7 @@ This table tracks the current audit until every Partial row is reconciled.
 | 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | Existing table/flow suites; section audit open. |
 | 24–32 | Alliance-order choices; remaining draft/deploy, major-power entry/card exceptions and minor integration audit. Bonus choices plus ordinary impulse/card/pass/neutral-window corrections are implemented below. | Existing GW flow/regression suites; section audit open. |
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | Registry has zero display-only bullets; that alone does not close sub-clause correctness. |
-| 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix and the printed BOT BOX (9.2/34.3.4) are live; remaining deterministic choices require rule audit. |
+| 34 | Complete printed bot decisions and audit scenario/tutorial/promo source coverage against the requested completion scope. | B1 die fix and the printed BOT BOX (9.2/34.3.4) are live; remaining deterministic choices require rule audit. Online matches now run the same bot for the seats no human takes (2–6 humans, `src/game/ieBotDriver.ts`). |
 
 Latest fully verified baseline: **2591c8f1284fd31cb6239695a90b4c55ed004d9c**,
 449 suites / 4288 tests, frontend + server builds, 37 general browser tests and
@@ -474,7 +474,7 @@ promotional cards).
 | **21–23 Rebels, Italy/Poland, crisis** | **Partial** | Per-space rebellion state and rebel armies; Italian Minor Power Table and unification, **22.1.3 internal war through the 4.2 pool** (interactive Sardinia-Piedmont / Two Sicilies choice when both are legal), **Italy’s 5th army/22.3.1 grants**, **22.5 Polish recruitment/reserve/build limits and TSRR**; Poland/AU/RU special cases via card handlers; **the printed Crisis Table (23.0–23.5)** as typed data + live resolver: every printed row, the Balkan States table, footnotes (`*` conference once/reroll, `**` special, `†`, `>6`), 23.3 bordering nation/minority/Balkan special results, 23.4 impossible results, 23.5 neutral players joining an alliance with the three-player limit, and the real blamed incident driving 25.3 Italy; GW outbreak; 23.1’s Powder Keg / The Balkan Wars open the crisis before the rest of their text. | “Minor powers drawn into the GW” are recorded as ally markers (no separate minor-belligerent list); A100’s second printed WTT increase inside the handler can still open a second crisis after its sub-decisions; some rows are reachable only when a handler raises the WTT. |
 | **24–32 The Great War** | **Partial** | Outbreak, alliances, NGs, national will, order/bonus, planning/maneuver/winter, 29.1 blockade (RU/TSRR allies, capital→box, yearly max industry, US check), 29.2 colonial war with player-chosen losses/transfers/bonus CP, 29.3 neutral entry, 30.0 key loss/recapture, 30.1 capital surrender with full marker bookkeeping **and allied-unit displacement / formerly-controlled march-rail / permanent-minor sweep**, 30.2 US/Italy surrender with symmetric chit cleanup, 15.6 knockout + displacement, **15.3 persistent occupation on all moves**, GW #2/25.3 Italy, 28.1 trenches, crisis blame, multi-ally treaties, Rome/Italy capital, 32.1 US Mexico/Canada, Ankara capital, 22.4 Italian redeployment. | Blockade/colonial LoC traces apply Suez/Dardanelles closure; direct/event control writes route through `setSpaceControl`, which retires a stale `occupiedBy` marker (unification preserves a live enemy occupation); `surrenderGwMajor` runs the permanent-minor sweep; 30.0 now charges the dreadnought stability loss and counts committed support for the decisive-force threshold; 31.0’s one-power/no-neutral alliance-defeat condition ends the GW immediately; 29.3’s free redeployment moves all land units; 29.2’s losing alliance chooses its loss and 30.1’s two-survivor heir uses a die roll; 22.1.3 is an interactive choice when both Italian minors are legal. |
 | **33 National characteristics** | **Partial** | Live and covered by `characteristicsCoverage` (zero display-only bullets/gaps): UK pools/India/Rapid Deployment/Join Your Country’s Army/Status Quo/CW; OT Turkish-Arab split/Local Autonomy/Europeanization/Jihad; AU Dual Monarchy/Reforms/Expand Citizenship/Incorporate/Unstable Situation/Continental Power/Metternich/New Way Forward/Arbiter; FR Third Republic/CP/Zouaves/Cultural Symbol/Second Empire/Napoleon’s Legacy; RU TSRR/Second Rome/Ankara; GE Imperial Germany/Continental Focus/Superior Staff Work/German Confederation/Zollverein/Blood and Iron!; **22.5 Polish recruitment/reserve/build limits**. | Remaining are printed-clause boundaries, not unwired abilities: Zollverein has no fuller home/source text, Poland’s total-cap interpretation, chart-less non-player rows stay null, and a few timing conventions (GE’s limited-war “first impulse” window). Round 8 added citizenship-aware Nationalist Uprising targeting, the start-of-GW Second Rome VPs and a live `refreshPowerProjection`; its port formula still shows FR/RU at 4 where the playbook prints 3, so those two displayed values are +1 until the port model is reconciled. |
-| **34 Bots, scenarios, promos** | **Partial** | Campaign scenario only. Bot engine (rule 34) implemented in `engine/bot.ts`: Priority 1 and Priority 2 action tables, BDIT targeting, BMPIT influence, wartime priorities, GW priorities, end-phase army-build preference, and pending-decision auto-answers. The printed **BOT BOX** (9.2/34.3.4) is transcribed for all 32 cards that print one and drives B1 Priority 1 step 3 and 34.3.4’s always-play-the-event rule. Hotseat local mode has per-seat bot toggle. | Bot PAC/priority random dice, power-specific home-card logic (†Home Card Revealed), and GW maneuver target selection use simplified deterministic defaults. Cards 21 and 82 print no bot box, so no bot auto-plays them. Alternate scenarios (1870/1880/No-GW/alternate-GW), the 1850 tutorial and promotional cards P1–P3 remain deferred. |
+| **34 Bots, scenarios, promos** | **Partial** | Campaign scenario only. Bot engine (rule 34) implemented in `engine/bot.ts`: Priority 1 and Priority 2 action tables, BDIT targeting, BMPIT influence, wartime priorities, GW priorities, end-phase army-build preference, and pending-decision auto-answers. The printed **BOT BOX** (9.2/34.3.4) is transcribed for all 32 cards that print one and drives B1 Priority 1 step 3 and 34.3.4’s always-play-the-event rule. Bots play both entrances: hotseat local mode has per-seat bot toggles, and an online match of 2–6 humans fills the remaining seats from `setupData.bots` with the same bot, driven on the server by `src/game/ieBotDriver.ts`. | Bot PAC/priority random dice, power-specific home-card logic (†Home Card Revealed), and GW maneuver target selection use simplified deterministic defaults. Cards 21 and 82 print no bot box, so no bot auto-plays them. Alternate scenarios (1870/1880/No-GW/alternate-GW), the 1850 tutorial and promotional cards P1–P3 remain deferred. |
 
 ### Round-8 delta (what closed)
 
@@ -595,10 +595,14 @@ Fixed in three places:
   printed no-pass cards and reporting `forced` / `cpRequired`.
 - `moves.ts#pass` and `moves.ts#gwPass` — the no-pass clause is enforced
   (previously `gwPass` ignored 27.3 entirely).
-- `moves.ts#playCard` — a no-pass card may be played for CP **on top of** CP
-  already banked (`rescueMode`), which is the legal escape; the banked CP is
-  kept rather than overwritten. `board.tsx` enables that button, disables
-  `pass` with a tooltip explaining why, and gates the GW pass button.
+- `moves.ts#playCard` — 12.0's one-card-per-impulse rule is enforced without an
+  exception for those cards. The legal exit is `pass`: `hasActedThisImpulse`
+  already treats a played card as a used impulse, so the seat hands the impulse
+  over instead of spending a second card. (An earlier `rescueMode` allowed the
+  no-pass card to be played for CP on top of banked CP; that was itself a second
+  card in one impulse and has been removed.) `board.tsx` still disables `pass`
+  with a tooltip explaining the printed restriction, and gates the GW pass
+  button.
 
 Regression coverage: `passRestriction.test.ts`, plus the campaign auto-play
 test, which had been intermittently failing (~1 run in 3) for this reason.
@@ -754,6 +758,47 @@ once on a fresh board, so it could never see this:
     slot is now never also discarded, in both the event tail and the pending-card
     finaliser. The sweep also hardened the `polishRevolt` random-discard index
     against an out-of-range die, which previously threw on `cardById(undefined)`.
+
+## Fixed: one card per impulse, and three bot deadlocks it reached
+
+Rule 12.0 gives an impulse exactly **one** card play (for CP or as its event)
+and then the CP that card provides. `playCard` only refused a second card while
+CP were still banked, so spending the last CP — including the 2 CP a mandatory
+event grants — let the same seat play a second card in the same impulse, i.e.
+take two impulses in one. `impulseAlreadyUsed` now reads the whole impulse
+(`cpRemaining > 0` **or** the action-phase `actionCpSpentThisImpulse` flag), and
+`cardAvailability` uses the same predicate so the disabled buttons agree with
+the refused move. The old `rescueMode` exception for the printed no-pass cards
+(A047 / GW-10) was itself a second card in one impulse and is gone: a used
+impulse can always be handed over through `pass`.
+
+That stricter rule then exposed three latent "no legal move" bugs, all
+pre-existing and all found by the seeded self-play harness:
+
+- **A040 British Trade's extra home card was unplayable.** The card explicitly
+  puts the home card *not* chosen this turn into the UK's hand, and a home card
+  in hand forbids passing (12.0) — but `playCard` only accepted the card
+  selected during Diplomacy. Hand membership is the printed criterion, so the
+  selection-only guard is gone; the diplomacy selection still decides 12.13's
+  industrialization slot. The bot also plays a home card in hand rather than
+  naming a refused `pass`.
+- **The bot never started a war's maneuver step.** A war sits in `warAim` and
+  `alliance` before `maneuver`, and `deployReserves`/`landBattle` require
+  `maneuver`. The bot went straight to `deployReserves`, which the engine
+  refused forever; it now presses the board's own "start maneuver" move first.
+- **The bot built armies its counter pool could not supply.** 4.2's printed
+  counter pool is enforced by `recruit` *after* `canRecruitIn` says "legal", so
+  the build helper now checks `hasCounterFor` too (a reduced army of the same
+  kind upgrades in place and needs no new counter). The same guard applies to
+  the auto-industry branch, which used to name a card already parked in the
+  industry slot.
+
+Regression coverage: `oneCardPerImpulse.test.ts`, `botSelfPlay.test.ts` (each of
+the three decisions is executed against the real moves), `passRestriction.test.ts`,
+`cardAvailability.test.ts` and `cpAnyCard.test.ts`. On seeds IE-SIM-1 and
+IE-SIM-2 the seeded campaign and war sweeps finish with no rejected move; the
+remaining harness stalls on other seeds are pre-existing gaps in master (the
+Great War card window and an Italian Nationalist Wave livelock), not this rule.
 
 The card sweeps now cover three axes, all reporting second-card refusals
 separately — once an earlier card has changed the board, a printed playability
@@ -1072,9 +1117,8 @@ sweep alone takes minutes and is run explicitly instead.
   `reserveRemaining`.
 - `GW-05`’s legacy `persistent.gwCardFlipped` flag is not read; flip state is
   authoritative in `G.gw.combatCardsInFront`.
-- **Remaining:** `A063`’s no-pass/CP rescue behavior is covered by the no-pass
-  section; no other unread flag is known beyond the deliberate GW-05 legacy
-  field.
+- **Remaining:** `A063`'s war-window priority is covered by the no-pass section;
+  no other unread flag is known beyond the deliberate GW-05 legacy field.
 
 ### CP chain, decade, industry and card economy
 

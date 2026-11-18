@@ -25,6 +25,7 @@ written next to it.
 - [ ] The seat strip `data-testid="ie-seat-strip"` shows six tabs, `data-testid="ie-seat-status-GE"` … `ie-seat-status-OT`, in the printed order GE · UK · FR · AU · RU · OT (P1–P6).
 - [ ] Press `2` (or `]`): the focus moves to the UK board without reloading the page or restarting the match. `1`–`6` and `[` / `]` switch seats.
 - [ ] Optional, for the bot section: `http://localhost:5173/localIE?solo=1` opens the seat-setup screen first (`data-testid="ie-local-bot-seats"`), with a **Start match** / `开始对局` button `data-testid="ie-start-match"`.
+- [ ] Optional, for the online bot section: open `/imperialElegy`, choose **人类玩家 / Human players** (`#outlined-ie-humans`) between 2 and 6, and check the seat preview `data-testid="ie-lobby-seats"`: the tail seats (`ie-lobby-seat-FR` … `ie-lobby-seat-OT` for a 2-human table) show 🤖 and the summary reads `2 名人类 + 4 名机器人（规则 34）`. Creating the match posts `numPlayers: 6` with `setupData.bots`.
 
 ---
 
@@ -69,7 +70,8 @@ Setup for this section: click **Go to seat / 前往** on a seat that is acting (
 - [ ] A disabled row's reason is readable text (not only a tooltip): the reason line stays visible under the button.
 - [ ] **Declare war needs two clicks.** The declare-war block `data-testid="ie-war-declare"` keeps its aim/target/CP selects, and its `宣战` / `Declare war` button is `data-testid="ie-declare-war"`, a `ConfirmButton` like the controls below. First click: `data-armed="true"` and the label becomes `确认：宣战（n CP）` / `Confirm: declare war (n CP)`, where n is the CP chosen in the select. Second click: the war is declared (the block is only rendered while `war === null`, so it disappears), and the War tab joins the turn panel's tab strip. It disarms on blur, `Esc` or after **5 s**; with `confirmActions` off it declares on one click. The controls e2e test now clicks it twice.
 - [ ] **Play for CP needs two clicks.** In the hand, `data-testid="ie-play-cp-<cardId>"` (`作为 CP 打出` / `Play for CP`). First click: the button changes to `data-armed="true"` and its text to `确认：作 n CP 打出` / `Confirm: play for n CP`. Second click: the card is played and CP rises. A click elsewhere (blur), `Esc`, or **5 s** without a second click disarms it.
-- [ ] **Play event** `data-testid="ie-play-event-<cardId>"` behaves the same (`确认：打出事件` / `Confirm: play the event`).
+- [ ] **Play event** `data-testid="ie-play-event-<cardId>"` behaves the same (`确认：打出事件` / `Confirm: play the event`). A mandatory event keeps its printed type in the button label: it reads `打出强制事件` / `Play mandatory event` and arms as `确认：打出强制事件` / `Confirm: play the mandatory event` (A105 reads `打出强制响应`). A playable hand row carries no badge at all — every card may be played for CP — so the type is named on the button, not on the row.
+- [ ] **One card per impulse (12.0).** After a card has been played — for CP or as its event — every other card's CP *and* event controls are disabled until the seat ends the impulse, even when the impulse's CP have been spent down to 0. The reason line reads `请先结束本次行动` / `Finish the current impulse first` while CP remain, and `每次行动轮只能打出 1 张牌；请先结束本次行动` / `One card per impulse; finish this impulse first` once they are gone. A mandatory event's 2 CP are that impulse's budget: they may be spent, but not followed by a second card.
 - [ ] **Pass / end impulse needs two clicks.** In the turn panel head, `data-testid="ie-pass"` reads `停牌` / `Pass` while the impulse is unused, and `结束行动轮` / `End impulse` once the seat has played a card or banked CP. First click arms (`data-armed="true"`), second click passes. When passing is illegal the button is disabled and its tooltip is the 12.0 restriction.
 - [ ] **End diplomacy needs two clicks.** In the diplomacy step, `data-testid="ie-end-diplomacy"` (`开始行动阶段` / `Start action phase`) arms on the first click.
 - [ ] **Ready does not arm; Continue does.** `data-testid="ie-finish-prep"` (`准备完毕` / `Ready`) fires on one click (it carries no `confirm` flag), while in the end step `ie-end-phase-turn` (`继续` / `Continue`) is declared with `confirm: true` and rendered by the same `PhaseActions` → `ConfirmButton` path as pass and end diplomacy, so it arms first.
@@ -236,11 +238,17 @@ of these was introduced by this checklist; they are where a tester's answer is
 6. **Spectating is online-only.** There is no spectator toggle on `/localIE`,
    so section 7 needs a running game server on the same origin; a bare
    `yarn start` origin cannot reach it without a proxy.
-7. **The bot is a client-side loop, not an engine bot.** Each bot seat is driven
-   by a 500 ms `setTimeout` in the board while its tab is mounted (all six are
-   always mounted in hotseat), and a decision refused three times in a row is
-   replaced by a silent fallback move (`[IE bot] repeated invalid decision` in the
-   console).
+7. **The bot runs on the client in hotseat and on the server online.** In the
+   hotseat screen each bot seat is driven by a 500 ms `setTimeout` in the board
+   while its tab is mounted (all six are always mounted in hotseat), and a
+   decision refused three times in a row is replaced by a silent fallback move
+   (`[IE bot] repeated invalid decision` in the console). An online match of 2–6
+   humans is different: the lobby's `setupData.bots` names the seats no human
+   took, the server (`src/game/ieBotDriver.ts`) plays them through a Master with
+   each seat's credentials, and the board only shows the read-only banner — a
+   client must not also send that move, so the board's bot loop is gated on
+   `hotseat`. A server-side refusal follows the same three-strike escape and
+   logs `[IE bot] falling back to …`.
 8. **Spectator console noise (verify).** Whether boardgame.io's client prints
    `invalid move` lines for a spectator's stripped view is not asserted
    anywhere in the repo; check by hand.

@@ -112,6 +112,41 @@ test("Imperial Elegy creates a match with the fixed first player", async ({page}
     await expect(page).toHaveURL(/\/join\/imperialElegy\/e2e-created-ie-match\/0$/);
 });
 
+test("Imperial Elegy offers 2-6 humans and shows the bot seats", async ({page}) => {
+    let body: any = null;
+    await page.route("**/games/imperialElegy/create", async (route) => {
+        body = route.request().postDataJSON();
+        await route.fulfill({json: {matchID: "e2e-created-ie-bots-match"}});
+    });
+    await page.goto("/imperialElegy");
+
+    // Six seats, all human by default: no bots on a full table.
+    const humanSelect = page.locator("#outlined-ie-humans");
+    await expect(humanSelect).toBeVisible();
+    await expect(humanSelect.locator("option")).toHaveCount(5);
+    await expect(humanSelect.locator("option").first()).toHaveAttribute("value", "2");
+    await expect(humanSelect.locator("option").last()).toHaveAttribute("value", "6");
+    await expect(page.getByTestId("ie-lobby-seats")).toContainText("6 名人类 + 0 名机器人");
+    for (const power of ["GE", "UK", "FR", "AU", "RU", "OT"]) {
+        await expect(page.getByTestId(`ie-lobby-seat-${power}`)).not.toContainText("🤖");
+    }
+
+    // Two humans: the four tail seats become Rule 34 bots, and the create call
+    // still asks for all six boardgame.io seats.
+    await humanSelect.selectOption("2");
+    await expect(page.getByTestId("ie-lobby-seats")).toContainText("2 名人类 + 4 名机器人");
+    for (const power of ["GE", "UK"]) {
+        await expect(page.getByTestId(`ie-lobby-seat-${power}`)).not.toContainText("🤖");
+    }
+    for (const power of ["FR", "AU", "RU", "OT"]) {
+        await expect(page.getByTestId(`ie-lobby-seat-${power}`)).toContainText("🤖");
+    }
+
+    await page.getByRole("button", {name: "创建游戏"}).click();
+    await expect(page).toHaveURL(/\/join\/imperialElegy\/e2e-created-ie-bots-match\/0$/);
+    expect(body).toMatchObject({numPlayers: 6, setupData: {bots: ["FR", "AU", "RU", "OT"]}});
+});
+
 test("film and Song Jinn keep the start-player choice", async ({page}) => {
     await page.goto("/film");
     await expect(page.locator("#outlined-player-native-simple")).toBeVisible();

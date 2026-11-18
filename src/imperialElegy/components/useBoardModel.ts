@@ -56,6 +56,7 @@ import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
 import {BoardLayout} from "./BoardLayout";
 import {botMoveFor} from "../engine/bot";
+import {botPowersOf} from "../configuration";
 
 const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
 
@@ -210,11 +211,19 @@ export const useBoardModel = ({
   const active = G.activePower;
   const isActive = viewer !== null && viewer === active;
   const eliminated = me?.eliminated === true;
-  // Rule 34: a hotseat seat marked as a bot is driven by `botMoveFor` below and
-  // is read-only for the person at the keyboard.  Every "may act" flag folds
-  // this in, so no control on a bot seat can be clicked.
-  const botSeats = React.useContext(BotSeatsContext) ?? injectedUi?.botSeats ?? EMPTY_SEATS;
-  const isBotViewer = hotseat && viewer !== null && botSeats.has(viewer);
+  // Rule 34: a bot seat is driven by the bot and is read-only for whoever is
+  // looking at it.  Hotseat names its bots in the client-side seat toggles, an
+  // online match names them in the public `G.bots` list that the lobby's
+  // `setupData.bots` produced, so both sources are folded together here.  Every
+  // "may act" flag below folds this in, so no control on a bot seat can be
+  // clicked.
+  const contextBotSeats = React.useContext(BotSeatsContext) ?? injectedUi?.botSeats ?? EMPTY_SEATS;
+  const botSeats = React.useMemo<ReadonlySet<Power>>(() => {
+    const matchBots = botPowersOf(G);
+    if (matchBots.length === 0) return contextBotSeats;
+    return new Set<Power>([...contextBotSeats, ...matchBots]);
+  }, [G, contextBotSeats]);
+  const isBotViewer = viewer !== null && botSeats.has(viewer);
   const pending = G.pending;
   const canDecide = pending !== null && viewer !== null && pending.power === viewer && !isBotViewer;
   const war = G.war;
@@ -550,6 +559,11 @@ export const useBoardModel = ({
   // When this board instance belongs to a bot seat in hotseat mode, automatically
   // dispatch the bot's decided move after a short delay so the human player can
   // see what happened before the state advances.
+  //
+  // An online match lists its bot seats in `G.bots` and the server drives them
+  // (`src/game/ieBotDriver.ts`); a client must never send those moves too, so
+  // this driver is gated on `hotseat` alone even though `botSeats` also carries
+  // the online list (the badge and the read-only flags use it either way).
   const botTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   // boardgame.io re-syncs the view even when a move is rejected, so an illegal
   // decision used to be re-sent every 500 ms forever (console flood + a frozen

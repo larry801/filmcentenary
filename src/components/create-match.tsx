@@ -24,7 +24,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, imperialElegyName, songJinnName, virginQueenName} from "../constant/multi-games";
-import {IE_SEAT_LABELS} from "../imperialElegy/configuration";
+import {IE_SEAT_LABELS, IE_MIN_HUMANS, IE_SEATS, botsForHumanCount, firstHumanSeat, humanPowers} from "../imperialElegy/configuration";
 import {ScenarioID} from "../virginQueen/constant/general";
 import {SCENARIO_OPTIONS, scenarioOptionLabel, seatLabels} from "../virginQueen/configuration";
 
@@ -46,7 +46,7 @@ interface MatchData {
     nextMatchID?: string;
     createdAt: number;
     updatedAt: number;
-    setupData?: {scenario?: ScenarioID};
+    setupData?: {scenario?: ScenarioID; bots?: string[]};
 }
 
 interface CreateMatchProps {
@@ -81,11 +81,18 @@ const useInterval: IUseInterval = (callback, interval) => {
     }, [interval]);
 };
 
+interface SeatInfo {
+    /** Localized power name ("德国" / "Germany"). */
+    label: string;
+    /** True when the server's Rule 34 bot plays this seat. */
+    bot: boolean;
+}
+
 interface MatchRowData {
     match: MatchData;
     createdText: string;
     updatedText: string;
-    seats?: string[];
+    seats?: SeatInfo[];
 }
 
 interface MatchRowProps {
@@ -104,16 +111,29 @@ const MatchRow = React.memo(({data, serverURL}: MatchRowProps) => {
             <TableCell>
                 <Box sx={{display: "flex", flexWrap: "wrap", gap: 1, alignItems: "center"}}>
                     {match.players.map((p, idx) => {
-                        if (p.name === undefined) {
+                        // A bot seat is named by the server, so it never shows a
+                        // join link: the Rule 34 bot already holds its credentials.
+                        if (p.name === undefined && seats?.[idx]?.bot !== true) {
                             return (
                                 <a key={idx} href={`${serverURL}/join/${match.gameName}/${match.matchID}/${idx}`} style={{marginRight: 8}}>
-                                    {`${i18n.chain.lobby.join}|${idx + 1}${seats ? ` ${seats[idx]}` : ""}`}
+                                    {`${i18n.chain.lobby.join}|${idx + 1}${seats ? ` ${seats[idx].label}` : ""}`}
                                 </a>
+                            );
+                        }
+                        if (seats?.[idx]?.bot === true) {
+                            return (
+                                <Chip
+                                    key={idx}
+                                    size="small"
+                                    variant="outlined"
+                                    color="default"
+                                    label={`🤖 ${seats[idx].label}`}
+                                />
                             );
                         }
                         return (
                             <Typography key={idx} component="span" variant="body2" sx={{mr: 1, display: "inline-flex", alignItems: "center", gap: 0.5}}>
-                                {p.name} {seats?.[idx]}
+                                {p.name} {seats?.[idx]?.label}
                                 <Chip size="small" label={p.isConnected ? "(+)" : "(-)"} color={p.isConnected ? "success" : "default"} variant="outlined"/>
                             </Typography>
                         );
@@ -148,6 +168,12 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [matchID, setMatchID] = useState("");
     const [error, setError] = useState("");
     const [numPlayers, setNumPlayers] = useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName || gameName === imperialElegyName ? 6 : 2);
+    // Imperial Elegy always seats all six powers, so its lobby chooses the
+    // number of *humans* (2–6) and the server's Rule 34 bot takes the rest.
+    // `humanCount` is that choice; `botPowers` is derived from it.
+    const [humanCount, setHumanCount] = useState(IE_SEATS.length);
+    const botPowers = useMemo(() => botsForHumanCount(humanCount), [humanCount]);
+    const humanSeats = useMemo(() => humanPowers(botPowers), [botPowers]);
     const [isPublic, setIsPublic] = useState(true);
     const [matches, setMatches] = useState<MatchData[]>([]);
     const [vqScenario, setVqScenario] = useState<ScenarioID>("campaign");
@@ -159,9 +185,13 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
 
     useEffect(() => {
         if (matchID) {
-            navigate(`/join/${gameName}/${matchID}/${fixedFirstPlayer ? Player.P0 : player}`);
+            // Seat 0 is always a human seat (bots fill the tail of the seat
+            // order), but derive it rather than assuming, so a future lobby
+            // that lets the creator pick the bot seats keeps working.
+            const seat = fixedFirstPlayer ? firstHumanSeat(botPowers) : Number(player);
+            navigate(`/join/${gameName}/${matchID}/${seat}`);
         }
-    }, [matchID, gameName, player, fixedFirstPlayer, navigate]);
+    }, [matchID, gameName, player, fixedFirstPlayer, botPowers, navigate]);
 
     const lobbyClient = useMemo(() => new LobbyClient({server: serverURL}), [serverURL]);
 
@@ -179,8 +209,13 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const onClick = () => {
         setClicked(true);
         setError("");
-        createMatch(serverURL, gameName, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, numPlayers,
-            gameName === virginQueenName ? {scenario: vqScenario} : undefined)
+        // Imperial Elegy: always six boardgame.io seats; the lobby's choice of
+        // humans becomes `setupData.bots`, which `engine/setup.ts` stores as the
+        // public `G.bots` list the server drives (see game/ieBotDriver.ts).
+        const setupData = gameName === imperialElegyName
+            ? {bots: botPowers}
+            : gameName === virginQueenName ? {scenario: vqScenario} : undefined;
+        createMatch(serverURL, gameName, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, numPlayers, setupData)
             .then((id) => setMatchID(id))
             .catch((err) => {
                 if (gameName === songJinnName) {
@@ -199,6 +234,10 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
 
     const handleChange = (event: SelectChangeEvent<number>) => {
         setNumPlayers(Number(event.target.value));
+    };
+
+    const handleHumanCountChange = (event: SelectChangeEvent<number>) => {
+        setHumanCount(Number(event.target.value));
     };
 
     const handlePlayerChange = (event: SelectChangeEvent<Player>) => {
@@ -226,12 +265,27 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         </Alert>
     ) : null;
 
-    const rowData: MatchRowData[] = useMemo(() => matches.map((match) => ({
-        match,
-        createdText: new Date(match.createdAt).toLocaleString(),
-        updatedText: new Date(match.updatedAt).toLocaleString(),
-        seats: match.gameName === virginQueenName ? seatLabels(match.setupData?.scenario ?? "campaign", match.players.length, vqLocale) : match.gameName === imperialElegyName ? ["GE","UK","FR","AU","RU","OT"].map((p) => vqLocale === "zh_CN" ? IE_SEAT_LABELS[p as keyof typeof IE_SEAT_LABELS].zh_CN : IE_SEAT_LABELS[p as keyof typeof IE_SEAT_LABELS].en) : undefined,
-    })), [matches, vqLocale]);
+    const rowData: MatchRowData[] = useMemo(() => matches.map((match) => {
+        let seats: SeatInfo[] | undefined;
+        if (match.gameName === virginQueenName) {
+            seats = seatLabels(match.setupData?.scenario ?? "campaign", match.players.length, vqLocale).map((label) => ({label, bot: false}));
+        } else if (match.gameName === imperialElegyName) {
+            const bots = new Set(
+                (match.setupData?.bots ?? []).filter((power): power is keyof typeof IE_SEAT_LABELS =>
+                    (IE_SEATS as readonly string[]).includes(power as string)),
+            );
+            seats = IE_SEATS.map((power) => ({
+                label: vqLocale === "zh_CN" ? IE_SEAT_LABELS[power].zh_CN : IE_SEAT_LABELS[power].en,
+                bot: bots.has(power),
+            }));
+        }
+        return {
+            match,
+            createdText: new Date(match.createdAt).toLocaleString(),
+            updatedText: new Date(match.updatedAt).toLocaleString(),
+            seats,
+        };
+    }), [matches, vqLocale]);
 
     return (
         <Grid container spacing={3} sx={{p: {xs: 1, sm: 2, md: 3}, maxWidth: 1280, mx: "auto"}}>
@@ -299,6 +353,54 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 )}
                             </Box>
                         )}
+                        {gameName === imperialElegyName ? (
+                            <>
+                                <FormControl variant="outlined" sx={styles.formControl} fullWidth>
+                                    <InputLabel htmlFor="outlined-ie-humans">{vqLocale === "zh_CN" ? "人类玩家" : "Human players"}</InputLabel>
+                                    <Select
+                                        native
+                                        value={humanCount}
+                                        onChange={handleHumanCountChange}
+                                        label={vqLocale === "zh_CN" ? "人类玩家" : "Human players"}
+                                        inputProps={{
+                                            name: 'humanCount',
+                                            id: 'outlined-ie-humans',
+                                        }}>
+                                        {IE_SEATS.map((_, index) => index + 1).filter((count) => count >= IE_MIN_HUMANS).map((count) => (
+                                            <option key={count} value={count}>{count}</option>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                                <Box sx={{mx: 1, mb: 1}} data-testid="ie-lobby-seats">
+                                    <Typography variant="body2" color="text.secondary" sx={{mb: 0.5}}>
+                                        {vqLocale === "zh_CN"
+                                            ? `共 6 个席位：${humanSeats.length} 名人类 + ${botPowers.length} 名机器人（规则 34）`
+                                            : `Six seats: ${humanSeats.length} human(s) + ${botPowers.length} bot(s) (Rule 34)`}
+                                    </Typography>
+                                    <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5}}>
+                                        {IE_SEATS.map((power) => {
+                                            const bot = botPowers.includes(power);
+                                            const label = vqLocale === "zh_CN" ? IE_SEAT_LABELS[power].zh_CN : IE_SEAT_LABELS[power].en;
+                                            return (
+                                                <Chip
+                                                    key={power}
+                                                    size="small"
+                                                    data-testid={`ie-lobby-seat-${power}`}
+                                                    variant={bot ? "outlined" : "filled"}
+                                                    color={bot ? "default" : "primary"}
+                                                    label={bot ? `🤖 ${label}` : label}
+                                                />
+                                            );
+                                        })}
+                                    </Box>
+                                    <Typography variant="caption" color="text.secondary" component="div" sx={{mt: 0.5}}>
+                                        {vqLocale === "zh_CN"
+                                            ? "机器人占据末尾席位；只需邀请人类席位的好友。"
+                                            : "Bots take the last seats; only invite friends for the human seats."}
+                                    </Typography>
+                                </Box>
+                            </>
+                        ) : (
                         <FormControl variant="outlined" sx={styles.formControl} fullWidth>
                             <InputLabel htmlFor="outlined-numPlayers-native-simple">{i18n.chain.lobby.numPlayers}</InputLabel>
                             <Select
@@ -310,7 +412,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                     name: 'numPlayers',
                                     id: 'outlined-numPlayers-native-simple',
                                 }}>
-                                {gameName === virginQueenName ? SCENARIO_OPTIONS.find((entry) => entry.id === vqScenario)!.players.map((count) => <option key={count} value={count}>{count}</option>) : gameName === imperialElegyName ? <option value={6}>6</option> : <>
+                                {gameName === virginQueenName ? SCENARIO_OPTIONS.find((entry) => entry.id === vqScenario)!.players.map((count) => <option key={count} value={count}>{count}</option>) : <>
                                     <option value={2}>2</option>
                                     {gameName === 'film' ? <>
                                         <option value={3}>3</option>
@@ -319,6 +421,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                 </>}
                             </Select>
                         </FormControl>
+                        )}
                         {!fixedFirstPlayer && (
                             <FormControl variant="outlined" sx={styles.formControl} fullWidth>
                                 <InputLabel htmlFor="outlined-player-native-simple">{i18n.chain.lobby.player}</InputLabel>

@@ -9,7 +9,7 @@
 import type {ImperialElegyState, Power} from "../types";
 import {cardById} from "../engine/deck";
 import {cpPlayability, eventPlayability} from "../engine/playability";
-import {responseCardEligibility} from "../moves";
+import {impulseAlreadyUsed, responseCardEligibility} from "../moves";
 
 export interface CardAvailability {
   cpAllowed: boolean;
@@ -42,6 +42,12 @@ export interface CardAvailabilityInput {
   war: ImperialElegyState["war"];
   canActionCard: boolean;
   saveList: string[];
+  /**
+   * The printed no-pass cards in hand (A047 / GW-10).  The tray uses them to
+   * unfold their row; they grant **no** extra card play, because 12.0's
+   * one-card-per-impulse rule still applies and a used impulse can be handed
+   * over instead.
+   */
   forcedCardIds: string[];
   industryCard: string | null;
   cpChainLength: number;
@@ -56,7 +62,7 @@ export interface CardAvailabilityInput {
 export const cardAvailability = (input: CardAvailabilityInput): CardAvailability => {
   const {
     G, power, cardId, phase, isActive, isBelligerent, war, canActionCard, saveList,
-    forcedCardIds, industryCard, cpChainLength, homeCards, playBlock, responseBlock, bi,
+    industryCard, cpChainLength, homeCards, playBlock, responseBlock, bi,
   } = input;
   const card = cardById(cardId);
   const isMandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
@@ -74,10 +80,21 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const cpAllowed = cpGate.ok && (card.type !== "mandatory" || eventBlockKey === undefined);
   const cpBlockKey = cpGate.ok ? eventBlockKey : cpGate.reason;
   const cpBlockReason = cpBlockKey !== undefined ? playBlock[cpBlockKey] : undefined;
-  const homeOk = card.kind !== "home" || homeCards.includes(cardId);
-  const rescueOk = forcedCardIds.includes(cardId) && cpAllowed;
-  const cpModeOk = canActionCard && cpAllowed && (G.cpRemaining === 0 || rescueOk) && homeOk;
-  const eventModeOk = canActionCard && eventAllowed && G.cpRemaining === 0 && (eventGate === null || eventGate.ok);
+  // 6.1/12.0: a home card is playable while it is **in hand**, which is the only
+  // way the tray can list it.  That is normally just the card chosen in
+  // Diplomacy, but A040 British Trade adds the other one to hand, so hand
+  // membership — not the Diplomacy selection — decides play.  The selection
+  // still decides 12.13's industrialization slot.
+  const homeIndustryOk = card.kind !== "home" || homeCards.includes(cardId);
+  // 12.0: a card opens an impulse.  Once that impulse's card has been played
+  // (or its CP have been spent, even down to zero) the next card waits for a
+  // fresh impulse, so both the CP and the event mode are shut — not merely the
+  // CP mode, which is what let a spent impulse play a second card.  The printed
+  // no-pass cards (`forcedCardIds`) grant no exception: a used impulse can be
+  // handed over, so the card never needs a second slot in the same impulse.
+  const impulseUsed = impulseAlreadyUsed(G, power);
+  const cpModeOk = canActionCard && cpAllowed && !impulseUsed;
+  const eventModeOk = canActionCard && eventAllowed && !impulseUsed && (eventGate === null || eventGate.ok);
   const responseEligible = card.type === "response" ? responseCardEligibility(G, power, cardId) : null;
   const responseOk = responseEligible?.ok === true;
   const showResponse = card.type === "response" && (
@@ -86,9 +103,10 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
         : phase === "gwManeuver" ? isActive
           : false
   );
-  // 12.13: the selected home card is a legal industrialization card too.  Unselected
-  // home cards never reach the hand, so `homeOk` keeps them out here as well.
-  const industOk = canActionCard && industryCard === null && homeOk && !isMandatory;
+  // 12.13: the selected home card is a legal industrialization card too.
+  // Unselected home cards never reach the hand except through A040 British
+  // Trade, which grants the card for play, not for industrialization.
+  const industOk = canActionCard && industryCard === null && homeIndustryOk && !isMandatory;
   const chainOk = canActionCard && cpChainLength < 2;
   const saveOk = (phase === "action" || phase === "end") && card.kind !== "home" && !isMandatory;
 
@@ -110,20 +128,23 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
     ? [responseReason, responseWindowReason ?? noWindowReason]
     : [cpBlockReason, eventBlockReason]).filter((reason): reason is string => reason !== undefined);
   const reasons: string[] = [];
+  // 12.0: the impulse's card play comes before its CP are spent.  Two wordings
+  // keep the familiar reason while CP are still banked and name the printed
+  // one-card rule once the budget is gone and the impulse is only being closed.
+  const oneCardReason = bi("One card per impulse; finish this impulse first", "每次行动轮只能打出 1 张牌；请先结束本次行动");
   if (!cpModeOk) {
     if (!cpAllowed) reasons.push(cpBlockReason ?? bi("Cannot be played for CP", "不能作为 CP 打出"));
-    else if (!homeOk) reasons.push(bi("Set it as your home card during Diplomacy first", "需先在外交阶段选为本国牌"));
     else if (!canActionCard) reasons.push(bi("Only during your Action-phase impulse", "仅限你的行动阶段行动轮"));
-    else if (G.cpRemaining > 0) reasons.push(bi("Finish the current impulse first", "请先结束本次行动"));
+    else if (impulseUsed) reasons.push(G.cpRemaining > 0 ? bi("Finish the current impulse first", "请先结束本次行动") : oneCardReason);
   }
   if (!eventModeOk) {
     if (!eventAllowed) reasons.push(bi("This card has no printed event", "此牌没有可打出的事件"));
     else if (eventBlockReason !== undefined) reasons.push(eventBlockReason);
     else if (!canActionCard) reasons.push(bi("Events are played at the start of an Action impulse", "事件需在行动轮开始时打出"));
-    else if (G.cpRemaining > 0) reasons.push(bi("Events are played before spending CP", "事件需在花费 CP 前打出"));
+    else if (impulseUsed) reasons.push(G.cpRemaining > 0 ? bi("Events are played before spending CP", "事件需在花费 CP 前打出") : oneCardReason);
   }
   if (!industOk && !isMandatory) {
-    reasons.push(card.kind === "home" && !homeOk
+    reasons.push(card.kind === "home" && !homeIndustryOk
       ? bi("Set it as your home card during Diplomacy first", "需先在外交阶段选为本国牌")
       : industryCard !== null
         ? bi("A card is already industrializing", "已有牌在工业化")
@@ -134,7 +155,7 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const unique = [...new Set([...ownReasons, ...reasons])];
   return {
     cpAllowed, cpModeOk, eventAllowed, eventModeOk, eventBlockReason, eventBlockKey,
-    responseOk, showResponse, industOk, chainOk, saveOk, saved, homeOk, isMandatory,
+    responseOk, showResponse, industOk, chainOk, saveOk, saved, homeOk: homeIndustryOk, isMandatory,
     reasons: unique,
     firstReason: unique[0],
   };

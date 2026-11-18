@@ -448,7 +448,7 @@ interface ShellProps {
 
 const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellProps) => {
   const {
-    G, hotseat, t, locale, viewer, phase, active, botSeats, pending, battle, phaseActions,
+    G, t, locale, viewer, phase, active, botSeats, pending, battle, phaseActions,
     otherSeatPending, seatUi, pendingPrompt, pendingKind, responseWindow, cardFaceMode,
     setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
@@ -515,7 +515,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       {responseWindow && <IEBadge tone="warn">{t.responseWindow}</IEBadge>}
       {viewer && <IEBadge tone={viewer.toLowerCase()}>{t.seats[viewer]}</IEBadge>}
       {!viewer && <IEBadge>{t.spectators}</IEBadge>}
-      {hotseat && viewer !== null && botSeats.has(viewer) && (
+      {viewer !== null && botSeats.has(viewer) && (
         <div className="ie-bot-banner" data-testid="ie-bot-banner" role="status" aria-live="polite">
           🤖 {t.seats[viewer]} — {t.botSeatBadge} · {t.seatBotHint}
         </div>

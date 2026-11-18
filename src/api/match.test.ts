@@ -1,4 +1,4 @@
-import {fetchFullLog, MissingServerLogError} from "./match";
+import {fetchFullLog, getMatch, MissingServerLogError} from "./match";
 
 const mockFetch = (response: Response) => {
     const fn = jest.fn().mockResolvedValue(response);
@@ -42,5 +42,35 @@ describe("fetchFullLog", () => {
         await expect(fetchFullLog("http://server", "virginQueen", "m1")).rejects.toThrow(
             "failed to export log: Match m1 has not ended"
         );
+    });
+});
+
+describe("getMatch", () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    it("keeps the game's setupData so a lobby can read the bot seats", async () => {
+        mockFetch(new Response(JSON.stringify({
+            matchID: "m1",
+            players: [{id: 0, name: "P1"}, {id: 1}, {id: 2, name: "Bot FR"}],
+            setupData: {bots: ["FR"]},
+        }), {status: 200, headers: {"Content-Type": "application/json"}}));
+
+        const match = await getMatch("http://server", "m1", "imperialElegy");
+        expect(match.matchID).toBe("m1");
+        expect(match.players.get("1" as never)).toBeNull();
+        expect(match.players.get("2" as never)).toBe("Bot FR");
+        expect(match.setupData).toEqual({bots: ["FR"]});
+    });
+
+    it("leaves setupData absent when the server did not keep it", async () => {
+        mockFetch(new Response(JSON.stringify({
+            matchID: "m2",
+            players: [{id: 0, name: "P1"}, {id: 1}],
+        }), {status: 200, headers: {"Content-Type": "application/json"}}));
+
+        const match = await getMatch("http://server", "m2", "film");
+        expect(match.setupData).toBeUndefined();
     });
 });

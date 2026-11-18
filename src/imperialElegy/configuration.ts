@@ -20,3 +20,117 @@ export const seatPower = (seat: string | number | null | undefined): Power | und
 export const powerSeat = (power: Power): string => String(IE_SEATS.indexOf(power));
 
 export const IE_SCENARIOS = [{id: "campaign", name: "Campaign 1850-1920", nameZh: "1850-1920 战役"}] as const;
+
+// ---------------------------------------------------------------------------
+// Online multi-human / bot seats
+// ---------------------------------------------------------------------------
+
+/**
+ * The engine always runs all six printed seats: every power owns a hand, a
+ * deck and a national characteristic, and the phase flow walks `POWERS` by
+ * name.  A human-vs-human match is therefore "six seats, some of them played
+ * by the Rule 34 bot": the match is still created with six boardgame.io
+ * players, and `setupData.bots` names the powers the server drives.
+ *
+ * The lobby offers 2–6 human seats; the remaining seats are bots.
+ */
+export const IE_MIN_HUMANS = 2;
+export const IE_MAX_HUMANS = IE_SEATS.length;
+
+/** `setupData` key carrying the bot-controlled powers of an online match. */
+export const IE_BOTS_SETUP_KEY = "bots" as const;
+
+/** A `setupData` bag with an optional bot list. */
+export interface IESetupData {
+  bots?: Power[];
+}
+
+const isPower = (value: unknown): value is Power =>
+  typeof value === "string" && (POWERS as readonly string[]).includes(value);
+
+/**
+ * Read and validate the bot list of a `setupData` bag.
+ *
+ * Returns `undefined` when the bag names something that is not a subset of the
+ * six printed powers.  An absent list is an empty list: a six-human match and a
+ * six-bot match are the two ends of the same scale.
+ */
+export const parseBotPowers = (setupData: unknown): Power[] | undefined => {
+  if (setupData === undefined || setupData === null) return [];
+  if (typeof setupData !== "object" || Array.isArray(setupData)) return undefined;
+  const raw = (setupData as Record<string, unknown>)[IE_BOTS_SETUP_KEY];
+  if (raw === undefined) return [];
+  if (!Array.isArray(raw)) return undefined;
+  const bots: Power[] = [];
+  for (const entry of raw) {
+    if (!isPower(entry)) return undefined;
+    if (bots.includes(entry)) return undefined;
+    bots.push(entry);
+  }
+  return bots;
+};
+
+/** Powers that keep a human seat in a match with this bot list. */
+export const humanPowers = (bots: readonly Power[]): Power[] =>
+  IE_SEATS.filter((power) => !bots.includes(power));
+
+/**
+ * Read the bot seats of a live game state.
+ *
+ * `G.bots` is the public list `engine/setup.ts` copies from `setupData`; a
+ * hotseat match has no list at all.  Unknown or duplicate entries are dropped
+ * instead of trusted, because the field travels over the wire.
+ */
+export const botPowersOf = (G: {bots?: unknown} | null | undefined): Power[] => {
+  const bots = G?.bots;
+  if (!Array.isArray(bots)) return [];
+  const seen = new Set<Power>();
+  for (const entry of bots) {
+    if (isPower(entry)) seen.add(entry);
+  }
+  return IE_SEATS.filter((power) => seen.has(power));
+};
+
+/** True when `power` is one of the state's bot seats. */
+export const isBotPower = (G: {bots?: unknown} | null | undefined, power: Power): boolean =>
+  botPowersOf(G).includes(power);
+
+/**
+ * The lobby's "humans + bots" split: the last `6 - humanCount` seats are bots.
+ *
+ * A count outside 0–6 is clamped to that range, but the *minimum* of two humans
+ * is not enforced here — that is `validateIESetupData`'s job, so a table the
+ * lobby must not create is refused instead of silently becoming a legal one.
+ */
+export const botsForHumanCount = (humanCount: number): Power[] => {
+  const humans = Number.isFinite(humanCount) ? Math.trunc(humanCount) : 0;
+  const clamped = Math.min(IE_SEATS.length, Math.max(0, humans));
+  return IE_SEATS.slice(clamped);
+};
+
+/** Lowest seat index that is not a bot, i.e. the first joinable link. */
+export const firstHumanSeat = (bots: readonly Power[]): number =>
+  Math.max(0, IE_SEATS.findIndex((power) => !bots.includes(power)));
+
+/**
+ * The lobby's `validateSetupData` for Imperial Elegy.
+ *
+ * boardgame.io calls this before creating the match.  The engine needs all six
+ * seats, so `numPlayers` must be six even when fewer humans play; the human
+ * count is `6 - bots.length` and must leave room for at least two humans (a
+ * table of one human and five bots is the hotseat solo entrance, not an online
+ * match).
+ */
+export const validateIESetupData = (setupData: unknown, numPlayers: number): string | undefined => {
+  if (numPlayers !== IE_SEATS.length) {
+    return `Imperial Elegy always seats ${IE_SEATS.length} powers; choose 2–6 humans and let bots fill the rest.`;
+  }
+  const bots = parseBotPowers(setupData);
+  if (bots === undefined) {
+    return "Invalid bot seats: expected a list of distinct powers (GE, UK, FR, AU, RU, OT).";
+  }
+  if (bots.length > IE_SEATS.length - IE_MIN_HUMANS) {
+    return `At most ${IE_SEATS.length - IE_MIN_HUMANS} bot seats: an online match needs at least ${IE_MIN_HUMANS} human players.`;
+  }
+  return undefined;
+};

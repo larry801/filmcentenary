@@ -58,6 +58,35 @@ Seat order is fixed by rule 4.3: **GE, UK, FR, AU, RU, OT** (seats 0–5).
 Local hotseat keeps all six clients mounted; switching tabs never restarts the
 match. Keys `1`–`6` (or `[` / `]`) switch seats.
 
+### Online tables of 2–6 humans
+
+An online match always creates all six seats: every power owns a hand, a deck
+and a national characteristic, and the phase flow walks `POWERS` by name, so a
+table with fewer boardgame.io players would leave powers nobody can ever move.
+The lobby therefore chooses the number of **humans** (2–6) and the remaining
+seats are played by the Rule 34 bot:
+
+- The create panel (`src/components/create-match.tsx`) offers 2–6 humans and
+  previews which powers become bots (the tail of the seat order: 2 humans give
+  `FR, AU, RU, OT`). It posts `{numPlayers: 6, setupData: {bots: [...]}}`.
+- `configuration.ts` owns the split (`IE_MIN_HUMANS`, `parseBotPowers`,
+  `humanPowers`, `firstHumanSeat`, `validateIESetupData`); `validateSetupData`
+  refuses fewer than two humans, because 1 human + 5 bots is the local solo
+  entrance (`/localIE?solo=1`), not an online match.
+- `engine/setup.ts` copies the list into the public `G.bots`, which every view
+  keeps: the board marks those seats read-only and shows the bot banner, the
+  lobby's match table labels them 🤖, and the join page offers invite links for
+  the human seats only.
+- The server plays them. `src/game/ieBotDriver.ts` seats each bot with its own
+  name and credentials at match creation (which is also what stops a human
+  joining a bot seat), then after every stored state change asks
+  `botDecision` what the bot seat does and dispatches it through a Master
+  authenticated as that seat — the Socket.IO transport has no `bots` hook, and
+  boardgame.io's Master only accepts moves from active players. A decision the
+  engine refuses three times falls back to the phase's own exit move, the same
+  escape the hotseat driver uses. `server.ts` wires the driver to the storage
+  wrapper and the per-match pub-sub channel.
+
 ### SVG card faces
 
 The hand uses `components/CardFace.tsx` to render all 100 action cards, 12 home
@@ -147,6 +176,22 @@ banked CP; both call the same `pass` move, and only the unused form is subject
 to 12.0's zero-or-one-card restriction. `pass` is the only exit: it forfeits
 remaining CP on a used impulse and enforces `canPassNow` on an unused one, and
 there is no separate `endImpulse` move.
+
+**One card per impulse.** 12.0 lets an impulse play exactly one card — for CP or
+as its event — and then spend that card's CP. `playCard` therefore refuses a
+second card whenever the impulse is already used, and “used” survives the last
+CP being spent (`impulseAlreadyUsed` reads `G.cpRemaining > 0` **or** the
+action-phase `actionCpSpentThisImpulse` flag). A mandatory event's printed 2 CP
+are that impulse's budget: they can be spent, but the seat may not open another
+card with them. The hand's `cardAvailability` uses the same predicate, so the
+disabled buttons and the refused move always agree. `oneCardPerImpulse.test.ts`
+pins the CP card, the mandatory event and the next impulse.
+
+A mandatory event also keeps its printed type on its play button: it reads
+`打出强制事件` / `Play mandatory event` (A105 reads `打出强制响应`), while
+ordinary cards keep `打出事件` / `Play event`. A playable hand row shows no type
+badge — every card may be played for CP — so the button is where the printed
+type is named.
 
 The panel also stops treating a finished step as open: once a seat has chosen its
 home card the pending-choice faces remain (marking the selection) but the summary
@@ -725,6 +770,14 @@ Targeted evidence visible in the tree:
   `characteristicsIntegration.test.ts`, `nationalityIntegration.test.ts`,
   `combatCardModesIntegration.test.ts`, `responseCardOptions.test.ts`,
   `privacy.test.ts` and `privateInfo.test.ts` cover the other live integrations.
+- `multiplayerBots.test.ts` (17 tests) covers the 2–6 human lobby contract:
+  parsing `setupData.bots`, the human count → bot seat split, the two-human
+  minimum, the six-seat `minPlayers`/`maxPlayers`, and `setup` storing the list
+  as the public `G.bots`. `ieBotDriver.test.ts` (18 tests) covers the server
+  side: which seat owes an action in every phase, the refusal escape move, the
+  deterministic stand-in for the random plugin, seating the bots with names and
+  credentials, and two end-to-end drains (a human seat is never played; a table
+  of two humans plus four bots really advances through the real reducer).
 - `e2e/imperial-elegy.spec.ts` (6 tests) covers seat switching, map/card play, a
   support decision, the printed card faces, bilingual rendering and online
   creation. The controls spec (15 tests) covers the newer war/economy/MPIT panels
@@ -734,8 +787,11 @@ Targeted evidence visible in the tree:
   and `Enter` to commit, a miss spending no CP and `Esc` leaving the mode), the
   card inspector's SVG ↹ print face switch, and the phone dock at 390×844 (its
   closed / half / full positions, its tabs and the decision attribute wiring).
-  The spectator spec (3 tests) covers online seats and spectators. Their
-  configs/commands are listed above.
+  The spectator spec (4 tests) covers online seats and spectators plus the
+  two-human table (bot seats named by the server, invite links limited to the
+  human seats, a bot seat refusing a human). The lobby spec covers the human
+  count select and the `setupData.bots` it posts. Their configs/commands are
+  listed above.
 
 ## Asset counts
 

@@ -134,14 +134,17 @@ describe("playCard(..., 'cp') — live rejection", () => {
     expect(G.cpRemaining).toBe(2);
   });
 
-  test("a blocked mandatory event is refused in both modes", () => {
+  test("a blocked event is refused in event mode but stays spendable for CP", () => {
     // AU-8 Kaiserreich is printed "Playable after The Dual Monarchy has been
-    // played", so the CP play must not be a way around that gate.
+    // played".  The *event* is refused; spending the card for CP is a different
+    // printed action, so it stays legal — and it has to, because a home card in
+    // hand forbids passing (12.0) and a seat with no legal move deadlocks.
     const G = fresh("AU");
     G.powers.AU.hand = ["IE-H-AU-8"];
     expect(playCard(G, makeCtx("AU"), "IE-H-AU-8", "event")).toBe(INVALID_MOVE);
-    expect(playCard(G, makeCtx("AU"), "IE-H-AU-8", "cp")).toBe(INVALID_MOVE);
     expect(G.powers.AU.hand).toContain("IE-H-AU-8");
+    expect(playCard(G, makeCtx("AU"), "IE-H-AU-8", "cp")).toBeUndefined();
+    expect(G.powers.AU.hand).not.toContain("IE-H-AU-8");
   });
 
   test("A105 is refused for CP with a crowded hand and logged", () => {
@@ -154,17 +157,24 @@ describe("playCard(..., 'cp') — live rejection", () => {
     ).toBe("impulsive-ruler-hand");
   });
 
-  test("the CP wallet still bounds the impulse between plays", () => {
-    // The point of the fix is the *card*, not the impulse: a second card cannot
-    // be played while the first one's CP are still banked.
+  test("the impulse still allows one card: spending the wallet does not open a second", () => {
+    // The point of the fix is the *card type*, not the impulse.  Rule 12.0 gives
+    // an impulse exactly one card play, and that holds after the wallet reaches
+    // zero too — otherwise a seat could take two impulses in one.
     const G = fresh();
     G.powers.GE.hand = [COMBAT_CARD, RESPONSE_CARD];
     expect(playCard(G, makeCtx("GE"), COMBAT_CARD, "cp")).toBeUndefined();
     expect(playCard(G, makeCtx("GE"), RESPONSE_CARD, "cp")).toBe(INVALID_MOVE);
     expect(G.cpRemaining).toBe(1);
 
-    // Spending the wallet opens the next card, exactly as for any CP play.
+    // Spending the wallet does not open the next card in the same impulse.
     expect(spendCpFor(G, "GE", cpBudgetFor(G, "GE"))).toBe(true);
+    expect(playCard(G, makeCtx("GE"), RESPONSE_CARD, "cp")).toBe(INVALID_MOVE);
+    expect(G.powers.GE.hand).toContain(RESPONSE_CARD);
+    expect(G.cpRemaining).toBe(0);
+
+    // The next impulse is a fresh card play.
+    delete G.powers.GE.flags.actionCpSpentThisImpulse;
     expect(playCard(G, makeCtx("GE"), RESPONSE_CARD, "cp")).toBeUndefined();
     expect(G.cpRemaining).toBe(3);
   });
