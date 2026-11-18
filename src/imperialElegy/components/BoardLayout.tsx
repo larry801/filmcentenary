@@ -166,7 +166,8 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
 export const OrdersRegion = (props: OrdersSlice) => {
   const {
     onOpenReference,
-    G, selected, selectedUnit, setSelectedUnit, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
+    G, selected, selectedUnit, setSelectedUnit, selectedUnitIds, toggleUnitSelection, selectUnitGroup, startMoveTargeting,
+    battleFrom, setBattleFrom, navalFrom, setNavalFrom,
     viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
     targetControlledSpaces, warTargetControl, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
@@ -243,6 +244,10 @@ export const OrdersRegion = (props: OrdersSlice) => {
         selected={selected}
         selectedUnit={selectedUnit}
         setSelectedUnit={setSelectedUnit}
+        selectedUnitIds={selectedUnitIds}
+        toggleUnitSelection={toggleUnitSelection}
+        selectUnitGroup={selectUnitGroup}
+        startMoveTargeting={startMoveTargeting}
         battleFrom={battleFrom}
         setBattleFrom={(id) => setBattleFrom.current(id)}
         navalFrom={navalFrom}

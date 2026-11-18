@@ -423,7 +423,10 @@ Rome VPs and a live `refreshPowerProjection`; 27.5.2 places one drafted army per
 space (the second space is a pending choice, including the printed
 EF/elite-colonial-EF substitution); 12.15 redeployment now follows the printed
 land route (controlled/influence spaces only, enemy spaces block, rebels stop
-the move) instead of teleporting; 32.5 now displaces units from rebel
+the move) instead of teleporting, **and is priced as printed — 1 CP for the
+action, not 1 CP per unit**: `redeploy` charges on the first unit of an impulse
+and moves every later unit of that action for free, and accepts a whole stack so
+a group moves in one click (`redeployActionCost.test.ts`); 32.5 now displaces units from rebel
 spaces at the outbreak, keeps trenches out of rebel spaces and refuses GW
 maneuver destinations there; A17/A18/A56's stability-or-card choice belongs to
 the chosen player (forced stability loss with no card), A18 rolls its backfire

@@ -59,6 +59,7 @@ const INTERACTION_KEYS = [
 /** The turn panel's Action tab. */
 const ORDERS_KEYS = [
   "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "canAct", "canSpend", "cpBudget",
+  "selectedUnitIds", "toggleUnitSelection", "selectUnitGroup", "startMoveTargeting",
   "canActionCard", "pending", "canDecide", "war", "warAim", "setWarAim", "warCp", "setWarCp",
   "secondObjective", "setSecondObjective", "targetControlledSpaces", "warTargetControl", "onOpenReference",
   "canDeclareWar", "gwJointNavalAllies", "gwJointNavalUnitIds", "polishReserve", "setPolishReserve",
