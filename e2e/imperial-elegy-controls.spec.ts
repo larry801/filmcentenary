@@ -783,6 +783,41 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await expect.poll(async () => await page.evaluate(() => localStorage.getItem("ie_card_face"))).toBe("svg");
     });
 
+    test("a card named in the log is a CP chip that opens the inspector", async ({page}) => {
+        await reachAction(page);
+        const board = boardFor(page, "GE");
+
+        await board.locator('[data-testid="ie-turn-tab-log"]').click();
+        // The diplomacy step already logs each seat's home-card choice, so the
+        // history names a card before anything is played.  Playing one is not
+        // required and would make the test depend on the deal.
+        const chip = board.locator('[data-testid="ie-turn-panel-log"] [data-testid^="ie-log-card-"]').first();
+        await expect(chip).toBeVisible({timeout: 10_000});
+
+        // The chip carries the printed CP and the title the player knows.
+        const cardId = (await chip.getAttribute("data-testid"))!.replace("ie-log-card-", "");
+        const chipTitle = (await chip.locator(".ie-log-card-name").innerText()).trim();
+        const chipCp = (await chip.locator(".ie-log-card-cp").innerText()).trim();
+        expect(chipCp).toMatch(/^\d+$/);
+        expect(chipTitle.length).toBeGreaterThan(0);
+
+        await chip.click();
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        await expect(inspector).toBeVisible();
+        await expect(inspector.locator("svg.ie-card-face")).toHaveAttribute("data-card-id", cardId);
+        // The inspector names the same card, with the CP the chip printed.
+        await expect(inspector.locator(".ie-inspector-title")).toHaveText(chipTitle);
+        await expect(inspector.locator(".ie-inspector-subtitle")).toContainText(`${chipCp} CP`);
+        // A log card is a read-only copy: no play controls, just the note.
+        await expect(inspector.locator('[data-testid="ie-log-card-note"]')).toBeVisible();
+        expect(await inspector.locator('[data-testid^="ie-play-cp-"]').count()).toBe(0);
+
+        // Esc closes it and leaves the log where it was.
+        await page.keyboard.press("Escape");
+        await expect(inspector).toHaveCount(0);
+        await expect(board.locator('[data-testid="ie-log"]')).toBeVisible();
+    });
+
     test("selecting a unit rings legal destinations and a ring click moves it", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");

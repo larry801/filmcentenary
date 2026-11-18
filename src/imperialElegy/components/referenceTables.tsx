@@ -23,7 +23,7 @@ import {CHARTS, type ChartEntry} from "./ChartLightbox";
 import {ACTION_COSTS, ACTION_COST_ORDER, actionCostLabel, type ActionId} from "./actionAvailability";
 import {DashboardPanel} from "./DashboardPanel";
 import {ScorePanel} from "./ScorePanel";
-import {logText} from "./logText";
+import {LogList} from "./LogList";
 import type {ReferenceSlice} from "./boardSlices";
 
 /** The die differentials the printed CRT covers, best-to-worst for the defender. */
@@ -33,13 +33,15 @@ export interface ReferenceTablesProps extends ReferenceSlice {
   /** Inline section to scroll to (`crt`, `costs`, `sequence`, `scores`); charts open the lightbox. */
   anchor?: string | null;
   onOpenChart?: (chart: ChartEntry) => void;
+  /** Card face preference, passed through to the log's card inspector. */
+  cardFaceMode?: "svg" | "print";
 }
 
 export const ReferenceTables = (props: ReferenceTablesProps) => {
   const {
     G, locale, t, viewer, me, active, war, gw, pending, handCounts, goalCounts, minorMarkerRows,
     homeCardTitle, cpBudget, canAct, canSpend,
-    doAction, moves, anchor = null, onOpenChart,
+    doAction, moves, anchor = null, onOpenChart, cardFaceMode = "svg",
   } = props;
   const sections = React.useRef(new Map<string, HTMLElement>());
   const register = (key: string) => (node: HTMLElement | null) => {
@@ -172,11 +174,9 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
 
       <section className="ie-ref-section ie-log-panel" data-testid="ie-ref-log">
         <h3>{bi(locale, "History", "历史记录")}</h3>
-        <div className="ie-log" data-testid="ie-ref-log-entries">
-          {G.log.slice(-80).reverse().map((entry) => (
-            <div key={entry.id}><span className="t">T{entry.turn}</span>{logText(entry, locale)}</div>
-          ))}
-        </div>
+        {/* The drawer's copy is the same list as the Log tab, cards included:
+            a card named here opens the inspector in place. */}
+        <LogList entries={G.log.slice(-80).reverse()} locale={locale} testId="ie-ref-log-entries" mode={cardFaceMode}/>
       </section>
 
       {pending !== null && (
