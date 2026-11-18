@@ -427,6 +427,27 @@ const pruneRemovedFromDiscard = (G: ImperialElegyState): void => {
 const isHeldAsIndustryCard = (G: ImperialElegyState, cardId: CardId): boolean =>
   POWERS.some((power) => G.powers[power].industryCard === cardId);
 
+/**
+ * 12.0 — an impulse starts with **one** card play (for CP or as its event) and
+ * the CP that card provides may then be spent.  In the action phase the impulse
+ * is therefore already used when CP are still banked, when a card has been
+ * played, or when the first CP of the impulse has been spent (`requireCp`
+ * records that on the same flag).  Both signals are per-impulse:
+ * `finishImpulse` clears them.
+ *
+ * This is deliberately narrower than `hasActedThisImpulse`: the CP chain's
+ * phase-long `cpChainActive` flag is part of that predicate (it decides which
+ * reading of `pass` applies) but it does not stop the power from opening a
+ * later impulse of the same action phase with a fresh card.  Phases with their
+ * own wallet (wartime, Great War) keep the legacy CP-only reading, because
+ * their spend flags are `warCpSpentThisImpulse` / `gwActionsThisImpulse`.
+ */
+export const impulseAlreadyUsed = (G: ImperialElegyState, power: Power): boolean => {
+  if (G.cpRemaining > 0) return true;
+  if (G.phase !== "action") return false;
+  return G.powers[power].flags.actionCpSpentThisImpulse === true;
+};
+
 export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: "cp" | "event"): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
@@ -443,12 +464,12 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
       return INVALID_MOVE;
     }
   }
-  // Playing a card normally opens a fresh impulse, so CP must be finished
-  // first.  The one exception is 12.0's no-pass card: when it is the only
-  // thing that can still be spent, it must be playable even if the impulse
-  // already holds CP, or the impulse has no legal move at all.
-  const rescueMode = G.cpRemaining > 0 && isForcedCardPlay(G, power, cardId, mode);
-  if (G.cpRemaining > 0 && !rescueMode) return INVALID_MOVE;
+  // 12.0: one card play per impulse.  Once the impulse's card has been played
+  // — or its CP have been spent, even down to zero — the seat may only finish
+  // the impulse; it may not open a second card in the same impulse.  The
+  // mandatory-event bonus CP are that impulse's budget, so they are spent (or
+  // forfeited) before the next card play, not followed by one.
+  if (impulseAlreadyUsed(G, power)) return INVALID_MOVE;
   // A41 is printed "This can also be played as a standard event during your
   // impulse", so it keeps an event mode; every other response/combat card is
   // battle-window only.
@@ -456,7 +477,13 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   if (card.type === "mandatory" || card.type === "mandatoryResponse") {
     if (mode !== "event") return INVALID_MOVE;
   }
-  if (mode === "cp" && card.kind === "home" && G.powers[power].selectedHomeCard !== cardId) return INVALID_MOVE;
+  // 6.1/12.0: a home card is playable while it is **in hand**.  Normally only
+  // the card chosen in Diplomacy is there, but A040 British Trade explicitly
+  // adds the other one ("takes the home card they did not choose for this turn
+  // and places it in their hand"), so hand membership — not the Diplomacy
+  // selection — is the printed criterion.  The old selection-only guard left
+  // that seat unable to play the granted card *and* unable to pass (a home card
+  // in hand forbids passing): no legal move at all.
   // Remove from hand before resolving.
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
   if (G.powers[power].selectedHomeCard === cardId) G.powers[power].selectedHomeCard = null;
@@ -464,9 +491,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   G.impulseCard = cardId;
   addLog(G, power, "cardPlayed", {card: cardId, mode});
   if (mode === "cp") {
-    // A rescue play adds to the CP already banked: the card must not discard
-    // the impulse's remaining budget.
-    G.cpRemaining = rescueMode ? G.cpRemaining + card.cp : card.cp;
+    G.cpRemaining = card.cp;
     // A70: "Remove from the game if played for CP and Italy is unified."
     // A79: "Remove from the game if Tunisia and Libya are no longer Ottoman
     // controlled." — the CP play removes it instead of discarding it.
@@ -508,23 +533,6 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     }
   }
   return undefined;
-};
-
-/**
- * True when `cardId` is a card that forbids passing (12.0 / 27.3) and playing
- * it now is the impulse's only remaining legal move.
- *
- * A047 The Dual Monarchy is an ordinary action event; the difficulty is that
- * it can sit next to cards the engine refuses to play (combat/response cards
- * are battle-window only).  With CP still banked, the normal rule "finish the
- * impulse before playing a card" then leaves no legal move whatsoever.
- */
-const isForcedCardPlay = (G: ImperialElegyState, power: Power, cardId: CardId, mode: "cp" | "event"): boolean => {
-  if (mode !== "cp") return false;
-  const restriction = passRestriction(G, power);
-  if (!restriction.forced || !restriction.cards.some((c) => c.card === cardId)) return false;
-  const card = cardById(cardId);
-  return card.type !== "response" && card.type !== "combat";
 };
 
 /**

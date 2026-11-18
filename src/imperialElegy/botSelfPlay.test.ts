@@ -13,7 +13,9 @@ import {ImperialElegyState, POWERS, Power} from "./types";
 import * as M from "./moves";
 import {CARD_BY_ID, cardById} from "./engine/deck";
 import {ACTION_CARDS} from "./constant/cards.data";
-import {SPACES} from "./constant/spaces";
+import {SPACES, isNavalBox} from "./constant/spaces";
+import {counterRemaining} from "./engine/counters";
+import {placeUnit} from "./engine/effects";
 
 const makeCtx = (playerID: string | null = null) => ({
   playerID,
@@ -170,6 +172,50 @@ describe("bot decisions are legal moves", () => {
     // — not a manoeuvre move that the phase can never accept.
     const result = moves.gwResolveWinter(G, makeCtx("0"));
     expect(typeof result === "string" || result === undefined).toBe(true);
+  });
+
+  test("a home card granted by British Trade is played instead of a refused pass", () => {
+    // A040 British Trade puts the home card *not* chosen for this turn into the
+    // UK's hand.  A home card in hand forbids passing (12.0), and the old
+    // selection-only guard in `playCard` refused it too, so the seat had no
+    // legal move at all.  The bot must play it, and the move must accept it.
+    const G = fresh("action", "UK");
+    G.cpRemaining = 0;
+    const [selected, other] = G.powers.UK.homeCards;
+    G.powers.UK.flags.homeChosen = true;
+    G.powers.UK.selectedHomeCard = selected;
+    G.powers.UK.hand = [other];
+
+    expect(M.canPassNow(G, "UK")).toBe(false);
+    const {move, args, result} = runDecision(G, "UK");
+    expect(move).toBe("playCard");
+    expect(args[0]).toBe(other);
+    expect(result).not.toBe(INVALID_MOVE);
+    expect(G.powers.UK.hand).not.toContain(other);
+  });
+
+  test("a seat whose army counter pool is empty does not name a build it cannot make", () => {
+    // 4.2: the printed counter pool is a real limit that `recruit` enforces
+    // after `canRecruitIn` has said "legal".  The bot used to name the build
+    // anyway and repeated the refusal, which stalled the match.
+    const G = fresh("action", "OT");
+    G.cpRemaining = 3;
+    G.wtt = 1;
+    G.powers.OT.manpower = 20; // keep the manpower gate out of the way
+    G.powers.OT.flags.homeChosen = true;
+    G.powers.OT.hand = [];
+    G.powers.OT.selectedHomeCard = null;
+    const home = Object.keys(SPACES).find((id) => SPACES[id].home === "OT" && !isNavalBox(id))!;
+    // Put every printed Ottoman army counter into one home space.
+    let guard = 0;
+    while (counterRemaining(G, "OT", "army")! > 0 && guard++ < 20) placeUnit(G, "OT", "army", home, 2);
+    expect(counterRemaining(G, "OT", "army")).toBe(0);
+
+    const decision = botDecision(G, ctx, "OT");
+    if (decision.move === "recruit") {
+      const result = moves.recruit(G, makeCtx(String(POWERS.indexOf("OT"))), ...(decision.args as any[]));
+      expect(result).not.toBe(INVALID_MOVE);
+    }
   });
 });
 

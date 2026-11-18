@@ -595,10 +595,14 @@ Fixed in three places:
   printed no-pass cards and reporting `forced` / `cpRequired`.
 - `moves.ts#pass` and `moves.ts#gwPass` — the no-pass clause is enforced
   (previously `gwPass` ignored 27.3 entirely).
-- `moves.ts#playCard` — a no-pass card may be played for CP **on top of** CP
-  already banked (`rescueMode`), which is the legal escape; the banked CP is
-  kept rather than overwritten. `board.tsx` enables that button, disables
-  `pass` with a tooltip explaining why, and gates the GW pass button.
+- `moves.ts#playCard` — 12.0's one-card-per-impulse rule is enforced without an
+  exception for those cards. The legal exit is `pass`: `hasActedThisImpulse`
+  already treats a played card as a used impulse, so the seat hands the impulse
+  over instead of spending a second card. (An earlier `rescueMode` allowed the
+  no-pass card to be played for CP on top of banked CP; that was itself a second
+  card in one impulse and has been removed.) `board.tsx` still disables `pass`
+  with a tooltip explaining the printed restriction, and gates the GW pass
+  button.
 
 Regression coverage: `passRestriction.test.ts`, plus the campaign auto-play
 test, which had been intermittently failing (~1 run in 3) for this reason.
@@ -754,6 +758,45 @@ once on a fresh board, so it could never see this:
     slot is now never also discarded, in both the event tail and the pending-card
     finaliser. The sweep also hardened the `polishRevolt` random-discard index
     against an out-of-range die, which previously threw on `cardById(undefined)`.
+
+## Fixed: one card per impulse, and three bot deadlocks it reached
+
+Rule 12.0 gives an impulse exactly **one** card play (for CP or as its event)
+and then the CP that card provides. `playCard` only refused a second card while
+CP were still banked, so spending the last CP — including the 2 CP a mandatory
+event grants — let the same seat play a second card in the same impulse, i.e.
+take two impulses in one. `impulseAlreadyUsed` now reads the whole impulse
+(`cpRemaining > 0` **or** the action-phase `actionCpSpentThisImpulse` flag), and
+`cardAvailability` uses the same predicate so the disabled buttons agree with
+the refused move. The old `rescueMode` exception for the printed no-pass cards
+(A047 / GW-10) was itself a second card in one impulse and is gone: a used
+impulse can always be handed over through `pass`.
+
+That stricter rule then exposed three latent "no legal move" bugs, all
+pre-existing and all found by the seeded self-play harness:
+
+- **A040 British Trade's extra home card was unplayable.** The card explicitly
+  puts the home card *not* chosen this turn into the UK's hand, and a home card
+  in hand forbids passing (12.0) — but `playCard` only accepted the card
+  selected during Diplomacy. Hand membership is the printed criterion, so the
+  selection-only guard is gone; the diplomacy selection still decides 12.13's
+  industrialization slot. The bot also plays a home card in hand rather than
+  naming a refused `pass`.
+- **The bot never started a war's maneuver step.** A war sits in `warAim` and
+  `alliance` before `maneuver`, and `deployReserves`/`landBattle` require
+  `maneuver`. The bot went straight to `deployReserves`, which the engine
+  refused forever; it now presses the board's own "start maneuver" move first.
+- **The bot built armies its counter pool could not supply.** 4.2's printed
+  counter pool is enforced by `recruit` *after* `canRecruitIn` says "legal", so
+  the build helper now checks `hasCounterFor` too (a reduced army of the same
+  kind upgrades in place and needs no new counter). The same guard applies to
+  the auto-industry branch, which used to name a card already parked in the
+  industry slot.
+
+Regression coverage: `oneCardPerImpulse.test.ts`, `botSelfPlay.test.ts` (each of
+the three decisions is executed against the real moves), `passRestriction.test.ts`
+and `cardAvailability.test.ts`. The seeded harness now finishes every mode and
+every seed tried, including two seeds that deadlocked before the bot fixes.
 
 The card sweeps now cover three axes, all reporting second-card refusals
 separately — once an earlier card has changed the board, a printed playability
@@ -1072,9 +1115,8 @@ sweep alone takes minutes and is run explicitly instead.
   `reserveRemaining`.
 - `GW-05`’s legacy `persistent.gwCardFlipped` flag is not read; flip state is
   authoritative in `G.gw.combatCardsInFront`.
-- **Remaining:** `A063`’s no-pass/CP rescue behavior is covered by the no-pass
-  section; no other unread flag is known beyond the deliberate GW-05 legacy
-  field.
+- **Remaining:** `A063`'s war-window priority is covered by the no-pass section;
+  no other unread flag is known beyond the deliberate GW-05 legacy field.
 
 ### CP chain, decade, industry and card economy
 

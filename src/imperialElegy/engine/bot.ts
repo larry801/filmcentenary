@@ -37,7 +37,7 @@ import {
   unitsOfPower,
   isPower,
 } from "./rules";
-import {recruit as recruitMove} from "../moves";
+import {impulseAlreadyUsed, recruit as recruitMove} from "../moves";
 import {passRestriction} from "./characteristics";
 import {beginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
@@ -159,7 +159,15 @@ const botRecruitSpace = (G: ImperialElegyState, power: Power): SpaceId | null =>
   for (const [id, def] of Object.entries(SPACES)) {
     if (def.home !== power) continue;
     const decision = canRecruitIn(G, power, id, "army", {});
-    if (decision.allowed) return id;
+    if (!decision.allowed) continue;
+    // 4.2: the printed counter pool is a real limit, and `recruit` enforces it
+    // after `canRecruitIn` has said "legal".  A reduced army of the same kind is
+    // upgraded in place and needs no new counter; anything else does.  Naming a
+    // build the pool cannot supply made the bot repeat a refused move forever.
+    const upgrade = landUnitsIn(G, id).some(
+      (unit) => unit.owner === power && unit.kind === "army" && unit.steps < 2,
+    );
+    if (upgrade || hasCounterFor(G, power, "army")) return id;
   }
   return null;
 };
@@ -219,7 +227,7 @@ const worthPlayingForEvent = (
  * would refuse would leave the bot re-sending it every impulse.
  */
 const botBoxEvent = (G: ImperialElegyState, power: Power): BotMove | null => {
-  if (G.cpRemaining > 0) return null; // 12.0: an event needs an empty impulse
+  if (impulseAlreadyUsed(G, power)) return null; // 12.0: one card opens the impulse
   for (const cardId of G.powers[power].hand) {
     const def = cardById(cardId);
     if (def.botBox?.includes(power) !== true) continue;
@@ -462,10 +470,15 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
   //      the event gives < 3 CP value.
   //    The card is only playable while it is still in hand: `playCard` removes
   //    it, and a later impulse must not try to play the same home card again.
-  //    A card may only be played while the impulse holds no CP (12.0).
-  const homeCard =
-    p.selectedHomeCard !== null && p.hand.includes(p.selectedHomeCard) ? p.selectedHomeCard : null;
-  if (homeCard !== null && G.cpRemaining === 0) {
+  //    A card opens the impulse; its CP are spent afterwards (12.0).
+  //    A040 British Trade puts the *unselected* home card into hand, and a home
+  //    card in hand forbids passing (12.0), so that card has to be playable too
+  //    or the seat has no legal move at all.
+  const playableHome = p.hand.find((id) => cardById(id).kind === "home") ?? null;
+  const homeCard = p.selectedHomeCard !== null && p.hand.includes(p.selectedHomeCard)
+    ? p.selectedHomeCard
+    : playableHome;
+  if (homeCard !== null && !impulseAlreadyUsed(G, power)) {
     const def = cardById(homeCard);
     const skipEvent = p.stability >= 6 && def.cp < 3;
     if (!skipEvent) {
@@ -491,7 +504,11 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
   if (boxEvent !== null) return boxEvent;
 
   // 4. Industrialize (only if auto-industry marker active).
-  if (p.autoIndustry && p.industryCard !== null && G.cpRemaining >= 1) {
+  // 12.13: a card is played into the industrialization slot; the auto chit then
+  // pays off at the end phase.  `industrialize` requires the card in hand, so
+  // naming it while it already sits in the slot is a refused move the bot would
+  // repeat forever — the card is simply already spent.
+  if (p.autoIndustry && p.industryCard !== null && G.cpRemaining >= 1 && p.hand.includes(p.industryCard)) {
     return {move: "industrialize", args: [p.industryCard]};
   }
 
@@ -619,10 +636,11 @@ const priorityTwo = (
     }
   }
 
-  // 5-6 — play a card for its event.  `playCard` only accepts an event while
-  // the impulse holds no CP (12.0), so this tier is skipped when CP is banked;
-  // `botDecision` then spends the CP and reaches this tier on a later impulse.
-  if (roll >= 5 && roll <= 6 && G.cpRemaining === 0) {
+  // 5-6 — play a card for its event.  `playCard` accepts an event only as the
+  // impulse's single card play (12.0), so this tier is skipped once the impulse
+  // is used; `botDecision` then spends the CP and reaches this tier on a later
+  // impulse.
+  if (roll >= 5 && roll <= 6 && !impulseAlreadyUsed(G, power)) {
     for (const cardId of p.hand) {
       if (!isCpSpendable(cardId)) continue;
       if (worthPlayingForEvent(G, power, cardId)) {
@@ -718,6 +736,16 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
   const war = G.war;
   if (!war) return null;
   const budget = cpBudgetFor(G, power);
+  const principal = power === war.attacker || power === war.defender;
+
+  // 13.2/14.3: a freshly declared war sits in `warAim`, then the alliance step
+  // (`alliance`).  The maneuver actions below are only legal once the war
+  // reaches `maneuver`, and the board exposes "start maneuver" for exactly this
+  // transition.  Without it the bot named `deployReserves` in `warAim`, the
+  // engine refused it, and the seat had no other move to make.
+  if (principal && (war.status === "warAim" || war.status === "alliance")) {
+    return {move: "startWarManeuver"};
+  }
 
   // Attack enemy capital if adjacent.
   const enemyPowers = [...war.attackerAllies, war.attacker, ...war.defenderAllies, war.defender]
@@ -756,7 +784,7 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
       ...enemyPowers.map((p) => cpBudgetFor(G, p)),
     );
     if (opponentMaxBudget > budget) {
-      return {move: "passWar"};
+      return {move: "passWarMove"};
     }
   }
 
@@ -942,14 +970,14 @@ export const botDecision = (
     // A mandatory card in hand forbids passing (12.0), so play it first.
     // It may only be played for its event and only while the impulse is empty.
     const mandatory = mandatoryInHand(G, power);
-    if (mandatory !== null && G.cpRemaining === 0) {
+    if (mandatory !== null && !impulseAlreadyUsed(G, power)) {
       return {move: "playCard", args: [mandatory, "event"]};
     }
 
     // A047 The Dual Monarchy and GW-10 Exhaustion also forbid passing, and
     // unlike a mandatory card they may be spent for CP.  Left until later the
     // bot fills the impulse with its home card and then has no legal move.
-    const blocking = G.cpRemaining === 0
+    const blocking = !impulseAlreadyUsed(G, power)
       ? passRestriction(G, power).cards.find((card) => isCpSpendable(card.card))
       : undefined;
     if (blocking !== undefined) {
@@ -961,7 +989,7 @@ export const botDecision = (
     if (p1 !== null) return p1;
 
     // Start a fresh impulse by playing a card for CP.
-    if (G.cpRemaining === 0) {
+    if (!impulseAlreadyUsed(G, power)) {
       const cpCard = p.hand.find(isCpSpendable);
       if (cpCard !== undefined) {
         return {move: "playCard", args: [cpCard, "cp"]};

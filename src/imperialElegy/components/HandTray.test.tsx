@@ -113,6 +113,30 @@ test("a card that forbids passing starts unfolded so its event is reachable", ()
   expect(rowHtml).toContain(`data-testid="ie-card-face-${id}"`);
 });
 
+test("a mandatory card's button says 打出强制事件, not 打出事件", () => {
+  const G = game();
+  // Give GE a mandatory event (A104 The Funeral of Edward VII, 2 CP) and no
+  // ordinary card, so the unfolded row's event button is the one under test.
+  G.powers.GE.hand = ["IE-A104"];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)} expandAll/>);
+  const eventButton = html.match(/<button[^>]*data-testid="ie-play-event-IE-A104"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  expect(eventButton).not.toBe("");
+  expect(eventButton).toContain("打出强制事件");
+  expect(eventButton).not.toContain(">打出事件<");
+  // The folded status line names the printed type too.
+  expect(html).toContain("强制事件");
+});
+
+test("an ordinary card keeps the plain 打出事件 label", () => {
+  const G = game();
+  G.powers.GE.hand = ["IE-A029"];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)} expandAll/>);
+  const eventButton = html.match(/<button[^>]*data-testid="ie-play-event-IE-A029"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  expect(eventButton).not.toBe("");
+  expect(eventButton).toContain(">打出事件<");
+  expect(eventButton).not.toContain("打出强制事件");
+});
+
 test("svg is the zero-image default and print mode uses the stored card scan", () => {
   const G = game();
   // The scan is what the unfolded face draws, so the forced card opens them.

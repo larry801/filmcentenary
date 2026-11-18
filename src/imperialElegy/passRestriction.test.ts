@@ -14,6 +14,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {ImperialElegyState, Power} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {DUAL_MONARCHY_CARD, EXHAUSTION_CARD, passRestriction} from "./engine/characteristics";
+import {cardAvailability} from "./components/cardAvailability";
 import {
   canPassNow,
   chooseHomeCard,
@@ -27,6 +28,26 @@ import {
 
 const POWERS: Power[] = ["GE", "UK", "FR", "AU", "RU", "OT"];
 const seatOf = (power: Power): string => String(POWERS.indexOf(power));
+
+/** The hand's own "why not" line for a card, as the tray would show it. */
+const passCardReason = (G: ImperialElegyState, cardId: string): string => cardAvailability({
+  G,
+  power: G.activePower,
+  cardId,
+  phase: G.phase,
+  isActive: true,
+  isBelligerent: false,
+  war: G.war,
+  canActionCard: true,
+  saveList: [],
+  forcedCardIds: passRestriction(G, G.activePower).cards.map((c) => c.card),
+  industryCard: G.powers[G.activePower].industryCard,
+  cpChainLength: G.powers[G.activePower].cpChain.length,
+  homeCards: [],
+  playBlock: {},
+  responseBlock: {},
+  bi: (en: string) => en,
+}).reasons.join(" · ");
 
 const makeCtx = (power: Power, G: {phase?: string} = {}): Ctx =>
   ({
@@ -77,7 +98,7 @@ describe("passRestriction", () => {
 });
 
 describe("12.0 A047 The Dual Monarchy", () => {
-  test("cannot pass, and its CP is playable even with CP already banked", () => {
+  test("cannot pass, and its CP is the impulse's single card play", () => {
     const G = reachActionPhase();
     const holder: {phase?: string} = {phase: "action"};
     const au = makeCtx("AU", holder);
@@ -94,6 +115,28 @@ describe("12.0 A047 The Dual Monarchy", () => {
     expect(G.powers.AU.hand).not.toContain(DUAL_MONARCHY_CARD);
 
     G.cpRemaining = 0;
+    expect(pass(G, au)).toBeUndefined();
+    expect(G.activePower).not.toBe("AU");
+  });
+
+  test("the no-pass card grants no second card in the same impulse", () => {
+    // 12.0 is one card per impulse, so A047 cannot be a "rescue" play on top of
+    // CP banked by another card.  The legal exit is to hand the used impulse
+    // over, which `pass` always allows once a card has been played.
+    const G = reachActionPhase();
+    const au = makeCtx("AU", {phase: "action"});
+    G.activePower = "AU";
+    G.cpRemaining = 0;
+    G.powers.AU.hand = [DUAL_MONARCHY_CARD, "IE-A018"];
+
+    expect(playCard(G, au, "IE-A018", "cp")).toBeUndefined();
+    // A018 grants 1 CP, so the banked-CP wording is the live reason here.
+    expect(passCardReason(G, DUAL_MONARCHY_CARD)).toContain("Finish the current impulse first");
+    expect(playCard(G, au, DUAL_MONARCHY_CARD, "cp")).toBe(INVALID_MOVE);
+    expect(G.powers.AU.hand).toContain(DUAL_MONARCHY_CARD);
+    expect(G.cpRemaining).toBe(1);
+
+    // The used impulse may be handed over even though the no-pass card is held.
     expect(pass(G, au)).toBeUndefined();
     expect(G.activePower).not.toBe("AU");
   });
@@ -119,7 +162,7 @@ describe("12.0 A047 The Dual Monarchy", () => {
     expect(playCard(G, ot, "IE-A043", "event")).toBe(INVALID_MOVE);
     expect(playCard(G, ot, "IE-A043", "cp")).toBe(INVALID_MOVE);
 
-    // The rescue: A047 can be spent for CP, and that makes the impulse used.
+    // The legal escape: A047 opens the impulse for CP, and that makes it used.
     expect(playCard(G, ot, DUAL_MONARCHY_CARD, "cp")).toBeUndefined();
     expect(G.cpRemaining).toBe(2);
     expect(G.powers.OT.hand).not.toContain(DUAL_MONARCHY_CARD);

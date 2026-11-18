@@ -177,7 +177,11 @@ describe("3.3.1 printed port formula and rewards", () => {
     expect(G.powers.FR.cardMarkers).toBe(1);
     expect(G.powers.GE.cardMarkers).toBe(0);
     G.spaces.india.control = null; // UK 1, FR 1: UK no longer doubles FR.
+    // 12.0 allows one card per impulse, so the second resolution needs a fresh
+    // impulse: clear the spent-impulse flag rather than pretending a seat can
+    // play two cards back to back.
     G.cpRemaining = 0;
+    delete G.powers.GE.flags.actionCpSpentThisImpulse;
     G.powers.GE.hand = ["IE-A028"];
     expect(playCard(G, makeCtx("0"), "IE-A028", "event")).toBeUndefined();
     expect(G.powers.UK.cardMarkers).toBe(1);

@@ -119,7 +119,7 @@ describe("cardAvailability", () => {
     expect(lateEvent.reasons).toContain("Events are played before spending CP");
   });
 
-  test("mandatory cards can never be spent for CP, and the rescue rule does not rescue them", () => {
+  test("mandatory cards can never be spent for CP, whatever the impulse state", () => {
     const G = game(0);
     const id = mandatoryCard();
     const a = cardAvailability(input(G, id));
@@ -131,7 +131,9 @@ describe("cardAvailability", () => {
     // An empty CP pool is not what stops it: no impulse can spend it.
     expect(cardAvailability(input(game(3), id)).cpModeOk).toBe(false);
 
-    // `forcedCardIds` only rescues a card that is CP-playable in the first place.
+    // `forcedCardIds` (the printed no-pass cards) opens no CP slot either — a
+    // mandatory event is CP-unplayable by its type, and 12.0's one-card rule
+    // grants no exception to a no-pass card.
     const forced = cardAvailability(input(G, id, {forcedCardIds: [id]}));
     expect(forced.cpModeOk).toBe(false);
   });

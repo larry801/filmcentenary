@@ -176,6 +176,20 @@ to 12.0's zero-or-one-card restriction. `pass` is the only exit: it forfeits
 remaining CP on a used impulse and enforces `canPassNow` on an unused one, and
 there is no separate `endImpulse` move.
 
+**One card per impulse.** 12.0 lets an impulse play exactly one card — for CP or
+as its event — and then spend that card's CP. `playCard` therefore refuses a
+second card whenever the impulse is already used, and “used” survives the last
+CP being spent (`impulseAlreadyUsed` reads `G.cpRemaining > 0` **or** the
+action-phase `actionCpSpentThisImpulse` flag). A mandatory event's printed 2 CP
+are that impulse's budget: they can be spent, but the seat may not open another
+card with them. The hand's `cardAvailability` uses the same predicate, so the
+disabled buttons and the refused move always agree. `oneCardPerImpulse.test.ts`
+pins the CP card, the mandatory event and the next impulse.
+
+A mandatory event also keeps its printed type in the hand: its button reads
+`打出强制事件` / `Play mandatory event` (the folded row says `强制事件`), while
+ordinary cards keep `打出事件` / `Play event`.
+
 The panel also stops treating a finished step as open: once a seat has chosen its
 home card the pending-choice faces remain (marking the selection) but the summary
 and the "required card choice" state clear, so the next seat is not told a
