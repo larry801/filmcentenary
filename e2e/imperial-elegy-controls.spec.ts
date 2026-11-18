@@ -166,6 +166,28 @@ async function openCard(card: Locator): Promise<Locator> {
     return card;
 }
 
+/**
+ * The action cards that exist only as reconstructed text cards.
+ *
+ * The module has no face image for card 21 (its slot holds a duplicate of 27)
+ * or card 82, so the print-face assertion has to address a card that really has
+ * a scan.  The hand is a folded list in printed order, so hand slot 0 can be one
+ * of these.
+ */
+const TEXT_ONLY_CARDS = ["IE-A021", "IE-A082"];
+
+/** First hand card in `board` that has a printed scan. */
+async function firstCardWithPrintFace(board: Locator): Promise<Locator> {
+    const cards = board.locator(".ie-hand .ie-card");
+    for (let i = 0; i < await cards.count(); i += 1) {
+        const card = cards.nth(i);
+        const testId = await card.getAttribute("data-testid");
+        if (testId !== null && TEXT_ONLY_CARDS.some((id) => testId.endsWith(id))) continue;
+        return card;
+    }
+    throw new Error("no hand card has a printed face image");
+}
+
 /** Find a hand card whose Save control is enabled (non-home, non-mandatory). */
 async function findSavableCard(board: Locator): Promise<Locator | null> {
     const cards = board.locator(".ie-hand .ie-card");
@@ -612,7 +634,7 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
     test("the card inspector shows every operation and switches between SVG and print faces", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");
-        const card = await openCard(board.locator(".ie-hand .ie-card").first());
+        const card = await openCard(await firstCardWithPrintFace(board));
         await card.locator(".ie-card-face-button").click();
 
         const inspector = board.locator('[data-testid="ie-card-inspector"]');
@@ -630,7 +652,9 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
 
         // Switch the face preference, reopen, and see the scanned image.
         // The display preference lives in the strip's menu, under its own
-        // "显示" disclosure.
+        // "显示" disclosure.  The toggle writes React state, so wait for the
+        // stored preference *and* for the reopened inspector to report print
+        // mode before asking for the scan.
         await board.locator('[data-testid="ie-menu-toggle"]').click();
         await board.locator('[data-testid="ie-menu"] [data-testid="ie-display-menu"] > summary').click();
         await board.locator('[data-testid="ie-card-face-print"]').first().click();
