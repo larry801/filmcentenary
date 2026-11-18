@@ -45,6 +45,14 @@ export const die = (ctx: Ctx, sides: number): number => ctx.random!.Die(sides);
 
 /** GE home card #1 — the Bismarck event (see `CORRECTIONS.md`). */
 export const BISMARCK_HOME_CARD: CardId = "IE-H-GE-1";
+/** FR home card #6 — "Aux Armes, Citoyens!". */
+export const AUX_ARMES_HOME_CARD: CardId = "IE-H-FR-6";
+/** RU home card #9 — "Russo-Turkish Wars". */
+export const RUSSO_TURKISH_WARS_HOME_CARD: CardId = "IE-H-RU-9";
+/** OT home card #12 — "Jihad". */
+export const JIHAD_HOME_CARD: CardId = "IE-H-OT-12";
+
+export type WarDeclarationAim = "liberation" | "unification" | "conquest";
 
 export interface WarDeclarationEntitlement {
   /** The home card whose printed CP funds the declaration. */
@@ -52,8 +60,129 @@ export interface WarDeclarationEntitlement {
   /** The CP the declaration must commit (the card's printed CP value). */
   cp: number;
   /** The only legal aim, or null when the card leaves the aim open. */
-  aim: "liberation" | "unification" | "conquest" | null;
+  aim: WarDeclarationAim | null;
 }
+
+/**
+ * The printed limits a home card puts on the war it funds.
+ *
+ * Errata 12.17 turns the four "declare war using this card's CP value" home
+ * cards into declaration entitlements.  The entitlement itself is only the
+ * funding record (card, CP and any single fixed aim); this policy table is
+ * where the card-specific aim list, legal defender and conquest exceptions
+ * live.  Keeping the two apart leaves `warDeclarationEntitlement`'s shape
+ * unchanged for Bismarck while every path — `declareWar`, its pending-decision
+ * revalidation, the UI — can read the same printed rules.
+ */
+export interface WarDeclarationPolicy {
+  /** The war aims the card allows. */
+  aims: readonly WarDeclarationAim[];
+  /**
+   * Player powers that may be the defending primary.  `null` means any player
+   * power (Bismarck, Aux Armes); an array restricts the declaration to those
+   * powers.  A non-player target is judged by its player ally under 13.4.
+   */
+  powers: readonly Power[] | null;
+  /**
+   * Jihad: a power that controls at least one printed Ottoman home space is
+   * also a legal defender ("a power that controls an OT home space or RU").
+   */
+  ottomanHomeController: boolean;
+  /**
+   * Rule 13.3 normally lets a conquest war target one key.  Aux Armes prints
+   * "may target up to two keys", so its limit is 2.
+   */
+  conquestKeyLimit: number;
+  /** The card's conquest declaration neither raises the WTT nor costs stability. */
+  exemptConquestPenalty: boolean;
+  /** Rule 13.1.2: the card opens non-rebellious Balkan spaces to liberation. */
+  russianBalkanLiberation: boolean;
+}
+
+const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = {
+  [BISMARCK_HOME_CARD]: {
+    aims: ["unification"],
+    powers: null,
+    ottomanHomeController: false,
+    conquestKeyLimit: 1,
+    exemptConquestPenalty: false,
+    russianBalkanLiberation: false,
+  },
+  [AUX_ARMES_HOME_CARD]: {
+    // "If you choose a conquest war aim you may target up to two keys and you
+    // may also target two different powers."  The two-power half is not
+    // modelled yet (the same open clause as Bismarck); the two-key half is
+    // enforced through `conquestKeyLimit`.
+    aims: ["liberation", "conquest"],
+    powers: null,
+    ottomanHomeController: false,
+    conquestKeyLimit: 2,
+    exemptConquestPenalty: false,
+    russianBalkanLiberation: false,
+  },
+  [RUSSO_TURKISH_WARS_HOME_CARD]: {
+    // "Then declare war against the Ottomans using this card's CP value."
+    aims: ["liberation", "conquest"],
+    powers: ["OT"],
+    ottomanHomeController: false,
+    conquestKeyLimit: 1,
+    // "If a conquest war aim is chosen, do not increase the WTT or decrease
+    // your stability."
+    exemptConquestPenalty: true,
+    russianBalkanLiberation: true,
+  },
+  [JIHAD_HOME_CARD]: {
+    // "Declare war against a power that controls an OT home space or RU …
+    // Do not increase the WTT or decrease your stability."
+    aims: ["liberation", "conquest"],
+    powers: ["RU"],
+    ottomanHomeController: true,
+    conquestKeyLimit: 1,
+    exemptConquestPenalty: true,
+    russianBalkanLiberation: false,
+  },
+};
+
+/** The printed declaration policy for a card, or null when it has none. */
+export const warDeclarationPolicy = (card: CardId): WarDeclarationPolicy | null =>
+  WAR_DECLARATION_POLICIES[card] ?? null;
+
+/** The aims a home-card declaration may use, in printed order. */
+export const warDeclarationAims = (card: CardId): readonly WarDeclarationAim[] =>
+  WAR_DECLARATION_POLICIES[card]?.aims ?? ["liberation", "unification", "conquest"];
+
+/** True when the card's conquest declaration skips rule 13.3's penalty. */
+export const warDeclarationExemptsConquestPenalty = (card: CardId): boolean =>
+  WAR_DECLARATION_POLICIES[card]?.exemptConquestPenalty === true;
+
+/** True when `power` directly controls a printed Ottoman home space. */
+export const controlsOttomanHome = (G: ImperialElegyState, power: Power): boolean =>
+  Object.values(SPACES).some((def) => def.home === "OT" && G.spaces[def.id]?.control === power);
+
+/**
+ * Whether the entitlement lets this declaration name `defender`.
+ *
+ * `defender` is the resolved defending primary: the player target itself, or
+ * the 13.4 player ally of a non-player target (the non-player id when it has
+ * no ally, which a restricted card cannot name).  A restricted card's targets
+ * are therefore checked through the same 13.4/13.5 lens as the declaration
+ * itself, so Jihad attacking a Russian minor ally is a declaration on Russia.
+ */
+export const warDeclarationTargetLegal = (
+  G: ImperialElegyState,
+  entitlement: WarDeclarationEntitlement | null,
+  defender: PowerOrMinor | null,
+): boolean => {
+  if (entitlement === null) return true;
+  const policy = WAR_DECLARATION_POLICIES[entitlement.card];
+  if (policy === undefined) return true;
+  if (defender === null) return policy.powers === null;
+  if (!isPower(defender)) return policy.powers === null;
+  if (policy.powers !== null && !policy.powers.includes(defender)) {
+    return policy.ottomanHomeController && controlsOttomanHome(G, defender);
+  }
+  return true;
+};
 
 /**
  * Errata 12.17: "A war can be declared for any number of CP, and all the CP
@@ -83,13 +212,13 @@ export const warDeclarationEntitlement = (
   const card = G.powers[power]?.flags.warDeclarationCard;
   if (!isCardId(card)) return null;
   const def = cardById(card);
+  const policy = WAR_DECLARATION_POLICIES[card];
   return {
     card,
     cp: def.cp,
-    // Only the Bismarck event is wired so far; it declares a war of
-    // unification.  Other printed war-declaration home cards still need their
-    // own restrictions (target and aim), so they do not grant an entitlement.
-    aim: card === BISMARCK_HOME_CARD ? "unification" : null,
+    // A card with exactly one printed aim fixes it; the other home cards leave
+    // the aim open and their policy lists the legal choices.
+    aim: policy !== undefined && policy.aims.length === 1 ? policy.aims[0] : null,
   };
 };
 

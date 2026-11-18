@@ -294,6 +294,8 @@ export interface ModelValues {
    * fixed to a war of unification.
    */
   warEntitlement?: WarDeclarationEntitlement | null;
+  /** False when the live card's printed target list excludes the selected defender. */
+  warTargetAllowed: boolean;
   targetControlledSpaces: SpaceId[];
   canDeclareWar: boolean;
   gwOrderPowers: Power[];

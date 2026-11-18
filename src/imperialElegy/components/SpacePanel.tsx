@@ -22,7 +22,7 @@ import React from "react";
 import {ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {SPACES, neighboursOf, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {BISMARCK_HOME_CARD, effectiveKeyType, gwAllyImpulseFor, hasLoc, minorController, type WarDeclarationEntitlement} from "../engine/rules";
+import {BISMARCK_HOME_CARD, JIHAD_HOME_CARD, RUSSO_TURKISH_WARS_HOME_CARD, effectiveKeyType, gwAllyImpulseFor, hasLoc, minorController, warDeclarationAims, type WarDeclarationEntitlement} from "../engine/rules";
 import {polishReserveDeployer} from "../engine/poland";
 import {IEBadge, IEPanel} from "./theme";
 import {ConfirmButton} from "./ConfirmButton";
@@ -252,8 +252,11 @@ export interface SpaceActionsPanelProps extends SpaceBaseProps {
   warTargetControl: Power | null;
   /** 13.4: the non-player power the selected space belongs to, when legal. */
   warMinorTarget?: string | null;
-  /** A home-card (Bismarck) declaration waiting to be made this impulse. */
+  /** A home-card (Bismarck, Aux Armes, Russo-Turkish Wars, Jihad) declaration
+   *  waiting to be made this impulse. */
   warEntitlement?: WarDeclarationEntitlement | null;
+  /** False when the card's printed target list excludes the selected defender. */
+  warTargetAllowed?: boolean;
   canDeclareWar: boolean;
   /** 22.5(2): the deploy-reserves row's Polish-reserve modifier. */
   polishReserve: boolean;
@@ -304,7 +307,7 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
     G, selected, viewer, locale, t, canAct, onOpenReference,
     rows, cpRemaining, canActionCard, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
-    targetControlledSpaces, warTargetControl, warMinorTarget = null, warEntitlement = null, canDeclareWar,
+    targetControlledSpaces, warTargetControl, warMinorTarget = null, warEntitlement = null, warTargetAllowed = true, canDeclareWar,
     polishReserve, setPolishReserve, selectedUnitDef, setSelectedUnit,
     battleFrom, setBattleFrom, navalFrom, setNavalFrom, confirmActions = true, doAction, moves,
     showUnavailable: liveShowUnavailable, setShowUnavailable: setLiveShowUnavailable,
@@ -314,7 +317,14 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
   // card's printed CP pay for the war, so the ordinary aim/CP pickers are
   // replaced by the printed values while the entitlement is live.
   const entitlementAim = warEntitlement?.aim ?? null;
-  const declarationAim = entitlementAim ?? warAim;
+  // A card with an open aim list (Aux Armes, Russo-Turkish Wars, Jihad) shows
+  // only the aims it prints; a stale "unification" choice falls back to the
+  // first legal one instead of sending a move the engine will refuse.
+  const entitlementAims = warEntitlement !== null ? warDeclarationAims(warEntitlement.card) : null;
+  const openAim = entitlementAims !== null && !entitlementAims.includes(warAim)
+    ? (entitlementAims[0] ?? warAim)
+    : warAim;
+  const declarationAim = entitlementAim ?? openAim;
   const declarationCp = warEntitlement?.cp ?? warCp;
   const declarationTarget = warMinorTarget ?? warTargetControl;
   const minorLabelText = (minor: string): string => spaceLabel(MINOR_POWER_HOMES[minor] ?? (minor as SpaceId), locale);
@@ -516,10 +526,10 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
             {entitlementAim !== null ? (
               <IEBadge tone="warn">{aimLabel(entitlementAim)}</IEBadge>
             ) : (
-              <select className="ie-select" value={warAim} onChange={(e) => setWarAim(e.target.value as typeof warAim)} title={t.warAim}>
-                <option value="conquest">{t.conquest}</option>
-                <option value="liberation">{t.liberation}</option>
-                <option value="unification">{t.unification}</option>
+              <select className="ie-select" value={openAim} onChange={(e) => setWarAim(e.target.value as typeof warAim)} title={t.warAim}>
+                {(entitlementAims ?? (["conquest", "liberation", "unification"] as const)).map((aim) => (
+                  <option key={aim} value={aim}>{aimLabel(aim)}</option>
+                ))}
               </select>
             )}
             {warEntitlement !== null ? (
@@ -564,6 +574,27 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
               {bi(locale,
                 `${warEntitlement.card === BISMARCK_HOME_CARD ? "Bismarck" : "The card"} funds this declaration with its printed CP; choose the objective on the map.`,
                 `本牌以印制的 CP 支付宣战费用；请在地图上选择战争目标。`)}
+            </div>
+          )}
+          {warEntitlement?.card === RUSSO_TURKISH_WARS_HOME_CARD && (
+            <div className="ie-hint" data-testid="ie-war-target-rule">
+              {bi(locale,
+                "Russo-Turkish Wars may only declare war on the Ottomans.",
+                "《俄土战争》只能对奥斯曼宣战。")}
+            </div>
+          )}
+          {warEntitlement?.card === JIHAD_HOME_CARD && (
+            <div className="ie-hint" data-testid="ie-war-target-rule">
+              {bi(locale,
+                "Jihad may only declare war on Russia or a power controlling an Ottoman home space.",
+                "《圣战》只能对俄国或控制奥斯曼本土空间的国家宣战。")}
+            </div>
+          )}
+          {warEntitlement !== null && !warTargetAllowed && (
+            <div className="ie-hint" data-testid="ie-war-target-forbidden">
+              {bi(locale,
+                "This card cannot declare war on the selected power.",
+                "本牌不能对所选国家宣战。")}
             </div>
           )}
           {G.wtt >= 3 && <div className="ie-hint">{bi(locale, "World Tension is 3+; a new war cannot be declared.", "世界紧张达到 3+，无法发动新的战争。")}</div>}
@@ -629,6 +660,7 @@ export interface SpacePanelProps extends SpaceBaseProps {
   warTargetControl?: Power | null;
   warMinorTarget?: string | null;
   warEntitlement?: WarDeclarationEntitlement | null;
+  warTargetAllowed?: boolean;
   canDeclareWar?: boolean;
   polishReserve?: boolean;
   setPolishReserve?: (b: boolean) => void;
@@ -757,6 +789,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
         warTargetControl={props.warTargetControl ?? null}
         warMinorTarget={props.warMinorTarget ?? null}
         warEntitlement={props.warEntitlement ?? null}
+        warTargetAllowed={props.warTargetAllowed ?? true}
         canDeclareWar={props.canDeclareWar ?? false}
         polishReserve={polishReserve ?? false}
         setPolishReserve={props.setPolishReserve ?? (() => undefined)}

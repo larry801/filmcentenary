@@ -359,8 +359,43 @@ value. …”* (`IE-H-GE-1`).
 aim/CP、`{minor}` 目标参数、无授权时的普通控件）。
 
 仍未实现（另行记录，非本缺陷）：卡面的“可同时指定两个不同国家”与“宣战后可
-禁止其他玩家参战”，以及另外三张“用本牌 CP 宣战”的本国牌
-（Aux Armes, Russo-Turkish Wars, Jihad）各自的同类授权与目标限制。
+禁止其他玩家参战”。另外三张“用本牌 CP 宣战”的本国牌已按下文 §3.13 补齐。
+
+### 3.13 其余三张宣战本国牌的授权与目标限制 / the other three declaration home cards
+
+卡面：
+
+- `IE-H-FR-6` Aux Armes, Citoyens!：*“Then declare war using this card's CP
+  value. If you choose a conquest war aim you may target up to two keys …”*
+- `IE-H-RU-9` Russo-Turkish Wars：*“Then declare war against the Ottomans using
+  this card's CP value. … If a conquest war aim is chosen, do not increase the
+  WTT or decrease your stability.”*
+- `IE-H-OT-12` Jihad：*“Declare war against a power that controls an OT home
+  space or RU using this card's CP value (declaring war on a RU Minor power ally
+  counts as declaring war on RU). Do not increase the WTT or decrease your
+  stability.”*
+
+**Fix (2026-11-19).** 三个处理器不再只置 `warDeclaration` 标志，而是与俾斯麦
+一样调用 `grantWarDeclarationEntitlement` 登记“牌 + 印刷 CP”；`playCard`
+因此保持行动轮打开，`declareWar` 不扣 `cpRemaining` 并校验印刷限制：
+
+- `engine/rules.ts` 新增按卡牌索引的 `WarDeclarationPolicy`：合法 aim 列表、
+  合法目标（RU-9 只能对 OT；OT-12 为 RU 或控制任意奥斯曼本土空间的国家）、
+  征服目标关键区上限（Aux Armes 为 2，其余 1）、征服免 WTT/稳定度惩罚
+  （RU-9、OT-12）与 13.1.2 巴尔干解放例外（RU-9）。
+- 目标检查使用 13.4 解析后的防守主角：对俄国小国盟友宣战即对俄宣战，因此
+  OT-12 的目标限制与该条印刷说明一致；小国目标走既有 `minorWarInfo` 门控。
+- `declareWar` 的 aim 校验、`chooseWarAim` 的再次校验、拿破仑遗产决策后的
+  再次校验都读取同一 policy；`finalizeWarDeclaration` 按
+  `G.flags.declarationCard` 跳过 RU-9 / OT-12 的征服惩罚。
+- UI：`SpacePanel` 只显示该牌允许的 aim，显示目标限制提示；选中被禁止的
+  目标时宣战按钮禁用（`warTargetAllowed`），不再发出必被拒绝的 move。
+
+回归：`src/imperialElegy/homeWarDeclarations.test.ts`（13 个断言）与
+`src/imperialElegy/components/bismarckDeclarePanel.test.tsx` 新增的 RU-9 /
+OT-12 面板断言。仍未实现：Aux Armes 的“可同时指定两个不同国家”与“中立国
+可参战”（与俾斯麦的同一条多人目标限制一并记录）；RU-9 的巴尔干小国结盟与
+三张牌的“获胜 +1 稳定度”仍不在本次宣告授权修复范围内。
 
 ---
 
@@ -574,13 +609,13 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` | auto | yes |
 | `IE-H-UK-4` | Balance of Power | event | 3 | `balanceOfPower` | auto | handler |
 | `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | auto | yes |
-| `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | auto | **no** |
+| `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | auto | yes |
 | `IE-H-AU-7` | Habsburg Dynasty | event | 3 | `habsburgDynasty` | choice | yes |
 | `IE-H-AU-8` | Kaiserreich | event | 3 | `kaiserreich` | auto | yes |
-| `IE-H-RU-9` | Russo-Turkish Wars | event | 3 | `russoTurkishWars` | auto | **no** |
+| `IE-H-RU-9` | Russo-Turkish Wars | event | 3 | `russoTurkishWars` | auto | yes |
 | `IE-H-RU-10` | God Save the Tsar | event | 3 | `godSaveTheTsar` | auto | yes |
 | `IE-H-OT-11` | Modernization | event | 3 | `modernization` | auto | yes |
-| `IE-H-OT-12` | Jihad | event | 3 | `jihad` + `jihadWar` | auto | **no** |
+| `IE-H-OT-12` | Jihad | event | 3 | `jihad` + `jihadWar` | auto | yes |
 
 #### 大战牌 Great War cards (10)
 

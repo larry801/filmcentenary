@@ -54,6 +54,9 @@ import {
   unitById,
   unitsOfPower,
   BISMARCK_HOME_CARD,
+  AUX_ARMES_HOME_CARD,
+  JIHAD_HOME_CARD,
+  RUSSO_TURKISH_WARS_HOME_CARD,
   grantWarDeclarationEntitlement,
 } from "./rules";
 import {POLAND, isPolandIndependent, polishController, polishHasLoc, polishReserveIds} from "./poland";
@@ -3348,7 +3351,15 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "auxArmes": {
       addReserve(G, "FR", 2);
-      G.powers.FR.flags.warDeclaration = true;
+      // "Then declare war using this card's CP value."  Errata 12.17: the
+      // event banks no ordinary CP; it leaves the declaration entitlement that
+      // `declareWar` consumes, and the impulse stays open until the seat
+      // declares or hands it over.
+      grantWarDeclarationEntitlement(
+        G,
+        "FR",
+        isCardId(G.resolvingCard) ? G.resolvingCard : AUX_ARMES_HOME_CARD,
+      );
       return true;
     }
     case "habsburgDynasty": {
@@ -3384,7 +3395,15 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "russoTurkishWars": {
-      G.powers.RU.flags.warDeclaration = true;
+      // "Then declare war against the Ottomans using this card's CP value."
+      // The target and aim restrictions live in the card's declaration policy
+      // (`engine/rules.ts`): only OT, either liberation or conquest, and the
+      // 13.1.2 Balkan liberation exception / conquest penalty exemption.
+      grantWarDeclarationEntitlement(
+        G,
+        "RU",
+        isCardId(G.resolvingCard) ? G.resolvingCard : RUSSO_TURKISH_WARS_HOME_CARD,
+      );
       return true;
     }
     case "godSaveTheTsar": {
@@ -3402,7 +3421,15 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "jihadWar": {
-      G.powers.OT.flags.warDeclaration = true;
+      // "Declare war against a power that controls an OT home space or RU using
+      // this card's CP value … Do not increase the WTT or decrease your
+      // stability."  The target list and penalty exemption are the card's
+      // declaration policy.
+      grantWarDeclarationEntitlement(
+        G,
+        "OT",
+        isCardId(G.resolvingCard) ? G.resolvingCard : JIHAD_HOME_CARD,
+      );
       return true;
     }
     case "bismarckWar": {
