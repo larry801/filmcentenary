@@ -1545,3 +1545,11 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 - 中英文案新增 `diplomacy.blocks.noPlayer` 与 `diplomacy.giftBlocks.noPlayer`。
 
 回归测试：`src/virginQueen/nonPlayerMajorDiplomacy.test.ts` 覆盖 2/3/4/5 人局下全部七个 move 被拒绝、状态未改动、面板策略返回 `noPlayer`，以及激活后恢复正常谈判。
+
+## 棋盘版地图缩小时裁剪溢出
+
+棋盘版 SVG 用 `preserveAspectRatio="meet"` 适配面板，宽面板里会在左右（竖屏里在上下）留出空白；但 board-layout 的 cartogram 位移会把海岸线、河流、湖泊与山脉推出 `0 0 1000 620` 画框（实测陆地最西到 x = −48、最东到 x = 1157，河流/湖泊最北到 y ≈ −240），这些点仍然照常在留白区里绘制，缩到 100% 时看起来就像地图两侧溢出并渗出浅色边带。
+
+现在把整个可平移/缩放的内容包进 `vq-board-frame` 裁剪组（`clipPath` = 画框矩形），画框外的变形部分不再显示；底图容器背景同时改为与棋盘海面一致的纵向渐变，使留白与海面衔接。地理版地图的图层全部落在画框内（陆地 65–980 / 16–600），无需裁剪。
+
+验证：`npx tsc --noEmit` 通过；`jest src/virginQueen/board-map.test.tsx src/virginQueen/map.test.tsx src/virginQueen/board.i18n.test.tsx` 56 tests passed（`board-map.test.tsx` 新增 1 项校验画框裁剪组及其内部的海岸线）。
