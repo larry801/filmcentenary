@@ -241,6 +241,47 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect(choice.locator(".ie-card img, .ie-card image")).toHaveCount(0);
     });
 
+    test("the required home-card dialog does not cover the hotseat seat strip", async ({page}) => {
+        // A hotseat answers each player's choice by handing the device over, so
+        // the seat strip must stay clickable while a choice is owed.  The dialog
+        // is anchored to the board, not the viewport: a `position: fixed`
+        // backdrop covered the strip and made every seat switch impossible.
+        await openLocal(page);
+        await finishPrep(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+
+        // Walk to a seat that actually owes a home card, and confirm its dialog.
+        let owing: string | null = null;
+        for (const seat of SEATS) {
+            await focusSeat(page, seat);
+            const modal = page.locator(`[data-testid="ie-seat-${seat}"] [data-testid="ie-choice-modal"]`);
+            if (await modal.count() > 0 && await modal.isVisible()) {
+                owing = seat;
+                break;
+            }
+        }
+        expect(owing, "some seat owes a home-card choice in the diplomacy step").not.toBeNull();
+
+        // The dialog is not a viewport overlay: while the seat is in front, its
+        // box stays below the strip (measure before switching, because an
+        // inactive seat is `display: none` and has no box to measure).
+        const modalBox = (await page.locator(`[data-testid="ie-seat-${owing}"] [data-testid="ie-choice-modal"]`).boundingBox())!;
+        const stripBox = (await page.locator('[data-testid="ie-seat-strip"]').boundingBox())!;
+        expect(modalBox.y).toBeGreaterThanOrEqual(stripBox.y + stripBox.height - 1);
+
+        // The strip is outside every board, so a switch must land even though a
+        // modal is open (a fixed-position backdrop timed out here).
+        const elsewhere = SEATS.find((seat) => seat !== owing)!;
+        await focusSeat(page, elsewhere);
+        await expect(page.locator(`[data-testid="ie-seat-${elsewhere}"]`)).toHaveAttribute("data-active", "true");
+        await expect(page.locator(`[data-testid="ie-seat-${owing}"]`)).toHaveAttribute("data-active", "false");
+
+        // Coming back shows the dialog again: switching seats never answers or
+        // discards another player's choice.
+        await focusSeat(page, owing!);
+        await expect(page.locator(`[data-testid="ie-seat-${owing}"] [data-testid="ie-choice-modal"]`)).toBeVisible();
+    });
+
     test("SVG cards switch language and expose the other translation without image requests", async ({page}) => {
         const cardImageRequests: string[] = [];
         page.on("request", (request) => {

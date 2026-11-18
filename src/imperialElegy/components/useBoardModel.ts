@@ -37,6 +37,7 @@ import {useInteraction, interactionPrompt} from "./useInteraction";
 import {useCardFaceMode, useConfirmActions} from "./preferences";
 import {sliceModel, type BoardSlices} from "./boardSlices";
 import {resolveLocale} from "./modelValues";
+import type {OrdersTab} from "./OrdersPanel";
 import type {MapTarget} from "./map";
 import {intentStyle, legalUnitTargets, type UnitIntent} from "./legalTargets";
 import {trenchRows} from "./trenchRows";
@@ -164,6 +165,10 @@ export const useBoardModel = ({
   const navalFrom: SpaceId | null = targeting?.intent === "navalBattle" ? targeting.from : null;
   const [board, setBoard] = React.useState<"world" | "greatWar">("world");
   const [railTab, setRailTab] = React.useState("action");
+  // The Orders panel's page.  A view preference: it is not part of `G`, so a
+  // save or a seat switch leaves it behind, and the panel falls back to the
+  // actions page whenever a page stops existing (the naval one is conditional).
+  const [ordersTab, setOrdersTab] = React.useState<OrdersTab>("actions");
   // Phone layout: the context rail folds to its tab strip so the map owns the
   // screen.  `narrow` is read once on mount (and on resize) rather than per
   // render; SSR has no window and stays on the desktop column.
@@ -573,6 +578,20 @@ export const useBoardModel = ({
     : null;
   const interceptReason = interceptCheck === null ? undefined : interceptReasonText(actualLocale, interceptCheck);
   const interceptVisible = lastNavalBox !== null && viewer !== null && !eliminated;
+
+  // --------------------------------------------------- Orders panel page state
+  /** A naval flow is on offer: the fourth page exists only while it is. */
+  const navalVisible = amphibiousVisible || transportVisible || interceptVisible;
+  // An interception window is short and belongs to the defender, so it pulls
+  // its page to the front when it opens; a window closing under the reader must
+  // not leave the panel on a page that no longer exists (`OrdersPanel` also
+  // falls back on its own, this just keeps the state honest).
+  const interceptWasVisible = React.useRef(interceptVisible);
+  React.useEffect(() => {
+    if (interceptVisible && !interceptWasVisible.current) setOrdersTab("naval");
+    else if (!navalVisible && ordersTab === "naval") setOrdersTab("actions");
+    interceptWasVisible.current = interceptVisible;
+  }, [interceptVisible, navalVisible, ordersTab]);
 
   React.useEffect(() => { (window as any).__IE_STATE__ = G; }, [G]);
   React.useEffect(() => { setSecondObjective(""); setConfirmSurrender(false); }, [selected]);
@@ -1338,9 +1357,9 @@ export const useBoardModel = ({
                 ? bi(actualLocale, "Your impulse", "你的行动轮")
                 : bi(actualLocale, "Waiting", "等待");
   const handChoicesHint = choiceKinds.required
-    ? bi(actualLocale, "Required choices are pinned in the decision panel above.", "当前必须做出的选择已固定在页面顶部的决策面板。")
+    ? bi(actualLocale, "Required choices are in the dialog over the board.", "当前必须做出的选择在覆盖面板的对话框中。")
     : choiceKinds.optional
-      ? bi(actualLocale, "An optional random discard for +1 stability is available in the decision panel above.", "决策面板提供了可选的随机弃牌换 +1 稳定操作。")
+      ? bi(actualLocale, "An optional random discard for +1 stability is at the top of the Orders actions.", "可选随机弃牌换 +1 稳定位于指令面板行动页顶部。")
       : null;
   const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
@@ -1648,6 +1667,9 @@ export const useBoardModel = ({
     setBoard,
     railTab,
     setRailTab,
+    ordersTab,
+    setOrdersTab,
+    navalVisible,
     railOpen,
     setRailOpen,
     narrow,

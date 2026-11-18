@@ -132,3 +132,41 @@ export const useConfirmActions = (): [boolean, (enabled: boolean) => void] => {
   }, []);
   return [enabled, choose];
 };
+
+// ---------------------------------------------------------------------------
+// The Orders panel's refused actions
+// ---------------------------------------------------------------------------
+
+export const SHOW_UNAVAILABLE_KEY = "ie_show_unavailable";
+
+/**
+ * Whether the Orders panel's "unavailable" fold starts open.
+ *
+ * Closed by default: a typical space refuses ten of its twelve rows, and the
+ * reason lines are reference material, not the next click.  The rows are never
+ * removed — only folded — so the printed restriction stays one tap away.
+ */
+export const DEFAULT_SHOW_UNAVAILABLE = false;
+
+export const readShowUnavailable = (
+  storage: PreferenceStorage | null = defaultPreferenceStorage(),
+): boolean => {
+  try {
+    if (!storage) return DEFAULT_SHOW_UNAVAILABLE;
+    const stored = storage.getItem(SHOW_UNAVAILABLE_KEY);
+    return stored === "open";
+  } catch {
+    return DEFAULT_SHOW_UNAVAILABLE;
+  }
+};
+
+export const writeShowUnavailable = (
+  open: boolean,
+  storage: PreferenceStorage | null = defaultPreferenceStorage(),
+): void => {
+  try {
+    storage?.setItem(SHOW_UNAVAILABLE_KEY, open ? "open" : "closed");
+  } catch {
+    // Cosmetic: a failed write must never stop play.
+  }
+};
