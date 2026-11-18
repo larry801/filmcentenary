@@ -1,0 +1,104 @@
+/* Printed board only. */
+
+.ie-score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ie-space-2); }
+
+@media (max-width: 700px) { .ie-score-grid { grid-template-columns: 1fr; } }
+
+/* ---------------------------------------------------------------- printed board */
+.ie-printed-page {
+  min-height: 100vh;
+  padding: 22px clamp(12px, 3vw, 44px) 44px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(120, 92, 56, .22), transparent 48%),
+    var(--ie-table-2);
+  color: var(--ie-on-dark);
+}
+
+.ie-printed-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 1700px;
+  margin: 0 auto 16px;
+}
+
+.ie-printed-toolbar h1 {
+  margin: 0 0 6px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(22px, 2.4vw, 34px);
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--ie-on-dark);
+}
+
+.ie-printed-toolbar p {
+  max-width: 780px;
+  margin: 0;
+  color: var(--ie-on-dark-2);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.ie-printed-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ie-printed-actions .ie-btn {
+  min-height: 40px;
+  padding: 8px 16px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ie-printed-notice {
+  max-width: 1700px;
+  margin: 0 auto 12px;
+  color: var(--ie-paper-3);
+  font-size: 13px;
+}
+
+.ie-printed-stage {
+  max-width: 1700px;
+  margin: 0 auto;
+  padding: clamp(6px, 1.2vw, 18px);
+  overflow: auto;
+  background: var(--ie-table);
+  border: 1px solid var(--ie-ink-2);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, .55);
+}
+
+.ie-printed-board {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+  background: var(--ie-on-dark);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, .55);
+}
+
+@media print {
+  @page { size: landscape; margin: 6mm; }
+  body { background: var(--ie-paper); }
+  .MuiAppBar-root, .ie-printed-toolbar, .ie-printed-notice { display: none; }
+  .ie-printed-page { min-height: 0; padding: 0; background: var(--ie-paper); color: var(--ie-ink); }
+  .ie-printed-stage { padding: 0; overflow: visible; border: 0; box-shadow: none; max-width: none; }
+  .ie-printed-board { width: 100%; box-shadow: none; }
+}
+
+body.ie-printed-route .MuiAppBar-root { display: none; }
+
+body.ie-printed-route { background: var(--ie-table-2); }
+
+.ie-printed-zoom { display: inline-flex; align-items: stretch; gap: 2px; }
+
+.ie-printed-zoom .ie-btn { min-width: 42px; padding: 8px 10px; }
+
+.ie-printed-zoom .ie-btn:nth-child(2) { min-width: 64px; font-variant-numeric: tabular-nums; }
+
+@media print {
+  .ie-printed-board { width: 100%; max-width: 100%; }
+}

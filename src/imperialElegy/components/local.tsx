@@ -156,7 +156,7 @@ const LocalImperialElegy = () => {
           </div>
           <button
             type="button"
-            className="ie-btn ie-local-start"
+            className="ie-btn primary ie-local-start"
             data-testid="ie-start-match"
             onClick={() => {
               // A fresh seat configuration is a fresh match: bump the nonce so

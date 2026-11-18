@@ -20,6 +20,7 @@
  * panel the derived state or the bots' effects depend on.
  */
 import React from "react";
+import {Icon} from "./Icon";
 import {ImperialElegyState, Power, SpaceId} from "../types";
 import {IEBadge, IESurface} from "./theme";
 import {bi, PHASE_LABEL} from "./boardHelpers";
@@ -79,7 +80,7 @@ const MoreActions = ({label, testId, children}: {label: string; testId: string; 
         aria-expanded={open ? "true" : "false"}
         onClick={() => setOpen((value) => !value)}
       >
-        {label} <span aria-hidden="true">▸</span>
+        {label} <Icon name="chevron-right" size={14}/>
       </button>
       {open && <div className="ie-more-actions-body">{children}</div>}
     </div>
@@ -104,7 +105,7 @@ const DisplayMenu = ({mode, setMode, confirmActions, setConfirmActions, locale}:
 }) => (
   <details className="ie-display-menu" data-testid="ie-display-menu">
     <summary className="ie-display-trigger" title={bi(locale, "Display options", "显示选项")}>
-      {bi(locale, "Display", "显示")} <span aria-hidden="true">▾</span>
+      {bi(locale, "Display", "显示")} <Icon name="chevron-down" size={14}/>
     </summary>
     <div className="ie-display-panel">
       <div className="ie-display-title">{bi(locale, "Card face", "卡面")}</div>
@@ -485,7 +486,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       : []),
     {key: "log", label: bi(locale, "Log", "记录")},
     ...(warVisible
-      ? [{key: "war" as MobileTab, label: bi(locale, "War", "战局"), badge: war.war ? "⚔" : undefined}]
+      ? [{key: "war" as MobileTab, label: bi(locale, "War", "战局"), badge: war.war ? <Icon name="crossed-sabres" size={14}/> : undefined}]
       : []),
   ];
   // A tab can disappear under the reader (the war ends, a hotseat switch turns
@@ -522,7 +523,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       {!viewer && <IEBadge>{t.spectators}</IEBadge>}
       {viewer !== null && botSeats.has(viewer) && (
         <div className="ie-bot-banner" data-testid="ie-bot-banner" role="status" aria-live="polite">
-          🤖 {t.seats[viewer]} — {t.botSeatBadge} · {t.seatBotHint}
+          <Icon name="bot" size={14}/> {t.seats[viewer]} — {t.botSeatBadge} · {t.seatBotHint}
         </div>
       )}
     </div>
@@ -618,7 +619,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             decisionOnlyOnPhone={false}
             decisionBadge={pending !== null && viewer !== null && pending.power === viewer}
             confirmActions={confirmActions}
-            warBadge={war.war ? "⚔" : undefined}
+            warBadge={war.war ? <Icon name="crossed-sabres" size={14}/> : undefined}
             activeTab={isPhone ? phoneTurnTab : undefined}
             tabs={{
               action: (

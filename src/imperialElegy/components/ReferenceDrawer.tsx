@@ -11,6 +11,7 @@
  * the drawer is where a table reads everybody else at once.
  */
 import React from "react";
+import {Icon} from "./Icon";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
 import {ChartLightbox, chartById, displayAnchorPower, playerDisplayChart, type ChartEntry} from "./ChartLightbox";
@@ -124,7 +125,7 @@ export const ReferenceDrawer = ({core, reference, open: openProp, anchor = null,
             aria-label={bi(locale, "Close the reference", "关闭参考")}
             title={bi(locale, "Close (Esc)", "关闭（Esc）")}
           >
-            ✕
+            <Icon name="close" size={16}/>
           </button>
         </header>
         <div className="ie-ref-body">
