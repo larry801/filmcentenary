@@ -1031,6 +1031,87 @@ test.describe("Imperial Elegy mobile drawer", () => {
         }
     });
 
+    /**
+     * Every pane has to scroll when its content is taller than the sheet.
+     *
+     * The Orders pane is a column flex box with `overflow: auto`, but its
+     * children used to be default flex items (`flex: 0 1 auto`): a child taller
+     * than the sheet shrank to the leftover room — MPIT collapsed to a ~16 px
+     * sliver, the space detail to ~3 px — and each panel's own `overflow:
+     * hidden` clipped the rest.  The body therefore never overflowed and had
+     * nothing to scroll, so the controls below the fold were unreachable on a
+     * phone with no way to reveal them.  This pins the opposite contract: the
+     * pane reports a real `scrollHeight`, is scrollable, and every visible child
+     * keeps its natural height instead of being squashed.
+     */
+    test("every pane scrolls its overflow instead of squashing its panels", async ({page}) => {
+        await openLocal(page);
+        const dock = dockFor(page);
+        const body = dock.locator('[data-testid="ie-mobile-body"]');
+        await dock.locator('[data-testid="ie-mobile-tab-orders"]').click();
+        await expect(dock).toHaveAttribute("data-open", "true");
+
+        // Inspect every pane the sheet can show: the turn panel's three tabs
+        // (Orders, Log — War joins only while a war runs) plus the hand and mat
+        // bodies.  A pane is scrollable when its own content is taller than it;
+        // a short pane is fine as long as nothing inside it is clipped.
+        const readPane = async (name: "orders" | "log" | "hand" | "mat") => {
+            await dock.locator(`[data-testid="ie-mobile-tab-${name}"]`).click();
+            await expect(dock).toHaveAttribute("data-tab", name);
+            return await body.evaluate((root, paneName) => {
+                const scroller = root.querySelector(
+                    paneName === "hand" ? ".ie-tray-scroll"
+                        : paneName === "mat" ? ".ie-mat"
+                            : paneName === "log" ? ".ie-log"
+                                : ".ie-turn-body:not([hidden])",
+                ) as HTMLElement | null;
+                // The panel that owns the content (the Orders body is the pane
+                // itself; the others are one level in).
+                const pane = paneName === "orders" || paneName === "log"
+                    ? root.querySelector(".ie-turn-body:not([hidden])") as HTMLElement | null
+                    : scroller;
+                const children = pane === null ? [] : [...pane.children].map((child) => {
+                    const box = child.getBoundingClientRect();
+                    const style = getComputedStyle(child);
+                    return {
+                        height: Math.round(box.height),
+                        // A clipped child is one that has more content than the
+                        // box it was squeezed into.
+                        clipped: style.overflowY === "hidden" && child.scrollHeight > child.clientHeight + 4,
+                    };
+                });
+                return {
+                    hasScroller: scroller !== null,
+                    scrollable: scroller !== null && scroller.scrollHeight > scroller.clientHeight + 1,
+                    children,
+                };
+            }, name);
+        };
+
+        for (const name of ["orders", "hand", "mat", "log"] as const) {
+            const pane = await readPane(name);
+            expect(pane.hasScroller, `${name} pane has a scroll surface`).toBe(true);
+            const squashed = pane.children.filter((child) => child.clipped);
+            expect(
+                squashed.map((child) => child.height),
+                `${name} pane squashed ${squashed.length} clipped child(ren) instead of scrolling`,
+            ).toEqual([]);
+        }
+
+        // The Orders pane specifically holds panels taller than a half sheet;
+        // it must report them and let the reader reach them.
+        await dock.locator('[data-testid="ie-mobile-tab-orders"]').click();
+        await expect(dock).toHaveAttribute("data-tab", "orders");
+        const body_ = body.locator(".ie-turn-body:not([hidden])");
+        await expect.poll(async () => await body_.evaluate((pane) => pane.scrollHeight - pane.clientHeight))
+            .toBeGreaterThan(40);
+
+        // Scrolling the pane actually moves it, which is what a touch drag does.
+        const before = await body_.evaluate((pane) => pane.scrollTop);
+        await body_.evaluate((pane) => { pane.scrollTop = pane.scrollHeight; });
+        await expect.poll(async () => await body_.evaluate((pane) => pane.scrollTop)).toBeGreaterThan(before);
+    });
+
     test("expand grows the sheet to full and the toggle folds it back to peek", async ({page}) => {
         await openLocal(page);
         const dock = dockFor(page);

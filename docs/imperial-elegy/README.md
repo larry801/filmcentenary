@@ -339,7 +339,11 @@ grid areas unchanged. Short phones (≤ 699 px tall) use 44 dvh for half,
   While this seat can act, the MPIT matrix (`components/MpitPanel.tsx`, `.ie-mpit-panel`)
   leads the body instead of trailing it, and every track value is a 44 px
   target (three equal columns per power); off-turn it stays last and read-only,
-  and on desktop the order is untouched.
+  and on desktop the order is untouched. Every pane scrolls its own content
+  when it is taller than the sheet: the Orders body's children are pinned to
+  their natural height (`flex: 0 0 auto`), so a panel wider than the visible
+  body (MPIT is ~313 px on a 192 px half sheet) is reachable with a drag rather
+  than being squashed and clipped by its own `overflow: hidden`.
 - **Hand** — the card row with its filters, sort and per-card operations.
 - **Mat** — the player mat, reachable on a phone now; the old layout hid it at
   this width. The same figures also appear in the reference drawer's power
