@@ -2996,6 +2996,30 @@ img.ie-card-face { background: var(--ie-surface-2); }
   }
   .ie-mobile-dock[data-open="false"] .ie-mobile-body { display: none; }
 
+  /* A pane inside the sheet scrolls instead of squashing.
+     `.ie-turn-body` is a column flex box with `overflow: auto`, but every direct
+     child (the space detail, MPIT, the pending panel, …) was a flex item with
+     the default `flex: 0 1 auto`.  A child taller than the sheet therefore
+     *shrank* to whatever room was left — MPIT collapsed to a 16 px sliver and
+     the space panel to 3 px — and each panel's own `overflow: hidden` clipped
+     the rest.  Nothing overflowed the body, so its `overflow: auto` had nothing
+     to scroll: the content below the fold was simply unreachable on a phone.
+     Pinning the children to their natural height gives the body a real
+     `scrollHeight`, and the touch scrolling hints keep the gesture inside the
+     sheet (`overscroll-behavior` stops it chaining to the board).
+     The log is the one exception: its panel is meant to fill the tab and
+     scroll the newest lines inside `.ie-log`, so it keeps `flex: 1 1 auto`. */
+  .ie-mobile-dock .ie-turn-body > *:not(.ie-log-panel) { flex: 0 0 auto; }
+  .ie-mobile-dock .ie-turn-body > .ie-log-panel { flex: 1 1 auto; min-height: 0; }
+  .ie-mobile-dock .ie-turn-body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  /* The head is the fixed part of the pane: it must not shrink as the body
+     grows, or the phase buttons would collapse instead of the body scrolling. */
+  .ie-mobile-dock .ie-turn-panel > .ie-dock-bar,
+  .ie-mobile-dock .ie-turn-panel > .ie-turn-head { flex: 0 0 auto; }
+
   /* Inside the sheet a panel is a pane, not a card: the sheet owns the frame,
      the border radius, the shadow and the position. */
   .ie-mobile-dock .ie-turn-panel,
