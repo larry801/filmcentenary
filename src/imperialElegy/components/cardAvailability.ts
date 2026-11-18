@@ -174,14 +174,10 @@ export const cardTypeIcon = (kind: string, type: string): CardTypeIcon => {
 // Tray ordering
 // ---------------------------------------------------------------------------
 
-export type CardFilter = "all" | "playable" | "event" | "response" | "combat" | "mandatory";
 export type CardSort = "printed" | "cp" | "type" | "decade";
 
 export interface SortCardsInput {
-  filter: CardFilter;
   sort: CardSort;
-  availability: (id: string) => CardAvailability;
-  viewer: Power | null;
 }
 
 const DECADE_ORDER: Record<string, number> = {
@@ -190,24 +186,11 @@ const DECADE_ORDER: Record<string, number> = {
 const TYPE_ORDER: Record<string, number> = {mandatoryResponse: 0, mandatory: 1, combat: 2, response: 3, event: 4};
 
 /**
- * The tray's visible, ordered card ids.  Filtering never hides a card the
- * rules require right now (a mandatory event): a filter is a view, and the
- * "Required card choice" box already pins those.
+ * The tray's ordered card ids.  There is no filter: a hand is only a few cards,
+ * so every card is always listed and the sort is the whole view.
  */
 export const sortCards = (hand: readonly string[], input: SortCardsInput): string[] => {
-  const withCards = hand.map((id, index) => ({id, index, card: cardById(id), a: input.availability(id)}));
-  const visible = withCards.filter(({card, a}) => {
-    switch (input.filter) {
-      case "all": return true;
-      case "playable": return a.cpModeOk || a.eventModeOk || a.responseOk || a.isMandatory;
-      case "event": return card.type === "event" || card.type === "mandatory";
-      case "response": return card.type === "response" || card.type === "mandatoryResponse";
-      case "combat": return card.type === "combat";
-      case "mandatory": return a.isMandatory;
-      default: return true;
-    }
-  });
-  const sorted = [...visible];
+  const sorted = hand.map((id, index) => ({id, index, card: cardById(id)}));
   switch (input.sort) {
     case "printed":
       break;
@@ -224,15 +207,4 @@ export const sortCards = (hand: readonly string[], input: SortCardsInput): strin
       break;
   }
   return sorted.map((entry) => entry.id);
-};
-
-/** The printed card-type key: one glyph per type, as on the cards and charts. */
-export const CARD_TYPE_GLYPH: Record<CardTypeIcon, string> = {
-  event: "◆",
-  response: "↺",
-  combat: "⚔",
-  mandatory: "■",
-  mandatoryResponse: "◩",
-  home: "⌂",
-  greatWar: "✶",
 };

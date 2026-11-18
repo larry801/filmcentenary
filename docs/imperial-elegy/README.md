@@ -187,9 +187,11 @@ card with them. The hand's `cardAvailability` uses the same predicate, so the
 disabled buttons and the refused move always agree. `oneCardPerImpulse.test.ts`
 pins the CP card, the mandatory event and the next impulse.
 
-A mandatory event also keeps its printed type in the hand: its button reads
-`打出强制事件` / `Play mandatory event` (the folded row says `强制事件`), while
-ordinary cards keep `打出事件` / `Play event`.
+A mandatory event also keeps its printed type on its play button: it reads
+`打出强制事件` / `Play mandatory event` (A105 reads `打出强制响应`), while
+ordinary cards keep `打出事件` / `Play event`. A playable hand row shows no type
+badge — every card may be played for CP — so the button is where the printed
+type is named.
 
 The panel also stops treating a finished step as open: once a seat has chosen its
 home card the pending-choice faces remain (marking the selection) but the summary
@@ -246,12 +248,14 @@ regions:
 - **Hand** — `components/HandTray.tsx`, a row under the mat and the map that
   spans both of those columns on desktop (at most 212 px open, folded to a 44 px
   bar; the turn panel keeps the right column); on a phone it is the dock's Hand
-  tab. Its head has filter and sort selects, card
-  count, CP-chain/saved/response chips and the tray toggle; each card is one
-  row — CP value, name, type and a status line ("For CP" / "Event" /
-  "Response", or the first reason it cannot be played). One tap on the row
-  opens the `CardInspector` (the face, every operation and the aggregated
-  reasons); the row never unfolds in place, so a hand stays a scannable list.
+  tab. Its head has a sort select, card count, CP-chain/saved/response chips and
+  the tray toggle; each card is one row — CP value and name, plus the first
+  reason it cannot be played when it is stuck. There is no filter (a hand is
+  only a few cards, so all of them are always listed) and no type icon (it used
+  to sit over the CP number). Every card may be played for CP (rule 12.0), so a
+  playable row carries no badge. One tap on the row opens the `CardInspector`
+  (the face, every operation and the aggregated reasons); the row never unfolds
+  in place, so a hand stays a scannable list.
 - **Reference drawer** — `components/ReferenceDrawer.tsx` opens from the right
   at an anchor (the strip's `?`, a stepper step, the mat's "Printed display", a
   `?` rule link) and closes on Esc. It shows the tables the engine renders — the

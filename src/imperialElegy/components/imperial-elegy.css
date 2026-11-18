@@ -746,9 +746,9 @@
   height: 100%;
   max-height: 100%;
 }
-/* One card = one row (type glyph, CP, name, status).  A tap opens the
-   inspector with the face and the operations, so a sixteen-card hand is
-   sixteen readable lines instead of sixteen quarter-sized faces. */
+/* One card = one row (CP, name, and a reason only when it is stuck).  A tap
+   opens the inspector with the face and the operations, so a sixteen-card hand
+   is sixteen readable lines instead of sixteen quarter-sized faces. */
 .ie-hand .ie-card {
   flex: 0 0 auto;
   width: 100%;
@@ -807,18 +807,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-/* The row's secondary text is still body-size: the acceptance test forbids
-   visible text under 12 px, and a 11 px type chip was the only offender. */
-.ie-card-type {
-  flex: 0 0 auto;
-  padding: 0 5px;
-  border: 1px solid #5e4a2f;
-  border-radius: 999px;
-  color: #bda98a;
-  font-size: var(--ie-font-xs);
-  line-height: 16px;
-  white-space: nowrap;
 }
 /* The inline body exists only for `expandAll` (embeds, rules-level suites):
    a tap on the row opens the inspector instead, so the board never draws it. */
@@ -2451,7 +2439,7 @@ img.ie-card-face { background: var(--ie-surface-2); }
   html:focus-within { scroll-behavior: auto; }
 }
 
-/* Hand tray: type icon, playability line, filter/sort, hover enlargement. */
+/* Hand tray: playability line, sort, hover enlargement. */
 .ie-hand-tools { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: nowrap; min-width: 0; }
 /* One line per control: the tray head is 40 px and the hand column is narrow,
    so a wrapped label ("筛 / 选") ate a card row and pushed the card faces and
@@ -2459,41 +2447,21 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-hand-tool { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ie-font-xs); color: #a99678; white-space: nowrap; flex: 0 0 auto; }
 .ie-hand-tool .ie-select { min-height: 28px; padding: 2px 4px; }
 .ie-card { position: relative; }
-.ie-card-type {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  z-index: 2;
-  width: 18px;
-  height: 18px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #6d5636;
-  border-radius: var(--ie-radius-sm);
-  background: rgba(36, 29, 23, .92);
-  color: var(--ie-accent-soft);
-  /* 12 px floor: the audit catches body text under that size. */
-  font-size: var(--ie-font-xs);
-  line-height: 1;
-  pointer-events: none;
-}
-.ie-card-type-response { color: #9fd0b4; }
-.ie-card-type-combat { color: #f0a08a; }
-.ie-card-type-mandatory, .ie-card-type-mandatoryResponse { color: #f0c894; }
+/* The row's one secondary line: only a card that cannot be played right now
+   carries it, so it sits at the end of the row instead of stacking under the
+   name. */
 .ie-card-status {
-  display: block;
-  margin-top: 2px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 45%;
   font-size: var(--ie-font-xs);
   line-height: 1.25;
   color: #a99678;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
 }
 .ie-card[data-playable="true"] { border-color: #7f9d5a; }
-.ie-card[data-playable="true"] .ie-card-status { color: #bfe3c8; }
 .ie-card.saved { outline: 1px dashed var(--ie-accent); outline-offset: 1px; }
 .ie-hand .ie-card { transition: transform .12s ease, box-shadow .12s ease; }
 .ie-hand .ie-card:hover,
