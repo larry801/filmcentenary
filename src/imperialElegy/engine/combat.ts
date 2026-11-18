@@ -43,6 +43,7 @@ import {
 } from "./navalMovement";
 import {CARD_BY_ID, cardById, discardCard, drawCards} from "./deck";
 import {damageUnit, removeUnit} from "./effects";
+import {removesAfterPlay} from "./playability";
 import {applyGwMajorDecisiveDefeat, forceLeader, forceLeaderFromOwners, syncItalianHomeKeys} from "./gwMajors";
 import {
   COMBAT_CARD_BY_ID,
@@ -951,6 +952,8 @@ const recomputeBattleResult = (G: ImperialElegyState, battle: BattleState): void
   battle.attackerLosses = attackerLosses;
   battle.defenderLosses = defenderLosses;
   battle.decisive = result.decisive;
+  battle.star = result.star;
+  battle.doubleStar = result.doubleStar;
   battle.winner = result.victor;
   recordDreadnoughtRequirement(G, battle);
 };
@@ -977,7 +980,7 @@ export const chooseGwReroll = (
     return;
   }
   let roll = die(ctx, 6);
-  if (G.persistent.machineGuns === true) roll = Math.max(3, roll);
+  if (machineGunsApplies(G, battle, side)) roll = Math.max(3, roll);
   if (side === "attacker") battle.attackerRoll = roll;
   else battle.defenderRoll = roll;
   battle.rerollPending = false;
@@ -994,6 +997,31 @@ export const chooseGwReroll = (
   });
   if (G.pending?.context?.gwReroll === true) G.pending = null;
   afterCombatCardWindow(G, ctx);
+};
+
+/**
+ * A091 `*` row: the victor answered the optional "+1 loss to both sides".
+ * Applies or skips the extra losses, then resumes the loss step that the
+ * decision interrupted.
+ */
+export const resolveHydraulicRecoil = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  apply: boolean,
+): string | void => {
+  const battle = G.battle;
+  if (!battle || battle.hydraulicRecoilResolved === true) return "invalid";
+  battle.hydraulicRecoilPending = false;
+  if (apply) {
+    applyHydraulicRecoilLosses(battle);
+    log(G, battle.attacker, "hydraulicRecoilApplied", {to: battle.to, optional: true});
+  } else {
+    battle.hydraulicRecoilResolved = true;
+    log(G, battle.attacker, "hydraulicRecoilApplied", {to: battle.to, optional: false});
+  }
+  G.pending = null;
+  applyLosses(G, ctx, "attacker");
+  return undefined;
 };
 
 export const afterCombatCardWindow = (G: ImperialElegyState, ctx: Ctx): void => {
@@ -1092,7 +1120,7 @@ export const playCombatCard = (G: ImperialElegyState, ctx: Ctx, selection: strin
   // combat card (GW-05/GW-06) goes to the GW discard pile, NEVER the action
   // discard: that pile is reshuffled into the action deck.
   const faceDownAfterBattle = cardId === "IE-GW-03" || cardId === "IE-GW-04";
-  if (card?.remove) G.removed.push(cardId);
+  if (card && removesAfterPlay(G, cardId)) G.removed.push(cardId);
   else if (def.source === "greatWar") {
     if (!faceDownAfterBattle) {
       G.gw!.discard = [...(G.gw!.discard ?? []), cardId];
@@ -1222,6 +1250,30 @@ const rollMines = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): void =
  * victories double only the CRT losses; the mine hits themselves are never
  * doubled.
  */
+/**
+ * A080 Machine Guns: "during land battles, non-rebel units now have a minimum
+ * die roll of 3 (rolls of 1 or 2 become 3)."
+ *
+ * The clause is land-only and excludes rebels, so a naval battle and a fight
+ * against a rebel army keep their raw dice.  `side` is the side whose die is
+ * being floored; the opposing main force decides whether that side is fighting
+ * rebels.
+ */
+export const machineGunsApplies = (
+  G: ImperialElegyState,
+  battle: BattleState,
+  side: "attacker" | "defender",
+): boolean => {
+  if (G.persistent.machineGuns !== true) return false;
+  if (battle.kind !== "land") return false;
+  const opposing = side === "attacker" ? battle.mainDefense : battle.mainAttack;
+  const hasRebel = opposing.some((id) => G.units[id]?.kind === "rebelArmy");
+  // "non-rebel units" — a rebel army on the rolling side is excluded too.
+  const own = side === "attacker" ? battle.mainAttack : battle.mainDefense;
+  const ownRebel = own.some((id) => G.units[id]?.kind === "rebelArmy");
+  return !hasRebel && !ownRebel;
+};
+
 const rollBattleDice = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): void => {
   const {attackFp, defenceFp} = battleFpTotals(G, battle);
   const attackDrm = battle.attackerDrm + Math.max(0, attackFp - defenceFp);
@@ -1230,10 +1282,8 @@ const rollBattleDice = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): v
   battle.defenceDrmTotal = defenceDrm;
   let a = die(ctx, 6);
   let d = die(ctx, 6);
-  if (G.persistent.machineGuns === true) {
-    a = Math.max(3, a);
-    d = Math.max(3, d);
-  }
+  if (machineGunsApplies(G, battle, "attacker")) a = Math.max(3, a);
+  if (machineGunsApplies(G, battle, "defender")) d = Math.max(3, d);
   battle.attackerRoll = a;
   battle.defenderRoll = d;
   const differential = (a + attackDrm) - (d + defenceDrm);
@@ -1242,6 +1292,8 @@ const rollBattleDice = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): v
   battle.attackerLosses = result.attackerLosses;
   battle.defenderLosses = result.defenderLosses;
   battle.decisive = result.decisive;
+  battle.star = result.star;
+  battle.doubleStar = result.doubleStar;
   battle.winner = result.victor;
   // 18.8: a decisive naval victory doubles the losing side's losses.
   if (result.decisive && battle.kind === "naval") {
@@ -1341,6 +1393,30 @@ export const resolveMineRetreat = (G: ImperialElegyState, ctx: Ctx, optionId: st
  * start the loss step.  Shared by `resolveBattleRoll` and the 19.4 "continue"
  * path so the two can never diverge.
  */
+/**
+ * A091 Hydraulic Recoil: "applies asterisk and double asterisk results on the
+ * CRT" (18.5).  The two printed footnotes are the CRT's own:
+ *
+ *   `**` — "Both sides take +1 loss" (mandatory).
+ *   `*`  — "The victor may opt to inflict +1 loss to both sides" (a choice).
+ *
+ * The effect is permanent once A091 has been played, so it is keyed on
+ * `persistent.hydraulicRecoil` rather than a per-turn flag.
+ */
+const hydraulicRecoilApplies = (G: ImperialElegyState, battle: BattleState): boolean =>
+  G.persistent.hydraulicRecoil === true &&
+  battle.hydraulicRecoilResolved !== true &&
+  battle.attackerRoll !== undefined &&
+  (battle.doubleStar === true || battle.star === true);
+
+/** Apply the `**` row: both sides take +1 loss, no choice involved. */
+const applyHydraulicRecoilLosses = (battle: BattleState): void => {
+  battle.attackerLosses += 1;
+  battle.defenderLosses += 1;
+  battle.hydraulicRecoilResolved = true;
+  if (!battle.notes.includes("hydraulicRecoil")) battle.notes.push("hydraulicRecoil");
+};
+
 const resolveRollOutcome = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): void => {
   recordDreadnoughtRequirement(G, battle);
   log(G, battle.attacker, "battleRoll", {
@@ -1361,6 +1437,30 @@ const resolveRollOutcome = (G: ImperialElegyState, ctx: Ctx, battle: BattleState
   // any losses are taken so `noRetreat` can still affect the retreat step.
   if (openAfterDiceWindow(G, ctx, battle, "attacker")) return;
   if (openAfterDiceWindow(G, ctx, battle, "defender")) return;
+  // A091 / 18.5: the CRT footnotes apply before the losses are taken, so the
+  // extra losses are part of the same loss step.
+  if (hydraulicRecoilApplies(G, battle)) {
+    if (battle.doubleStar === true) {
+      applyHydraulicRecoilLosses(battle);
+    } else {
+      // `*`: "the victor may opt to inflict +1 loss to both sides."
+      const victor = battle.winner === "attacker"
+        ? battle.attacker
+        : defenderSupportPower(G, battle) ?? battle.attacker;
+      battle.hydraulicRecoilPending = true;
+      openDecision(G, ctx, decision(
+        "hydraulicRecoil",
+        victor,
+        "Hydraulic Recoil: inflict +1 loss to both sides?",
+        [
+          option("apply", "Inflict +1 loss to both sides", undefined, false, "双方各 +1 损失"),
+          option("decline", "No extra loss", undefined, false, "不增加损失"),
+        ],
+        {battle: true, hydraulicRecoil: true, promptKind: "hydraulicRecoil"},
+      ));
+      return;
+    }
+  }
   applyLosses(G, ctx, "attacker");
 };
 

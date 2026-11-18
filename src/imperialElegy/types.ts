@@ -889,6 +889,8 @@ export const PENDING_KINDS = [
   "combatCard",
   "combatDiscard",
   "combatLosses",
+  /** A091 / 18.4: the victor may opt to inflict the `*` row's +1 loss to both sides. */
+  "hydraulicRecoil",
   "decisiveBattle",
   "combatRetreat",
   "combatAdvance",
@@ -1279,6 +1281,18 @@ export interface BattleState {
   firstLossDefense?: boolean;
   decisive: boolean;
   winner?: "attacker" | "defender";
+  /**
+   * The printed CRT footnotes for the result row (18.4): `star` is the `*`
+   * row ("the victor may opt to inflict +1 loss to both sides") and
+   * `doubleStar` the `**` row ("both sides take +1 loss").  They are inert
+   * until A091 Hydraulic Recoil is in play.
+   */
+  star?: boolean;
+  doubleStar?: boolean;
+  /** A091's `*` option has been offered/taken for this battle. */
+  hydraulicRecoilResolved?: boolean;
+  /** A091's `*` option is waiting for the victor's answer. */
+  hydraulicRecoilPending?: boolean;
   amphibious?: boolean;
   /** 19.4: mine hits inflicted on the attacker before the battle dice. */
   mines?: number;

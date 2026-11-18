@@ -27,6 +27,7 @@ const DESTRUCTIVE_KINDS: readonly string[] = [
   "combatElite",
   "combatDiscard",
   "combatLosses",
+  "hydraulicRecoil",
   "combatRetreat",
   "combatAdvance",
   "impulseLoss",

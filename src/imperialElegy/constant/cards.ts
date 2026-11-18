@@ -120,7 +120,19 @@ export interface CardDef {
   titleZh: string;
   text: string;
   textZh: string;
+  /**
+   * Unconditional "remove from the game" after the card resolves.
+   *
+   * Cards whose removal is conditional on the campaign turn use
+   * {@link removeFromTurn} instead; both are read through
+   * `engine/playability.ts#removesAfterPlay`.
+   */
   remove?: boolean;
+  /**
+   * "Remove from the game if played during or after turn N" (A069 Concert of
+   * Europe).  Before that turn the card goes to the discard pile as usual.
+   */
+  removeFromTurn?: number;
   draw?: boolean;
   effects: Effect[];
   options?: CardOption[];

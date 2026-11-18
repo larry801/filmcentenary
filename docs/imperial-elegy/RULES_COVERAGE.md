@@ -270,7 +270,13 @@ Status labels:
   Nicholas II and The Young Turks. Older explicit choices remain for Diplomatic
   Incident, Chinese Intervention, Decline of the Qing, The Great Game, French
   Intervention, Loose Grip, Nationalist Uprising and Mahdist War; Quagmire and
-  Divide and Conquer also prompt. Urabi’s Egypt colonial-home key type switches
+  Divide and Conquer also prompt. The cards whose printed “OR” used to resolve by
+  a deterministic default (A045 A048 A051 A052 A068 A073 A107 A109, GW-01 and
+  AU-7) now open real player choices; A073 and A107 run a per-player sequential
+  chain. A039 offers the UK its printed 3/4-CP discard-to-ignore window, A069’s
+  removal is conditional on the campaign turn (`removeFromTurn`), A072 places the
+  naval squadron, and A099 grants its first-card-of-the-turn dreadnought.
+  Urabi’s Egypt colonial-home key type switches
   for a UK/FR winner (with a legacy-save fallback), Loose Grip applies every
   named Ottoman space, and auction cards are publicly revealed; see
   [`CARD_EVENTS.md`](CARD_EVENTS.md) for the card-by-card record, including the
@@ -394,11 +400,20 @@ Status labels:
 - Land combat: CRT, BDRM, support (full/half, two spaces, capped at two spaces
   per side with no duplicate), elite units, losses (18.6 main-force first, then
   supporting armies), EC/EF elimination, retreat, advance, forts, trench
-  modifiers, machine guns, stability DRMs, A043/A058/A059/A062 specials with
-  end-of-battle draws, the GW-05 reroll, the GW-03/04 face-down lifecycle,
+  modifiers, machine guns, hydraulic recoil, stability DRMs,
+  A043/A058/A059/A062 specials with end-of-battle draws, the GW-05 reroll,
+  the GW-03/04 face-down lifecycle,
   18.8 decisive-battle follow-ups (another land battle or one free space, once
   per impulse) and minor-defender windows/support halving —
   **implemented/partial** in `engine/combat.ts`.
+- **18.5 Machine Guns / Hydraulic Recoil:** machine guns floor land-battle dice
+  at 3 for non-rebel units only (`combat.ts#machineGunsApplies` refuses naval
+  battles and any side fighting or fielding a rebel army); hydraulic recoil
+  applies the CRT's `**` row (both sides +1 loss, mandatory) and `*` row (the
+  victor chooses, via the `hydraulicRecoil` pending). Both are permanent once the
+  card is played. The cards' second clause — auto-eliminating an EC/elite
+  colonial EF that uses its combat bonus against a non-rebel army — waits on the
+  EC combat bonus itself, which the engine does not yet grant.
 - Minor-defender support (18.3.2): a controlling player gets the defender
   support and combat-card windows; an independent minor (no player controller)
   auto-commits its legal support and skips the defender window. The defending
