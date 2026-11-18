@@ -29,8 +29,31 @@ CI 分成两个 workflow：
   E2E 拆成两组并行 job：`e2e-app` 跑默认套件（Vite dev server，不需要 `build`
   产物，所以不等构建，push 后立即启动）；`e2e-ie` 按三个 IE 配置各起一个
   runner（`:5203` 回归、`:5201` 控件、`:5202` 观战），三者端口和服务器本来就
-  互不相干，并行后墙钟从三个套件之和降到最慢的那一个。CI 只装 Playwright 的
-  headless shell，省掉一次完整 Chromium 下载。
+  互不相干，并行后墙钟从三个套件之和降到最慢的那一个。
+
+  E2E 不再在 runner 上装浏览器。`ci.yml` 先由 `playwright-image` job 构建
+  （或复用）`Dockerfile.playwright` 定义的测试镜像：Node 22、Chromium
+  headless shell 及其系统依赖、预热的 Yarn 缓存。E2E job（`e2e-ie` 是三个
+  矩阵实例）用 `container:` 直接跑在这个镜像里，工作目录就是 runner 挂载的
+  checkout；再用 `yarn install --offline` 从镜像缓存里链接 `node_modules`，
+  所以一次运行既不下载浏览器也不访问 npm。镜像 tag 由 `Dockerfile.playwright`
+  （含紧随其后的 `.dockerignore`）、`package.json`、`yarn.lock` 的内容哈希
+  决定：只改源码会复用已发布的镜像，改了这几个文件才会重新构建并推到
+  `ghcr.io/larry801/film-centenary-playwright`。
+
+  注意发布镜像需要 `packages: write`，fork 来的 PR 拿不到这个权限，这类 PR
+  要维护者先在主仓库分支上跑一次；同仓库分支和 PR 不受影响。
+
+  本地想复现 CI 的浏览器环境，可以直接构建并进入这个镜像（源码目录挂到
+  `/app`）：
+
+  ```shell
+  docker build -f Dockerfile.playwright -t film-centenary-playwright .
+  docker run --rm -it -v "$PWD:/app" -w /app film-centenary-playwright bash
+  # 容器内：
+  yarn install --frozen-lockfile --offline
+  yarn test:e2e
+  ```
 
   注意 worker 数在 CI 是 3，不是 4：`ubuntu-24.04` runner 报 4 vCPU 但实际是
   2 个物理核，实测第 4 个 worker 会让每条测试慢 30–40%、整套反而从 2.8 min

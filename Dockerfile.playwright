@@ -1,0 +1,60 @@
+# syntax=docker/dockerfile:1
+
+# CI-only image for the Playwright jobs in .github/workflows/ci.yml.
+#
+# The browser jobs used to install Chromium and its OS libraries on every push.
+# That is the largest fixed cost of a run and it is identical every time, so it
+# lives here instead: one image with Node 22, the headless Chromium shell and a
+# warm Yarn cache.  A job checks its source out as usual and links node_modules
+# from the cache with `yarn install --offline`; no browser download and no
+# network fetch happens on the runner.
+#
+# The image tag is content-addressed by ci.yml ("Compute the image reference"):
+# changing this file (or its .dockerignore), package.json or yarn.lock produces
+# a new tag and a rebuild, while a source-only change keeps reusing the
+# published image.
+
+# @playwright/test is pinned to an exact version in package.json and ci.yml
+# passes that version here, so the browser build always matches the library
+# that drives it.  The default keeps a plain `docker build` working locally.
+ARG PLAYWRIGHT_VERSION=1.64.1
+FROM node:22-bookworm-slim
+
+ARG PLAYWRIGHT_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
+    YARN_CACHE_FOLDER=/opt/yarn-cache
+
+# Playwright browsers are installed outside $HOME above: a container job runs
+# with HOME=/github/home, not the /root used while building this image, so the
+# default ~/.cache/ms-playwright would not be found at test time.
+
+# `git` is required by actions/checkout when the job itself runs in this image.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Keep Yarn in lockstep with the jobs that still run on the runner
+# (`yarn --version` is 1.22.22 there) and with yarn.lock v1.
+RUN npm install --global yarn@1.22.22
+
+WORKDIR /app
+
+# Only the manifest and lockfile: the checkout supplies the source, and the
+# cache this install leaves in /opt/yarn-cache is the part that matters.
+COPY package.json yarn.lock ./
+
+# One layer: node_modules is needed to run `playwright install`, but it is not
+# part of the image, so it is removed before the layer is committed.  The
+# version check fails the build if package.json and the browser build drift
+# apart, which would otherwise only show up as a confusing test-time error.
+RUN yarn install --frozen-lockfile --non-interactive \
+    && yarn playwright install --with-deps --only-shell chromium \
+    && test "$(node -p "require('@playwright/test/package.json').version")" = "${PLAYWRIGHT_VERSION}" \
+    && rm -rf node_modules
+
+# A GitHub Actions container job starts the container with `tail -f /dev/null`.
+# An inherited entrypoint would swallow that command, so clear it.
+ENTRYPOINT []
+CMD ["bash"]

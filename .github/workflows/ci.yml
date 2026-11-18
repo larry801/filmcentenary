@@ -20,6 +20,9 @@ on:
 
 permissions:
   contents: read
+  # The E2E jobs pull their test image from GHCR; the publishing job asks for
+  # `packages: write` for itself below.
+  packages: read
 
 # A force-push or a quick follow-up commit makes the older run obsolete.
 concurrency:
@@ -78,35 +81,101 @@ jobs:
           path: build
           retention-days: 3
 
-  # The default browser suite runs against the Vite dev server, so unlike the
-  # IE jobs it needs nothing from `build` and does not wait for it: it starts
-  # as soon as the push lands and overlaps the build and unit-test jobs.
-  e2e-app:
+  # The browser environment, built once per dependency set.  The image holds
+  # everything that used to be reinstalled on every push (Chromium headless
+  # shell, its OS libraries, Node 22 and a warm Yarn cache); the E2E jobs mount
+  # their checkout into it and only link node_modules from that cache.
+  #
+  # The tag is the content hash of Dockerfile.playwright (and its .dockerignore),
+  # package.json and yarn.lock, so a source-only push reuses the published image
+  # and a dependency change builds a new one.  Publishing needs `packages: write`,
+  # which GitHub never grants to pull requests from forks, so fork PRs cannot
+  # run the image-backed jobs without a maintainer first running them here.
+  playwright-image:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.reference.outputs.image }}
+      tag: ${{ steps.reference.outputs.tag }}
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
-      - name: Set up Node
-        uses: actions/setup-node@v6
+      - name: Compute the image reference
+        id: reference
+        run: |
+          version=$(node -p 'require("./package.json").devDependencies["@playwright/test"]')
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::@playwright/test must be pinned to an exact version for the test image, got '$version'"
+            exit 1
+          fi
+          tag="pw-$(cat Dockerfile.playwright Dockerfile.playwright.dockerignore package.json yarn.lock | sha256sum | cut -d' ' -f1 | cut -c1-16)"
+          owner=$(printf '%s' "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+          image="ghcr.io/$owner/film-centenary-playwright"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "Test image: $image:$tag (Playwright $version)"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-      # Reinstalling the browser on every push is the single largest fixed cost
-      # of these jobs.  The key is the Playwright version, so a dependency bump
-      # invalidates it and a source change does not.  CI is headless only, so
-      # the headless shell is all that is fetched.
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Look for an image built from this dependency set
+        id: existing
+        run: |
+          if docker manifest inspect "${{ steps.reference.outputs.image }}:${{ steps.reference.outputs.tag }}" > /dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Image already published; skipping the build."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Image not published yet; building it."
+          fi
+      - name: Build and push the test image
+        if: steps.existing.outputs.exists != 'true'
+        uses: docker/build-push-action@v7
         with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-      - name: Install Playwright browsers
-        run: yarn playwright install --with-deps --only-shell chromium
+          context: .
+          file: Dockerfile.playwright
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.reference.outputs.image }}:${{ steps.reference.outputs.tag }}
+          build-args: |
+            PLAYWRIGHT_VERSION=${{ steps.reference.outputs.version }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.description=Node 22 and Playwright headless Chromium for the ci.yml browser jobs
+          cache-from: type=gha,scope=playwright-image
+          cache-to: type=gha,scope=playwright-image
+
+  # The default browser suite runs against the Vite dev server, so unlike the
+  # IE jobs it needs nothing from `build` and does not wait for it: it starts
+  # as soon as the image is ready and overlaps the build and unit-test jobs.
+  e2e-app:
+    needs: playwright-image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container:
+      image: ${{ needs.playwright-image.outputs.image }}:${{ needs.playwright-image.outputs.tag }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      # Docker's default 64 MB /dev/shm is where Chromium keeps its shared
+      # memory; a full six-player match exhausts it and the browser dies with a
+      # closed-target error that looks like a test bug.
+      options: --shm-size=1gb
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      # Offline: the packages were fetched when the image was built.  This is
+      # the only dependency step a browser job needs now.
+      - name: Link dependencies from the image cache
+        run: yarn install --frozen-lockfile --offline --non-interactive
       - name: Run browser tests
         run: yarn test:e2e
       # Screenshots, traces and the HTML report are what a failure is
@@ -129,7 +198,7 @@ jobs:
   # (controls, ~60 s) instead of their sum.  All three reuse `build/` from the
   # build job, and the spectator spec needs build/server.js.
   e2e-ie:
-    needs: build
+    needs: [build, playwright-image]
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     strategy:
@@ -142,30 +211,25 @@ jobs:
             command: yarn test:e2e:ie:controls
           - name: ie-spectator
             command: yarn test:e2e:ie:spectator
+    container:
+      image: ${{ needs.playwright-image.outputs.image }}:${{ needs.playwright-image.outputs.tag }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      # Docker's default 64 MB /dev/shm is where Chromium keeps its shared
+      # memory; a full six-player match exhausts it and the browser dies with a
+      # closed-target error that looks like a test bug.
+      options: --shm-size=1gb
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: yarn
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
       - name: Download the build output
         uses: actions/download-artifact@v8
         with:
           name: app-build
           path: build
-      - name: Cache Playwright browsers
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package.json') }}
-          restore-keys: |
-            ${{ runner.os }}-playwright-
-      - name: Install Playwright browsers
-        run: yarn playwright install --with-deps --only-shell chromium
+      - name: Link dependencies from the image cache
+        run: yarn install --frozen-lockfile --offline --non-interactive
       - name: Run browser tests
         run: ${{ matrix.command }}
       # `test-results/ie-spectator` is the spectator spec's own output dir, so

@@ -1,0 +1,6 @@
+# The Playwright image only needs the dependency manifest and lockfile; the
+# checkout is mounted at test time.  Keeping the build context this small also
+# keeps the PDFs, card archives and sources out of the builder.
+*
+!package.json
+!yarn.lock
