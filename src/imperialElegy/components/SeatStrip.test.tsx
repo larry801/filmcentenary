@@ -223,7 +223,7 @@ describe("SeatStrip markup", () => {
     expect(tabTag(html, "RU")).toContain("ie-seat-tab-waiting");
     expect(tabTag(html, "OT")).toContain("ie-seat-tab-eliminated");
     expect(tabTag(html, "OT")).toContain('data-state="eliminated"');
-    expect(html).toContain("✕");
+    expect(html).toContain('data-icon="close"');
     expect(html).toContain('class="ie-seat-dot" aria-hidden="true"');
   });
 

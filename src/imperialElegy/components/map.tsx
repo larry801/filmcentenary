@@ -1,4 +1,5 @@
 import React from "react";
+import {Icon} from "./Icon";
 import {ConnectionDef, ImperialElegyState, Power, SpaceDef, SpaceId, Unit} from "../types";
 import {CONNECTIONS, SPACES, SPACE_IDS, connectionsOf, isNavalBox} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
@@ -80,11 +81,11 @@ const TARGET_RING: Record<MapTargetStyle, {
   ticks: "crosshair" | "rail" | "pip" | null;
   double: boolean;
 }> = {
-  move: {stroke: "#3f9d8f", dash: "2.4 1.6", ticks: null, double: false},
-  attack: {stroke: "#d0452f", dash: null, ticks: "crosshair", double: false},
-  rail: {stroke: "#3f9d8f", dash: null, ticks: "rail", double: false},
-  choice: {stroke: "#e0b83a", dash: null, ticks: "pip", double: true},
-  pending: {stroke: "#e0b83a", dash: null, ticks: null, double: true},
+  move: {stroke: "var(--ie-move-ink)", dash: "2.4 1.6", ticks: "pip", double: false},
+  attack: {stroke: "var(--ie-overprint)", dash: "2.4 1.6", ticks: "crosshair", double: false},
+  rail: {stroke: "var(--ie-brass-ink)", dash: "2.4 1.6", ticks: "rail", double: false},
+  choice: {stroke: "var(--ie-ink)", dash: "2.4 1.6", ticks: "pip", double: true},
+  pending: {stroke: "var(--ie-overprint)", dash: "1.6 1.6", ticks: null, double: true},
 };
 
 /** One ring around a target.  `u` converts screen pixels to board units. */
@@ -109,7 +110,7 @@ const TargetRing = ({
           stroke={ring.stroke} strokeWidth={width * 1.6}/>
       ))}
       {ring.ticks === "pip" && <circle cx={radius} cy={0} r={width * 2} fill={ring.stroke}/>}
-      {focused && <circle r={radius + width * 5} fill="none" stroke="#fff4cf" strokeWidth={width * 0.8}/>}
+      {focused && <circle r={radius + width * 5} fill="none" stroke="var(--ie-focus-paper)" strokeWidth={width * 0.8}/>}
     </g>
   );
 };
@@ -158,8 +159,8 @@ const NavalPlateMarker = ({r, label}: {r: number; label: string}) => {
 
 /**
  * What clicking a space would do, as the map draws it:
- * `move` a dashed teal ring, `attack` a red ring with crosshair ticks,
- * `rail` a teal ring with a rail tick (Great War rail but not march),
+ * `move` a dashed blue-ink ring with a tick, `attack` a dashed overprint ring
+ * with crosshair ticks, `rail` a dashed brass-ink ring with a rail tick (Great War rail but not march),
  * `choice` a gold double ring with a pip (the target of an extra option),
  * `pending` a gold double ring (a decision waits on that space).
  */
@@ -658,7 +659,7 @@ export const IEMap = React.memo(
               title={t.mapFocus}
               data-testid="ie-map-focus-selected"
               onClick={() => setView(centreOn({x: SPACES[selected].x, y: SPACES[selected].y}, Math.max(view.k, 2.6), BOARD))}
-            >⌖</button>
+            ><Icon name="crosshair" size={16}/></button>
           )}
         </div>
         <svg

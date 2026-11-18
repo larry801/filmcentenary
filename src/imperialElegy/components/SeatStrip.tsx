@@ -11,6 +11,7 @@
 import React from "react";
 import {POWERS, type Power} from "../types";
 import {ieStringsFor, type IELocale} from "./i18n";
+import {Icon} from "./Icon";
 import {useRovingTabs} from "./useRovingTabs";
 
 export type SeatState = "decide" | "pending" | "active" | "bot" | "eliminated" | "waiting";
@@ -36,15 +37,20 @@ const LABELS: Record<SeatState, Record<IELocale, string>> = {
 
 /**
  * The dot is a redundant, colour-independent cue next to the label:
- * ● this seat acts / must decide, ○ passive, 🤖 bot, ✕ eliminated.
+ * ● this seat acts / must decide, ○ passive, bot and eliminated use icons.
  */
-const DOTS: Record<SeatState, string> = {
+const DOTS: Record<SeatState, string | null> = {
   decide: "●",
   pending: "○",
   active: "●",
-  bot: "🤖",
-  eliminated: "✕",
-  waiting: "○",
+  bot: null,
+  eliminated: null,
+};
+
+const stateDot = (state: SeatState) => {
+  if (state === "bot") return <Icon name="bot" size={12} />;
+  if (state === "eliminated") return <Icon name="close" size={12} />;
+  return DOTS[state];
 };
 
 export const seatStateLabel = (state: SeatState, locale: IELocale): string => LABELS[state][locale];
@@ -131,7 +137,7 @@ export const SeatStrip: React.FC<SeatStripProps> = ({seats, onSelect, locale}) =
         >
           <span className="ie-seat-code">P{seat.index + 1} · {seat.power}</span>{" "}
           <span className="ie-seat-name">{t.seats[seat.power]}</span>{" "}
-          <span className="ie-seat-dot" aria-hidden>{DOTS[seat.state]}</span>{" "}
+          <span className="ie-seat-dot" aria-hidden="true">{stateDot(seat.state)}</span>{" "}
           <span className="ie-seat-state">{seat.label}</span>
         </button>
       ))}

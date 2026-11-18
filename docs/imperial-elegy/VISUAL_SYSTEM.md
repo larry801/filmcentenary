@@ -1,7 +1,7 @@
 # Imperial Elegy — Visual System
 
-**Status:** Proposed, normative from the first implementation phase
-**Revision:** 1.0 — 2026-11-18
+**Status:** Implemented (phases 1–7), normative
+**Revision:** 1.1 — 2026-11-18
 **Owner:** Imperial Elegy UI
 **Applies to:** `src/imperialElegy/components/**`, `public/imperial-elegy/**`, `docs/imperial-elegy/**`
 
@@ -115,6 +115,7 @@ A redesign succeeds when all of these are true:
 | D-18 | `CardFace` and `PrintedBoard` are artwork, exempt from webfonts | Load webfonts into SVG exports |
 | D-19 | Texture only on non-text surfaces | Textured paper behind all text |
 | D-20 | No inline styles; theming via tokens and data attributes | Runtime style injection |
+| D-21 | One added token, `--ie-move-ink: #2F5D7C` (2026-11-18) | Reuse a power fill (FR/IT blue) for the map's move ring |
 
 ---
 
@@ -215,6 +216,7 @@ Colour and mark-making reference:
 | Overprint | `--ie-overprint-text-dark` | `#E08B72` | Overprint text on dark |
 | Focus | `--ie-focus-dark` | `#F4D574` | Focus ring on dark |
 | Focus | `--ie-focus-paper` | `#6E531B` | Focus ring on paper |
+| Map | `--ie-move-ink` | `#2F5D7C` | Legal-move ring on the atlas paper (D-21) |
 
 **D-02:** The map is the only large paper field. The right column, hand and mat
 stay dark chrome with paper documents inside them.

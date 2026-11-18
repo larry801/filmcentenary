@@ -1,0 +1,538 @@
+/* Every max-width: 767px rule and the mobile dock. Loaded last. */
+
+@media (max-width: 767px) {
+  .ie-surface { padding: 6px; }
+  .ie-board {
+    height: calc(100dvh - 48px);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .ie-sub { display: none; }
+  .ie-status { gap: 4px; }
+  .ie-status .ie-badge { display: none; }
+  .ie-status .ie-badge:nth-last-child(-n+3) { display: inline-flex; }
+  /* Phones read CP from the strip; the panel head would be the second readout,
+     so on a phone the head keeps its buttons and drops the number. */
+  .ie-command-phase, .ie-command-active, .ie-command-turn, .ie-command-sep { display: none; }
+  .ie-display-trigger { min-height: 32px; padding: 4px 7px; }
+  .ie-map-panel { height: 100%; }
+  .ie-map-stage { min-height: 0; }
+  /* One line on a handset: the legend is a hint, not a chart.  The footer now
+     carries the space card and the target keys too, so it must stay compact. */
+  .ie-map-legend {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 4px 6px;
+  }
+  .ie-map-legend::-webkit-scrollbar { display: none; }
+  .ie-map-legend > span { white-space: nowrap; }
+  .ie-tray-head { flex-basis: 48px; }
+  /* The hand is a vertical list at every width now, so a phone gets slightly
+     taller rows (a fingertip) rather than narrower fixed-width cards. */
+  .ie-hand .ie-card-open { min-height: 40px; }
+  .ie-hand .ie-card-actions button { min-height: 34px; }
+  .ie-mode-pill { max-width: calc(100% - 12px); gap: 4px; padding: 4px 5px 4px 8px; }
+  .ie-mode-pill-from { max-width: 70px; }
+  .ie-space-overlay { max-width: 200px; }
+  .ie-inspector { width: 100%; border-left: 0; padding: 10px; }
+  .ie-card-more-actions { width: 100%; }
+  .ie-hand .ie-card-translation[open] > div { bottom: 110px; right: 8px; }
+  .ie-seat-tab { padding: 2px 6px; }
+  .ie-seat-name { display: none; }
+  .ie-local-head { min-height: 38px; gap: 6px; }
+  .ie-local-help { margin-left: 0; }
+}
+
+@media (max-width: 460px) {
+  .ie-status .ie-badge { display: none; }
+  .ie-status .ie-badge:nth-last-child(-n+2) { display: inline-flex; }
+  .ie-seat-code { font-size: 12px; }
+  .ie-seat-state { display: none; }
+
+}
+
+@media (max-width: 767px) {
+  .ie-tray-expand { display: inline-grid; place-items: center; }
+}
+
+@media (max-width: 767px) {
+  .ie-command-status { display: none; }
+  .ie-command-menu .ie-btn { display: none; }
+  .ie-local-top .ie-local-title { display: block; font-size: var(--ie-font-xs); max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ie-local-top .ie-local-help { display: none; }
+  .ie-local-top { min-height: 40px; }
+  .ie-local-top > .ie-btn { flex: 0 0 auto; }
+}
+
+@media (pointer: coarse) {
+  .ie-map-controls button { width: 44px; height: 44px; }
+  .ie-map-pick-list button { min-height: 40px; }
+}
+
+@media (max-width: 767px) {
+  .ie-mat-track-boxes { display: flex; }
+  .ie-mat-track-box > small { display: block; }
+  /* Each box already prints its own value there, so the band summary the
+     desktop rail needs would only repeat it. */
+  .ie-mat-ranges { display: none; }
+}
+
+/* ---------------------------------------------------------------- phones (<=767) */
+@media (max-width: 767px) {
+  .ie-board { grid-template-rows: auto minmax(0, 1fr); gap: 4px; }
+  .ie-track-strip { height: 44px; padding: 0 4px; gap: 4px; }
+  .ie-track-decade { padding: 1px 5px; }
+  .ie-track-decade-label { display: none; }
+  .ie-stepper { display: none; }
+  .ie-track-status .ie-track-wtt { padding: 1px 6px; }
+  .ie-track-wtt-label, .ie-track-wtt-note { display: none; }
+  .ie-track-alliance, .ie-track-war { display: none; }
+  .ie-track-cp {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 3px;
+    padding: 1px 8px;
+    border: 1px solid var(--ie-brass);
+    border-radius: var(--ie-radius-sm);
+    background: var(--ie-panel-3);
+    color: var(--ie-on-dark);
+    font-size: var(--ie-font-xs);
+    white-space: nowrap;
+  }
+  .ie-track-cp b { font-size: var(--ie-font-md); color: var(--ie-brass-soft); font-variant-numeric: tabular-nums; }
+  /* Phones read CP from the strip; the panel head would be the second readout,
+     so on a phone the head keeps its buttons and drops the number. */
+  .ie-turn-panel .ie-command-cp { display: none; }
+  .ie-round-btn { width: 36px; height: 36px; }
+  .ie-track-actions .ie-btn { min-height: 36px; padding: 4px 9px; }
+  .ie-table {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 4px;
+    overflow: hidden;
+  }
+  /* One layout for the phone: the map takes the space above the sheet, and
+     the dock is the one surface under it.  The panels are no longer rows of
+     `.ie-table` themselves — they live inside `.ie-mobile-body` — so the old
+     `order: 3` / `order: 2` surface rules are gone (see the mobile-dock
+     section at the end of this file). */
+  .ie-map-region { order: 1; flex: 1 1 auto; min-height: 0; }
+  .ie-private-info { display: none; }
+
+  /* The cap lives on the dock (`[data-decision="true"][data-open="true"]`,
+     mobile-dock section at the end of this file), which is the only surface
+     the phone raises.  `BoardLayout` no longer marks the panel decision-only on
+     a phone, so the rules below are inert there; they stay because
+     `TurnPanel`'s `decisionOnlyOnPhone` contract is the component's, and a
+     caller that still uses it must keep a readable panel: the head is pinned,
+     the tab strip hidden in favour of the dock's, and the decision body scrolls
+     under it. */
+  .ie-turn-panel-decision { max-height: 50dvh; }
+  .ie-turn-panel-decision .ie-turn-tabs { display: none; }
+  .ie-turn-panel-decision .ie-turn-body { display: none; }
+  .ie-turn-panel-decision .ie-turn-body-action { display: flex; }
+  /* The Orders body holds at most one decision panel while a decision is
+     owed (PendingPanel is rendered exactly then), so the required home-card /
+     goal chooser that shares the body with it stays hidden here.  The
+     decision panel is `.ie-panel.ie-dock-panel` (PendingPanel's `dock`). */
+  .ie-turn-panel-decision .ie-turn-body-action > .ie-dock-choices { display: none; }
+  .ie-turn-panel-decision .ie-turn-head { flex: 0 0 auto; }
+  /* Roomy enough to read the prompt and pick without scrolling the head away:
+     the body takes the rest of the 50 dvh cap and scrolls on its own. */
+  .ie-turn-panel-decision .ie-turn-body-action {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ie-turn-panel-decision .ie-turn-body-action .ie-dock-panel { flex: 0 0 auto; }
+  .ie-mat-toggle { display: grid; }
+  .ie-ref-drawer { width: 100vw; }
+}
+
+@media (max-width: 767px) {
+  /* Phones: clear of the bottom sheet's peek bar and the turn panel above it. */
+  .ie-toast { bottom: 104px; font-size: var(--ie-font-xs); }
+}
+
+/* ---- desktop: not a surface, only a wrapper ---- */
+@media (min-width: 768px) {
+  .ie-mobile-dock { display: contents; }
+  .ie-mobile-bar { display: none; }
+  .ie-mobile-body { display: contents; }
+}
+
+/* ---- phone: the dock is the only sheet ---- */
+@media (max-width: 767px) {
+  .ie-mobile-dock {
+    order: 2;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 9;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 44px;
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid var(--ie-rule);
+    border-radius: var(--ie-radius-sm);
+    background: linear-gradient(180deg, var(--ie-panel-2), var(--ie-panel));
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
+    transition: height var(--ie-motion-sheet) var(--ie-motion-easing-sheet),
+      max-height var(--ie-motion-sheet) var(--ie-motion-easing-sheet);
+  }
+  /* Closed (44 px), half (40 dvh) and full (`100dvh - 140px`: the 44 px strip,
+     the local head and the board gaps stay on screen).  The expanded rule also
+     requires `[data-open="true"]`, so a stale `data-expanded` cannot keep a
+     closed sheet open.  `max-height` stops the full height from exceeding the
+     space the board actually has, so the sheet can never scroll the page. */
+  .ie-mobile-dock[data-open="false"] { height: 44px; }
+  .ie-mobile-dock[data-open="true"] { height: 40dvh; }
+  .ie-mobile-dock[data-open="true"][data-expanded="true"] {
+    height: calc(100dvh - 140px);
+    max-height: 100%;
+  }
+  /* A decision+closed sheet is a 56 px peek (the bar plus the one-line
+     decision); open it is capped at half the screen so the map target the
+     decision points at stays visible, and expanded cannot beat that cap. */
+  .ie-mobile-dock[data-decision="true"][data-open="false"] { height: 56px; }
+  .ie-mobile-dock[data-decision="true"][data-open="true"] { max-height: 50dvh; }
+  .ie-mobile-dock[data-decision="true"][data-open="true"][data-expanded="true"] {
+    height: 50dvh;
+    max-height: 50dvh;
+  }
+
+  /* Bar: toggle 36 px, scrolling tab strip, expand 36 px.  44 px is the whole
+     bar box (the 2 px gilt top edge and the 1 px seam are inside it), so the
+     closed sheet is exactly 44 px tall. */
+  .ie-mobile-bar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 4px;
+    border-top: 2px solid var(--ie-brass);
+    border-bottom: 1px solid var(--ie-rule);
+    background: transparent;
+    overflow: hidden;
+  }
+  .ie-mobile-dock[data-open="false"] .ie-mobile-bar { border-bottom: 0; }
+  /* With a decision owed and the sheet closed the peek gets its own 12 px line
+     under the 44 px controls: 44 + 12 = the 56 px closed decision height. */
+  .ie-mobile-dock[data-decision="true"][data-open="false"] .ie-mobile-bar {
+    flex-wrap: wrap;
+    align-content: center;
+    row-gap: 0;
+    height: 56px;
+    min-height: 56px;
+    padding-bottom: 2px;
+    border-bottom: 0;
+  }
+  .ie-mobile-toggle,
+  .ie-mobile-expand {
+    position: relative;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--ie-rule-strong);
+    border-radius: var(--ie-radius-sm);
+    background: var(--ie-panel-2);
+    color: var(--ie-brass-soft);
+    font-size: var(--ie-font-sm);
+    line-height: 1;
+    cursor: pointer;
+  }
+  .ie-mobile-toggle:hover,
+  .ie-mobile-expand:hover { border-color: var(--ie-brass); color: var(--ie-on-dark); }
+  .ie-mobile-toggle[aria-expanded="true"],
+  .ie-mobile-expand[aria-pressed="true"] { border-color: var(--ie-brass); background: var(--ie-panel-3); color: var(--ie-on-dark); }
+  .ie-mobile-expand:disabled { opacity: .35; cursor: not-allowed; }
+  .ie-mobile-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .ie-mobile-tabs::-webkit-scrollbar { display: none; }
+  .ie-mobile-tab {
+    position: relative;
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 30px;
+    padding: 2px 8px;
+    border: 1px solid transparent;
+    border-radius: var(--ie-radius-sm);
+    background: transparent;
+    color: var(--ie-on-dark-2);
+    font-size: var(--ie-font-sm);
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .ie-mobile-tab:hover:not([aria-selected="true"]) { background: var(--ie-panel-3); color: var(--ie-on-dark); }
+  .ie-mobile-tab[aria-selected="true"],
+  .ie-mobile-tab.selected {
+    border-color: var(--ie-rule-strong);
+    background: var(--ie-panel-2);
+    color: var(--ie-brass-soft);
+    box-shadow: inset 0 2px 0 var(--ie-brass-soft);
+    font-weight: 600;
+  }
+  .ie-mobile-tab.urgent:not([aria-selected="true"]) { color: var(--ie-warn-text-dark); }
+  /* The "!" of an owed decision and the "⚔" of a running war ride in the tab
+     the same way they do on the TurnPanel's own strip. */
+  .ie-mobile-tab-badge {
+    display: inline-grid;
+    place-items: center;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    border-radius: var(--ie-radius-sm);
+    background: var(--ie-warn);
+    color: var(--ie-table-2);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  /* The one-line decision peek: the dock bar owns it, so it truncates rather
+     than wrapping and never grows the peek past 56 px. */
+  /* Announced while the sheet is open; the visible line above is the closed
+     peek.  Visually hidden, but still a live region. */
+  .ie-mobile-decision-live {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .ie-mobile-decision-peek {
+    flex: 1 1 100%;
+    order: 10;
+    min-width: 0;
+    height: 12px;
+    line-height: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--ie-font-xs);
+    font-weight: 600;
+    color: var(--ie-brass-soft);
+  }
+
+  /* Body: exactly one panel, and nothing overflows the sheet itself. */
+  .ie-mobile-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .ie-mobile-dock[data-open="false"] .ie-mobile-body { display: none; }
+
+  /* A pane inside the sheet scrolls instead of squashing.
+     `.ie-turn-body` is a column flex box with `overflow: auto`, but every direct
+     child (the space detail, MPIT, the pending panel, …) was a flex item with
+     the default `flex: 0 1 auto`.  A child taller than the sheet therefore
+     *shrank* to whatever room was left — MPIT collapsed to a 16 px sliver and
+     the space panel to 3 px — and each panel's own `overflow: hidden` clipped
+     the rest.  Nothing overflowed the body, so its `overflow: auto` had nothing
+     to scroll: the content below the fold was simply unreachable on a phone.
+     Pinning the children to their natural height gives the body a real
+     `scrollHeight`, and the touch scrolling hints keep the gesture inside the
+     sheet (`overscroll-behavior` stops it chaining to the board).
+     The log is the one exception: its panel is meant to fill the tab and
+     scroll the newest lines inside `.ie-log`, so it keeps `flex: 1 1 auto`. */
+  .ie-mobile-dock .ie-turn-body > *:not(.ie-log-panel) { flex: 0 0 auto; }
+  .ie-mobile-dock .ie-turn-body > .ie-log-panel { flex: 1 1 auto; min-height: 0; }
+  .ie-mobile-dock .ie-turn-body {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+  /* The head is the fixed part of the pane: it must not shrink as the body
+     grows, or the phase buttons would collapse instead of the body scrolling. */
+  .ie-mobile-dock .ie-turn-panel > .ie-dock-bar,
+  .ie-mobile-dock .ie-turn-panel > .ie-turn-head { flex: 0 0 auto; }
+
+  /* Inside the sheet a panel is a pane, not a card: the sheet owns the frame,
+     the border radius, the shadow and the position. */
+  .ie-mobile-dock .ie-turn-panel,
+  .ie-mobile-dock .ie-mat,
+  .ie-mobile-dock .ie-hand-tray {
+    display: none;
+    order: 0;
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    z-index: auto;
+  }
+  .ie-mobile-dock[data-tab="orders"] .ie-turn-panel,
+  .ie-mobile-dock[data-tab="war"] .ie-turn-panel,
+  .ie-mobile-dock[data-tab="log"] .ie-turn-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+    width: 100%;
+    overflow: hidden;
+  }
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray,
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-open="true"],
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-open="false"],
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-expanded="true"],
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-open="true"][data-expanded="true"],
+  .ie-mobile-dock[data-tab="hand"] .ie-hand-tray[data-decision-peek="true"] {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+    width: 100%;
+  }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: none;
+    width: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* The mat is collapsed by default at phone width and the ≤1099 rules hide its
+     figures; the mat tab is the one place they are the content. */
+  /* The Mat tab is the one place the figures are the content, and the sheet
+     scrolls (`.ie-mat` owns `overflow: auto` there).  A flex child defaults to
+     `min-height: 0` and shrinks to the sheet's height, which left the tracks
+     visible but overlapping outside their own box; `min-height: auto` +
+     `flex: 0 0 auto` lets the grid take its real height. */
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-grid {
+    display: grid;
+    overflow: visible;
+    flex: 0 0 auto;
+    min-height: auto;
+  }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-slots { display: flex; }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-characteristics { display: block; }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-display {
+    display: inline-flex;
+    align-items: center;
+  }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat[data-collapsed] .ie-mat-chips { display: none; }
+  .ie-mobile-dock[data-tab="mat"] .ie-mat .ie-mat-popover { display: none; }
+
+  /* The bar owns these controls now: the TurnPanel's own tab strip, the hand
+     sheet's toggle/expand and its duplicate decision line are all hidden (the
+     hand head keeps its title, count, filter and sort). */
+  .ie-mobile-dock .ie-turn-tabs,
+  .ie-mobile-dock .ie-tray-toggle,
+  .ie-mobile-dock .ie-tray-expand,
+  .ie-mobile-dock .ie-mat-toggle,
+  .ie-mobile-dock .ie-tray-decision-line { display: none; }
+
+  /* MPIT inside the sheet: the matrix is the control itself, so each track
+     value has to be a fingertip.  Three equal columns keep the buttons at
+     44 px without giving a power its own row (six rows would fill the whole
+     half-height body); the fixed width and height also keep the arm-then-
+     confirm label swap ("TE 3" -> "确认 德国 TE") from reflowing the grid
+     between the two taps. */
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-grid { gap: 6px; margin-top: 4px; }
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-cell {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    align-items: stretch;
+  }
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-cell > b { grid-column: 1 / -1; }
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-track {
+    /* `display: block` (not the desktop inline-flex) so the ellipsis applies
+       to the armed label instead of clipping it mid-glyph. */
+    display: block;
+    min-width: 0;
+    height: 44px;
+    min-height: 44px;
+    padding: 0 5px;
+    line-height: 42px; /* 42 + 2 x 1 px border = 44 */
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: var(--ie-font-xs);
+  }
+  /* The one-line instruction stays in the DOM for assistive tech, but it must
+     not take a second row out of the 294 px half-height body. */
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-controls .ie-muted {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* Spectators and off-turn seats read the same matrix as text. */
+  .ie-mobile-dock[data-tab="orders"] .ie-mpit-value { line-height: 44px; }
+}
+
+@media (max-height: 699px) and (max-width: 767px) {
+  .ie-map-stage { min-height: 120px; height: 100%; }
+  .ie-mobile-dock[data-open="true"] { height: 44dvh; }
+  .ie-mobile-dock[data-open="true"][data-expanded="true"] {
+    height: calc(100dvh - 120px);
+    max-height: 100%;
+  }
+  .ie-mobile-dock[data-decision="true"][data-open="true"] { max-height: 46dvh; }
+  .ie-mobile-dock[data-decision="true"][data-open="true"][data-expanded="true"] {
+    height: 46dvh;
+    max-height: 46dvh;
+  }
+}
+
+/* The sheet animates its height; reduced motion turns that off with the rest. */
+@media (prefers-reduced-motion: reduce) {
+  .ie-mobile-dock,
+  .ie-mobile-dock *,
+  .ie-mobile-bar *,
+  .ie-mobile-body * { transition: none !important; animation: none !important; }
+}
+
+@media (max-width: 760px) {
+  .ie-printed-page { padding: 14px 10px 28px; }
+  .ie-printed-toolbar { flex-direction: column; gap: 12px; }
+  .ie-printed-actions { width: 100%; }
+  .ie-printed-actions .ie-btn { flex: 1 1 auto; text-align: center; }
+  .ie-printed-stage { padding: 6px; }
+}
+
+/* Visual 36 px, hit 44 px; the pseudo-element stays inside the button. */
+@media (max-width: 767px) {
+  .ie-mobile-toggle::before, .ie-mobile-expand::before, .ie-mobile-tab::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+}

@@ -1,0 +1,350 @@
+/* Map stage, controls, legend, overlays, unit tokens. */
+
+.ie-play-column > .ie-map-panel { flex: 1 1 auto; width: 100%; min-width: 0; min-height: 0; }
+
+/* ---------------------------------------------------------------- map */
+.ie-map-panel { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+
+.ie-map-panel .ie-panel-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: var(--ie-space-2);
+}
+
+.ie-map-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--ie-table);
+  border-radius: var(--ie-radius-sm);
+}
+
+.ie-map-views {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: calc(100% - 16px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ie-map-views::-webkit-scrollbar { display: none; }
+
+.ie-view-chip {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 2px 9px;
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel);
+  color: var(--ie-on-dark-2);
+  font-size: var(--ie-font-xs);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ie-view-chip:hover { color: var(--ie-on-dark); border-color: var(--ie-brass); }
+
+.ie-view-chip.selected { background: var(--ie-panel-3); color: var(--ie-on-dark); border-color: var(--ie-brass); border-bottom: 2px solid var(--ie-brass); }
+
+.ie-map {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: grab;
+  touch-action: none;
+  background: var(--ie-paper);
+}
+
+.ie-map.dragging { cursor: grabbing; }
+
+.ie-map-controls {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 6;
+}
+
+.ie-map-controls button {
+  background: var(--ie-panel);
+  color: var(--ie-on-dark);
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-size: var(--ie-font-sm);
+  display: grid;
+  place-items: center;
+}
+
+.ie-map-controls button:hover { background: var(--ie-panel-3); border-color: var(--ie-brass-deep); }
+
+.ie-space-label { fill: var(--ie-ink); font-family: var(--ie-font-ui); font-size: 34px; font-weight: 600; paint-order: stroke; stroke: var(--ie-paper); stroke-width: 6px; stroke-linejoin: round; pointer-events: none; }
+
+.ie-space-label.dark { fill: var(--ie-paper); stroke: var(--ie-ink); }
+
+.ie-map-legend { display: flex; flex-wrap: wrap; gap: 6px; padding: 6px; font-size: var(--ie-font-xs); color: var(--ie-on-dark-2); border-top: 1px solid var(--ie-panel-3); }
+
+.ie-map-key { display: flex; align-items: center; gap: var(--ie-space-2); flex-wrap: wrap; padding: 5px 2px 0; font-size: var(--ie-font-xs); color: var(--ie-on-dark-2); }
+
+.ie-key { display: inline-flex; align-items: center; gap: var(--ie-space-1); }
+
+.ie-key::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ie-focus-dark); display: inline-block; }
+
+.ie-key.move::before { border-color: var(--ie-ok-text-dark); }
+
+.ie-key.battle::before { border-color: var(--ie-overprint-text-dark); }
+
+.ie-key.legal::before { border-color: var(--ie-focus-dark); }
+
+.ie-unit-token { display: block; overflow: visible; pointer-events: none; }
+
+.ie-unit-token > polygon { fill: var(--ie-power-neutral); stroke: var(--ie-paper); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+
+.ie-unit-token-deck { fill: var(--ie-ink); stroke: none; }
+
+.ie-unit-token-mark { fill: var(--ie-paper); paint-order: stroke; stroke: var(--ie-ink); stroke-width: .5; }
+
+.ie-unit-token-reduced { stroke: var(--ie-ink); stroke-linecap: butt; opacity: .85; }
+
+.ie-unit-token.is-reduced > polygon { filter: saturate(.7); }
+
+.ie-map-tokens { cursor: pointer; }
+
+/* The "+N" marker: ink disc with parchment type, like the printed count chip. */
+.ie-token-more { cursor: pointer; outline: none; }
+
+.ie-token-more circle { fill: var(--ie-table); stroke: var(--ie-on-dark); }
+
+.ie-token-more text { fill: var(--ie-paper); font-weight: 700; }
+
+.ie-token-more:hover circle, .ie-token-more:focus-visible circle { stroke: var(--ie-brass-soft); stroke-width: 2.4px; }
+
+.ie-token-more:focus-visible circle { stroke-dasharray: 3 2; }
+
+.ie-token-count { fill: var(--ie-paper); stroke: var(--ie-ink); font-weight: 700; pointer-events: none; }
+
+/* Hover / focus ring on a space that is under the pointer or keyboard. */
+.ie-map-hover-ring { stroke: var(--ie-brass-soft); opacity: .9; pointer-events: none; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .ie-map-hover-ring { transition: opacity .12s ease; }
+}
+
+/* Mode pill: the only persistent banner while a map target is expected. */
+.ie-mode-pill {
+  position: absolute;
+  top: var(--ie-space-2);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: var(--ie-space-2);
+  max-width: calc(100% - 24px);
+  padding: 5px 6px 5px 12px;
+  border: 1px solid var(--ie-brass);
+  border-radius: var(--ie-radius-sm);
+  background: rgba(44, 36, 29, .95);
+  color: var(--ie-on-dark);
+  font-size: var(--ie-font-xs);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, .55);
+}
+
+.ie-mode-pill-label { font-weight: 700; color: var(--ie-brass-soft); white-space: nowrap; }
+
+.ie-mode-pill-from { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.ie-mode-pill-arrow { color: var(--ie-brass-soft); }
+
+.ie-mode-pill-count { white-space: nowrap; color: var(--ie-on-dark-2); }
+
+.ie-mode-pill-cancel {
+  border: 1px solid var(--ie-ink-muted);
+  background: var(--ie-panel-3);
+  color: var(--ie-on-dark);
+  border-radius: var(--ie-radius-sm);
+  padding: 3px 8px;
+  font-size: var(--ie-font-xs);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ie-mode-pill-cancel:hover { background: var(--ie-ink-2); }
+
+.ie-mode-pill-esc { color: var(--ie-on-dark-muted); }
+
+/* Floating space card — parchment content over the dark map. */
+.ie-map-overlay { position: absolute; left: 10px; bottom: 10px; z-index: 7; pointer-events: none; }
+
+.ie-space-overlay {
+  min-width: 190px;
+  max-width: 280px;
+  padding: var(--ie-space-2);
+  border: 1px solid var(--ie-brass-deep);
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-paper);
+  color: var(--ie-ink);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .5);
+  font-size: var(--ie-font-xs);
+  line-height: 1.45;
+}
+
+.ie-space-overlay-title { font-size: var(--ie-font-md); font-weight: 700; color: var(--ie-panel-3); display: flex; gap: 6px; align-items: baseline; }
+
+.ie-space-overlay-star { color: var(--ie-brass-ink); }
+
+.ie-space-overlay-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+
+.ie-space-overlay .ie-ok { color: var(--ie-ok-text-paper); }
+
+.ie-space-overlay .ie-danger { color: var(--ie-danger-text-paper); }
+
+.ie-space-overlay-friendly { color: var(--ie-ink-2); }
+
+/* ---------------------------------------------------------------- selected space */
+.ie-space-detail { font-size: var(--ie-font-xs); line-height: 1.55; }
+
+.ie-space-detail h4 { margin: 0 0 4px; color: var(--ie-brass-soft); font-size: var(--ie-font-sm); }
+
+.ie-space-units { display: flex; flex-wrap: wrap; align-items: center; gap: 3px; margin: 3px 0; }
+
+.ie-space-select-all { margin: 2px 0 4px; }
+
+.ie-target-hint { margin-top: 6px; border: 1px dashed var(--ie-warn); border-radius: var(--ie-radius-sm); padding: 5px 6px; font-size: var(--ie-font-xs); color: var(--ie-brass-soft); background: var(--ie-panel-3); }
+
+/* ---------------------------------------------------------------- space picker */
+.ie-space-picker { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+.ie-space-picker select { flex: 1; min-width: 0; }
+
+/* Map hit targets and legend swatches (was inline style). */
+.ie-space-hit { cursor: pointer; }
+
+.ie-map-legend-dot { display: inline-block; width: 10px; height: 10px; margin-right: 3px; vertical-align: middle; border: 1px solid var(--ie-ink); }
+
+.ie-map-legend-dot-ge { background: var(--ie-power-ge); }
+
+.ie-map-legend-dot-uk { background: var(--ie-power-uk); }
+
+.ie-map-legend-dot-fr { background: var(--ie-power-fr); }
+
+.ie-map-legend-dot-au { background: var(--ie-power-au); }
+
+.ie-map-legend-dot-ru { background: var(--ie-power-ru); }
+
+.ie-map-legend-dot-ot { background: var(--ie-power-ot); }
+
+.ie-map-legend-dot-neutral { background: var(--ie-power-neutral); }
+
+.ie-mode-pill-targets {
+  max-width: 150px;
+  background: var(--ie-panel);
+  color: var(--ie-on-dark);
+  border: 1px solid var(--ie-ink-muted);
+  border-radius: var(--ie-radius-sm);
+  padding: 3px 6px;
+  font-size: var(--ie-font-xs);
+}
+
+.ie-map-wrap {
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--ie-table);
+  border-radius: var(--ie-radius-sm);
+}
+
+.ie-map-wrap > .ie-map { flex: 1 1 auto; min-height: 0; }
+
+.ie-map-wrap > .ie-map-legend { flex: 0 0 auto; }
+
+.ie-map-views {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 0 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ie-map-views::-webkit-scrollbar { display: none; }
+
+/* "Which space did I tap?" — the two counters under one fingertip. */
+.ie-map-pick {
+  position: absolute;
+  z-index: 9;
+  transform: translate(-50%, 4px);
+  min-width: 132px;
+  padding: 6px;
+  border: 1px solid var(--ie-brass);
+  border-radius: var(--ie-radius-md);
+  background: var(--ie-paper);
+  color: var(--ie-ink);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .55);
+}
+
+.ie-map-pick-title { font-size: var(--ie-font-xs); color: var(--ie-ink-2); margin-bottom: 4px; }
+
+.ie-map-pick-list { display: flex; flex-direction: column; gap: 3px; }
+
+.ie-map-pick-list button {
+  min-height: 32px;
+  padding: 3px 8px;
+  border: 1px solid var(--ie-brass-deep);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-on-dark);
+  color: var(--ie-ink);
+  font-size: var(--ie-font-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ie-map-pick-list button:hover { background: var(--ie-brass-soft); }
+
+.ie-map-pick-close {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  background: transparent;
+  color: var(--ie-ink-muted);
+  cursor: pointer;
+}
+
+.ie-map-actions { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+.ie-map-search-toggle {
+  background: transparent;
+  color: var(--ie-on-dark-2);
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  padding: 3px 8px;
+  font-size: var(--ie-font-xs);
+  cursor: pointer;
+}
+
+.ie-map-search-toggle:hover { color: var(--ie-on-dark); border-color: var(--ie-brass); }
+
+.ie-map-region { grid-area: map; min-width: 0; min-height: 0; display: flex; overflow: hidden; }
+
+/* RU's pale fill needs the printed grey edge on the atlas paper (§4.3). */
+.ie-unit-token.ie-power-pip-ru > polygon, .ie-unit-token.ie-power-pip-ru > rect, .ie-unit-token.ie-power-pip-ru > circle { stroke: var(--ie-power-ru-edge); }

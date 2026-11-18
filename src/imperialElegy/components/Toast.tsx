@@ -11,6 +11,7 @@
  * sentence. It dismisses itself so it cannot pile up.
  */
 import React from "react";
+import {Icon} from "./Icon";
 import {bi} from "./boardHelpers";
 
 export interface ToastProps {
@@ -65,7 +66,7 @@ export const Toast = ({toast, locale, onDismiss, timeoutMs = 4500}: ToastProps) 
         title={bi(locale, "Dismiss (Esc)", "关闭（Esc）")}
         onClick={onDismiss}
       >
-        ✕
+        <Icon name="close" size={16}/>
       </button>
     </div>
   );

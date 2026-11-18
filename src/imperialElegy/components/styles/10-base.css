@@ -1,0 +1,219 @@
+/* Reset, focus, typography primitives, buttons, forms, motion. */
+
+/* Self-hosted Latin only; CJK falls through to the system stack (§5.1). */
+@font-face {
+  font-family: "EB Garamond";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/imperial-elegy/fonts/EBGaramond-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Libre Franklin";
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url("/imperial-elegy/fonts/LibreFranklin-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6,
+    U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122,
+    U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Every focusable surface gets the same visible ring (§12). */
+:where(.ie-surface) :focus-visible {
+  outline: 2px solid var(--ie-focus-dark);
+  outline-offset: 2px;
+}
+.ie-surface ::selection { background: var(--ie-brass-soft); color: var(--ie-ink); }
+
+.ie-surface, .ie-surface * { box-sizing: border-box; }
+
+.ie-local { box-sizing: border-box; }
+
+/* The decision pulse is an opacity cycle on a 2 px overprint rule (§8). */
+@keyframes ie-pulse-decide {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .45; }
+}
+
+.ie-btn-xs { font-size: var(--ie-font-xs); padding: 3px 7px; min-height: 26px; }
+
+.ie-section-title { font-size: var(--ie-font-xs); text-transform: uppercase; letter-spacing: .06em; color: var(--ie-on-dark-2); margin-bottom: 3px; }
+
+.ie-dock-choice .ie-section-title { color: var(--ie-on-dark-2); }
+
+.ie-dock-choice-optional .ie-section-title { color: var(--ie-on-dark-2); }
+
+.ie-dock-bar .ie-dock-choice .ie-section-title { display: none; }
+
+/* ---------------------------------------------------------------- buttons */
+.ie-btn {
+  background: var(--ie-brass);
+  color: var(--ie-table);
+  border: 0;
+  padding: 5px 10px;
+  border-radius: var(--ie-radius-sm);
+  font-size: var(--ie-font-xs);
+  cursor: pointer;
+  letter-spacing: .02em;
+  transition: background .12s;
+  min-height: 32px;
+}
+
+.ie-btn:hover:not(:disabled) { background: var(--ie-brass); }
+
+.ie-btn.secondary { background: var(--ie-panel-3); color: var(--ie-on-dark); border: 1px solid var(--ie-rule-strong); }
+
+.ie-btn.secondary:hover:not(:disabled) { background: var(--ie-ink-2); }
+
+.ie-btn:disabled { opacity: .4; cursor: not-allowed; filter: grayscale(.5); }
+
+.ie-btn.selected, .ie-btn.secondary.selected { outline: 2px solid var(--ie-brass-soft); outline-offset: 1px; }
+
+.ie-btn.danger { background: var(--ie-overprint); color: var(--ie-paper); border-color: var(--ie-overprint-border-dark); }
+
+.ie-btn.danger:hover:not(:disabled) { background: var(--ie-overprint); border-color: var(--ie-overprint-text-dark); }
+
+.ie-mini { font-size: var(--ie-font-xs); padding: 3px 7px; min-height: 30px; }
+
+.ie-local-tabs { flex: 0 0 auto; padding: 2px 0; }
+
+/* ---------------------------------------------------------------- form controls */
+.ie-select, .ie-input {
+  background: var(--ie-panel);
+  font-family: var(--ie-font-ui);
+  color: var(--ie-on-dark);
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  padding: 4px 6px;
+  font-size: var(--ie-font-xs);
+  max-width: 100%;
+}
+
+.ie-select:focus, .ie-input:focus { outline: 1px solid var(--ie-brass); }
+
+/* ---------------------------------------------------------------- misc */
+.ie-link { color: var(--ie-brass-soft); }
+
+.ie-muted { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+
+.ie-hidden { display: none; }
+
+.ie-ok { color: var(--ie-ok-text-dark); }
+
+.ie-danger { color: var(--ie-danger-text-dark); }
+
+@keyframes ie-inspector-in { from { transform: translateX(24px); opacity: .6; } to { transform: none; opacity: 1; } }
+
+/* ---------------------------------------------------------------- local hotseat */
+.ie-local {
+  height: calc(100dvh - 48px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.ie-local-head {
+  flex: 0 0 auto;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: var(--ie-space-3);
+  border-bottom: 1px solid var(--ie-rule);
+  padding: 2px 2px 4px;
+}
+
+.ie-local-title {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: var(--ie-font-lg);
+  color: var(--ie-brass-soft);
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+.ie-local-help { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+
+.ie-local-help summary { cursor: pointer; }
+
+.ie-local-help > div { max-width: 560px; }
+
+.ie-local-head > .ie-btn { margin-left: auto; }
+
+.ie-local-boards { position: relative; flex: 1 1 0; min-height: 0; }
+
+.ie-local-boards > .ie-seat > * { height: 100%; min-height: 0; }
+
+.ie-local .ie-board { height: 100%; }
+
+.ie-local-setup { height: auto; min-height: calc(100dvh - 48px); overflow: auto; }
+
+.ie-local-setup-body { padding: var(--ie-space-4); max-width: 720px; }
+
+.ie-local-subtitle { font-size: var(--ie-font-md); color: var(--ie-brass-soft); margin: 0 0 4px; }
+
+.ie-local-bot-seats { display: flex; flex-wrap: wrap; gap: var(--ie-space-2); margin: var(--ie-space-3) 0; }
+
+.ie-local-bot-seat { display: inline-flex; align-items: center; gap: 6px; font-size: var(--ie-font-sm); padding: 4px 8px; border: 1px solid var(--ie-rule); border-radius: var(--ie-radius-sm); background: var(--ie-panel-2); }
+
+.ie-local-bot-seat input { accent-color: var(--ie-brass); width: 18px; height: 18px; }
+
+.ie-local-start { font-size: var(--ie-font-sm); padding: 8px 20px; }
+
+.ie-board :is(.ie-select, .ie-input) { padding: 6px; }
+
+.ie-mt-6 { margin-top: 6px; }
+
+.ie-mt-8 { margin-top: 8px; }
+
+.ie-local-top {
+  flex: 0 0 auto;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: var(--ie-space-2);
+}
+
+.ie-local-top .ie-seat-strip { flex: 1 1 auto; min-width: 0; }
+
+.ie-local-top .ie-local-title { font-size: var(--ie-font-md); }
+
+.ie-track-actions .ie-section-title { display: none; }
+
+.ie-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ie-turn-head .ie-section-title { display: none; }
+
+.ie-hand-tool .ie-select { min-height: 28px; padding: 2px 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ie-surface *, .ie-surface *::before, .ie-surface *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+  .ie-card:hover { transform: none; }
+}
+
+@media (forced-colors: active) {
+  .ie-surface, .ie-panel, .ie-turn-panel, .ie-mobile-dock {
+    border: 1px solid CanvasText;
+  }
+  .ie-btn, .ie-seat-tab, .ie-turn-tab, .ie-mobile-tab {
+    border: 1px solid ButtonText;
+  }
+}

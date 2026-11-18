@@ -1,7 +1,8 @@
 import React from "react";
+import {Icon} from "./Icon";
 import {ThemeProvider} from "@mui/material/styles";
 import "./imperial-elegy.css";
-import {ieT} from "./i18n";
+import {ieLocale, ieT} from "./i18n";
 import {ieTheme} from "./ie-theme";
 
 export const IEThemeProvider = ({children}: {children: React.ReactNode}) => (
@@ -10,7 +11,7 @@ export const IEThemeProvider = ({children}: {children: React.ReactNode}) => (
 
 export const IESurface = ({children, className = ""}: {children: React.ReactNode; className?: string}) => (
   <IEThemeProvider>
-    <div className={`ie-surface ${className}`}>{children}</div>
+    <div className={`ie-surface ${className}`} data-locale={ieLocale()}>{children}</div>
   </IEThemeProvider>
 );
 
@@ -94,7 +95,7 @@ export const IEPanel = ({
               title={isCollapsed ? t.expand : t.collapse}
               onClick={(event) => { event.stopPropagation(); toggle(); }}
             >
-              <span aria-hidden="true">{isCollapsed ? "▸" : "▾"}</span>
+              <span aria-hidden="true">{isCollapsed ? <Icon name="chevron-right" size={14}/> : <Icon name="chevron-down" size={14}/>}</span>
             </button>
           )}
           <h3>{title}</h3>
