@@ -411,7 +411,7 @@ export const ACTION_CARDS: CardDef[] = [
     "Decrease the WTT by 1. Remove from the game if played during or after turn 5.",
     "世界紧张 -1。第 5 回合及以后打出则移出游戏。",
     [{type: "wtt", delta: -1}],
-    {remove: true}),
+    {removeFromTurn: 5}),
   A(70, 2, "event", "Papal Influence", "教宗影响",
     "Remove an opposing player's diplomacy or ally marker in the Rome space if one is present. Then gain an alliance with the Papal States (Rome). If you are already allied with the Papal States you can target any Italian minor power with this event. Special: if after playing this event you are allied to the Papal States and at least one other Italian minor power, gain a +1 card marker. You cannot trigger this effect if you dominate the Italy flashpoint. Remove from the game if played for CP and Italy is unified. Playable by France and Austria; event cannot be played after Italy unifies.",
     "移除罗马空间中对手的外交/联盟标记，然后与教宗国（罗马）结盟；若已结盟可目标任意意大利小国。若同时与教宗国及至少另一个意大利小国结盟，获得 +1 抽牌标记。",

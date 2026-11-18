@@ -4,7 +4,7 @@ import {CARDS} from "../constant/cards.data";
 import {CardDef, Decade} from "../constant/cards";
 import {die, log, POWER_ORDER} from "./rules";
 import {cardDrawModifier} from "./characteristics";
-import {canPlayForCp} from "./playability";
+import {canPlayForCp, removesAfterPlay} from "./playability";
 
 /**
  * The campaign turn -> printed card band mapping lives in `engine/economy.ts`.
@@ -122,7 +122,7 @@ export const discardCard = (G: ImperialElegyState, power: Power, card: CardId, r
     p.industryCard = null;
   }
   const def = cardById(card);
-  if (def.remove) {
+  if (removesAfterPlay(G, card)) {
     G.removed.push(card);
     log(G, power, "cardRemoved", {card});
     return;

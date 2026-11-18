@@ -110,14 +110,20 @@ import {
   removeMinorAllianceProblem,
 } from "./engine/foreignAffairs";
 import {hasCounterFor} from "./engine/counters";
-import {cpPlayability, eventPlayability, removeAfterCpPlay, youngTurksBlocksFailedReforms} from "./engine/playability";
+import {
+  cpPlayability,
+  eventPlayability,
+  removeAfterCpPlay,
+  removesAfterPlay,
+  youngTurksBlocksFailedReforms,
+} from "./engine/playability";
 import {ensureStateDefaults} from "./engine/migrations";
 
 // The start-of-impulse penalties live in rules.ts so the GW flow can run them
 // without an import cycle; re-export them for direct callers and tests.
 export {beginImpulseUpkeep, resolveImpulseLoss} from "./engine/rules";
 import {closeDecision, decision, openDecision, option, powerOfSeat, seatOf} from "./engine/pending";
-import {finishCard, placeNonPlayerCounter, placeUnit, removeUnit, resolveCard, resolveCardDecision, resolveEffects, spendReserveSteps, addReserve, damageUnit, resolveAllianceStep, resolveItalyAllianceStep, displaceIndianArmies, grantRapidDeployment, displaceUnitToFriendlyLoc, displaceUnitsNotFriendlyTo, registerPolishIndependence, LOOSE_GRIP_CARD, looseGripRemovalDue} from "./engine/effects";
+import {finishCard, placeNonPlayerCounter, placeUnit, removeUnit, resolveCard, resolveCardDecision, resolveEffects, spendReserveSteps, addReserve, damageUnit, resolveAllianceStep, resolveItalyAllianceStep, displaceIndianArmies, grantRapidDeployment, displaceUnitToFriendlyLoc, displaceUnitsNotFriendlyTo, registerPolishIndependence, LOOSE_GRIP_CARD, looseGripRemovalDue, resolveAmericanCivilWarEndPhase} from "./engine/effects";
 import {POLAND, polishDeploySpace, polishRecruitDecision, polishReserveDeployer, polishReserveIds} from "./engine/poland";
 import {
   allianceResolutionOrder,
@@ -129,6 +135,7 @@ import {
 } from "./engine/effects";
 import {
   afterCombatCardWindow,
+  resolveHydraulicRecoil,
   attemptInterception,
   beginLandBattle,
   beginNavalBattle,
@@ -476,6 +483,11 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
   if (G.powers[power].selectedHomeCard === cardId) G.powers[power].selectedHomeCard = null;
   if (G.phase === "action") G.powers[power].flags.actionCpSpentThisImpulse = true;
+  // A099 Dreadnought: "if this is the first card you play this turn, gain an
+  // additional dreadnought."  `firstCardPlayTurn` records the turn of the last
+  // card play, so the handler can tell whether this play opens the turn.
+  G.flags.firstCardThisTurn = G.flags.firstCardPlayTurn !== G.turn;
+  G.flags.firstCardPlayTurn = G.turn;
   G.impulseCard = cardId;
   // A mandatory event played "for CP" is its event: the text resolves and is
   // read out, then the printed CP arrive.  That makes it a public event play
@@ -490,7 +502,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     // A79: "Remove from the game if Tunisia and Libya are no longer Ottoman
     // controlled." — the CP play removes it instead of discarding it.
     const looseGripRemoved = cardId === LOOSE_GRIP_CARD && looseGripRemovalDue(G);
-    if (card.remove || removeAfterCpPlay(G, cardId) || looseGripRemoved) {
+    if (removesAfterPlay(G, cardId) || removeAfterCpPlay(G, cardId) || looseGripRemoved) {
       if (!G.removed.includes(cardId)) G.removed.push(cardId);
       if (looseGripRemoved) log(G, undefined, "looseGripRemoved", {reason: "cp"});
       G.impulseCard = null;
@@ -511,7 +523,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     return;
   }
   if (done) {
-    if (card.remove) removeCard(G, cardId);
+    if (removesAfterPlay(G, cardId)) removeCard(G, cardId);
     // Some events park the physical card face up in front of a player (A027
     // Foreign Investment is that player's industrialization card).  That card
     // is now held in `industryCard`, so pushing it into the discard pile as
@@ -3342,7 +3354,7 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
   if (chained) {
     // 12.14: the card lives in the CP Chain and is discarded when the action
     // phase ends, not when its mandatory event finishes resolving.
-  } else if (!gwCard && card.remove) {
+  } else if (!gwCard && removesAfterPlay(G, cardId)) {
     removeCard(G, cardId);
   } else if (!gwCard && card.kind !== "home" && !isHeldAsIndustryCard(G, cardId)) {
     // A027 Foreign Investment is parked as the receiving player's
@@ -4979,6 +4991,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     chooseLossMove(G, ctx, optionId);
     return undefined;
   }
+  if (pending.kind === "hydraulicRecoil") {
+    if (optionId !== "apply" && optionId !== "decline") return INVALID_MOVE;
+    return resolveHydraulicRecoil(G, ctx, optionId === "apply");
+  }
   if (pending.kind === "combatDiscard") {
     if (resolveCombatDiscard(G, ctx, optionId)) return undefined;
     return INVALID_MOVE;
@@ -5955,6 +5971,15 @@ const runEndPhase = (
   interactive: boolean,
 ): void => {
   const progress: EndPhaseProgress = interactive ? (G.endPhase ??= {step: 0}) : {step: 0};
+  // A032: "At the start of the end phase roll a die" while the American Civil
+  // War is in effect.  Keyed on the first step so a suspended-and-resumed end
+  // phase only rolls once.
+  if (progress.step === 0 && G.persistent.acw === true) {
+    if (G.flags.acwRolledTurn !== G.turn) {
+      G.flags.acwRolledTurn = G.turn;
+      resolveAmericanCivilWarEndPhase(G, ctx);
+    }
+  }
   const steps = endPhaseOrder();
   while (progress.step < steps.length) {
     const step = steps[progress.step];
@@ -6857,7 +6882,7 @@ export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | 
     // 27.2: spend the bonus immediately as a separate action, not banked CP.
     // Pre-27.1 states still bank the printed CP into the GW wallet.
     if (legacy) p.gwBudget = (p.gwBudget ?? 0) + card.cp;
-    if (card.remove) G.removed.push(cardId);
+    if (removesAfterPlay(G, cardId)) G.removed.push(cardId);
     else discardGwCard(G, cardId);
     G.resolvingCard = null;
     return;
@@ -6867,7 +6892,7 @@ export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | 
   // A GW event is consumed as soon as it is played, even when its effect opens
   // a decision.  Do not let `finalizePendingCard` put it in the action discard.
   // GW #2 asks for its own removal when neither major can join.
-  const removeNow = card.remove || G.flags.gwRemoveAfterEvent === cardId;
+  const removeNow = removesAfterPlay(G, cardId) || G.flags.gwRemoveAfterEvent === cardId;
   if (G.flags.gwRemoveAfterEvent === cardId) G.flags.gwRemoveAfterEvent = "";
   if (removeNow) removeCard(G, cardId);
   else discardGwCard(G, cardId);
@@ -7100,7 +7125,7 @@ export const playResponseCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId
     G.flags.pendingResponse = true;
     return;
   }
-  if (card.remove) removeCard(G, cardId);
+  if (removesAfterPlay(G, cardId)) removeCard(G, cardId);
   else if (card.kind !== "home") G.discard.push(cardId);
   pruneRemovedFromDiscard(G);
   G.resolvingCard = null;

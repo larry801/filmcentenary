@@ -152,6 +152,20 @@ export const gwEventHint = (G: ImperialElegyState, cardId: CardId): GwEventHint 
   cardId === "IE-GW-10" && gwExhaustionTurnZero(G) ? "gw-turn-0" : null;
 
 /**
+ * Whether a played card leaves the game instead of the discard pile.
+ *
+ * `CardDef.remove` is unconditional; `CardDef.removeFromTurn` is the printed
+ * "remove from the game if played during or after turn N" (A069 Concert of
+ * Europe), which depends on the campaign turn at the moment of the play.
+ */
+export const removesAfterPlay = (G: ImperialElegyState, cardId: CardId): boolean => {
+  const card = CARD_BY_ID[cardId];
+  if (card === undefined) return false;
+  if (card.remove) return true;
+  return card.removeFromTurn !== undefined && G.turn >= card.removeFromTurn;
+};
+
+/**
  * A54 Failed Reforms is printed "Cannot be played after The Young Turks".
  * A106 is a mandatory card, so once it resolves there is no way back into the
  * earlier window.

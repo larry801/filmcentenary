@@ -2702,6 +2702,16 @@ export const demobilizeWar = (
   for (const state of Object.values(G.spaces)) state.occupiedBy = null;
   const historyRecorded = !G.wars.includes(war);
   if (historyRecorded) G.wars.push(war);
+  // A096 Empire of the Sun: "At the end of the war the active player becomes the
+  // ally of Japan."  The claim is recorded when the event resolves (the war may
+  // end turns later), so it is applied here, at the war's actual end.
+  const japanClaim = G.flags.japanAlliancePending;
+  if (typeof japanClaim === "string" && G.spaces.japan) {
+    G.spaces.japan.ally = japanClaim as Power;
+    G.spaces.japan.diplomacy = null;
+    log(G, japanClaim as Power, "minorAlliance", {space: "japan"});
+  }
+  delete G.flags.japanAlliancePending;
   G.war = null;
 
   const winnerSide: WarSideName = war.victor ?? "attacker";

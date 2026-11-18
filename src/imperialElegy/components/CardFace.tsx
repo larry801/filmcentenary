@@ -179,7 +179,15 @@ export const CardFace = React.memo((props: CardFaceProps) => {
   const footer = power ? t.seats[power] : kind === "greatWar" ? t.greatWarMap : card!.entry;
   const markers = goal
     ? `${goal.vp} VP${goal.partialVp ? ` / ${goal.partialVp} VP` : ""}`
-    : [card!.remove ? (locale === "zh_CN" ? "事件后移出" : "Remove after event") : "", card!.draw ? (locale === "zh_CN" ? "抽牌" : "Draw card") : ""].filter(Boolean).join(" · ");
+    : [
+        card!.remove ? (locale === "zh_CN" ? "事件后移出" : "Remove after event") : "",
+        // A069's removal is conditional on the campaign turn, so the face says
+        // so instead of promising an unconditional removal.
+        card!.removeFromTurn !== undefined
+          ? (locale === "zh_CN" ? `第 ${card!.removeFromTurn} 回合起移出` : `Remove from turn ${card!.removeFromTurn}`)
+          : "",
+        card!.draw ? (locale === "zh_CN" ? "抽牌" : "Draw card") : "",
+      ].filter(Boolean).join(" · ");
 
   return (
     <>

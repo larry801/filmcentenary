@@ -359,6 +359,7 @@ export const botPendingMove = (
     case "combatCard":
     case "combatDiscard":
     case "combatElite":
+    case "hydraulicRecoil":
       // Combat decisions: pick first option (take the loss / retreat / advance).
       return {move: "resolvePending", args: [pending.options[0].id]};
 

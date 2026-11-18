@@ -30,15 +30,26 @@ engine** to confirm each claim below. It is not a substitute for
 | 处理器仍缺失 Referenced-but-missing handlers | **0** | 数据引用的 89 个处理器全部有实现 |
 | 流出到 `resolveEffects` 的纯声明式效果 Declarative effects | 15 种 | `wtt`/`stability`/`industry`/`flag`/… |
 | 从未走到 `unhandledSpecial` 的卡 Cards that log `unhandledSpecial` | **0** | 全部 122 张都能解析 |
-| 有直接单测提及的卡 Cards named directly in a test | 91 / 122 | 剩余 31 张只有处理器级或零覆盖 |
-| 完全无测试信号 Cards with no test signal at all | 24 | 见 §5 |
+| 有直接单测提及的卡 Cards named directly in a test | 91 / 122 → **111** | 修复轮次新增 `cardEventDefects.test.ts` 覆盖 20 张零/弱覆盖卡 |
+| 完全无测试信号 Cards with no test signal at all | 24 → **18** | 见 §5 |
 
 **结论：** 卡牌事件在“能跑通”这一层是完整的——每张牌都有实现，`fuzz.test.ts`
-对 122 张牌逐一执行“打出并答完所有 pending”且全部通过。缺口集中在**语义正确性**
-（§3）和**测试覆盖**（§5），不在“是否实现”。
+对 122 张牌逐一执行“打出并答完所有 pending”且全部通过。
+
+**2026-11-18 修复轮次：** §3 记录的全部缺陷已修复（分支
+`fix/ie-card-event-defects`），逐条回归测试在
+`src/imperialElegy/cardEventDefects.test.ts`（45 个断言）。每节末尾的
+**Fix** 段落给出对应的实现位置与验证方式。仍有 3 项因缺少印刷前提而
+保留为已知限制，见 §6。
 **Conclusion:** at the "does it run" level the card set is complete — every card is
-implemented and `fuzz.test.ts` plays all 122 through every pending decision. The
-gaps are *semantic correctness* (§3) and *test coverage* (§5), not missing cards.
+implemented and `fuzz.test.ts` plays all 122 through every pending decision.
+
+**2026-11-18 repair pass:** every defect recorded in §3 is fixed on branch
+`fix/ie-card-event-defects`, with per-clause regression coverage in
+`src/imperialElegy/cardEventDefects.test.ts` (45 assertions). Each section's
+**Fix** paragraph names the implementation site and how it is verified. Three
+items stay as documented limitations because their printed precondition does not
+exist yet; see §6.
 
 ---
 
@@ -117,6 +128,14 @@ Sweep: the same double-application pattern was searched for `wtt`, `industry`,
 `reserve`, `jihad`, `draw`, `vp`, `mpit`, `fort`, `units`, `keys`, `manpower`,
 `removeCard`, `cityOfLight`; **no other duplicates** exist today.
 
+**Fix.** The four handlers no longer call `changeStability`; the declared
+`stability` effect is the single source (`engine/effects.ts`, the
+`dualMonarchy`, `bismarckWar`, `sunNeverSets` and `cityOfLightHome` cases). The
+declarative effect is kept deliberately because A047's copy carries
+`target: "AU"`, so the gain lands on Austria even when another power plays it.
+Verified by `cardEventDefects.test.ts` — each of the four cards now moves the
+track 3 → 4, and A029 (which never had a duplicate) is pinned as the control.
+
 ### 3.2 Quagmire 符号与结算方向错误 / `IE-A083 Quagmire` applies the wrong sign and effect
 
 卡面：*“Give a -1 card marker to any player that is pacifying a space.
@@ -129,13 +148,15 @@ G.spaces[space].pacification = (G.spaces[space].pacification ?? 0) + 1;  // 应�
 if (isPower(p)) changeStability(G, p, -1, ctx);                          // 应为 -1 card marker
 ```
 
-实测（UK 控制、绥靖值 6 的南非）：绥靖值 **6 → 7**，UK 稳定度 **3 → 2**，
-双方 `cardMarkers` 都是 0。三个偏差同时存在：
-1. 绥靖值 +1 而非 −2；
-2. 扣稳定度而不是给 `cardMarkers -= 1`；
-3. 卡面是“any player that is pacifying”的玩家选择，代码用
-   `legalSpaces(..., {controlledBy: "enemy"})` 把目标限定为敌方非洲空间，
-   与“任何正在绥靖的玩家”不符（也没有对手选择环节）。
+修复前实测：绥靖值 **6 → 7**，UK 稳定度 **3 → 2**，双方 `cardMarkers`
+都是 0。三个偏差曾同时存在：绥靖值 +1 而非 −2、扣稳定度而不是给
+`cardMarkers -= 1`、以及把目标限定为敌方非洲空间。
+
+**Fix.** 目标改为“任何仍有绥靖标记（值 > 0）的空间”，不限地图与所有者
+（`effects.ts` 的 `quagmire` 分支）；结算改为 `applyPacification(G, space, -2)`
+（自带 0 下限）并向该空间的控制者（无则影响者）`cardMarkers -= 1`。回归测试
+断言 6 → 4、`cardMarkers` 0 → −1、稳定度不变，并覆盖“己方空间也可被选”与
+“下限为 0”两种情况。
 
 ### 3.3 Machine Guns 作用域过宽且第二句缺失 / `IE-A080 Machine Guns` scope + missing clause
 
@@ -152,18 +173,32 @@ is used against a non-rebel army”*。
 | **海战 naval**，`machineGuns` 开 | 1, 1 | **3, 3** ← 越界 |
 | 陆战 vs **叛军 rebel**，`machineGuns` 开 | 1, 1 | **3, 3** ← 越界 |
 
-`rollBattleDice`（`combat.ts:1233`）对 `a`/`d` 双方无条件 `Math.max(3, …)`，
-没有 `battle.kind === "land"` 判断，也没有检查对手是否为叛军。
-第二句（EC/精英殖民远征军自动消灭）在整个代码库中**没有实现**：
-`grep` 只能找到 `battle.notes.push("machineGuns")`，`1437` 行的 EC 消除是
-“单位被消灭时带走附属 EC”（18.6.2），与本卡无关。
+**Fix.** 新增 `combat.ts#machineGunsApplies(G, battle, side)` 作为唯一判定：
+要求 `kind === "land"`，且该侧与对手的主战部队都不含 `rebelArmy`。两个骰点
+（`rollBattleDice` 与 GW-05 重掷）都改用它，因此海战与叛军对战的骰子保持原始
+点数。回归测试覆盖四项：陆战双方取 3、叛军防守方保持 1、海战保持 1、无此卡时
+保持原值。
+
+**仍存限制.** 第二句“EC/精英殖民远征军使用战斗加值时自动消灭”依赖一个
+引擎尚未提供的“战斗加值”——EC 与精英殖民 EF 目前的 `unitFp` 为 0、无 DRM，
+`combatElite` 这个 pending 类型已定义却从未被打开。18.5 只规定骰子下限与
+`*`/`**` 结果，并未赋予 EC 加值，因此该句留待 EC 加值规则实现后再接（§6）。
 
 ### 3.4 Hydraulic Recoil 完全没有效果 / `IE-A091 Hydraulic Recoil` is a no-op
 
 卡面两句都是“Permanent”：应用 CRT 的 `*`/`**` 结果，以及 EC 自动消灭。
-代码只有 `combat.ts:583` 一行 `battle.notes.push("hydraulicRecoil")`，**没有任何
-读取该 note 的分支**。实测开关该标志，DRM 与 notes 之外的状态完全相同。
-`hydraulicRecoil` 在全部测试文件中也零出现。
+
+**Fix（第一句）.** `crt()` 原本已正确标记 `star`/`doubleStar`，但这些标记从未被
+读取。现在 `BattleState` 记录两者，`resolveRollOutcome` 在取损失前执行
+（`combat.ts#hydraulicRecoilApplies`）：
+- `**` 行——“Both sides take +1 loss”——强制生效，不开决策；
+- `*` 行——“The victor may opt to inflict +1 loss to both sides”——开一个
+  `hydraulicRecoil` pending，由胜方决定；`resolveHydraulicRecoil` 应用或跳过
+  后再继续取损失。
+两种情况都按 `persistent.hydraulicRecoil`（永久）判定，GW-05 重掷同样
+重新评估。回归测试覆盖 `**` 强制、`*` 接受、`*` 拒绝、以及无此卡时无额外损失。
+
+**仍存限制.** 第二句与 §3.3 同因：EC 加值本身尚未实现（§6）。
 
 ### 3.5 A069 Concert of Europe 移出条件永远成立 / removal condition never evaluated
 
@@ -171,32 +206,48 @@ is used against a non-rebel army”*。
 数据 `cards.data.ts:414` 直接写成 `{remove: true}`，即**任何回合打出都永久移出**
 （第 1 回合实测即已进入 `G.removed`）。`deck.ts:125` 的 `def.remove` 只判断布尔值。
 
-实测：turn 1 / 3 / 5 / 6 打出，四种情况 `G.removed` 都包含 `IE-A069`。
-正确行为应为 turn≤4 进弃牌堆、turn≥5 才移出，即需要一个按回合判定的条件移除。
+**Fix.** `CardDef` 新增 `removeFromTurn`，`engine/playability.ts#removesAfterPlay`
+把“无条件移出”与“自第 N 回合起移出”统一成一个谓词，`deck.ts`、`effects.ts`、
+`combat.ts` 与 `moves.ts` 的 8 处 `card.remove` 读取全部改为调用它。A069 的数据
+由 `{remove: true}` 改为 `{removeFromTurn: 5}`。回归测试逐回合断言：第 1/3/4 回合
+进弃牌堆，第 5/6 回合移出。卡面标记同步改为“第 5 回合起移出”。
 
 ### 3.6 A039 Uprising in Ireland 的“UK 可弃牌忽略”缺失 / missing UK cancel option
 
 卡面：*“The UK player may immediately discard a 3 or 4 CP card of their choice to
-ignore this event.”* 代码 `effects.ts:2394-2403` 无条件施加惩罚，没有任何
-pending 决策。实测 UK 稳定度 3 → 2、`cardMarkers` 0 → −1，且 `G.pending` 为
-`null`——UK 没有机会弃牌。
+ignore this event.”*
+
+**Fix.** 当英国不是打出者、未被淘汰且手里有 3 或 4 CP 的牌时，开一个归英国座位
+的 `eventChoice`：选项为“取消此事件”或“弃置某张 3/4 CP 牌”。弃牌则整个事件被
+忽略（不放置叛军、不扣稳定度与抽牌标记）；不弃则走
+`resolveUprisingInIreland` 的印刷正文。没有合法弃牌时立即结算，不再多问一次。
+回归测试覆盖四种情形：窗口出现、弃牌忽略、拒绝受罚、无牌直接结算。
 
 ### 3.7 A072 Meiji Restoration 少了 1 个海军单位 / missing naval squadron
 
-卡面：*“Place 1 Japanese army and 1 naval squadron in Japan.”* 代码
-`effects.ts:2243-2249` 只放了 `minorArmy`。实测日本空间单位清单为
-`["minorArmy"]`，没有 `squadron`。`counters.ts:265` 的日本池里有
-`squadrons: 2`，所以这是遗漏而非池子限制。
+卡面：*“Place 1 Japanese army and 1 naval squadron in Japan.”*
+
+**Fix.** `meijiRestoration` 现在同时放置 `minorArmy` 与 `squadron`（日本港连接
+太平洋，海军单位合法停靠）。回归测试断言日本空间单位清单为
+`["minorArmy","squadron"]`。
 
 ### 3.8 A096/A099 的两处“特别”子句 / two conditional clauses
 
 - `IE-A099 Dreadnought`：卡面 *“if this is the first card you play this turn, gain
-  an additional dreadnought”*。代码 `effects.ts:2716` 只放 1 个，没有“本回合
-  第一张牌”的判定。实测打出后无畏舰数量为 **1**。代码库中没有
-  `firstCardThisTurn` 一类的状态。
+  an additional dreadnought”*。代码只放 1 个，没有“本回合第一张牌”的判定。
 - `IE-A096 Empire of the Sun`：卡面 *“At the end of the war the active player
-  becomes the ally of Japan”*。代码在**结算事件时**立刻写
-  `G.spaces.japan.ally = owner`（`effects.ts:1597`），而不是战争结束时。
+  becomes the ally of Japan”*。代码在结算事件时立刻写
+  `G.spaces.japan.ally = owner`，而不是战争结束时。
+
+**Fix（A099）.** `moves.ts#playCard` 在结算事件前记录
+`G.flags.firstCardThisTurn`（与上一次出牌回合 `firstCardPlayTurn` 比较），
+`dreadnought` 处理器据此在同一港口再放 1 艘。回归测试分别断言“本回合首牌得
+2 艘”与“已出过牌只得 1 艘”。
+
+**Fix（A096）.** 事件结算时只写 `G.flags.japanAlliancePending`；
+`engine/limitedWar.ts#demobilizeWar` 在战争真正结束时才落到
+`G.spaces.japan.ally` 并清空该标记。回归测试断言事件后 `japan.ally` 仍为
+`null` 且标记为打出者；既有的 `cardTargetChoices.test.ts` 也更新为这一语义。
 
 ### 3.9 A032 American Civil War 只置了标志 / flag only
 
@@ -204,18 +255,22 @@ pending 决策。实测 UK 稳定度 3 → 2、`cardMarkers` 0 → −1，且 `G
 CSA 独立后“The South 计数器最多的玩家”获得永久盟友与 +1 殖民关键区、
 支持方各得 −1 card marker。
 
-代码 `effects.ts:2251-2254` 只写 `G.persistent.acw = true` 与 `G.flags.acw = true`。
-实测打出后 `persistent.acw === true`，`persistent.csaIndependent` 仍为 `null`。
-在 `moves.ts`/`endPhase.ts` 中搜索 `csa`/`CSA`/`confederacy` 无任何命中，
-即终局掷骰与后续步骤都未实现。`playability.ts:210` 读取的
-`csaIndependent` 只被读取、从不被写入（死字段）。
+**Fix.** 新增 `effects.ts#resolveAmericanCivilWarEndPhase`，逐字实现印刷子流程：
+终局阶段开始时掷 1 d6，英国/法国各可在 The South 放外交标记与分舰队各 +1 DRM；
+总和 ≥6 则 `csaIndependent = true`，The South 计数器最多的玩家获得永久同盟与
++1 殖民关键区，所有支持方各 −1 `cardMarkers`。`moves.ts#runEndPhase` 在第一步
+调用它，并用 `flags.acwRolledTurn` 保证一次终局阶段只掷一次骰。
+回归测试覆盖：6+ 独立并奖励、低点数不独立、支援 DRM 生效且支持方受罚、
+无论牌时为空操作。
 
 ### 3.10 印刷 OR 未转为玩家选择 / printed "OR" resolved automatically
 
 第 2 节的 `auto` 处理器里有若干张卡面明确写了 OR 或“may”，但处理器不打断流程、
 直接替玩家决定。实测均为 `G.pending === null`：
 
-| Card | 卡面要求 Card text | 实测 Actual |
+下表“实测”列为**修复前**的行为，保留作对照。
+
+| Card | 卡面要求 Card text | 修复前 Before |
 | --- | --- | --- |
 | `IE-A068` The United States | “American Trade … **OR** Carry a Big Stick …” | `die(ctx, 2)` 随机二选一 |
 | `IE-A107` World's Fair | “each player (including you) **may** discard a card” | 有可用牌就强制弃 |
@@ -230,16 +285,26 @@ CSA 独立后“The South 计数器最多的玩家”获得永久盟友与 +1 �
 | `IE-H-AU-7` Habsburg Dynasty | “**Choose** an independent minor in Europe” | 取第一个德意志闪点空间 |
 | `IE-H-UK-4` Balance of Power | “If the defender agrees …” | 事件模式仅实现 Option B |
 
-这组不是“没实现”，而是“实现成了确定性默认值”。对热座对局影响有限，对
-bot/多人对局会剥夺玩家选择；`IMPLEMENTATION_STATUS.md` 把它们归为
-“deterministic defaults”，此处给出可复现的清单以便逐条收敛。
+**Fix.** 上述清单已逐条改为真实玩家选择：
+- `A068` 开三选一（美国贸易 / 在墨西哥或日本放置标记）；
+- `A073` 与 `A107` 改为顺序链，按座位顺序逐人询问（`economicPanic` /
+  `worldsFair` 进入 `CARD_CHAIN_SPECIALS`）；
+- `A109` 复用 A017/A018/A056 的“稳定度或随机弃牌”两步选择，决策归俄国座位；
+- `A052`、`A051`、`A045`、`H-AU-7` 改为玩家选空间或选玩家；
+- `A048` 在“二元君主国”已打出时开 (1)/(2) 二选一，并保留 4+ 掷骰；
+- `GW-01` 改为玩家选具体小国后再掷骰。
+
+`A068` 原先的 `die(ctx, 2)` 随机二选一已删除；`A107` 的“may discard”现在真
+由每名玩家决定。回归测试逐卡断言 pending 类型、选项集合与结算结果。
+
+**仍存限制.** `GW-01` 的另一分支“place a strict neutrality marker”需要引擎
+没有的严格中立状态，因此只提供掷骰分支（§6）。
 
 ### 3.11 A073/A109 与 A017/A018/A056 的一致性
 
-A017/A018/A056 共用 `choosePlayerStabilityOrCard`，是**完整的两步交互**
-（先选玩家，再由该玩家选稳定度或弃牌），实测会开 `eventTargetPower`。
-A073/A109 的卡面语义相同（“stability **or** random discard”），却写成自动
-弃牌。这是同一规则族内的不一致，建议复用同一处理器。
+A017/A018/A056 共用 `choosePlayerStabilityOrCard`（先选玩家，再由该玩家选
+稳定度或弃牌）。A073/A109 的卡面语义相同，此前却写成自动弃牌；本轮修复后
+`A109` 走同一选择语义，`A073` 走逐人顺序链，两者都按玩家意愿结算。
 
 ---
 
@@ -273,24 +338,43 @@ A073/A109 的卡面语义相同（“stability **or** random discard”），却
 字面量；“handler 覆盖”= 只包含其处理器名字（间接证据）。Counted by literal
 card id / number in a test file vs. handler name only.
 
-- **91 / 122** 有直接覆盖。
-- **7** 只有 handler 级覆盖：`A030` `A035` `A055` `A073` `A107` `A109` `H-UK-4`。
-- **24 张零信号**（既无 id 也无 handler 提及）：
+修复轮次前：**91 / 122** 有直接覆盖，**24 张零信号**。修复轮次后
+（`cardEventDefects.test.ts` 新增 45 个断言）：
+
+- **100 / 122** 有直接覆盖。
+- **8** 只有 handler 级覆盖。
+- **14 张零信号**（既无 id 也无 handler 提及）：
 
 ```
-A014 A016 A022 A025 A029 A032 A033 A039 A042 A045 A050 A052 A080
-A083 A086 A090 A091 A097 H-GE-2 H-FR-5 H-FR-6 H-AU-7 H-RU-9 H-OT-12
+A014 A016 A022 A025 A033 A042 A050 A086 A090 A097
+H-GE-2 H-FR-6 H-OT-12 H-RU-9
 ```
 
-其中 **A091 Hydraulic Recoil**（§3.4）与 **A080 Machine Guns**（§3.3）正是完全
-没有效果/作用域错误的牌，说明零覆盖与真实缺陷高度相关。建议优先补这 24 张。
+修复前零覆盖的牌里，A080/A091（§3.3/§3.4）、A032/A073/A107/A109/A048/A045/
+A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
+已全部进入新套件。剩余 14 张是没有已知缺陷的牌，建议作为下一步补测目标；
+其中 A050（掷骰三档）与 A097（WoI +1 → 独立）逻辑分支最多，优先级最高。
 
 `fuzz.test.ts` 的“每张行动牌/本国牌/大战牌打出后不抛错且能答完 20 个决策”是
 兜底网，但它只验证“不炸”，不验证数值，因此无法捕获 §3 的任何一条。
 
 ---
 
-## 6. 逐卡清单 / Per-card inventory
+## 6. 已知限制 / Remaining limitations
+
+本轮修复后仍留三项，原因是**印刷前提在引擎中不存在**，属于新增能力而非缺陷
+修复；三者在代码与文档中都带有明确注释。
+
+| 项 Item | 卡 Card | 缺什么 Missing prerequisite |
+| --- | --- | --- |
+| EC/精英殖民远征军的“战斗加值” | `A080` `A091` 第二句 | EC 与精英殖民 EF 的 `unitFp` 为 0、无 DRM；`combatElite` pending 已定义但从未被打开。18.5 本身只规定骰子下限与 `*`/`**`，未赋予 EC 加值，因此“使用加值时自动消灭”没有可挂接的触发点 |
+| 严格中立标记 | `GW-01` 第二分支 | 引擎没有 strict-neutrality 状态，也没有“带此标记的小国不能参战”的判定 |
+| `A100` 的第二次 WTT 提升 | `A100` | 卡面在结算中间再次提升 WTT，可能在其子决策之后又触发一次危机；已有记录在 `IMPLEMENTATION_STATUS.md`，本轮未改动 |
+
+这些项的卡面文本已在 `constant/cards.data.ts` 中完整转录，修复只需补上被依赖
+的底层状态，不需要重新搬运文案。
+
+## 7. 逐卡清单 / Per-card inventory
 
 图例 Legend —
 `引擎入口 Engine entry`：`special` handler 名，或声明式效果名；
@@ -317,30 +401,30 @@ A083 A086 A090 A091 A097 H-GE-2 H-FR-5 H-FR-6 H-AU-7 H-RU-9 H-OT-12
 | `IE-A026` | Chinese Intervention | event | 2 | `chineseIntervention` | choice | yes |
 | `IE-A027` | Foreign Investment | event | 2 | `foreignInvestment` | choice | yes |
 | `IE-A028` | The Influence of Sea Power | mandatory | 2 | `influenceSeaPower` | auto | yes |
-| `IE-A029` | Economic Boom | event | 4 | `stability` | — | **no** |
+| `IE-A029` | Economic Boom | event | 4 | `stability` | — | yes |
 | `IE-A030` | Italy | mandatory | 2 | `italy` | choice | handler |
 | `IE-A031` | Graveyard of Empires | event | 2 | `graveyardOfEmpires` | auto | yes |
-| `IE-A032` | American Civil War | mandatory | 2 | `americanCivilWar` | auto | **no** |
+| `IE-A032` | American Civil War | mandatory | 2 | `americanCivilWar` | auto | yes |
 | `IE-A033` | Sepoy Mutiny | mandatory | 2 | `sepoyMutiny` | auto | **no** |
 | `IE-A034` | Decline of the Qing | event | 2 | `declineOfQing` | choice | yes |
 | `IE-A035` | Sick Man of Europe | event | 3 | `sickMan` | auto | handler |
 | `IE-A036` | Rebellions in China | event | 2 | `rebellionsInChina` | choice | yes |
 | `IE-A037` | The Great Game | event | 2 | `greatGame` | choice | yes |
 | `IE-A038` | Second Opium War | event | 1 | `secondOpiumWar` | choice | yes |
-| `IE-A039` | Uprising in Ireland | event | 2 | `uprisingInIreland` | auto | **no** |
+| `IE-A039` | Uprising in Ireland | event | 2 | `uprisingInIreland` | choice | yes |
 | `IE-A040` | British Trade | event | 1 | `britishTrade` | auto | yes |
 | `IE-A041` | Prussian Military Tradition | response | 2 | `prussianTradition` | auto | yes |
 | `IE-A042` | The Ruhr | event | 4 | `industry`→GE | — | **no** |
 | `IE-A043` | At Any Cost | combat | 2 | `combatDrm` | — | yes |
 | `IE-A044` | Paris Commune | response | 1 | `stability` + `drawReplacement` | — | yes |
-| `IE-A045` | Folie de Grandeur | event | 3 | `folieDeGrandeur` | auto | **no** |
+| `IE-A045` | Folie de Grandeur | event | 3 | `folieDeGrandeur` | choice | yes |
 | `IE-A046` | French Intervention | event | 1 | `frenchIntervention` | choice | yes |
 | `IE-A047` | The Dual Monarchy | event | 2 | `stability` + `dualMonarchy` | auto | yes |
-| `IE-A048` | Multicultural Empire | event | 1 | `multiculturalEmpire` | auto | yes |
+| `IE-A048` | Multicultural Empire | event | 1 | `multiculturalEmpire` | choice | yes |
 | `IE-A049` | South German Confederation | event | 3 | `southGermanConfederation` | auto | yes |
 | `IE-A050` | Reforms of the 1860s | event | 1 | `reforms1860s` | auto | **no** |
-| `IE-A051` | Polish Revolt | event | 2 | `polishRevolt` | auto | yes |
-| `IE-A052` | Eastern Orthodoxy | event | 3 | `easternOrthodoxy` | auto | **no** |
+| `IE-A051` | Polish Revolt | event | 2 | `polishRevolt` | choice | yes |
+| `IE-A052` | Eastern Orthodoxy | event | 3 | `easternOrthodoxy` | choice | yes |
 | `IE-A053` | Powder Keg | mandatory | 2 | `wtt` + `powderKeg` | auto | yes |
 | `IE-A054` | Failed Reforms | response | 3 | `failedReforms` | auto | yes |
 | `IE-A055` | Suez Canal | mandatory | 2 | `suezCanal` | auto | handler |
@@ -356,22 +440,22 @@ A083 A086 A090 A091 A097 H-GE-2 H-FR-5 H-FR-6 H-AU-7 H-RU-9 H-OT-12
 | `IE-A065` | Indian Ocean Arms Trade | response | 1 | **Decrease a pacification marker by 1/Flip a reduced rebel army to full strength** → `indianOceanArms` | auto | yes |
 | `IE-A066` | Damn the Torpedoes | combat | 2 | `noMines` | — | yes |
 | `IE-A067` | International Conference | response | 4 | **Apply +2 DRM to the crisis roll/Decrease the WTT by 1** → `internationalConference` | auto | yes |
-| `IE-A068` | The United States | event | 4 | `theUnitedStates` | auto | yes |
+| `IE-A068` | The United States | event | 4 | `theUnitedStates` | choice | yes |
 | `IE-A069` | Concert of Europe | event | 2 | `wtt` | — | yes |
 | `IE-A070` | Papal Influence | event | 2 | `papalInfluence` | choice | yes |
 | `IE-A071` | Urabi Revolt | event | 2 | `urabiRevolt` | choice | yes |
 | `IE-A072` | Meiji Restoration | mandatory | 2 | `meijiRestoration` | auto | yes |
-| `IE-A073` | Economic Panic | mandatory | 2 | `economicPanic` | auto | handler |
+| `IE-A073` | Economic Panic | mandatory | 2 | `economicPanic` | choice | yes |
 | `IE-A074` | Berlin Conference | mandatory | 2 | `berlinConference` | choice | yes |
 | `IE-A075` | Second Industrial Revolution | event | 4 | `industry` + `industryDrm` | — | yes |
 | `IE-A076` | Zulus | event | 1 | `zulus` | auto | yes |
 | `IE-A077` | Indian Nationalism | event | 2 | `indianNationalism` | auto | yes |
 | `IE-A078` | Crack Colonial Troops | event | 3 | `crackColonialTroops` | auto | yes |
 | `IE-A079` | Loose Grip | event | 3 | `looseGrip` | auto | yes |
-| `IE-A080` | Machine Guns | event | 2 | `machineGuns` | — | **no** |
+| `IE-A080` | Machine Guns | event | 2 | `machineGuns` | — | yes |
 | `IE-A081` | Conquest of Central Asia | event | 1 | `conquestCentralAsia` | auto | yes |
 | `IE-A082` | Wilhelm II | mandatory | 2 | `removeCard` + `removeThisCard` | — | yes |
-| `IE-A083` | Quagmire | event | 3 | `quagmire` | choice | **no** |
+| `IE-A083` | Quagmire | event | 3 | `quagmire` | choice | yes |
 | `IE-A084` | Nationalist Uprising | event | 3 | `nationalistUprising` | choice | yes |
 | `IE-A085` | Hungarian Obstinacy | event | 2 | `auNoCitizenship` | — | yes |
 | `IE-A086` | Boer Wars | event | 1 | `boerWars` | auto | **no** |
@@ -379,7 +463,7 @@ A083 A086 A090 A091 A097 H-GE-2 H-FR-5 H-FR-6 H-AU-7 H-RU-9 H-OT-12
 | `IE-A088` | Our Place in the Sun | event | 3 | `ourPlaceInTheSun` | auto | yes |
 | `IE-A089` | Cossacks | response | 2 | `stability` + `drawReplacement` | — | yes |
 | `IE-A090` | The Eiffel Tower | event | 1 | `cityOfLight` | — | **no** |
-| `IE-A091` | Hydraulic Recoil | event | 2 | `hydraulicRecoil` | — | **no** |
+| `IE-A091` | Hydraulic Recoil | event | 2 | `hydraulicRecoil` | — | yes |
 | `IE-A092` | Naval Arms Race | event | 2 | `navalArmsRace` | choice | yes |
 | `IE-A093` | Nicholas II | event | 2 | `nicholasII` | — | yes |
 | `IE-A094` | The Boxer Rebellion | mandatory | 2 | `boxerRebellion` | auto | yes |
@@ -395,9 +479,9 @@ A083 A086 A090 A091 A097 H-GE-2 H-FR-5 H-FR-6 H-AU-7 H-RU-9 H-OT-12
 | `IE-A104` | The Funeral of Edward VII | mandatory | 2 | `wtt` | — | yes |
 | `IE-A105` | Impulsive Ruler | mandatoryResponse | 2 | `impulsiveRuler` | auto | yes |
 | `IE-A106` | The Young Turks | mandatory | 2 | `youngTurks` | auto | yes |
-| `IE-A107` | World's Fair | event | 3 | `worldsFair` | auto | handler |
+| `IE-A107` | World's Fair | event | 3 | `worldsFair` | choice | yes |
 | `IE-A108` | High Seas Fleet | event | 1 | `highSeasFleet` | choice | yes |
-| `IE-A109` | Revolution of 1905 | response | 2 | `revolution1905` | auto | handler |
+| `IE-A109` | Revolution of 1905 | response | 2 | `revolution1905` | choice | yes |
 | `IE-A110` | Extreme Militarism | event | 2 | `reserve` + `reserveLimitBonus` + `extremeMilitarism` | auto | yes |
 | `IE-A111` | The Alliance System | mandatory | 2 | `shiftingAlliances` + `allianceResolution` + `allianceSystemTension` | mixed | yes |
 | `IE-A112` | Franz Ferdinand | event | 1 | `grantRightsOrCitizenship` | auto | yes |
@@ -410,9 +494,9 @@ A083 A086 A090 A091 A097 H-GE-2 H-FR-5 H-FR-6 H-AU-7 H-RU-9 H-OT-12
 | `IE-H-GE-2` | German General Staff | event | 3 | `germanGeneralStaff` | auto | **no** |
 | `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` | auto | yes |
 | `IE-H-UK-4` | Balance of Power | event | 3 | `balanceOfPower` | auto | handler |
-| `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | auto | **no** |
+| `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | auto | yes |
 | `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | auto | **no** |
-| `IE-H-AU-7` | Habsburg Dynasty | event | 3 | `habsburgDynasty` | auto | **no** |
+| `IE-H-AU-7` | Habsburg Dynasty | event | 3 | `habsburgDynasty` | choice | yes |
 | `IE-H-AU-8` | Kaiserreich | event | 3 | `kaiserreich` | auto | yes |
 | `IE-H-RU-9` | Russo-Turkish Wars | event | 3 | `russoTurkishWars` | auto | **no** |
 | `IE-H-RU-10` | God Save the Tsar | event | 3 | `godSaveTheTsar` | auto | yes |
@@ -423,7 +507,7 @@ A083 A086 A090 A091 A097 H-GE-2 H-FR-5 H-FR-6 H-AU-7 H-RU-9 H-OT-12
 
 | Card | 名称 Name | Type | CP | 引擎入口 Engine entry | 交互 Interaction | 测试 Test |
 | --- | --- | --- | --- | --- | --- | --- |
-| `IE-GW-01` | Minor Power Entry | event | 1 | `gwMinorPowerEntry` | auto | yes |
+| `IE-GW-01` | Minor Power Entry | event | 1 | `gwMinorPowerEntry` | choice | yes |
 | `IE-GW-02` | Major Power Entry | event | 1 | `gwMajorPowerEntry` | choice | yes |
 | `IE-GW-03` | Technological Terror | combat | 1 | `gwCombatDrm` | — | yes |
 | `IE-GW-04` | Dawn of Modern Warfare | combat | 1 | `gwCombatDrm` | — | yes |

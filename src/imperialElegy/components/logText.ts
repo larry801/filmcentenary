@@ -348,6 +348,7 @@ const FORMATTERS: Record<string, Formatter> = {
   economicPanic: discardText(" in the Economic Panic", "（因经济恐慌）"),
   worldsFair: discardText(" for the World's Fair", "（因世界博览会）"),
   revolution1905: discardText(" in the Revolution of 1905", "（因 1905 年革命）"),
+  uprisingInIreland: discardText(" to Uprising in Ireland", "（因爱尔兰起义）"),
   eventDiscard: discardText(" to a card event", "（因卡牌事件）"),
   prepStabilityDiscard: discardText(" for +1 stability", "（换取 +1 稳定）"),
 
@@ -498,6 +499,102 @@ const FORMATTERS: Record<string, Formatter> = {
       locale,
       `rerolled the ${side} die: ${attack} vs ${defence}, differential ${differential}, losses ${attackerLosses}/${defenderLosses}.`,
       `重掷${side}掷骰：${attack} 对 ${defence}，差值 ${differential}，损失 ${attackerLosses}/${defenderLosses}。`,
+    );
+  },
+
+  acwRoll: (entry, locale) => {
+    const roll = num(entry.args?.roll);
+    const drm = num(entry.args?.drm);
+    const total = num(entry.args?.total);
+    if (bool(entry.args?.independent)) {
+      return text(locale, `American Civil War roll ${roll}${drm ? ` +${drm}` : ""} = ${total}: the CSA becomes independent.`, `美国内战掷骰 ${roll}${drm ? ` +${drm}` : ""} = ${total}：南方邦联独立。`);
+    }
+    return text(locale, `American Civil War roll ${roll}${drm ? ` +${drm}` : ""} = ${total}: the CSA stays in the Union.`, `美国内战掷骰 ${roll}${drm ? ` +${drm}` : ""} = ${total}：南方邦联未能独立。`);
+  },
+
+  csaAlly: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `gained a permanent alliance with the CSA and +1 colonial key (${space}).`, `获得与南方邦联的永久同盟及 +1 殖民关键区（${space}）。`);
+  },
+
+  quagmire: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `placed the Quagmire effect in ${space}: -1 card marker and -2 pacification.`, `在${space}结算泥潭：-1 抽牌标记、绥靖 -2。`);
+  },
+
+  dreadnoughtBonus: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `gained a second dreadnought at ${space} (first card this turn).`, `在${space}额外获得 1 艘无畏舰（本回合首牌）。`);
+  },
+
+  uprisingIgnored: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(entry, locale, `discarded ${card} to ignore Uprising in Ireland.`, `弃置${card}以忽略爱尔兰起义。`);
+  },
+
+  gwMinorJoined: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const roll = num(entry.args?.roll);
+    return withActor(entry, locale, `rolled ${roll} and brought the minor power at ${space} into the Great War.`, `掷出 ${roll}，使${space}的小国加入大战。`);
+  },
+
+  gwMinorDeclined: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const roll = num(entry.args?.roll);
+    return withActor(entry, locale, `rolled ${roll}; the minor power at ${space} did not join.`, `掷出 ${roll}，${space}的小国未参战。`);
+  },
+
+  economicPanicResolved: (entry, locale) =>
+    withActor(entry, locale, "resolved Economic Panic for every player.", "为所有玩家结算了经济恐慌。"),
+
+  worldsFairResolved: (entry, locale) => {
+    const discarded = num(entry.args?.discarded);
+    return withActor(entry, locale, `resolved World's Fair: ${discarded} player(s) discarded.`, `结算世界博览会：${discarded} 名玩家弃牌。`);
+  },
+
+  rightsGranted: (entry, locale) => {
+    const nationality = str(entry.args?.nationality) ?? "";
+    return withActor(entry, locale, `granted rights to ${nationality}.`, `给予${nationality}权利。`);
+  },
+
+  citizenshipGranted: (entry, locale) => {
+    const nationality = str(entry.args?.nationality) ?? "";
+    const roll = num(entry.args?.roll);
+    return withActor(entry, locale, `granted ${nationality} full citizenship (rolled ${roll}).`, `授予${nationality}完整公民权（掷出 ${roll}）。`);
+  },
+
+  citizenshipFailed: (entry, locale) => {
+    const nationality = str(entry.args?.nationality) ?? "";
+    const roll = num(entry.args?.roll);
+    return withActor(entry, locale, `failed to grant ${nationality} citizenship (rolled ${roll}).`, `未能授予${nationality}完整公民权（掷出 ${roll}）。`);
+  },
+
+  polishRevoltRebels: (entry, locale) => {
+    const spaces = str(entry.args?.spaces);
+    return withActor(
+      entry,
+      locale,
+      spaces ? `placed Polish rebels in ${spaces}.` : "placed no Polish rebels (no eligible space).",
+      spaces ? `在${spaces}放置波兰叛军。` : "未放置波兰叛军（无合法空间）。",
+    );
+  },
+
+  hydraulicRecoilApplied: (entry, locale) => {
+    const to = spaceName(entry.args?.to, locale);
+    const optional = bool(entry.args?.optional);
+    if (!optional) {
+      return withActor(
+        entry,
+        locale,
+        `declined Hydraulic Recoil's optional loss at ${to}.`,
+        `放弃了液压后坐在${to}的可选损失。`,
+      );
+    }
+    return withActor(
+      entry,
+      locale,
+      `applied Hydraulic Recoil at ${to}: both sides take +1 loss.`,
+      `在${to}结算液压后坐：双方各 +1 损失。`,
     );
   },
 
