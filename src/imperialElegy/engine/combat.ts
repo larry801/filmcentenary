@@ -44,6 +44,15 @@ import {
 import {CARD_BY_ID, cardById, discardCard, drawCards} from "./deck";
 import {damageUnit, removeUnit} from "./effects";
 import {removesAfterPlay} from "./playability";
+import {
+  ELITE_COMBAT_BONUS,
+  eliteBonusCandidates,
+  eliteBonusDestroys,
+  eliteBonusDrm,
+  committedEliteIds,
+  opponentIsNonRebelArmy,
+  eliteDecisionPower,
+} from "./eliteBonus";
 import {applyGwMajorDecisiveDefeat, forceLeader, forceLeaderFromOwners, syncItalianHomeKeys} from "./gwMajors";
 import {
   COMBAT_CARD_BY_ID,
@@ -622,6 +631,65 @@ const supportDecisionPower = (
   side: "attacker" | "defender",
 ): Power | null => (side === "attacker" ? battle.attacker : defenderSupportPower(G, battle));
 
+/**
+ * A078/A080/A091: offer the controlling player the *choice* of committing an
+ * elite corps / elite colonial EF for its printed +1.  The bonus is never
+ * automatic, because committing it is what triggers the printed
+ * auto-elimination against a non-rebel army.
+ *
+ * Returns true when a decision was opened (the caller then stops the sequence).
+ */
+const openEliteBonusWindow = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  battle: BattleState,
+  side: "attacker" | "defender",
+): boolean => {
+  const asked = (battle.eliteBonusAsked ??= {});
+  if (asked[side] === true) return false;
+  const candidates = eliteBonusCandidates(G, battle, side);
+  if (candidates.length === 0) {
+    asked[side] = true;
+    return false;
+  }
+  const power = eliteDecisionPower(G, battle, side);
+  if (power === null) {
+    // A minor defending alone owns no prompt.
+    asked[side] = true;
+    return false;
+  }
+  asked[side] = true;
+  openDecision(G, ctx, decision(
+    "combatElite",
+    power,
+    side === "attacker"
+      ? "Commit an elite unit for its printed +1? (attacker)"
+      : "Commit an elite unit for its printed +1? (defender)",
+    [
+      option("commit", `Commit the elite unit (+${ELITE_COMBAT_BONUS})`, {side}, false, `投入精英单位（+${ELITE_COMBAT_BONUS}）`),
+      option("decline", "Do not use its bonus", {side}, false, "不使用其加值"),
+    ],
+    {battle: true, eliteSide: side, power, promptKind: "eliteBonus"},
+  ));
+  return true;
+};
+
+/**
+ * A078/A080/A091 sit between the combat-card windows and the dice: the player
+ * has seen which cards are available and now decides whether to spend the
+ * elite unit's printed +1 (and, against a non-rebel army, the unit itself).
+ * Returns true when a decision was opened.
+ */
+const openEliteBonusSequence = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): boolean => {
+  if (!eliteBonusAsked(battle, "attacker") && openEliteBonusWindow(G, ctx, battle, "attacker")) return true;
+  if (!eliteBonusAsked(battle, "defender") && openEliteBonusWindow(G, ctx, battle, "defender")) return true;
+  return false;
+};
+
+/** Whether the bonus question for `side` has already been answered. */
+const eliteBonusAsked = (battle: BattleState, side: "attacker" | "defender"): boolean =>
+  battle.eliteBonusAsked?.[side] === true;
+
 export const chooseSupport = (G: ImperialElegyState, ctx: Ctx, spaceOrDone: string): void => {
   const battle = G.battle;
   if (!battle) return;
@@ -787,6 +855,43 @@ export const openSupportDenyDecision = (
   return true;
 };
 
+/**
+ * Resolve the elite-bonus decision: record the committed units, then continue
+ * the post-support sequence (the other side's question, then the cards).
+ */
+export const resolveEliteBonus = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  side: "attacker" | "defender",
+  commit: boolean,
+): void => {
+  const battle = G.battle;
+  if (!battle) return;
+  if (commit) {
+    const ids = eliteBonusCandidates(G, battle, side).map((unit) => unit.id);
+    if (side === "attacker") battle.eliteBonusAttack = ids;
+    else battle.eliteBonusDefense = ids;
+    // Record the printed condition now: the opposing units may be removed by
+    // step losses before the battle ends.
+    battle.eliteBonusVsRebel = {
+      ...battle.eliteBonusVsRebel,
+      [side]: !opponentIsNonRebelArmy(G, battle, side),
+    };
+    log(G, side === "attacker" ? battle.attacker : battle.defender, "eliteBonusCommitted", {
+      to: battle.to,
+      side,
+      units: ids.length,
+      drm: ids.length * ELITE_COMBAT_BONUS,
+    });
+  }
+  G.pending = null;
+  // Continue where the elite question interrupted: the remaining elite
+  // question, then the dice.
+  if (openEliteBonusSequence(G, ctx, battle)) return;
+  battle.stage = "roll";
+  resolveBattleRoll(G, ctx);
+};
+
 /** Resolve A062's denied space and continue the battle card sequence once. */
 export const chooseSupportDeny = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): void => {
   const battle = G.battle;
@@ -863,8 +968,8 @@ const battleFpTotals = (
 const refreshBattleDrmTotals = (G: ImperialElegyState, battle: BattleState): void => {
   if (battle.attackDrmTotal === undefined && battle.defenceDrmTotal === undefined) return;
   const {attackFp, defenceFp} = battleFpTotals(G, battle);
-  battle.attackDrmTotal = battle.attackerDrm + Math.max(0, attackFp - defenceFp);
-  battle.defenceDrmTotal = battle.defenderDrm + Math.max(0, defenceFp - attackFp);
+  battle.attackDrmTotal = battle.attackerDrm + eliteBonusDrm(battle, "attacker") + Math.max(0, attackFp - defenceFp);
+  battle.defenceDrmTotal = battle.defenderDrm + eliteBonusDrm(battle, "defender") + Math.max(0, defenceFp - attackFp);
 };
 
 /** "The majority (more than half)" of `n` losses is `floor(n/2) + 1`. */
@@ -1040,6 +1145,7 @@ export const afterCombatCardWindow = (G: ImperialElegyState, ctx: Ctx): void => 
     openCombatCardWindow(G, ctx, battle, "defender");
     return;
   }
+  if (openEliteBonusSequence(G, ctx, battle)) return;
   battle.stage = "roll";
   resolveBattleRoll(G, ctx);
 };
@@ -1276,8 +1382,11 @@ export const machineGunsApplies = (
 
 const rollBattleDice = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): void => {
   const {attackFp, defenceFp} = battleFpTotals(G, battle);
-  const attackDrm = battle.attackerDrm + Math.max(0, attackFp - defenceFp);
-  const defenceDrm = battle.defenderDrm + Math.max(0, defenceFp - attackFp);
+  // A078/A080/A091: the elite bonus only counts once the player committed it,
+  // and the commitment happens after the battle is created, so it is folded in
+  // here rather than at `beginLandBattle`.
+  const attackDrm = battle.attackerDrm + eliteBonusDrm(battle, "attacker") + Math.max(0, attackFp - defenceFp);
+  const defenceDrm = battle.defenderDrm + eliteBonusDrm(battle, "defender") + Math.max(0, defenceFp - attackFp);
   battle.attackDrmTotal = attackDrm;
   battle.defenceDrmTotal = defenceDrm;
   let a = die(ctx, 6);
@@ -3125,6 +3234,21 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
   // (26.1); they never enter the discard pile.
   for (const entry of battle.faceDownCards ?? []) {
     placeGwCombatCardFaceDown(G, entry.holder, entry.cardId);
+  }
+  // A078/A080/A091: "ECs and elite colonial EFs are automatically eliminated if
+  // their combat bonus is used against a non-rebel army in a land battle."
+  // Destroyed after every other battle effect so the unit can still take its
+  // own battle losses first (it is already gone by then, which is harmless).
+  for (const side of ["attacker", "defender"] as const) {
+    if (!eliteBonusDestroys(G, battle, side)) continue;
+    for (const unitId of committedEliteIds(battle, side)) {
+      const unit = G.units[unitId];
+      // The unit may already have been removed by the battle's own step losses;
+      // the printed clause is still satisfied, and the log records why.
+      const kind = unit?.kind ?? "elite";
+      if (unit) removeUnit(G, unitId);
+      log(G, battle.attacker, "eliteBonusDestroyed", {to: battle.to, side, kind});
+    }
   }
   G.battle = null;
   G.flags.combatDrm = 0;

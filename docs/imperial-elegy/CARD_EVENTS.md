@@ -39,17 +39,25 @@ engine** to confirm each claim below. It is not a substitute for
 **2026-11-18 修复轮次：** §3 记录的全部缺陷已修复（分支
 `fix/ie-card-event-defects`），逐条回归测试在
 `src/imperialElegy/cardEventDefects.test.ts`（45 个断言）。每节末尾的
-**Fix** 段落给出对应的实现位置与验证方式。仍有 3 项因缺少印刷前提而
-保留为已知限制，见 §6。
+**Fix** 段落给出对应的实现位置与验证方式。
+
+**2026-11-18 补齐轮次：** 当时因缺少底层机制而保留的 3 项已全部实现（分支
+`feat/ie-card-limitations`）——EC/精英殖民 EF 的战斗加值（A080/A091 第二句的
+挂接点）、GW-01 的严格中立标记、A100 跨多段危机保留的卡牌尾部。回归测试在
+`src/imperialElegy/cardLimitations.test.ts`（14 个断言），详见 §6。
 **Conclusion:** at the "does it run" level the card set is complete — every card is
 implemented and `fuzz.test.ts` plays all 122 through every pending decision.
 
 **2026-11-18 repair pass:** every defect recorded in §3 is fixed on branch
 `fix/ie-card-event-defects`, with per-clause regression coverage in
 `src/imperialElegy/cardEventDefects.test.ts` (45 assertions). Each section's
-**Fix** paragraph names the implementation site and how it is verified. Three
-items stay as documented limitations because their printed precondition does not
-exist yet; see §6.
+**Fix** paragraph names the implementation site and how it is verified.
+
+**2026-11-18 follow-up:** the three mechanisms this pass had to leave open are
+implemented on branch `feat/ie-card-limitations` — the elite-unit combat bonus
+(what A080/A091's second clause hangs on), GW-01's strict neutrality marker, and
+A100's card tail surviving a multi-step crisis. Regression coverage:
+`src/imperialElegy/cardLimitations.test.ts` (14 assertions). See §6.
 
 ---
 
@@ -179,10 +187,10 @@ is used against a non-rebel army”*。
 点数。回归测试覆盖四项：陆战双方取 3、叛军防守方保持 1、海战保持 1、无此卡时
 保持原值。
 
-**仍存限制.** 第二句“EC/精英殖民远征军使用战斗加值时自动消灭”依赖一个
-引擎尚未提供的“战斗加值”——EC 与精英殖民 EF 目前的 `unitFp` 为 0、无 DRM，
-`combatElite` 这个 pending 类型已定义却从未被打开。18.5 只规定骰子下限与
-`*`/`**` 结果，并未赋予 EC 加值，因此该句留待 EC 加值规则实现后再接（§6）。
+**第二句现已在 §6.1 补齐.** 它依赖一个"战斗加值"，而 18.5 本身只规定骰子下限
+与 `*`/`**` 结果。本轮新增 `engine/eliteBonus.ts`：精英单位由控制方在战斗卡窗口
+之后、掷骰之前主动投入（`combatElite`）换取 +1；若对手是非叛军陆战，战斗结束后
+按印刷句自动消灭。
 
 ### 3.4 Hydraulic Recoil 完全没有效果 / `IE-A091 Hydraulic Recoil` is a no-op
 
@@ -198,7 +206,7 @@ is used against a non-rebel army”*。
 两种情况都按 `persistent.hydraulicRecoil`（永久）判定，GW-05 重掷同样
 重新评估。回归测试覆盖 `**` 强制、`*` 接受、`*` 拒绝、以及无此卡时无额外损失。
 
-**仍存限制.** 第二句与 §3.3 同因：EC 加值本身尚未实现（§6）。
+**第二句与 §3.3 同源，已在 §6.1 一并补齐.**
 
 ### 3.5 A069 Concert of Europe 移出条件永远成立 / removal condition never evaluated
 
@@ -297,8 +305,9 @@ CSA 独立后“The South 计数器最多的玩家”获得永久盟友与 +1 �
 `A068` 原先的 `die(ctx, 2)` 随机二选一已删除；`A107` 的“may discard”现在真
 由每名玩家决定。回归测试逐卡断言 pending 类型、选项集合与结算结果。
 
-**仍存限制.** `GW-01` 的另一分支“place a strict neutrality marker”需要引擎
-没有的严格中立状态，因此只提供掷骰分支（§6）。
+**第二分支已补齐（§6）.** `GW-01` 现在同时提供“掷骰参战”与“放置严格中立标记”
+两个印刷分支；标记记录在 `SpaceState.strictNeutrality`，带标记的小国不再进入候选
+列表。
 
 ### 3.11 A073/A109 与 A017/A018/A056 的一致性
 
@@ -360,19 +369,39 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 
 ---
 
-## 6. 已知限制 / Remaining limitations
+## 6. 已补齐的三项限制 / Previously-listed limitations, now closed
 
-本轮修复后仍留三项，原因是**印刷前提在引擎中不存在**，属于新增能力而非缺陷
-修复；三者在代码与文档中都带有明确注释。
+上一轮记录的三项“缺少底层机制”已全部补齐（分支 `feat/ie-card-limitations`），
+回归测试在 `src/imperialElegy/cardLimitations.test.ts`（14 个断言）。
 
-| 项 Item | 卡 Card | 缺什么 Missing prerequisite |
+| 项 Item | 卡 Card | 补齐方式 How it was closed |
 | --- | --- | --- |
-| EC/精英殖民远征军的“战斗加值” | `A080` `A091` 第二句 | EC 与精英殖民 EF 的 `unitFp` 为 0、无 DRM；`combatElite` pending 已定义但从未被打开。18.5 本身只规定骰子下限与 `*`/`**`，未赋予 EC 加值，因此“使用加值时自动消灭”没有可挂接的触发点 |
-| 严格中立标记 | `GW-01` 第二分支 | 引擎没有 strict-neutrality 状态，也没有“带此标记的小国不能参战”的判定 |
-| `A100` 的第二次 WTT 提升 | `A100` | 卡面在结算中间再次提升 WTT，可能在其子决策之后又触发一次危机；已有记录在 `IMPLEMENTATION_STATUS.md`，本轮未改动 |
+| EC/精英殖民 EF 的战斗加值 | `A078` `A080` `A091` 第二句 | 新增 `engine/eliteBonus.ts`，把加值做成**玩家选择**：`combatElite` 决策在战斗卡窗口之后、掷骰之前出现，投入则 +1 BDRM；若对手是非叛军陆战，战斗结束后按印刷句自动消灭该单位 |
+| 严格中立标记 | `GW-01` 第二分支 | `SpaceState.strictNeutrality` 记录标记；GW-01 现同时提供“掷骰参战”与“放置严格中立标记”两个印刷分支，带标记的小国不再出现在候选列表 |
+| `A100` 第二次 WTT | `A100` | 危机是 `crisis → crisisIncident → crisisAlliance` 的多段决策，卡牌剩余文本原先只在 `conference` 结局才续跑。现改为把剩余效果挂在危机 run 上，序列结束后统一执行（爆发结局按 23.1 丢弃） |
 
-这些项的卡面文本已在 `constant/cards.data.ts` 中完整转录，修复只需补上被依赖
-的底层状态，不需要重新搬运文案。
+### 6.1 EC 战斗加值的实现要点
+
+- **为什么做成选择**：A078 印的是 "**may** provide a +1 modifier"，且只有"使用
+  加值"才会触发自毁。若做成自动加值，第二句就没有触发条件。`combatElite` 这个
+  pending 早已在 `types.ts`/`i18n`/`bot`/`pendingSafety` 中登记，本轮把它接上。
+- **触发时机**：`afterCombatCardWindow` 之后、掷骰之前——玩家先看到可用的战斗卡，
+  再决定是否花掉精英单位。
+- **自毁判定在投入时记录**：`eliteBonusVsRebel` 保存"投入那一刻对手是否为叛军"。
+  战斗结束时主战部队可能已被步损清空，若那时再读棋盘会误判为非叛军而放过该单位。
+- **Great War 不适用**：精英殖民 EF 是战前殖民单位，GW 中没有这条加值规则；在 GW
+  中询问也会打断 27.x 的自动脉冲序列，因此 `eliteBonusCandidates` 在 `gw.active`
+  时返回空。
+- 单位本身仍会因普通战斗损失被消灭；两种消灭在日志上可区分
+  （`eliteBonusDestroyed` 仅代表印刷句触发）。
+
+### 6.2 危机续跑的实现要点
+
+- 剩余效果存放在 `CrisisRun.resumeEffects`，而不是只挂在第一个 `crisis` pending
+  的 context 上——否则多段危机走到第二、三段时就丢失了卡牌尾部。
+- `crisisResumeEffects(pending)` 从当前 pending 的 context 或 run 上取回尾部。
+- **outbreak 必须丢弃**：23.1 明确"If GW breaks out the rest of the text on the
+  event is ignored"，`crisisFlow.test.ts` 有专门断言守这条。
 
 ## 7. 逐卡清单 / Per-card inventory
 

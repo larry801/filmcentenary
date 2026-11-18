@@ -189,10 +189,15 @@ test("land battle combat-card window plays a card and hands the window to the de
   const resolved = G.battle;
   expect(resolved).not.toBeNull();
   expect(resolved!.attackerDrm).toBe(beforeDrm + 1);
-  // With no defender card the window resolves to the roll, but either way it
-  // must leave the attacker's card stage.
+  // With no defender card the window resolves to the roll — unless A078/A080/
+  // A091 still owe an elite-bonus answer, which keeps the battle in the card
+  // stage and flags it with a `combatElite` decision.
   expect(resolved!.cardSide).toBe("defender");
-  expect(resolved!.stage).not.toBe("cards");
+  if (G.pending?.kind === "combatElite") {
+    expect(resolved!.stage).toBe("cards");
+  } else {
+    expect(resolved!.stage).not.toBe("cards");
+  }
 });
 
 test("naval battle combat-card window plays a naval card exactly once", () => {

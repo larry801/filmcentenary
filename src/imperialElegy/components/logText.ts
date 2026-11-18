@@ -579,6 +579,33 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  eliteBonusCommitted: (entry, locale) => {
+    const to = spaceName(entry.args?.to, locale);
+    const side = sideLabel(entry.args?.side, locale);
+    const drm = num(entry.args?.drm);
+    return withActor(
+      entry,
+      locale,
+      `committed an elite unit at ${to} for the ${side} (+${drm}).`,
+      `在${to}为${side}投入精英单位（+${drm}）。`,
+    );
+  },
+
+  eliteBonusDestroyed: (entry, locale) => {
+    const to = spaceName(entry.args?.to, locale);
+    const kind = unitKind(entry.args?.kind, locale);
+    return text(
+      locale,
+      `the ${kind} that used its bonus at ${to} was automatically eliminated.`,
+      `在${to}使用加值的${kind}自动消灭。`,
+    );
+  },
+
+  gwStrictNeutrality: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `placed a strict neutrality marker on ${space}.`, `在${space}放置严格中立标记。`);
+  },
+
   hydraulicRecoilApplied: (entry, locale) => {
     const to = spaceName(entry.args?.to, locale);
     const optional = bool(entry.args?.optional);

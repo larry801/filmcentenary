@@ -570,8 +570,9 @@ describe("printed OR clauses are player choices", () => {
     G.powers.GE.gwCard = "IE-GW-01";
     const {playGwCardMove} = require("./moves");
     playGwCardMove(G, makeCtx([], "0", 2), "event");
-    expect(G.pending?.kind).toBe("eventTargetSpace");
-    expect((G.pending?.options.length ?? 0)).toBeGreaterThan(0);
+    // GW-01 first asks which printed branch to use, then which minor power.
+    expect(G.pending?.kind).toBe("eventChoice");
+    expect(G.pending?.options.map((o: any) => o.id)).toEqual(["join", "neutral"]);
   });
 
   test("A048 Multicultural Empire offers rights or citizenship once the Dual Monarchy is played", () => {
