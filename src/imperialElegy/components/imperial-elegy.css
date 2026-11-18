@@ -1241,6 +1241,147 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-action-now .ie-actions-grid { margin-top: 0; }
 .ie-action-now .ie-btn { background: var(--ie-accent); }
 
+/* ---------------------------------------------------------------- Orders pages */
+/* The Orders body's own navigation: four pages behind one segmented control.
+   The strip sticks to the top of the panel body so the page is always nameable
+   while its content scrolls. */
+.ie-orders { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ie-orders-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--ie-font-xs);
+  color: #e7cf99;
+  min-width: 0;
+}
+.ie-orders-heading b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ie-orders-heading-count { margin-left: auto; color: #b3a084; white-space: nowrap; }
+.ie-orders-nav {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid #4a3a26;
+  border-radius: var(--ie-radius-sm);
+  background: #241d17;
+}
+.ie-orders-tab {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--ie-radius-sm);
+  background: transparent;
+  color: #cdbb9a;
+  font-size: var(--ie-font-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.ie-orders-tab:hover { background: #32281e; color: #eadfc8; }
+.ie-orders-tab[aria-selected="true"] { border-color: var(--ie-accent); background: #3a2c1c; color: #f7e6bb; font-weight: 600; }
+.ie-orders-tab.urgent { color: #f0c894; }
+.ie-orders-tab-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 999px;
+  background: var(--ie-warn);
+  color: #211b16;
+  font-size: 10px;
+  font-weight: 700;
+}
+.ie-orders-pane { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ie-orders-pane[hidden] { display: none; }
+
+/* ---------------------------------------------------------------- actions page */
+.ie-space-actions { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ie-actions-space { font-size: var(--ie-font-xs); color: #e7cf99; }
+.ie-action-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: var(--ie-font-xs);
+  color: #b3a084;
+}
+.ie-action-cp-note { font-variant-numeric: tabular-nums; }
+.ie-action-selected { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+
+/* The refused rows, folded.  The section keeps every row and every printed
+   reason; only its visibility changes, and the reader's choice is remembered. */
+.ie-unavailable {
+  border: 1px dashed #4e3f2b;
+  border-radius: var(--ie-radius-sm);
+  background: rgba(36, 29, 23, .5);
+}
+.ie-unavailable-summary {
+  padding: 5px 8px;
+  font-size: var(--ie-font-xs);
+  color: #cdbb9a;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ie-unavailable-summary::-webkit-details-marker { display: none; }
+.ie-unavailable-summary::before { content: "▸"; color: var(--ie-accent-soft); }
+.ie-unavailable[open] > .ie-unavailable-summary::before { content: "▾"; }
+.ie-unavailable-summary:hover { color: #eadfc8; }
+.ie-unavailable-body { display: flex; flex-direction: column; gap: 6px; padding: 4px; }
+
+/* ---------------------------------------------------------------- card-choice dialog */
+/* Above the reference drawer (1300) and the chart lightbox (1400), below the
+   card inspector (1500): a required choice outranks the reference material but
+   must not cover the card the reader zoomed in to read. */
+.ie-choice-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1450;
+  display: grid;
+  place-items: center;
+  padding: var(--ie-space-3);
+  background: rgba(8, 6, 4, .78);
+}
+.ie-choice-modal {
+  width: min(720px, 100%);
+  max-height: min(80dvh, 640px);
+  display: flex;
+  flex-direction: column;
+  border: 2px solid var(--ie-accent);
+  border-radius: var(--ie-radius-md);
+  background: #241d17;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, .7);
+}
+.ie-choice-head {
+  display: flex;
+  align-items: center;
+  gap: var(--ie-space-2);
+  padding: 8px 12px;
+  border-bottom: 1px solid #4a3a26;
+  background: linear-gradient(90deg, #2a221b, #251e17);
+}
+.ie-choice-title { margin: 0; font-size: var(--ie-font-md); color: var(--ie-accent-soft); flex: 1 1 auto; }
+.ie-choice-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--ie-space-3); }
+.ie-choice-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ie-space-2);
+  padding: 8px 12px;
+  border-top: 1px solid #4a3a26;
+}
+
 /* ---------------------------------------------------------------- hints */
 .ie-hint { font-size: var(--ie-font-xs); line-height: 1.4; color: #d9c49c; background: #33281a; border-left: 3px solid var(--ie-accent); padding: 4px 7px; margin-top: 5px; border-radius: 0 var(--ie-radius-sm) var(--ie-radius-sm) 0; }
 .ie-response-hint { border-left-color: #c46a3a; }
@@ -1395,24 +1536,6 @@ img.ie-card-face { background: var(--ie-surface-2); }
 .ie-picker-locate:hover { border-color: #6d5636; background: #3a2f24; }
 .ie-picker-empty { color: #b3a084; font-size: var(--ie-font-xs); padding: 6px 8px; }
 .ie-picker-count { font-size: var(--ie-font-xs); color: #b3a084; }
-
-/* ---------------------------------------------------------------- more actions */
-.ie-more-actions { border: 1px dashed #5a4830; border-radius: var(--ie-radius-sm); }
-.ie-more-actions-trigger {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 5px 8px;
-  border: 0;
-  border-radius: var(--ie-radius-sm);
-  background: transparent;
-  color: #cdbb9a;
-  font-size: var(--ie-font-xs);
-  cursor: pointer;
-}
-.ie-more-actions-trigger:hover { background: #32281e; color: #eadfc8; }
-.ie-more-actions-body { padding: 2px; }
 
 /* ---------------------------------------------------------------- cards inspector */
 .ie-inspector-backdrop {
@@ -3011,6 +3134,15 @@ img.ie-card-face { background: var(--ie-surface-2); }
      scroll the newest lines inside `.ie-log`, so it keeps `flex: 1 1 auto`. */
   .ie-mobile-dock .ie-turn-body > *:not(.ie-log-panel) { flex: 0 0 auto; }
   .ie-mobile-dock .ie-turn-body > .ie-log-panel { flex: 1 1 auto; min-height: 0; }
+  /* The Orders body is now a nav strip over four pages: the pages are the flex
+     items that must keep their natural height, and the strip itself is fixed.
+     Without this the `.ie-orders` wrapper stayed squeezable and each page's
+     own `overflow: hidden` clipped the content below the fold instead of the
+     body scrolling to it. */
+  .ie-mobile-dock .ie-orders { min-height: 0; }
+  .ie-mobile-dock .ie-orders-nav { flex: 0 0 auto; }
+  .ie-mobile-dock .ie-orders-pane { flex: 0 0 auto; }
+  .ie-mobile-dock .ie-orders-pane > * { flex: 0 0 auto; }
   .ie-mobile-dock .ie-turn-body {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;

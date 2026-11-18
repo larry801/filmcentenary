@@ -505,7 +505,9 @@ test.describe("Imperial Elegy new controls", () => {
 
         // The MPIT matrix is an Orders action (8.0): it is in the turn panel
         // with the other things the player may do this impulse, not in the
-        // reference drawer.
+        // reference drawer.  It has its own page of the Orders panel, so the
+        // matrix is not competing with the space's action list.
+        await board.locator('[data-testid="ie-orders-tab-influence"]').click();
         const mpit = board.locator('[data-testid="ie-mpit"]');
         await expect(board.getByText(/MPIT · 影响力轨/).first()).toBeVisible();
         await expect(mpit).toBeVisible();
@@ -1098,11 +1100,15 @@ test.describe("Imperial Elegy mobile drawer", () => {
             ).toEqual([]);
         }
 
-        // The Orders pane specifically holds panels taller than a half sheet;
-        // it must report them and let the reader reach them.
+        // The Orders body's own pages are the flex items that can be taller than
+        // the half sheet; at least one must report its overflow and let the
+        // reader reach it.  The influence page (the MPIT matrix, six cells of
+        // three 44 px buttons) is reliably taller than 40 px of a half sheet.
         await dock.locator('[data-testid="ie-mobile-tab-orders"]').click();
         await expect(dock).toHaveAttribute("data-tab", "orders");
         const body_ = body.locator(".ie-turn-body:not([hidden])");
+        await body_.locator('[data-testid="ie-orders-tab-influence"]').click();
+        await expect(body_.locator('[data-testid="ie-orders-panel-influence"]')).toBeVisible();
         await expect.poll(async () => await body_.evaluate((pane) => pane.scrollHeight - pane.clientHeight))
             .toBeGreaterThan(40);
 
@@ -1110,6 +1116,21 @@ test.describe("Imperial Elegy mobile drawer", () => {
         const before = await body_.evaluate((pane) => pane.scrollTop);
         await body_.evaluate((pane) => { pane.scrollTop = pane.scrollHeight; });
         await expect.poll(async () => await body_.evaluate((pane) => pane.scrollTop)).toBeGreaterThan(before);
+
+        // Each Orders page keeps its own content at natural height too: the
+        // pages are pinned, so a page taller than the sheet scrolls the body
+        // rather than squeezing the page into a sliver.
+        for (const page of ["actions", "space", "influence"] as const) {
+            await body_.locator(`[data-testid="ie-orders-tab-${page}"]`).click();
+            await expect(body_.locator(`[data-testid="ie-orders-panel-${page}"]`)).toBeVisible();
+            const pageHeights = await body_.evaluate((root, key) => {
+                const pane = root.querySelector(`[data-testid="ie-orders-panel-${key}"]`) as HTMLElement | null;
+                if (pane === null) return {height: 0, natural: 0};
+                return {height: Math.round(pane.getBoundingClientRect().height), natural: pane.scrollHeight};
+            }, page);
+            expect(pageHeights.height, `${page} page is not a sliver`).toBeGreaterThan(20);
+            expect(pageHeights.natural, `${page} page keeps its content`).toBeGreaterThan(0);
+        }
     });
 
     test("expand grows the sheet to full and the toggle folds it back to peek", async ({page}) => {
@@ -1181,12 +1202,11 @@ test.describe("Imperial Elegy mobile drawer", () => {
      * MPIT is the densest control on the board, and at 390x844 the Orders pane
      * is a ~294 px scroll surface.  It used to be the last child of that pane
      * and every track value was a 26 px pill, so placing a marker meant
-     * scrolling and then hitting a sub-fingertip target.  This test drives the
-     * real placement on a phone and pins both fixes: the matrix leads the pane
-     * while the seat can act, and all 18 values are 44 px targets that do not
-     * move when the button arms itself.
+     * scrolling and then hitting a sub-fingertip target.  It has its own page of
+     * the Orders panel now; this test pins that the page is one tap away, that
+     * all 18 values are 44 px targets, and that arming one does not move it.
      */
-    test("MPIT leads the Orders pane and is a 44 px target on a phone", async ({page}) => {
+    test("MPIT is one tap away on a phone and is a 44 px target", async ({page}) => {
         await phoneReachAction(page);
         const board = boardFor(page, "GE");
         const dock = dockFor(page);
@@ -1199,20 +1219,28 @@ test.describe("Imperial Elegy mobile drawer", () => {
         await expect(dock).toHaveAttribute("data-open", "true");
         await expect(dock).toHaveAttribute("data-tab", "orders");
 
+        // The Orders panel opens on its Actions page; the matrix is one tab away
+        // and needs no scroll to reach.
+        await expect(body.locator('[data-testid="ie-orders-panel-actions"]')).toBeVisible();
+        await expect(body.locator('[data-testid="ie-orders-panel-influence"]')).toBeHidden();
+        await body.locator('[data-testid="ie-orders-tab-influence"]').click();
+        await expect(body.locator('[data-testid="ie-orders-panel-influence"]')).toBeVisible();
+        await expect(body.locator('[data-testid="ie-orders-panel-actions"]')).toBeHidden();
+
         const mpit = body.locator('[data-testid="ie-mpit"]');
         await expect(mpit).toBeVisible();
 
-        // Reordered, not merely moved with CSS: the matrix is the first panel
-        // of the Orders body, ahead of the space detail.
+        // The matrix is the page, ahead of the national actions.
         const order = await body.evaluate((root) => {
             const panel = root.querySelector('[data-testid="ie-mpit"]') as HTMLElement | null;
             const detail = root.querySelector('[data-testid="ie-space-detail"]') as HTMLElement | null;
             if (panel === null) return "missing";
-            if (detail === null) return "no-detail";
-            // Node.DOCUMENT_POSITION_FOLLOWING === 4: `detail` comes after `panel`.
-            return (panel.compareDocumentPosition(detail) & 4) === 4 ? "mpit-first" : "detail-first";
+            // The space detail lives on another page now, so it must not share
+            // this one: the matrix has it to itself.
+            if (detail !== null && detail.checkVisibility({checkVisibilityCSS: true})) return "detail-here";
+            return "mpit-only";
         });
-        expect(order === "mpit-first" || order === "no-detail").toBe(true);
+        expect(order).toBe("mpit-only");
 
         // Every placement value is a fingertip, and the first one needs no
         // scroll: it sits inside the visible body box.

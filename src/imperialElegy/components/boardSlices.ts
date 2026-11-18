@@ -84,9 +84,9 @@ const ORDERS_KEYS = [
   "interceptPortValue", "setInterceptPort", "interceptCheck", "interceptReason",
   "jihadDecision", "jihadReason",
   "commandedOwner", "commandsSelected", "hand",
-  // The phone reorders this region (MPIT first while it can act); the desktop
-  // order must stay untouched, so the layout needs the breakpoint.
-  "isPhone",
+  // The Orders panel's own page state and the derived "is there a naval flow"
+  // flag the fourth page hinges on.
+  "ordersTab", "setOrdersTab", "navalVisible",
 ] as const;
 
 /** The hand tray and the card inspector. */
