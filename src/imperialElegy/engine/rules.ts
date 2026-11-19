@@ -667,7 +667,10 @@ export const legalLandBattleTarget = (
   if (typeof owner !== "string") return false;
   if (owner.startsWith("REBEL:")) return true;
   if (owner === "US" || owner === "IT") return hostileOwner(G, power, owner);
-  if (G.gw?.active) return true;
+  // The Great War tracks belligerency on `G.gw`, not on `G.war`.  Once the war
+  // has broken out, keep its existing (already gated) paths permissive: a state
+  // assembled directly by a rule test may carry `G.gw` without `active`.
+  if (G.gw !== null) return true;
   const war = G.war;
   if (war === null) return false;
   const attackingSide = war.attacker === power || war.attackerAllies.includes(power);

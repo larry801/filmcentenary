@@ -165,7 +165,7 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect.poll(async () => await board.locator('[data-testid="ie-log"]').innerText()).toContain("打出");
     });
 
-    test("a land battle opens a pending support decision", async ({page}) => {
+    test("a neutral minor needs a declaration before a land battle (12.16)", async ({page}) => {
         await openLocal(page);
         await finishPrep(page);
         await chooseHomeCards(page);
@@ -176,52 +176,18 @@ test.describe("Imperial Elegy local hotseat", () => {
         expect(await playCardForCp(page, board)).toBe(true);
         await page.waitForTimeout(800);
         await clickSpace(board, "berlin", "柏林");
-        await page.waitForTimeout(300);
-        await board.getByRole("button", {name: "在此发动陆战"}).first().click();
-        await page.waitForTimeout(250);
-        await board.locator('[data-testid="ie-space-saxony"]').click({force: true});
-        await expect.poll(async () => await board.locator('[data-testid="ie-pending"]').count()).toBeGreaterThan(0);
-        await expect(board.locator('[data-testid="ie-pending"]')).toBeVisible();
-        await expect(board.locator('[data-testid="ie-pending"]')).toContainText("支援");
-        // Resolve each seat's support/card window deliberately. Choosing the
-        // first random card could play A059, end the battle before dice and
-        // immediately launch a decisive follow-up instead of producing a roll.
-        for (let i = 0; i < 12; i += 1) {
-            const state = await page.evaluate(() => {
-                const G = (window as any).__IE_STATE__;
-                return {
-                    rolled: G.log.some((entry: any) => entry.key === "battleRoll" && entry.args?.to === "saxony"),
-                    pending: G.pending && {id: G.pending.id, kind: G.pending.kind, power: G.pending.power},
-                };
-            });
-            if (state.rolled) break;
-            expect(state.pending).not.toBeNull();
-            // A078/A080/A091 add the elite-bonus question between the card
-            // windows and the dice; it is answered by its own option instead of
-            // the support/card "done" button.
-            expect(["combatSupport", "combatCard", "combatElite"]).toContain(state.pending!.kind);
-            await focusSeat(page, state.pending!.power);
-            const decidingBoard = page.locator(`[data-testid="ie-seat-${state.pending!.power}"]`);
-            // `combatElite` is answered by its own option; support/card windows
-            // close with "done".
-            const answerId = state.pending!.kind === "combatElite" ? "decline" : "done";
-            await decidingBoard.getByTestId(`ie-pending-option-${answerId}`).click();
-            await expect.poll(
-                async () => page.evaluate(() => (window as any).__IE_STATE__.pending?.id ?? null),
-                {timeout: 5_000},
-            ).not.toBe(state.pending!.id);
-        }
-        // The battle log line is outcome-independent (`在萨克森（自 柏林）交战：…`),
-        // unlike `battleEnded`, which says either 赢得战斗 or 战败 depending on the dice.
-        // Read the state log rather than the panel: the panel only renders the
-        // last 80 entries, and a decisive victory appends follow-up lines that
-        // can push the `battle` entry out of that window.
-        await expect.poll(async () => await page.evaluate(() => {
-            const G = (window as any).__IE_STATE__;
-            return G.log.some((entry: any) => entry.key === "battleRoll" && entry.args?.to === "saxony");
-        })).toBe(true);
-        await focusSeat(page, "GE");
-        await expect.poll(async () => await board.locator('[data-testid="ie-log"]').innerText()).toContain("萨克森");
+
+        // Saxony holds a neutral minor army next to Berlin.  Rules 12.16 and
+        // 13.4 make a declaration the precondition for attacking it, so the
+        // order is refused and no battle or pending window opens.  (This is the
+        // reported defect: the battle went ahead against an undeclared minor.)
+        const land = board.locator('[data-testid="ie-action-landBattle"]');
+        await expect(land).toHaveAttribute("data-enabled", "false");
+        await expect(land).toContainText("宣战");
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toHaveCount(0);
+        await expect(board.locator('[data-testid="ie-pending"]')).toHaveCount(0);
+        const battle = await page.evaluate(() => (window as any).__IE_STATE__.battle ?? null);
+        expect(battle).toBeNull();
     });
 
     test("the required card choices render the printed face, not just a title", async ({page}) => {

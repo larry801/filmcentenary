@@ -3542,6 +3542,9 @@ export const chooseAllianceShift = (
     attacker: war.attacker,
     forced: result.forced,
     chosen: true,
+    // 14.2: name the non-player power the declaration was aimed at, so the
+    // public log reads "aiding Belgium" like the immediate shift path.
+    ...(war.minorTarget ? {aidMinor: war.minorTarget.minor} : {}),
   });
   // 14.2 special: a neutral unified Italy shifts with the aiding ally once that
   // ally has chosen the both-neutral 8.2 direction.
@@ -3586,6 +3589,7 @@ const settleDefenderShiftChoice = (G: ImperialElegyState, war: WarState): void =
     attacker: war.attacker,
     forced: result.forced,
     fallback: true,
+    ...(war.minorTarget ? {aidMinor: war.minorTarget.minor} : {}),
   });
   // 14.2 special: Italy's own chit follows the direction the default resolved.
   if (war.minorTarget?.minor === "Italy") applyItalyAidShift(G, side);
