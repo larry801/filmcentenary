@@ -361,36 +361,44 @@ aim/CP、`{minor}` 目标参数、无授权时的普通控件）。
 卡面的“可同时指定两个不同国家”与“宣战后可禁止其他玩家参战”已按下文
 §3.14 补齐；另外三张“用本牌 CP 宣战”的本国牌见 §3.13。
 
-### 3.12.1 宣战目标弹窗 / the declaration target chooser
+### 3.12.1 宣战全部收进战局面板 / declarations live in the War panel
 
-玩家复报“俾斯麦事件之后不能统一战争”：引擎已能宣战，但 UI 只在地图上选中
-一个合法目标空间之后才显示宣战块。俾斯麦的统一战争目标（丹麦、巴伐利亚、
-萨克森、汉诺威等）往往不是玩家会主动点开的格子，事件结算后界面看起来像
-“什么都没发生”。
+玩家复报“俾斯麦事件之后不能统一战争”，随后进一步要求“战争操作太分散了
+而且依赖点击地图，都集中到一个面板上完成”。宣战原本散在三处：Orders 面板
+（必须先在地图上点中一个合法目标空间才出现）、本国牌专用的目标弹窗，以及
+只有战争已开打才存在的 War 页。宣战本身并不需要地图选择——`declareWar`
+的参数就是防守方、战争目标与目标空间。
 
-**Fix (2026-11-19).** 四张“用本牌 CP 宣战”的本国牌共用一套目标选择器：
+**Fix (2026-11-19).**
 
-- 新增 `engine/declarationTargets.ts`。`declarationTargetCandidates` 逐个
-  （防守方 × 卡面允许的战争目标 × 目标空间）调用 `declareWar` 同一套
-  `warDeclarationTargetLegal` / `minorWarInfo` / `validateWarAim` 校验，返回
-  所有**当前合法**的完整宣战；13.0 世界紧张 3+、13.5 停战、被淘汰席位与
-  非玩家国家的玩家盟友都按宣战路径处理。列表不提供引擎会拒绝的选项。
-- `components/WarTargetDialog.tsx` 把这些候选按防守方分组显示；卡面开放
-  战争目标时（Aux Armes / RU-9 / Jihad）先过滤目标。选中一行后地图自动
-  选中该目标空间，原宣战面板立即出现，由玩家确认并追加可选条款（14.1
-  第二国、主要防守方、俾斯麦禁止参战、Aux Armes 第二关键区）。
-- 事件结算、`warDeclaration` 授权生效时弹窗**自动打开**，不需要玩家先找
-  格子；关闭后 Orders 面板保留 `ie-war-target-prompt` 的“选择战争目标”
-  按钮可再次打开。没有合法目标时按钮禁用并说明原因，玩家仍可直接交出
-  行动轮。
-- 事件、弹窗与面板互斥：只在行动阶段、无待决、无战争、且是该席位自己的
-  行动轮时出现；热座只在实际查看的席位上弹窗（`isCurrentSeat`）。
+- War 页永远存在（`components/turnPanelTab.ts` 去掉 `warVisible` 条件，
+  桌面页签与手机抽屉都列出）。战前它是宣战表单，开战后是 `WarPanel` /
+  `GreatWarPanel`，所有战争操作都在这一个面板里。
+- 新增 `components/WarDeclarationPanel.tsx`：防守方、战争目标、目标空间、
+  CP，以及 14.1 的第二国 / 主要防守方与俾斯麦禁止参战，全部在面板内选择。
+  选择放在组件本地 state 并在每次渲染时按引擎结果收敛，换牌或换行动轮都
+  不会留下过期的选项。
+- `engine/declarationTargets.ts` 在原有 `declarationTargetCandidates` 之外
+  增加 `declarationDefenders` / `declarationObjectives` /
+  `declarationSecondObjectives`：面板一次只问一个问题，读的仍是
+  `declareWar` 的同一套校验（13.0、13.5、13.4、`validateWarAim`），因此
+  不会给出引擎会拒绝的选项；`declarationTargetCandidates` 保持只服务本国牌
+  授权的旧契约。
+- 删除 Orders 面板里的宣战块与“选择战争目标”提示、模型里对应的状态
+  （`warAim`、`warCp`、`secondObjective`、`warTargetControl` 等），以及
+  `components/WarTargetDialog.tsx` 及其测试；`actionAvailability` /
+  `spaceActionModel` 里已死的 `warCp`、`onDeclareWar` 也一并移除。
+- 本国牌授权生效时仍会**自动切到 War 页**（并在手机抽屉上打 `!` 徽标），
+  取代原来的自动弹窗；俾斯麦端到端用例改为直接读取面板里锁定的目标与 CP。
 
-回归：`src/imperialElegy/declarationTargets.test.ts`（9 个断言，含“每个候选
-都能被 `declareWar` 接受”）、`components/warTargetDialog.test.tsx`（7 个
-断言：自动弹出、分组、目标过滤、关闭/重开、旁观席不可见）以及
-`e2e/imperial-elegy-controls.spec.ts` 的俾斯麦端到端用例（选本国牌 → 打事件
-→ 弹窗选阿尔萨斯-洛林 → 宣传统一战争）。
+回归：`components/warDeclarationPanel.test.tsx`（8 个断言：玩家/小国目标、
+卡面锁定的目标与 CP、RU-9 与 Jihad 的目标限制、14.1 条款、普通宣战的
+目标/CP、非行动轮时的说明、以及无合法目标时的提示）、`components/turnPanelTab.test.ts`
+（按“War 页常驻”重写）以及 `e2e/imperial-elegy-controls.spec.ts` 的两个
+端到端用例（波希米亚普通宣战、俾斯麦统一战争，全程不点地图）。
+
+> 以下 §3.12.2 及更早的描述涉及已被本改动替换的弹窗与“先选地图再宣战”
+> 流程。
 
 ### 3.12.2 宣战后没有切到战争界面 / the war screen did not open after a declaration
 

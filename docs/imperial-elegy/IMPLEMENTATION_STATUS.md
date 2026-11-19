@@ -29,6 +29,10 @@ is not a substitute.
 
 ## Fixed: declaring a war brings the War screen to the front (2026-11-19)
 
+> The tab contract below was superseded on the same day: the War body is
+> now always present. See "all war operations consolidated into the War
+> panel" further down.
+
 Reported as "帝国挽歌事件俾斯麦选择目标之后没有开启战争界面". The war-target
 chooser and the declaration form both worked: the state really reached
 `phase = "wartime"` with a `WarState`. What was missing was the hand-off to the
@@ -57,6 +61,47 @@ mapping and round-trip) plus the two e2e assertions in
 `imperial-elegy-controls.spec.ts`: after a declaration the `ie-war` panel is
 visible and `ie-turn-tab-war` is already `aria-selected="true"` (both the Bohemia
 declaration and the Bismarck unification war), with no manual tab click.
+
+## Fixed: all war operations consolidated into the War panel (2026-11-19)
+
+Reported as "帝国挽歌战争操作太分散了 而且依赖点击地图 都集中到一个面板上完成".
+Declarations were split across three places: the Orders panel's Actions page
+(which only appeared after a legal objective space was clicked on the map), a
+separate home-card target chooser dialog, and the War tab (which only existed
+once a war already ran). Nothing about declaring a war needs a map selection —
+`declareWar` takes the defender, aim and objective as arguments.
+
+- The War body is now always present (`components/turnPanelTab.ts` drops the
+  `warVisible` condition; the desktop tab strip and the phone dock both list it).
+  It carries the declaration form before a war and `WarPanel`/`GreatWarPanel`
+  once one runs, so every war operation is in one place.
+- `components/WarDeclarationPanel.tsx` is that form: defender, aim, objective,
+  CP and the 14.1 second-power / primary / Bismarck join-ban clauses, all
+  picked in the panel. Maybe-edits are local state, clamped on every render, so
+  a new card or impulse cannot leave a stale selection.
+- `engine/declarationTargets.ts` grew `declarationDefenders`,
+  `declarationObjectives` and `declarationSecondObjectives` beside the existing
+  `declarationTargetCandidates`, so the panel asks one question at a time while
+  reading the same `declareWar` gates (13.0, 13.5, 13.4, `validateWarAim`).
+  `declarationTargetCandidates` keeps its entitlement-only contract.
+- The Orders panel's declaration block and prompt, its model state
+  (`warAim`, `warCp`, `secondObjective`, `warTargetControl`, …) and
+  `components/WarTargetDialog.tsx` are gone. The board's dead declaration
+  plumbing (`warCp`, `onDeclareWar` in `actionAvailability`/`spaceActionModel`)
+  was removed with them.
+- A live home-card entitlement brings the War tab to the front and badges it,
+  replacing the auto-opened dialog; the e2e Bismarck case now reads the locked
+  aim/CP straight from the panel.
+
+Coverage: `components/warDeclarationPanel.test.tsx` (8 — player and minor
+targets, locked card aim/CP, RU-9/Jihad target rules, the 14.1 clauses,
+ordinary aim/CP, the phase gate and the empty state), `components/turnPanelTab.test.ts`
+(rewritten for the always-present body) plus the two e2e cases (ordinary
+Bohemia declaration and Bismarck's unification war) driven entirely from the
+panel.
+
+> Superseded: the sections below describe the chooser dialog and the map-first
+> declaration flow that this change replaced.
 
 ## Fixed: the home-card declaration now opens its war-target chooser (2026-11-19)
 

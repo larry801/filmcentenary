@@ -51,7 +51,6 @@ export interface UseSpaceActionsInput {
   startBattle: () => void;
   /** Naval-battle intent: the map picks the target space. */
   startNavalBattle: () => void;
-  warCp: number;
   locale: "en" | "zh_CN";
   battleFrom: SpaceId | null;
   navalFrom: SpaceId | null;
@@ -71,7 +70,7 @@ export const useSpaceActions = (input: UseSpaceActionsInput): SpaceAction[] => {
     potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
     canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve,
     gwJointNavalAllies, gwJointNavalUnitIds, startMoveTargeting, startBattle, startNavalBattle,
-    warCp, locale, battleFrom, navalFrom,
+    locale, battleFrom, navalFrom,
   } = input;
 
   return React.useMemo(() => (viewer === null || selected === null ? [] : spaceActions({
@@ -107,8 +106,6 @@ export const useSpaceActions = (input: UseSpaceActionsInput): SpaceAction[] => {
     startMove: () => startMoveTargeting?.(),
     startBattle,
     startNavalBattle,
-    warCp,
-    onDeclareWar: () => null,
     describeRow: (row) => ({label: row.label, reason: row.reason}),
     locale,
   // `doAction`, `moves`, `spaceActions`' own helpers and the setters are stable
@@ -119,6 +116,6 @@ export const useSpaceActions = (input: UseSpaceActionsInput): SpaceAction[] => {
     myOnMapArmies, myForts, myMinorAllies, ownLandInSelected, ownNavalInSelected,
     potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
     canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve,
-    gwJointNavalAllies, battleFrom, navalFrom, warCp, locale,
+    gwJointNavalAllies, battleFrom, navalFrom, locale,
   ]);
 };

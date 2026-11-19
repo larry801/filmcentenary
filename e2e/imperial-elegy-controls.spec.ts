@@ -425,24 +425,24 @@ test.describe("Imperial Elegy new controls", () => {
         expect(tested).toBe(true);
     });
 
-    test("war declaration reveals aim, ally and maneuver controls", async ({page}) => {
+    test("the War panel declares a war without a map click", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");
         await playCpCard(board);
 
-        // Berlin selects correctly, but it is German-controlled so it cannot be a
-        // war objective. The declaration panel is offered for a space controlled
-        // by another major power, so use Bohemia (Austria-Hungary) as the target.
-        await clickSpace(board, "berlin", "柏林");
-        await expect(board.locator('[data-testid="ie-war-declare"]')).toHaveCount(0);
-
-        await clickSpace(board, "bohemia", "波希米亚");
+        // The War body is always present and is where a declaration is made.
+        // No space is selected: defender, aim and objective are picked inside
+        // the panel.
+        await board.locator('[data-testid="ie-turn-tab-war"]').click();
         const declare = board.locator('[data-testid="ie-war-declare"]');
         await expect(declare).toBeVisible();
-        await expect(declare).toContainText("奥匈帝国");
+        await expect(declare.locator('[data-testid="ie-war-declare-defender"]')).toBeVisible();
 
+        await declare.locator('[data-testid="ie-war-declare-defender"]').selectOption("AU");
+        await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("bohemia");
         // Use the smallest budget so the declaration is legal with any CP card.
-        await declare.locator("select").nth(1).selectOption("1");
+        await declare.locator('[data-testid="ie-war-declare-cp"]').selectOption("1");
+
         // Declaring a war is irreversible: the first click arms the button,
         // the second one declares.  Addressed by test id across both clicks
         // because the armed label replaces the plain name the role filter
@@ -471,7 +471,7 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(war.getByRole("button", {name: "召唤盟友"})).toBeVisible();
     });
 
-    test("the Bismarck event opens the war-target chooser and declares unification", async ({page}) => {
+    test("the Bismarck event opens the War panel's declaration and declares unification", async ({page}) => {
         await openLocal(page);
         await finishPrep(page);
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
@@ -491,8 +491,8 @@ test.describe("Imperial Elegy new controls", () => {
         const board = boardFor(page, "GE");
 
         // Play the home card as its event.  The card leaves the hand and the
-        // declaration entitlement is granted; the chooser must appear without
-        // the player having to find a target space on the map.
+        // declaration entitlement is granted; the War panel comes to the front
+        // by itself, because that is where the declaration is completed.
         const card = board.locator('[data-testid="ie-card-IE-H-GE-1"]');
         await expect(card).toBeVisible({timeout: 15_000});
         await card.locator(".ie-card-open").click();
@@ -502,37 +502,32 @@ test.describe("Imperial Elegy new controls", () => {
         await event.click();
         await expect(event).toHaveAttribute("data-armed", "true");
         await event.click();
-
-        // The played card leaves the hand and its inspector closes itself; a
-        // still-open inspector would sit above the chooser.
         await expect(inspector).toHaveCount(0, {timeout: 10_000});
-        const dialog = board.locator('[data-testid="ie-war-target-dialog"]');
-        await expect(dialog).toBeVisible({timeout: 15_000});
-        await expect(dialog).toContainText("选择战争目标");
-        await expect(dialog).toContainText("奥托·冯·俾斯麦");
-        // Alsace-Lorraine is the French-held German objective: a war of
-        // unification on France.
-        await expect(dialog.locator('[data-testid="ie-war-target-group-FR"]')).toBeVisible();
-        await expect(dialog.locator('[data-testid="ie-war-target-group-minor:Denmark"]')).toBeVisible();
 
-        // Closing it leaves the Orders prompt, which reopens the same chooser.
-        await dialog.locator('[data-testid="ie-war-target-close"]').click();
-        await expect(dialog).toHaveCount(0);
-        const prompt = board.locator('[data-testid="ie-war-target-prompt"]');
-        await expect(prompt).toBeVisible();
-        await expect(prompt.locator('[data-testid="ie-war-target-open"]')).toBeEnabled();
-        await prompt.locator('[data-testid="ie-war-target-open"]').click();
-        await expect(dialog).toBeVisible();
+        // No chooser dialog and no map click: the form itself carries the
+        // card's locked aim and printed CP.
+        await expect(board.locator('[data-testid="ie-war-target-dialog"]')).toHaveCount(0);
+        await expect(board.locator('[data-testid="ie-turn-tab-war"]')).toHaveAttribute("aria-selected", "true", {timeout: 15_000});
+        const declare = board.locator('[data-testid="ie-war-declare"]');
+        await expect(declare).toBeVisible();
+        await expect(declare.locator('[data-testid="ie-war-declare-aim-locked"]')).toContainText("统一");
+        await expect(declare.locator('[data-testid="ie-war-declare-cp-locked"]')).toContainText("3 CP");
 
-        // Picking the objective selects that space and opens the ordinary
-        // declaration form, which is confirmed twice (arm, then declare).
-        await dialog.locator('[data-testid="ie-war-target-alsace-lorraine"]').click();
-        await expect(dialog).toHaveCount(0);
-        const declare = board.locator('[data-testid="ie-declare-war"]');
-        await expect(declare).toBeEnabled({timeout: 10_000});
-        await declare.click();
-        await expect(declare).toHaveAttribute("data-armed", "true");
-        await declare.click();
+        // Both a player power and an independent minor are offered.  Alsace-
+        // Lorraine is the French-held German objective: a unification war on
+        // France.
+        const defender = declare.locator('[data-testid="ie-war-declare-defender"]');
+        await expect(defender.locator('option[value="FR"]')).toHaveCount(1);
+        await expect(defender.locator('option[value="minor:Denmark"]')).toHaveCount(1);
+        await defender.selectOption("FR");
+        await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("alsace-lorraine");
+
+        // Confirmed twice (arm, then declare).
+        const button = declare.locator('[data-testid="ie-declare-war"]');
+        await expect(button).toBeEnabled({timeout: 10_000});
+        await button.click();
+        await expect(button).toHaveAttribute("data-armed", "true");
+        await button.click();
         await expect.poll(async () => await page.evaluate(() => {
             const G = (window as any).__IE_STATE__;
             return G.war === null
@@ -1237,16 +1232,12 @@ test.describe("Imperial Elegy mobile drawer", () => {
         await expect(dock).toHaveAttribute("data-tab", "orders");
         await expect(body.locator('[data-testid="ie-turn-panel-action"]')).toBeVisible();
 
-        // The War tab only exists while a war or the Great War is running; a
-        // fresh match has neither, and no assertion is needed when it is absent.
-        const warTab = dock.locator('[data-testid="ie-mobile-tab-war"]');
-        if (await warTab.count() > 0) {
-            const warRunning = await page.evaluate(() => {
-                const G = (window as any).__IE_STATE__;
-                return Boolean(G.war || G.gw);
-            });
-            expect(warRunning, "a War tab is only offered while a war is running").toBe(true);
-        }
+        // War: always offered, because the declaration form lives there; a
+        // fresh match has no war yet, so the body opens on that form.
+        await dock.locator('[data-testid="ie-mobile-tab-war"]').click();
+        await expect(dock).toHaveAttribute("data-tab", "war");
+        await expect(body.locator('[data-testid="ie-turn-panel-war"]')).toBeVisible();
+        await expect(body.locator('[data-testid="ie-war-declare"]')).toBeVisible();
     });
 
     /**

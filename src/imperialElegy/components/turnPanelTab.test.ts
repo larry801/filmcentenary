@@ -2,11 +2,13 @@
  * The turn panel's body choice, shared by the desktop turn panel and the phone's
  * one bottom sheet.
  *
- * The bug this pins: `useBoardModel` brought the War tab to the front when a war
- * started (`setRailTab("war")`), but the desktop turn panel was never given that
- * value — it fell back to its own internal state and stayed on Orders.  A player
- * declared a war (Bismarck's unification war was the report) and the war screen
- * simply never appeared, so the declaration looked like it had done nothing.
+ * Two bugs are pinned here.  The first: `useBoardModel` brought the War tab to
+ * the front when a war started (`setRailTab("war")`), but the desktop turn
+ * panel was never given that value — it fell back to its own internal state and
+ * stayed on Orders, so a declaration looked like it had done nothing.  The
+ * second: the War body only existed while a war ran, which is why declarations
+ * were pushed back into the Orders panel and onto the map.  The body now always
+ * exists, because that is where a war is declared.
  */
 import {
   mobileTabForTurnTab,
@@ -17,18 +19,15 @@ import {
 import {readFileSync} from "node:fs";
 import {join} from "node:path";
 
-test("the War body exists only while a war runs", () => {
-  expect(turnTabKeys(true)).toEqual(["action", "war", "log"]);
-  expect(turnTabKeys(false)).toEqual(["action", "log"]);
+test("the three bodies always exist, because war is declared before it starts", () => {
+  expect(turnTabKeys()).toEqual(["action", "war", "log"]);
 });
 
-test("a request for a body that no longer exists falls back to Orders", () => {
-  expect(resolveTurnTab("war", true)).toBe("war");
-  expect(resolveTurnTab("log", true)).toBe("log");
-  // The war ended under the reader: the War tab is gone, Orders is in front.
-  expect(resolveTurnTab("war", false)).toBe("action");
-  // Anything unrecognised (a future body, a stale value) is Orders, never blank.
-  expect(resolveTurnTab("nonsense", true)).toBe("action");
+test("an unrecognised body falls back to Orders, never to a blank panel", () => {
+  expect(resolveTurnTab("war")).toBe("war");
+  expect(resolveTurnTab("log")).toBe("log");
+  expect(resolveTurnTab("action")).toBe("action");
+  expect(resolveTurnTab("nonsense")).toBe("action");
 });
 
 test("the board's War tab and the dock's War tab are the same body", () => {
@@ -52,16 +51,21 @@ test("the two shells round-trip a war and a log selection", () => {
 /**
  * The regression itself: the model wrote `railTab` but the desktop panel was
  * never handed it.  Static markup cannot run an effect, so this pins the two
- * wiring lines that make the hand-off real.
+ * wiring lines that make the hand-off real, plus the declaration edge that
+ * used to open a separate chooser dialog instead.
  */
 test("the shell feeds the model's railTab to the desktop turn panel", () => {
   const shell = readFileSync(join(__dirname, "BoardLayout.tsx"), "utf8");
-  expect(shell).toContain("activeTab={isPhone ? phoneTurnTab : resolveTurnTab(railTab, warVisible)}");
+  expect(shell).toContain("activeTab={isPhone ? phoneTurnTab : resolveTurnTab(railTab)}");
   // The reader's own tab choice goes back to the same model value.
   expect(shell).toContain("else setRailTab(next);");
+  // The War body carries the declaration form, not only a running war's report.
+  expect(shell).toContain("<WarDeclarationPanel");
 
   const model = readFileSync(join(__dirname, "useBoardModel.ts"), "utf8");
   // Both shells move on the war's rising edge; the phone sheet also opens.
   expect(model).toContain('setRailTab("war");');
   expect(model).toContain('setMobileTab("war");');
+  // A live home-card entitlement brings the same body to the front.
+  expect(model).toContain("if (declarationWaiting && !declarationWasWaiting.current) {");
 });

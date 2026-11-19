@@ -12,8 +12,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, legalLandBattleTarget, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationAllowsTwoPowers, warDeclarationAims, warDeclarationEntitlement, warDeclarationMayForbidJoins, warDeclarationTargetLegal} from "../engine/rules";
-import {declarationTargetCandidates, type WarTargetCandidate} from "../engine/declarationTargets";
+import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, legalLandBattleTarget, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -25,7 +24,7 @@ import {amphibiousAssaultCheck, canPassNow, hasActedThisImpulse, navalInterceptC
 import {planNavalTransport} from "../engine/navalMovement";
 import {AU_NATIONALITIES, auIncorporateDecision, auRightsDecision, canGrantCitizenship, jihadUse, passRestriction, superiorStaffWorkFreeDeploy, TSRR_RAIL_ARMY_KINDS, tsrrRail} from "../engine/characteristics";
 import {polishController, polishRecruitDecision} from "../engine/poland";
-import {deployReserveLimit, hasTruce, loneMinorDefender, minorWarInfo, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
+import {deployReserveLimit, loneMinorDefender, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
 import {isIndependentItaly} from "../engine/greatWarFlow";
 import {gwActionAllowance} from "../engine/gwImpulse";
@@ -185,14 +184,9 @@ export const useBoardModel = ({
     query.addEventListener("change", sync);
     return () => query.removeEventListener("change", sync);
   }, []);
-  const [warAim, setWarAim] = React.useState<"conquest" | "liberation" | "unification">("conquest");
-  const [warCp, setWarCp] = React.useState(2);
-  const [secondObjective, setSecondObjective] = React.useState<SpaceId | "">("");
-  // Rule 14.1's two-power declaration and Bismarck's join choice.  They share
-  // the declaration block with the aim/CP pickers and reset with the impulse.
-  const [secondTarget, setSecondTarget] = React.useState<Power | "">("");
-  const [warPrimary, setWarPrimary] = React.useState<Power | "">("");
-  const [forbidPlayers, setForbidPlayers] = React.useState(false);
+  // The declaration form's own choices (defender, aim, objective, CP and the
+  // 14.1 clauses) live inside `WarDeclarationPanel`; the model only reports
+  // whether a declaration is waiting, for the War tab's badge.
   const [warAlly, setWarAlly] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
   const [warMinor, setWarMinor] = React.useState<string>("");
   const [giveTarget, setGiveTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
@@ -624,7 +618,7 @@ export const useBoardModel = ({
   }, [interceptVisible, navalVisible, ordersTab]);
 
   React.useEffect(() => { (window as any).__IE_STATE__ = G; }, [G]);
-  React.useEffect(() => { setSecondObjective(""); setConfirmSurrender(false); }, [selected]);
+  React.useEffect(() => { setConfirmSurrender(false); }, [selected]);
   React.useEffect(() => { setConfirmSurrender(false); }, [war?.status, war?.attacker, war?.defender]);
   React.useEffect(() => { dispatch({type: "reset"}); }, [phase]);
 
@@ -1252,94 +1246,26 @@ export const useBoardModel = ({
 
   // A home-card event (Bismarck, Aux Armes, Russo-Turkish Wars, Jihad) may
   // leave a war declaration to be made in this impulse; it funds the
-  // declaration with the card's CP and carries its own aim/target limits.
+  // declaration with the card's CP and carries its own aim/target limits.  The
+  // choices themselves live in `WarDeclarationPanel`; the model only needs the
+  // entitlement to badge the War tab and to bring it to the front once.
   const warEntitlement = viewer !== null ? warDeclarationEntitlement(G, viewer) : null;
-  const selectedControl = selectedState?.control ?? null;
-  const warTargetControl = selectedControl !== null && isPowerKey(selectedControl) && selectedControl !== viewer ? selectedControl : null;
-  // 13.4: a non-player power is a war target too (its declaring home is what
-  // the selected space's control names).  `minorWarInfo` applies the printed
-  // independence/marker gates so only a legal target opens the block.  Its
-  // player ally is the defending primary for a card's target restriction too.
-  const selectedMinorInfo = warTargetControl === null && selectedControl !== null && viewer !== null
-    && MINOR_POWER_HOMES[selectedControl] !== undefined
-    ? minorWarInfo(G, viewer, selectedControl)
-    : null;
-  const warMinorTarget = selectedMinorInfo?.ok === true ? selectedControl : null;
-  const warTargetDefender = warMinorTarget !== null
-    ? selectedMinorInfo?.ally ?? warMinorTarget
-    : warTargetControl;
-  const warTargetAllowed = warDeclarationTargetLegal(G, warEntitlement, warTargetDefender);
-  const warTargetSpaceControl = warTargetControl ?? warMinorTarget;
-  const targetControlledSpaces = warTargetSpaceControl !== null
-    ? Object.values(SPACES).filter((sp) => G.spaces[sp.id]?.control === warTargetSpaceControl && sp.id !== selected).map((sp) => sp.id)
-    : [];
-  // Rule 14.1: Bismarck's and Aux Armes' cards may name a second player power.
-  // The clause is only live for the aim it prints, and the first target must
-  // be a player power (a 13.4 non-player target keeps its aid/abandon flow).
-  const entitlementAims = warEntitlement !== null ? warDeclarationAims(warEntitlement.card) : null;
-  const declarationAim = entitlementAims !== null && !entitlementAims.includes(warAim)
-    ? entitlementAims[0] ?? warAim
-    : warAim;
-  const twoPowerEligible = warEntitlement !== null && warTargetControl !== null && viewer !== null
-    && warDeclarationAllowsTwoPowers(warEntitlement.card, declarationAim);
-  const secondTargetOptions = twoPowerEligible
-    ? POWER_KEYS.filter((p) => p !== viewer && p !== warTargetControl
-        && !hasTruce(G, viewer, p)
-        && warDeclarationTargetLegal(G, warEntitlement, p))
-    : [];
-  const secondTargetValue = secondTargetOptions.includes(secondTarget as Power) ? secondTarget : "";
-  // The defenders decide the primary between themselves; the attacker's choice
-  // is the printed fallback when they cannot agree, which is the answer this
-  // move records.  It defaults to the first target.
-  const warPrimaryValue: Power | "" = secondTargetValue === "" ? ""
-    : warPrimary === secondTargetValue ? secondTargetValue : warTargetControl ?? "";
-  const forbidPlayersAllowed = warEntitlement !== null && warDeclarationMayForbidJoins(warEntitlement.card);
-  const canDeclareWar = canActionCard && war === null && G.wtt < 3
-    && warTargetSpaceControl !== null
-    && warTargetAllowed
-    && (warEntitlement !== null || G.cpRemaining >= warCp);
-
-  // The target chooser for a live home-card declaration entitlement.  Playing
-  // Bismarck / Aux Armes / Russo-Turkish Wars / Jihad leaves the declaration
-  // open, and the seat used to have to find a legal objective on the map before
-  // any Declare war control appeared.  The chooser opens as soon as the card
-  // resolves, lists only declarations `declareWar` accepts, and hands the
-  // chosen objective to the existing declaration form (which keeps its 14.1
-  // second-power/join clauses).  The entitlement object is rebuilt every
-  // render, so the (space-scanning) enumeration is keyed on its printed
-  // identity plus the state object instead.
-  const warTargetEntitlementKey = warEntitlement !== null && viewer !== null
-    ? `${viewer}:${warEntitlement.card}:${G.turn}`
-    : null;
-  const warTargetCandidates = React.useMemo(
-    () => (viewer !== null ? declarationTargetCandidates(G, viewer, warEntitlement) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [G, viewer, warTargetEntitlementKey],
-  );
-  const [dismissedWarTargets, setDismissedWarTargets] = React.useState<string | null>(null);
-  // Derived rather than an effect: a new entitlement key (a freshly played card)
-  // reopens the chooser, while dismissing it records that key so it stays shut
-  // until the prompt or a new card reopens it.  A pending decision or a running
-  // war hides it without losing that state.
-  const warTargetsOpen = warTargetEntitlementKey !== null
-    && dismissedWarTargets !== warTargetEntitlementKey
-    && canActionCard
-    && war === null
-    && warTargetCandidates.length > 0;
-  const setWarTargetsOpen = React.useCallback((open: boolean): void => {
-    setDismissedWarTargets(open ? null : warTargetEntitlementKey);
-  }, [warTargetEntitlementKey]);
-  const chooseWarTarget = React.useCallback((candidate: WarTargetCandidate): void => {
-    setWarAim(candidate.aim);
-    setSecondObjective("");
-    // Selecting the objective space opens the ordinary declaration block for
-    // that defender; its aim/CP are already locked to the card.  Cancelling
-    // first leaves an armed unit-targeting mode, whose clicks submit a move,
-    // so the chooser's click can never be swallowed by a stale targeting state.
-    dispatch({type: "cancel"});
-    dispatch({type: "selectSpace", space: candidate.objective});
-    setDismissedWarTargets(warTargetEntitlementKey);
-  }, [dispatch, setWarAim, setSecondObjective, warTargetEntitlementKey]);
+  const declarationWaiting = canActionCard && war === null && warEntitlement !== null;
+  // A card that leaves a declaration open brings the War panel to the front
+  // once, exactly as a war starting does: the declaration is completed there,
+  // so the player should not have to find the tab after playing Bismarck.
+  const declarationWasWaiting = React.useRef(false);
+  React.useEffect(() => {
+    if (declarationWaiting && !declarationWasWaiting.current) {
+      setRailTab("war");
+      setMobileTab("war");
+      if (isPhone) {
+        setTrayOpen(true);
+        setTrayExpanded(false);
+      }
+    }
+    declarationWasWaiting.current = declarationWaiting;
+  }, [declarationWaiting, isPhone]);
 
   const gwOrderPowers = gw
     ? gw.order.map((slot) => (isPowerKey(slot) ? slot : null)).filter((p): p is Power => p !== null)
@@ -1763,24 +1689,7 @@ export const useBoardModel = ({
     confirmActions,
     setConfirmActions,
     trenchRows: trenchRows(G),
-    warTargetControl,
-    warMinorTarget,
-    warEntitlement,
-    warTargetAllowed,
-    warTargetCandidates,
-    warTargetsOpen,
-    setWarTargetsOpen,
-    chooseWarTarget,
-    targetControlledSpaces,
-    canDeclareWar,
-    secondTargetOptions,
-    secondTargetValue,
-    setSecondTarget,
-    warPrimaryValue,
-    setWarPrimary,
-    forbidPlayers,
-    setForbidPlayers,
-    forbidPlayersAllowed,
+    declarationWaiting,
     gwOrderPowers,
     gwBudgetOrder,
     gwSlotLabel,
@@ -1837,12 +1746,6 @@ export const useBoardModel = ({
     railOpen,
     setRailOpen,
     narrow,
-    warAim,
-    setWarAim,
-    warCp,
-    setWarCp,
-    secondObjective,
-    setSecondObjective,
     warAlly,
     setWarAlly,
     warMinor,

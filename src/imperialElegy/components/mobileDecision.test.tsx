@@ -39,7 +39,6 @@ const turnProps = (overrides: Partial<TurnPanelProps> = {}): TurnPanelProps => (
   activeLabel: "Germany",
   turn: 1,
   summary: "Choose an action",
-  warVisible: false,
   hasDecision: false,
   tabs: {
     action: <p data-testid="ie-action-body-marker">the decision body</p>,

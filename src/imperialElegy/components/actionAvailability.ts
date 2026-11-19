@@ -277,14 +277,11 @@ export interface SpaceActionsInput {
    * one of the highlighted spaces, which is also where the CP is spent.
    */
   startMove?: () => void;
-  /** Second objective for a declaration (kept in the panel). */
-  warCp: number;
   /**
    * The row's own label and reason are handed to `doAction`, so a refusal the
    * engine reports can be explained in words the player is already reading.
    */
   describeRow: (row: {id: string; label: string; reason?: string}) => {label: string; reason?: string};
-  onDeclareWar: () => {enabled: boolean; reason?: string} | null;
   locale: "en" | "zh_CN";
 }
 
@@ -329,7 +326,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     myOnMapArmies, myForts, ownLandInSelected, ownNavalInSelected,
     potentialLandTargets, potentialNavalTargets, deployLimit, deployFree, canDeployHere,
     canGwDraft, canGwDeployHere, polishArmyDecision, polishReserveDecision, polishReserve, gwJointNavalAllies,
-    gwJointNavalUnitIds, startBattle, startNavalBattle, onDeclareWar, locale, describeRow,
+    gwJointNavalUnitIds, startBattle, startNavalBattle, locale, describeRow,
   } = input;
   const rows: SpaceAction[] = [];
   const gw = phase === "gwManeuver";
@@ -764,8 +761,6 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   }
 
   void selectedIsOther;
-  void onDeclareWar;
-  void input.warCp;
   void input.canActionCard;
 
   return rows;

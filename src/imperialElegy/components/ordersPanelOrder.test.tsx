@@ -72,15 +72,6 @@ const render = (G: ImperialElegyState, over: Partial<React.ComponentProps<typeof
       pending={null}
       canDecide={false}
       war={null}
-      warAim="conquest"
-      setWarAim={() => undefined}
-      warCp={2}
-      setWarCp={() => undefined}
-      secondObjective=""
-      setSecondObjective={() => undefined}
-      targetControlledSpaces={[]}
-      warTargetControl={null}
-      canDeclareWar={false}
       gwJointNavalAllies={[]}
       gwJointNavalUnitIds={() => []}
       polishReserve={false}
