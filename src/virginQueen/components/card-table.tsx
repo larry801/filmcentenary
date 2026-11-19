@@ -1,6 +1,6 @@
 import React from "react";
 import i18n from "../../constant/i18n";
-import {CardRow, CardTablePage, CardTableSection} from "../../components/game-card-table";
+import {CardOriginalImage, CardRow, CardTablePage, CardTableSection} from "../../components/game-card-table";
 import {OFFICIAL_CARDS} from "../data/cards";
 import {OfficialCardDef} from "../data/types";
 import {cardById, cardImageUrl} from "../constant/cards";
@@ -54,8 +54,7 @@ const VQCardTable = () => {
         return [
             card.number,
             src === undefined ? "—" : (
-                <img src={src} alt={name(card)} width={40} loading="lazy"
-                     style={{display: "block", borderRadius: 2}}/>
+                <CardOriginalImage src={src} alt={name(card)}/>
             ),
             name(card),
             card.cp ?? "—",
