@@ -16,7 +16,7 @@ import {CardFaceMode, cardImageSrc, readConfirmActions} from "./preferences";
 import {RuleLink} from "./RuleRef";
 import {ConfirmButton} from "./ConfirmButton";
 import {cardAvailability, cardTypeIcon, type CardAvailability} from "./cardAvailability";
-import {cardDisplayName} from "./cardDisplay";
+import {cardDisplayName, pinHomeCards} from "./cardDisplay";
 
 export interface HandTrayProps {
   /** Live `confirmActions` preference (the Display menu writes it). */
@@ -360,7 +360,7 @@ export const HandTray = (props: HandTrayProps) => {
             </div>
 
             <div className="ie-hand">
-              {hand.map((id) => {
+              {pinHomeCards(hand).map((id) => {
                 const card = cardById(id);
                 const a = availability(id);
                 const playable = a.cpModeOk || a.eventModeOk || a.responseOk;

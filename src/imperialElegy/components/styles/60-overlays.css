@@ -384,6 +384,10 @@
 
 .ie-choice-title { margin: 0; font-size: var(--ie-font-md); color: var(--ie-brass-soft); flex: 1 1 auto; }
 
+/* A decision dialog is wider than a card choice: it carries option buttons,
+   card faces and the battle/result report, and it must not squeeze a face. */
+.ie-decision-modal { width: min(860px, 100%); max-height: min(86dvh, 760px); }
+
 .ie-choice-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--ie-space-3); }
 
 .ie-choice-foot {

@@ -116,6 +116,7 @@ A redesign succeeds when all of these are true:
 | D-19 | Texture only on non-text surfaces | Textured paper behind all text |
 | D-20 | No inline styles; theming via tokens and data attributes | Runtime style injection |
 | D-21 | One added token, `--ie-move-ink: #2F5D7C` (2026-11-18) | Reuse a power fill (FR/IT blue) for the map's move ring |
+| D-22 | One added token, `--ie-move-ink-on-dark: #8FB4D4` (2026-11-20) | Paint the map key's move swatch with the paper-only `--ie-move-ink` (2.14:1 on panel) |
 
 ---
 
@@ -217,6 +218,7 @@ Colour and mark-making reference:
 | Focus | `--ie-focus-dark` | `#F4D574` | Focus ring on dark |
 | Focus | `--ie-focus-paper` | `#6E531B` | Focus ring on paper |
 | Map | `--ie-move-ink` | `#2F5D7C` | Legal-move ring on the atlas paper (D-21) |
+| Map | `--ie-move-ink-on-dark` | `#8FB4D4` | Legal-move ring in the dark map key (D-22) |
 
 **D-02:** The map is the only large paper field. The right column, hand and mat
 stay dark chrome with paper documents inside them.
@@ -276,10 +278,16 @@ the map, chips, pips and printed references cannot drift.
 | War / Great War | Crossed-sabres icon + overprint label | Red alone |
 | Legal move target | Blue-ink ring + dash pattern + tick | Colour alone |
 | Legal attack target | Overprint ring + dash pattern + tick | Colour alone |
-| Legal rail target | `--ie-brass-ink` ring + dash + tick | Colour alone |
+| Legal rail target | `--ie-brass-soft` ring + dash + tick | Colour alone |
 | Choice target | Ink ring + dash + tick | Colour alone |
 | Selection | 2 px `--ie-brass-soft` ring + four corner ticks | Glow |
 | Success / info | Status text variant | Status fill as text |
+
+The map key (`components/MapLegend.tsx`) repeats this vocabulary as one swatch
+per style: `move` `--ie-move-ink-on-dark`, `attack` `--ie-overprint-text-dark`,
+`rail` `--ie-brass-soft`, `choice` `--ie-ok-text-dark`, `pending`
+`--ie-warn-text-dark`.  Every style gets its own swatch; two entries must never
+share a colour, or the key promises a distinction the map does not draw.
 
 ### 4.5 Contrast rules
 
@@ -1078,6 +1086,7 @@ are 4.5:1; non-text control/focus targets are 3.0:1.
 | `--ie-ok-text-dark` `#A6D28D` | 10.38 | 9.60 | 8.80 | 8.00 |
 | `--ie-warn-text-dark` `#E9A45C` | 8.43 | 7.80 | 7.15 | 6.50 |
 | `--ie-danger-text-dark` `#E28A78` | 6.91 | 6.39 | 5.86 | 5.33 |
+| `--ie-move-ink-on-dark` `#8FB4D4` | 8.19 | 7.58 | 6.95 | 6.31 |
 | `--ie-ink` on brass `#C2A05A` | — | — | — | 6.77 |
 | `--ie-on-dark` on brass `#C2A05A` | — | — | — | **2.00 (forbidden)** |
 

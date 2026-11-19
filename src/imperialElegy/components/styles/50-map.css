@@ -101,13 +101,31 @@
 
 .ie-key { display: inline-flex; align-items: center; gap: var(--ie-space-1); }
 
+/* The swatch repeats the map's own vocabulary (§4.4): a ring whose colour *and*
+   tick say what a click would do.  Every style gets its own colour, so two
+   entries can never be read as the same target — the defect this fixes was
+   "attack" and "rail" both falling through to the same brass default.
+   The map draws `choice` and `pending` as double rings; at 10 px a double
+   border is invisible, so the key leans on a distinct hue instead and keeps
+   the double ring as a second cue. */
 .ie-key::before { content: ""; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--ie-focus-dark); display: inline-block; }
 
-.ie-key.move::before { border-color: var(--ie-ok-text-dark); }
+/* move: blue-ink ring with a pip (map.tsx `move`). */
+.ie-key.move::before { border-color: var(--ie-move-ink-on-dark); }
 
-.ie-key.battle::before { border-color: var(--ie-overprint-text-dark); }
+/* attack: overprint ring with crosshair ticks (map.tsx `attack`). */
+.ie-key.attack::before { border-color: var(--ie-overprint-text-dark); }
 
-.ie-key.legal::before { border-color: var(--ie-focus-dark); }
+/* rail: brass ring with a rail tick (map.tsx `rail`). */
+.ie-key.rail::before { border-color: var(--ie-brass-soft); }
+
+/* choice: an extra legal option, drawn as a double ring (map.tsx `choice`). */
+.ie-key.choice::before { border-color: var(--ie-ok-text-dark); border-style: double; border-width: 3px; }
+
+/* pending: a decision waits on that space, drawn as a double ring (map.tsx `pending`). */
+.ie-key.pending::before { border-color: var(--ie-warn-text-dark); border-style: double; border-width: 3px; }
+
+.ie-key-count { margin-left: 2px; color: var(--ie-on-dark); font-weight: 600; }
 
 .ie-unit-token { display: block; overflow: visible; pointer-events: none; }
 

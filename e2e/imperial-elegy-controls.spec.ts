@@ -268,6 +268,21 @@ async function openDock(page: Page, seat: string) {
     await expect(dock).toHaveAttribute("data-open", "true");
 }
 
+/**
+ * A decision or a required card choice is a dialog over the board, so its
+ * backdrop covers the dock: the sheet must not be opened first.  Return the
+ * dialog when one is up, or `null` when the choice (if any) lives in the sheet
+ * body.
+ */
+async function phoneDialog(page: Page, seat: string): Promise<Locator | null> {
+    const board = boardFor(page, seat);
+    for (const testId of ["ie-decision-modal", "ie-choice-modal"]) {
+        const dialog = board.locator(`[data-testid="${testId}"]`);
+        if (await dialog.count() > 0 && await dialog.isVisible()) return dialog;
+    }
+    return null;
+}
+
 async function phoneFinishPrep(page: Page) {
     for (const seat of SEATS) {
         await focusSeat(page, seat);
@@ -282,8 +297,16 @@ async function phoneFinishPrep(page: Page) {
 async function phoneChooseHomeCards(page: Page) {
     for (const seat of SEATS) {
         await focusSeat(page, seat);
-        await openDock(page, seat);
         const board = boardFor(page, seat);
+        // The home card is a dialog: it is up without the sheet being opened,
+        // and its backdrop would swallow a tap on the dock.
+        const dialog = board.locator('[data-testid="ie-choice-modal"]');
+        if (await dialog.count() > 0 && await dialog.isVisible()) {
+            const choose = dialog.locator('[data-testid^="ie-choose-home-"]').first();
+            await clickUntilGone(page, choose);
+            continue;
+        }
+        await openDock(page, seat);
         const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
         await expect(choose).toBeVisible({timeout: 15_000});
         await clickUntilGone(page, choose);
@@ -297,7 +320,10 @@ async function phoneAnswerStartPending(page: Page) {
         let answered = false;
         for (const seat of SEATS) {
             await focusSeat(page, seat);
-            await openDock(page, seat);
+            // A decision this seat owes is a dialog over the dock; another
+            // seat's is the read-only panel inside the sheet.
+            const dialog = await phoneDialog(page, seat);
+            if (dialog === null) await openDock(page, seat);
             const pending = boardFor(page, seat).locator('[data-testid="ie-pending"]');
             const options = pending.locator("button");
             if (!(await options.count())) continue;
@@ -850,6 +876,17 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         });
         expect(audit.small, "visible text under 12 px").toBe(0);
         expect(audit.inline, "inline styles outside SVG").toBe(0);
+
+        // 6. Every map-key swatch is a different colour.  "attack" and "rail"
+        //    used to fall through to the same brass default, so two different
+        //    targets were drawn identically; the stylesheet now gives each
+        //    style its own swatch.
+        const swatches = await board.locator(".ie-map-key .ie-key").evaluateAll((nodes) => nodes.map((node) => {
+            const style = getComputedStyle(node, "::before");
+            return `${style.borderTopColor}|${style.borderTopStyle}|${style.borderTopWidth}`;
+        }));
+        expect(swatches.length).toBeGreaterThanOrEqual(3);
+        expect(new Set(swatches).size).toBe(swatches.length);
     });
 
     test("the printed player display closes with Esc and with the ✕", async ({page}) => {

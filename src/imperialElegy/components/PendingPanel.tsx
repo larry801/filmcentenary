@@ -39,6 +39,12 @@ export interface PendingPanelProps {
   moves: Record<string, (...args: any[]) => void>;
   /** Docked above the board: the panel is pinned in place while the board scrolls. */
   dock?: boolean;
+  /**
+   * Raised as a dialog.  The dialog's backdrop covers the map, so the hint
+   * cannot promise that a highlighted space is clickable: the option buttons
+   * are the way to answer.
+   */
+  inModal?: boolean;
 }
 
 /** Pinned instruction strip for a map-targeting step (battle, naval battle, move). */
@@ -57,11 +63,20 @@ export const TargetDock = ({title, body, cancelLabel, onCancel}: {
   </div>
 );
 
-export const PendingPanel = ({
+/**
+ * The decision itself, without the panel chrome.
+ *
+ * Two hosts render it: the Orders panel (another seat's decision, a battle or
+ * the result — reports rather than this seat's choice) and `DecisionModal` (the
+ * decision *this* seat owes, which is a blocker and therefore a dialog).  The
+ * option buttons, their test ids and the confirm wiring therefore cannot drift
+ * between the two.
+ */
+export const DecisionBody = ({
   G, pending, canDecide, pendingKind, pendingPrompt, optionLabel, optionFace, optionAction, canDecline,
   pendingSpaceTargets, viewer, locale, t, jihadDecision, jihadReason, goalCounts, doAction, moves,
-  confirmActions = true, dock = false,
-}: PendingPanelProps) => {
+  confirmActions = true, inModal = false,
+}: Omit<PendingPanelProps, "dock">) => {
   // Card and Goal options show their printed face; everything else (spaces,
   // powers, units, "continue") stays a button.  A card offered in several
   // modes (A061/A066, the UK's two auction sides) keeps one face and one
@@ -81,6 +96,128 @@ export const PendingPanel = ({
   }
 
   return (
+    <>
+      {!pending ? <div className="ie-muted">{t.noPending}</div> : (
+        <div className={`ie-pending${canDecide ? " urgent" : ""}`} data-testid="ie-pending">
+          <h4>{canDecide ? t.yourDecision : `${t.waitingFor}: ${t.seats[pending.power]}`}</h4>
+          <div className="ie-pending-kind" data-testid="ie-pending-kind">{pendingKind} · {t.pendingFor}: {t.seats[pending.power]}</div>
+          <div className="ie-pending-prompt">{pendingPrompt}</div>
+          {canDecide ? (
+            <>
+              <div className="ie-section-title">{t.pendingOptions}</div>
+              {groups.length > 0 && (
+                <div className="ie-choice-grid" data-testid="ie-pending-cards">
+                  {groups.map(({face, options}) => {
+                    const id = face.goal ? face.goal.id : face.card.id;
+                    return (
+                      <CardChoice
+                        key={id}
+                        locale={locale}
+                        face={face}
+                        testId={`ie-pending-card-${id}`}
+                        actions={options.map((o) => {
+                          const safety = pendingOptionSafety(pending, o, locale);
+                          // A card with several printed modes needs the mode
+                          // named on the buttons; a single use of a card keeps
+                          // a short verb under the face.
+                          const label = options.length > 1 || optionAction === undefined ? optionLabel(o) : optionAction(o);
+                          return {
+                            label,
+                            testId: `ie-pending-option-${o.id}`,
+                            title: safety.reason ?? optionLabel(o),
+                            confirm: confirmActions && safety.confirm,
+                            confirmLabel: bi(locale, `Confirm: ${label}`, `确认：${label}`),
+                            onChoose: () => doAction(() => moves.resolvePending(o.id), {label: optionLabel(o)}),
+                          };
+                        })}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+              {(rest.length > 0 || canDecline) && (
+                <div className="ie-pending-options">
+                  {rest.map((o) => {
+                    const safety = pendingOptionSafety(pending, o, locale);
+                    const label = optionLabel(o);
+                    if (confirmActions && safety.confirm) {
+                      return (
+                        <ConfirmButton
+                          key={o.id}
+                          data-testid={`ie-pending-option-${o.id}`}
+                          title={safety.reason}
+                          confirm
+                          confirmLabel={bi(locale, `Confirm: ${label}`, `确认：${label}`)}
+                          onConfirm={() => doAction(() => moves.resolvePending(o.id), {label})}
+                        >
+                          {label}
+                        </ConfirmButton>
+                      );
+                    }
+                    return <button key={o.id} data-testid={`ie-pending-option-${o.id}`} onClick={() => doAction(() => moves.resolvePending(o.id), {label})}>{label}</button>;
+                  })}
+                  {canDecline && (() => {
+                    const safety = pendingOptionSafety(pending, {id: "decline", label: t.decline}, locale);
+                    if (confirmActions && safety.confirm) {
+                      return (
+                        <ConfirmButton
+                          className="ie-btn secondary"
+                          title={safety.reason}
+                          confirm
+                          confirmLabel={bi(locale, `Confirm: ${t.decline}`, `确认：${t.decline}`)}
+                          onConfirm={() => doAction(() => moves.declinePending(), {label: t.decline})}
+                        >
+                          {t.decline}
+                        </ConfirmButton>
+                      );
+                    }
+                    return <button className="ie-btn secondary" onClick={() => doAction(() => moves.declinePending(), {label: t.decline})}>{t.decline}</button>;
+                  })()}
+                </div>
+              )}
+            </>
+          ) : <div className="ie-muted ie-mt-6">{t.waitingOther}</div>}
+          {canDecide && pendingSpaceTargets.length > 0 && (
+            <div className="ie-hint">
+              {inModal
+                // The dialog's backdrop covers the map: a highlighted space is
+                // not clickable through it, so the hint names the buttons.
+                ? bi(locale, "Choose one of the options above to answer.", "请在上方选项中选择以完成决策。")
+                : bi(locale, "The matching spaces are highlighted on the map.", "对应空间已在地图上高亮。")}
+            </div>
+          )}
+        </div>
+      )}
+      {G.battle && (
+        <div className="ie-battle" data-testid="ie-battle">
+          <h4>{bi(locale, G.battle.kind === "naval" ? "Naval battle" : "Land battle", G.battle.kind === "naval" ? "海战" : "陆战")} · {spaceLabel(G.battle.from, locale)} → {spaceLabel(G.battle.to, locale)}</h4>
+          <div>{t.seats[G.battle.attacker]} → {t.seats[G.battle.defender]} · {bi(locale, "Step", "阶段")}: {BATTLE_STAGE[G.battle.stage] ? bi(locale, BATTLE_STAGE[G.battle.stage].en, BATTLE_STAGE[G.battle.stage].zh) : G.battle.stage}</div>
+          {(G.battle.attackerRoll !== undefined || G.battle.defenderRoll !== undefined) && <div>{bi(locale, "Rolls", "掷骰")}: {G.battle.attackerRoll ?? "—"} / {G.battle.defenderRoll ?? "—"} · {bi(locale, "Diff", "差")} {G.battle.diff ?? "—"}</div>}
+          <div>{bi(locale, "Losses", "损失")}: {G.battle.attackerLosses} / {G.battle.defenderLosses} · DRM {G.battle.attackerDrm}/{G.battle.defenderDrm}</div>
+          {G.battle.notes.length > 0 && <div className="ie-muted">{G.battle.notes.join(", ")}</div>}
+          {viewer === "OT" && jihadDecision !== null && (
+            <div className="ie-inline" data-testid="ie-jihad-actions">
+              <button className="ie-btn" data-testid="ie-use-jihad" disabled={jihadDecision.allowed !== true} title={jihadReason} onClick={() => doAction(() => moves.useJihad(), {label: t.useJihad, reason: jihadReason})}>
+                {t.useJihad} ({jihadDecision.markers})
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {G.result && (
+        <div className="ie-mt-8" data-testid="ie-final-score">
+          <IEBadge tone="warn">{t.gameOver}: {G.result.winners.map((p) => t.seats[p]).join(", ")}</IEBadge>
+          <ScorePanel G={G} locale={locale} viewer={viewer} goalCounts={goalCounts}/>
+        </div>
+      )}
+    </>
+  );
+};
+
+export const PendingPanel = (props: PendingPanelProps) => {
+  const {canDecide, pendingKind, locale, t, dock = false} = props;
+
+  return (
     <IEPanel
       className={dock ? "ie-dock-panel" : ""}
       title={t.pending}
@@ -95,113 +232,7 @@ export const PendingPanel = ({
         </div>
       ) : undefined}
     >
-      <>
-        {!pending ? <div className="ie-muted">{t.noPending}</div> : (
-            <div className={`ie-pending${canDecide ? " urgent" : ""}`} data-testid="ie-pending">
-              <h4>{canDecide ? t.yourDecision : `${t.waitingFor}: ${t.seats[pending.power]}`}</h4>
-              <div className="ie-pending-kind" data-testid="ie-pending-kind">{pendingKind} · {t.pendingFor}: {t.seats[pending.power]}</div>
-              <div className="ie-pending-prompt">{pendingPrompt}</div>
-              {canDecide ? (
-                <>
-                  <div className="ie-section-title">{t.pendingOptions}</div>
-                  {groups.length > 0 && (
-                    <div className="ie-choice-grid" data-testid="ie-pending-cards">
-                      {groups.map(({face, options}) => {
-                        const id = face.goal ? face.goal.id : face.card.id;
-                        return (
-                          <CardChoice
-                            key={id}
-                            locale={locale}
-                            face={face}
-                            testId={`ie-pending-card-${id}`}
-                            actions={options.map((o) => {
-                              const safety = pendingOptionSafety(pending, o, locale);
-                              // A card with several printed modes needs the mode
-                              // named on the buttons; a single use of a card keeps
-                              // a short verb under the face.
-                              const label = options.length > 1 || optionAction === undefined ? optionLabel(o) : optionAction(o);
-                              return {
-                                label,
-                                testId: `ie-pending-option-${o.id}`,
-                                title: safety.reason ?? optionLabel(o),
-                                confirm: confirmActions && safety.confirm,
-                                confirmLabel: bi(locale, `Confirm: ${label}`, `确认：${label}`),
-                                onChoose: () => doAction(() => moves.resolvePending(o.id), {label: optionLabel(o)}),
-                              };
-                            })}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-                  {(rest.length > 0 || canDecline) && (
-                    <div className="ie-pending-options">
-                      {rest.map((o) => {
-                        const safety = pendingOptionSafety(pending, o, locale);
-                        const label = optionLabel(o);
-                        if (confirmActions && safety.confirm) {
-                          return (
-                            <ConfirmButton
-                              key={o.id}
-                              data-testid={`ie-pending-option-${o.id}`}
-                              title={safety.reason}
-                              confirm
-                              confirmLabel={bi(locale, `Confirm: ${label}`, `确认：${label}`)}
-                              onConfirm={() => doAction(() => moves.resolvePending(o.id), {label})}
-                            >
-                              {label}
-                            </ConfirmButton>
-                          );
-                        }
-                        return <button key={o.id} data-testid={`ie-pending-option-${o.id}`} onClick={() => doAction(() => moves.resolvePending(o.id), {label})}>{label}</button>;
-                      })}
-                      {canDecline && (() => {
-                        const safety = pendingOptionSafety(pending, {id: "decline", label: t.decline}, locale);
-                        if (confirmActions && safety.confirm) {
-                          return (
-                            <ConfirmButton
-                              className="ie-btn secondary"
-                              title={safety.reason}
-                              confirm
-                              confirmLabel={bi(locale, `Confirm: ${t.decline}`, `确认：${t.decline}`)}
-                              onConfirm={() => doAction(() => moves.declinePending(), {label: t.decline})}
-                            >
-                              {t.decline}
-                            </ConfirmButton>
-                          );
-                        }
-                        return <button className="ie-btn secondary" onClick={() => doAction(() => moves.declinePending(), {label: t.decline})}>{t.decline}</button>;
-                      })()}
-                    </div>
-                  )}
-                </>
-              ) : <div className="ie-muted ie-mt-6">{t.waitingOther}</div>}
-              {canDecide && pendingSpaceTargets.length > 0 && <div className="ie-hint">{bi(locale, "The matching spaces are highlighted on the map.", "对应空间已在地图上高亮。")}</div>}
-            </div>
-          )}
-          {G.battle && (
-            <div className="ie-battle" data-testid="ie-battle">
-              <h4>{bi(locale, G.battle.kind === "naval" ? "Naval battle" : "Land battle", G.battle.kind === "naval" ? "海战" : "陆战")} · {spaceLabel(G.battle.from, locale)} → {spaceLabel(G.battle.to, locale)}</h4>
-              <div>{t.seats[G.battle.attacker]} → {t.seats[G.battle.defender]} · {bi(locale, "Step", "阶段")}: {BATTLE_STAGE[G.battle.stage] ? bi(locale, BATTLE_STAGE[G.battle.stage].en, BATTLE_STAGE[G.battle.stage].zh) : G.battle.stage}</div>
-              {(G.battle.attackerRoll !== undefined || G.battle.defenderRoll !== undefined) && <div>{bi(locale, "Rolls", "掷骰")}: {G.battle.attackerRoll ?? "—"} / {G.battle.defenderRoll ?? "—"} · {bi(locale, "Diff", "差")} {G.battle.diff ?? "—"}</div>}
-              <div>{bi(locale, "Losses", "损失")}: {G.battle.attackerLosses} / {G.battle.defenderLosses} · DRM {G.battle.attackerDrm}/{G.battle.defenderDrm}</div>
-              {G.battle.notes.length > 0 && <div className="ie-muted">{G.battle.notes.join(", ")}</div>}
-              {viewer === "OT" && jihadDecision !== null && (
-                <div className="ie-inline" data-testid="ie-jihad-actions">
-                  <button className="ie-btn" data-testid="ie-use-jihad" disabled={jihadDecision.allowed !== true} title={jihadReason} onClick={() => doAction(() => moves.useJihad(), {label: t.useJihad, reason: jihadReason})}>
-                    {t.useJihad} ({jihadDecision.markers})
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-          {G.result && (
-            <div className="ie-mt-8" data-testid="ie-final-score">
-              <IEBadge tone="warn">{t.gameOver}: {G.result.winners.map((p) => t.seats[p]).join(", ")}</IEBadge>
-              <ScorePanel G={G} locale={locale} viewer={viewer} goalCounts={goalCounts}/>
-            </div>
-          )}
-      </>
+      <DecisionBody {...props}/>
     </IEPanel>
   );
 };
