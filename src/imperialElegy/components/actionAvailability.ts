@@ -15,7 +15,7 @@
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower, minorController, ownsKey,
+  efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower, ownsKey,
 } from "../engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -42,6 +42,7 @@ import {
 import {hasCounterFor} from "../engine/counters";
 import {polishReserveDeployer} from "../engine/poland";
 import {legalUnitTargets} from "./legalTargets";
+import {unitIsCommanded} from "./boardHelpers";
 import type {RecruitDecision} from "../engine/characteristics";
 
 export type ActionId =
@@ -338,9 +339,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   const selected = selectedUnit ? G.units[selectedUnit] : undefined;
   const commandsSelected = (unitId: string): boolean => {
     const unit = G.units[unitId];
-    if (!unit) return false;
-    if (unit.owner === commandOwner) return true;
-    return gw && !["US", "IT"].includes(unit.owner as string) && minorController(G, unit.owner) === viewer;
+    return unit !== undefined && unitIsCommanded(G, viewer, unit, phase);
   };
   const unitSelected = selected !== undefined && commandsSelected(selected.id);
   const selectedIsOther = selected !== undefined && !unitSelected;

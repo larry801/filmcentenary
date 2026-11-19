@@ -2346,7 +2346,7 @@ export const navalBattle = (G: ImperialElegyState, ctx: Ctx, from: SpaceId, to: 
     const defender = defenders.length > 0 ? navalDefenderPower(G, to) : null;
     if (defender !== null) {
       const attackers = navalUnitsIn(G, from)
-        .filter((unit) => unit.owner === power || (!isPower(unit.owner) && G.spaces[from]?.ally === power))
+        .filter((unit) => commandsUnit(G, power, unit))
         .map((unit) => unit.id);
       if (attackers.length > 0) {
         openNavalAvoidDecision(G, ctx, power, defender, from, to, attackers);

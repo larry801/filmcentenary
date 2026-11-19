@@ -470,6 +470,21 @@ export const recomputeBattleSupport = (G: ImperialElegyState, battle: BattleStat
   }
 };
 
+/**
+ * 12.8 / 15.4: an allied minor power's ordinary army/fleet counters fight for
+ * their controller.  Asking `minorController` (rather than the battle space's
+ * own ally marker) keeps a minor that marched away from its allied home in the
+ * controller's attack force.  US and unified Italy are 26.3 majors, not minor
+ * powers, and never join through this path.
+ */
+const commandsAlliedMinor = (
+  G: ImperialElegyState,
+  actor: Power,
+  owner: Unit["owner"],
+): boolean =>
+  !isPower(owner) && owner !== "US" && owner !== "IT"
+  && minorController(G, owner) === actor;
+
 export const beginLandBattle = (
   G: ImperialElegyState,
   ctx: Ctx,
@@ -484,7 +499,7 @@ export const beginLandBattle = (
       (u.owner === actor ||
         // 26.3: the controller attacks with US/Italian units during their impulse.
         (allyImpulse !== null && u.owner === allyImpulse) ||
-        (!isPower(u.owner) && G.spaces[from].ally === actor)) &&
+        commandsAlliedMinor(G, actor, u.owner)) &&
       // 15.2.3: a unit deployed this impulse cannot attack.
       u.flags?.deployedThisImpulse !== true,
   );
@@ -3941,7 +3956,7 @@ export const beginNavalBattle = (
     ?.map((id) => unitById(G, id))
     .filter((unit): unit is Unit => Boolean(unit) && unit!.naval === true && unit!.steps > 0);
   const rawAttack = explicitAttack ?? navalUnitsIn(G, from).filter(
-    (unit) => unit.owner === actor || (!isPower(unit.owner) && G.spaces[from].ally === actor),
+    (unit) => unit.owner === actor || commandsAlliedMinor(G, actor, unit.owner),
   );
   const explicitDefence = options.defenderUnits
     ?.map((id) => unitById(G, id))

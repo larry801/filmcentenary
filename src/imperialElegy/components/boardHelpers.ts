@@ -5,6 +5,7 @@ import {ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
+import {gwAllyImpulseFor, minorController} from "../engine/rules";
 import {ieT} from "./i18n";
 import type {GwImpulseReason} from "../engine/gwImpulse";
 import {
@@ -22,6 +23,33 @@ export const isPowerKey = (value: unknown): value is Power =>
 /** Bilingual helper for labels that have no key in i18n.ts yet. */
 export const bi = (locale: "en" | "zh_CN", en: string, zh: string): string =>
   locale === "zh_CN" ? zh : en;
+
+/**
+ * 12.8 / 15.4 / 26.3: whether `viewer` commands `unit` for an action.
+ *
+ * The seat always commands its own units, and during a US/Italian Great War
+ * impulse it commands that major's units.  An allied minor power's ordinary
+ * army/fleet counters join their controller during a war — limited (`wartime`)
+ * or the Great War (`gwManeuver`) — but never during peace, and never
+ * during a US/Italian impulse (26.3 only moves that major's own units).
+ *
+ * The Space panel, the Orders rows and the map one-click layer must share this
+ * answer: otherwise the picker offers a chip the map then ignores.
+ */
+export const unitIsCommanded = (
+  G: ImperialElegyState,
+  viewer: Power | null,
+  unit: Unit,
+  phase: string,
+): boolean => {
+  if (viewer === null) return false;
+  const commandedOwner = gwAllyImpulseFor(G, viewer) ?? viewer;
+  if (unit.owner === commandedOwner) return true;
+  if (commandedOwner !== viewer) return false;
+  if (phase !== "wartime" && phase !== "gwManeuver") return false;
+  if (isPowerKey(unit.owner) || unit.owner === "US" || unit.owner === "IT") return false;
+  return minorController(G, unit.owner) === viewer;
+};
 
 export const gwImpulseReasonText = (locale: "en" | "zh_CN", reason: GwImpulseReason | null): string | undefined => {
   if (reason === null) return undefined;

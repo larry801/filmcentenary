@@ -86,6 +86,11 @@ export const legalUnitTargets = (input: LegalTargetsInput): Map<SpaceId, UnitInt
     out.set(id, list);
   };
   if (!unit.space) return out;
+  const gwLadder = phase === "gwManeuver";
+  // Outside the Great War, 12.15/16.1 move the seat's own counters only.  A
+  // 15.4 controlled minor is selectable (and fights from the Orders battle
+  // row) but has no move rings the engine would accept.
+  if (!gwLadder && unit.owner !== input.power) return out;
   if (unit.naval) {
     for (const id of navalTargets(input)) add(id, "redeploy");
     return out;
@@ -94,7 +99,6 @@ export const legalUnitTargets = (input: LegalTargetsInput): Map<SpaceId, UnitInt
     && unit.kind !== "zouave" && unit.kind !== "eliteCorps") {
     return out;
   }
-  const gwLadder = phase === "gwManeuver";
   if (gwLadder && unit.owner !== "US" && unit.owner !== "IT") {
     for (const id of landTargets(input, "march")) add(id, "gwMarch");
     for (const id of landTargets(input, "rail")) add(id, "gwRail");
