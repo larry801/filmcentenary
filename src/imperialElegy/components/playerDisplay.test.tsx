@@ -55,6 +55,17 @@ test("the display entry is titled in the UI's language", () => {
   expect(playerDisplayChart("GE", "en").id).toBe("display-ge");
 });
 
+test("a display anchor resolves to the same entry on every call", () => {
+  // The drawer opens its lightbox from an effect keyed on `resolved.chart`.
+  // `resolveAnchor` used to mint a new entry on every render, so closing the
+  // chart with Esc or ✕ re-opened it on the very next render.
+  const first = resolveAnchor("display:OT", "zh_CN").chart;
+  expect(resolveAnchor("display:OT", "zh_CN").chart).toBe(first);
+  expect(playerDisplayChart("OT", "zh_CN")).toBe(first);
+  // The UI language is part of the identity: the English entry is another one.
+  expect(playerDisplayChart("OT", "en")).not.toBe(first);
+});
+
 test("the drawer opens a display anchor at that power's board, not a chart", () => {
   const resolved = resolveAnchor("display:UK", "zh_CN");
   expect(resolved.section).toBeNull();
