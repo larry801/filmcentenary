@@ -401,7 +401,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                                     variant={bot ? "outlined" : "filled"}
                                                     color={bot ? "default" : "primary"}
                                                     label={bot ? `🤖 ${label}` : label}
-                                                    onClick={enabled ? () => handleSeatToggle(power) : undefined}
+                                                    onClick={() => { if (enabled) handleSeatToggle(power); }}
                                                     disabled={!enabled}
                                                     aria-label={vqLocale === "zh_CN"
                                                         ? `${label}：${bot ? "机器人" : "人类"}，点击切换`

@@ -683,9 +683,9 @@ test.describe("Imperial Elegy solo vs bot", () => {
             .evaluateAll((buttons) => buttons
                 .filter((button) => !(button as HTMLButtonElement).disabled)
                 .map((button) => (button.getAttribute("aria-label") ?? button.textContent ?? "").trim()));
-        // A bot seat has nothing to act with; the drawer's close button is the
-        // only enabled control the board still carries for it.
-        expect(clickable).toEqual(["关闭参考"]);
+        // A bot seat has nothing to act with: the only controls it carries are
+        // the drawer's close button and the Rule 34 take-back button.
+        expect(clickable).toEqual(["收回席位", "关闭参考"]);
 
         // Rule 34 handover: the seat can be taken back and handed over again
         // without restarting the match.  Both flips are engine moves, so the

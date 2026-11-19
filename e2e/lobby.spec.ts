@@ -152,10 +152,10 @@ test("Imperial Elegy offers 2-6 humans and shows the bot seats", async ({page}) 
     await expect(page.getByTestId("ie-lobby-seat-GE")).toContainText("🤖");
     await expect(page.getByTestId("ie-lobby-seats")).toContainText("2 名人类 + 4 名机器人");
 
-    // A fifth bot would leave one human, which the lobby refuses: the flip is
-    // not applied.
-    await page.getByTestId("ie-lobby-seat-UK").click();
-    await expect(page.getByTestId("ie-lobby-seat-UK")).not.toContainText("🤖");
+    // A fifth bot would leave one human, which the lobby refuses: the chip is
+    // disabled (its MUI class marks the whole roster as un-clickable) and the
+    // roster is unchanged.
+    await expect(page.getByTestId("ie-lobby-seat-UK")).toHaveClass(/Mui-disabled/);
     await expect(page.getByTestId("ie-lobby-seats")).toContainText("2 名人类 + 4 名机器人");
 
     await page.getByRole("button", {name: "创建游戏"}).click();
