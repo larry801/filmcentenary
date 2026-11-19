@@ -93,6 +93,8 @@ check("focus-dark on table", c["focus-dark"], c.table, 3);
 check("focus-paper on paper (ring)", c["focus-paper"], c.paper, 3);
 check("paper-rule on paper", c["paper-rule"], c.paper, 3);
 check("move-ink on paper", c["move-ink"], c.paper, 3);
+check("move-ink-on-dark on panel", c["move-ink-on-dark"], c.panel, 4.5);
+check("move-ink-on-dark on panel-2", c["move-ink-on-dark"], c["panel-2"], 4.5);
 check("paper on overprint (danger label)", c.paper, c.overprint, 4.5);
 
 // Power colours: fills are data; labels and text variants must pass.

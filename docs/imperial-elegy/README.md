@@ -217,6 +217,17 @@ the Orders body the choice falls back to the inline form there, so two modals
 never compete.  The optional prep-phase stability discard stays inline at the top
 of the Actions page: it may be skipped, so it is not a blocker.
 
+A decision **this** seat owes is a dialog too (`components/DecisionModal.tsx`,
+sharing `components/Modal.tsx` with the card choice): it is a blocker, so it is
+raised over the board instead of taking the Orders body hostage.  Another seat's
+decision, an open battle and the final score stay in the Orders body — they are
+reports, not this seat's choice — and the Orders body behind the dialog stays
+mounted, so a tab switch and the space's actions survive the answer.
+
+The hand row pins home cards to the front (`pinHomeCards` in
+`components/cardDisplay.ts`): the card the diplomacy step requires is the one
+card a long hand must never push off the right edge.
+
 The tab bar is a roving `tablist`. On a phone the dock bar owns tab selection and
 `ie-turn-tabs` is hidden there. The panel keeps the historic `ie-dock` /
 `ie-dock-summary` / `ie-pending` / `ie-command-cp` test ids, so the Control suite

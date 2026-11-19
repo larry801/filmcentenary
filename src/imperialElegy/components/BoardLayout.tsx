@@ -48,6 +48,7 @@ import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
 import {MpitPanel} from "./MpitPanel";
 import {CardChoiceModal} from "./CardChoiceModal";
+import {DecisionModal} from "./DecisionModal";
 import {Toast} from "./Toast";
 import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {MobileDock, type MobileDockTab} from "./MobileDock";
@@ -535,6 +536,25 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   const choiceModalTitle = goalChoiceOpen ? t.chooseGoalTitle : t.chooseHomeTitle;
 
   /**
+   * A decision this seat owes is a dialog too.
+   *
+   * Every decision is a blocker — nothing in the Orders panel may be played
+   * around it — so it is raised over the board instead of taking the Orders
+   * body hostage.  The inline `PendingPanel` stays for the two cases that are
+   * *not* this seat's to answer: another seat's pending decision (a hotseat
+   * shows it read-only) and the battle/result status, which are reports, not
+   * choices.
+   *
+   * Only the seat being looked at raises the dialog, for the same reason the
+   * card choice does: six boards are mounted at once and a hidden one must not
+   * steal the keyboard.
+   */
+  const decisionModalOpen = decisionOwed && canDecide && isCurrentSeat;
+  // The inline panel is a report (another seat's decision, a battle, the final
+  // score) whenever this seat is not the one being asked.
+  const showInlineDecision = decisionOwed && !decisionModalOpen;
+
+  /**
    * The optional prep discard is a real choice but a skippable one, so it stays
    * one line at the top of the Actions page instead of becoming a dialog.
    * `HandChoices` renders the required choice too; while a decision already owns
@@ -748,11 +768,14 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             tabs={{
               action: (
                 <>
-                  {/* While a pending decision, a battle or the result owns this
-                      body, a required card choice cannot be a dialog (two modals
-                      at once), so it falls back to the inline form here. */}
-                  {decisionOwed && choiceKinds.required ? <HandChoices {...choicesProps}/> : null}
-                  {(pending || battle || G.result) && (
+                  {/* While another seat's decision, a battle or the result owns
+                      this body, a required card choice cannot be a dialog (two
+                      modals at once), so it falls back to the inline form here.
+                      A decision *this* seat owes is itself a dialog: the card
+                      choice waits behind it and opens once the decision is
+                      answered. */}
+                  {showInlineDecision && choiceKinds.required ? <HandChoices {...choicesProps}/> : null}
+                  {showInlineDecision && (
                     <PendingPanel
                       G={G}
                       pending={pending}
@@ -776,7 +799,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
                       dock
                     />
                   )}
-                  {!pending && !battle && G.result === null ? (
+                  {!showInlineDecision ? (
                     <OrdersRegion
                       {...orders}
                       actionsTopSlot={actionsTopSlot}
@@ -844,6 +867,33 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       >
         <HandChoices {...choicesProps}/>
       </CardChoiceModal>
+
+      {/* A decision this seat owes, as a dialog for the same reason: it is a
+          blocker, and inline it pushed the action list below the fold.  Another
+          seat's decision (and a battle or the result, which are reports) stays
+          in the Orders body. */}
+      <DecisionModal
+        open={decisionModalOpen}
+        G={G}
+        pending={pending}
+        canDecide={canDecide}
+        pendingKind={pendingKind ?? ""}
+        pendingPrompt={pendingPrompt}
+        optionLabel={optionLabel}
+        optionFace={optionFace}
+        optionAction={optionAction}
+        canDecline={canDecline}
+        pendingSpaceTargets={pendingSpaceTargets}
+        viewer={viewer}
+        locale={locale}
+        t={t}
+        jihadDecision={jihadDecision}
+        jihadReason={jihadReason}
+        goalCounts={goalCounts}
+        doAction={doAction}
+        confirmActions={confirmActions}
+        moves={moves}
+      />
 
       {/* A refused move is explained here: the engine answers a bare
           INVALID_MOVE, so the board says what it tried and why it is not

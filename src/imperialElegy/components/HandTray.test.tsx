@@ -154,6 +154,22 @@ test("cards are listed in the order they are held", () => {
   expect(positions).toEqual([...positions].sort((a, b) => a - b));
 });
 
+test("a home card is pinned to the front of the row, ahead of the rest of the hand", () => {
+  const G = game();
+  // A home card dealt into the middle of a long hand: the row must not push it
+  // off the right edge, where a player would never find the card they are
+  // required to keep.
+  const home = G.powers.GE.homeCards[0];
+  G.powers.GE.hand = ["IE-A029", "IE-A104", home, "IE-A041"];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
+  const positions = [home, "IE-A029", "IE-A104", "IE-A041"]
+    .map((id) => html.indexOf(`data-testid="ie-card-${id}"`));
+  expect(positions.every((at) => at >= 0)).toBe(true);
+  expect(positions).toEqual([...positions].sort((a, b) => a - b));
+  // The row is the hand: every card is still drawn exactly once.
+  expect(html.match(/data-testid="ie-card-IE-/g)?.length ?? 0).toBe(4);
+});
+
 test("a card that forbids passing is still one row; its event is on the row", () => {
   const G = game();
   const id = G.powers.GE.hand[0];

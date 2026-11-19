@@ -8,7 +8,7 @@
  */
 import {ALL_CARDS, CARD_BY_ID} from "../engine/deck";
 import {GOALS} from "../constant/goals";
-import {cardDisplayName, cardDisplayNameById, cardTypeMark} from "./cardDisplay";
+import {cardDisplayName, cardDisplayNameById, cardTypeMark, pinHomeCards} from "./cardDisplay";
 
 const ofType = (type: "mandatory" | "combat" | "event" | "response") =>
   ALL_CARDS.find((card) => card.kind === "action" && card.type === type)!;
@@ -51,5 +51,38 @@ describe("cardDisplayNameById", () => {
     expect(cardDisplayNameById(mandatory.id, "zh_CN")).toBe(`【M】${mandatory.titleZh}`);
     expect(cardDisplayNameById(GOALS[0].id, "zh_CN")).toBe(GOALS[0].titleZh);
     expect(cardDisplayNameById("IE-NOPE", "en")).toBe("IE-NOPE");
+  });
+});
+
+describe("pinHomeCards", () => {
+  const home = ALL_CARDS.filter((card) => card.kind === "home").map((card) => card.id);
+  const action = ofType("event").id;
+
+  test("moves every home card to the front, keeping the order within each group", () => {
+    const hand = [action, home[0], "IE-A029", home[1]];
+    expect(pinHomeCards(hand)).toEqual([home[0], home[1], action, "IE-A029"]);
+  });
+
+  test("is a no-op when the home card is already first", () => {
+    const hand = [home[0], action, "IE-A029"];
+    expect(pinHomeCards(hand)).toEqual(hand);
+  });
+
+  test("leaves a hand with no home card in the order it is held", () => {
+    const hand = ["IE-A029", "IE-A104", "IE-A041"];
+    expect(pinHomeCards(hand)).toEqual(hand);
+  });
+
+  test("never drops or duplicates a card", () => {
+    const hand = [action, home[0], "IE-A029", home[1], "IE-A104"];
+    const pinned = pinHomeCards(hand);
+    expect(pinned).toHaveLength(hand.length);
+    expect([...pinned].sort()).toEqual([...hand].sort());
+  });
+
+  test("keeps an unknown id where it is instead of guessing", () => {
+    // A card the deck does not know cannot be proven to be a home card, so it
+    // stays in the group it was dealt into.
+    expect(pinHomeCards(["IE-NOPE", home[0]])).toEqual([home[0], "IE-NOPE"]);
   });
 });

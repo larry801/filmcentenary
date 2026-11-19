@@ -14,11 +14,12 @@
  * element that opened the dialog.
  *
  * The body is `HandChoices`, unchanged, so the faces, the buttons and their test
- * ids are the same ones the inline panel rendered.
+ * ids are the same ones the inline panel rendered.  The shell is the shared
+ * `Modal`, so the card choice and the decision dialog cannot drift apart.
  */
 import React from "react";
 import {bi} from "./boardHelpers";
-import {useFocusTrap} from "./useFocusTrap";
+import {Modal} from "./Modal";
 
 export interface CardChoiceModalProps {
   /** Whether a required choice is on screen at all. */
@@ -32,66 +33,28 @@ export interface CardChoiceModalProps {
   onClose: () => void;
 }
 
-export const CardChoiceModal = ({open, dismissible, children, locale, title, onClose}: CardChoiceModalProps) => {
-  // `onEscape` stays undefined for a blocker: `useFocusTrap` then swallows Esc
-  // (it does not fall through to the board) instead of closing the dialog.
-  const dialogRef = useFocusTrap<HTMLDivElement>({
-    active: open,
-    onEscape: dismissible ? onClose : undefined,
-  });
-
-  if (!open) return null;
-
-  return (
-    <div
-      className="ie-choice-backdrop"
-      data-testid="ie-choice-modal-backdrop"
-      // Only a dismissible choice closes on a backdrop click; a blocker must be
-      // answered, and a stray tap outside it must not read as "cancel".
-      onClick={dismissible ? (event) => { if (event.target === event.currentTarget) onClose(); } : undefined}
-    >
-      <div
-        ref={dialogRef}
-        className="ie-choice-modal"
-        data-testid="ie-choice-modal"
-        data-dismissible={dismissible ? "true" : "false"}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
+export const CardChoiceModal = ({open, dismissible, children, locale, title, onClose}: CardChoiceModalProps) => (
+  <Modal
+    open={open}
+    dismissible={dismissible}
+    locale={locale}
+    title={title}
+    onClose={onClose}
+    testId="ie-choice-modal"
+    backdropTestId="ie-choice-modal-backdrop"
+    closeTestId="ie-choice-close"
+    requiredTestId="ie-choice-required"
+    footer={(
+      <button
+        type="button"
+        className="ie-btn"
+        data-testid="ie-choice-continue"
+        onClick={onClose}
       >
-        <header className="ie-choice-head">
-          <h2 className="ie-choice-title">{title}</h2>
-          {dismissible ? (
-            <button
-              type="button"
-              className="ie-btn secondary"
-              data-testid="ie-choice-close"
-              aria-label={bi(locale, "Close", "关闭")}
-              title={bi(locale, "Close (Esc)", "关闭（Esc）")}
-              onClick={onClose}
-            >
-              ✕
-            </button>
-          ) : (
-            <span className="ie-muted" data-testid="ie-choice-required">
-              {bi(locale, "This choice is required.", "此项为必选。")}
-            </span>
-          )}
-        </header>
-        <div className="ie-choice-body">{children}</div>
-        {dismissible && (
-          <footer className="ie-choice-foot">
-            <button
-              type="button"
-              className="ie-btn"
-              data-testid="ie-choice-continue"
-              onClick={onClose}
-            >
-              {bi(locale, "Continue with the first Goal", "继续（保留第一张目标）")}
-            </button>
-          </footer>
-        )}
-      </div>
-    </div>
-  );
-};
+        {bi(locale, "Continue with the first Goal", "继续（保留第一张目标）")}
+      </button>
+    )}
+  >
+    {children}
+  </Modal>
+);

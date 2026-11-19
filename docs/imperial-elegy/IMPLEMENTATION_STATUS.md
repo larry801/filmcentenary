@@ -1,5 +1,38 @@
 # Imperial Elegy — implementation status
 
+## Fixed: every decision is a dialog, the map key tells targets apart, home cards pin to the front (2026-11-20)
+
+Reported as "帝国挽歌home card固定置顶放置 进攻 和 仅铁路 目前颜色一样应该不同
+所有决策弹出modal".  Three separate defects, one pass:
+
+- **The map key gave `attack` and `rail` the same swatch.**  `MapLegend`
+  emitted `ie-key <style>` for every entry, but the stylesheet only coloured
+  `move`, `battle` and `legal` — so `attack`, `rail`, `choice` and `pending`
+  all fell through to the default `--ie-focus-dark` brass.  Two different
+  targets were drawn identically in the key.  Every style now has its own
+  colour, matching the ring `map.tsx` draws: `move` blue-ink, `attack`
+  overprint, `rail` brass-soft, `choice` ok-green, `pending` warn-amber.  The
+  move swatch on the dark key needed a dark-surface token
+  (`--ie-move-ink-on-dark: #8FB4D4`, 7.58:1 on panel); the paper-only
+  `--ie-move-ink` measures 2.14:1 there and the contrast gate now covers the
+  new pair.
+- **A decision this seat owed was painted inline.**  It is a blocker, so it
+  pushed the space's action list below the fold.  It is now
+  `components/DecisionModal.tsx`, sharing `components/Modal.tsx` with the card
+  choice: `ie-decision-modal` / `ie-decision-modal-backdrop`, no ✕, no backdrop
+  dismiss, Escape held, focus trapped.  Another seat's decision, an open battle
+  and the final score stay in the Orders body — they are reports, not this
+  seat's choice — and the Orders body behind the dialog stays mounted.
+- **A long hand pushed the home card off the row.**  `pinHomeCards`
+  (`components/cardDisplay.ts`) lists every `kind: "home"` card first, then the
+  rest in the order they are held; the order within each group is unchanged and
+  no card is dropped or duplicated.
+
+Coverage: `components/mapLegend.test.tsx` (6), `components/decisionModal.test.tsx`
+(5), `components/cardDisplay.test.ts` (+5 for `pinHomeCards`),
+`components/HandTray.test.tsx` (+1 for the pinned row) and the rewritten
+`components/board.test.tsx` decision tests (2).
+
 ## Visual system pass (2026-11-18)
 
 Implemented [`VISUAL_SYSTEM.md`](VISUAL_SYSTEM.md) phases 1–7 on

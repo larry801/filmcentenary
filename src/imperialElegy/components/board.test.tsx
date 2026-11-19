@@ -449,17 +449,38 @@ describe("Imperial Elegy board controls", () => {
       createdAt: 1,
     };
     const markup = html(G, "0");
-    // The turn panel *is* a cell of the table now, so the decision lives
-    // inside the Orders body rather than in a bar above the board.
-    const orders = markup.indexOf("data-testid=\"ie-turn-panel-action\"");
-    const option = markup.indexOf("data-testid=\"ie-pending-option-berlin\"");
-    expect(orders).toBeGreaterThan(-1);
-    expect(option).toBeGreaterThan(orders);
-    // The turn panel replaces its Orders body with the decision, so it can
-    // never cover a map target; the old collapse toggle is gone.
-    expect(markup).toContain("data-testid=\"ie-pending-option-berlin\"");
+    // The decision this seat owes is a dialog over the board, not a panel in the
+    // Orders body: it is a blocker, and inline it pushed the action list below
+    // the fold.
+    const modal = markup.indexOf("data-testid=\"ie-decision-modal\"");
+    expect(modal).toBeGreaterThan(-1);
+    expect(markup).toContain("data-testid=\"ie-decision-modal-backdrop\"");
+    expect(markup.indexOf("data-testid=\"ie-pending-option-berlin\"")).toBeGreaterThan(modal);
+    // It cannot be dismissed: the step cannot continue without an answer.
+    expect(markup).toContain('data-dismissible="false"');
+    expect(markup).not.toContain("data-testid=\"ie-choice-close\"");
     expect(markup).not.toContain("data-testid=\"ie-dock-toggle\"");
+    // The Orders body is still there behind the dialog, so the tab strip and
+    // the space's actions survive the decision.
     expect(markup).toContain("data-testid=\"ie-turn-panel-action\"");
+  });
+
+  test("another seat's decision stays a read-only panel, not a dialog", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-other",
+      kind: "eventTargetSpace",
+      power: "FR",
+      prompt: "Choose a space",
+      options: [{id: "berlin", label: "Berlin"}],
+      createdAt: 1,
+    };
+    // GE is the active seat; the decision belongs to FR, so GE is only told
+    // about it.  A dialog here would cover a board its reader cannot answer.
+    const markup = html(G, "0");
+    expect(markup).not.toContain("data-testid=\"ie-decision-modal\"");
+    expect(markup).toContain("data-testid=\"ie-pending\"");
+    expect(markup).toContain("等待");
   });
 
   test("the dock is the control bar for the active seat and is absent for a spectator", () => {

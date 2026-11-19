@@ -38,7 +38,12 @@ export const MapLegend = ({locale, counts}: MapLegendProps) => {
       aria-label={bi(locale, "Map key", "地图图例")}
     >
       {(shown.length > 0 ? shown : ENTRIES.slice(0, 3)).map((entry) => (
-        <span key={entry.style} className={`ie-key ${entry.style}`} data-testid={`ie-key-${entry.style}`}>
+        <span
+          key={entry.style}
+          className={`ie-key ${entry.style}`}
+          data-testid={`ie-key-${entry.style}`}
+          data-style={entry.style}
+        >
           {locale === "zh_CN" ? entry.zh : entry.en}
           {(counts[entry.style] ?? 0) > 0 && <b className="ie-key-count">{counts[entry.style]}</b>}
         </span>

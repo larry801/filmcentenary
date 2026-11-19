@@ -35,3 +35,25 @@ export const cardDisplayNameById = (id: string, locale: CardNameLocale): string 
   const goal = GOALS_BY_ID[id];
   return goal !== undefined ? cardDisplayName(goal, locale) : id;
 };
+
+/**
+ * The hand as the tray prints it: home cards first, then the rest.
+ *
+ * A home card is the card the diplomacy step makes the seat keep, and it is
+ * the one card in hand that is always legal to play (12.0) and always worth
+ * finding.  A long hand pushes it off the right edge of the row, so it is
+ * pinned to the front instead: the order within each group stays the order the
+ * cards are held, so nothing else about the row changes.
+ *
+ * `kind` comes from the card definition; an id the deck does not know is left
+ * where it is rather than being silently moved.
+ */
+export const pinHomeCards = (hand: readonly string[]): string[] => {
+  const home: string[] = [];
+  const rest: string[] = [];
+  for (const id of hand) {
+    if (CARD_BY_ID[id]?.kind === "home") home.push(id);
+    else rest.push(id);
+  }
+  return [...home, ...rest];
+};
