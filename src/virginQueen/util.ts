@@ -4459,8 +4459,18 @@ const winterReturnNaval = (G: VQGame): void => {
         for (const c of controllers) {
             const stack = zone.naval[c] as NavalStack;
             const major: Controller = isPower(c) ? c : minorAlly(G, c as MinorPower) ?? c;
-            const ports = SPACES.filter((def) => G.spaces[def.id].control === major && isPort(def.id) && !isInlandPort(def.id))
+            // Rule 20.4: "Squadrons of a controlled minor power have the option
+            // to go to the nearest home port of that minor power instead as long
+            // as it is also under control of their major power ally."
+            const minorHomePorts = isPower(c) ? [] : SPACES
+                .filter((def) => spaceHomes(def).includes(c) && isPort(def.id) && !isInlandPort(def.id) &&
+                    G.spaces[def.id].control === c)
                 .map((def) => def.id);
+            const ports = [...new Set([
+                ...SPACES.filter((def) => G.spaces[def.id].control === major && isPort(def.id) && !isInlandPort(def.id))
+                    .map((def) => def.id),
+                ...minorHomePorts,
+            ])];
             let best: {port: string; distance: number} | undefined;
             for (const port of ports) {
                 const distance = winterNavalDistance(zoneDef.id, port);
