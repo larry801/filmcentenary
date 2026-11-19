@@ -227,11 +227,13 @@ card with them. The hand's `cardAvailability` uses the same predicate, so the
 disabled buttons and the refused move always agree. `oneCardPerImpulse.test.ts`
 pins the CP card, the mandatory event and the next impulse.
 
-A mandatory event also keeps its printed type on its play button: it reads
-`打出强制事件` / `Play mandatory event` (A105 reads `打出强制响应`), while
-ordinary cards keep `打出事件` / `Play event`. A playable hand row shows no type
-badge — every card may be played for CP — so the button is where the printed
-type is named.
+A mandatory event is one control, not a CP/event pair: 12.0's CP play *is* its
+event, so the tray hides the CP button and leaves only the event button, which
+keeps the printed type — `打出强制事件` / `Play mandatory event`. A105 is the
+exception: its "played for CP the event does not trigger" clause is a real
+separate mode, so it keeps both controls and reads `打出强制响应`. Ordinary
+cards keep `打出事件` / `Play event`. A playable hand row shows no type badge,
+so the button is where the printed type is named.
 
 The panel also stops treating a finished step as open: once a seat has chosen its
 home card the pending-choice faces remain (marking the selection) but the summary

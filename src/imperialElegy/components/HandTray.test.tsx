@@ -153,6 +153,27 @@ test("a mandatory card's button says 打出强制事件, not 打出事件", () =
   expect(eventButton).not.toContain(">打出事件<");
 });
 
+test("a mandatory event is one control: 打出强制事件, with no CP alternative", () => {
+  const G = game();
+  G.powers.GE.hand = ["IE-A104"];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)} expandAll/>);
+  // 12.0: a mandatory event has no CP-only mode — its CP play resolves the
+  // printed event — so the CP/event pair is a false choice on the card.
+  expect(html).not.toContain('data-testid="ie-play-cp-IE-A104"');
+  const eventButton = html.match(/<button[^>]*data-testid="ie-play-event-IE-A104"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  expect(eventButton).not.toBe("");
+  expect(eventButton).toContain(">打出强制事件<");
+});
+
+test("A105 keeps its CP control: its printed CP play does not trigger the event", () => {
+  const G = game();
+  G.powers.GE.hand = ["IE-A105"];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)} expandAll/>);
+  expect(html).toContain('data-testid="ie-play-cp-IE-A105"');
+  const eventButton = html.match(/<button[^>]*data-testid="ie-play-event-IE-A105"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  expect(eventButton).toContain(">打出强制响应<");
+});
+
 test("an ordinary card keeps the plain 打出事件 label", () => {
   const G = game();
   G.powers.GE.hand = ["IE-A029"];

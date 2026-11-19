@@ -101,6 +101,7 @@ describe("cardAvailability", () => {
     const free = cardAvailability(input(G, id));
     expect(free.cpAllowed).toBe(true);
     expect(free.cpModeOk).toBe(true);
+    expect(free.showCp).toBe(true);
     expect(free.isMandatory).toBe(false);
 
     // 11.x: a card is a CP substitute only on an impulse that has no CP left.
@@ -130,6 +131,9 @@ describe("cardAvailability", () => {
     expect(a.isMandatory).toBe(true);
     expect(a.cpAllowed).toBe(true);
     expect(a.cpModeOk).toBe(true);
+    // The tray still folds the CP/event pair into the one event control: a
+    // mandatory event has no CP-only play, so offering both is a false choice.
+    expect(a.showCp).toBe(false);
 
     // Nothing about the impulse's CP pool refuses it either.
     expect(cardAvailability(input(game(3), id)).cpModeOk).toBe(false);
@@ -154,6 +158,9 @@ describe("cardAvailability", () => {
     const impulsive = cardAvailability(input(crowded, "IE-A105"));
     expect(impulsive.cpAllowed).toBe(false);
     expect(impulsive.cpModeOk).toBe(false);
+    // A105 is a mandatory *response*, not a mandatory event: "If played for CP
+    // the event does not trigger", so the tray keeps its separate CP control.
+    expect(impulsive.showCp).toBe(true);
   });
 
   test("response and combat cards are CP cards outside their window", () => {

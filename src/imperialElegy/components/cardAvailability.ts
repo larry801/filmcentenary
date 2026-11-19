@@ -14,6 +14,14 @@ import {impulseAlreadyUsed, responseCardEligibility} from "../moves";
 export interface CardAvailability {
   cpAllowed: boolean;
   cpModeOk: boolean;
+  /**
+   * Whether the hand draws a CP control for this card.  A mandatory event has
+   * no CP-only mode — 12.0's CP play *is* its event — so the tray folds the two
+   * controls into the single "play mandatory event" button instead of offering
+   * a choice that does the same thing.  A105 (mandatory *response*) keeps its
+   * CP control: "If played for CP the event does not trigger."
+   */
+  showCp: boolean;
   eventAllowed: boolean;
   eventModeOk: boolean;
   eventBlockReason: string | undefined;
@@ -78,6 +86,12 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   // of checks `playCard` makes.
   const cpGate = cpPlayability(G, power, cardId);
   const cpAllowed = cpGate.ok && (card.type !== "mandatory" || eventBlockKey === undefined);
+  // 12.0's "All cards except Mandatory Event cards can be played for CP": a
+  // mandatory event still resolves its printed event when played for CP, so
+  // the move accepts both modes but the tray must not offer two buttons that
+  // do the same thing.  Only a mandatory *response* (A105) keeps a real
+  // separate CP mode.
+  const showCp = card.type !== "mandatory";
   const cpBlockKey = cpGate.ok ? eventBlockKey : cpGate.reason;
   const cpBlockReason = cpBlockKey !== undefined ? playBlock[cpBlockKey] : undefined;
   // 6.1/12.0: a home card is playable while it is **in hand**, which is the only
@@ -154,7 +168,7 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   if (!saveOk) reasons.push(bi("Save only in the Action or End phase", "仅可在行动或结束阶段保留"));
   const unique = [...new Set([...ownReasons, ...reasons])];
   return {
-    cpAllowed, cpModeOk, eventAllowed, eventModeOk, eventBlockReason, eventBlockKey,
+    cpAllowed, cpModeOk, showCp, eventAllowed, eventModeOk, eventBlockReason, eventBlockKey,
     responseOk, showResponse, industOk, chainOk, saveOk, saved, homeOk: homeIndustryOk, isMandatory,
     reasons: unique,
     firstReason: unique[0],

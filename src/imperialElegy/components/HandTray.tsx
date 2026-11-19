@@ -165,7 +165,7 @@ export const HandTray = (props: HandTrayProps) => {
    */
   const hasOperation = (id: string): boolean => {
     const a = availability(id);
-    return a.cpAllowed || a.eventAllowed || a.showResponse;
+    return (a.showCp && a.cpAllowed) || a.eventAllowed || a.showResponse;
   };
 
   const actionButtons = (id: string, where: "inline" | "inspector"): React.ReactNode => {
@@ -192,9 +192,12 @@ export const HandTray = (props: HandTrayProps) => {
         mandatoryResponse ? "确认：打出强制响应" : "确认：打出强制事件");
     return (
       <>
-        {(where === "inspector" || a.cpAllowed) && (
+        {a.showCp && (where === "inspector" || a.cpAllowed) && (
           // Playing a card for CP commits the impulse's CP: a second click
           // confirms it, unless the player has turned confirmations off.
+          // A mandatory event has no CP-only mode (`showCp` is false): its CP
+          // play resolves the printed event, so the event button below is the
+          // one control, not a second identical choice.
           <ConfirmButton
             key="cp"
             className="ie-card-primary"
