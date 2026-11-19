@@ -72,7 +72,10 @@ export const ReferenceDrawer = ({core, reference, open: openProp, anchor = null,
   const locale = core.locale;
   const [internalOpen, setInternalOpen] = React.useState(false);
   const open = openProp ?? internalOpen;
-  const resolved = resolveAnchor(anchor, locale);
+  // Memoised so the lightbox effect below only fires when the anchor (or the
+  // UI language) really changes.  A new object each render would re-open the
+  // chart immediately after it was closed.
+  const resolved = React.useMemo(() => resolveAnchor(anchor, locale), [anchor, locale]);
   const [lightbox, setLightbox] = React.useState<ChartEntry | null>(null);
 
   // Opening the drawer at a chart means opening that chart, not just

@@ -63,13 +63,29 @@ export const PLAYER_DISPLAY_EXT: Record<Power, "jpg" | "png"> = {
   OT: "jpg",
 };
 
-export const playerDisplayChart = (power: Power, locale: "en" | "zh_CN"): ChartEntry => ({
-  id: `display-${power.toLowerCase()}`,
-  file: `display-${power.toLowerCase()}`,
-  title: `Player display: ${POWER_DEFS[power].name}`,
-  titleZh: `玩家面板：${POWER_DEFS[power].nameZh}`,
-  src: `/imperial-elegy/displays/${power}.${PLAYER_DISPLAY_EXT[power]}`,
-});
+/**
+ * The entries are memoised because their identity is part of the contract:
+ * `ReferenceDrawer` opens the lightbox from an effect keyed on the resolved
+ * entry, so a fresh object per render re-opened the chart on the render right
+ * after Esc or ✕ closed it — the printed player display could not be dismissed.
+ * `chartById` already returns stable entries; the displays must match.
+ */
+const displayCharts = new Map<string, ChartEntry>();
+
+export const playerDisplayChart = (power: Power, locale: "en" | "zh_CN"): ChartEntry => {
+  const key = `${power}:${locale}`;
+  const cached = displayCharts.get(key);
+  if (cached !== undefined) return cached;
+  const entry: ChartEntry = {
+    id: `display-${power.toLowerCase()}`,
+    file: `display-${power.toLowerCase()}`,
+    title: `Player display: ${POWER_DEFS[power].name}`,
+    titleZh: `玩家面板：${POWER_DEFS[power].nameZh}`,
+    src: `/imperial-elegy/displays/${power}.${PLAYER_DISPLAY_EXT[power]}`,
+  };
+  displayCharts.set(key, entry);
+  return entry;
+};
 
 /** The anchor the mat's "Printed display" button opens for one power. */
 export const displayAnchor = (power: Power): string => `display:${power}`;

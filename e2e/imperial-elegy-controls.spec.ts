@@ -743,6 +743,34 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         expect(audit.inline, "inline styles outside SVG").toBe(0);
     });
 
+    test("the printed player display closes with Esc and with the ✕", async ({page}) => {
+        await openLocal(page);
+        const board = boardFor(page, "GE");
+        const display = board.locator('[data-testid="ie-mat-display"]');
+        const drawer = board.locator('[data-testid="ie-reference-drawer"]');
+        const lightbox = board.locator('[data-testid="ie-chart-lightbox"]');
+
+        await display.click();
+        await expect(lightbox).toBeVisible();
+        await expect(lightbox).toHaveAttribute("data-chart", "display-ge");
+
+        await page.keyboard.press("Escape");
+        await expect(lightbox).toHaveCount(0);
+        // Closing the chart leaves the reference drawer it was opened from;
+        // its own ✕ still takes the reader back to the board.
+        await expect(drawer).toBeVisible();
+        await board.locator('[data-testid="ie-reference-close"]').click();
+        await expect(drawer).toBeHidden();
+
+        // The same chart's ✕ closes it too, without the effect opening it again.
+        await display.click();
+        await expect(lightbox).toBeVisible();
+        await board.locator('[data-testid="ie-chart-close"]').click();
+        await expect(lightbox).toHaveCount(0);
+        await board.locator('[data-testid="ie-reference-close"]').click();
+        await expect(drawer).toBeHidden();
+    });
+
     test("the card inspector shows every operation and switches between SVG and print faces", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");
