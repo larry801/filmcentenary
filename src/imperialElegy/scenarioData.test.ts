@@ -28,6 +28,10 @@ import {
   spendBuildPoint,
 } from "./engine/scenarioSetup";
 import {truceRivals} from "./engine/limitedWar";
+import {applyAuSerbiaClause, applyOttomanWinterJoin, auSerbiaBattleOrStability, blocksUkAmphibiousPort, ottomanJoinsTaInWinter, ukNoAmphibiousGermanPorts} from "./engine/scenario";
+import {PENDING_KINDS} from "./types";
+import {openSetupDecisions} from "./moves";
+import {placeUnit} from "./engine/effects";
 
 /** A deterministic boardgame.io context: every die rolls its maximum. */
 const ctxOf = (die = 1): Ctx => ({
@@ -437,4 +441,145 @@ test("the scenario table covers every printable id", () => {
 test.each(SCENARIO_IDS)("%s is JSON-serializable", (id) => {
   const def: ScenarioDef = SCENARIOS[id];
   expect(JSON.parse(JSON.stringify(def))).toEqual(def);
+});
+
+// ---------------------------------------------------------------------------
+// The GW tutorial's three printed special rules
+// ---------------------------------------------------------------------------
+
+test("the GW tutorial's AU/Serbia clause charges one stability when no battle was fought", () => {
+  const G = setupScenario("gwTutorial");
+  const changes: {power: Power; delta: number}[] = [];
+  const applied = applyAuSerbiaClause(G, false, (_state, power, delta) => {
+    changes.push({power, delta});
+  });
+  expect(applied).toBe(true);
+  expect(changes).toEqual([{power: "AU", delta: -1}]);
+  // Idempotent: the clause is paid once.
+  expect(applyAuSerbiaClause(G, false, (_state, power, delta) => changes.push({power, delta}))).toBe(false);
+});
+
+test("the GW tutorial's AU/Serbia clause is satisfied by a Serbian battle", () => {
+  const G = setupScenario("gwTutorial");
+  const changes: {power: Power; delta: number}[] = [];
+  expect(applyAuSerbiaClause(G, true, (_state, power, delta) => changes.push({power, delta}))).toBe(false);
+  expect(changes).toEqual([]);
+});
+
+test("the AU/Serbia clause only exists in the scenario that prints it", () => {
+  const G = setupScenario("campaign");
+  expect(auSerbiaBattleOrStability(G)).toBe(false);
+  const changes: number[] = [];
+  expect(applyAuSerbiaClause(G, false, (_state, _power, delta) => changes.push(delta))).toBe(false);
+  expect(changes).toEqual([]);
+});
+
+test("the GW tutorial joins OT to the Triple Alliance in the GW turn 0 winter", () => {
+  const G = setupScenario("gwTutorial");
+  expect(G.gw?.neutrals).toContain("OT");
+  expect(G.gw?.ta).not.toContain("OT");
+  expect(applyOttomanWinterJoin(G)).toBe(true);
+  expect(G.gw?.ta).toContain("OT");
+  expect(G.gw?.neutrals).not.toContain("OT");
+  expect(G.gw?.belligerents).toContain("OT");
+  expect(G.powers.OT.alliance).toBe("taCommitted");
+  // Idempotent: the printed "during the winter step" happens once.
+  expect(applyOttomanWinterJoin(G)).toBe(false);
+});
+
+test("the OT winter join only exists in the scenario that prints it", () => {
+  const G = setupScenario("campaign");
+  expect(ottomanJoinsTaInWinter(G)).toBe(false);
+  expect(applyOttomanWinterJoin(G)).toBe(false);
+});
+
+test("the UK amphibious restriction covers GE home ports holding GE naval units", () => {
+  const G = setupScenario("gwTutorial");
+  expect(ukNoAmphibiousGermanPorts(G)).toBe(true);
+  // Pomerania is a German home port with no German naval unit in the tutorial.
+  expect(blocksUkAmphibiousPort(G, "UK", "pomerania")).toBe(false);
+  // Put a German squadron in that home port: the printed clause now bites.
+  const unit = placeUnit(G, "GE", "squadron", "pomerania", 2);
+  expect(blocksUkAmphibiousPort(G, "UK", "pomerania")).toBe(true);
+  // Another power is not the UK, so the clause does not apply to them.
+  expect(blocksUkAmphibiousPort(G, "FR", "pomerania")).toBe(false);
+  // A non-German port is never restricted, even with a German ship in it.
+  G.spaces.pomerania.units = G.spaces.pomerania.units.filter((id) => id !== unit.id);
+  expect(blocksUkAmphibiousPort(G, "UK", "pomerania")).toBe(false);
+});
+
+test("the UK amphibious restriction only exists in the scenario that prints it", () => {
+  const G = setupScenario("campaign");
+  // The clause itself is scenario data: the campaign prints no such rule, so the
+  // live amphibious check never consults the port test (see `moves.ts`).
+  expect(ukNoAmphibiousGermanPorts(G)).toBe(false);
+  // The *predicate* still describes the situation correctly; it is the scenario
+  // gate at the call site that keeps it out of a campaign match.
+  placeUnit(G, "GE", "squadron", "pomerania", 2);
+  expect(blocksUkAmphibiousPort(G, "UK", "pomerania")).toBe(true);
+  expect(ukNoAmphibiousGermanPorts(G)).toBe(false);
+});
+
+// ---------------------------------------------------------------------------
+// Board controls for the scenario setup decisions
+// ---------------------------------------------------------------------------
+
+test.each(["francoPrussianConcession", "scenarioGoalChoice", "gwBuildPoint"] as const)(
+  "%s is a declared pending kind with a bilingual label",
+  (kind) => {
+    expect(PENDING_KINDS).toContain(kind);
+  },
+);
+
+test("the printed setup decisions are offered in printed order", () => {
+  // 1870 offers the Franco-Prussian War first: it is step 1 of the printed
+  // "prior to the Prep Phase" procedure.
+  const G = setupScenario("s1870");
+  const made = openSetupDecisions(G, ctxOf());
+  expect(made).toBe(true);
+  expect(G.pending?.kind).toBe("francoPrussianConcession");
+  expect(G.pending?.power).toBe("FR");
+  // Options follow the printed two-way choice.
+  expect(G.pending?.options.map((option) => option.id).sort()).toEqual(["concede", "fight"]);
+});
+
+test("the campaign has no printed setup decisions", () => {
+  const G = setupScenario("campaign");
+  expect(openSetupDecisions(G, ctxOf())).toBe(false);
+  expect(G.pending).toBeNull();
+});
+
+// ---------------------------------------------------------------------------
+// Alternate-GW printed counters keep their printed markers
+// ---------------------------------------------------------------------------
+
+test.each(["altGw1", "altGw2", "altGw3"])("%s keeps the UK's Indian and OT's Arab counters", (id) => {
+  const def = SCENARIOS[id];
+  const G = setupScenario(id);
+  // The print distinguishes "1 British, N Indian" armies; every Indian counter
+  // carries the 33.2.1 marker the engine reads.
+  const printedIndian = (def.special.altGw?.units?.UK ?? [])
+    .filter((entry) => entry.flags?.indian === true)
+    .reduce((sum, entry) => sum + entry.count, 0);
+  expect(printedIndian).toBeGreaterThan(0);
+  const indian = Object.values(G.units).filter((unit) => unit.owner === "UK" && unit.flags?.indian === true);
+  expect(indian).toHaveLength(printedIndian);
+  // "3 Turkish armies, 1 Arab army"
+  const arab = Object.values(G.units).filter((unit) => unit.owner === "OT" && unit.flags?.arab === true);
+  expect(arab).toHaveLength(1);
+});
+
+test("the unified Italy's alternate-GW inventory is placed", () => {
+  // altGw2 and altGw3 print a unified Italy with its own counters.
+  for (const id of ["altGw2", "altGw3"] as const) {
+    const def = SCENARIOS[id];
+    expect(def.italy?.unified).toBe(true);
+    const printed = (def.special.altGw?.units?.Italy ?? []).reduce((sum, entry) => sum + entry.count, 0);
+    expect(printed).toBeGreaterThan(0);
+    const G = setupScenario(id);
+    const italian = Object.values(G.units).filter((unit) => unit.owner === "IT");
+    expect(italian.length).toBeGreaterThanOrEqual(printed);
+    // Italy's own armies are the Italian counter, not a generic army.
+    expect(italian.filter((unit) => unit.kind === "italianArmy").length).toBe(3);
+  }
 });

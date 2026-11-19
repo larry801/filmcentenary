@@ -323,6 +323,36 @@ export const francoPrussianPrepRule = (
   return {noHomeCard: noHome, drawDelta: delta};
 };
 
+/**
+ * Settle a power's home-card obligation without a card.
+ *
+ * Only the 1870 Franco-Prussian branch prints this ("on the first turn, GE does
+ * not select a home card"), so this is reached from exactly that path.  It runs
+ * as the diplomacy phase opens rather than by refusing a move, because a
+ * rejected move must never mutate state; marking `homeChosen` is what lets the
+ * printed diplomacy phase close normally.
+ */
+export const settleSkippedHomeCards = (G: ImperialElegyState): Power[] => {
+  const skipped: Power[] = [];
+  for (const power of POWERS) {
+    if (!francoPrussianPrepRule(G, power).noHomeCard) continue;
+    if (G.powers[power].flags.homeChosen) continue;
+    G.powers[power].flags.homeChosen = true;
+    G.flags[`skippedHomeCard:${power}`] = G.turn;
+    log(G, power, "homeCardSkipped", {reason: "francoPrussian"});
+    skipped.push(power);
+  }
+  // The printed diplomacy phase walks the seats in order and only advances when
+  // the current seat has chosen.  A seat whose card is skipped by the scenario
+  // is already "chosen", so the pointer must move past it here — otherwise the
+  // phase would wait on a seat that can never act.
+  if (skipped.length > 0) {
+    const next = POWERS.find((power) => !G.powers[power].flags.homeChosen);
+    G.activePower = next ?? G.activePower;
+  }
+  return skipped;
+};
+
 /** The scenario's first campaign turn (kept local to avoid an import cycle). */
 const scenarioFirstTurnOf = (G: ImperialElegyState): number =>
   G.scenario === "s1870" ? 3 : G.scenario === "s1880" ? 4 : 1;

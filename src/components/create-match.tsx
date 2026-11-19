@@ -24,7 +24,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, imperialElegyName, songJinnName, virginQueenName} from "../constant/multi-games";
-import {IE_SEAT_LABELS, IE_MIN_HUMANS, IE_SEATS, botsForHumanCount, canToggleBotSeat, firstHumanSeat, humanPowers, toggleBotSeat} from "../imperialElegy/configuration";
+import {IE_SEAT_LABELS, IE_MIN_HUMANS, IE_SEATS, IE_SCENARIOS, IE_NO_GW_LABEL, botsForHumanCount, canToggleBotSeat, firstHumanSeat, humanPowers, toggleBotSeat} from "../imperialElegy/configuration";
 import type {Power} from "../imperialElegy/types";
 import {ScenarioID} from "../virginQueen/constant/general";
 import {SCENARIO_OPTIONS, scenarioOptionLabel, seatLabels} from "../virginQueen/configuration";
@@ -160,6 +160,7 @@ const MatchRow = React.memo(({data, serverURL}: MatchRowProps) => {
 const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
+    const ieScenarioLabel = i18n.chain.vq.local.scenario;
     // VQ and Imperial Elegy fix the first player by scenario (seat 0 always
     // starts), so their lobbies must not offer the "start as player" choice.
     const fixedFirstPlayer = gameName === virginQueenName || gameName === imperialElegyName;
@@ -180,6 +181,10 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [isPublic, setIsPublic] = useState(true);
     const [matches, setMatches] = useState<MatchData[]>([]);
     const [vqScenario, setVqScenario] = useState<ScenarioID>("campaign");
+    // Imperial Elegy: which printed scenario (`IE_playbook.pdf` pp. 3-10) and
+    // Scenario 4's "No GW" victory-condition modifier.
+    const [ieScenario, setIeScenario] = useState<string>("campaign");
+    const [ieNoGw, setIeNoGw] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -216,7 +221,7 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
         // humans becomes `setupData.bots`, which `engine/setup.ts` stores as the
         // public `G.bots` list the server drives (see game/ieBotDriver.ts).
         const setupData = gameName === imperialElegyName
-            ? {bots: botPowers}
+            ? {bots: botPowers, scenario: ieScenario, ...(ieNoGw ? {noGw: true} : {})}
             : gameName === virginQueenName ? {scenario: vqScenario} : undefined;
         createMatch(serverURL, gameName, isPublic ? Visibility.PUBLIC : Visibility.PRIVATE, numPlayers, setupData)
             .then((id) => setMatchID(id))
@@ -476,6 +481,26 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                     {SCENARIO_OPTIONS.map((entry) => <option key={entry.id} value={entry.id}>{scenarioOptionLabel(entry.id, vqLocale)}</option>)}
                                 </Select>
                             </FormControl>
+                        )}
+                        {gameName === imperialElegyName && (
+                            <FormControl variant="outlined" sx={styles.formControl} fullWidth>
+                                <InputLabel htmlFor="ie-scenario">{ieScenarioLabel}</InputLabel>
+                                <Select native value={ieScenario} onChange={(e) => setIeScenario(String(e.target.value))}
+                                        label={ieScenarioLabel} inputProps={{name: "scenario", id: "ie-scenario"}}>
+                                    {IE_SCENARIOS.map((entry) => (
+                                        <option key={entry.id} value={entry.id}>
+                                            {vqLocale === "en" ? entry.name : entry.nameZh}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
+                        {gameName === imperialElegyName && (
+                            <Grid container spacing={1} sx={{alignItems: 'center', mt: 1}}>
+                                <Typography>{vqLocale === "en" ? IE_NO_GW_LABEL.en : IE_NO_GW_LABEL.zh_CN}</Typography>
+                                <Switch checked={ieNoGw} onChange={(e) => setIeNoGw(e.target.checked)}
+                                        slotProps={{input: {"aria-label": IE_NO_GW_LABEL.en}}}/>
+                            </Grid>
                         )}
                         <Grid container spacing={1} sx={{alignItems: 'center', mt: 1}}>
                             <Typography>{i18n.chain.lobby.privateGame}</Typography>

@@ -217,6 +217,7 @@ import {
 } from "./engine/characteristics";
 import {checkGermanUnification, checkItalianUnification, checkAutoVictory, finishGame, finishScenario, scoreGame} from "./engine/victory";
 import {
+  blocksUkAmphibiousPort,
   buildPointsRemaining,
   campaignWindow,
   drawsNgsThisTurn,
@@ -226,6 +227,7 @@ import {
   ngDrawCount,
   openingGoalDraw,
   startingGwTurn,
+  ukNoAmphibiousGermanPorts,
 } from "./engine/scenario";
 import {
   applyFrancoPrussianConcession,
@@ -866,9 +868,11 @@ export const chooseHomeCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId):
   if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
   const p = G.powers[power];
   // 1870 Franco-Prussian branch step 5: "on the first turn, GE does not select
-  // a home card".
+  // a home card".  The obligation is pre-settled as the diplomacy phase opens
+  // (`game.ts#diplomacyBegin`), so this is only the guard against a stale client
+  // that still offers the card.
   if (francoPrussianPrepRule(G, power).noHomeCard) {
-    log(G, power, "homeCardRejected", {reasons: "The Franco-Prussian War branch skips GE's home card on turn 1"});
+    log(G, power, "homeCardRejected", {reasons: "The Franco-Prussian War branch skips this home card on turn 1"});
     return INVALID_MOVE;
   }
   if (!p.homeCards.includes(cardId)) return INVALID_MOVE;
@@ -2457,7 +2461,9 @@ export type AmphibiousBlockReason =
   | "army"
   | "army-location"
   | "escort"
-  | "landing-room";
+  | "landing-room"
+  /** GW tutorial: the UK may not assault a GE home port holding GE naval units. */
+  | "scenario-german-port";
 
 export interface AmphibiousCheck {
   ok: boolean;
@@ -2514,6 +2520,12 @@ export const amphibiousAssaultCheck = (
   }
   if (armies.some((unit) => unit.space !== box && unit.space !== from)) {
     return {ok: false, reason: "army-location", box};
+  }
+  // GW tutorial p. 7: "The UK cannot amphibiously assault GE home spaces
+  // containing a GE naval unit(s)."  A scenario prints this restriction, so it
+  // is read from the scenario's own rule block and only then enforced.
+  if (ukNoAmphibiousGermanPorts(G) && blocksUkAmphibiousPort(G, power, to)) {
+    return {ok: false, reason: "scenario-german-port"};
   }
   // 19.10: enemy naval units in the port need a 2:1 escort in adjacent boxes.
   const enemyNaval = navalUnitsIn(G, to).filter((unit) => hostileOwner(G, power, unit.owner)).length;

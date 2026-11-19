@@ -2842,6 +2842,14 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  homeCardSkipped: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "skips its home card this turn (Franco-Prussian War branch).",
+      "本回合不选择本土牌（普法战争分支）。",
+    ),
+
   homeCardRejected: (entry, locale) => {
     const reasons = str(entry.args?.reasons);
     return withActor(

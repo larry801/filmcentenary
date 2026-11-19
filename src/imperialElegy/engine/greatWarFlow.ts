@@ -105,6 +105,7 @@ import {
   sweepOrphanedMinorUnits,
   cpBudgetFor,
 } from "./rules";
+import {applyAuSerbiaClause, applyOttomanWinterJoin} from "./scenario";
 import {beginGwImpulse, gwActionAllowance, gwMilitaryFinished, recordGwAction} from "./gwImpulse";
 import {blockadedAt, tsrrConnectionUsable} from "./blockade";
 
@@ -3864,6 +3865,15 @@ export const resolveGwWinter = (
     gw.exhaustionPending = null;
     // Every "for the rest of the turn" card flag also ends with this GW turn.
     clearTurnDurationFlags(G);
+    // GW tutorial (playbook p. 7): "If AU does not launch a land battle against
+    // Serbia on GW turn 0 they lose one stability" and "OT will join the Triple
+    // Alliance during the winter step of GW turn 0".  Both are scenario rules,
+    // so `engine/scenario.ts` owns the guards and this only calls them.
+    const sawSerbianBattle = (gw.turnZeroBattles ?? []).some(
+      (battle) => battle.attacker === "AU" && battle.to === "serbia",
+    );
+    applyAuSerbiaClause(G, sawSerbianBattle, (state, power, delta) => changeStability(state, power, delta, ctx));
+    applyOttomanWinterJoin(G);
     // Clear any winter continuation left by an older interrupted save.
     gw.neutralEntry = null;
 

@@ -297,6 +297,13 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
       const placed = placeAltGwInventory(G, power, inventory);
       log(G, power, "altGwUnitsPlaced", {count: placed.length});
     }
+    // A unified Italy is a non-player major, not a `Power`, so its printed
+    // inventory is placed through the same helper with the "IT" owner.
+    const italianInventory = def.special.altGw.units?.Italy;
+    if (italianInventory !== undefined && def.italy?.unified === true) {
+      const placed = placeAltGwInventory(G, "IT", italianInventory, null);
+      log(G, undefined, "altGwUnitsPlaced", {count: placed.length, power: "IT"});
+    }
     for (const power of POWERS) {
       const points = buildPointsFor(def, power);
       if (points > 0) log(G, power, "buildPointsGranted", {points});

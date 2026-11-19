@@ -8,7 +8,7 @@ import {beginTurnDecade} from "./engine/economy";
 import {IE_SEATS, validateIESetupData} from "./configuration";
 import {scenarioOf} from "./constant/scenarios";
 import {extraPrepCards, startingGwTurn} from "./engine/scenario";
-import {firstImpulsePower, francoPrussianPrepRule} from "./engine/scenarioSetup";
+import {firstImpulsePower, francoPrussianPrepRule, settleSkippedHomeCards} from "./engine/scenarioSetup";
 import {
   amphibiousAssault,
   auAction,
@@ -245,6 +245,11 @@ const diplomacyBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   G.phase = "diplomacy";
   G.activePower = "GE";
   for (const p of POWERS) G.powers[p].flags.homeChosen = false;
+  // 1870 Franco-Prussian branch step 5: "on the first turn, GE does not select a
+  // home card."  The obligation is settled as the phase opens (rather than by
+  // refusing a move, which must never mutate state), so the printed diplomacy
+  // phase can still close normally.
+  settleSkippedHomeCards(G);
 };
 
 const actionBegin = (G: ImperialElegyState, ctx: Ctx): void => {

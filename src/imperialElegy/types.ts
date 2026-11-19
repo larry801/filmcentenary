@@ -739,6 +739,13 @@ export interface GreatWarState {
   /** Flags for one-off steps. */
   outbreakDone: boolean;
   nationalWillDone: boolean;
+  /**
+   * GW tutorial (playbook p. 7): "If AU does not launch a land battle against
+   * Serbia on GW turn 0 they lose one stability."  Every land battle fought
+   * during GW turn 0 is recorded here so the winter step can check it.  Optional
+   * so saves and test states that never fight a turn-0 battle remain valid.
+   */
+  turnZeroBattles?: {attacker: Power; to: SpaceId}[];
   /** Bonus impulses. */
   bonusImpulses: string[];
   /**

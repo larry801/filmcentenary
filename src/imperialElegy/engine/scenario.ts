@@ -28,6 +28,7 @@ import type {ScenarioId} from "../constant/scenarios/ids";
 import {SPACES} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {placeUnit} from "./effects";
+import {isHomeSpace} from "./rules";
 import {isArmyKind} from "./rules";
 
 // ---------------------------------------------------------------------------
@@ -238,6 +239,89 @@ export const buildPointsRemaining = (G: ImperialElegyState, power: Power): numbe
   G.buildPoints?.remaining?.[power] ?? 0;
 
 // ---------------------------------------------------------------------------
+// The GW tutorial's printed special rules (playbook p. 7)
+// ---------------------------------------------------------------------------
+
+/** True when the scenario prints "The UK cannot amphibiously assault GE home
+ * spaces containing a GE naval unit(s)." */
+export const ukNoAmphibiousGermanPorts = (G: ImperialElegyState): boolean =>
+  scenarioOf(G).special.gwSpecial?.ukNoAmphibiousGermanPorts === true;
+
+/**
+ * The UK amphibious restriction in one predicate.
+ *
+ * "GE home spaces containing a GE naval unit(s)": the space is a German home
+ * space — the engine's `isHomeSpace`, so a printed home, an annexed unification
+ * space and a `homeOverride` all count — and a German naval unit is in it.  The
+ * attacker must be the UK.  19.10 makes the home space's port the landing
+ * target, so the naval unit is looked for in the port itself and in the naval
+ * box it opens onto (a fleet at sea still guards its home port).
+ */
+export const blocksUkAmphibiousPort = (
+  G: ImperialElegyState,
+  power: Power,
+  port: SpaceId,
+): boolean => {
+  if (power !== "UK") return false;
+  const space = G.spaces[port];
+  if (!space) return false;
+  if (!isHomeSpace(G, port, "GE")) return false;
+  return (space.units ?? []).some((id) => {
+    const unit = G.units[id];
+    return unit !== undefined && unit.owner === "GE" && unit.naval === true;
+  });
+};
+
+/** True when the scenario prints "OT will join the Triple Alliance during the
+ * winter step of GW turn 0." */
+export const ottomanJoinsTaInWinter = (G: ImperialElegyState): boolean =>
+  scenarioOf(G).special.gwSpecial?.ottomanJoinsTaInWinter === true;
+
+/** True when the scenario prints "If AU does not launch a land battle against
+ * Serbia on GW turn 0 they lose one stability." */
+export const auSerbiaBattleOrStability = (G: ImperialElegyState): boolean =>
+  scenarioOf(G).special.gwSpecial?.auSerbiaBattleOrStability === true;
+
+/**
+ * Apply the GW tutorial's AU/Serbia clause at the end of GW turn 0.
+ *
+ * "If AU does not launch a land battle against Serbia on GW turn 0 they lose one
+ * stability."  The record of the battles fought is `G.gw.turnZeroBattles` (the
+ * live battle path appends `{attacker, to}`); the clause is applied once.
+ */
+export const applyAuSerbiaClause = (
+  G: ImperialElegyState,
+  sawAustrianSerbianBattle: boolean,
+  changeStability: (G: ImperialElegyState, power: Power, delta: number) => void,
+): boolean => {
+  if (!auSerbiaBattleOrStability(G)) return false;
+  if (G.gw?.turn !== 0) return false;
+  if (G.persistent.auSerbiaClauseApplied === true) return false;
+  G.persistent.auSerbiaClauseApplied = true;
+  if (sawAustrianSerbianBattle) return false;
+  changeStability(G, "AU", -1);
+  return true;
+};
+
+/**
+ * Apply the GW tutorial's "OT joins the Triple Alliance during the winter step
+ * of GW turn 0" clause.  Idempotent; only runs for the scenario that prints it.
+ */
+export const applyOttomanWinterJoin = (G: ImperialElegyState): boolean => {
+  if (!ottomanJoinsTaInWinter(G)) return false;
+  if (G.gw?.turn !== 0) return false;
+  if (G.persistent.ottomanWinterJoinApplied === true) return false;
+  G.persistent.ottomanWinterJoinApplied = true;
+  if (!G.gw) return false;
+  if (G.gw.belligerents.includes("OT")) return false;
+  G.powers.OT.alliance = "taCommitted";
+  G.gw.ta.push("OT");
+  G.gw.neutrals = G.gw.neutrals.filter((power) => power !== "OT");
+  G.gw.belligerents.push("OT");
+  return true;
+};
+
+// ---------------------------------------------------------------------------
 // Setup helpers shared with engine/setup.ts
 // ---------------------------------------------------------------------------
 
@@ -254,8 +338,9 @@ export const minorHomeSpace = (minor: string): SpaceId | undefined => MINOR_POWE
  */
 export const altGwInventory = (
   def: ScenarioDef,
-  power: Power,
-): {kind: UnitKind; count: number}[] => def.special.altGw?.units?.[power] ?? [];
+  power: Power | "Italy",
+): {kind: UnitKind; count: number; flags?: {indian?: true; arab?: true; cw?: true}}[] =>
+  def.special.altGw?.units?.[power] ?? [];
 
 /** Reserved stack limit during the alternate setup: two armies per space. */
 export const ALT_GW_SETUP_STACK_LIMIT = 2;
@@ -271,8 +356,11 @@ export const ALT_GW_SETUP_STACK_LIMIT = 2;
  */
 export const placeAltGwInventory = (
   G: ImperialElegyState,
-  power: Power,
-  inventory: {kind: UnitKind; count: number}[],
+  owner: PowerOrMinor,
+  inventory: {kind: UnitKind; count: number; flags?: {indian?: true; arab?: true; cw?: true}}[],
+  // A scenario may print a minor-power fleet too, so the placement reads the
+  // owner's own home keys; `Power` is the common case and stays first.
+  power: Power | null = owner as Power,
 ): Unit[] => {
   const placed: Unit[] = [];
   const capitals: Record<Power, SpaceId> = {
@@ -283,13 +371,14 @@ export const placeAltGwInventory = (
     RU: "st-petersburg",
     OT: "istanbul",
   };
-  const capital = capitals[power];
+  const capital: SpaceId | undefined =
+    power === null ? undefined : capitals[power];
   const homeKeys = Object.values(SPACES)
     .filter((space) => space.home === power && G.spaces[space.id]?.control === power)
     .map((space) => space.id)
     .sort();
   const navalPort = (): SpaceId | null => {
-    const port = SPACES[capital]?.ports?.[0];
+    const port = capital === undefined ? undefined : SPACES[capital]?.ports?.[0];
     if (port !== undefined) return port;
     // A power whose capital has no port places its fleet in the first friendly
     // port it controls.
@@ -311,7 +400,8 @@ export const placeAltGwInventory = (
    * recorded in `G.flags.altGwOverstacked` for the audit.
    */
   const landTargets = (relaxed: boolean): SpaceId | null => {
-    for (const space of [capital, ...homeKeys]) {
+    const candidates: SpaceId[] = capital === undefined ? [...homeKeys] : [capital, ...homeKeys];
+    for (const space of candidates) {
       if (SPACES[space] === undefined) continue;
       if (SPACES[space].type === "navalBox") continue;
       const armies = G.spaces[space].units
@@ -325,8 +415,8 @@ export const placeAltGwInventory = (
     for (let i = 0; i < entry.count; i += 1) {
       const naval = entry.kind === "squadron" || entry.kind === "dreadnought";
       if (entry.kind === "reserveArmy") {
-        const unit = placeUnit(G, power, entry.kind, null, 2);
-        G.powers[power].reserves.push(unit.id);
+        const unit = placeUnit(G, owner, entry.kind, null, 2);
+        if (power !== null) G.powers[power].reserves.push(unit.id);
         placed.push(unit);
         continue;
       }
@@ -339,7 +429,8 @@ export const placeAltGwInventory = (
       }
       const steps: 1 | 2 = entry.kind === "eliteCorps" || entry.kind === "expeditionary"
         || entry.kind === "zouave" || entry.kind === "eliteColonialEf" ? 1 : 2;
-      const unit = placeUnit(G, power, entry.kind, space, steps);
+      const extra: Partial<Unit> = entry.flags === undefined ? {} : {flags: {...entry.flags}};
+      const unit = placeUnit(G, owner, entry.kind, space, steps, extra);
       placed.push(unit);
     }
   }

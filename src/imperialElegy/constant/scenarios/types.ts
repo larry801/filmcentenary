@@ -176,8 +176,15 @@ export interface AltenateGwSetup {
   uncontrolledKeys: Partial<Record<Power | "Italy", {africa: number; asia: number}>>;
   /** Build points per power (each raises stability or industry by one). */
   buildPoints: Partial<Record<Power | "Italy", number>>;
-  /** Printed unit inventories placed during the setup step. */
-  units: Partial<Record<Power | "Italy", {kind: UnitKind; count: number}[]>>;
+  /**
+   * Printed unit inventories placed during the setup step.
+   *
+   * The alternates print the counters by kind, with two printed distinctions a
+   * plain kind does not carry: the UK's "1 British, 3 Indian" armies and the
+   * Ottomans' "3 Turkish, 1 Arab" armies.  `flags` carries those markers so the
+   * placed counters are the printed ones (33.2.1 / 33.6).
+   */
+  units: Partial<Record<Power | "Italy", {kind: UnitKind; count: number; flags?: {indian?: true; arab?: true; cw?: true}}[]>>;
   /** Powers that start the scenario at war. */
   startingWars?: {attacker: Power; defender: Power | string; minorTarget?: {minor: string; ally: Power | null}}[];
   /** "Trans-Siberian RR: Complete". */
