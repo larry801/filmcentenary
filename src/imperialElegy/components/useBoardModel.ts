@@ -253,10 +253,20 @@ export const useBoardModel = ({
   // `setupData.bots` produced, so both sources are folded together here.  Every
   // "may act" flag below folds this in, so no control on a bot seat can be
   // clicked.
-  const contextBotSeats = React.useContext(BotSeatsContext) ?? injectedUi?.botSeats ?? EMPTY_SEATS;
+  const botContext = React.useContext(BotSeatsContext);
+  const contextBotSeats = botContext?.seats ?? injectedUi?.botSeats ?? EMPTY_SEATS;
+  // Rule 34 sources of truth:
+  //  - online matches list their server-driven seats in `G.bots`;
+  //  - a hotseat match's seat setup lives in the shell (the context), and an
+  //    in-match handover writes both that set and the public `G.bots` list, so
+  //    the engine, a saved replay and the server driver all agree.
+  //
+  // The union covers a state-only transition (an online match, or a seat the
+  // server took over); a take-back clears both sides, so a reclaimed seat is
+  // not kept alive by the stale half.
   const botSeats = React.useMemo<ReadonlySet<Power>>(() => {
     const matchBots = botPowersOf(G);
-    if (matchBots.length === 0) return contextBotSeats;
+    if (contextBotSeats.size === 0) return new Set<Power>(matchBots);
     return new Set<Power>([...contextBotSeats, ...matchBots]);
   }, [G, contextBotSeats]);
   const isBotViewer = viewer !== null && botSeats.has(viewer);
@@ -841,6 +851,27 @@ export const useBoardModel = ({
     }, FEEDBACK_POLL_MS);
     feedbackTimers.current.add(timer);
   }, [hotseat, actualLocale]);
+
+  // ------------------------------------------------------------------ Rule 34 handover
+  // A seat can be handed to the bot, or taken back, at any moment.  The engine
+  // move writes the public `G.bots` list, so an online match's server driver
+  // picks the change up on its next tick and every board (hotseat included)
+  // reads it from that same list.  The local shell also records the choice in
+  // its saved seat setup through the context callback.
+  //
+  // The control is hidden while a decision or battle is open: those are answered
+  // through the engine's own gates, and handing a seat over mid-question would
+  // leave the question with a controller that cannot see it.
+  const handoverBlocked = pending !== null || battle !== null;
+  const canHandOverSeat = viewer !== null && !handoverBlocked && typeof moves.setSeatBot === "function";
+  const setSeatBot = React.useCallback((bot: boolean) => {
+    if (viewer === null || handoverBlocked || typeof moves.setSeatBot !== "function") return;
+    doAction(
+      () => moves.setSeatBot(bot),
+      {label: bi(actualLocale, bot ? "Hand this seat to the bot" : "Take this seat back", bot ? "交给机器人托管" : "收回席位")},
+    );
+    botContext?.setSeatBot?.(viewer, bot);
+  }, [botContext, viewer, handoverBlocked, moves, doAction, actualLocale]);
 
     const beginTargeting = React.useRef<(intent: Parameters<typeof interactionPrompt>[0], from: SpaceId, targets: SpaceId[], sources?: string[]) => void>(() => {});
   beginTargeting.current = (intent, from, targets, sources = []) => {
@@ -1581,6 +1612,8 @@ export const useBoardModel = ({
     eliminated,
     botSeats,
     isBotViewer,
+    canHandOverSeat,
+    setSeatBot,
     pending,
     canDecide,
     war,

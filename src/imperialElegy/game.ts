@@ -79,6 +79,7 @@ import {
   resolveWar,
   startWarManeuver,
   saveCard,
+  setSeatBot,
   surrender,
   tsrrRailMove,
   useCpChain,
@@ -95,6 +96,7 @@ import {beginEndPhase} from "./moves";
 import {enumerateBot} from "./engine/bot";
 
 const ALL_MOVES = {
+  setSeatBot,
   playCard,
   playResponseCard,
   pass,
@@ -348,12 +350,12 @@ export const ImperialElegyGameDef: Game<ImperialElegyState> = {
     prep: {
       start: true,
       onBegin: prepBegin,
-      turn: {order: TurnOrder.RESET, stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
       next: "diplomacy",
     },
     diplomacy: {
       onBegin: diplomacyBegin,
-      turn: {order: TurnOrder.RESET, stages: {play: {moves: MOVES}}},
+      turn: {order: TurnOrder.RESET, onBegin: (G: ImperialElegyState, ctx: Ctx) => { ctx.events?.setActivePlayers?.({all: "play"}); }, stages: {play: {moves: MOVES}}},
       next: "action",
     },
     action: {

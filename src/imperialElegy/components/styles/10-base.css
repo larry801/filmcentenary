@@ -164,6 +164,13 @@
 
 .ie-local-bot-seat input { accent-color: var(--ie-brass); width: 18px; height: 18px; }
 
+/* Rule 34: the seat's current controller, next to its name. */
+.ie-local-bot-seat-role { font-style: normal; font-size: var(--ie-font-xs); color: var(--ie-on-dark-2); }
+
+.ie-local-bot-seat[data-bot="true"] .ie-local-bot-seat-role { color: var(--ie-brass-soft); }
+
+.ie-local-bot-seat[data-bot="true"] { border-color: var(--ie-brass-soft); }
+
 .ie-local-start { font-size: var(--ie-font-sm); padding: 8px 20px; }
 
 .ie-board :is(.ie-select, .ie-input) { padding: 6px; }

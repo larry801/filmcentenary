@@ -494,6 +494,7 @@ interface ShellProps {
 const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellProps) => {
   const {
     G, t, locale, viewer, phase, active, botSeats, pending, battle, phaseActions,
+    canHandOverSeat, setSeatBot,
     otherSeatPending, seatUi, pendingPrompt, pendingKind, responseWindow, cardFaceMode,
     setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
@@ -608,9 +609,36 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       {responseWindow && <IEBadge tone="warn">{t.responseWindow}</IEBadge>}
       {viewer && <IEBadge tone={viewer.toLowerCase()}>{t.seats[viewer]}</IEBadge>}
       {!viewer && <IEBadge>{t.spectators}</IEBadge>}
+      {viewer !== null && !botSeats.has(viewer) && canHandOverSeat && (
+        <button
+          type="button"
+          className="ie-btn secondary ie-mini"
+          data-testid="ie-hand-over-seat"
+          title={t.handOverToBotHint}
+          onClick={() => setSeatBot(true)}
+        >
+          {t.handOverToBot}
+        </button>
+      )}
       {viewer !== null && botSeats.has(viewer) && (
         <div className="ie-bot-banner" data-testid="ie-bot-banner" role="status" aria-live="polite">
           <Icon name="bot" size={14}/> {t.seats[viewer]} — {t.botSeatBadge} · {t.seatBotHint}
+          {/* A local hotseat seat can be taken back; the bot keeps the seat
+              until someone claims it, so the control lives on the banner. */}
+          {canHandOverSeat && (
+            <>
+              {" "}
+              <button
+                type="button"
+                className="ie-btn secondary ie-mini"
+                data-testid="ie-take-back-seat"
+                title={t.takeBackSeatHint}
+                onClick={() => setSeatBot(false)}
+              >
+                {t.takeBackSeat}
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

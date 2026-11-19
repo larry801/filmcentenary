@@ -36,7 +36,7 @@ const pick = <K extends keyof ModelValues>(values: ModelValues, keys: readonly K
 /** Shell and map column: whose seat this is, what the map shows, what is waiting. */
 const CORE_KEYS = [
   "G", "ctx", "moves", "playerID", "hotseat", "t", "locale", "actualLocale", "decade", "viewer", "me",
-  "phase", "active", "isActive", "eliminated", "botSeats", "isBotViewer", "pending", "war", "gw",
+  "phase", "active", "isActive", "eliminated", "botSeats", "isBotViewer", "canHandOverSeat", "setSeatBot", "pending", "war", "gw",
   "battle", "hasPhaseButtons", "phaseActions", "canDecide", "canAct", "canActionCard", "cpBudget",
   "mapLegalTargets",
   "canSpend", "dockVisible", "dockSummary", "dockCollapsed", "setDockCollapsed", "isCurrentSeat",

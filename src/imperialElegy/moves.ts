@@ -17,6 +17,7 @@ import {SPACES, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "./constan
 import {FLASHPOINTS, POWER_DEFS} from "./constant/powers";
 import type {Effect} from "./constant/cards";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "./constant/setup";
+import {botPowersOf, handOverSeat} from "./configuration";
 import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId, removeCard} from "./engine/deck";
 import {
   autoIndustrySuccess,
@@ -717,6 +718,34 @@ export const finishPrep = (G: ImperialElegyState, ctx: Ctx): string | void => {
     G.activePower = next;
     ctx.events?.endTurn?.();
   }
+  return undefined;
+};
+
+// ------------------------------------------------------------------ bot seats
+
+/**
+ * Rule 34 — hand a seat over to the bot, or take it back, mid-match.
+ *
+ * The lobby's `setupData.bots` only fills the seats nobody took when the match
+ * was created; a player may also step out later (a misclick, a lost connection,
+ * "play it out"), and a bot seat may be reclaimed by a returning player.  The
+ * move writes the public `G.bots` list, which every client redraws from and the
+ * server's bot driver reads on its next tick, so a handover needs no restart.
+ *
+ * Only the seat itself may call it: `ctx.playerID` must name the seat.  A local
+ * hotseat board passes the id of the seat it is showing, and an online seat
+ * passes its own, so nobody can force a bot onto an opponent.  The seat keeps
+ * its boardgame.io player and credentials — that is what lets the player take
+ * it back; the handover only changes who is expected to drive it.
+ */
+export const setSeatBot = (G: ImperialElegyState, ctx: Ctx, bot: boolean): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null) return INVALID_MOVE;
+  const before = botPowersOf(G).includes(power);
+  if (handOverSeat(G, playerID, power, bot) === null) return INVALID_MOVE;
+  // A repeated click (or a retried move) must not add a second log line.
+  if (before !== bot) log(G, power, "botSeatChanged", {bot: bot ? "yes" : "no"});
   return undefined;
 };
 

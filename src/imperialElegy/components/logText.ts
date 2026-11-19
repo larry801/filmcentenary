@@ -344,6 +344,16 @@ const FORMATTERS: Record<string, Formatter> = {
     return text(locale, `Seat order: ${powers.join(", ")}.`, `席位顺序：${powers.join("、")}。`);
   },
 
+  botSeatChanged: (entry, locale) => {
+    const bot = bool(entry.args?.bot);
+    return withActor(
+      entry,
+      locale,
+      bot ? "handed its seat over to the bot." : "took its seat back from the bot.",
+      bot ? "将席位交给机器人托管。" : "从机器人手中收回了席位。",
+    );
+  },
+
   deckPrepared: (entry, locale) => {
     const decade = decadeLabel(entry.args?.decade, locale);
     const entering = num(entry.args?.entering);

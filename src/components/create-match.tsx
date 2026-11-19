@@ -24,7 +24,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import {LobbyClient} from 'boardgame.io/client';
 import {filmCentenaryName, imperialElegyName, songJinnName, virginQueenName} from "../constant/multi-games";
-import {IE_SEAT_LABELS, IE_MIN_HUMANS, IE_SEATS, botsForHumanCount, firstHumanSeat, humanPowers} from "../imperialElegy/configuration";
+import {IE_SEAT_LABELS, IE_MIN_HUMANS, IE_SEATS, botsForHumanCount, canToggleBotSeat, firstHumanSeat, humanPowers, toggleBotSeat} from "../imperialElegy/configuration";
+import type {Power} from "../imperialElegy/types";
 import {ScenarioID} from "../virginQueen/constant/general";
 import {SCENARIO_OPTIONS, scenarioOptionLabel, seatLabels} from "../virginQueen/configuration";
 
@@ -168,11 +169,13 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     const [matchID, setMatchID] = useState("");
     const [error, setError] = useState("");
     const [numPlayers, setNumPlayers] = useState(gameName === filmCentenaryName ? 4 : gameName === virginQueenName || gameName === imperialElegyName ? 6 : 2);
-    // Imperial Elegy always seats all six powers, so its lobby chooses the
-    // number of *humans* (2–6) and the server's Rule 34 bot takes the rest.
-    // `humanCount` is that choice; `botPowers` is derived from it.
-    const [humanCount, setHumanCount] = useState(IE_SEATS.length);
-    const botPowers = useMemo(() => botsForHumanCount(humanCount), [humanCount]);
+    // Imperial Elegy always seats all six powers, so its lobby picks *which*
+    // seats are bots (any seat, not just the tail): `botPowers` is that choice
+    // and the server's Rule 34 bot plays exactly those.  Choosing a human count
+    // is the same control in bulk — it flips the tail seats — and both write the
+    // one list, so the chips and the count never disagree.
+    const [botPowers, setBotPowers] = useState<Power[]>([]);
+    const humanCount = IE_SEATS.length - botPowers.length;
     const humanSeats = useMemo(() => humanPowers(botPowers), [botPowers]);
     const [isPublic, setIsPublic] = useState(true);
     const [matches, setMatches] = useState<MatchData[]>([]);
@@ -237,7 +240,11 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
     };
 
     const handleHumanCountChange = (event: SelectChangeEvent<number>) => {
-        setHumanCount(Number(event.target.value));
+        setBotPowers(botsForHumanCount(Number(event.target.value)));
+    };
+
+    const handleSeatToggle = (power: Power) => {
+        setBotPowers((prev) => toggleBotSeat(prev, power));
     };
 
     const handlePlayerChange = (event: SelectChangeEvent<Player>) => {
@@ -378,25 +385,35 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                                             : `Six seats: ${humanSeats.length} human(s) + ${botPowers.length} bot(s) (Rule 34)`}
                                     </Typography>
                                     <Box sx={{display: "flex", flexWrap: "wrap", gap: 0.5}}>
+                                        {/* Any seat may be a bot: each chip is a
+                                            toggle, and the count above only
+                                            derails which seats change. */}
                                         {IE_SEATS.map((power) => {
                                             const bot = botPowers.includes(power);
                                             const label = vqLocale === "zh_CN" ? IE_SEAT_LABELS[power].zh_CN : IE_SEAT_LABELS[power].en;
+                                            const enabled = canToggleBotSeat(botPowers, power);
                                             return (
                                                 <Chip
                                                     key={power}
                                                     size="small"
                                                     data-testid={`ie-lobby-seat-${power}`}
+                                                    data-bot={bot ? "true" : "false"}
                                                     variant={bot ? "outlined" : "filled"}
                                                     color={bot ? "default" : "primary"}
                                                     label={bot ? `🤖 ${label}` : label}
+                                                    onClick={() => { if (enabled) handleSeatToggle(power); }}
+                                                    disabled={!enabled}
+                                                    aria-label={vqLocale === "zh_CN"
+                                                        ? `${label}：${bot ? "机器人" : "人类"}，点击切换`
+                                                        : `${label}: ${bot ? "bot" : "human"}, click to toggle`}
                                                 />
                                             );
                                         })}
                                     </Box>
                                     <Typography variant="caption" color="text.secondary" component="div" sx={{mt: 0.5}}>
                                         {vqLocale === "zh_CN"
-                                            ? "机器人占据末尾席位；只需邀请人类席位的好友。"
-                                            : "Bots take the last seats; only invite friends for the human seats."}
+                                            ? "点击任意席位切换人类/机器人；至少保留 2 名人类。只需邀请人类席位的好友。"
+                                            : "Click any seat to switch human/bot; at least 2 humans. Only invite friends for the human seats."}
                                     </Typography>
                                 </Box>
                             </>
