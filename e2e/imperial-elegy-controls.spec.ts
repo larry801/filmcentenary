@@ -1076,15 +1076,22 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await expect(board.locator('[data-testid="ie-mode-pill-targets"]')).toBeVisible();
 
         const before = await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining);
-        // London is neither adjacent to Berlin nor a legal destination.
-        await board.locator('[data-testid="ie-space-london"]').click({force: true});
-        await page.waitForTimeout(250);
-        expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before);
-        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
 
+        // Esc leaves the mode without spending anything.
         await page.keyboard.press("Escape");
         await expect(board.locator('[data-testid="ie-mode-pill"]')).toHaveCount(0);
         expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before);
+
+        // Re-enter targeting and click a space that is not a destination.
+        // London is neither adjacent to Berlin nor a legal destination, so the
+        // click only moves the selection: it must not spend CP.
+        await clickSpace(board, "berlin", "柏林");
+        await board.locator(`[data-testid="ie-unit-${unitId}"]`).click();
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
+        await board.locator('[data-testid="ie-space-london"]').click({force: true});
+        await page.waitForTimeout(250);
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before);
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toHaveCount(0);
     });
 });
 
