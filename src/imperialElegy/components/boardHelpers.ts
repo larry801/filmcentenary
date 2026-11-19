@@ -83,14 +83,25 @@ export const pickActionTarget = (current: string, choices: readonly string[], el
   return choices[0] ?? "";
 };
 
+/**
+ * Fixed decision prompts: the engine writes one canonical English sentence and
+ * the board prints the Chinese here.  A prompt that interpolates state (a power
+ * or space name, a count) cannot be looked up and carries its own `promptZh`
+ * from the engine instead.
+ */
 export const PROMPT_ZH: Record<string, string> = {
   "Declare supporting armies or pass": "宣布支援军团或跳过",
+  "Declare attacking support or pass": "宣布进攻方支援或跳过",
+  "Declare defending support or pass": "宣布防守方支援或跳过",
   "Play a combat card or continue": "打出战斗牌或继续",
   "Choose a space": "选择一个空间",
   "Choose a power": "选择一个国家",
   "Choose a player": "选择一名玩家",
+  "Choose a player controlling a minority-nationality space": "选择控制少数民族空间的玩家",
   "Choose an event option": "选择一个事件选项",
-  "Choose a unit to take a step loss": "选择承受步骤损失的的单位",
+  "Choose a unit to take a step loss": "选择承受步骤损失的单位",
+  "Choose a unit (main force or a supporting army) to take a step loss": "选择承受步骤损失的单位（主力或支援军团）",
+  "Choose a unit in the main force to take a step loss": "选择主力中承受步骤损失的单位",
   "Decisive victory: take another land battle action or move one additional space for free": "决定性胜利：再发动一次陆战，或免费额外移动一格",
   "At Any Cost: discard a card to play it from the discard pile": "不惜一切：弃 1 张手牌以从弃牌堆打出",
   "Choose an option": "选择一个选项",
@@ -99,6 +110,7 @@ export const PROMPT_ZH: Record<string, string> = {
   "Roll on the Crisis Table": "在危机表上掷骰",
   "Choose a colonial space": "选择一个殖民空间",
   "Choose an African space": "选择一个非洲空间",
+  "Choose a space being pacified": "选择一个正在绥靖的空间",
   "Shift your alliance marker": "移动你的联盟标记",
   "Give the card to the Ottomans or Russians": "将牌交给奥斯曼或俄国",
   "Declare war": "宣战",
@@ -106,6 +118,8 @@ export const PROMPT_ZH: Record<string, string> = {
   "Choose a treaty option": "选择条约选项",
   "Choose a treaty space": "选择条约空间",
   "Colonial war: choose an unoccupied space to take": "殖民战争：选择一个无人占领的空间",
+  "Rebellions in China: place a control marker in Qing China": "中国叛乱：在清帝国放置 1 个控制标记",
+  "Rebellions in China: place your control marker in Qing China": "中国叛乱：在清帝国放置你的控制标记",
   "Colonial war: choose a unit to take the loss": "殖民战争：选择承受损失的单位",
   "Unstable Situation: discard a random card or take a -1 card marker": "动荡局势：随机弃 1 张牌或获得 -1 抽牌标记",
   "Neutral player: join an alliance or stay out": "中立国：加入同盟或保持中立",
@@ -118,19 +132,74 @@ export const PROMPT_ZH: Record<string, string> = {
   "Accept the attacker's surrender or continue the war?": "接受进攻方投降，还是继续战争？",
   "Balance of Power: choose one invited ally to draw a card": "均势：选择一位应邀参战的盟友抽一张牌",
   "Bonus impulse: choose an alliance member or pass": "奖励行动轮：选择一位联盟成员行动，或跳过",
+  /* --- Combat and naval windows ------------------------------------ */
+  "19.1 interception won: finish the interrupted naval movement or stop here": "19.1 拦截成功：完成被中断的海军移动或停在此处",
+  "19.4 mines: take all mine hits and fight on, or retreat after the first two hits": "19.4 水雷：承受全部水雷命中继续战斗，或在头两次命中后撤退",
+  "19.8: move any participating units into adjacent friendly port space(s), or stay at sea": "19.8：将任意参战单位移入相邻友方港口空间，或留在海上",
+  "Commit an elite unit for its printed +1? (attacker)": "投入精英单位以获得其印制的 +1？（进攻方）",
+  "Commit an elite unit for its printed +1? (defender)": "投入精英单位以获得其印制的 +1？（防守方）",
+  "Miscommunication: choose a space that cannot provide support": "沟通失误：选择一个无法提供支援的空间",
+  "Choose which side rerolls its battle die": "选择哪一方重掷战斗骰",
+  "Hydraulic Recoil: inflict +1 loss to both sides?": "液压后坐：双方各承受 +1 损失？",
+  "Naval retreat: choose the space(s) the defeated fleet retreats to": "海军撤退：选择战败舰队撤退的空间",
+  "Retreat: choose the space(s) the defeated force retreats to": "撤退：选择战败部队撤退的空间",
+  "Trench battle: choose the space the defeated force retreats to": "堑壕战：选择战败部队撤退的空间",
+  "Naval interception: a port may attempt to intercept the move before the defender decides whether to avoid battle": "海上拦截：港口可在防守方决定是否避战前尝试拦截此次移动",
+  "Port battle adjacent to two naval boxes: the attacker chooses the box used for the 19.5 port-count DRMs": "邻接两个海军区的港口战斗：进攻方选择用于 19.5 港口计数 DRM 的海军区",
+  "Naval battle: attempt to avoid battle (choose the destination before rolling) or fight": "海战：尝试避战（掷骰前选择目的地）或迎战",
+  /* --- Card events --------------------------------------------------- */
+  "Economic Panic: discard a random card or lose one stability": "经济恐慌：随机弃 1 张牌或失去 1 点稳定",
+  "World's Fair: discard a card?": "世界博览会：弃 1 张牌？",
+  "Berlin Conference: you may place the Belgian control marker in Africa": "柏林会议：你可以在非洲放置比利时的控制标记",
+  "Urabi Revolt: play a card face down (its CP is your bid) or pass": "乌拉比起义：暗置打出 1 张牌（其 CP 为你的出价）或跳过",
+  "Moroccan Crisis: play a card face down (its CP is your bid) or pass": "摩洛哥危机：暗置打出 1 张牌（其 CP 为你的出价）或跳过",
+  "Moroccan Crisis: you may play a card to help one side": "摩洛哥危机：你可以打出 1 张牌帮助一方",
+  "The Balkan Wars: give Macedonia to Greece, Bulgaria, Serbia or the Ottomans": "巴尔干战争：将马其顿交给希腊、保加利亚、塞尔维亚或奥斯曼",
+  "Decrease stability by 1 or discard a random card": "降低 1 点稳定或随机弃 1 张牌",
+  "Polish Revolt: decrease stability by 1 or discard a random card": "波兰起义：降低 1 点稳定或随机弃 1 张牌",
+  "Polish Revolt: choose a player controlling a Polish space": "波兰起义：选择控制波兰空间的玩家",
+  "Revolution of 1905: decrease stability by 1 or discard a random card": "1905 年革命：降低 1 点稳定或随机弃 1 张牌",
+  "Rebellions in China: choose another player to place a control marker": "中国叛乱：选择另一名玩家放置控制标记",
+  "Empire of the Sun: discard a random card to give Japan -1?": "日出之国：随机弃 1 张牌让日本 -1？",
+  "Empire of the Sun: choose Korea or Manchuria": "日出之国：选择朝鲜或满洲",
+  "The Balkan Wars: choose another Ottoman space to gain independence": "巴尔干战争：选择另一个奥斯曼空间独立",
+  "The Balkan Wars: choose an Ottoman Balkan space to gain independence": "巴尔干战争：选择一个奥斯曼巴尔干空间独立",
+  "Submarines: you may add +2 or -2 to the die before rolling": "潜艇：掷骰前你可以 +2 或 -2",
+  "Submarines: choose a player that is not blockaded now or last turn": "潜艇：选择当前或上回合未被封锁的玩家",
+  "Uprising in Ireland: discard a 3 or 4 CP card to ignore this event": "爱尔兰起义：弃 1 张 3 或 4 CP 的牌以忽略此事件",
+  "Multicultural Empire: grant rights or attempt citizenship": "多元帝国：授予权利或尝试公民权",
+  "The United States: choose American Trade or Carry a Big Stick": "美国：选择“美国贸易”或“大棒政策”",
+  "Naval Arms Race: choose a non-allied player (the UK, or a shared naval box)": "海军军备竞赛：选择一个非盟国玩家（英国，或共享海军区）",
+  "High Seas Fleet: choose the non-British player who gains a dreadnought": "公海舰队：选择获得 1 艘无畏舰的非英国玩家",
+  "Russo-Turkish Wars: choose the Balkan minor to ally": "俄土战争：选择结盟的巴尔干小国",
+  "Minor Power Entry: choose how this card resolves": "小国参战：选择此牌的结算方式",
+  "Minor Power Entry: choose the minor power to mark strictly neutral": "小国参战：选择标记为严格中立的小国",
+  "Minor Power Entry: choose an independent minor power to roll for": "小国参战：选择为其掷骰的独立小国",
+  "Major Power Entry: shift Italy or the US toward your alliance": "大国参战：将意大利或美国向你的同盟偏移",
+  "Flip a facedown GW combat card faceup": "将一张暗置的大战战斗牌翻开",
+  "Political Pressure: choose a player that must attack this GW turn": "政治压力：选择本大战回合必须进攻的玩家",
+  "Exhaustion: choose this GW turn's effect": "精疲力竭：选择本大战回合的效果",
+  /* --- Great War flow ------------------------------------------------ */
+  "Draft: choose the space for the second reduced army or an EF substitute": "征召：为第二支减员军团选择空间，或以远征军替代",
+  "Colonial bonus CP: allocate the next CP or reject the split": "殖民奖励 CP：分配下一个 CP 或拒绝该分配",
+  "Free actions after joining the war": "参战后的免费行动",
+  "Free actions while staying neutral": "保持中立期间的免费行动",
+  /* --- War, treaties and the end phase ------------------------------- */
+  "Free demobilization actions: move any or all eligible units, then done": "免费复员行动：移动任意或全部符合条件的单位，然后完成",
+  "German Confederation: take control of one German minor ally": "德意志邦联：控制一个德意志小国盟友",
+  "Napoleon's Legacy: reveal this National Goal for a 2-point stability discount?": "拿破仑的遗产：公开此国家目标以换取 2 点稳定折扣？",
+  "The Franco-Prussian War: concede defeat and skip the war, or fight it out?": "普法战争：认输跳过战争，还是打到底？",
+  "Remove one of these National Goals from the deck?": "从牌堆中移除其中一张国家目标？",
+  "Blood and Iron!: search the NG deck for Unification! and play it faceup?": "铁血政策：在国家目标牌堆中搜寻“统一！”并公开打出？",
+  "Maintaining the Status Quo: the UK invites you to join the war": "维持现状：英国邀请你参战",
+  "A player ally has called you to war": "一位玩家盟友召唤你参战",
+  "The UK offers to become the primary belligerent on your side": "英国提出成为你方的主要交战国",
+  "Dardanelles passage: grant or refuse permission for the Black Sea / Eastern Mediterranean crossing": "达达尼尔海峡：准许或拒绝黑海／东地中海航道通行",
+  "Overstacked: choose the unit that takes the step loss": "超编：选择承受步骤损失的单位",
+  "Broken LoC: choose the unit that takes the step loss": "补给线中断：选择承受步骤损失的单位",
 };
 
-export const BATTLE_STAGE: Record<string, {en: string; zh: string}> = {
-  support: {en: "Support", zh: "支援"},
-  cards: {en: "Combat cards", zh: "战斗牌"},
-  roll: {en: "Roll", zh: "掷骰"},
-  lossesAttack: {en: "Attacker losses", zh: "攻方损失"},
-  lossesDefense: {en: "Defender losses", zh: "守方损失"},
-  retreat: {en: "Retreat", zh: "撤退"},
-  advance: {en: "Advance", zh: "推进"},
-  done: {en: "Done", zh: "结束"},
-};
-
+/** Fixed decision options: the board's fallback for an engine label with no `labelZh`. */
 export const OPTION_ZH: Record<string, string> = {
   "No more support": "不再支援",
   "Continue": "继续",
@@ -142,6 +211,44 @@ export const OPTION_ZH: Record<string, string> = {
   "Fight the naval battle": "进行海战",
   "Do not intercept": "不拦截",
   "Take no further space": "不再夺取空间",
+  /* --- Combat and naval windows ------------------------------------ */
+  "Decline the decisive-battle bonus": "放弃决定性会战奖励",
+  "Choose each unit's port individually (complete 19.8 split)": "逐个为单位选择港口（完成 19.8 分配）",
+  "Stay at sea (finish the battle here)": "留在海上（在此结束战斗）",
+  "Leave this unit at sea": "该单位留在海上",
+  "Leave the whole force at sea": "整支舰队留在海上",
+  /* --- Card events --------------------------------------------------- */
+  "Play no card": "不打出牌",
+  "Decline the Belgian control marker": "不放置比利时控制标记",
+  "Stay out of the crisis": "置身危机之外",
+  "Discard a random card (-1 to Japan's roll)": "随机弃 1 张牌（日本掷骰 -1）",
+  "Keep the cards": "保留这些牌",
+  "Do not take control of a German minor": "不控制任何德意志小国",
+  "Search for Unification! (NG-08) and reveal it": "搜寻“统一！”（NG-08）并公开",
+  "Draw National Goals normally": "正常抽取国家目标",
+  "Grant permission": "准许通行",
+  "Refuse permission": "拒绝通行",
+  /* --- White peace --------------------------------------------------- */
+  "Propose our side chooses first": "提议我方先选",
+  "Propose the defending side chooses first": "提议防守方先选",
+  "Accept the proposed order": "接受提议的顺序",
+  "Counter-propose the other order": "反提议另一种顺序",
+  "Accept the defender's order": "接受防守方的顺序",
+  /* --- Free actions and treaties ------------------------------------- */
+  "Finish treaties": "完成条约",
+  "Done with free actions": "结束免费行动",
+  "Stop here (finish the movement)": "停在此处（结束移动）",
+};
+
+export const BATTLE_STAGE: Record<string, {en: string; zh: string}> = {
+  support: {en: "Support", zh: "支援"},
+  cards: {en: "Combat cards", zh: "战斗牌"},
+  roll: {en: "Roll", zh: "掷骰"},
+  lossesAttack: {en: "Attacker losses", zh: "攻方损失"},
+  lossesDefense: {en: "Defender losses", zh: "守方损失"},
+  retreat: {en: "Retreat", zh: "撤退"},
+  advance: {en: "Advance", zh: "推进"},
+  done: {en: "Done", zh: "结束"},
 };
 
 /**
@@ -320,15 +427,41 @@ export const powerOrMinorLabel = (
   return id;
 };
 
-export const unitLabel = (u: Unit, t: ReturnType<typeof ieT>): string => {
-  const base = u.kind === "army" ? "army"
-    : u.kind === "reserveArmy" ? "R army"
-    : u.kind === "eliteCorps" ? "EC"
-    : u.kind === "expeditionary" ? "EF"
-    : u.kind === "squadron" ? "Sq"
-    : u.kind === "dreadnought" ? "Dn"
-    : u.kind;
-  return `${u.owner} ${base}${u.steps > 1 ? " · full" : " · reduced"}`;
+/**
+ * Unit kinds as the pickers print them, one abbreviation per language.
+ *
+ * The Chinese column is what the Space page, the naval panels and the pending
+ * options show; without it a zh_CN board printed "GE army · full" in English.
+ */
+const UNIT_KIND_LABEL: Record<string, {en: string; zh: string}> = {
+  army: {en: "army", zh: "军团"},
+  reserveArmy: {en: "R army", zh: "预备军"},
+  eliteCorps: {en: "EC", zh: "精英军"},
+  expeditionary: {en: "EF", zh: "远征军"},
+  eliteColonialEf: {en: "colonial EF", zh: "殖民远征军"},
+  zouave: {en: "zouave", zh: "祖阿夫"},
+  minorArmy: {en: "minor army", zh: "小国军团"},
+  rebelArmy: {en: "rebel army", zh: "叛军"},
+  italianArmy: {en: "Italian army", zh: "意大利军团"},
+  usArmy: {en: "US army", zh: "美军"},
+  squadron: {en: "Sq", zh: "分舰队"},
+  dreadnought: {en: "Dn", zh: "无畏舰"},
+};
+
+/**
+ * A unit's chip label: owner code, kind and whether it is at full strength.
+ *
+ * `locale` defaults to English so the engine-side callers that only need a
+ * stable debug string stay unchanged; every board caller passes the UI
+ * language.
+ */
+export const unitLabel = (u: Unit, t: ReturnType<typeof ieT>, locale: "en" | "zh_CN" = "en"): string => {
+  const kind = UNIT_KIND_LABEL[u.kind];
+  const base = kind === undefined ? u.kind : bi(locale, kind.en, kind.zh);
+  const strength = u.steps > 1
+    ? bi(locale, " · full", " · 满编")
+    : bi(locale, " · reduced", " · 减员");
+  return `${u.owner} ${base}${strength}`;
 };
 
 // Satisfy the import of ImperialElegyState (used in some re-exports) without

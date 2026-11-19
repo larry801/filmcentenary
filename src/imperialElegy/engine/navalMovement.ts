@@ -551,7 +551,13 @@ export const openNavalContinuationDecision = (
   const destinations = navalContinuationDestinations(G, live);
   if (destinations.length === 0) return false;
   const options = destinations.map((dest) =>
-    option(dest, `Continue the naval move to ${spaceLabel(dest, "en")}`, {space: dest}),
+    option(
+      dest,
+      `Continue the naval move to ${spaceLabel(dest, "en")}`,
+      {space: dest},
+      false,
+      `继续海军移动至 ${spaceLabel(dest, "zh_CN")}`,
+    ),
   );
   options.push(option("stop", "Stop here (finish the movement)"));
   openDecision(G, ctx, decision(

@@ -80,7 +80,7 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
         })}
     </div>
     <div className="ie-inline ie-dashboard-row" data-testid="ie-minor-card-markers">
-      <span className="ie-section-title" aria-label={bi(locale, "War reparation markers (16.2.3)", "战争赔款标记（16.2.3）")}>{bi(locale, "War reparation markers", "战争赔款标记")} <RuleRef n="16.2.3" title="Rule 16.2.3"/>:</span>
+      <span className="ie-section-title" aria-label={bi(locale, "War reparation markers (16.2.3)", "战争赔款标记（16.2.3）")}>{bi(locale, "War reparation markers", "战争赔款标记")} <RuleRef n="16.2.3" locale={locale}/>:</span>
       {minorMarkerRows.length === 0
         ? <span className="ie-muted">{bi(locale, "None", "无")}</span>
         : minorMarkerRows.map(([minor, count]) => (

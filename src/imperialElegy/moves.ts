@@ -114,6 +114,8 @@ import {
   warDeclarationTargetLegal,
   warDeclarationExemptsConquestPenalty,
 } from "./engine/rules";
+import {minorLabel} from "./engine/minorLabel";
+import {unitKindLabel} from "./engine/unitKind";
 import {
   diplomacyPlacementProblem,
   influencePlacementProblem,
@@ -812,9 +814,16 @@ const openMetternichChoice = (G: ImperialElegyState, ctx: Ctx, picked: readonly 
       "metternich",
       "AU",
       `Metternich's Legacy: choose a minor power to ally (${picked.length + 1} of 2)`,
-      candidates.map((space) => option(space, `Gain an alliance with ${spaceLabel(space, "en")}`)),
+      candidates.map((space) => option(
+        space,
+        `Gain an alliance with ${spaceLabel(space, "en")}`,
+        undefined,
+        false,
+        `与${spaceLabel(space, "zh_CN")}结盟`,
+      )),
       {picked: [...picked]},
       {picked: picked.join(",")},
+      `梅特涅的遗产：选择一个小国结盟（第 ${picked.length + 1} / 2 个）`,
     ),
   );
   return true;
@@ -3086,6 +3095,7 @@ const openMinorAidDecision = (
       kind: "minorAid",
       power: candidate,
       prompt: `Seeking Aid: aid ${state.minor} against ${state.attacker}?`,
+      promptZh: `寻求援助：援助${minorLabel(state.minor, "zh_CN")}对抗${POWER_DEFS[state.attacker]?.nameZh ?? state.attacker}？`,
       promptArgs: {
         minor: state.minor,
         attacker: state.attacker,
@@ -3093,7 +3103,7 @@ const openMinorAidDecision = (
         diplomacy: state.current.diplomacy,
       },
       options: [
-        option("aid", `Aid ${state.minor} (gain its alliance)`, undefined, false, `援助${state.minor}（获得其同盟）`),
+        option("aid", `Aid ${state.minor} (gain its alliance)`, undefined, false, `援助${minorLabel(state.minor, "zh_CN")}（获得其同盟）`),
         option("decline", "Decline; the power asks the next candidate", undefined, false, "拒绝；该国将询问下一位候选者"),
       ],
       context: {...state, current: state.current, rolls: state.rolls},
@@ -3176,9 +3186,10 @@ const beginMinorWarDeclaration = (
       kind: "minorAbandon",
       power: minor.ally,
       prompt: `${power} has declared war on ${minor.minor}. Fight for it or abandon it?`,
+      promptZh: `${POWER_DEFS[power].nameZh}已对${minorLabel(minor.minor, "zh_CN")}宣战。为其而战，还是放弃它？`,
       promptArgs: {attacker: power, minor: minor.minor, ally: minor.ally, aim},
       options: [
-        option("join", `Join the war for ${minor.minor}`, undefined, false, `为${minor.minor}参战`),
+        option("join", `Join the war for ${minor.minor}`, undefined, false, `为${minorLabel(minor.minor, "zh_CN")}参战`),
         option("abandon", "Abandon the minor (lose 1 stability, shift away)", undefined, false, "放弃该小国（失去 1 点稳定度并移出同盟）"),
       ],
       context: {...base, ally: minor.ally},
@@ -4255,7 +4266,13 @@ const openGermanConfederation = (
   const candidates = germanConfederationCandidates(G);
   if (candidates.length === 0) return false;
   const options = candidates.map((entry) =>
-    option(entry.space, `Take control of ${entry.minor}`),
+    option(
+      entry.space,
+      `Take control of ${entry.minor}`,
+      undefined,
+      false,
+      `控制${minorLabel(entry.minor, "zh_CN")}`,
+    ),
   );
   options.push(option("decline", "Do not take control of a German minor"));
   openDecision(
@@ -4769,8 +4786,10 @@ const demobilizationCandidates = (
   return out;
 };
 
-const demobilizationUnitLabel = (G: ImperialElegyState, unit: Unit): string =>
-  `${unit.kind} in ${spaceLabel(unit.space ?? "", "en")}`;
+const demobilizationUnitLabel = (G: ImperialElegyState, unit: Unit, locale: "en" | "zh_CN" = "en"): string =>
+  locale === "zh_CN"
+    ? `${unitKindLabel(unit.kind, "zh_CN")}（${spaceLabel(unit.space ?? "", "zh_CN")}）`
+    : `${unit.kind} in ${spaceLabel(unit.space ?? "", "en")}`;
 
 /** Close the rule 17.0 chain and hand the action phase back. */
 const finishDemobilizationFreeActions = (
@@ -4808,10 +4827,11 @@ const openDemobilizationSelect = (
     return {
       id: `${candidate.action}:${candidate.unitId}`,
       label: `${candidate.action === "redeploy" ? "Free redeploy" : "Free naval move"}: ${demobilizationUnitLabel(G, unit)}`,
+      labelZh: `${candidate.action === "redeploy" ? "免费重新部署" : "免费海军移动"}：${demobilizationUnitLabel(G, unit, "zh_CN")}`,
       data: {action: candidate.action, unitId: candidate.unitId},
     };
   });
-  options.push({id: "done", label: "Done with free actions"});
+  options.push({id: "done", label: "Done with free actions", labelZh: "结束免费行动"});
   const context: DemobilizationContext = {
     mode: "demobilization",
     stage: "select",
@@ -4826,6 +4846,7 @@ const openDemobilizationSelect = (
     power: current.power,
     // 17.0: the free redeployment / naval action may move all eligible units.
     prompt: "Free demobilization actions: move any or all eligible units, then done",
+    promptZh: "免费复员行动：移动任意或全部符合条件的单位，然后完成",
     promptArgs: {power: current.power, side: current.side, order: current.order, moved: moved.length},
     options,
     context: {...context},
@@ -4973,14 +4994,20 @@ const resolveDemobilizationFreeAction = (
     kind: "movementDestination",
     power: pending.power,
     prompt: action === "naval" ? "Choose a free naval destination" : "Choose a free redeployment destination",
+    promptZh: action === "naval" ? "选择免费海军移动的目的地" : "选择免费重新部署的目的地",
     promptArgs: {power: pending.power, action, unit: unitId},
     options: [
-      ...destinations.map((space) => ({id: space, label: spaceLabel(space, "en")})),
+      ...destinations.map((space) => ({
+        id: space,
+        label: spaceLabel(space, "en"),
+        labelZh: spaceLabel(space, "zh_CN"),
+      })),
       // 3.4.1: choosing a permission-blocked destination asks the Dardanelles
       // controller first; no other free naval destination is hidden by it.
       ...gated.map((space) => ({
         id: space,
         label: `${spaceLabel(space, "en")} (needs Dardanelles permission)`,
+        labelZh: `${spaceLabel(space, "zh_CN")}（需达达尼尔海峡通行许可）`,
         data: {requiresDardanelles: true},
       })),
     ],
@@ -5281,6 +5308,9 @@ export const openSetupDecisions = (G: ImperialElegyState, ctx: Ctx): boolean => 
         option("stability", "Increase stability by 1", undefined, false, "稳定度 +1"),
         option("industry", "Increase industry by 1", undefined, false, "工业 +1"),
       ],
+      undefined,
+      undefined,
+      `花费 1 个建设点（剩余 ${buildPointsRemaining(G, power)}）提升稳定或工业`,
     ));
     return true;
   }
@@ -6197,6 +6227,9 @@ const endPhaseMilitarism = (
           labelZh: candidate.labelZh,
           data: {benefit: candidate.benefit, space: candidate.space},
         })),
+        undefined,
+        undefined,
+        `结束阶段 20.1 — ${POWER_DEFS[power].nameZh}：获得 1 个军团步，或保护 1 个要塞免于降级`,
       ),
     );
     progress.militarismSettled = [...settled];
@@ -6418,6 +6451,9 @@ const endPhaseSetManpower = (
               `裁减驻军：${space === null ? "未知空间" : spaceLabel(space, "zh_CN")}`,
             );
           }),
+          undefined,
+          undefined,
+          `结束阶段 20.5 — ${POWER_DEFS[power].nameZh}：裁减超出新人力上限的 ${excess} 个常备军团`,
         ),
       );
       return true;
@@ -6550,8 +6586,16 @@ const endPhaseAllianceResolution = (
           "allianceTie",
           power,
           `${POWER_DEFS[power].name}: the alliance resolution roll is tied — choose the shift`,
-          roll.tied.map((side) => option(side, side === "te" ? "Triple Entente" : side === "ta" ? "Triple Alliance" : "Neutral")),
+          roll.tied.map((side) => option(
+            side,
+            side === "te" ? "Triple Entente" : side === "ta" ? "Triple Alliance" : "Neutral",
+            undefined,
+            false,
+            side === "te" ? "协约国" : side === "ta" ? "同盟国" : "中立",
+          )),
           {roll},
+          undefined,
+          `${POWER_DEFS[power].nameZh}：同盟结算掷骰平局——选择偏移方向`,
         ),
       );
       return true;
@@ -6878,6 +6922,21 @@ const whitePeaceOrderPrompt = (
   return `The defender counters: the ${sideLabel(proposed ?? fallback)} first. Accept, or let the initiative order (${sideLabel(fallback)} first) decide?`;
 };
 
+const whitePeaceOrderPromptZh = (
+  stage: "propose" | "respond" | "confirm",
+  proposed: WarSideName | null,
+  fallback: WarSideName,
+): string => {
+  const sideLabel = (side: WarSideName): string => (side === "attacker" ? "进攻方" : "防守方");
+  if (stage === "propose") {
+    return "双方均有盟国崩溃的白和：提议由哪一方先行决定条约选项";
+  }
+  if (stage === "respond") {
+    return `进攻方提议由${sideLabel(proposed ?? fallback)}先选。接受，还是反提议另一种顺序？`;
+  }
+  return `防守方反提议：由${sideLabel(proposed ?? fallback)}先选。接受，还是交由先手顺序决定（${sideLabel(fallback)}先）？`;
+};
+
 const openWhitePeaceOrder = (
   G: ImperialElegyState,
   ctx: Ctx,
@@ -6895,6 +6954,8 @@ const openWhitePeaceOrder = (
       option("defender", "Propose the defending side chooses first"),
     ],
     {victory, stage: "propose", proposed: null, fallback, applied: []},
+    undefined,
+    whitePeaceOrderPromptZh("propose", null, fallback),
   ));
   return true;
 };
@@ -6935,6 +6996,8 @@ const resolveWhitePeaceOrder = (
         option("counter", "Counter-propose the other order"),
       ],
       {victory, stage: "respond", proposed: optionId, fallback, applied: []},
+      undefined,
+      whitePeaceOrderPromptZh("respond", optionId, fallback),
     ));
     return undefined;
   }
@@ -6950,9 +7013,17 @@ const resolveWhitePeaceOrder = (
       whitePeaceOrderPrompt("confirm", counter, fallback),
       [
         option("accept", "Accept the defender's order"),
-        option("decline", `Let the initiative order decide (${fallback === "attacker" ? "attacker" : "defender"} first)`),
+        option(
+          "decline",
+          `Let the initiative order decide (${fallback === "attacker" ? "attacker" : "defender"} first)`,
+          undefined,
+          false,
+          `交由先手顺序决定（${fallback === "attacker" ? "进攻方" : "防守方"}先）`,
+        ),
       ],
       {victory, stage: "confirm", proposed: counter, fallback, applied: []},
+      undefined,
+      whitePeaceOrderPromptZh("confirm", counter, fallback),
     ));
     return undefined;
   }
@@ -7167,6 +7238,9 @@ export const callWarAlly = (G: ImperialElegyState, ctx: Ctx, ally: Power): strin
     prompt: call.allianceSide !== null
       ? "Maintaining the Status Quo: the UK invites you to join the war"
       : "A player ally has called you to war",
+    promptZh: call.allianceSide !== null
+      ? "维持现状：英国邀请你参战"
+      : "一位玩家盟友召唤你参战",
     promptArgs: {
       caller: power,
       callerLabel: powerLabel(power),
@@ -7277,6 +7351,7 @@ export const playBalanceOfPower = (G: ImperialElegyState, ctx: Ctx): string | vo
     kind: "balanceOfPower",
     power: defender,
     prompt: "The UK offers to become the primary belligerent on your side",
+    promptZh: "英国提出成为你方的主要交战国",
     promptArgs: {card: BALANCE_OF_POWER_CARD, uk: "UK", defender},
     options: [
       {id: "accept", label: "Accept the UK's aid (it becomes the primary defender)", labelZh: "接受英国的援助（英国成为主要防御方）"},

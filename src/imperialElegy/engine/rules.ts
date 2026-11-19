@@ -36,6 +36,7 @@ import {
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "../constant/setup";
 import {cardById, discardCard, isCardId} from "./deck";
 import {closeDecision, decision, openDecision, option} from "./pending";
+import {unitKindLabel} from "./unitKind";
 
 export const die = (ctx: Ctx, sides: number): number => ctx.random!.Die(sides);
 
@@ -3226,7 +3227,11 @@ const continueImpulseUpkeep = (
         : "Broken LoC: choose the unit that takes the step loss",
       live.map((id) => {
         const unit = G.units[id];
-        return {id, label: `${unit.kind} (${unit.steps} step${unit.steps === 1 ? "" : "s"}) · ${spaceLabel(penalty.space, "en")}`};
+        return {
+          id,
+          label: `${unit.kind} (${unit.steps} step${unit.steps === 1 ? "" : "s"}) · ${spaceLabel(penalty.space, "en")}`,
+          labelZh: `${unitKindLabel(unit.kind, "zh_CN")}（${unit.steps} 步） · ${spaceLabel(penalty.space, "zh_CN")}`,
+        };
       }),
       {events: penalties, index, cause: penalty.cause, space: penalty.space},
     ));

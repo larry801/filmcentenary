@@ -1,5 +1,6 @@
 import React from "react";
 import {bi} from "./boardHelpers";
+import {chartById, displayAnchorPower, playerDisplayChart} from "./ChartLightbox";
 
 /**
  * The printed rule that a panel or a section is about.
@@ -17,9 +18,10 @@ import {bi} from "./boardHelpers";
  */
 
 /** A printed rule number.  It is a typographic superscript, not body text, so it
- * may sit below 12 px; the title carries the full reference for hover/AT. */
-export const RuleRef = ({n, title}: {n: string; title?: string}) => (
-  <sup className="ie-rule-ref" title={title ?? n}>{n}</sup>
+ * may sit below 12 px; the title carries the full reference for hover/AT.
+ * `locale` only changes the word before the number ("Rule 19.10"). */
+export const RuleRef = ({n, title, locale = "en"}: {n: string; title?: string; locale?: "en" | "zh_CN"}) => (
+  <sup className="ie-rule-ref" title={title ?? bi(locale, `Rule ${n}`, `规则 ${n}`)}>{n}</sup>
 );
 
 export interface RuleRefProps {
@@ -46,6 +48,39 @@ export const ruleRefLabel = (anchor: string): string => {
   return id.replace(/^rules:?/, "");
 };
 
+/**
+ * The printed name of an inline drawer section, in the UI language.
+ *
+ * A chart anchor borrows the chart catalogue's own bilingual title, so the
+ * link and the chart it opens never disagree.  The two inline sections that can
+ * be linked to (the CRT and the costs) are named here.
+ */
+const SECTION_LABEL: Record<string, {en: string; zh: string}> = {
+  costs: {en: "Action costs", zh: "行动花费"},
+  crt: {en: "Combat Results Table", zh: "战斗结果表"},
+  scores: {en: "Scores", zh: "得分"},
+  sequence: {en: "Sequence of play", zh: "游戏流程"},
+};
+
+export const ruleRefDisplayLabel = (anchor: string, locale: "en" | "zh_CN"): string => {
+  const [kind, ...rest] = anchor.split(":");
+  const id = rest.join(":") || anchor;
+  if (kind === "chart") {
+    const chart = chartById(id);
+    if (chart !== undefined) return bi(locale, chart.title, chart.titleZh);
+  }
+  if (kind === "display") {
+    const power = displayAnchorPower(anchor);
+    if (power !== null) {
+      const chart = playerDisplayChart(power, locale);
+      return bi(locale, chart.title, chart.titleZh);
+    }
+  }
+  const section = SECTION_LABEL[id];
+  if (section !== undefined) return bi(locale, section.en, section.zh);
+  return ruleRefLabel(anchor);
+};
+
 /** `chart:combat-crt` → `ie-rule-ref-chart-combat-crt`. */
 export const ruleRefTestId = (anchor: string): string =>
   `ie-rule-ref-${anchor.replace(/[^a-zA-Z0-9-]+/g, "-").replace(/^-+|-+$/g, "")}`;
@@ -57,7 +92,7 @@ export const ruleRefTestId = (anchor: string): string =>
  * the accessible name spells the whole action out, so the "?" is decoration.
  */
 export const RuleLink = ({anchor, locale, label, onOpenReference, testId}: RuleRefProps) => {
-  const rule = label ?? ruleRefLabel(anchor);
+  const rule = label ?? ruleRefDisplayLabel(anchor, locale);
   const open = onOpenReference !== undefined;
   return (
     <button

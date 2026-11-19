@@ -42,7 +42,7 @@ export const AmphibiousPanel = ({
 }: AmphibiousPanelProps) => {
   if (!show) return null;
   return (
-    <IEPanel title={<>{t.amphibiousAssault} <RuleRef n="19.10" title="Rule 19.10"/></>} actions={<IEBadge>{t.seats[viewer]}</IEBadge>}>
+    <IEPanel title={<>{t.amphibiousAssault} <RuleRef n="19.10" locale={locale}/></>} actions={<IEBadge>{t.seats[viewer]}</IEBadge>}>
       <div className="ie-amphibious" data-testid="ie-amphibious">
         <div className="ie-inline">
           <span className="ie-section-title">{bi(locale, "From", "出发地")}</span>
@@ -68,7 +68,7 @@ export const AmphibiousPanel = ({
               return (
                 <label key={id} className="ie-muted">
                   <input type="checkbox" data-testid={`ie-amphibious-unit-${id}`} checked={amphibiousArmyValue.includes(id)} onChange={(e) => toggleAmphibiousArmy(id, e.target.checked)}/>{" "}
-                  {unitLabel(unit, t)}
+                  {unitLabel(unit, t, locale)}
                 </label>
               );
             })}
@@ -131,7 +131,7 @@ export const NavalTransportPanel = ({
 }: NavalTransportPanelProps) => {
   if (!show) return null;
   return (
-    <IEPanel title={<>{bi(locale, "Naval transport", "海上运输")} <RuleRef n="12.3" title="Rule 12.3"/></>} actions={<IEBadge>{t.seats[viewer]}</IEBadge>}>
+    <IEPanel title={<>{bi(locale, "Naval transport", "海上运输")} <RuleRef n="12.3" locale={locale}/></>} actions={<IEBadge>{t.seats[viewer]}</IEBadge>}>
       <div className="ie-naval-transport" data-testid="ie-naval-transport">
         <div className="ie-inline">
           <span className="ie-section-title">{bi(locale, "From", "出发地")}</span>
@@ -146,7 +146,7 @@ export const NavalTransportPanel = ({
               ? <option value="">{bi(locale, "No land unit", "没有陆军单位")}</option>
               : transportLands.map((id) => {
                 const unit = G.units[id];
-                return <option key={id} value={id}>{unit ? unitLabel(unit, t) : id}</option>;
+                return <option key={id} value={id}>{unit ? unitLabel(unit, t, locale) : id}</option>;
               })}
           </select>
           <span className="ie-section-title">{bi(locale, "Destination port", "目的港口")}</span>
@@ -202,7 +202,7 @@ export const NavalInterceptPanel = ({
 }: NavalInterceptPanelProps) => {
   if (!show) return null;
   return (
-    <IEPanel title={<>{t.navalIntercept} <RuleRef n="19.1" title="Rule 19.1"/></>} actions={<IEBadge tone="warn">{spaceLabel(lastNavalBox, locale)}</IEBadge>}>
+    <IEPanel title={<>{t.navalIntercept} <RuleRef n="19.1" locale={locale}/></>} actions={<IEBadge tone="warn">{spaceLabel(lastNavalBox, locale)}</IEBadge>}>
       <div className="ie-naval-intercept" data-testid="ie-naval-intercept">
         <div className="ie-muted">
           {bi(locale,

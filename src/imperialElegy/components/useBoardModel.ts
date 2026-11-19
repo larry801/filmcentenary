@@ -1145,7 +1145,14 @@ export const useBoardModel = ({
 
   const pendingKindLabels = t.pendingKind as unknown as Record<string, string>;
   const pendingKind = pending ? pendingKindLabels[pending.kind] ?? t.pendingDecision : null;
-  const pendingPrompt = pending ? (actualLocale === "zh_CN" ? PROMPT_ZH[pending.prompt] ?? pending.prompt : pending.prompt) : "";
+  // A prompt the engine assembled from state carries its own Chinese wording
+  // (`promptZh`); a fixed one comes from the board's table, and anything
+  // unlisted stays as the engine wrote it rather than showing a blank line.
+  const pendingPrompt = pending === null
+    ? ""
+    : actualLocale === "zh_CN"
+      ? pending.promptZh ?? PROMPT_ZH[pending.prompt] ?? pending.prompt
+      : pending.prompt;
   /** The card id an option names, from `data.card` or a `card:<id>[:mode]` id. */
   const optionCardId = (o: PendingOption): string | null => {
     const data = o.data?.card;
@@ -1181,7 +1188,7 @@ export const useBoardModel = ({
       }
     }
     if (SPACES[o.id]) return spaceLabel(o.id, actualLocale);
-    if (G.units[o.id]) return unitLabel(G.units[o.id], t);
+    if (G.units[o.id]) return unitLabel(G.units[o.id], t, actualLocale);
     if (o.label.startsWith("Play ") && CARD_BY_ID[o.label.slice(5)]) {
       const c = CARD_BY_ID[o.label.slice(5)];
       return `${t.cardType.combat}: ${cardDisplayName(c, actualLocale)}`;
