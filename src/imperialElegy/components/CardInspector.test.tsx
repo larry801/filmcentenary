@@ -95,7 +95,7 @@ describe("CardInspector", () => {
       .toBeLessThan(markup.indexOf('data-testid="ie-card-inspector-actions"'));
   });
 
-  test("print mode renders the scanned card image without a duplicate disclosure", () => {
+  test("print mode renders the scanned card image plus the localized event text", () => {
     const markup = render({mode: "print"});
 
     expect(markup).toContain('data-face-mode="print"');
@@ -103,8 +103,23 @@ describe("CardInspector", () => {
     expect(markup).toContain('data-testid="ie-card-inspector-image"');
     expect(markup).toContain("/imperial-elegy/cards/action-001.jpg");
     expect(markup).toContain('alt="The Eastern Question"');
+    // The scan is printed in English, so the reader's language is repeated.
+    expect(markup).toContain('data-testid="ie-card-inspector-text"');
+    expect(markup).toContain("Event text");
+    expect(markup).toContain("Gain 1 VP.");
+    expect(markup).toContain('lang="en"');
     expect(markup).not.toContain("<svg");
     expect(markup).not.toContain('data-testid="ie-card-inspector-original"');
+  });
+
+  test("print mode prints the event text in the reader's language", () => {
+    const markup = render({mode: "print", locale: "zh_CN"});
+
+    expect(markup).toContain('data-testid="ie-card-inspector-text"');
+    expect(markup).toContain("事件文本");
+    expect(markup).toContain("获得 1 VP。");
+    expect(markup).toContain('lang="zh-CN"');
+    expect(markup).not.toContain("Gain 1 VP.");
   });
 
   test("the folded original is labelled in Chinese on a zh_CN board", () => {
@@ -129,6 +144,8 @@ describe("CardInspector", () => {
     expect(markup).toContain('data-face-mode="print"');
     expect(markup).toContain("<svg");
     expect(markup).not.toContain("<img");
+    // The vector face already carries the localized text; no duplicate panel.
+    expect(markup).not.toContain('data-testid="ie-card-inspector-text"');
   });
 
   test("print mode always uses the svg face for a National Goal", () => {

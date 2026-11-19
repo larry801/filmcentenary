@@ -490,6 +490,35 @@ img.ie-card-face { background: var(--ie-paper-2); }
 
 .ie-inspector-print { width: 100%; height: auto; display: block; }
 
+/* Print mode leads with the English scan, so the event text follows it in the
+   reader's language — the scan alone would be unreadable on a zh_CN board. */
+.ie-card-inspector-text {
+  margin-top: var(--ie-space-2);
+  padding: 10px 12px;
+  background: var(--ie-paper);
+  border: 1px solid var(--ie-paper-rule);
+  border-radius: var(--ie-radius-sm);
+  color: var(--ie-ink);
+}
+
+.ie-card-inspector-text-title {
+  margin: 0 0 4px;
+  font-family: var(--ie-font-display);
+  font-size: var(--ie-font-xs);
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ie-ink-2);
+}
+
+.ie-card-inspector-text-body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", "Songti SC", SimSun, serif;
+  font-size: var(--ie-font-sm);
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
 .ie-card-inspector-original { border-top: 1px solid var(--ie-rule); padding-top: 4px; font-size: var(--ie-font-xs); }
 
 .ie-card-inspector-original summary { cursor: pointer; color: var(--ie-ink-2); }
