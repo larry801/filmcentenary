@@ -16,10 +16,12 @@ import {
   IE_SEATS,
   botPowersOf,
   botsForHumanCount,
+  canToggleBotSeat,
   firstHumanSeat,
   humanPowers,
   isBotPower,
   parseBotPowers,
+  toggleBotSeat,
   validateIESetupData,
 } from "./configuration";
 import {setupImperialElegy} from "./engine/setup";
@@ -83,6 +85,43 @@ describe("human/bot split", () => {
     // A future lobby that lets the creator pick seats must still resolve, even
     // when every seat is a bot (there is then nothing joinable).
     expect(firstHumanSeat(POWERS)).toBe(0);
+  });
+});
+
+
+describe("choosing which seats are bots", () => {
+  test("any seat can be flipped, not just the tail seats", () => {
+    // The lobby used to derive bots from a human count, so only the last seats
+    // could ever be bots.  A seat toggle must reach the front of the order too.
+    expect(toggleBotSeat([], "GE")).toEqual(["GE"]);
+    expect(toggleBotSeat([], "UK")).toEqual(["UK"]);
+    expect(toggleBotSeat(["GE"], "UK")).toEqual(["GE", "UK"]);
+  });
+
+  test("the result is always in printed seat order", () => {
+    expect(toggleBotSeat(["OT", "GE"], "AU")).toEqual(["GE", "AU", "OT"]);
+    expect(toggleBotSeat(["OT", "GE"], "GE")).toEqual(["OT"]);
+  });
+
+  test("flipping back restores the human seat", () => {
+    const bots = toggleBotSeat([], "FR");
+    expect(bots).toEqual(["FR"]);
+    expect(toggleBotSeat(bots, "FR")).toEqual([]);
+  });
+
+  test("the lobby keeps at least two humans", () => {
+    // Five bots would leave one human, which is the local solo entrance rather
+    // than an online table; the last legal flip is refused (not applied).
+    const fourBots = toggleBotSeat(toggleBotSeat(toggleBotSeat(toggleBotSeat([], "FR"), "AU"), "RU"), "OT");
+    expect(fourBots).toEqual(["FR", "AU", "RU", "OT"]);
+    expect(canToggleBotSeat(fourBots, "UK")).toBe(false);
+    expect(canToggleBotSeat(fourBots, "OT")).toBe(true);
+    // A refused flip leaves the roster untouched.
+    expect(toggleBotSeat(fourBots, "UK")).toEqual(["FR", "AU", "RU", "OT"]);
+  });
+
+  test("one bot may still be removed from the largest table", () => {
+    expect(toggleBotSeat(["FR", "AU", "RU", "OT"], "OT")).toEqual(["FR", "AU", "RU"]);
   });
 });
 

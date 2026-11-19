@@ -879,3 +879,57 @@ describe("Imperial Elegy decade header", () => {
     }
   });
 });
+
+describe("Rule 34 handover control", () => {
+  // The board sends the engine's `setSeatBot` move; the static renderer only
+  // needs the move bag to contain that name for the control to appear.
+  const withMove = (markup: string) => markup.includes('data-testid="ie-hand-over-seat"');
+
+  test("a human seat offers the handover control when the move exists", () => {
+    const markup = renderToStaticMarkup(React.createElement(Board, {
+      G: freshGame(), ctx: testCtx, playerID: "0",
+      moves: {setSeatBot: () => undefined} as never,
+    }));
+    expect(withMove(markup)).toBe(true);
+    expect(markup).toContain("交给机器人托管");
+  });
+
+  test("a board without the move renders no handover control", () => {
+    const markup = renderToStaticMarkup(React.createElement(Board, {
+      G: freshGame(), ctx: testCtx, playerID: "0", moves: {},
+    }));
+    expect(withMove(markup)).toBe(false);
+  });
+
+  test("an open decision hides the control", () => {
+    // Handing a seat over mid-question would leave the question with a
+    // controller that cannot see it, so the control is withheld instead.
+    const G = freshGame();
+    G.pending = {
+      id: "d1",
+      createdAt: 1,
+      kind: "confirm",
+      power: "GE",
+      prompt: "Confirm?",
+      options: [{id: "yes", label: "Yes"}],
+    } as never;
+    const markup = renderToStaticMarkup(React.createElement(Board, {
+      G, ctx: testCtx, playerID: "0",
+      moves: {setSeatBot: () => undefined} as never,
+    }));
+    expect(withMove(markup)).toBe(false);
+  });
+
+  test("a bot seat shows the take-back control instead", () => {
+    const G = freshGame();
+    G.bots = ["GE"];
+    const markup = renderToStaticMarkup(React.createElement(Board, {
+      G, ctx: testCtx, playerID: "0",
+      moves: {setSeatBot: () => undefined} as never,
+    }));
+    expect(withMove(markup)).toBe(false);
+    expect(markup).toContain('data-testid="ie-bot-banner"');
+    expect(markup).toContain('data-testid="ie-take-back-seat"');
+    expect(markup).toContain("收回席位");
+  });
+});

@@ -136,6 +136,23 @@ const LocalImperialElegy = () => {
     });
   };
 
+  // Rule 34 handover while the match runs.  The board sends the engine move
+  // (`setSeatBot`), which is what every client and the server driver read; this
+  // callback mirrors the choice into the saved seat setup so a reload or a new
+  // match remembers it.  The engine is the source of truth, so this only
+  // records the same `bot` value the board just sent.
+  const setSeatBot = React.useCallback((power: Power, bot: boolean) => {
+    setBotSeats((prev) => {
+      if (prev.has(power) === bot) return prev;
+      const next = new Set(prev);
+      if (bot) next.add(power); else next.delete(power);
+      saveBotSeats(next);
+      return next;
+    });
+  }, []);
+
+  const botContext = React.useMemo(() => ({seats: botSeats, setSeatBot}), [botSeats, setSeatBot]);
+
   const seatUi = React.useMemo(() => ({currentSeat, onSwitchSeat: switchSeat, onGameState}), [currentSeat, switchSeat, onGameState]);
   if (showSetup) {
     return (
@@ -145,15 +162,26 @@ const LocalImperialElegy = () => {
         </header>
         <div className="ie-local-setup-body">
           <h2 className="ie-local-subtitle">{t.botSeatsTitle}</h2>
-          <p className="ie-muted">{t.botSeatsHelp}</p>
-          <div className="ie-local-bot-seats">
+          <p className="ie-muted">{t.seatSetupIntro}</p>
+          <div className="ie-local-bot-seats" data-testid="ie-local-bot-seats">
             {POWERS.map((p, index) => (
-              <label key={p} className="ie-local-bot-seat">
-                <input type="checkbox" checked={botSeats.has(p)} onChange={() => toggleBot(p)}/>
+              <label key={p} className="ie-local-bot-seat" data-bot={botSeats.has(p) ? "true" : "false"}>
+                <input
+                  type="checkbox"
+                  data-testid={`ie-local-bot-${p}`}
+                  checked={botSeats.has(p)}
+                  onChange={() => toggleBot(p)}
+                />
                 <span>P{index + 1} {t.seats[p]}</span>
+                <em className="ie-local-bot-seat-role">
+                  {botSeats.has(p) ? t.seatSetupBot : t.seatSetupHuman}
+                </em>
               </label>
             ))}
           </div>
+          <p className="ie-muted" data-testid="ie-local-seat-summary">
+            {botSeats.size === 0 ? t.seatSetupAnyHuman : `${t.seatSetupHuman} ${POWERS.length - botSeats.size} · ${t.seatSetupBot} ${botSeats.size}`}
+          </p>
           <button
             type="button"
             className="ie-btn primary ie-local-start"
@@ -203,7 +231,7 @@ const LocalImperialElegy = () => {
         </button>
         <SeatStrip seats={seats} onSelect={switchSeat} locale={locale}/>
       </div>
-      <BotSeatsContext.Provider value={botSeats}>
+      <BotSeatsContext.Provider value={botContext}>
         <SeatUiContext.Provider value={seatUi}>
           <div className="ie-local-boards">
             {POWERS.map((p, index) => (

@@ -130,6 +130,10 @@ export interface ModelValues {
   eliminated: boolean;
   botSeats: ReadonlySet<Power>;
   isBotViewer: boolean;
+  /** Rule 34: the shown seat can be handed to the bot, or taken back, right now. */
+  canHandOverSeat: boolean;
+  /** Hand the shown seat to the bot (`true`) or take it back (`false`). */
+  setSeatBot: (bot: boolean) => void;
   pending: ImperialElegyState["pending"];
   canDecide: boolean;
   war: ImperialElegyState["war"];

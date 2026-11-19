@@ -17,6 +17,7 @@ const CARD = CARD_BY_ID[CARD_ID];
 const SAMPLES: Record<string, LogTextEntry> = {
   campaignStarted: {key: "campaignStarted", args: {}},
   seatOrder: {key: "seatOrder", args: {order: "GE, UK, FR, AU, RU, OT"}},
+  botSeatChanged: {key: "botSeatChanged", power: "FR", args: {bot: "yes"}},
   deckPrepared: {key: "deckPrepared", args: {decade: "1850s", entering: 5, deck: 42}},
   deckReshuffled: {key: "deckReshuffled", args: {deck: 30}},
   cardsDrawn: {key: "cardsDrawn", power: "GE", args: {count: 2}},

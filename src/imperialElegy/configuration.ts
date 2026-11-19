@@ -111,6 +111,26 @@ export const humanPowers = (bots: readonly Power[]): Power[] =>
   IE_SEATS.filter((power) => !bots.includes(power));
 
 /**
+ * Flip one seat between human and bot for the lobby's seat picker, keeping the
+ * six-seat roster and returning it in printed order.
+ *
+ * The lobby's human minimum (`IE_MIN_HUMANS`) is enforced here because it is a
+ * rule for *creating* a match: a bot list that would leave fewer humans is not
+ * offered.  A live handover is not bound by it — the seat keeps playing either
+ * way — so the in-match move does not use this helper.
+ */
+export const toggleBotSeat = (bots: readonly Power[], power: Power): Power[] => {
+  const next = new Set(bots);
+  if (next.has(power)) next.delete(power); else next.add(power);
+  if (IE_SEATS.length - next.size < IE_MIN_HUMANS) return IE_SEATS.filter((seat) => bots.includes(seat));
+  return IE_SEATS.filter((seat) => next.has(seat));
+};
+
+/** True when the lobby picker may flip `power` without breaking the human minimum. */
+export const canToggleBotSeat = (bots: readonly Power[], power: Power): boolean =>
+  bots.includes(power) || IE_SEATS.length - botPowersOf({bots: [...bots, power]}).length >= IE_MIN_HUMANS;
+
+/**
  * Read the bot seats of a live game state.
  *
  * `G.bots` is the public list `engine/setup.ts` copies from `setupData`; a
@@ -130,6 +150,33 @@ export const botPowersOf = (G: {bots?: unknown} | null | undefined): Power[] => 
 /** True when `power` is one of the state's bot seats. */
 export const isBotPower = (G: {bots?: unknown} | null | undefined, power: Power): boolean =>
   botPowersOf(G).includes(power);
+
+/**
+ * Rule 34 — hand a seat over to the bot, or take it back, during a match.
+ *
+ * Any seat can do this, not just the tail seats a lobby filled in: a player may
+ * step out at any phase (misclick, lost connection, "play it out"), and a bot
+ * seat can be reclaimed by a returning player.  The seat's own controllers learn
+ * the new answer from `G.bots`, and the server driver reads the same list on its
+ * next tick, so a handover is immediate and needs no restart.
+ *
+ * Only the seat's own client may call it: `playerID` must name the seat, which
+ * is how a local hotseat board (one client per seat) and an online seat pass
+ * their own id.  Nobody can force a bot onto an opponent.
+ */
+export const handOverSeat = (
+  G: {bots?: unknown},
+  playerID: string | null | undefined,
+  power: Power,
+  bot: boolean,
+): Power[] | null => {
+  if (typeof playerID !== "string" || powerSeat(power) !== playerID) return null;
+  const current = botPowersOf(G);
+  if (current.includes(power) === bot) return current;
+  const next = bot ? botPowersOf({bots: [...current, power]}) : current.filter((seat) => seat !== power);
+  G.bots = next;
+  return next;
+};
 
 /**
  * The lobby's "humans + bots" split: the last `6 - humanCount` seats are bots.

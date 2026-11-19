@@ -142,9 +142,26 @@ test("Imperial Elegy offers 2-6 humans and shows the bot seats", async ({page}) 
         await expect(page.getByTestId(`ie-lobby-seat-${power}`)).toContainText("🤖");
     }
 
+    // Any seat can be a bot, not only the tail.  First free a slot by returning
+    // a tail seat to a human...
+    await page.getByTestId("ie-lobby-seat-OT").click();
+    await expect(page.getByTestId("ie-lobby-seats")).toContainText("3 名人类 + 3 名机器人");
+    // ...then hand the *first* seat (Germany) to the bot, which the old
+    // tail-only count could never do.
+    await page.getByTestId("ie-lobby-seat-GE").click();
+    await expect(page.getByTestId("ie-lobby-seat-GE")).toContainText("🤖");
+    await expect(page.getByTestId("ie-lobby-seats")).toContainText("2 名人类 + 4 名机器人");
+
+    // A fifth bot would leave one human, which the lobby refuses: the flip is
+    // not applied.
+    await page.getByTestId("ie-lobby-seat-UK").click();
+    await expect(page.getByTestId("ie-lobby-seat-UK")).not.toContainText("🤖");
+    await expect(page.getByTestId("ie-lobby-seats")).toContainText("2 名人类 + 4 名机器人");
+
     await page.getByRole("button", {name: "创建游戏"}).click();
-    await expect(page).toHaveURL(/\/join\/imperialElegy\/e2e-created-ie-bots-match\/0$/);
-    expect(body).toMatchObject({numPlayers: 6, setupData: {bots: ["FR", "AU", "RU", "OT"]}});
+    // The invite lands on the first human seat, which is no longer seat 0.
+    await expect(page).toHaveURL(/\/join\/imperialElegy\/e2e-created-ie-bots-match\/1$/);
+    expect(body).toMatchObject({numPlayers: 6, setupData: {bots: ["GE", "FR", "AU", "RU"]}});
 });
 
 test("film and Song Jinn keep the start-player choice", async ({page}) => {

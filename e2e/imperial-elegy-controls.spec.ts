@@ -653,6 +653,22 @@ test.describe("Imperial Elegy solo vs bot", () => {
         );
         expect(checked).toEqual([false, true, true, true, true, true]);
 
+        // Any seat can be chosen, not only the tail: the setup lists a checkbox
+        // per power and each one names who plays the seat.
+        for (const power of ["GE", "UK", "FR", "AU", "RU", "OT"]) {
+            await expect(page.getByTestId(`ie-local-bot-${power}`)).toBeVisible();
+        }
+        await expect(page.getByTestId("ie-local-bot-GE")).not.toBeChecked();
+        await expect(page.getByTestId("ie-local-bot-OT")).toBeChecked();
+        // Flipping the FIRST seat to a bot is the case the old tail-only default
+        // could never produce.
+        await page.getByTestId("ie-local-bot-GE").check();
+        await expect(page.getByTestId("ie-local-bot-GE")).toBeChecked();
+        await expect(page.getByTestId("ie-local-seat-summary")).toContainText("机器人 6");
+        // Flipping it back leaves the human seat again.
+        await page.getByTestId("ie-local-bot-GE").uncheck();
+        await expect(page.getByTestId("ie-local-seat-summary")).toContainText("玩家 1");
+
         await start.click();
         await expect(page.locator('[data-testid="ie-seat-GE"]')).toBeVisible();
 
@@ -670,6 +686,19 @@ test.describe("Imperial Elegy solo vs bot", () => {
         // A bot seat has nothing to act with; the drawer's close button is the
         // only enabled control the board still carries for it.
         expect(clickable).toEqual(["关闭参考"]);
+
+        // Rule 34 handover: the seat can be taken back and handed over again
+        // without restarting the match.  Both flips are engine moves, so the
+        // public `G.bots` list changes and the seat strip follows.
+        await botBoard.getByTestId("ie-take-back-seat").click();
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.bots))
+            .not.toContain("FR");
+        await expect(botBoard.locator(".ie-bot-banner")).toHaveCount(0);
+        await expect(page.locator('[data-testid="ie-seat-status-FR"]')).not.toContainText("机器人");
+        await botBoard.getByTestId("ie-hand-over-seat").click();
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.bots))
+            .toContain("FR");
+        await expect(botBoard.locator(".ie-bot-banner")).toContainText("机器人");
     });
 
     test("a bot seat takes its impulse instead of stalling on an illegal move", async ({page}) => {
