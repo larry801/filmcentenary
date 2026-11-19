@@ -9,8 +9,6 @@
  * module inside its factory.
  */
 import type {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
-import type {WarDeclarationEntitlement} from "../engine/rules";
-import type {WarTargetCandidate} from "../engine/declarationTargets";
 import type {PhaseAction} from "./PhaseActions";
 import type {CardChoiceFace} from "./CardChoice";
 import type {HandChoicesProps} from "./HandChoices";
@@ -286,45 +284,8 @@ export interface ModelValues {
   setConfirmActions: (enabled: boolean) => void;
   /** The Great War's 28.1.1 trench battles, for the War tab list. */
   trenchRows: import("./trenchRows").TrenchRow[];
-  warTargetControl: Power | null;
-  /**
-   * The non-player power whose space is selected, when that non-player is a
-   * legal war target (13.4).  Declarations on minor powers are made through
-   * the same block as major-power declarations.
-   */
-  warMinorTarget?: string | null;
-  /**
-   * A home-card war declaration waiting to be made.  Bismarck's event grants
-   * one: the declaration is funded by the card's printed CP and its aim is
-   * fixed to a war of unification.
-   */
-  warEntitlement?: WarDeclarationEntitlement | null;
-  /** False when the live card's printed target list excludes the selected defender. */
-  warTargetAllowed: boolean;
-  /**
-   * Every declaration the live entitlement can make (engine/declarationTargets).
-   * The chooser lists these so the player decides the target instead of hunting
-   * for a legal objective space on the map.
-   */
-  warTargetCandidates: WarTargetCandidate[];
-  /** Whether the chooser is open; it opens by itself when the card resolves. */
-  warTargetsOpen: boolean;
-  setWarTargetsOpen: (open: boolean) => void;
-  /** Picks a candidate: selects its objective and opens the declaration form. */
-  chooseWarTarget: (candidate: WarTargetCandidate) => void;
-  targetControlledSpaces: SpaceId[];
-  canDeclareWar: boolean;
-  /** Rule 14.1: legal second player powers for the live home card. */
-  secondTargetOptions: Power[];
-  secondTargetValue: Power | "";
-  setSecondTarget: SetState<Power | "">;
-  /** The primary defender recorded on a two-power declaration. */
-  warPrimaryValue: Power | "";
-  setWarPrimary: SetState<Power | "">;
-  /** Bismarck's "forbid other players from joining" choice. */
-  forbidPlayers: boolean;
-  setForbidPlayers: SetState<boolean>;
-  forbidPlayersAllowed: boolean;
+  /** True while a declaration can be made in the War panel (badges its tab). */
+  declarationWaiting: boolean;
   gwOrderPowers: Power[];
   gwBudgetOrder: Power[];
   gwSlotLabel: (slot: Power | "bonus" | "IT" | "US" | null) => string;
@@ -385,12 +346,6 @@ export interface ModelValues {
   setOrdersTab: SetState<OrdersTab>;
   /** A naval flow (amphibious, transport, interception) is offered right now. */
   navalVisible: boolean;
-  warAim: "conquest" | "liberation" | "unification";
-  setWarAim: (a: "conquest" | "liberation" | "unification") => void;
-  warCp: number;
-  setWarCp: (n: number) => void;
-  secondObjective: SpaceId | "";
-  setSecondObjective: (s: SpaceId | "") => void;
   warAlly: Power;
   setWarAlly: (p: Power) => void;
   warMinor: string;

@@ -2,7 +2,8 @@
  * The turn panel: the 348 px column right of the map.
  *
  * Head: the single CP readout used on phones and the phase buttons.  Tabs:
- * Orders, War (only while a war or the Great War is running) and Log.
+ * Orders, War and Log.  The War body is always there: it holds the war
+ * declaration form before a war exists and the war controls once one runs.
  *
  * A pending decision or an open battle replaces the Orders body, so the panel
  * never covers map targets: `canAct` already requires `pending === null` and a
@@ -29,7 +30,6 @@ export interface TurnPanelProps {
   turn: number;
   /** One-line "what now". */
   summary: string;
-  warVisible: boolean;
   /** A decision or battle is open, so Orders shows it instead of actions. */
   hasDecision: boolean;
   /**
@@ -53,7 +53,7 @@ export interface TurnPanelProps {
 }
 
 export const TurnPanel = ({
-  locale, t, cp, phaseActions, phaseLabel, activeLabel, turn, summary, warVisible, hasDecision,
+  locale, t, cp, phaseActions, phaseLabel, activeLabel, turn, summary, hasDecision,
   decisionOnlyOnPhone = false, decisionBadge = false, warBadge, tabs, activeTab, onTabChange,
   confirmActions,
 }: TurnPanelProps) => {
@@ -63,11 +63,10 @@ export const TurnPanel = ({
     if (onTabChange) onTabChange(key);
     else setInternal(key);
   };
-  // A war tab that disappears while selected must not leave the panel empty.
   // The keys and the fallback are the shared `turnPanelTab` contract, so the
   // board's `railTab` and the panel can never disagree about what exists.
-  const keys = turnTabKeys(warVisible);
-  const selected = resolveTurnTab(active, warVisible);
+  const keys = turnTabKeys();
+  const selected = resolveTurnTab(active);
   const roving = useRovingTabs(keys, selected, choose);
 
   const labels: Record<string, string> = {

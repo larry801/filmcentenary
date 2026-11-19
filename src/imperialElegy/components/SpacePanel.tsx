@@ -21,11 +21,9 @@
 import React from "react";
 import {ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {SPACES, neighboursOf, spaceLabel} from "../constant/spaces";
-import {MINOR_POWER_HOMES} from "../constant/setup";
-import {BISMARCK_HOME_CARD, JIHAD_HOME_CARD, RUSSO_TURKISH_WARS_HOME_CARD, effectiveKeyType, gwAllyImpulseFor, hasLoc, warDeclarationAims, type WarDeclarationEntitlement} from "../engine/rules";
+import {effectiveKeyType, gwAllyImpulseFor, hasLoc} from "../engine/rules";
 import {polishReserveDeployer} from "../engine/poland";
-import {IEBadge, IEPanel} from "./theme";
-import {ConfirmButton} from "./ConfirmButton";
+import {IEPanel} from "./theme";
 import {RuleLink} from "./RuleRef";
 import {ieT} from "./i18n";
 import {bi, controlLabel, unitIsCommanded, unitLabel} from "./boardHelpers";
@@ -240,39 +238,6 @@ export interface SpaceActionsPanelProps extends SpaceBaseProps {
   showUnavailable?: boolean;
   setShowUnavailable?: (open: boolean) => void;
   cpRemaining: number;
-  canActionCard: boolean;
-  war: ImperialElegyState["war"];
-  warAim: "conquest" | "liberation" | "unification";
-  setWarAim: (a: "conquest" | "liberation" | "unification") => void;
-  warCp: number;
-  setWarCp: (n: number) => void;
-  secondObjective: SpaceId | "";
-  setSecondObjective: (s: SpaceId | "") => void;
-  targetControlledSpaces: SpaceId[];
-  warTargetControl: Power | null;
-  /** 13.4: the non-player power the selected space belongs to, when legal. */
-  warMinorTarget?: string | null;
-  /** A home-card (Bismarck, Aux Armes, Russo-Turkish Wars, Jihad) declaration
-   *  waiting to be made this impulse. */
-  warEntitlement?: WarDeclarationEntitlement | null;
-  /** False when the card's printed target list excludes the selected defender. */
-  warTargetAllowed?: boolean;
-  /** How many declarations the chooser can offer right now (engine list). */
-  warTargetCount?: number;
-  /** Opens the target chooser (the dialog also opens by itself on the event). */
-  onOpenWarTargets?: () => void;
-  canDeclareWar: boolean;
-  /** Rule 14.1: player powers the live card may name as a second target. */
-  secondTargetOptions?: Power[];
-  secondTargetValue?: Power | "";
-  setSecondTarget?: (p: Power | "") => void;
-  /** The primary defender of a two-power declaration. */
-  warPrimaryValue?: Power | "";
-  setWarPrimary?: (p: Power | "") => void;
-  /** Bismarck's optional post-declaration join ban. */
-  forbidPlayers?: boolean;
-  setForbidPlayers?: (forbidden: boolean) => void;
-  forbidPlayersAllowed?: boolean;
   /** 22.5(2): the deploy-reserves row's Polish-reserve modifier. */
   polishReserve: boolean;
   setPolishReserve: (b: boolean) => void;
@@ -282,10 +247,6 @@ export interface SpaceActionsPanelProps extends SpaceBaseProps {
   setBattleFrom: (id: SpaceId | null) => void;
   navalFrom: SpaceId | null;
   setNavalFrom: (id: SpaceId | null) => void;
-  /** Arm irreversible controls first (the `confirmActions` preference). */
-  confirmActions?: boolean;
-  doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
-  moves: Record<string, (...args: any[]) => void>;
 }
 
 /**
@@ -320,34 +281,11 @@ const ActionsHeading = ({G, selected, locale, t}: Pick<SpaceBaseProps, "G" | "se
 export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
   const {
     G, selected, viewer, locale, t, canAct, onOpenReference,
-    rows, cpRemaining, canActionCard, war,
-    warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
-    targetControlledSpaces, warTargetControl, warMinorTarget = null, warEntitlement = null, warTargetAllowed = true,
-    warTargetCount = 0, onOpenWarTargets, canDeclareWar,
-    secondTargetOptions = [], secondTargetValue: liveSecondTarget = "", setSecondTarget,
-    warPrimaryValue = "", setWarPrimary, forbidPlayers = false, setForbidPlayers, forbidPlayersAllowed = false,
+    rows, cpRemaining,
     polishReserve, setPolishReserve, selectedUnitDef, setSelectedUnit,
-    battleFrom, setBattleFrom, navalFrom, setNavalFrom, confirmActions = true, doAction, moves,
+    battleFrom, setBattleFrom, navalFrom, setNavalFrom,
     showUnavailable: liveShowUnavailable, setShowUnavailable: setLiveShowUnavailable,
   } = props;
-
-  // A home-card declaration (Bismarck) fixes both the aim and the budget: the
-  // card's printed CP pay for the war, so the ordinary aim/CP pickers are
-  // replaced by the printed values while the entitlement is live.
-  const entitlementAim = warEntitlement?.aim ?? null;
-  // A card with an open aim list (Aux Armes, Russo-Turkish Wars, Jihad) shows
-  // only the aims it prints; a stale "unification" choice falls back to the
-  // first legal one instead of sending a move the engine will refuse.
-  const entitlementAims = warEntitlement !== null ? warDeclarationAims(warEntitlement.card) : null;
-  const openAim = entitlementAims !== null && !entitlementAims.includes(warAim)
-    ? (entitlementAims[0] ?? warAim)
-    : warAim;
-  const declarationAim = entitlementAim ?? openAim;
-  const declarationCp = warEntitlement?.cp ?? warCp;
-  const declarationTarget = warMinorTarget ?? warTargetControl;
-  const minorLabelText = (minor: string): string => spaceLabel(MINOR_POWER_HOMES[minor] ?? (minor as SpaceId), locale);
-  const aimLabel = (aim: "conquest" | "liberation" | "unification"): string =>
-    aim === "conquest" ? t.conquest : aim === "liberation" ? t.liberation : t.unification;
 
   /**
    * The fold state is remembered per browser (`ie_show_unavailable`): a reader
@@ -441,27 +379,6 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
     return out;
   }, [refusedRows]);
 
-  /**
-   * The second objective is the *other* space of the war: the one clicked on
-   * the map is the first objective, so offering it again here would let a
-   * declaration name the same space twice.
-   */
-  const secondObjectiveCandidates = targetControlledSpaces.filter((id) => id !== selected);
-  // Rule 14.1: the second power and the primary defender are only offered when
-  // the live home card prints the two-power clause for the chosen aim.
-  const chosenSecondTarget: Power | "" = liveSecondTarget;
-  const primaryChoices: Power[] = warTargetControl !== null && chosenSecondTarget !== ""
-    ? [warTargetControl, chosenSecondTarget]
-    : [];
-  const chosenPrimary: Power = primaryChoices.includes(warPrimaryValue as Power)
-    ? warPrimaryValue as Power
-    : warTargetControl ?? primaryChoices[0] ?? "GE";
-  const declarationOptions = chosenSecondTarget !== "" || (forbidPlayersAllowed && forbidPlayers)
-    ? {
-        ...(chosenSecondTarget !== "" ? {secondTarget: chosenSecondTarget, primary: chosenPrimary} : {}),
-        ...(forbidPlayersAllowed && forbidPlayers ? {forbidPlayers: true} : {}),
-      }
-    : undefined;
   /** 22.5(2): only the Polish controller carries the reserve-army modifier. */
   const polishOwner = viewer !== null && polishReserveDeployer(G) === viewer;
   const deployLegal = enabledRows.some((item) => item.id === "deployReserves");
@@ -549,174 +466,6 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
         </div>
       )}
 
-      {/*
-        * The target chooser's prompt.  A home-card declaration (Bismarck, Aux
-        * Armes, Russo-Turkish Wars, Jihad) is often aimed at a non-player power
-        * the reader has no reason to have selected, so the declaration used to
-        * stay invisible until a legal objective was picked on the map.  The
-        * prompt puts a "choose the war target" control in front of the seat for
-        * as long as the entitlement is live; the dialog itself also opens as
-        * soon as the card resolves.
-        */}
-      {canActionCard && war === null && warEntitlement !== null && declarationTarget === null && (
-        <div className="ie-war-declare" data-testid="ie-war-target-prompt">
-          <div className="ie-action-group-title">{t.declareWar}</div>
-          <div className="ie-inline">
-            <button
-              type="button"
-              className="ie-btn"
-              data-testid="ie-war-target-open"
-              disabled={warTargetCount === 0}
-              onClick={() => onOpenWarTargets?.()}
-            >
-              {bi(locale, "Choose war target", "选择战争目标")}
-            </button>
-            <span className="ie-muted" data-testid="ie-war-target-prompt-count">
-              {bi(locale, `${warTargetCount} legal declarations`, `${warTargetCount} 个合法宣战`)}
-            </span>
-          </div>
-          <div className="ie-hint">
-            {bi(locale,
-              "This card funds one declaration with its printed CP. Pick the target here, or click its objective space on the map.",
-              "本牌以印制的 CP 支付一次宣战。可在此选择目标，或直接在地图上点击目标空间。")}
-          </div>
-          {warTargetCount === 0 && (
-            <div className="ie-hint" data-testid="ie-war-target-none">
-              {bi(locale,
-                "No legal target right now (World Tension 3+, a truce, or no space matches the card). Hand the impulse over to keep the card unspent.",
-                "当前没有合法目标（世界紧张 3+、停战，或没有符合卡面的空间）。可直接交出行动轮。")}
-            </div>
-          )}
-        </div>
-      )}
-
-      {canActionCard && war === null && declarationTarget !== null && selected !== null && (
-        <div className="ie-war-declare" data-testid="ie-war-declare">
-          <div className="ie-action-group-title">{t.declareWar}</div>
-          <div className="ie-inline">
-            <IEBadge tone={warTargetControl !== null ? warTargetControl.toLowerCase() : "default"}>
-              {t.target}: {warMinorTarget !== null ? minorLabelText(warMinorTarget) : (warTargetControl !== null ? t.seats[warTargetControl] : "")}
-            </IEBadge>
-            {entitlementAim !== null ? (
-              <IEBadge tone="warn">{aimLabel(entitlementAim)}</IEBadge>
-            ) : (
-              <select className="ie-select" value={openAim} onChange={(e) => setWarAim(e.target.value as typeof warAim)} title={t.warAim}>
-                {(entitlementAims ?? (["conquest", "liberation", "unification"] as const)).map((aim) => (
-                  <option key={aim} value={aim}>{aimLabel(aim)}</option>
-                ))}
-              </select>
-            )}
-            {warEntitlement !== null ? (
-              <IEBadge tone="default">{declarationCp} CP</IEBadge>
-            ) : (
-              <select className="ie-select" value={warCp} onChange={(e) => setWarCp(Number(e.target.value))} title={t.cp}>
-                {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} CP</option>)}
-              </select>
-            )}
-            {secondObjectiveCandidates.length > 0 && (
-              <select className="ie-select" value={secondObjective} onChange={(e) => setSecondObjective(e.target.value as SpaceId | "")} title={t.objectives}>
-                <option value="">{bi(locale, "One objective", "单一目标")}</option>
-                {secondObjectiveCandidates.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
-              </select>
-            )}
-            {secondTargetOptions.length > 0 && (
-              <select
-                className="ie-select"
-                data-testid="ie-war-second-power"
-                value={chosenSecondTarget}
-                onChange={(e) => setSecondTarget?.(e.target.value as Power | "")}
-                title={bi(locale, "Second power (14.1)", "第二个国家（14.1）")}
-              >
-                <option value="">{bi(locale, "One power", "单一国家")}</option>
-                {secondTargetOptions.map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
-              </select>
-            )}
-            {primaryChoices.length > 1 && (
-              <select
-                className="ie-select"
-                data-testid="ie-war-primary-defender"
-                value={chosenPrimary}
-                onChange={(e) => setWarPrimary?.(e.target.value as Power)}
-                title={bi(locale, "Primary defender (14.1)", "主要防守方（14.1）")}
-              >
-                {primaryChoices.map((p) => <option key={p} value={p}>{bi(locale, `Primary: ${t.seats[p]}`, `主要防守方：${t.seats[p]}`)}</option>)}
-              </select>
-            )}
-            {forbidPlayersAllowed && (
-              <label className="ie-inline ie-war-forbid" data-testid="ie-war-forbid-join">
-                <input
-                  type="checkbox"
-                  checked={forbidPlayers}
-                  onChange={(e) => setForbidPlayers?.(e.target.checked)}
-                />
-                {bi(locale, "Forbid player allies", "禁止玩家盟友参战")}
-              </label>
-            )}
-            {/* Declaring a war cannot be undone, so it arms first like every
-                other irreversible control.  The label carries the CP price so
-                the confirmation names what the click is about to spend. */}
-            <ConfirmButton
-              className="ie-btn"
-              data-testid="ie-declare-war"
-              disabled={!canDeclareWar}
-              confirm={confirmActions}
-              confirmLabel={bi(locale,
-                `Confirm: declare war (${declarationCp} CP)`,
-                `确认：宣战（${declarationCp} CP）`)}
-              onConfirm={() => doAction(
-                () => moves.declareWar(
-                  warMinorTarget !== null ? {minor: warMinorTarget} : warTargetControl,
-                  declarationAim,
-                  secondObjective ? [selected, secondObjective] : [selected],
-                  declarationCp,
-                  declarationOptions,
-                ),
-                {label: bi(locale, `Declare war (${declarationCp} CP)`, `宣战（${declarationCp} CP）`), reason: canDeclareWar ? undefined : bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)},
-              )}
-            >
-              {t.declareWar}
-            </ConfirmButton>
-          </div>
-          {warEntitlement !== null && (
-            <div className="ie-hint" data-testid="ie-war-entitlement">
-              {bi(locale,
-                `${warEntitlement.card === BISMARCK_HOME_CARD ? "Bismarck" : "The card"} funds this declaration with its printed CP; the target space is selected, and may be reselected on the map.`,
-                `本牌以印制的 CP 支付宣战费用；目标空间已选中，也可在地图上改选。`)}
-            </div>
-          )}
-          {secondTargetOptions.length > 0 && (
-            <div className="ie-hint" data-testid="ie-war-two-powers">
-              {bi(locale,
-                "This card may name a second power; the defenders agree on the primary, and the attacker decides if they cannot.",
-                "本牌可同时指定第二个国家；防守方协商主要防守方，协商不成则由进攻方决定。")}
-            </div>
-          )}
-          {warEntitlement?.card === RUSSO_TURKISH_WARS_HOME_CARD && (
-            <div className="ie-hint" data-testid="ie-war-target-rule">
-              {bi(locale,
-                "Russo-Turkish Wars may only declare war on the Ottomans.",
-                "《俄土战争》只能对奥斯曼宣战。")}
-            </div>
-          )}
-          {warEntitlement?.card === JIHAD_HOME_CARD && (
-            <div className="ie-hint" data-testid="ie-war-target-rule">
-              {bi(locale,
-                "Jihad may only declare war on Russia or a power controlling an Ottoman home space.",
-                "《圣战》只能对俄国或控制奥斯曼本土空间的国家宣战。")}
-            </div>
-          )}
-          {warEntitlement !== null && !warTargetAllowed && (
-            <div className="ie-hint" data-testid="ie-war-target-forbidden">
-              {bi(locale,
-                "This card cannot declare war on the selected power.",
-                "本牌不能对所选国家宣战。")}
-            </div>
-          )}
-          {G.wtt >= 3 && <div className="ie-hint">{bi(locale, "World Tension is 3+; a new war cannot be declared.", "世界紧张达到 3+，无法发动新的战争。")}</div>}
-          {!canDeclareWar && G.wtt < 3 && warEntitlement === null && <div className="ie-hint">{bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)}</div>}
-        </div>
-      )}
-
       {/* The selection echo: a unit chosen on the Space page moves from here,
           and the cost chip answers "what can I afford" at a glance now that the
           grouped heads are gone. */}
@@ -765,20 +514,6 @@ export interface SpacePanelProps extends SpaceBaseProps {
   canSpend?: (cost: number) => boolean;
   canActionCard?: boolean;
   war?: ImperialElegyState["war"];
-  warAim?: "conquest" | "liberation" | "unification";
-  setWarAim?: (a: "conquest" | "liberation" | "unification") => void;
-  warCp?: number;
-  setWarCp?: (n: number) => void;
-  secondObjective?: SpaceId | "";
-  setSecondObjective?: (s: SpaceId | "") => void;
-  targetControlledSpaces?: SpaceId[];
-  warTargetControl?: Power | null;
-  warMinorTarget?: string | null;
-  warEntitlement?: WarDeclarationEntitlement | null;
-  warTargetAllowed?: boolean;
-  warTargetCount?: number;
-  onOpenWarTargets?: () => void;
-  canDeclareWar?: boolean;
   polishReserve?: boolean;
   setPolishReserve?: (b: boolean) => void;
   battleFrom?: SpaceId | null;
@@ -787,7 +522,6 @@ export interface SpacePanelProps extends SpaceBaseProps {
   setBattleFrom?: React.MutableRefObject<(id: SpaceId | null) => void> | ((id: SpaceId | null) => void);
   setNavalFrom?: React.MutableRefObject<(id: SpaceId | null) => void> | ((id: SpaceId | null) => void);
   startMoveTargeting?: () => void;
-  confirmActions?: boolean;
   // The inputs `spaceActions` needs when the caller does not pass `rows`.
   polishArmyDecision?: {allowed: boolean; cost: number; reasons: string[]} | null;
   polishReserveDecision?: {allowed: boolean; cost: number; reasons: string[]} | null;
@@ -831,7 +565,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
     G, selected, viewer, me, locale, t, phase, canAct, selectedUnit, selectedUnitDef,
     setBattleFrom, setNavalFrom, cpRemaining, canActionCard, war,
     polishArmyDecision, polishReserveDecision, polishReserve, gwJointNavalAllies, gwJointNavalUnitIds,
-    startMoveTargeting, doAction, moves, warCp,
+    startMoveTargeting, doAction, moves,
   } = props;
   const battleFrom = props.battleFrom ?? null;
   const navalFrom = props.navalFrom ?? null;
@@ -860,7 +594,7 @@ export const SpacePanel = (props: SpacePanelProps) => {
     startMoveTargeting,
     startBattle: () => battleFrom !== selected && invokeSetter(setBattleFrom, selected),
     startNavalBattle: () => navalFrom !== selected && invokeSetter(setNavalFrom, selected),
-    warCp: warCp ?? 1, locale, battleFrom, navalFrom,
+    locale, battleFrom, navalFrom,
   });
   const rows = props.rows ?? computedRows;
 
@@ -894,22 +628,6 @@ export const SpacePanel = (props: SpacePanelProps) => {
         onOpenReference={props.onOpenReference}
         rows={rows}
         cpRemaining={cpRemaining ?? 0}
-        canActionCard={canActionCard ?? false}
-        war={war ?? null}
-        warAim={props.warAim ?? "conquest"}
-        setWarAim={props.setWarAim ?? (() => undefined)}
-        warCp={warCp ?? 1}
-        setWarCp={props.setWarCp ?? (() => undefined)}
-        secondObjective={props.secondObjective ?? ""}
-        setSecondObjective={props.setSecondObjective ?? (() => undefined)}
-        targetControlledSpaces={props.targetControlledSpaces ?? []}
-        warTargetControl={props.warTargetControl ?? null}
-        warMinorTarget={props.warMinorTarget ?? null}
-        warEntitlement={props.warEntitlement ?? null}
-        warTargetAllowed={props.warTargetAllowed ?? true}
-        warTargetCount={props.warTargetCount ?? 0}
-        onOpenWarTargets={props.onOpenWarTargets}
-        canDeclareWar={props.canDeclareWar ?? false}
         polishReserve={polishReserve ?? false}
         setPolishReserve={props.setPolishReserve ?? (() => undefined)}
         selectedUnitDef={selectedUnitDef}
@@ -918,9 +636,6 @@ export const SpacePanel = (props: SpacePanelProps) => {
         setBattleFrom={(id) => invokeSetter(setBattleFrom, id)}
         navalFrom={navalFrom ?? null}
         setNavalFrom={(id) => invokeSetter(setNavalFrom, id)}
-        confirmActions={props.confirmActions}
-        doAction={doAction}
-        moves={moves}
       />
     </>
   );

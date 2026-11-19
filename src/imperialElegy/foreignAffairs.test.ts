@@ -533,8 +533,6 @@ const spaceActionsFor = (
     gwJointNavalUnitIds: () => [],
     startBattle: () => undefined,
     startNavalBattle: () => undefined,
-    warCp: 2,
-    onDeclareWar: () => null,
-    locale: "en",
+      locale: "en",
   });
 };

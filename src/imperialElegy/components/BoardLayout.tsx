@@ -41,13 +41,13 @@ import {ReferenceDrawer} from "./ReferenceDrawer";
 import {NationalActionsPanel} from "./NationalActionsPanel";
 import {AmphibiousPanel, NavalTransportPanel, NavalInterceptPanel} from "./NavalPanel";
 import {WarPanel} from "./WarPanel";
+import {WarDeclarationPanel} from "./WarDeclarationPanel";
 import {GreatWarPanel} from "./GreatWarPanel";
 import {SeatAlert} from "./SeatStrip";
 import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
 import {MpitPanel} from "./MpitPanel";
 import {CardChoiceModal} from "./CardChoiceModal";
-import {WarTargetDialog} from "./WarTargetDialog";
 import {Toast} from "./Toast";
 import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {MobileDock, type MobileDockTab} from "./MobileDock";
@@ -187,11 +187,7 @@ export const OrdersRegion = (props: OrdersSlice & {
 }) => {
   const {
     G, viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
-    warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
-    targetControlledSpaces, warTargetControl, warMinorTarget, warEntitlement, warTargetAllowed, canDeclareWar,
-    warTargetCandidates, setWarTargetsOpen,
-    secondTargetOptions, secondTargetValue, setSecondTarget, warPrimaryValue, setWarPrimary,
-    forbidPlayers, setForbidPlayers, forbidPlayersAllowed, gwJointNavalAllies, gwJointNavalUnitIds,
+    gwJointNavalAllies, gwJointNavalUnitIds,
     polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
     polishArmyDecision, polishReserveDecision, myOnMapArmies, myForts, myMinorAllies, ownLandInSelected,
     ownNavalInSelected, potentialLandTargets, potentialNavalTargets, doAction, confirmActions, moves,
@@ -224,7 +220,7 @@ export const OrdersRegion = (props: OrdersSlice & {
     gwJointNavalAllies, gwJointNavalUnitIds, startMoveTargeting,
     startBattle: () => battleFrom !== selected && setBattleFrom.current(selected),
     startNavalBattle: () => navalFrom !== selected && setNavalFrom.current(selected),
-    warCp, locale, battleFrom, navalFrom,
+    locale, battleFrom, navalFrom,
   });
 
   const amphibiousNode = viewer !== null ? (
@@ -301,24 +297,10 @@ export const OrdersRegion = (props: OrdersSlice & {
               onOpenReference={onOpenReference}
               rows={rows}
               cpRemaining={cpBudget()}
-              canActionCard={canActionCard}
-              war={war}
-              warAim={warAim} setWarAim={setWarAim} warCp={warCp} setWarCp={setWarCp}
-              secondObjective={secondObjective} setSecondObjective={setSecondObjective}
-              targetControlledSpaces={targetControlledSpaces} warTargetControl={warTargetControl}
-              warMinorTarget={warMinorTarget ?? null} warEntitlement={warEntitlement ?? null}
-              warTargetAllowed={warTargetAllowed}
-              warTargetCount={warTargetCandidates.length}
-              onOpenWarTargets={() => setWarTargetsOpen(true)}
-              canDeclareWar={canDeclareWar}
-              secondTargetOptions={secondTargetOptions} secondTargetValue={secondTargetValue} setSecondTarget={setSecondTarget}
-              warPrimaryValue={warPrimaryValue} setWarPrimary={setWarPrimary}
-              forbidPlayers={forbidPlayers} setForbidPlayers={setForbidPlayers} forbidPlayersAllowed={forbidPlayersAllowed}
               polishReserve={polishReserve} setPolishReserve={setPolishReserve}
               selectedUnitDef={selectedUnitDef} setSelectedUnit={setSelectedUnit}
               battleFrom={battleFrom} setBattleFrom={(id) => setBattleFrom.current(id)}
               navalFrom={navalFrom} setNavalFrom={(id) => setNavalFrom.current(id)}
-              confirmActions={confirmActions} doAction={doAction} moves={moves}
               showUnavailable={showUnavailable} setShowUnavailable={setShowUnavailable}
             />
           </>
@@ -398,13 +380,27 @@ export const WarRegion = (props: WarSlice) => {
     italyShowing, italyBox, italyBoxLabel, italyHow, gwTransferToValue, setGwTransferTo,
     gwTransferAmountValue, setGwTransferAmount, canGwTransfer, gwSideAllies, canGwReveal,
     canGwDraft, canGwDeployHere, forcedGwCard, selected, trenchRows, onSelect, onOpenReference,
+    canActionCard, cpBudget, confirmActions, homeCardTitle,
   } = props;
   const viewerCanSeeTrenches = gw !== null && gw !== undefined && gw.active;
+  // Before a war exists the War body is where a declaration is made: defender,
+  // aim, objective and the 14.1 clauses are all picked here, with no map
+  // selection.  During the Great War there is nothing to declare.
+  const declaration = !war && !gw && viewer !== null
+    ? (
+      <WarDeclarationPanel
+        G={G} viewer={viewer} locale={locale} t={t} homeCardTitle={homeCardTitle}
+        canActionCard={canActionCard} cpRemaining={cpBudget()} confirmActions={confirmActions}
+        doAction={doAction} moves={moves}
+      />
+    )
+    : null;
   return (
     <>
       {viewerCanSeeTrenches && (
         <TrenchBoard rows={trenchRows} locale={locale} selected={selected} onSelect={onSelect}/>
       )}
+      {declaration}
       {war && (
         <WarPanel
           war={war} G={G} viewer={viewer} active={active} phase={phase} locale={locale} t={t}
@@ -430,7 +426,9 @@ export const WarRegion = (props: WarSlice) => {
           doAction={doAction} moves={moves} onOpenReference={onOpenReference}
         />
       )}
-      {!war && !gw && <div className="ie-muted">{bi(locale, "No war is in progress.", "当前没有进行中的战争。")}</div>}
+      {!war && !gw && declaration === null && (
+        <div className="ie-muted">{bi(locale, "No war is in progress.", "当前没有进行中的战争。")}</div>
+      )}
     </>
   );
 };
@@ -507,7 +505,6 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   // it for its label and badges, the phone layout to show only the decision
   // body, and the hand sheet to fold itself out of the map's way.
   const decisionOwed = Boolean(pending || battle || G.result);
-  const warVisible = Boolean(war.war || war.gw);
 
   /**
    * The required card choice is a dialog, not a panel.
@@ -554,10 +551,10 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     writeShowUnavailable(open);
   };
 
-  // The phone's one bottom sheet: Orders / Hand / Mat / Log, plus War only
-  // while there is a war to report.  The two private tabs are for a seated
-  // viewer only, so a spectator's dock never offers a hand or a mat it cannot
-  // read.
+  // The phone's one bottom sheet: Orders / Hand / Mat / Log / War.  The two
+  // private tabs are for a seated viewer only, so a spectator's dock never
+  // offers a hand or a mat it cannot read.  War is always offered because it
+  // is where a declaration is made, not only where a running war is reported.
   const mobileTabs: MobileDockTab[] = [
     {
       key: "orders",
@@ -571,18 +568,19 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
         ]
       : []),
     {key: "log", label: bi(locale, "Log", "记录")},
-    ...(warVisible
-      ? [{key: "war" as MobileTab, label: bi(locale, "War", "战局"), badge: war.war ? <Icon name="crossed-sabres" size={14}/> : undefined}]
-      : []),
+    {
+      key: "war" as MobileTab,
+      label: bi(locale, "War", "战局"),
+      badge: war.war
+        ? <Icon name="crossed-sabres" size={14}/>
+        : war.declarationWaiting ? "!" : undefined,
+    },
   ];
-  // A tab can disappear under the reader (the war ends, a hotseat switch turns
-  // the seat into a spectator).  The sheet must not be left with no body, so
-  // the dock falls back to Orders exactly as the turn panel falls back to its
-  // Action tab.
-  const activeMobileTab: MobileTab = (mobileTab === "war" && !warVisible) ||
-    ((mobileTab === "hand" || mobileTab === "mat") && viewer === null)
-    ? "orders"
-    : mobileTab;
+  // A hotseat switch can turn the seat into a spectator, and Hand/Mat are
+  // private.  The sheet must not be left with no body, so the dock falls back
+  // to Orders exactly as the turn panel falls back to its Action tab.
+  const activeMobileTab: MobileTab =
+    ((mobileTab === "hand" || mobileTab === "mat") && viewer === null) ? "orders" : mobileTab;
   // The turn panel keeps its own tabs on desktop; on a phone the dock's tab
   // chooses its body, and Hand/Mat have no counterpart there (their bodies are
   // the other two panels), so they leave Orders in front.
@@ -727,20 +725,21 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             activeLabel={`${t.active}: ${t.seats[active]}`}
             turn={G.turn}
             summary={core.dockSummary}
-            warVisible={warVisible}
             hasDecision={decisionOwed}
             // The dock owns the phone decision cap; the turn panel itself is
             // never narrowed by the decision.
             decisionOnlyOnPhone={false}
             decisionBadge={pending !== null && viewer !== null && pending.power === viewer}
             confirmActions={confirmActions}
-            warBadge={war.war ? <Icon name="crossed-sabres" size={14}/> : undefined}
+            warBadge={war.war
+              ? <Icon name="crossed-sabres" size={14}/>
+              : war.declarationWaiting ? "!" : undefined}
             // A war starting brings its panel to the front once, on both shells:
             // the desktop turn panel's tab comes from `railTab`, and the phone's
             // one bottom sheet opens on its War body.  Without this the player
             // declared a war and stayed on the Orders page, so the declaration
             // looked like it had done nothing.
-            activeTab={isPhone ? phoneTurnTab : resolveTurnTab(railTab, warVisible)}
+            activeTab={isPhone ? phoneTurnTab : resolveTurnTab(railTab)}
             onTabChange={(tab) => {
               const next = tab as TurnTab;
               if (isPhone) setMobileTab(mobileTabForTurnTab(next));
@@ -845,23 +844,6 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       >
         <HandChoices {...choicesProps}/>
       </CardChoiceModal>
-
-      {/* The home-card war declaration's target chooser.  It opens itself when
-          Bismarck / Aux Armes / Russo-Turkish Wars / Jihad resolve, and the
-          Orders prompt reopens it after a dismissal.  Like the card-choice
-          dialog it is limited to the seat being looked at, so a hotseat's five
-          hidden boards never pull focus into a chooser. */}
-      <WarTargetDialog
-        open={orders.warTargetsOpen && isCurrentSeat}
-        candidates={orders.warTargetCandidates}
-        locale={locale}
-        t={t}
-        cardTitle={orders.warEntitlement !== null && orders.warEntitlement !== undefined
-          ? core.homeCardTitle(orders.warEntitlement.card)
-          : ""}
-        onChoose={orders.chooseWarTarget}
-        onClose={() => orders.setWarTargetsOpen(false)}
-      />
 
       {/* A refused move is explained here: the engine answers a bare
           INVALID_MOVE, so the board says what it tried and why it is not

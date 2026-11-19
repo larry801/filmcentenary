@@ -284,12 +284,16 @@ regions:
   than a second copy of them. It begins open on desktop and folds to a
   one-line chip row with a popover below 1100 px; on a phone it is the dock's
   Mat tab (§8 of [`UI_CHECKLIST.md`](UI_CHECKLIST.md)).
-- **Turn panel** — 348 px, described above. The War tab mounts the
-  `components/TrenchBoard.tsx` rows while the Great War is active. On desktop it
-  has no collapse toggle: the panel is a permanent table cell, and the decision
-  it shows replaces its Orders body rather than expanding over the map. On a
-  phone it is the dock's body for the Orders, Log and War tabs, and the dock
-  owns its height.
+- **Turn panel** — 348 px, described above. The War tab is always present and
+  is the single home of war operations: `components/WarDeclarationPanel.tsx`
+  declares a war before one exists (defender, aim, objective and the 14.1
+  clauses are all picked in the panel, with no map selection), and
+  `components/WarPanel.tsx` runs it once it does; the Great War's
+  `components/TrenchBoard.tsx` rows mount there while it is active. On desktop
+  the panel has no collapse toggle: it is a permanent table cell, and the
+  decision it shows replaces its Orders body rather than expanding over the
+  map. On a phone it is the dock's body for the Orders, Log and War tabs, and
+  the dock owns its height.
 - **Hand** — `components/HandTray.tsx`, a row under the mat and the map that
   spans both of those columns on desktop (at most 212 px open, folded to a 44 px
   bar; the turn panel keeps the right column); on a phone it is the dock's Hand

@@ -68,8 +68,6 @@ const input = (overrides: Partial<SpaceActionsInput> & Pick<SpaceActionsInput, "
   gwJointNavalUnitIds: () => [],
   startBattle: () => undefined,
   startNavalBattle: () => undefined,
-  warCp: 2,
-  onDeclareWar: () => null,
   describeRow: (candidate) => ({label: candidate.label, reason: candidate.reason}),
   locale: "en",
   ...overrides,

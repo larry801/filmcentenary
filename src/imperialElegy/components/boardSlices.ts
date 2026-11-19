@@ -60,12 +60,7 @@ const INTERACTION_KEYS = [
 const ORDERS_KEYS = [
   "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "canAct", "canSpend", "cpBudget",
   "selectedUnitIds", "toggleUnitSelection", "selectUnitGroup", "startMoveTargeting",
-  "canActionCard", "pending", "canDecide", "war", "warAim", "setWarAim", "warCp", "setWarCp",
-  "secondObjective", "setSecondObjective", "targetControlledSpaces", "warTargetControl", "onOpenReference",
-  "warMinorTarget", "warEntitlement", "warTargetAllowed",
-  "warTargetCandidates", "warTargetsOpen", "setWarTargetsOpen", "chooseWarTarget",
-  "canDeclareWar", "secondTargetOptions", "secondTargetValue", "setSecondTarget",
-  "warPrimaryValue", "setWarPrimary", "forbidPlayers", "setForbidPlayers", "forbidPlayersAllowed",
+  "canActionCard", "pending", "canDecide", "war", "onOpenReference",
   "gwJointNavalAllies", "gwJointNavalUnitIds", "polishReserve", "setPolishReserve",
   "deployLimit", "deployFree", "canDeployHere", "canGwDraft", "canGwDeployHere", "polishArmyDecision",
   "polishReserveDecision", "myOnMapArmies", "myForts", "myMinorAllies", "ownLandInSelected",
@@ -123,6 +118,7 @@ const WAR_KEYS = [
   "setGwTransferTo", "gwTransferAmountValue", "gwTransferAmount", "setGwTransferAmount",
   "canGwTransfer", "gwSideAllies", "canGwReveal", "canGwDraft", "canGwDeployHere", "forcedGwCard",
   "minorMarkerRows", "onSelect", "trenchRows", "onOpenReference",
+  "canActionCard", "cpBudget", "confirmActions", "declarationWaiting", "homeCardTitle",
 ] as const;
 
 /** The reference drawer: the printed charts, the other powers and the log. */

@@ -633,6 +633,15 @@
 /* ---------------------------------------------------------------- war / GW */
 .ie-war-declare { margin-top: 8px; border-top: 1px solid var(--ie-rule); padding-top: 6px; }
 
+/* The aim chips are buttons: the chip is the printed label, and `aria-pressed`
+   carries which aim the form would declare. */
+.ie-war-declare .ie-chip[aria-pressed] { cursor: pointer; font-family: inherit; }
+.ie-war-declare .ie-chip[aria-pressed="true"] {
+  border-color: var(--ie-brass);
+  color: var(--ie-brass-soft);
+  background: var(--ie-panel-2);
+}
+
 .ie-goal-choice { border: 1px solid var(--ie-brass); background: var(--ie-panel-3); border-radius: var(--ie-radius-md); padding: 6px; }
 
 .ie-mpit-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; margin-top: 6px; }
