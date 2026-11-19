@@ -62,6 +62,8 @@ import {
 import {POLAND, isPolandIndependent, polishController, polishHasLoc, polishReserveIds} from "./poland";
 import {closeDecision, decision, openDecision, option} from "./pending";
 import {gwExhaustionTurnZero, removesAfterPlay} from "./playability";
+import {minorAllianceProblem} from "./foreignAffairs";
+import {BALKAN_MINORS} from "./crisisTable";
 import {facedownGwCombatCards, flipGwCombatCardFaceup} from "./combatCards";
 import {GOALS_BY_ID} from "../constant/goals";
 import {crisisRoll, italyTable, openCrisisDecision, unifyItaly} from "./greatWar";
@@ -757,6 +759,37 @@ const allyItalianMinor = (G: ImperialElegyState, actor: Power, space: SpaceId): 
 const papalInfluenceCardBonus = (G: ImperialElegyState, actor: Power): boolean =>
   G.spaces[PAPAL_STATES_SPACE]?.ally === actor &&
   italianMinorSpaces(G).some((id) => id !== PAPAL_STATES_SPACE && G.spaces[id]?.ally === actor);
+
+/**
+ * 12.8: an alliance grows out of the player's own diplomacy marker, and the
+ * marker is spent turning into the ally side.
+ */
+const gainMinorAlliance = (G: ImperialElegyState, actor: Power, space: SpaceId): boolean => {
+  const state = G.spaces[space];
+  if (!state) return false;
+  state.diplomacy = null;
+  state.ally = actor;
+  log(G, actor, "minorAlliance", {space});
+  return true;
+};
+
+/**
+ * Russo-Turkish Wars: "If possible gain an alliance with a Balkan minor power
+ * with which you have a diplomacy marker."
+ *
+ * The shared 12.8 gate (`minorAllianceProblem`) supplies "if possible": a
+ * marker that cannot become an alliance — the minor is allied elsewhere or the
+ * five-ally cap is reached — is skipped.  When more than one marker qualifies
+ * the card prints no order, so the Russian player picks.
+ */
+const balkanAllianceCandidates = (G: ImperialElegyState): SpaceId[] =>
+  Object.entries(G.spaces)
+    .filter(([, state]) =>
+      typeof state.control === "string" &&
+      (BALKAN_MINORS as readonly string[]).includes(state.control) &&
+      state.diplomacy === "RU")
+    .map(([space]) => space as SpaceId)
+    .filter((space) => minorAllianceProblem(G, "RU", space) === null);
 
 const applyPacification = (G: ImperialElegyState, space: SpaceId, value: number): void => {
   const state = G.spaces[space];
@@ -3399,6 +3432,25 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // The target and aim restrictions live in the card's declaration policy
       // (`engine/rules.ts`): only OT, either liberation or conquest, and the
       // 13.1.2 Balkan liberation exception / conquest penalty exemption.
+      const candidates = balkanAllianceCandidates(G);
+      if (candidates.length > 1) {
+        // The card prints no order, so the Russian player chooses which of
+        // their Balkan diplomacy markers becomes an alliance.
+        openDecision(G, ctx, decision(
+          "eventTargetSpace",
+          "RU",
+          "Russo-Turkish Wars: choose the Balkan minor to ally",
+          candidates.map((id) => option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN"))),
+          {special: "russoTurkishWarsAlliance"},
+        ));
+        grantWarDeclarationEntitlement(
+          G,
+          "RU",
+          isCardId(G.resolvingCard) ? G.resolvingCard : RUSSO_TURKISH_WARS_HOME_CARD,
+        );
+        return false;
+      }
+      if (candidates.length === 1) gainMinorAlliance(G, "RU", candidates[0]);
       grantWarDeclarationEntitlement(
         G,
         "RU",
@@ -4021,6 +4073,8 @@ export const resolveCardDecision = (
       G.spaces[space].diplomacy = null;
       G.spaces[space].ally = "RU";
       log(G, "RU", "minorAlliance", {space});
+    } else if (special === "russoTurkishWarsAlliance") {
+      gainMinorAlliance(G, actor, space);
     } else if (special === "greatGame") {
       if (!rejectIndependentIndiaMarker(G, actor, space, "influence")) {
         G.spaces[space].influence = actor;

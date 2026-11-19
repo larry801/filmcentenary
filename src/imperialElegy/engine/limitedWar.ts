@@ -44,6 +44,7 @@ import {
   minorAlliesOf,
   minorController,
   setSpaceControl,
+  warDeclarationGrantsWinStability,
 } from "./rules";
 import {AU_NATIONALITIES, governmentBenefits} from "./characteristics";
 import {blockadedAt} from "./blockade";
@@ -2152,6 +2153,22 @@ export const applyVictoryOutcome = (
     changeStability(G, victory.loser, victory.stability.loser, ctx);
     stability.push({power: victory.winner, delta: victory.stability.winner});
     stability.push({power: victory.loser, delta: victory.stability.loser});
+  }
+
+  // Aux Armes, Russo-Turkish Wars and Jihad print "if you win the war gain 1
+  // stability".  The clause belongs to the side that declared with the card:
+  // a white peace (including a white peace decided by an ally knockout) is not
+  // a win, and the bonus is paid on top of 16.1's major-victory swing.
+  const declarationCard = isCardId(war.declarationCard) ? war.declarationCard : null;
+  if (
+    declarationCard !== null &&
+    warDeclarationGrantsWinStability(declarationCard) &&
+    victory.victor === "attacker" &&
+    victory.primary !== "whitePeace"
+  ) {
+    changeStability(G, war.attacker, 1, ctx);
+    stability.push({power: war.attacker, delta: 1});
+    log(G, war.attacker, "warWinStability", {card: declarationCard});
   }
 
   log(G, victory.winner !== null && isPower(victory.winner) ? victory.winner : undefined, "warVictory", {
