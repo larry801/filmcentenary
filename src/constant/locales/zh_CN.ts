@@ -1164,6 +1164,7 @@ const zh_CN: Locale = {
             power: "势力",
             turn: "首次轮次",
             image: "卡面",
+            originalImage: "原图",
             flags: "标记",
             notes: "备注",
         },

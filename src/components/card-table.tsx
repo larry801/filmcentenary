@@ -9,6 +9,7 @@ import TableHead from '@mui/material/TableHead';
 import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import {archiveCardEffectText, CardEffect, getCardName, getEffectTextById} from "./card";
+import {CardOriginalImage} from "./game-card-table";
 import './card-table.css';
 
 const DenseTable = () => {
@@ -20,6 +21,7 @@ const DenseTable = () => {
                 <TableHead>
                     <TableRow>
                         <TableCell>{i18n.chain.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.chain.gameCardTables.columns.image}</TableCell>
                         <TableCell>{i18n.chain.pub.era}</TableCell>
                         <TableCell>{i18n.chain.pub.region}</TableCell>
                         <TableCell>{i18n.chain.cardTable.cardName}</TableCell>
@@ -40,6 +42,9 @@ const DenseTable = () => {
                             <TableCell component="th" scope="row">
                                 {id.slice(1)}
                             </TableCell>
+                            <TableCell align="center">
+                                <CardOriginalImage src={`/img/${id}.png`} alt={getCardName(id)}/>
+                            </TableCell>
                             <TableCell align="right">{i18n.chain.era[c.era]}</TableCell>
                             <TableCell align="right">{i18n.chain.region[c.region]}</TableCell>
                             <TableCell align="right">
@@ -59,6 +64,7 @@ const DenseTable = () => {
                 <TableHead>
                     <TableRow>
                         <TableCell>{i18n.chain.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.chain.gameCardTables.columns.image}</TableCell>
                         <TableCell>{i18n.chain.cardTable.cardName}</TableCell>
                         <TableCell>{i18n.chain.dialog.buyCard.cost}</TableCell>
                         <TableCell>{i18n.chain.pub.vp}/{i18n.chain.pub.industryMarker}/{i18n.chain.pub.aestheticsMarker}</TableCell>
@@ -71,6 +77,9 @@ const DenseTable = () => {
                         return <TableRow key={id}>
                             <TableCell component="th" scope="row">
                                 {id}
+                            </TableCell>
+                            <TableCell align="center">
+                                <CardOriginalImage src={`/img/${id}.png`} alt={getCardName(id)}/>
                             </TableCell>
                             <TableCell align="right">
                                 {getCardName(id)}
@@ -118,6 +127,7 @@ const DenseTable = () => {
                 <TableHead>
                     <TableRow>
                         <TableCell>{i18n.chain.cardTable.cardId}</TableCell>
+                        <TableCell>{i18n.chain.gameCardTables.columns.image}</TableCell>
                         <TableCell>{i18n.chain.cardTable.cardName}</TableCell>
                         <TableCell>{i18n.chain.pub.vp}/{i18n.chain.pub.industryMarker}/{i18n.chain.pub.aestheticsMarker}</TableCell>
                         <TableCell>{i18n.chain.cardTable.effectText}</TableCell>
@@ -130,6 +140,9 @@ const DenseTable = () => {
                         return <TableRow key={id}>
                             <TableCell component="th" scope="row">
                                 {id}
+                            </TableCell>
+                            <TableCell align="center">
+                                <CardOriginalImage src={`/img/${id}.png`} alt={getCardName(id)}/>
                             </TableCell>
                             <TableCell align="right">
                                 {getCardName(id)}

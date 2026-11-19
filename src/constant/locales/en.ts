@@ -747,6 +747,7 @@ const en = {
             power: "Power",
             turn: "First turn",
             image: "Card art",
+            originalImage: "Original image",
             flags: "Flags",
             notes: "Notes",
         },

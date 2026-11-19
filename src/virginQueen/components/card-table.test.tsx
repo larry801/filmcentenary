@@ -32,4 +32,11 @@ describe("Virgin Queen card table effect text", () => {
             spy.mockRestore();
         }
     });
+
+    it("offers an expandable original card image for scanned cards", () => {
+        const html = render();
+        expect(html).toContain("原图");
+        expect(html).toContain("<details");
+        expect(html).toContain("/vq-cards/vq_1.webp");
+    });
 });
