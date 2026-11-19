@@ -980,6 +980,11 @@ export interface VQGame {
     portugueseTreasures?: number[];
     /** Galleons assigned to the Treasure Fleet escorts box. */
     treasureFleetEscorts?: number;
+    /**
+     * Rule 10.1: galleons move into *or* out of the Treasure Fleet Escorts
+     * box, "but not in both directions in the same turn".  Reset in Spring.
+     */
+    treasureFleetDirection?: "in" | "out";
     /** Number of completed circumnavigations (first 2 VP, later 1 VP). */
     circumnavigations?: number;
     /** +2 Wedding Festivities marker placed on a French marriage. */

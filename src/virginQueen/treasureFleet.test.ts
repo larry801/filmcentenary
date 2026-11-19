@@ -40,18 +40,30 @@ describe("Treasure Fleet escorts and Portuguese treasures", () => {
         expect(G.powers.spain.treasures).toEqual([3]);
     });
 
-    it("moves up to two galleons into and out of the escort box in Spring", () => {
+    it("moves up to two galleons into or out of the escort box in Spring", () => {
         const G = game();
         G.spaces.seville.naval.spain = {galley: 0, galleon: 2, racebuilt: 0, corsair: 0};
 
         expect(setTreasureFleetEscorts(G, context([], "1", "spring"), {count: 2})).toBeUndefined();
         expect(G.treasureFleetEscorts).toBe(2);
         expect(G.spaces.seville.naval.spain).toBeUndefined();
+        // Rule 10.1: galleons may move in or out, "but not in both directions
+        // in the same turn".
+        expect(setTreasureFleetEscorts(G, context([], "1", "spring"), {count: 0})).toBe(INVALID_MOVE);
+        expect(setTreasureFleetEscorts(G, context([], "1", "spring"), {count: 3})).toBe(INVALID_MOVE);
+    });
+
+    it("moves galleons out of the escort box when the Spring begins that way", () => {
+        const G = game();
+        G.treasureFleetEscorts = 2;
+        G.spaces.seville.control = "spain";
+        G.spaces.seville.naval.spain = {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
 
         expect(setTreasureFleetEscorts(G, context([], "1", "spring"), {count: 0})).toBeUndefined();
         expect(G.treasureFleetEscorts).toBe(0);
         expect(G.spaces.seville.naval.spain.galleon).toBe(2);
-        expect(setTreasureFleetEscorts(G, context([], "1", "spring"), {count: 3})).toBe(INVALID_MOVE);
+        // The other direction is then barred for the turn.
+        expect(setTreasureFleetEscorts(G, context([], "1", "spring"), {count: 2})).toBe(INVALID_MOVE);
     });
 
     it("awards one Portuguese treasure to the controller of Lisbon in Winter", () => {

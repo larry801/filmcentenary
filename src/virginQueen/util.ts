@@ -330,15 +330,18 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         deck: shuffle(ctx, scenario.cardsInPlay
             .filter((number) => {
                 const card = OFFICIAL_CARDS[number - 1];
+                // Rule 6.2: cards marked "When Catholic League Forms" are not
+                // used on Turn 1; they enter the turn after the League forms.
                 return card !== undefined && card.kind !== "home" &&
-                    (card.availableFromTurn === "variable" || (typeof card.availableFromTurn === "number" && card.availableFromTurn <= scenario.startTurn));
+                    typeof card.availableFromTurn === "number" && card.availableFromTurn <= scenario.startTurn;
             })
             .map((number) => OFFICIAL_CARDS[number - 1].id)),
         futureDeck: shuffle(ctx, scenario.cardsInPlay
             .filter((number) => {
                 const card = OFFICIAL_CARDS[number - 1];
                 return card !== undefined && card.kind !== "home" &&
-                    typeof card.availableFromTurn === "number" && card.availableFromTurn > scenario.startTurn;
+                    (card.availableFromTurn === "variable" ||
+                        (typeof card.availableFromTurn === "number" && card.availableFromTurn > scenario.startTurn));
             })
             .map((number) => OFFICIAL_CARDS[number - 1].id)),
         discard: [],
@@ -476,6 +479,39 @@ export const drawCards = (G: VQGame, ctx: Ctx, p: Power, n: number): string[] =>
 
 export const handCount = (G: VQGame, p: Power): number => G.powers[p].cards.length;
 
+/**
+ * Rule 6.3 "Mixed Hand of Cards and Treasures": events, ransom, Europe-map
+ * piracy hits and espionage results all draw a "card" at random, but when the
+ * hand mixes cards and treasures the draw may take either kind:
+ *   - more cards than treasures: draw from the cards (ignore treasures)
+ *   - more treasures than cards, or an equal number: draw from the treasures
+ * Home cards are ignored for the count and can never be drawn.
+ *
+ * Returns the treasure value when a treasure is drawn, or the card id.
+ */
+export const drawRandomMixedFromHand = (
+    G: VQGame,
+    ctx: Ctx,
+    p: Power,
+): {kind: "card"; cardId: string} | {kind: "treasure"; value: number} | undefined => {
+    const cards = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
+    const treasures = G.powers[p].treasures;
+    const treasureFirst = treasures.length > 0 && treasures.length >= cards.length;
+    if (treasureFirst) {
+        const index = shuffle(ctx, treasures.map((_, i) => i))[0];
+        return {kind: "treasure", value: treasures.splice(index, 1)[0]};
+    }
+    if (cards.length > 0) {
+        const cardId = shuffle(ctx, cards)[0];
+        return {kind: "card", cardId};
+    }
+    if (treasures.length > 0) {
+        const index = shuffle(ctx, treasures.map((_, i) => i))[0];
+        return {kind: "treasure", value: treasures.splice(index, 1)[0]};
+    }
+    return undefined;
+};
+
 export const removeCardFromHand = (G: VQGame, p: Power, cardId: string): boolean => {
     const hand = G.powers[p].cards;
     const idx = hand.indexOf(cardId);
@@ -541,7 +577,11 @@ export const availableHomeCards = (G: VQGame, p: Power): string[] => {
         if (card?.kind !== "home" || card.power !== p) {
             continue;
         }
-        if (typeof card.availableFromTurn !== "number" || card.availableFromTurn > G.year) {
+        if (card.availableFromTurn === "variable") {
+            // Rule 6.2: "When Catholic League Forms" cards enter play the turn
+            // after the League has formed.
+            if (G.catholicLeagueFormed !== true) continue;
+        } else if (typeof card.availableFromTurn !== "number" || card.availableFromTurn > G.year) {
             continue;
         }
         if (G.removed.includes(card.id)) {
@@ -861,7 +901,10 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     const eligibleFuture: string[] = [];
     G.futureDeck = G.futureDeck.filter((id) => {
         const card = officialCardById(id);
-        if (typeof card?.availableFromTurn === "number" && card.availableFromTurn <= G.year) {
+        const released = card?.availableFromTurn === "variable"
+            ? G.catholicLeagueFormed === true
+            : typeof card?.availableFromTurn === "number" && card.availableFromTurn <= G.year;
+        if (released) {
             eligibleFuture.push(id);
             return false;
         }
@@ -905,12 +948,28 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
         }
     }
     for (const p of POWERS) G.powers[p].marriageCardModifier = 0;
+    // Rule 6.2: "Once the card total has been updated, remove all +1/–1 Card
+    // markers except those from foreign wars still in progress or from the
+    // construction of the Suez Canal."  Foreign wars and Suez are persistent;
+    // every other marker (for example Richard Topcliffe) lasts one deal only.
+    for (const p of POWERS) {
+        const ongoingForeignWars = G.foreignWars[p] !== undefined ? 1 : 0;
+        const suezMarker = p === "ottoman" && G.suezDone ? 1 : 0;
+        G.powers[p].cardModifier = suezMarker - ongoingForeignWars;
+    }
     G.dealtYear = G.year;
     G.springDone = [];
+    // Rule 10.1: the Treasure Fleet escort direction resets with the new Spring.
+    delete G.treasureFleetDirection;
     G.patronizedThisTurn = [];
     G.cardDrawDone = [];
-    if (G.scenario !== "tutorial" && G.powers.spain.treasures.length === 0 && (G.spanishTreasureRow ?? []).length === 0) {
-        G.spanishTreasureRow = Array.from({length: G.philippinesSpanish === true ? 5 : 4}, () => 1 + die(ctx, 5) - 1);
+    // Rule 6.3/8.4: "Always fill 4 of the boxes with treasures for Spain; fill
+    // the 5th box if Spain controls the Philippines."  The row is refreshed
+    // every Card Draw, independent of what Spain holds in hand (Winter 20.7
+    // empties the row into his hand, so the old hand-empty test skipped it).
+    if (G.scenario !== "tutorial") {
+        const boxes = G.philippinesSpanish === true ? 5 : 4;
+        G.spanishTreasureRow = Array.from({length: boxes}, () => 1 + die(ctx, 5) - 1);
     }
     resolveColonies(G, ctx);
 };

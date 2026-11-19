@@ -91,7 +91,9 @@ describe("Colony Table at Card Draw (rule 8.4)", () => {
         G.year = 1;
         const onBegin = VirginQueenGameDef.phases!.cardDraw!.onBegin as (g: VQGame, c: Ctx) => void;
 
-        onBegin(G, context([4, 4]));
+        // The Card Draw first fills the four Spanish treasure boxes (rule 6.3),
+        // then rolls the colony (rule 8.4): 4+4 = 8 = "none".
+        onBegin(G, context([6, 6, 6, 6, 4, 4]));
 
         expect(G.dealtYear).toBe(1);
         expect(G.log.join("\n")).toContain("Colony florida");

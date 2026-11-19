@@ -94,6 +94,7 @@ import {
     discardCard,
     displaceNonFriendlyUnits,
     drawCards,
+    drawRandomMixedFromHand,
     ensureLand,
     ensureNaval,
     exactLand,
@@ -3645,6 +3646,14 @@ export const setTreasureFleetEscorts = (G: VQGame, ctx: Ctx, args: {count: numbe
     const count = Number(args.count);
     const current = G.treasureFleetEscorts ?? 0;
     if (!Number.isInteger(count) || count < 0 || count > 2) return INVALID_MOVE;
+    // Rule 10.1: galleons may move "from home ports to the Treasure Fleet
+    // Escorts box ... or vice versa (but not in both directions in the same
+    // turn)".  Record which direction this Spring used.
+    const direction: "in" | "out" = count > current ? "in" : "out";
+    if (count !== current) {
+        if (G.treasureFleetDirection !== undefined && G.treasureFleetDirection !== direction) return INVALID_MOVE;
+        G.treasureFleetDirection = direction;
+    }
     if (count > current) {
         let need = count - current;
         for (const id of ["seville", "corunna", "lisbon"]) {
@@ -4215,14 +4224,20 @@ export const ransom = (G: VQGame, ctx: Ctx, args: { leaderId: string }): void | 
     if (def === undefined || st === undefined || (def.power !== p && !tutorialHreRansom) || st.location !== "captured") {
         return INVALID_MOVE;
     }
-    const usable = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
-    if (usable.length === 0) {
+    // Rule 9.3 + 6.3: the ransom is a random "card" draw from the paying
+    // power's hand, and the mixed-hand rule lets that draw take a treasure
+    // when the hand holds at least as many treasures as cards.
+    const paid = drawRandomMixedFromHand(G, ctx, p);
+    if (paid === undefined) {
         return INVALID_MOVE;
     }
-    const paid = shuffle(ctx, usable)[0];
-    removeCardFromHand(G, p, paid);
     const captor = st.capturedBy ?? (tutorialHreRansom ? "ottoman" : p);
-    G.powers[captor].cards.push(paid);
+    if (paid.kind === "card") {
+        removeCardFromHand(G, p, paid.cardId);
+        G.powers[captor].cards.push(paid.cardId);
+    } else {
+        G.powers[captor].treasures.push(paid.value);
+    }
     const dest = capitalOf(G, tutorialHreRansom ? "hre" : p) ?? KEY_SPACES.find((id) => G.spaces[id].control === (tutorialHreRansom ? "hre" : p));
     if (dest === undefined) {
         return INVALID_MOVE;

@@ -6,7 +6,7 @@ import {ownerOf} from "./ownership";
 import {cardById} from "./constant/cards";
 import i18n from "../constant/i18n";
 import {TUTORIAL_FORTRESSES, tutorialSpaceAllowed} from "./tutorial";
-import {addVp, atWar, bestPiracy, hits, isSeaZone, leaderPower, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
+import {addVp, atWar, bestPiracy, drawRandomMixedFromHand, hits, isSeaZone, leaderPower, powerLabel, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
 
 const stacks = (G: VQGame, location: string) => isSeaZone(location) ? G.seaZones[location as SeaZoneID].naval : G.spaces[location].naval;
 const adjacentLocations = (zone: SeaZoneID): string[] => [...zonePorts(zone).filter(tutorialSpaceAllowed), ...SEA_ZONE_BY_ID[zone].adjacent];
@@ -28,7 +28,11 @@ export const piracyOptions = (G: VQGame): {id: string; label: string}[] => {
             if (count > 0) result.push({id: `ship:${location}:${kind}`, label: i18n.chain.vq.engine.removeFleet.replace("{space}", mapName(location)).replace("{kind}", kind), reward: "ship"});
         }
     }
-    if (G.powers[pending.target].cards.some((id) => cardById(id).kind !== "home")) result.push({id: "card", label: i18n.chain.vq.engine.allowRandomDraw, reward: "card"});
+    // Rule 16.4 step 5b + 6.3: the random draw may take a card *or* a treasure,
+    // depending on the mixed-hand counts.
+    const hasCardOrTreasure = G.powers[pending.target].cards.some((id) => cardById(id).kind !== "home") ||
+        G.powers[pending.target].treasures.length > 0;
+    if (hasCardOrTreasure) result.push({id: "card", label: i18n.chain.vq.engine.allowRandomDraw, reward: "card"});
     if (G.scenario === "tutorial") {
         if (pending.power === "ottoman") {
             if ((G.tutorialEffects?.piracyVp ?? 0) < 10) result.push({id: "vp", label: i18n.chain.vq.engine.giveOttomanPiracyVp, reward: "vp"});
@@ -124,9 +128,16 @@ export const choosePiracy = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
     }
     if (action === "ship") stacks(G, location)[pending.target]![kind as "galley"] -= 1;
     if (action === "card") {
-        const id = shuffle(ctx, G.powers[pending.target].cards.filter((card) => cardById(card).kind !== "home"))[0];
-        removeCardFromHand(G, pending.target, id);
-        G.powers[pending.power].cards.push(id);
+        // Rule 6.3: the mixed-hand draw may hand over a treasure instead.
+        const drawn = drawRandomMixedFromHand(G, ctx, pending.target);
+        if (drawn?.kind === "card") {
+            removeCardFromHand(G, pending.target, drawn.cardId);
+            G.powers[pending.power].cards.push(drawn.cardId);
+            pushLog(G, `${powerLabel(pending.power)} takes ${cardById(drawn.cardId).name} from the hand.`);
+        } else if (drawn?.kind === "treasure") {
+            G.powers[pending.power].treasures.push(drawn.value);
+            pushLog(G, `${powerLabel(pending.power)} takes a treasure from the hand.`);
+        }
     }
     if (action === "vp") {
         if (G.scenario === "tutorial") {
