@@ -5130,8 +5130,9 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
             G.pendingBattle!.transported = true;
         } else {
             // Rule 16.3.4: a lost field battle at the port eliminates the
-            // transported units instead of retreating them.
-            fieldBattle(G, ctx, args.to, p, enemies, args.from, true, [p]);
+            // transported units instead of retreating them.  Rule 14 step 2:
+            // only the transported formation contributes dice.
+            fieldBattle(G, ctx, args.to, p, enemies, args.from, true, [p], formationCapacity(leaders));
         }
     } else if (isFortifiedSpace(G, args.to) && !friendlyControlled(G, p, args.to)) destination.siege = {by: p, sinceImpulse: G.impulse};
     G.navalTransportImpulse = G.impulse;
@@ -5247,18 +5248,23 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     if (G.tutorialEffects?.stormImpulse === G.impulse) G.tutorialEffects.movedAfterStorm?.push(to);
     // Marching the besiegers away lifts the siege (rule 15.3).
     const oldSiege = G.spaces[from].siege;
-    if (oldSiege !== undefined && besiegerOwners(G, from).includes(p)) {
-        const stillBesieging = totalLand(G, from, besiegerOwners(G, from));
-        const defenders = defenderLandCount(G, from);
-        if (stillBesieging <= defenders) {
-            delete G.spaces[from].siege;
-            pushLog(G, `The siege of ${SPACE_BY_ID[from].name} is lifted.`);
-            // Rule 15.3: the remaining besiegers must now retreat.
-            const captor = isPower(G.spaces[from].control) ? G.spaces[from].control : p;
-            for (const owner of [...besiegerOwners(G, from)]) {
-                if (!isPower(owner)) continue;
-                const leaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
-                retreatLand(G, owner, from, [owner], leaders, captor);
+    if (oldSiege !== undefined) {
+        // Snapshot the besieging owners before the siege is deleted, because
+        // `besiegerOwners` derives them from `state.siege` (now gone).
+        const besiegers = [...besiegerOwners(G, from)];
+        if (besiegers.includes(p)) {
+            const stillBesieging = totalLand(G, from, besiegers);
+            const defenders = defenderLandCount(G, from);
+            if (stillBesieging <= defenders) {
+                delete G.spaces[from].siege;
+                pushLog(G, `The siege of ${SPACE_BY_ID[from].name} is lifted.`);
+                // Rule 15.3: the remaining besiegers must now retreat.
+                const captor = isPower(G.spaces[from].control) ? G.spaces[from].control : p;
+                for (const owner of besiegers) {
+                    if (!isPower(owner)) continue;
+                    const leaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+                    retreatLand(G, owner, from, [owner], leaders, captor);
+                }
             }
         }
     }
@@ -5272,7 +5278,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     const defenders = totalLand(G, to, hostile);
     if (defenders > 0) {
         if (intercepted) {
-            fieldBattle(G, ctx, to, p, hostile, from, false, [unitPower]);
+            fieldBattle(G, ctx, to, p, hostile, from, false, [unitPower], formationCapacity(leaders));
             return;
         }
         if (G.scenario === "tutorial") {
@@ -5312,7 +5318,8 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
                 }
             }
         } else {
-            fieldBattle(G, ctx, to, p, hostile, from, false, [unitPower]);
+            // Rule 14 step 2: only the moving formation contributes dice.
+            fieldBattle(G, ctx, to, p, hostile, from, false, [unitPower], formationCapacity(leaders));
         }
         return;
     }

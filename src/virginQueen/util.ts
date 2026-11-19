@@ -2910,7 +2910,10 @@ const retreatDestination = (G: VQGame, p: Power, from: string, avoid: string[]):
         .map((n) => n.id)
         .filter((id) => !avoid.includes(id))
         .filter((id) => !G.spaces[id].unrest)
-        .filter((id) => !spaceHasEnemyLand(G, p, id))
+        // Rules 14.1/15.3: a retreat may not enter a space containing units
+        // that are not from (or allied to) the retreating power.  This is
+        // stricter than `spaceHasEnemyLand`, which only counts at-war powers.
+        .filter((id) => ownersWithLand(G, id).every((owner) => friendlyController(G, p, owner)))
         .filter((id) => friendlyControlled(G, p, id));
     if (options.length === 0) {
         return undefined;
@@ -3015,11 +3018,19 @@ export const fieldBattle = (
      * losses and retreats all follow the units that actually entered.
      */
     attackerOwners: Controller[] = [attacker],
+    /**
+     * Rule 14 step 2: "If the attacker has more units in the space than
+     * allowed in the moving formation, excess units do not contribute dice."
+     * The cap applies only to the moving formation, so callers that resolve a
+     * relief force (15.2) pass `undefined` to keep every defender-free unit.
+     */
+    attackerFormationCap?: number,
 ): BattleResult => {
     const attackers = attackerOwners.length > 0 ? attackerOwners : [attacker];
     const attackerUnits = totalLand(G, space, attackers);
     const defenderUnits = totalLand(G, space, defenderOwners);
-    const aDice = attackerUnits + bestBattle(G, space, attackers, "army");
+    const attackerDiceUnits = attackerFormationCap === undefined ? attackerUnits : Math.min(attackerUnits, attackerFormationCap);
+    const aDice = attackerDiceUnits + bestBattle(G, space, attackers, "army");
     const dDice = defenderUnits + bestBattle(G, space, defenderOwners, "army") + 1;
     const aRolls = roll(ctx, aDice);
     const dRolls = roll(ctx, dDice);
@@ -3946,17 +3957,24 @@ export const resolveMarriage = (G: VQGame, ctx: Ctx, betrothal: { male: string; 
         G.marriages += 1;
         applyRulerDeath(G, male.id);
         // Rule 21.1: if the husband was an army leader, remove him from
-        // the map and place a default leader if he was the only one.
-        const leaderDef = LEADER_BY_ID[male.id];
+        // the map and place a default leader if he was the only one.  Some
+        // royals double as army leaders under a different id (William of
+        // Orange -> `orange`, Henry of Navarre -> `navarre`).
+        const ARMY_LEADER_FOR_ROYAL: Record<string, string> = {
+            williamOrange: "orange",
+            henryIV: "navarre",
+        };
+        const leaderId = ARMY_LEADER_FOR_ROYAL[male.id] ?? male.id;
+        const leaderDef = LEADER_BY_ID[leaderId];
         if (leaderDef !== undefined && leaderDef.kind === "army") {
-            const state = G.leaders[male.id];
+            const state = G.leaders[leaderId];
             if (state !== undefined) {
                 if (G.spaces[state.location] !== undefined) {
-                    G.spaces[state.location].leaders = G.spaces[state.location].leaders.filter((l) => l !== male.id);
+                    G.spaces[state.location].leaders = G.spaces[state.location].leaders.filter((l) => l !== leaderId);
                 } else if (G.seaZones[state.location as SeaZoneID] !== undefined) {
-                    G.seaZones[state.location as SeaZoneID].leaders = G.seaZones[state.location as SeaZoneID].leaders.filter((l) => l !== male.id);
+                    G.seaZones[state.location as SeaZoneID].leaders = G.seaZones[state.location as SeaZoneID].leaders.filter((l) => l !== leaderId);
                 }
-                delete G.leaders[male.id];
+                delete G.leaders[leaderId];
             }
             ensureDefaultLeader(G, leaderDef.power);
         }
@@ -4798,14 +4816,17 @@ export type HreReplacementChoice = "regular" | "mercs" | "marker";
 export const applyHreReplacement = (G: VQGame, choice: HreReplacementChoice): boolean => {
     const pending = G.pendingHreReplacement;
     if (pending === undefined) return false;
+    // Rule 20.6: the replacement goes to the HRE capital, which moves from
+    // Vienna to Prague when #87 Rudolf II relocates it.
+    const capital = capitalSpacesFor(G, "hre")[0];
     if (choice === "regular") {
         if (!pending.canRegular) return false;
-        addLand(G, "vienna", "hre", "regular", 1);
-        pushLog(G, "Holy Roman replacement: +1 regular in Vienna.");
+        addLand(G, capital, "hre", "regular", 1);
+        pushLog(G, `Holy Roman replacement: +1 regular in ${SPACE_BY_ID[capital].name}.`);
     } else if (choice === "mercs") {
         if (!pending.canMercs) return false;
-        addLand(G, "vienna", "hre", "merc", 2);
-        pushLog(G, "Holy Roman replacement: +2 mercenaries in Vienna.");
+        addLand(G, capital, "hre", "merc", 2);
+        pushLog(G, `Holy Roman replacement: +2 mercenaries in ${SPACE_BY_ID[capital].name}.`);
     } else {
         if (!pending.canMarker || G.mercenariesForHire !== 0) return false;
         G.mercenariesForHire = 4;
@@ -5000,10 +5021,27 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
         delete G.powers[p].jiltedCp;
         G.powers[p].cardPlayed = false;
         G.powers[p].passed = false;
+    }
+    // Rule 20.9: "All influence markers in a 'Resolved this turn' box on the
+    // Diplomatic Influence Table are reset to their default values."  Only the
+    // tracks that were actually resolved this turn reset; influence bought and
+    // never resolved persists into the next turn.
+    const resolvedMinors = new Set<MinorPower>(G.minorDiplomacyResolved ?? []);
+    for (const p of POWERS) {
         // Keep the non-player HRE's Papacy/Venice/Ireland markers set aside
         // until it is activated (Scenario Book p. 12).
-        G.powers[p].influence = G.scenario !== "tutorial" && G.playerPowers !== undefined && p === "hre" &&
-            G.activatedMajors?.hre === undefined ? {} : {...G.minorInfluenceDefaults[p]};
+        if (G.scenario !== "tutorial" && G.playerPowers !== undefined && p === "hre" &&
+            G.activatedMajors?.hre === undefined) {
+            G.powers[p].influence = {};
+            continue;
+        }
+        const influence = {...G.powers[p].influence};
+        for (const minor of resolvedMinors) {
+            const defaultValue = G.minorInfluenceDefaults[p][minor];
+            if (defaultValue === undefined) delete influence[minor];
+            else influence[minor] = defaultValue;
+        }
+        G.powers[p].influence = influence;
     }
     // Rule 20.2 (discard unused treasures) precedes rule 20.4, so the treasures
     // brought home by returning sea captains are added after the hand reset and
@@ -5038,6 +5076,10 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             delete s.siege;
         }
     }
+    // Rule 7 phase 6 order: resolve marriages (21.1) first, then award Virgin
+    // Queen VP (21.2), then age royals (21.3).  Both the VP check and the
+    // aging roll read the `married` flag, so they must run after the wedding.
+    resolveMarriages(G, ctx);
     // The Virgin Queen bonus: up to 5 VP for years Elizabeth remains unmarried (21.2).
     const elizabeth = G.royals.find((r) => r.id === "elizabeth");
     const virginQueenVp = G.virginQueenVpAwarded ?? 0;
@@ -5074,7 +5116,6 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             r.eligibility = next;
         }
     }
-    resolveMarriages(G, ctx);
     // Philip II's prearranged Turn 1 marriage is checked in this phase, before
     // the next year's card draw consumes the penalty marker (21.1).
     settlePrearrangedValoisMarriage(G);
