@@ -83,6 +83,13 @@ without a DOM in `components/map-geometry.test.ts`:
   at rather than whichever is painted on top;
 - the wheel and pinch zoom about the pointer, and panning is clamped so the
   board always covers the viewport;
+- a pinch **sticks**: the zoom a pinch reaches is the zoom that remains. Fingers
+  never leave the glass together, and the finger left behind drifts a few pixels
+  before it goes; that drift pans the zoomed view (`panBy`) instead of dragging
+  it back to the view the whole gesture started from. A resize of the map
+  element — the phone's browser chrome sliding away, the bottom dock opening —
+  does not re-frame either, because the view is in board units and only the
+  first measurement needs a frame;
 - place names are placed greedily by importance (selection, legal targets,
   occupied spaces, capitals, the rest), never overlapping each other or a
   neighbouring marker's counter, and more names are revealed as the player zooms
