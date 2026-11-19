@@ -17,6 +17,7 @@ import React from "react";
 import type {LogEntry} from "../types";
 import {CARD_BY_ID} from "../engine/deck";
 import {bi} from "./boardHelpers";
+import {cardDisplayName} from "./cardDisplay";
 import {CardInspector} from "./CardInspector";
 import {logSegments} from "./logText";
 import type {CardFaceMode} from "./preferences";
@@ -43,7 +44,7 @@ const LogCard = ({id, locale, onOpen}: {
   // `logSegments` only marks cards it could resolve, so this is a guard rather
   // than a branch that ever renders.
   if (card === undefined) return <>{id}</>;
-  const title = locale === "zh_CN" ? card.titleZh : card.title;
+  const title = cardDisplayName(card, locale);
   return (
     <button
       type="button"

@@ -18,6 +18,7 @@ import {CardFace} from "./CardFace";
 import {cardImageSrc} from "./preferences";
 import type {CardFaceMode} from "./preferences";
 import {ieStringsFor} from "./i18n";
+import {cardDisplayName} from "./cardDisplay";
 import {useFocusTrap} from "./useFocusTrap";
 
 export interface CardInspectorProps {
@@ -89,7 +90,7 @@ export const CardInspector = ({
   const card = "card" in face ? face.card : undefined;
   const goal = "goal" in face ? face.goal : undefined;
   const data = goal ?? card!;
-  const title = locale === "zh_CN" ? data.titleZh : data.title;
+  const title = cardDisplayName(data, locale);
   const subtitle = goal
     ? `${goal.number} · ${goal.vp} VP`
     : `${card!.number === undefined ? "" : `${card!.number} · `}${card!.cp} CP`;

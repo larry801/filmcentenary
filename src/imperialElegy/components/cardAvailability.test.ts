@@ -269,11 +269,15 @@ describe("cardAvailability", () => {
     expect(closed.industOk).toBe(false);
     expect(closed.reasons).toContain("Industrialize only during your Action impulse");
 
-    // A mandatory event is not an Industry Card, and the rules say so with the
-    // card-type line rather than an industry reason.
+    // Mandatory events and the mandatory response may be placed into the
+    // Industry Card slot like any other card.
+    for (const type of ["mandatory", "mandatoryResponse"] as const) {
+      const id = actionCardsOfType(type)[0];
+      expect(cardAvailability(input(G, id)).industOk).toBe(true);
+    }
     const mandatoryId = mandatoryCard();
     const mandatory = cardAvailability(input(G, mandatoryId));
-    expect(mandatory.industOk).toBe(false);
+    expect(mandatory.industOk).toBe(true);
     expect(mandatory.reasons).not.toContain("Industrialize only during your Action impulse");
     expect(mandatory.reasons).not.toContain("A card is already industrializing");
 

@@ -6,6 +6,7 @@ import {cardById} from "../engine/deck";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
 import {PHASE_LABEL, bi} from "./boardHelpers";
+import {cardDisplayName} from "./cardDisplay";
 import {currentGwImpulse, gwCanEndTurn, gwFinishImpulseProblem} from "../engine/gwImpulse";
 import {gwImpulseReasonText} from "./boardHelpers";
 import {RuleLink} from "./RuleRef";
@@ -128,7 +129,7 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
             <div className="ie-gw-front-list">
               {(gw.combatCardsInFront ?? []).map((entry, index) => {
                 const card = cardById(entry.cardId);
-                const title = locale === "zh_CN" ? card.titleZh : card.title;
+                const title = cardDisplayName(card, locale);
                 const stateLabel = entry.faceup ? bi(locale, "Face up", "明置") : bi(locale, "Face down", "暗置");
                 return (
                   <div key={`${entry.cardId}-${index}`} className={`ie-gw-front-card ${entry.faceup ? "faceup" : "facedown"}`}
@@ -145,7 +146,7 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
             <span className="ie-inline" data-testid="ie-gw-gift">
               <select className="ie-select" data-testid="ie-gw-gift-card" value={giftCardValue}
                 onChange={(e) => setGiftCard(e.target.value)} title={bi(locale, "Faceup combat card to give", "要赠予的明置战斗牌")}>
-                {myFaceupCombat.map((cardId) => <option key={cardId} value={cardId}>{cardById(cardId).title}</option>)}
+                {myFaceupCombat.map((cardId) => <option key={cardId} value={cardId}>{cardDisplayName(cardById(cardId), locale)}</option>)}
               </select>
               <select className="ie-select" data-testid="ie-gw-gift-to" value={giftToValue}
                 onChange={(e) => setGiftTo(e.target.value)} title={bi(locale, "Allied recipient", "受赠盟友")}>

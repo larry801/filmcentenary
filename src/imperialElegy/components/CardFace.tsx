@@ -2,6 +2,7 @@ import React from "react";
 import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
 import {IELocale, ieStringsFor, type IEStrings} from "./i18n";
+import {cardDisplayName} from "./cardDisplay";
 
 const WIDTH = 300;
 const INSET = 18;
@@ -150,10 +151,10 @@ export const CardFace = React.memo((props: CardFaceProps) => {
   const t: IEStrings = props.t ?? ieStringsFor(locale);
   const uid = React.useId();
   const kind = goal ? "goal" : card!.kind;
-  const title = locale === "zh_CN" ? data.titleZh : data.title;
+  const title = cardDisplayName(data, locale);
   const text = locale === "zh_CN" ? data.textZh : data.text;
   const translation = locale === "zh_CN" ? data.text : data.textZh;
-  const translatedTitle = locale === "zh_CN" ? data.title : data.titleZh;
+  const translatedTitle = cardDisplayName(data, locale === "zh_CN" ? "en" : "zh_CN");
   const titleLines = wrapText(title, 23, TEXT_WIDTH);
   const bodyLines = wrapText(text, BODY_SIZE, TEXT_WIDTH);
   const titleBottom = 112 + titleLines.length * 28;
