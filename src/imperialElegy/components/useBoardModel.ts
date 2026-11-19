@@ -265,13 +265,26 @@ export const useBoardModel = ({
   const gw = G.gw;
   const battle = G.battle;
   // When a war (or the Great War) starts, bring its panel into view once; the
-  // player can still switch back to Action without the tab fighting them.
+  // player can still switch back to Action without the tab fighting them.  Both
+  // shells are driven: a desktop turn panel reads `railTab`, and a phone's one
+  // bottom sheet reads `mobileTab`.  Declaring a war used to leave the reader on
+  // Orders, where the declaration appeared to have done nothing.
   const warWasActive = React.useRef(war !== null || gw !== null);
   React.useEffect(() => {
     const hasWar = war !== null || gw !== null;
-    if (hasWar && !warWasActive.current) setRailTab("war");
+    if (hasWar && !warWasActive.current) {
+      setRailTab("war");
+      // The phone's War body only shows while its sheet is open, so the same
+      // edge brings the sheet up at half height (the decision edge does the
+      // same); a reader who collapses it afterwards keeps it collapsed.
+      setMobileTab("war");
+      if (isPhone) {
+        setTrayOpen(true);
+        setTrayExpanded(false);
+      }
+    }
     warWasActive.current = hasWar;
-  }, [war, gw]);
+  }, [war, gw, isPhone]);
 
   // A decision arriving on a phone brings the one bottom sheet up to half
   // height on the Orders tab.  It fires on the false→true edge only, so a

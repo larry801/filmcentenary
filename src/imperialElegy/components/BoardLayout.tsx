@@ -52,6 +52,7 @@ import {Toast} from "./Toast";
 import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {MobileDock, type MobileDockTab} from "./MobileDock";
 import type {MobileTab} from "./modelValues";
+import {mobileTabForTurnTab, resolveTurnTab, turnTabForMobileTab, type TurnTab} from "./turnPanelTab";
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
 
@@ -498,6 +499,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
     moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast, goalCounts,
     isPhone, mobileTab, setMobileTab, trayOpen, setTrayOpen, trayExpanded, setTrayExpanded, isCurrentSeat,
+    railTab, setRailTab,
   } = core;
   const {selected, onSelect, modePill, mapTargets, mapFocusedTarget, chooser} = interaction;
   // The one definition of "a decision is owed and on screen".  The panel uses
@@ -583,7 +585,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   // The turn panel keeps its own tabs on desktop; on a phone the dock's tab
   // chooses its body, and Hand/Mat have no counterpart there (their bodies are
   // the other two panels), so they leave Orders in front.
-  const phoneTurnTab = activeMobileTab === "war" ? "war" : activeMobileTab === "log" ? "log" : "action";
+  const phoneTurnTab = turnTabForMobileTab(activeMobileTab);
 
   const displayMenu = (
     <DisplayMenu
@@ -705,7 +707,17 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             decisionBadge={pending !== null && viewer !== null && pending.power === viewer}
             confirmActions={confirmActions}
             warBadge={war.war ? <Icon name="crossed-sabres" size={14}/> : undefined}
-            activeTab={isPhone ? phoneTurnTab : undefined}
+            // A war starting brings its panel to the front once, on both shells:
+            // the desktop turn panel's tab comes from `railTab`, and the phone's
+            // one bottom sheet opens on its War body.  Without this the player
+            // declared a war and stayed on the Orders page, so the declaration
+            // looked like it had done nothing.
+            activeTab={isPhone ? phoneTurnTab : resolveTurnTab(railTab, warVisible)}
+            onTabChange={(tab) => {
+              const next = tab as TurnTab;
+              if (isPhone) setMobileTab(mobileTabForTurnTab(next));
+              else setRailTab(next);
+            }}
             tabs={{
               action: (
                 <>

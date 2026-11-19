@@ -16,6 +16,7 @@ import {bi} from "./boardHelpers";
 import type {PhaseAction} from "./PhaseActions";
 import {PhaseActions} from "./PhaseActions";
 import {useRovingTabs} from "./useRovingTabs";
+import {resolveTurnTab, turnTabKeys} from "./turnPanelTab";
 
 export interface TurnPanelProps {
   locale: "en" | "zh_CN";
@@ -63,8 +64,10 @@ export const TurnPanel = ({
     else setInternal(key);
   };
   // A war tab that disappears while selected must not leave the panel empty.
-  const keys = warVisible ? ["action", "war", "log"] : ["action", "log"];
-  const selected = keys.includes(active) ? active : "action";
+  // The keys and the fallback are the shared `turnPanelTab` contract, so the
+  // board's `railTab` and the panel can never disagree about what exists.
+  const keys = turnTabKeys(warVisible);
+  const selected = resolveTurnTab(active, warVisible);
   const roving = useRovingTabs(keys, selected, choose);
 
   const labels: Record<string, string> = {
