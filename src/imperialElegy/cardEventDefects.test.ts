@@ -53,6 +53,16 @@ const setup = (power: string, turn = 3) => {
   return G;
 };
 
+/** 12.16/13.4: make Bavaria a legal land-battle target for France. */
+const declareOnBavaria = (G: any): void => {
+  G.war = {
+    attacker: "FR", defender: "Bavaria", attackerAllies: [], defenderAllies: [],
+    attackerMinors: [], defenderMinors: ["Bavaria"], warAim: "conquest",
+    objectives: ["bavaria"], status: "maneuver", budgets: {}, initiative: [],
+    treaties: [], victor: null, truceTurns: 0, passed: [], startedTurn: 3,
+  };
+};
+
 /** Play one card for its event and return the state. */
 const play = (id: string, power: string, turn = 3, dice: number[] = []) => {
   const G = setup(power, turn);
@@ -165,6 +175,9 @@ describe("A083 Quagmire", () => {
 
 describe("A080 Machine Guns applies to land battles against non-rebels only", () => {
   const buildLand = (G: any, defenderIsRebel: boolean) => {
+    // 12.16/13.4: the land battle needs the declaration that makes Bavaria a
+    // belligerent (a rebel defender is always a legal target).
+    declareOnBavaria(G);
     for (const unit of Object.values(G.units) as any[]) {
       if (unit.space === "bavaria") unit.steps = 0;
     }
@@ -229,6 +242,7 @@ describe("A091 Hydraulic Recoil applies the CRT footnotes", () => {
     const G = setup("FR");
     G.persistent.hydraulicRecoil = true;
     // A differential of 0 is the printed `**` row (1/1 losses, attacker wins).
+    declareOnBavaria(G);
     const battle: any = beginLandBattle(G, makeCtx(), "FR", "alsace-lorraine", "bavaria");
     G.battle = battle;
     passSupport(G);
@@ -243,6 +257,7 @@ describe("A091 Hydraulic Recoil applies the CRT footnotes", () => {
   test("the `*` row asks the victor and applies the extra loss on request", () => {
     const G = setup("FR");
     G.persistent.hydraulicRecoil = true;
+    declareOnBavaria(G);
     const battle: any = beginLandBattle(G, makeCtx(), "FR", "alsace-lorraine", "bavaria");
     G.battle = battle;
     passSupport(G);
@@ -264,6 +279,7 @@ describe("A091 Hydraulic Recoil applies the CRT footnotes", () => {
   test("declining the `*` row leaves the losses alone", () => {
     const G = setup("FR");
     G.persistent.hydraulicRecoil = true;
+    declareOnBavaria(G);
     const battle: any = beginLandBattle(G, makeCtx(), "FR", "alsace-lorraine", "bavaria");
     G.battle = battle;
     passSupport(G);
@@ -275,6 +291,7 @@ describe("A091 Hydraulic Recoil applies the CRT footnotes", () => {
 
   test("is inert without the card", () => {
     const G = setup("FR");
+    declareOnBavaria(G);
     const battle: any = beginLandBattle(G, makeCtx(), "FR", "alsace-lorraine", "bavaria");
     G.battle = battle;
     passSupport(G);

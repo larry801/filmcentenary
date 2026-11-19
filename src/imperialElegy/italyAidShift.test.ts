@@ -14,7 +14,7 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {applyItalyAidShift, seekingAidSlots} from "./engine/limitedWar";
-import {declareWar, resolvePending} from "./moves";
+import {chooseAllianceShift, declareWar, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -128,6 +128,10 @@ describe("13.4.2 / 14.2 aiding a unified Italy", () => {
     // "both Italy and the aiding player will shift away from the attacker."
     expect(G.war?.defender).toBe("AU");
     expect(G.war?.minorTarget).toEqual({minor: "Italy", ally: "AU"});
+    // 8.2: both chits are neutral, so the defending ally picks the box first.
+    expect(G.war?.defenderShift?.choice).toBe(true);
+    expect(G.powers.AU.alliance).toBe("neutral");
+    expect(chooseAllianceShift(G, makeCtx([], seat("AU")), "te")).toBeUndefined();
     expect(G.powers.AU.alliance).toBe("teAligned");
     expect(G.persistent.italyAlliance).toBe("teAligned");
     const italyShift = G.log.filter((entry) => entry.key === "allianceShifted" && entry.args?.italy === true);
@@ -176,6 +180,7 @@ describe("13.4.2 / 14.2 aiding a unified Italy", () => {
     beginAction(G);
     expect(declareWar(G, makeCtx([1, 2], seat("GE")), {minor: "Italy"}, "conquest", ["naples"], 2)).toBeUndefined();
     expect(resolvePending(G, makeCtx([], seat("AU")), "aid")).toBeUndefined();
+    expect(chooseAllianceShift(G, makeCtx([], seat("AU")), "te")).toBeUndefined();
     expect(G.powers.AU.alliance).toBe("teAligned");
     expect(G.persistent.italyAlliance).toBe("taAligned");
   });
@@ -188,6 +193,7 @@ describe("13.4.2 / 14.2 aiding a unified Italy", () => {
     beginAction(G);
     expect(declareWar(G, makeCtx([], seat("GE")), {minor: "Belgium"}, "conquest", ["belgium"], 2)).toBeUndefined();
     expect(resolvePending(G, makeCtx([], seat("UK")), "aid")).toBeUndefined();
+    expect(chooseAllianceShift(G, makeCtx([], seat("UK")), "te")).toBeUndefined();
     expect(G.powers.UK.alliance).toBe("teAligned");
     expect(G.persistent.italyAlliance).toBe("neutral");
   });

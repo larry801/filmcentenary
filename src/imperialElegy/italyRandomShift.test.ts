@@ -19,7 +19,7 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {italyDeclarationShift} from "./engine/alliance";
-import {declareWar, resolvePending} from "./moves";
+import {chooseAllianceShift, declareWar, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -221,8 +221,10 @@ describe("declareWar on a unified Italy", () => {
     expect(G.minorDeclarations ?? []).toHaveLength(0);
     expect(G.war?.defender).toBe("FR");
     expect(G.war?.minorTarget).toEqual({minor: "Italy", ally: "FR"});
-    // 14.2: the defending player shifts away from the attacker, and the
-    // 14.2 special also shifts a neutral unified Italy's own chit.
+    // 8.2: both chits are neutral, so the defending player picks its box; the
+    // 14.2 special then also shifts a neutral unified Italy's own chit.
+    expect(G.war?.defenderShift?.choice).toBe(true);
+    expect(chooseAllianceShift(G, makeCtx([], seat("FR")), "te")).toBeUndefined();
     expect(G.powers.FR.alliance).toBe("teAligned");
     expect(G.persistent.italyAlliance).toBe("teAligned");
   });

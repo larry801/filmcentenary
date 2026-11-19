@@ -646,6 +646,43 @@ export const hostileOwner = (G: ImperialElegyState, power: Power, owner: PowerOr
 };
 
 /**
+ * Rules 12.16 / 13.4 / 15.2.6 — the legal land-battle targets.
+ *
+ * Outside wartime "players can attack rebel armies" only; in a war a land
+ * battle may be fought against an enemy player or against a non-player power
+ * that is actually a belligerent of that war (13.4's declared minor, a minor
+ * controlled by an enemy, or a minor allied to one).  A neutral non-player is
+ * not a legal target until 13.4.1/13.4.2 resolves a declaration against it,
+ * which is why the UI and `beginLandBattle` share this predicate.
+ *
+ * The Great War keeps its own belligerent tracking (`G.gw`), so its existing
+ * paths are left untouched here.
+ */
+export const legalLandBattleTarget = (
+  G: ImperialElegyState,
+  power: Power,
+  owner: PowerOrMinor,
+): boolean => {
+  if (isPower(owner)) return atWar(G, power, owner);
+  if (typeof owner !== "string") return false;
+  if (owner.startsWith("REBEL:")) return true;
+  if (owner === "US" || owner === "IT") return hostileOwner(G, power, owner);
+  // The Great War tracks belligerency on `G.gw`, not on `G.war`.  Once the war
+  // has broken out, keep its existing (already gated) paths permissive: a state
+  // assembled directly by a rule test may carry `G.gw` without `active`.
+  if (G.gw !== null) return true;
+  const war = G.war;
+  if (war === null) return false;
+  const attackingSide = war.attacker === power || war.attackerAllies.includes(power);
+  const defendingSide = war.defender === power || war.defenderAllies.includes(power);
+  if (attackingSide && war.defenderMinors.includes(owner)) return true;
+  if (defendingSide && war.attackerMinors.includes(owner)) return true;
+  const controller = minorController(G, owner);
+  if (controller !== null) return atWar(G, power, controller);
+  return false;
+};
+
+/**
  * Rule 26.3: during a US/Italian impulse the controlling player moves that
  * major's units with that major's own budget.  Returns the major whose
  * impulse `power` is currently taking, if any.

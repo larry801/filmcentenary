@@ -449,10 +449,21 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   applies the CRT's `**` row (both sides +1 loss, mandatory) and `*` row (the
   victor chooses, via the `hydraulicRecoil` pending). Both are permanent once the
   card is played. A078's elite combat bonus is now live too: the controlling
-  player commits an elite corps / elite colonial EF for +1 after the combat-card
-  windows (`combatElite`), and the cards' second clause destroys that unit after
-  a battle against a non-rebel army (`engine/eliteBonus.ts`). The elite bonus is
-  a pre-war rule, so it is not offered once the GW is active.
+  player commits an elite corps / elite colonial EF / Zouave for +1 after the
+  combat-card windows (`combatElite`), and the counter is destroyed after a
+  non-rebel battle (`engine/eliteBonus.ts`). The addendum is printed on the
+  sub-rule, so an ordinary EC keeps its counter until A080 Machine Guns or A091
+  Hydraulic Recoil is in effect, while an elite colonial EF and the Zouave
+  (5.1.6) always carry the clause. Building on 18.6.2/18.6.3, ECs never take
+  step losses, an eliminated army takes an attached EC (and, except for the
+  elite colonial EF/Zouave exception, an attached EF) with it, and an army can
+  only be targeted while one is present. The elite bonus is a pre-war rule, so
+  it is not offered once the GW is active.
+- **12.16 land-battle legality:** outside wartime only rebel armies are legal
+  targets; in a war the defender must be an enemy player or a non-player power
+  that the declaration actually made a belligerent (13.4's declared minor, an
+  enemy-controlled minor, or one allied to the enemy). `beginLandBattle` and
+  the board's target ring share `rules.ts#legalLandBattleTarget`.
 - Minor-defender support (18.3.2): a controlling player gets the defender
   support and combat-card windows; an independent minor (no player controller)
   auto-commits its legal support and skips the defender window. The defending

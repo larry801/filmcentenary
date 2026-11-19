@@ -11,12 +11,13 @@
  * `joinWarAsAlly` when a further player joins the defending side of such a war.
  */
 import type {Ctx} from "boardgame.io";
+import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {allyAidShift, allianceMembers} from "./engine/alliance";
 import {joinWarAsAlly} from "./engine/limitedWar";
-import {declareWar, resolvePending} from "./moves";
+import {chooseAllianceShift, declareWar, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -49,13 +50,19 @@ const beginAction = (G: ImperialElegyState, active: Power = "GE", cp = 4): void 
 const lastLog = (G: ImperialElegyState, key: string) =>
   [...G.log].reverse().find((entry) => entry.key === key);
 
-/** GE declares a live war on Belgium (allied to FR) and FR joins (13.4.1). */
-const declareOnBelgium = (G: ImperialElegyState): void => {
+/**
+ * GE declares a live war on Belgium (allied to FR) and FR joins (13.4.1).
+ *
+ * Both chits start neutral, so 8.2 leaves the direction to FR; the helper
+ * answers it with the Triple Entente unless `settle` says otherwise.
+ */
+const declareOnBelgium = (G: ImperialElegyState, settle: "te" | "ta" | null = "te"): void => {
   G.spaces.belgium.ally = "FR";
   beginAction(G);
   expect(declareWar(G, makeCtx([], seat("GE")), {minor: "Belgium"}, "conquest", ["belgium"], 2)).toBeUndefined();
   expect(G.pending?.kind).toBe("minorAbandon");
   expect(resolvePending(G, makeCtx([], seat("FR")), "join")).toBeUndefined();
+  if (settle !== null) expect(chooseAllianceShift(G, makeCtx([], seat("FR")), settle)).toBeUndefined();
 };
 
 // ---------------------------------------------------------------------------
@@ -93,13 +100,34 @@ describe("14.2 ally-aiding shift", () => {
 // ---------------------------------------------------------------------------
 
 describe("the 14.2 shift on the live minor-war path", () => {
+  test("both neutral defers the 14.2 direction to the defending ally (8.2)", () => {
+    const G = fresh();
+    declareOnBelgium(G, null);
+    expect(G.war?.defender).toBe("FR");
+    // The chit has not moved yet: 8.2 asks the defending power, and FR is the
+    // player ally that just agreed to aid Belgium.
+    expect(G.powers.FR.alliance).toBe("neutral");
+    expect(G.war?.defenderShift).toMatchObject({from: "neutral", to: null, steps: 0, choice: true});
+    expect(lastLog(G, "allianceShiftChoice")?.power).toBe("FR");
+    expect(lastLog(G, "allianceShifted")).toBeUndefined();
+
+    // The defender may not pick the attacker's box, but the two free boxes work.
+    expect(chooseAllianceShift(G, makeCtx([], seat("GE")), "te")).toBe(INVALID_MOVE);
+    expect(chooseAllianceShift(G, makeCtx([], seat("FR")), "te")).toBeUndefined();
+    expect(G.powers.FR.alliance).toBe("teAligned");
+    expect(allianceMembers(G, "te")).toContain("FR");
+    expect(lastLog(G, "allianceShifted")?.args).toMatchObject({
+      attacker: "GE", aidMinor: "Belgium", steps: 1, chosen: true,
+    });
+  });
+
   test("the defending ally shifts when the declaration is made", () => {
     const G = fresh();
     declareOnBelgium(G);
     expect(G.war?.defender).toBe("FR");
     expect(G.powers.FR.alliance).toBe("teAligned");
     expect(allianceMembers(G, "te")).toContain("FR");
-    expect(lastLog(G, "allianceShifted")?.args).toMatchObject({attacker: "GE", aidMinor: "Belgium", steps: 1});
+    expect(lastLog(G, "allianceShifted")?.args).toMatchObject({attacker: "GE", aidMinor: "Belgium", steps: 1, chosen: true});
   });
 
   test("a further defender joining an allied-minor war also shifts", () => {

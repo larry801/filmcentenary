@@ -81,7 +81,10 @@ test("land battle resolves and applies losses", () => {
   G.phase = "wartime";
   const ctx = makeCtx("0");
   G.war = {
-    attacker: "GE", defender: "RU", attackerAllies: [], defenderAllies: [], attackerMinors: [], defenderMinors: [],
+    attacker: "GE", defender: "RU", attackerAllies: [], defenderAllies: [], attackerMinors: [],
+    // 12.16/13.4: Saxony is a belligerent of this war, so the Berlin stack has
+    // a legal target there.
+    defenderMinors: ["Saxony"],
     warAim: "conquest", objectives: ["poland"], status: "maneuver", budgets: {}, initiative: [], treaties: [],
     victor: null, truceTurns: 2, passed: [], startedTurn: 1,
   };
@@ -236,6 +239,12 @@ test("combat cards are offered in the battle card window", () => {
   const G = fresh();
   G.phase = "wartime";
   G.powers.GE.hand.push("IE-A043");
+  // 12.16/13.4: the attack needs a declaration first.
+  G.war = {
+    attacker: "GE", defender: "Saxony", attackerAllies: [], defenderAllies: [], attackerMinors: [],
+    defenderMinors: ["Saxony"], warAim: "conquest", objectives: ["saxony"], status: "maneuver",
+    budgets: {}, initiative: [], treaties: [], victor: null, truceTurns: 2, passed: [], startedTurn: 1,
+  };
   const ctx = makeCtx("0");
   const battle = beginLandBattle(G, ctx, "GE", "berlin", "saxony");
   expect(battle).not.toBeNull();

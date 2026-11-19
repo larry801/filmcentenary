@@ -15,7 +15,7 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {createWarState, minorWarInfo, nonPlayerHome} from "./engine/limitedWar";
-import {declareWar, resolvePending} from "./moves";
+import {declareWar, resolvePending, chooseAllianceShift} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -141,7 +141,21 @@ describe("declareWar on an allied non-player power", () => {
     expect(G.activePower).toBe("GE");
 
     // 14.2: the aiding player shifts away from the attacker.  Both chits are
-    // neutral, so the deterministic Triple Entente fallback is used.
+    // neutral, so 8.2 gives the direction to the defending power: the war
+    // records the open choice instead of guessing.
+    expect(G.powers.FR.alliance).toBe("neutral");
+    expect(G.war?.defenderShift).toEqual({
+      from: "neutral",
+      to: null,
+      steps: 0,
+      forced: false,
+      choice: true,
+    });
+    expect(lastLog(G, "allianceShiftChoice")?.power).toBe("FR");
+    expect(lastLog(G, "allianceShifted")).toBeUndefined();
+
+    // The defender answers with the printed choice (rule 8.2).
+    expect(chooseAllianceShift(G, makeCtx([], seat("FR")), "te")).toBeUndefined();
     expect(G.powers.FR.alliance).toBe("teAligned");
     expect(G.war?.defenderShift).toEqual({
       from: "neutral",
@@ -152,7 +166,7 @@ describe("declareWar on an allied non-player power", () => {
     });
     const shiftLog = lastLog(G, "allianceShifted");
     expect(shiftLog?.power).toBe("FR");
-    expect(shiftLog?.args).toMatchObject({from: "neutral", to: "teAligned", attacker: "GE", aidMinor: "Belgium"});
+    expect(shiftLog?.args).toMatchObject({from: "neutral", to: "teAligned", attacker: "GE", aidMinor: "Belgium", chosen: true});
     expect(lastLog(G, "warDeclared")?.args).toMatchObject({target: "Belgium", aim: "conquest"});
   });
 

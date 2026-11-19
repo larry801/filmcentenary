@@ -712,7 +712,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     push({
       id: "landBattle", group: "move", enabled,
       reason: enabled ? undefined
-        : potentialLandTargets.length === 0 ? bi(locale, "No enemy army is adjacent.", "相邻空间没有敌军。")
+        : potentialLandTargets.length === 0 ? bi(locale, "No enemy army is adjacent, or the adjacent power has not been declared on.", "相邻空间没有敌军，或尚未对相邻势力宣战。")
           : gw ? bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。") : spendReason(cost),
       run: startBattle,
     });

@@ -2113,21 +2113,21 @@ const FORMATTERS: Record<string, Formatter> = {
     }
     const enSource = bool(entry.args?.diplomacy) ? "diplomacy marker" : enWhere;
     const zhSource = bool(entry.args?.diplomacy) ? "外交标记" : zhWhere;
-    return withActor(
-      entry,
+    // 13.4.2: the attacked minor asks for aid.  The entry is logged without a
+    // player actor because the minor is not a Power, so name it as the subject.
+    return text(
       locale,
-      `asked ${power} to aid ${minor} (13.4.2, ${enSource || "table"}).`,
-      `请求${power}援助${minor}（13.4.2，${zhSource || "表格"}）。`,
+      `${minor} asks ${power} to aid it (13.4.2, ${enSource || "table"}).`,
+      `${minor}请求${power}援助（13.4.2，${zhSource || "表格"}）。`,
     );
   },
 
   minorAidRoll: (entry, locale) => {
     const minor = minorLabel(entry.args?.minor, locale);
     const order = powerList(entry.args?.order, locale);
-    return withActor(
-      entry,
+    return text(
       locale,
-      `rolls off for ${minor}'s 13.4.3 alliance choice; the order is ${order}.`,
+      `Roll-off for ${minor}'s 13.4.3 alliance choice; the order is ${order}.`,
       `为${minor}的 13.4.3 联盟选择掷骰，顺序为 ${order}。`,
     );
   },

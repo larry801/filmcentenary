@@ -663,7 +663,13 @@ export const applyMinorDeclarationShift = (
 ): MinorDeclarationShiftResult => {
   if (info.ally !== null) {
     // 8.1.2 / 8.4: the ally-aiding shift respects the three-player cap.
-    const shift = allyAidShift(G, attacker, info.ally);
+    // 8.2 gives the both-neutral direction to the defending power, so leave the
+    // choice open here; `declareWar` records it on `war.defenderShift`.
+    const shift = allyAidShift(G, attacker, info.ally, {deferChoice: true});
+    if (shift.needsChoice) {
+      log(G, info.ally, "allianceShiftChoice", {attacker, from: shift.from});
+      return {ally: info.ally, allyShift: shift, italyShift: null, italyAidShift: null};
+    }
     log(G, info.ally, "allianceShifted", {
       from: shift.from,
       to: shift.to,
@@ -674,7 +680,9 @@ export const applyMinorDeclarationShift = (
       fallback: shift.defaultDirection,
     });
     // 14.2 special: a neutral unified Italy shifts with its new player ally.
-    const italyAidShift = info.minor === "Italy" ? applyItalyAidShift(G, shift.direction) : null;
+    const direction = shift.direction;
+    const italyAidShift =
+      info.minor === "Italy" && direction !== null ? applyItalyAidShift(G, direction) : null;
     return {ally: info.ally, allyShift: shift, italyShift: null, italyAidShift};
   }
   // Rule 8.2's random clause is Italy's alone; a minor power has no chit.

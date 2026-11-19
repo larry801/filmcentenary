@@ -1081,24 +1081,46 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
     test("a miss while targeting spends no CP, and Esc leaves the mode", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");
-        await playCpCard(board);
-        await board.locator('[data-testid="ie-space-berlin"]').click({force: true});
-        const land = board.getByRole("button", {name: "在此发动陆战"}).first();
-        await expect(land).toBeEnabled();
-        await land.click();
+        await expect(await playCpCard(board), "this deal has no card to bank CP with").toBe(true);
+        await clickSpace(board, "berlin", "柏林");
+
+        // 12.16: Saxony holds a neutral minor army next to Berlin, and a
+        // non-player power needs a declaration first, so the land-battle order
+        // is refused (it used to enter targeting and let the player attack it).
+        const land = board.locator('[data-testid="ie-action-landBattle"]');
+        await expect(land).toHaveAttribute("data-enabled", "false");
+        await expect(land).toContainText("宣战");
+
+        // Move targeting still gives the mode its miss-and-Escape coverage:
+        // selecting an own unit rings only its engine-legal destinations.
+        const unitId = await page.evaluate((): string | null => {
+            const G = (window as any).__IE_STATE__;
+            const ids: string[] = (G.spaces.berlin.units ?? []).filter((id: string) =>
+                G.units[id]?.owner === "GE" && !G.units[id]?.naval);
+            return ids[0] ?? null;
+        });
+        if (unitId === null) throw new Error("Berlin holds no German land unit to select");
+        await board.locator(`[data-testid="ie-unit-${unitId}"]`).click();
         await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
         await expect(board.locator('[data-testid="ie-mode-pill-targets"]')).toBeVisible();
 
         const before = await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining);
-        // London is neither adjacent to Berlin nor a legal battle target.
-        await board.locator('[data-testid="ie-space-london"]').click({force: true});
-        await page.waitForTimeout(250);
-        expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before);
-        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
 
+        // Esc leaves the mode without spending anything.
         await page.keyboard.press("Escape");
         await expect(board.locator('[data-testid="ie-mode-pill"]')).toHaveCount(0);
         expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before);
+
+        // Re-enter targeting and click a space that is not a destination.
+        // London is neither adjacent to Berlin nor a legal destination, so the
+        // click only moves the selection: it must not spend CP.
+        await clickSpace(board, "berlin", "柏林");
+        await board.locator(`[data-testid="ie-unit-${unitId}"]`).click();
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
+        await board.locator('[data-testid="ie-space-london"]').click({force: true});
+        await page.waitForTimeout(250);
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining)).toBe(before);
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toHaveCount(0);
     });
 });
 

@@ -1345,6 +1345,18 @@ export interface BattleState {
    */
   eliteBonusAttack?: string[];
   eliteBonusDefense?: string[];
+  /**
+   * The unit kinds committed for each side, recorded when the decision
+   * resolves so the auto-elimination clause can tell an ordinary EC (which
+   * only self-destructs after A080/A091) from A078's elite colonial EF.
+   */
+  eliteBonusKinds?: {attacker?: string[]; defender?: string[]};
+  /**
+   * The owners of the committed elite units, recorded at commit time so the
+   * destruction log still names the right power when the counter has already
+   * left the board (a retreat elimination or an army's own step loss).
+   */
+  eliteBonusOwners?: {attacker?: string[]; defender?: string[]};
   /** The elite-bonus decision has been offered for this side. */
   eliteBonusAsked?: {attacker?: boolean; defender?: boolean};
   /**

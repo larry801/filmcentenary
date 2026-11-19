@@ -442,6 +442,9 @@ describe("minor defenders", () => {
     G.activePower = "GE";
     clearHands(G);
     G.powers.GE.hand = ["IE-A058", "IE-A062"];
+    // 12.16/13.4: Saxony is only a legal target once a declaration makes it a
+    // belligerent; the lone non-player defender has no seat.
+    G.war = {...warState("GE", "Saxony" as unknown as Power), defenderMinors: ["Saxony"]};
     // A058 is only offered against an enemy fort.
     G.spaces.saxony.fort = {power: "Saxony", level: 2};
     const ctx = makeCtx([3, 3]);

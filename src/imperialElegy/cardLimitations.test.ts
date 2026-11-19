@@ -52,6 +52,14 @@ describe("elite combat bonus (A078 / A080 / A091)", () => {
     G.phase = "action";
     G.activePower = "FR";
     G.turn = 3;
+    // 12.16/13.4: a land battle needs a war; this suite only exercises the
+    // elite bonus, so record the declaration that makes Bavaria a target.
+    G.war = {
+      attacker: "FR", defender: "Bavaria", attackerAllies: [], defenderAllies: [],
+      attackerMinors: [], defenderMinors: ["Bavaria"], warAim: "conquest",
+      objectives: ["bavaria"], status: "maneuver", budgets: {}, initiative: [],
+      treaties: [], victor: null, truceTurns: 0, passed: [], startedTurn: 3,
+    } as any;
     for (const unit of landUnitsIn(G, "bavaria")) removeUnit(G, unit.id);
     if (defenderRebel) {
       placeUnit(G, "REBEL:Zulu", "rebelArmy", "bavaria", 2);

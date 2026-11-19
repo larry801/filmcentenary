@@ -243,10 +243,19 @@ describe("beginLandBattle characteristic DRMs", () => {
   test("UK 1st Army adds +1 to the attacker DRM", () => {
     const G = fresh();
     G.phase = "wartime";
+    // 12.16/13.4: a land battle needs a war.  London is a UK home key, so the
+    // force keeps its LoC and the only printed modifier under test is the
+    // 1st Army's +1.
+    G.war = {
+      attacker: "UK", defender: "Belgium", attackerAllies: [], defenderAllies: [],
+      attackerMinors: [], defenderMinors: ["Belgium"], warAim: "conquest",
+      objectives: ["belgium"], status: "maneuver", budgets: {}, initiative: [],
+      treaties: [], victor: null, truceTurns: 0, passed: [], startedTurn: 1,
+    } as any;
     const firstArmy = findUnit(G, (u) => u.owner === "UK" && Boolean(u.flags?.firstArmy));
-    moveUnit(G, firstArmy, "hanover");
+    moveUnit(G, firstArmy, "london");
 
-    const battle = beginLandBattle(G, makeCtx(), "UK", "hanover", "saxony");
+    const battle = beginLandBattle(G, makeCtx(), "UK", "london", "belgium");
 
     expect(battle).not.toBeNull();
     expect(battle!.attackerDrm).toBe(1);

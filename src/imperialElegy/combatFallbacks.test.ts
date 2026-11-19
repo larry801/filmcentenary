@@ -150,6 +150,7 @@ describe("minor-defender support", () => {
   test("auto-commits independent minor support and never offers a defender window to the attacker", () => {
     const G = fresh();
     G.phase = "wartime";
+    G.war = {...warState("GE", "Saxony" as unknown as Power), defenderMinors: ["Saxony"]};
     clearHands(G);
     G.powers.GE.hand = ["IE-A060"];
     // A German army adjacent to Saxony must never appear in the defender's
@@ -186,6 +187,7 @@ describe("minor-defender support", () => {
   test("a minor's controlling ally gets the defender support/card window and the attacker's units are excluded", () => {
     const G = fresh();
     G.phase = "wartime";
+    G.war = {...warState("GE", "FR"), defenderMinors: ["Saxony"]};
     clearHands(G);
     // FR controls Saxony; only FR has a combat card.
     G.spaces.saxony.ally = "FR";
@@ -611,6 +613,7 @@ describe("support halving for a minor-led defense", () => {
   const minorBattle = (): {G: ImperialElegyState; battle: BattleState; ctx: Ctx} => {
     const G = fresh();
     G.phase = "wartime";
+    G.war = {...warState("GE", "FR"), defenderMinors: ["Saxony"]};
     clearHands(G);
     G.spaces.saxony.ally = "FR";
     clearLandUnits(G, "bavaria");
@@ -778,7 +781,7 @@ describe("support space limits and connection rules", () => {
   test("commits at most two spaces per side and never duplicates a space", () => {
     const G = fresh();
     G.phase = "wartime";
-    G.war = warState("GE", "FR");
+    G.war = {...warState("GE", "FR"), defenderMinors: ["Saxony"]};
     clearHands(G);
     clearLandUnits(G, "hanover");
     clearLandUnits(G, "pomerania");
