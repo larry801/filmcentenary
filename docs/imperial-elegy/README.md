@@ -104,9 +104,12 @@ assets total approximately 13.4 MiB and remain available as source references.
 
 Faces follow the selected UI language. Expand **English text / 中文译文** below
 a face to read the other language (English includes the full rule transcription).
-Long rules extend the SVG height instead of being clipped or reduced to tiny
-type. Missing module faces, including action cards 21/82 and goal 22, use the
-same renderer. The photographs are represented by lightweight vector emblems.
+The card inspector also offers **Original card image / 原图** as a folded
+reference: the scan is fetched only when that disclosure is opened, so the
+default reading view stays fast and in the chosen language. Long rules extend
+the SVG height instead of being clipped or reduced to tiny type. Missing module
+faces, including action cards 21/82 and goal 22, use the same renderer. The
+photographs are represented by lightweight vector emblems.
 
 ### Card choices
 

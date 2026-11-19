@@ -859,6 +859,15 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await expect(inspector).toBeVisible();
         await expect(inspector).toHaveAttribute("data-face-mode", "svg");
         await expect(inspector.locator("svg.ie-card-face")).toBeVisible();
+        // The printed scan is a folded reference: no image is fetched until a
+        // reader asks for it, and the default text stays in the chosen language.
+        const original = inspector.locator('[data-testid="ie-card-inspector-original"]');
+        await expect(original).toBeVisible();
+        expect(await original.evaluate(el => (el as HTMLDetailsElement).open)).toBe(false);
+        await expect(original.locator("img")).toHaveCount(0);
+        await original.locator("summary").click();
+        expect(await original.evaluate(el => (el as HTMLDetailsElement).open)).toBe(true);
+        await expect(original.locator('[data-testid="ie-card-inspector-original-image"]')).toBeVisible();
         // CP, event, industrialize, CP chain and save are all offered in place.
         expect(await inspector.locator(".ie-card-inspector-actions button").count()).toBeGreaterThanOrEqual(5);
         // A fully playable card has no aggregated reasons; a blocked one does.

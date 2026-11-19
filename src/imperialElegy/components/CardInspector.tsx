@@ -9,10 +9,11 @@
  * It is a real modal dialog: `useFocusTrap` keeps Tab/Shift+Tab inside it, Esc
  * closes it, and focus returns to whatever opened it.
  */
-import {useCallback, useEffect, useRef} from "react";
+import {useCallback, useEffect, useRef, useState} from "react";
 import type {MouseEvent, ReactNode} from "react";
 import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
+import {bi} from "./boardHelpers";
 import {CardFace} from "./CardFace";
 import {cardImageSrc} from "./preferences";
 import type {CardFaceMode} from "./preferences";
@@ -63,6 +64,13 @@ export const CardInspector = ({
   // so its cleanup runs after the trap's, letting the explicit target win.
   const returnFocusRef = useRef(returnFocus);
   returnFocusRef.current = returnFocus;
+  // The printed scan is reference material: keep the image out of the DOM —
+  // and out of the network — until a reader actually opens the disclosure.
+  const [originalOpen, setOriginalOpen] = useState(false);
+  const faceId = "card" in face ? face.card.id : face.goal.id;
+  useEffect(() => {
+    setOriginalOpen(false);
+  }, [faceId, open]);
   useEffect(() => {
     if (!open || returnFocusRef.current === undefined) return;
     return () => {
@@ -87,7 +95,9 @@ export const CardInspector = ({
     : `${card!.number === undefined ? "" : `${card!.number} · `}${card!.cp} CP`;
   const closeLabel = ieStringsFor(locale).close;
   const reasons = unavailable ?? [];
-  const printImage = mode === "print" && card ? cardImageSrc(card.image) : null;
+  const originalImage = card ? cardImageSrc(card.image) : null;
+  // Print mode already leads with the scan; the vector face keeps it folded.
+  const printImage = mode === "print" ? originalImage : null;
   const stopPropagation = (event: MouseEvent<HTMLElement>) => event.stopPropagation();
 
   return (
@@ -136,6 +146,25 @@ export const CardInspector = ({
             <CardFace locale={locale} card={card!}/>
           )}
         </div>
+
+        {originalImage !== null && printImage === null && (
+          <details
+            key={data.id}
+            className="ie-card-inspector-original"
+            data-testid="ie-card-inspector-original"
+            onToggle={event => setOriginalOpen(event.currentTarget.open)}
+          >
+            <summary>{bi(locale, "Original card image", "原图")}</summary>
+            {originalOpen && (
+              <img
+                className="ie-card-inspector-original-image"
+                src={originalImage}
+                alt={bi(locale, `Original printed card: ${title}`, `原版卡牌：${title}`)}
+                data-testid="ie-card-inspector-original-image"
+              />
+            )}
+          </details>
+        )}
 
         <div className="ie-card-inspector-actions" data-testid="ie-card-inspector-actions">
           {actions}

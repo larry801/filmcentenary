@@ -461,6 +461,22 @@ img.ie-card-face { background: var(--ie-paper-2); }
 
 .ie-inspector-print { width: 100%; height: auto; display: block; }
 
+.ie-card-inspector-original { border-top: 1px solid var(--ie-rule); padding-top: 4px; font-size: var(--ie-font-xs); }
+
+.ie-card-inspector-original summary { cursor: pointer; color: var(--ie-ink-2); }
+
+.ie-card-inspector-original-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 62vh;
+  object-fit: contain;
+  margin-top: 6px;
+  background: var(--ie-paper);
+  border: 1px solid var(--ie-paper-rule);
+  border-radius: var(--ie-radius-sm);
+}
+
 .ie-card-inspector-actions, .ie-inspector-actions { display: flex; flex-wrap: wrap; gap: 4px; }
 
 .ie-card-inspector-actions button, .ie-inspector-actions button {
