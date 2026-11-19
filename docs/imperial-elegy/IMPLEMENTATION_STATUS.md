@@ -27,6 +27,37 @@ Local verification for this pass (2026-11-18, branch `feature/ie-visual-system`)
 Remote GitHub Actions remains authoritative (AGENTS.md §7/§10); the local run
 is not a substitute.
 
+## Fixed: declaring a war brings the War screen to the front (2026-11-19)
+
+Reported as "帝国挽歌事件俾斯麦选择目标之后没有开启战争界面". The war-target
+chooser and the declaration form both worked: the state really reached
+`phase = "wartime"` with a `WarState`. What was missing was the hand-off to the
+war screen. `useBoardModel` already ran a "a war just started, bring its panel
+into view" effect, but it wrote a `railTab` value nothing read — the desktop
+`TurnPanel` was only given an `activeTab` on phones (the dock's tab) and
+otherwise fell back to its own internal state, so the seat stayed on the Orders
+page and the declaration looked like it had done nothing.
+
+- `components/turnPanelTab.ts` is now the one definition of the turn panel's
+  bodies: `turnTabKeys` (the War body exists only while `war` or `gw` runs),
+  `resolveTurnTab` (a body that disappeared falls back to Orders), and the
+  `mobileTabForTurnTab` / `turnTabForMobileTab` pair the phone dock needs. The
+  panel and the shell both read it, so they cannot disagree.
+- `BoardLayout` passes `activeTab={resolveTurnTab(railTab, warVisible)}` on
+  desktop and an `onTabChange` that writes `railTab`, so the tab the reader
+  clicks is the tab the model keeps. On a phone it keeps writing `mobileTab`
+  through the dock.
+- `useBoardModel`'s war-start effect now moves both shells: `setRailTab("war")`
+  and `setMobileTab("war")`, and on a phone it also raises the bottom sheet at
+  half height (the same edge behaviour a decision already had). A later manual
+  switch is still respected; the effect only fires on the war's rising edge.
+
+Coverage: `components/turnPanelTab.test.ts` (4 — keys, fallback, the two shells'
+mapping and round-trip) plus the two e2e assertions in
+`imperial-elegy-controls.spec.ts`: after a declaration the `ie-war` panel is
+visible and `ie-turn-tab-war` is already `aria-selected="true"` (both the Bohemia
+declaration and the Bismarck unification war), with no manual tab click.
+
 ## Fixed: the home-card declaration now opens its war-target chooser (2026-11-19)
 
 Reported again as "帝国挽歌 俾斯麦事件之后不能统一战争". The previous fix

@@ -456,8 +456,11 @@ test.describe("Imperial Elegy new controls", () => {
         await warButton.click();
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("wartime");
 
-        // The war panel is the turn panel's War tab.
-        await board.locator('[data-testid="ie-turn-tab-war"]').click();
+        // The war panel is the turn panel's War tab, and declaring a war brings
+        // it to the front by itself: the player must not have to hunt for the
+        // tab after the declaration (reported as "俾斯麦选择目标之后没有开启战争
+        // 界面").  Assert the tab is already selected before clicking anything.
+        await expect(board.locator('[data-testid="ie-turn-tab-war"]')).toHaveAttribute("aria-selected", "true");
         const war = board.locator('[data-testid="ie-war"]');
         await expect(war).toBeVisible();
         await expect(war).toContainText("波希米亚");
@@ -536,6 +539,12 @@ test.describe("Imperial Elegy new controls", () => {
                 ? null
                 : {attacker: G.war.attacker, defender: G.war.defender, aim: G.war.warAim, objectives: G.war.objectives};
         })).toEqual({attacker: "GE", defender: "FR", aim: "unification", objectives: ["alsace-lorraine"]});
+
+        // The declaration reached the war screen without a manual tab switch:
+        // that missing hand-off is the reported bug ("俾斯麦选择目标之后没有开启
+        // 战争界面").
+        await expect(board.locator('[data-testid="ie-war"]')).toBeVisible({timeout: 15_000});
+        await expect(board.locator('[data-testid="ie-turn-tab-war"]')).toHaveAttribute("aria-selected", "true");
     });
 
     test("card economy controls render and Save toggles the card state", async ({page}) => {

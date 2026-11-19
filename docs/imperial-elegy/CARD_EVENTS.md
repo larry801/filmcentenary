@@ -392,6 +392,34 @@ aim/CP、`{minor}` 目标参数、无授权时的普通控件）。
 `e2e/imperial-elegy-controls.spec.ts` 的俾斯麦端到端用例（选本国牌 → 打事件
 → 弹窗选阿尔萨斯-洛林 → 宣传统一战争）。
 
+### 3.12.2 宣战后没有切到战争界面 / the war screen did not open after a declaration
+
+玩家第三次复报同一症状，这次描述更具体：“选择目标之后没有开启战争界面”。
+引擎与弹窗都已正确：`declareWar` 成功，`phase` 变为 `wartime`，`G.war` 也已
+建立。缺的是**切页**：`useBoardModel` 里“战争开始时把战争面板提到前面”的
+effect 写的是 `railTab`，但桌面端 `TurnPanel` 只在手机上传入 `activeTab`
+（底部抽屉的页签），桌面端一直用自己的内部 state，所以宣战后仍停在 Orders
+页——从玩家视角看就是“什么都没发生”。
+
+**Fix (2026-11-19).** 让两侧共用同一份“回合面板有哪几页”的定义：
+
+- 新增 `components/turnPanelTab.ts`：`turnTabKeys`（War 页仅在 `war` 或
+  `gw` 存在时出现）、`resolveTurnTab`（页签消失时回退到 Orders）、以及
+  `mobileTabForTurnTab` / `turnTabForMobileTab`（抽屉的 Hand/Mat 没有对应
+  页，回退到 Orders）。面板与外壳都读它，因此不会各说各话。
+- `BoardLayout` 桌面端传入 `activeTab={resolveTurnTab(railTab, warVisible)}`
+  并补上 `onTabChange` 写回 `railTab`，点击的页签就是模型记住的页签；手机
+  端仍通过 `mobileTab` 写回。
+- `useBoardModel` 的战争起始 effect 同时驱动两侧：置 `railTab = "war"` 与
+  `mobileTab = "war"`，手机上还把底部抽屉抬到半高（与决策到达时的行为
+  一致）。此 effect 只在战争出现的上升沿触发，玩家之后手动切回 Orders 不会
+  被抢回。
+
+回归：`components/turnPanelTab.test.ts`（4 个断言）与
+`e2e/imperial-elegy-controls.spec.ts` 的两处断盲（波希米亚宣战与俾斯麦统一
+战争宣战后：不再点击页签，直接断言 `ie-war` 可见且 `ie-turn-tab-war` 已是
+`aria-selected="true"`）。
+
 
 ### 3.13 其余三张宣战本国牌的授权与目标限制 / the other three declaration home cards
 
