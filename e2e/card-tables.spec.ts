@@ -28,7 +28,10 @@ test("Imperial Elegy card list renders every card group", async ({page}) => {
     await expect(page.getByRole("table", {name: "Imperial Elegy home cards"}).getByRole("row")).toHaveCount(13);
     await expect(page.getByRole("table", {name: "Imperial Elegy Great War cards"}).getByRole("row")).toHaveCount(11);
     await expect(page.getByRole("table", {name: "Imperial Elegy national goals"}).getByRole("row")).toHaveCount(50);
-    await expect(page.getByRole("cell", {name: "殖民冲突", exact: true}).first()).toBeVisible();
+    // Names carry the printed-type mark: 【M】 for a mandatory event, 【C】
+    // for a combat card.
+    await expect(page.getByRole("cell", {name: "【M】殖民冲突", exact: true}).first()).toBeVisible();
+    await expect(page.getByRole("cell", {name: "【C】不惜一切", exact: true}).first()).toBeVisible();
 });
 
 test("Virgin Queen card list renders the official 112 cards", async ({page}) => {
