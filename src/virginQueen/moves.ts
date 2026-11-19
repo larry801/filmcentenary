@@ -5018,34 +5018,32 @@ export const reinforceForeignWar = (
     pushLog(G, `${powerLabel(p)} recruits 1 ${args.kind} directly into the ${war.enemy} war.`);
 };
 
-export const patronize = (G: VQGame, ctx: Ctx, args: { patron: string; cp: number }): void | typeof INVALID_MOVE => {
+export const patronize = (G: VQGame, ctx: Ctx, args: {patron?: string; cp: number}): void | typeof INVALID_MOVE => {
     if (moveError(G, "patronize", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
     }
     const p = power(G, ctx);
-    let patronId = args.patron;
-    // Rule 22.1/22.2: select the patron at random from those available.
-    // Validate the supplied id; if it is unavailable, draw one at random.
-    if (!G.patronsAvailable.includes(patronId)) {
-        const available = G.patronsAvailable.filter((id) => patronById(G, id)?.region === p);
-        if (available.length === 0) return INVALID_MOVE;
-        patronId = shuffle(ctx, available.slice())[0];
-    }
+    // Rules 22.1/22.2: "select an artist [/scientist] at random from those
+    // available to you this turn."  The player picks the CP and the kind
+    // (artist or scientist), never the individual patron, so an id supplied by
+    // a client is only used to pick the kind.
+    const requested = args.patron;
+    const requestedKind = requested === undefined ? undefined : patronById(G, requested)?.kind;
+    const available = G.patronsAvailable.filter((id) => {
+        const patron = patronById(G, id);
+        if (patron === undefined || patron.region !== p || patron.rating === null) return false;
+        if (G.pendingPatronage.some((entry) => entry.patronId === id)) return false;
+        if (POWERS.some((x) => G.powers[x].patrons.includes(id))) return false;
+        return !G.patronizedThisTurn.includes(`${p}:${patron.kind}`);
+    }).filter((id) => requestedKind === undefined || patronById(G, id)?.kind === requestedKind);
+    if (available.length === 0) return INVALID_MOVE;
+    const patronId = shuffle(ctx, available.slice())[0];
     const patron = patronById(G, patronId);
-    if (patron === undefined || patron.region !== p || patron.rating === null) {
-        return INVALID_MOVE;
-    }
-    if (G.pendingPatronage.some((e) => e.patronId === patron.id)) {
-        return INVALID_MOVE;
-    }
-    if (POWERS.some((x) => G.powers[x].patrons.includes(patron.id))) {
+    if (patron === undefined) {
         return INVALID_MOVE;
     }
     const patronageKey = `${p}:${patron.kind}`;
-    if (G.patronizedThisTurn.includes(patronageKey)) {
-        return INVALID_MOVE;
-    }
     if (!Number.isInteger(args.cp) || args.cp < 2 || args.cp > 4 || !spend(G, p, args.cp)) {
         return INVALID_MOVE;
     }

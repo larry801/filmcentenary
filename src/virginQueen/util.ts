@@ -4133,6 +4133,15 @@ const claimScienceBonus = (G: VQGame, p: Power): boolean => {
 
 const removePatronFromPool = (G: VQGame, patronId: string): void => {
     G.patronsAvailable = G.patronsAvailable.filter((id) => id !== patronId);
+    // Rule 22.2 (Le Testu): "If any result other than a 9 is received when
+    // evaluating his work as a scientist, remove the sea captain marker from
+    // play as well."  The reverse direction is handled wherever a sea captain
+    // is eliminated.
+    if (patronId === "leTestu") {
+        G.powers.france.seaCaptains = G.powers.france.seaCaptains.filter((id) => id !== "leTestu");
+        delete G.worldCaptains.leTestu;
+        pushLog(G, "Le Testu's sea captain marker is removed from play with his scientific work.");
+    }
 };
 
 /** Resolve the year's artists and scientists against the remaining award pool. */

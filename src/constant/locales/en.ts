@@ -2143,6 +2143,7 @@ const en = {
             markersLeft: "Remaining VP markers",
             artist: "artist",
             scientist: "scientist",
+            randomDraw: "random draw",
             markerCount: "",
             markersTotal: "of",
             artistAwards: "Artist awards",

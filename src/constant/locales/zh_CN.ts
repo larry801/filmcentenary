@@ -2230,6 +2230,7 @@ const zh_CN: Locale = {
             markersLeft: "剩余 VP 标记",
             artist: "艺术家",
             scientist: "科学家",
+            randomDraw: "随机抽取",
             markerCount: " 枚",
             markersTotal: "共",
             artistAwards: "艺术奖励",
