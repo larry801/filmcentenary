@@ -500,6 +500,9 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(event).toHaveAttribute("data-armed", "true");
         await event.click();
 
+        // The played card leaves the hand and its inspector closes itself; a
+        // still-open inspector would sit above the chooser.
+        await expect(inspector).toHaveCount(0, {timeout: 10_000});
         const dialog = board.locator('[data-testid="ie-war-target-dialog"]');
         await expect(dialog).toBeVisible({timeout: 15_000});
         await expect(dialog).toContainText("选择战争目标");
