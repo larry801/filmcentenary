@@ -173,6 +173,92 @@ describe("UK Professional Army (33.2)", () => {
 });
 
 // ---------------------------------------------------------------------------
+// 12.2 refitting a reduced army in place
+// ---------------------------------------------------------------------------
+
+/**
+ * The manpower track caps how many army *counters* a power may field, not how
+ * many steps those counters have.  Flipping a reduced army back to full adds no
+ * counter, so it stays legal at the ceiling — but the ceiling is exactly what
+ * blocks it in a fresh campaign, where every power starts at its manpower.
+ */
+describe("12.2 refit a reduced army at the manpower ceiling", () => {
+  test("the in-place flip is legal, spends 1 CP and keeps the counter count", () => {
+    const G = fresh();
+    startAction(G, "GE", 4);
+    expect(recruitmentLimits(G, "GE").currentArmies).toBe(recruitmentLimits(G, "GE").armyLimit);
+
+    const berlin = landUnitsIn(G, "berlin").find((u) => u.owner === "GE" && u.kind === "army")!;
+    berlin.steps = 1;
+
+    expect(canRecruitIn(G, "GE", "berlin", "army").allowed).toBe(true);
+    expect(recruit(G, makeCtx([], seat("GE")), "berlin", "army", 1)).toBeUndefined();
+    expect(berlin.steps).toBe(2);
+    expect(G.cpRemaining).toBe(3);
+    expect(landUnitsIn(G, "berlin").filter((u) => u.owner === "GE" && u.kind === "army")).toHaveLength(1);
+    expect(lastLog(G, "recruited")?.args).toMatchObject({kind: "army", space: "berlin"});
+  });
+
+  test("a full army at the ceiling still needs a free counter", () => {
+    const G = fresh();
+    startAction(G, "GE", 4);
+    const decision = canRecruitIn(G, "GE", "berlin", "army");
+    expect(decision.allowed).toBe(false);
+    expect(decision.reasons.join(" ")).toMatch(/Manpower/);
+    expect(recruit(G, makeCtx([], seat("GE")), "berlin", "army")).toBe(INVALID_MOVE);
+    expect(G.cpRemaining).toBe(4);
+  });
+
+  test("the flip targets the reduced counter, not the first army in the space", () => {
+    const G = fresh();
+    startAction(G, "GE", 4);
+    // Stack both German armies in Berlin (cap 3) and reduce the second one.
+    const prussian = landUnitsIn(G, "prussia").find((u) => u.owner === "GE" && u.kind === "army")!;
+    G.spaces.prussia.units = G.spaces.prussia.units.filter((id) => id !== prussian.id);
+    G.spaces.berlin.units.push(prussian.id);
+    prussian.space = "berlin";
+    prussian.steps = 1;
+    const berlin = landUnitsIn(G, "berlin").find((u) => u.owner === "GE" && u.kind === "army" && u.id !== prussian.id)!;
+    expect(berlin.steps).toBe(2);
+
+    expect(recruit(G, makeCtx([], seat("GE")), "berlin", "army", 1)).toBeUndefined();
+    expect(prussian.steps).toBe(2);
+    expect(berlin.steps).toBe(2);
+    expect(landUnitsIn(G, "berlin").filter((u) => u.owner === "GE" && u.kind === "army")).toHaveLength(2);
+    expect(G.cpRemaining).toBe(3);
+  });
+
+  test("UK Professional Army still allows the 1st Army to be refit before the GW", () => {
+    const G = fresh();
+    startAction(G, "UK", 4);
+    const first = Object.values(G.units).find((u) => u.owner === "UK" && u.flags?.firstArmy === true)!;
+    first.steps = 1;
+    expect(canRecruitIn(G, "UK", first.space as string, "army").allowed).toBe(true);
+    expect(recruit(G, makeCtx([], seat("UK")), first.space as string, "army", 1)).toBeUndefined();
+    expect(first.steps).toBe(2);
+    expect(G.cpRemaining).toBe(3);
+  });
+
+  test("an Ottoman Turkish army refits in a clean home key at the Turkish ceiling", () => {
+    const G = fresh();
+    startAction(G, "OT", 4);
+    // Erzurum's Armenians bar a Turkish build there; move the reduced counter
+    // to Ankara so the only remaining gate is the manpower ceiling.
+    const erzurum = landUnitsIn(G, "erzurum").find((u) => u.owner === "OT" && u.kind === "army")!;
+    G.spaces.erzurum.units = G.spaces.erzurum.units.filter((id) => id !== erzurum.id);
+    G.spaces.ankara.units.push(erzurum.id);
+    erzurum.space = "ankara";
+    expect(erzurum.steps).toBe(1);
+    expect(recruitmentLimits(G, "OT").currentArmies).toBe(recruitmentLimits(G, "OT").armyLimit);
+
+    expect(canRecruitIn(G, "OT", "ankara", "army").allowed).toBe(true);
+    expect(recruit(G, makeCtx([], seat("OT")), "ankara", "army", 1)).toBeUndefined();
+    expect(erzurum.steps).toBe(2);
+    expect(G.cpRemaining).toBe(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 33.6 Ottoman Manpower
 // ---------------------------------------------------------------------------
 

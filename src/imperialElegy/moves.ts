@@ -1023,10 +1023,13 @@ export const recruit = (
   const existing = landUnitsIn(G, space).filter(
     (u) => u.owner === power && u.kind === "army" && (u.flags?.cw === true) === cw,
   );
-  const upgrade = existing.length > 0 && existing[0].steps < 2;
+  // 12.2: a step flips a reduced army rather than adding a new counter.  Pick
+  // the reduced counter itself, not the first army in the space, or a stack
+  // holding a full army ahead of a reduced one would build instead of refit.
+  const upgrade = existing.find((unit) => unit.steps < 2);
   // The stacking gate lives in `canRecruitIn` (called above), so the UI, the
   // bot and this move all read one answer; nothing to re-check here.
-  if (!upgrade && !hasCounterFor(G, power, "army")) {
+  if (upgrade === undefined && !hasCounterFor(G, power, "army")) {
     log(G, power, "recruitRejected", {kind, space, reasons: "No army counter available"});
     return INVALID_MOVE;
   }
@@ -1040,8 +1043,8 @@ export const recruit = (
     const paid = requireCp(G, ctx, playerID, steps);
     if (paid === INVALID_MOVE) return INVALID_MOVE;
   }
-  if (upgrade) {
-    existing[0].steps = 2;
+  if (upgrade !== undefined) {
+    upgrade.steps = 2;
   } else {
     const flags: Record<string, boolean> = {};
     if (ottoman === "arab") flags.arab = true;
