@@ -118,6 +118,12 @@ export interface WarDeclarationPolicy {
    * war against the attacker.
    */
   neutralJoinOnDouble: boolean;
+  /**
+   * "If France wins the war gain 1 stability" (Aux Armes), the Russian and
+   * Ottoman equivalents print the same clause.  The bonus is separate from
+   * 16.1's major-victory swing and is paid only when the declaring side wins.
+   */
+  winStability: boolean;
 }
 
 const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = {
@@ -132,6 +138,7 @@ const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = 
     twoPowerAims: ["unification"],
     mayForbidPlayerJoins: true,
     neutralJoinOnDouble: false,
+    winStability: false,
   },
   [AUX_ARMES_HOME_CARD]: {
     // "If you choose a conquest war aim you may target up to two keys and you
@@ -147,6 +154,8 @@ const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = 
     twoPowerAims: ["conquest"],
     mayForbidPlayerJoins: false,
     neutralJoinOnDouble: true,
+    // "If France wins the war gain 1 stability."
+    winStability: true,
   },
   [RUSSO_TURKISH_WARS_HOME_CARD]: {
     // "Then declare war against the Ottomans using this card's CP value."
@@ -162,6 +171,8 @@ const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = 
     twoPowerAims: [],
     mayForbidPlayerJoins: false,
     neutralJoinOnDouble: false,
+    // "If Russia wins the war gain 1 stability."
+    winStability: true,
   },
   [JIHAD_HOME_CARD]: {
     // "Declare war against a power that controls an OT home space or RU …
@@ -176,6 +187,8 @@ const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = 
     twoPowerAims: [],
     mayForbidPlayerJoins: false,
     neutralJoinOnDouble: false,
+    // "Gain 1 stability if you win the war."
+    winStability: true,
   },
 };
 
@@ -208,6 +221,10 @@ export const warDeclarationNeutralJoinOnDouble = (card: CardId): boolean =>
 /** True when the card's conquest declaration skips rule 13.3's penalty. */
 export const warDeclarationExemptsConquestPenalty = (card: CardId): boolean =>
   WAR_DECLARATION_POLICIES[card]?.exemptConquestPenalty === true;
+
+/** True when the card prints "if you win the war gain 1 stability". */
+export const warDeclarationGrantsWinStability = (card: CardId): boolean =>
+  WAR_DECLARATION_POLICIES[card]?.winStability === true;
 
 /** True when `power` directly controls a printed Ottoman home space. */
 export const controlsOttomanHome = (G: ImperialElegyState, power: Power): boolean =>

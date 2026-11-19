@@ -218,6 +218,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   italyAllianceResolution: {key: "italyAllianceResolution", args: {major: "IT", te: 3, ta: 12, neutral: 4, direction: "ta", steps: 1, blocked: false, from: "neutral", to: "taAligned"}},
   minorUnopposed: {key: "minorUnopposed", power: "GE", args: {target: "Belgium"}},
   warVictory: {key: "warVictory", power: "GE", args: {kind: "major", primary: "major", victor: "attacker", treaties: 2}},
+  warWinStability: {key: "warWinStability", power: "FR", args: {card: CARD_ID}},
   warSurrender: {key: "warSurrender", power: "FR", args: {result: "accepted", attacker: "GE", defender: "FR"}},
   treatyApplied: {key: "treatyApplied", power: "GE", args: {option: "territorialCession", target: "FR", spaces: "paris", minor: ""}},
   warEnded: {key: "warEnded", power: "GE", args: {victor: "attacker", truceTurns: 1, reserves: 3}},

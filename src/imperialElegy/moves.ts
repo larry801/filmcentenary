@@ -3751,7 +3751,16 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
     // A chain insertion is one impulse; resume the next player once its
     // mandatory event has finished (unless the event itself granted CP).
     if (G.cpRemaining <= 0) finishImpulse(G, ctx);
-  } else if (!(gwCard && hasLiveGwImpulse(G)) && !mandatory && !response && G.cpRemaining <= 0) {
+  } else if (
+    !(gwCard && hasLiveGwImpulse(G)) &&
+    !mandatory &&
+    !response &&
+    G.cpRemaining <= 0 &&
+    // A home-card war declaration (Bismarck, Aux Armes, Russo-Turkish Wars,
+    // Jihad) belongs to this impulse even when its event paused on a printed
+    // choice: the seat declares the war now or hands the impulse over.
+    warDeclarationEntitlement(G, G.activePower) === null
+  ) {
     // 27.1: a GW card's pending decision must not finish the action-phase
     // impulse. Legacy states keep the old action-phase finalization.
     finishImpulse(G, ctx);

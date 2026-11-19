@@ -2257,6 +2257,16 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  warWinStability: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(
+      entry,
+      locale,
+      `won the war declared with ${card} and gained 1 stability.`,
+      `赢得以${card}宣战的战争，获得 1 点稳定度。`,
+    );
+  },
+
   harshTermsShift: (entry, locale) => {
     const from = allianceBoxLabel(entry.args?.from, locale);
     const to = allianceBoxLabel(entry.args?.to, locale);

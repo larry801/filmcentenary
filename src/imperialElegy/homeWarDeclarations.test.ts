@@ -19,10 +19,16 @@
  */
 import type {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import type {ImperialElegyState, Power} from "./types";
+import type {ImperialElegyState, Power, SpaceId} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {createWarState, joinWarAsNeutral as applyNeutralJoin, warBudgetFor} from "./engine/limitedWar";
+import {
+  applyVictoryOutcome,
+  classifyVictory,
+  createWarState,
+  joinWarAsNeutral as applyNeutralJoin,
+  warBudgetFor,
+} from "./engine/limitedWar";
 import {
   AUX_ARMES_HOME_CARD,
   JIHAD_HOME_CARD,
@@ -210,6 +216,56 @@ describe("Russo-Turkish Wars declaration entitlement", () => {
     expect(G.wtt).toBe(wttBefore);
     expect(G.powers.RU.stability).toBe(stabilityBefore);
   });
+
+  test("a Balkan diplomacy marker becomes an alliance before the declaration", () => {
+    // Romania starts with a Russian diplomacy marker (campaign setup).
+    const G = homeImpulse("RU", RUSSO_TURKISH_WARS_HOME_CARD);
+    expect(G.spaces.romania.ally).toBe("RU");
+    expect(G.spaces.romania.diplomacy).toBeNull();
+    expect(warDeclarationEntitlement(G, "RU")).not.toBeNull();
+  });
+
+  test("a marker that cannot become an alliance is skipped, not forced", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "RU";
+    G.turn = 5;
+    G.powers.RU.hand = [RUSSO_TURKISH_WARS_HOME_CARD];
+    G.powers.RU.selectedHomeCard = RUSSO_TURKISH_WARS_HOME_CARD;
+    // 12.8: another player already allied the minor.
+    G.spaces.romania.ally = "AU";
+    playCard(G, makeCtx([], seat("RU")), RUSSO_TURKISH_WARS_HOME_CARD, "event");
+    expect(G.spaces.romania.ally).toBe("AU");
+    expect(G.spaces.romania.diplomacy).toBe("RU");
+    // "If possible": the declaration itself is unaffected.
+    expect(warDeclarationEntitlement(G, "RU")).not.toBeNull();
+  });
+
+  test("two eligible markers open a choice and keep the declaration impulse", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "RU";
+    G.turn = 5;
+    G.powers.RU.hand = [RUSSO_TURKISH_WARS_HOME_CARD];
+    G.powers.RU.selectedHomeCard = RUSSO_TURKISH_WARS_HOME_CARD;
+    G.spaces.greece.diplomacy = "RU";
+    playCard(G, makeCtx([], seat("RU")), RUSSO_TURKISH_WARS_HOME_CARD, "event");
+    expect(G.pending?.kind).toBe("eventTargetSpace");
+    expect(G.pending?.options.map((option) => option.id).sort()).toEqual(["greece", "romania"]);
+    expect(warDeclarationEntitlement(G, "RU")).not.toBeNull();
+    expect(resolvePending(G, makeCtx([], seat("RU")), "greece")).toBeUndefined();
+    expect(G.spaces.greece.ally).toBe("RU");
+    expect(G.spaces.greece.diplomacy).toBeNull();
+    // The unchosen marker is untouched.
+    expect(G.spaces.romania.ally).toBeNull();
+    expect(G.spaces.romania.diplomacy).toBe("RU");
+    // The card paused on a choice, so the impulse must stay open for the
+    // declaration rather than ending at `cpRemaining = 0`.
+    expect(G.phase).toBe("action");
+    expect(G.activePower).toBe("RU");
+    expect(warDeclarationEntitlement(G, "RU")).not.toBeNull();
+    expect(declareWar(G, makeCtx([], seat("RU")), "OT", "conquest", ["serbia"], 3)).toBeUndefined();
+  });
 });
 
 describe("Jihad declaration entitlement", () => {
@@ -263,5 +319,81 @@ describe("Jihad declaration entitlement", () => {
     expect(G.war?.defender).toBe("RU");
     expect(G.war?.minorTarget).toEqual({minor: "Romania", ally: "RU"});
     expect(G.war?.declarationCard).toBe(JIHAD_HOME_CARD);
+  });
+});
+
+/**
+ * The three cards that print a win bonus: Aux Armes ("If France wins the war
+ * gain 1 stability"), Russo-Turkish Wars and Jihad ("Gain 1 stability if you
+ * win the war").  The bonus is paid on top of 16.1's major-victory swing.
+ */
+describe("home-card win stability bonus", () => {
+  const forceMajorVictory = (G: ImperialElegyState, capital: SpaceId, victor: Power): void => {
+    G.spaces[capital].occupiedBy = victor;
+    const victory = classifyVictory(G, G.war!);
+    expect(victory.primary).toBe("major");
+    expect(victory.victor).toBe("attacker");
+    applyVictoryOutcome(G, G.war!, victory);
+  };
+
+  test("Aux Armes pays its printed bonus after a French major victory", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("FR")), "GE", "conquest", ["silesia"], 3)).toBeUndefined();
+    const before = G.powers.FR.stability;
+    forceMajorVictory(G, "berlin", "FR");
+    // +1 for the major victory (16.1) and +1 for the card's own clause.
+    expect(G.powers.FR.stability).toBe(before + 2);
+    expect(G.log.some((entry) => entry.key === "warWinStability")).toBe(true);
+  });
+
+  test("Russo-Turkish Wars pays its printed bonus after a Russian major victory", () => {
+    const G = homeImpulse("RU", RUSSO_TURKISH_WARS_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("RU")), "OT", "conquest", ["serbia"], 3)).toBeUndefined();
+    const before = G.powers.RU.stability;
+    forceMajorVictory(G, "istanbul", "RU");
+    expect(G.powers.RU.stability).toBe(before + 2);
+  });
+
+  test("Jihad pays its printed bonus after an Ottoman major victory", () => {
+    const G = homeImpulse("OT", JIHAD_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("OT")), "RU", "conquest", ["poland"], 3)).toBeUndefined();
+    const before = G.powers.OT.stability;
+    forceMajorVictory(G, "st-petersburg", "OT");
+    expect(G.powers.OT.stability).toBe(before + 2);
+  });
+
+  test("a white peace does not pay the bonus", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("FR")), "GE", "conquest", ["silesia"], 3)).toBeUndefined();
+    const before = G.powers.FR.stability;
+    const victory = classifyVictory(G, G.war!);
+    expect(victory.primary).toBe("whitePeace");
+    applyVictoryOutcome(G, G.war!, victory);
+    expect(G.powers.FR.stability).toBe(before);
+  });
+
+  test("a lost war pays no bonus", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("FR")), "GE", "conquest", ["silesia"], 3)).toBeUndefined();
+    const before = G.powers.FR.stability;
+    G.spaces.paris.occupiedBy = "GE";
+    const victory = classifyVictory(G, G.war!);
+    expect(victory.victor).toBe("defender");
+    applyVictoryOutcome(G, G.war!, victory);
+    // The major-defeat -1 stands; the card's "if France wins" clause is silent.
+    expect(G.powers.FR.stability).toBe(before - 1);
+    expect(G.log.some((entry) => entry.key === "warWinStability")).toBe(false);
+  });
+
+  test("an ordinary CP declaration keeps only the major-victory swing", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "GE";
+    G.turn = 5;
+    G.cpRemaining = 6;
+    expect(declareWar(G, makeCtx([], seat("GE")), "AU", "conquest", ["bohemia"], 2)).toBeUndefined();
+    const before = G.powers.GE.stability;
+    forceMajorVictory(G, "vienna", "GE");
+    expect(G.powers.GE.stability).toBe(before + 1);
   });
 });

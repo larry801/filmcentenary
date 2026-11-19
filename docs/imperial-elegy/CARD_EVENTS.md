@@ -393,8 +393,8 @@ aim/CP、`{minor}` 目标参数、无授权时的普通控件）。
 
 回归：`src/imperialElegy/homeWarDeclarations.test.ts` 与
 `src/imperialElegy/components/bismarckDeclarePanel.test.tsx` 的 RU-9 / OT-12
-面板断言。Aux Armes 的双目标与“中立国可参战”见 §3.14。仍未实现：RU-9 的
-巴尔干小国结盟与三张牌的“获胜 +1 稳定度”，二者不在本次宣告授权修复范围内。
+面板断言。Aux Armes 的双目标与“中立国可参战”见 §3.14；RU-9 的巴尔干小国
+结盟与三张牌的“获胜 +1 稳定度”见 §3.15。
 
 ### 3.14 双目标宣战与参战限制 / two-power declarations and join limits
 
@@ -449,6 +449,39 @@ is, and, if they cannot agree, the attacker decides.”*
   操作，等价于 14.1“协商不成由进攻方决定”的回退，未另开防守方协商对话。
 - 第二防守方作为 `defenderAllies` 参与战斗与条约分配，但其首都失守按 15.6
   的盟友击倒处理，而不是“主要防守方首都”立即终战。
+
+### 3.15 RU-9 的巴尔干结盟与三张牌的获胜稳定度 / RU-9 alliance and win stability
+
+卡面仍未覆盖的两句：
+
+- `IE-H-RU-9`：*“If possible gain an alliance with a Balkan minor power with
+  which you have a diplomacy marker.”*
+- `IE-H-FR-6` / `IE-H-RU-9` / `IE-H-OT-12`：*“If France/Russia wins the war gain
+  1 stability”*、*“Gain 1 stability if you win the war.”*
+
+**Fix (2026-11-19).**
+
+- RU-9 的事件处理器现在先结算结盟：候选是 `BALKAN_MINORS` 中**当前由该小国
+  控制、且带有俄国 `diplomacy` 标记**的本土空间，再用 12.8 的统一门槛
+  `minorAllianceProblem` 过滤（已被他国结盟、达到 5 个盟友上限等情形按
+  “if possible”跳过）。候选唯一时自动结盟；多个候选时打开
+  `eventTargetSpace` 选择，由俄国玩家决定，不再做确定性首选。
+- 结盟走 `gainMinorAlliance`：外交标记翻成盟友标记（`diplomacy = null`,
+  `ally = RU`）并写 `minorAlliance` 日志；与 `habsburgDynasty` /
+  `easternOrthodoxy` 的既有写法一致。
+- 三张牌的“获胜 +1 稳定度”由 `WarDeclarationPolicy.winStability` 记录，
+  `applyVictoryOutcome` 在宣战方（`war.victor === "attacker"`）取得非白和
+  胜利时追加 `+1`，位于 16.1 重大胜利的 `+1/-1` 之外，并写
+  `warWinStability` 日志。白和（包括仅由 16.1.6 盟友击倒决定的“白和”）
+  不算获胜，不加分。
+- RU-9 的结盟选择是一次 pending decision，因此
+  `finalizePendingCard` 与 `playCard` 一样在宣战授权仍存在时保持行动轮
+  不结束（否则 `cpRemaining = 0` 会在选择结算后直接交出行动轮）。
+
+回归：`homeWarDeclarations.test.ts`（新增 9 个断言：罗马尼亚起始标记自动
+结盟、不可结盟时跳过、多候选选择并保持行动轮、三张牌各 +1、白和不加、
+普通 CP 宣战只拿重大胜利的 +1）与 `components/logText.test.ts`
+（`warWinStability` 的中英文句子）。
 
 ---
 
