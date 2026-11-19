@@ -903,8 +903,15 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await original.locator("summary").click();
         expect(await original.evaluate(el => (el as HTMLDetailsElement).open)).toBe(true);
         await expect(original.locator('[data-testid="ie-card-inspector-original-image"]')).toBeVisible();
-        // CP, event, industrialize, CP chain and save are all offered in place.
-        expect(await inspector.locator(".ie-card-inspector-actions button").count()).toBeGreaterThanOrEqual(5);
+        // Every operation lives in place.  Industrialize, CP chain and Save are
+        // always offered; the CP-only button is absent for a mandatory event
+        // (its CP play is the event) and the event button is absent for a
+        // response/combat card, so count those two loosely.
+        const cardId = (await card.getAttribute("data-testid"))?.replace("ie-card-", "") ?? "";
+        await expect(inspector.locator(`[data-testid="ie-industrialize-${cardId}"]`)).toHaveCount(1);
+        await expect(inspector.locator(`[data-testid="ie-cp-chain-add-${cardId}"]`)).toHaveCount(1);
+        await expect(inspector.locator(`[data-testid="ie-save-${cardId}"]`)).toHaveCount(1);
+        expect(await inspector.locator(".ie-card-inspector-actions button").count()).toBeGreaterThanOrEqual(4);
         // A fully playable card has no aggregated reasons; a blocked one does.
         const unavailable = inspector.locator('[data-testid="ie-card-inspector-unavailable"]');
         if (await unavailable.count() > 0) await expect(unavailable).toBeVisible();
