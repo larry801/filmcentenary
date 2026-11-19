@@ -19,9 +19,10 @@ export interface IEBoardProps {
    */
   handOpen?: boolean;
   /**
-   * Draw every hand card's operations inline.  For rules-level tests that
-   * assert on a card's buttons (and for an embedder that wants them visible
-   * without opening the inspector); the game itself opens the inspector.
+   * Draw every hand card's operations inline.  A desktop row prints its own
+   * operations anyway; this opens the full body (face, buttons, translation)
+   * for rules-level tests and for an embedder that wants the whole card
+   * visible without opening the inspector.
    */
   expandHand?: boolean;
 }

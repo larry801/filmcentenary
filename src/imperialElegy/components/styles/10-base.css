@@ -200,8 +200,6 @@
 
 .ie-turn-head .ie-section-title { display: none; }
 
-.ie-hand-tool .ie-select { min-height: 28px; padding: 2px 4px; }
-
 @media (prefers-reduced-motion: reduce) {
   .ie-surface *, .ie-surface *::before, .ie-surface *::after {
     transition: none !important;

@@ -15,7 +15,7 @@ import {CardChoiceFace} from "./CardChoice";
 import {CardFaceMode, cardImageSrc, readConfirmActions} from "./preferences";
 import {RuleLink} from "./RuleRef";
 import {ConfirmButton} from "./ConfirmButton";
-import {cardAvailability, cardTypeIcon, sortCards, type CardAvailability, type CardSort} from "./cardAvailability";
+import {cardAvailability, cardTypeIcon, type CardAvailability} from "./cardAvailability";
 
 export interface HandTrayProps {
   /** Live `confirmActions` preference (the Display menu writes it). */
@@ -52,6 +52,17 @@ export interface HandTrayProps {
   cardFaceMode: CardFaceMode;
   open: boolean;
   onToggleOpen: () => void;
+  /**
+   * True below 768 px.  On a phone the row stays one line and its operations
+   * stay in the CardInspector; a desktop row draws them inline, because a
+   * mouse reader expects the buttons in place rather than behind a dialog.
+   */
+  isPhone?: boolean;
+  /**
+   * A seat the bot drives: its board is read-only, so its rows never offer an
+   * operation (Save in particular is legal outside the seat's own impulse).
+   */
+  isBotViewer?: boolean;
   /**
    * A decision is owed on screen (phone redesign): the sheet shows a compact
    * peek line instead of the hand, so the map target it asks about stays
@@ -95,10 +106,13 @@ const CardTranslation = ({card, locale}: {card: CardDef | GoalDef; locale: "en" 
  * The bottom hand tray.
  *
  * A card is one row: CP value, name, type and whether it can be played now.
- * Tapping the row opens the CardInspector straight away — the full face, every
- * operation and the aggregated "why not" reasons all live there, so the hand
- * never has to unfold in place first.  `expandAll` (embeds, rules-level suites)
- * still draws the operations inline for a static render.
+ * On a desktop the row also draws every operation inline (play for CP, the
+ * event, a response, industrialization, the CP chain and Save), so the common
+ * play never needs a dialog; tapping the name still opens the CardInspector
+ * with the full face and the aggregated "why not" reasons.  On a phone the row
+ * stays one line and the operations stay in the inspector — a fingertip row
+ * cannot carry six buttons.  `expandAll` (embeds, rules-level suites) draws the
+ * operations inline everywhere for a static render.
  */
 export const HandTray = (props: HandTrayProps) => {
   const {
@@ -107,7 +121,7 @@ export const HandTray = (props: HandTrayProps) => {
     responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
     cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded, decisionPeek = false,
-    onOpenReference, expandAll = false,
+    onOpenReference, expandAll = false, isPhone = false, isBotViewer = false,
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
   // Reads the saved preference when the tray mounts; `Preferences` in the
@@ -116,10 +130,8 @@ export const HandTray = (props: HandTrayProps) => {
   // caller that renders the tray alone still gets the stored value.
   const storedConfirm = React.useMemo(() => readConfirmActions(), []);
   const confirmActions = props.confirmActions ?? storedConfirm;
-  const [sort, setSort] = React.useState<CardSort>("printed");
-  // Playing a card removes it from the hand, and the inspector is now the only
-  // way to play one — a card that has left the hand must not leave the dialog
-  // open on a face that is no longer in play.  The inspector reopens from a row.
+  // Playing a card removes it from the hand, and a card that has left the hand
+  // must not leave the inspector open on a face that is no longer in play.
   // National Goals use the same dialog but live on the mat, so only a card face
   // is subject to the close.
   React.useEffect(() => {
@@ -155,21 +167,29 @@ export const HandTray = (props: HandTrayProps) => {
     bi: (en, zh) => bi(locale, en, zh),
   });
 
-  const visibleHand = sortCards(hand, {sort});
-
   /**
-   * Whether the unfolded card has any operation to offer at all — legal right
-   * now, or merely blocked.  A disabled button carrying its reason is how a
-   * player learns why a card is stuck, so it is still worth drawing; only a card
-   * with no such dimension (a combat card outside a battle) has nothing to say.
+   * Whether a card has any operation to offer at all — legal right now, or
+   * merely blocked.  A disabled button carrying its reason is how a player
+   * learns why a card is stuck, so it is still worth drawing; only a card with
+   * no such dimension (a combat card outside a battle) has nothing to say.
    */
   const hasOperation = (id: string): boolean => {
     const a = availability(id);
     return (a.showCp && a.cpAllowed) || a.eventAllowed || a.showResponse;
   };
 
+  // A desktop row draws every operation in place, like the inspector does; a
+  // phone row keeps them behind the tap (a fingertip row cannot hold six
+  // buttons), and `expandAll` keeps the inline body for the static suites.  A
+  // bot seat's board is a read-only view, so it never offers a row operation —
+  // Save in particular is legal outside the seat's own impulse.
+  const showRowActions = (!isPhone || expandAll) && !isBotViewer;
+
   const actionButtons = (id: string, where: "inline" | "inspector"): React.ReactNode => {
     const a = availability(id);
+    // The inspector is the full list; the row prints the same list wherever the
+    // row draws it (desktop, or the static `expandAll` body).
+    const all = where === "inspector" || showRowActions;
     const mandatoryTitle = a.isMandatory ? bi(locale, "Mandatory card: play its event", "强制牌：需打出其事件") : undefined;
     const cpDisabled = !a.cpModeOk;
     // 12.0's one-card rule and the printed gates both land in `reasons`, so a
@@ -192,7 +212,7 @@ export const HandTray = (props: HandTrayProps) => {
         mandatoryResponse ? "确认：打出强制响应" : "确认：打出强制事件");
     return (
       <>
-        {a.showCp && (where === "inspector" || a.cpAllowed) && (
+        {a.showCp && (all || a.cpAllowed) && (
           // Playing a card for CP commits the impulse's CP: a second click
           // confirms it, unless the player has turned confirmations off.
           // A mandatory event has no CP-only mode (`showCp` is false): its CP
@@ -216,7 +236,7 @@ export const HandTray = (props: HandTrayProps) => {
             {t.cpMode}
           </ConfirmButton>
         )}
-        {(where === "inspector" || a.eventAllowed) && (
+        {(all || a.eventAllowed) && (
           <ConfirmButton
             key="event"
             className="ie-card-primary"
@@ -234,7 +254,7 @@ export const HandTray = (props: HandTrayProps) => {
             {eventLabel}
           </ConfirmButton>
         )}
-        {(where === "inspector" || a.showResponse) && a.showResponse && (
+        {(all || a.showResponse) && a.showResponse && (
           <button
             key="response"
             data-testid={`ie-response-${id}`}
@@ -248,9 +268,9 @@ export const HandTray = (props: HandTrayProps) => {
             {t.playResponse}
           </button>
         )}
-        {where === "inspector" && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} onClick={() => doAction(() => moves.industrialize(id), {label: t.industrialize, reason: a.firstReason})}>{t.industrialize}</button>}
-        {where === "inspector" && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} onClick={() => doAction(() => moves.cpChain(id), {label: t.cpChain, reason: a.firstReason})}>{t.cpChain}</button>}
-        {where === "inspector" && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} onClick={() => doAction(() => moves.saveCard(id), {label: a.saved ? t.unsave : t.saveCard, reason: a.firstReason})}>{a.saved ? t.unsave : t.saveCard}</button>}
+        {all && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} title={!a.industOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.industrialize(id), {label: t.industrialize, reason: a.firstReason})}>{t.industrialize}</button>}
+        {all && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} title={!a.chainOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.cpChain(id), {label: t.cpChain, reason: a.firstReason})}>{t.cpChain}</button>}
+        {all && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} title={!a.saveOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.saveCard(id), {label: a.saved ? t.unsave : t.saveCard, reason: a.firstReason})}>{a.saved ? t.unsave : t.saveCard}</button>}
       </>
     );
   };
@@ -311,17 +331,6 @@ export const HandTray = (props: HandTrayProps) => {
           {responseInHand && <IEChip>{t.responseCard}: {hand.filter((id) => cardById(id).type === "response").length}</IEChip>}
           {me.industryCard && <IEChip>{t.industryCard}: {homeCardTitle(me.industryCard)}</IEChip>}
         </div>
-        <div className="ie-hand-tools" data-testid="ie-hand-tools">
-          <label className="ie-hand-tool">
-            <span>{bi(locale, "Sort", "排序")}</span>
-            <select className="ie-select" data-testid="ie-hand-sort" value={sort} onChange={(event) => setSort(event.target.value as CardSort)}>
-              <option value="printed">{bi(locale, "Printed order", "卡面顺序")}</option>
-              <option value="cp">{bi(locale, "CP", "CP 值")}</option>
-              <option value="type">{bi(locale, "Type", "类型")}</option>
-              <option value="decade">{bi(locale, "Decade", "年代")}</option>
-            </select>
-          </label>
-        </div>
         {decisionPeek && (
           <span className="ie-tray-decision-line" data-testid="ie-tray-decision-peek" role="status">
             {bi(locale, "A decision is waiting — answer it in the panel", "有决策待处理——请在面板中作答")}
@@ -350,12 +359,14 @@ export const HandTray = (props: HandTrayProps) => {
             </div>
 
             <div className="ie-hand">
-              {visibleHand.map((id) => {
+              {hand.map((id) => {
                 const card = cardById(id);
                 const a = availability(id);
                 const playable = a.cpModeOk || a.eventModeOk || a.responseOk;
-                // The board draws the operations only for `expandAll`; otherwise
-                // they live in the inspector, which the row opens.
+                // `expandAll` is the static-suite body: the face, the buttons
+                // and the translation inline.  A desktop row draws the same
+                // operations directly under the name; a phone row keeps them in
+                // the inspector the tap opens.
                 const rowOpen = expandAll;
                 return (
                   <article
@@ -366,6 +377,7 @@ export const HandTray = (props: HandTrayProps) => {
                     data-card-kind={card.kind}
                     data-playable={playable ? "true" : "false"}
                     data-card-type={cardTypeIcon(card.kind, card.type)}
+                    data-row-actions={showRowActions && !rowOpen ? "true" : "false"}
                   >
                     <button
                       type="button"
@@ -386,6 +398,15 @@ export const HandTray = (props: HandTrayProps) => {
                         </span>
                       )}
                     </button>
+                    {showRowActions && !rowOpen && (
+                      // The operations sit on the row itself, so a desktop play
+                      // is one click on a visible button rather than a tap, a
+                      // dialog and another click.  Blocked buttons carry their
+                      // reason as a title, exactly as they do in the inspector.
+                      <div className="ie-card-actions ie-card-row-actions" data-testid={`ie-card-row-actions-${id}`}>
+                        {actionButtons(id, "inline")}
+                      </div>
+                    )}
                     {rowOpen && (
                       <div className="ie-card-body" id={`ie-card-body-${id}`}>
                         <div className="ie-card-face-holder" data-testid={`ie-card-face-${id}`}>
