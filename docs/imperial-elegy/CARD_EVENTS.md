@@ -436,7 +436,7 @@ is, and, if they cannot agree, the attacker decides.”*
   战争面板显示两项参战限制，并在 `allowNeutralJoin` 时为中立座位提供参战按钮。
 
 回归：`bismarckWar.test.ts`（10 个断言：双目标、主要防守方、禁止参战、
-第二目标校验等）、`homeWarDeclarations.test.ts`（18 个断言：Aux Armes 双目标、
+第二目标校验等）、`homeWarDeclarations.test.ts`（19 个断言：Aux Armes 双目标、
 双关键区、中立国参战与无条款时拒绝）与
 `components/bismarckDeclarePanel.test.tsx`（6 个断言）。
 

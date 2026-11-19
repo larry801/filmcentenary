@@ -45,7 +45,7 @@ The remaining card-text gaps from §3.12/§3.13 of `CARD_EVENTS.md` are now live
 - The Orders panel exposes the second power, primary and join-ban controls; the
   War panel shows both join limits and the neutral-volunteer button.
 
-Coverage: `bismarckWar.test.ts` (10), `homeWarDeclarations.test.ts` (18) and
+Coverage: `bismarckWar.test.ts` (10), `homeWarDeclarations.test.ts` (19) and
 `components/bismarckDeclarePanel.test.tsx` (6). Still open and out of this
 fix's scope: RU-9's Balkan-minor alliance and the three cards' "win: +1
 stability". Modelling boundaries are recorded in `CARD_EVENTS.md` §3.14.

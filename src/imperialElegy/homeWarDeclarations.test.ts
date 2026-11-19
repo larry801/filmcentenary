@@ -22,7 +22,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {warBudgetFor} from "./engine/limitedWar";
+import {createWarState, joinWarAsNeutral as applyNeutralJoin, warBudgetFor} from "./engine/limitedWar";
 import {
   AUX_ARMES_HOME_CARD,
   JIHAD_HOME_CARD,
@@ -137,6 +137,20 @@ describe("Aux Armes, Citoyens! declaration entitlement", () => {
     expect(G.war?.budgets.UK).toBe(warBudgetFor(G, "UK", 3));
     expect(G.powers.UK.hand).not.toContain("IE-H-UK-3");
     expect(G.discard).toContain("IE-H-UK-3");
+  });
+
+  test("a volunteer defending a lone non-player becomes its primary", () => {
+    const G = fresh();
+    G.powers.UK.hand = ["IE-H-UK-3"];
+    G.war = createWarState(G, "FR", "Denmark", "conquest", ["schleswig-holstein"], 3, {
+      minor: {minor: "Denmark", ally: null},
+    });
+    G.war.allowNeutralJoin = true;
+    expect(applyNeutralJoin(G, G.war, "UK", {cardId: "IE-H-UK-3"}).applied).toBe(true);
+    // 13.4/13.4.2: the first player defender is the non-player's primary.
+    expect(G.war.defender).toBe("UK");
+    expect(G.war.minorTarget).toEqual({minor: "Denmark", ally: "UK"});
+    expect(G.war.defenderAllies).not.toContain("UK");
   });
 
   test("a war without the clause refuses neutral volunteers", () => {

@@ -1392,7 +1392,15 @@ export const joinWarAsNeutral = (
   }
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== join.cardId);
   G.discard.push(join.cardId);
-  war.defenderAllies.push(power);
+  if (isLoneMinorWar(war) && war.minorTarget !== undefined) {
+    // Rules 13.4/13.4.2: the first player to defend an attacked non-player
+    // becomes its defending primary.  The volunteer therefore moves the war
+    // out of the lone-defender shape instead of joining as a secondary ally.
+    war.minorTarget = {minor: war.minorTarget.minor, ally: power};
+    war.defender = power;
+  } else {
+    war.defenderAllies.push(power);
+  }
   war.budgets[power] = join.budget;
   const shift = shiftAlliance(G, power, join.allianceSide, 1);
   log(G, power, "allyJoinedWar", {ally: power, card: join.cardId, side: "defender", neutralVolunteer: true});
