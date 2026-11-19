@@ -176,6 +176,52 @@ describe("Otto von Bismarck's war of unification", () => {
     expect(call.reason).toBe("forbid-join");
   });
 
+  test("the join ban also stops the 13.4.2 aid search on a minor", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    // Schleswig-Holstein is Danish-controlled and has no player ally, so the
+    // ordinary declaration would immediately let Denmark seek aid (13.4.2).
+    // Bismarck's clause forbids other players from joining, so no seat may be
+    // invited and the minor must defend alone (15.4.2).
+    expect(declareWar(G, makeCtx([2, 1], seat("GE")), {minor: "Denmark"}, "unification", ["schleswig-holstein"], 3, {
+      forbidPlayers: true,
+    })).toBeUndefined();
+    expect(G.pending).toBeNull();
+    expect(G.war).not.toBeNull();
+    expect(G.war!.defender).toBe("Denmark");
+    expect(G.war!.forbidPlayerJoins).toBe(true);
+  });
+
+  test("the aid decision cannot join once the ban is recorded", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    // The ban normally skips the aid search entirely.  Simulate a decision
+    // opened before the ban (e.g. from a save): answering "aid" must be
+    // refused, so a queued seat cannot bypass the clause.
+    expect(declareWar(G, makeCtx([2, 1], seat("GE")), {minor: "Denmark"}, "unification", ["schleswig-holstein"], 3))
+      .toBeUndefined();
+    expect(G.pending?.kind).toBe("minorAid");
+    G.flags.declarationForbid = true;
+    expect(resolvePending(G, makeCtx([2, 1], seat(G.pending!.power)), "aid")).toBe(INVALID_MOVE);
+  });
+
+  test("the ban does not stop an existing minor ally from fighting for it", () => {
+    const G = bismarckImpulse();
+    // The card's Clarification: declaring war on a minor power with a player
+    // ally still counts as declaring war on that player, and that defender may
+    // still aid its minor power ally (13.4.1).
+    G.spaces["schleswig-holstein"].ally = "FR";
+    playBismarck(G);
+    expect(declareWar(G, makeCtx([2, 1], seat("GE")), {minor: "Denmark"}, "unification", ["schleswig-holstein"], 3, {
+      forbidPlayers: true,
+    })).toBeUndefined();
+    expect(G.pending?.kind).toBe("minorAbandon");
+    expect(G.pending?.power).toBe("FR");
+    expect(resolvePending(G, makeCtx([2, 1], seat("FR")), "join")).toBeUndefined();
+    expect(G.war!.defender).toBe("FR");
+    expect(G.war!.forbidPlayerJoins).toBe(true);
+  });
+
   test("the second power must be different from the first", () => {
     const G = bismarckImpulse();
     playBismarck(G);

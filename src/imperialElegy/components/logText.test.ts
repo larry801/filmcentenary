@@ -214,6 +214,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   minorAllyAsked: {key: "minorAllyAsked", power: "GE", args: {minor: "Belgium", power: "FR", step: 0, diplomacy: false}},
   minorAidRoll: {key: "minorAidRoll", power: "GE", args: {minor: "Belgium", order: "UK,GE", rolls: "UK:5,GE:2"}},
   minorAidGranted: {key: "minorAidGranted", power: "GE", args: {minor: "Belgium", ally: "FR", space: "belgium"}},
+  minorAidForbidden: {key: "minorAidForbidden", power: "GE", args: {minor: "Denmark"}},
   minorAbandoned: {key: "minorAbandoned", power: "FR", args: {minor: "Italy", stability: -1, from: "neutral", to: "teAligned", italyInfluence: 10}},
   italyMpitGained: {key: "italyMpitGained", args: {major: "IT", track: "neutral", amount: 10, total: 10, reason: "abandoned"}},
   italyAllianceResolution: {key: "italyAllianceResolution", args: {major: "IT", te: 3, ta: 12, neutral: 4, direction: "ta", steps: 1, blocked: false, from: "neutral", to: "taAligned"}},
