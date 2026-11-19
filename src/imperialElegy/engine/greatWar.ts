@@ -3,6 +3,7 @@ import {AllianceBox, CardId, ImperialElegyState, PendingDecision, Power, POWERS,
 import {POWER_DEFS, POWER_NAMES_ZH} from "../constant/powers";
 import {SPACES, connectionsOf, neighboursOf, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
+import type {ScenarioDef} from "../constant/scenarios/types";
 import type {Effect} from "../constant/cards";
 import {discardCard, removeCard} from "./deck";
 import {
@@ -1743,6 +1744,128 @@ export const resolveCrisisPending = (
     default:
       return completeCrisis(G, ctx, actor, run);
   }
+};
+
+/**
+ * Start a scenario that opens with the Great War already in progress.
+ *
+ * The playbook prints three such setups:
+ *
+ *  - the Historical GW tutorial (p. 7): "Start this scenario with the Maneuver
+ *    Step of GW turn 0.  The setup takes into account the Outbreak Step of the
+ *    GW, including the National Will Step and the UK Rapid Deployment national
+ *    characteristic" — so the outbreak is *already done*: alliances formed,
+ *    NGs scored, National Will applied, Italy resolved, canals and permanent
+ *    events in effect, and the printed wartime initiative order standing;
+ *  - Alternate GW Scenarios 1-3 (pp. 8-10): each prints its own alliances and
+ *    opens at GW turn 0.
+ *
+ * Unlike `outbreakGreatWar`, this does not roll a crisis, discard hands or score
+ * National Goals: the scenario's setup already encodes their results.  It is
+ * called once from `engine/setup.ts` while the state is still being built, so it
+ * writes `G.gw` directly instead of going through the phase machinery.
+ */
+export const beginScenarioGw = (G: ImperialElegyState, def: ScenarioDef): void => {
+  const tutorial = def.special.gwTutorial;
+  const alt = def.special.altGw;
+  if (!tutorial && !alt) return;
+  // Alliances: the tutorial prints them explicitly; an alternate setup prints
+  // them per scenario in `altGw.te` / `altGw.ta` (see the data modules).
+  const te: Power[] = tutorial ? [...tutorial.te] : alt ? [...(alt.te ?? [])] : [];
+  const ta: Power[] = tutorial ? [...tutorial.ta] : alt ? [...(alt.ta ?? [])] : [];
+  const neutrals: Power[] = tutorial ? [...tutorial.neutrals] : alt ? [...(alt.neutrals ?? [])] : [];
+  // Write the Alliance Track boxes so every pre-war rule that reads the track
+  // (8.2 declaration shift, 12.x diplomacy, 20.9 resolution) sees the war state.
+  for (const power of POWERS) {
+    if (te.includes(power)) G.powers[power].alliance = "teCommitted";
+    else if (ta.includes(power)) G.powers[power].alliance = "taCommitted";
+    else G.powers[power].alliance = "neutral";
+  }
+  const italyChit = italyAllianceBox(G);
+  G.gw = {
+    active: true,
+    // "Start this scenario with the Maneuver Step of GW turn 0."
+    turn: tutorial?.turn ?? 0,
+    order: tutorial ? [...tutorial.order] : [],
+    belligerents: [...te, ...ta],
+    neutrals,
+    te,
+    ta,
+    usIn: false,
+    italyIn: (italyChit !== "neutral" || def.italy?.alliance !== undefined) && def.italy?.unified === true,
+    usStability: 3,
+    usManpower: 3,
+    usBudget: 4,
+    italyStability: 3,
+    italyManpower: 3,
+    italyBudget: 2,
+    italyAlliance: italyChit,
+    trenches: {},
+    lastColonialWar: null,
+    victor: null,
+    // The scenario's setup *is* the continuous Outbreak Step (p. 7), so both
+    // one-off steps are marked done: nothing may re-run them.
+    outbreakDone: true,
+    nationalWillDone: true,
+    bonusImpulses: [...(tutorial?.bonusFor ?? [])],
+  };
+  // 28.1: "At the start of GW turn 1 all keys automatically contain trenches."
+  // A scenario that opens at GW turn 1 or later therefore already has them; the
+  // tutorial's GW turn 0 does not.
+  if ((G.gw.turn ?? 0) >= 1) {
+    for (const space of Object.values(SPACES)) {
+      if (space.type !== "key" && space.type !== "capital" && space.type !== "subcapital") continue;
+      if (!G.spaces[space.id]) continue;
+      G.spaces[space.id].trenchLine = true;
+      G.gw.trenches[space.id] = "deadlock";
+    }
+  }
+  // "In Effect: Suez Canal, Kiel Canal.  Permanent Events in Effect: Machine
+  // guns and Hydraulic Recoil."
+  if (tutorial?.canals?.suez) G.persistent.suezCanal = true;
+  if (tutorial?.canals?.kiel) G.persistent.kielCanal = true;
+  if (tutorial?.permanentEvents?.machineGuns) G.persistent.machineGuns = true;
+  if (tutorial?.permanentEvents?.hydraulicRecoil) G.persistent.hydraulicRecoil = true;
+  // 33.2 "I Want You": the tutorial's National Will Step already granted the UK
+  // two bonus armies, placed in London during the GW turn 1 planning step.
+  const ukBonusArmies = tutorial?.ukBonusArmies ?? 0;
+  if (ukBonusArmies > 0) {
+    G.powers.UK.flags.joinYourCountrysArmyPending = ukBonusArmies;
+  }
+  // The GW's own bookkeeping that `outbreakGreatWar` normally performs.
+  G.wtt = 4;
+  G.phase = "gwPlanning";
+  G.persistent.italyAlliance = G.gw.italyAlliance ?? "neutral";
+  G.flags.gwOutbreakItalyResolved = true;
+  // 33.6 Jihad: the Ottomans gain 3 Jihad markers at the start of the GW.
+  G.powers.OT.jihad = (G.powers.OT.jihad ?? 0) + 3;
+  // 25.7: an alternate setup prints no order; use the printed rule (GE's
+  // alliance first, alternating) so the scenario is playable.
+  if (G.gw.order.length === 0) {
+    const geSide = ta.includes("GE") ? "ta" : te.includes("GE") ? "te" : null;
+    const first = geSide === "ta" ? ta : te;
+    const second = geSide === "ta" ? te : ta;
+    const order: (Power | "bonus")[] = [];
+    const max = Math.max(first.length, second.length);
+    for (let i = 0; i < max; i += 1) {
+      order.push(first[i] ?? "bonus");
+      order.push(second[i] ?? "bonus");
+    }
+    G.gw.order = order;
+    G.gw.bonusImpulseSide =
+      first.length === second.length ? null : first.length < second.length ? geSide : geSide === "te" ? "ta" : "te";
+  }
+  // 33.2 Rapid Deployment: the UK entered the GW as a belligerent.
+  if (G.gw.belligerents.includes("UK")) grantRapidDeployment(G, "gw");
+  log(G, undefined, "greatWarOutbreak", {
+    incident: def.name,
+    te: te.join(","),
+    ta: ta.join(","),
+    neutrals: neutrals.join(","),
+    crisis: "",
+    blame: "",
+    blameMinor: "",
+  });
 };
 
 /**

@@ -10,6 +10,15 @@ motion and verification — is specified in
 [`VISUAL_SYSTEM.md`](VISUAL_SYSTEM.md). Layout and behaviour remain specified
 here; the visual spec must not change them.
 
+## Scenarios
+
+The playbook prints eight playable scenario setups plus Scenario 4's "No GW"
+victory modifier, and all of them are implemented. [`SCENARIOS.md`](SCENARIOS.md)
+records each scenario page by page: the transcribed data
+(`constant/scenarios/`), the printed rules that differ per scenario
+(`engine/scenario.ts` / `engine/scenarioSetup.ts`), the evidence, and how to add
+another one.
+
 ## Sources of truth
 
 1. `IE_playbook.pdf` — the publisher's living playbook. Campaign setup, national

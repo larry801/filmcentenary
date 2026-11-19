@@ -646,6 +646,11 @@ export const beginLandBattle = (
     }
   }
   G.battle = battle;
+  // GW tutorial (playbook p. 7): record every land battle fought during GW turn
+  // 0 so the winter step can check AU's printed Serbian-battle clause.
+  if (G.gw?.active && G.gw.turn === 0) {
+    (G.gw.turnZeroBattles ??= []).push({attacker: actor, to});
+  }
   battle.supportSide = "attacker";
   if (!openSupportWindow(G, ctx, battle, "attacker", actor)) {
     // No legal attacker support: go straight to the defender's stage.

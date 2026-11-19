@@ -10,9 +10,28 @@ import {ImperialElegyState, POWERS, Power} from "../types";
 import {BotSeatsContext} from "./botContext";
 import {SeatStrip, deriveSeatStatuses} from "./SeatStrip";
 import {SeatUiContext} from "./seatUiContext";
+import {IE_NO_GW_LABEL, IE_SCENARIOS} from "../configuration";
+import {SCENARIOS, ScenarioId, scenarioFromSetupData} from "../constant/scenarios";
+import {setupImperialElegy} from "../engine/setup";
 
 const HotseatBoard = (props: React.ComponentProps<typeof ImperialElegyBoard>) =>
   <ImperialElegyBoard {...props} hotseat/>;
+
+/**
+ * The hotseat game definition for one scenario.
+ *
+ * boardgame.io's `Local()` multiplayer creates the match on demand with
+ * `setupData: undefined` (the React client has no setup-data prop), so a
+ * hotseat match cannot pass its scenario through `setupData` the way an online
+ * lobby does.  Handing the client a game definition whose `setup` already
+ * carries the scenario is the equivalent, and it keeps `setupImperialElegy`
+ * the single setup path for both entrances.
+ */
+const hotseatGame = (scenario: ScenarioId, noGw: boolean) => ({
+  ...ImperialElegyGameDef,
+  setup: (ctx: Parameters<typeof setupImperialElegy>[0]) =>
+    setupImperialElegy(ctx, {scenario, ...(noGw ? {noGw: true} : {})}),
+});
 
 const BoardClient = Client({
   numPlayers: 6,
@@ -27,10 +46,47 @@ const BoardClient = Client({
 // re-rendering all six boards and resetting a bot's 500 ms auto-submit timer.
 const MemoBoardClient = React.memo(BoardClient);
 
+/** Cache one client per (scenario, No-GW) pair so React keeps the same component. */
+const clients = new Map<string, typeof BoardClient>();
+const boardClientFor = (scenario: ScenarioId, noGw: boolean): typeof BoardClient => {
+  const key = `${scenario}:${noGw ? "noGw" : "normal"}`;
+  const cached = clients.get(key);
+  if (cached !== undefined) return cached;
+  const created = Client({
+    numPlayers: 6,
+    game: hotseatGame(scenario, noGw),
+    board: HotseatBoard,
+    multiplayer: Local(),
+    debug: false,
+  });
+  clients.set(key, created);
+  return created;
+};
+
 const MATCH_ID = "local_imperial_elegy";
 
 /** Storage key for the bot-seat configuration. */
 const BOT_SEATS_KEY = "ie_local_bot_seats";
+
+/** Storage key for the hotseat scenario choice (`IE_playbook.pdf` pp. 3-10). */
+const SCENARIO_KEY = "ie_local_scenario";
+
+/** Storage key for Scenario 4's "No GW" modifier. */
+const NO_GW_KEY = "ie_local_no_gw";
+
+const loadScenario = (): ScenarioId => {
+  try {
+    return scenarioFromSetupData(localStorage.getItem(SCENARIO_KEY));
+  } catch {/* ignore */}
+  return "campaign";
+};
+
+const loadNoGw = (): boolean => {
+  try {
+    return localStorage.getItem(NO_GW_KEY) === "1";
+  } catch {/* ignore */}
+  return false;
+};
 
 const loadBotSeats = (): Set<Power> => {
   try {
@@ -80,6 +136,13 @@ const LocalImperialElegy = () => {
   // Plain `/localIE` keeps the historical behaviour: the board is live
   // immediately.  Only the explicit solo entrance opens the seat setup.
   const [showSetup, setShowSetup] = React.useState(wantsSeatSetup);
+  // The printed scenario the hotseat match plays, and Scenario 4's "No GW"
+  // victory-condition modifier.  Both are setup data, so changing either deals
+  // a new match (the nonce below).
+  const [scenario, setScenario] = React.useState<ScenarioId>(loadScenario);
+  const [noGw, setNoGw] = React.useState<boolean>(loadNoGw);
+  const [setupScenario, setSetupScenario] = React.useState<ScenarioId>(loadScenario);
+  const [setupNoGw, setSetupNoGw] = React.useState<boolean>(loadNoGw);
   // Bumping the match id discards the running match and deals a new one.
   const [matchNonce, setMatchNonce] = React.useState(0);
   // Language switches must re-render: the i18n object is mutable state that
@@ -151,6 +214,20 @@ const LocalImperialElegy = () => {
     });
   }, []);
 
+  // `Local()` never forwards setupData, so the scenario travels in the game
+  // definition the client was built with (see `hotseatGame` above).
+  const SeatBoard = React.useMemo(() => boardClientFor(scenario, noGw), [scenario, noGw]);
+
+  // A one-line summary of the chosen scenario for the setup screen.
+  const scenarioSummary = React.useMemo(() => {
+    const def = SCENARIOS[setupScenario];
+    const turns = def.firstTurn === def.lastTurn ? `${def.firstTurn}` : `${def.firstTurn}-${def.lastTurn}`;
+    const vp = def.special.countVp ? t.scenarioCountsVp : t.scenarioNoVp;
+    const gw = def.special.gwTutorial || def.special.altGw ? ` · ${t.scenarioStartsInGw}` : "";
+    const noGw = setupNoGw ? ` · ${locale === "en" ? IE_NO_GW_LABEL.en : IE_NO_GW_LABEL.zh_CN}` : "";
+    return `${t.scenarioTurns} ${turns} · ${vp}${gw}${noGw}`;
+  }, [setupScenario, setupNoGw, locale, t]);
+
   const botContext = React.useMemo(() => ({seats: botSeats, setSeatBot}), [botSeats, setSeatBot]);
 
   const seatUi = React.useMemo(() => ({currentSeat, onSwitchSeat: switchSeat, onGameState}), [currentSeat, switchSeat, onGameState]);
@@ -182,13 +259,45 @@ const LocalImperialElegy = () => {
           <p className="ie-muted" data-testid="ie-local-seat-summary">
             {botSeats.size === 0 ? t.seatSetupAnyHuman : `${t.seatSetupHuman} ${POWERS.length - botSeats.size} · ${t.seatSetupBot} ${botSeats.size}`}
           </p>
+          <h2 className="ie-local-subtitle">{t.scenarioTitle}</h2>
+          <p className="ie-muted">{t.scenarioIntro}</p>
+          <label className="ie-local-scenario">
+            <span>{t.scenarioLabel}</span>
+            <select
+              data-testid="ie-local-scenario"
+              value={setupScenario}
+              onChange={(event) => setSetupScenario(event.target.value as ScenarioId)}
+            >
+              {IE_SCENARIOS.map((entry) => (
+                <option key={entry.id} value={entry.id}>
+                  {locale === "en" ? entry.name : entry.nameZh}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="ie-local-no-gw">
+            <input
+              type="checkbox"
+              data-testid="ie-local-no-gw"
+              checked={setupNoGw}
+              onChange={(event) => setSetupNoGw(event.target.checked)}
+            />
+            <span>{locale === "en" ? IE_NO_GW_LABEL.en : IE_NO_GW_LABEL.zh_CN}</span>
+          </label>
+          <p className="ie-muted" data-testid="ie-local-scenario-summary">{scenarioSummary}</p>
           <button
             type="button"
             className="ie-btn primary ie-local-start"
             data-testid="ie-start-match"
             onClick={() => {
-              // A fresh seat configuration is a fresh match: bump the nonce so
-              // the local master cannot resume the abandoned one.
+              // A fresh seat or scenario configuration is a fresh match: bump the
+              // nonce so the local master cannot resume the abandoned one.
+              setScenario(setupScenario);
+              setNoGw(setupNoGw);
+              try {
+                localStorage.setItem(SCENARIO_KEY, setupScenario);
+                localStorage.setItem(NO_GW_KEY, setupNoGw ? "1" : "0");
+              } catch {/* ignore */}
               setMatchNonce((n) => n + 1);
               setShowSetup(false);
             }}
@@ -241,9 +350,9 @@ const LocalImperialElegy = () => {
                 data-active={tab === index ? "true" : "false"}
                 data-testid={`ie-seat-${p}`}
               >
-                <MemoBoardClient
-                  // A seat-setup change deals a new match, so the old one is never
-                  // silently resumed with a different bot configuration.
+                <SeatBoard
+                  // A seat-setup or scenario change deals a new match, so the old
+                  // one is never silently resumed with a different configuration.
                   matchID={matchNonce === 0 ? MATCH_ID : `${MATCH_ID}_${matchNonce}`}
                   playerID={String(index)}
                   debug={false}

@@ -16,6 +16,18 @@ const CARD = CARD_BY_ID[CARD_ID];
  */
 const SAMPLES: Record<string, LogTextEntry> = {
   campaignStarted: {key: "campaignStarted", args: {}},
+  scenarioStarted: {key: "scenarioStarted", args: {scenario: "s1870", name: "1870 Scenario", firstTurn: 3, lastTurn: 6}},
+  goalDeckAdded: {key: "goalDeckAdded", power: "AU", args: {goal: "NG-31"}},
+  goalRemoved: {key: "goalRemoved", power: "AU", args: {goal: "NG-30", kept: "NG-29"}},
+  goalDrawn: {key: "goalDrawn", power: "GE", args: {count: 2, kept: "NG-01"}},
+  homeCardSkipped: {key: "homeCardSkipped", power: "GE", args: {reason: "francoPrussian"}},
+  homeCardRejected: {key: "homeCardRejected", power: "GE", args: {reasons: "The Franco-Prussian War branch skips GE's home card on turn 1"}},
+  scenarioCardMissing: {key: "scenarioCardMissing", args: {card: "Suez Canal"}},
+  francoPrussianConcession: {key: "francoPrussianConcession", power: "FR", args: {geKeys: 10, frKeys: 8}},
+  francoPrussianFought: {key: "francoPrussianFought", power: "FR", args: {}},
+  gwBuildPointSpent: {key: "gwBuildPointSpent", power: "GE", args: {field: "stability", remaining: 6}},
+  altGwUnitsPlaced: {key: "altGwUnitsPlaced", power: "GE", args: {count: 7}},
+  buildPointsGranted: {key: "buildPointsGranted", power: "GE", args: {points: 7}},
   seatOrder: {key: "seatOrder", args: {order: "GE, UK, FR, AU, RU, OT"}},
   botSeatChanged: {key: "botSeatChanged", power: "FR", args: {bot: "yes"}},
   deckPrepared: {key: "deckPrepared", args: {decade: "1850s", entering: 5, deck: 42}},

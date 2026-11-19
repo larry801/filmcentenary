@@ -696,7 +696,11 @@ Summary:
 ## Deliberately deferred
 
 - Bots (rule 34) **partially implemented**: `engine/bot.ts` provides Priority 1/2 action tables, BDIT targeting, BMPIT influence, wartime/GW priorities and pending-decision auto-answers; wired into `ImperialElegyGameDef` as `ai.enumerate`; hotseat local mode has a per-seat bot toggle. The printed BOT BOX (9.2/34.3.4) is transcribed for every action card that prints one and drives B1 Priority 1 step 3. Random PAC dice and power-specific home-card edge cases use deterministic defaults.
-- Alternate scenarios (1870, 1880, No GW, alternate GW) and the 1850 tutorial.
+- ~~Alternate scenarios (1870, 1880, No GW, alternate GW) and the 1850 tutorial.~~
+  **Implemented** — every printed scenario in `IE_playbook.pdf` pp. 3-10 is
+  playable: `constant/scenarios/` holds the transcribed data and
+  `engine/scenario.ts` / `engine/scenarioSetup.ts` hold the printed rules that
+  differ per scenario. See [`SCENARIOS.md`](SCENARIOS.md).
 - Promotional cards P1–P3.
 - The printed Quick Start tutorial script.
 

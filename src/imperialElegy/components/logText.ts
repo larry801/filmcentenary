@@ -2842,6 +2842,107 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  homeCardSkipped: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "skips its home card this turn (Franco-Prussian War branch).",
+      "本回合不选择本土牌（普法战争分支）。",
+    ),
+
+  homeCardRejected: (entry, locale) => {
+    const reasons = str(entry.args?.reasons);
+    return withActor(
+      entry,
+      locale,
+      `could not select that home card: ${reasons}.`,
+      `无法选择该本土牌：${reasons}。`,
+    );
+  },
+
+  scenarioCardMissing: (entry, locale) => {
+    const title = str(entry.args?.card);
+    return text(
+      locale,
+      `Scenario setup names the removed card "${title}", which is not in the card data.`,
+      `剧本设定要求移除的卡“${title}”不在卡牌数据中。`,
+    );
+  },
+
+  scenarioStarted: (entry, locale) => {
+    const name = str(entry.args?.name);
+    const first = num(entry.args?.firstTurn);
+    const last = num(entry.args?.lastTurn);
+    return text(
+      locale,
+      `Scenario ${name}: turns ${first}-${last}.`,
+      `剧本 ${name}：第 ${first}-${last} 回合。`,
+    );
+  },
+
+  goalDeckAdded: (entry, locale) => {
+    const goal = str(entry.args?.goal);
+    return withActor(entry, locale, `added ${goal} to the NG deck.`, `将 ${goal} 加入国家目标牌堆。`);
+  },
+
+  goalRemoved: (entry, locale) => {
+    const goal = str(entry.args?.goal);
+    const kept = str(entry.args?.kept);
+    return withActor(
+      entry,
+      locale,
+      `returned ${goal} to the NG deck and kept ${kept}.`,
+      `将 ${goal} 放回国家目标牌堆，保留 ${kept}。`,
+    );
+  },
+
+  francoPrussianConcession: (entry, locale) => {
+    const geKeys = num(entry.args?.geKeys);
+    const frKeys = num(entry.args?.frKeys);
+    return withActor(
+      entry,
+      locale,
+      `conceded the Franco-Prussian War: the printed adjustments leave GE ${geKeys} and FR ${frKeys} territorial keys.`,
+      `放弃普法战争：按印刷调整后德国 ${geKeys} 个、法国 ${frKeys} 个领土关键区。`,
+    );
+  },
+
+  francoPrussianFought: (entry, locale) =>
+    withActor(entry, locale, "will fight the Franco-Prussian War.", "将进行普法战争。"),
+
+  gwBuildPointSpent: (entry, locale) => {
+    const field = str(entry.args?.field);
+    const remaining = num(entry.args?.remaining);
+    const label = field === "stability" ? text(locale, "stability", "稳定度") : text(locale, "industry", "工业");
+    return withActor(
+      entry,
+      locale,
+      `spent a build point on ${label} (${remaining} left).`,
+      `花费 1 点建设点提升${label}（剩余 ${remaining} 点）。`,
+    );
+  },
+
+  altGwUnitsPlaced: (entry, locale) => {
+    const count = num(entry.args?.count);
+    return withActor(entry, locale, `placed ${count} printed units.`, `放置了 ${count} 个单位。`);
+  },
+
+  buildPointsGranted: (entry, locale) => {
+    const points = num(entry.args?.points);
+    return withActor(entry, locale, `receives ${points} build points.`, `获得 ${points} 点建设点。`);
+  },
+
+  goalDrawn: (entry, locale) => {
+    const count = num(entry.args?.count);
+    const kept = str(entry.args?.kept);
+    return withActor(
+      entry,
+      locale,
+      `drew ${count} National Goals and kept ${kept}.`,
+      `抽取 ${count} 张国家目标，保留 ${kept}。`,
+    );
+  },
+
   polishRecruitRejected: (entry, locale) => {
     const reasons = str(entry.args?.reasons);
     return withActor(

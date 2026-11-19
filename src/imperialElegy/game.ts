@@ -6,6 +6,9 @@ import {cardsToDraw as cardsToDrawCount} from "./engine/rules";
 import {prepareDeck, drawCards, discardHandAtEndOfTurn} from "./engine/deck";
 import {beginTurnDecade} from "./engine/economy";
 import {IE_SEATS, validateIESetupData} from "./configuration";
+import {scenarioOf} from "./constant/scenarios";
+import {extraPrepCards, startingGwTurn} from "./engine/scenario";
+import {firstImpulsePower, francoPrussianPrepRule, settleSkippedHomeCards} from "./engine/scenarioSetup";
 import {
   amphibiousAssault,
   auAction,
@@ -222,10 +225,17 @@ const prepBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   // CP chain, or industry slot.
   const {decade, entering} = beginTurnDecade(G, G.turn);
   G.decade = decade;
-  if (G.turn > 1) {
+  // A scenario that opens mid-campaign (1870 starts at turn 3, 1880 at turn 4)
+  // has already dealt its opening hand in `setup`, exactly like the campaign's
+  // turn 1, so the "turn > 1" guard is relative to the scenario's first turn.
+  if (G.turn > scenarioOf(G).firstTurn) {
     prepareDeck(G, ctx, decade, entering);
     for (const p of POWERS) {
-      const count = cardsToDrawCount(G, p);
+      // 1880: "During the prep phase of each turn of this scenario, OT is dealt
+      // one additional card."  1870's Franco-Prussian branch: "on the first
+      // turn, GE does not select a home card and FR receives one less card."
+      const franco = francoPrussianPrepRule(G, p);
+      const count = Math.max(0, cardsToDrawCount(G, p) + extraPrepCards(G, p) + franco.drawDelta);
       drawCards(G, ctx, p, count);
     }
   }
@@ -235,6 +245,11 @@ const diplomacyBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   G.phase = "diplomacy";
   G.activePower = "GE";
   for (const p of POWERS) G.powers[p].flags.homeChosen = false;
+  // 1870 Franco-Prussian branch step 5: "on the first turn, GE does not select a
+  // home card."  The obligation is settled as the phase opens (rather than by
+  // refusing a move, which must never mutate state), so the printed diplomacy
+  // phase can still close normally.
+  settleSkippedHomeCards(G);
 };
 
 const actionBegin = (G: ImperialElegyState, ctx: Ctx): void => {
@@ -246,7 +261,10 @@ const actionBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   G.activePower =
     typeof postWarWinner === "string" && (POWERS as readonly string[]).includes(postWarWinner)
       ? (postWarWinner as (typeof POWERS)[number])
-      : "GE";
+      // 1870 Franco-Prussian branch step 6: "Skip the GE's first impulse (it is
+      // assumed they fought the war)" — the first action phase opens with the
+      // next printed seat instead of GE.
+      : firstImpulsePower(G);
   G.passed = [];
   G.cpRemaining = 0;
   G.impulseCard = null;
@@ -331,10 +349,25 @@ const gwWinterBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   }
 };
 
+/**
+ * The phase a freshly set-up state opens in.
+ *
+ * A scenario that starts with the Great War already in progress (the Historical
+ * GW tutorial, p. 7, and Alternates 1-3, pp. 8-10) prints "start this scenario
+ * with the Maneuver Step of GW turn 0", so it opens on the Great War's planning
+ * step instead of the campaign's prep phase.
+ */
+const startingPhase = (G: ImperialElegyState): GamePhase =>
+  startingGwTurn(G) === null ? "prep" : "gwPlanning";
+
 export const ImperialElegyGameDef: Game<ImperialElegyState> = {
   name: "imperialElegy",
   ai: {enumerate: enumerateBot},
-  setup: (ctx: Ctx, setupData?: unknown) => setupImperialElegy(ctx, setupData),
+  setup: (ctx: Ctx, setupData?: unknown) => {
+    const G = setupImperialElegy(ctx, setupData);
+    G.phase = startingPhase(G);
+    return G;
+  },
   // The engine always runs all six printed powers, so a match is always six
   // boardgame.io seats.  "2–6 human players" is `setupData.bots`: the seats the
   // server drives with the Rule 34 bot (see configuration.ts).  Letting the

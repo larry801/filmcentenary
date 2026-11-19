@@ -1,4 +1,5 @@
 import {Power, POWERS} from "./types";
+import {NO_GW_SETUP_KEY, SCENARIO_IDS, SCENARIO_OPTIONS, ScenarioId, isScenarioId, scenarioFromSetupData} from "./constant/scenarios";
 
 /** The rulebook fixes seating and turn order as GE, UK, FR, AU, RU, OT. */
 export const IE_SEATS: readonly Power[] = POWERS;
@@ -19,7 +20,24 @@ export const seatPower = (seat: string | number | null | undefined): Power | und
 
 export const powerSeat = (power: Power): string => String(IE_SEATS.indexOf(power));
 
-export const IE_SCENARIOS = [{id: "campaign", name: "Campaign 1850-1920", nameZh: "1850-1920 战役"}] as const;
+/**
+ * The printed scenarios the lobby may start (`IE_playbook.pdf` pp. 3-10).
+ *
+ * Scenario 4 "No GW" is a victory-condition modifier rather than a setup of its
+ * own ("Set up whichever scenario you wish to play and modify the victory
+ * conditions as follows"), so it is offered as a toggle next to the picker
+ * (`IE_NO_GW_LABEL`) and travels in `setupData.noGw`.
+ */
+export const IE_SCENARIOS = SCENARIO_OPTIONS;
+
+/** Scenario 4's lobby label. */
+export const IE_NO_GW_LABEL = {en: "No GW (Scenario 4)", zh_CN: "无大战（剧本 4）"} as const;
+
+/** `setupData` key carrying the scenario id of an online match. */
+export const IE_SCENARIO_SETUP_KEY = "scenario" as const;
+
+/** `setupData` key carrying Scenario 4's "No GW" modifier. */
+export const IE_NO_GW_SETUP_KEY = NO_GW_SETUP_KEY;
 
 // ---------------------------------------------------------------------------
 // Online multi-human / bot seats
@@ -52,11 +70,42 @@ export const DEFAULT_BOT_DIFFICULTY: BotDifficulty = "normal";
 const isBotDifficulty = (value: unknown): value is BotDifficulty =>
   value === "easy" || value === "normal" || value === "hard";
 
-/** A `setupData` bag with an optional bot list and difficulty. */
+/** A `setupData` bag with an optional scenario, bot list and difficulty. */
 export interface IESetupData {
+  /** The printed scenario to set up; absent reads as the campaign. */
+  scenario?: ScenarioId;
+  /** Scenario 4 "No GW": decide a Great War by alliance VP totals. */
+  noGw?: boolean;
   bots?: Power[];
   botDifficulty?: BotDifficulty;
 }
+
+/**
+ * Read and validate the scenario of a `setupData` bag.
+ *
+ * An absent or unknown id reads as the campaign instead of refusing the match:
+ * the scenario only changes the opening position and a few printed rules, and a
+ * bad token (an old client, a hand-written fixture) should not block a table.
+ */
+export const parseScenarioId = (setupData: unknown): ScenarioId => {
+  if (setupData === null || typeof setupData !== "object" || Array.isArray(setupData)) return "campaign";
+  return scenarioFromSetupData((setupData as Record<string, unknown>)[IE_SCENARIO_SETUP_KEY]);
+};
+
+/**
+ * Read Scenario 4's "No GW" modifier.
+ *
+ * Only a real `true` turns it on; every other value reads as a normal scenario,
+ * so a stale save or a typo cannot silently change how a Great War is scored.
+ */
+export const parseNoGw = (setupData: unknown): boolean => {
+  if (setupData === null || typeof setupData !== "object" || Array.isArray(setupData)) return false;
+  return (setupData as Record<string, unknown>)[NO_GW_SETUP_KEY] === true;
+};
+
+/** The scenario a live state plays (older saves have no field => campaign). */
+export const scenarioOfState = (G: {scenario?: unknown} | null | undefined): ScenarioId =>
+  scenarioFromSetupData(G?.scenario);
 
 const isPower = (value: unknown): value is Power =>
   typeof value === "string" && (POWERS as readonly string[]).includes(value);
@@ -214,6 +263,14 @@ export const validateIESetupData = (setupData: unknown, numPlayers: number): str
   }
   if (bots.length > IE_SEATS.length - IE_MIN_HUMANS) {
     return `At most ${IE_SEATS.length - IE_MIN_HUMANS} bot seats: an online match needs at least ${IE_MIN_HUMANS} human players.`;
+  }
+  // A named scenario must be one of the printed ones.  An absent id reads as the
+  // campaign (an older client), but a *wrong* id is a caller bug worth refusing.
+  if (typeof setupData === "object" && setupData !== null) {
+    const raw = (setupData as Record<string, unknown>)[IE_SCENARIO_SETUP_KEY];
+    if (raw !== undefined && !isScenarioId(raw)) {
+      return `Unknown scenario: expected one of ${SCENARIO_IDS.join(", ")}.`;
+    }
   }
   return undefined;
 };

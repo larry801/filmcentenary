@@ -1,4 +1,5 @@
 import {GoalId, Power} from "../types";
+import type {ScenarioId} from "./scenarios/ids";
 
 export type GoalKind =
   | "rankedEuropeanKeys"
@@ -202,8 +203,22 @@ export const GOALS_BY_ID: Record<GoalId, GoalDef> = Object.fromEntries(GOALS.map
 
 export const CAMPAIGN_GOALS: GoalDef[] = GOALS.filter((g) => !g.scenarioOnly);
 
-export const goalsForPower = (power: Power): GoalDef[] =>
-  CAMPAIGN_GOALS.filter((g) => g.power === power);
+/**
+ * A power's National Goal pool.
+ *
+ * Rule 2.4: "AU has 9 NG cards, but one of them is only used in the 1870 and
+ * 1880 scenarios."  NG-31 "Precarious Position" is that ninth card, so the
+ * campaign pool excludes it and a scenario that prints it opts back in through
+ * `ScenarioDef.goalDeck` (which appends it to the deck explicitly).  Passing a
+ * scenario id therefore keeps the campaign behaviour and the scenario data in
+ * charge of the exception.
+ */
+export const goalsForPower = (power: Power, scenario?: ScenarioId): GoalDef[] => {
+  const pool = scenario === "s1870" || scenario === "s1880"
+    ? GOALS.filter((g) => g.power === power)
+    : CAMPAIGN_GOALS.filter((g) => g.power === power);
+  return pool;
+};
 
 export const ALL_GOAL_IDS = GOALS.map((g) => g.id);
 export const CAMPAIGN_GOAL_IDS = CAMPAIGN_GOALS.map((g) => g.id);

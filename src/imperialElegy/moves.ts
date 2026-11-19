@@ -17,6 +17,7 @@ import {SPACES, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "./constan
 import {FLASHPOINTS, POWER_DEFS} from "./constant/powers";
 import type {Effect} from "./constant/cards";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "./constant/setup";
+import {GOALS_BY_ID} from "./constant/goals";
 import {botPowersOf, handOverSeat} from "./configuration";
 import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId, removeCard} from "./engine/deck";
 import {
@@ -214,7 +215,28 @@ import {
   tsrrRail,
   type TsrrRailDecision,
 } from "./engine/characteristics";
-import {checkGermanUnification, checkItalianUnification, checkAutoVictory, finishGame, scoreGame} from "./engine/victory";
+import {checkGermanUnification, checkItalianUnification, checkAutoVictory, finishGame, finishScenario, scoreGame} from "./engine/victory";
+import {
+  blocksUkAmphibiousPort,
+  buildPointsRemaining,
+  campaignWindow,
+  drawsNgsThisTurn,
+  extraPrepCards,
+  hasBloodAndIron,
+  isFinalTurn,
+  ngDrawCount,
+  openingGoalDraw,
+  startingGwTurn,
+  ukNoAmphibiousGermanPorts,
+} from "./engine/scenario";
+import {
+  applyFrancoPrussianConcession,
+  francoPrussianPrepRule,
+  hasFrancoPrussianWar,
+  pendingGoalChoice,
+  resolveGoalChoice,
+  spendBuildPoint,
+} from "./engine/scenarioSetup";
 import {grantAuNewWayForward} from "./engine/nationality";
 import {
   applyInternalItalianWar,
@@ -707,6 +729,13 @@ export const finishPrep = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const power = actor(G, playerID);
   if (power === null || G.phase !== "prep") return INVALID_MOVE;
   const p = G.powers[power];
+  // A scenario's printed pre-game decisions ("prior to the Prep Phase of turn
+  // 3": the Franco-Prussian War concession, the AU NG deck edit, the alternate
+  // GW build points) run once, before the first prep phase can close.
+  if (G.flags.setupDecisionsDone !== true) {
+    if (openSetupDecisions(G, ctx)) return undefined;
+    G.flags.setupDecisionsDone = true;
+  }
   p.flags.prepDone = true;
   if (POWERS.every((x) => G.powers[x].flags.prepDone)) {
     ctx.events?.setPhase?.("diplomacy");
@@ -838,6 +867,14 @@ export const chooseHomeCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId):
   const power = actor(G, playerID);
   if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
   const p = G.powers[power];
+  // 1870 Franco-Prussian branch step 5: "on the first turn, GE does not select
+  // a home card".  The obligation is pre-settled as the diplomacy phase opens
+  // (`game.ts#diplomacyBegin`), so this is only the guard against a stale client
+  // that still offers the card.
+  if (francoPrussianPrepRule(G, power).noHomeCard) {
+    log(G, power, "homeCardRejected", {reasons: "The Franco-Prussian War branch skips this home card on turn 1"});
+    return INVALID_MOVE;
+  }
   if (!p.homeCards.includes(cardId)) return INVALID_MOVE;
   if (p.selectedHomeCard !== null) return INVALID_MOVE;
   p.selectedHomeCard = cardId;
@@ -2424,7 +2461,9 @@ export type AmphibiousBlockReason =
   | "army"
   | "army-location"
   | "escort"
-  | "landing-room";
+  | "landing-room"
+  /** GW tutorial: the UK may not assault a GE home port holding GE naval units. */
+  | "scenario-german-port";
 
 export interface AmphibiousCheck {
   ok: boolean;
@@ -2481,6 +2520,12 @@ export const amphibiousAssaultCheck = (
   }
   if (armies.some((unit) => unit.space !== box && unit.space !== from)) {
     return {ok: false, reason: "army-location", box};
+  }
+  // GW tutorial p. 7: "The UK cannot amphibiously assault GE home spaces
+  // containing a GE naval unit(s)."  A scenario prints this restriction, so it
+  // is read from the scenario's own rule block and only then enforced.
+  if (ukNoAmphibiousGermanPorts(G) && blocksUkAmphibiousPort(G, power, to)) {
+    return {ok: false, reason: "scenario-german-port"};
   }
   // 19.10: enemy naval units in the port need a 2:1 escort in adjacent boxes.
   const enemyNaval = navalUnitsIn(G, to).filter((unit) => hostileOwner(G, power, unit.owner)).length;
@@ -5128,6 +5173,129 @@ const resolveNavalAvoid = (
 };
 
 /**
+ * 1870 — The Franco-Prussian War.
+ *
+ * "Prior to the Prep Phase of turn 3, the FR player may decide to concede defeat
+ * and skip the Franco-Prussian War."  Yes applies the six printed adjustments
+ * (`engine/scenarioSetup.ts#applyFrancoPrussianConcession`); no leaves the
+ * historical setup in place and the war is played out normally.
+ */
+const resolveFrancoPrussianConcession = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  optionId: string,
+): string | void => {
+  if (optionId !== "concede" && optionId !== "fight") return INVALID_MOVE;
+  G.pending = null;
+  if (optionId === "concede") {
+    applyFrancoPrussianConcession(G, ctx);
+  } else {
+    log(G, "FR", "francoPrussianFought", {});
+  }
+  continueSetupDecisions(G, ctx);
+  return undefined;
+};
+
+/** The 1870/1880 printed National Goal deck edit: AU drops one of two goals. */
+const resolveScenarioGoalChoice = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  optionId: string,
+): string | void => {
+  if (!resolveGoalChoice(G, pending.power, optionId)) return INVALID_MOVE;
+  G.pending = null;
+  continueSetupDecisions(G, ctx);
+  return undefined;
+};
+
+/**
+ * Alternate GW build points (playbook p. 8 step 2): "each build point increases
+ * either industry and stability by one."
+ */
+const resolveGwBuildPoint = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  optionId: string,
+): string | void => {
+  if (optionId !== "stability" && optionId !== "industry") return INVALID_MOVE;
+  const power = pending.power;
+  if (spendBuildPoint(G, power, optionId) === false) return INVALID_MOVE;
+  G.pending = null;
+  continueSetupDecisions(G, ctx);
+  return undefined;
+};
+
+/**
+ * Walk the scenario's opening decisions in printed order.
+ *
+ * The 1870 scenario prints two: the Franco-Prussian War concession (FR) and the
+ * AU National Goal deck edit.  Each one is optional in the sense that it is a
+ * choice, but the printed procedure puts it "prior to the Prep Phase", so the
+ * whole sequence runs before the first prep phase can close.
+ */
+export const openSetupDecisions = (G: ImperialElegyState, ctx: Ctx): boolean => {
+  // ------------------------------------------------------------------ 1870 war
+  if (hasFrancoPrussianWar(G) && G.persistent.francoPrussianConceded === undefined
+      && G.flags.francoPrussianAsked !== true) {
+    G.flags.francoPrussianAsked = true;
+    openDecision(G, setupCtx(ctx), decision(
+      "francoPrussianConcession",
+      "FR",
+      "The Franco-Prussian War: concede defeat and skip the war, or fight it out?",
+      [
+        option("concede", "Concede: apply the printed setup adjustments", undefined, false, "认输：套用印刷调整"),
+        option("fight", "Fight the Franco-Prussian War", undefined, false, "打普法战争"),
+      ],
+    ));
+    return true;
+  }
+  // ------------------------------------------------- printed NG deck edits
+  const goalChoices = pendingGoalChoice(G);
+  if (goalChoices.length > 0) {
+    const entry = goalChoices[0];
+    openDecision(G, setupCtx(ctx), decision(
+      "scenarioGoalChoice",
+      entry.power,
+      "Remove one of these National Goals from the deck?",
+      entry.candidates.map((id) => option(
+        id,
+        GOALS_BY_ID[id]?.title ?? id,
+        undefined,
+        false,
+        GOALS_BY_ID[id]?.titleZh ?? id,
+      )),
+    ));
+    return true;
+  }
+  // ----------------------------------------------------- alternate GW build points
+  for (const power of POWERS) {
+    if (buildPointsRemaining(G, power) <= 0) continue;
+    openDecision(G, setupCtx(ctx), decision(
+      "gwBuildPoint",
+      power,
+      `Spend a build point (${buildPointsRemaining(G, power)} left) on stability or industry`,
+      [
+        option("stability", "Increase stability by 1", undefined, false, "稳定度 +1"),
+        option("industry", "Increase industry by 1", undefined, false, "工业 +1"),
+      ],
+    ));
+    return true;
+  }
+  return false;
+};
+
+/** Setup decisions run from the prep phase, where `setActivePlayers` is legal. */
+const setupCtx = (ctx: Ctx): Ctx => ctx;
+
+/** Resume the opening decision sequence, then fall through to the prep phase. */
+const continueSetupDecisions = (G: ImperialElegyState, ctx: Ctx): void => {
+  if (openSetupDecisions(G, ctx)) return;
+};
+
+/**
  * 33.1 Blood and Iron!: "During the end phase of turn 1 instead of drawing
  * NGs, Prussia may search their NG deck for the Unification! card.  If they do
  * this the NG must be played faceup."  Choosing the search selects NG-08
@@ -5396,6 +5564,15 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     G.pending = null;
     finalizePendingCard(G, ctx);
     return undefined;
+  }
+  if (pending.kind === "francoPrussianConcession") {
+    return resolveFrancoPrussianConcession(G, ctx, pending, optionId);
+  }
+  if (pending.kind === "scenarioGoalChoice") {
+    return resolveScenarioGoalChoice(G, ctx, pending, optionId);
+  }
+  if (pending.kind === "gwBuildPoint") {
+    return resolveGwBuildPoint(G, ctx, pending, optionId);
   }
   if (pending.kind === "bloodAndIron") {
     return resolveBloodAndIron(G, ctx, pending, optionId);
@@ -5908,8 +6085,11 @@ export const endPhaseTurn = (G: ImperialElegyState, ctx: Ctx): string | void => 
   }
   G.powers[power].flags.endDone = true;
   if (POWERS.every((p) => G.powers[p].flags.endDone)) {
-    if (Number(G.flags.turnEnded ?? 0) >= 7) {
-      finishGame(G, "endOfTurn7");
+    // 2.2.1: "At the end of turn 7 (or the end of the scenario)".  The scenario
+    // window replaces the campaign's hard-coded turn 7 so the two four-turn
+    // scenarios and the two-turn tutorial end on their own printed turn.
+    if (Number(G.flags.turnEnded ?? 0) >= campaignWindow(G).last) {
+      finishScenario(G);
       ctx.events?.endGame?.({winner: G.result?.winners[0] ?? "GE"});
     } else {
       G.phase = "prep";
@@ -6275,6 +6455,13 @@ const endPhaseProgressTruces = (G: ImperialElegyState): void => {
   for (const war of G.wars) {
     if (war.truceTurns > 0) war.truceTurns = Math.max(0, war.truceTurns - 1);
   }
+  // A scenario's printed truce (1880: "1 turn FR Truce") counts down with the
+  // war truces so the two kinds expire on the same schedule.
+  for (const key of Object.keys(G.persistent ?? {})) {
+    if (!key.startsWith("scenarioTruce:")) continue;
+    const remaining = Number(G.persistent[key] ?? 0);
+    if (Number.isFinite(remaining) && remaining > 0) G.persistent[key] = remaining - 1;
+  }
 };
 
 /**
@@ -6401,7 +6588,9 @@ const endPhaseDrawNgs = (
   progress: EndPhaseProgress,
   interactive: boolean,
 ): boolean => {
-  if (![1, 3, 5].includes(G.turn)) return false;
+  // 2.4 / 20.11: the campaign draws on turns 1, 3 and 5; the 1870 scenario on
+  // 3 and 5 and the 1880 scenario on 4 and 6 ("instead of turns 3 and 5").
+  if (!drawsNgsThisTurn(G)) return false;
   const start = progress.ngDraw?.index ?? 0;
   for (let index = start; index < POWERS.length; index += 1) {
     const power = POWERS[index];
@@ -6410,6 +6599,7 @@ const endPhaseDrawNgs = (
       interactive &&
       G.turn === 1 &&
       power === "GE" &&
+      hasBloodAndIron(G) &&
       !p.eliminated &&
       !p.goals.includes(GE_UNIFICATION_GOAL) &&
       p.goalDeck.includes(GE_UNIFICATION_GOAL)
@@ -6430,7 +6620,8 @@ const endPhaseDrawNgs = (
       );
       return true;
     }
-    const drawn = p.goalDeck.splice(0, 3);
+    // The 1870/1880 scenarios print "The GE player only draws 2 NGs".
+    const drawn = p.goalDeck.splice(0, ngDrawCount(G, power));
     p.flags.ngChoices = drawn.join(",");
     progress.ngDraw = {index: index + 1};
   }
@@ -6651,8 +6842,9 @@ export const chooseGoal = (G: ImperialElegyState, ctx: Ctx, goalId: string): str
 
 export const endTurn = (G: ImperialElegyState, ctx: Ctx): void => {
   G.flags.endDone = false;
-  if (G.turn > 7) {
-    finishGame(G, "endOfTurn7");
+  // 2.2.1: the scenario's last turn ends the game, not a hard-coded turn 7.
+  if (G.turn > campaignWindow(G).last) {
+    finishScenario(G);
   }
 };
 

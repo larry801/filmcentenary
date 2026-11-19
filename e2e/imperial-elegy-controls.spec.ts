@@ -643,7 +643,10 @@ test.describe("Imperial Elegy solo vs bot", () => {
         // plain hotseat link keeps starting straight on the board.
         const start = page.getByTestId("ie-start-match");
         await expect(start).toBeVisible();
-        const checked = await page.locator(".ie-local input[type=checkbox]").evaluateAll(
+        // Scope to the bot-seat list: the setup screen also carries round B's
+        // Scenario 4 "No GW" checkbox (and any future setup toggle), so reading
+        // every checkbox on the page would make this fixture depend on them.
+        const checked = await page.getByTestId("ie-local-bot-seats").locator("input[type=checkbox]").evaluateAll(
             (boxes) => boxes.map((box) => (box as HTMLInputElement).checked),
         );
         expect(checked).toEqual([false, true, true, true, true, true]);
@@ -694,6 +697,55 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.bots))
             .toContain("FR");
         await expect(botBoard.locator(".ie-bot-banner")).toContainText("机器人");
+    });
+
+    test("the scenario picker sets the printed setup of a hotseat match", async ({page}) => {
+        // The playbook prints eight scenario setups (`IE_playbook.pdf` pp. 3-10)
+        // and Scenario 4's "No GW" modifier.  The hotseat entrance offers them
+        // and the chosen one must reach the engine: `Local()` never forwards
+        // `setupData`, so a broken wiring here would silently play the campaign.
+        const errors: string[] = [];
+        page.on("console", (message) => {
+            if (message.type() === "error") errors.push(message.text());
+        });
+        await page.goto("/localIE?solo=1");
+        const select = page.getByTestId("ie-local-scenario");
+        await expect(select).toBeVisible();
+        // Every printed scenario is offered, in printed order.
+        const options = await select.locator("option").evaluateAll(
+            (nodes) => nodes.map((node) => (node as HTMLOptionElement).value),
+        );
+        expect(options).toEqual([
+            "campaign",
+            "tutorial1850",
+            "s1870",
+            "s1880",
+            "gwTutorial",
+            "altGw1",
+            "altGw2",
+            "altGw3",
+        ]);
+        // Scenario 4 is a modifier beside the picker, not a ninth option.
+        await expect(page.getByTestId("ie-local-no-gw")).toBeVisible();
+
+        // 1870: four turns starting at turn 3 (1870s).
+        await select.selectOption("s1870");
+        await expect(page.getByTestId("ie-local-scenario-summary")).toContainText("3-6");
+        await page.getByTestId("ie-start-match").click();
+        await expect(page.locator('[data-testid="ie-seat-GE"]')).toBeVisible();
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__?.scenario)).toBe("s1870");
+        expect(await page.evaluate(() => (window as any).__IE_STATE__?.turn)).toBe(3);
+        expect(await page.evaluate(() => (window as any).__IE_STATE__?.wtt)).toBe(1);
+        // The 1870 display prints a different position, so a campaign marker must
+        // not survive: FR starts with one City of Light point (the campaign
+        // starts at 0) and Suez is printed complete (`persistent.suezCanal`).
+        // `removed` itself is redacted by `playerView`; the public
+        // `removedCount` is what a client may assert on.
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.powers.FR.cityOfLight)).toBe(1);
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.persistent.suezCanal)).toBe(true);
+        // The 1870 print removes 8 cards.
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.removedCount)).toBe(8);
+        expect(errors).toEqual([]);
     });
 
     test("a bot seat takes its impulse instead of stalling on an illegal move", async ({page}) => {
