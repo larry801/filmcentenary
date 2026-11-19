@@ -4,6 +4,7 @@ import {GOALS_BY_ID} from "../constant/goals";
 import {cardById} from "../engine/deck";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
+import {cardDisplayName} from "./cardDisplay";
 import {CardChoice} from "./CardChoice";
 
 /**
@@ -106,7 +107,7 @@ export const HandChoices = (props: HandChoicesProps) => {
                     testId: `ie-choose-home-${id}`,
                     selected: chosen,
                     disabled: !canPhaseAct || me.selectedHomeCard !== null,
-                    onChoose: () => doAction(() => moves.chooseHomeCard(id), {label: `${t.chooseHome}: ${locale === "zh_CN" ? cardById(id).titleZh : cardById(id).title}`}),
+                    onChoose: () => doAction(() => moves.chooseHomeCard(id), {label: `${t.chooseHome}: ${cardDisplayName(cardById(id), locale)}`}),
                   }]}
                 />
               );

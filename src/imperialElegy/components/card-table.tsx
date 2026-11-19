@@ -6,6 +6,7 @@ import {CardDef} from "../constant/cards";
 import {GOALS} from "../constant/goals";
 import {decadeLabel} from "../engine/deck";
 import {ieLocale, ieT} from "./i18n";
+import {cardDisplayName} from "./cardDisplay";
 
 /**
  * Imperial Elegy card list. Names, effects and card types are bilingual in
@@ -33,7 +34,7 @@ const ImperialElegyCardTable = () => {
 
     const cardRow = (card: CardDef): CardRow => [
         card.number ?? card.id,
-        isEn ? card.title : card.titleZh,
+        cardDisplayName(card, isEn ? "en" : "zh_CN"),
         strings.cardType[card.type],
         card.cp,
         decadeLabel(card.entry)[isEn ? "en" : "zh"],

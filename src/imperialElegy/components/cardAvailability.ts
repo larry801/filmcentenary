@@ -120,7 +120,9 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   // 12.13: the selected home card is a legal industrialization card too.
   // Unselected home cards never reach the hand except through A040 British
   // Trade, which grants the card for play, not for industrialization.
-  const industOk = canActionCard && industryCard === null && homeIndustryOk && !isMandatory;
+  // Mandatory events (and the mandatory response) may industrialize as well;
+  // `isMandatory` still governs CP/event/response/save modes, not this slot.
+  const industOk = canActionCard && industryCard === null && homeIndustryOk;
   const chainOk = canActionCard && cpChainLength < 2;
   const saveOk = (phase === "action" || phase === "end") && card.kind !== "home" && !isMandatory;
 

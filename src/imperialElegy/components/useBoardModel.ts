@@ -19,6 +19,7 @@ import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
 import {GOALS_BY_ID} from "../constant/goals";
 import {ieT} from "./i18n";
+import {cardDisplayName} from "./cardDisplay";
 import i18n from "../../constant/i18n";
 import {amphibiousAssaultCheck, canPassNow, hasActedThisImpulse, navalInterceptCheck, navalTransportCheck, responseCardEligibility} from "../moves";
 import {planNavalTransport} from "../engine/navalMovement";
@@ -1130,7 +1131,7 @@ export const useBoardModel = ({
     const optionCard = typeof o.data?.card === "string" ? o.data.card : null;
     if (optionCard && CARD_BY_ID[optionCard]) {
       const c = CARD_BY_ID[optionCard];
-      const title = actualLocale === "zh_CN" ? c.titleZh : c.title;
+      const title = cardDisplayName(c, actualLocale);
       // Only the combat discard window spends the card; an auction bids with it.
       return pending?.kind === "combatDiscard" ? `${title} (${bi(actualLocale, "discard", "弃牌")})` : title;
     }
@@ -1147,7 +1148,7 @@ export const useBoardModel = ({
     if (G.units[o.id]) return unitLabel(G.units[o.id], t);
     if (o.label.startsWith("Play ") && CARD_BY_ID[o.label.slice(5)]) {
       const c = CARD_BY_ID[o.label.slice(5)];
-      return `${t.cardType.combat}: ${actualLocale === "zh_CN" ? c.titleZh : c.title}`;
+      return `${t.cardType.combat}: ${cardDisplayName(c, actualLocale)}`;
     }
     return actualLocale === "zh_CN" ? OPTION_ZH[o.label] ?? o.label : o.label;
   };
@@ -1385,7 +1386,7 @@ export const useBoardModel = ({
 
   const homeCardTitle = (id: string): string => {
     const card = CARD_BY_ID[id];
-    return card ? (actualLocale === "zh_CN" ? card.titleZh : card.title) : id;
+    return card ? cardDisplayName(card, actualLocale) : id;
   };
   const saveList = String(me?.flags.savedCards ?? "").split(",").filter(Boolean);
   const ngChoices = String(me?.flags.ngChoices ?? "").split(",").filter(Boolean);

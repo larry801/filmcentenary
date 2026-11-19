@@ -1822,7 +1822,8 @@ export const industrialize = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): 
   if (p.cpChain.includes(cardId)) return INVALID_MOVE;
   if (!p.hand.includes(cardId)) return INVALID_MOVE;
   const card = cardById(cardId);
-  if (card.type === "mandatory") return INVALID_MOVE;
+  // Mandatory events (and the mandatory response) may be placed into the
+  // Industry Card slot like any other card; doing so spends the impulse.
   // 12.13: a home card in hand is playable for CP or as its event, and may also
   // be the turn's industrialization card.  Only the selected home card is live.
   if (card.kind === "home" && p.selectedHomeCard !== cardId) return INVALID_MOVE;

@@ -16,6 +16,7 @@ import {CardFaceMode, cardImageSrc, readConfirmActions} from "./preferences";
 import {RuleLink} from "./RuleRef";
 import {ConfirmButton} from "./ConfirmButton";
 import {cardAvailability, cardTypeIcon, type CardAvailability} from "./cardAvailability";
+import {cardDisplayName} from "./cardDisplay";
 
 export interface HandTrayProps {
   /** Live `confirmActions` preference (the Display menu writes it). */
@@ -83,8 +84,8 @@ export interface HandTrayProps {
 }
 
 const translated = (card: CardDef | GoalDef, locale: "en" | "zh_CN") => ({
-  title: locale === "zh_CN" ? card.titleZh : card.title,
-  otherTitle: locale === "zh_CN" ? card.title : card.titleZh,
+  title: cardDisplayName(card, locale),
+  otherTitle: cardDisplayName(card, locale === "zh_CN" ? "en" : "zh_CN"),
   text: locale === "zh_CN" ? card.text : card.textZh,
   lang: locale === "zh_CN" ? "en" : "zh-CN",
 });
@@ -142,7 +143,7 @@ export const HandTray = (props: HandTrayProps) => {
 
   const homeCardTitle = (id: string): string => {
     const card = cardById(id);
-    return card ? (locale === "zh_CN" ? card.titleZh : card.title) : id;
+    return card ? cardDisplayName(card, locale) : id;
   };
 
   const availability = (id: string): CardAvailability => cardAvailability({
@@ -228,8 +229,8 @@ export const HandTray = (props: HandTrayProps) => {
             confirmLabel={bi(locale, `Confirm: play for ${cardById(id).cp} CP`, `确认：作 ${cardById(id).cp} CP 打出`)}
             onConfirm={() => doAction(() => moves.playCard(id, "cp"), {
               label: bi(locale,
-                `Play ${cardById(id).title} for ${cardById(id).cp} CP`,
-                `打出 ${cardById(id).titleZh}：${cardById(id).cp} CP`),
+                `Play ${cardDisplayName(cardById(id), "en")} for ${cardById(id).cp} CP`,
+                `打出 ${cardDisplayName(cardById(id), "zh_CN")}：${cardById(id).cp} CP`),
               reason: cpDisabled ? a.reasons[0] ?? mandatoryTitle : undefined,
             })}
           >
@@ -247,7 +248,7 @@ export const HandTray = (props: HandTrayProps) => {
             confirm={confirmActions}
             confirmLabel={eventConfirmLabel}
             onConfirm={() => doAction(() => moves.playCard(id, "event"), {
-              label: bi(locale, `Play ${cardById(id).title}'s event`, `打出 ${cardById(id).titleZh} 事件`),
+              label: bi(locale, `Play ${cardDisplayName(cardById(id), "en")}'s event`, `打出 ${cardDisplayName(cardById(id), "zh_CN")} 事件`),
               reason: !a.eventModeOk ? eventDisabledTitle : undefined,
             })}
           >
@@ -278,7 +279,7 @@ export const HandTray = (props: HandTrayProps) => {
   const cardFace = (card: CardDef) => {
     const src = cardImageSrc(card.image);
     if (cardFaceMode === "print" && src) {
-      return <img className="ie-card-face ie-card-print" src={src} alt={locale === "zh_CN" ? card.titleZh : card.title} data-card-id={card.id} loading="lazy"/>;
+      return <img className="ie-card-face ie-card-print" src={src} alt={cardDisplayName(card, locale)} data-card-id={card.id} loading="lazy"/>;
     }
     return <CardFace card={card} locale={locale} showTranslation={false} t={t}/>;
   };
@@ -384,11 +385,11 @@ export const HandTray = (props: HandTrayProps) => {
                       className="ie-card-open"
                       data-testid={`ie-open-card-${id}`}
                       aria-haspopup="dialog"
-                      aria-label={`${bi(locale, "Card", "卡牌")}: ${locale === "zh_CN" ? card.titleZh : card.title}`}
+                      aria-label={`${bi(locale, "Card", "卡牌")}: ${cardDisplayName(card, locale)}`}
                       onClick={() => openInspector({card}, id)}
                     >
                       <span className="ie-card-cp" data-testid={`ie-card-cp-${id}`}>{card.cp}</span>
-                      <span className="ie-card-name">{locale === "zh_CN" ? card.titleZh : card.title}</span>
+                      <span className="ie-card-name">{cardDisplayName(card, locale)}</span>
                       {/* Every card may be played for CP (12.0), so a playable
                           row carries no badge at all.  Only a card that is stuck
                           right now still says why, in the one line it has. */}

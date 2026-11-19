@@ -4,6 +4,7 @@ import {POWER_DEFS} from "../constant/powers";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {ieStringsFor} from "./i18n";
+import {cardDisplayName} from "./cardDisplay";
 import type {PlayBlockReason} from "../engine/playability";
 import {nationalityLabel} from "../engine/nationality";
 
@@ -81,7 +82,7 @@ const cardName = (value: unknown, locale: LogLocale): string => {
   if (id === HIDDEN_CARD) return text(locale, "a hidden card", "隐藏卡牌");
   const card = CARD_BY_ID[id];
   if (card === undefined) return id;
-  return locale === "zh_CN" ? card.titleZh : card.title;
+  return cardDisplayName(card, locale);
 };
 
 /**

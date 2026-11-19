@@ -14,6 +14,7 @@ jest.mock("./imperial-elegy.css", () => ({}));
 
 import {LogList} from "./LogList";
 import {logSegments, logText} from "./logText";
+import {cardDisplayName} from "./cardDisplay";
 import {CARD_BY_ID} from "../engine/deck";
 import type {ImperialElegyState, LogEntry} from "../types";
 import {setupImperialElegy} from "../engine/setup";
@@ -43,7 +44,7 @@ describe("logSegments", () => {
     const segments = logSegments({key: "cardPlayed", power: "GE", args: {card: CARD_ID, mode: "cp"}}, "zh_CN");
     expect(segments.filter((s) => s.kind === "card")).toEqual([{kind: "card", id: CARD_ID}]);
     // The visible text is what `logText` returns, with the card's title in place.
-    const joined = segments.map((s) => (s.kind === "card" ? CARD.titleZh : s.text)).join("");
+    const joined = segments.map((s) => (s.kind === "card" ? cardDisplayName(CARD, "zh_CN") : s.text)).join("");
     expect(joined).toBe(logText({key: "cardPlayed", power: "GE", args: {card: CARD_ID, mode: "cp"}}, "zh_CN"));
     expect(joined).toContain(CARD.titleZh);
   });
@@ -78,7 +79,7 @@ describe("LogList", () => {
     expect(chip).not.toBeNull();
     expect(chip![0]).toContain('type="button"');
     expect(chip![0]).toContain('aria-haspopup="dialog"');
-    expect(plain(chip![0])).toBe(`${CARD.cp}${CARD.titleZh}`);
+    expect(plain(chip![0])).toBe(`${CARD.cp}${cardDisplayName(CARD, "zh_CN")}`);
     expect(chip![0]).toContain('class="ie-log-card-cp"');
     expect(chip![0]).toContain('class="ie-log-card-name"');
   });
@@ -88,7 +89,7 @@ describe("LogList", () => {
     const line = html.match(/<div[^>]*data-testid="ie-log-entry-1"[^>]*>[\s\S]*?<\/div>/);
     expect(line).not.toBeNull();
     expect(line![0]).toContain('<span class="t">T3</span>');
-    expect(plain(line![0])).toContain(`T3德国将 ${CARD.cp}${CARD.titleZh} 作为 CP 打出。`);
+    expect(plain(line![0])).toContain(`T3德国将 ${CARD.cp}${cardDisplayName(CARD, "zh_CN")} 作为 CP 打出。`);
   });
 
   test("a closed list shows no inspector, so the dialog only exists after a click", () => {

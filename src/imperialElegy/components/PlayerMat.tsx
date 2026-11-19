@@ -26,12 +26,12 @@ import {Icon} from "./Icon";
 import {ImperialElegyState, Power} from "../types";
 import {GOALS_BY_ID} from "../constant/goals";
 import {POWER_DEFS, type StabilityEffect} from "../constant/powers";
-import {CARD_BY_ID} from "../engine/deck";
 import {cardsToDraw} from "../engine/rules";
 import {industryTarget, reserveAllowance} from "../engine/economy";
 import {displayAnchor} from "./ChartLightbox";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
+import {cardDisplayNameById} from "./cardDisplay";
 
 export interface PlayerMatProps {
   G: ImperialElegyState;
@@ -501,10 +501,5 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
   );
 };
 
-/** A home/action card's title in the UI language; the id when unknown. */
-const cardName = (id: string, locale: "en" | "zh_CN"): string => {
-  const card = CARD_BY_ID[id];
-  if (card) return locale === "zh_CN" ? card.titleZh : card.title;
-  const goal = GOALS_BY_ID[id];
-  return goal ? (locale === "zh_CN" ? goal.titleZh : goal.title) : id;
-};
+/** A card/goal's printed title in the UI language; the id when unknown. */
+const cardName = (id: string, locale: "en" | "zh_CN"): string => cardDisplayNameById(id, locale);

@@ -410,6 +410,22 @@ test("the selected home card may industrialize and stays in the home slot", () =
   expect(G.discard).not.toContain(home);
 });
 
+test("mandatory events and the mandatory response may be used to industrialize", () => {
+  for (const type of ["mandatory", "mandatoryResponse"] as const) {
+    const G = fresh();
+    const ctx = makeCtx("0", 6);
+    beginAction(G);
+
+    const card = ALL_CARDS.find((c) => c.kind === "action" && c.type === type)!;
+    giveToHand(G, "GE", card.id);
+
+    expect(industrialize(G, ctx, card.id)).toBeUndefined();
+    expect(G.powers.GE.industryCard).toBe(card.id);
+    expect(G.powers.GE.hand).not.toContain(card.id);
+    expect(G.cpRemaining).toBe(0);
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Surrender guard (15.5 / 16.0)
 // ---------------------------------------------------------------------------
