@@ -271,6 +271,9 @@ const S = {
       germanConfederation: "German Confederation: take a German minor",
       napoleonsLegacy: "Napoleon's Legacy: reveal the goal?",
       metternich: "Metternich's Legacy: choose allies",
+      francoPrussianConcession: "Concede the Franco-Prussian War?",
+      scenarioGoalChoice: "Choose the National Goal to keep",
+      gwBuildPoint: "Spend a build point",
       dardanellesPassage: "Dardanelles passage: grant or refuse",
     },
     playBlock: {
@@ -611,6 +614,9 @@ const S = {
       germanConfederation: "德意志邦联：控制一个德意志小国",
       napoleonsLegacy: "拿破仑的遗产：是否公开该目标？",
       metternich: "梅特涅的遗产：选择盟友",
+      francoPrussianConcession: "是否放弃普法战争？",
+      scenarioGoalChoice: "选择要保留的国家目标",
+      gwBuildPoint: "花费建设点",
       dardanellesPassage: "达达尼尔海峡：准许或拒绝通行",
     },
     playBlock: {

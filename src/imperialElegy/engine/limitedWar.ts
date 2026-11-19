@@ -1486,8 +1486,28 @@ export const truceRivals = (G: ImperialElegyState, power: Power): Power[] => {
     if (attackers.includes(power)) defenders.forEach((rival) => rivals.add(rival));
     if (defenders.includes(power)) attackers.forEach((rival) => rivals.add(rival));
   }
+  // A scenario may print a truce in its own setup (1880: "1 turn FR Truce",
+  // "1 turn OT Truce").  `engine/setup.ts` records each as
+  // `persistent["scenarioTruce:A:B"]` and 20.7 counts it down.
+  for (const other of POWERS) {
+    if (other === power) continue;
+    if (scenarioTruceTurns(G, power, other) > 0) rivals.add(other);
+  }
   rivals.delete(power);
   return [...rivals];
+};
+
+/**
+ * Remaining turns of a scenario-printed truce between two powers.
+ *
+ * The printed lists are symmetric ("1 turn FR Truce" on GE's display and
+ * "1 turn GE Truce" on FR's), so the lookup tries both orders.
+ */
+export const scenarioTruceTurns = (G: ImperialElegyState, a: Power, b: Power): number => {
+  const direct = Number(G.persistent?.[`scenarioTruce:${a}:${b}`] ?? 0);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  const reverse = Number(G.persistent?.[`scenarioTruce:${b}:${a}`] ?? 0);
+  return Number.isFinite(reverse) && reverse > 0 ? reverse : 0;
 };
 
 /** Rule 13.5: whether `a` and `b` hold an active truce with each other. */

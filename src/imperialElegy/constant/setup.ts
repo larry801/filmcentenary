@@ -1,157 +1,42 @@
-import {Power, PowerState, SpaceId, UnitKind} from "../types";
-
-export interface SetupUnit {
-  owner: string;
-  kind: UnitKind;
-  space: SpaceId | null;
-  /** null = reserve armies holding box. */
-  steps: 1 | 2;
-  special?: "indian" | "arab";
-}
-
-export interface SetupFort {
-  space: SpaceId;
-  power: Power;
-  level: 1 | 2 | 3;
-}
-
-export interface CampaignSetup {
-  turn: number;
-  wtt: number;
-  powers: Record<Power, {
-    stability: number;
-    manpower: number;
-    secondaryManpower?: number;
-    industry: number;
-    territorialKeys: number;
-    colonialKeys: number;
-    arabKeys?: number;
-    reserves: number;
-  }>;
-  units: SetupUnit[];
-  forts: SetupFort[];
-  diplomacy: {power: Power; space: SpaceId}[];
-  influence: {power: Power; space: SpaceId}[];
-  pacification: {space: SpaceId; value: number}[];
-  controlOverrides: {space: SpaceId; control: string | null}[];
-  powerProjection: Record<Power, number>;
-  removedCards: string[];
-  notes: string[];
-}
+import {Power, PowerState, SpaceId} from "../types";
+import {SCENARIOS} from "./scenarios";
+import {CAMPAIGN_SCENARIO} from "./scenarios/campaign";
+import type {ScenarioDef, ScenarioFortSetup, ScenarioPowerStart, ScenarioUnitSetup} from "./scenarios/types";
 
 /**
- * Campaign setup, transcribed from IE_playbook.pdf pages 3-4 (Scenario 1 -
- * Campaign and Tutorial).  `setup.test.ts` asserts every quantity here against
- * the playbook and cross-checks the module's saved game.
+ * Campaign setup constants.
+ *
+ * The scenario data lives in `constant/scenarios/` — one module per printed
+ * scenario (`IE_playbook.pdf` pp. 3-10).  This file keeps the campaign's
+ * historical export names (`CAMPAIGN_SETUP`, `SetupUnit`, `SetupFort`,
+ * `START_BUILD_BOX`, `MINOR_POWER_HOMES`) so the rest of the engine, the board
+ * and the existing test suites keep reading the campaign exactly as before,
+ * while `constant/scenarios/index.ts#SCENARIOS` is the single source of truth
+ * for every scenario.
  */
-export const CAMPAIGN_SETUP: CampaignSetup = {
-  turn: 1,
-  wtt: 0,
-  powers: {
-    GE: {stability: 3, manpower: 2, industry: 1, territorialKeys: 5, colonialKeys: 0, reserves: 1},
-    UK: {stability: 3, manpower: 3, secondaryManpower: 1, industry: 2, territorialKeys: 5, colonialKeys: 7, reserves: 0},
-    FR: {stability: 3, manpower: 4, industry: 1, territorialKeys: 9, colonialKeys: 0, reserves: 0},
-    AU: {stability: 3, manpower: 4, industry: 1, territorialKeys: 9, colonialKeys: 0, reserves: 0},
-    RU: {stability: 3, manpower: 5, industry: 0, territorialKeys: 12, colonialKeys: 0, reserves: 1},
-    OT: {stability: 3, manpower: 3, secondaryManpower: 1, industry: 0, territorialKeys: 8, colonialKeys: 0, arabKeys: 5, reserves: 0},
-  },
-  units: [
-    // Germany
-    {owner: "GE", kind: "army", space: "berlin", steps: 2},
-    {owner: "GE", kind: "eliteCorps", space: "berlin", steps: 1},
-    {owner: "GE", kind: "army", space: "prussia", steps: 2},
-    {owner: "GE", kind: "reserveArmy", space: null, steps: 2},
-    // United Kingdom
-    {owner: "UK", kind: "army", space: "london", steps: 2},
-    {owner: "UK", kind: "squadron", space: "london", steps: 2},
-    {owner: "UK", kind: "squadron", space: "london", steps: 2},
-    {owner: "UK", kind: "squadron", space: "scotland", steps: 2},
-    {owner: "UK", kind: "squadron", space: "malta", steps: 2},
-    {owner: "UK", kind: "army", space: "india", steps: 2, special: "indian"},
-    {owner: "UK", kind: "expeditionary", space: "south-africa", steps: 1},
-    // France
-    {owner: "FR", kind: "army", space: "paris", steps: 2},
-    {owner: "FR", kind: "eliteCorps", space: "paris", steps: 1},
-    {owner: "FR", kind: "army", space: "alsace-lorraine", steps: 2},
-    {owner: "FR", kind: "army", space: "champagne", steps: 2},
-    {owner: "FR", kind: "army", space: "provence", steps: 2},
-    {owner: "FR", kind: "squadron", space: "provence", steps: 2},
-    {owner: "FR", kind: "squadron", space: "brittany", steps: 2},
-    {owner: "FR", kind: "zouave", space: "algeria", steps: 1},
-    // Austria-Hungary
-    {owner: "AU", kind: "army", space: "vienna", steps: 2},
-    {owner: "AU", kind: "army", space: "lombardy", steps: 2},
-    {owner: "AU", kind: "army", space: "hungary", steps: 2},
-    {owner: "AU", kind: "army", space: "bohemia", steps: 2},
-    // Russia
-    {owner: "RU", kind: "army", space: "st-petersburg", steps: 2},
-    {owner: "RU", kind: "squadron", space: "st-petersburg", steps: 2},
-    {owner: "RU", kind: "army", space: "riga", steps: 2},
-    {owner: "RU", kind: "army", space: "west-ukraine", steps: 1},
-    {owner: "RU", kind: "army", space: "bessarabia", steps: 2},
-    {owner: "RU", kind: "army", space: "georgia", steps: 1},
-    {owner: "RU", kind: "squadron", space: "sevastopol", steps: 2},
-    {owner: "RU", kind: "expeditionary", space: "dagestan", steps: 1},
-    {owner: "RU", kind: "expeditionary", space: "russian-far-east", steps: 1},
-    {owner: "RU", kind: "reserveArmy", space: null, steps: 2},
-    // Ottoman
-    {owner: "OT", kind: "army", space: "istanbul", steps: 2},
-    {owner: "OT", kind: "army", space: "macedonia", steps: 2},
-    {owner: "OT", kind: "army", space: "erzurum", steps: 1},
-    {owner: "OT", kind: "army", space: "syria", steps: 1, special: "arab"},
-    // Minor powers
-    {owner: "Belgium", kind: "minorArmy", space: "belgium", steps: 2},
-    {owner: "Netherlands", kind: "minorArmy", space: "netherlands", steps: 2},
-    {owner: "Hanover", kind: "minorArmy", space: "hanover", steps: 1},
-    {owner: "Saxony", kind: "minorArmy", space: "saxony", steps: 1},
-    {owner: "Bavaria", kind: "minorArmy", space: "bavaria", steps: 2},
-    {owner: "Denmark", kind: "minorArmy", space: "schleswig-holstein", steps: 2},
-    {owner: "Denmark", kind: "squadron", space: "denmark", steps: 1},
-    {owner: "Sardinia-Piedmont", kind: "minorArmy", space: "piedmont", steps: 2},
-    {owner: "Two Sicilies", kind: "minorArmy", space: "naples", steps: 1},
-    {owner: "Greece", kind: "minorArmy", space: "greece", steps: 1},
-    {owner: "Persia", kind: "minorArmy", space: "qajar-persia", steps: 2},
-    {owner: "Egypt", kind: "minorArmy", space: "egypt", steps: 2},
-    {owner: "REBEL:Ethiopia", kind: "rebelArmy", space: "ethiopia", steps: 2},
-  ],
-  forts: [
-    {space: "champagne", power: "FR", level: 1},
-    {space: "lombardy", power: "AU", level: 1},
-    {space: "st-petersburg", power: "RU", level: 1},
-    {space: "sevastopol", power: "RU", level: 1},
-  ],
-  diplomacy: [
-    {power: "UK", space: "belgium"},
-    {power: "FR", space: "piedmont"},
-    {power: "RU", space: "romania"},
-  ],
-  influence: [{power: "FR", space: "west-africa"}],
-  pacification: [
-    {space: "algeria", value: 0},
-    {space: "dagestan", value: 1},
-  ],
-  controlOverrides: [
-    {space: "egypt", control: "Egypt"},
-    {space: "sinai", control: "Egypt"},
-    {space: "great-sand-sea", control: "Egypt"},
-  ],
-  powerProjection: {GE: 0, UK: 8, FR: 3, AU: 0, RU: 3, OT: 0},
-  removedCards: [],
-  notes: [
-    "Campaign length: 7 turns (1850s-1910s).",
-    "All players start in the neutral box of the Alliance Track.",
-    "AU: Metternich's Legacy triggers at the end of the turn 1 diplomacy phase.",
-    "UK India Stability marker starts on its stable side.",
-    "FR starts as the Second Empire with 0 City of Light points.",
-    "OT: 3 Turkish manpower / 1 Arab manpower; British manpower 3 / colonial manpower 1.",
-    "Minor powers in the End Phase Build Box at the start: Tuscany, Serbia, Bosnia, Bulgaria, Romania.",
-  ],
-};
+
+export type SetupUnit = ScenarioUnitSetup;
+export type SetupFort = ScenarioFortSetup;
+export type CampaignSetup = ScenarioDef;
+
+/**
+ * The campaign setup (playbook p. 3), kept as a value export because the tests,
+ * the board and several engine modules compare against it.
+ */
+export const CAMPAIGN_SETUP: ScenarioDef = CAMPAIGN_SCENARIO;
+
+/** Every printed scenario, keyed by id. */
+export {SCENARIOS};
 
 /** Minor powers with an army in the End Phase Build Box at campaign start. */
-export const START_BUILD_BOX = ["Tuscany", "Serbia", "Bosnia", "Bulgaria", "Romania"];
+export const START_BUILD_BOX: string[] = [...CAMPAIGN_SCENARIO.buildBox];
 
-/** Minor powers that start with an army counter available in the box. */
+/**
+ * The printed home space of every minor power (rules 12.5.3 / 20.3).
+ *
+ * This is map data, not scenario data: a minor's home is the space that shares
+ * its name, in every scenario.
+ */
 export const MINOR_POWER_HOMES: Record<string, SpaceId> = {
   Belgium: "belgium",
   Netherlands: "netherlands",
@@ -182,22 +67,43 @@ export const MINOR_POWER_HOMES: Record<string, SpaceId> = {
   Mexico: "mexico",
 };
 
-export const createEmptyPowerState = (power: Power): PowerState => {
-  const setup = CAMPAIGN_SETUP.powers[power];
+/**
+ * An empty power display marker for a scenario.
+ *
+ * The campaign's values are used when the scenario does not print a track, so
+ * a caller can always build a state; scenario data that does print a value
+ * overrides it.  The characteristic markers (government, unified, tsrr, …) keep
+ * their printed per-power defaults.
+ */
+export const createEmptyPowerState = (power: Power, scenario: ScenarioDef = CAMPAIGN_SCENARIO): PowerState => {
+  const campaign = CAMPAIGN_SCENARIO.powers[power];
+  const setup: ScenarioPowerStart = {...campaign, ...scenario.powers[power]};
+  // The campaign prints every track, so its marker is a complete fallback for
+  // the tracks a later scenario may leave out.
+  const campaignManpower = campaign.manpower ?? 0;
+  const campaignTerritorial = campaign.territorialKeys ?? 0;
+  const campaignColonial = campaign.colonialKeys ?? 0;
   return {
     stability: setup.stability,
-    manpower: setup.manpower,
+    // Manpower is printed on every scenario display, but a track total may be
+    // omitted when the print derives it from the keys (the alternate GW
+    // setups say "set manpower from the keys"); fall back to the campaign
+    // marker so the state always starts from a legal value and
+    // `recomputeTracks` corrects it at the first end phase.
+    manpower: setup.manpower ?? campaignManpower,
     secondaryManpower: setup.secondaryManpower,
     industry: setup.industry,
-    territorialKeys: setup.territorialKeys,
-    colonialKeys: setup.colonialKeys,
+    territorialKeys: setup.territorialKeys ?? campaignTerritorial,
+    colonialKeys: setup.colonialKeys ?? campaignColonial,
     arabKeys: setup.arabKeys,
-    cityOfLight: power === "FR" ? 0 : undefined,
-    citizenship: [],
+    cityOfLight: power === "FR" ? (setup.cityOfLight ?? 0) : undefined,
+    citizenship: [...(setup.citizenship ?? [])],
     rights: [],
-    government: power === "FR" ? "secondEmpire" : undefined,
-    unified: power === "GE" ? false : undefined,
-    tsrr: power === "RU" ? false : undefined,
+    government: power === "FR" ? (setup.government ?? "secondEmpire") : undefined,
+    // A scenario may print an already unified Germany (1880) or a completed
+    // TSRR (the GW setups); everything else starts at the campaign default.
+    unified: power === "GE" ? (setup.unified ?? false) : undefined,
+    tsrr: power === "RU" ? (setup.tsrr ?? false) : undefined,
     scorchedEarth: power === "RU" ? true : undefined,
     jihad: power === "OT" ? 0 : undefined,
     indiaStable: power === "UK" ? true : undefined,
@@ -208,17 +114,17 @@ export const createEmptyPowerState = (power: Power): PowerState => {
     goals: [],
     goalDeck: [],
     vp: 0,
-    alliance: "neutral",
-    mpit: {te: 0, ta: 0, neutral: 1},
+    alliance: setup.alliance ?? "neutral",
+    mpit: setup.mpit ? {...setup.mpit} : {te: 0, ta: 0, neutral: 1},
     reserves: [],
     cpChain: [],
     industryCard: null,
-    autoIndustry: false,
-    flags: {powerProjection: CAMPAIGN_SETUP.powerProjection[power]},
+    autoIndustry: setup.autoIndustry === true,
+    flags: {powerProjection: setup.powerProjection ?? scenario.powerProjection[power]},
     warBudget: 0,
     gwBudget: 0,
     gwCard: null,
     gwHandLimit: 1,
-    cardMarkers: 0,
+    cardMarkers: setup.cardMarkers ?? 0,
   };
 };

@@ -6,6 +6,8 @@
  * counters live in a flat record and stacks are arrays of unit ids.
  */
 
+import type {ScenarioId} from "./constant/scenarios/ids";
+
 export type Power = "GE" | "UK" | "FR" | "AU" | "RU" | "OT";
 
 export const POWERS: readonly Power[] = ["GE", "UK", "FR", "AU", "RU", "OT"] as const;
@@ -369,6 +371,21 @@ export interface NonPlayerBuildBox {
 export interface PolishReserveBox {
   /** Unit ids of the reserve armies currently held in the Polish box. */
   reserveArmies: string[];
+}
+
+/**
+ * Alternate-GW build points (playbook p. 8, setup step 2):
+ * "Stability and industry start at the campaign levels for all players.
+ * Players can spend build points to increase their industry and stability,
+ * each build point increases either industry and stability by one."
+ */
+export interface BuildPointState {
+  /** Build points still unspent, per power. */
+  remaining: Partial<Record<Power, number>>;
+  /** Total each power was granted, for the summary panel. */
+  granted: Partial<Record<Power, number>>;
+  /** Spends recorded so far, in order. */
+  spends: {power: Power; field: "stability" | "industry"}[];
 }
 
 export interface LogEntry {
@@ -1009,6 +1026,12 @@ export const PENDING_KINDS = [
   "metternich",
   /** 3.4.1: the Dardanelles controller's permission for one passage. */
   "dardanellesPassage",
+  /** 1870 scenario: FR may concede the Franco-Prussian War before the first prep. */
+  "francoPrussianConcession",
+  /** 1870/1880 scenario: AU drops one of the two printed National Goals. */
+  "scenarioGoalChoice",
+  /** Alternate GW: spend a build point on stability or industry (p. 8 step 2). */
+  "gwBuildPoint",
 ] as const;
 
 export type PendingKind = (typeof PENDING_KINDS)[number];
@@ -1148,8 +1171,29 @@ export interface ItalyReinforcements {
  * shape before any rules code reads them.
  */
 export interface ImperialElegyState {
-  /** Match configuration. */
-  scenario: "campaign";
+  /**
+   * Match configuration: the printed scenario being played.
+   *
+   * `IE_playbook.pdf` prints Scenario 1 (campaign) plus the 1850 tutorial
+   * (p. 3), Scenario 2 1870 (p. 4), Scenario 3 1880 (p. 5), the Historical GW
+   * tutorial (p. 7) and Alternates 1-3 (pp. 8-10).  Scenario 4 "No GW" is a
+   * victory-condition modifier on any of them and lives in `noGw`.
+   *
+   * Optional for older saves so a pre-scenario state keeps reading as the
+   * campaign (`engine/scenario.ts#scenarioOf`).
+   */
+  scenario: ScenarioId;
+  /**
+   * Scenario 4 "No GW" (playbook p. 7): when true a Great War that starts is
+   * decided by alliance VP totals instead of the printed GW rules.  Optional so
+   * a normal match does not carry the field.
+   */
+  noGw?: boolean;
+  /**
+   * The alternate-GW build-point ledger (playbook p. 8 step 2).  Absent for
+   * every non-alternate scenario.
+   */
+  buildPoints?: BuildPointState;
   turn: number;
   decade: string;
   phase: GamePhase;

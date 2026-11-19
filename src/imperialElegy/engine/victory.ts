@@ -20,6 +20,7 @@ import {
   setSpaceControl,
 } from "./rules";
 import {matchedAuCitizenshipCount} from "./nationality";
+import {campaignWindow, countsVp, isNoGwScenario, noGwVictory} from "./scenario";
 
 const initialControl = (id: SpaceId): string | null => {
   const override = CAMPAIGN_SETUP.controlOverrides.find((o) => o.space === id);
@@ -411,4 +412,58 @@ export const finishGame = (G: ImperialElegyState, reason: string): void => {
   G.scores = scores;
   G.result = {winners, reason, scores, breakdown};
   log(G, undefined, "gameOver", {winners: winners.join(","), reason});
+};
+
+/**
+ * End the match on the scenario's own terms.
+ *
+ * Three printed readings, in order:
+ *
+ *  1. **1850 tutorial** (playbook p. 3): "Do not count VPs at the end of the
+ *     tutorial scenario."  Nobody wins; the score line is recorded so the panel
+ *     can still explain what happened, and the reason says why.
+ *  2. **Scenario 4 "No GW"** (p. 7) once the Great War has started: the
+ *     alliance VP totals decide, with the neutral comparison and the tie
+ *     readings of `engine/scenario.ts#noGwVictory`.
+ *  3. **Every other scenario**: rule 2.2.1's normal end-of-scenario scoring.
+ */
+export const finishScenario = (G: ImperialElegyState): void => {
+  // 2.2.1: "At the end of turn 7 (or the end of the scenario)".  The reason
+  // names the scenario's printed final turn, so the campaign still reports
+  // `endOfTurn7` and the shorter scenarios report their own last turn.
+  const reason = `endOfTurn${campaignWindow(G).last}`;
+  if (!countsVp(G)) {
+    const {scores, breakdown} = scoreGame(G);
+    G.scores = scores;
+    // No winner: the tutorial is a walk-through, not a competitive match.
+    G.result = {winners: [], reason: "tutorialNoVp", scores, breakdown};
+    log(G, undefined, "gameOver", {winners: "", reason: "tutorialNoVp"});
+    return;
+  }
+  if (isNoGwScenario(G) && G.gw?.active) {
+    const {scores, breakdown} = scoreGame(G);
+    const verdict = noGwVictory(G, scores, (state, power) => gwSideOf(state, power));
+    G.scores = scores;
+    G.result = {winners: verdict.winners, reason: verdict.reason, scores, breakdown};
+    log(G, undefined, "gameOver", {winners: verdict.winners.join(","), reason: verdict.reason});
+    return;
+  }
+  finishGame(G, reason);
+};
+
+/**
+ * The GW side of a power for Scenario 4's tally.
+ *
+ * Once the war starts the live GW rosters are authoritative (they are what
+ * `formAlliances` resolved the Alliance Track into); before it, the track box
+ * decides.  A unified Italy and the US are not player powers, so they never
+ * appear in the tally.
+ */
+const gwSideOf = (G: ImperialElegyState, power: Power): "te" | "ta" | null => {
+  if (G.gw?.active) {
+    if (G.gw.te.includes(power)) return "te";
+    if (G.gw.ta.includes(power)) return "ta";
+    return null;
+  }
+  return opposingAlliance(G, power);
 };
