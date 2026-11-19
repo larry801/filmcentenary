@@ -104,9 +104,12 @@ assets total approximately 13.4 MiB and remain available as source references.
 
 Faces follow the selected UI language. Expand **English text / 中文译文** below
 a face to read the other language (English includes the full rule transcription).
-Long rules extend the SVG height instead of being clipped or reduced to tiny
-type. Missing module faces, including action cards 21/82 and goal 22, use the
-same renderer. The photographs are represented by lightweight vector emblems.
+The card inspector also offers **Original card image / 原图** as a folded
+reference: the scan is fetched only when that disclosure is opened, so the
+default reading view stays fast and in the chosen language. Long rules extend
+the SVG height instead of being clipped or reduced to tiny type. Missing module
+faces, including action cards 21/82 and goal 22, use the same renderer. The
+photographs are represented by lightweight vector emblems.
 
 ### Card choices
 
@@ -290,14 +293,17 @@ regions:
 - **Hand** — `components/HandTray.tsx`, a row under the mat and the map that
   spans both of those columns on desktop (at most 212 px open, folded to a 44 px
   bar; the turn panel keeps the right column); on a phone it is the dock's Hand
-  tab. Its head has a sort select, card count, CP-chain/saved/response chips and
-  the tray toggle; each card is one row — CP value and name, plus the first
-  reason it cannot be played when it is stuck. There is no filter (a hand is
-  only a few cards, so all of them are always listed) and no type icon (it used
-  to sit over the CP number). Every card may be played for CP (rule 12.0), so a
-  playable row carries no badge. One tap on the row opens the `CardInspector`
-  (the face, every operation and the aggregated reasons); the row never unfolds
-  in place, so a hand stays a scannable list.
+  tab. Its head has the card count, the CP-chain/saved/response chips and the
+  tray toggle; each card is one row — CP value and name, plus the first reason
+  it cannot be played when it is stuck. There is no filter (a hand is only a few
+  cards, so all of them are always listed), no sort select (the hand is always
+  printed order) and no type icon (it used to sit over the CP number). Every
+  card may be played for CP (rule 12.0), so a playable row carries no badge. On
+  a desktop the row also draws its operations inline — play for CP, the event,
+  a response, industrialize, the CP chain and Save, with every blocked button
+  carrying its reason as a title — so the common play needs no dialog; the name
+  still opens the `CardInspector` with the face and the aggregated reasons. On
+  a phone the row stays one line and the operations stay in the inspector.
 - **Reference drawer** — `components/ReferenceDrawer.tsx` opens from the right
   at an anchor (the strip's `?`, a stepper step, the mat's "Printed display", a
   `?` rule link) and closes on Esc. It shows the tables the engine renders — the
@@ -393,7 +399,8 @@ grid areas unchanged. Short phones (≤ 699 px tall) use 44 dvh for half,
   `overflow: hidden`. Every track value of the matrix is a 44 px target (three
   equal columns per power) and arming one does not reflow the grid. While a
   decision is owed the Orders body is the decision instead.
-- **Hand** — the card row with its filters, sort and per-card operations.
+- **Hand** — the card row with its per-card operations (drawn on the row on
+  desktop, in the inspector on a phone).
 - **Mat** — the player mat, reachable on a phone now; the old layout hid it at
   this width. The same figures also appear in the reference drawer's power
   dashboards.

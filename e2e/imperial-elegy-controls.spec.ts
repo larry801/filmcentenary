@@ -547,19 +547,20 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(board.locator('[data-testid="ie-turn-tab-war"]')).toHaveAttribute("aria-selected", "true");
     });
 
-    test("card economy controls render and Save toggles the card state", async ({page}) => {
+    test("card economy controls render on the row and Save toggles the card state", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");
 
         const card = await findSavableCard(board);
         expect(card).not.toBeNull();
-        // The economy controls live in the CardInspector; reopen that card.
-        await openCard(card!);
-        const inspector = board.locator('[data-testid="ie-card-inspector"]');
-        await expect(inspector).toBeVisible();
-        const save = inspector.getByRole("button", {name: "保留", exact: true});
-        const industrialize = inspector.getByRole("button", {name: "工业化", exact: true});
-        const cpChain = inspector.getByRole("button", {name: "CP 链", exact: true});
+        // On a desktop the row itself carries the economy controls; the
+        // inspector repeats them.  Play the Save from the row, then confirm the
+        // inspector shows the same state.
+        const rowActions = card!.locator(".ie-card-row-actions");
+        await expect(rowActions).toBeVisible();
+        const save = rowActions.getByRole("button", {name: "保留", exact: true});
+        const industrialize = rowActions.getByRole("button", {name: "工业化", exact: true});
+        const cpChain = rowActions.getByRole("button", {name: "CP 链", exact: true});
 
         await expect(save).toBeVisible();
         await expect(industrialize).toBeVisible();
@@ -570,12 +571,17 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(save).toHaveAttribute("aria-pressed", "false");
 
         await save.click();
+        await expect(board.locator(".ie-hand-meta")).toContainText("已保留的牌");
 
+        // The inspector tells the same story: the same card reads 取消保留.
+        await openCard(card!);
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        await expect(inspector).toBeVisible();
         const unsave = inspector.getByRole("button", {name: "取消保留", exact: true});
         await expect(unsave).toBeVisible();
         await expect(unsave).toHaveAttribute("aria-pressed", "true");
         await page.keyboard.press("Escape");
-        await expect(board.locator(".ie-hand-meta")).toContainText("已保留的牌");
+        await expect(inspector).toHaveCount(0);
     });
 
     test("MPIT matrix renders and the GW panel is conditionally present", async ({page}) => {
@@ -859,6 +865,15 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await expect(inspector).toBeVisible();
         await expect(inspector).toHaveAttribute("data-face-mode", "svg");
         await expect(inspector.locator("svg.ie-card-face")).toBeVisible();
+        // The printed scan is a folded reference: no image is fetched until a
+        // reader asks for it, and the default text stays in the chosen language.
+        const original = inspector.locator('[data-testid="ie-card-inspector-original"]');
+        await expect(original).toBeVisible();
+        expect(await original.evaluate(el => (el as HTMLDetailsElement).open)).toBe(false);
+        await expect(original.locator("img")).toHaveCount(0);
+        await original.locator("summary").click();
+        expect(await original.evaluate(el => (el as HTMLDetailsElement).open)).toBe(true);
+        await expect(original.locator('[data-testid="ie-card-inspector-original-image"]')).toBeVisible();
         // CP, event, industrialize, CP chain and save are all offered in place.
         expect(await inspector.locator(".ie-card-inspector-actions button").count()).toBeGreaterThanOrEqual(5);
         // A fully playable card has no aggregated reasons; a blocked one does.

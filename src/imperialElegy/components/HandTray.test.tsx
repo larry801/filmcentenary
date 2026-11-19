@@ -81,9 +81,12 @@ test("the desktop tray defaults to its 220 px hand row and can fold to a header"
   expect(folded).toContain("手牌 · 德国");
 });
 
-test("a card row is its CP value and name: no type icon over the number", () => {
+test("a card row is its CP value and name, with its operations on the row", () => {
   const G = game();
-  const id = G.powers.GE.hand[0];
+  // A plain event card: a mandatory event deliberately has no CP control (its
+  // CP play *is* its event), so it cannot stand in for "every operation".
+  G.powers.GE.hand = ["IE-A029"];
+  const id = "IE-A029";
   const html = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
   const row = html.slice(html.lastIndexOf("<article", html.indexOf(`data-testid="ie-card-${id}"`)));
   const rowHtml = row.slice(0, row.indexOf("</article>"));
@@ -95,37 +98,72 @@ test("a card row is its CP value and name: no type icon over the number", () => 
   expect(rowHtml).not.toContain("ie-card-type");
   expect(rowHtml).toContain('data-card-type="');
   expect(rowHtml).toContain('data-expanded="false"');
-  // The row is a dialog opener, never an in-place disclosure: one tap must go
-  // straight to the inspector.
+  // The name is still a dialog opener, so the full face and the aggregated
+  // reasons stay one click away.
   expect(rowHtml).toContain('aria-haspopup="dialog"');
   expect(rowHtml).not.toContain("aria-expanded");
-  // Folded rows carry no face, no buttons and no translation: the inspector is
-  // the one place they live.
+  // The operations are printed on the row itself on a desktop (no phone mode
+  // here): CP, event, industrialization, CP chain and Save are all in place.
+  expect(rowHtml).toContain('data-row-actions="true"');
+  expect(rowHtml).toContain(`data-testid="ie-card-row-actions-${id}"`);
+  expect(rowHtml).toContain(`data-testid="ie-play-cp-${id}"`);
+  expect(rowHtml).toContain(`data-testid="ie-play-event-${id}"`);
+  expect(rowHtml).toContain(`data-testid="ie-industrialize-${id}"`);
+  expect(rowHtml).toContain(`data-testid="ie-cp-chain-add-${id}"`);
+  expect(rowHtml).toContain(`data-testid="ie-save-${id}"`);
+  // The row is not an in-place disclosure: no face and no translation.
   expect(rowHtml).not.toContain(`data-testid="ie-card-face-${id}"`);
-  expect(rowHtml).not.toContain(`data-testid="ie-play-cp-${id}"`);
   expect(rowHtml).not.toContain("ie-card-face");
   expect(rowHtml).not.toContain("ie-card-translation");
 });
 
-test("every card in the hand is listed: the tray has no filter", () => {
+test("a phone row keeps its operations in the inspector, not on the row", () => {
+  const G = game();
+  const id = G.powers.GE.hand[0];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)} isPhone/>);
+  const row = html.slice(html.lastIndexOf("<article", html.indexOf(`data-testid="ie-card-${id}"`)));
+  const rowHtml = row.slice(0, row.indexOf("</article>"));
+
+  expect(rowHtml).toContain('data-expanded="false"');
+  expect(rowHtml).toContain('data-row-actions="false"');
+  expect(rowHtml).toContain(`data-testid="ie-open-card-${id}"`);
+  expect(rowHtml).not.toContain(`data-testid="ie-play-cp-${id}"`);
+  expect(rowHtml).not.toContain(`data-testid="ie-industrialize-${id}"`);
+  expect(rowHtml).not.toContain("ie-card-row-actions");
+});
+
+test("every card in the hand is listed and the tray has no sort control", () => {
   const G = game();
   const html = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
   expect(html).not.toContain('data-testid="ie-hand-filter"');
   expect(html).not.toContain('data-testid="ie-hand-empty-filter"');
   for (const id of G.powers.GE.hand) expect(html).toContain(`data-testid="ie-card-${id}"`);
-  // The sort stays: it is the whole view now that nothing is hidden.
-  expect(html).toContain('data-testid="ie-hand-sort"');
+  // The sort select is gone: the hand is always printed order, and every row
+  // carries its own operations instead of a re-ordering control.
+  expect(html).not.toContain('data-testid="ie-hand-sort"');
+  expect(html).not.toContain('data-testid="ie-hand-tools"');
 });
 
-test("a card that forbids passing is still one row; the inspector carries its event", () => {
+test("cards are listed in the order they are held", () => {
+  const G = game();
+  G.powers.GE.hand = ["IE-A029", "IE-A104", "IE-A041"];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
+  const positions = ["IE-A029", "IE-A104", "IE-A041"]
+    .map((id) => html.indexOf(`data-testid="ie-card-${id}"`));
+  expect(positions.every((at) => at >= 0)).toBe(true);
+  expect(positions).toEqual([...positions].sort((a, b) => a - b));
+});
+
+test("a card that forbids passing is still one row; its event is on the row", () => {
   const G = game();
   const id = G.powers.GE.hand[0];
   const html = renderToStaticMarkup(<HandTray {...props(G, true)} forcedCardIds={[id]}/>);
   const row = html.slice(html.lastIndexOf("<article", html.indexOf(`data-testid="ie-card-${id}"`)));
   const rowHtml = row.slice(0, row.indexOf("</article>"));
-  // The tray does not unfold anything: the restriction is explained inside the
-  // inspector, which the row opens.
+  // Nothing unfolds in place: the buttons sit on the row and the reasons stay
+  // one click away in the inspector.
   expect(rowHtml).toContain('data-expanded="false"');
+  expect(rowHtml).toContain(`data-testid="ie-card-row-actions-${id}"`);
   expect(rowHtml).not.toContain(`data-testid="ie-card-face-${id}"`);
 });
 

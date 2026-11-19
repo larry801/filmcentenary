@@ -72,6 +72,11 @@ describe("CardInspector", () => {
     expect(markup).toContain('data-testid="ie-card-inspector-unavailable"');
     expect(markup).toContain('data-testid="ie-card-inspector-close"');
     expect(markup).toContain("Close");
+    // The scan is a folded reference, not part of the default reading view.
+    expect(markup).toContain('data-testid="ie-card-inspector-original"');
+    expect(markup).toContain("Original card image");
+    expect(markup).not.toContain("/imperial-elegy/cards/action-001.jpg");
+    expect(markup).not.toContain("<img");
   });
 
   test("the dialog contract is explicit in static markup", () => {
@@ -90,7 +95,7 @@ describe("CardInspector", () => {
       .toBeLessThan(markup.indexOf('data-testid="ie-card-inspector-actions"'));
   });
 
-  test("print mode renders the scanned card image", () => {
+  test("print mode renders the scanned card image without a duplicate disclosure", () => {
     const markup = render({mode: "print"});
 
     expect(markup).toContain('data-face-mode="print"');
@@ -99,6 +104,23 @@ describe("CardInspector", () => {
     expect(markup).toContain("/imperial-elegy/cards/action-001.jpg");
     expect(markup).toContain('alt="The Eastern Question"');
     expect(markup).not.toContain("<svg");
+    expect(markup).not.toContain('data-testid="ie-card-inspector-original"');
+  });
+
+  test("the folded original is labelled in Chinese on a zh_CN board", () => {
+    const markup = render({locale: "zh_CN"});
+
+    expect(markup).toContain('data-testid="ie-card-inspector-original"');
+    expect(markup).toContain("原图");
+    expect(markup).toContain("东方问题");
+    expect(markup).not.toContain("<img");
+  });
+
+  test("the original disclosure loads its image only after it is opened", () => {
+    const source = readFileSync(join(__dirname, "CardInspector.tsx"), "utf8");
+
+    expect(source).toContain("onToggle={event => setOriginalOpen(event.currentTarget.open)}");
+    expect(source).toMatch(/\{originalOpen && \(\s*<img/);
   });
 
   test("print mode falls back to the svg face when the card has no image", () => {
@@ -118,6 +140,7 @@ describe("CardInspector", () => {
     expect(markup).toContain("欧洲关键区");
     expect(markup).toContain("1 · 3 VP");
     expect(markup).toContain("关闭");
+    expect(markup).not.toContain('data-testid="ie-card-inspector-original"');
   });
 
   // jsdom is not installed (Jest runs with `testEnvironment: "node"`), so the

@@ -213,6 +213,35 @@
   border-radius: 2px;
 }
 
+/* The desktop row prints its operations at the end of the same line, right
+   after the name: the same buttons the inspector offers, compact enough that
+   the hand keeps its row density instead of doubling every row's height.  On a
+   narrower desktop the buttons wrap under the name rather than overflow. */
+.ie-hand .ie-card[data-row-actions="true"] {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ie-hand .ie-card[data-row-actions="true"] .ie-card-open { flex: 1 1 200px; width: auto; min-width: 0; }
+
+.ie-hand .ie-card-row-actions {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 2px 6px;
+  gap: 3px;
+}
+
+.ie-hand .ie-card-row-actions button {
+  flex: 0 0 auto;
+  min-height: 24px;
+  padding: 1px 7px;
+  font-size: var(--ie-font-xs);
+  line-height: 1.2;
+  white-space: nowrap;
+  border-radius: 2px;
+}
+
 .ie-hand .ie-card .ie-card-translation { margin: 0; font-size: var(--ie-font-xs); }
 
 /* An unfolded card with nothing legal to do still owes the player a reason. */
@@ -461,6 +490,22 @@ img.ie-card-face { background: var(--ie-paper-2); }
 
 .ie-inspector-print { width: 100%; height: auto; display: block; }
 
+.ie-card-inspector-original { border-top: 1px solid var(--ie-rule); padding-top: 4px; font-size: var(--ie-font-xs); }
+
+.ie-card-inspector-original summary { cursor: pointer; color: var(--ie-ink-2); }
+
+.ie-card-inspector-original-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 62vh;
+  object-fit: contain;
+  margin-top: 6px;
+  background: var(--ie-paper);
+  border: 1px solid var(--ie-paper-rule);
+  border-radius: var(--ie-radius-sm);
+}
+
 .ie-card-inspector-actions, .ie-inspector-actions { display: flex; flex-wrap: wrap; gap: 4px; }
 
 .ie-card-inspector-actions button, .ie-inspector-actions button {
@@ -539,11 +584,7 @@ img.ie-card-face { background: var(--ie-paper-2); }
   html:focus-within { scroll-behavior: auto; }
 }
 
-/* Hand tray: playability line, sort, hover enlargement. */
-.ie-hand-tools { display: flex; gap: 6px; align-items: center; margin-left: auto; flex-wrap: nowrap; min-width: 0; }
-
-.ie-hand-tool { display: inline-flex; align-items: center; gap: 4px; font-size: var(--ie-font-xs); color: var(--ie-on-dark-muted); white-space: nowrap; flex: 0 0 auto; }
-
+/* Hand tray: playability line, hover enlargement. */
 .ie-card { position: relative; }
 
 .ie-card-status {

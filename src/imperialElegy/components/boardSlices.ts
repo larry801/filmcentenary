@@ -101,6 +101,11 @@ const HAND_KEYS = [
   "giveTarget", "setGiveTarget", "responseInHand",
   "responseWindow", "chainNonEmpty", "chainSpendable", "chainCap", "chainReady",
   "chainDisabledReason", "cpBudget", "doAction", "moves", "handChoicesHint", "cardFaceMode",
+  // The row draws its operations inline on desktop and folds them into the
+  // inspector on a phone.
+  "isPhone",
+  // A bot seat's board is read-only: its rows never offer operations.
+  "isBotViewer",
   "trayOpen", "setTrayOpen", "trayExpanded", "setTrayExpanded",
   "handCounts", "goalCounts",
   // Render every hand row unfolded (tests/embeds); the board never sets it.
