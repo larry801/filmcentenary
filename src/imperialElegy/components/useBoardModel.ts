@@ -12,7 +12,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationAllowsTwoPowers, warDeclarationAims, warDeclarationEntitlement, warDeclarationMayForbidJoins, warDeclarationTargetLegal} from "../engine/rules";
+import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, legalLandBattleTarget, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationAllowsTwoPowers, warDeclarationAims, warDeclarationEntitlement, warDeclarationMayForbidJoins, warDeclarationTargetLegal} from "../engine/rules";
 import {declarationTargetCandidates, type WarTargetCandidate} from "../engine/declarationTargets";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
@@ -716,12 +716,12 @@ export const useBoardModel = ({
   const ownNavalInSelected = ownUnitsInSelected.filter((u) => u.naval);
 
   /**
-   * A unit in an adjacent space that this seat may fight.  `hostileOwner`
-   * mirrors the engine's own defender filter, so a neighbour that holds only
-   * friendly or allied units offers no battle while an enemy that entered a
-   * space this seat controls is still attackable.  A controlled minor's
-   * counters are friendly even though `hostileOwner` treats unowned minors as
-   * hostile by default.
+   * A unit in an adjacent space that this seat may fight at sea.  `hostileOwner`
+   * mirrors the engine's own naval defender filter, so a neighbour that holds
+   * only friendly or allied ships offers no battle while an enemy that entered
+   * a space this seat controls is still attackable.  Land targets use
+   * `legalLandBattleTarget` instead (12.16/13.4): a neutral non-player is not a
+   * legal land target until a declaration makes it a belligerent.
    */
   const hostileUnit = (unit: Unit): boolean => {
     if (viewer === null || unit.owner === viewer) return false;
@@ -736,7 +736,7 @@ export const useBoardModel = ({
       if (!state) return false;
       return state.units.some((uid) => {
         const u = G.units[uid];
-        return u !== undefined && !u.naval && hostileUnit(u);
+        return u !== undefined && !u.naval && legalLandBattleTarget(G, viewer, u.owner);
       });
     });
   };

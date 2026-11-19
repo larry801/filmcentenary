@@ -19,6 +19,7 @@ import {
   italianBrokenLoc,
   landStackingLimit,
   landUnitsIn,
+  legalLandBattleTarget,
   log,
   minorBrokenLoc,
   minorController,
@@ -51,6 +52,9 @@ import {
   eliteBonusDestroys,
   eliteBonusDrm,
   committedEliteIds,
+  committedEliteKinds,
+  committedEliteOwners,
+  eliteUnitAutoDestroys,
   opponentIsNonRebelArmy,
   eliteDecisionPower,
 } from "./eliteBonus";
@@ -507,6 +511,16 @@ export const beginLandBattle = (
   if (attackUnits.length === 0 || (defendUnits.length === 0 && !G.spaces[to].fort)) {
     return null;
   }
+  // 12.16 / 13.4: a neutral non-player is not a legal land-battle target.  The
+  // declaration routes (13.4.1/13.4.2) must make it a belligerent first.  A
+  // mixed stack stays legal while at least one unit is a real enemy.
+  if (defendUnits.length > 0 && !defendUnits.some((u) => legalLandBattleTarget(G, actor, u.owner))) {
+    return null;
+  }
+  if (defendUnits.length === 0 && G.spaces[to].fort) {
+    const control = G.spaces[to].control;
+    if (control !== null && control !== undefined && !legalLandBattleTarget(G, actor, control)) return null;
+  }
   // 28.1.2: "Only units in a given trench battle space can initiate a land
   // battle in that space.  Adjacent armies cannot initiate a battle in trench
   // battle spaces."  So a marker space is attacked only from inside it, and a
@@ -884,9 +898,19 @@ export const resolveEliteBonus = (
   const battle = G.battle;
   if (!battle) return;
   if (commit) {
-    const ids = eliteBonusCandidates(G, battle, side).map((unit) => unit.id);
-    if (side === "attacker") battle.eliteBonusAttack = ids;
-    else battle.eliteBonusDefense = ids;
+    const units = eliteBonusCandidates(G, battle, side);
+    const ids = units.map((unit) => unit.id);
+    const kinds = units.map((unit) => unit.kind);
+    const owners = units.map((unit) => unit.owner);
+    if (side === "attacker") {
+      battle.eliteBonusAttack = ids;
+      battle.eliteBonusKinds = {...battle.eliteBonusKinds, attacker: kinds};
+      battle.eliteBonusOwners = {...battle.eliteBonusOwners, attacker: owners};
+    } else {
+      battle.eliteBonusDefense = ids;
+      battle.eliteBonusKinds = {...battle.eliteBonusKinds, defender: kinds};
+      battle.eliteBonusOwners = {...battle.eliteBonusOwners, defender: owners};
+    }
     // Record the printed condition now: the opposing units may be removed by
     // step losses before the battle ends.
     battle.eliteBonusVsRebel = {
@@ -1598,6 +1622,18 @@ const resolveRollOutcome = (G: ImperialElegyState, ctx: Ctx, battle: BattleState
  * applied to supporting armies, so `includeSupport` adds the armies recorded
  * in this battle's committed support spaces.
  */
+/**
+ * 5.3.1 / 5.1.6 / 18.6.2 / 18.6.3: ECs (and the Zouave and elite colonial EF,
+ * which are treated as ECs) have no steps and cannot take losses.  A regular
+ * EF may take one only when the force has no army to absorb it ("a force
+ * comprised of EFs and armies cannot take losses on the EFs").
+ */
+const canTakeStepLoss = (unit: Unit, mainForce: Unit[]): boolean => {
+  if (isEliteKind(unit.kind)) return false;
+  if (unit.kind === "expeditionary") return !mainForce.some((other) => isArmyKind(other.kind));
+  return true;
+};
+
 const lossCandidates = (
   G: ImperialElegyState,
   battle: BattleState,
@@ -1605,7 +1641,10 @@ const lossCandidates = (
   includeSupport: boolean,
 ): Unit[] => {
   const ids = side === "attacker" ? battle.mainAttack : battle.mainDefense;
-  const main = ids.map((id) => unitById(G, id)).filter((u): u is Unit => u !== undefined && u.steps > 0);
+  const mainForce = ids
+    .map((id) => unitById(G, id))
+    .filter((u): u is Unit => u !== undefined && u.steps > 0);
+  const main = mainForce.filter((u) => canTakeStepLoss(u, mainForce));
   const support: Unit[] = [];
   if (includeSupport) {
     const entries = side === "attacker" ? battle.supportAttack : battle.supportDefense;
@@ -1674,9 +1713,27 @@ const applyOneLoss = (
     if (battle.kind === "naval" && target.kind === "dreadnought") {
       battle.dreadnoughtsSunk = [...(battle.dreadnoughtsSunk ?? []), String(target.owner)];
     }
-    // An eliminated army also eliminates an attached EC (18.6.2).
-    const ec = isEliteKind(target.kind) ? undefined : Object.values(G.units).find((u) => u.kind === "eliteCorps" && u.space === target.space && u.owner === target.owner);
-    if (ec) removeUnit(G, ec.id);
+    // An eliminated army also eliminates an attached EC (18.6.2).  A078's
+    // elite colonial EF and the Zouave are treated as ECs for elimination, so
+    // they go with the army too.
+    if (!isEliteKind(target.kind)) {
+      const attachedElite = Object.values(G.units).find(
+        (u) => isEliteKind(u.kind) && u.space === target.space && u.owner === target.owner,
+      );
+      if (attachedElite) {
+        removeUnit(G, attachedElite.id);
+        // The counter is gone as a step loss, so the end-of-battle clause must
+        // not announce the same destruction twice.
+        battle.eliteBonusAttack = (battle.eliteBonusAttack ?? []).filter((id) => id !== attachedElite.id);
+        battle.eliteBonusDefense = (battle.eliteBonusDefense ?? []).filter((id) => id !== attachedElite.id);
+      }
+      // 18.6.3: "When a force comprised of EFs and armies takes a step loss on
+      // an army they must also eliminate an EF."
+      const attachedEf = Object.values(G.units).find(
+        (u) => u.kind === "expeditionary" && u.space === target.space && u.owner === target.owner,
+      );
+      if (attachedEf) removeUnit(G, attachedEf.id);
+    }
   }
 };
 
@@ -3260,13 +3317,27 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
   // own battle losses first (it is already gone by then, which is harmless).
   for (const side of ["attacker", "defender"] as const) {
     if (!eliteBonusDestroys(G, battle, side)) continue;
-    for (const unitId of committedEliteIds(battle, side)) {
+    const kinds = committedEliteKinds(G, battle, side);
+    const ids = committedEliteIds(battle, side);
+    const owners = committedEliteOwners(battle, side);
+    for (let i = 0; i < ids.length; i += 1) {
+      const unitId = ids[i];
       const unit = G.units[unitId];
-      // The unit may already have been removed by the battle's own step losses;
-      // the printed clause is still satisfied, and the log records why.
-      const kind = unit?.kind ?? "elite";
+      // The unit may already have been removed by another battle effect; the
+      // printed clause is still satisfied, and the recorded kind keeps the log
+      // honest even then.
+      const kind = unit?.kind ?? kinds[i] ?? "elite";
+      if (!eliteUnitAutoDestroys(G, kind)) continue;
+      // Attribute the destruction to the unit's owner (a committed defender EC
+      // is not the attacker's loss).
+      const recordedOwner = owners[i];
+      const owner: Power | undefined = isPower(unit?.owner)
+        ? unit.owner
+        : isPower(recordedOwner)
+          ? recordedOwner
+          : undefined;
       if (unit) removeUnit(G, unitId);
-      log(G, battle.attacker, "eliteBonusDestroyed", {to: battle.to, side, kind});
+      log(G, owner, "eliteBonusDestroyed", {to: battle.to, side, kind});
     }
   }
   G.battle = null;

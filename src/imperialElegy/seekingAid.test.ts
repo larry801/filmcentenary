@@ -31,7 +31,7 @@ import {
   seekingAidSlots,
   type NonPlayerAllianceRow,
 } from "./engine/limitedWar";
-import {declareWar, resolvePending, declinePending} from "./moves";
+import {chooseAllianceShift, declareWar, resolvePending, declinePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -284,6 +284,9 @@ describe("13.4.2 live Seeking Aid", () => {
     expect(G.war).toBeNull();
     expect(G.phase).toBe("action");
     expect(lastLog(G, "minorAllyAsked")?.args).toMatchObject({minor: "Belgium", power: "UK", step: 1, diplomacy: true});
+    // 13.4.2: the attacked minor asks, not the attacker, so no player is the
+    // actor of that entry.
+    expect(lastLog(G, "minorAllyAsked")?.power).toBeUndefined();
 
     const other = redactForView(G, seat("FR"));
     expect(other.pending?.options).toEqual([]);
@@ -303,9 +306,17 @@ describe("13.4.2 live Seeking Aid", () => {
     expect(G.war?.minorTarget).toEqual({minor: "Belgium", ally: "UK"});
     expect(G.war?.defenderMinors).toEqual(["Belgium"]);
     expect(G.phase).toBe("wartime");
+    // 8.2: both chits are neutral, so the defending ally chooses its box.  The
+    // shift stays open until the live choice (or the maneuver-start default).
+    expect(G.war?.defenderShift?.choice).toBe(true);
+    expect(G.powers.UK.alliance).toBe("neutral");
+    expect(chooseAllianceShift(G, makeCtx([], seat("UK")), "te")).toBeUndefined();
     // 14.2: the aiding player shifts away from the attacker.
     expect(G.powers.UK.alliance).toBe("teAligned");
-    expect(lastLog(G, "minorAidGranted")?.args).toMatchObject({minor: "Belgium", ally: "UK", space: "belgium"});
+    // 13.4.2: the aiding player is the actor, not the attacker.
+    const granted = lastLog(G, "minorAidGranted");
+    expect(granted?.power).toBe("UK");
+    expect(granted?.args).toMatchObject({minor: "Belgium", ally: "UK", space: "belgium"});
   });
 
   test("a decline moves through the printed order and ends unopposed", () => {
@@ -343,6 +354,8 @@ describe("13.4.2 live Seeking Aid", () => {
     expect(declareOn(G, "Greece", ["greece"], [5, 2])).toBeUndefined();
 
     expect(lastLog(G, "minorAidRoll")?.args).toMatchObject({minor: "Greece", order: "UK,RU", rolls: "UK:5,RU:2"});
+    // 13.4.3: the roll-off belongs to the minor, so it has no player actor.
+    expect(lastLog(G, "minorAidRoll")?.power).toBeUndefined();
     expect(G.pending?.power).toBe("UK");
     expect(resolvePending(G, makeCtx([], seat("UK")), "decline")).toBeUndefined();
     // The losing roller is asked next, before the 2nd Choice column.

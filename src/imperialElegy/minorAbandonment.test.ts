@@ -15,7 +15,7 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {redactForView} from "./engine/privacy";
-import {declareWar, resolvePending, declinePending} from "./moves";
+import {chooseAllianceShift, declareWar, resolvePending, declinePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -85,6 +85,10 @@ describe("13.4.1 abandoning a non-player power ally", () => {
     expect(G.war?.defender).toBe("FR");
     expect(G.war?.minorTarget).toEqual({minor: "Belgium", ally: "FR"});
     expect(G.war?.defenderMinors).toEqual(["Belgium"]);
+    // 8.2: both chits are neutral, so the defending ally picks its box.
+    expect(G.war?.defenderShift?.choice).toBe(true);
+    expect(G.powers.FR.alliance).toBe("neutral");
+    expect(chooseAllianceShift(G, makeCtx([], seat("FR")), "te")).toBeUndefined();
     // 14.2: the aiding player shifts away from the attacker.
     expect(G.powers.FR.alliance).toBe("teAligned");
     expect(G.phase).toBe("wartime");

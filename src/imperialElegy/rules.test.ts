@@ -8,6 +8,21 @@ import {SPACES} from "./constant/spaces";
 const ctx: any = {playerID: "0", random: {Die: () => 3}, events: {setPhase: () => {}, setActivePlayers: () => {}, endGame: () => {}}};
 const fresh = () => setupImperialElegy(ctx);
 
+/**
+ * The official Austro-Prussian War example (18.3.2): GE declares a war of
+ * unification on AU, and Bavaria, Saxony and Hanover fight on AU's side.  12.16
+ * makes that declaration the precondition for a land battle against them.
+ */
+const warWithAUAndGermanMinors = (G: any): void => {
+  G.war = {
+    attacker: "GE", defender: "AU", attackerAllies: [], defenderAllies: [],
+    attackerMinors: [], defenderMinors: ["Saxony", "Bavaria", "Hanover"],
+    warAim: "unification", objectives: ["saxony"], status: "maneuver",
+    budgets: {}, initiative: [], treaties: [], victor: null, truceTurns: 0,
+    passed: [], startedTurn: 1,
+  };
+};
+
 test("alliances follow the alliance track", () => {
   const G = fresh();
   G.powers.GE.alliance = "taCommitted";
@@ -44,6 +59,7 @@ test("land battle support choices feed the BDRM", () => {
   G.phase = "wartime";
   G.powers.GE.alliance = "taCommitted";
   G.powers.AU.alliance = "taCommitted";
+  warWithAUAndGermanMinors(G);
   const battle = beginLandBattle(G, ctx, "GE", "berlin", "saxony");
   expect(battle).not.toBeNull();
   const support = battle!.supportAttack.map((s) => s.fp);
@@ -128,6 +144,7 @@ test("official support example: minor allies support at half FP", () => {
   G.phase = "wartime";
   G.powers.GE.alliance = "taCommitted";
   G.powers.AU.alliance = "taCommitted";
+  warWithAUAndGermanMinors(G);
   const battle = beginLandBattle(G, ctx, "GE", "berlin", "saxony");
   expect(battle).not.toBeNull();
   const support = require("./engine/combat").supportCandidates(G, "GE", battle, "defender");

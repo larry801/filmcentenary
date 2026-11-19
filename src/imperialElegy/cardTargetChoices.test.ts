@@ -651,6 +651,13 @@ describe("no auto-pick remains", () => {
   test("A92 still validates a manual land battle target after the chain", () => {
     // Guard: the land-battle entry point used by the tests above is untouched.
     const G = fresh();
+    // 12.16/13.4: a land battle needs a live war with the target's side.
+    G.war = {
+      attacker: "GE", defender: "FR", attackerAllies: [], defenderAllies: [],
+      attackerMinors: [], defenderMinors: [], warAim: "conquest", objectives: [],
+      status: "maneuver", budgets: {}, initiative: [], treaties: [], victor: null,
+      truceTurns: 0, passed: [], startedTurn: 1,
+    };
     placeUnit(G, "GE", "army", "berlin", 2);
     placeUnit(G, "FR", "army", "saxony", 2);
     const battle = beginLandBattle(G, makeCtx(), "GE", "berlin", "saxony");

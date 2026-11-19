@@ -257,6 +257,7 @@ import {
   allyRefusalPenalty,
   applyAllyRefusal,
   applyHarshTerms,
+  applyItalyAidShift,
   applyMinorAidAlliance,
   applyMinorDeclarationShift,
   applyVictoryOutcome,
@@ -2752,12 +2753,15 @@ const finalizeWarDeclaration = (
     // defends a unified Italy.
     const shift = applyMinorDeclarationShift(G, ctx, power, minor);
     if (shift.allyShift !== null) {
+      // 8.2: with both chits neutral the aiding ally chooses its box; record the
+      // open choice so `chooseAllianceShift` can answer it and
+      // `startWarManeuver` still applies the documented default fallback.
       G.war.defenderShift = {
         from: shift.allyShift.from,
         to: shift.allyShift.to,
         steps: shift.allyShift.steps,
         forced: false,
-        choice: false,
+        choice: shift.allyShift.needsChoice,
       };
     }
     if (minor.ally === null) {
@@ -2933,7 +2937,9 @@ const finalizeMinorAid = (
   if (info === null) return INVALID_MOVE;
   const home = applyMinorAidAlliance(G, state.minor, ally);
   if (home === null) return INVALID_MOVE;
-  log(G, state.attacker, "minorAidGranted", {minor: state.minor, ally, space: home});
+  // 13.4.2: the *aiding* player answers the call and gains the alliance; the
+  // attacker is only the power that declared war on the minor.
+  log(G, ally, "minorAidGranted", {minor: state.minor, ally, space: home});
   // 13.4.4 (as amended): "The player that aids the Qing in the war of conquest
   // gains a +1 card marker regardless of the war's outcome."
   if (state.minor === "Qing China" && state.aim === "conquest") {
@@ -2980,7 +2986,9 @@ const openMinorAidDecision = (
         const rolled = rollOffAidOrder(candidates, () => die(ctx, 6));
         candidates = rolled.order;
         rolls = rolled.rolls;
-        log(G, state.attacker, "minorAidRoll", {
+        // 13.4.3 is the attacked minor's search for an ally, not an attacker
+        // action; the entry names the minor, so no player is the actor.
+        log(G, undefined, "minorAidRoll", {
           minor: state.minor,
           order: candidates.join(","),
           rolls: rolled.rolls.map((entry) => `${entry.power}:${entry.roll}`).join(","),
@@ -3013,7 +3021,10 @@ const openMinorAidDecision = (
       context: {...state, current: state.current, rolls: state.rolls},
       blocking: true,
     });
-    log(G, state.attacker, "minorAllyAsked", {
+    // The minute is written by the attacked minor ("the attacked non-player
+    // power immediately tries to find a player ally"); the attacker is not the
+    // actor.  The minor's name is in `args.minor`.
+    log(G, undefined, "minorAllyAsked", {
       minor: state.minor,
       power: candidate,
       step: state.current.step,
@@ -3532,6 +3543,9 @@ export const chooseAllianceShift = (
     forced: result.forced,
     chosen: true,
   });
+  // 14.2 special: a neutral unified Italy shifts with the aiding ally once that
+  // ally has chosen the both-neutral 8.2 direction.
+  if (war.minorTarget?.minor === "Italy") applyItalyAidShift(G, side);
   return undefined;
 };
 
@@ -3573,6 +3587,8 @@ const settleDefenderShiftChoice = (G: ImperialElegyState, war: WarState): void =
     forced: result.forced,
     fallback: true,
   });
+  // 14.2 special: Italy's own chit follows the direction the default resolved.
+  if (war.minorTarget?.minor === "Italy") applyItalyAidShift(G, side);
 };
 
 export const chooseWarAim = (G: ImperialElegyState, ctx: Ctx, aim: "liberation" | "unification" | "conquest"): string | void => {

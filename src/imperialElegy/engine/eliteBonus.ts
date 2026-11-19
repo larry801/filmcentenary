@@ -18,11 +18,15 @@
  */
 import type {BattleState, ImperialElegyState, Power, Unit} from "../types";
 
-/** The two printed unit kinds that carry the optional land-battle bonus. */
-export type EliteBonusKind = "eliteCorps" | "eliteColonialEf";
+/**
+ * The printed unit kinds that carry the optional land-battle bonus.  5.1.6
+ * says the Zouave "functions identically to elite colonial EFs", so it carries
+ * the same +1 / auto-elimination clause as A078.
+ */
+export type EliteBonusKind = "eliteCorps" | "eliteColonialEf" | "zouave";
 
 export const isEliteBonusKind = (kind: string): kind is EliteBonusKind =>
-  kind === "eliteCorps" || kind === "eliteColonialEf";
+  kind === "eliteCorps" || kind === "eliteColonialEf" || kind === "zouave";
 
 /** The printed bonus these units may contribute once committed. */
 export const ELITE_COMBAT_BONUS = 1;
@@ -70,6 +74,44 @@ export const committedEliteIds = (
   side: "attacker" | "defender",
 ): string[] => (side === "attacker" ? battle.eliteBonusAttack : battle.eliteBonusDefense) ?? [];
 
+/**
+ * The kinds of the committed elite units.  The decision records them at commit
+ * time so the end-of-battle destruction still knows what it is destroying after
+ * the counters have left the board.
+ */
+export const committedEliteKinds = (
+  G: ImperialElegyState,
+  battle: BattleState,
+  side: "attacker" | "defender",
+): string[] => {
+  const recorded = side === "attacker" ? battle.eliteBonusKinds?.attacker : battle.eliteBonusKinds?.defender;
+  if (recorded !== undefined) return recorded;
+  return committedEliteIds(battle, side).map((id) => G.units[id]?.kind ?? "");
+};
+
+/**
+ * The owners of the committed elite units, recorded alongside the kinds so the
+ * end-of-battle destruction can be attributed after the counter is gone.
+ */
+export const committedEliteOwners = (
+  battle: BattleState,
+  side: "attacker" | "defender",
+): string[] => {
+  const recorded = side === "attacker" ? battle.eliteBonusOwners?.attacker : battle.eliteBonusOwners?.defender;
+  return recorded ?? [];
+};
+
+/**
+ * A078 / 5.1.6: the elite colonial EF and the Zouave print the
+ * auto-elimination clause on their own counter, so it always applies.
+ * A080 Machine Guns and A091 Hydraulic Recoil add the clause to ordinary ECs
+ * only once the mandatory event is in effect (5.3.1/18.6.2 "Important").
+ */
+const eliteKindAutoDestroys = (G: ImperialElegyState, kind: string): boolean =>
+  kind === "eliteColonialEf"
+  || kind === "zouave"
+  || (kind === "eliteCorps" && (G.persistent.machineGuns === true || G.persistent.hydraulicRecoil === true));
+
 /** The bonus actually applied to a side, for the BDRM total and the log. */
 export const eliteBonusDrm = (
   battle: BattleState,
@@ -91,10 +133,18 @@ export const eliteBonusDestroys = (
   side: "attacker" | "defender",
 ): boolean => {
   if (committedEliteIds(battle, side).length === 0) return false;
+  // 5.3.1/18.6.2: an ordinary EC keeps its counter after using the bonus until
+  // Machine Guns or Hydraulic Recoil is in effect.  A078's elite colonial EF
+  // (and 5.1.6's Zouave) carry the clause on their own counter.
+  if (!committedEliteKinds(G, battle, side).some((kind) => eliteKindAutoDestroys(G, kind))) return false;
   const recorded = side === "attacker" ? battle.eliteBonusVsRebel?.attacker : battle.eliteBonusVsRebel?.defender;
   if (recorded !== undefined) return recorded === false;
   return opponentIsNonRebelArmy(G, battle, side);
 };
+
+/** Whether a specific committed unit's counter is destroyed by the clause. */
+export const eliteUnitAutoDestroys = (G: ImperialElegyState, kind: string): boolean =>
+  eliteKindAutoDestroys(G, kind);
 
 /** Which power decides whether to commit this side's elite bonus. */
 export const eliteDecisionPower = (

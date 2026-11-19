@@ -278,15 +278,19 @@ export interface AllyAidShiftResult {
   /** The defending ally whose chit moved. */
   power: Power;
   from: AllianceBox;
-  to: AllianceBox;
+  /** Destination box, or null while the both-neutral choice is still open. */
+  to: AllianceBox | null;
   steps: number;
-  direction: AllianceSide;
+  /** Chosen direction, or null while the both-neutral choice is still open. */
+  direction: AllianceSide | null;
   /**
-   * True when the two chits did not determine a direction (both neutral) and
-   * the deterministic Triple-Entente-first default was used.  The printed
-   * "defending power chooses" choice is not modelled for this voluntary aid.
+   * True when the two chits did not determine a direction (both neutral).
+   * When the caller asked to defer, `needsChoice` is also true and no chit
+   * moved; otherwise the deterministic Triple-Entente-first default was used.
    */
   defaultDirection: boolean;
+  /** Rule 8.2: both chits neutral, so the defending power chooses the box. */
+  needsChoice: boolean;
   /** True when rule 8.4 stopped the chit entering a full alliance. */
   blocked: boolean;
 }
@@ -299,17 +303,42 @@ export interface AllyAidShiftResult {
  * The direction comes from the two chits exactly like an 8.2 declaration
  * shift.  Unlike a forced defender shift this is a voluntary aid, so rule
  * 8.4's three-player maximum is enforced (the 8.2 exception is not used).
- * The both-neutral case falls back deterministically to the Triple Entente,
- * then the Triple Alliance, because the aiding ally has already answered a
- * decision and there is no live prompt here.
+ *
+ * When both chits are neutral, 8.2 gives the choice to the defending power.
+ * `deferChoice` lets the caller open that choice (`needsChoice: true`, no chit
+ * moved) instead of guessing; without it the historical Triple-Entente-first
+ * default is kept for flows that cannot prompt (e.g. an abandonment where the
+ * defending seat has just left the war).
  */
 export const allyAidShift = (
   G: ImperialElegyState,
   attacker: Power,
   ally: Power,
-  options: {side?: AllianceSide; steps?: number} = {},
+  options: {side?: AllianceSide; steps?: number; deferChoice?: boolean} = {},
 ): AllyAidShiftResult => {
-  const derived = declarationShiftDirection(G.powers[attacker].alliance, G.powers[ally].alliance);
+  const from = G.powers[ally].alliance;
+  const attackerBox = G.powers[attacker].alliance;
+  const derived = declarationShiftDirection(attackerBox, from);
+  // 8.2: only the both-neutral case is a free choice for the defender.  Two
+  // chits sharing a non-neutral box keep the historical default.
+  if (
+    derived === null
+    && attackerBox === "neutral"
+    && from === "neutral"
+    && options.side === undefined
+    && options.deferChoice === true
+  ) {
+    return {
+      power: ally,
+      from,
+      to: null,
+      steps: 0,
+      direction: null,
+      defaultDirection: true,
+      needsChoice: true,
+      blocked: false,
+    };
+  }
   const direction: AllianceSide =
     derived ?? options.side ?? (canJoinAlliance(G, ally, "te") ? "te" : "ta");
   const shift = shiftAlliance(G, ally, direction, options.steps ?? 1);
@@ -320,6 +349,7 @@ export const allyAidShift = (
     steps: shift.steps,
     direction,
     defaultDirection: derived === null,
+    needsChoice: false,
     blocked: shift.blocked,
   };
 };
