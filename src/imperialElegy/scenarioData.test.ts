@@ -30,6 +30,7 @@ import {
 import {truceRivals} from "./engine/limitedWar";
 import {applyAuSerbiaClause, applyOttomanWinterJoin, auSerbiaBattleOrStability, blocksUkAmphibiousPort, ottomanJoinsTaInWinter, ukNoAmphibiousGermanPorts} from "./engine/scenario";
 import {PENDING_KINDS} from "./types";
+import {IE_SCENARIOS, parseNoGw, parseScenarioId} from "./configuration";
 import {openSetupDecisions} from "./moves";
 import {placeUnit} from "./engine/effects";
 
@@ -582,4 +583,67 @@ test("the unified Italy's alternate-GW inventory is placed", () => {
     // Italy's own armies are the Italian counter, not a generic army.
     expect(italian.filter((unit) => unit.kind === "italianArmy").length).toBe(3);
   }
+});
+
+// ---------------------------------------------------------------------------
+// Scenario + Rule 34 seats (the online path)
+// ---------------------------------------------------------------------------
+
+test.each(SCENARIO_IDS)("%s accepts bot seats alongside its setup data", (id) => {
+  // An online match always has six boardgame.io seats; `setupData` carries both
+  // the scenario and the bot list, and both must survive into the state.
+  const G = setupImperialElegy(ctxOf(), {scenario: id, bots: ["UK", "OT"], botDifficulty: "hard"});
+  expect(G.scenario).toBe(id);
+  expect(G.bots).toEqual(["UK", "OT"]);
+  expect(G.botDifficulty).toBe("hard");
+  // The scenario's own opening position is still the printed one.
+  expect(G.turn).toBe(SCENARIOS[id].firstTurn);
+  expect(G.nonPlayerBuildBox?.minors).toEqual(SCENARIOS[id].buildBox);
+});
+
+test("a scenario match with no bot seats keeps the field empty and the difficulty absent", () => {
+  const G = setupImperialElegy(ctxOf(), {scenario: "s1880"});
+  expect(G.bots).toEqual([]);
+  expect(G.botDifficulty).toBeUndefined();
+});
+
+test("an unknown scenario token does not block an online match", () => {
+  // A stale client or a hand-written fixture must still be able to open a match:
+  // the unknown id reads as the campaign, exactly like an absent one.
+  const G = setupImperialElegy(ctxOf(), {scenario: "s9999", bots: ["GE"]});
+  expect(G.scenario).toBe("campaign");
+  expect(G.bots).toEqual(["GE"]);
+  expect(G.turn).toBe(1);
+});
+
+test("the lobby advertises every printed scenario", () => {
+  // The picker is built from `IE_SCENARIOS`; it must list all eight in printed
+  // order and no more.
+  expect(IE_SCENARIOS.map((entry) => entry.id)).toEqual([
+    "campaign",
+    "tutorial1850",
+    "s1870",
+    "s1880",
+    "gwTutorial",
+    "altGw1",
+    "altGw2",
+    "altGw3",
+  ]);
+  for (const entry of IE_SCENARIOS) {
+    expect(entry.name.length).toBeGreaterThan(0);
+    expect(entry.nameZh.length).toBeGreaterThan(0);
+  }
+});
+
+test("Scenario 4's modifier is validated separately from the scenario id", () => {
+  // Only a real `true` turns the modifier on; every other value reads as a
+  // normal scenario, so a typo cannot silently change how a Great War scores.
+  expect(parseNoGw({noGw: true})).toBe(true);
+  expect(parseNoGw({noGw: "true"})).toBe(false);
+  expect(parseNoGw({noGw: 1})).toBe(false);
+  expect(parseNoGw({})).toBe(false);
+  expect(parseNoGw(undefined)).toBe(false);
+  expect(parseScenarioId({scenario: "s1870"})).toBe("s1870");
+  expect(parseScenarioId({scenario: "nope"})).toBe("campaign");
+  expect(parseScenarioId(undefined)).toBe("campaign");
 });
