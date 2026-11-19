@@ -99,6 +99,10 @@ export const CardInspector = ({
   const originalImage = card ? cardImageSrc(card.image) : null;
   // Print mode already leads with the scan; the vector face keeps it folded.
   const printImage = mode === "print" ? originalImage : null;
+  // The scan is printed in English, so print mode also prints the event text in
+  // the reader's language beneath it; otherwise a zh_CN reader opening a card
+  // in print mode could not read what the event does.
+  const localizedText = card ? (locale === "zh_CN" ? card.textZh : card.text) : "";
   const stopPropagation = (event: MouseEvent<HTMLElement>) => event.stopPropagation();
 
   return (
@@ -135,12 +139,26 @@ export const CardInspector = ({
 
         <div className="ie-card-inspector-body">
           {printImage ? (
-            <img
-              className="ie-card-inspector-print"
-              src={printImage}
-              alt={title}
-              data-testid="ie-card-inspector-image"
-            />
+            <>
+              <img
+                className="ie-card-inspector-print"
+                src={printImage}
+                alt={title}
+                data-testid="ie-card-inspector-image"
+              />
+              {card !== undefined && (
+                <section
+                  className="ie-card-inspector-text"
+                  data-testid="ie-card-inspector-text"
+                  lang={locale === "zh_CN" ? "zh-CN" : "en"}
+                >
+                  <h3 className="ie-card-inspector-text-title">
+                    {bi(locale, "Event text", "事件文本")}
+                  </h3>
+                  <p className="ie-card-inspector-text-body">{localizedText}</p>
+                </section>
+              )}
+            </>
           ) : goal ? (
             <CardFace locale={locale} goal={goal}/>
           ) : (

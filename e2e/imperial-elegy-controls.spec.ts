@@ -925,6 +925,12 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await openCard(card);
         await expect(inspector).toHaveAttribute("data-face-mode", "print");
         await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toBeVisible();
+        // The scan is printed in English; the event text underneath follows the
+        // board language so a zh_CN reader can still read what the card does.
+        const eventText = inspector.locator('[data-testid="ie-card-inspector-text"]');
+        await expect(eventText).toBeVisible();
+        await expect(eventText).toHaveAttribute("lang", "zh-CN");
+        await expect(eventText.locator(".ie-card-inspector-text-body")).toContainText(/[\u4e00-\u9fff]/);
         await page.keyboard.press("Escape");
 
         // Leave the default in place for the rest of the suite.  The menu keeps
