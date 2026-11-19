@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {AllianceBox, CardId, ImperialElegyState, PendingDecision, Power, POWERS, SpaceId} from "../types";
 import {POWER_DEFS, POWER_NAMES_ZH} from "../constant/powers";
+import {minorLabel} from "./minorLabel";
 import {SPACES, connectionsOf, neighboursOf, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import type {ScenarioDef} from "../constant/scenarios/types";
@@ -253,6 +254,8 @@ export const resolveItalianNationalistWaveChoice = (
             `${spaceLabel(first, "zh_CN")} + ${spaceLabel(second, "zh_CN")}`,
           )),
           {stage: "keys", minor: choice},
+          undefined,
+          `${POWER_DEFS[pending.power].nameZh}：选择${minorLabel(choice, "zh_CN")}获得的两个意大利关键区`,
         ),
       );
       return true;
@@ -415,6 +418,8 @@ const resolveItalyOttomanWar = (
           territory === "tunisia" ? "突尼斯" : "利比亚（的黎波里与班加西）",
         )),
         {stage: "territory", base, roll, drm},
+        undefined,
+        `${POWER_DEFS[actor].nameZh}：意大利赢得了对奥斯曼的战争；选择突尼斯或利比亚`,
       ),
     );
     return false;
@@ -497,6 +502,9 @@ export const italyTable = (
               false,
               spaceLabel(space, "zh_CN"),
             )),
+            undefined,
+            undefined,
+            `${POWER_DEFS[actor].nameZh}：为意大利选择一个未控制的海军基地`,
           ),
         );
         return false;
@@ -556,6 +564,9 @@ export const italyTable = (
             false,
             `${candidate.minor}（${POWER_NAMES_ZH[candidate.player]}）`,
           )),
+          {minor: candidates[0]?.minor, player: candidates[0]?.player},
+          undefined,
+          `${POWER_DEFS[actor].nameZh}：移除一个盟友意大利小国的标记`,
         ),
       );
       return false;
@@ -577,7 +588,16 @@ export const italyTable = (
           "italianInternalWar",
           actor,
           `${POWER_DEFS[actor].name}: choose Sardinia-Piedmont or the Kingdom of the Two Sicilies`,
-          choices.map((power) => option(power, power)),
+          choices.map((power) => option(
+            power,
+            power,
+            undefined,
+            false,
+            power === "Sardinia-Piedmont" ? "撒丁-皮埃蒙特" : "两西西里王国",
+          )),
+          undefined,
+          undefined,
+          `${POWER_DEFS[actor].nameZh}：选择撒丁-皮埃蒙特或两西西里王国`,
         ),
       );
       return false;
@@ -595,8 +615,16 @@ export const italyTable = (
         "italianNationalistWave",
         actor,
         `${POWER_DEFS[actor].name}: choose the Italian minor for the Nationalist Wave`,
-        ITALIAN_INTERNAL_WAR_POWERS.map((power) => option(power, power, {stage: "minor"})),
+        ITALIAN_INTERNAL_WAR_POWERS.map((power) => option(
+          power,
+          power,
+          {stage: "minor"},
+          false,
+          power === "Sardinia-Piedmont" ? "撒丁-皮埃蒙特" : "两西西里王国",
+        )),
         {stage: "minor"},
+        undefined,
+        `${POWER_DEFS[actor].nameZh}：选择民族主义浪潮的意大利小国`,
       ),
     );
     return false;
@@ -1260,6 +1288,7 @@ const openCrisisIncident = (
   stage: CrisisRun["stage"],
   options: {id: string; label: string}[],
   prompt: string,
+  promptZh: string,
 ): void => {
   run.stage = stage;
   openDecision(
@@ -1271,6 +1300,8 @@ const openCrisisIncident = (
       prompt,
       options.map((entry) => option(entry.id, entry.label, undefined, false, crisisOptionLabelZh(entry.id))),
       {crisis: run},
+      undefined,
+      promptZh,
     ),
   );
 };
@@ -1344,7 +1375,13 @@ const openAllianceChoice = (G: ImperialElegyState, ctx: Ctx, power: Power, run: 
       "crisisAlliance",
       power,
       "Choose the alliance your neutral player joins",
-      legal.map((side) => option(side, side === "te" ? "Triple Entente" : "Triple Alliance")),
+      legal.map((side) => option(
+        side,
+        side === "te" ? "Triple Entente" : "Triple Alliance",
+        undefined,
+        false,
+        side === "te" ? "协约国" : "同盟国",
+      )),
       {crisis: run},
     ),
   );
@@ -1485,7 +1522,7 @@ const advanceBalkan = (G: ImperialElegyState, ctx: Ctx, actor: Power, run: Crisi
     if (draw.choice) {
       const options = independentBalkanStates(G).map((minor) => ({id: `minor:${minor}`, label: minor}));
       if (options.length === 0) return completeCrisis(G, ctx, actor, run);
-      openCrisisIncident(G, ctx, actor, run, "threatened", options, "Choose the threatened Balkan state");
+      openCrisisIncident(G, ctx, actor, run, "threatened", options, "Choose the threatened Balkan state", "选择受到威胁的巴尔干国家");
       return "pending";
     }
     run.threatened = draw.minor;
@@ -1496,7 +1533,7 @@ const advanceBalkan = (G: ImperialElegyState, ctx: Ctx, actor: Power, run: Crisi
     if (draw.choice) {
       const options = independentBalkanStates(G).map((minor) => ({id: `minor:${minor}`, label: minor}));
       if (options.length === 0) break;
-      openCrisisIncident(G, ctx, actor, run, "balkan", options, "Choose a Balkan state");
+      openCrisisIncident(G, ctx, actor, run, "balkan", options, "Choose a Balkan state", "选择一个巴尔干国家");
       return "pending";
     }
     if (draw.minor === null) break;
@@ -1533,6 +1570,7 @@ const chooseBorderingNation = (G: ImperialElegyState, ctx: Ctx, actor: Power, ru
     "bordering",
     candidates.map((choice) => ({id: borderOptionId(choice), label: crisisOptionLabel(choice)})),
     "Choose the power blamed for the incident",
+    "选择该事件的责任国",
   );
   return "pending";
 };
@@ -1551,6 +1589,7 @@ const continueCrisis = (G: ImperialElegyState, ctx: Ctx, actor: Power, run: Cris
       "target",
       POWERS.map((power) => ({id: `power:${power}`, label: POWER_DEFS[power].name})),
       "Choose the player the assassination targeted",
+      "选择暗杀针对的玩家",
     );
     return "pending";
   }

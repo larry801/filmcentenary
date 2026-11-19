@@ -148,6 +148,7 @@ import {
   usNorthAtlanticCheck,
 } from "./gwMajors";
 import {openDecision, option} from "./pending";
+import {unitKindLabel} from "./unitKind";
 import {
   ALLIANCE_TRACK,
   isAllianceBox,
@@ -724,6 +725,7 @@ const activateBonusSlot = (
       kind: "gwBonusImpulse",
       power,
       prompt: "Bonus impulse: choose an alliance member or pass",
+      promptZh: "奖励行动轮：选择一位联盟成员行动，或跳过",
       options: [
         ...bonus.powers.map((candidate) => option(
           candidate, `Activate ${POWER_DEFS[candidate].name}`,
@@ -1801,9 +1803,16 @@ export const performGwManeuver = (
             kind: "gwDraft",
             power,
             prompt: "Draft: choose the space for the second reduced army or an EF substitute",
+            promptZh: "征召：为第二支减员军团选择空间，或以远征军替代",
             promptArgs: {power, first: request.space},
             options: [
-              ...secondSpaces.map((space) => option(space, spaceLabel(space, "en"))),
+              ...secondSpaces.map((space) => option(
+                space,
+                spaceLabel(space, "en"),
+                undefined,
+                false,
+                spaceLabel(space, "zh_CN"),
+              )),
               ...efChoices.map(({space, kind}) => option(
                 `${kind === "expeditionary" ? "ef" : "eliteEf"}:${space}`,
                 `${kind === "expeditionary" ? "EF" : "Elite colonial EF"} in ${spaceLabel(space, "en")}`,
@@ -2693,6 +2702,7 @@ const openColonialLossDecision = (
     kind: "gwColonialLoss",
     power: choice.by,
     prompt: "Colonial war: choose a unit to take the loss",
+    promptZh: "殖民战争：选择承受损失的单位",
     promptArgs: {region: choice.region, side: choice.side, remaining: choice.remaining},
     options: candidates.map((entry) =>
       option(
@@ -2700,7 +2710,7 @@ const openColonialLossDecision = (
         `${spaceLabel(entry.space, "en")}: ${entry.unit.kind} (${entry.unit.owner})`,
         {unit: entry.id, space: entry.space},
         false,
-        `${spaceLabel(entry.space, "zh_CN")}：${entry.unit.kind}（${POWER_DEFS[entry.unit.owner as Power]?.nameZh ?? entry.unit.owner}）`,
+        `${spaceLabel(entry.space, "zh_CN")}：${unitKindLabel(entry.unit.kind, "zh_CN")}（${POWER_DEFS[entry.unit.owner as Power]?.nameZh ?? entry.unit.owner}）`,
       ),
     ),
     context: {mode: "gwColonialChoice", choice: index, region: choice.region, side: choice.side},
@@ -2744,9 +2754,10 @@ const openColonialTransferDecision = (
     kind: "gwColonialTransfer",
     power: choice.by,
     prompt: "Colonial war: choose an unoccupied space to take",
+    promptZh: "殖民战争：选择一个无人占领的空间",
     promptArgs: {region: choice.region, side: choice.side, remaining: choice.remaining},
     options: [
-      ...options.map((space) => option(space, spaceLabel(space, "en"), {space})),
+      ...options.map((space) => option(space, spaceLabel(space, "en"), {space}, false, spaceLabel(space, "zh_CN"))),
       option("skip", "Take no further space", undefined, false, "不再夺取空间"),
     ],
     context: {mode: "gwColonialChoice", choice: index, region: choice.region, side: choice.side},
@@ -2798,6 +2809,7 @@ const openColonialBonusDecision = (
     kind: "gwColonialBonusCp",
     power: choice.by,
     prompt: "Colonial bonus CP: allocate the next CP or reject the split",
+    promptZh: "殖民奖励 CP：分配下一个 CP 或拒绝该分配",
     promptArgs: {side: choice.side, pool: choice.pool, remaining: choice.remaining},
     options: [
       ...choice.eligible.map((power) =>
@@ -3278,6 +3290,7 @@ const openGwNeutralEntryDecision = (
     kind: "gwNeutralEntry",
     power,
     prompt: "Neutral player: join an alliance or stay out",
+    promptZh: "中立国：加入同盟或保持中立",
     promptArgs: {power, sides: sides.join(",")},
     options,
     context: {mode: "gwNeutralEntry"},
@@ -3326,6 +3339,7 @@ const openGwNeutralActionDecision = (
     kind: "gwNeutralAction",
     power,
     prompt: joined ? "Free actions after joining the war" : "Free actions while staying neutral",
+    promptZh: joined ? "参战后的免费行动" : "保持中立期间的免费行动",
     promptArgs: {power, joined},
     options,
     context: {mode: "gwNeutralAction"},
@@ -3430,10 +3444,17 @@ export const resolveGwNeutralOption = (
           kind: "gwNeutralUnit",
           power,
           prompt: "Choose a unit for the free redeployment",
+          promptZh: "选择免费重新部署的单位",
           promptArgs: {power},
           options: [
             ...candidates.map((candidate) =>
-              option(`unit:${candidate.unitId}`, unitOptionLabel(G, candidate.unitId), {unitId: candidate.unitId}),
+              option(
+                `unit:${candidate.unitId}`,
+                unitOptionLabel(G, candidate.unitId),
+                {unitId: candidate.unitId},
+                false,
+                unitOptionLabel(G, candidate.unitId, "zh_CN"),
+              ),
             ),
             option("skip", "Skip the free redeployment", undefined, false, "跳过免费重新部署"),
           ],
@@ -3452,9 +3473,10 @@ export const resolveGwNeutralOption = (
           kind: "gwNeutralDeploy",
           power,
           prompt: "Choose the space for the free deploy reserves",
+          promptZh: "选择免费部署预备军的位置",
           promptArgs: {power, count: freeDeployAllowance(G, power)},
           options: [
-            ...spaces.map((space) => option(space, spaceLabel(space, "en"))),
+            ...spaces.map((space) => option(space, spaceLabel(space, "en"), undefined, false, spaceLabel(space, "zh_CN"))),
             option("skip", "Skip the free deploy reserves", undefined, false, "跳过免费部署预备军"),
           ],
           context: {mode: "gwNeutralAction"},
@@ -3495,8 +3517,9 @@ export const resolveGwNeutralOption = (
         kind: "gwNeutralDestination",
         power,
         prompt: "Choose the free redeployment destination",
+        promptZh: "选择免费重新部署的目的地",
         promptArgs: {power, unit: unitId},
-        options: candidate.destinations.map((space) => option(space, spaceLabel(space, "en"))),
+        options: candidate.destinations.map((space) => option(space, spaceLabel(space, "en"), undefined, false, spaceLabel(space, "zh_CN"))),
         context: {mode: "gwNeutralAction", unitId},
         blocking: true,
       });
@@ -3559,10 +3582,12 @@ export const resolveGwNeutralOption = (
   }
 };
 
-const unitOptionLabel = (G: ImperialElegyState, unitId: string): string => {
+const unitOptionLabel = (G: ImperialElegyState, unitId: string, locale: "en" | "zh_CN" = "en"): string => {
   const unit = G.units[unitId];
   if (!unit) return unitId;
-  return `${unit.kind} in ${spaceLabel(unit.space ?? "", "en")}`;
+  return locale === "zh_CN"
+    ? `${unitKindLabel(unit.kind, "zh_CN")}（${spaceLabel(unit.space ?? "", "zh_CN")}）`
+    : `${unit.kind} in ${spaceLabel(unit.space ?? "", "en")}`;
 };
 
 /** 29.2: flatten both rolls' applied transfers into one public result list. */

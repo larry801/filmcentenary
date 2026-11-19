@@ -594,7 +594,8 @@ export const legalSpaces = (G: ImperialElegyState, actor: Power, filter: SpaceFi
   Object.keys(SPACES).filter((id) => matchesFilter(G, actor, id, filter));
 
 const promptSpaceOptions = (G: ImperialElegyState, actor: Power, filter: SpaceFilter) =>
-  legalSpaces(G, actor, filter).map((id) => option(id, spaceLabel(id, "en")));
+  legalSpaces(G, actor, filter).map((id) =>
+    option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN")));
 
 export const resolveCard = (G: ImperialElegyState, ctx: Ctx, actor: Power, card: CardDef): boolean => {
   // Legacy mid-impulse saves may lack the start snapshot. Capture it before
@@ -726,6 +727,7 @@ const openSpecialSpace = (
   spaces: SpaceId[],
   prompt: string,
   resume: Effect[],
+  promptZh?: string,
 ): boolean => {
   if (spaces.length === 0) return true;
   openDecision(G, ctx, decision(
@@ -734,6 +736,8 @@ const openSpecialSpace = (
     prompt,
     spaces.map((id) => option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN"))),
     {resume, special: handler},
+    undefined,
+    promptZh,
   ));
   return false;
 };
@@ -968,7 +972,7 @@ const auctionCards = (G: ImperialElegyState, power: Power): CardId[] =>
   });
 
 const auctionOptions = (G: ImperialElegyState, power: Power) => [
-  ...auctionCards(G, power).map((id) => option(`card:${id}`, cardById(id).title, {card: id}, true)),
+  ...auctionCards(G, power).map((id) => option(`card:${id}`, cardById(id).title, {card: id}, true, cardById(id).titleZh)),
   option("pass", "Play no card"),
 ];
 
@@ -1241,8 +1245,13 @@ export const continueAllianceResolutionEvent = (
         roll.tied.map((side) => option(
           side,
           side === "te" ? "Triple Entente" : side === "ta" ? "Triple Alliance" : "Neutral",
+          undefined,
+          false,
+          side === "te" ? "协约国" : side === "ta" ? "同盟国" : "中立",
         )),
         {special: "allianceResolution", actor, preventNeutral, order: [...order], index: i, roll, resume},
+        undefined,
+        `${POWER_DEFS[power].nameZh}：同盟结算掷骰平局——选择偏移方向`,
       ));
       return false;
     }
@@ -1550,6 +1559,8 @@ const openSecondOpiumWarStep = (
       `Second Opium War: ${POWER_DEFS[power].name} places a control marker in Qing China`,
       spaceOptions(G, spaces),
       {resume, special: "secondOpiumWar", queue: rest, owner: power, required: true},
+      undefined,
+      `第二次鸦片战争：${POWER_DEFS[power].nameZh} 在清帝国放置 1 个控制标记`,
     ));
     return true;
   }
@@ -1578,6 +1589,10 @@ const openRebellionsInChinaPlacement = (
       : "Rebellions in China: place a control marker in Qing China",
     spaceOptions(G, spaces),
     {resume, special: "rebellionsInChina", stage, owner, required: true},
+    undefined,
+    stage === "place"
+      ? "中国叛乱：在清帝国放置你的控制标记"
+      : "中国叛乱：在清帝国放置 1 个控制标记",
   ));
   return true;
 };
@@ -1608,6 +1623,8 @@ const openBerlinConferenceStep = (
       `Berlin Conference: ${entry.label} places one influence marker in Africa`,
       spaceOptions(G, spaces),
       {resume, special: "berlinConference", stage: "influence", queue: rest.slice(1), seat: entry.seat, label: entry.label, owner, required: true},
+      undefined,
+      `柏林会议：${entry.label} 在非洲放置 1 个影响标记`,
     ));
     return true;
   }
@@ -1724,8 +1741,8 @@ const openMoroccanBid = (
   // The UK may join one side if it is not already involved.
   if (owner !== "UK" && controller !== "UK" && !G.powers.UK.eliminated && auctionCards(G, "UK").length > 0) {
     const options = [
-      ...auctionCards(G, "UK").map((id) => option(`card:${id}:a`, cardById(id).title, {card: id, side: "a"}, true)),
-      ...auctionCards(G, "UK").map((id) => option(`card:${id}:b`, cardById(id).title, {card: id, side: "b"}, true)),
+      ...auctionCards(G, "UK").map((id) => option(`card:${id}:a`, cardById(id).title, {card: id, side: "a"}, true, cardById(id).titleZh)),
+      ...auctionCards(G, "UK").map((id) => option(`card:${id}:b`, cardById(id).title, {card: id, side: "b"}, true, cardById(id).titleZh)),
       option("pass", "Stay out of the crisis"),
     ];
     openDecision(G, ctx, decision(
@@ -2057,8 +2074,12 @@ const resolveCardChain = (
           optionId === "neutral"
             ? "Minor Power Entry: choose the minor power to mark strictly neutral"
             : "Minor Power Entry: choose an independent minor power to roll for",
-          minors.map((id) => option(id, spaceLabel(id, "en"))),
+          minors.map((id) => option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN"))),
           {resume, special: "gwMinorPowerEntry", stage: optionId, owner, required: true},
+          undefined,
+          optionId === "neutral"
+            ? "小国参战：选择标记为严格中立的小国"
+            : "小国参战：选择为其掷骰的独立小国",
         ));
         return;
       }
@@ -2327,6 +2348,8 @@ const resolveCardChain = (
           `High Seas Fleet: choose a port for ${POWER_DEFS[target].name}'s dreadnought`,
           spaceOptions(G, ports),
           {resume, special: "highSeasFleet", stage: "port", target, owner, required: true},
+          undefined,
+          `公海舰队：为 ${POWER_DEFS[target].nameZh} 的无畏舰选择港口`,
         ));
         return;
       }
@@ -2460,7 +2483,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
           return home !== s.control;
         });
       if (candidates.length === 0) return true;
-      openDecision(G, ctx, decision("eventTargetSpace", actor, "Choose a colonial space", candidates.map((id) => option(id, spaceLabel(id, "en"))), {resume, special: handler}));
+      openDecision(G, ctx, decision("eventTargetSpace", actor, "Choose a colonial space", candidates.map((id) => option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN"))), {resume, special: handler}));
       return false;
     }
     case "shiftingAlliances": {
@@ -2671,7 +2694,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         log(G, actor, "noLegalTarget", {card: G.resolvingCard});
         return true;
       }
-      openDecision(G, ctx, decision("eventTargetSpace", actor, "Choose a space being pacified", candidates.map((id) => option(id, spaceLabel(id, "en"))), {resume, special: handler}));
+      openDecision(G, ctx, decision("eventTargetSpace", actor, "Choose a space being pacified", candidates.map((id) => option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN"))), {resume, special: handler}));
       return false;
     }
     case "looseGrip": {
@@ -2714,7 +2737,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       const candidates = Object.values(SPACES)
         .filter((s) => s.flashpoints?.length && G.spaces[s.id].ally !== null)
         .map((s) => s.id);
-      return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose a minor power alliance to remove", resume);
+      return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose a minor power alliance to remove", resume, "选择一个要解除的小国联盟");
     }
     case "chineseIntervention": {
       const candidates = Object.values(SPACES)
@@ -2724,7 +2747,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
           return isPower(control) || control === "Japan";
         })
         .map((s) => s.id);
-      return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose a space in Qing China for the Qing army", resume);
+      return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose a space in Qing China for the Qing army", resume, "在清帝国选择一个空间放置清军");
     }
     case "graveyardOfEmpires": {
       G.persistent.goe = "afghanistan";
@@ -2757,6 +2780,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         choosingQing ? qingControlled : replaceable,
         choosingQing ? "Choose a Qing-controlled space" : "Choose another player's space to replace",
         resume,
+        choosingQing ? "选择一个清帝国控制的空间" : "选择另一名玩家的空间以替换",
       );
     }
     case "sickMan": {
@@ -2772,7 +2796,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "greatGame": {
       const targets = ["qajar-persia", "kuwait", "balochistan", "central-asia", "afghanistan"].filter((id) => G.spaces[id]);
-      return openSpecialSpace(G, ctx, actor, handler, targets, "Choose a space for influence and an EF", resume);
+      return openSpecialSpace(G, ctx, actor, handler, targets, "Choose a space for influence and an EF", resume, "选择一个空间以放置影响与远征军");
     }
     case "uprisingInIreland": {
       // "The UK player may immediately discard a 3 or 4 CP card of their
@@ -2826,6 +2850,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         candidates,
         "Folie de Grandeur: choose a French colonial space to pacify",
         resume,
+        "伟大的疯狂：选择一个法国殖民空间进行绥靖",
       );
     }
     case "frenchIntervention": {
@@ -2843,6 +2868,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         [...preferred, ...general],
         "Choose an uncontrolled space for French influence and an EF",
         resume,
+        "选择一个无人控制的空间放置法国影响与远征军",
       );
     }
     case "dualMonarchy": {
@@ -2938,6 +2964,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         candidates,
         "Eastern Orthodoxy: choose a Balkan minor power",
         resume,
+        "东正教：选择一个巴尔干小国",
       );
     }
     case "powderKeg": {
@@ -3042,6 +3069,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
           targets,
           "Papal Influence: choose another Italian minor power to ally",
           resume,
+          "教宗影响：选择另一个意大利小国结盟",
         );
       }
       allyItalianMinor(G, actor, PAPAL_STATES_SPACE);
@@ -3093,7 +3121,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "nationalistUprising": {
       const candidates = eligibleNationalistUprisingSpaces(G);
-      return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose a space containing a minority nationality", resume);
+      return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose a space containing a minority nationality", resume, "选择一个包含少数民族的空间");
     }
     case "boerWars": {
       G.spaces["south-africa"].pacification = (G.spaces["south-africa"].pacification ?? 0) + 2;
@@ -3105,7 +3133,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       const candidates = Object.values(SPACES)
         .filter((s) => s.region === "africa" && (isPower(G.spaces[s.id].influence) || isPower(G.spaces[s.id].control)))
         .map((s) => s.id);
-      return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose an African space with a player marker", resume);
+      return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose an African space with a player marker", resume, "选择一个带玩家标记的非洲空间");
     }
     case "ourPlaceInTheSun": {
       G.powers[actor].flags.freeColonialCp = 5;
@@ -3417,6 +3445,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         candidates,
         "Habsburg Dynasty: choose an independent European minor power",
         resume,
+        "哈布斯堡王朝：选择一个独立的欧洲小国",
       );
     }
     case "kaiserreich": {
@@ -3994,7 +4023,13 @@ export const performEffect = (
       return false;
     }
     case "choice": {
-      openDecision(G, ctx, decision("eventChoice", actor, "Choose", effect.options.map((o, i) => option(`opt${i}`, o.label)), {resume, options: effect.options.map((o) => o.effects)}));
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        actor,
+        "Choose",
+        effect.options.map((o, i) => option(`opt${i}`, o.label, undefined, false, o.labelZh)),
+        {resume, options: effect.options.map((o) => o.effects)},
+      ));
       return false;
     }
     case "targetSpace": {

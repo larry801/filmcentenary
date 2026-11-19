@@ -63,7 +63,14 @@ export const findOption = (pending: PendingDecision, optionId: string): PendingO
   return found;
 };
 
-/** Generic decision factory used by card effects. */
+/**
+ * Generic decision factory used by card effects.
+ *
+ * `promptZh` is the Chinese wording of the prompt.  A prompt assembled from
+ * state (a power name, a stage, a count) cannot be translated by the board, so
+ * the engine that built it supplies both languages; a fixed prompt may omit it
+ * and fall back to the board's `PROMPT_ZH` table.
+ */
 export const decision = (
   kind: PendingKind,
   power: Power,
@@ -71,10 +78,12 @@ export const decision = (
   options: PendingOption[],
   context?: Record<string, unknown>,
   promptArgs?: Record<string, unknown>,
+  promptZh?: string,
 ): Omit<PendingDecision, "id" | "createdAt"> => ({
   kind,
   power,
   prompt,
+  promptZh,
   promptArgs,
   options,
   context,

@@ -38,6 +38,7 @@ import {TrackStrip} from "./TrackStrip";
 import {TurnPanel} from "./TurnPanel";
 import {PlayerMat} from "./PlayerMat";
 import {ReferenceDrawer} from "./ReferenceDrawer";
+import {CHARTS} from "./ChartLightbox";
 import {NationalActionsPanel} from "./NationalActionsPanel";
 import {AmphibiousPanel, NavalTransportPanel, NavalInterceptPanel} from "./NavalPanel";
 import {WarPanel} from "./WarPanel";
@@ -445,19 +446,15 @@ export const ReferenceRegion = (props: ReferenceSlice) => {
       <details className="ie-reference" open>
         <summary>{t.charts}</summary>
         <div className="ie-chart-grid">
-          {[
-            ["map-flashpoints", "Flashpoints"],
-            ["combat-crt", "Combat & CRT"],
-            ["colonial-great-wars", "Colonial & Great Wars"],
-            ["war-aims-minors", "War Aims & Minors"],
-            ["crisis", "Crisis Table"],
-            ["influence-track", "Major Power Influence"],
-            ["italy-legend", "Italy & Legend"],
-            ["sequence-of-play", "Sequence of Play"],
-            ["counter-count", "Counter Count"],
-          ].map(([id, caption]) => (
-            <figure key={id}><img src={`/imperial-elegy/charts/${id}.png`} alt={caption}/><figcaption>{caption}</figcaption></figure>
-          ))}
+          {CHARTS.map((chart) => {
+            const caption = locale === "zh_CN" ? chart.titleZh : chart.title;
+            return (
+              <figure key={chart.id}>
+                <img src={`/imperial-elegy/charts/${chart.file}.png`} alt={caption}/>
+                <figcaption>{caption}</figcaption>
+              </figure>
+            );
+          })}
         </div>
       </details>
       <details className="ie-reference">

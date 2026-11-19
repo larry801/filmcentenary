@@ -125,7 +125,7 @@ export const SpaceDetailPanel = (props: SpaceDetailPanelProps) => {
                   data-testid={`ie-space-unit-${id}`}
                   aria-current={selectedHere ? "true" : undefined}
                 >
-                  {unitLabel(u, t)}
+                  {unitLabel(u, t, locale)}
                 </span>
               );
             })}</div>
@@ -177,8 +177,8 @@ export const SpaceUnitPicker = (props: SpaceUnitPickerProps) => {
           if (!u) return null;
           const mine = viewer !== null && commanded(u);
           const isPendingUnit = canDecide && pending !== null && pending.options.some((o) => o.id === id);
-          if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t)}</span>;
-          if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id), {label: unitLabel(u, t)})}>{unitLabel(u, t)}</button>;
+          if (!mine) return <span key={id} className={`ie-unit-chip${isPendingUnit ? " pending" : ""}`}>{unitLabel(u, t, locale)}</span>;
+          if (isPendingUnit) return <button key={id} className="ie-btn secondary selected" aria-pressed onClick={() => doAction(() => moves.resolvePending(id), {label: unitLabel(u, t, locale)})}>{unitLabel(u, t, locale)}</button>;
           const selectedHere = selectedUnitIds.includes(id);
           // Clicking toggles the unit in the selection instead of replacing it,
           // so several units of one space can move as a single action (12.15
@@ -187,7 +187,7 @@ export const SpaceUnitPicker = (props: SpaceUnitPickerProps) => {
           const onClick = toggleUnitSelection !== undefined
             ? () => (selectedUnit === id && selectedUnitIds.length === 1 ? setSelectedUnit(null) : toggleUnitSelection(id))
             : () => setSelectedUnit(id);
-          return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedHere} onClick={onClick}>{unitLabel(u, t)}</button>;
+          return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedHere} onClick={onClick}>{unitLabel(u, t, locale)}</button>;
         })}
       </div>
       {/*

@@ -1,5 +1,36 @@
 # Imperial Elegy — implementation status
 
+## Fixed: no English left in the zh_CN UI (2026-11-20)
+
+Reported as "帝国挽歌 检查UI没有本地化的文本并修复".  An audit of what a zh_CN
+board actually renders found four independent leaks; each one is fixed and
+pinned by `components/localization.test.tsx`.
+
+- **Unit chips printed English.**  `unitLabel` in `components/boardHelpers.ts`
+  built `"GE army · full"` with no language at all.  It now takes the locale and
+  prints `GE 军团 · 满编` / `· 减员`.  The kind table moved to
+  `engine/unitKind.ts` so the engine's own decision labels (a retreat split, a
+  demobilization choice) print the same words.
+- **Rule badges and rule links printed the anchor.**  `RuleRef` had
+  `title="Rule 19.10"` hard-coded in four panels, and `RuleLink`'s label was
+  derived from the anchor id — so a zh_CN board showed `Influence Track`,
+  `War Aims Minors` and a bare `costs` on the hand tray and the War panel.  The
+  badge title now follows the locale, and `ruleRefDisplayLabel` resolves a
+  chart anchor through the chart catalogue's own bilingual title and an inline
+  section through a small bilingual table.
+- **Engine-built decision prompts stayed English.**  About 80 prompts are
+  assembled by the engine, and roughly half interpolate state (a power name, a
+  space, a count, a stage) that the board's fixed `PROMPT_ZH` table cannot look
+  up.  `PendingDecision` gained an optional `promptZh`, `decision()` and
+  `openDecision()` carry it, and every such prompt now sets it; the fixed
+  prompts are all in `PROMPT_ZH` and the fixed option labels in `OPTION_ZH`.
+  The engine's dynamic option labels (space/unit/card lists) gained `labelZh`
+  the same way.
+- **The printed-board route had no language at all.**  `PrintedBoard` takes a
+  `locale` and translates its toolbar (title, zoom labels, export, print, back
+  link); the sheet's own printed art stays English, which is what it
+  reproduces.
+
 ## Fixed: every decision is a dialog, the map key tells targets apart, home cards pin to the front (2026-11-20)
 
 Reported as "帝国挽歌home card固定置顶放置 进攻 和 仅铁路 目前颜色一样应该不同

@@ -241,6 +241,8 @@ The language toggle is the `中文 / English` switch in the site's top bar (MUI 
 - [ ] Switch to `English` with the toggle and confirm each of the above flipped; switch back and confirm nothing stayed English.
 - [ ] **No raw placeholders.** Search the rendered text for `{{` and `}}` — `document.body.innerText.includes("{{")` must be `false`. Same for `undefined`, `[object Object]` and a bare key name such as `pendingKind` or `cpMode`.
 - [ ] **No untranslated English in zh_CN.** Walk the same list a second time reading only the zh_CN text. Known exceptions that are *by design* and may stay English: `CP`, `VP`, power codes (GE, UK, …), rule numbers, the published chart images (the nine PNGs are printed English art), and card *titles* quoted inside log lines.
+  - The *chrome* around the printed sheet (`/board/imperialElegy` toolbar) now follows the language too, but the sheet's own printed art stays English — it reproduces the physical board.
+  - Unit chips print `GE 军团 · 满编` / `· 减员`; rule badges read `规则 19.10` and rule links name their chart in Chinese (`玩家面板`, not `Influence Track`).
 - [ ] `document.documentElement.lang` **does not follow the toggle — settled defect, not a test.** `index.html` hardcodes `<html lang="en">` and nothing under `src/` touches `document.documentElement.lang`; only the card faces carry their own `lang` (`CardFace.tsx` sets it on both faces, `HandTray.tsx` on the inline translation block). So a zh_CN board still reports `en` at the document root: do not use the root `lang` to judge localization (screen readers and font fallback will take `en`), and read the board's own strings instead. Record the mismatch if you are auditing accessibility.
 
 ---

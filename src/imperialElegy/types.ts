@@ -1050,6 +1050,13 @@ export interface PendingDecision {
   power: Power;
   /** Public prompt key; no hidden information. */
   prompt: string;
+  /**
+   * Optional pre-localized prompt.  A prompt built from state (a power or
+   * space name, a count, a stage) carries its own Chinese wording, because the
+   * board cannot re-derive it from `prompt` alone; a fixed prompt falls back to
+   * the board's `PROMPT_ZH` table and then to `prompt` itself.
+   */
+  promptZh?: string;
   /** Prompt arguments, public. */
   promptArgs?: Record<string, unknown>;
   /** Legal options.  Sensitive options are filtered in playerView. */

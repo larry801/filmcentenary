@@ -4,6 +4,7 @@
  */
 import React from "react";
 import PrintedBoard from "./PrintedBoard";
+import {ieLocale} from "./i18n";
 import "./imperial-elegy.css";
 
 export const PrintedBoardPage = () => {
@@ -14,7 +15,8 @@ export const PrintedBoardPage = () => {
     document.body.classList.add("ie-printed-route");
     return () => document.body.classList.remove("ie-printed-route");
   }, []);
-  return <PrintedBoard/>;
+  // The toolbar follows the UI language; the sheet's own printed art does not.
+  return <PrintedBoard locale={ieLocale()}/>;
 };
 
 export default PrintedBoardPage;

@@ -37,6 +37,7 @@ import {
   resolveCapitalSurrenders,
 } from "./rules";
 import {decision, openDecision, option} from "./pending";
+import {unitKindLabel} from "./unitKind";
 import {
   crossesHostileGibraltar,
   isEuropeanWaterNavalSpace,
@@ -427,8 +428,12 @@ const openSupportWindow = (
     side === "attacker"
       ? "Declare attacking support or pass"
       : "Declare defending support or pass",
-    candidates.map((s) => ({id: s.space, label: `${spaceLabel(s.space, "en")} (+${s.fp} FP)`}))
-      .concat([{id: "done", label: "No more support"}]),
+    candidates.map((s) => ({
+      id: s.space,
+      label: `${spaceLabel(s.space, "en")} (+${s.fp} FP)`,
+      labelZh: `${spaceLabel(s.space, "zh_CN")}（+${s.fp} FP）`,
+    }))
+      .concat([{id: "done", label: "No more support", labelZh: "不再支援"}]),
     {battle: true, supportSide: side},
   ));
   return true;
@@ -884,7 +889,7 @@ export const openSupportDenyDecision = (
     "combatSupport",
     power,
     "Miscommunication: choose a space that cannot provide support",
-    spaces.map((space) => option(space, spaceLabel(space, "en"))),
+    spaces.map((space) => option(space, spaceLabel(space, "en"), undefined, false, spaceLabel(space, "zh_CN"))),
     {battle: true, supportDeny: true, promptKind: "miscommunication"},
   ));
   return true;
@@ -986,8 +991,8 @@ const openGwRerollChoice = (
     power,
     "Choose which side rerolls its battle die",
     [
-      option("attacker", `Attacker (${battle.attacker}) rerolls`),
-      option("defender", `Defender (${defender}) rerolls`),
+      option("attacker", `Attacker (${battle.attacker}) rerolls`, undefined, false, `进攻方（${battle.attacker}）重掷`),
+      option("defender", `Defender (${defender}) rerolls`, undefined, false, `防守方（${defender}）重掷`),
     ],
     {battle: true, gwReroll: true},
   ));
@@ -1236,7 +1241,7 @@ export const playCombatCard = (G: ImperialElegyState, ctx: Ctx, selection: strin
       "At Any Cost: discard a card to play it from the discard pile",
       costs.map((id) => {
         const cost = cardById(id);
-        return option(id, cost.title, {card: id});
+        return option(id, cost.title, {card: id}, false, cost.titleZh);
       }),
       {battle: true, playCard: "IE-A043"},
     ));
@@ -1490,8 +1495,8 @@ const openMineRetreatDecision = (
     battle.attacker,
     "19.4 mines: take all mine hits and fight on, or retreat after the first two hits",
     [
-      option("continue", `Take all ${mines} mine hits and continue the battle`),
-      option("retreat", `Retreat now and take only the first ${MINE_RETREAT_HITS} mine hits`),
+      option("continue", `Take all ${mines} mine hits and continue the battle`, undefined, false, `承受全部 ${mines} 次水雷命中并继续战斗`),
+      option("retreat", `Retreat now and take only the first ${MINE_RETREAT_HITS} mine hits`, undefined, false, `立即撤退，只承受前 ${MINE_RETREAT_HITS} 次水雷命中`),
     ],
     {battle: true, space: battle.to, mines},
   ));
@@ -2062,11 +2067,23 @@ export const maybeOpenDecisiveFollowUp = (G: ImperialElegyState, ctx: Ctx | unde
       hostileOwner(G, power, unit.owner),
     );
     if (defenders.length > 0 || state.fort) {
-      options.push(option(`battle:${id}`, `Another battle: ${spaceLabel(id, "en")}`, {action: "battle", space: id}));
+      options.push(option(
+        `battle:${id}`,
+        `Another battle: ${spaceLabel(id, "en")}`,
+        {action: "battle", space: id},
+        false,
+        `再战：${spaceLabel(id, "zh_CN")}`,
+      ));
       continue;
     }
     if (friendlySpace(G, id, power) || (state.control === null && state.influence === power)) {
-      options.push(option(`move:${id}`, `Move one space: ${spaceLabel(id, "en")}`, {action: "move", space: id}));
+      options.push(option(
+        `move:${id}`,
+        `Move one space: ${spaceLabel(id, "en")}`,
+        {action: "move", space: id},
+        false,
+        `移动一格：${spaceLabel(id, "zh_CN")}`,
+      ));
     }
   }
   if (options.length === 0) return false;
@@ -2261,30 +2278,43 @@ export const enumerateRetreatSplits = (
  * units have different legal spaces, per-unit "split" assignments are appended
  * (deterministically, complete within `SPLIT_RETREAT_OPTION_LIMIT`) so one
  * decision still covers the whole force.
+ *
+ * Both labels are built here (a split composes unit names and space names), so
+ * a zh_CN board never shows "Split: army→Berlin".
  */
 const retreatChoiceOptions = (
   G: ImperialElegyState,
   units: readonly Unit[],
   unitDestinations: ReadonlyMap<string, SpaceId[]>,
   common: readonly SpaceId[],
-): {id: string; label: string; assignments: RetreatAssignment[]}[] => {
-  const out: {id: string; label: string; assignments: RetreatAssignment[]}[] = [];
+): {id: string; label: string; labelZh: string; assignments: RetreatAssignment[]}[] => {
+  const out: {id: string; label: string; labelZh: string; assignments: RetreatAssignment[]}[] = [];
   for (const spaceValue of common) {
     out.push({
       id: spaceValue,
       label: spaceLabel(spaceValue, "en"),
+      labelZh: spaceLabel(spaceValue, "zh_CN"),
       assignments: units.map((unit) => ({unitId: unit.id, space: spaceValue})),
     });
   }
   for (const assignments of enumerateRetreatSplits(units.map((unit) => unit.id), unitDestinations)) {
+    const split = assignments
+      .map((entry) => {
+        const unit = G.units[entry.unitId];
+        return `${unit ? unit.kind : entry.unitId}→${spaceLabel(entry.space, "en")}`;
+      })
+      .join(", ");
+    const splitZh = assignments
+      .map((entry) => {
+        const unit = G.units[entry.unitId];
+        const kind = unit === undefined ? entry.unitId : unitKindLabel(unit.kind, "zh_CN");
+        return `${kind}→${spaceLabel(entry.space, "zh_CN")}`;
+      })
+      .join("、");
     out.push({
       id: encodeRetreatAssignments(assignments),
-      label: `Split: ${assignments
-        .map((entry) => {
-          const unit = G.units[entry.unitId];
-          return `${unit ? unit.kind : entry.unitId}→${spaceLabel(entry.space, "en")}`;
-        })
-        .join(", ")}`,
+      label: `Split: ${split}`,
+      labelZh: `拆分：${splitZh}`,
       assignments,
     });
   }
@@ -2620,22 +2650,24 @@ const navalPortSplitProduct = (
   return product;
 };
 
-/** 19.8 split option label, grouped per port and deterministic. */
+/** 19.8 split option label, grouped per port and deterministic, in both languages. */
 const navalPortSplitLabel = (
   assignments: readonly NavalPortSplitAssignment[],
   movers: readonly Unit[],
+  locale: "en" | "zh_CN" = "en",
 ): string => {
   const counts = new Map<SpaceId, number>();
   for (const entry of assignments) {
     if (entry.space === null) continue;
     counts.set(entry.space, (counts.get(entry.space) ?? 0) + 1);
   }
+  const separator = locale === "zh_CN" ? "、" : ", ";
   const parts = [...counts.entries()]
     .sort((a, b) => a[0].localeCompare(b[0], "en"))
-    .map(([space, count]) => `${count}→${spaceLabel(space, "en")}`);
+    .map(([space, count]) => `${count}→${spaceLabel(space, locale)}`);
   const staying = movers.length - [...counts.values()].reduce((sum, count) => sum + count, 0);
-  if (staying > 0) parts.push(`${staying} staying at sea`);
-  return `Split: ${parts.join(", ")} (19.8)`;
+  if (staying > 0) parts.push(locale === "zh_CN" ? `${staying} 艘留在海上` : `${staying} staying at sea`);
+  return locale === "zh_CN" ? `拆分：${parts.join(separator)}（19.8）` : `Split: ${parts.join(separator)} (19.8)`;
 };
 
 /**
@@ -2662,14 +2694,20 @@ export const openNavalPortContinuationDecision = (
   const custom = navalPortSplitProduct(movers, plan.unitDestinations) > NAVAL_PORT_SPLIT_OPTION_LIMIT;
   if (plan.destinations.length === 0 && splits.length === 0 && !custom) return false;
   const options = plan.destinations.map((dest) =>
-    option(dest, `Move into the friendly port ${spaceLabel(dest, "en")} (19.8)`, {space: dest}),
+    option(
+      dest,
+      `Move into the friendly port ${spaceLabel(dest, "en")} (19.8)`,
+      {space: dest},
+      false,
+      `移入友方港口 ${spaceLabel(dest, "zh_CN")}（19.8）`,
+    ),
   );
   for (const assignments of splits) {
     options.push(
       option(`split:${assignments
         .filter((entry) => entry.space !== null)
         .map((entry) => `${entry.unitId}@${entry.space}`)
-        .join("|")}`, navalPortSplitLabel(assignments, movers), {assignments}),
+        .join("|")}`, navalPortSplitLabel(assignments, movers), {assignments}, false, navalPortSplitLabel(assignments, movers, "zh_CN")),
     );
   }
   if (custom) {
@@ -2724,7 +2762,8 @@ const openNavalPortUnitStep = (
       .filter((candidate): candidate is Unit => Boolean(candidate));
   for (const port of unitDestinations[unit.id] ?? []) {
     if (movementEndProblem(G, port, [...assignedUnitsAt(port), unit]) !== null) continue;
-    options.push(option(`to:${port}`, `Move ${unit.id} into the friendly port ${spaceLabel(port, "en")}`));
+    const label = `Move ${unit.id} into the friendly port ${spaceLabel(port, "en")}`;
+    options.push(option(`to:${port}`, label, undefined, false, `移动 ${unit.id} 进入友方港口 ${spaceLabel(port, "zh_CN")}`));
   }
   options.push(option("sea", "Leave this unit at sea"));
   options.push(option("stay", "Leave the whole force at sea"));
@@ -2734,6 +2773,8 @@ const openNavalPortUnitStep = (
     `19.8 complete split: choose a port for ${unit.id} (${index + 1}/${unitIds.length})`,
     options,
     {...context, stage: "unit", index, assignments: [...assignments]},
+    undefined,
+    `19.8 逐个分配：为 ${unit.id} 选择港口（${index + 1}/${unitIds.length}）`,
   ));
   return true;
 };
@@ -2947,8 +2988,8 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
             "Naval retreat: choose the space(s) the defeated fleet retreats to",
             choices.map((choice) =>
               choice.id.startsWith("split:")
-                ? option(choice.id, choice.label, {assignments: choice.assignments})
-                : option(choice.id, choice.label, {space: choice.id}),
+                ? option(choice.id, choice.label, {assignments: choice.assignments}, false, choice.labelZh)
+                : option(choice.id, choice.label, {space: choice.id}, false, choice.labelZh),
             ),
             {
               battle: true,
@@ -2985,8 +3026,8 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
             [
               ...choices.map((choice) =>
                 choice.id.startsWith("split:")
-                  ? option(choice.id, choice.label, {assignments: choice.assignments})
-                  : option(choice.id, choice.label, {space: choice.id}),
+                  ? option(choice.id, choice.label, {assignments: choice.assignments}, false, choice.labelZh)
+                  : option(choice.id, choice.label, {space: choice.id}, false, choice.labelZh),
               ),
               ...(cancelFort !== null ? [cancelFort] : []),
             ],
@@ -3041,8 +3082,8 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
         [
           ...choices.map((choice) =>
             choice.id.startsWith("split:")
-              ? option(choice.id, choice.label, {assignments: choice.assignments})
-              : option(choice.id, choice.label, {space: choice.id}),
+              ? option(choice.id, choice.label, {assignments: choice.assignments}, false, choice.labelZh)
+              : option(choice.id, choice.label, {space: choice.id}, false, choice.labelZh),
           ),
           ...(cancelFort !== null ? [cancelFort] : []),
         ],
@@ -3818,9 +3859,13 @@ const openNavalInterceptionWindow = (
   const options = live
     .filter((candidate) => candidate.power === power)
     .map((candidate) =>
-      option(`intercept:${candidate.port}`, `Intercept from ${spaceLabel(candidate.port, "en")}`, {
-        port: candidate.port,
-      }),
+      option(
+        `intercept:${candidate.port}`,
+        `Intercept from ${spaceLabel(candidate.port, "en")}`,
+        {port: candidate.port},
+        false,
+        `从 ${spaceLabel(candidate.port, "zh_CN")} 拦截`,
+      ),
     );
   // Declining is always available, so the window can never deadlock.
   options.push(option("skip", "Do not intercept"));
@@ -4503,6 +4548,8 @@ export const openNavalAvoidDecision = (
           `box:${candidate}`,
           `Treat the battle as being in ${spaceLabel(candidate, "en")}`,
           {box: candidate},
+          false,
+          `视战斗发生于 ${spaceLabel(candidate, "zh_CN")}`,
         ),
       ),
       {attacker, defender, from, to, attackerUnits: [...unitIds]},
@@ -4517,6 +4564,10 @@ export const openNavalAvoidDecision = (
         ? `Avoid battle to ${spaceLabel(plan.space, "en")} (split across ${plan.ports.length} ports)`
         : `Avoid battle to ${spaceLabel(plan.space, "en")}`,
       {space: plan.space, ports: plan.ports},
+      false,
+      plan.ports.length > 1
+        ? `避战前往 ${spaceLabel(plan.space, "zh_CN")}（分散至 ${plan.ports.length} 个港口）`
+        : `避战前往 ${spaceLabel(plan.space, "zh_CN")}`,
     ),
   );
   // A "fight" option is always available, so the decision can never deadlock.
@@ -4537,6 +4588,10 @@ export const openNavalAvoidDecision = (
       attackerUnits: [...unitIds],
       ...(box === undefined ? {} : {box}),
     },
+    undefined,
+    box === undefined
+      ? "海战：尝试避战（掷骰前选择目的地）或迎战"
+      : `${spaceLabel(to, "zh_CN")} 的海战（港口 DRM 按 ${spaceLabel(box, "zh_CN")} 计）：尝试避战或迎战`,
   ));
   return true;
 };

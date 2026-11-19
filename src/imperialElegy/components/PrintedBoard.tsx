@@ -600,9 +600,16 @@ const Grid = () => (
 export interface PrintedBoardProps {
   /** Extra class for the sheet (the page uses it for print/layout). */
   className?: string;
+  /**
+   * The toolbar's language.  The sheet itself stays the printed English art it
+   * reproduces; only the chrome around it (title, zoom, export) follows the UI,
+   * and it defaults to English so the exported artefact is language-stable.
+   */
+  locale?: "en" | "zh_CN";
 }
 
-export const PrintedBoard = ({className = ""}: PrintedBoardProps) => {
+export const PrintedBoard = ({className = "", locale = "en"}: PrintedBoardProps) => {
+  const bi = (en: string, zh: string): string => (locale === "zh_CN" ? zh : en);
   const svgRef = React.useRef<SVGSVGElement | null>(null);
   const [notice, setNotice] = React.useState("");
   const [zoom, setZoom] = React.useState(1);
@@ -629,36 +636,37 @@ export const PrintedBoard = ({className = ""}: PrintedBoardProps) => {
     anchor.click();
     anchor.remove();
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    setNotice("SVG downloaded");
+    setNotice(bi("SVG downloaded", "SVG 已下载"));
   };
 
   return (
     <section className={`ie-printed-page ${className}`} data-testid="ie-printed-page">
       <header className="ie-printed-toolbar">
         <div>
-          <h1>Imperial Elegy · printed board</h1>
+          <h1>{bi("Imperial Elegy · printed board", "帝国挽歌 · 印刷版图")}</h1>
           <p>
-            The 1850–1920 campaign map at the printed sheet&apos;s own scale:
-            1 board unit = 1 SVG unit.  Vector only — no scan, no fonts fetched,
-            no raster fallback.
+            {bi(
+              "The 1850–1920 campaign map at the printed sheet\u2019s own scale: 1 board unit = 1 SVG unit.  Vector only — no scan, no fonts fetched, no raster fallback.",
+              "1850–1920 战役地图，按印刷版图自身的比例：1 个版图单位 = 1 个 SVG 单位。纯矢量——不含扫描图，不加载字体，也没有位图后备。",
+            )}
           </p>
         </div>
         <div className="ie-printed-actions">
-          <div className="ie-printed-zoom" role="group" aria-label="Board zoom">
-            <button type="button" className="ie-btn secondary" aria-label="Zoom out"
+          <div className="ie-printed-zoom" role="group" aria-label={bi("Board zoom", "版图缩放")}>
+            <button type="button" className="ie-btn secondary" aria-label={bi("Zoom out", "缩小")}
               data-testid="ie-printed-zoom-out" onClick={() => setZoom((value) => Math.max(1, value - 0.5))}>−</button>
             <button type="button" className="ie-btn secondary" data-testid="ie-printed-zoom-fit"
               onClick={() => setZoom(1)}>{Math.round(zoom * 100)}%</button>
-            <button type="button" className="ie-btn secondary" aria-label="Zoom in"
+            <button type="button" className="ie-btn secondary" aria-label={bi("Zoom in", "放大")}
               data-testid="ie-printed-zoom-in" onClick={() => setZoom((value) => Math.min(4, value + 0.5))}>+</button>
           </div>
           <button type="button" className="ie-btn" data-testid="ie-printed-download" onClick={download}>
-            Download SVG
+            {bi("Download SVG", "下载 SVG")}
           </button>
           <button type="button" className="ie-btn secondary" onClick={() => window.print()}>
-            Print
+            {bi("Print", "打印")}
           </button>
-          <a className="ie-btn secondary" href="/localIE">Back to the game</a>
+          <a className="ie-btn secondary" href="/localIE">{bi("Back to the game", "返回对局")}</a>
         </div>
       </header>
       {notice !== "" && <p className="ie-printed-notice" role="status">{notice}</p>}
@@ -671,7 +679,10 @@ export const PrintedBoard = ({className = ""}: PrintedBoardProps) => {
           viewBox={`${PAPER.x} ${PAPER.y} ${PAPER.width} ${PAPER.height}`}
           preserveAspectRatio="xMidYMid meet"
           role="img"
-          aria-label="Imperial Elegy printed campaign board, 1850 to 1920"
+          aria-label={bi(
+            "Imperial Elegy printed campaign board, 1850 to 1920",
+            "帝国挽歌印刷战役版图，1850 至 1920",
+          )}
           data-testid="ie-printed-board"
           data-spaces={markers.length}
           data-naval={navalBoxes.length}
