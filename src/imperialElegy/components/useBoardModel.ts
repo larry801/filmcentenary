@@ -1277,7 +1277,10 @@ export const useBoardModel = ({
     setWarAim(candidate.aim);
     setSecondObjective("");
     // Selecting the objective space opens the ordinary declaration block for
-    // that defender; its aim/CP are already locked to the card.
+    // that defender; its aim/CP are already locked to the card.  Cancelling
+    // first leaves an armed unit-targeting mode, whose clicks submit a move,
+    // so the chooser's click can never be swallowed by a stale targeting state.
+    dispatch({type: "cancel"});
     dispatch({type: "selectSpace", space: candidate.objective});
     setDismissedWarTargets(warTargetEntitlementKey);
   }, [dispatch, setWarAim, setSecondObjective, warTargetEntitlementKey]);
