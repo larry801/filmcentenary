@@ -489,15 +489,25 @@ is, and, if they cannot agree, the attacker decides.”*
 - 俾斯麦的禁止参战在宣战时记录（`WarState.forbidPlayerJoins`），
   `allyCallEligibility` 对双方的所有玩家盟友调用返回 `forbid-join`；
   `joinWarAsMinor` 不受影响，小国盟友仍按 14.0 参战。
+- **Fix (2026-11-19, follow-up)：禁止参战同样压制 13.4.2 求援。** 玩家复报
+  “俾斯麦事件的统一战争没有阻止其他玩家参战”：14.0 的盟友召唤已被挡住，但
+  对角色的无盟友小国宣战时，13.4.2 仍会依次询问外交标记持有者与
+  Non-Player Alliance Table，被问到的玩家可以“援助”该小国并成为防守主角——
+  这也是一种“其他玩家参战”。`beginSeekingAid` 现在在
+  `G.flags.declarationForbid` 为真时完全跳过求援，记录
+  `minorAidForbidden`，小国按 15.4.2 独自防守；`finalizeMinorAid` 也做同样的
+  守卫，防止已排队的求援决定绕过条款。13.4.1 的既有玩家盟友不受影响（卡面
+  Clarification 明确其仍可选择“为小国参战”）。
 - Aux Armes 在“两个关键区或两个国家”时置 `WarState.allowNeutralJoin`；
   新增 `joinWarAsNeutral` move 让中立国玩家自行为防守方参战（打出一张
   event 牌作战争预算，并按 8.2 远离进攻方，仍受 8.4 三人上限约束）。
 - UI：宣战块新增第二国选择、主要防守方选择与“禁止玩家盟友参战”复选框；
   战争面板显示两项参战限制，并在 `allowNeutralJoin` 时为中立座位提供参战按钮。
 
-回归：`bismarckWar.test.ts`（10 个断言：双目标、主要防守方、禁止参战、
-第二目标校验等）、`homeWarDeclarations.test.ts`（19 个断言：Aux Armes 双目标、
-双关键区、中立国参战与无条款时拒绝）与
+回归：`bismarckWar.test.ts`（13 个断言：双目标、主要防守方、禁止参战、
+禁止参战压制 13.4.2 求援、既有小国盟友仍可参战、第二目标校验等）、
+`homeWarDeclarations.test.ts`（19 个断言：Aux Armes 双目标、双关键区、
+中立国参战与无条款时拒绝）与
 `components/bismarckDeclarePanel.test.tsx`（6 个断言）。
 
 **建模边界（仍记录为近似）：**

@@ -2204,6 +2204,16 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  minorAidForbidden: (entry, locale) => {
+    const minor = minorLabel(entry.args?.minor, locale);
+    return withActor(
+      entry,
+      locale,
+      `forbids other players from joining the war; ${minor} defends alone (13.4.2).`,
+      `禁止其他玩家参战；${minor}独自防守（13.4.2）。`,
+    );
+  },
+
   minorUnopposed: (entry, locale) => {
     const minor = minorLabel(entry.args?.target, locale);
     return withActor(

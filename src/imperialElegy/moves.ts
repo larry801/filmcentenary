@@ -2961,6 +2961,10 @@ const finalizeMinorAid = (
   state: MinorDeclarationContext,
   ally: Power,
 ): string | void => {
+  // Bismarck: "you may choose to forbid other players from joining the war."
+  // 13.4.2's aid search is a player joining as the defending primary, so a
+  // queued decision cannot accept once the ban is recorded.
+  if (G.flags.declarationForbid === true) return INVALID_MOVE;
   if (!canAidMinor(G, state.attacker, state.minor, ally)) return INVALID_MOVE;
   const info = aidedMinorInfo(G, state.attacker, state.minor, ally);
   if (info === null) return INVALID_MOVE;
@@ -3069,10 +3073,19 @@ const openMinorAidDecision = (
  * non-player becomes the lone defending power of a live war (15.4.2).
  */
 const beginSeekingAid = (G: ImperialElegyState, ctx: Ctx, base: MinorDeclarationContext): string | void => {
-  const slots = seekingAidSlots(G, base.attacker, base.minor);
-  if (slots.length > 0) {
-    const state: SeekingAidState = {...base, slots, current: null, index: 0, rolls: []};
-    if (openMinorAidDecision(G, ctx, state)) return undefined;
+  // Bismarck: "After declaring war you may choose to forbid other players from
+  // joining the war; minor power allies may join as normal."  The 13.4.2 aid
+  // search offers a *player* the defending side, so the ban suppresses it and
+  // the minor defends alone (15.4.2).  Minor-power allies still join through
+  // 14.0's `joinWarAsMinor` path and are deliberately not affected.
+  if (G.flags.declarationForbid === true) {
+    log(G, base.attacker, "minorAidForbidden", {minor: base.minor});
+  } else {
+    const slots = seekingAidSlots(G, base.attacker, base.minor);
+    if (slots.length > 0) {
+      const state: SeekingAidState = {...base, slots, current: null, index: 0, rolls: []};
+      if (openMinorAidDecision(G, ctx, state)) return undefined;
+    }
   }
   const home = nonPlayerHome(base.minor, G);
   return finalizeUnopposedMinorDeclaration(

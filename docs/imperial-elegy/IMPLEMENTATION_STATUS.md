@@ -152,6 +152,33 @@ Coverage: `bismarckWar.test.ts` (10), `homeWarDeclarations.test.ts` (19) and
 fix's scope: RU-9's Balkan-minor alliance and the three cards' "win: +1
 stability". Modelling boundaries are recorded in `CARD_EVENTS.md` §3.14.
 
+## Fixed: Bismarck's join ban also covers 13.4.2 Seeking Aid (2026-11-19)
+
+Reported as "帝国挽歌俾斯麦事件的统一战争没有阻止其他玩家参战". The 14.0
+player-ally call was already refused under `WarState.forbidPlayerJoins`, but a
+war of unification declared on a non-player power **without** a player ally
+still opened 13.4.2's aid search: the diplomacy-marker holder and the
+Non-Player Alliance Table candidates were asked, and a seat that accepted the
+aid became the defending primary. That is another player joining the war
+despite the printed clause.
+
+What is live now:
+
+- `moves.ts#beginSeekingAid` skips the aid search when the declaration carries
+  the ban (`G.flags.declarationForbid`), logs `minorAidForbidden`, and finishes
+  the declaration with the minor defending alone (15.4.2).
+- `moves.ts#finalizeMinorAid` refuses an "aid" answer while the ban is set, so
+  a queued 13.4.2 decision cannot bypass the clause.
+- 13.4.1 is unchanged: a minor that already has a player ally still offers that
+  ally the printed choice to fight for it (the card's Clarification), and
+  `joinWarAsMinor` still lets minor-power allies join normally.
+- `components/logText.ts` renders the new `minorAidForbidden` entry in both
+  locales.
+
+Coverage: `bismarckWar.test.ts` (3 new: no `minorAid` pending with the ban, a
+forced/queued aid answer is refused, and an existing minor ally still gets the
+13.4.1 fight-or-abandon choice) and `components/logText.test.ts`.
+
 ## Fixed: Bismarck's event could not launch its war of unification (2026-11-19)
 
 Reported as "事件俾斯麦无法发动统一战争". Reproduced by running the engine:
