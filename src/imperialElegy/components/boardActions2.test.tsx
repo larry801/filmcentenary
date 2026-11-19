@@ -23,7 +23,8 @@ jest.mock("react", () => {
   // useState(null) stub selected for the SpacePanel assertions.
   const useReducer = (reducer: (state: unknown, action: unknown) => unknown, initial: unknown) => {
     const state = initial && typeof initial === "object" && (initial as {kind?: string}).kind === "idle"
-      ? {kind: "space", space: "berlin"}
+      ? ((globalThis as unknown as {__IE_TEST_INTERACTION__?: unknown}).__IE_TEST_INTERACTION__
+        ?? {kind: "space", space: "berlin"})
       : initial;
     return [state, () => state];
   };
@@ -404,5 +405,45 @@ describe("14.0 minor ally calls", () => {
     expect(byTestId(tree, "ie-call-minor-select")?.props.value).toBe("Bavaria");
     byTestId(tree, "ie-call-minor-button")!.props.onClick();
     expect(moves.callWarMinor).toHaveBeenCalledWith("Bavaria");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 12.8 / 15.4: a controlled allied minor's unit is commanded in wartime
+// ---------------------------------------------------------------------------
+describe("12.8 controlled allied minor command", () => {
+  /** GE at war with FR, Bavaria allied to GE, one Bavarian army in Bavaria. */
+  const minorWarSetup = (): {G: ImperialElegyState; unitId: string} => {
+    const G = fresh("GE", 0);
+    G.phase = "wartime";
+    G.activePower = "GE";
+    G.war = warState("GE", "FR");
+    G.war.status = "maneuver";
+    G.war.budgets = {GE: 6, FR: 6};
+    G.war.initiative = ["GE", "FR"];
+    G.spaces.bavaria.control = "Bavaria";
+    G.spaces.bavaria.ally = "GE";
+    clearSpaces(G, ["bavaria", "bohemia"]);
+    const unit = placeUnit(G, "Bavaria", "minorArmy", "bavaria", 2);
+    placeUnit(G, "FR", "army", "bohemia", 2);
+    return {G, unitId: unit.id};
+  };
+
+  test("selecting the minor's army offers its land battle, exactly like a power's own army", () => {
+    const {G, unitId} = minorWarSetup();
+    (globalThis as unknown as {__IE_TEST_INTERACTION__?: unknown}).__IE_TEST_INTERACTION__ =
+      {kind: "unit", space: "bavaria", unit: unitId};
+    try {
+      const tree = renderTree(G, "GE", moveBag("landBattle"));
+      // The picker already made the chip clickable; the board model used to
+      // disagree and left the battle row (and the map) empty.
+      expect(byTestId(tree, `ie-unit-${unitId}`)).toBeDefined();
+      expect(byTestId(tree, "ie-action-landBattle")?.props["data-enabled"]).toBe("true");
+      // A controlled minor fights for its controller, but limited-war
+      // redeployment still moves the seat's own counters only (15.2 vs 12.15).
+      expect(byTestId(tree, "ie-action-move")).toBeUndefined();
+    } finally {
+      delete (globalThis as unknown as {__IE_TEST_INTERACTION__?: unknown}).__IE_TEST_INTERACTION__;
+    }
   });
 });

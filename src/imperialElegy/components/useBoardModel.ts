@@ -12,7 +12,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationAllowsTwoPowers, warDeclarationAims, warDeclarationEntitlement, warDeclarationMayForbidJoins, warDeclarationTargetLegal} from "../engine/rules";
+import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationAllowsTwoPowers, warDeclarationAims, warDeclarationEntitlement, warDeclarationMayForbidJoins, warDeclarationTargetLegal} from "../engine/rules";
 import {declarationTargetCandidates, type WarTargetCandidate} from "../engine/declarationTargets";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
@@ -28,7 +28,7 @@ import {deployReserveLimit, hasTruce, loneMinorDefender, minorWarInfo, rapidMobi
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
 import {isIndependentItaly} from "../engine/greatWarFlow";
 import {gwActionAllowance} from "../engine/gwImpulse";
-import {POWER_KEYS, amphibiousReasonText, bi, interceptReasonText, isPowerKey, OPTION_ZH, pickActionTarget, PROMPT_ZH, powerOrMinorLabel, transportReasonText, unitLabel} from "./boardHelpers";
+import {POWER_KEYS, amphibiousReasonText, bi, interceptReasonText, isPowerKey, OPTION_ZH, pickActionTarget, PROMPT_ZH, powerOrMinorLabel, transportReasonText, unitIsCommanded, unitLabel} from "./boardHelpers";
 import {handChoiceAvailability} from "./HandChoices";
 import {CardChoiceFace} from "./CardChoice";
 import {PhaseAction} from "./PhaseActions";
@@ -707,24 +707,35 @@ export const useBoardModel = ({
   const selectedState = selected ? G.spaces[selected] : null;
   const selectedUnitDef = selectedUnit ? G.units[selectedUnit] : undefined;
   const commandedOwner = viewer === null ? null : gwAllyImpulseFor(G, viewer) ?? viewer;
-  const commandsSelected = (unit: Unit): boolean => unit.owner === commandedOwner ||
-    (phase === "gwManeuver" && viewer !== null && commandedOwner === viewer && !isPowerKey(unit.owner) &&
-      unit.owner !== "US" && unit.owner !== "IT" && minorController(G, unit.owner) === viewer);
+  const commandsSelected = (unit: Unit): boolean => unitIsCommanded(G, viewer, unit, phase);
   const ownUnitsInSelected = selectedState
     ? selectedState.units.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && viewer !== null && commandsSelected(u))
     : [];
   const ownLandInSelected = ownUnitsInSelected.filter((u) => !u.naval);
   const ownNavalInSelected = ownUnitsInSelected.filter((u) => u.naval);
 
+  /**
+   * A unit in an adjacent space that this seat may fight.  `hostileOwner`
+   * mirrors the engine's own defender filter, so a neighbour that holds only
+   * friendly or allied units offers no battle while an enemy that entered a
+   * space this seat controls is still attackable.  A controlled minor's
+   * counters are friendly even though `hostileOwner` treats unowned minors as
+   * hostile by default.
+   */
+  const hostileUnit = (unit: Unit): boolean => {
+    if (viewer === null || unit.owner === viewer) return false;
+    if (!isPowerKey(unit.owner) && unit.owner !== "US" && unit.owner !== "IT"
+      && minorController(G, unit.owner) === viewer) return false;
+    return hostileOwner(G, viewer, unit.owner);
+  };
   const enemyLandTargetsFrom = (from: SpaceId | null): SpaceId[] => {
     if (!from || viewer === null) return [];
     return neighboursOf(from).filter((id) => {
       const state = G.spaces[id];
       if (!state) return false;
-      if (friendlySpace(G, id, viewer)) return false;
       return state.units.some((uid) => {
         const u = G.units[uid];
-        return u !== undefined && !u.naval && u.owner !== viewer;
+        return u !== undefined && !u.naval && hostileUnit(u);
       });
     });
   };
@@ -735,7 +746,7 @@ export const useBoardModel = ({
       if (!state) return false;
       return state.units.some((uid) => {
         const u = G.units[uid];
-        return u !== undefined && u.naval === true && u.owner !== viewer;
+        return u !== undefined && u.naval === true && hostileUnit(u);
       });
     });
   };

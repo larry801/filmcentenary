@@ -22,13 +22,13 @@ import React from "react";
 import {ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {SPACES, neighboursOf, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {BISMARCK_HOME_CARD, JIHAD_HOME_CARD, RUSSO_TURKISH_WARS_HOME_CARD, effectiveKeyType, gwAllyImpulseFor, hasLoc, minorController, warDeclarationAims, type WarDeclarationEntitlement} from "../engine/rules";
+import {BISMARCK_HOME_CARD, JIHAD_HOME_CARD, RUSSO_TURKISH_WARS_HOME_CARD, effectiveKeyType, gwAllyImpulseFor, hasLoc, warDeclarationAims, type WarDeclarationEntitlement} from "../engine/rules";
 import {polishReserveDeployer} from "../engine/poland";
 import {IEBadge, IEPanel} from "./theme";
 import {ConfirmButton} from "./ConfirmButton";
 import {RuleLink} from "./RuleRef";
 import {ieT} from "./i18n";
-import {bi, controlLabel, isPowerKey, unitLabel} from "./boardHelpers";
+import {bi, controlLabel, unitIsCommanded, unitLabel} from "./boardHelpers";
 import {ACTION_GROUP_LABELS, ACTION_GROUP_ORDER, type ActionGroupId, type SpaceAction} from "./actionAvailability";
 import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {useSpaceActions} from "./spaceActionModel";
@@ -81,16 +81,12 @@ export interface SpaceDetailPanelProps extends SpaceBaseProps {
 
 export const SpaceDetailPanel = (props: SpaceDetailPanelProps) => {
   const {
-    G, selected, viewer, me, locale, t, phase,
+    G, selected, viewer, me, locale, t,
     selectedUnitIds = [], pending, canDecide, doAction, moves,
   } = props;
 
   const selectedSpace = selected ? SPACES[selected] : null;
   const selectedState = selected ? G.spaces[selected] : null;
-  const commandedOwner = viewer === null ? null : gwAllyImpulseFor(G, viewer) ?? viewer;
-  const commanded = (unit: Unit): boolean => unit.owner === commandedOwner ||
-    (phase === "wartime" && viewer !== null && commandedOwner === viewer && !isPowerKey(unit.owner) &&
-      unit.owner !== "US" && unit.owner !== "IT" && minorController(G, unit.owner) === viewer);
 
   return (
     <IEPanel className="ie-space-detail-panel" title={t.spaceDetail}>
@@ -158,16 +154,20 @@ export const SpaceUnitPicker = (props: SpaceUnitPickerProps) => {
   const selectedState = selected ? G.spaces[selected] : null;
   if (selectedState === null) return null;
   const commandedOwner = viewer === null ? null : gwAllyImpulseFor(G, viewer) ?? viewer;
-  const commanded = (unit: Unit): boolean => unit.owner === commandedOwner ||
-    (phase === "wartime" && viewer !== null && commandedOwner === viewer && !isPowerKey(unit.owner) &&
-      unit.owner !== "US" && unit.owner !== "IT" && minorController(G, unit.owner) === viewer);
+  const commanded = (unit: Unit): boolean => unitIsCommanded(G, viewer, unit, phase);
 
   const ownUnits = selectedState.units
     .map((id) => G.units[id])
     .filter((u): u is Unit => u !== undefined && viewer !== null && commanded(u));
   if (ownUnits.length === 0) return null;
 
-  const movable = ownUnits.filter((u) => !(u.flags?.deployedThisImpulse === true));
+  // A 15.4 controlled minor fights with its controller, but the limited war's
+  // 12.15/16.1 move actions still accept the seat's own counters only.
+  // Keeping them out of the stack shortcut stops "move all" from silently
+  // leaving the minor behind; the Great War ladder commands them (27.5).
+  const moveCapable = (unit: Unit): boolean =>
+    phase === "gwManeuver" || unit.owner === commandedOwner;
+  const movable = ownUnits.filter((u) => !(u.flags?.deployedThisImpulse === true) && moveCapable(u));
   const allSelected = movable.length > 0 && movable.every((u) => selectedUnitIds.includes(u.id));
 
   return (
