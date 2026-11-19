@@ -206,6 +206,26 @@ export interface IEMapProps {
 }
 
 /**
+ * Whether the memoized map can skip a render.
+ *
+ * Every prop that changes the drawn board or the framing must be compared.
+ * `frame` is how the framing chips and the theatre list move the view, and
+ * `homeCapital` is the fallback that framing uses; leaving either out left
+ * those controls clickable but inert, because the click only changed a prop
+ * the memo decided to ignore.
+ */
+export const mapPropsEqual = (prev: IEMapProps, next: IEMapProps): boolean =>
+  prev.G.spaces === next.G.spaces &&
+  prev.selected === next.selected &&
+  prev.onSelect === next.onSelect &&
+  prev.targets === next.targets &&
+  prev.locale === next.locale &&
+  prev.focus === next.focus &&
+  prev.emphasis === next.emphasis &&
+  prev.frame === next.frame &&
+  prev.homeCapital === next.homeCapital;
+
+/**
  * The printed board, drawn as vectors.
  *
  * The terrain comes from `data/map-background.json` — the printed coastlines
@@ -977,14 +997,7 @@ export const IEMap = React.memo(
       </div>
     );
   },
-  (prev, next) =>
-    prev.G.spaces === next.G.spaces &&
-    prev.selected === next.selected &&
-    prev.onSelect === next.onSelect &&
-    prev.targets === next.targets &&
-    prev.locale === next.locale &&
-    prev.focus === next.focus &&
-    prev.emphasis === next.emphasis,
+  mapPropsEqual,
 );
 
 /** `box` as SVG rect props (x, y, width, height). */
