@@ -258,6 +258,17 @@ export interface SpaceActionsPanelProps extends SpaceBaseProps {
   /** False when the card's printed target list excludes the selected defender. */
   warTargetAllowed?: boolean;
   canDeclareWar: boolean;
+  /** Rule 14.1: player powers the live card may name as a second target. */
+  secondTargetOptions?: Power[];
+  secondTargetValue?: Power | "";
+  setSecondTarget?: (p: Power | "") => void;
+  /** The primary defender of a two-power declaration. */
+  warPrimaryValue?: Power | "";
+  setWarPrimary?: (p: Power | "") => void;
+  /** Bismarck's optional post-declaration join ban. */
+  forbidPlayers?: boolean;
+  setForbidPlayers?: (forbidden: boolean) => void;
+  forbidPlayersAllowed?: boolean;
   /** 22.5(2): the deploy-reserves row's Polish-reserve modifier. */
   polishReserve: boolean;
   setPolishReserve: (b: boolean) => void;
@@ -308,6 +319,8 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
     rows, cpRemaining, canActionCard, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
     targetControlledSpaces, warTargetControl, warMinorTarget = null, warEntitlement = null, warTargetAllowed = true, canDeclareWar,
+    secondTargetOptions = [], secondTargetValue: liveSecondTarget = "", setSecondTarget,
+    warPrimaryValue = "", setWarPrimary, forbidPlayers = false, setForbidPlayers, forbidPlayersAllowed = false,
     polishReserve, setPolishReserve, selectedUnitDef, setSelectedUnit,
     battleFrom, setBattleFrom, navalFrom, setNavalFrom, confirmActions = true, doAction, moves,
     showUnavailable: liveShowUnavailable, setShowUnavailable: setLiveShowUnavailable,
@@ -429,6 +442,21 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
    * declaration name the same space twice.
    */
   const secondObjectiveCandidates = targetControlledSpaces.filter((id) => id !== selected);
+  // Rule 14.1: the second power and the primary defender are only offered when
+  // the live home card prints the two-power clause for the chosen aim.
+  const chosenSecondTarget: Power | "" = liveSecondTarget;
+  const primaryChoices: Power[] = warTargetControl !== null && chosenSecondTarget !== ""
+    ? [warTargetControl, chosenSecondTarget]
+    : [];
+  const chosenPrimary: Power = primaryChoices.includes(warPrimaryValue as Power)
+    ? warPrimaryValue as Power
+    : warTargetControl ?? primaryChoices[0] ?? "GE";
+  const declarationOptions = chosenSecondTarget !== "" || (forbidPlayersAllowed && forbidPlayers)
+    ? {
+        ...(chosenSecondTarget !== "" ? {secondTarget: chosenSecondTarget, primary: chosenPrimary} : {}),
+        ...(forbidPlayersAllowed && forbidPlayers ? {forbidPlayers: true} : {}),
+      }
+    : undefined;
   /** 22.5(2): only the Polish controller carries the reserve-army modifier. */
   const polishOwner = viewer !== null && polishReserveDeployer(G) === viewer;
   const deployLegal = enabledRows.some((item) => item.id === "deployReserves");
@@ -545,6 +573,39 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
                 {secondObjectiveCandidates.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
               </select>
             )}
+            {secondTargetOptions.length > 0 && (
+              <select
+                className="ie-select"
+                data-testid="ie-war-second-power"
+                value={chosenSecondTarget}
+                onChange={(e) => setSecondTarget?.(e.target.value as Power | "")}
+                title={bi(locale, "Second power (14.1)", "第二个国家（14.1）")}
+              >
+                <option value="">{bi(locale, "One power", "单一国家")}</option>
+                {secondTargetOptions.map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
+              </select>
+            )}
+            {primaryChoices.length > 1 && (
+              <select
+                className="ie-select"
+                data-testid="ie-war-primary-defender"
+                value={chosenPrimary}
+                onChange={(e) => setWarPrimary?.(e.target.value as Power)}
+                title={bi(locale, "Primary defender (14.1)", "主要防守方（14.1）")}
+              >
+                {primaryChoices.map((p) => <option key={p} value={p}>{bi(locale, `Primary: ${t.seats[p]}`, `主要防守方：${t.seats[p]}`)}</option>)}
+              </select>
+            )}
+            {forbidPlayersAllowed && (
+              <label className="ie-inline ie-war-forbid" data-testid="ie-war-forbid-join">
+                <input
+                  type="checkbox"
+                  checked={forbidPlayers}
+                  onChange={(e) => setForbidPlayers?.(e.target.checked)}
+                />
+                {bi(locale, "Forbid player allies", "禁止玩家盟友参战")}
+              </label>
+            )}
             {/* Declaring a war cannot be undone, so it arms first like every
                 other irreversible control.  The label carries the CP price so
                 the confirmation names what the click is about to spend. */}
@@ -562,6 +623,7 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
                   declarationAim,
                   secondObjective ? [selected, secondObjective] : [selected],
                   declarationCp,
+                  declarationOptions,
                 ),
                 {label: bi(locale, `Declare war (${declarationCp} CP)`, `宣战（${declarationCp} CP）`), reason: canDeclareWar ? undefined : bi(locale, `Needs ${warCp} CP in this impulse.`, `本行动轮需要 ${warCp} CP。`)},
               )}
@@ -574,6 +636,13 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
               {bi(locale,
                 `${warEntitlement.card === BISMARCK_HOME_CARD ? "Bismarck" : "The card"} funds this declaration with its printed CP; choose the objective on the map.`,
                 `本牌以印制的 CP 支付宣战费用；请在地图上选择战争目标。`)}
+            </div>
+          )}
+          {secondTargetOptions.length > 0 && (
+            <div className="ie-hint" data-testid="ie-war-two-powers">
+              {bi(locale,
+                "This card may name a second power; the defenders agree on the primary, and the attacker decides if they cannot.",
+                "本牌可同时指定第二个国家；防守方协商主要防守方，协商不成则由进攻方决定。")}
             </div>
           )}
           {warEntitlement?.card === RUSSO_TURKISH_WARS_HOME_CARD && (

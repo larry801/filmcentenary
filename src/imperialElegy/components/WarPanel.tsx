@@ -3,7 +3,7 @@ import {ImperialElegyState, Power} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {POWER_DEFS} from "../constant/powers";
-import {canSurrender, isLoneMinorWar, loneMinorDefender} from "../engine/limitedWar";
+import {canSurrender, isLoneMinorWar, loneMinorDefender, neutralJoinEligibility} from "../engine/limitedWar";
 import {treatyOptionLabel} from "../engine/treatyChoice";
 import {BALANCE_OF_POWER_CARD} from "../moves";
 import {IEBadge, IEPanel} from "./theme";
@@ -66,6 +66,12 @@ export const WarPanel = (props: WarPanelProps) => {
     callableMinors, warMinorValue, setWarMinor, confirmSurrender, setConfirmSurrender,
     doAction, moves, onOpenReference,
   } = props;
+  // Aux Armes: a neutral power may volunteer for the defending side without an
+  // invitation when the card's two-key/two-power clause opened the war.
+  const neutralJoin = viewer !== null && pending === null && !eliminated
+    && (war.status === "warAim" || war.status === "alliance")
+    ? neutralJoinEligibility(G, war, viewer)
+    : null;
   return (
     <IEPanel title={`${t.phases.wartime} · ${warStatusLabel}`} actions={<IEBadge tone="warn">{warStatusLabel}</IEBadge>}>
       <div className="ie-war" data-testid="ie-war">
@@ -154,6 +160,33 @@ export const WarPanel = (props: WarPanelProps) => {
             {isActive && phase === "wartime" && (
               <button className="ie-btn" onClick={() => doAction(() => moves.resolveWar(), {label: t.resolveWar})}>{t.resolveWar}</button>
             )}
+          </div>
+        )}
+        {war.forbidPlayerJoins === true && (
+          <div className="ie-hint" data-testid="ie-war-forbid-join-active">
+            {bi(locale,
+              "Bismarck has forbidden other players from joining this war; minor power allies may still join.",
+              "俾斯麦已禁止其他玩家参战；小国盟友仍可参战。")}
+          </div>
+        )}
+        {war.allowNeutralJoin === true && (
+          <div className="ie-hint" data-testid="ie-war-neutral-join-open">
+            {bi(locale,
+              "Aux Armes opened this war: neutral powers may join the defending side.",
+              "《公民们，拿起武器！》使中立国可以加入防守方参战。")}
+          </div>
+        )}
+        {neutralJoin?.ok && (
+          <div className="ie-war-controls" data-testid="ie-war-neutral-join">
+            <button
+              className="ie-btn"
+              onClick={() => doAction(
+                () => moves.joinWarAsNeutral(neutralJoin.cardId ?? undefined),
+                {label: bi(locale, "Join the war", "参战")},
+              )}
+            >
+              {bi(locale, `Join the war against ${t.seats[war.attacker]}`, `加入对${t.seats[war.attacker]}的战争`)}
+            </button>
           </div>
         )}
         {viewer === "UK" && !eliminated && pending === null && !warBelligerents.includes("UK")

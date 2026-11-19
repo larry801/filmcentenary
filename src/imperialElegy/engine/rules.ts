@@ -97,6 +97,27 @@ export interface WarDeclarationPolicy {
   exemptConquestPenalty: boolean;
   /** Rule 13.1.2: the card opens non-rebellious Balkan spaces to liberation. */
   russianBalkanLiberation: boolean;
+  /**
+   * Rule 14.1: the declaration may name two different player powers.  Only
+   * the Bismarck and Aux Armes home cards print this clause; the other two
+   * declaration cards fund a single defender.
+   */
+  maxPowers: number;
+  /**
+   * The aims for which the two-power clause applies.  Bismarck prints it on
+   * the war of unification; Aux Armes prints it only for a conquest aim.
+   */
+  twoPowerAims: readonly WarDeclarationAim[];
+  /**
+   * Bismarck: after declaring, the attacker may forbid other players from
+   * joining.  Minor allies still join under 14.0.
+   */
+  mayForbidPlayerJoins: boolean;
+  /**
+   * Aux Armes: targeting two keys or two powers lets neutral powers join the
+   * war against the attacker.
+   */
+  neutralJoinOnDouble: boolean;
 }
 
 const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = {
@@ -107,18 +128,25 @@ const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = 
     conquestKeyLimit: 1,
     exemptConquestPenalty: false,
     russianBalkanLiberation: false,
+    maxPowers: 2,
+    twoPowerAims: ["unification"],
+    mayForbidPlayerJoins: true,
+    neutralJoinOnDouble: false,
   },
   [AUX_ARMES_HOME_CARD]: {
     // "If you choose a conquest war aim you may target up to two keys and you
-    // may also target two different powers."  The two-power half is not
-    // modelled yet (the same open clause as Bismarck); the two-key half is
-    // enforced through `conquestKeyLimit`.
+    // may also target two different powers."  Both halves are enforced:
+    // `conquestKeyLimit` handles the keys and `maxPowers` the second power.
     aims: ["liberation", "conquest"],
     powers: null,
     ottomanHomeController: false,
     conquestKeyLimit: 2,
     exemptConquestPenalty: false,
     russianBalkanLiberation: false,
+    maxPowers: 2,
+    twoPowerAims: ["conquest"],
+    mayForbidPlayerJoins: false,
+    neutralJoinOnDouble: true,
   },
   [RUSSO_TURKISH_WARS_HOME_CARD]: {
     // "Then declare war against the Ottomans using this card's CP value."
@@ -130,6 +158,10 @@ const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = 
     // your stability."
     exemptConquestPenalty: true,
     russianBalkanLiberation: true,
+    maxPowers: 1,
+    twoPowerAims: [],
+    mayForbidPlayerJoins: false,
+    neutralJoinOnDouble: false,
   },
   [JIHAD_HOME_CARD]: {
     // "Declare war against a power that controls an OT home space or RU …
@@ -140,6 +172,10 @@ const WAR_DECLARATION_POLICIES: Partial<Record<CardId, WarDeclarationPolicy>> = 
     conquestKeyLimit: 1,
     exemptConquestPenalty: true,
     russianBalkanLiberation: false,
+    maxPowers: 1,
+    twoPowerAims: [],
+    mayForbidPlayerJoins: false,
+    neutralJoinOnDouble: false,
   },
 };
 
@@ -150,6 +186,24 @@ export const warDeclarationPolicy = (card: CardId): WarDeclarationPolicy | null 
 /** The aims a home-card declaration may use, in printed order. */
 export const warDeclarationAims = (card: CardId): readonly WarDeclarationAim[] =>
   WAR_DECLARATION_POLICIES[card]?.aims ?? ["liberation", "unification", "conquest"];
+
+/** Rule 14.1: how many different powers the card's declaration may name. */
+export const warDeclarationMaxPowers = (card: CardId): number =>
+  WAR_DECLARATION_POLICIES[card]?.maxPowers ?? 1;
+
+/** True when the card's two-power clause covers `aim`. */
+export const warDeclarationAllowsTwoPowers = (card: CardId, aim: WarDeclarationAim): boolean => {
+  const policy = WAR_DECLARATION_POLICIES[card];
+  return policy !== undefined && policy.maxPowers > 1 && policy.twoPowerAims.includes(aim);
+};
+
+/** Bismarck: the attacker may forbid other players from joining the war. */
+export const warDeclarationMayForbidJoins = (card: CardId): boolean =>
+  WAR_DECLARATION_POLICIES[card]?.mayForbidPlayerJoins === true;
+
+/** Aux Armes: two keys or two powers let neutral powers join. */
+export const warDeclarationNeutralJoinOnDouble = (card: CardId): boolean =>
+  WAR_DECLARATION_POLICIES[card]?.neutralJoinOnDouble === true;
 
 /** True when the card's conquest declaration skips rule 13.3's penalty. */
 export const warDeclarationExemptsConquestPenalty = (card: CardId): boolean =>

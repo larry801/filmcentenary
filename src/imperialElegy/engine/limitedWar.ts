@@ -123,6 +123,12 @@ export interface WarAimRules {
    * target up to two keys" and passes 2.
    */
   conquestKeyLimit?: number;
+  /**
+   * Rule 14.1: a home-card declaration may name two different player powers.
+   * Every listed defender is then a legal controller of the objectives; the
+   * `defender` argument remains the primary defender.
+   */
+  defenders?: readonly PowerOrMinor[];
 }
 
 /**
@@ -214,20 +220,26 @@ export const validateWarAim = (
   const issues: WarAimIssue[] = [];
   const add = (code: WarAimIssueCode, message: string, space?: SpaceId) =>
     issues.push(space === undefined ? {code, message} : {code, message, space});
-  const defenderIsPower = isPower(defender);
+  const defenderList: readonly PowerOrMinor[] =
+    rules.defenders !== undefined && rules.defenders.length > 0 ? rules.defenders : [defender];
+  const defenderLabel = defenderList.map(String).join(" / ");
 
   if (!POWERS.includes(attacker)) add("invalid-attacker", `${String(attacker)} is not a player power`);
-  if (defenderIsPower ? !POWERS.includes(defender) : String(defender).length === 0) {
-    add("invalid-defender", `${String(defender)} is not a player power or non-player power`);
+  for (const candidate of defenderList) {
+    if (isPower(candidate) ? !POWERS.includes(candidate) : String(candidate).length === 0) {
+      add("invalid-defender", `${String(candidate)} is not a player power or non-player power`);
+    }
+    if (attacker === candidate) add("same-power", "a power cannot declare war on itself");
   }
-  if (attacker === defender) add("same-power", "a power cannot declare war on itself");
   if (!isWarAim(aim)) add("unknown-aim", `unknown war aim ${String(aim)}`);
 
   if (objectives.length === 0) add("no-objectives", "a war must target at least one objective");
   if (objectives.length > 2) add("too-many-objectives", "a war may target at most two objectives");
 
   const holdsObjective = (space: SpaceId): boolean =>
-    defenderIsPower ? controlledBy(G, space, defender) : G.spaces[space]?.control === defender;
+    defenderList.some((candidate) =>
+      isPower(candidate) ? controlledBy(G, space, candidate) : G.spaces[space]?.control === candidate,
+    );
 
   const seen = new Set<SpaceId>();
   for (const space of objectives) {
@@ -241,7 +253,7 @@ export const validateWarAim = (
       continue;
     }
     if (!holdsObjective(space)) {
-      add("objective-not-controlled", `${space} is not controlled by ${String(defender)}`, space);
+      add("objective-not-controlled", `${space} is not controlled by ${defenderLabel}`, space);
     }
   }
 
@@ -998,6 +1010,12 @@ export type AllyBlockReason =
   | "no-valid-card"
   | "eliminated"
   | "truce"
+  /**
+   * Bismarck: "After declaring war you may choose to forbid other players from
+   * joining the war.  Minor power allies may join the war as normal."  Player
+   * allies are refused on both sides; `joinWarAsMinor` stays available.
+   */
+  | "forbid-join"
   /** 8.4: the alliance the joining neutral would enter already has three players. */
   | "alliance-full";
 
@@ -1185,6 +1203,7 @@ export const allyCallEligibility = (
   });
 
   if (!war) return block("no-war");
+  if (war.forbidPlayerJoins === true) return block("forbid-join");
   if (!callerIsPrimary || side === null) return block("not-primary");
   if (ally === caller) return block("not-allied");
   if (G.powers[ally]?.eliminated) return block("eliminated");
@@ -1286,6 +1305,107 @@ export const joinWarAsAlly = (
   return {...call, applied: true};
 };
 
+export type NeutralJoinBlockReason =
+  | "no-war"
+  | "not-allowed"
+  | "not-neutral"
+  | "already-belligerent"
+  | "eliminated"
+  | "truce"
+  | "no-valid-card"
+  | "alliance-full";
+
+export interface NeutralJoinValidation {
+  ok: boolean;
+  power: Power;
+  side: "defender" | null;
+  cardId: CardId | null;
+  budget: number;
+  reason?: NeutralJoinBlockReason;
+  /** The 8.2 alliance box the joiner takes, when the direction is undetermined. */
+  allianceSide: AllianceSide | null;
+}
+
+/**
+ * Aux Armes, Citoyens!: "if you do either [two keys or two powers], neutral
+ * powers can join the war against you."
+ *
+ * A neutral player may volunteer for the defending side without an invitation
+ * (the ordinary 14.0 / 33.2 routes need a primary belligerent to ask).  The
+ * join spends an event card for the war budget and takes the ordinary 8.2
+ * shift away from the attacker, so the 8.4 three-player cap still applies.
+ */
+export const neutralJoinEligibility = (
+  G: ImperialElegyState,
+  war: WarState | null,
+  power: Power,
+  options: {cardId?: CardId} = {},
+): NeutralJoinValidation => {
+  const block = (reason: NeutralJoinBlockReason, cardId: CardId | null = null): NeutralJoinValidation => ({
+    ok: false,
+    power,
+    side: null,
+    cardId,
+    budget: 0,
+    reason,
+    allianceSide: null,
+  });
+  if (war === null) return block("no-war");
+  if (war.allowNeutralJoin !== true) return block("not-allowed");
+  if (G.powers[power]?.eliminated) return block("eliminated");
+  if (sideOf(war, power) !== null) return block("already-belligerent");
+  if (allianceOf(G.powers[power]?.alliance ?? "neutral") !== null) return block("not-neutral");
+  const attackers = sidePowers(war, "attacker");
+  if (attackers.some((attacker) => hasTruce(G, power, attacker))) return block("truce");
+  const cardId = options.cardId ?? warBudgetCardId(G, power);
+  if (cardId === null || !G.powers[power].hand.includes(cardId)) return block("no-valid-card", cardId);
+  if (!isCardId(cardId)) return block("no-valid-card");
+  const card = cardById(cardId);
+  if (card.type !== "event") return block("no-valid-card", cardId);
+  const derived = declarationShiftDirection(G.powers[war.attacker].alliance, G.powers[power].alliance);
+  const allianceSide = derived ?? (canJoinAlliance(G, power, "te") ? "te" : "ta");
+  if (!canJoinAlliance(G, power, allianceSide)) return block("alliance-full", cardId);
+  return {
+    ok: true,
+    power,
+    side: "defender",
+    cardId,
+    budget: warBudgetFor(G, power, card.cp),
+    allianceSide,
+  };
+};
+
+export interface NeutralJoinResult extends NeutralJoinValidation {
+  applied: boolean;
+}
+
+/** Apply a voluntary Aux Armes neutral join (discard the card, add the side). */
+export const joinWarAsNeutral = (
+  G: ImperialElegyState,
+  war: WarState | null,
+  power: Power,
+  options: {cardId?: CardId} = {},
+): NeutralJoinResult => {
+  const join = neutralJoinEligibility(G, war, power, options);
+  if (!join.ok || war === null || join.cardId === null || join.allianceSide === null) {
+    return {...join, applied: false};
+  }
+  G.powers[power].hand = G.powers[power].hand.filter((id) => id !== join.cardId);
+  G.discard.push(join.cardId);
+  war.defenderAllies.push(power);
+  war.budgets[power] = join.budget;
+  const shift = shiftAlliance(G, power, join.allianceSide, 1);
+  log(G, power, "allyJoinedWar", {ally: power, card: join.cardId, side: "defender", neutralVolunteer: true});
+  log(G, power, "allianceShifted", {
+    from: shift.from,
+    to: shift.to,
+    steps: shift.steps,
+    attacker: war.attacker,
+    neutralVolunteer: true,
+  });
+  return {...join, applied: true};
+};
+
 export interface MinorJoinResult {
   ok: boolean;
   caller: Power;
@@ -1371,6 +1491,26 @@ export const sidePowers = (war: WarState, side: WarSideName): Power[] =>
   (side === "attacker" ? [war.attacker, ...war.attackerAllies] : [war.defender, ...war.defenderAllies]).filter(
     isPower,
   );
+
+/**
+ * The powers a declaration named, in primary-first order: the defending
+ * primary, then the second player power of a home-card double declaration,
+ * then any non-player powers it named.  Rule 13.4 resolves a non-player target
+ * to its player ally, so an allied minor's defender is its ally here.
+ */
+export const warDeclaredDefenders = (war: WarState | null): PowerOrMinor[] => {
+  if (war === null) return [];
+  const out: PowerOrMinor[] = [];
+  if (isLoneMinorWar(war)) {
+    const lone = loneMinorDefender(war);
+    if (lone !== null) out.push(nonPlayerControlId(lone));
+  } else if (isPower(war.defender)) {
+    out.push(war.defender);
+  }
+  for (const power of war.coDefenders ?? []) if (isPower(power)) out.push(power);
+  for (const minor of war.coDefenderMinors ?? []) out.push(nonPlayerControlId(minor));
+  return [...new Set(out)];
+};
 
 /**
  * 15.2.3 Deploy Reserves: reserve armies equal to half the power's industry,

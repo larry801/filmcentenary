@@ -186,7 +186,9 @@ export const OrdersRegion = (props: OrdersSlice & {
   const {
     G, viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
-    targetControlledSpaces, warTargetControl, warMinorTarget, warEntitlement, warTargetAllowed, canDeclareWar, gwJointNavalAllies, gwJointNavalUnitIds,
+    targetControlledSpaces, warTargetControl, warMinorTarget, warEntitlement, warTargetAllowed, canDeclareWar,
+    secondTargetOptions, secondTargetValue, setSecondTarget, warPrimaryValue, setWarPrimary,
+    forbidPlayers, setForbidPlayers, forbidPlayersAllowed, gwJointNavalAllies, gwJointNavalUnitIds,
     polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
     polishArmyDecision, polishReserveDecision, myOnMapArmies, myForts, myMinorAllies, ownLandInSelected,
     ownNavalInSelected, potentialLandTargets, potentialNavalTargets, doAction, confirmActions, moves,
@@ -302,7 +304,11 @@ export const OrdersRegion = (props: OrdersSlice & {
               secondObjective={secondObjective} setSecondObjective={setSecondObjective}
               targetControlledSpaces={targetControlledSpaces} warTargetControl={warTargetControl}
               warMinorTarget={warMinorTarget ?? null} warEntitlement={warEntitlement ?? null}
-              warTargetAllowed={warTargetAllowed} canDeclareWar={canDeclareWar} polishReserve={polishReserve} setPolishReserve={setPolishReserve}
+              warTargetAllowed={warTargetAllowed} canDeclareWar={canDeclareWar}
+              secondTargetOptions={secondTargetOptions} secondTargetValue={secondTargetValue} setSecondTarget={setSecondTarget}
+              warPrimaryValue={warPrimaryValue} setWarPrimary={setWarPrimary}
+              forbidPlayers={forbidPlayers} setForbidPlayers={setForbidPlayers} forbidPlayersAllowed={forbidPlayersAllowed}
+              polishReserve={polishReserve} setPolishReserve={setPolishReserve}
               selectedUnitDef={selectedUnitDef} setSelectedUnit={setSelectedUnit}
               battleFrom={battleFrom} setBattleFrom={(id) => setBattleFrom.current(id)}
               navalFrom={navalFrom} setNavalFrom={(id) => setNavalFrom.current(id)}

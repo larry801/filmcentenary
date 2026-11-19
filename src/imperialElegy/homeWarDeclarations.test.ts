@@ -4,7 +4,9 @@
  * Errata 12.17 funds the declaration from the card rather than from impulse
  * CP.  Each card also prints its own target/aim limits:
  *
- *   FR-6 Aux Armes, Citoyens! — aims open; conquest may target two keys.
+ *   FR-6 Aux Armes, Citoyens! — aims open; conquest may target two keys or
+ *                               two different powers, and either choice lets
+ *                               neutral powers join the defending side.
  *   RU-9 Russo-Turkish Wars   — only the Ottomans; liberation may reach
  *                               non-rebellious Balkan spaces; conquest skips
  *                               the WTT/stability penalty.
@@ -20,13 +22,14 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
+import {warBudgetFor} from "./engine/limitedWar";
 import {
   AUX_ARMES_HOME_CARD,
   JIHAD_HOME_CARD,
   RUSSO_TURKISH_WARS_HOME_CARD,
   warDeclarationEntitlement,
 } from "./engine/rules";
-import {declareWar, playCard, resolvePending} from "./moves";
+import {declareWar, joinWarAsNeutral, playCard, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -96,6 +99,52 @@ describe("Aux Armes, Citoyens! declaration entitlement", () => {
       .toBeUndefined();
     expect(G.war?.objectives).toEqual(["silesia", "pomerania"]);
     expect(G.war?.declarationCard).toBe(AUX_ARMES_HOME_CARD);
+  });
+
+  test("a conquest may target two different powers", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("FR")), "GE", "conquest", ["silesia", "pomerania"], 3, {
+      secondTarget: "AU",
+    })).toBeUndefined();
+    expect(G.war?.defender).toBe("GE");
+    expect(G.war?.coDefenders).toEqual(["AU"]);
+    expect(G.war?.defenderAllies).toContain("AU");
+    // "if you do either, neutral powers can join the war against you."
+    expect(G.war?.allowNeutralJoin).toBe(true);
+  });
+
+  test("two keys alone also open the war to neutral volunteers", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("FR")), "GE", "conquest", ["silesia", "pomerania"], 3))
+      .toBeUndefined();
+    expect(G.war?.coDefenders).toBeUndefined();
+    expect(G.war?.allowNeutralJoin).toBe(true);
+  });
+
+  test("a single-key, single-power conquest keeps neutral powers out", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("FR")), "GE", "conquest", ["silesia"], 3)).toBeUndefined();
+    expect(G.war?.allowNeutralJoin).toBeUndefined();
+  });
+
+  test("a neutral power may volunteer for the defending side", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("FR")), "GE", "conquest", ["silesia", "pomerania"], 3))
+      .toBeUndefined();
+    G.powers.UK.hand = ["IE-H-UK-3"];
+    expect(joinWarAsNeutral(G, makeCtx([], seat("UK")), "IE-H-UK-3")).toBeUndefined();
+    expect(G.war?.defenderAllies).toContain("UK");
+    expect(G.war?.budgets.UK).toBe(warBudgetFor(G, "UK", 3));
+    expect(G.powers.UK.hand).not.toContain("IE-H-UK-3");
+    expect(G.discard).toContain("IE-H-UK-3");
+  });
+
+  test("a war without the clause refuses neutral volunteers", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    expect(declareWar(G, makeCtx([], seat("FR")), "GE", "conquest", ["silesia"], 3)).toBeUndefined();
+    G.powers.UK.hand = ["IE-H-UK-3"];
+    expect(joinWarAsNeutral(G, makeCtx([], seat("UK")), "IE-H-UK-3")).toBe(INVALID_MOVE);
+    expect(G.war?.defenderAllies).not.toContain("UK");
   });
 
   test("the declaration must still commit the full printed CP", () => {
