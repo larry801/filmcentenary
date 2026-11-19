@@ -361,6 +361,38 @@ aim/CP、`{minor}` 目标参数、无授权时的普通控件）。
 卡面的“可同时指定两个不同国家”与“宣战后可禁止其他玩家参战”已按下文
 §3.14 补齐；另外三张“用本牌 CP 宣战”的本国牌见 §3.13。
 
+### 3.12.1 宣战目标弹窗 / the declaration target chooser
+
+玩家复报“俾斯麦事件之后不能统一战争”：引擎已能宣战，但 UI 只在地图上选中
+一个合法目标空间之后才显示宣战块。俾斯麦的统一战争目标（丹麦、巴伐利亚、
+萨克森、汉诺威等）往往不是玩家会主动点开的格子，事件结算后界面看起来像
+“什么都没发生”。
+
+**Fix (2026-11-19).** 四张“用本牌 CP 宣战”的本国牌共用一套目标选择器：
+
+- 新增 `engine/declarationTargets.ts`。`declarationTargetCandidates` 逐个
+  （防守方 × 卡面允许的战争目标 × 目标空间）调用 `declareWar` 同一套
+  `warDeclarationTargetLegal` / `minorWarInfo` / `validateWarAim` 校验，返回
+  所有**当前合法**的完整宣战；13.0 世界紧张 3+、13.5 停战、被淘汰席位与
+  非玩家国家的玩家盟友都按宣战路径处理。列表不提供引擎会拒绝的选项。
+- `components/WarTargetDialog.tsx` 把这些候选按防守方分组显示；卡面开放
+  战争目标时（Aux Armes / RU-9 / Jihad）先过滤目标。选中一行后地图自动
+  选中该目标空间，原宣战面板立即出现，由玩家确认并追加可选条款（14.1
+  第二国、主要防守方、俾斯麦禁止参战、Aux Armes 第二关键区）。
+- 事件结算、`warDeclaration` 授权生效时弹窗**自动打开**，不需要玩家先找
+  格子；关闭后 Orders 面板保留 `ie-war-target-prompt` 的“选择战争目标”
+  按钮可再次打开。没有合法目标时按钮禁用并说明原因，玩家仍可直接交出
+  行动轮。
+- 事件、弹窗与面板互斥：只在行动阶段、无待决、无战争、且是该席位自己的
+  行动轮时出现；热座只在实际查看的席位上弹窗（`isCurrentSeat`）。
+
+回归：`src/imperialElegy/declarationTargets.test.ts`（9 个断言，含“每个候选
+都能被 `declareWar` 接受”）、`components/warTargetDialog.test.tsx`（7 个
+断言：自动弹出、分组、目标过滤、关闭/重开、旁观席不可见）以及
+`e2e/imperial-elegy-controls.spec.ts` 的俾斯麦端到端用例（选本国牌 → 打事件
+→ 弹窗选阿尔萨斯-洛林 → 宣传统一战争）。
+
+
 ### 3.13 其余三张宣战本国牌的授权与目标限制 / the other three declaration home cards
 
 卡面：

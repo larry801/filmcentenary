@@ -13,6 +13,7 @@ import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types"
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationAllowsTwoPowers, warDeclarationAims, warDeclarationEntitlement, warDeclarationMayForbidJoins, warDeclarationTargetLegal} from "../engine/rules";
+import {declarationTargetCandidates, type WarTargetCandidate} from "../engine/declarationTargets";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -1242,6 +1243,48 @@ export const useBoardModel = ({
     && warTargetAllowed
     && (warEntitlement !== null || G.cpRemaining >= warCp);
 
+  // The target chooser for a live home-card declaration entitlement.  Playing
+  // Bismarck / Aux Armes / Russo-Turkish Wars / Jihad leaves the declaration
+  // open, and the seat used to have to find a legal objective on the map before
+  // any Declare war control appeared.  The chooser opens as soon as the card
+  // resolves, lists only declarations `declareWar` accepts, and hands the
+  // chosen objective to the existing declaration form (which keeps its 14.1
+  // second-power/join clauses).  The entitlement object is rebuilt every
+  // render, so the (space-scanning) enumeration is keyed on its printed
+  // identity plus the state object instead.
+  const warTargetEntitlementKey = warEntitlement !== null && viewer !== null
+    ? `${viewer}:${warEntitlement.card}:${G.turn}`
+    : null;
+  const warTargetCandidates = React.useMemo(
+    () => (viewer !== null ? declarationTargetCandidates(G, viewer, warEntitlement) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [G, viewer, warTargetEntitlementKey],
+  );
+  const [dismissedWarTargets, setDismissedWarTargets] = React.useState<string | null>(null);
+  // Derived rather than an effect: a new entitlement key (a freshly played card)
+  // reopens the chooser, while dismissing it records that key so it stays shut
+  // until the prompt or a new card reopens it.  A pending decision or a running
+  // war hides it without losing that state.
+  const warTargetsOpen = warTargetEntitlementKey !== null
+    && dismissedWarTargets !== warTargetEntitlementKey
+    && canActionCard
+    && war === null
+    && warTargetCandidates.length > 0;
+  const setWarTargetsOpen = React.useCallback((open: boolean): void => {
+    setDismissedWarTargets(open ? null : warTargetEntitlementKey);
+  }, [warTargetEntitlementKey]);
+  const chooseWarTarget = React.useCallback((candidate: WarTargetCandidate): void => {
+    setWarAim(candidate.aim);
+    setSecondObjective("");
+    // Selecting the objective space opens the ordinary declaration block for
+    // that defender; its aim/CP are already locked to the card.  Cancelling
+    // first leaves an armed unit-targeting mode, whose clicks submit a move,
+    // so the chooser's click can never be swallowed by a stale targeting state.
+    dispatch({type: "cancel"});
+    dispatch({type: "selectSpace", space: candidate.objective});
+    setDismissedWarTargets(warTargetEntitlementKey);
+  }, [dispatch, setWarAim, setSecondObjective, warTargetEntitlementKey]);
+
   const gwOrderPowers = gw
     ? gw.order.map((slot) => (isPowerKey(slot) ? slot : null)).filter((p): p is Power => p !== null)
     : [];
@@ -1666,6 +1709,10 @@ export const useBoardModel = ({
     warMinorTarget,
     warEntitlement,
     warTargetAllowed,
+    warTargetCandidates,
+    warTargetsOpen,
+    setWarTargetsOpen,
+    chooseWarTarget,
     targetControlledSpaces,
     canDeclareWar,
     secondTargetOptions,

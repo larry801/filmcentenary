@@ -10,6 +10,7 @@
  */
 import type {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import type {WarDeclarationEntitlement} from "../engine/rules";
+import type {WarTargetCandidate} from "../engine/declarationTargets";
 import type {PhaseAction} from "./PhaseActions";
 import type {CardChoiceFace} from "./CardChoice";
 import type {HandChoicesProps} from "./HandChoices";
@@ -296,6 +297,17 @@ export interface ModelValues {
   warEntitlement?: WarDeclarationEntitlement | null;
   /** False when the live card's printed target list excludes the selected defender. */
   warTargetAllowed: boolean;
+  /**
+   * Every declaration the live entitlement can make (engine/declarationTargets).
+   * The chooser lists these so the player decides the target instead of hunting
+   * for a legal objective space on the map.
+   */
+  warTargetCandidates: WarTargetCandidate[];
+  /** Whether the chooser is open; it opens by itself when the card resolves. */
+  warTargetsOpen: boolean;
+  setWarTargetsOpen: (open: boolean) => void;
+  /** Picks a candidate: selects its objective and opens the declaration form. */
+  chooseWarTarget: (candidate: WarTargetCandidate) => void;
   targetControlledSpaces: SpaceId[];
   canDeclareWar: boolean;
   /** Rule 14.1: legal second player powers for the live home card. */

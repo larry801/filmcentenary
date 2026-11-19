@@ -63,6 +63,7 @@ const ORDERS_KEYS = [
   "canActionCard", "pending", "canDecide", "war", "warAim", "setWarAim", "warCp", "setWarCp",
   "secondObjective", "setSecondObjective", "targetControlledSpaces", "warTargetControl", "onOpenReference",
   "warMinorTarget", "warEntitlement", "warTargetAllowed",
+  "warTargetCandidates", "warTargetsOpen", "setWarTargetsOpen", "chooseWarTarget",
   "canDeclareWar", "secondTargetOptions", "secondTargetValue", "setSecondTarget",
   "warPrimaryValue", "setWarPrimary", "forbidPlayers", "setForbidPlayers", "forbidPlayersAllowed",
   "gwJointNavalAllies", "gwJointNavalUnitIds", "polishReserve", "setPolishReserve",

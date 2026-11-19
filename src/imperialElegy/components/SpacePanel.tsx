@@ -257,6 +257,10 @@ export interface SpaceActionsPanelProps extends SpaceBaseProps {
   warEntitlement?: WarDeclarationEntitlement | null;
   /** False when the card's printed target list excludes the selected defender. */
   warTargetAllowed?: boolean;
+  /** How many declarations the chooser can offer right now (engine list). */
+  warTargetCount?: number;
+  /** Opens the target chooser (the dialog also opens by itself on the event). */
+  onOpenWarTargets?: () => void;
   canDeclareWar: boolean;
   /** Rule 14.1: player powers the live card may name as a second target. */
   secondTargetOptions?: Power[];
@@ -318,7 +322,8 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
     G, selected, viewer, locale, t, canAct, onOpenReference,
     rows, cpRemaining, canActionCard, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
-    targetControlledSpaces, warTargetControl, warMinorTarget = null, warEntitlement = null, warTargetAllowed = true, canDeclareWar,
+    targetControlledSpaces, warTargetControl, warMinorTarget = null, warEntitlement = null, warTargetAllowed = true,
+    warTargetCount = 0, onOpenWarTargets, canDeclareWar,
     secondTargetOptions = [], secondTargetValue: liveSecondTarget = "", setSecondTarget,
     warPrimaryValue = "", setWarPrimary, forbidPlayers = false, setForbidPlayers, forbidPlayersAllowed = false,
     polishReserve, setPolishReserve, selectedUnitDef, setSelectedUnit,
@@ -544,6 +549,47 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
         </div>
       )}
 
+      {/*
+        * The target chooser's prompt.  A home-card declaration (Bismarck, Aux
+        * Armes, Russo-Turkish Wars, Jihad) is often aimed at a non-player power
+        * the reader has no reason to have selected, so the declaration used to
+        * stay invisible until a legal objective was picked on the map.  The
+        * prompt puts a "choose the war target" control in front of the seat for
+        * as long as the entitlement is live; the dialog itself also opens as
+        * soon as the card resolves.
+        */}
+      {canActionCard && war === null && warEntitlement !== null && declarationTarget === null && (
+        <div className="ie-war-declare" data-testid="ie-war-target-prompt">
+          <div className="ie-action-group-title">{t.declareWar}</div>
+          <div className="ie-inline">
+            <button
+              type="button"
+              className="ie-btn"
+              data-testid="ie-war-target-open"
+              disabled={warTargetCount === 0}
+              onClick={() => onOpenWarTargets?.()}
+            >
+              {bi(locale, "Choose war target", "选择战争目标")}
+            </button>
+            <span className="ie-muted" data-testid="ie-war-target-prompt-count">
+              {bi(locale, `${warTargetCount} legal declarations`, `${warTargetCount} 个合法宣战`)}
+            </span>
+          </div>
+          <div className="ie-hint">
+            {bi(locale,
+              "This card funds one declaration with its printed CP. Pick the target here, or click its objective space on the map.",
+              "本牌以印制的 CP 支付一次宣战。可在此选择目标，或直接在地图上点击目标空间。")}
+          </div>
+          {warTargetCount === 0 && (
+            <div className="ie-hint" data-testid="ie-war-target-none">
+              {bi(locale,
+                "No legal target right now (World Tension 3+, a truce, or no space matches the card). Hand the impulse over to keep the card unspent.",
+                "当前没有合法目标（世界紧张 3+、停战，或没有符合卡面的空间）。可直接交出行动轮。")}
+            </div>
+          )}
+        </div>
+      )}
+
       {canActionCard && war === null && declarationTarget !== null && selected !== null && (
         <div className="ie-war-declare" data-testid="ie-war-declare">
           <div className="ie-action-group-title">{t.declareWar}</div>
@@ -634,8 +680,8 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
           {warEntitlement !== null && (
             <div className="ie-hint" data-testid="ie-war-entitlement">
               {bi(locale,
-                `${warEntitlement.card === BISMARCK_HOME_CARD ? "Bismarck" : "The card"} funds this declaration with its printed CP; choose the objective on the map.`,
-                `本牌以印制的 CP 支付宣战费用；请在地图上选择战争目标。`)}
+                `${warEntitlement.card === BISMARCK_HOME_CARD ? "Bismarck" : "The card"} funds this declaration with its printed CP; the target space is selected, and may be reselected on the map.`,
+                `本牌以印制的 CP 支付宣战费用；目标空间已选中，也可在地图上改选。`)}
             </div>
           )}
           {secondTargetOptions.length > 0 && (
@@ -730,6 +776,8 @@ export interface SpacePanelProps extends SpaceBaseProps {
   warMinorTarget?: string | null;
   warEntitlement?: WarDeclarationEntitlement | null;
   warTargetAllowed?: boolean;
+  warTargetCount?: number;
+  onOpenWarTargets?: () => void;
   canDeclareWar?: boolean;
   polishReserve?: boolean;
   setPolishReserve?: (b: boolean) => void;
@@ -859,6 +907,8 @@ export const SpacePanel = (props: SpacePanelProps) => {
         warMinorTarget={props.warMinorTarget ?? null}
         warEntitlement={props.warEntitlement ?? null}
         warTargetAllowed={props.warTargetAllowed ?? true}
+        warTargetCount={props.warTargetCount ?? 0}
+        onOpenWarTargets={props.onOpenWarTargets}
         canDeclareWar={props.canDeclareWar ?? false}
         polishReserve={polishReserve ?? false}
         setPolishReserve={props.setPolishReserve ?? (() => undefined)}
