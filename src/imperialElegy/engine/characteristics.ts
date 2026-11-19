@@ -964,9 +964,13 @@ export const canRecruitIn = (
     const sameKind = landUnitsIn(G, space).filter(
       (unit) => unit.owner === power && unit.kind === "army" && (unit.flags?.cw === true) === (ctx.cw === true),
     );
-    const canUpgrade = sameKind.some((unit) => unit.steps < 2);
+    // A reduced army of the same nationality is flipped in place: it adds no
+    // counter, so neither the stacking cap nor a manpower/counter ceiling may
+    // block it.  Every power starts the campaign at its manpower track, so
+    // without this exception no starting reduced army could ever be refit.
+    const upgrade = sameKind.some((unit) => unit.steps < 2);
     const armies = landUnitsIn(G, space).filter((unit) => isArmyKind(unit.kind)).length;
-    const stacked = !canUpgrade && armies >= landStackingLimit(space);
+    const stacked = !upgrade && armies >= landStackingLimit(space);
     const reject = (reasons: string[]): RecruitDecision =>
       stacked
         ? {power, space, kind, allowed: false, reasons: [...reasons.filter((r) => r !== "Recruitment legal"), "Stacking limit reached"]}
@@ -981,36 +985,40 @@ export const canRecruitIn = (
         if (!isCwArmySpace(space)) {
           return reject(["The CW army must be built in Australia/New Zealand or Canada"]);
         }
-        const colonial = Math.max(0, G.powers.UK.secondaryManpower ?? 0);
-        if (colonial <= 0) {
-          return reject(["No colonial manpower available"]);
-        }
-        if (currentColonialArmies(G) >= colonial) {
-          return reject([`Colonial manpower limit ${colonial} reached for Indian and CW armies`]);
+        if (!upgrade) {
+          const colonial = Math.max(0, G.powers.UK.secondaryManpower ?? 0);
+          if (colonial <= 0) {
+            return reject(["No colonial manpower available"]);
+          }
+          if (currentColonialArmies(G) >= colonial) {
+            return reject([`Colonial manpower limit ${colonial} reached for Indian and CW armies`]);
+          }
         }
         return stacked ? reject(["CW army within colonial manpower"]) : {power, space, kind, allowed: true, reasons: ["CW army within colonial manpower"]};
       }
       // The Indian Army (33.2): Indian armies draw on colonial manpower, never
       // on British manpower, and the UK may field no more than that track.
       if (ctx.indian === true) {
-        if (G.powers.UK.indiaIndependent) {
-          return reject(["India is independent: no new Indian armies may be built"]);
-        }
-        const colonial = G.powers.UK.secondaryManpower ?? 0;
-        if (colonial <= 0) {
-          return reject(["No colonial manpower available"]);
-        }
-        const cap = indianArmyCap(G);
-        // 33.2.1: Indian and CW armies share the colonial-manpower ceiling.
-        if (currentColonialArmies(G) >= cap) {
-          return reject([`Colonial manpower limit ${cap} reached for Indian and CW armies`]);
+        if (!upgrade) {
+          if (G.powers.UK.indiaIndependent) {
+            return reject(["India is independent: no new Indian armies may be built"]);
+          }
+          const colonial = G.powers.UK.secondaryManpower ?? 0;
+          if (colonial <= 0) {
+            return reject(["No colonial manpower available"]);
+          }
+          const cap = indianArmyCap(G);
+          // 33.2.1: Indian and CW armies share the colonial-manpower ceiling.
+          if (currentColonialArmies(G) >= cap) {
+            return reject([`Colonial manpower limit ${cap} reached for Indian and CW armies`]);
+          }
         }
         return stacked ? reject(["Indian army within colonial manpower"]) : {power, space, kind, allowed: true, reasons: ["Indian army within colonial manpower"]};
       }
-      if (limits.british?.preGw && !limits.british.canBuildAnotherBritishArmy) {
+      if (!upgrade && limits.british?.preGw && !limits.british.canBuildAnotherBritishArmy) {
         return reject(["Professional Army: only the 1st British Army may be built before the GW"]);
       }
-      if (!limits.british?.preGw && limits.currentArmies >= limits.armyLimit) {
+      if (!upgrade && !limits.british?.preGw && limits.currentArmies >= limits.armyLimit) {
         return reject([`British manpower limit ${limits.armyLimit} reached`]);
       }
     } else if (power === "OT") {
@@ -1022,11 +1030,13 @@ export const canRecruitIn = (
         ) {
           return reject(["Arab armies may only be built in Arab/Egyptian keys"]);
         }
-        if ((G.powers.OT.secondaryManpower ?? 0) <= 0) {
-          return reject(["No Arab manpower available"]);
-        }
-        if (currentOttomanArmies(G, "arab") >= (G.powers.OT.secondaryManpower ?? 0)) {
-          return reject(["Arab manpower limit reached"]);
+        if (!upgrade) {
+          if ((G.powers.OT.secondaryManpower ?? 0) <= 0) {
+            return reject(["No Arab manpower available"]);
+          }
+          if (currentOttomanArmies(G, "arab") >= (G.powers.OT.secondaryManpower ?? 0)) {
+            return reject(["Arab manpower limit reached"]);
+          }
         }
       } else {
         if (isArabKey(space)) {
@@ -1036,11 +1046,11 @@ export const canRecruitIn = (
         if (minority) {
           return reject(["Ottoman Manpower: Turkish armies need a key without a minority nationality"]);
         }
-        if (currentOttomanArmies(G, "turkish") >= G.powers.OT.manpower) {
+        if (!upgrade && currentOttomanArmies(G, "turkish") >= G.powers.OT.manpower) {
           return reject([`Turkish manpower limit ${G.powers.OT.manpower} reached`]);
         }
       }
-    } else if (limits.currentArmies >= limits.armyLimit) {
+    } else if (!upgrade && limits.currentArmies >= limits.armyLimit) {
       return reject([`Manpower/army limit ${limits.armyLimit} reached`]);
     }
     // Nothing else forbids the build, so the stacking cap is the only reason.

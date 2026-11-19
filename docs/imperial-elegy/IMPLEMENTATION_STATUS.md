@@ -27,6 +27,28 @@ Local verification for this pass (2026-11-18, branch `feature/ie-visual-system`)
 Remote GitHub Actions remains authoritative (AGENTS.md §7/§10); the local run
 is not a substitute.
 
+## Fixed: a reduced army could not be refit at the manpower ceiling (2026-11-19)
+
+Reported as "帝国挽歌找不到把 reduced army 用 CP 恢复成 full 的入口".  The entry
+is 12.2's **Recruit army** row (`recruitArmy`, 1 CP) in a controlled home key;
+`recruit` already flips a reduced counter in place.  But `canRecruitIn` applied
+the manpower/counter ceilings before its stacking exception, and every power
+starts the campaign at its manpower track (GE 2/2, RU 5/5, OT 3/3 …), so the
+row was always disabled and folded away behind "show unavailable".
+
+- `characteristics.ts#canRecruitIn`: a same-kind reduced army makes the build a
+  refit; the manpower, British/Indian/CW colonial and Ottoman Turkish/Arab
+  ceilings no longer refuse it (they count counters, and a flip adds none).  The
+  home-key, control, A83 and Ottoman placement gates still apply.
+- `moves.ts#recruit`: the flip targets the reduced counter
+  (`existing.find((unit) => unit.steps < 2)`) instead of `existing[0]`, so a
+  stack with a full army ahead of a reduced one refits the reduced one.
+- `endPhase.ts#militarismOptions` reads the same helper, so 20.1's free army
+  step no longer needs a spare manpower slot before it can refit.
+
+Coverage: `recruitmentLimitsLive.test.ts` (5 new) and
+`components/actionAvailability.test.ts` (2 new).
+
 ## Fixed: two-power declarations and join limits (2026-11-19)
 
 The remaining card-text gaps from §3.12/§3.13 of `CARD_EVENTS.md` are now live:

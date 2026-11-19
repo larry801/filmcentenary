@@ -15,6 +15,7 @@ import {Ctx} from "boardgame.io";
 import {POWERS, Power, SpaceId, Unit} from "../types";
 import {setupImperialElegy} from "../engine/setup";
 import {placeUnit} from "../engine/effects";
+import {landUnitsIn} from "../engine/rules";
 import * as moves from "../moves";
 import {ACTION_COSTS, ACTION_COST_ORDER, spaceActions, type SpaceAction, type SpaceActionsInput} from "./actionAvailability";
 
@@ -248,6 +249,25 @@ describe("12.4 refit a reduced fleet from the Orders panel", () => {
     const rows = spaceActions(input({G, viewer: "FR", space: "provence", selectedUnit: fleet.id, cp: 0}));
     const refit = row(rows, "refitFleet");
     expect(refit?.enabled).toBe(false);
+  });
+});
+
+describe("12.2 refit a reduced army from the Orders panel", () => {
+  test("a reduced army at the manpower ceiling still offers the 1 CP recruit row", () => {
+    const G = game("GE", 4);
+    const army = landUnitsIn(G, "berlin").find((unit) => unit.owner === "GE" && unit.kind === "army")!;
+    army.steps = 1;
+    const rows = spaceActions(input({G, viewer: "GE", space: "berlin"}));
+    const recruit = row(rows, "recruitArmy");
+    expect(recruit?.cost).toBe(1);
+    expect(recruit?.enabled).toBe(true);
+  });
+
+  test("a full army at the ceiling keeps the row disabled with the manpower reason", () => {
+    const G = game("GE", 4);
+    const recruit = row(spaceActions(input({G, viewer: "GE", space: "berlin"})), "recruitArmy");
+    expect(recruit?.enabled).toBe(false);
+    expect(recruit?.reason).toMatch(/Manpower/);
   });
 });
 
