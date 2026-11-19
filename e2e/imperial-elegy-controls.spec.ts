@@ -1290,6 +1290,91 @@ test.describe("Imperial Elegy mobile drawer", () => {
         else await expect(decisionPeek).toBeHidden();
     });
 
+    test("two-finger zoom survives the fingers lifting one at a time", async ({page}) => {
+        await openLocal(page);
+        const board = boardFor(page, "GE");
+        const map = board.locator('[data-testid="ie-map"]');
+        await expect(map).toBeVisible();
+        const zoom = async () => Number(await map.getAttribute("data-k"));
+        await expect.poll(zoom).toBeGreaterThan(1);
+
+        // A pinch is two touches on the same element.  Pointer events carry the
+        // fingers, so they are dispatched as touch pointers with their own ids;
+        // the map listens to exactly those.  A real hand lifts the two fingers a
+        // frame or two apart, and the survivor always drifts a few pixels — that
+        // drift used to snap the map back to the zoom the whole gesture started
+        // at, which read as the pinch itself being undone.
+        const trace = await page.evaluate(async () => {
+            const node = document.querySelector('[data-testid="ie-seat-GE"] [data-testid="ie-map"]');
+            if (node === null) throw new Error("no map");
+            const box = node.getBoundingClientRect();
+            const cx = box.left + box.width / 2;
+            const cy = box.top + box.height / 2;
+            const fire = (type: string, id: number, x: number, y: number) => node.dispatchEvent(new PointerEvent(type, {
+                pointerId: id, pointerType: "touch", isPrimary: id === 1,
+                button: 0, buttons: type === "pointerup" ? 0 : 1,
+                clientX: x, clientY: y, bubbles: true, cancelable: true,
+            }));
+            const frame = () => new Promise((resolve) => requestAnimationFrame(() => setTimeout(resolve, 0)));
+            const k = () => Number((node as HTMLElement).dataset.k);
+            const seen: {step: string; k: number}[] = [];
+            seen.push({step: "before", k: k()});
+
+            fire("pointerdown", 1, cx - 10, cy);
+            fire("pointerdown", 2, cx + 10, cy);
+            await frame();
+            for (let i = 1; i <= 6; i += 1) {
+                fire("pointermove", 1, cx - 10 - i * 10, cy);
+                fire("pointermove", 2, cx + 10 + i * 10, cy);
+                await frame();
+            }
+            seen.push({step: "pinched", k: k()});
+            // The second finger lifts first, then the first drifts before it goes.
+            fire("pointerup", 2, cx + 70, cy);
+            await frame();
+            seen.push({step: "one finger up", k: k()});
+            for (let i = 1; i <= 3; i += 1) {
+                fire("pointermove", 1, cx - 70 - i * 4, cy);
+                await frame();
+                seen.push({step: `survivor drift ${i}`, k: k()});
+            }
+            fire("pointerup", 1, cx - 82, cy);
+            await frame();
+            seen.push({step: "released", k: k()});
+            return seen;
+        });
+
+        const at = (step: string) => trace.find((entry) => entry.step === step)!.k;
+        // The gesture really zoomed, and nothing after the pinch undid it.
+        expect(at("pinched")).toBeGreaterThan(trace[0].k * 1.4);
+        for (const entry of trace.slice(1)) {
+            expect(entry.k, `the zoom is kept at "${entry.step}"`).toBeCloseTo(at("pinched"), 1);
+        }
+        // And the map really is drawn at that new zoom, not merely reporting it.
+        expect(at("released")).toBeCloseTo(await zoom(), 1);
+    });
+
+    test("a zoomed-in map keeps its zoom when the phone's viewport resizes", async ({page}) => {
+        await openLocal(page);
+        const board = boardFor(page, "GE");
+        const map = board.locator('[data-testid="ie-map"]');
+        await expect(map).toBeVisible();
+        const zoom = async () => Number(await map.getAttribute("data-k"));
+
+        // Zoom in past the opening framing, so a re-frame is unmistakable.
+        const controls = board.locator(".ie-map-controls button");
+        for (let i = 0; i < 3; i += 1) await controls.first().click();
+        const zoomed = await zoom();
+        expect(zoomed).toBeGreaterThan(2.5);
+
+        // The browser chrome slides away and back: the map element is measured
+        // again, and re-framing on that measurement threw the player's zoom away.
+        await page.setViewportSize({width: 390, height: 880});
+        await expect.poll(zoom).toBeCloseTo(zoomed, 1);
+        await page.setViewportSize({width: 390, height: 760});
+        await expect.poll(zoom).toBeCloseTo(zoomed, 1);
+    });
+
     test("the Hand tab opens the sheet and every tab shows its own pane", async ({page}) => {
         await openLocal(page);
         const dock = dockFor(page);

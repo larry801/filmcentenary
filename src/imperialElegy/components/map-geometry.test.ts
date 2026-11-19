@@ -16,6 +16,7 @@ import {
   labelBox,
   markerTier,
   nearestCandidate,
+  panBy,
   placeLabels,
   shrinkMarkers,
   theatreById,
@@ -263,6 +264,38 @@ describe("drag threshold", () => {
 
   test("units per pixel falls as zoom rises", () => {
     expect(unitsPerPixel(SCREEN, BOARD, 2)).toBeCloseTo(unitsPerPixel(SCREEN, BOARD, 1) / 2, 6);
+  });
+});
+
+describe("panning after a pinch", () => {
+  const fit = Math.min(SCREEN.width / BOARD.width, SCREEN.height / BOARD.height);
+
+  test("pans by the pointer step at the current zoom", () => {
+    const view = {k: 3, x: -2000, y: -1500};
+    const moved = panBy(view, 90, 45, fit, BOARD);
+    expect(moved.k).toBe(3);
+    expect(moved.x).toBeCloseTo(view.x + 90 / fit, 6);
+    expect(moved.y).toBeCloseTo(view.y + 45 / fit, 6);
+  });
+
+  test("a step from the zoom the pinch reached does not undo the pinch", () => {
+    // The finger left on the glass drifts a few pixels after the other one
+    // lifts.  It must pan the zoomed view, not drag it back to the zoom the
+    // whole gesture started at (the old bug: the gesture's stored view).
+    const pinched = zoomAt({k: 1, x: 0, y: 0}, 4, {x: 3000, y: 2500}, BOARD);
+    const after = panBy(pinched, 8, -6, fit, BOARD);
+    expect(after.k).toBeCloseTo(pinched.k, 6);
+    expect(after.k).toBeGreaterThan(1);
+    expect(after.x).toBeCloseTo(pinched.x + 8 / fit, 6);
+    expect(after.y).toBeCloseTo(pinched.y - 6 / fit, 6);
+  });
+
+  test("panning is still clamped so the board covers the viewport", () => {
+    const view = zoomAt({k: 1, x: 0, y: 0}, 2, {x: 3000, y: 2500}, BOARD);
+    const flung = panBy(view, 100000, -100000, fit, BOARD);
+    expect(flung.k).toBe(view.k);
+    expect(flung.x).toBe(BOARD.x * (1 - view.k));
+    expect(flung.y).toBe((BOARD.y + BOARD.height) * (1 - view.k));
   });
 });
 

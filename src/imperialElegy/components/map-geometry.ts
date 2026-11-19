@@ -89,6 +89,41 @@ export const clampView = (view: MapView, board: BoardRect): MapView => {
   };
 };
 
+/**
+ * A press in progress: where the finger went down and whether it has moved.
+ *
+ * `x`/`y` stay at the landing point so the click-versus-drag threshold is
+ * measured from where the press began, while the pan itself is applied as an
+ * incremental delta (`panBy`).
+ */
+export interface PressRecord {
+  x: number;
+  y: number;
+  /** Set once the press travels or a second finger lands; a moved press is not a click. */
+  moved: boolean;
+}
+
+/**
+ * Pan the view by a pointer travel, in screen pixels, at the given fit.
+ *
+ * Applied against the *current* view, so two fingers can zoom and the one left
+ * on the glass can then pan without undoing the pinch: fingers never leave the
+ * glass together, and the survivor's few pixels of drift used to snap the map
+ * back to the zoom the whole gesture started at.
+ */
+export const panBy = (
+  view: MapView,
+  dxPx: number,
+  dyPx: number,
+  fit: number,
+  board: BoardRect,
+): MapView =>
+  clampView({
+    k: view.k,
+    x: view.x + dxPx / fit,
+    y: view.y + dyPx / fit,
+  }, board);
+
 /** Zoom by `factor` while keeping the board point under `anchor` still. */
 export const zoomAt = (view: MapView, factor: number, anchor: Point, board: BoardRect): MapView => {
   const k = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, view.k * factor));

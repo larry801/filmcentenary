@@ -18,13 +18,14 @@ import {
   MAX_ZOOM,
   MIN_ZOOM,
   MapView,
-  centreOn,
-  clampView,
   MarkerPoint,
+  PressRecord,
   Theatre,
+  centreOn,
   hitRadiusUnits,
   markerTier,
   nearestCandidate,
+  panBy,
   placeLabels,
   shrinkMarkers,
   theatreById,
@@ -243,13 +244,16 @@ export const IEMap = React.memo(
     frame = null, homeCapital = null}: IEMapProps) => {
     const t = ieT();
     const [view, setView] = React.useState<MapView>({k: MIN_ZOOM, x: 0, y: 0});
-    /** The size the map was last framed for; null until the first measurement. */
-    const framedFor = React.useRef<number | null>(null);
-    const [size, setSize] = React.useState({width: 960, height: 600});
+    /** Whether the map has framed itself once. After that the view belongs to the player. */
+    const framed = React.useRef(false);
+    /** The capital the current framing was for: a late or changed seat still frames. */
+    const framedCapital = React.useRef<SpaceId | null>(null);    const [size, setSize] = React.useState({width: 960, height: 600});
+    /** False until the observer has replaced the 960x600 guess with a real size. */
+    const [measured, setMeasured] = React.useState(false);
     const [dragging, setDragging] = React.useState(false);
     const svgRef = React.useRef<SVGSVGElement | null>(null);
     const pointers = React.useRef(new Map<number, {x: number; y: number}>());
-    const press = React.useRef<{x: number; y: number; view: MapView; moved: boolean} | null>(null);
+    const press = React.useRef<PressRecord | null>(null);
     const coarse = React.useRef(false);
 
     // Stack tokens and their popover.  `hovered` marks the space whose stack
@@ -324,7 +328,10 @@ export const IEMap = React.memo(
       if (!node || typeof ResizeObserver === "undefined") return;
       const observer = new ResizeObserver((entries) => {
         const box = entries[0]?.contentRect;
-        if (box && box.width > 0 && box.height > 0) setSize({width: box.width, height: box.height});
+        if (box && box.width > 0 && box.height > 0) {
+          setSize({width: box.width, height: box.height});
+          setMeasured(true);
+        }
       });
       observer.observe(node);
       return () => observer.disconnect();
@@ -348,22 +355,39 @@ export const IEMap = React.memo(
       [markerRadii],
     );
 
-    // The first frame waits for a real measurement: the panel's size is unknown
-    // during the first render, and framing against the 960x600 default would
-    // centre the capital off screen.
+    // The first frame waits for a *real* measurement: the panel's size is the
+    // 960x600 guess until the observer reports, and framing against that guess
+    // would centre the capital wrong (the guess is more than twice a phone's
+    // map panel).
+    //
+    // Later size changes must NOT re-frame.  The map re-measures whenever the
+    // shell around it changes height — the phone's browser chrome slides away,
+    // the bottom dock opens, the rail unfolds — and re-framing there threw away
+    // whatever the player had zoomed or panned to, which is the second half of
+    // "the pinch does not stick".  The view is in board units, so it stays
+    // correct at any pixel size; only the first measurement frames the map.
+    //
+    // A different seat's capital is still a reason to re-frame: the board opens
+    // on the player's own capital, and switching seats must show that seat's war.
     React.useEffect(() => {
-      if (size.width <= 0 || size.height <= 0) return;
-      const signature = size.width * 10000 + size.height;
-      if (framedFor.current === signature) return;
-      framedFor.current = signature;
-      applyFrame({kind: "capital", space: homeCapital ?? undefined, nonce: 0}, size);
-    }, [size, homeCapital, applyFrame]);
+      if (!measured) return;
+      const first = !framed.current;
+      if (!first && framedCapital.current === homeCapital) return;
+      framed.current = true;
+      framedCapital.current = homeCapital;
+      // A framing request that arrived before the map had a size wins over the
+      // capital fallback; otherwise open on the player's own capital.
+      applyFrame(frame ?? {kind: "capital", space: homeCapital ?? undefined, nonce: 0}, size);
+    }, [measured, size, homeCapital, applyFrame, frame]);
 
-    // Explicit requests (a chip, the "fit" button) re-apply at the same size.
+    // Explicit requests (a chip, the "fit" button) re-apply when the request
+    // changes.  `size` is deliberately absent: it is not a reason to move the
+    // view, and including it re-framed the map under the player's fingers.
     React.useEffect(() => {
       if (!frame) return;
       applyFrame(frame, size);
-    }, [frame, size, applyFrame]);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [frame, applyFrame]);
 
     React.useEffect(() => {
       if (!focus) return;
@@ -408,7 +432,7 @@ export const IEMap = React.memo(
       coarse.current = event.pointerType === "touch" || event.pointerType === "pen";
       pointers.current.set(event.pointerId, {x: event.clientX, y: event.clientY});
       if (pointers.current.size === 1) {
-        press.current = {x: event.clientX, y: event.clientY, view, moved: false};
+        press.current = {x: event.clientX, y: event.clientY, moved: false};
         setDragging(true);
       } else {
         // A second finger starts a pinch, never a click.
@@ -425,16 +449,18 @@ export const IEMap = React.memo(
 
       const other = [...pointers.current.entries()].find(([id]) => id !== event.pointerId);
       if (other) {
-        // Pinch: scale about the midpoint of the two fingers.
+        // Pinch: scale about the midpoint of the two fingers.  The anchor is
+        // resolved inside the state update, against the view the gesture has
+        // actually reached: two fingers report their moves as separate events,
+        // so a view captured during this render can already be one step stale.
         const [, second] = other;
         const before = Math.hypot(previous.x - second.x, previous.y - second.y);
         const after = Math.hypot(current.x - second.x, current.y - second.y);
         if (before > 0 && after > 0) {
-          const mid = toBoardPoint(
-            {x: (previous.x + second.x) / 2, y: (previous.y + second.y) / 2},
-            rect, BOARD, view,
-          );
-          setView((v) => zoomAt(v, after / before, mid, BOARD));
+          const midX = (previous.x + second.x) / 2;
+          const midY = (previous.y + second.y) / 2;
+          const ratio = after / before;
+          setView((v) => zoomAt(v, ratio, toBoardPoint({x: midX, y: midY}, rect, BOARD, v), BOARD));
         }
         pointers.current.set(event.pointerId, current);
         return;
@@ -443,14 +469,20 @@ export const IEMap = React.memo(
       const started = press.current;
       if (!started) return;
       const travel = Math.abs(current.x - started.x) + Math.abs(current.y - started.y);
-      if (!started.moved && travel < DRAG_THRESHOLD_PX) return;
+      if (!started.moved && travel < DRAG_THRESHOLD_PX) {
+        // Still a click candidate, but keep the recorded point current so the
+        // first drag step after the threshold moves by one gesture step rather
+        // than by everything the finger has travelled so far.
+        pointers.current.set(event.pointerId, current);
+        return;
+      }
       started.moved = true;
       const fit = Math.min(rect.width / BOARD.width, rect.height / BOARD.height);
-      setView(clampView({
-        k: started.view.k,
-        x: started.view.x + (current.x - started.x) / fit,
-        y: started.view.y + (current.y - started.y) / fit,
-      }, BOARD));
+      // Pan by the step since the last move, against the view *now*.  A pinch
+      // changes the zoom mid-press, and dragging from a view captured at
+      // pointerdown would undo it: fingers never leave the glass together, so
+      // the finger left behind must pan the map the player just zoomed.
+      setView((v) => panBy(v, current.x - previous.x, current.y - previous.y, fit, BOARD));
       pointers.current.set(event.pointerId, current);
     };
 
@@ -462,6 +494,14 @@ export const IEMap = React.memo(
         // drag does not turn into a selection.
         const started = press.current;
         if (started) setTimeout(() => { if (press.current === started) press.current = null; }, 0);
+      } else if (press.current) {
+        // The pinch is over but one finger is still down: it continues as a
+        // drag from the finger's current point, and it stays a drag (a pinch
+        // never ends in a click) so lifting it selects nothing.
+        const survivor = pointers.current.get([...pointers.current.keys()][0]);
+        if (survivor) {
+          press.current = {x: survivor.x, y: survivor.y, moved: true};
+        }
       }
     };
 
