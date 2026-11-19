@@ -6,7 +6,7 @@ import {ownerOf} from "./ownership";
 import {cardById} from "./constant/cards";
 import i18n from "../constant/i18n";
 import {TUTORIAL_FORTRESSES, tutorialSpaceAllowed} from "./tutorial";
-import {addVp, atWar, bestPiracy, hits, isSeaZone, leaderPower, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
+import {addVp, atWar, bestPiracy, drawRandomMixedFromHand, hits, isSeaZone, leaderPower, powerLabel, pushLog, recordNavalLoss, removeCardFromHand, roll, shuffle, zonePorts} from "./util";
 
 const stacks = (G: VQGame, location: string) => isSeaZone(location) ? G.seaZones[location as SeaZoneID].naval : G.spaces[location].naval;
 const adjacentLocations = (zone: SeaZoneID): string[] => [...zonePorts(zone).filter(tutorialSpaceAllowed), ...SEA_ZONE_BY_ID[zone].adjacent];
@@ -28,7 +28,11 @@ export const piracyOptions = (G: VQGame): {id: string; label: string}[] => {
             if (count > 0) result.push({id: `ship:${location}:${kind}`, label: i18n.chain.vq.engine.removeFleet.replace("{space}", mapName(location)).replace("{kind}", kind), reward: "ship"});
         }
     }
-    if (G.powers[pending.target].cards.some((id) => cardById(id).kind !== "home")) result.push({id: "card", label: i18n.chain.vq.engine.allowRandomDraw, reward: "card"});
+    // Rule 16.4 step 5b + 6.3: the random draw may take a card *or* a treasure,
+    // depending on the mixed-hand counts.
+    const hasCardOrTreasure = G.powers[pending.target].cards.some((id) => cardById(id).kind !== "home") ||
+        G.powers[pending.target].treasures.length > 0;
+    if (hasCardOrTreasure) result.push({id: "card", label: i18n.chain.vq.engine.allowRandomDraw, reward: "card"});
     if (G.scenario === "tutorial") {
         if (pending.power === "ottoman") {
             if ((G.tutorialEffects?.piracyVp ?? 0) < 10) result.push({id: "vp", label: i18n.chain.vq.engine.giveOttomanPiracyVp, reward: "vp"});
@@ -38,6 +42,14 @@ export const piracyOptions = (G: VQGame): {id: string; label: string}[] => {
     } else {
         // Rule 16.4 step 5c: any active power may be awarded 1 VP for Piracy.
         result.push({id: "vp", label: i18n.chain.vq.engine.awardPiracyVp, reward: "vp"});
+        // Rule 16.4 step 5d: "Downgrade the Spanish Armada by one level if
+        // Spain was the piracy target and the Armada was in or adjacent to the
+        // sea zone where piracy occurred."
+        const armadaInRange = G.armada !== undefined && G.armada.strength > 2 &&
+            (G.armada.location === pending.zone || adjacentLocations(pending.zone).includes(G.armada.location));
+        if (pending.target === "spain" && armadaInRange) {
+            result.push({id: "armada", label: i18n.chain.vq.engine.downgradeArmada, reward: "armada"});
+        }
     }
     const minimum = Math.min(...result.map((entry) => pending.rewards[entry.reward] ?? 0));
     return result.filter((entry) => (pending.rewards[entry.reward] ?? 0) === minimum);
@@ -81,7 +93,14 @@ export const startPiracy = (G: VQGame, ctx: Ctx, power: Power, target: Power, zo
         if (space.control !== target && !atWar(G, power, space.control)) return false;
         return G.scenario === "tutorial" ? TUTORIAL_FORTRESSES.includes(id) : SPACE_BY_ID[id]?.kind === "fortress";
     }).length;
-    if (power === "ottoman" && zonePorts(zone).includes("malta") && (G.spaces.malta.land.spain?.regular ?? 0) > 0) dice += 1;
+    // Rule 16.4 step 2: "1 die if this is piracy by the Ottoman and the
+    // Knights of St. John unit is in a port adjacent to the zone where piracy
+    // is occurring."  The Knights are placed as independent regulars (#27) or
+    // Spanish regulars, so check any adjacent port for either.
+    if (power === "ottoman" && zonePorts(zone).some((id) =>
+        (G.spaces[id].land.independent?.regular ?? 0) > 0 || (G.spaces[id].land.spain?.regular ?? 0) > 0)) {
+        dice += 1;
+    }
     const defense = roll(ctx, dice);
     let remaining = hits(defense);
     const stack = G.seaZones[zone].naval[power]!;
@@ -109,9 +128,16 @@ export const choosePiracy = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
     }
     if (action === "ship") stacks(G, location)[pending.target]![kind as "galley"] -= 1;
     if (action === "card") {
-        const id = shuffle(ctx, G.powers[pending.target].cards.filter((card) => cardById(card).kind !== "home"))[0];
-        removeCardFromHand(G, pending.target, id);
-        G.powers[pending.power].cards.push(id);
+        // Rule 6.3: the mixed-hand draw may hand over a treasure instead.
+        const drawn = drawRandomMixedFromHand(G, ctx, pending.target);
+        if (drawn?.kind === "card") {
+            removeCardFromHand(G, pending.target, drawn.cardId);
+            G.powers[pending.power].cards.push(drawn.cardId);
+            pushLog(G, `${powerLabel(pending.power)} takes ${cardById(drawn.cardId).name} from the hand.`);
+        } else if (drawn?.kind === "treasure") {
+            G.powers[pending.power].treasures.push(drawn.value);
+            pushLog(G, `${powerLabel(pending.power)} takes a treasure from the hand.`);
+        }
     }
     if (action === "vp") {
         if (G.scenario === "tutorial") {
@@ -120,6 +146,18 @@ export const choosePiracy = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
             G.powers.ottoman.bonusVp += change;
         } else {
             addVp(G, pending.power, 1);
+        }
+    }
+    // Rule 16.4 step 5d: downgrade the Armada one level (2 strength).
+    if (action === "armada" && G.armada !== undefined) {
+        const next = G.armada.strength - 2;
+        if (next <= 0) {
+            delete G.armada;
+            G.armadaReturn = G.year + 1;
+            pushLog(G, "The Spanish Armada is eliminated by piracy.");
+        } else {
+            G.armada.strength = next as 2 | 4 | 6 | 8;
+            pushLog(G, `The Spanish Armada is downgraded to strength ${next} by piracy.`);
         }
     }
     pending.rewards[action] = (pending.rewards[action] ?? 0) + 1;

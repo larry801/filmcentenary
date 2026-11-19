@@ -162,8 +162,11 @@ export const navalRetreatCandidates = (
         .filter((id) => id !== location && navalAdjacent(location, id))
         .filter((id) => {
             if (portAttacker && !isSeaZone(id)) return false;
+            // Rule 16.2 step 9: only *enemy* naval units block a retreat or
+            // avoid-battle destination; a neutral, non-belligerent fleet does
+            // not.
             const hasEnemy = ownersWithNaval(G, id).some((target) =>
-                owners.some((owner) => isPower(owner) ? !friendlyController(G, owner, target) : owner !== target));
+                owners.some((owner) => isPower(owner) ? atWar(G, owner, target as Power) : owner !== target));
             if (hasEnemy) return false;
             if (!isSeaZone(id)) return owners.every((owner) => G.spaces[id].control === owner);
             return true;
@@ -224,7 +227,11 @@ export const attemptNavalAvoidBattle = (G: VQGame, ctx: Ctx, active: Power, loca
         if (candidates.length === 0) continue;
         const stack = stackAt(G, location, enemy);
         if (stack === undefined && !(enemy === "spain" && G.armada?.location === location)) continue;
-        const galleonPenalty = stack !== undefined && MEDITERRANEAN.has(location) && stack.galleon + stack.racebuilt > 0 ? -1 : 0;
+        // Rule 16.1 step 5: the −1 applies if a galleon, race-built galleon,
+        // or the Armada is present in a Mediterranean sea zone.
+        const armadaHere = enemy === "spain" && G.armada?.location === location;
+        const galleonPenalty = MEDITERRANEAN.has(location) &&
+            ((stack !== undefined && stack.galleon + stack.racebuilt > 0) || armadaHere) ? -1 : 0;
         const telescope = G.powers[enemy].scienceBonuses.includes("telescope") ? 1 : 0;
         const modifier = bestBattle(G, location, [enemy], "naval") + galleonPenalty + telescope;
         const dice = roll(ctx, 2);
@@ -397,8 +404,13 @@ export const attemptNavalInterception = (
             return "paused";
         }
         if (!used.includes(candidate.location)) used.push(candidate.location);
-        const galleonPenalty = source !== undefined && isSeaZone(to) && MEDITERRANEAN.has(to) &&
-            source.galleon + source.racebuilt > 0 ? -1 : 0;
+        // Rule 16.1 step 4: "Subtract 1 from the sum if a galleon, race-built
+        // galleon, or the Armada is present in the intercepting units and this
+        // is a Mediterranean sea zone."  The Armada lives in `G.armada` at the
+        // intercepting stack's location, not in the naval stack itself.
+        const armadaHere = candidate.power === "spain" && G.armada?.location === candidate.location;
+        const galleonPenalty = isSeaZone(to) && MEDITERRANEAN.has(to) &&
+            (armadaHere || (source !== undefined && source.galleon + source.racebuilt > 0)) ? -1 : 0;
         const telescope = G.powers[candidate.power].scienceBonuses.includes("telescope") ? 1 : 0;
         const modifier = bestBattle(G, candidate.location, [candidate.power], "naval") + galleonPenalty + telescope;
         const dice = roll(ctx, 2);
@@ -439,6 +451,15 @@ export const resolveNavalCombatEnemy = (G: VQGame, ctx: Ctx, location: string, a
     const winner: "attacker" | "defender" = aHits > dHits ? "attacker" : "defender";
     applyNavalCombatLosses(G, location, [enemy], aHits, winner === "attacker", aRolls);
     applyNavalCombatLosses(G, location, [attacker], dHits, winner === "defender", dRolls);
+    // Rule 16.1: "No naval unit may participate in a Naval Move if it was part
+    // of a stack of naval units that lost a naval combat earlier in the
+    // impulse."  Kept separate from `lostBattleImpulse` (rule 13.1), which
+    // only bars land movement.
+    const navalLosers = winner === "attacker" ? [enemy] : [attacker];
+    if (G.lostNavalCombatImpulse?.impulse !== G.impulse) G.lostNavalCombatImpulse = {impulse: G.impulse, owners: []};
+    for (const owner of navalLosers) {
+        if (!G.lostNavalCombatImpulse.owners.includes(owner)) G.lostNavalCombatImpulse.owners.push(owner);
+    }
     let attackerLeft = countAt(G, location, [attacker]);
     let defenderLeft = countAt(G, location, [enemy]);
     if (attackerLeft === 0 && defenderLeft === 0) {

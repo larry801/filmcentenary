@@ -5,7 +5,8 @@ import {WORLD_SETTLEMENT_BY_ID} from "./data/world";
 import {SPACES, SPACE_BY_ID, spaceName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {patronById, seaCaptainById, seaCaptainName, patronName} from "./scenario";
-import {atWar, allied, defenderLandCount, isCityRebelsTarget, isFortifiedSpace, landNeighbors, minorAvailable, ottomanTributeTargets, ownersWithLand, zonePorts} from "./util";
+import {atWar, allied, defenderLandCount, friendlyControlled, isCityRebelsTarget, isFortifiedSpace, landNeighbors, minorAvailable, ottomanTributeTargets, ownersWithLand, zonePorts} from "./util";
+import {inlandPortLink} from "./mapData";
 import i18n from "../constant/i18n";
 
 type VQLocale = "en" | "zh_CN";
@@ -171,7 +172,9 @@ export const eventTargetOptions = (G: VQGame, cardId: string, power: Power): Eve
             return SPACES
                 .filter((space) => space.area === "netherlands" && spaceHomes(space).includes("protestant") &&
                     space.ports?.includes("northSea") && G.spaces[space.id].control !== "protestant" &&
-                    ownersWithLand(G, space.id).length === 0)
+                    ownersWithLand(G, space.id).length === 0 &&
+                    // Rule 16.7: Antwerp/Rotterdam need the linked port.
+                    (inlandPortLink(space.id) === undefined || friendlyControlled(G, "protestant", inlandPortLink(space.id)!)))
                 .map((space) => spaceOption(space.id));
         }
         case "vq-068": {

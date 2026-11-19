@@ -2,7 +2,9 @@ import {MinorPower, Power} from "../constant/general";
 
 /**
  * Diplomatic Influence Table relationships. `eligible` is the set of powers
- * with a marker on each track; `activateOrder` is also the official tie order.
+ * with a marker on each track; `activateOrder` lists the printed Activate
+ * powers (membership only).  Rule 24.6 resolves ties by Impulse Order, not by
+ * this list — the roll in `resolveMinorDiplomacy` sorts on `POWERS`.
  */
 export interface MinorDiplomacyDef {
     eligible: Power[];

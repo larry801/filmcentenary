@@ -72,8 +72,12 @@ const retreatOptions = (G: VQGame, battle: Battle, power: Power): string[] => {
             (isSeaZone(id) || (tutorialSpaceAllowed(id) && friendlyControlled(G, power, id))) &&
             Object.keys(navalStacks(G, id)).every((owner) => friendlyController(G, power, owner as Controller)));
     }
-    return (LAND_NEIGHBORS[battle.location] ?? []).filter((neighbor) => !neighbor.pass && tutorialSpaceAllowed(neighbor.id) &&
-        (power === battle.attacker ? neighbor.id === battle.from || friendlyControlled(G, power, neighbor.id) : neighbor.id !== battle.from && friendlyControlled(G, power, neighbor.id)) &&
+    // Rule 2.5: "Units may retreat or avoid battle over a pass."  The pass
+    // surcharge only applies to movement, so it does not restrict retreats.
+    // Rule 14.1: a defeated attacker must retreat to the space it entered
+    // from; a defeated defender may not retreat into that same space.
+    return (LAND_NEIGHBORS[battle.location] ?? []).filter((neighbor) => tutorialSpaceAllowed(neighbor.id) &&
+        (power === battle.attacker ? neighbor.id === battle.from : neighbor.id !== battle.from && friendlyControlled(G, power, neighbor.id)) &&
         !G.spaces[neighbor.id].unrest && ownersWithLand(G, neighbor.id).every((owner) => friendlyController(G, power, owner)))
         .map((neighbor) => neighbor.id);
 };

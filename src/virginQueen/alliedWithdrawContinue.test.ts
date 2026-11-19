@@ -142,7 +142,10 @@ describe("allied stacks fight with their own units", () => {
         G.spaces.ancona.leaders = [];
         G.spaces.ancona.unrest = false;
         G.spaces.ancona.siege = undefined;
-        G.powers.hre.wars = [...G.powers.hre.wars.filter((w) => w !== "papacy" as never)];
+        // Rule 13.1: entering a space holding another power's units requires
+        // being at war with that power, so the field battle needs a real war.
+        // The Papacy is a minor power, tracked in `warsMinors`.
+        if (!G.powers.hre.warsMinors.includes("papacy")) G.powers.hre.warsMinors.push("papacy");
 
         expect(moveLand(G, context("4"), {from: "rome", to: "ancona", units: {regular: 4, merc: 0, cav: 0}, leaders: [], unitPower: "spain"})).toBeUndefined();
         // The log records the dice actually rolled; 4 allied regulars must count.
