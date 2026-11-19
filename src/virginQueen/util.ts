@@ -1093,6 +1093,19 @@ export const friendlyController = (G: VQGame, p: Power, owner: Controller): bool
     return G.powers[p].alliedMinors.includes(owner as never);
 };
 
+/**
+ * Rule 12.1: an LOC may start from "a home space for that power or one of its
+ * allies (this even includes home spaces of minor powers allied to your major
+ * power allies)".  A minor power is friendly when the active power is allied
+ * to it directly, or when it is allied to one of the active power's major
+ * allies.
+ */
+export const friendlyHomeController = (G: VQGame, p: Power, owner: Controller): boolean => {
+    if (friendlyController(G, p, owner)) return true;
+    if (isPower(owner) || owner === "independent") return false;
+    return POWERS.some((ally) => ally !== p && friendly(G, p, ally) && G.powers[ally].alliedMinors.includes(owner as never));
+};
+
 export const setWar = (G: VQGame, a: Power, b: Power): void => {
     if (!G.powers[a].wars.includes(b)) {
         G.powers[a].wars.push(b);
@@ -2601,7 +2614,7 @@ export const hasLOC = (G: VQGame, p: Power, target: string): boolean => {
     const starts: string[] = [];
     for (const def of SPACES) {
         if (friendlyControlled(G, p, def.id) && isFortifiedSpace(G, def.id) && !G.spaces[def.id].unrest &&
-            spaceHomes(def).some((home) => friendlyController(G, p, home))) {
+            spaceHomes(def).some((home) => friendlyHomeController(G, p, home))) {
             starts.push(def.id);
         }
     }
@@ -2654,13 +2667,21 @@ export const canControlSpace = (G: VQGame, p: Power, space: string): { ok: boole
     if (s.control === p) {
         return {ok: false, reason: "already controlled"};
     }
-    if (spaceHasEnemyLand(G, p, space)) {
+    // Rule 12.2: "The space is not occupied by land units from another power
+    // (unless those units are allies of the active power)."  Non-allied units
+    // of any power — not only powers currently at war — block control.
+    if (ownersWithLand(G, space).some((c) => !friendlyController(G, p, c) && landCount(G.spaces[space].land[c]) > 0)) {
         return {ok: false, reason: "enemy units present"};
     }
     if (!hasLOC(G, p, space)) {
         return {ok: false, reason: "no line of communication"};
     }
-    if (isPower(s.control) && s.control !== p && !atWar(G, p, s.control)) {
+    // Rule 12.2: "The space is independent or controlled by an enemy power."
+    // A minor power's space counts only when the active power is at war with
+    // that minor; an allied minor's space is not a legal target either.
+    const enemyControlled = s.control === "independent" ||
+        (isPower(s.control) ? atWar(G, p, s.control) : atWarWithMinor(G, p, s.control as MinorPower));
+    if (!enemyControlled) {
         return {ok: false, reason: "target must be independent or enemy-controlled"};
     }
     const friendlyPresent = ownersWithLand(G, space).some((c) => c === p && landCount(G.spaces[space].land[c]) > 0);
@@ -2720,7 +2741,10 @@ export const religionCandidates = (G: VQGame, side: Religion, area: ReligionArea
     }
     return inArea.filter((s) => {
         const st = G.spaces[s.id];
-        if (st.religion !== other || st.unrest) {
+        // Rule 12.4: "Spaces under unrest may be the target of Protestant and
+        // Catholic Conversion attempts or Rebellions."  Only the adjacent base
+        // space must be unrest-free (checked below), not the target itself.
+        if (st.religion !== other) {
             return false;
         }
         const isSide = (id: string): boolean =>
@@ -3270,22 +3294,30 @@ export const attemptLandAvoidBattle = (
 ): boolean => {
     if (G.scenario === "tutorial") return false;
     let moved = false;
+    // Rule 13.3: "Minor power allies in that space avoid battle as a single
+    // group with units of their affiliated major power."  Include minor-power
+    // stacks (not only major powers) so their units are not silently skipped.
     const defenders = ownersWithLand(G, space)
-        .filter((owner): owner is Power => isPower(owner) && !friendlyController(G, active, owner));
+        .filter((owner) => !friendlyController(G, active, owner) &&
+            (isPower(owner) || minorAlly(G, owner as MinorPower) !== undefined));
     for (const owner of defenders) {
         // Rule 13.3: only units currently under siege may not avoid battle.
         const siege = G.spaces[space].siege;
         if (siege !== undefined && (siege.inside === undefined || siege.inside.includes(owner))) continue;
         const stack = G.spaces[space].land[owner];
         if (stack === undefined || landCount(stack) === 0) continue;
+        // A minor power's units use their allied major power for friendliness
+        // and science checks, since `G.powers` has no minor entry.
+        const major = isPower(owner) ? owner : minorAlly(G, owner as MinorPower);
+        if (major === undefined) continue;
         const destinations = landNeighbors(space)
-            .filter((neighbor) => !neighbor.pass && neighbor.id !== from)
+            .filter((neighbor) => neighbor.id !== from)
             .map((neighbor) => neighbor.id)
             .filter((id) => {
                 const state = G.spaces[id];
                 if (state === undefined || state.unrest) return false;
-                if (state.control !== owner && !(isPower(state.control) && friendlyController(G, owner, state.control))) return false;
-                return ownersWithLand(G, id).every((other) => friendlyController(G, owner, other));
+                if (state.control !== owner && !(isPower(state.control) && friendlyController(G, major, state.control))) return false;
+                return ownersWithLand(G, id).every((other) => friendlyController(G, major, other));
             });
         if (destinations.length === 0) continue;
         const leaders = G.spaces[space].leaders.filter((id) =>
@@ -3294,15 +3326,16 @@ export const attemptLandAvoidBattle = (
             G.lostBattleImpulse.owners.includes(owner);
         const ottomanCavalry = owner === "ottoman" && stack.cav > 0 ? 1 : 0;
         const enemyCavalry = owner !== "ottoman" && (G.spaces[space].land.ottoman?.cav ?? 0) > 0 ? -1 : 0;
-        const telescope = G.powers[owner].scienceBonuses.includes("telescope") ? 1 : 0;
+        const telescope = G.powers[major].scienceBonuses.includes("telescope") ? 1 : 0;
         const modifier = bestBattle(G, space, [owner], "army") + ottomanCavalry + enemyCavalry + telescope;
+        const label = controllerLabel(owner);
         if (!coveredByLostBattle) {
             const dice = roll(ctx, 2);
             const total = dice[0] + dice[1] + modifier;
-            pushLog(G, `${powerLabel(owner)} avoid-battle at ${SPACE_BY_ID[space].name}: [${dice.join(",")}] + ${modifier} = ${total}.`);
+            pushLog(G, `${label} avoid-battle at ${SPACE_BY_ID[space].name}: [${dice.join(",")}] + ${modifier} = ${total}.`);
             if (total < 9) continue;
         } else {
-            pushLog(G, `${powerLabel(owner)} automatically avoids battle after losing a field battle.`);
+            pushLog(G, `${label} automatically avoids battle after losing a field battle.`);
         }
         const destination = destinations[0];
         const target = ensureLand(G, destination, owner);
@@ -3311,7 +3344,7 @@ export const attemptLandAvoidBattle = (
         target.cav += stack.cav;
         delete G.spaces[space].land[owner];
         moveLeaders(G, space, destination, leaders);
-        pushLog(G, `${powerLabel(owner)} avoids battle and moves to ${SPACE_BY_ID[destination].name}.`);
+        pushLog(G, `${label} avoids battle and moves to ${SPACE_BY_ID[destination].name}.`);
         moved = true;
     }
     return moved;
@@ -3525,6 +3558,11 @@ export const rebellionTargets = (G: VQGame): string[] =>
         if (G.unionOfArras === true && def.area === "netherlands") {
             return false;
         }
+        // Rule 18.4: "Rebellions may not be started in France if the
+        // Protestant is currently allied with France."
+        if (def.area === "france" && allied(G, "protestant", "france")) {
+            return false;
+        }
         const s = G.spaces[def.id];
         if (s.religion !== "protestant" || s.siege !== undefined) {
             return false;
@@ -3551,9 +3589,17 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
     }
     if (G.rebellionAreasThisImpulse?.impulse !== G.impulse) G.rebellionAreasThisImpulse = {impulse: G.impulse, areas: []};
     if (G.rebellionAreasThisImpulse.areas.includes(def.area)) return false;
+    // Rule 18.4: "A religious struggle area may not be targeted by a Rebellion
+    // more than once in the same impulse."  Record the area up front so a
+    // failed rebellion still consumes the area for this impulse.
+    G.rebellionAreasThisImpulse.areas.push(def.area);
+    // Rule 18.5 Step 2: Catholic units are "either regulars or naval units but
+    // not mercenaries", so a port holding only a Catholic fleet is not an
+    // automatic success.
     const catholicOwners = ownersWithLand(G, space).filter((c) => unitReligion(c) === "catholic");
+    const catholicNavalOwners = ownersWithNaval(G, space).filter((c) => unitReligion(c) === "catholic");
     let successful = true;
-    if (catholicOwners.length > 0) {
+    if (catholicOwners.length > 0 || catholicNavalOwners.length > 0) {
         const diceN = cp + (spaceHomes(def).includes("protestant") ? 1 : 0);
         const r = roll(ctx, diceN);
         const hitN = hits(r);
@@ -3571,7 +3617,20 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
             }
             cleanupLand(G, space, c);
         }
-        if (ownersWithLand(G, space).some((c) => unitReligion(c) === "catholic" && (G.spaces[space].land[c]?.regular ?? 0) > 0)) {
+        // Remaining hits eliminate Catholic naval units in the space.
+        for (const c of catholicNavalOwners) {
+            const stack = s.naval[c];
+            if (stack === undefined) continue;
+            for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) {
+                while (remaining > 0 && stack[kind] > 0) {
+                    stack[kind] -= 1;
+                    remaining -= 1;
+                }
+            }
+            if (navalCount(stack) === 0) delete s.naval[c];
+        }
+        if (ownersWithLand(G, space).some((c) => unitReligion(c) === "catholic" && (G.spaces[space].land[c]?.regular ?? 0) > 0) ||
+            ownersWithNaval(G, space).some((c) => unitReligion(c) === "catholic" && navalCount(G.spaces[space].naval[c]) > 0)) {
             successful = false;
         }
     }
@@ -3648,10 +3707,19 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
     } else {
         setWar(G, "protestant", "spain");
     }
-    // Rule 18.5 steps 7-8: designate a capital and place an available leader.
-    if (G.protestantCapital === undefined && spaceHomes(def).includes("protestant") && isFortifiedSpace(G, space)) {
-        G.protestantCapital = space;
-        pushLog(G, `The Protestant designates ${SPACE_BY_ID[space].name} as its capital.`);
+    // Rule 18.5 step 7: "The space chosen must be under Protestant political
+    // control and must be a fortified Protestant home space… It does not have
+    // to be the target space chosen in Step 1."  Prefer the target when it
+    // qualifies, otherwise any controlled fortified Protestant home space.
+    if (G.protestantCapital === undefined) {
+        const capital = (spaceHomes(def).includes("protestant") && isFortifiedSpace(G, space) && G.spaces[space].control === "protestant")
+            ? space
+            : SPACES.find((candidate) => spaceHomes(candidate).includes("protestant") &&
+                isFortifiedSpace(G, candidate.id) && G.spaces[candidate.id].control === "protestant")?.id;
+        if (capital !== undefined) {
+            G.protestantCapital = capital;
+            pushLog(G, `The Protestant designates ${SPACE_BY_ID[capital].name} as its capital.`);
+        }
     }
     // Place an available army leader in the target space.  Only leaders who
     // have already arrived (8.1 Leader Entry Table / Turn Track) and are
@@ -3665,7 +3733,6 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
         }
         pushLog(G, `${availableLeader.name} joins the rebellion in ${SPACE_BY_ID[space].name}.`);
     }
-    if (G.rebellionAreasThisImpulse !== undefined) G.rebellionAreasThisImpulse.areas.push(def.area);
     return true;
 };
 
@@ -5443,6 +5510,11 @@ const canBuildNavalAt = (G: VQGame, p: Power, port: string, kind: keyof NavalSta
     if (kind === "galley" && !["ottoman", "spain", "france", "hre"].includes(p)) return false;
     if (kind === "galleon" && !["spain", "england", "france", "protestant"].includes(p)) return false;
     if (p === "ottoman" && kind === "galley" && (port === "algiers" || port === "tripoli")) return false;
+    // Rule 17.3: "Spain may not build galleys or galleons in spaces in the
+    // Netherlands religious struggle area."  #109 Union of Arras redefines the
+    // Dutch two-color spaces as Spanish home spaces, which lifts this.
+    if (p === "spain" && (kind === "galley" || kind === "galleon") && def.area === "netherlands" &&
+        G.dutchSpanishHome !== true) return false;
     if (minorHome === undefined && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) return false;
     // Per-ship-type force-pool limits (counter mix).
     if (minorHome === undefined) {
@@ -5604,7 +5676,11 @@ export const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string, sel
         const canEnter = declaresWar || friendlyControlled(G, p, to) || dst.control === "independent" ||
             (isPower(dst.control) ? atWar(G, p, dst.control) : atWarWithMinor(G, p, dst.control as MinorPower));
         const otherUnits = ownersWithLand(G, to).filter((owner) => !friendlyController(G, p, owner));
-        if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0)) return false;
+        // Rule 13.1: entering a space holding another power's units requires
+        // every one of those units to be an enemy (at war).
+        const allEnemies = otherUnits.every((owner) =>
+            isPower(owner) ? atWar(G, p, owner) : atWarWithMinor(G, p, owner as MinorPower));
+        if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0 || !allEnemies)) return false;
         return true;
     });
 };
@@ -5618,6 +5694,9 @@ export const canMoveNavalTo = (G: VQGame, p: Power, from: string, to: string): b
     const stack = isSeaZone(from) ? G.seaZones[from as SeaZoneID].naval[p] : G.spaces[from].naval[p];
     const armadaHere = p === "spain" && G.armada?.location === from;
     if (navalCount(stack) === 0 && !armadaHere) return false;
+    // Rule 16.1: a stack that lost a naval combat earlier in the impulse may
+    // not take a Naval Move.
+    if (G.lostNavalCombatImpulse?.impulse === G.impulse && G.lostNavalCombatImpulse.owners.includes(p)) return false;
     if (G.spaces[to] !== undefined) {
         const enemyNaval = ownersWithNaval(G, to).some((c) => isPower(c) && atWar(G, p, c));
         if (G.spaces[to].control !== p && !enemyNaval) return false;

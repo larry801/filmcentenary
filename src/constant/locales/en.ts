@@ -1999,6 +1999,7 @@ const en = {
             allowRandomDraw: "Allow the opponent to draw 1 random hand card",
             giveOttomanPiracyVp: "Give the Ottoman 1 piracy VP",
             awardPiracyVp: "Award the opponent 1 piracy VP",
+            downgradeArmada: "Downgrade the Spanish Armada one level",
             ottomanPiracyVpMinusOne: "Reduce Ottoman piracy VP by 1",
             noMilanDeployment: "Do not deploy from Milan",
             selectedUnit: "{owner} {unit} (selected {count})",

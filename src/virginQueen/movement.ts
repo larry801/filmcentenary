@@ -75,7 +75,10 @@ export const transportMoveIssue = (G: VQGame, power: Power, order: FormationOrde
         zones.some((zone, index) => !isSeaZone(zone) || navalCount(G.seaZones[zone as keyof VQGame["seaZones"]].naval[power]) === 0 ||
             (index > 0 && !SEA_ZONE_BY_ID[zones[index - 1]]?.adjacent.includes(zone as keyof VQGame["seaZones"])))) return "transportRoute";
     const inland = isInlandPort(from) ? from : isInlandPort(to) ? to : undefined;
-    if (inland && (zones.length !== 1 || zones[0] !== "northSea" || G.spaces[inlandPortLink(inland)!].control !== power)) return "transportRoute";
+    // Rule 16.7: the linked port must be controlled by the active power "or an
+    // ally" (see "The considerations above ... also apply to a power whose
+    // ally controls Flushing or Brielle").
+    if (inland && (zones.length !== 1 || zones[0] !== "northSea" || !friendlyControlled(G, power, inlandPortLink(inland)!))) return "transportRoute";
     if (G.powers[power].cp < zones.length + 1 - (inland ? 1 : 0)) return "movementCp";
     if (power === "spain" && spaceHomes(SPACE_BY_ID[to]).some((home) => home === "ireland" || home === "scotland") && warCost(G, "spain", "england") > 3) return "illegalTarget";
     // These entries declare the England-Spain war before the destination check.

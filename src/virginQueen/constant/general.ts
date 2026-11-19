@@ -830,6 +830,13 @@ export interface VQGame {
     /** Private negotiation table and the public record of concluded deals. */
     negotiation?: import("../negotiation").NegotiationState;
     lostBattleImpulse?: {impulse: number; owners: Controller[]};
+    /**
+     * Rule 16.1: "No naval unit may participate in a Naval Move if it was part
+     * of a stack of naval units that lost a naval combat earlier in the
+     * impulse."  Tracked separately from `lostBattleImpulse`, which only
+     * restricts land movement (rule 13.1).
+     */
+    lostNavalCombatImpulse?: {impulse: number; owners: Controller[]};
     rebellionAreasThisImpulse?: {impulse: number; areas: string[]};
     /** Most recent fortress capture; gates Sack! (#44) and Spanish Fury (#46). */
     lastCapture?: {space: string; attacker: Power; impulse: number};

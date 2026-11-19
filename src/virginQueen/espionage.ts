@@ -62,12 +62,15 @@ export const espionageDice = (G: VQGame, pending: PendingEspionage): {attack: nu
         } else if (isRudolfTarget(pending.target)) {
             // Rudolf is a royal, not an army leader: defend him like a
             // ruler (base defense + a home-capital bonus, no battle rating).
-            if (SPACE_BY_ID["prague"]?.home === target && G.spaces["prague"].control === target) defense++;
+            if (spaceHomes(SPACE_BY_ID["prague"]).includes(target) && G.spaces["prague"].control === target) defense++;
         } else {
             const def = LEADER_BY_ID[pending.target!];
             defense += def?.battle ?? 0;
             const loc = G.leaders[pending.target!]?.location;
-            if (loc !== undefined && SPACE_BY_ID[loc]?.home === target && G.spaces[loc].control === target) defense++;
+            // Rule 19.3 / Espionage Table: "+1 die: if targeted Army Leader in
+            // controlled Home space".  Split home spaces list both powers in
+            // `homes`, so use `spaceHomes` rather than the singular `home`.
+            if (loc !== undefined && spaceHomes(SPACE_BY_ID[loc]).includes(target) && G.spaces[loc].control === target) defense++;
         }
     } else {
         attack += G.espionage?.jesuits.length ?? 0;

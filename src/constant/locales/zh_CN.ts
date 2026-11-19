@@ -2086,6 +2086,7 @@ const zh_CN: Locale = {
             allowRandomDraw: "允许对方随机抽取 1 张手牌",
             giveOttomanPiracyVp: "给予奥斯曼 1 海盗 VP",
             awardPiracyVp: "给予对方 1 海盗 VP",
+            downgradeArmada: "让西班牙无敌舰队降一级",
             ottomanPiracyVpMinusOne: "奥斯曼海盗 VP 减少 1",
             noMilanDeployment: "不进行米兰部署",
             selectedUnit: "{owner} {unit}（已选 {count}）",

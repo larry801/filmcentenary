@@ -439,6 +439,15 @@ export const resolveNavalCombatEnemy = (G: VQGame, ctx: Ctx, location: string, a
     const winner: "attacker" | "defender" = aHits > dHits ? "attacker" : "defender";
     applyNavalCombatLosses(G, location, [enemy], aHits, winner === "attacker", aRolls);
     applyNavalCombatLosses(G, location, [attacker], dHits, winner === "defender", dRolls);
+    // Rule 16.1: "No naval unit may participate in a Naval Move if it was part
+    // of a stack of naval units that lost a naval combat earlier in the
+    // impulse."  Kept separate from `lostBattleImpulse` (rule 13.1), which
+    // only bars land movement.
+    const navalLosers = winner === "attacker" ? [enemy] : [attacker];
+    if (G.lostNavalCombatImpulse?.impulse !== G.impulse) G.lostNavalCombatImpulse = {impulse: G.impulse, owners: []};
+    for (const owner of navalLosers) {
+        if (!G.lostNavalCombatImpulse.owners.includes(owner)) G.lostNavalCombatImpulse.owners.push(owner);
+    }
     let attackerLeft = countAt(G, location, [attacker]);
     let defenderLeft = countAt(G, location, [enemy]);
     if (attackerLeft === 0 && defenderLeft === 0) {

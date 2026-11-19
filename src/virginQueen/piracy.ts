@@ -38,6 +38,14 @@ export const piracyOptions = (G: VQGame): {id: string; label: string}[] => {
     } else {
         // Rule 16.4 step 5c: any active power may be awarded 1 VP for Piracy.
         result.push({id: "vp", label: i18n.chain.vq.engine.awardPiracyVp, reward: "vp"});
+        // Rule 16.4 step 5d: "Downgrade the Spanish Armada by one level if
+        // Spain was the piracy target and the Armada was in or adjacent to the
+        // sea zone where piracy occurred."
+        const armadaInRange = G.armada !== undefined && G.armada.strength > 2 &&
+            (G.armada.location === pending.zone || adjacentLocations(pending.zone).includes(G.armada.location));
+        if (pending.target === "spain" && armadaInRange) {
+            result.push({id: "armada", label: i18n.chain.vq.engine.downgradeArmada, reward: "armada"});
+        }
     }
     const minimum = Math.min(...result.map((entry) => pending.rewards[entry.reward] ?? 0));
     return result.filter((entry) => (pending.rewards[entry.reward] ?? 0) === minimum);
@@ -81,7 +89,14 @@ export const startPiracy = (G: VQGame, ctx: Ctx, power: Power, target: Power, zo
         if (space.control !== target && !atWar(G, power, space.control)) return false;
         return G.scenario === "tutorial" ? TUTORIAL_FORTRESSES.includes(id) : SPACE_BY_ID[id]?.kind === "fortress";
     }).length;
-    if (power === "ottoman" && zonePorts(zone).includes("malta") && (G.spaces.malta.land.spain?.regular ?? 0) > 0) dice += 1;
+    // Rule 16.4 step 2: "1 die if this is piracy by the Ottoman and the
+    // Knights of St. John unit is in a port adjacent to the zone where piracy
+    // is occurring."  The Knights are placed as independent regulars (#27) or
+    // Spanish regulars, so check any adjacent port for either.
+    if (power === "ottoman" && zonePorts(zone).some((id) =>
+        (G.spaces[id].land.independent?.regular ?? 0) > 0 || (G.spaces[id].land.spain?.regular ?? 0) > 0)) {
+        dice += 1;
+    }
     const defense = roll(ctx, dice);
     let remaining = hits(defense);
     const stack = G.seaZones[zone].naval[power]!;
@@ -120,6 +135,18 @@ export const choosePiracy = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
             G.powers.ottoman.bonusVp += change;
         } else {
             addVp(G, pending.power, 1);
+        }
+    }
+    // Rule 16.4 step 5d: downgrade the Armada one level (2 strength).
+    if (action === "armada" && G.armada !== undefined) {
+        const next = G.armada.strength - 2;
+        if (next <= 0) {
+            delete G.armada;
+            G.armadaReturn = G.year + 1;
+            pushLog(G, "The Spanish Armada is eliminated by piracy.");
+        } else {
+            G.armada.strength = next as 2 | 4 | 6 | 8;
+            pushLog(G, `The Spanish Armada is downgraded to strength ${next} by piracy.`);
         }
     }
     pending.rewards[action] = (pending.rewards[action] ?? 0) + 1;

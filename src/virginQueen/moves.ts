@@ -1996,6 +1996,11 @@ const resolveSeaBeggars = (G: VQGame, ctx: Ctx, target?: string): void => {
     const state = G.spaces[target];
     if (def === undefined || def.area !== "netherlands" || !spaceHomes(def).includes("protestant") || !def.ports?.includes("northSea") ||
         state === undefined || state.control === "protestant" || ownersWithLand(G, target).length > 0) return;
+    // Rule 16.7: "Antwerp or Rotterdam may be the target of the Sea Beggars
+    // event if the Protestant controls the port connected to this space by
+    // inland waterway" (or is allied to that port's controller).
+    const inland = inlandPortLink(target);
+    if (inland !== undefined && !friendlyControlled(G, "protestant", inland)) return;
     state.control = "protestant";
     state.religion = "protestant";
     addLand(G, target, "protestant", "regular", 1);
@@ -4513,6 +4518,14 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
      if (p === "ottoman" && kind === "galley" && ["algiers", "tripoli"].includes(port)) {
          return INVALID_MOVE;
      }
+    // Rule 17.3: "Spain may not build galleys or galleons in spaces in the
+    // Netherlands religious struggle area."  #109 Union of Arras redefines the
+    // Dutch two-color spaces as Spanish home spaces for the rest of the game,
+    // which lifts this prohibition (`dutchSpanishHome`).
+    if (p === "spain" && (kind === "galley" || kind === "galleon") && SPACE_BY_ID[port]?.area === "netherlands" &&
+        G.dutchSpanishHome !== true) {
+        return INVALID_MOVE;
+    }
     if (!isMinorPort && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) {
         return INVALID_MOVE;
     }
@@ -4522,8 +4535,14 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     if (!spend(G, p, cost[kind] ?? 2)) {
         return INVALID_MOVE;
     }
+    // Rule 17.3: "If England is building a galleon in London on Turn 3 or
+    // later and the sea captain Hawkins is in that space, place the galleon
+    // counter on the race-built side."  Hawkins as a Europe-map naval leader
+    // is `captain-hawkins`, not the World Map pool entry.
+    const hawkinsInLondon = G.leaders["captain-hawkins"]?.location === "london" ||
+        G.spaces.london.leaders.includes("captain-hawkins");
     const placedKind = kind === "galleon" && p === "england" && port === "london" && G.year >= 3 &&
-        G.powers.england.seaCaptains.includes("hawkins") ? "racebuilt" : kind;
+        hawkinsInLondon ? "racebuilt" : kind;
     if (isMinorPort) {
         const minorBn = homesBn.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never))!;
         const {MINOR_NAVAL_LIMITS} = require("./constant/general");
@@ -4638,6 +4657,9 @@ export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; col
         !G.powers[p].seaCaptains.includes(args.captain);
     if (captain === undefined || captain.turn > G.year ||
         (!G.powers[p].seaCaptains.includes(args.captain) && !sharedCaptain) ||
+        // Rule 17.4: "Le Testu may not be used if he has already been
+        // sponsored as a scientist this turn."
+        (args.captain === "leTestu" && G.patronizedThisTurn.includes("france:scientist")) ||
         (args.colony === true && (p === "hre" || (p === "ottoman" && !G.suezDone))) ||
         G.worldCaptains[args.captain] !== undefined || !spend(G, p, cost)) return INVALID_MOVE;
     if (sharedCaptain) {
@@ -4684,23 +4706,31 @@ export const buildPatrol = (G: VQGame, ctx: Ctx, args: {zone: string}): void | t
 export const buildWorldFortress = (G: VQGame, ctx: Ctx, args: {settlement: string}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action" || power(G, ctx) !== "spain") return INVALID_MOVE;
     const settlement = WORLD_SETTLEMENT_BY_ID[args.settlement];
+    // Rule 8.2/17.5: Spain places 1 fortress marker (2 with Coastal
+    // Fortification) on his power card each Card Draw Phase, and those markers
+    // limit how many he may build *this turn*.  The markers are replenished
+    // every year (`worldFortressesBuilt` resets in `dealYear`).
     const maxFortresses = G.powers.spain.scienceBonuses.includes("coastalFortification") ? 2 : 1;
-    const currentFortresses = Object.values(G.worldFortresses ?? {}).filter((v) => v === "spain").length;
+    const builtThisTurn = G.worldFortressesBuilt ?? 0;
     if (settlement === undefined || (G.worldFortresses?.[args.settlement] !== undefined) ||
         (G.worldControls[args.settlement] !== "spain" && G.worldColonies[args.settlement] !== "spain") ||
-        currentFortresses >= maxFortresses || G.powers.spain.cp < 2) return INVALID_MOVE;
+        builtThisTurn >= maxFortresses || G.powers.spain.cp < 2) return INVALID_MOVE;
     if (!spend(G, "spain", 2)) return INVALID_MOVE;
     G.worldFortresses = {...(G.worldFortresses ?? {}), [args.settlement]: "spain"};
+    G.worldFortressesBuilt = builtThisTurn + 1;
     pushLog(G, `Spain builds a fortress at ${settlement.nameEn}.`);
 };
 
-export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void | typeof INVALID_MOVE => {
+export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?: "spain" | "portugal"}): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action") return INVALID_MOVE;
     const p = power(G, ctx);
     const expedition = G.worldCaptains[args.captain];
     const captain = seaCaptainById(args.captain);
+    // Rule 16.5 step 1: "Each ocean zone can be targeted for piracy by no more
+    // than two powers per turn" — mirror the Europe-map limit.
+    const zoneUsers = expedition === undefined ? 0 : (G.piracyZones?.[expedition.location] ?? []).length;
     if (expedition === undefined || expedition.power !== p || captain === undefined || p === "spain" ||
-        (G.piracyActions?.[p] ?? 0) >= 3 || (G.piracyZones?.[expedition.location] ?? []).includes(p) ||
+        (G.piracyActions?.[p] ?? 0) >= 3 || (G.piracyZones?.[expedition.location] ?? []).includes(p) || zoneUsers >= 2 ||
         G.powers[p].cp < 2) return INVALID_MOVE;
     const isPortugueseTarget = (s: typeof WORLD_SETTLEMENTS[number]) =>
         s.home === "portugal" || G.worldControls[s.id] === "portugal" as never || G.worldColonies[s.id] === "portugal" as never as never || s.id === "portugueseGuinea" || s.id === "portugueseCeylon";
@@ -4709,9 +4739,15 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string}): void 
         (G.worldControls[settlement.id] === "spain" || G.worldColonies[settlement.id] === "spain"));
     const portugueseSettlements = !alliedWithPortugal ? WORLD_SETTLEMENTS.filter((settlement) => settlement.seaZone === expedition.location &&
         isPortugueseTarget(settlement)) : [];
-    // Portugal may be targeted even before it enters play.
-    const settlements = spanishSettlements.length > 0 ? spanishSettlements : portugueseSettlements;
-    const targetIsPortugal = spanishSettlements.length === 0 && portugueseSettlements.length > 0;
+    // Rule 16.5: "he may spend 2 CP on the Initiate Piracy action and target
+    // either Spain or Portugal."  Honour an explicit choice; otherwise fall
+    // back to the only power with settlements in the zone.
+    const targetIsPortugal = args.target === "portugal"
+        ? portugueseSettlements.length > 0
+        : args.target === "spain"
+            ? false
+            : spanishSettlements.length === 0 && portugueseSettlements.length > 0;
+    const settlements = targetIsPortugal ? portugueseSettlements : spanishSettlements;
     if (settlements.length === 0 || !spend(G, p, 2)) return INVALID_MOVE;
     G.piracyActions = {...(G.piracyActions ?? {}), [p]: (G.piracyActions?.[p] ?? 0) + 1};
     G.piracyZones = {...(G.piracyZones ?? {}), [expedition.location]: [...(G.piracyZones?.[expedition.location] ?? []), p]};
@@ -5040,8 +5076,10 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
     if (inland !== undefined) {
         const other = inland === args.from ? args.to : args.from;
         const link = inlandPortLink(inland) as string;
+        // Rule 16.7: the linked port may be controlled by the active power or
+        // an ally of it.
         if (args.zones.length !== 1 || args.zones[0] !== "northSea" || !portZones(other).includes("northSea") ||
-            G.spaces[link].control !== p) return INVALID_MOVE;
+            !friendlyControlled(G, p, link)) return INVALID_MOVE;
     }
     // Rule 9.5/9.4: Spain may not transport into Ireland/Scotland until war cost <=3.
     if (p === "spain" && (spaceHomes(SPACE_BY_ID[args.to]).includes("ireland" as never) || spaceHomes(SPACE_BY_ID[args.to]).includes("scotland" as never))) {
@@ -5072,6 +5110,13 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
     const target = ensureLand(G, args.to, p);
     for (const kind of ["regular", "merc", "cav"] as const) {source[kind] -= stack[kind]; target[kind] += stack[kind];}
     moveLeaders(G, args.from, args.to, leaders);
+    // Rule 16.3 step 3: "Treat this movement into the final space as if it
+    // were a Move action.  Enemy units may intercept, avoid battle, withdraw
+    // into fortifications or stay and force a field battle."  Run the same
+    // automatic land interception that `moveLand` performs; a successful
+    // interception adds enemy units to the port, so the field battle below
+    // covers it.
+    attemptLandInterception(G, ctx, p, args.from, args.to);
     if (offerInterception(G, ctx, "field", args.from, args.to, p)) {
         G.pendingIntercept!.transported = true;
         return;
@@ -5159,7 +5204,12 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         || destControl === "independent"
         || (isPower(destControl) ? atWar(G, p, destControl) : atWarWithMinor(G, p, destControl as MinorPower));
     const otherUnits = ownersWithLand(G, to).filter((c) => !friendlyController(G, p, c));
-    if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0)) {
+    // Rule 13.1: a formation may only enter a space containing another power's
+    // units when every one of those units is an enemy (at war).  A neutral
+    // power's stack may not be walked into.
+    const allEnemies = otherUnits.every((c) =>
+        isPower(c) ? atWar(G, p, c) : atWarWithMinor(G, p, c as MinorPower));
+    if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0 || !allEnemies)) {
         return INVALID_MOVE;
     }
     const cost = passBetween(from, to) ? 2 : 1;
@@ -5465,11 +5515,14 @@ export const controlSpace = (G: VQGame, ctx: Ctx, args: { space: string }): void
         return INVALID_MOVE;
     }
     if (s.unrest) {
+        // Rule 12.4: unrest may be removed if AT LEAST ONE condition is met —
+        // (a) the active power's land units occupy the space, or (b) they are
+        // adjacent and no enemy land units are adjacent.  Condition (a) alone
+        // is sufficient, so an adjacent enemy does not block it.
         const ownPresent = ownersWithLand(G, space).some((c) => c === p && landCount(G.spaces[space].land[c]) > 0);
         const adjacentOwn = LAND_NEIGHBORS[space].some((n) => !n.pass && ownersWithLand(G, n.id).some((c) => c === p && landCount(G.spaces[n.id].land[c]) > 0));
         const enemyAdjacent = LAND_NEIGHBORS[space].some((n) => !n.pass && spaceHasEnemyLand(G, p, n.id));
-        if (!ownPresent && !adjacentOwn) return INVALID_MOVE;
-        if (enemyAdjacent) return INVALID_MOVE;
+        if (!ownPresent && !(adjacentOwn && !enemyAdjacent)) return INVALID_MOVE;
         if (!spend(G, p, 1)) {
             return INVALID_MOVE;
         }
@@ -5722,7 +5775,11 @@ export const piracy = (G: VQGame, ctx: Ctx, args: { zone: string; target: Power 
         return INVALID_MOVE;
     }
     const zone = args.zone as keyof VQGame["seaZones"];
-    const targetPorts = zonePorts(zone).filter((id) => G.spaces[id].control === args.target);
+    // Rule 16.7: "Antwerp or Rotterdam may be the target of a piracy attempt
+    // if the power initiating piracy also controls the port connected to this
+    // space by inland waterway" (or is allied to that port's controller).
+    const targetPorts = zonePorts(zone).filter((id) => G.spaces[id].control === args.target &&
+        (inlandPortLink(id) === undefined || friendlyControlled(G, p, inlandPortLink(id)!)));
     if (targetPorts.length === 0) {
         return INVALID_MOVE;
     }
