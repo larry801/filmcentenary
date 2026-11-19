@@ -354,7 +354,14 @@ test("reconnecting the GE client preserves its private hand and keeps other view
   await settled(ge, beforeDiscard);
   const discardLog = await eventually(() =>
     (ge.getState()!.G as PrivateView).log.find((entry) => entry.key === "prepStabilityDiscard"));
-  await eventually(() => observer.getState()!.G.log.some((entry) => entry.id === discardLog.id));
+  // The observer is a second `Local()` client: its update arrives on the next
+  // event-loop turn, and on a loaded CI runner that can be well past the
+  // helper's default 5 s budget.  Wait for the observer's own view rather than
+  // sharing the short default.
+  await eventually(
+    () => observer.getState()!.G.log.some((entry) => entry.id === discardLog.id),
+    15_000,
+  );
 
   const afterAction = ge.getState()!.G as PrivateView;
   expect(afterAction.powers.GE.hand.length).toBe(stateBefore - 1);
