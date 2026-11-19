@@ -8,7 +8,7 @@ import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
 import {chooseInterception} from "./interception";
-import {arriveLeaders, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, checkImmediateVictory, checkVictory, chooseReliefSplit, dealYear, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
+import {arriveLeaders, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, checkImmediateVictory, checkVictory, chooseReliefSplit, dealYear, pushLog, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
 import {
     assault,
     autoInterceptionOrder,
@@ -336,6 +336,17 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 G.diplomacyGifts = {};
                 negotiationState(G).offer = null;
                 phaseBegin(G, ctx);
+            },
+            onEnd: (G: VQGame, ctx: Ctx) => {
+                // Rule 9.1: "Mercenaries for Hire not granted during
+                // negotiations are lost; the Holy Roman player should drop the
+                // marker to the '0' space ... at the end of the Negotiation
+                // Segment."  This runs before the Spring Deployment.
+                if ((G.mercenariesForHire ?? 0) > 0) {
+                    G.mercenariesForHire = 0;
+                    pushLog(G, "Mercenaries for Hire not granted this turn are lost.");
+                }
+                turnEnd(G, ctx);
             },
             turn: {
                 order: powerOrder,

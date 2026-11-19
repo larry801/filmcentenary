@@ -830,6 +830,13 @@ export interface VQGame {
     /** Private negotiation table and the public record of concluded deals. */
     negotiation?: import("../negotiation").NegotiationState;
     lostBattleImpulse?: {impulse: number; owners: Controller[]};
+    /**
+     * Rule 16.1: "No naval unit may participate in a Naval Move if it was part
+     * of a stack of naval units that lost a naval combat earlier in the
+     * impulse."  Tracked separately from `lostBattleImpulse`, which only
+     * restricts land movement (rule 13.1).
+     */
+    lostNavalCombatImpulse?: {impulse: number; owners: Controller[]};
     rebellionAreasThisImpulse?: {impulse: number; areas: string[]};
     /** Most recent fortress capture; gates Sack! (#44) and Spanish Fury (#46). */
     lastCapture?: {space: string; attacker: Power; impulse: number};
@@ -973,6 +980,11 @@ export interface VQGame {
     portugueseTreasures?: number[];
     /** Galleons assigned to the Treasure Fleet escorts box. */
     treasureFleetEscorts?: number;
+    /**
+     * Rule 10.1: galleons move into *or* out of the Treasure Fleet Escorts
+     * box, "but not in both directions in the same turn".  Reset in Spring.
+     */
+    treasureFleetDirection?: "in" | "out";
     /** Number of completed circumnavigations (first 2 VP, later 1 VP). */
     circumnavigations?: number;
     /** +2 Wedding Festivities marker placed on a French marriage. */

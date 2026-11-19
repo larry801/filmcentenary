@@ -247,12 +247,21 @@ export const ActionExtras = () => {
             </Select>
         </FormControl>
         <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-            {G.patronsAvailable.map((id) => patronDef(id)).filter((p): p is NonNullable<typeof p> => p !== undefined && p.region === me && !POWERS.some((x) => G.powers[x].patrons.includes(p.id))).map((p) =>
-                <Button key={p.id} size="small" variant="outlined"
-                        disabled={!myTurn || cp < patronageCp || G.patronizedThisTurn.includes(`${me}:${p.kind}`)}
-                        onClick={() => moves.patronize({patron: p.id, cp: patronageCp})}>
-                    {patronLabel(p)}{p.rating === null ? ` (${i18n.chain.vq.worldUi.ratingPending})` : ` (${i18n.chain.vq.worldUi.rating} ${p.rating})`}{p.kind === "scientist" ? ` · ${i18n.chain.vq.worldUi.scientist}` : ""}
-                </Button>)}
+            {/* Rules 22.1/22.2 draw the patron at random, so the player picks
+                only the CP and the kind (artist or scientist). */}
+            {(["artist", "scientist"] as const).map((kind) => {
+                const candidates = G.patronsAvailable
+                    .map((id) => patronDef(id))
+                    .filter((p): p is NonNullable<typeof p> => p !== undefined && p.region === me && p.kind === kind &&
+                        p.rating !== null && !POWERS.some((x) => G.powers[x].patrons.includes(p.id)));
+                return <Button key={kind} size="small" variant="outlined"
+                        disabled={!myTurn || cp < patronageCp || candidates.length === 0 ||
+                            G.patronizedThisTurn.includes(`${me}:${kind}`)}
+                        onClick={() => moves.patronize({cp: patronageCp, patron: candidates[0]?.id})}>
+                    {kind === "artist" ? i18n.chain.vq.worldUi.artist : i18n.chain.vq.worldUi.scientist}
+                    {" "}({i18n.chain.vq.worldUi.randomDraw}, {candidates.length})
+                </Button>;
+            })}
         </Stack>
         </ActionGroup></>}
         {ps !== undefined && (ps.seaCaptains.length > 0 || sharedCaptains.length > 0) && <>
