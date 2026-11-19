@@ -17,7 +17,7 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {BISMARCK_HOME_CARD, warDeclarationEntitlement} from "./engine/rules";
-import {warCardCp} from "./engine/limitedWar";
+import {allyCallEligibility, warBudgetFor, warCardCp} from "./engine/limitedWar";
 import {BISMARCK_CARD, declareWar, pass, playCard, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
@@ -134,6 +134,54 @@ describe("Otto von Bismarck's war of unification", () => {
     playBismarck(G);
     expect(declareWar(G, makeCtx([], seat("GE")), "FR", "conquest", ["alsace-lorraine"], 3)).toBe(INVALID_MOVE);
     expect(declareWar(G, makeCtx([], seat("GE")), "FR", "liberation", ["alsace-lorraine"], 3)).toBe(INVALID_MOVE);
+    expect(G.war).toBeNull();
+  });
+
+  test("the card may name two different powers in one declaration", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    // FR is the first target; AU is the second power of the same declaration.
+    expect(declareWar(G, makeCtx([], seat("GE")), "FR", "unification", ["alsace-lorraine"], 3, {
+      secondTarget: "AU",
+    })).toBeUndefined();
+    expect(G.war!.defender).toBe("FR");
+    expect(G.war!.coDefenders).toEqual(["AU"]);
+    // 14.1: the second power is a defending belligerent, not a volunteer.
+    expect(G.war!.defenderAllies).toContain("AU");
+    expect(G.war!.budgets.AU).toBe(warBudgetFor(G, "AU", 0));
+    expect(G.war!.declarationCard).toBe(BISMARCK_CARD);
+  });
+
+  test("the defenders' chosen primary may be the second power", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    expect(declareWar(G, makeCtx([], seat("GE")), "FR", "unification", ["alsace-lorraine"], 3, {
+      secondTarget: "AU",
+      primary: "AU",
+    })).toBeUndefined();
+    expect(G.war!.defender).toBe("AU");
+    expect(G.war!.coDefenders).toEqual(["FR"]);
+    expect(G.war!.budgets.FR).toBe(warBudgetFor(G, "FR", 0));
+  });
+
+  test("the attacker may forbid other players from joining the war", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    expect(declareWar(G, makeCtx([], seat("GE")), "FR", "unification", ["alsace-lorraine"], 3, {
+      forbidPlayers: true,
+    })).toBeUndefined();
+    expect(G.war!.forbidPlayerJoins).toBe(true);
+    const call = allyCallEligibility(G, G.war, "GE", "AU");
+    expect(call.ok).toBe(false);
+    expect(call.reason).toBe("forbid-join");
+  });
+
+  test("the second power must be different from the first", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    expect(declareWar(G, makeCtx([], seat("GE")), "FR", "unification", ["alsace-lorraine"], 3, {
+      secondTarget: "FR",
+    })).toBe(INVALID_MOVE);
     expect(G.war).toBeNull();
   });
 

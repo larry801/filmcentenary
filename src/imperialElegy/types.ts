@@ -566,6 +566,34 @@ export interface WarSide {
    * created before it existed (and hand-written test states) remain valid.
    */
   minorTarget?: MinorWarTarget;
+  /**
+   * Rule 14.1 / the Bismarck and Aux Armes home cards: a declaration may name
+   * two different player powers.  The second power also sits in
+   * `defenderAllies` so every side-based helper sees it as a belligerent, but
+   * `coDefenders` keeps the typed record that it was attacked by this
+   * declaration rather than joining voluntarily.  The primary defender — the
+   * one whose capital ends the war — remains `defender`.
+   */
+  coDefenders?: Power[];
+  /**
+   * A non-player power named by the same declaration.  It sits in
+   * `defenderMinors`; a player ally of a non-player target is a co-defender
+   * instead (13.4 resolves the declaration to that player).
+   */
+  coDefenderMinors?: string[];
+  /**
+   * Bismarck: "After declaring war you may choose to forbid other players
+   * from joining the war.  Minor power allies may join the war as normal."
+   * While set, 14.0 player-ally calls are refused; `joinWarAsMinor` is not.
+   */
+  forbidPlayerJoins?: boolean;
+  /**
+   * Aux Armes: "If you choose a conquest war aim you may target up to two
+   * keys and you may also target two different powers.  However, if you do
+   * either, neutral powers can join the war against you."  A neutral power
+   * may then join the defending side without an invitation.
+   */
+  allowNeutralJoin?: boolean;
 }
 
 /**

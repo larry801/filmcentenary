@@ -358,8 +358,8 @@ value. …”* (`IE-H-GE-1`).
 `src/imperialElegy/components/bismarckDeclarePanel.test.tsx`（3 个断言：锁定
 aim/CP、`{minor}` 目标参数、无授权时的普通控件）。
 
-仍未实现（另行记录，非本缺陷）：卡面的“可同时指定两个不同国家”与“宣战后可
-禁止其他玩家参战”。另外三张“用本牌 CP 宣战”的本国牌已按下文 §3.13 补齐。
+卡面的“可同时指定两个不同国家”与“宣战后可禁止其他玩家参战”已按下文
+§3.14 补齐；另外三张“用本牌 CP 宣战”的本国牌见 §3.13。
 
 ### 3.13 其余三张宣战本国牌的授权与目标限制 / the other three declaration home cards
 
@@ -391,11 +391,64 @@ aim/CP、`{minor}` 目标参数、无授权时的普通控件）。
 - UI：`SpacePanel` 只显示该牌允许的 aim，显示目标限制提示；选中被禁止的
   目标时宣战按钮禁用（`warTargetAllowed`），不再发出必被拒绝的 move。
 
-回归：`src/imperialElegy/homeWarDeclarations.test.ts`（13 个断言）与
-`src/imperialElegy/components/bismarckDeclarePanel.test.tsx` 新增的 RU-9 /
-OT-12 面板断言。仍未实现：Aux Armes 的“可同时指定两个不同国家”与“中立国
-可参战”（与俾斯麦的同一条多人目标限制一并记录）；RU-9 的巴尔干小国结盟与
-三张牌的“获胜 +1 稳定度”仍不在本次宣告授权修复范围内。
+回归：`src/imperialElegy/homeWarDeclarations.test.ts` 与
+`src/imperialElegy/components/bismarckDeclarePanel.test.tsx` 的 RU-9 / OT-12
+面板断言。Aux Armes 的双目标与“中立国可参战”见 §3.14。仍未实现：RU-9 的
+巴尔干小国结盟与三张牌的“获胜 +1 稳定度”，二者不在本次宣告授权修复范围内。
+
+### 3.14 双目标宣战与参战限制 / two-power declarations and join limits
+
+卡面：
+
+- `IE-H-GE-1` Otto von Bismarck：*“You may target two different powers with
+  this declaration of war. After declaring war you may choose to forbid other
+  players from joining the war. Minor power allies may join the war as normal.”*
+- `IE-H-FR-6` Aux Armes, Citoyens!：*“If you choose a conquest war aim you may
+  target up to two keys and you may also target two different powers. However,
+  if you do either, neutral powers can join the war against you.”*
+
+规则书 14.1：*“It is possible for the GE and FR player, through the play of
+one of their home cards, to attack two different powers. … If this occurs the
+defending players determine, between the two of them, who the primary defender
+is, and, if they cannot agree, the attacker decides.”*
+
+**Fix (2026-11-19).** 两份卡面条款进入同一套宣战授权模型：
+
+- `declareWar` 新增可选第 5 参数 `{secondTarget, primary, forbidPlayers}`。
+  `WarDeclarationPolicy` 增加 `maxPowers` / `twoPowerAims` /
+  `mayForbidPlayerJoins` / `neutralJoinOnDouble`：俾斯麦的双目标只用于
+  unification，Aux Armes 的双目标只用于 conquest。
+- 双目标宣战仍是一场战争：`WarState.defender` 是主要防守方，
+  `WarState.coDefenders` 记录被同一声明攻击的第二国；第二国同时进入
+  `defenderAllies`（因此先手、战斗、预算与复员都把它当作防守方交战方），
+  预算按 14.3 只计其工业（它没有为参战打出卡牌）。双方各自按 8.2 远离进攻方；
+  主要防守方的双方中立选择仍走既有 `chooseAllianceShift`，第二国使用
+  8.6 同款的“协约国优先”确定性回退，避免两个 pending 冲突。
+- 目标校验（`validateWarAim` 的 `defenders`）允许两个防守方中任一控制目标
+  关键区；`chooseWarAim` 与拿破仑遗产决策后的再次校验读取同一列表。
+- 俾斯麦的禁止参战在宣战时记录（`WarState.forbidPlayerJoins`），
+  `allyCallEligibility` 对双方的所有玩家盟友调用返回 `forbid-join`；
+  `joinWarAsMinor` 不受影响，小国盟友仍按 14.0 参战。
+- Aux Armes 在“两个关键区或两个国家”时置 `WarState.allowNeutralJoin`；
+  新增 `joinWarAsNeutral` move 让中立国玩家自行为防守方参战（打出一张
+  event 牌作战争预算，并按 8.2 远离进攻方，仍受 8.4 三人上限约束）。
+- UI：宣战块新增第二国选择、主要防守方选择与“禁止玩家盟友参战”复选框；
+  战争面板显示两项参战限制，并在 `allowNeutralJoin` 时为中立座位提供参战按钮。
+
+回归：`bismarckWar.test.ts`（10 个断言：双目标、主要防守方、禁止参战、
+第二目标校验等）、`homeWarDeclarations.test.ts`（19 个断言：Aux Armes 双目标、
+双关键区、中立国参战与无条款时拒绝）与
+`components/bismarckDeclarePanel.test.tsx`（6 个断言）。
+
+**建模边界（仍记录为近似）：**
+
+- 双目标声明目前只支持“第一目标为玩家”的路径；第一目标是 13.4 小国时仍走
+  原有的放弃/求援流程，不能同时再指定第二国。
+- 规则书把主要防守方的首要决定权给两名防守玩家；本实现把最终结果作为
+  `declareWar` 的 `primary` 参数记录（默认第一目标）。UI 的选择器由进攻方
+  操作，等价于 14.1“协商不成由进攻方决定”的回退，未另开防守方协商对话。
+- 第二防守方作为 `defenderAllies` 参与战斗与条约分配，但其首都失守按 15.6
+  的盟友击倒处理，而不是“主要防守方首都”立即终战。
 
 ---
 

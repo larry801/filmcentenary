@@ -298,6 +298,17 @@ export interface ModelValues {
   warTargetAllowed: boolean;
   targetControlledSpaces: SpaceId[];
   canDeclareWar: boolean;
+  /** Rule 14.1: legal second player powers for the live home card. */
+  secondTargetOptions: Power[];
+  secondTargetValue: Power | "";
+  setSecondTarget: SetState<Power | "">;
+  /** The primary defender recorded on a two-power declaration. */
+  warPrimaryValue: Power | "";
+  setWarPrimary: SetState<Power | "">;
+  /** Bismarck's "forbid other players from joining" choice. */
+  forbidPlayers: boolean;
+  setForbidPlayers: SetState<boolean>;
+  forbidPlayersAllowed: boolean;
   gwOrderPowers: Power[];
   gwBudgetOrder: Power[];
   gwSlotLabel: (slot: Power | "bonus" | "IT" | "US" | null) => string;

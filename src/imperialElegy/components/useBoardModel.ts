@@ -12,7 +12,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement, warDeclarationTargetLegal} from "../engine/rules";
+import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationAllowsTwoPowers, warDeclarationAims, warDeclarationEntitlement, warDeclarationMayForbidJoins, warDeclarationTargetLegal} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -23,7 +23,7 @@ import {amphibiousAssaultCheck, canPassNow, hasActedThisImpulse, navalInterceptC
 import {planNavalTransport} from "../engine/navalMovement";
 import {AU_NATIONALITIES, auIncorporateDecision, auRightsDecision, canGrantCitizenship, jihadUse, passRestriction, superiorStaffWorkFreeDeploy, TSRR_RAIL_ARMY_KINDS, tsrrRail} from "../engine/characteristics";
 import {polishController, polishRecruitDecision} from "../engine/poland";
-import {deployReserveLimit, loneMinorDefender, minorWarInfo, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
+import {deployReserveLimit, hasTruce, loneMinorDefender, minorWarInfo, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
 import {isIndependentItaly} from "../engine/greatWarFlow";
 import {gwActionAllowance} from "../engine/gwImpulse";
@@ -186,6 +186,11 @@ export const useBoardModel = ({
   const [warAim, setWarAim] = React.useState<"conquest" | "liberation" | "unification">("conquest");
   const [warCp, setWarCp] = React.useState(2);
   const [secondObjective, setSecondObjective] = React.useState<SpaceId | "">("");
+  // Rule 14.1's two-power declaration and Bismarck's join choice.  They share
+  // the declaration block with the aim/CP pickers and reset with the impulse.
+  const [secondTarget, setSecondTarget] = React.useState<Power | "">("");
+  const [warPrimary, setWarPrimary] = React.useState<Power | "">("");
+  const [forbidPlayers, setForbidPlayers] = React.useState(false);
   const [warAlly, setWarAlly] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
   const [warMinor, setWarMinor] = React.useState<string>("");
   const [giveTarget, setGiveTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
@@ -1167,7 +1172,7 @@ export const useBoardModel = ({
   const warStatusLabel = war ? warStatusLabels[war.status] ?? war.status : "";
   const warAimLabel = (aim: string | null): string =>
     aim === "conquest" ? t.conquest : aim === "liberation" ? t.liberation : aim === "unification" ? t.unification : "—";
-  const callableAllies = war && viewer !== null
+  const callableAllies = war && viewer !== null && war.forbidPlayerJoins !== true
     ? POWER_KEYS.filter((p) => p !== viewer && !warBelligerents.includes(p) && (handCounts[p] ?? G.powers[p].hand.length) > 0)
     : [];
   const warAllyValue = callableAllies.includes(warAlly) ? warAlly : callableAllies[0];
@@ -1211,6 +1216,27 @@ export const useBoardModel = ({
   const targetControlledSpaces = warTargetSpaceControl !== null
     ? Object.values(SPACES).filter((sp) => G.spaces[sp.id]?.control === warTargetSpaceControl && sp.id !== selected).map((sp) => sp.id)
     : [];
+  // Rule 14.1: Bismarck's and Aux Armes' cards may name a second player power.
+  // The clause is only live for the aim it prints, and the first target must
+  // be a player power (a 13.4 non-player target keeps its aid/abandon flow).
+  const entitlementAims = warEntitlement !== null ? warDeclarationAims(warEntitlement.card) : null;
+  const declarationAim = entitlementAims !== null && !entitlementAims.includes(warAim)
+    ? entitlementAims[0] ?? warAim
+    : warAim;
+  const twoPowerEligible = warEntitlement !== null && warTargetControl !== null && viewer !== null
+    && warDeclarationAllowsTwoPowers(warEntitlement.card, declarationAim);
+  const secondTargetOptions = twoPowerEligible
+    ? POWER_KEYS.filter((p) => p !== viewer && p !== warTargetControl
+        && !hasTruce(G, viewer, p)
+        && warDeclarationTargetLegal(G, warEntitlement, p))
+    : [];
+  const secondTargetValue = secondTargetOptions.includes(secondTarget as Power) ? secondTarget : "";
+  // The defenders decide the primary between themselves; the attacker's choice
+  // is the printed fallback when they cannot agree, which is the answer this
+  // move records.  It defaults to the first target.
+  const warPrimaryValue: Power | "" = secondTargetValue === "" ? ""
+    : warPrimary === secondTargetValue ? secondTargetValue : warTargetControl ?? "";
+  const forbidPlayersAllowed = warEntitlement !== null && warDeclarationMayForbidJoins(warEntitlement.card);
   const canDeclareWar = canActionCard && war === null && G.wtt < 3
     && warTargetSpaceControl !== null
     && warTargetAllowed
@@ -1642,6 +1668,14 @@ export const useBoardModel = ({
     warTargetAllowed,
     targetControlledSpaces,
     canDeclareWar,
+    secondTargetOptions,
+    secondTargetValue,
+    setSecondTarget,
+    warPrimaryValue,
+    setWarPrimary,
+    forbidPlayers,
+    setForbidPlayers,
+    forbidPlayersAllowed,
     gwOrderPowers,
     gwBudgetOrder,
     gwSlotLabel,

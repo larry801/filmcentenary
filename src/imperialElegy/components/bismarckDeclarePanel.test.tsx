@@ -72,6 +72,8 @@ interface Declared {
   aim: unknown;
   objectives: unknown;
   cp: unknown;
+  /** The 5th argument: rule 14.1's second power / Bismarck's join ban. */
+  options?: unknown;
 }
 
 const renderPanel = (
@@ -83,6 +85,11 @@ const renderPanel = (
     targetControlledSpaces: SpaceId[];
     canDeclareWar: boolean;
     warTargetAllowed?: boolean;
+    secondTargetOptions?: Power[];
+    secondTargetValue?: Power | "";
+    warPrimaryValue?: Power | "";
+    forbidPlayers?: boolean;
+    forbidPlayersAllowed?: boolean;
   },
   viewer: Power = "GE",
 ): {tree: React.ReactElement; declared: Declared[]} => {
@@ -113,6 +120,14 @@ const renderPanel = (
     warEntitlement: entitlement,
     warTargetAllowed: options.warTargetAllowed ?? true,
     canDeclareWar: options.canDeclareWar,
+    secondTargetOptions: options.secondTargetOptions ?? [],
+    secondTargetValue: options.secondTargetValue ?? "",
+    setSecondTarget: () => undefined,
+    warPrimaryValue: options.warPrimaryValue ?? "",
+    setWarPrimary: () => undefined,
+    forbidPlayers: options.forbidPlayers ?? false,
+    setForbidPlayers: () => undefined,
+    forbidPlayersAllowed: options.forbidPlayersAllowed ?? false,
     polishReserve: false,
     setPolishReserve: () => undefined,
     selectedUnitDef: undefined,
@@ -124,8 +139,8 @@ const renderPanel = (
     confirmActions: false,
     doAction: (fn: () => void) => fn(),
     moves: {
-      declareWar: (target: unknown, aim: unknown, objectives: unknown, cp: unknown) => {
-        declared.push({target, aim, objectives, cp});
+      declareWar: (target: unknown, aim: unknown, objectives: unknown, cp: unknown, declaration?: unknown) => {
+        declared.push({target, aim, objectives, cp, ...(declaration === undefined ? {} : {options: declaration})});
       },
     },
   });
@@ -262,6 +277,33 @@ describe("Bismarck's declaration block", () => {
       if (element.type === "option") aimOptions += 1;
     });
     expect(aimOptions).toBe(2);
+  });
+
+  test("Bismarck may name a second power and forbid player allies", () => {
+    const G = bismarckImpulse();
+    const {tree, declared} = renderPanel(G, {
+      selected: "alsace-lorraine",
+      warTargetControl: "FR",
+      targetControlledSpaces: ["alsace-lorraine"],
+      canDeclareWar: true,
+      secondTargetOptions: ["AU", "RU"],
+      secondTargetValue: "AU",
+      warPrimaryValue: "AU",
+      forbidPlayers: true,
+      forbidPlayersAllowed: true,
+    });
+    expect(byTestId(tree, "ie-war-second-power")).toBeDefined();
+    expect(byTestId(tree, "ie-war-primary-defender")).toBeDefined();
+    expect(byTestId(tree, "ie-war-forbid-join")).toBeDefined();
+    expect(textOf(byTestId(tree, "ie-war-two-powers"))).toContain("second power");
+    click(tree, "ie-declare-war");
+    expect(declared).toEqual([{
+      target: "FR",
+      aim: "unification",
+      objectives: ["alsace-lorraine"],
+      cp: 3,
+      options: {secondTarget: "AU", primary: "AU", forbidPlayers: true},
+    }]);
   });
 
   test("without an entitlement the ordinary aim/CP pickers stay live", () => {
