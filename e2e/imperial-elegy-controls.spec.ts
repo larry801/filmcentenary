@@ -468,6 +468,73 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(war.getByRole("button", {name: "召唤盟友"})).toBeVisible();
     });
 
+    test("the Bismarck event opens the war-target chooser and declares unification", async ({page}) => {
+        await openLocal(page);
+        await finishPrep(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        // GE must pick Bismarck itself; the other seats keep the first choice.
+        for (const seat of SEATS) {
+            await focusSeat(page, seat);
+            const board = boardFor(page, seat);
+            const choose = seat === "GE"
+                ? board.locator('[data-testid="ie-choose-home-IE-H-GE-1"]')
+                : board.locator('[data-testid^="ie-choose-home-"]').first();
+            await expect(choose).toBeVisible({timeout: 15_000});
+            await clickUntilGone(page, choose);
+        }
+        await answerStartPending(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
+        await focusSeat(page, "GE");
+        const board = boardFor(page, "GE");
+
+        // Play the home card as its event.  The card leaves the hand and the
+        // declaration entitlement is granted; the chooser must appear without
+        // the player having to find a target space on the map.
+        const card = board.locator('[data-testid="ie-card-IE-H-GE-1"]');
+        await expect(card).toBeVisible({timeout: 15_000});
+        await card.locator(".ie-card-open").click();
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        const event = inspector.locator('[data-testid="ie-play-event-IE-H-GE-1"]');
+        await expect(event).toBeEnabled({timeout: 10_000});
+        await event.click();
+        await expect(event).toHaveAttribute("data-armed", "true");
+        await event.click();
+
+        const dialog = board.locator('[data-testid="ie-war-target-dialog"]');
+        await expect(dialog).toBeVisible({timeout: 15_000});
+        await expect(dialog).toContainText("选择战争目标");
+        await expect(dialog).toContainText("奥托·冯·俾斯麦");
+        // Alsace-Lorraine is the French-held German objective: a war of
+        // unification on France.
+        await expect(dialog.locator('[data-testid="ie-war-target-group-FR"]')).toBeVisible();
+        await expect(dialog.locator('[data-testid="ie-war-target-group-minor:Denmark"]')).toBeVisible();
+
+        // Closing it leaves the Orders prompt, which reopens the same chooser.
+        await dialog.locator('[data-testid="ie-war-target-close"]').click();
+        await expect(dialog).toHaveCount(0);
+        const prompt = board.locator('[data-testid="ie-war-target-prompt"]');
+        await expect(prompt).toBeVisible();
+        await expect(prompt.locator('[data-testid="ie-war-target-open"]')).toBeEnabled();
+        await prompt.locator('[data-testid="ie-war-target-open"]').click();
+        await expect(dialog).toBeVisible();
+
+        // Picking the objective selects that space and opens the ordinary
+        // declaration form, which is confirmed twice (arm, then declare).
+        await dialog.locator('[data-testid="ie-war-target-alsace-lorraine"]').click();
+        await expect(dialog).toHaveCount(0);
+        const declare = board.locator('[data-testid="ie-declare-war"]');
+        await expect(declare).toBeEnabled({timeout: 10_000});
+        await declare.click();
+        await expect(declare).toHaveAttribute("data-armed", "true");
+        await declare.click();
+        await expect.poll(async () => await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            return G.war === null
+                ? null
+                : {attacker: G.war.attacker, defender: G.war.defender, aim: G.war.warAim, objectives: G.war.objectives};
+        })).toEqual({attacker: "GE", defender: "FR", aim: "unification", objectives: ["alsace-lorraine"]});
+    });
+
     test("card economy controls render and Save toggles the card state", async ({page}) => {
         await reachAction(page);
         const board = boardFor(page, "GE");

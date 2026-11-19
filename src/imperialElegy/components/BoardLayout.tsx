@@ -47,6 +47,7 @@ import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
 import {MpitPanel} from "./MpitPanel";
 import {CardChoiceModal} from "./CardChoiceModal";
+import {WarTargetDialog} from "./WarTargetDialog";
 import {Toast} from "./Toast";
 import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {MobileDock, type MobileDockTab} from "./MobileDock";
@@ -187,6 +188,7 @@ export const OrdersRegion = (props: OrdersSlice & {
     G, viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
     warAim, setWarAim, warCp, setWarCp, secondObjective, setSecondObjective,
     targetControlledSpaces, warTargetControl, warMinorTarget, warEntitlement, warTargetAllowed, canDeclareWar,
+    warTargetCandidates, setWarTargetsOpen,
     secondTargetOptions, secondTargetValue, setSecondTarget, warPrimaryValue, setWarPrimary,
     forbidPlayers, setForbidPlayers, forbidPlayersAllowed, gwJointNavalAllies, gwJointNavalUnitIds,
     polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
@@ -304,7 +306,10 @@ export const OrdersRegion = (props: OrdersSlice & {
               secondObjective={secondObjective} setSecondObjective={setSecondObjective}
               targetControlledSpaces={targetControlledSpaces} warTargetControl={warTargetControl}
               warMinorTarget={warMinorTarget ?? null} warEntitlement={warEntitlement ?? null}
-              warTargetAllowed={warTargetAllowed} canDeclareWar={canDeclareWar}
+              warTargetAllowed={warTargetAllowed}
+              warTargetCount={warTargetCandidates.length}
+              onOpenWarTargets={() => setWarTargetsOpen(true)}
+              canDeclareWar={canDeclareWar}
               secondTargetOptions={secondTargetOptions} secondTargetValue={secondTargetValue} setSecondTarget={setSecondTarget}
               warPrimaryValue={warPrimaryValue} setWarPrimary={setWarPrimary}
               forbidPlayers={forbidPlayers} setForbidPlayers={setForbidPlayers} forbidPlayersAllowed={forbidPlayersAllowed}
@@ -800,6 +805,23 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       >
         <HandChoices {...choicesProps}/>
       </CardChoiceModal>
+
+      {/* The home-card war declaration's target chooser.  It opens itself when
+          Bismarck / Aux Armes / Russo-Turkish Wars / Jihad resolve, and the
+          Orders prompt reopens it after a dismissal.  Like the card-choice
+          dialog it is limited to the seat being looked at, so a hotseat's five
+          hidden boards never pull focus into a chooser. */}
+      <WarTargetDialog
+        open={orders.warTargetsOpen && isCurrentSeat}
+        candidates={orders.warTargetCandidates}
+        locale={locale}
+        t={t}
+        cardTitle={orders.warEntitlement !== null && orders.warEntitlement !== undefined
+          ? core.homeCardTitle(orders.warEntitlement.card)
+          : ""}
+        onChoose={orders.chooseWarTarget}
+        onClose={() => orders.setWarTargetsOpen(false)}
+      />
 
       {/* A refused move is explained here: the engine answers a bare
           INVALID_MOVE, so the board says what it tried and why it is not

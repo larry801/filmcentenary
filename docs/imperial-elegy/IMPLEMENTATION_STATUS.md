@@ -27,6 +27,35 @@ Local verification for this pass (2026-11-18, branch `feature/ie-visual-system`)
 Remote GitHub Actions remains authoritative (AGENTS.md §7/§10); the local run
 is not a substitute.
 
+## Fixed: the home-card declaration now opens its war-target chooser (2026-11-19)
+
+Reported again as "帝国挽歌 俾斯麦事件之后不能统一战争". The previous fix
+granted the declaration entitlement and taught `declareWar` to spend the
+card's CP, but the board still only offered the declaration after the player
+selected a legal objective space on the map. Nothing prompts a player to look
+at Denmark or Bavaria after the Bismarck event, so the card still looked dead.
+
+- `engine/declarationTargets.ts#declarationTargetCandidates` enumerates every
+  legal (defender, printed aim, objective space) declaration for a live
+  entitlement. It mirrors `declareWar`: 13.0 World Tension, 13.5 truces,
+  eliminated seats, 13.4 resolution of a non-player target (an allied minor is
+  reached through its player), the card's target/aim policy and
+  `validateWarAim`. The UI can therefore never offer a refused move.
+- `components/WarTargetDialog.tsx` groups those candidates by defender, filters
+  by war aim for the cards that leave the aim open, and hands the chosen
+  objective to the existing declaration form. The dialog opens by itself when
+  the card resolves; `components/SpacePanel.tsx` keeps an
+  `ie-war-target-prompt` ("选择战争目标") so a dismissed chooser can be
+  reopened, and explains why there is no target when the list is empty.
+- The chooser is limited to the seat's own action impulse and to the seat the
+  hotseat reader is looking at; a running war or a pending decision hides it
+  without losing the dismissal state.
+
+Coverage: `declarationTargets.test.ts` (9 — including "every candidate is
+accepted by `declareWar`" for all four cards), `components/warTargetDialog.test.tsx`
+(7 — auto-open, grouping, aim filter, close/reopen, other seats) and the new
+`e2e/imperial-elegy-controls.spec.ts` Bismarck case.
+
 ## Fixed: RU-9's Balkan alliance and the three home-card win bonuses (2026-11-19)
 
 The last two printed clauses recorded as open in `CARD_EVENTS.md` §3.13 are live:
