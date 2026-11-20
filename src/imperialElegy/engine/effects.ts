@@ -33,6 +33,7 @@ import {
   effectiveKeyType,
   enemiesOf,
   friendlySpace,
+  hasPacificationMarker,
   hasLoc,
   hostileOwner,
   isHomeSpace,
@@ -2681,9 +2682,15 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         .concat(legalSpaces(G, actor, {region: "northAmerica"}))
         .filter((id) => {
           const s = G.spaces[id];
-          if (s.control === null) return false;
+          // "controlled by a player": a minor-controlled space is not a
+          // colonial conflict target.
+          if (!isPower(s.control)) return false;
           const home = SPACES[id].home;
-          return home !== s.control;
+          if (home === s.control) return false;
+          // "As each space can only contain a single pacification marker":
+          // an existing marker (including a 0-value one) makes it ineligible.
+          if (hasPacificationMarker(G, id)) return false;
+          return true;
         });
       if (candidates.length === 0) return true;
       openDecision(G, ctx, decision("eventTargetSpace", actor, "Choose a colonial space", candidates.map((id) => option(id, spaceLabel(id, "en"), undefined, false, spaceLabel(id, "zh_CN"))), {resume, special: handler}));

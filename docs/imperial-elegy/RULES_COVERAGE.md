@@ -357,7 +357,8 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   Nicholas II and The Young Turks. Older explicit choices remain for Diplomatic
   Incident, Chinese Intervention, Decline of the Qing, The Great Game, French
   Intervention, Loose Grip, Nationalist Uprising and Mahdist War; Quagmire and
-  Divide and Conquer also prompt. A025 now asks which space receives the +2 and
+  Divide and Conquer also prompt; A13/A14 now require a player-controlled,
+  not-yet-marked space as printed. A025 now asks which space receives the +2 and
   resolves the printed two-dice pacification roll (including the errata's
   Egyptian special); A037 follows the five spaces' normal placement
   restrictions and makes its printed pacification roll. A097 now chooses which

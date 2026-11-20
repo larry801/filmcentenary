@@ -1,5 +1,26 @@
 # Imperial Elegy — implementation status
 
+## Fixed: Colonial Conflict accepted minor-controlled and already-marked spaces (2026-11-21)
+
+A13/A14 print *"Choose a space in Asia, Africa, or North America that is
+controlled by a player but is not a home space belonging to that player … As
+each space can only contain a single pacification marker it is possible that
+there are no eligible spaces."*  The handler only checked `control !== null` and
+`home !== control`:
+
+- a **minor-controlled** space (Egypt, Persia, …) was offered even though the
+  card names a player-controlled space;
+- a space that **already had a pacification marker** was offered, and the naval
+  base branch then added 2 on top of the existing marker instead of treating the
+  space as ineligible.
+
+The filter now requires `isPower(control)`, excludes the controller's home space
+and excludes `hasPacificationMarker` (so a 0-value marker counts).  With no legal
+space the mandatory event resolves with no effect, as printed.
+
+**Coverage:** `colonialConflict.test.ts` (3 — minor/marked exclusion, A14's
+shared eligibility and the naval-base 2 marker).  `npx tsc --noEmit` clean.
+
 ## Fixed: the CP Chain started a card-less impulse and funded several actions (2026-11-21)
 
 12.14 prints *"Players may spend the CP in their CP Chain when they play a card
