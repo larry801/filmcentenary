@@ -754,6 +754,34 @@ export const spendCpFor = (G: ImperialElegyState, power: Power, amount: number):
   return true;
 };
 
+/**
+ * A088 Our Place in the Sun / UK-3 Sun Never Sets: a public grant of free CP that
+ * may only pay for "colonial" actions (naval movement, construct fleet,
+ * expeditionary force, pacification).  The grant lives in the power's public
+ * flag bag because the card is played faceup, so the table can see it.
+ */
+export const freeColonialCp = (G: ImperialElegyState, power: Power): number =>
+  Number(G.powers[power]?.flags.freeColonialCp ?? 0);
+
+/** Spend from the free colonial grant first; returns the CP the wallet still owes. */
+export const spendFreeColonialCp = (G: ImperialElegyState, power: Power, amount: number): number => {
+  const left = freeColonialCp(G, power);
+  const used = Math.min(left, amount);
+  if (used > 0) {
+    const rest = left - used;
+    if (rest > 0) G.powers[power].flags.freeColonialCp = rest;
+    else delete G.powers[power].flags.freeColonialCp;
+  }
+  return amount - used;
+};
+
+/** Charge `amount` CP against the wallet and, first, any free colonial grant. */
+export const spendColonialCp = (G: ImperialElegyState, power: Power, amount: number): boolean => {
+  const owed = spendFreeColonialCp(G, power, amount);
+  if (owed === 0) return true;
+  return spendCpFor(G, power, owed);
+};
+
 export const enemiesOf = (G: ImperialElegyState, power: Power): Power[] =>
   POWERS.filter((p) => p !== power && atWar(G, power, p));
 
@@ -1464,6 +1492,21 @@ export const isMinorPowerOwner = (owner: PowerOrMinor): owner is string =>
   !isPower(owner) &&
   !["US", "IT", "United States", "Italy"].includes(owner) &&
   !owner.startsWith("REBEL:");
+
+/**
+ * 12.8 / 15.4: an allied minor power's ordinary army/fleet counters fight for
+ * their controller.  Asking `minorController` (rather than the battle space's
+ * own ally marker) keeps a minor that marched away from its allied home in the
+ * controller's action.  US and unified Italy are 26.3 majors, not minor powers,
+ * and never join through this path.
+ */
+export const commandsAlliedMinor = (
+  G: ImperialElegyState,
+  actor: Power,
+  owner: Unit["owner"],
+): boolean =>
+  !isPower(owner) && owner !== "US" && owner !== "IT"
+  && minorController(G, owner) === actor;
 
 /**
  * The player currently controlling a minor (its allied player), or null when

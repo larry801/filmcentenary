@@ -16,6 +16,7 @@ import {recomputeTracks} from "./engine/rules";
 import {
   activateGwExhaustion,
   adjacentToEnemyArmies,
+  notePoliticalPressureOccupation,
   resolveGwWinter,
   usAllianceBox,
 } from "./engine/greatWarFlow";
@@ -191,6 +192,46 @@ describe("GW-08 Political Pressure", () => {
     if (!res.ok) throw new Error(res.message);
     expect(res.politicalPressureLosses).toEqual([]);
     expect(G.powers.FR.stability).toBe(before);
+  });
+
+  test("occupying an empty enemy key satisfies the pressure", () => {
+    const G = pressureSetup();
+    playGwEvent(G, "IE-GW-08");
+    resolvePending(G, ctxFor("GE"), "FR");
+    // GW-08: "Occupying an empty key controlled or occupied by an enemy also
+    // counts as satisfying the attack condition."  Give FR an empty enemy key
+    // next door and march into it.
+    const target = "alsace-lorraine";
+    for (const id of [...G.spaces[target].units]) G.spaces[target].units = G.spaces[target].units.filter((u) => u !== id);
+    G.spaces[target].control = "GE";
+    G.spaces[target].occupiedBy = null;
+    G.spaces[target].fort = null;
+    G.spaces.saxony.control = "FR";
+    G.powers.FR.gwBudget = 3;
+    G.turnIndex = 0;
+    G.activePower = "FR";
+    expect(notePoliticalPressureOccupation(G, "FR", target)).toBe(true);
+    expect(G.powers.FR.flags.landAttackTurn).toBe(2);
+
+    const before = G.powers.FR.stability;
+    G.phase = "gwWinter";
+    const res = resolveGwWinter(G, makeCtx([3]));
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error(res.message);
+    expect(res.politicalPressureLosses).toEqual([]);
+    expect(G.powers.FR.stability).toBe(before);
+  });
+
+  test("own keys and friendly keys do not satisfy the pressure", () => {
+    const G = pressureSetup();
+    playGwEvent(G, "IE-GW-08");
+    resolvePending(G, ctxFor("GE"), "FR");
+    // A key FR already controls is not an enemy key.  The card reset the flag
+    // to -1 ("an attack before the card does not count"), and it must stay
+    // there: only a later attack or occupation satisfies the pressure.
+    G.spaces.paris.control = "FR";
+    expect(notePoliticalPressureOccupation(G, "FR", "paris")).toBe(false);
+    expect(G.powers.FR.flags.landAttackTurn).toBe(-1);
   });
 
   test("both Pressures (GW-08 and GW-09) are enforced independently", () => {

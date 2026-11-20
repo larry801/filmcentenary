@@ -22,6 +22,7 @@ import {
   friendlySpace, isArmyKind, maneuverDestinationProblem, movementEndProblem, redeployLandPath,
 } from "../engine/rules";
 import {planNavalMove} from "../engine/navalMovement";
+import {planWartimeLandMove} from "../engine/wartimeMovement";
 import {gwLandMoveProblem} from "../engine/greatWarFlow";
 
 export type LandMoveKind = "redeploy" | "march" | "rail";
@@ -46,6 +47,10 @@ const landTargets = (input: LegalTargetsInput, kind: LandMoveKind): SpaceId[] =>
     const to = id as SpaceId;
     if (to === from || isNavalBox(to) || !SPACES[to]) return false;
     if (kind === "redeploy") {
+      // 15.2.4/15.2.5: a wartime land move is a march or a rail, so the ring
+      // must come from the same planner the move uses — not from the peacetime
+      // 12.15 route.  The planner already covers an unlimited rail path.
+      if (G.phase === "wartime" && G.war !== null) return planWartimeLandMove(G, power, unit.id, to).ok;
       // 12.15: a land/rail path through owned or influenced spaces, ending in
       // one; the stacking rules still apply at the destination.
       if (!redeployLandPath(G, power, from, to)) return false;

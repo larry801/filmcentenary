@@ -35,6 +35,7 @@ import {
   refreshPowerProjection,
   changeStability,
   resolveCapitalSurrenders,
+  commandsAlliedMinor,
 } from "./rules";
 import {decision, openDecision, option} from "./pending";
 import {unitKindLabel} from "./unitKind";
@@ -480,19 +481,11 @@ export const recomputeBattleSupport = (G: ImperialElegyState, battle: BattleStat
 };
 
 /**
- * 12.8 / 15.4: an allied minor power's ordinary army/fleet counters fight for
- * their controller.  Asking `minorController` (rather than the battle space's
- * own ally marker) keeps a minor that marched away from its allied home in the
- * controller's attack force.  US and unified Italy are 26.3 majors, not minor
- * powers, and never join through this path.
+ * 12.8 / 15.4: allied-minor command is defined once in `rules.ts` so the battle
+ * path, the wartime march/rail planner and the Great War maneuvers agree.
+ * Re-exported for the existing callers in this module's public surface.
  */
-const commandsAlliedMinor = (
-  G: ImperialElegyState,
-  actor: Power,
-  owner: Unit["owner"],
-): boolean =>
-  !isPower(owner) && owner !== "US" && owner !== "IT"
-  && minorController(G, owner) === actor;
+export {commandsAlliedMinor};
 
 export const beginLandBattle = (
   G: ImperialElegyState,
