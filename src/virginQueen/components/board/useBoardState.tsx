@@ -554,11 +554,16 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     // so they need their own cue on the action tab (especially on mobile).
     const winterLandChoice = me !== undefined && (G.winterLossChoices ?? []).some((entry) => entry.power === me);
     const winterNavalChoice = me !== undefined && (G.winterNavalLossChoices ?? []).some((entry) => entry.power === me);
+    const winterReturnChoice = me !== undefined && ((G.winterReturnChoices ?? []).some((entry) => entry.power === me) ||
+        (G.winterNavalReturnChoices ?? []).some((entry) => entry.power === me));
     const winterChoiceRequired = phase === "cardDraw" && (winterLandChoice || winterNavalChoice);
     const needsAction = hasResponse || winterChoiceRequired;
     const winterChoiceLabel = winterLandChoice && winterNavalChoice
         ? `${i18n.chain.vq.cardDraw.winterLosses} / ${i18n.chain.vq.cardDraw.winterNavalLosses}`
-        : winterLandChoice ? i18n.chain.vq.cardDraw.winterLosses : i18n.chain.vq.cardDraw.winterNavalLosses;
+        : winterLandChoice ? i18n.chain.vq.cardDraw.winterLosses
+            : winterNavalChoice ? i18n.chain.vq.cardDraw.winterNavalLosses
+                : `${i18n.chain.vq.cardDraw.winterReturns} / ${i18n.chain.vq.cardDraw.winterNavalReturns}`;
+    const winterReturnHint = phase === "cardDraw" && winterReturnChoice && !winterChoiceRequired;
     const selectedSea = selected ? G.seaZones[selected as keyof VQGame["seaZones"]] : undefined;
     const panelProps = (name: string) => ({id: `${panelID}-${name}`, role: isDesktop ? undefined : "tabpanel",
         "aria-labelledby": isDesktop ? undefined : `${panelID}-tab-${name}`, hidden: !isDesktop && mobileView !== name,
@@ -603,6 +608,6 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         ps, cp, hand, passBlockCodes, passBlockText, passBlockReason, endImpulseBlocked, hotseatWaitHint, canAct, vqCombatRetrieve,
         modeDisabledReason, isMoveMode, stepState, mapHighlights, stepInfo, transportCandidates, stackPicker, formationSummary,
         doSpaceAction, onSelect, space, spaceDef, standings, religionActions, pendingPower, hasResponse, winterLandChoice,
-        winterNavalChoice, winterChoiceRequired, needsAction, winterChoiceLabel, selectedSea, panelProps,
+        winterNavalChoice, winterChoiceRequired, needsAction, winterChoiceLabel, winterReturnChoice, winterReturnHint, selectedSea, panelProps,
     };
 };

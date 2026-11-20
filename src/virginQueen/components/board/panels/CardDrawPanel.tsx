@@ -1,17 +1,77 @@
+import React from "react";
 import Button from "@mui/material/Button";
+import MenuItem from "@mui/material/MenuItem";
+import Select from "@mui/material/Select";
 import {ActionGroup} from "../../theme";
 import {eventTargetOptions, eventTargetValue} from "../../../eventTargets";
 import {POLISH_ELECTION_POWERS, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, type PolishElectionBidChoices, type PolishElectionPower} from "../../../polishElection";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import i18n from "../../../../constant/i18n";
-import {powerName, LandStack, NavalStack} from "../../../constant/general";
+import {powerName, LandStack, NavalStack, WinterReturnChoice} from "../../../constant/general";
 import {seaZoneName} from "../../../mapData";
 import {participatingPowers} from "../../../ownership";
 import {scenarioName} from "../../../scenario";
+import {legalWinterLandReturnOptions, legalWinterLandReturnUnits} from "../../../util";
 
 import {placeLabel, vqLocaleNow} from "../helpers";
 import {useVQBoard} from "../BoardContext";
+
+/**
+ * Composition choices for an overstacked fortress beyond the automatic one.
+ * A garrison that may stay, or a stack with a single unit kind, has nothing to
+ * choose here; the destination buttons already cover moving everything home.
+ */
+const winterReturnUnits = (
+    G: Parameters<typeof legalWinterLandReturnUnits>[0],
+    power: Parameters<typeof legalWinterLandReturnUnits>[1],
+    entry: WinterReturnChoice,
+    to: string,
+): LandStack[] => {
+    const kinds = (["regular", "merc", "cav"] as const).filter((kind) => entry.before[kind] > 0);
+    if (entry.minMove <= 0 || kinds.length < 2) return [];
+    const automatic = legalWinterLandReturnUnits(G, power, entry, entry.autoTo)
+        .find((units) => units.regular === entry.autoMoved.regular && units.merc === entry.autoMoved.merc &&
+            units.cav === entry.autoMoved.cav);
+    return legalWinterLandReturnUnits(G, power, entry, to)
+        .filter((units) => automatic === undefined || units.regular !== automatic.regular ||
+            units.merc !== automatic.merc || units.cav !== automatic.cav);
+};
+
+/**
+ * Choose which units leave an overstacked fortress.  Every kind gets a count
+ * picker and the confirm button stays disabled until the combination is one
+ * `legalWinterLandReturnUnits` accepts for that destination.
+ */
+const WinterCompositionPicker = ({entry, options, disabled, unitNames, onConfirm}: {
+    entry: WinterReturnChoice;
+    options: LandStack[];
+    disabled: boolean;
+    unitNames: Record<keyof LandStack, string>;
+    onConfirm: (units: LandStack) => void;
+}) => {
+    const [units, setUnits] = React.useState<LandStack>(options[0]);
+    const shown = options.find((option) => option.regular === units.regular &&
+        option.merc === units.merc && option.cav === units.cav);
+    const set = (kind: keyof LandStack, value: number): void => setUnits({...units, [kind]: value});
+    return <Stack spacing={0.25}>
+        <Typography variant="caption" color="text.secondary">{i18n.chain.vq.cardDraw.chooseComposition}</Typography>
+        <Stack direction="row" spacing={1} sx={{flexWrap: "wrap"}}>
+            {(["regular", "merc", "cav"] as const).map((kind) => <Stack key={kind} direction="row" spacing={1}>
+                <Typography variant="caption">{unitNames[kind]}</Typography>
+                <Select size="small" inputProps={{"aria-label": unitNames[kind]}} value={units[kind]}
+                    disabled={disabled}
+                    onChange={(event) => set(kind, Number(event.target.value))}>
+                    {Array.from({length: entry.before[kind] + 1}, (_, count) => <MenuItem key={count} value={count}>{count}</MenuItem>)}
+                </Select>
+            </Stack>)}
+        </Stack>
+        <Button size="small" variant="outlined" disabled={disabled || shown === undefined}
+            onClick={() => shown !== undefined && onConfirm(shown)}>
+            {i18n.chain.vq.cardDraw.confirm}
+        </Button>
+    </Stack>;
+};
 
 export const CardDrawPanel = () => {
     const {G, ctx, moves, vqLocale, me, myTurn, switchToTab, space} = useVQBoard();
@@ -20,6 +80,8 @@ export const CardDrawPanel = () => {
     const nextPhase = G.scenario === "tutorial" ? i18n.chain.vq.cardDraw.springPhase : i18n.chain.vq.cardDraw.diplomacyPhase;
     const winterLosses = (G.winterLossChoices ?? []).filter((entry) => entry.power === me);
     const winterNavalLosses = (G.winterNavalLossChoices ?? []).filter((entry) => entry.power === me);
+    const winterReturns = (G.winterReturnChoices ?? []).filter((entry) => entry.power === me);
+    const winterNavalReturns = (G.winterNavalReturnChoices ?? []).filter((entry) => entry.power === me);
     const unitNames: Record<keyof LandStack, string> = {regular: i18n.chain.vq.cardDraw.regular, merc: i18n.chain.vq.cardDraw.merc, cav: i18n.chain.vq.cardDraw.cav};
     const shipNames: Record<keyof NavalStack, string> = {galley: i18n.chain.vq.cardDraw.galley, galleon: i18n.chain.vq.cardDraw.galleon, racebuilt: i18n.chain.vq.cardDraw.racebuilt, corsair: i18n.chain.vq.cardDraw.corsair};
     return <Stack spacing={1}>
@@ -29,6 +91,53 @@ export const CardDrawPanel = () => {
             {(G.colonyRolls ?? []).map((entry) => <Typography key={entry.settlement} variant="caption">
                 {placeLabel(entry.settlement)} · {powerName(entry.power, vqLocale)} · {entry.total} · {i18n.chain.vq.cardDraw[entry.result === "eliminated" ? "colonyEliminated" : entry.result === "none" ? "colonyNone" : entry.result === "treasure" ? "colonyTreasure" : "colonyTreasureVp"]}
             </Typography>)}
+        </Stack>}
+        {winterReturns.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "info.main", borderRadius: 1}}>
+            <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.winterReturns}</Typography>
+            <Typography variant="caption" color="text.secondary">{i18n.chain.vq.cardDraw.winterReturnsDesc}</Typography>
+            {winterReturns.map((entry) => {
+                const destinations = legalWinterLandReturnOptions(G, me, entry);
+                const alternatives = destinations.filter((option) => option !== entry.autoTo);
+                const compositions = winterReturnUnits(G, me, entry, entry.autoTo);
+                return <Stack key={entry.id} spacing={0.5}>
+                    <Typography variant="body2">
+                        {placeLabel(entry.from)} → {placeLabel(entry.autoTo)} · {i18n.chain.vq.cardDraw.needMove} {entry.minMove} {i18n.chain.vq.cardDraw.units}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                        {alternatives.map((option) => <Button key={option} size="small" variant="outlined"
+                            disabled={!myTurn}
+                            onClick={() => moves.chooseWinterReturn({id: entry.id, to: option})}>
+                            {i18n.chain.vq.cardDraw.moveTo} {placeLabel(option)}
+                        </Button>)}
+                        {destinations.includes(entry.from) && <Button size="small" variant="outlined"
+                            disabled={!myTurn}
+                            onClick={() => moves.chooseWinterReturn({id: entry.id, to: entry.from})}>
+                            {i18n.chain.vq.cardDraw.stayPut}
+                        </Button>}
+                    </Stack>
+                    {compositions.length > 0 && <WinterCompositionPicker entry={entry} options={compositions} disabled={!myTurn}
+                        unitNames={unitNames}
+                        onConfirm={(units) => moves.chooseWinterReturn({id: entry.id, to: entry.autoTo, units})}/>}
+                </Stack>;
+            })}
+        </Stack>}
+        {winterNavalReturns.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "info.main", borderRadius: 1}}>
+            <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.winterNavalReturns}</Typography>
+            <Typography variant="caption" color="text.secondary">{i18n.chain.vq.cardDraw.winterNavalReturnsDesc}</Typography>
+            {winterNavalReturns.map((entry) => (
+                <Stack key={entry.id} spacing={0.5}>
+                    <Typography variant="body2">
+                        {seaZoneName(entry.zone, vqLocaleNow())} → {placeLabel(entry.auto)}
+                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+                        {entry.options.filter((port) => port !== entry.auto).map((port) =>
+                            <Button key={port} size="small" variant="outlined" disabled={!myTurn}
+                                onClick={() => moves.chooseWinterNavalReturn({id: entry.id, port})}>
+                                {i18n.chain.vq.cardDraw.moveTo} {placeLabel(port)}
+                            </Button>)}
+                    </Stack>
+                </Stack>
+            ))}
         </Stack>}
         {winterLosses.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
             <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.winterLosses}</Typography>

@@ -31,7 +31,7 @@ import {eventTargetOptions} from "../../src/virginQueen/eventTargets";
 import {abjurationOffers} from "../../src/virginQueen/abjuration";
 import {
     catholicLeagueSpaceOptions, homeCardChoiceRequired, hreReligiousPreferenceRequired, landNeighbors, legalTargets,
-    rebellionTargets,
+    legalWinterLandReturnOptions, legalWinterLandReturnUnits, rebellionTargets,
 } from "../../src/virginQueen/util";
 import {passBlockReasons} from "../../src/virginQueen/moves";
 import {defaultFormation, landMoveIssue, springMoveIssue, transportMoveIssue} from "../../src/virginQueen/movement";
@@ -39,7 +39,6 @@ import {isActivatedMajor, ownerOf} from "../../src/virginQueen/ownership";
 import {MINOR_DIPLOMACY} from "../../src/virginQueen/data/minorDiplomacy";
 import {MINOR_POWERS} from "../../src/virginQueen/constant/general";
 import {WORLD_SETTLEMENTS} from "../../src/virginQueen/data/world";
-import {seaCaptainById} from "../../src/virginQueen/scenario";
 import {assassinationTargets, doubleAgentTargets} from "../../src/virginQueen/espionage";
 import {untimelyDeathTargets} from "../../src/virginQueen/cardEvents";
 import {canPlayHolyLeague} from "../../src/virginQueen/holyLeague";
@@ -252,20 +251,31 @@ const winterLossDecision = (G: VQGame, power: Power, chaos: number, rng: () => n
         const kind = pick([...kinds, "auto" as const], chaos, rng) ?? "auto";
         return {move: "chooseWinterNavalLoss", args: [{zone: naval.zone, kind}]};
     }
+    // Return revisions are optional.  Only explore them with some chaos so the
+    // default sweep still exercises the automatic placement most of the time.
+    const landReturn = (G.winterReturnChoices ?? []).find((entry) => entry.power === power);
+    if (landReturn !== undefined && chaos > 0 && rng() < chaos / 2) {
+        // Winter records can go stale as other stacks return to the same
+        // fortress, so only offer destinations that still have room; with none
+        // left the automatic placement is the only legal result.
+        const options = legalWinterLandReturnOptions(G, power, landReturn);
+        const to = pick(options, chaos, rng);
+        if (to !== undefined) {
+            const units = pick(legalWinterLandReturnUnits(G, power, landReturn, to), chaos, rng);
+            return {move: "chooseWinterReturn", args: [{id: landReturn.id, to, ...(units === undefined ? {} : {units})}]};
+        }
+    }
+    const navalReturn = (G.winterNavalReturnChoices ?? []).find((entry) => entry.power === power);
+    if (navalReturn !== undefined && chaos > 0 && rng() < chaos / 2) {
+        const port = pick(navalReturn.options, chaos, rng) ?? navalReturn.auto;
+        return {move: "chooseWinterNavalReturn", args: [{id: navalReturn.id, port}]};
+    }
     return undefined;
 };
 
 const cardDrawDecision = (G: VQGame, ctx: Ctx, power: Power, chaos: number, rng: () => number): Decision => {
     const winter = winterLossDecision(G, power, chaos, rng);
     if (winter !== undefined) return winter;
-    if (power === "france" || power === "protestant") {
-        const captain = G.seaCaptainsAvailable.find((id) => {
-            const def = seaCaptainById(id);
-            return def !== undefined && def.power === "france/protestant" && def.turn <= G.year &&
-                !G.powers[power].seaCaptains.includes(id);
-        });
-        if (captain !== undefined && chaos > 0 && rng() < chaos) return {move: "claimSeaCaptain", args: [{captain}]};
-    }
     return {move: "endPhaseTurn", args: []};
 };
 

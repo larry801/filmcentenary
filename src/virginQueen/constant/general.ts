@@ -229,15 +229,17 @@ export interface NavalStack {
 }
 
 /**
- * A winter attrition loss whose unit type has not been confirmed by the owner
- * yet. The automatic losses have already been applied; choosing another unit
- * type restores the automatically removed units to `space` and takes the
- * chosen type instead. If the choice is skipped the automatic result stands.
- * The Morisco regulars removed by the Winter Phase are recorded as a
+ * A winter attrition loss whose unit composition has not been confirmed by the
+ * owner yet. The automatic losses have already been applied; choosing another
+ * composition restores the automatically removed units to `space` and takes
+ * the chosen units instead. If the choice is skipped the automatic result
+ * stands. The Morisco regulars removed by the Winter Phase are recorded as a
  * confirmation-only choice, because they leave play with card #28 and cannot
  * be exchanged for other unit types in the surviving stack.
  */
 export interface WinterLossChoice {
+    /** Stable id, used to keep a winter return move in step with its loss. */
+    id?: number;
     power: Power;
     /** Space holding the surviving stack the losses came from. */
     space: string;
@@ -252,6 +254,73 @@ export interface WinterLossChoice {
      * `space` has survivors of those types.
      */
     confirmOnly?: boolean;
+    /**
+     * Id of the `WinterReturnChoice` whose winter return produced this loss.
+     * Re-deciding that return removes the loss together with the automatic
+     * placement, so a stale loss can never be swapped onto a new destination.
+     */
+    returnId?: number;
+}
+
+/**
+ * A land stack the Winter Phase moved (rule 20.4) whose owner may still pick a
+ * different destination or a different set of units.  The automatic placement
+ * is already on the board, so skipping the choice keeps it.  The owner chooses
+ * among the legal destinations — the home capital(s) and the nearest friendly
+ * fortification(s) with room — and, for an overstacked fortress, which units
+ * leave for the capital.  `before` is the origin stack right before the
+ * automatic move, so a changed choice is recomputed from scratch (including
+ * attrition) rather than patched.
+ */
+export interface WinterReturnChoice {
+    /** Stable id, also stamped on the loss records this return produced. */
+    id: number;
+    power: Power;
+    /** Space the stack started the Winter Phase in. */
+    from: string;
+    /** Legal destinations: home capital(s) and nearest fortifications. */
+    options: string[];
+    /** The origin stack immediately before the automatic return. */
+    before: LandStack;
+    /** Destination the automatic rule used. */
+    autoTo: string;
+    /** Units that left the origin on the automatic move, before attrition. */
+    autoMoved: LandStack;
+    /** Units lost to attrition on the automatic move. */
+    autoLost: LandStack;
+    /**
+     * Army leaders the automatic move carried, so a re-decision can bring them
+     * back with the units.  Empty when the origin keeps units.
+     */
+    leaders: string[];
+    /**
+     * Minimum units that must leave the origin.  An overstacked fortress may
+     * send only its excess, so the origin keeps at most 4 units; any other
+     * stack must leave in full.
+     */
+    minMove: number;
+}
+
+/**
+ * A naval squadron the Winter Phase returned to port (rule 20.4) whose owner
+ * may still pick another equidistant port.  The whole squadron already sits in
+ * the automatic port, so skipping the choice keeps it.
+ */
+export interface WinterNavalReturnChoice {
+    id: number;
+    power: Power;
+    /** Controller of the squadron, which may be a controlled minor power. */
+    controller: Controller;
+    /** Sea zone the squadron started the Winter Phase in. */
+    zone: string;
+    /** Equidistant ports the owner may choose between. */
+    options: string[];
+    /** The squadron before it moved. */
+    units: NavalStack;
+    /** Port the automatic rule used. */
+    auto: string;
+    /** Naval leaders that accompanied this squadron, so they can follow it. */
+    leaders: string[];
 }
 
 /**
@@ -963,6 +1032,19 @@ export interface VQGame {
      * owner can confirm the removed composition.
      */
     winterLossChoices?: WinterLossChoice[];
+    /**
+     * Land stacks the Winter Phase returned home which the owner may still
+     * re-target or re-split during Card Draw.  The automatic placement is
+     * already on the board, so dropping the record keeps it (rule 20.4).
+     */
+    winterReturnChoices?: WinterReturnChoice[];
+    /**
+     * Naval squadrons the Winter Phase returned to a port which the owner may
+     * still move between equidistant ports during Card Draw (rule 20.4).
+     */
+    winterNavalReturnChoices?: WinterNavalReturnChoice[];
+    /** Next id handed to a winter return / loss record. */
+    winterChoiceSeq?: number;
     /**
      * Winter naval losses awaiting the owner's confirmation. Rule 20.4
      * eliminates the whole squadron when no port can receive it; the automatic
