@@ -16,6 +16,7 @@ import {
     MINOR_POWERS,
     MINOR_REGULAR_LIMITS,
     MERC_LIMITS,
+    WALLOON_LIMIT,
     NAVAL_LIMITS,
     GALLEY_LIMITS,
     GALLEON_LIMITS,
@@ -1751,6 +1752,21 @@ export const recordNavalLoss = (G: VQGame, owner: Controller, kind: keyof NavalS
 
 export const navalLostCount = (G: VQGame, p: Power): number => navalCount(G.navalLost?.[p]);
 
+/**
+ * Rule 16.2 step 8: "If both sides are eliminated, the side that rolled more
+ * dice retains 1 unit."  The retained unit must be one of the types that side
+ * actually had on the map before the casualties were applied — the printed
+ * rule says "1 unit", not "1 galley" — so the caller reports the type to keep.
+ */
+export const restoreRetainedNavalUnit = (G: VQGame, owner: Controller, kind: keyof NavalStack): void => {
+    const lost = G.navalLost?.[owner as Power];
+    if (lost !== undefined) {
+        // The retained counter is not a rebuild: undo its pending-loss
+        // bookkeeping so it does not also block construction this year.
+        lost[kind] = Math.max(0, lost[kind] - 1);
+    }
+};
+
 export const navalForceCount = (G: VQGame, p: Power): number => {
     let total = 0;
     for (const zone of Object.values(G.seaZones)) total += navalCount(zone.naval[p]);
@@ -1809,6 +1825,33 @@ export const regularCount = (G: VQGame, p: Power): number => {
     total += G.foreignWars[p]?.units.regular ?? 0;
     if (p === "spain" && G.armada?.land !== undefined) total += G.armada.land.regular;
     return total;
+};
+
+/**
+ * Rule 17.2(c): "the only unit which the Spanish player may build in the
+ * Netherlands Religious Struggle area are Walloons.  The three Walloon regular
+ * counters represent a special subset of the Spanish force pool.  They are
+ * treated as Spanish regulars for all purposes.  The only exception is in unit
+ * construction: they can only be constructed in spaces in the Netherlands, and
+ * they are the only Spanish units that can be constructed in the Netherlands."
+ *
+ * The Walloon counters are ordinary Spanish regulars once on the map, so the
+ * engine models the rule as a three-counter construction allowance rather than
+ * a distinct unit type: `walloonsBuilt` counts the regulars Spain has built in
+ * the Netherlands this game, and mercenaries/cavalry remain forbidden there.
+ * #109 Union of Arras makes the Dutch spaces Spanish home spaces but does NOT
+ * lift the restriction ("Even after this event, Walloons remain the only units
+ * that Spain may build in the Netherlands." — Scenario Book p. 30).
+ */
+export const canBuildInNetherlands = (G: VQGame, p: Power, def: {area?: string}, kind: "regular" | "merc" | "cav"): boolean => {
+    if (p !== "spain" || def.area !== "netherlands") return true;
+    return kind === "regular" && (G.walloonsBuilt ?? 0) < WALLOON_LIMIT;
+};
+
+/** Record a Walloon regular just constructed in the Netherlands (rule 17.2c). */
+export const recordWalloonBuilt = (G: VQGame, p: Power, def: {area?: string}, kind: "regular" | "merc" | "cav"): void => {
+    if (p !== "spain" || def.area !== "netherlands" || kind !== "regular") return;
+    G.walloonsBuilt = (G.walloonsBuilt ?? 0) + 1;
 };
 
 export const controlledKeys = (G: VQGame, p: Power): string[] =>
@@ -6018,6 +6061,8 @@ const canRecruitAt = (G: VQGame, p: Power, id: string, kind: "regular" | "merc" 
     if (kind === "merc" && mercCount(G, p) >= MERC_LIMITS[p]) return false;
     if (p === "ottoman" && (id === "algiers" || id === "tripoli")) return false;
     if (p === "spain" && (id === "oran" || id === "malta")) return false;
+    // Rule 17.2(c): Spain may only build Walloon regulars in the Netherlands.
+    if (!canBuildInNetherlands(G, p, def, kind)) return false;
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return false;
     return true;
 };
@@ -6085,6 +6130,9 @@ const canBuildFortressAt = (G: VQGame, p: Power, id: string): boolean => {
     if (def.kind !== "open" || s.fortress) return false;
     if ((!minorFortress && s.control !== p) || (minorFortress && s.control !== minorFortressHome)) return false;
     if (s.unrest) return false;
+    // Rule 17.5: "not occupied by enemy units".  Keep this in step with the
+    // `buildFortress` guard so the map never highlights an illegal target.
+    if (spaceHasEnemyLand(G, p, id)) return false;
     if (!minorFortress && !homes.includes(p)) return false;
     return true;
 };

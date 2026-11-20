@@ -1,9 +1,9 @@
 import {Ctx} from "boardgame.io";
 import i18n from "../constant/i18n";
 import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
-import {recordNavalLoss} from "./util";
+import {recordNavalLoss, restoreRetainedNavalUnit} from "./util";
 import {LEADER_BY_ID, leaderName} from "./constant/leaders";
-import {SEA_ZONE_BY_ID, SPACE_BY_ID, mapName} from "./mapData";
+import {SEA_ZONE_BY_ID, SPACE_BY_ID, isInlandPort, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {
     atWar, bestBattle, discardCard, friendlyController, hits, isSeaZone, leaderPower, leadersAt, moveLeaders,
@@ -162,6 +162,9 @@ export const navalRetreatCandidates = (
         .filter((id) => id !== location && navalAdjacent(location, id))
         .filter((id) => {
             if (portAttacker && !isSeaZone(id)) return false;
+            // Rule 16.7: "No naval units may ever enter" Antwerp or Rotterdam,
+            // so they are never a legal retreat/avoid-battle destination.
+            if (isInlandPort(id)) return false;
             // Rule 16.2 step 9: only *enemy* naval units block a retreat or
             // avoid-battle destination; a neutral, non-belligerent fleet does
             // not.
@@ -171,6 +174,9 @@ export const navalRetreatCandidates = (
             if (!isSeaZone(id)) return owners.every((owner) => G.spaces[id].control === owner);
             return true;
         })
+        // Rule 16.2 step 9: a sea-zone battle's loser retreats to "an adjacent
+        // port under its control ... or an adjacent sea zone" — the ports are
+        // listed first in the printed rule, so keep that order.
         .sort((a, b) => Number(SPACE_BY_ID[b] !== undefined) - Number(SPACE_BY_ID[a] !== undefined));
 
 /** Move a retreating stack to an adjacent legal location; eliminate it if none. */
@@ -449,6 +455,14 @@ export const resolveNavalCombatEnemy = (G: VQGame, ctx: Ctx, location: string, a
     G.lastRolls = `Naval battle at ${SPACE_BY_ID[location]?.name ?? location}: ${aHits} hits (${aDice} dice) vs ${powerLabel(enemy)} ${dHits} hits (${dDice} dice)`;
     pushLog(G, G.lastRolls);
     const winner: "attacker" | "defender" = aHits > dHits ? "attacker" : "defender";
+    // Rule 16.2 step 8: when both sides are wiped out, the side that rolled
+    // more dice keeps "1 unit" — a unit of a type that side actually had, not
+    // a galley unconditionally.  Snapshot the stacks before casualties.
+    const snapshot = (owner: Power): {galley: number; galleon: number; racebuilt: number; corsair: number} => {
+        const stack = navalAt(G, location)[owner];
+        return {...{galley: 0, galleon: 0, racebuilt: 0, corsair: 0}, ...(stack ?? {})};
+    };
+    const before = {attacker: snapshot(attacker), enemy: snapshot(enemy)};
     applyNavalCombatLosses(G, location, [enemy], aHits, winner === "attacker", aRolls);
     applyNavalCombatLosses(G, location, [attacker], dHits, winner === "defender", dRolls);
     // Rule 16.1: "No naval unit may participate in a Naval Move if it was part
@@ -464,11 +478,18 @@ export const resolveNavalCombatEnemy = (G: VQGame, ctx: Ctx, location: string, a
     let defenderLeft = countAt(G, location, [enemy]);
     if (attackerLeft === 0 && defenderLeft === 0) {
         const keeper = aDice > dDice ? attacker : enemy;
+        // Keep the strongest type that side actually fielded, in the printed
+        // casualty order (corsairs are the weakest Ottoman ship).
+        const had = keeper === attacker ? before.attacker : before.enemy;
+        const kind: keyof typeof had = had.galleon > 0 ? "galleon" :
+            had.racebuilt > 0 ? "racebuilt" : had.galley > 0 ? "galley" : "corsair";
         const target = navalAt(G, location)[keeper] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
-        target.galley += 1;
+        target[kind] += 1;
         navalAt(G, location)[keeper] = target;
+        // The survivor is not a rebuild, so it must not also block construction.
+        restoreRetainedNavalUnit(G, keeper, kind);
         if (keeper === attacker) attackerLeft = 1; else defenderLeft = 1;
-        pushLog(G, `Both naval forces are eliminated; ${powerLabel(keeper)} retains 1 galley.`);
+        pushLog(G, `Both naval forces are eliminated; ${powerLabel(keeper)} retains 1 ${kind === "racebuilt" ? "race-built galleon" : kind}.`);
     }
     if (port) {
         if (attackerLeft > 0) retreatNaval(G, location, [attacker], true);

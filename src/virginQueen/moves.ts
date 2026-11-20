@@ -78,6 +78,8 @@ import {
     autoResolveWinterReturnChoices,
     bestBattle,
     bestPiracy,
+    canBuildInNetherlands,
+    recordWalloonBuilt,
     canControlSpace,
     canMoveNavalTo,
     canDeclareWar,
@@ -4574,6 +4576,10 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     // Rule 17.2 construction exceptions.
     if (p === "ottoman" && ["algiers", "tripoli"].includes(space)) return INVALID_MOVE;
     if (p === "spain" && ["oran", "malta"].includes(space)) return INVALID_MOVE;
+    // Rule 17.2(c): "the only unit which the Spanish player may build in the
+    // Netherlands Religious Struggle area are Walloons" — three regular
+    // counters, and no mercenaries or cavalry at all.
+    if (!canBuildInNetherlands(G, p, def, args.kind)) return INVALID_MOVE;
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return INVALID_MOVE;
     const recruitCost = args.kind === "regular" ? 2 : 1;
     const action = "recruit" + args.kind[0].toUpperCase() + args.kind.slice(1);
@@ -4582,6 +4588,7 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         return INVALID_MOVE;
     }
     addLand(G, space, p, args.kind, 1);
+    recordWalloonBuilt(G, p, def, args.kind);
     pushLog(G, `${powerLabel(p)} recruits 1 ${args.kind} in ${def.name}.`);
 };
 
@@ -4682,7 +4689,12 @@ export const buildFortress = (G: VQGame, ctx: Ctx, args: { space: string }): voi
     // Minor-home fortresses: the allied major may build in a minor home it controls.
     const minorFortress = spaceHomes(def).some((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never)) &&
         s.control !== p && spaceHomes(def).includes(s.control);
-    if (def.kind !== "open" || s.fortress || ((!minorFortress && s.control !== p) || (minorFortress && s.control !== spaceHomes(def).find((h) => !isPower(h) && h !== "independent"))) || s.unrest || (!minorFortress && !spaceHomes(def).includes(p))) {
+    // Rule 17.5: "Fortresses may be constructed in any controlled, unfortified
+    // home space ... that is not occupied by enemy units or an existing
+    // fortress marker (and is not in unrest)."  `enemyOwners` counts only
+    // powers at war, exactly like the recruitment check above.
+    if (def.kind !== "open" || s.fortress || ((!minorFortress && s.control !== p) || (minorFortress && s.control !== spaceHomes(def).find((h) => !isPower(h) && h !== "independent"))) ||
+        s.unrest || spaceHasEnemyLand(G, p, args.space) || (!minorFortress && !spaceHomes(def).includes(p))) {
         return INVALID_MOVE;
     }
     if (!spend(G, p, 2, "buildFortress")) {
@@ -5221,7 +5233,9 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
         if (warCost(G, "spain", "england") > 3) return INVALID_MOVE;
         if (!atWar(G, "spain", "england")) setWar(G, "spain", "england");
     }
-    if (p === "england" && SPACE_BY_ID[args.to]?.area === "netherlands") {
+    // Rule 9.4: "English troops entering the Netherlands (unless allied with
+    // Spain)".
+    if (p === "england" && SPACE_BY_ID[args.to]?.area === "netherlands" && !allied(G, "england", "spain")) {
         if (!atWar(G, "england", "spain")) setWar(G, "england", "spain");
     }
     const transportCost = args.zones.length + 1 - (inland !== undefined ? 1 : 0);
@@ -5346,12 +5360,14 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     const destControl = dest.control;
     // Rule 9.5/9.4: Spain may not enter Ireland/Scotland until the war cost is
     // 3 or less; entry then triggers war with England. English entry into the
-    // Netherlands likewise triggers war with Spain.
+    // Netherlands likewise triggers war with Spain — but the printed trigger
+    // list reads "English troops entering the Netherlands (unless allied with
+    // Spain)", so an alliance suppresses it.
     if (p === "spain" && (spaceHomes(SPACE_BY_ID[to]).includes("ireland" as never) || spaceHomes(SPACE_BY_ID[to]).includes("scotland" as never))) {
         if (warCost(G, "spain", "england") > 3) return INVALID_MOVE;
         if (!atWar(G, "spain", "england")) setWar(G, "spain", "england");
     }
-    if (p === "england" && SPACE_BY_ID[to]?.area === "netherlands") {
+    if (p === "england" && SPACE_BY_ID[to]?.area === "netherlands" && !allied(G, "england", "spain")) {
         if (!atWar(G, "england", "spain")) setWar(G, "england", "spain");
     }
     const canEnter = friendlyControlled(G, p, to)

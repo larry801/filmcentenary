@@ -1657,3 +1657,17 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 | — | MUI 对话框／抽屉／提示通过 portal 渲染，切换热座标签页后仍覆盖在新标签页上 | 切换座位时清空确认框、卡牌抽屉、编队表与提示 |
 
 验证：`tsc --noEmit` 通过；`jest src/virginQueen --silent --maxWorkers=4` 258 suites、1565 tests passed（新增 `alliedLosses.test.ts` 5 项、`continueTargets.test.ts` 2 项、`actionPickerFilter.test.ts` 6 项）；`playwright test e2e/hotseat.spec.ts e2e/diplomacy.spec.ts e2e/tutorial.spec.ts e2e/map.spec.ts` 11 passed。
+
+## 规则书逐条审计（第四轮：航海、围城与尼德兰建造）
+
+按 2024 Living Rules 原文复核了海军、建造与战斗章节，修复以下与印刷规则不符之处（每项都有回归测试，且测试在未修复的代码上会失败）：
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 17.5 | 可以在驻扎敌军部队的本国家乡地区修筑要塞（`buildFortress` 与 `canBuildFortressAt` 都没检查敌方陆军） | 两处都加上"该地区不得有敌方陆军"检查；地图高亮与 move 校验保持同步 |
+| 16.7 / 16.2 step 9 | 战败舰队可撤退进安特卫普/鹿特丹——规则明文"海军单位永远不能进入"两港；撤退候选也没有排除内河港 | `navalRetreatCandidates` 排除内河港（`isInlandPort`） |
+| 16.2 step 8 | 双方全灭时无条件"保留 1 艘桨帆船"，即使该势力根本没有桨帆船（西班牙在英吉利海峡只剩大帆船时也拿到桨帆船）；且保留的单位仍计入当年重建上限 | 改为保留该势力实际拥有的最强舰种；新增 `restoreRetainedNavalUnit` 冲销这次的 `navalLost` 记账（它在场不算重建）；日志文案按舰种本地化 |
+| 9.4 | 英格兰陆军进入尼德兰时无条件对西班牙宣战，忽略印刷触发条件"（除非与西班牙结盟）" | 陆军移动与海运两条路径都加上 `!allied(G, "england", "spain")` |
+| 17.2(c) | 西班牙可在尼德兰任意招募正规军/雇佣兵；规则规定"西班牙在尼德兰宗教斗争区唯一可建造的单位是瓦隆卫队"，且仅有 3 枚瓦隆正规军计数片 | 新增 `canBuildInNetherlands`/`recordWalloonBuilt` 与 `G.walloonsBuilt`：尼德兰内禁止雇佣兵与骑兵，正规军（瓦隆卫队）全局最多 3 个；#109 阿拉斯联盟不解除该限制 |
+
+验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` **572 suites / 5745 tests** 全部通过（新增 `construction.test.ts` 4 项、`minorConstruction.test.ts` 2 项、`navalCombat.test.ts` 2 项、`navalTransport.test.ts` 2 项）。

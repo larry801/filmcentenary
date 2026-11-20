@@ -102,3 +102,46 @@ const navalBoatCount = (G: VQGame): number => {
     const fleet = G.seaZones.northSea.naval.england;
     return fleet === undefined ? 0 : fleet.galley + fleet.galleon + fleet.racebuilt + fleet.corsair;
 };
+
+/**
+ * Rule 9.4: the printed immediate-trigger list reads "English troops entering
+ * the Netherlands (unless allied with Spain)", so landing English troops in a
+ * Netherlands space only declares war when the two powers are not allied.
+ */
+describe("English troops entering the Netherlands (rule 9.4)", () => {
+    const prepare = (G: VQGame): void => {
+        G.powers.england.wars = G.powers.england.wars.filter((w) => w !== "spain");
+        G.powers.spain.wars = G.powers.spain.wars.filter((w) => w !== "england");
+        G.powers.england.cp = 3;
+        G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+        G.spaces.dunkirk.control = "spain";
+        G.spaces.dunkirk.land = {};
+        G.spaces.dunkirk.siege = undefined;
+        G.spaces.dover.land.england = {regular: 2, merc: 0, cav: 0};
+    };
+
+    it("declares war when England lands troops in the Netherlands alone", () => {
+        const G = game();
+        prepare(G);
+
+        expect(navalTransport(G, context(), {
+            from: "dover", to: "dunkirk", zones: ["englishChannel"], units: {regular: 2},
+        })).toBeUndefined();
+
+        expect(G.powers.england.wars).toContain("spain");
+    });
+
+    it("does not declare war while England and Spain are allied", () => {
+        const G = game();
+        prepare(G);
+        G.powers.england.allies = [...new Set([...G.powers.england.allies, "spain"])];
+        G.powers.spain.allies = [...new Set([...G.powers.spain.allies, "england"])];
+
+        expect(navalTransport(G, context(), {
+            from: "dover", to: "dunkirk", zones: ["englishChannel"], units: {regular: 2},
+        })).toBeUndefined();
+
+        expect(G.powers.england.wars).not.toContain("spain");
+        expect(G.spaces.dunkirk.land.england?.regular).toBe(2);
+    });
+});
