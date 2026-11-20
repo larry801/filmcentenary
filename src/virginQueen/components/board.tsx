@@ -55,7 +55,7 @@ export * from "./board/helpers";
 
 export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
     const board = useBoardState(props);
-    const {setMode, G, log, ctx, moves, playerID, matchID, vqLocale, militaryGoal, selected, isDesktop, mobileView, setMobileView, handExpanded, setHandExpanded, selectedCard, setSelectedCard, actionRef, sidebarRef, panelID, mode, from, setFrom, movingUnits, movingLeaders, setTransportZones, actionNotice, setActionNotice, openCard, gregorianTarget, setGregorianTarget, setSelectedActionResponder, selectedAbjurationPower, setSelectedAbjurationPower, confirmAction, setConfirmAction, sheetOpen, setSheetOpen, formationSheetOpen, setFormationSheetOpen, setViewPower, owned, piracyResponder, actionResponders, myActionChoices, actionResponder, responsePower, me, myTurn, switchToTab, phase, phaseText, displayYear, ps, cp, hand, canAct, vqCombatRetrieve, mapHighlights, stepInfo, stackPicker, formationSummary, onSelect, spaceDef, standings, pendingPower, hasResponse, winterChoiceRequired, needsAction, winterChoiceLabel, panelProps} = board;
+    const {setMode, G, log, ctx, moves, playerID, matchID, vqLocale, militaryGoal, selected, isDesktop, mobileView, setMobileView, handExpanded, setHandExpanded, selectedCard, setSelectedCard, actionRef, sidebarRef, panelID, mode, from, setFrom, movingUnits, movingLeaders, setTransportZones, actionNotice, setActionNotice, openCard, gregorianTarget, setGregorianTarget, setSelectedActionResponder, selectedAbjurationPower, setSelectedAbjurationPower, confirmAction, setConfirmAction, sheetOpen, setSheetOpen, formationSheetOpen, setFormationSheetOpen, setViewPower, owned, piracyResponder, actionResponders, myActionChoices, actionResponder, responsePower, me, myTurn, switchToTab, phase, phaseText, displayYear, ps, cp, hand, canAct, vqCombatRetrieve, mapHighlights, stepInfo, stackPicker, formationSummary, onSelect, spaceDef, standings, pendingPower, hasResponse, winterChoiceRequired, needsAction, winterChoiceLabel, winterReturnChoice, winterReturnHint, panelProps} = board;
     const actionPanel = () => {
         if (G.pendingPolishElection) {
             const bidder = G.pendingPolishElection.remaining[0];
@@ -132,6 +132,12 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
             {!isDesktop && <Button size="small" onClick={() => setMobileView("action")}>{i18n.chain.vq.shell.viewResponse}</Button>}
         </div>}
         {!hasResponse && winterChoiceRequired && <div className="vq-response" role="status" aria-live="polite">
+            <span>{winterChoiceLabel}{me !== undefined ? ` · ${powerName(me, vqLocale)}` : ""}</span>
+            {!isDesktop && <Button size="small" onClick={() => setMobileView("action")}>{i18n.chain.vq.shell.viewResponse}</Button>}
+        </div>}
+        {/* Winter return revisions are optional: the automatic move already
+            stands, so this only points at the extra choices in Card Draw. */}
+        {!hasResponse && winterReturnHint && <div className="vq-response" role="status" aria-live="polite">
             <span>{winterChoiceLabel}{me !== undefined ? ` · ${powerName(me, vqLocale)}` : ""}</span>
             {!isDesktop && <Button size="small" onClick={() => setMobileView("action")}>{i18n.chain.vq.shell.viewResponse}</Button>}
         </div>}

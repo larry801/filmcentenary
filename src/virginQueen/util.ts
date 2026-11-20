@@ -40,6 +40,8 @@ import {
     VQLocale,
     VictoryReason,
     WinterLossChoice,
+    WinterNavalReturnChoice,
+    WinterReturnChoice,
     isPower,
     emptyLand,
     emptyNaval,
@@ -4386,20 +4388,6 @@ const winterCapitalsFor = (G: VQGame, p: Power, origin?: string): string[] => {
 
 const winterIsCapital = (G: VQGame, p: Power, id: string): boolean => capitalSpacesFor(G, p).includes(id);
 
-/** Remove units from a stack, choosing mercenaries, then cavalry, then regulars. */
-const winterTakeUnits = (stack: LandStack, count: number): LandStack => {
-    const taken = emptyLand();
-    let left = count;
-    for (const kind of ["merc", "cav", "regular"] as const) {
-        const n = Math.min(left, stack[kind]);
-        stack[kind] -= n;
-        taken[kind] = n;
-        left -= n;
-        if (left === 0) break;
-    }
-    return taken;
-};
-
 /** Lose half of a moving stack, rounded up.  Returns the units removed. */
 const winterAttrition = (units: LandStack): LandStack => {
     const losses = Math.ceil(landCount(units) / 2);
@@ -4415,20 +4403,31 @@ const winterAttrition = (units: LandStack): LandStack => {
     return removed;
 };
 
+/** Next id for a winter return record; ids tie loss records to their return. */
+export const nextWinterChoiceId = (G: VQGame): number => {
+    const id = (G.winterChoiceSeq ?? 0) + 1;
+    G.winterChoiceSeq = id;
+    return id;
+};
+
 /**
- * Record a winter attrition loss so its owner may pick the unit type during
+ * Record a winter attrition loss so its owner may pick the units lost during
  * the Card Draw phase.  The automatic losses are already applied; a skipped
  * choice therefore keeps the automatic composition.  `confirmOnly` marks a
  * removal that is already final (the Morisco regulars leaving play with card
- * #28), so the owner may only confirm it during Card Draw.
+ * #28), so the owner may only confirm it during Card Draw.  `returnId` ties the
+ * loss to the return move that produced it, so re-deciding that return can
+ * discard a now-stale loss.
  */
 const recordWinterLossChoice = (
-    G: VQGame, p: Power, space: string, removed: LandStack, confirmOnly = false,
+    G: VQGame, p: Power, space: string, removed: LandStack,
+    options: {confirmOnly?: boolean; returnId?: number} = {},
 ): void => {
     const amount = landCount(removed);
     if (amount === 0 || G.spaces[space] === undefined) return;
-    const entry: WinterLossChoice = {power: p, space, amount, removed};
-    if (confirmOnly) entry.confirmOnly = true;
+    const entry: WinterLossChoice = {power: p, space, amount, removed: {...removed}};
+    if (options.confirmOnly) entry.confirmOnly = true;
+    if (options.returnId !== undefined) entry.returnId = options.returnId;
     G.winterLossChoices = [...(G.winterLossChoices ?? []), entry];
 };
 
@@ -4530,17 +4529,22 @@ const winterReturnNaval = (G: VQGame): void => {
                     .map((def) => def.id),
                 ...minorHomePorts,
             ])];
-            let best: {port: string; distance: number} | undefined;
+            const ranked: {port: string; distance: number}[] = [];
             for (const port of ports) {
                 const distance = winterNavalDistance(zoneDef.id, port);
-                if (distance === undefined) continue;
-                if (best === undefined || distance < best.distance ||
-                    (distance === best.distance &&
-                        (winterPortRank(G, major, port) < winterPortRank(G, major, best.port) ||
-                            (winterPortRank(G, major, port) === winterPortRank(G, major, best.port) && port < best.port)))) {
-                    best = {port, distance};
-                }
+                if (distance !== undefined) ranked.push({port, distance});
             }
+            // Rule 20.4: only the nearest port is legal, but when several ports
+            // are the same distance away "the owning player selects any of these
+            // equidistant ports (splitting a stack between several ports if
+            // desired)".  A detached split is not modelled; the owner picks one.
+            const nearest = ranked.length === 0 ? undefined : Math.min(...ranked.map((entry) => entry.distance));
+            const candidates = ranked
+                .filter((entry) => entry.distance === nearest)
+                .sort((a, b) =>
+                    winterPortRank(G, major, a.port) - winterPortRank(G, major, b.port) ||
+                    a.port.localeCompare(b.port));
+            const best = candidates[0];
             if (best === undefined) {
                 const removed = {...stack};
                 pushLog(G, `${controllerLabel(c)} fleet in ${zoneDef.name} has no port to return to and is eliminated.`);
@@ -4560,6 +4564,25 @@ const winterReturnNaval = (G: VQGame): void => {
             delete zone.naval[c];
             destinations[c] = best.port;
             pushLog(G, `${controllerLabel(c)} fleet returns from ${zoneDef.name} to ${SPACE_BY_ID[best.port].name}.`);
+            const owner = isPower(c) ? c : minorAlly(G, c as MinorPower);
+            if (owner !== undefined && candidates.length > 1) {
+                // The owner may still pick a different equidistant port during
+                // Card Draw; the automatic port is already on the board.
+                const followers = zone.leaders.filter((id) => {
+                    const def = LEADER_BY_ID[id];
+                    return def?.kind === "naval" && def.power === owner;
+                });
+                G.winterNavalReturnChoices = [...(G.winterNavalReturnChoices ?? []), {
+                    id: nextWinterChoiceId(G),
+                    power: owner,
+                    controller: c,
+                    zone: zoneDef.id,
+                    options: candidates.map((entry) => entry.port),
+                    units: {...stack},
+                    auto: best.port,
+                    leaders: followers,
+                }];
+            }
         }
         // A naval leader must return to a port with one of the units that
         // started the phase in this sea zone (rule 20.4).
@@ -4597,51 +4620,354 @@ const winterReturnNaval = (G: VQGame): void => {
     }
 };
 
+const WINTER_LAND_KINDS = ["regular", "merc", "cav"] as const;
+const WINTER_NAVAL_KINDS = ["galley", "galleon", "racebuilt", "corsair"] as const;
+
+/** Snapshot of a land stack, safe to keep after the board changes. */
+const copyLand = (stack: LandStack): LandStack =>
+    ({regular: stack.regular, merc: stack.merc, cav: stack.cav});
+
+/** Snapshot of a naval stack, safe to keep after the board changes. */
+const copyNaval = (stack: NavalStack): NavalStack =>
+    ({galley: stack.galley, galleon: stack.galleon, racebuilt: stack.racebuilt, corsair: stack.corsair});
+
+/**
+ * Take `count` units from `stack` in the printed order (mercenaries, then
+ * cavalry, then regulars), removing them from `stack`.
+ */
+const winterTakeFrom = (stack: LandStack, count: number): LandStack => {
+    const taken = emptyLand();
+    let left = count;
+    for (const kind of ["merc", "cav", "regular"] as const) {
+        const n = Math.min(left, stack[kind]);
+        stack[kind] -= n;
+        taken[kind] = n;
+        left -= n;
+        if (left === 0) break;
+    }
+    return taken;
+};
+
+/**
+ * Rule 20.10: the Duke of Guise may not leave the French religious struggle
+ * area; a winter move that would force him out eliminates him instead of
+ * moving him.  Returns the leaders that still move.
+ */
+const winterEliminateGuise = (
+    G: VQGame, from: string, p: Power, leaders: string[], destination: string,
+): string[] => {
+    if (p !== "france" || !leaders.includes("guise") || inFrenchReligiousArea(destination)) {
+        return leaders;
+    }
+    G.spaces[from].leaders = G.spaces[from].leaders.filter((id) => id !== "guise");
+    delete G.leaders.guise;
+    pushLog(G, "The Duke of Guise cannot leave the French religious struggle area and is eliminated.");
+    return leaders.filter((id) => id !== "guise");
+};
+
+/** A land move the Winter Phase applied, kept for its log line and its record. */
+interface WinterLandMove {
+    /** Units that arrived (attrition already applied). */
+    settled: LandStack;
+    /** Units lost to winter attrition on the way. */
+    lost: LandStack;
+    /** Id of the return record created for this move, when the owner has one. */
+    id?: number;
+}
+
+/**
+ * Apply one land move that has already been decided: take `move` off the
+ * current origin stack, apply attrition when the path is not clean, place the
+ * survivors, move the leaders and record both the resulting loss and the
+ * owner's chance to change the destination or the composition.
+ */
+const applyWinterLandMove = (
+    G: VQGame, p: Power, from: string, to: string, before: LandStack, move: LandStack,
+    leaders: string[], options: string[],
+): WinterLandMove => {
+    const origin = copyLand(G.spaces[from].land[p] ?? emptyLand());
+    for (const kind of WINTER_LAND_KINDS) origin[kind] -= move[kind];
+    const vacated = landCount(origin) === 0;
+    if (!vacated) G.spaces[from].land[p] = origin;
+    else delete G.spaces[from].land[p];
+    const settled = copyLand(move);
+    const lost = winterCleanPath(G, p, from, to) ? emptyLand() : winterAttrition(settled);
+    if (landCount(settled) > 0) winterAddUnits(G, to, p, settled);
+    // Rule 20.4 step 3: an army leader in a space that is vacated must
+    // accompany the units leaving or return to the capital.  A space that
+    // keeps units (an overstacked fortress) keeps its leaders.
+    if (vacated) {
+        const moving = winterEliminateGuise(G, from, p, leaders, to);
+        if (moving.length > 0) moveLeaders(G, from, to, moving);
+    }
+    const id = recordWinterLandReturn(G, p, from, to, before, move, lost, options,
+        vacated ? leaders : []);
+    if (landCount(lost) > 0 && landCount(settled) > 0) {
+        recordWinterLossChoice(G, p, to, lost, {returnId: id});
+    }
+    return {settled, lost, id};
+};
+
+/**
+ * Undo the automatic placement of a `WinterReturnChoice`: give the units that
+ * left back to the origin and take the survivors back off the destination.
+ * Units added afterwards (capital replacements, another stack's return) are
+ * untouched because only this move's own units are moved back.
+ */
+const undoWinterLandReturn = (G: VQGame, record: WinterReturnChoice): void => {
+    const dest = G.spaces[record.autoTo]?.land[record.power];
+    if (dest !== undefined) {
+        for (const kind of WINTER_LAND_KINDS) {
+            dest[kind] -= record.autoMoved[kind] - record.autoLost[kind];
+        }
+        cleanupLand(G, record.autoTo, record.power);
+    }
+    const origin = ensureLand(G, record.from, record.power);
+    for (const kind of WINTER_LAND_KINDS) origin[kind] += record.autoMoved[kind];
+    if (record.leaders.length > 0) {
+        const back = record.leaders.filter((id) => G.leaders[id]?.location === record.autoTo);
+        if (back.length > 0) moveLeaders(G, record.autoTo, record.from, back);
+    }
+    if (G.winterLossChoices !== undefined) {
+        const kept = G.winterLossChoices.filter((entry) => entry.returnId !== record.id);
+        if (kept.length === 0) delete G.winterLossChoices;
+        else G.winterLossChoices = kept;
+    }
+    G.winterReturnChoices = (G.winterReturnChoices ?? []).filter((entry) => entry !== record);
+    if (G.winterReturnChoices.length === 0) delete G.winterReturnChoices;
+};
+
+/**
+ * Destinations a winter land return may still use.  Rule 20.4 caps a
+ * non-capital at 4 units, and several returns can target the same fortress, so
+ * the snapshot taken during Winter may be stale — the board and the self-play
+ * harness both re-check it.
+ */
+export const legalWinterLandReturnOptions = (G: VQGame, p: Power, record: WinterReturnChoice): string[] =>
+    record.options.filter((to) => to === record.from
+        // Staying put is only possible when no units must leave.  A fortress
+        // that must shed units can still keep four, and that is represented by
+        // its own automatic destination, not by the origin.
+        ? record.minMove === 0
+        : winterIsCapital(G, p, to) ||
+            landCount(G.spaces[to]?.land[p]) - ownContribution(record, to) + record.minMove <= 4);
+
+/** Units this very return already placed in `to`, so room can be judged. */
+const ownContribution = (record: WinterReturnChoice, to: string): number =>
+    to === record.autoTo ? landCount(record.autoMoved) : 0;
+
+/**
+ * Land compositions this return may send to `to`.  A fortress sends between
+ * its excess and its whole stack; a stack outside winter quarters sends
+ * everything.  `[{0,0,0}]` (stay put) is only offered for the origin.
+ */
+export const legalWinterLandReturnUnits = (
+    G: VQGame, p: Power, record: WinterReturnChoice, to: string,
+): LandStack[] => {
+    // Staying put moves nothing, and is only offered when no units are forced
+    // out of the origin.
+    if (to === record.from) return record.minMove > 0 ? [] : [emptyLand()];
+    // A stack that must leave winter quarters sends everything; an overstacked
+    // fortress may shed as little as its excess and as much as the whole stack.
+    const room = winterIsCapital(G, p, to)
+        ? landCount(record.before)
+        : 4 - (landCount(G.spaces[to]?.land[p]) - ownContribution(record, to));
+    const out: LandStack[] = [];
+    for (let merc = 0; merc <= record.before.merc; merc += 1) {
+        for (let cav = 0; cav <= record.before.cav; cav += 1) {
+            for (let regular = 0; regular <= record.before.regular; regular += 1) {
+                const total = regular + merc + cav;
+                if (total < record.minMove || total > room) continue;
+                out.push({regular, merc, cav});
+            }
+        }
+    }
+    return out;
+};
+
+/**
+ * Apply the owner's decision for a winter land return.  The automatic move is
+ * undone, then the chosen units are sent to the chosen destination (attrition
+ * applies again for the new path).  Returns false when the arguments are not
+ * legal for this record, leaving the board untouched.  `move` is optional; an
+ * omitted `move` keeps the automatic composition for an overstacked fortress
+ * and sends everything that must leave otherwise.
+ */
+export const applyWinterLandReturnChoice = (
+    G: VQGame, p: Power, id: number, to: string, move?: LandStack,
+): boolean => {
+    const record = (G.winterReturnChoices ?? []).find((entry) => entry.id === id && entry.power === p);
+    if (record === undefined || !record.options.includes(to)) return false;
+    const legalUnits = legalWinterLandReturnUnits(G, p, record, to);
+    // Staying put moves nothing; otherwise an overstacked fortress sends at
+    // least its excess and a stack outside winter quarters sends everything.
+    const wanted = move ?? (to === record.from
+        ? emptyLand()
+        : record.minMove === 0
+            ? copyLand(record.before)
+            : winterTakeFrom({...record.before}, record.minMove));
+    if (!legalUnits.some((candidate) => candidate.regular === wanted.regular &&
+        candidate.merc === wanted.merc && candidate.cav === wanted.cav)) return false;
+    const moving = copyLand(wanted);
+    // Rule 20.10: Guise may not be forced out of the French religious area.
+    if (p === "france" && record.leaders.includes("guise") && !inFrenchReligiousArea(to)) return false;
+    undoWinterLandReturn(G, record);
+    if (to === record.from) {
+        // The owner keeps the units where they are; the undo already put the
+        // whole stack back at the origin.
+        pushLog(G, `${powerLabel(p)} keeps ${landCount(record.before)} unit(s) in ${SPACE_BY_ID[record.from].name} for the winter.`);
+        return true;
+    }
+    const waiting = winterArmyLeaders(G, record.from, p);
+    const carried = record.leaders.filter((leader) => waiting.includes(leader));
+    const {settled, lost} = applyWinterLandMove(G, p, record.from, to, record.before, moving,
+        carried, record.options);
+    const arrives = landCount(settled);
+    pushLog(G, `${powerLabel(p)} moves ${arrives} unit(s) from ${SPACE_BY_ID[record.from].name} to ${SPACE_BY_ID[to].name} for the winter${landCount(lost) > 0 ? ` (${landCount(lost)} lost to winter attrition)` : ""}.`);
+    return true;
+};
+
+/**
+ * Apply the owner's decision for a winter naval return: move the whole
+ * squadron, and any of its naval leaders, to another equidistant port.
+ */
+export const applyWinterNavalReturnChoice = (
+    G: VQGame, p: Power, id: number, port: string,
+): boolean => {
+    const record = (G.winterNavalReturnChoices ?? []).find((entry) => entry.id === id && entry.power === p);
+    if (record === undefined || !record.options.includes(port)) return false;
+    const current = G.spaces[record.auto]?.naval[record.controller];
+    const moving = copyNaval(record.units);
+    if (current !== undefined) {
+        for (const kind of WINTER_NAVAL_KINDS) current[kind] -= moving[kind];
+        cleanupNaval(G, record.auto, record.controller);
+    }
+    const target = ensureNaval(G, port, record.controller);
+    for (const kind of WINTER_NAVAL_KINDS) target[kind] += moving[kind];
+    const leaders = record.leaders.filter((leader) => G.leaders[leader]?.location === record.auto);
+    if (leaders.length > 0) moveLeaders(G, record.auto, port, leaders);
+    pushLog(G, `${controllerLabel(record.controller)} fleet moves from ${SPACE_BY_ID[record.auto].name} to ${SPACE_BY_ID[port].name} for the winter.`);
+    G.winterNavalReturnChoices = (G.winterNavalReturnChoices ?? []).filter((entry) => entry !== record);
+    if (G.winterNavalReturnChoices.length === 0) delete G.winterNavalReturnChoices;
+    return true;
+};
+
+/**
+ * Safe fallback for a pending winter return: the automatic placement is
+ * already on the board, so dropping the records keeps it.  With no power given
+ * every pending return is dropped (used when Card Draw ends).
+ */
+export const autoResolveWinterReturnChoices = (G: VQGame, p?: Power): void => {
+    const land = G.winterReturnChoices;
+    if (land !== undefined) {
+        const remaining = p === undefined ? [] : land.filter((entry) => entry.power !== p);
+        if (p !== undefined && remaining.length !== land.length) {
+            pushLog(G, `${powerLabel(p)} keeps the automatic winter return moves.`);
+        }
+        if (remaining.length === 0) delete G.winterReturnChoices;
+        else G.winterReturnChoices = remaining;
+    }
+    const naval = G.winterNavalReturnChoices;
+    if (naval !== undefined) {
+        const remaining = p === undefined ? [] : naval.filter((entry) => entry.power !== p);
+        if (p !== undefined && remaining.length !== naval.length) {
+            pushLog(G, `${powerLabel(p)} keeps the automatic winter ports.`);
+        }
+        if (remaining.length === 0) delete G.winterNavalReturnChoices;
+        else G.winterNavalReturnChoices = remaining;
+    }
+};
+
+/**
+ * Record a land return the owner may still revise.  `before` is the origin
+ * stack, `move` the units that left it and `lost` their attrition.  The
+ * record is dropped when the owner has no real choice: a single destination
+ * and no composition decision.
+ */
+const recordWinterLandReturn = (
+    G: VQGame, p: Power, from: string, to: string, before: LandStack, move: LandStack,
+    lost: LandStack, options: string[], leaders: string[],
+): number | undefined => {
+    const destinations = [...new Set([to, ...options])];
+    const compositionChoice = landCount(move) > 0 && landCount(move) < landCount(before) &&
+        WINTER_LAND_KINDS.filter((kind) => before[kind] > 0).length > 1;
+    if (destinations.length < 2 && !compositionChoice) return undefined;
+    const id = nextWinterChoiceId(G);
+    G.winterReturnChoices = [...(G.winterReturnChoices ?? []), {
+        id,
+        power: p,
+        from,
+        options: destinations,
+        before: copyLand(before),
+        autoTo: to,
+        autoMoved: copyLand(move),
+        autoLost: copyLand(lost),
+        leaders: [...leaders],
+        minMove: landCount(move),
+    }];
+    return id;
+};
+
 const winterReturnLand = (G: VQGame, p: Power): void => {
     const origins = SPACES.map((def) => def.id)
         .filter((id) => landCount(G.spaces[id].land[p]) > 0);
-    // 1. Overstacked fortifications send the excess to a home capital.
+    // 1. Fortified spaces (rule 20.4 step 1).  More than 4 units must send the
+    // excess to the home capital; other units there may also go home, even
+    // when the space is not overstacked.
     for (const id of origins) {
         const state = G.spaces[id];
         const stack = state.land[p];
         if (stack === undefined || landCount(stack) === 0) continue;
         // Rule 23.1: the Morisco unit never moves during the Winter Phase.
         if (p === "ottoman" && G.morisco?.space === id) continue;
-        if (!isFortifiedSpace(G, id) || state.control !== p || winterIsCapital(G, p, id) || landCount(stack) <= 4) continue;
-        const capitals = winterCapitalsFor(G, p, id)
+        if (!isFortifiedSpace(G, id) || state.control !== p || winterIsCapital(G, p, id)) continue;
+        const before = copyLand(stack);
+        const excess = Math.max(0, landCount(before) - 4);
+        const leaders = winterArmyLeaders(G, id, p);
+        // Rule 20.10: Guise may not leave the French religious struggle area.
+        const bound = p === "france" && leaders.includes("guise");
+        // Rule 20.4 step 1: more than 4 units must send the excess home.  A
+        // garrison that is not overstacked may also go home if the owner
+        // wants, but that is only a meaningful destination choice when the
+        // power has more than one capital, so it is not recorded otherwise.
+        const allCapitals = winterCapitalsFor(G, p, id)
             .map((cap) => ({id: cap, distance: winterDistance(id, cap)}))
             .filter((candidate): candidate is {id: string; distance: number} => candidate.distance !== undefined)
-            .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id));
-        const excess = landCount(stack) - 4;
+            .sort((a, b) => a.distance - b.distance || a.id.localeCompare(b.id))
+            .map((candidate) => candidate.id);
+        // Rule 20.10: Guise cannot leave the French religious struggle area, so
+        // while he leads this army prefer a capital inside that area when one
+        // exists.  If none exists the printed rule still eliminates him if the
+        // return would force him out.
+        const inArea = allCapitals.filter((capital) => inFrenchReligiousArea(capital));
+        const capitals = bound && inArea.length > 0 ? inArea : allCapitals;
         if (capitals.length === 0) {
+            if (excess === 0) continue;
             // No home capital can receive the excess, so it is destroyed.  Apply
             // the automatic composition now, then let the owner swap the unit
             // types during Card Draw; skipping the choice keeps that composition.
-            const before = {...stack};
             removeLandLosses(G, id, [p], excess);
             cleanupLand(G, id, p);
             const surviving = G.spaces[id].land[p];
             if (surviving !== undefined) {
                 const removed = emptyLand();
-                for (const kind of ["regular", "merc", "cav"] as const) {
-                    removed[kind] = before[kind] - surviving[kind];
-                }
+                for (const kind of WINTER_LAND_KINDS) removed[kind] = before[kind] - surviving[kind];
                 recordWinterLossChoice(G, p, id, removed);
             }
             pushLog(G, `${powerLabel(p)} has no capital and loses ${excess} overstacked unit(s) in ${SPACE_BY_ID[id].name}.`);
             continue;
         }
-        const capital = capitals[0];
-        const moving = winterTakeUnits(stack, excess);
-        const clean = winterCleanPath(G, p, id, capital.id);
-        const removed = clean ? emptyLand() : winterAttrition(moving);
-        const lost = landCount(removed);
-        cleanupLand(G, id, p);
-        winterAddUnits(G, capital.id, p, moving);
-        if (lost > 0 && landCount(moving) > 0) recordWinterLossChoice(G, p, capital.id, removed);
-        pushLog(G, `${powerLabel(p)} returns ${excess - lost} overstacked unit(s) from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[capital.id].name}${lost > 0 ? ` (${lost} lost to winter attrition)` : ""}.`);
+        if (excess === 0) continue;
+        // Automatic default: exactly the excess leaves for the nearest capital.
+        const autoTo = capitals[0];
+        const moving = winterTakeFrom({...before}, excess);
+        const {lost} = applyWinterLandMove(G, p, id, autoTo, before, moving, leaders, capitals);
+        const arrived = landCount(moving) - landCount(lost);
+        pushLog(G, `${powerLabel(p)} returns ${arrived} overstacked unit(s) from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[autoTo].name}${landCount(lost) > 0 ? ` (${landCount(lost)} lost to winter attrition)` : ""}.`);
     }
-    // 2. Units outside friendly winter quarters must return home.
+    // 2. Units outside friendly winter quarters must return home (rule 20.4
+    // step 2), to the home capital or the nearest friendly fortification with
+    // room.  The owner may later choose another legal destination.
     for (const id of origins) {
         const state = G.spaces[id];
         const stack = state.land[p];
@@ -4650,13 +4976,16 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
         if (p === "ottoman" && G.morisco?.space === id) continue;
         // Friendly fortifications (including capitals) are valid winter quarters.
         if (state.control === p && isFortifiedSpace(G, id)) continue;
+        const before = copyLand(stack);
         const capitals = winterCapitalsFor(G, p, id);
         const destinations = SPACES.filter((def) => {
             if (def.id === id) return false;
             const target = G.spaces[def.id];
             if (target.control !== p || !isFortifiedSpace(G, def.id)) return false;
             if (winterIsCapital(G, p, def.id)) return capitals.includes(def.id);
-            return landCount(target.land[p]) < 4;
+            // Rule 20.4 step 2: a fortified space may not be overfilled, so the
+            // whole returning stack must fit under the 4-unit limit.
+            return landCount(target.land[p]) + landCount(before) <= 4;
         }).map((def) => def.id);
         const scored = destinations.map((dest) => ({
             dest,
@@ -4668,49 +4997,33 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
             ...scored.filter((candidate) => !candidate.capital).map((candidate) => candidate.distance),
         );
         // The legal choices are the home capital(s) or the nearest fortification
-        // with room; a clean path is chosen when one exists.
-        const candidates = scored.filter((candidate) =>
+        // with room; a clean path is preferred for the automatic default.
+        const legal = scored.filter((candidate) =>
             candidate.capital || candidate.distance === nearestFort);
-        if (candidates.length === 0) {
-            const leaders = winterArmyLeaders(G, id, p);
-            const removed = {...stack};
-            const count = landCount(stack);
+        const leaders = winterArmyLeaders(G, id, p);
+        // Rule 20.10: Guise cannot leave the French religious struggle area.
+        const bound = p === "france" && leaders.includes("guise");
+        const allowed = legal.filter((candidate) => !bound || inFrenchReligiousArea(candidate.dest));
+        if (allowed.length === 0) {
+            const count = landCount(before);
             delete state.land[p];
             winterLeadersHome(G, id, p, leaders);
             // Rule 20.4 eliminates the whole army.  Apply that now, then let
             // the owner confirm its composition during Card Draw; skipping the
             // confirmation keeps this automatic result.
-            recordWinterLossChoice(G, p, id, removed);
+            recordWinterLossChoice(G, p, id, copyLand(before));
             pushLog(G, `${powerLabel(p)} loses ${count} unit(s) in ${SPACE_BY_ID[id].name}: no winter quarters.`);
             continue;
         }
-        candidates.sort((a, b) =>
+        allowed.sort((a, b) =>
             Number(b.clean) - Number(a.clean) ||
             a.distance - b.distance ||
             Number(b.capital) - Number(a.capital) ||
             a.dest.localeCompare(b.dest));
-        const chosen = candidates[0];
-        const removed = chosen.clean ? emptyLand() : winterAttrition(stack);
-        const lost = landCount(removed);
-        const leaders = winterArmyLeaders(G, id, p);
-        if (landCount(stack) === 0) {
-            cleanupLand(G, id, p);
-            winterLeadersHome(G, id, p, leaders);
-            pushLog(G, `${powerLabel(p)} loses ${lost} unit(s) to winter attrition in ${SPACE_BY_ID[id].name}.`);
-            continue;
-        }
-        winterAddUnits(G, chosen.dest, p, stack);
-        if (lost > 0) recordWinterLossChoice(G, p, chosen.dest, removed);
-        delete state.land[p];
-        let movingLeaders = leaders;
-        if (p === "france" && movingLeaders.includes("guise") && !inFrenchReligiousArea(chosen.dest)) {
-            state.leaders = state.leaders.filter((leader) => leader !== "guise");
-            delete G.leaders.guise;
-            movingLeaders = movingLeaders.filter((leader) => leader !== "guise");
-            pushLog(G, "The Duke of Guise cannot leave the French religious struggle area and is eliminated.");
-        }
-        moveLeaders(G, id, chosen.dest, movingLeaders);
-        pushLog(G, `${powerLabel(p)} withdraws ${landCount(stack)} unit(s) from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[chosen.dest].name}${lost > 0 ? ` (${lost} lost to winter attrition)` : ""}.`);
+        const chosen = allowed[0];
+        const {settled, lost} = applyWinterLandMove(G, p, id, chosen.dest, before, copyLand(before), leaders,
+            allowed.map((candidate) => candidate.dest));
+        pushLog(G, `${powerLabel(p)} withdraws ${landCount(settled)} unit(s) from ${SPACE_BY_ID[id].name} to ${SPACE_BY_ID[chosen.dest].name}${landCount(lost) > 0 ? ` (${landCount(lost)} lost to winter attrition)` : ""}.`);
     }
 };
 
@@ -4973,7 +5286,7 @@ export const clearMorisco = (G: VQGame, recordWinterChoice = false): void => {
     if (recordWinterChoice && removed > 0) {
         // The automatic removal is already applied and final; the owner only
         // confirms it, so no surviving mercenary or cavalry can replace it.
-        recordWinterLossChoice(G, "ottoman", space, {regular: removed, merc: 0, cav: 0}, true);
+        recordWinterLossChoice(G, "ottoman", space, {regular: removed, merc: 0, cav: 0}, {confirmOnly: true});
     }
 };
 

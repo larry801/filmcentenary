@@ -69,10 +69,13 @@ import {
     assaultSpace,
     atWar,
     atWarWithMinor,
+    applyWinterLandReturnChoice,
+    applyWinterNavalReturnChoice,
     autoPlaceNavalLeaderArrivals,
     autoResolveOrangeArrival,
     autoResolveWinterLossChoices,
     autoResolveWinterNavalLossChoices,
+    autoResolveWinterReturnChoices,
     bestBattle,
     bestPiracy,
     canControlSpace,
@@ -3633,10 +3636,11 @@ export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
     // places him in the Protestant capital automatically.
     if (ctx.phase === "spring") autoResolveOrangeArrival(G);
     // Safe fallback: leaving Card Draw without a choice keeps the automatic
-    // winter attrition composition.
+    // winter attrition composition and return moves.
     if (ctx.phase === "cardDraw") {
         autoResolveWinterLossChoices(G, power(G, ctx));
         autoResolveWinterNavalLossChoices(G, power(G, ctx));
+        autoResolveWinterReturnChoices(G, power(G, ctx));
     }
     ctx.events?.endTurn();
 };
@@ -3827,7 +3831,7 @@ const WINTER_NAVAL_KIND_NAMES: Record<keyof NavalStack, string> = {
     corsair: "corsair",
 };
 
-/** True while this power still has any winter loss choice to confirm. */
+/** True while this power still has a winter loss confirmation pending. */
 const winterLossChoicesRemain = (G: VQGame, p: Power): boolean =>
     (G.winterLossChoices ?? []).some((entry) => entry.power === p) ||
     (G.winterNavalLossChoices ?? []).some((entry) => entry.power === p);
@@ -3894,6 +3898,40 @@ export const chooseWinterNavalLoss = (G: VQGame, ctx: Ctx, args: {zone: string; 
     }
     G.winterNavalLossChoices = (G.winterNavalLossChoices ?? []).filter((entry) => entry !== pending);
     if (G.winterNavalLossChoices.length === 0) delete G.winterNavalLossChoices;
+    if (!winterLossChoicesRemain(G, p)) ctx.events?.endStage();
+};
+
+/**
+ * Card Draw revision of a winter land return (rule 20.4).  The automatic move
+ * is already on the board; this replaces it with the destination and, for an
+ * overstacked fortress, the units the owner prefers.  Ending the Card Draw
+ * turn instead keeps the automatic move.
+ */
+export const chooseWinterReturn = (
+    G: VQGame, ctx: Ctx,
+    args: {id: number; to: string; units?: {regular: number; merc: number; cav: number}},
+): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "cardDraw") return INVALID_MOVE;
+    if (moveError(G, "chooseWinterReturn", args)) return INVALID_MOVE;
+    const p = power(G, ctx);
+    if (ctx.playerID !== undefined && ctx.playerID !== null && ownerOf(G, p) !== ctx.playerID) return INVALID_MOVE;
+    if (!applyWinterLandReturnChoice(G, p, Number(args.id), args.to, args.units)) return INVALID_MOVE;
+    if (!winterLossChoicesRemain(G, p)) ctx.events?.endStage();
+};
+
+/**
+ * Card Draw revision of a winter naval return (rule 20.4): move the squadron
+ * to another equidistant port.  Ending the Card Draw turn keeps the automatic
+ * port.
+ */
+export const chooseWinterNavalReturn = (
+    G: VQGame, ctx: Ctx, args: {id: number; port: string},
+): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "cardDraw") return INVALID_MOVE;
+    if (moveError(G, "chooseWinterNavalReturn", args)) return INVALID_MOVE;
+    const p = power(G, ctx);
+    if (ctx.playerID !== undefined && ctx.playerID !== null && ownerOf(G, p) !== ctx.playerID) return INVALID_MOVE;
+    if (!applyWinterNavalReturnChoice(G, p, Number(args.id), args.port)) return INVALID_MOVE;
     if (!winterLossChoicesRemain(G, p)) ctx.events?.endStage();
 };
 
