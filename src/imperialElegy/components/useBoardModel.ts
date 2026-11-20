@@ -53,6 +53,7 @@ import {
   type MoveDescription,
 } from "./moveFeedback";
 import {pendingOptionSafety} from "./pendingSafety";
+import {pendingDeclinesItself} from "./PendingPanel";
 import {ARM_MS} from "./ConfirmButton";
 import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
@@ -1215,7 +1216,10 @@ export const useBoardModel = ({
     if (o.id.startsWith("card:")) return bi(actualLocale, "Bid with this card", "以此牌竞价");
     return bi(actualLocale, "Choose", "选择");
   };
-  const canDecline = canDecide && pending !== null && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
+  // A decision that prints its own "decline" option (13.4.2's aid search, most
+  // pending windows) must not also get the generic one: the panel would show
+  // two identical 拒绝 buttons whose only difference is the option id.
+  const canDecline = canDecide && pending !== null && !pendingDeclinesItself(pending) && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
 
   const warStatusLabels: Record<string, string> = {
     warAim: t.warAim,

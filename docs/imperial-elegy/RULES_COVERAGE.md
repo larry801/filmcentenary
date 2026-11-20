@@ -178,7 +178,11 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   below. **12.10 EF destination is enforced** from the March 2026 errata text
   (`efDestinationAllowed`: a friendly controlled/home space or the player's
   influence marker; no LoC, no path; naval boxes refused) by the move, the
-  Rules 34 bot and the Orders panel.
+  Rules 34 bot and the Orders panel. **12.1 forts are complete:** a new fort
+  needs a European space you control or occupy with a land unit, its level is
+  the CP spent (1 or 2), and a fort of your own upgrades one level for 1 CP and
+  never past level 2 — all four rows share the move's gate, and 20.1 offers only
+  your own forts to protect.
 - **13.4.4 Attacking China (errata):** a war of conquest on Qing China places
   the Qing army at full strength in the targeted key, and the aiding player
   gains a +1 card marker regardless of the outcome. 12.4's refit row is live as `refitNavalUnit`: 1 CP flips a reduced

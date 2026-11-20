@@ -213,6 +213,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   pacified: {key: "pacified", power: "FR", args: {space: "paris", roll: 4}},
   pacificationFailed: {key: "pacificationFailed", power: "FR", args: {space: "paris", roll: 2}},
   fortBuilt: {key: "fortBuilt", power: "FR", args: {space: "paris", level: 2}},
+  fortUpgraded: {key: "fortUpgraded", power: "FR", args: {space: "paris", level: 2}},
   indianFortPlaced: {key: "indianFortPlaced", args: {space: "india", level: 1}},
   indianArmyDisplaced: {key: "indianArmyDisplaced", power: "UK", args: {unit: "u1", from: "london", to: "bengal", reason: "endOfTurn"}},
   indiaIndependence: {key: "indiaIndependence", power: "UK", args: {displaced: 3, eliminated: 1, armiesKept: 1, armiesEliminated: 2, fortRemoved: true}},
