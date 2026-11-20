@@ -165,8 +165,23 @@ export const checkInvariants = (G: VQGame): string[] => {
         if (!Number.isInteger(ps.cp) || ps.cp < 0) problems.push(`${power} cp=${ps.cp}`);
         if (!Number.isFinite(ps.bonusVp)) problems.push(`${power} bonusVp=${ps.bonusVp}`);
         for (const value of ps.treasures) {
-            if (!Number.isInteger(value) || value < 1 || value > 5) problems.push(`${power} treasure=${value}`);
+            if (typeof value === "number") {
+                if (!Number.isInteger(value) || value < 1 || value > 5) problems.push(`${power} treasure=${value}`);
+            } else if (!["drawCard", "scienceBonus", "vp"].includes(String(value))) {
+                problems.push(`${power} treasure=${value}`);
+            }
         }
+    }
+    // Rule 6.3: the 30 counters are physical, so total held + pool + discard can
+    // never exceed the mix.  This catches a counter being created twice.
+    if (G.treasurePool !== undefined) {
+        const held = POWERS.reduce((total, power) => total + G.powers[power].treasures.length, 0) +
+            (G.spanishTreasureRow ?? []).length +
+            (G.portugueseTreasures ?? []).length +
+            Object.values(G.worldCaptains).reduce((total, captain) => total + (captain.treasureValues ?? []).length, 0);
+        const pool = G.treasurePool.length;
+        const discard = (G.treasureDiscard ?? []).length;
+        if (held + pool + discard > 30) problems.push(`treasure counters: ${held} held + ${pool} pool + ${discard} discard > 30`);
     }
     for (const [spaceId, space] of Object.entries(G.spaces)) {
         for (const [owner, stack] of Object.entries(space.land)) {

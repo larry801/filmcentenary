@@ -291,6 +291,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
             deckCount?: number;
             futureDeckCount?: number;
             discardCount?: number;
+            treasurePoolCount?: number;
             handCounts?: Partial<Record<Power, number>>;
         };
         r.deckCount = G.deck.length;
@@ -304,6 +305,11 @@ export const VirginQueenGameDef: Game<VQGame> = {
         r.handCounts = {};
         r.treasureCounts = {};
         r.homeCardSetAsideCounts = {};
+        // Rule 6.3: the pool is face down ("the value of each treasure is
+        // hidden from view").  Clients get the count only; the revealed
+        // discard pile stays public.
+        r.treasurePoolCount = G.treasurePool?.length ?? 0;
+        delete r.treasurePool;
         for (const p of POWERS) {
             r.handCounts[p] = G.powers[p].cards.length;
             r.treasureCounts[p] = G.powers[p].treasures.length;

@@ -19,6 +19,10 @@ describe("Treasure Fleet escorts and Portuguese treasures", () => {
         const G = game();
         if (!G.powers.spain.cards.includes("vq-038")) G.powers.spain.cards.push("vq-038");
         G.powers.spain.treasures = [5, 4];
+        // Rule 23.2 step 1 draws the extra treasure from the pool; pin the pool
+        // so this test observes a specific counter rather than the mix.
+        G.treasurePool = [3];
+        G.treasureDiscard = [];
         G.treasureFleetEscorts = 1;
 
         expect(playCard(G, context([3, 1]), {cardId: "vq-038", asEvent: true})).toBeUndefined();
@@ -31,6 +35,8 @@ describe("Treasure Fleet escorts and Portuguese treasures", () => {
         const G = game();
         if (!G.powers.spain.cards.includes("vq-038")) G.powers.spain.cards.push("vq-038");
         G.powers.spain.treasures = [5, 4];
+        G.treasurePool = [3];
+        G.treasureDiscard = [];
         G.worldCaptains.drake = {power: "england", location: "northAtlantic", damaged: false, colony: false};
 
         // Treasure 3, zone 1, Drake 2 hits, fleet 0 hits.

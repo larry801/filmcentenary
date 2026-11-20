@@ -8,7 +8,7 @@ import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES, mapName} from "./ma
 import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./ownership";
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
-import {addLand, addVp, allied, atWar, capitalOf, discardCard, drawCards, ensureLand, ensureNaval,
+import {addLand, addVp, allied, atWar, capitalOf, discardCard, discardTreasure, drawCards, ensureLand, ensureNaval,
     ensureDefaultLeader, hits, isFortifiedSpace, pushLog, removeCardFromHand, removeCardFromGame,
     removePragueCulturalCenterOnRudolfDeath, ROYAL_FOR_ARMY_LEADER, roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
@@ -97,7 +97,8 @@ const randomDiscard = (G: VQGame, ctx: Ctx, p: Power, allowTreasure: boolean): v
     const kind = allowTreasure && treasures.length > 0 && treasures.length >= cards.length ? "treasure" : "card";
     if (kind === "treasure") {
         const index = shuffle(ctx, treasures.map((_, i) => i))[0];
-        treasures.splice(index, 1);
+        const [discarded] = treasures.splice(index, 1);
+        discardTreasure(G, discarded);
         pushLog(G, `${p} discards a random treasure.`);
     } else if (cards.length) {
         const id = shuffle(ctx, cards)[0];

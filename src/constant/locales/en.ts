@@ -1557,6 +1557,8 @@ const en = {
             colonyNone: "no effect",
             colonyTreasure: "treasure",
             colonyTreasureVp: "treasure + 1 Virginia Dare VP",
+            treasurePool: "Treasure pool",
+            treasurePoolValue: "{pool} in pool / {discard} spent this turn",
             cardDrawPhase: "Card Draw phase",
             turn: "Turn",
             winterReturns: "Winter return: choose destinations and units",

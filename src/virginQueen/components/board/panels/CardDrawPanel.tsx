@@ -86,6 +86,12 @@ export const CardDrawPanel = () => {
     const shipNames: Record<keyof NavalStack, string> = {galley: i18n.chain.vq.cardDraw.galley, galleon: i18n.chain.vq.cardDraw.galleon, racebuilt: i18n.chain.vq.cardDraw.racebuilt, corsair: i18n.chain.vq.cardDraw.corsair};
     return <Stack spacing={1}>
         <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.cardDrawPhase} · {i18n.chain.vq.cardDraw.turn} {G.year}</Typography>
+        {G.scenario !== "tutorial" && (G.treasurePoolCount !== undefined || G.treasurePool !== undefined) && <Typography variant="caption" color="text.secondary">
+            {i18n.chain.vq.cardDraw.treasurePool}{i18n.chain.vq.punct.colon}
+            {i18n.chain.vq.cardDraw.treasurePoolValue
+                .replace("{pool}", String(G.treasurePoolCount ?? G.treasurePool?.length ?? 0))
+                .replace("{discard}", String(G.treasureDiscard?.length ?? 0))}
+        </Typography>}
         {(G.colonyRolls?.length ?? 0) > 0 && <Stack spacing={0.25} sx={{p: 1, border: 1, borderColor: "divider", borderRadius: 1}}>
             <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.colonies}</Typography>
             {(G.colonyRolls ?? []).map((entry) => <Typography key={entry.settlement} variant="caption">

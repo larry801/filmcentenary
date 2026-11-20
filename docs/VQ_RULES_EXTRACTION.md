@@ -174,8 +174,11 @@
 
 ### 6.3 Treasures
 - 30 treasure counters, kept face-down in pool
+- **The pool is finite and exhaustible** (engine: `treasurePool`): every draw removes a counter; an empty pool yields nothing until discards return at Card Draw. Counter mix (verified against the VASSAL counter manifest): 5×1 CP, 8×2 CP, 7×3 CP, 5×4 CP, 1×5 CP, 2 Draw Card, 1 Science Bonus, 1 VP.
+- **Spent treasures** go face up to `treasureDiscard` ("a discard pile of treasures expended that turn") and are mixed back into the pool in the final step of the Card Draw. The 1 VP treasure is the exception: it goes to the Bonus VP box and never reenters play.
 - **Spanish treasures**: 4 boxes filled each turn (5 if Spain controls Philippines). Spanish player may view.
 - **Portuguese treasures**: 3 boxes filled. No one may view until captured/returned.
+- **Card Draw order**: mix treasure discards → fill Spanish row → fill Portuguese row → resolve colonies (each row draw also comes from the pool).
 - **Receiving treasures**: Spain via Treasure Fleet event/Winter Phase. Others via colony rolls/expedition loot.
 - **Mixed hand rule** (random draws from hand with both cards and treasures):
   - More cards than treasures → draw from cards

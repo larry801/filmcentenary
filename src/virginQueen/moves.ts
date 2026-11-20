@@ -37,7 +37,7 @@ import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
 import {canYieldSpace} from "./negotiation";
 import {formationIssue, landMoveIssue, transportMoveIssue} from "./movement";
-import {activateMajor, catholicLeagueDealsBlocked, checkCircumnavigation, die, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController, springSeaCrossingBlocked} from "./util";
+import {activateMajor, catholicLeagueDealsBlocked, checkCircumnavigation, die, discardTreasure, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController, springSeaCrossingBlocked} from "./util";
 import {canPlayBattleCard, playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {canPlayHolyLeague, holyLeagueTracks} from "./holyLeague";
@@ -648,7 +648,11 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
         while (total < cost) {
             const index = G.powers[p].treasures.findIndex((t) => !isSpecialTreasure(t));
             if (index < 0) break;
-            total += treasureCp(G.powers[p].treasures.splice(index, 1)[0]);
+            const [spent] = G.powers[p].treasures.splice(index, 1);
+            total += treasureCp(spent);
+            // Rule 6.3: a spent counter joins the treasure discard pile and
+            // only returns to the pool in the next Card Draw.
+            discardTreasure(G, spent);
         }
         if (total < cost) {
             return false;
@@ -916,7 +920,8 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
             : Number.isFinite(Number(chosen)) ? Number(chosen) : undefined;
         const index = value === undefined ? -1 : treasures.indexOf(value);
         if (index >= 0) {
-            G.powers[targetPower].treasures.splice(index, 1);
+            const [discarded] = G.powers[targetPower].treasures.splice(index, 1);
+            discardTreasure(G, discarded);
             pushLog(G, `Sir Edward Stafford discards ${typeof value === "number" ? `a ${value} CP treasure` : `the ${treasureName(value!, "en")} treasure`} from ${powerLabel(targetPower)}.`);
             return;
         }
@@ -924,6 +929,7 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
     if (treasures.length >= cards.length) {
         const index = Math.min(treasures.length - 1, Math.max(0, die(ctx, treasures.length) - 1));
         const [value] = treasures.splice(index, 1);
+        discardTreasure(G, value);
         pushLog(G, `Sir Edward Stafford discards ${typeof value === "number" ? `a ${value} CP treasure` : `the ${treasureName(value, "en")} treasure`} from ${powerLabel(targetPower)}.`);
     } else {
         const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
@@ -2271,6 +2277,7 @@ const finishPolishElection = (G: VQGame, ctx: Ctx, manualBids: Map<string, strin
         if (useManual && Number.isFinite(manualTreasure) && G.powers[power].treasures.includes(manualTreasure)) {
             bid = manualTreasure;
             G.powers[power].treasures = G.powers[power].treasures.filter((value) => value !== manualTreasure);
+            discardTreasure(G, manualTreasure);
         } else if (useManual && G.powers[power].cards.includes(manualBid) && cardById(manualBid).officialKind !== "mandatory") {
             bid = cardById(manualBid).cp;
             removeCardFromHand(G, power, manualBid);
@@ -2286,6 +2293,7 @@ const finishPolishElection = (G: VQGame, ctx: Ctx, manualBids: Map<string, strin
             if (numeric.length > 0) {
                 bid = Math.max(...numeric);
                 G.powers[power].treasures = G.powers[power].treasures.filter((value) => value !== bid);
+                discardTreasure(G, bid);
             }
         }
         const score = die(ctx, 6) + bid;
@@ -3584,6 +3592,9 @@ export const playTreasure = (G: VQGame, ctx: Ctx, args: {index: number}): void |
     ps.treasurePlayed = true;
     if (typeof treasure === "number") {
         ps.cp += treasure;
+        // Rule 6.3: an expended counter is set aside face up and re-enters the
+        // pool only in the final Card Draw step.
+        discardTreasure(G, treasure);
         pushLog(G, `${powerLabel(p)} extends the impulse with a ${treasure} CP treasure.`);
         return;
     }
@@ -3592,18 +3603,23 @@ export const playTreasure = (G: VQGame, ctx: Ctx, args: {index: number}): void |
     // Bonus VP box and never returns to the pool; Science Bonus opens a choice.
     if (treasure === "drawCard") {
         const drawn = drawCards(G, ctx, p, 1);
+        discardTreasure(G, treasure);
         pushLog(G, `${powerLabel(p)} uses a Draw Card treasure${drawn.length > 0 ? ` and draws ${cardName(drawn[0])}` : " but the deck is empty"}.`);
         return;
     }
     if (treasure === "vp") {
+        // Rule 11: "Place this treasure in your Bonus VP box. It does not go to
+        // the treasure discard and reenter play."
         addVp(G, p, 1);
         pushLog(G, `${powerLabel(p)} places a 1 VP treasure in the Bonus VP box.`);
         return;
     }
     if (eligibleScienceBonuses(G, p).length === 0) {
+        discardTreasure(G, treasure);
         pushLog(G, `${powerLabel(p)} discards a Science Bonus treasure: no unclaimed science bonus is available.`);
         return;
     }
+    discardTreasure(G, treasure);
     G.pendingScienceTreasure = {power: p};
     pushLog(G, `${powerLabel(p)} plays a Science Bonus treasure and must choose an unclaimed bonus.`);
 };
@@ -5037,6 +5053,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
                     expedition.treasureValues.push(treasure);
                     pushLog(G, `${powerLabel(p)} loads ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure onto the expedition.`);
                 } else {
+                    discardTreasure(G, treasure);
                     pushLog(G, `${powerLabel(p)} discards ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure (no room).`);
                 }
             } else if (!targetIsPortugal && G.powers.spain.treasures.some((value) => value !== withholdSpanishTreasure)) {
@@ -5052,6 +5069,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
                     expedition.treasureValues.push(treasure);
                     pushLog(G, `${powerLabel(p)} loads ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure onto the expedition.`);
                 } else {
+                    discardTreasure(G, treasure);
                     pushLog(G, `${powerLabel(p)} discards ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure (no room).`);
                 }
             }
