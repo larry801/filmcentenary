@@ -2672,6 +2672,9 @@ export const autoResolveOrangeArrival = (G: VQGame): void => {
  * calls chooseNavalLeaderPort). Without it, or when no port is legal, the
  * original automatic placement applies.
  */
+/** Protestant army leaders the Scenario Book places directly instead of deferring. */
+const ORANGE_ARRIVAL_LEADERS = ["orange"];
+
 export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): void => {
     for (const p of POWERS) {
         if (ownerOf(G, p) === undefined) continue;
@@ -2708,8 +2711,26 @@ export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): voi
                 pushLog(G, "William of Orange has arrived; Protestant must choose to place him in the capital or hold him back for a rebellion.");
                 continue;
             }
-            const destination = cap;
-            if (destination === undefined || G.spaces[destination] === undefined || !friendlyControlled(G, p, destination) || G.spaces[destination].unrest) continue;
+            // Rule 10.4: "Army leaders are placed in any fortified home space
+            // under friendly control. ... If no such space exists, the leader
+            // remains on the Turn Track until next turn.  The Protestant player
+            // has the option of not immediately adding his leaders to the map
+            // and instead waiting to add them during a rebellion action."
+            // Protestant leaders therefore stay in the pool until a rebellion
+            // brings them in; the rest take the capital when it is a fortified
+            // friendly home space, else another such space.
+            // Rule 10.4: "The Protestant player has the option of not
+            // immediately adding his leaders to the map and instead waiting to
+            // add them during a rebellion action."  Huguenot/Dutch army leaders
+            // use their pool marker that way, so they are not auto-placed; the
+            // Scenario Book still puts William of Orange in the capital.
+            if (p === "protestant" && !ORANGE_ARRIVAL_LEADERS.includes(id)) continue;
+            const fortifiedHome = (id: string): boolean =>
+                G.spaces[id] !== undefined && isFortifiedSpace(G, id) && spaceHomes(SPACE_BY_ID[id]).includes(p) &&
+                friendlyControlled(G, p, id) && !G.spaces[id].unrest;
+            const destination = [cap, ...SPACES.map((def) => def.id).filter((id) => isFortifiedSpace(G, id))]
+                .find((id): id is string => id !== undefined && fortifiedHome(id));
+            if (destination === undefined) continue;
             placeArrivingLeader(G, id, destination);
         }
         const standardInPlay = Object.keys(G.leaders).some((id) => {

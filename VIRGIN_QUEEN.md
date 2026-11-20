@@ -1693,3 +1693,12 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 | 9.3 | 赎回将领的兜底地点是"本国控制的任意关键地区"；规则为"首都，否则本国家乡关键地区"（`capitalOf` 本身会退化成任意受控关键地区） | 改用印刷首都（`capitalSpacesFor`），兜底限定为 `spaceHomes` 含本国 key；两者都没有时拒绝赎回而不是把人放到别国地区 |
 
 验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` 572 suites、5752 tests 全部通过（新增 `pragueMarkerAssassination.test.ts` 1 项、`catholicLeague.test.ts` 1 项、`diplomacyBinding.test.ts` 1 项）。
+
+### 审计第四轮（续）：10.4 将领入场的落点
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 10.4 | 入场陆军将领直接放在 `capitalOf` 的返回值上，而该函数会退化成"本国控制的任意关键地区"（可能是别国家乡地区）；规则要求"任何友方控制下的**设防家乡地区**"，否则留在回合记录轨 | 落点必须是 `spaceHomes` 含本国且 `isFortifiedSpace` 的友方无动荡地区，首都优先；不满足则顺延到其他设防家乡地区，仍无则本轮不入场 |
+| 10.4 | 新教陆军将领自动入场；规则允许"先放在势力卡上，等到叛乱行动时再入场" | 新教陆军将领不再自动入场（Scenario Book 明确直接摆放的威廉·奥兰治除外） |
+
+验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` 572 suites、5752 tests 全部通过。
