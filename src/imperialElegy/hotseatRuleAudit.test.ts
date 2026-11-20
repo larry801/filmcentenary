@@ -359,11 +359,17 @@ describe("15.2 wartime action list", () => {
     expect(phaseActionAllowed(G, "navalMovement")).toBe(true);
   });
 
-  test("27.5 keeps the GW-only actions in the Great War", () => {
-    const G = fresh();
-    beginGreatWar(G, "GE", 10);
+  test("27.5 keeps the GW-only actions in the Great War and nowhere else", () => {
+    const gw = fresh();
+    beginGreatWar(gw, "GE", 10);
     for (const family of ["gwRefit", "gwRefitFleet", "gwDraft", "gwEliteCorps"] as const) {
-      expect(phaseActionAllowed(G, family)).toBe(true);
+      expect(phaseActionAllowed(gw, family)).toBe(true);
+    }
+    // The asterisked actions are 27.5's own; 12.1 does not print them.
+    const peace = fresh();
+    beginAction(peace, "GE", 10);
+    for (const family of ["gwRefit", "gwRefitFleet", "gwDraft", "gwEliteCorps"] as const) {
+      expect(phaseActionAllowed(peace, family)).toBe(false);
     }
   });
 
