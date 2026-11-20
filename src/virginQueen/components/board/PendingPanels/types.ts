@@ -6,4 +6,6 @@ export interface PendingPanelProps {
     G: VQGame;
     moves: BoardProps<VQGame>["moves"];
     playerID: string | null;
+    /** Present when a panel needs the active-seat/stage information. */
+    ctx?: BoardProps<VQGame>["ctx"];
 }

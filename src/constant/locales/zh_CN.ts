@@ -1944,6 +1944,7 @@ const zh_CN: Locale = {
                 hint: "你可以把任意一个 6 降为 5，以取消 1 个动荡；该骰子会变成普通转化。",
                 keep: "保留动荡（不降级）",
                 downgrade: "取消 1 个动荡",
+                proxy: "转化方不是当前行动方；当前行动方可代为选择。",
                 waiting: "等待转化方选择。",
             },
             scienceTreasure: {

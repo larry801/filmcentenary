@@ -216,36 +216,38 @@ const powerOrder = {
         ? undefined : Number(ownerOf(G, G.activePower)),
 };
 
+const conversionChoiceMoves = {chooseConversionNullify, chooseScienceTreasureBonus};
+
 const choiceStages = {
-    espionageChoice: {moves: {chooseEspionage}},
-    cardEvent: {moves: {chooseCardEvent}},
-    activateMajor: {moves: {chooseMajorActivation}},
-    abjurationChoice: {moves: {chooseAbjuration}},
-    tributeChoice: {moves: {chooseTribute}},
-    rebelMoveChoice: {moves: {chooseRebelMove}},
-    mutinyChoice: {moves: {chooseMutinyDiscard}},
-    polishElectionBid: {moves: {choosePolishBid}},
+    espionageChoice: {moves: {...conversionChoiceMoves, chooseEspionage}},
+    cardEvent: {moves: {...conversionChoiceMoves, chooseCardEvent}},
+    activateMajor: {moves: {...conversionChoiceMoves, chooseMajorActivation}},
+    abjurationChoice: {moves: {...conversionChoiceMoves, chooseAbjuration}},
+    tributeChoice: {moves: {...conversionChoiceMoves, chooseTribute}},
+    rebelMoveChoice: {moves: {...conversionChoiceMoves, chooseRebelMove}},
+    mutinyChoice: {moves: {...conversionChoiceMoves, chooseMutinyDiscard}},
+    polishElectionBid: {moves: {...conversionChoiceMoves, choosePolishBid}},
     // #18 losses: each hit is a separate unit-type choice, with "auto"
     // assigning the rest in the printed fallback order.
-    cityRebelsLossChoice: {moves: {chooseCityRebelsLoss}},
-    battleChoice: {moves: {chooseBattle, playVirginQueenCombat}},
-    tutorialEvent: {moves: {chooseTutorialEvent}},
-    piracyChoice: {moves: {choosePiracy}},
-    actionResponse: {moves: {respondAction}},
+    cityRebelsLossChoice: {moves: {...conversionChoiceMoves, chooseCityRebelsLoss}},
+    battleChoice: {moves: {...conversionChoiceMoves, chooseBattle, playVirginQueenCombat}},
+    tutorialEvent: {moves: {...conversionChoiceMoves, chooseTutorialEvent}},
+    piracyChoice: {moves: {...conversionChoiceMoves, choosePiracy}},
+    actionResponse: {moves: {...conversionChoiceMoves, respondAction}},
     // Rule 23.7: the affected power selects units immediately, even if
     // another power played the War in Persia / War with Poland event.
-    foreignWarSetup: {moves: {commitForeignWarForce}},
-    beaconResponse: {moves: {respondBeaconFires}},
-    interceptionOrder: {moves: {chooseInterceptionOrder, autoInterceptionOrder}},
-    gregorianResponse: {moves: {playCard, declineGregorianCalendar}},
-    interceptChoice: {moves: {chooseInterception}},
-    withdrawChoice: {moves: {chooseWithdraw}},
-    respondBetroth: {moves: {acceptBetroth, rejectBetroth}},
+    foreignWarSetup: {moves: {...conversionChoiceMoves, commitForeignWarForce}},
+    beaconResponse: {moves: {...conversionChoiceMoves, respondBeaconFires}},
+    interceptionOrder: {moves: {...conversionChoiceMoves, chooseInterceptionOrder, autoInterceptionOrder}},
+    gregorianResponse: {moves: {...conversionChoiceMoves, playCard, declineGregorianCalendar}},
+    interceptChoice: {moves: {...conversionChoiceMoves, chooseInterception}},
+    withdrawChoice: {moves: {...conversionChoiceMoves, chooseWithdraw}},
+    respondBetroth: {moves: {...conversionChoiceMoves, acceptBetroth, rejectBetroth}},
     // Spring-only: choose a returning naval leader's home port. Home card,
     // HRE preference and ending the turn stay available so automated clients
     // (and a power that skips the choice) fall back safely. Keep the redaction
     // wrappers so secret choices are not leaked while this stage is active.
-    navalPortChoice: {moves: {
+    navalPortChoice: {moves: {...conversionChoiceMoves,
         chooseNavalLeaderPort,
         chooseHomeCard: {move: chooseHomeCard, redact: true as const},
         chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true as const},
@@ -254,7 +256,7 @@ const choiceStages = {
     // Tournament: choose whether to place Orange in the capital or hold him
     // back for a rebellion. Home card, HRE preference and ending the turn stay
     // available so automated clients and a skipped choice fall back safely.
-    orangeArrivalChoice: {moves: {
+    orangeArrivalChoice: {moves: {...conversionChoiceMoves,
         chooseOrangePlacement,
         chooseHomeCard: {move: chooseHomeCard, redact: true as const},
         chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true as const},
@@ -264,15 +266,15 @@ const choiceStages = {
     // the removed unit types, picks between equidistant winter ports and
     // revises a land return's destination or composition.  Ending the turn
     // keeps every automatic result.
-    winterLossChoice: {moves: {
+    winterLossChoice: {moves: {...conversionChoiceMoves,
         chooseWinterLoss, chooseWinterNavalLoss,
         chooseWinterReturn, chooseWinterNavalReturn,
         endPhaseTurn,
     }},
     // Rule 9.1 negotiation table.  The proposer may withdraw while the other
     // side accepts, declines or counters; each side gets one temporary move.
-    dealOffer: {moves: {withdrawDeal: {move: withdrawDeal, redact: true}}},
-    dealResponse: {moves: {
+    dealOffer: {moves: {...conversionChoiceMoves, withdrawDeal: {move: withdrawDeal, redact: true}}},
+    dealResponse: {moves: {...conversionChoiceMoves,
         respondDeal: {move: respondDeal, client: false, redact: true},
         counterDeal: {move: counterDeal, client: false, redact: true},
     }},

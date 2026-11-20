@@ -70,7 +70,7 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
         if (G.pendingAbjuration) return <PendingAbjurationPanel G={G} moves={moves} playerID={playerID}
             selectedPower={selectedAbjurationPower} onSelect={setSelectedAbjurationPower}/>;
         if (G.pendingCityRebels) return <PendingCityRebelsPanel G={G} moves={moves} playerID={playerID}/>;
-        if (G.pendingConversion) return <PendingConversionPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingConversion) return <PendingConversionPanel G={G} moves={moves} playerID={playerID} ctx={ctx}/>;
         if (G.pendingScienceTreasure) return <PendingScienceTreasurePanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingTribute) return <PendingTributePanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingMutiny) return <PendingMutinyPanel G={G} moves={moves} playerID={playerID}/>;
