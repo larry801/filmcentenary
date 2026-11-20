@@ -17,7 +17,11 @@ export const formationIssue = (G: VQGame, owner: Controller, order: FormationOrd
     const source = G.spaces[order.from];
     const available = source?.land[owner];
     const units = {regular: order.units.regular ?? 0, merc: order.units.merc ?? 0, cav: order.units.cav ?? 0};
-    if (!available || landCount(units) < 1 || Object.entries(units).some(([kind, count]) =>
+    // Rule 13.1: "One or more army leaders may move without accompanying land
+    // units", so a leader-only formation is legal (but never a transport).
+    const leadersOnly = landCount(units) === 0 && order.leaders.length > 0 && !transport;
+    if ((!available || landCount(units) < 1) && !leadersOnly) return "invalidFormation";
+    if (available && Object.entries(units).some(([kind, count]) =>
         !Number.isInteger(count) || count < 0 || count > available[kind as keyof LandStack])) return "invalidFormation";
     if (new Set(order.leaders).size !== order.leaders.length || order.leaders.some((id) =>
         !source.leaders.includes(id) || LEADER_BY_ID[id]?.power !== owner || LEADER_BY_ID[id]?.kind !== "army")) return "invalidFormation";

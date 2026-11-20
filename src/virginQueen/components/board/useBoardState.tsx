@@ -101,6 +101,8 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     };
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
+    /** Rule 17.4: non-Ottoman expeditions start at the North Atlantic or Guinea Coast. */
+    const [expeditionZone, setExpeditionZone] = React.useState("northAtlantic");
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
     const [foreignWarUnits, setForeignWarUnits] = React.useState<{space: string; kind: keyof LandStack}[]>([]);
     const [foreignWarLeader, setForeignWarLeader] = React.useState("");
@@ -599,7 +601,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         polishElectionBids, armyMutinySelection, staffordSelection, germanRecruitmentSelection, setEventTarget,
         setEspionageEventTarget, setHolyLeagueEventTarget, setMenendezEventTarget, setPolishElectionBids,
         setArmyMutinySelection, setStaffordSelection, setGermanRecruitmentSelection, setEventBranches, setEventBranchParam,
-        openCard, expeditionCaptain, setExpeditionCaptain, expeditionHasColony, setExpeditionHasColony, foreignArmySize, setForeignArmySize,
+        openCard, expeditionCaptain, setExpeditionCaptain, expeditionHasColony, setExpeditionHasColony, expeditionZone, setExpeditionZone, foreignArmySize, setForeignArmySize,
         foreignWarUnits, setForeignWarUnits, foreignWarLeader, setForeignWarLeader, gregorianTarget, setGregorianTarget,
         selectedActionResponder, setSelectedActionResponder, selectedAbjurationPower, setSelectedAbjurationPower,
         confirmAction, setConfirmAction, sheetOpen, setSheetOpen, formationSheetOpen, setFormationSheetOpen, viewPower, setViewPower,

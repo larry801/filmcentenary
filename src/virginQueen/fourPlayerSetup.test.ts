@@ -155,7 +155,8 @@ describe("four-player HRE activation through a declaration of war", () => {
     it("resolves the diplomatic check and hands the HRE to England", () => {
         const G = fourPlayerGame();
         G.powers.england.cards = ["vq-009", "vq-010"];
-        G.powers.spain.treasures = [3];
+        // Spain→HRE costs 4 CP on the printed Diplomatic Status Chart.
+        G.powers.spain.treasures = [4];
         G.activePower = "spain";
         G.majorInfluence!.hre = {ottoman: 0, spain: 0, england: 5, france: 0, protestant: 0};
         const events = eventsMock();

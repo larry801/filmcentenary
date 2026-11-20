@@ -192,6 +192,18 @@ describe("intelligence results and privacy", () => {
         expect(G.powers.france.cards).toHaveLength(3);
         expect(G.powers.france.treasures).toEqual([2, 3]);
     });
+    it("compares treasures against the random-draw pool, not Home cards (6.1/6.3)", () => {
+        // Two Home cards and one ordinary card against two treasures: the
+        // mixed-hand rule compares 2 treasures to 1 drawable card, so the
+        // treasure is taken (Home cards can never be drawn, rule 6.1).
+        const G = game();
+        G.powers.france.cards = ["vq-003", "vq-012", "vq-020"];
+        G.powers.france.treasures = [1, 2];
+        gainIntelligence(G, context("spain", [6, 1]), {target: "france"});
+        choose(G, "discard");
+        expect(G.powers.france.treasures).toEqual([2]);
+        expect(G.powers.france.cards).toHaveLength(3);
+    });
     it("offers only inspection without a six, neutralizes the target's operative then a second on 4–6", () => {
         const G = game();
         G.informants = [{owner: "france", target: "spain", neutralized: false, plantedImpulse: 1},

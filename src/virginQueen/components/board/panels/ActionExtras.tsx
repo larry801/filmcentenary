@@ -26,7 +26,7 @@ import {dataName, leaderLabel, patronLabel, patronageAwardSummary, placeLabel, v
 import {useVQBoard} from "../BoardContext";
 
 export const ActionExtras = () => {
-    const {G, moves, vqLocale, selected, piracyZone, setPiracyZone, piracyTarget, setPiracyTarget, patronageCp, setPatronageCp, setEspionageTarget, assassinationTarget, setAssassinationTarget, assassinationCp, setAssassinationCp, catholicRebellionCp, setCatholicRebellionCp, informantSource, setInformantSource, expeditionCaptain, setExpeditionCaptain, expeditionHasColony, setExpeditionHasColony, me, espionageTarget, myTurn, ps, cp, canAct, space, spaceDef, religionActions} = useVQBoard();
+    const {G, moves, vqLocale, selected, piracyZone, setPiracyZone, piracyTarget, setPiracyTarget, patronageCp, setPatronageCp, setEspionageTarget, assassinationTarget, setAssassinationTarget, assassinationCp, setAssassinationCp, catholicRebellionCp, setCatholicRebellionCp, informantSource, setInformantSource, expeditionCaptain, setExpeditionCaptain, expeditionHasColony, setExpeditionHasColony, expeditionZone, setExpeditionZone, me, espionageTarget, myTurn, ps, cp, canAct, space, spaceDef, religionActions} = useVQBoard();
     if (me === undefined) return null;
     const patronageSetup = scenarioSetup(G.scenario, playerCount(G)).patronage;
     const vpAwards = patronageSetup.vpAwards.map((id) => PATRONAGE_VP_AWARD_BY_ID[id])
@@ -63,7 +63,7 @@ export const ActionExtras = () => {
     const patronCount = !myTurn || cp < 2 ? 0 : G.patronsAvailable.map((id) => patronDef(id))
         .filter((p) => p !== undefined && p.region === me && !POWERS.some((x) => G.powers[x].patrons.includes(p.id)) &&
             !G.patronizedThisTurn.includes(`${me}:${p.kind}`)).length;
-    const piracyCount = myTurn && cp >= 1
+    const piracyCount = myTurn && cp >= 2
         ? Object.keys(G.seaZones).filter((z) => G.seaZones[z as keyof VQGame["seaZones"]].naval[me] !== undefined).length : 0;
     return <>
         {G.scenario !== "tutorial" && <ActionGroup {...available(i18n.chain.vq.actionUi.religionActions, religionCount)}>
@@ -211,10 +211,19 @@ export const ActionExtras = () => {
                     <MenuItem key={id} value={id}>{seaCaptainName(seaCaptainById(id), vqLocale) || id}{sharedCaptains.includes(id) ? ` · ${i18n.chain.vq.worldUi.sharedCaptain}` : ""}</MenuItem>)}
             </Select>
         </FormControl>
+        {me !== "ottoman" && <FormControl size="small" fullWidth>
+            <InputLabel id="vq-expedition-zone">{i18n.chain.vq.worldUi.expeditionZone}</InputLabel>
+            <Select labelId="vq-expedition-zone" label={i18n.chain.vq.worldUi.expeditionZone} value={expeditionZone}
+                    onChange={(e) => setExpeditionZone(e.target.value)}>
+                {WORLD_SEA_ZONES.filter((zone) => ["northAtlantic", "guineaCoast"].includes(zone.id)).map((zone) =>
+                    <MenuItem key={zone.id} value={zone.id}>{dataName(zone)}</MenuItem>)}
+            </Select>
+        </FormControl>}
         <Stack direction="row" spacing={0.5} sx={{alignItems: "center", flexWrap: "wrap"}}>
             <Button size="small" variant="outlined" disabled={!myTurn || cp < expeditionCost || expeditionCaptain === "" ||
                 (expeditionHasColony && (me === "hre" || (me === "ottoman" && !G.suezDone)))}
-                    onClick={() => moves.buildExpedition({captain: expeditionCaptain, colony: expeditionHasColony})}>
+                    onClick={() => moves.buildExpedition({captain: expeditionCaptain, colony: expeditionHasColony,
+                        zone: me === "ottoman" ? undefined : expeditionZone})}>
                 {i18n.chain.vq.worldUi.buildExpedition} ({expeditionCost} CP)
             </Button>
             <Button size="small" variant={expeditionHasColony ? "contained" : "outlined"}
@@ -300,7 +309,7 @@ export const ActionExtras = () => {
                     {POWERS.filter((p) => p !== me).map((p) => <MenuItem key={p} value={p}>{powerName(p, vqLocale)}</MenuItem>)}
                 </Select>
             </FormControl>
-            <Button size="small" variant="outlined" disabled={!myTurn || cp < 1 || piracyZone === "" || piracyTarget === ""}
+            <Button size="small" variant="outlined" disabled={!myTurn || cp < 2 || piracyZone === "" || piracyTarget === ""}
                     onClick={() => moves.piracy({zone: piracyZone, target: piracyTarget})}>{i18n.chain.vq.worldUi.launchPiracy}</Button>
         </Stack>
         </ActionGroup>

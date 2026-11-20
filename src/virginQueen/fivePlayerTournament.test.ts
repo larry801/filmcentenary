@@ -184,7 +184,8 @@ describe("five-player Tournament HRE activation", () => {
     it("resolves the five-player HRE check with the printed influence and ally control", () => {
         const G = tournamentGame();
         G.powers.england.cards = ["vq-009", "vq-010"];
-        G.powers.spain.treasures = [3];
+        // Spain→HRE costs 4 CP on the printed Diplomatic Status Chart.
+        G.powers.spain.treasures = [4];
         G.activePower = "spain";
         G.majorInfluence!.hre = {ottoman: 0, spain: 0, england: 5, france: 0, protestant: 0};
         const events = eventsMock();

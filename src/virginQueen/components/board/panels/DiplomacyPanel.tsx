@@ -14,7 +14,7 @@ import {powerName, minorName, MINOR_POWERS, POWERS, Power} from "../../../consta
 import {cardById} from "../../../constant/cards";
 import {LEADER_BY_ID} from "../../../constant/leaders";
 import {SPACES} from "../../../mapData";
-import {catholicLeagueSpaceOptions, warCost, minorAvailable, seaPathBetweenPorts} from "../../../util";
+import {catholicLeagueSpaceOptions, warCost, minorAvailable, minorWarCost, seaPathBetweenPorts} from "../../../util";
 import {ownerOf} from "../../../ownership";
 import {diplomacyActionState, diplomacyBlockText, giftState} from "../../../diplomacyPolicy";
 
@@ -202,13 +202,19 @@ export const DiplomacyPanel = () => {
         </Stack>}
         <Typography variant="subtitle2">{i18n.chain.vq.diplomacy.declareWarMinor}</Typography>
         <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
-            {MINOR_POWERS.map((m) => <Button key={m} size="small" variant="outlined"
-                                              disabled={!myTurn || G.powers[me].warsMinors.includes(m) ||
-                                                  POWERS.some((major) => G.powers[major].alliedMinors.includes(m)) ||
-                                                  !minorAvailable(G, m)}
-                                              onClick={() => moves.declareWarMinor({target: m})}>
-                {minorName(m, vqLocale)}
-            </Button>)}
+            {MINOR_POWERS.map((m) => {
+                const cost = minorWarCost(G, me, m);
+                const allowed = cost !== undefined && !G.powers[me].warsMinors.includes(m) &&
+                    !POWERS.some((major) => G.powers[major].alliedMinors.includes(m)) && minorAvailable(G, m);
+                return <Tooltip key={m} title={cost === undefined ? i18n.chain.vq.diplomacy.blocks.noWarTarget : ""}>
+                    <span>
+                        <Button size="small" variant="outlined" disabled={!myTurn || !allowed}
+                                onClick={() => moves.declareWarMinor({target: m})}>
+                            {minorName(m, vqLocale)}{cost === undefined ? "" : ` (${cost} CP)`}
+                        </Button>
+                    </span>
+                </Tooltip>;
+            })}
         </Stack>
         {/* Rule 21: all powers except the Ottoman have a royal marriage pool. */}
         {me !== "ottoman" && <>

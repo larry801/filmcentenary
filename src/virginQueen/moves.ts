@@ -123,6 +123,7 @@ import {
     leadersAt,
     minorAlly,
     minorAvailable,
+    minorWarCost,
     navalAdjacent,
     ownersWithLand,
     ownersWithNaval,
@@ -337,6 +338,7 @@ export const respondAction = (G: VQGame, ctx: Ctx, args: {choice: string; respon
     if (responders.length > 1) ctx.events?.setActivePlayers({value: {}});
     if (args.choice === "storms") {
         removeCardFromHand(G, responder, "vq-015");
+        // Rule 6.2: a card played as a Response cannot be retrieved this turn.
         discardCard(G, responder, "vq-015", true);
         G.powers[pending.power].cp = Math.max(0, G.powers[pending.power].cp - 1);
         G.stormImpulse = G.impulse;
@@ -514,12 +516,49 @@ const startForeignWar = (G: VQGame, ctx: Ctx, cardId: string, beneficiary: "otto
     }
 };
 
-const spend = (G: VQGame, p: Power, cost: number, actionType?: string): boolean => {
+/**
+ * Rule 11 (Treasure extension): "the actions chosen must all be of a different
+ * type than those chosen if a card was played for CP earlier in the impulse
+ * (no such restriction exists if a card was played as an event)."  The power
+ * cards group each action by its printed background colour; this map mirrors
+ * those groups so `spend` can enforce the restriction.
+ */
+export type ActionType =
+    | "land"
+    | "naval"
+    | "religious"
+    | "patronage"
+    | "espionage"
+    | "diplomacy";
+
+export const ACTION_TYPES: Record<string, ActionType> = {
+    // Brown: land warfare and the actions printed beside it.
+    recruitRegular: "land", recruitMerc: "land", recruitCav: "land",
+    moveLand: "land", controlSpace: "land", assault: "land", buildFortress: "land",
+    commitForeignWarForce: "land", fightForeignWar: "land", reinforceForeignWar: "land",
+    // Blue: naval construction, movement, transport, piracy and expeditions.
+    buildGalley: "naval", buildGalleon: "naval", buildRacebuilt: "naval", buildCorsair: "naval",
+    moveNaval: "naval", navalTransport: "naval", piracy: "naval",
+    buildExpedition: "naval", moveExpedition: "naval", settleColony: "naval",
+    upgradeArmada: "naval", loadArmada: "naval", unloadArmada: "naval", armadaTransport: "naval",
+    buildPatrol: "naval", buildWorldFortress: "naval", worldPiracy: "naval",
+    // Purple, green and yellow.
+    preach: "religious", suppress: "religious", rebellion: "religious",
+    patronize: "patronage",
+    plantInformant: "espionage", gainIntelligence: "espionage",
+    assassinate: "espionage", englishCatholicRebellion: "espionage",
+    // Buying diplomatic influence has its own printed action.
+    influence: "diplomacy",
+};
+
+const spend = (G: VQGame, p: Power, cost: number, action?: string): boolean => {
     if (G.powers[p].cp < cost) {
         return false;
     }
     const ps = G.powers[p];
-    // E4: treasure-extension actions must differ in type from card-phase actions.
+    const actionType = action === undefined ? undefined : ACTION_TYPES[action] ?? action;
+    // Rule 11: treasure-extension actions must differ in type from the actions
+    // paid for by the card (or by a Mandatory Event's 2 CP) earlier this impulse.
     if (actionType !== undefined && ps.treasurePlayed && ps.cardActionCount !== undefined) {
         const cardActions = (ps.actionsThisImpulse ?? []).slice(0, ps.cardActionCount);
         if (cardActions.includes(actionType)) {
@@ -540,12 +579,12 @@ const spend = (G: VQGame, p: Power, cost: number, actionType?: string): boolean 
  * (Diplomatic Influence and mercenaries).  Restricted CP is consumed before
  * ordinary CP, and is never available to any other action.
  */
-const spendInfluenceOrMerc = (G: VQGame, p: Power, cost: number): boolean => {
+const spendInfluenceOrMerc = (G: VQGame, p: Power, cost: number, action?: string): boolean => {
     const ps = G.powers[p];
     const restricted = Math.min(ps.jiltedCp ?? 0, cost);
     const normal = cost - restricted;
     if (ps.cp < normal) return false;
-    if (normal > 0 && !spend(G, p, normal)) return false;
+    if (normal > 0 && !spend(G, p, normal, action)) return false;
     if (restricted > 0) {
         ps.jiltedCp = (ps.jiltedCp ?? 0) - restricted;
         if (ps.jiltedCp === 0) delete ps.jiltedCp;
@@ -1922,12 +1961,23 @@ const resolveGermanRecruitment = (G: VQGame, p: Power, target?: string): void =>
     pushLog(G, `German Recruitment Curtailed removes ${removed.length > 0 ? removed.join("; ") : "no mercenaries"}.`);
 };
 
+/**
+ * Rule 12.4: the four unrest events (Homeland Uprising, Morisco Revolt,
+ * Puritans, Rising of the North) "specify that markers must be placed in
+ * unoccupied spaces; these are spaces that do not contain land or naval units
+ * (or leaders) of any power."
+ */
+export const spaceUnoccupied = (G: VQGame, space: string): boolean =>
+    totalLand(G, space, ownersWithLand(G, space)) === 0 &&
+    totalNaval(G, space, ownersWithNaval(G, space)) === 0 &&
+    G.spaces[space].leaders.length === 0;
+
 const resolveUnrestInRealm = (G: VQGame, target?: string): void => {
     if (target === undefined) return;
     const [targetPower, ...preferred] = target.split(":");
     if (!["ottoman", "hre", "spain"].includes(targetPower)) return;
     const eligible = SPACES.filter((space) => spaceHomes(space).includes(targetPower as never) && !G.spaces[space.id].unrest &&
-        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 &&
+        spaceUnoccupied(G, space.id) &&
         !(targetPower === "spain" && space.area === "netherlands"));
     const chosen = preferred.length > 0 ? eligible.filter((space) => preferred.includes(space.id)) : eligible;
     const homes = chosen.slice(0, 3);
@@ -1967,10 +2017,13 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         }
         return;
     }
-    // Printed text discards "a hand card", so Home cards are in the pool
-    // (discardCard sets them aside instead of putting them in the discard
-    // pile).  Only Mandatory Events are immune: they must be played that turn.
-    const cards = G.powers[targetPower].cards.filter((id) => cardById(id).officialKind !== "mandatory");
+    // Rule 6.1: "Home Cards can never be taken from a power's hand when a
+    // random draw is required (either by Event card play, diplomatic
+    // agreement, espionage or piracy)".  A random discard is such a draw, so
+    // only ordinary (non-Home) cards are in the pool here; #17 Army Mutiny is
+    // the one card whose printed text explicitly allows a Home card.
+    const cards = G.powers[targetPower].cards.filter((id) =>
+        cardById(id).kind !== "home" && cardById(id).officialKind !== "mandatory");
     if (cards.length === 0) return;
     const chosen = mode === "discard" && extra !== undefined && cards.includes(extra) ? extra : undefined;
     const card = chosen ?? cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
@@ -2566,7 +2619,7 @@ const resolvePuritans = (G: VQGame, ctx: Ctx, p: Power, target?: string): void =
         return;
     }
     const targets = SPACES.filter((space) => spaceHomes(space).includes("england") && !G.spaces[space.id].unrest &&
-        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0).slice(0, 3);
+        spaceUnoccupied(G, space.id)).slice(0, 3);
     for (const space of targets) G.spaces[space.id].unrest = true;
     pushLog(G, `Puritans place unrest in ${targets.length} English space(s).`);
 };
@@ -3004,7 +3057,7 @@ export const armadaTransport = (G: VQGame, ctx: Ctx, args: {port: string; direct
         port.land.spain = target;
         delete G.armada.land;
     }
-    if (!spend(G, "spain", 1)) return INVALID_MOVE;
+    if (!spend(G, "spain", 1, "armadaTransport")) return INVALID_MOVE;
     pushLog(G, `Spain uses Armada naval transport at ${SPACE_BY_ID[args.port].name}.`);
 };
 
@@ -3047,7 +3100,7 @@ export const unloadArmada = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
 export const upgradeArmada = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
     if (ctx.phase !== "action" || power(G, ctx) !== "spain" || G.armada === undefined || G.armada.strength >= 8 ||
         !["seville", "corunna", "lisbon"].includes(G.armada.location) || G.powers.spain.cp < 3) return INVALID_MOVE;
-    if (!spend(G, "spain", 3)) return INVALID_MOVE;
+    if (!spend(G, "spain", 3, "upgradeArmada")) return INVALID_MOVE;
     G.armada.strength = (G.armada.strength + 2) as 2 | 4 | 6 | 8;
     pushLog(G, `Spain upgrades the Armada to strength ${G.armada.strength}.`);
 };
@@ -3425,10 +3478,9 @@ export const playCard = (G: VQGame, ctx: Ctx, args: { cardId: string; asEvent?: 
     if (maryDead) removeCardFromGame(G, "vq-089");
     else if (elizabethDead) removeCardFromGame(G, "vq-036");
     else if (!cancelWindow) discardCard(G, p, args.cardId, args.asEvent === true);
-    // Rule 6.2: remember that this power played the card this turn so a later
-    // discard-pile retrieval cannot hand it straight back.
-    G.playedThisTurn = {...(G.playedThisTurn ?? {}),
-        [p]: [...(G.playedThisTurn?.[p] ?? []), args.cardId]};
+    // Rule 6.2: `discardCard` records this play when the card was used as an
+    // event, so a later discard-pile retrieval cannot hand it straight back.  A
+    // card played for CP is *not* restricted and stays retrievable.
     if (gregorianResponse === undefined) {
         ps.cardPlayed = true;
         ps.actionsThisImpulse = [];
@@ -3734,11 +3786,14 @@ export const declareWarMinor = (G: VQGame, ctx: Ctx, args: { target: MinorPower 
         G.minorInfluenceBlocked[p].includes(target)) {
         return INVALID_MOVE;
     }
-    if (!payWarCost(G, p, 2)) {
+    // Rule 9.4: the cost comes from the same Diplomatic Status Chart box as a
+    // major-power declaration; boxes reading "N/A" or "Possible Ally" forbid it.
+    const cost = minorWarCost(G, p, target);
+    if (cost === undefined || !payWarCost(G, p, cost)) {
         return INVALID_MOVE;
     }
     G.powers[p].warsMinors.push(target);
-    pushLog(G, `${powerLabel(p)} declares war on ${target}.`);
+    pushLog(G, `${powerLabel(p)} declares war on ${target} (${cost} CP).`);
     G.minorInfluenceBlocked[p].push(target);
     delete G.powers[p].influence[target];
     delete G.minorInfluenceDefaults[p][target];
@@ -4478,7 +4533,7 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         return INVALID_MOVE;
     }
     if (G.scenario === "tutorial" && p === "spain" && G.tutorialHreAlly === "spain" && spaceHomes(def).includes("hre")) {
-        if (s.control !== "hre" || s.unrest || s.siege || !["regular", "merc"].includes(args.kind) || !spend(G, p, args.kind === "regular" ? 2 : 1)) return INVALID_MOVE;
+        if (s.control !== "hre" || s.unrest || s.siege || !["regular", "merc"].includes(args.kind) || !spend(G, p, args.kind === "regular" ? 2 : 1, args.kind === "regular" ? "recruitRegular" : "recruitMerc")) return INVALID_MOVE;
         addLand(G, space, "hre", args.kind, 1);
         return;
     }
@@ -4491,7 +4546,7 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         const {MINOR_REGULAR_LIMITS} = require("./constant/general");
         if (landForceCountController(G, minor) >= (MINOR_REGULAR_LIMITS[minor] ?? 12)) return INVALID_MOVE;
-        if (!spend(G, p, 2)) return INVALID_MOVE;
+        if (!spend(G, p, 2, "recruitRegular")) return INVALID_MOVE;
         addLand(G, space, minor, "regular", 1);
         pushLog(G, `${powerLabel(p)} recruits 1 regular for ${controllerLabel(minor)} in ${def.name}.`);
         return;
@@ -4517,7 +4572,8 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     if (p === "spain" && ["oran", "malta"].includes(space)) return INVALID_MOVE;
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return INVALID_MOVE;
     const recruitCost = args.kind === "regular" ? 2 : 1;
-    const paid = args.kind === "merc" ? spendInfluenceOrMerc(G, p, recruitCost) : spend(G, p, recruitCost);
+    const action = "recruit" + args.kind[0].toUpperCase() + args.kind.slice(1);
+    const paid = args.kind === "merc" ? spendInfluenceOrMerc(G, p, recruitCost, action) : spend(G, p, recruitCost, action);
     if (!paid) {
         return INVALID_MOVE;
     }
@@ -4585,7 +4641,7 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     if (kind === "galleon" && !portZones(port).some((z) => z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {
         return INVALID_MOVE;
     }
-    if (!spend(G, p, cost[kind] ?? 2)) {
+    if (!spend(G, p, cost[kind] ?? 2, "build" + kind[0].toUpperCase() + kind.slice(1))) {
         return INVALID_MOVE;
     }
     // Rule 17.3: "If England is building a galleon in London on Turn 3 or
@@ -4625,7 +4681,7 @@ export const buildFortress = (G: VQGame, ctx: Ctx, args: { space: string }): voi
     if (def.kind !== "open" || s.fortress || ((!minorFortress && s.control !== p) || (minorFortress && s.control !== spaceHomes(def).find((h) => !isPower(h) && h !== "independent"))) || s.unrest || (!minorFortress && !spaceHomes(def).includes(p))) {
         return INVALID_MOVE;
     }
-    if (!spend(G, p, 2)) {
+    if (!spend(G, p, 2, "buildFortress")) {
         return INVALID_MOVE;
     }
     s.fortress = true;
@@ -4641,7 +4697,7 @@ export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower | Powe
     const target = args.target;
     if (isPower(target)) {
         const track = G.majorInfluence?.[target];
-        if (!track || track[p] === undefined || G.majorDiplomacyResolved?.includes(target) || target === p || (track[p] ?? 0) >= 9 || !spendInfluenceOrMerc(G, p, 1)) return INVALID_MOVE;
+        if (!track || track[p] === undefined || G.majorDiplomacyResolved?.includes(target) || target === p || (track[p] ?? 0) >= 9 || !spendInfluenceOrMerc(G, p, 1, "influence")) return INVALID_MOVE;
         track[p] = (track[p] ?? 0) + 1;
         return;
     }
@@ -4652,7 +4708,7 @@ export const influence = (G: VQGame, ctx: Ctx, args: { target: MinorPower | Powe
         return INVALID_MOVE;
     }
     const cur = G.powers[p].influence[target] ?? 0;
-    if (cur >= 9 || !spendInfluenceOrMerc(G, p, 1)) {
+    if (cur >= 9 || !spendInfluenceOrMerc(G, p, 1, "influence")) {
         return INVALID_MOVE;
     }
     G.powers[p].influence[target] = cur + 1;
@@ -4692,12 +4748,18 @@ export const englishCatholicRebellion = (G: VQGame, ctx: Ctx, args: {cp: number}
     return startEspionage(G, ctx, "rebellion", args);
 };
 
-export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; colony?: boolean}): void | typeof INVALID_MOVE => {
+export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; colony?: boolean; zone?: string}): void | typeof INVALID_MOVE => {
     if (moveError(G, "buildExpedition", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") return INVALID_MOVE;
     const p = power(G, ctx);
     const captain = seaCaptainById(args.captain);
-    const start = p === "ottoman" ? "indianOcean" : "northAtlantic";
+    // Rule 17.4: "English, French, Holy Roman or Protestant sea captain: Place
+    // the sea captain in the North Atlantic or Guinea Coast ocean zone on its
+    // Undamaged (front) side."  The Ottoman always enters at the Indian Ocean.
+    const allowedStarts = p === "ottoman" ? ["indianOcean"] : ["northAtlantic", "guineaCoast"];
+    const start = args.zone !== undefined && allowedStarts.includes(args.zone)
+        ? args.zone
+        : allowedStarts[0];
     const freeColonist = captain?.freeColonist === true;
     const freeScienceColony = G.powers[p].scienceBonuses.includes("plantation");
     const baseCost = captain?.expeditionCost ?? 1;
@@ -4714,7 +4776,7 @@ export const buildExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; col
         // sponsored as a scientist this turn."
         (args.captain === "leTestu" && G.patronizedThisTurn.includes("france:scientist")) ||
         (args.colony === true && (p === "hre" || (p === "ottoman" && !G.suezDone))) ||
-        G.worldCaptains[args.captain] !== undefined || !spend(G, p, cost)) return INVALID_MOVE;
+        G.worldCaptains[args.captain] !== undefined || !spend(G, p, cost, "buildExpedition")) return INVALID_MOVE;
     if (sharedCaptain) {
         G.seaCaptainsAvailable = G.seaCaptainsAvailable.filter((id) => id !== args.captain);
         G.powers[p].seaCaptains.push(args.captain);
@@ -4732,7 +4794,7 @@ export const moveExpedition = (G: VQGame, ctx: Ctx, args: {captain: string; zone
     const moveAlreadyPaid = Object.values(G.worldCaptains).some((candidate) => candidate.power === p && candidate.movedImpulse === G.impulse);
     if (expedition === undefined || expedition.power !== p || !WORLD_SEA_ZONE_BY_ID[args.zone] ||
         expedition.movedImpulse === G.impulse || !WORLD_SEA_ZONE_BY_ID[expedition.location].adjacent.includes(args.zone) ||
-        (!moveAlreadyPaid && !spend(G, p, 1))) return INVALID_MOVE;
+        (!moveAlreadyPaid && !spend(G, p, 1, "moveExpedition"))) return INVALID_MOVE;
     const againstTradeWind = WORLD_TRADE_WINDS.has(`${args.zone}|${expedition.location}`) &&
         !WORLD_TRADE_WINDS.has(`${expedition.location}|${args.zone}`);
     if ((WORLD_HAZARDS.has(`${expedition.location}|${args.zone}`) || againstTradeWind) &&
@@ -4751,7 +4813,7 @@ export const buildPatrol = (G: VQGame, ctx: Ctx, args: {zone: string}): void | t
     const connected = WORLD_SETTLEMENTS.some((settlement) => settlement.seaZone === args.zone &&
         (G.worldControls[settlement.id] === "spain" || G.worldColonies[settlement.id] === "spain"));
     if (!connected || G.powers.spain.cp < 2) return INVALID_MOVE;
-    if (!spend(G, "spain", 2)) return INVALID_MOVE;
+    if (!spend(G, "spain", 2, "buildPatrol")) return INVALID_MOVE;
     G.worldPatrols = {...(G.worldPatrols ?? {}), [args.zone]: (G.worldPatrols?.[args.zone] ?? 0) + 1};
     pushLog(G, `Spain builds a patrol in ${WORLD_SEA_ZONE_BY_ID[args.zone].nameEn}.`);
 };
@@ -4768,7 +4830,7 @@ export const buildWorldFortress = (G: VQGame, ctx: Ctx, args: {settlement: strin
     if (settlement === undefined || (G.worldFortresses?.[args.settlement] !== undefined) ||
         (G.worldControls[args.settlement] !== "spain" && G.worldColonies[args.settlement] !== "spain") ||
         builtThisTurn >= maxFortresses || G.powers.spain.cp < 2) return INVALID_MOVE;
-    if (!spend(G, "spain", 2)) return INVALID_MOVE;
+    if (!spend(G, "spain", 2, "buildWorldFortress")) return INVALID_MOVE;
     G.worldFortresses = {...(G.worldFortresses ?? {}), [args.settlement]: "spain"};
     G.worldFortressesBuilt = builtThisTurn + 1;
     pushLog(G, `Spain builds a fortress at ${settlement.nameEn}.`);
@@ -4801,7 +4863,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
             ? false
             : spanishSettlements.length === 0 && portugueseSettlements.length > 0;
     const settlements = targetIsPortugal ? portugueseSettlements : spanishSettlements;
-    if (settlements.length === 0 || !spend(G, p, 2)) return INVALID_MOVE;
+    if (settlements.length === 0 || !spend(G, p, 2, "worldPiracy")) return INVALID_MOVE;
     G.piracyActions = {...(G.piracyActions ?? {}), [p]: (G.piracyActions?.[p] ?? 0) + 1};
     G.piracyZones = {...(G.piracyZones ?? {}), [expedition.location]: [...(G.piracyZones?.[expedition.location] ?? []), p]};
     if (args.captain === "dragut") G.dragutFought = true;
@@ -4841,6 +4903,18 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
         }
     }
     const portugueseTreasureAvailable = targetIsPortugal && (G.portugueseTreasures?.length ?? 0) > 0;
+    // Rule 16.5: "If Spain rolled at least one die for the presence of a
+    // fortress connected to this ocean zone, the Spanish player chooses one
+    // treasure to withhold from the pool available to this random draw.  The
+    // active player may not be awarded a treasure if ... a Spanish fortress is
+    // connected to the ocean zone, and there is only 1 Spanish treasure left."
+    // The withheld treasure is Spain's choice, surfaced as a pre-paid index in
+    // `G.worldPiracyWithholds[target]`; without a choice Spain's lowest-value
+    // treasure is safeguarded (the most conservative reading of the rule).
+    const withholdIndex = (!targetIsPortugal && fortresses > 0 && G.worldPiracyWithholds?.["spain"] !== undefined)
+        ? G.worldPiracyWithholds["spain"] : 0;
+    const withholdSpanishTreasure = !targetIsPortugal && fortresses > 0
+        ? G.powers.spain.treasures[withholdIndex] : undefined;
     const capacity = expedition.damaged ? 1 : 2;
     // Track reward counts for even division.
     const rewardCounts: Record<string, number> = {patrol: 0, treasure: 0, vp: 0};
@@ -4850,7 +4924,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
         const options: string[] = [];
         if ((G.worldPatrols?.[expedition.location] ?? 0) > 0) options.push("patrol");
         if (portugueseTreasureAvailable && (G.portugueseTreasures?.length ?? 0) > 0) options.push("treasure");
-        else if (!targetIsPortugal && G.powers.spain.treasures.length > 0) options.push("treasure");
+        else if (!targetIsPortugal && G.powers.spain.treasures.some((value) => value !== withholdSpanishTreasure)) options.push("treasure");
         // VP always available as fallback.
         options.push("vp");
         // Pick the option with the fewest hits so far (even division).
@@ -4875,8 +4949,14 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
                 } else {
                     pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Portuguese treasure (no room).`);
                 }
-            } else if (!targetIsPortugal && G.powers.spain.treasures.length > 0) {
-                const treasure = G.powers.spain.treasures.pop()!;
+            } else if (!targetIsPortugal && G.powers.spain.treasures.some((value) => value !== withholdSpanishTreasure)) {
+                // Draw at random from the Spanish pool, skipping the treasure
+                // Spain withheld (rule 16.5 fortress clause).
+                const pool = G.powers.spain.treasures
+                    .map((value, index) => ({value, index}))
+                    .filter((entry) => entry.value !== withholdSpanishTreasure);
+                const pick = pool[Math.min(pool.length - 1, Math.max(0, die(ctx, pool.length) - 1))];
+                const [treasure] = G.powers.spain.treasures.splice(pick.index, 1);
                 if (expedition.treasureValues === undefined) expedition.treasureValues = [];
                 if (expedition.treasureValues.length < capacity) {
                     expedition.treasureValues.push(treasure);
@@ -4902,7 +4982,7 @@ export const settleColony = (G: VQGame, ctx: Ctx, args: {captain: string; settle
     const settlement = WORLD_SETTLEMENT_BY_ID[args.settlement];
     if (expedition === undefined || expedition.power !== p || !expedition.colony || settlement === undefined ||
         settlement.id === "philippines" || settlement.seaZone !== expedition.location || G.worldControls[settlement.id] !== undefined ||
-        !spend(G, p, 1)) return INVALID_MOVE;
+        !spend(G, p, 1, "settleColony")) return INVALID_MOVE;
     G.worldColonies[settlement.id] = p;
     G.worldControls[settlement.id] = p;
     expedition.colony = false;
@@ -5039,7 +5119,7 @@ export const fightForeignWar = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE
     if (ctx.phase !== "action") return INVALID_MOVE;
     const p = power(G, ctx);
     const war = G.foreignWars[p];
-    if ((p !== "ottoman" && p !== "hre") || war?.status !== "active" || landCount(war.units) === 0 || !spend(G, p, 1)) return INVALID_MOVE;
+    if ((p !== "ottoman" && p !== "hre") || war?.status !== "active" || landCount(war.units) === 0 || !spend(G, p, 1, "fightForeignWar")) return INVALID_MOVE;
     const majorUnits = landCount(war.units);
     const leaderDice = war.leaderId === undefined ? 0 : (LEADER_BY_ID[war.leaderId]?.battle ?? 0);
     const attackDice = majorUnits + leaderDice;
@@ -5066,7 +5146,7 @@ export const reinforceForeignWar = (
     const war = G.foreignWars[p];
     const cost = args.kind === "regular" ? 2 : 1;
     if ((p !== "ottoman" && p !== "hre") || war?.status !== "active" || landCount(war.units) >= 8 ||
-        (args.kind === "cav" && p !== "ottoman") || (args.kind === "merc" && p === "ottoman") || !spend(G, p, cost)) return INVALID_MOVE;
+        (args.kind === "cav" && p !== "ottoman") || (args.kind === "merc" && p === "ottoman") || !spend(G, p, cost, "reinforceForeignWar")) return INVALID_MOVE;
     war.units[args.kind] += 1;
     pushLog(G, `${powerLabel(p)} recruits 1 ${args.kind} directly into the ${war.enemy} war.`);
 };
@@ -5097,7 +5177,7 @@ export const patronize = (G: VQGame, ctx: Ctx, args: {patron?: string; cp: numbe
         return INVALID_MOVE;
     }
     const patronageKey = `${p}:${patron.kind}`;
-    if (!Number.isInteger(args.cp) || args.cp < 2 || args.cp > 4 || !spend(G, p, args.cp)) {
+    if (!Number.isInteger(args.cp) || args.cp < 2 || args.cp > 4 || !spend(G, p, args.cp, "patronize")) {
         return INVALID_MOVE;
     }
     G.pendingPatronage.push({power: p, patronId: patron.id, cp: args.cp});
@@ -5157,7 +5237,7 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
     const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
     if (landCount(stack) > capacity || G.powers[p].cp < transportCost) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "navalTransport", args)) return;
-    if (!spend(G, p, transportCost)) return INVALID_MOVE;
+    if (!spend(G, p, transportCost, "navalTransport")) return INVALID_MOVE;
     const target = ensureLand(G, args.to, p);
     for (const kind of ["regular", "merc", "cav"] as const) {source[kind] -= stack[kind]; target[kind] += stack[kind];}
     moveLeaders(G, args.from, args.to, leaders);
@@ -5210,15 +5290,25 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     if (p === "ottoman" && unitPower === "ottoman" && G.morisco?.space === from &&
         (landDistance("granada", to) ?? Number.POSITIVE_INFINITY) > 2) return INVALID_MOVE;
     const source = G.spaces[from].land[unitPower];
-    if (source === undefined || landCount(source) === 0) {
+    const availableLeaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === unitPower && LEADER_BY_ID[id]?.kind === "army");
+    const requestLeaders = args.leaders ?? availableLeaders;
+    // Rule 13.1: "One or more army leaders may move without accompanying land
+    // units as long as they don't enter a space controlled by an enemy power or
+    // containing enemy units."
+    const leadersOnly = (source === undefined || landCount(source) === 0) && requestLeaders.length > 0;
+    if (!leadersOnly && (source === undefined || landCount(source) === 0)) {
         return INVALID_MOVE;
     }
-    const stack: LandStack = args.units ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0} : {...source};
-    if (landCount(stack) === 0 || Object.entries(stack).some(([kind, count]) => !Number.isInteger(count) || count < 0 || count > source[kind as keyof LandStack])) return INVALID_MOVE;
-    const availableLeaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === unitPower && LEADER_BY_ID[id]?.kind === "army");
-    const leaders = args.leaders ?? availableLeaders;
+    const stack: LandStack = leadersOnly ? {regular: 0, merc: 0, cav: 0}
+        : args.units ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0} : {...source!};
+    if ((!leadersOnly && landCount(stack) === 0) || (source !== undefined &&
+        Object.entries(stack).some(([kind, count]) => !Number.isInteger(count) || count < 0 || count > source[kind as keyof LandStack]))) return INVALID_MOVE;
+    const leaders = requestLeaders;
     if (landMoveIssue(G, p, {from, to, units: stack, leaders}, unitPower)) return INVALID_MOVE;
     if (new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
+    // Rule 13.1: a lone leader may not enter a space containing enemy units
+    // (or controlled by an enemy power).
+    if (leadersOnly && ownersWithLand(G, to).some((owner) => !friendlyController(G, p, owner))) return INVALID_MOVE;
     // Rule 20.10: the Duke of Guise may not leave the French religious struggle area.
     if (leaders.includes("guise") && !inFrenchReligiousArea(to)) return INVALID_MOVE;
     if (G.scenario === "tutorial" && (leaders.length > 2 || landCount(stack) > Math.max(4, leaders.reduce((total, id) => total + (LEADER_BY_ID[id].command ?? 0), 0)))) return INVALID_MOVE;
@@ -5227,7 +5317,15 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     if (landCount(stack) > formationCapacity(leaders)) return INVALID_MOVE;
     if (G.lostBattleImpulse?.impulse === G.impulse && G.lostBattleImpulse.owners.includes(unitPower)) return INVALID_MOVE;
     if (spaceHasEnemyLand(G, p, from) && G.spaces[from].siege !== undefined && !besiegerOwners(G, from).includes(p)) {
-        // Units under siege may not move; the besieger may march away.
+        // Units under siege may not move out.
+        return INVALID_MOVE;
+    }
+    // Rule 13.1: "No army leader or unit may participate in a Move action if it
+    // occupies an enemy fortified space that their power placed under siege
+    // (Section 15) earlier in the impulse."  Marching the besiegers away in the
+    // same impulse they closed the siege is therefore illegal; they must wait
+    // for a later impulse.
+    if (G.spaces[from].siege?.by === p && G.spaces[from].siege.sinceImpulse >= G.impulse) {
         return INVALID_MOVE;
     }
     const dest = G.spaces[to];
@@ -5258,16 +5356,19 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     const otherUnits = ownersWithLand(G, to).filter((c) => !friendlyController(G, p, c));
     // Rule 13.1: a formation may only enter a space containing another power's
     // units when every one of those units is an enemy (at war).  A neutral
-    // power's stack may not be walked into.
-    const allEnemies = otherUnits.every((c) =>
+    // power's stack may not be walked into.  Exception: "Independent regulars
+    // in an independent key (Section 24.7) never prevent the entry of a
+    // formation", so an independent garrison is not a blocker.
+    const blockers = otherUnits.filter((c) => c !== "independent");
+    const allEnemies = blockers.every((c) =>
         isPower(c) ? atWar(G, p, c) : atWarWithMinor(G, p, c as MinorPower));
-    if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0 || !allEnemies)) {
+    if (!canEnter && (G.scenario === "tutorial" || blockers.length === 0 || !allEnemies)) {
         return INVALID_MOVE;
     }
     const cost = passBetween(from, to) ? 2 : 1;
     if (G.powers[p].cp < cost) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "moveLand", args)) return;
-    if (!spend(G, p, cost)) {
+    if (!spend(G, p, cost, "moveLand")) {
         return INVALID_MOVE;
     }
     // Interception is resolved before the active formation enters (13.2).
@@ -5276,10 +5377,12 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     tgt.regular += stack.regular;
     tgt.merc += stack.merc;
     tgt.cav += stack.cav;
-    source.regular -= stack.regular;
-    source.merc -= stack.merc;
-    source.cav -= stack.cav;
-    if (landCount(source) === 0) delete G.spaces[from].land[unitPower];
+    if (!leadersOnly) {
+        source!.regular -= stack.regular;
+        source!.merc -= stack.merc;
+        source!.cav -= stack.cav;
+        if (landCount(source!) === 0) delete G.spaces[from].land[unitPower];
+    }
     if (p === "ottoman" && unitPower === "ottoman" && G.morisco?.space === from &&
         landCount(G.spaces[from].land.ottoman) === 0) {
         G.morisco.space = to;
@@ -5289,6 +5392,16 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         G.spaces[from].leaders = G.spaces[from].leaders.filter((x) => x !== id);
         G.spaces[to].leaders.push(id);
         G.leaders[id].location = to;
+    }
+    // Rule 13.1: "If an army leader is ever alone in an unfortified space when
+    // enemy land units enter (due to enemy movement, retreat or interception),
+    // that leader is captured."  A lone leader is captured by the arriving
+    // enemy formation before any battle is fought.
+    if (!leadersOnly && !isFortifiedSpace(G, to)) {
+        const loneLeaders = G.spaces[to].leaders.filter((id) =>
+            LEADER_BY_ID[id]?.kind === "army" && !friendlyController(G, p, LEADER_BY_ID[id].power) &&
+            totalLand(G, to, [LEADER_BY_ID[id].power]) === 0);
+        if (loneLeaders.length > 0) captureLeaders(G, to, loneLeaders.map((id) => LEADER_BY_ID[id].power), p);
     }
     pushLog(G, `${powerLabel(p)} moves ${landCount(stack)} unit(s) from ${SPACE_BY_ID[from].name} to ${SPACE_BY_ID[to].name}.`);
     if (isRelief) {
@@ -5322,7 +5435,9 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
 
     if (offerInterception(G, ctx, "field", from, to, p, [unitPower])) return;
     // Rule 13.3: defenders may attempt to avoid battle before it is fought.
-    if (!intercepted && !friendlyControlled(G, p, to)) attemptLandAvoidBattle(G, ctx, p, to, from);
+    // An interception only bars the intercepting power's own units from
+    // avoiding, so allied co-defenders in the space still get their attempt.
+    if (!friendlyControlled(G, p, to)) attemptLandAvoidBattle(G, ctx, p, to, from);
     const hostile = ownersWithLand(G, to)
         .filter((c) => !friendlyController(G, p, c))
         .filter((c) => isPower(c) ? atWar(G, p, c) : true);
@@ -5451,7 +5566,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: NavalMoveOrder | {fleets: N
     if (!Array.isArray(fleets) || fleets.length === 0 || new Set(fleets.map((entry) => entry.from)).size !== fleets.length ||
         fleets.some(({from, to}) => moveError(G, "moveNaval", {from, to}) || !canMoveNavalTo(G, p, from, to))) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "moveNaval", args)) return;
-    if (!spend(G, p, 1)) return INVALID_MOVE;
+    if (!spend(G, p, 1, "moveNaval")) return INVALID_MOVE;
     const location = (id: string) => isSeaZone(id) ? G.seaZones[id as keyof VQGame["seaZones"]] : G.spaces[id];
     // Snapshot and remove every departing stack before adding arrivals. This
     // prevents a fleet from moving twice through another declared origin.
@@ -5581,7 +5696,7 @@ export const controlSpace = (G: VQGame, ctx: Ctx, args: { space: string }): void
         const adjacentOwn = LAND_NEIGHBORS[space].some((n) => !n.pass && ownersWithLand(G, n.id).some((c) => c === p && landCount(G.spaces[n.id].land[c]) > 0));
         const enemyAdjacent = LAND_NEIGHBORS[space].some((n) => !n.pass && spaceHasEnemyLand(G, p, n.id));
         if (!ownPresent && !(adjacentOwn && !enemyAdjacent)) return INVALID_MOVE;
-        if (!spend(G, p, 1)) {
+        if (!spend(G, p, 1, "controlSpace")) {
             return INVALID_MOVE;
         }
         s.unrest = false;
@@ -5592,7 +5707,7 @@ export const controlSpace = (G: VQGame, ctx: Ctx, args: { space: string }): void
     if (!check.ok) {
         return INVALID_MOVE;
     }
-    if (!spend(G, p, 1)) {
+    if (!spend(G, p, 1, "controlSpace")) {
         return INVALID_MOVE;
     }
     s.control = p;
@@ -5630,7 +5745,7 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (!navalBlockadeSatisfied(G, p, args.space)) return INVALID_MOVE;
     if (G.powers[p].cp < 1) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "assault", args)) return;
-    if (!spend(G, p, 1)) {
+    if (!spend(G, p, 1, "assault")) {
         return INVALID_MOVE;
     }
     if (G.scenario === "tutorial") {
@@ -5771,7 +5886,7 @@ export const preach = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void 
     }
     const p = power(G, ctx);
     const side = allowedPreach(p, args.area);
-    if (side === undefined || religionCandidates(G, side, args.area).length === 0 || !spend(G, p, 2)) {
+    if (side === undefined || religionCandidates(G, side, args.area).length === 0 || !spend(G, p, 2, "preach")) {
         return INVALID_MOVE;
     }
     pushLog(G, `${powerLabel(p)} preaches a sermon in ${args.area}.`);
@@ -5792,7 +5907,7 @@ export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): voi
     } else if (p === "france" && (args.area === "france" || args.area === "scotland")) {
         side = "catholic";
     }
-    if (side === undefined || religionCandidates(G, side, args.area).length === 0 || !spend(G, p, 2)) {
+    if (side === undefined || religionCandidates(G, side, args.area).length === 0 || !spend(G, p, 2, "suppress")) {
         return INVALID_MOVE;
     }
     pushLog(G, `${powerLabel(p)} suppresses heresy in ${args.area}.`);
@@ -5813,7 +5928,7 @@ export const rebellion = (G: VQGame, ctx: Ctx, args: { space: string; cp: number
     if (!rebellionTargets(G).includes(args.space)) {
         return INVALID_MOVE;
     }
-    if (!spend(G, p, cp)) {
+    if (!spend(G, p, cp, "rebellion")) {
         return INVALID_MOVE;
     }
     resolveRebellion(G, ctx, p, args.space, cp);
@@ -5851,19 +5966,19 @@ export const piracy = (G: VQGame, ctx: Ctx, args: { zone: string; target: Power 
     }
     // Rule 16.4: Spain may not initiate piracy in a sea zone occupied by the Armada.
     if (p === "spain" && G.armada?.location === zone) return INVALID_MOVE;
-    if (G.scenario !== "tutorial") {
-        const used = G.piracyUsed?.[p] ?? [];
-        const zoneUsers = Object.values(G.piracyUsed ?? {}).filter((zones) => zones?.includes(zone)).length;
-        if (used.includes(zone) || used.length >= 3 || zoneUsers >= 2 || G.powers[p].cp < 2) return INVALID_MOVE;
-        if (offerActionResponse(G, ctx, "piracy", args)) return;
-        if (!spend(G, p, 2)) return INVALID_MOVE;
-        G.piracyActions = {...(G.piracyActions ?? {}), [p]: (G.piracyActions?.[p] ?? 0) + 1};
-        G.piracyZones = {...(G.piracyZones ?? {}), [zone]: [...(G.piracyZones?.[zone] ?? []), p]};
-        // #11 Dragut Falls may be played after a piracy action involving Dragut.
-        if (G.seaZones[zone].leaders.includes("dragut") && leaderPower(G, "dragut") === p) G.dragutFought = true;
-        startPiracy(G, ctx, p, args.target, zone);
-        return;
-    }
+    // The tutorial scenario changes only the VP award (Scenario Book p. 5), not
+    // the procedure, so both scenarios share the printed 2 CP action.  The
+    // tutorial-specific award choice lives in `piracyOptions`.
+    const used = G.piracyUsed?.[p] ?? [];
+    const zoneUsers = Object.values(G.piracyUsed ?? {}).filter((zones) => zones?.includes(zone)).length;
+    if (used.includes(zone) || used.length >= 3 || zoneUsers >= 2 || G.powers[p].cp < 2) return INVALID_MOVE;
+    if (offerActionResponse(G, ctx, "piracy", args)) return;
+    if (!spend(G, p, 2, "piracy")) return INVALID_MOVE;
+    G.piracyActions = {...(G.piracyActions ?? {}), [p]: (G.piracyActions?.[p] ?? 0) + 1};
+    G.piracyZones = {...(G.piracyZones ?? {}), [zone]: [...(G.piracyZones?.[zone] ?? []), p]};
+    // #11 Dragut Falls may be played after a piracy action involving Dragut.
+    if (G.seaZones[zone].leaders.includes("dragut") && leaderPower(G, "dragut") === p) G.dragutFought = true;
+    startPiracy(G, ctx, p, args.target, zone);
 };
 
 // --------------------------------------------------------------------------

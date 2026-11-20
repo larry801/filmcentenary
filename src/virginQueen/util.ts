@@ -542,6 +542,14 @@ export const removeCardFromGame = (G: VQGame, cardId: string): void => {
 
 export const discardCard = (G: VQGame, p: Power, cardId: string, asEvent: boolean): void => {
     const def = cardById(cardId);
+    // Rule 6.2: "A power may never retrieve a card from the discard pile that
+    // this same power played as an Event, Response or Combat card earlier in the
+    // turn."  Record every event-side play here so retrieval restrictions hold
+    // for Combat cards, Responses and events alike.
+    if (asEvent) {
+        G.playedThisTurn = {...(G.playedThisTurn ?? {}),
+            [p]: [...(G.playedThisTurn?.[p] ?? []), cardId]};
+    }
     // Rule 20.10: Grand Tour (#53) leaves play if played after the League formed.
     if (cardId === "vq-053" && G.catholicLeagueFormed === true) {
         removeCardFromGame(G, cardId);
@@ -1186,20 +1194,51 @@ export const clearWar = (G: VQGame, a: Power, b: Power): void => {
     if (G.morisco !== undefined && !atWar(G, "ottoman", "spain")) clearMorisco(G);
 };
 
+/**
+ * Major-power DOW costs, transcribed from the printed Diplomatic Status Chart
+ * on the PAC3 card (cross-referencing the two powers).  The England-Spain box
+ * reads "See Notes" because rule 9.5 gives it a variable cost; `warCost` handles
+ * that pair separately.
+ */
 const WAR_COST: Record<string, number> = {
     "england-france": 3,
-    "england-spain": 5,
-    "france-hre": 2,
-    "france-ottoman": 3,
+    "england-hre": 3,
+    "england-ottoman": 2,
+    "england-protestant": 4,
+    "france-hre": 3,
+    "france-ottoman": 2,
     "france-protestant": 1,
-    "france-spain": 2,
+    "france-spain": 3,
     "hre-ottoman": 2,
-    "hre-protestant": 3,
-    "hre-spain": 1,
-    "ottoman-protestant": 3,
+    "hre-protestant": 2,
+    "hre-spain": 4,
+    "ottoman-protestant": 2,
     "ottoman-spain": 2,
-    "protestant-spain": 2,
+    "protestant-spain": 1,
 };
+
+/**
+ * DOW cost against each minor power, straight from the same printed chart.
+ * `undefined` means the chart shows "N/A" or "Possible Ally": the errata's
+ * chart key says a Possible Ally may be influenced diplomatically but "may not
+ * declare war", so both entries forbid a declaration.  The Ottoman's Papacy
+ * box reads "Tutorial only via OTTOMAN TRIBUTE", which is not a Diplomacy-phase
+ * declaration either.
+ */
+const MINOR_WAR_COST: Record<Power, Partial<Record<MinorPower, number>>> = {
+    ottoman: {portugal: 1, venice: 1},
+    spain: {portugal: 2},
+    england: {ireland: 1},
+    france: {portugal: 2},
+    hre: {},
+    protestant: {},
+};
+
+/** Printed DOW cost against a minor, or undefined when the chart forbids it. */
+export const minorWarCost = (G: VQGame, p: Power, minor: MinorPower): number | undefined =>
+    G.scenario === "tutorial" && p === "ottoman" && minor === "papacy"
+        ? undefined
+        : MINOR_WAR_COST[p]?.[minor];
 
 export const warCost = (G: VQGame, a: Power, b: Power): number => {
     if ((a === "england" && b === "spain") || (a === "spain" && b === "england")) {
@@ -1700,6 +1739,10 @@ export const friendlyControlled = (G: VQGame, p: Power, space: string): boolean 
 /** Land counters (regular/mercenary are two sides of the same physical counter). */
 export const recordNavalLoss = (G: VQGame, owner: Controller, kind: keyof NavalStack, count = 1): void => {
     if (!isPower(owner)) return;
+    // Rule 17.3 / Dry Dock science bonus: "Those units immediately return to
+    // the power's force pool when eliminated", so they must not be counted as
+    // pending rebuilds against the counter limit.
+    if (G.powers[owner].scienceBonuses.includes("dryDock")) return;
     G.navalLost ??= {};
     const stack = G.navalLost[owner] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
     stack[kind] += count;
@@ -3275,7 +3318,10 @@ export const reliefBattle = (
     // A siege without an explicit `inside` list treats non-besiegers at war
     // with a besieger as inside (the pre-existing besiegeRouen setup).
     const inside = siege.inside !== undefined ? new Set<Controller>(siege.inside) : undefined;
-    const attackers = ownersWithLand(G, space).filter((c) => friendlyController(G, p, c) && !besiegers.includes(c as Power));
+    // Rule 15.2: "units and army leaders inside the fortification that are
+    // controlled by the same major power as the relief force may participate in
+    // the field battle" — allied stacks do not add dice on the relief side.
+    const attackers = ownersWithLand(G, space).filter((c) => c === p);
     const defenders = ownersWithLand(G, space).filter((c) => besiegers.includes(c as Power) || !friendlyController(G, p, c));
     const attackerUnits = totalLand(G, space, attackers);
     const defenderUnits = totalLand(G, space, defenders);
@@ -3378,6 +3424,10 @@ export const attemptLandAvoidBattle = (
         if (siege !== undefined && (siege.inside === undefined || siege.inside.includes(owner))) continue;
         const stack = G.spaces[space].land[owner];
         if (stack === undefined || landCount(stack) === 0) continue;
+        // Rule 13.3: "Units of a power may not avoid battle if any units of
+        // that power intercepted into the battle space during this Move
+        // action."  Other defending powers in the same space still may.
+        if (G.interceptedByThisMove?.[space] === owner) continue;
         // A minor power's units use their allied major power for friendliness
         // and science checks, since `G.powers` has no minor entry.
         const major = isPower(owner) ? owner : minorAlly(G, owner as MinorPower);
@@ -3435,7 +3485,12 @@ export const attemptLandInterception = (
     from: string,
     to: string,
 ): boolean => {
-    if (G.scenario === "tutorial" || friendlyControlled(G, active, to)) return false;
+    // Rule 13.2: "Formations moving into a friendly fortified space that is not
+    // under siege may not be intercepted."  Any other destination — including a
+    // friendly unfortified space holding only the mover's own units — remains
+    // open to interception.
+    if (G.scenario === "tutorial") return false;
+    if (friendlyControlled(G, active, to) && isFortifiedSpace(G, to) && G.spaces[to].siege === undefined) return false;
     const destinationOwners = ownersWithLand(G, to);
     if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
     const used = G.interceptedThisImpulse.spaces;
@@ -3493,6 +3548,9 @@ export const attemptLandInterception = (
         cleanupLand(G, candidate.space, candidate.power);
         moveLeaders(G, candidate.space, to, leaders);
         pushLog(G, `${powerLabel(candidate.power)} intercepts the move into ${SPACE_BY_ID[to].name}.`);
+        // Rule 13.3: a power whose units intercepted into this space may not
+        // avoid battle; other defending powers in the space still may.
+        G.interceptedByThisMove = {...(G.interceptedByThisMove ?? {}), [to]: candidate.power};
         return true;
     }
     return false;
@@ -6088,7 +6146,10 @@ export const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string, sel
     if (!landNeighbors(from).some((n) => n.id === to)) return false;
     const unitPowers = (Object.keys(src.land) as Controller[])
         .filter((owner) => (selectedOwner === undefined || selectedOwner === owner) && friendlyController(G, p, owner) && landCount(src.land[owner]) > 0);
-    if (unitPowers.length === 0) return false;
+    // Rule 13.1: one or more army leaders may also move without land units.
+    const leaderOnly = src.leaders.some((id) => LEADER_BY_ID[id]?.kind === "army" &&
+        friendlyController(G, p, LEADER_BY_ID[id].power));
+    if (unitPowers.length === 0 && !leaderOnly) return false;
     const defTo = SPACE_BY_ID[to];
     const spainIberianPenalty = p === "spain" && defTo !== undefined &&
         (spaceHomes(defTo).includes("ireland") || spaceHomes(defTo).includes("scotland")) &&
@@ -6096,25 +6157,32 @@ export const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string, sel
     if (spainIberianPenalty) return false;
     const cost = passBetween(from, to) ? 2 : 1;
     if (G.powers[p].cp < cost) return false;
-    return unitPowers.some((unitPower) => {
+    const destinationChecks = (unitPower: Controller): boolean => {
         // Rule 23.1: Morisco units may never move more than 2 spaces from Granada.
         if (p === "ottoman" && unitPower === "ottoman" && G.morisco?.space === from &&
             (landDistance("granada", to) ?? Number.POSITIVE_INFINITY) > 2) return false;
         if (G.lostBattleImpulse?.impulse === G.impulse && G.lostBattleImpulse.owners.includes(unitPower)) return false;
-        // Units inside a besieged fortress may not march out; the besieger may.
+        // Units inside a besieged fortress may not march out; nor may the
+        // besiegers leave in the impulse they closed the siege (rule 13.1).
         if (spaceHasEnemyLand(G, p, from) && src.siege !== undefined && !besiegerOwners(G, from).includes(p)) return false;
+        if (src.siege?.by === p && src.siege.sinceImpulse >= G.impulse) return false;
         const declaresWar = (p === "england" && defTo?.area === "netherlands" && dst.control === "spain") ||
             (p === "spain" && dst.control === "england" && spaceHomes(defTo).some((home) => home === "ireland" || home === "scotland"));
         const canEnter = declaresWar || friendlyControlled(G, p, to) || dst.control === "independent" ||
             (isPower(dst.control) ? atWar(G, p, dst.control) : atWarWithMinor(G, p, dst.control as MinorPower));
-        const otherUnits = ownersWithLand(G, to).filter((owner) => !friendlyController(G, p, owner));
+        // Rule 13.1: independent regulars in an independent key never prevent
+        // the entry of a formation, so they are not blockers.
+        const otherUnits = ownersWithLand(G, to).filter((owner) => !friendlyController(G, p, owner) && owner !== "independent");
         // Rule 13.1: entering a space holding another power's units requires
         // every one of those units to be an enemy (at war).
         const allEnemies = otherUnits.every((owner) =>
             isPower(owner) ? atWar(G, p, owner) : atWarWithMinor(G, p, owner as MinorPower));
         if (!canEnter && (G.scenario === "tutorial" || otherUnits.length === 0 || !allEnemies)) return false;
         return true;
-    });
+    };
+    if (unitPowers.length > 0) return unitPowers.some(destinationChecks);
+    // A leader-only move uses its own power for the destination checks.
+    return destinationChecks(selectedOwner ?? p);
 };
 
 /** Rule 16.1 naval movement: mirrors the destination checks in `moveNaval`. */

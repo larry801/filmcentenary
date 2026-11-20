@@ -88,11 +88,13 @@ const inspect = (G: VQGame, viewer: Power, target: Power): void => {
     pushLog(G, `${viewer} secretly inspects ${target}'s hand.`);
 };
 
-/** Random losses use the larger pool; treasures win ties (6.3). Home cards cannot be lost. */
+/** Random losses use the larger pool; treasures win ties (6.3). Home cards cannot be lost (6.1). */
 const randomDiscard = (G: VQGame, ctx: Ctx, p: Power, allowTreasure: boolean): void => {
     const cards = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
     const treasures = G.powers[p].treasures;
-    const kind = allowTreasure && treasures.length > 0 && treasures.length >= G.powers[p].cards.length ? "treasure" : "card";
+    // Rule 6.3: compare treasures against the random-draw pool (Home cards are
+    // immune per 6.1), matching `drawRandomMixedFromHand`.
+    const kind = allowTreasure && treasures.length > 0 && treasures.length >= cards.length ? "treasure" : "card";
     if (kind === "treasure") {
         const index = shuffle(ctx, treasures.map((_, i) => i))[0];
         treasures.splice(index, 1);
