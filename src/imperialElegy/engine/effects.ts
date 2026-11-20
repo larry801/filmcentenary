@@ -3,6 +3,7 @@ import {
   CardId,
   ImperialElegyState,
   PendingDecision,
+  PendingOption,
   Power,
   POWERS,
   PowerOrMinor,
@@ -42,6 +43,7 @@ import {
   minorHasLoc,
   minorUpkeepPower,
   PAPAL_STATES_SPACE,
+  efDestinationAllowed,
   isArmyKind,
   isPower,
   landUnitsIn,
@@ -62,7 +64,7 @@ import {
 import {POLAND, isPolandIndependent, polishController, polishHasLoc, polishReserveIds} from "./poland";
 import {closeDecision, decision, openDecision, option} from "./pending";
 import {gwExhaustionTurnZero, removesAfterPlay} from "./playability";
-import {minorAllianceProblem} from "./foreignAffairs";
+import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs";
 import {BALKAN_MINORS} from "./crisisTable";
 import {facedownGwCombatCards, flipGwCombatCardFaceup} from "./combatCards";
 import {GOALS_BY_ID} from "../constant/goals";
@@ -91,7 +93,8 @@ import {checkGermanUnification, checkItalianUnification} from "./victory";
 import {noteGwUnitEliminated} from "./gwMajors";
 import {ALLIANCE_TRACK, allianceMembers, canJoinAlliance, shiftAlliance, sideOfAllianceBox, stepAllianceBox, type AllianceShiftResult} from "./alliance";
 import {initialNonPlayerBuildBox} from "./endPhase";
-import {nonPlayerCounterKindFor, nonPlayerHasCounterFor} from "./counters";
+import {hasCounterFor, nonPlayerCounterKindFor, nonPlayerHasCounterFor} from "./counters";
+import {attemptPacification, pacificationProblem} from "./pacification";
 import {
   AU_NATIONALITIES,
   auCitizenshipBlocked,
@@ -2730,11 +2733,67 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return false;
     }
     case "divideAndConquer": {
-      const choices = [
-        {id: "pacify", label: "Add 2 to a pacification value and roll", labelZh: "绥靖值 +2 并掷骰"},
-        {id: "rebel", label: "Eliminate a rebel army, place an EF and pacify", labelZh: "消灭 1 支叛军，放置 1 支远征军并绥靖"},
-      ];
-      openDecision(G, ctx, decision("eventChoice", actor, "Choose an option", choices.map((c) => option(c.id, c.label, undefined, false, c.labelZh)), {resume, special: handler}));
+      // Printed: "Add two to the pacification value in a space. Roll to pacify
+      // that space. OR eliminate a rebel army in a space you control or
+      // influence, then you may place an EF in (or move an existing EF to) the
+      // chosen space and immediately make a pacification attempt."
+      //
+      // The space itself was never chosen: the old handler added 2 to the
+      // first legal space and removed the first rebel on the board.  Every
+      // printed target is now an option, with the same 12.11 legality the
+      // pacification action uses (own land unit, own influence, no rebel) and
+      // the errata's Egyptian special (independent Egypt plus a diplomacy
+      // marker).
+      const options: PendingOption[] = [];
+      for (const id of Object.keys(G.spaces).sort() as SpaceId[]) {
+        if (pacificationProblem(G, actor, id) !== null) continue;
+        options.push(option(
+          `pacify:${id}`,
+          `Add 2 to the pacification value in ${spaceLabel(id, "en")} and roll`,
+          {space: id},
+          false,
+          `在${spaceLabel(id, "zh_CN")}增加 2 点绥靖值并掷骰`,
+        ));
+      }
+      for (const id of Object.keys(G.spaces).sort() as SpaceId[]) {
+        const state = G.spaces[id];
+        if (!state) continue;
+        if (state.influence !== actor && !controlledBy(G, id, actor)) continue;
+        if (!landUnitsIn(G, id).some((unit) => unit.kind === "rebelArmy")) continue;
+        options.push(option(
+          `rebel:${id}`,
+          `Eliminate the rebel army in ${spaceLabel(id, "en")} and pacify`,
+          {space: id},
+          false,
+          `消灭${spaceLabel(id, "zh_CN")}的叛军并绥靖`,
+        ));
+      }
+      const egypt = G.spaces.egypt;
+      if (
+        egypt &&
+        egypt.control === "Egypt" &&
+        egypt.diplomacy === actor &&
+        !isPower(egypt.ally)
+      ) {
+        options.push(option(
+          "egypt",
+          "Eliminate the Egyptian army; all Egyptian spaces revert to Ottoman control",
+          undefined,
+          false,
+          "消灭埃及军队；所有埃及空间回归奥斯曼控制",
+        ));
+      }
+      if (options.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        return true;
+      }
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        actor,
+        "Divide and Conquer: choose a space",
+        options,
+        {resume, special: handler, stage: "mode"},
+      ));
       return false;
     }
     case "foreignInvestment": {
@@ -2963,7 +3022,24 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return openRebellionsInChinaPlacement(G, ctx, resume, actor, actor, "place");
     }
     case "greatGame": {
-      const targets = ["qajar-persia", "kuwait", "balochistan", "central-asia", "afghanistan"].filter((id) => G.spaces[id]);
+      // Errata: "Place an influence marker and an EF … If you already have an
+      // influence marker, just place the EF.  You must follow normal placement
+      // restrictions.  Then immediately make a pacification roll."
+      const targets = ["qajar-persia", "kuwait", "balochistan", "central-asia", "afghanistan"]
+        .filter((id) => {
+          if (!G.spaces[id]) return false;
+          if (!hasCounterFor(G, actor, "expeditionary")) return false;
+          const influence = G.spaces[id].influence ?? null;
+          // The card places the influence marker first, then the EF, so the
+          // destination only has to be EF-friendly *after* that placement.
+          if (influence === actor) return efDestinationAllowed(G, id as SpaceId, actor);
+          if (influence !== null) return false;
+          return influencePlacementProblem(G, actor, id as SpaceId) === null;
+        });
+      if (targets.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        return true;
+      }
       return openSpecialSpace(G, ctx, actor, handler, targets, "Choose a space for influence and an EF", resume, "选择一个空间以放置影响与远征军");
     }
     case "uprisingInIreland": {
@@ -4256,6 +4332,80 @@ export const resolveCardDecision = (
     return;
   }
   const data: EffectContext = {...context, choice: optionId, targetSpace: optData.space as SpaceId | undefined, targetPower: optData.power as Power | undefined};
+  if (special === "divideAndConquer") {
+    // A25 is resolved entirely from the option ids (`pacify:<space>`,
+    // `rebel:<space>`, `egypt`, then the EF choice), so the printed card no
+    // longer silently picks the first legal space or removes a rebel anywhere.
+    const stage = String(context.stage ?? "mode");
+    const chosenSpace = (optData.space as SpaceId | undefined) ?? (context.space as SpaceId | undefined);
+    if (stage === "ef" && chosenSpace !== undefined) {
+      if (optionId === "new") {
+        if (hasCounterFor(G, actor, "expeditionary") && efDestinationAllowed(G, chosenSpace, actor)) {
+          placeUnit(G, actor, "expeditionary", chosenSpace, 1);
+        }
+      } else if (optionId.startsWith("move:")) {
+        const unitId = optionId.slice("move:".length);
+        const unit = G.units[unitId];
+        if (unit && unit.kind === "expeditionary" && unit.owner === actor) {
+          if (unit.space) G.spaces[unit.space].units = G.spaces[unit.space].units.filter((id) => id !== unitId);
+          unit.space = chosenSpace;
+          if (!G.spaces[chosenSpace].units.includes(unitId)) G.spaces[chosenSpace].units.push(unitId);
+        }
+      }
+      G.spaces[chosenSpace].pacification = G.spaces[chosenSpace].pacification ?? 0;
+      attemptPacification(G, ctx, actor, chosenSpace, 0);
+      log(G, actor, "divideAndConquer", {mode: "rebel", space: chosenSpace});
+      closeDecision(G, ctx);
+      resumeEffects(G, ctx, pending, data);
+      return;
+    }
+    if (stage === "mode") {
+      if (optionId === "egypt") {
+        for (const id of EGYPTIAN_SPACES) {
+          for (const unit of landUnitsIn(G, id)) if (unit.owner === "Egypt") removeUnit(G, unit.id);
+          setSpaceControl(G, id, "OT", {clearInfluence: true, clearDiplomacy: true});
+        }
+        log(G, actor, "divideAndConquer", {mode: "egypt"});
+        closeDecision(G, ctx);
+        resumeEffects(G, ctx, pending, data);
+        return;
+      }
+      const separator = optionId.indexOf(":");
+      const space = (optData.space as SpaceId | undefined) ??
+        (separator >= 0 ? optionId.slice(separator + 1) as SpaceId : undefined);
+      if (space !== undefined && optionId.startsWith("pacify:")) {
+        applyPacification(G, space, 2);
+        attemptPacification(G, ctx, actor, space, 0);
+        log(G, actor, "divideAndConquer", {mode: "pacify", space});
+        closeDecision(G, ctx);
+        resumeEffects(G, ctx, pending, data);
+        return;
+      }
+      if (space !== undefined && optionId.startsWith("rebel:")) {
+        const rebel = landUnitsIn(G, space).find((unit) => unit.kind === "rebelArmy");
+        if (rebel) removeUnit(G, rebel.id);
+        const efOptions: PendingOption[] = [];
+        if (hasCounterFor(G, actor, "expeditionary") && efDestinationAllowed(G, space, actor)) {
+          efOptions.push(option("new", "Place a new EF here", {space}, false, "在此放置 1 支新远征军"));
+        }
+        for (const unit of unitsOfPower(G, actor).filter((u) => u.kind === "expeditionary")) {
+          const from = unit.space ? spaceLabel(unit.space, "en") : "the reserve box";
+          const fromZh = unit.space ? spaceLabel(unit.space, "zh_CN") : "预备箱";
+          efOptions.push(option(`move:${unit.id}`, `Move the EF from ${from} here`, {space}, false, `将${fromZh}的远征军移到这里`));
+        }
+        efOptions.push(option("none", "Do not place or move an EF", {space}, false, "不放置或移动远征军"));
+        closeDecision(G, ctx);
+        openDecision(G, ctx, decision(
+          "eventChoice",
+          actor,
+          "Divide and Conquer: place or move an EF, then pacify",
+          efOptions,
+          {resume: context.resume, special, stage: "ef", space},
+        ));
+        return;
+      }
+    }
+  }
   if (pending.kind === "eventTargetSpace") {
     const space = optionId;
     data.targetSpace = space;
@@ -4295,9 +4445,11 @@ export const resolveCardDecision = (
       gainMinorAlliance(G, actor, space);
     } else if (special === "greatGame") {
       if (!rejectIndependentIndiaMarker(G, actor, space, "influence")) {
-        G.spaces[space].influence = actor;
+        if (G.spaces[space].influence !== actor) G.spaces[space].influence = actor;
+        G.spaces[space].pacification = G.spaces[space].pacification ?? 0;
         placeUnit(G, actor, "expeditionary", space, 1);
-        applyPacification(G, space, 1);
+        // "Then immediately make a pacification roll in the chosen space."
+        attemptPacification(G, ctx, actor, space, 0);
       }
     } else if (special === "frenchIntervention") {
       if (!rejectIndependentIndiaMarker(G, "FR", space, "influence")) {

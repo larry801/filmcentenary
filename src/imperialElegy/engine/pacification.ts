@@ -26,10 +26,11 @@
  * `components/actionAvailability.ts`, so a disabled row and a refused move can
  * never disagree again.
  */
+import type {Ctx} from "boardgame.io";
 import type {ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, isNavalBox} from "../constant/spaces";
-import {isIndependentIndia} from "./characteristics";
-import {isArmyKind, isPower, landUnitsIn} from "./rules";
+import {isIndependentIndia, pacificationModifier} from "./characteristics";
+import {die, isArmyKind, isPower, landUnitsIn, log, navalUnitsIn, setSpaceControl} from "./rules";
 
 /** Why 12.11's pacification action cannot be taken here, or null when it can. */
 export type PacificationProblem =
@@ -172,3 +173,40 @@ export const removeOrphanedPacificationMarkers = (G: ImperialElegyState): number
  */
 export const pacificationEntryValue = (space: SpaceId): number =>
   SPACES[space]?.type === "navalBase" ? 2 : 0;
+
+/** True when `power` has a naval unit in a box adjacent to `space` (12.11's +1). */
+const hasAdjacentNaval = (G: ImperialElegyState, power: Power, space: SpaceId): boolean =>
+  (SPACES[space]?.ports ?? []).some((box) => navalUnitsIn(G, box).some((unit) => unit.owner === power));
+
+/**
+ * 12.11's printed two-dice pacification roll, shared by the normal action
+ * (`moves.ts#pacify`) and card effects such as A25 Divide and Conquer.
+ *
+ * The caller is responsible for the printed modifiers that happen before the
+ * roll (A25 adds 2 to the marker value first); this helper only adds the
+ * marker's value, the adjacent-naval +1 and the national-characteristic DRMs,
+ * then applies the success (control) or failure (marker +1) result.
+ */
+export const attemptPacification = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  power: Power,
+  space: SpaceId,
+  cost = 0,
+): void => {
+  const state = G.spaces[space];
+  if (!state) return;
+  const value = state.pacification ?? 0;
+  const modifier = pacificationModifier(G, power, space);
+  const roll =
+    die(ctx, 6) + die(ctx, 6) + value + (hasAdjacentNaval(G, power, space) ? 1 : 0) + modifier.drm;
+  notePacificationAttempt(G, power, space);
+  if (roll >= 10) {
+    setSpaceControl(G, space, power, {clearInfluence: true});
+    state.pacification = 0;
+    log(G, power, "pacified", {space, roll, cost});
+  } else {
+    state.pacification = value + 1;
+    log(G, power, "pacificationFailed", {space, roll, cost});
+  }
+};

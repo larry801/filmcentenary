@@ -246,6 +246,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   saveCard: {key: "saveCard", power: "GE", args: {card: CARD_ID, saved: true}},
   mpitPlaced: {key: "mpitPlaced", power: "GE", args: {target: "FR", track: "te"}},
   mpitInfluenceAllocated: {key: "mpitInfluenceAllocated", power: "GE", args: {target: "OT", track: "neutral", remaining: 2}},
+  divideAndConquer: {key: "divideAndConquer", power: "GE", args: {mode: "pacify", space: "saxony"}},
   modernizationOffered: {key: "modernizationOffered", power: "UK", args: {card: CARD_ID, cp: 2}},
   modernizationAccepted: {key: "modernizationAccepted", power: "OT", args: {card: CARD_ID, from: "UK"}},
   modernizationNoOffer: {key: "modernizationNoOffer", power: "OT", args: {cp: 3}},

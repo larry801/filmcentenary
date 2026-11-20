@@ -1,5 +1,63 @@
 # Imperial Elegy — implementation status
 
+## Fixed: A25 Divide and Conquer and A37 The Great Game settled the wrong spaces and never rolled (2026-11-21)
+
+Found during the local-hotseat rules audit and reproduced through the real
+`playCard` / `resolvePending` path; the same audit ran a local `/localIE`
+session to check the live board.  These are card-text/rules inconsistencies,
+not display bugs: the cards were resolving to a deterministic default that the
+printed text does not allow.
+
+### A25 Divide and Conquer
+
+The printed card offers three things: *"Add two to the pacification value in a
+space. Roll to pacify that space. OR eliminate a rebel army in a space you
+control or influence, then you may place an EF in (or move an existing EF to)
+the chosen space and immediately make a pacification attempt."*  The errata adds
+the Special: *"this card can eliminate the Egyptian army if Egypt is an
+independent minor power, and the active player has a diplomacy marker in Egypt.
+If this occurs all Egyptian spaces immediately revert to OT control."*
+
+The handler only opened a two-way "pacify / rebel" choice, then:
+
+- added 2 to the **first legal pacification space on the board** instead of the
+  chosen one, and never rolled (so the marker was left at +2);
+- removed the **first rebel army anywhere on the map**, with no control /
+  influence check, no EF placement or movement, and no pacification attempt;
+- had no Egyptian branch at all;
+- transcribed the Special as "influence in Egypt" instead of the errata's
+  "diplomacy marker in Egypt".
+
+The card now presents every legal target as a `pacify:<space>`,
+`rebel:<space>` or `egypt` option.  The pacify branch adds 2 and runs the shared
+12.11 two-dice `attemptPacification`; the rebel branch removes the chosen rebel,
+then offers *place a new EF / move an existing EF / no EF*, and rolls
+pacification in the chosen space; the Egyptian branch removes the Egyptian
+armies and returns Egypt, the Great Sand Sea and Sinai to Ottoman control.
+
+### A37 The Great Game
+
+The errata prints *"Place an influence marker and an EF in either Persia,
+Kuwait, Balochistan, Central Asia, or Afghanistan. If you already have an
+influence marker, just place the EF. You must follow normal placement
+restrictions. Then immediately make a pacification roll in the chosen space."*
+
+The old handler offered all five spaces even when another power already held
+the influence marker or the space was controlled, overwrote that marker, and
+added a flat +1 to the pacification marker instead of rolling.  It now filters
+the five spaces through the same influence/EF placement gates the live moves
+use and runs `attemptPacification`, so a high roll can actually take control.
+
+**Coverage:** `divideAndConquer.test.ts` (7 — the A25 space choice, the +2 before
+the roll, success and failure, the rebel/EF choice, both Egyptian cases, A37's
+real roll and the foreign-influence filter) and the updated
+`cardTargets.test.ts` A37 case.  Also exercised the local `/localIE` hotseat in a
+headless browser: six seats finished prep, chose home cards, answered the
+Metternich follow-up and played a GE CP card (state `phase:"action"`,
+`active:"GE"`, 3 CP, 19 log entries) without a console error.  `npx tsc --noEmit`
+clean; the IE card-state sweep (`tools/ie-sim/cardStates`, 6000 runs) passed with
+0 refusals and 0 failures.
+
 ## Fixed: six printed rules found by playing a local hotseat campaign (2026-11-21)
 
 Found by actually playing `/localIE` and reading the state back.  Six clauses

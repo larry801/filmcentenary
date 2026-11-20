@@ -207,7 +207,6 @@ import {
   indianArmyCap,
   isIndependentIndia,
   pacificationCost,
-  pacificationModifier,
   applyGermanConfederationHomeOverrides,
   markSuperiorStaffWorkGwImpulse,
   metternichAllies,
@@ -223,8 +222,8 @@ import {
   type TsrrRailDecision,
 } from "./engine/characteristics";
 import {
+  attemptPacification,
   clearPacificationImpulse,
-  notePacificationAttempt,
   pacificationProblem,
 } from "./engine/pacification";
 import {phaseActionProblem, type ActionFamily} from "./engine/phaseActions";
@@ -1991,34 +1990,11 @@ export const pacify = (
     drawCards(G, ctx, power, 1);
     log(G, power, "responsePlayed", {card: "IE-A065"});
   }
-  return rollPacification(G, ctx, power, space, cost.cost);
+  attemptPacification(G, ctx, power, space, cost.cost);
+  return undefined;
 };
 
 /** The printed 12.10 roll itself, after the CP and any A65 window are paid. */
-const rollPacification = (G: ImperialElegyState, ctx: Ctx, power: Power, space: SpaceId, cost: number): void => {
-  const state = G.spaces[space];
-  const value = state.pacification ?? 0;
-  // 33.3 Zouaves / A78 elite colonial EF: an elite colonial unit in the space
-  // adds its printed +1 pacification DRM.
-  const modifier = pacificationModifier(G, power, space);
-  const roll =
-    die(ctx, 6) + die(ctx, 6) + value + (hasAdjacentNaval(G, power, space) ? 1 : 0) + modifier.drm;
-  // 12.11's limit is "once per space, per impulse", not once per game: the
-  // attempt is recorded for this impulse only (see `clearPacificationImpulse`).
-  notePacificationAttempt(G, power, space);
-  if (roll >= 10) {
-    setSpaceControl(G, space, power, {clearInfluence: true});
-    state.pacification = 0;
-    log(G, power, "pacified", {space, roll, cost});
-  } else {
-    state.pacification = value + 1;
-    log(G, power, "pacificationFailed", {space, roll, cost});
-  }
-};
-
-const hasAdjacentNaval = (G: ImperialElegyState, power: Power, space: SpaceId): boolean =>
-  (SPACES[space]?.ports ?? []).some((box) => navalUnitsIn(G, box).some((u) => u.owner === power));
-
 /**
  * 12.1 Construct Fort: "1–2 CP; fort level = CP spent, max 3 forts per player,
  * a fort can be upgraded for 1 CP (not to level 3)."

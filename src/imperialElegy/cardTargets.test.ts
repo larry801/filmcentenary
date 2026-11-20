@@ -78,18 +78,23 @@ test("Decline of the Qing lets the player choose which Qing-controlled space to 
   expect(G.spaces.manchuria.control).toBe("Qing China");
 });
 
-test("The Great Game lets the player choose one of the five great-game spaces", () => {
+test("The Great Game offers only the great-game spaces that follow normal placement restrictions", () => {
   const G = fresh();
-  // A37 is printed "Playable by UK, Ottomans, France or Russia".
+  // A37 is printed "Playable by UK, Ottomans, France or Russia" and the errata
+  // adds "You must follow normal placement restrictions."
   const ctx = playEvent(G, "IE-A037", "UK");
 
   expect(G.pending?.kind).toBe("eventTargetSpace");
-  expect(optionIds(G)).toEqual(["qajar-persia", "kuwait", "balochistan", "central-asia", "afghanistan"]);
+  // Qajar Persia and Kuwait are already controlled, and Central Asia has no UK
+  // LoC in the campaign setup; Afghanistan and Balochistan trace through India.
+  expect(optionIds(G)).toEqual(["balochistan", "afghanistan"]);
 
-  resolvePending(G, ctx, "central-asia");
-  expect(G.spaces["central-asia"].influence).toBe("UK");
-  expect(unitByOwner(G, "central-asia", "UK")?.kind).toBe("expeditionary");
-  expect(G.spaces["central-asia"].pacification).toBe(1);
+  resolvePending(G, ctx, "afghanistan");
+  expect(G.spaces.afghanistan.influence).toBe("UK");
+  expect(unitByOwner(G, "afghanistan", "UK")?.kind).toBe("expeditionary");
+  // The default die is 3: 3 + 3 + 0 = 6, so the printed roll fails and raises
+  // the marker to 1 (it is no longer a flat +1).
+  expect(G.spaces.afghanistan.pacification).toBe(1);
   expect(G.spaces["qajar-persia"].influence).toBeNull();
 });
 
