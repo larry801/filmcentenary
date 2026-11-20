@@ -185,6 +185,9 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   your own forts to protect.
 - **A16 Liberal Reforms** now applies its no-new-armies restriction to the
   minor-ally build gate as well as the player's own recruitment.
+- **H-GE-2 German General Staff** offers the printed "take a response/combat
+  card from the discard pile OR gain two elite corps" choice, with the ECs
+  stacked on an army as 5.1.3 requires.
 - **12.11 pacification is complete.** One shared gate
   (`engine/pacification.ts#pacificationProblem`) requires either the acting
   power's own influence marker (an uncontrolled space, which the success

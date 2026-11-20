@@ -3701,12 +3701,27 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "germanGeneralStaff": {
       changeStability(G, "GE", 1, ctx);
-      const candidate = G.discard.find((id) => ["response", "combat"].includes(cardById(id).type));
-      if (candidate) {
-        G.discard = G.discard.filter((id) => id !== candidate);
-        G.powers.GE.hand.push(candidate);
+      const retrievable = G.discard.filter((id) => ["response", "combat"].includes(cardById(id).type));
+      // Printed OR: take a response/combat card from the discard pile, or gain
+      // two elite corps.  With no eligible discard card only the EC option
+      // remains.
+      if (retrievable.length === 0) {
+        grantEliteCorps(G, actor);
+        return true;
       }
-      return true;
+      const options = [
+        option("card", "Take a response or combat card from the discard pile", undefined, false,
+          "从弃牌堆取 1 张响应或战斗牌"),
+        option("ec", "Gain two elite corps", undefined, false, "获得 2 个精英军"),
+      ];
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        actor,
+        "German General Staff: take a card or gain two elite corps",
+        options,
+        {resume, special: handler, stage: "mode"},
+      ));
+      return false;
     }
     case "sunNeverSets": {
       // The +1 stability is the card's declared `stability` effect already
@@ -4396,6 +4411,25 @@ export const performEffect = (
   }
 };
 
+/** H-GE-2's "gain two elite corps"; ECs must stack with an army (5.1.3). */
+const grantEliteCorps = (G: ImperialElegyState, power: Power, count = 2): number => {
+  const army = Object.values(G.units).find(
+    (unit) => unit.owner === power && unit.space !== null && unit.space !== undefined && isArmyKind(unit.kind),
+  );
+  if (!army || !army.space) {
+    log(G, power, "noLegalTarget", {card: G.resolvingCard});
+    return 0;
+  }
+  let placed = 0;
+  for (let i = 0; i < count; i += 1) {
+    if (!hasCounterFor(G, power, "eliteCorps")) break;
+    placeUnit(G, power, "eliteCorps", army.space, 1);
+    placed += 1;
+  }
+  if (placed > 0) log(G, power, "eliteCorpsGained", {space: army.space, count: placed});
+  return placed;
+};
+
 /** Resolve a decision produced by a card effect. */
 export const resolveCardDecision = (
   G: ImperialElegyState,
@@ -4415,6 +4449,39 @@ export const resolveCardDecision = (
     return;
   }
   const data: EffectContext = {...context, choice: optionId, targetSpace: optData.space as SpaceId | undefined, targetPower: optData.power as Power | undefined};
+  if (special === "germanGeneralStaff") {
+    const stage = String(context.stage ?? "mode");
+    if (stage === "mode") {
+      if (optionId === "ec") {
+        grantEliteCorps(G, actor);
+        closeDecision(G, ctx);
+        resumeEffects(G, ctx, pending, data);
+        return;
+      }
+      if (optionId === "card") {
+        const retrievable = G.discard.filter((id) => ["response", "combat"].includes(cardById(id).type));
+        if (retrievable.length > 0) {
+          openDecision(G, ctx, decision(
+            "eventChoice",
+            actor,
+            "German General Staff: choose a card from the discard pile",
+            retrievable.map((id) => option(id, cardById(id).title, undefined, false, cardById(id).titleZh)),
+            {resume: context.resume, special, stage: "card"},
+          ));
+          return;
+        }
+      }
+    }
+    if (stage === "card") {
+      if (G.discard.includes(optionId) && ["response", "combat"].includes(cardById(optionId).type)) {
+        G.discard = G.discard.filter((id) => id !== optionId);
+        G.powers[actor].hand.push(optionId);
+      }
+      closeDecision(G, ctx);
+      resumeEffects(G, ctx, pending, data);
+      return;
+    }
+  }
   if (special === "divideAndConquer") {
     // A25 is resolved entirely from the option ids (`pacify:<space>`,
     // `rebel:<space>`, `egypt`, then the EF choice), so the printed card no
