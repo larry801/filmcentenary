@@ -195,6 +195,18 @@ describe("12.1 fort rows and 20.1 Militarism read the same rules", () => {
     expect(row(list, "upgradeFort")?.enabled).toBe(false);
   });
 
+  test("the Indian Fort offers no upgrade row: its home card upgrades it", () => {
+    const G = fresh();
+    beginAction(G, "UK");
+    G.spaces.india.fort = {power: "UK", level: 1, indian: true};
+    const list = rows(G, "UK", "india");
+    expect(row(list, "upgradeFort")?.enabled).toBe(false);
+    expect(row(list, "upgradeFort")?.reason).toMatch(/home-card/);
+    // The move refuses it too, so the panel and the engine agree.
+    expect(buildFort(G, makeCtx([], seat("UK")), "india", 1)).toBe(INVALID_MOVE);
+    expect(G.spaces.india.fort).toEqual({power: "UK", level: 1, indian: true});
+  });
+
   test("20.1 Militarism offers only the power's own fort", () => {
     const G = fresh();
     G.spaces.berlin.fort = {power: "GE", level: 1};

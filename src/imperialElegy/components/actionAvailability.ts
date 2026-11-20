@@ -525,7 +525,12 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
         : !fortPlaceable ? bi(locale, "A new fort needs a space you control or occupy with a land unit.", "新建要塞需位于你控制、或驻有你陆军单位的空间。")
           : null;
     const fortOwn = existingFort !== null && existingFort.power === viewer;
-    const fortUpgradable = fortOwn && existingFort.level < 2;
+    // The fort action is the European one.  The Indian Fort is the UK's own
+    // printed counter and is upgraded by its home card ("place/upgrade the
+    // Indian fort"), so it must not offer an action `buildFort` would refuse.
+    const indianFortHere = existingFort?.indian === true;
+    const fortActionOnMap = spaceDef !== undefined && spaceDef.region === "europe" && !indianFortHere;
+    const fortUpgradable = fortOwn && existingFort.level < 2 && fortActionOnMap;
     const fortBuildReason = fortPlaceReason
       ?? (existingFort !== null
         ? fortOwn
@@ -557,9 +562,13 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
         ? undefined
         : !fortOwn
           ? bi(locale, "No fort of yours here to upgrade.", "此处没有你的要塞可升级。")
-          : fortUpgradable
-            ? spendReason(ACTION_COSTS.upgradeFort)
-            : bi(locale, "A fort cannot be upgraded past level 2.", "要塞最高只能到 2 级。"),
+          : indianFortHere
+            ? bi(locale, "The Indian Fort is upgraded by its home-card event, not by this action.", "印度要塞由其本土牌事件升级，不走建造要塞行动。")
+            : !fortActionOnMap
+              ? bi(locale, "Forts can only be built in Europe.", "要塞只能在欧洲建造。")
+              : fortUpgradable
+                ? spendReason(ACTION_COSTS.upgradeFort)
+                : bi(locale, "A fort cannot be upgraded past level 2.", "要塞最高只能到 2 级。"),
       run: () => doAction(() => moves.buildFort(space, 1)),
     });
     // 12.10: the EF teleports, but only into a printed destination.  The row

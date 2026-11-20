@@ -1989,6 +1989,9 @@ export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level
   const existing = G.spaces[space]?.fort ?? null;
   if (existing !== null) {
     if (existing.power !== power) return INVALID_MOVE;
+    // 33.2.3: the Indian Fort is the UK's printed counter and is upgraded by
+    // its own home-card event, never by the Construct Fort action.
+    if (existing.indian === true) return INVALID_MOVE;
     // 12.1's upgrade: 1 CP, one level, never to level 3.
     if (level !== 1 || existing.level >= 2) return INVALID_MOVE;
     const paid = requireCp(G, ctx, playerID, 1);
