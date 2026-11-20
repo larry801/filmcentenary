@@ -507,8 +507,10 @@ At a glance, the live game covers:
 - **Response and combat windows** — response cards at the start of an action
   impulse, a wartime maneuver impulse, the wartime alliance step (A063/A064) and
   a Great War maneuver impulse; `warOnly`/`gwOnly` are enforced and mid-impulse
-  play is blocked. The printed A065/A067 option choices resolve through the same
-  path; data-driven action and Great War combat cards with A061/A066 mode
+  play is blocked. Each card's own printed trigger is enforced too: A44/A89/A109
+  need the recorded French/Russian loss, A67 is played inside the open crisis
+  decision (with the Impulsive Ruler exception) and A65 inside `pacify`'s
+  pre-roll mode; data-driven action and Great War combat cards with A061/A066 mode
   selection, A043's discard-pile special and A061's post-Dreadnoughts
   replacement remain in the battle window, including the post-dice GW-05/GW-06
   window.

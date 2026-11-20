@@ -24,6 +24,7 @@ import {
   ITALIAN_RESERVE_ARMY_MAX,
   setSpaceControl,
   displacementTargetForLoc,
+  effectiveKeyType,
 } from "./rules";
 import {closeDecision, decision, openDecision, option} from "./pending";
 import {counterRemaining} from "./counters";
@@ -728,11 +729,18 @@ const isKeySpace = (spaceId: SpaceId): boolean => {
  * territorial key on the main map, or one of the power's own home keys on the
  * Asia/Africa submaps.
  */
-export const gwStabilityKey = (spaceId: SpaceId, power: Power): boolean => {
+export const gwStabilityKey = (G: ImperialElegyState, spaceId: SpaceId, power: Power): boolean => {
   const def = SPACES[spaceId];
   if (!def || !isKeySpace(spaceId)) return false;
-  if (def.submap === "main") return def.keyType === "territorial";
-  if (def.submap === "africa" || def.submap === "asia") return def.home === power;
+  // A71 can turn the printed Egyptian territorial key into a colonial home
+  // key, so the live classification decides 30.0 — a static read would keep
+  // charging UK/France stability for a key they no longer count as territorial.
+  if (def.submap === "main") return effectiveKeyType(G, spaceId) === "territorial";
+  if (def.submap === "africa" || def.submap === "asia") {
+    // Events can add a home space on a submap (A81 makes Central Asia a Russian
+    // home space), so 30.0's "own home key" clause follows `homeOverride` too.
+    return def.home === power || G.spaces[spaceId]?.homeOverride === power;
+  }
   return false;
 };
 
@@ -772,13 +780,13 @@ export const applyGwKeyCapture = (
   // enemy key loses nothing (the owner's recapture is handled below).
   if (
     G.spaces[spaceId]?.control === previousHolder &&
-    gwStabilityKey(spaceId, previousHolder) &&
+    gwStabilityKey(G, spaceId, previousHolder) &&
     G.gw.belligerents.includes(previousHolder)
   ) {
     result.loser = applyKeyLoss(G, previousHolder, spaceId, ctx);
     log(G, previousHolder, "gwKeyLost", {space: spaceId, by: captor, stability: result.loser});
   }
-  if (G.spaces[spaceId]?.control === captor && gwStabilityKey(spaceId, captor) && !G.powers[captor]?.eliminated) {
+  if (G.spaces[spaceId]?.control === captor && gwStabilityKey(G, spaceId, captor) && !G.powers[captor]?.eliminated) {
     result.captor = changeStability(G, captor, 1, ctx);
     log(G, captor, "gwKeyRecaptured", {space: spaceId});
   }
@@ -1109,6 +1117,10 @@ const crisisRunOf = (pending: PendingDecision): CrisisRun | null => {
  * handler (Powder Keg, Naval Arms Race, Balkan Wars, Bosnian Crisis).
  */
 export const openCrisisDecision = (G: ImperialElegyState, ctx: Ctx, actor: Power, resume: Effect[] = []): void => {
+  // A67's "cannot be played in response to Impulsive Ruler" exception must be
+  // visible to every holder, including one who is not the crisis owner and so
+  // receives a redacted `pending.context`.
+  G.flags.crisisIncitingCard = G.resolvingCard ?? "";
   openDecision(
     G,
     ctx,

@@ -2281,6 +2281,13 @@ export const changeStability = (
   // Scorched Earth is consumed by the key loss it absorbs (33.5).
   if (result.scorchedEarth.consumes) p.scorchedEarth = false;
   p.stability = result.stabilityAfter;
+  // 9.1.3: A44/A89/A109 are printed responses to a stability decrease.  Record
+  // the trigger on the power so the response gate can answer from live state
+  // instead of trusting the card face.
+  if (p.stability < before) {
+    p.flags.stabilityDecreased = true;
+    p.flags.stabilityDecreasedTurn = G.turn;
+  }
   if (result.government.changed) {
     p.government = result.government.to;
     log(G, power, "frThirdRepublic", {});

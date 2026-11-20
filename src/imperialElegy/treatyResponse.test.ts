@@ -53,6 +53,12 @@ const clearHands = (G: ImperialElegyState): void => {
   for (const p of POWERS) G.powers[p].hand = [];
 };
 
+/** A89's printed trigger ("Play if Russian stability has been decreased"). */
+const armCossacks = (G: ImperialElegyState): void => {
+  G.powers.RU.flags.stabilityDecreased = true;
+  G.powers.RU.flags.stabilityDecreasedTurn = G.turn;
+};
+
 const warState = (status: WarState["status"] = "maneuver"): WarState => ({
   attacker: "GE",
   defender: "AU",
@@ -233,6 +239,7 @@ test("a response resolves at the start of a GW maneuver impulse", () => {
   // A41/A98 are printed "no effect during the Great War"; this test is about
   // the generic GW response window, so use another printed impulse response.
   G.powers.GE.hand = ["IE-A089"];
+  armCossacks(G);
   const ctx = makeCtx("0");
 
   expect(playResponseCard(G, ctx, "IE-A089")).toBeUndefined();
@@ -283,6 +290,7 @@ test("gwOnly responses are rejected outside an active Great War", () => {
     action.cpRemaining = 0;
     clearHands(action);
     action.powers.GE.hand = ["IE-A089"];
+    armCossacks(action);
     const before = JSON.stringify(action);
     expect(playResponseCard(action, ctx, "IE-A089")).toBe(INVALID_MOVE);
     expect(JSON.stringify(action)).toBe(before);
@@ -293,6 +301,7 @@ test("gwOnly responses are rejected outside an active Great War", () => {
     wartime.war = warState("maneuver");
     clearHands(wartime);
     wartime.powers.GE.hand = ["IE-A089"];
+    armCossacks(wartime);
     const warBefore = JSON.stringify(wartime);
     expect(playResponseCard(wartime, ctx, "IE-A089")).toBe(INVALID_MOVE);
     expect(JSON.stringify(wartime)).toBe(warBefore);
@@ -305,6 +314,7 @@ test("gwOnly responses are rejected outside an active Great War", () => {
     gw.powers.GE.flags.gwActionsThisImpulse = 0;
     clearHands(gw);
     gw.powers.GE.hand = ["IE-A089"];
+    armCossacks(gw);
     expect(playResponseCard(gw, ctx, "IE-A089")).toBeUndefined();
     expect(gw.discard).toContain("IE-A089");
   } finally {
@@ -392,6 +402,7 @@ test("the response button follows the impulse window and hides from other seats"
   gwGame.powers.GE.flags.gwActionsThisImpulse = 0;
   clearHands(gwGame);
   gwGame.powers.GE.hand = ["IE-A089"];
+  armCossacks(gwGame);
   const gwMarkup = html(gwGame, "0");
   expect(buttonTag(gwMarkup, "ie-response-IE-A089")).toContain("打出响应");
   expect(buttonTag(gwMarkup, "ie-response-IE-A089")).not.toContain("disabled");

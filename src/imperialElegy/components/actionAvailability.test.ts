@@ -76,6 +76,19 @@ const input = (overrides: Partial<SpaceActionsInput> & Pick<SpaceActionsInput, "
 const row = (rows: SpaceAction[], id: SpaceAction["id"]): SpaceAction | undefined =>
   rows.find((candidate) => candidate.id === id);
 
+describe("A71 colonial Egypt", () => {
+  test("the fleet-build row follows the live key type, not the printed one", () => {
+    const G = game("UK", 6);
+    G.spaces.egypt.control = "UK";
+    G.spaces.egypt.homeOverride = "UK";
+    G.spaces.egypt.keyTypeOverride = "colonial";
+    const rows = spaceActions(input({G, viewer: "UK", space: "egypt"}));
+    const squadron = row(rows, "buildSquadron");
+    expect(squadron?.enabled).toBe(false);
+    expect(squadron?.reason).toMatch(/territorial home key/);
+  });
+});
+
 describe("ACTION_COSTS", () => {
   test("every action in the printed order has a cost", () => {
     for (const id of ACTION_COST_ORDER) {

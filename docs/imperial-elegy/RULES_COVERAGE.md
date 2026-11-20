@@ -232,8 +232,13 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   enforces `warOnly`/`gwOnly` and the printed A063/A064 window restrictions;
   combat cards and GW-06 are rejected from this path and stay in the combat-card
   window. The board hides or disables the response control with the same gate.
-  A065 (Indian Ocean Arms Trade) and A067 (International Conference) prompt with
-  their two printed options. A066 is a combat card, not a response card.
+  Each response's own printed trigger is checked too (`responseTriggerBlock`):
+  A44/A89/A109 need France's/Russia's recorded stability (or lost-war) trigger;
+  A67 (International Conference) exists only inside the open crisis decision,
+  where it adds its +2 DRM and keeps the roll open, and refuses a crisis incited
+  by A105 (its normal-event mode offers the printed WTT decrease); A65 (Indian
+  Ocean Arms Trade) is offered by `pacify`'s printed pre-roll mode. A066
+  is a combat card, not a response card.
   A063's free-deploy and extra-reserve clauses are live through the
   deploy-reserves action (see §13–17).
 - **Combat-card window:** appears after support declarations, attacker then

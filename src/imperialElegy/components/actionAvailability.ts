@@ -15,7 +15,7 @@
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower, ownsKey,
+  effectiveKeyType, efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower, ownsKey,
 } from "../engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -50,6 +50,7 @@ export type ActionId =
   | "minorArmy" | "minorSquadron" | "minorDreadnought"
   | "buildSquadron" | "buildDreadnought" | "refitFleet" | "buildFort" | "buildEf" | "moveEf"
   | "influence" | "diplomacy" | "minorAlliance" | "removeInfluence" | "breakAlliance" | "pacify"
+  | "pacifyA065Marker" | "pacifyA065Rebel"
   | "move" | "gwNaval" | "gwMarch" | "gwRail" | "refit" | "rapidDeploy"
   | "deployReserves" | "landBattle" | "navalBattle" | "gwDraft" | "gwDeploy" | "gwElite";
 
@@ -79,6 +80,8 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   removeInfluence: 1,
   breakAlliance: 4,
   pacify: 1,
+  pacifyA065Marker: 1,
+  pacifyA065Rebel: 1,
   move: 1,
   gwNaval: 1,
   gwMarch: 1,
@@ -127,6 +130,8 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   removeInfluence: {en: "Remove influence", zh: "移除影响"},
   breakAlliance: {en: "Break minor alliance", zh: "解除小国联盟"},
   pacify: {en: "Pacify", zh: "绥靖"},
+  pacifyA065Marker: {en: "Pacify with Indian Ocean Arms Trade (−1 marker)", zh: "打出《印度洋军火贸易》绥靖（标记 -1）"},
+  pacifyA065Rebel: {en: "Pacify with Indian Ocean Arms Trade (flip a rebel)", zh: "打出《印度洋军火贸易》绥靖（叛军恢复满编）"},
   move: {en: "Move selected units…", zh: "移动所选单位…"},
   gwNaval: {en: "Naval move here", zh: "海军移动至此"},
   gwMarch: {en: "March here", zh: "行军至此"},
@@ -478,7 +483,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // 12.4: "Newly built fleets must be placed in a controlled, territorial
     // home key on the main map with a port."  A colonial home key on a submap
     // (Canada, India, South Africa, Australia) has a port but is not eligible.
-    const fleetHomeReason = homeReason ?? (SPACES[space]?.submap !== "main" || SPACES[space]?.keyType !== "territorial"
+    const fleetHomeReason = homeReason ?? (SPACES[space]?.submap !== "main" || effectiveKeyType(G, space) !== "territorial"
       ? bi(locale, "New fleets need a territorial home key on the main map.", "新建舰队需位于主地图的本国领土关键区。")
       : null);
     if (hasPort) {
@@ -605,6 +610,19 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       reason: pacifyEnabled ? undefined : pacifyReason ?? colonialSpendReason(pacifyCost),
       run: () => doAction(() => moves.pacify(space)),
     });
+    // A65 is printed "Play prior to a pacification roll".  One row per printed
+    // effect keeps the card out of the generic impulse-response window while
+    // still letting its holder use it at the printed moment.
+    if (pacifyEnabled && me.hand.includes("IE-A065")) {
+      push({
+        id: "pacifyA065Marker", group: "diplomacy", enabled: true,
+        run: () => doAction(() => moves.pacify(space, "marker")),
+      });
+      push({
+        id: "pacifyA065Rebel", group: "diplomacy", enabled: true,
+        run: () => doAction(() => moves.pacify(space, "rebel")),
+      });
+    }
   }
 
   // ----------------------------------------------------------- move & battle

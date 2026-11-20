@@ -133,6 +133,7 @@ import {
   eventPlayability,
   removeAfterCpPlay,
   removesAfterPlay,
+  responseTriggerBlock,
   youngTurksBlocksFailedReforms,
 } from "./engine/playability";
 import {ensureStateDefaults} from "./engine/migrations";
@@ -607,6 +608,21 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   }
   // Event; mandatory cards also grant their CP.
   if (mandatory) G.cpRemaining = card.cp;
+  if (cardId === "IE-A067" && mode === "event") {
+    // International Conference's printed normal-event mode is only the WTT
+    // decrease; its +2 DRM belongs to the open crisis decision (above).  Do not
+    // expose the OR chooser here, or the event mode could stock a DRM outside
+    // the printed window.
+    changeWtt(G, -1, ctx, cardId);
+    if (!G.discard.includes(cardId)) G.discard.push(cardId);
+    pruneRemovedFromDiscard(G);
+    G.resolvingCard = null;
+    G.impulseCard = null;
+    if (G.cpRemaining <= 0 && G.pending === null && warDeclarationEntitlement(G, power) === null) {
+      finishImpulse(G, ctx);
+    }
+    return undefined;
+  }
   const done = resolveCard(G, ctx, power, card);
   if (!done) {
     G.flags.pendingCard = cardId;
@@ -1302,7 +1318,9 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
   // 12.4: "Newly built fleets must be placed in a controlled, territorial home
   // key on the main map with a port."  A colonial home key on a submap (Canada,
   // India, South Africa, Australia) is neither territorial nor on the main map.
-  if (SPACES[space]?.submap !== "main" || SPACES[space]?.keyType !== "territorial") return INVALID_MOVE;
+  // A71 can reclassify a printed territorial key (Egypt) as a colonial home
+  // key, so the live type — not the static map data — decides 12.4.
+  if (SPACES[space]?.submap !== "main" || effectiveKeyType(G, space) !== "territorial") return INVALID_MOVE;
   if (!portBoxes(space).length) return INVALID_MOVE;
   if (kind === "dreadnought" && G.persistent.dreadnoughts !== true && !G.powers[power].flags.navalLimit) return INVALID_MOVE;
   // 4.2: GE/AU/OT may only own 2 squadrons and 2 dreadnoughts until an event
@@ -1885,7 +1903,12 @@ export const removeMinorAlliance = (G: ImperialElegyState, ctx: Ctx, space: Spac
   return undefined;
 };
 
-export const pacify = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string | void => {
+export const pacify = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  space: SpaceId,
+  a065?: "marker" | "rebel",
+): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
@@ -1896,10 +1919,35 @@ export const pacify = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string 
   if (G.powers[power].flags[`pacified_${space}`]) return INVALID_MOVE;
   // 33.4 Continental Power / 33.1 Continental Focus: pacification costs 2 CP.
   const cost = pacificationCost(G, power);
+  // Validate A65 before spending anything, so a wrong/stale row costs nothing.
+  if (a065 !== undefined && !G.powers[power].hand.includes("IE-A065")) return INVALID_MOVE;
   // A088/UK-3: pacification is one of the printed colonial actions, so the free
   // colonial grant may pay for it first.
   const paid = requireColonialCp(G, ctx, playerID, cost.cost);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
+  // 9.1.3 / A65: "Play prior to a pacification roll."  The roll is immediate,
+  // so the printed window is this move's optional `a065` argument (the board
+  // offers one row per printed effect).  A65 is never a generic impulse
+  // response; see `responseTriggerBlock`.
+  if (a065 !== undefined) {
+    const p = G.powers[power];
+    p.hand = p.hand.filter((id) => id !== "IE-A065");
+    discardCard(G, power, "IE-A065");
+    if (a065 === "marker") {
+      state.pacification = Math.max(0, (state.pacification ?? 0) - 1);
+    } else {
+      const rebel = landUnitsIn(G, space).find((unit) => unit.kind === "rebelArmy" && unit.steps === 1);
+      if (rebel) rebel.steps = 2;
+    }
+    drawCards(G, ctx, power, 1);
+    log(G, power, "responsePlayed", {card: "IE-A065"});
+  }
+  return rollPacification(G, ctx, power, space, cost.cost);
+};
+
+/** The printed 12.10 roll itself, after the CP and any A65 window are paid. */
+const rollPacification = (G: ImperialElegyState, ctx: Ctx, power: Power, space: SpaceId, cost: number): void => {
+  const state = G.spaces[space];
   const value = state.pacification ?? 0;
   // 33.3 Zouaves / A78 elite colonial EF: an elite colonial unit in the space
   // adds its printed +1 pacification DRM.
@@ -1910,12 +1958,11 @@ export const pacify = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string 
   if (roll >= 10) {
     setSpaceControl(G, space, power, {clearInfluence: true});
     state.pacification = 0;
-    log(G, power, "pacified", {space, roll, cost: cost.cost});
+    log(G, power, "pacified", {space, roll, cost});
   } else {
     state.pacification = value + 1;
-    log(G, power, "pacificationFailed", {space, roll, cost: cost.cost});
+    log(G, power, "pacificationFailed", {space, roll, cost});
   }
-  return undefined;
 };
 
 const hasAdjacentNaval = (G: ImperialElegyState, power: Power, space: SpaceId): boolean =>
@@ -4288,6 +4335,11 @@ export const applyWarEndCharacteristics = (G: ImperialElegyState, ctx: Ctx): voi
   // an ally; the UK's units stay on the map.
   if (belligerentsOf(war).includes("UK")) displaceIndianArmies(G, "warEnd");
   const france = frLostWar(G, war);
+  // A44 Paris Commune: "Play during the Victory Step of a war in which France
+  // lost."  The war record is archived after this step, so stamp the trigger.
+  if (france.side !== null && france.victor !== null && france.victor !== france.side) {
+    G.flags.frLostWarTurn = G.turn;
+  }
   if (france.applies) changeStability(G, "FR", 0, ctx, {lostWar: true});
   // 33.5 The Second Rome: a won war with Istanbul occupied hands RU the space.
   const rome = secondRome(G, war);
@@ -7873,7 +7925,17 @@ export type ResponseBlockReason =
   /** A41/A98/A54: the printed window names one power's impulse. */
   | "printed-power"
   /** A41/A98: "This event has no effect during the Great War." */
-  | "no-effect-gw";
+  | "no-effect-gw"
+  /** A67: "Play when the WTT reaches 5." */
+  | "crisis-window"
+  /** A67: "exception: cannot be played in response to Impulsive Ruler." */
+  | "impulsive-ruler"
+  /** A44: France must have lost a war or lost stability this turn. */
+  | "france-trigger"
+  /** A89/A109: Russian stability must have been decreased. */
+  | "russia-trigger"
+  /** A65: "Play prior to a pacification roll." */
+  | "pacification-window";
 
 export interface ResponseEligibility {
   ok: boolean;
@@ -7983,6 +8045,14 @@ export const responseCardEligibility = (
   // The window is still enforced below, so a card that passes its own gates
   // while the window is shut is refused exactly as before.
   const window = responseWindowFor(G, power);
+  // 9.1.3: a response must also meet its own printed trigger.  A67's window is
+  // the open crisis decision (which is itself a pending), so it answers before
+  // the generic impulse window below.
+  if (isCardId(cardId) && cardById(cardId).type === "response" && power !== null) {
+    const trigger = responseTriggerBlock(G, power, cardId);
+    if (trigger !== null) return blocked(trigger, window.ok ? undefined : window.reason);
+    if (cardId === "IE-A067") return eligible();
+  }
   const ownGate = (): ResponseEligibility | null => {
     if (!isCardId(cardId)) return null;
     const card = cardById(cardId);
@@ -8040,6 +8110,16 @@ export const playResponseCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId
   if (!responseCardEligibility(G, power, cardId).ok) return INVALID_MOVE;
   const p = G.powers[power];
   const card = cardById(cardId);
+  if (cardId === "IE-A067") {
+    // Crisis window (23.0/23.1): the printed response use is the +2 DRM.  Do
+    // not open the card's OR chooser — that belongs to its normal-event play —
+    // and keep the crisis decision open so its owner can roll.
+    p.hand = p.hand.filter((id) => id !== cardId);
+    G.flags.crisisDrm = Number(G.flags.crisisDrm ?? 0) + 2;
+    discardCard(G, power, cardId);
+    log(G, power, "responsePlayed", {card: cardId});
+    return undefined;
+  }
   p.hand = p.hand.filter((id) => id !== cardId);
   G.resolvingCard = cardId;
   log(G, power, "responsePlayed", {card: cardId});
