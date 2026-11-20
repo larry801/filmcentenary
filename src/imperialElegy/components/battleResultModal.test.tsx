@@ -90,6 +90,41 @@ describe("the battle result dialog", () => {
     expect(html).toContain("撤退至");
   });
 
+  test("names every dice modifier instead of only the two totals", () => {
+    const html = render({
+      drmSources: {
+        attacker: [
+          {key: "stability", side: "attacker", drm: -1, detail: {value: 1}},
+          {key: "forcePointEdge", side: "attacker", drm: 2, detail: {count: 2}},
+        ],
+        defender: [
+          {key: "brokenLoc", side: "defender", drm: -1, detail: {space: "bavaria"}},
+        ],
+      },
+      attackerDrm: 1,
+      defenderDrm: -1,
+    });
+    expect(html).toContain('data-testid="ie-battle-result-drms"');
+    expect(html).toContain("掷骰修正来源");
+    expect(html).toContain('data-testid="ie-battle-result-drm-attacker"');
+    expect(html).toContain('data-testid="ie-battle-result-drm-defender"');
+    // Each clause is printed with its own signed value.
+    expect(html).toContain("稳定度轨道");
+    expect(html).toContain("兵力点优势");
+    expect(html).toContain("补给线中断");
+    expect(html).toContain("巴伐利亚");
+    expect(html).toContain("+2");
+    expect(html).toContain("-1");
+  });
+
+  test("a report without a breakdown still prints both totals", () => {
+    const html = render({drmSources: undefined});
+    expect(html).toContain('data-testid="ie-battle-result-drms"');
+    expect(html).toContain("没有记录修正来源");
+    // The totals row is untouched.
+    expect(html).toContain("DRM");
+  });
+
   test("does not mount while closed", () => {
     expect(render({}, false)).toBe("");
   });

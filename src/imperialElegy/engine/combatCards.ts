@@ -43,6 +43,7 @@ import type {
 import {isNavalBox, neighboursOf} from "../constant/spaces";
 import {allied, isArmyKind, isPower, landUnitsIn} from "./rules";
 import {cardById} from "./deck";
+import {recordBattleDrm} from "./battleDrm";
 
 // ---------------------------------------------------------------------------
 // Definitions
@@ -752,6 +753,9 @@ const cloneBattle = (battle: BattleState): BattleState => ({
   supportDenied: battle.supportDenied ? [...battle.supportDenied] : undefined,
   extraDraws: battle.extraDraws ? [...battle.extraDraws] : undefined,
   faceDownCards: battle.faceDownCards ? battle.faceDownCards.map((entry) => ({...entry})) : undefined,
+  drmSources: battle.drmSources === undefined
+    ? undefined
+    : {attacker: [...battle.drmSources.attacker], defender: [...battle.drmSources.defender]},
 });
 
 /** Battle-kind restrictions apply to modes just as they do to whole cards. */
@@ -812,8 +816,14 @@ export const applyCombatCardModeToBattle = (
     const attackerGetsDrm = mode.target === "opponent"
       ? playingSide !== "attacker"
       : playingSide === "attacker";
-    if (attackerGetsDrm) next.attackerDrm += drm;
-    else next.defenderDrm += drm;
+    recordBattleDrm(
+      next,
+      attackerGetsDrm ? "attacker" : "defender",
+      drm,
+      "combatCard",
+      {card: def.id, power: playingSide === "attacker" ? battle.attacker : battle.defender},
+      "card",
+    );
   }
 
   for (const note of mode.notes) addNote(next, note);

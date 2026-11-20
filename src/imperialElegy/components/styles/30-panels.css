@@ -341,6 +341,14 @@
 
 .ie-battle h4 { margin: 0 0 3px; color: var(--ie-brass-soft); font-size: var(--ie-font-sm); }
 
+/* The live battle's two DRM columns: side by side while the panel is wide,
+   stacked when the Orders rail is narrow. */
+.ie-battle-drms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+
+@media (max-width: 720px) {
+  .ie-battle-drms { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* ---------------------------------------------------------------- dock */
 .ie-dock {
   border: 1px solid var(--ie-brass);

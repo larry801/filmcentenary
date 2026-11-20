@@ -1,5 +1,48 @@
 # Imperial Elegy — implementation status
 
+## Added: every battle dice modifier now names its printed source (2026-11-21)
+
+Reported as "帝国挽歌战斗进行中和展示结果时 详细展示每个dice modifier的来源".
+The live battle panel printed only `DRM 3/-1` and the result dialog only
+`+3 / -1`, so a table could not tell a stability penalty from a card, a broken
+LoC, the committed elite bonus or the force-point edge.
+
+What is live now:
+
+- **The engine records each clause.**  New `engine/battleDrm.ts` owns
+  `recordBattleDrm`: every site that used to write `attackerDrm`/`defenderDrm`
+  directly now records the clause's key, side, signed value and detail
+  (`types.ts#BattleDrmSource`).  Covered sites: 18.2.1's amphibious, stability,
+  exhausted-manpower, reduced-only, difficult-terrain and broken-LoC lines,
+  national characteristics (1st Army, Indian armies, Zouaves, Bewegungskrieg,
+  Prussian Military Tradition, Dreyfus Affair), the `warLandDrm`/`combatDrm`/
+  `enemyLandDrm`/`gwCombatDrm` event flags, 19.5's port-count and failed-avoid
+  lines, combat cards (`combatCards.ts`), and 33.6 Jihad.
+- **Derived entries are computed, not stored twice.**  The committed elite
+  bonus and the force-point edge depend on the live main forces and support, so
+  `combat.ts#battleDrmBreakdown` derives them on read; A080 Machine Guns is
+  listed at 0 because it changes a die rather than a total.
+- **The dice freeze a snapshot.**  `rollBattleDice` stores `drmBreakdown`, so a
+  running loss sequence or the finished report still explains the roll it
+  actually scored.  A late modifier (a 19.5 failed avoid, 33.6 Jihad) re-freezes
+  it through `refreshBattleDrmSnapshot`, and A062's denied support refreshes
+  the totals and the list together.
+- **Both surfaces render the list.**  New `components/BattleDrmList.tsx` prints
+  one row per clause with its signed value and a total header.  The live battle
+  panel (`PendingPanel`) shows it for both sides while the battle runs; the
+  result dialog (`BattleResultModal`) shows the same two columns under the
+  rolls, from `BattleReport.drmSources`.  A saved report or a hand-written state
+  with no breakdown still prints both totals.
+
+**Coverage:** `battleDrmBreakdown.test.ts` (10 — the entries add up to each
+side's total on land and at sea, per-clause signed values, the reduced-only and
+force-point lines, the post-roll snapshot in the report, public visibility to
+both seats, the GW manpower line and the late-modifier refresh),
+`components/battleResultModal.test.tsx` (2 new — the named list renders, and a
+report without a breakdown still prints both totals) and
+`components/boardActions.test.tsx` (1 new — the live panel shows both DRM
+columns).  `npx tsc --noEmit` clean; the battle, card, characteristic, save and
+bot suites pass locally.
 ## Fixed: Sepoy Mutiny left the key penalty until the next end phase (2026-11-21)
 
 A33 places a Sepoy rebel army in India, and 21.1 says the rebel-held space
@@ -153,7 +196,7 @@ live.
 **Coverage:** `pacificationSpecialMarkers.test.ts` (7 — the controller-only
 clear, the no-marker refusal, the 0-marker key penalty, the foreign-controller
 refusal, A86's 0 marker, the 11+ Boer roll and the 12+ GoE roll).  `npx tsc
---noEmit` clean; the 12-suite pacification/end-phase/card sweep and the
+-—noEmit` clean; the 12-suite pacification/end-phase/card sweep and the
 6000-state card sweep pass.
 
 ## Fixed: 12.11.2's controlled-space markers and special pacification targets (2026-11-21)

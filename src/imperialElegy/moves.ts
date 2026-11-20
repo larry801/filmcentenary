@@ -183,7 +183,9 @@ import {
   resolveNavalPortContinuation,
   resolveNextNavalStartContact,
   navalStartQueuePending,
+  refreshBattleDrmSnapshot,
 } from "./engine/combat";
+import {recordBattleDrm} from "./engine/battleDrm";
 import {facedownGwCombatCards, isCombatCardId} from "./engine/combatCards";
 import {usArmyMayLeaveNorthAmerica, usCanLeaveNorthAmerica} from "./engine/gwMajors";
 import {
@@ -2264,11 +2266,16 @@ export const useJihad = (G: ImperialElegyState, ctx: Ctx): string | void => {
   }
   const battle = G.battle;
   G.powers.OT.jihad = Math.max(0, (G.powers.OT.jihad ?? 1) - 1);
-  if (decision.opponentSide === "attacker") battle.attackerDrm -= 1;
-  else battle.defenderDrm -= 1;
+  if (decision.opponentSide === "attacker") {
+    recordBattleDrm(battle, "attacker", -1, "jihad", undefined, "jihad");
+  } else {
+    recordBattleDrm(battle, "defender", -1, "jihad", undefined, "jihad");
+  }
   if (battle.attackDrmTotal !== undefined) {
     if (decision.opponentSide === "attacker") battle.attackDrmTotal -= 1;
     else battle.defenceDrmTotal = (battle.defenceDrmTotal ?? 0) - 1;
+    // The frozen list must move with the total it explains.
+    refreshBattleDrmSnapshot(G, battle);
   }
   battle.jihadUsed = true;
   log(G, "OT", "jihadUsed", {space: battle.to, opponent: decision.opponent, markers: G.powers.OT.jihad});
@@ -5438,7 +5445,7 @@ const resolveNavalAvoid = (
     const battle = beginNavalBattle(G, ctx, attacker, from, to, battleOptions);
     if (battle !== null) {
       // 19.5: "Failure to avoid battle (only apply if an attempt was made): -1".
-      battle.defenderDrm -= 1;
+      recordBattleDrm(battle, "defender", -1, "failedAvoid", undefined, "rule");
       battle.notes.push("failedAvoid");
     }
   }

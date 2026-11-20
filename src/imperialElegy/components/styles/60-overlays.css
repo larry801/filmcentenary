@@ -531,6 +531,61 @@
   line-height: 1.45;
 }
 
+/* The named DRM list: one row per printed clause, with its signed value on the
+   right so the column of numbers reads like the printed BDRM tables. */
+.ie-battle-result-drms { margin-top: var(--ie-space-3); }
+
+.ie-battle-result-drms h3 {
+  margin: 0 0 var(--ie-space-2);
+  color: var(--ie-brass-soft);
+  font-size: var(--ie-font-sm);
+}
+
+.ie-battle-drm {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--ie-space-2) var(--ie-space-3);
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-2);
+}
+
+.ie-battle-drm-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ie-space-2);
+  font-size: var(--ie-font-xs);
+  color: var(--ie-on-dark-2);
+}
+
+.ie-battle-drm-head strong { color: var(--ie-on-dark); font-size: var(--ie-font-sm); }
+
+.ie-battle-drm ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.ie-battle-drm li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ie-space-2);
+  font-size: var(--ie-font-xs);
+  line-height: 1.4;
+}
+
+.ie-battle-drm-name { min-width: 0; }
+
+.ie-battle-drm-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.ie-battle-drm-gap { color: var(--ie-warn-text-dark); font-size: var(--ie-font-xs); }
+
 @media (max-width: 560px) {
   .ie-battle-result-sides { grid-template-columns: minmax(0, 1fr); }
 }

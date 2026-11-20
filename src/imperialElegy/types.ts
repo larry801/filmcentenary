@@ -1369,6 +1369,37 @@ export interface ImperialElegyState {
 /** WarState is kept separate from The Great War so the two can coexist. */
 export type WarState = WarSide;
 
+/**
+ * One named dice-roll modifier in a battle.  The table asked to see *where*
+ * every DRM came from, not only the two totals, so each site that changes
+ * `attackerDrm`/`defenderDrm` also records an entry here.  `key` selects the
+ * bilingual label in the UI; `detail` carries the numbers/spaces/cards that
+ * label interpolates.
+ */
+export interface BattleDrmSource {
+  /** Stable label key, e.g. `"amphibious"` or `"combatCard"`. */
+  key: string;
+  side: "attacker" | "defender";
+  /** Signed contribution to this side's roll. */
+  drm: number;
+  /** Which family the source belongs to, for grouping in the UI. */
+  origin?: "rule" | "national" | "event" | "flag" | "card" | "support" | "elite" | "jihad";
+  /** Values the label may interpolate (a space, a card id, a count, a power). */
+  detail?: {
+    space?: SpaceId;
+    card?: string;
+    count?: number;
+    power?: string;
+    value?: number;
+  };
+}
+
+/** The complete DRM list for both sides, ready to render. */
+export interface BattleDrmBreakdown {
+  attacker: BattleDrmSource[];
+  defender: BattleDrmSource[];
+}
+
 export interface BattleState {
   kind: "land" | "naval";
   attacker: Power;
@@ -1390,6 +1421,19 @@ export interface BattleState {
   cardSide?: "attacker" | "defender";
   attackerDrm: number;
   defenderDrm: number;
+  /**
+   * Named sources behind `attackerDrm`/`defenderDrm`, recorded as each modifier
+   * is applied.  Optional because battle states built by older saves and by
+   * tests keep only the two totals; the UI falls back to the notes list then.
+   */
+  drmSources?: BattleDrmBreakdown;
+  /**
+   * The snapshot taken when the dice were rolled: every named modifier plus the
+   * derived elite-bonus and force-point entries.  Kept so the after-battle
+   * report can list exactly what produced a past roll even after units and
+   * support have left the board.
+   */
+  drmBreakdown?: BattleDrmBreakdown;
   attackerRoll?: number;
   defenderRoll?: number;
   diff?: number;
@@ -1537,6 +1581,12 @@ export interface BattleReport {
   differential?: number;
   attackerDrm: number;
   defenderDrm: number;
+  /**
+   * The named modifiers behind the two DRM totals (rule 18.2.1/19.5), kept so
+   * the result dialog can explain each side's roll instead of only its total.
+   * Optional for reports saved before the breakdown existed.
+   */
+  drmSources?: BattleDrmBreakdown;
   /** Step losses actually taken, not the CRT's required loss budget. */
   attackerLosses: number;
   defenderLosses: number;
