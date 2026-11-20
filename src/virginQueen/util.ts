@@ -206,6 +206,100 @@ const apportionOffMapSpaces = (
 };
 
 // --------------------------------------------------------------------------
+// Treasure pool (rule 6.3)
+// --------------------------------------------------------------------------
+
+/** A fresh, unordered pool of exactly the official 30 treasure counters. */
+export const freshTreasurePool = (): Treasure[] => [...TREASURE_TABLE];
+
+/** Every treasure counter currently held outside the pool: hands, rows and loot. */
+export const treasuresInPlay = (G: VQGame): Treasure[] => {
+    const held: Treasure[] = [];
+    for (const p of POWERS) held.push(...G.powers[p].treasures);
+    held.push(...(G.spanishTreasureRow ?? []));
+    held.push(...(G.portugueseTreasures ?? []));
+    for (const expedition of Object.values(G.worldCaptains)) held.push(...(expedition.treasureValues ?? []));
+    return held;
+};
+
+/**
+ * Rule 6.3: the game ships with a *finite* pool of 30 treasure counters.  Make
+ * sure the pool and its discard pile exist.  A save written before the pool
+ * existed is migrated by removing every counter already held in play from a
+ * fresh mix, so no counter is created or duplicated by the upgrade.
+ */
+export const ensureTreasurePool = (G: VQGame): void => {
+    G.treasureDiscard ??= [];
+    if (G.treasurePool !== undefined) return;
+    const pool = freshTreasurePool();
+    for (const treasure of treasuresInPlay(G)) {
+        const index = pool.indexOf(treasure);
+        // A counter the official mix cannot account for (an old save holding
+        // more copies than the mix has) is dropped from the pool rather than
+        // inventing a new counter.
+        pool.splice(index >= 0 ? index : 0, 1);
+    }
+    G.treasurePool = pool;
+};
+
+/**
+ * Draw one random counter from the pool.  The pool is exhausted when its 30
+ * counters are all in hands, rows, loot or the discard pile; the rules only
+ * return discards to the pool in the final step of the Card Draw Phase, so a
+ * draw during play with an empty pool yields nothing.
+ */
+export const drawTreasure = (G: VQGame, ctx: Ctx): Treasure | undefined => {
+    ensureTreasurePool(G);
+    const pool = G.treasurePool!;
+    if (pool.length === 0) return undefined;
+    const index = Math.max(0, Math.min(pool.length - 1, die(ctx, pool.length) - 1));
+    return pool.splice(index, 1)[0];
+};
+
+/**
+ * Rule 6.3: spent counters are set aside with their values revealed until the
+ * final Card Draw step, when they are mixed back into the pool.  The 1 VP
+ * treasure is the sole exception: it goes to the Bonus VP box "and does not go
+ * to the treasure discard and reenter play".
+ */
+export const discardTreasure = (G: VQGame, ...treasures: Treasure[]): void => {
+    ensureTreasurePool(G);
+    for (const treasure of treasures) {
+        if (treasure === "vp") continue;
+        G.treasureDiscard!.push(treasure);
+    }
+};
+
+/** Rule 6.3 final Card Draw step: mix the turn's discards back into the pool. */
+export const mixTreasureDiscards = (G: VQGame, ctx: Ctx): void => {
+    ensureTreasurePool(G);
+    if (G.treasureDiscard!.length === 0) return;
+    const returned = G.treasureDiscard!.length;
+    G.treasurePool = shuffle(ctx, [...G.treasurePool!, ...G.treasureDiscard!]);
+    G.treasureDiscard = [];
+    pushLog(G, `${returned} spent treasure(s) return to the pool.`);
+};
+
+/**
+ * Fill a treasure row (Spanish or Portuguese) from the pool.  Rule 6.3 draws
+ * "as needed" to fill the boxes, so an exhausted pool simply leaves boxes
+ * empty rather than conjuring new counters.
+ */
+export const refreshTreasureRow = (G: VQGame, ctx: Ctx, boxes: number, row: "spanish" | "portuguese"): void => {
+    const drawn: Treasure[] = [];
+    for (let i = 0; i < boxes; i++) {
+        const treasure = drawTreasure(G, ctx);
+        if (treasure === undefined) break;
+        drawn.push(treasure);
+    }
+    if (row === "spanish") G.spanishTreasureRow = drawn;
+    else G.portugueseTreasures = drawn;
+    if (drawn.length < boxes) {
+        pushLog(G, `The treasure pool holds only ${drawn.length} of ${boxes} ${row} treasure(s).`);
+    }
+};
+
+// --------------------------------------------------------------------------
 // Initial state
 // --------------------------------------------------------------------------
 
@@ -278,13 +372,18 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
     }
 
     let mercenariesForHire = 0;
+    // Rule 6.3: all treasures start in one face-down pool of 30 counters; the
+    // scenario's starting treasures are drawn from that same pool.
+    const treasurePool = freshTreasurePool();
     for (const p of POWERS) {
         const card = powerCardSummary(scenario, p);
         powers[p].scmOnCard = card.scmOnCard;
         powers[p].seaCaptains = [...card.seaCaptains];
         mercenariesForHire += card.mercenariesForHire;
         for (let i = 0; i < card.treasures; i++) {
-            powers[p].treasures.push(shuffleTreasure(ctx));
+            const index = Math.max(0, Math.min(treasurePool.length - 1, die(ctx, treasurePool.length) - 1));
+            const [treasure] = treasurePool.splice(index, 1);
+            powers[p].treasures.push(treasure);
         }
     }
 
@@ -323,6 +422,8 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         scenario: scenarioId,
         startTurn: scenario.startTurn,
         endTurn: scenario.endTurn,
+        treasurePool,
+        treasureDiscard: [],
         year: scenario.startTurn,
         dealtYear: 0,
         turnsCompleted: 0,
@@ -826,7 +927,7 @@ export const returnSeaCaptains = (G: VQGame): void => {
 /** 6.3/20.7: Portuguese treasure row refresh and winter award. */
 export const refreshPortugueseTreasures = (G: VQGame, ctx: Ctx): void => {
     if (G.portugalEntered === true && (G.portugueseTreasures?.length ?? 0) === 0) {
-        G.portugueseTreasures = Array.from({length: 3}, () => shuffleTreasure(ctx));
+        refreshTreasureRow(G, ctx, 3, "portuguese");
     }
 };
 
@@ -858,6 +959,9 @@ export const awardPortugueseTreasures = (G: VQGame, ctx: Ctx): void => {
         G.powers[controller].treasures.push(treasure);
         pushLog(G, `${powerLabel(controller)} takes a Portuguese treasure.`);
     }
+    // Rule 20.7: "Additional Portuguese treasures are discarded."
+    const remaining = G.portugueseTreasures ?? [];
+    if (remaining.length > 0) discardTreasure(G, ...remaining);
     G.portugueseTreasures = [];
 };
 
@@ -905,7 +1009,6 @@ export const applyPendingCardDraws = (G: VQGame): Partial<Record<Power, number>>
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
     returnSeaCaptains(G);
     rebuildArmada(G);
-    refreshPortugueseTreasures(G, ctx);
     G.piracyActions = {};
     G.piracyZones = {};
     G.worldFortressesBuilt = 0;
@@ -979,32 +1082,32 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     delete G.treasureFleetDirection;
     G.patronizedThisTurn = [];
     G.cardDrawDone = [];
-    // Rule 6.3/8.4: "Always fill 4 of the boxes with treasures for Spain; fill
-    // the 5th box if Spain controls the Philippines."  The row is refreshed
-    // every Card Draw, independent of what Spain holds in hand (Winter 20.7
-    // empties the row into his hand, so the old hand-empty test skipped it).
+    // Rule 6.3: this is the treasure step, run in the printed order — mix the
+    // spent counters back into the pool first, then fill the Spanish row (4
+    // boxes, 5 once Spain holds the Philippines) and finally the 3 Portuguese
+    // boxes.  Rule 8.4 colony rolls come after and also draw from this pool.
     if (G.scenario !== "tutorial") {
-        const boxes = G.philippinesSpanish === true ? 5 : 4;
-        G.spanishTreasureRow = Array.from({length: boxes}, () => shuffleTreasure(ctx));
+        mixTreasureDiscards(G, ctx);
+        refreshTreasureRow(G, ctx, G.philippinesSpanish === true ? 5 : 4, "spanish");
+        refreshPortugueseTreasures(G, ctx);
     }
     resolveColonies(G, ctx);
 };
 
 /**
- * Draw one treasure from the official 30-counter mix.  The table keeps the
- * five low slots equal to 1-5 CP, so callers that used to roll 1d5 for a CP
- * value still receive the same value; the remaining 25 slots carry the rest of
- * the official distribution, including the four special treasures.
+ * Draw one treasure from the physical pool.  Kept as the public entry point for
+ * callers that only need a single counter; it is a thin wrapper over
+ * {@link drawTreasure}, so the pool really is exhaustible.
  */
-export const shuffleTreasure = (ctx: Ctx): Treasure => {
-    const slot = Math.max(1, Math.min(TREASURE_TABLE.length, die(ctx, TREASURE_TABLE.length)));
-    return TREASURE_TABLE[slot - 1];
-};
+export const shuffleTreasure = (G: VQGame, ctx: Ctx): Treasure | undefined => drawTreasure(G, ctx);
 
 export const addTreasure = (G: VQGame, ctx: Ctx, p: Power, n: number): void => {
     if (G.scenario === "tutorial") return;
     for (let i = 0; i < n; i++) {
-        G.powers[p].treasures.push(shuffleTreasure(ctx));
+        const treasure = drawTreasure(G, ctx);
+        // The pool can run dry during the turn; rule 6.3 only returns spent
+        // counters in the final Card Draw step, so the draw is simply lost.
+        if (treasure !== undefined) G.powers[p].treasures.push(treasure);
     }
 };
 
@@ -1014,6 +1117,9 @@ export const playTreasure = (G: VQGame, p: Power, index: number): number => {
         return 0;
     }
     G.powers[p].treasures.splice(index, 1);
+    // Rule 6.3: an expended counter goes to the revealed discard pile and only
+    // rejoins the pool in the final Card Draw step.
+    if (typeof t === "number") discardTreasure(G, t);
     G.powers[p].cp += treasureCp(t);
     G.powers[p].treasurePlayed = true;
     return treasureCp(t);
@@ -1595,6 +1701,7 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
     // hand are immediately discarded (rule 24.4 / Activated Major Deactivation).
     if (state.treasures.length > 0) {
         pushLog(G, `${powerLabel(power)} discards ${state.treasures.length} treasure(s).`);
+        discardTreasure(G, ...state.treasures);
         state.treasures = [];
     }
     state.cp = 0;
@@ -5769,7 +5876,14 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
                 }
             }
         }
-        G.powers[p].treasures = [];
+        // Rule 20.2: "Discard any treasures still remaining in a player's hand
+        // (that he was not able to spend during the Action Phase)."  They join
+        // the treasure discard pile and return to the pool at the next Card
+        // Draw's final step (rule 6.3).
+        if (G.powers[p].treasures.length > 0) {
+            discardTreasure(G, ...G.powers[p].treasures);
+            G.powers[p].treasures = [];
+        }
         G.powers[p].cp = 0;
         // Jilted compensation is immediate/current-turn only.
         delete G.powers[p].jiltedCp;

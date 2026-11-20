@@ -990,6 +990,21 @@ export interface VQGame {
     rebellionAreasThisImpulse?: {impulse: number; areas: string[]};
     /** Most recent fortress capture; gates Sack! (#44) and Spanish Fury (#46). */
     lastCapture?: {space: string; attacker: Power; impulse: number};
+    /**
+     * Rule 6.3: the physical pool of 30 treasure counters.  The pool is
+     * *exhaustible*: every draw removes one counter, and a spent counter goes to
+     * {@link treasureDiscard} instead of back into the pool.  Only the Card Draw
+     * phase's final step mixes the discard pile back in.  Older saves may lack
+     * the field; `treasurePoolFor` rebuilds it from the official mix.
+     */
+    treasurePool?: Treasure[];
+    /**
+     * Rule 6.3: "As treasures are spent during play, set them aside with their
+     * values revealed to form a discard pile of treasures expended that turn.
+     * These counters are mixed back into the treasure pool as part of the final
+     * step of the Card Draw Phase."  A 1 VP treasure never enters this pile.
+     */
+    treasureDiscard?: Treasure[];
     spanishTreasureRow?: Treasure[];
     /** Impulse in which a naval transport was already made (16.3). */
     navalTransportImpulse?: number;
@@ -1211,6 +1226,8 @@ export interface VQGame {
     discardCount?: number;
     handCounts?: Partial<Record<Power, number>>;
     treasureCounts?: Partial<Record<Power, number>>;
+    /** Public count of the face-down treasure pool (rule 6.3). */
+    treasurePoolCount?: number;
     /** Public count of each power's face-down Home cards (identities hidden). */
     homeCardSetAsideCounts?: Partial<Record<Power, number>>;
     springDone: Power[];

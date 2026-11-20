@@ -1644,6 +1644,8 @@ const zh_CN: Locale = {
             colonyNone: "无效果",
             colonyTreasure: "获得宝藏",
             colonyTreasureVp: "获得宝藏 + 1 弗吉尼亚敢死队 VP",
+            treasurePool: "宝藏池",
+            treasurePoolValue: "池中 {pool} 枚 / 本回合已弃置 {discard} 枚",
             cardDrawPhase: "Card Draw 阶段",
             turn: "回合",
             winterReturns: "冬季返营：选择目的地与部队",
