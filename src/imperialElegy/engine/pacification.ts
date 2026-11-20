@@ -38,8 +38,10 @@ export type PacificationProblem =
   /** 33.2.2: independent India takes no influence, marker or pacification. */
   | "independent-india"
   | "naval-box"
-  /** Influence is what 12.11 replaces with a control marker. */
+  /** An uncontrolled space needs the acting power's influence marker. */
   | "no-influence"
+  /** A controlled space's event marker is cleared by its controller only. */
+  | "not-controller"
   /** 12.11: "Players must have a land unit in a space to pacify it." */
   | "no-land-unit"
   /** 12.12.1: the rebel army has to be beaten first. */
@@ -85,9 +87,11 @@ const rebelPresent = (G: ImperialElegyState, space: SpaceId): boolean =>
  * 12.11 legality for `power`'s pacification action in `space`.
  *
  * The printed order is: the space must be pacifiable at all (land, not
- * independent India), the acting power's influence marker is what the
- * successful roll replaces, a land unit must stand there, a rebel army blocks
- * the roll until it is beaten, and the action runs once per space per impulse.
+ * independent India), then either the acting power's influence marker (an
+ * uncontrolled space) or its control marker (12.11.2's event markers in a
+ * player-controlled space) owns the roll, a land unit must stand there, a rebel
+ * army blocks the roll until it is beaten, and the action runs once per space
+ * per impulse.
  */
 export const pacificationProblem = (
   G: ImperialElegyState,
@@ -98,7 +102,14 @@ export const pacificationProblem = (
   if (isIndependentIndia(G, space)) return "independent-india";
   if (isNavalBox(space)) return "naval-box";
   const state = G.spaces[space];
-  if (state.influence !== power) return "no-influence";
+  if (state.control !== null && state.control !== undefined) {
+    // 12.11.2: a marker placed in a player-controlled space ("local tribes
+    // rebelling against colonial rule") is cleared by that controller, not by
+    // an influence marker the controller does not have.
+    if (state.control !== power) return "not-controller";
+  } else if (state.influence !== power) {
+    return "no-influence";
+  }
   // 12.11: a land unit must be in the space.  Any of the actor's own land
   // units counts; an allied minor's army does not pacify on its own.
   if (!landUnitsIn(G, space).some((unit) => unit.owner === power && isArmyKind(unit.kind))) {
@@ -200,13 +211,29 @@ export const attemptPacification = (
   const modifier = pacificationModifier(G, power, space);
   const roll =
     die(ctx, 6) + die(ctx, 6) + value + (hasAdjacentNaval(G, power, space) ? 1 : 0) + modifier.drm;
+  const target = pacificationTarget(G, space);
   notePacificationAttempt(G, power, space);
-  if (roll >= 10) {
-    setSpaceControl(G, space, power, {clearInfluence: true});
+  if (roll >= target) {
+    // An uncontrolled space becomes controlled; an event marker in a space the
+    // power already controls simply goes away (12.11.2).
+    if (state.control !== power) setSpaceControl(G, space, power, {clearInfluence: true});
     state.pacification = 0;
-    log(G, power, "pacified", {space, roll, cost});
+    // 12.11.2: "Remove the counter once the space is pacified."
+    if (G.persistent?.goe === space) delete G.persistent.goe;
+    if (G.persistent?.boers === space) delete G.persistent.boers;
+    log(G, power, "pacified", {space, roll, cost, target});
   } else {
     state.pacification = value + 1;
-    log(G, power, "pacificationFailed", {space, roll, cost});
+    log(G, power, "pacificationFailed", {space, roll, cost, target});
   }
+};
+
+/**
+ * 12.11.2's two special counters raise the printed 10+ target:
+ * Graveyard of Empires is pacified on 12+, the Boers on 11+.
+ */
+export const pacificationTarget = (G: ImperialElegyState, space: SpaceId): number => {
+  if (G.persistent?.goe === space) return 12;
+  if (G.persistent?.boers === space) return 11;
+  return 10;
 };

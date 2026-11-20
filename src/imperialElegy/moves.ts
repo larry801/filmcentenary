@@ -1993,7 +1993,6 @@ export const pacify = (
   return undefined;
 };
 
-/** The printed 12.10 roll itself, after the CP and any A65 window are paid. */
 /**
  * 12.1 Construct Fort: "1–2 CP; fort level = CP spent, max 3 forts per player,
  * a fort can be upgraded for 1 CP (not to level 3)."

@@ -184,18 +184,22 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   never past level 2 — all four rows share the move's gate, and 20.1 offers only
   your own forts to protect.
 - **12.11 pacification is complete.** One shared gate
-  (`engine/pacification.ts#pacificationProblem`) requires the acting power's own
-  influence marker (what the success replaces), one of its land units in the
-  space, no rebel army (12.12.1: "it must first be eliminated in a land battle
-  before a pacification roll can be attempted") and the printed once-per-space,
-  **per impulse** limit — the old `pacified_<space>` flag was permanent, so one
-  failed roll locked a space for the rest of the match. A65's marker mode is
-  the printed pre-roll window; its *rebel* branch is a separate normal-event
-  play that makes no roll. The marker lifecycle is reconciled at the impulse
-  boundary (`rules.ts#reconcilePacificationMarkers`): a land unit entering an
+  (`engine/pacification.ts#pacificationProblem`) requires either the acting
+  power's own influence marker (an uncontrolled space, which the success
+  replaces with control) or its control marker (12.11.2's event marker in a
+  player-controlled space), one of its land units in the space, no rebel army
+  (12.12.1: "it must first be eliminated in a land battle before a pacification
+  roll can be attempted") and the printed once-per-space, **per impulse** limit
+  — the old `pacified_<space>` flag was permanent, so one failed roll locked a
+  space for the rest of the match. A65's marker mode is the printed pre-roll
+  window; its *rebel* branch is a separate normal-event play that makes no roll.
+  The marker lifecycle is reconciled at the impulse boundary
+  (`rules.ts#reconcilePacificationMarkers`): a land unit entering an
   uncontrolled space places the printed 0 marker (2 in a naval base), and the
   marker goes when the last land unit leaves. Controlled spaces keep their
-  event markers.
+  event markers, and their controller now clears them (12.11.2). The two
+  special counters use their printed targets in `pacificationTarget`:
+  Graveyard of Empires on 12+ and the Boers on 11+; success removes the counter.
 - **15.2 / 27.5's action lists are enforced.** `engine/phaseActions.ts` is the
   single gate: 12.1's peacetime actions (recruit, fleet, refit, influence,
   diplomacy, minor alliance, break alliance, EF, pacification, fort,
