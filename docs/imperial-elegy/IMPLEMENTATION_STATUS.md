@@ -1,5 +1,30 @@
 # Imperial Elegy — implementation status
 
+## Fixed: rebels did not reduce keys, and a cleared rebellion never ended (2026-11-21)
+
+21.1 prints *"While a space contains rebel units it cannot be controlled. When
+rebel armies are placed, decrease the controlling player's keys by the
+appropriate amount … until the rebels are eliminated."*  21.0 adds *"If a rebel
+army under a WoI marker is ever eliminated, the WoI marker is also removed, and
+the player regains control of the space."*  Neither clause was live:
+
+- `recomputeTracks` counted a rebel-held space's key normally; only flashpoint
+  domination skipped it.  The Sepoy Mutiny therefore did not take India's
+  double colonial key (or its card) away.
+- `removeUnit` deleted the rebel counter but left its id in
+  `SpaceState.rebellion.rebels` and left the WoI marker in place, so
+  `recomputeTracks`/flashpoints kept treating the space as in rebellion forever.
+
+`recomputeTracks` now skips a space whose actual unit list contains a rebel army
+(so a stale id cannot suppress a key either), and `removeUnit` drops the rebel
+from the rebellion record and clears the WoI marker once no rebel army remains.
+The control marker itself is left in place, which matches the engine's
+representation of the previous controller; key counting resumes immediately.
+
+**Coverage:** `rebelElimination.test.ts` (2 — the last rebel removes the marker
+and restores India's key, and a second rebel keeps the WoI alive).  `npx tsc
+--noEmit` clean; the India/GW-rebel/end-phase/nationality suites pass.
+
 ## Fixed: Liberal Reforms' CP still built minor-ally armies (2026-11-21)
 
 A16 prints *"The CP from this card cannot be used to build new armies."*  The

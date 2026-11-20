@@ -204,8 +204,21 @@ export const removeUnit = (G: ImperialElegyState, unitId: string): void => {
     const box = (G.nonPlayerBuildBox ??= initialNonPlayerBuildBox());
     box.italy[unit.kind] += 1;
   }
-  if (unit.space && G.spaces[unit.space]) {
-    G.spaces[unit.space].units = G.spaces[unit.space].units.filter((id) => id !== unitId);
+  const space = unit.space;
+  if (space && G.spaces[space]) {
+    G.spaces[space].units = G.spaces[space].units.filter((id) => id !== unitId);
+    // 21.0: "If a rebel army under a WoI marker is ever eliminated, the WoI
+    // marker is also removed, and the player regains control of the space."
+    // The rebellion record carries the WoI step and its rebel ids; leaving a
+    // stale id behind would keep the key penalty and the WoI alive forever.
+    if (unit.kind === "rebelArmy") {
+      const state = G.spaces[space];
+      if (state.rebellion) {
+        state.rebellion.rebels = state.rebellion.rebels.filter((id) => id !== unitId);
+      }
+      const otherRebels = state.units.some((id) => G.units[id]?.kind === "rebelArmy");
+      if (!otherRebels) state.rebellion = null;
+    }
   }
   delete G.units[unitId];
 };
