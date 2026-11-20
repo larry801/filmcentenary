@@ -2479,6 +2479,30 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // A25 Divide and Conquer: the card chooses a space instead of defaulting.
+  divideAndConquer: (entry, locale) => {
+    const mode = str(entry.args?.mode);
+    const where = spaceName(str(entry.args?.space), locale);
+    if (mode === "egypt") {
+      return withActor(
+        entry,
+        locale,
+        "used Divide and Conquer to eliminate the Egyptian army; all Egyptian spaces reverted to Ottoman control.",
+        "使用“分而治之”消灭埃及军队；所有埃及空间回归奥斯曼控制。",
+      );
+    }
+    return withActor(
+      entry,
+      locale,
+      mode === "pacify"
+        ? `used Divide and Conquer to add 2 to the pacification value in ${where} and roll.`
+        : `used Divide and Conquer to eliminate the rebels in ${where} and attempt pacification.`,
+      mode === "pacify"
+        ? `使用“分而治之”在${where}增加 2 点绥靖值并掷骰。`
+        : `使用“分而治之”消灭${where}的叛军并尝试绥靖。`,
+    );
+  },
+
   // OT-11 Modernization: the 12.13.1 offer round.
   modernizationOffered: (entry, locale) => {
     const card = cardLabel(entry.args?.card, locale);

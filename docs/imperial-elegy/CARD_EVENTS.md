@@ -604,18 +604,19 @@ card id / number in a test file vs. handler name only.
 修复轮次前：**91 / 122** 有直接覆盖，**24 张零信号**。修复轮次后
 （`cardEventDefects.test.ts` 新增 45 个断言）：
 
-- **100 / 122** 有直接覆盖。
+- **101 / 122** 有直接覆盖。
 - **8** 只有 handler 级覆盖。
-- **14 张零信号**（既无 id 也无 handler 提及）：
+- **13 张零信号**（既无 id 也无 handler 提及）：
 
 ```
-A014 A016 A022 A025 A033 A042 A050 A086 A090 A097
+A014 A016 A022 A033 A042 A050 A086 A090 A097
 H-GE-2 H-FR-6 H-OT-12 H-RU-9
 ```
 
 修复前零覆盖的牌里，A080/A091（§3.3/§3.4）、A032/A073/A107/A109/A048/A045/
 A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
-已全部进入新套件。剩余 14 张是没有已知缺陷的牌，建议作为下一步补测目标；
+已全部进入新套件；A025/A037 在 2026-11-21 的分支补齐了各自的印刷空间选择与
+绥靖掷骰。剩余 13 张是没有已知缺陷的牌，建议作为下一步补测目标；
 其中 A050（掷骰三档）与 A097（WoI +1 → 独立）逻辑分支最多，优先级最高。
 
 `fuzz.test.ts` 的“每张行动牌/本国牌/大战牌打出后不抛错且能答完 20 个决策”是
@@ -680,7 +681,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A022` | New Administration | event | 2 | `newAdministration` | choice | **no** |
 | `IE-A023` | New Rifles | response | 3 | `warLandDrm` | — | yes |
 | `IE-A024` | New Artillery | response | 3 | `warLandDrm` | — | yes |
-| `IE-A025` | Divide and Conquer | event | 2 | `divideAndConquer` | choice | **no** |
+| `IE-A025` | Divide and Conquer | event | 2 | `divideAndConquer` | choice | yes |
 | `IE-A026` | Chinese Intervention | event | 2 | `chineseIntervention` | choice | yes |
 | `IE-A027` | Foreign Investment | event | 2 | `foreignInvestment` | choice | yes |
 | `IE-A028` | The Influence of Sea Power | mandatory | 2 | `influenceSeaPower` | auto | yes |
