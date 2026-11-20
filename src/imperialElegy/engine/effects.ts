@@ -834,6 +834,9 @@ const gainMinorAlliance = (G: ImperialElegyState, actor: Power, space: SpaceId):
   state.diplomacy = null;
   state.ally = actor;
   log(G, actor, "minorAlliance", {space});
+  // 3.3.1 counts allied-minor naval units in Power Projection; refresh the
+  // cached track as soon as the alliance is live.
+  recomputeTracks(G);
   return true;
 };
 

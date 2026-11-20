@@ -190,6 +190,8 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   stacked on an army as 5.1.3 requires.
 - **H-FR-6 Aux Armes** takes French Intervention or Papal Influence from the
   discard and allows that card to be played immediately, once, as printed.
+- `minorAlliance` and event-driven `gainMinorAlliance` recompute the tracks at
+  once, so 3.3.1's allied-minor naval units reach Power Projection immediately.
 - **12.11 pacification is complete.** One shared gate
   (`engine/pacification.ts#pacificationProblem`) requires either the acting
   power's own influence marker (an uncontrolled space, which the success
