@@ -78,6 +78,7 @@ describe("A088 / UK-3 spendable colonial CP", () => {
     expect(buildEf(G, makeCtx([], seat("UK")), "london")).toBeUndefined();
     expect(freeColonialCp(G, "UK")).toBe(2);
     // Pacification needs the UK's own influence marker in the space.
+    G.spaces.egypt.control = null;
     G.spaces.egypt.influence = "UK";
     // 12.5's influence marker is not printed on these cards, so give the power
     // one colony it already influences and let the free CP pay its 1 CP cost.
