@@ -165,6 +165,7 @@ const startPacifyWithArmsTrade = (mode: "marker" | "rebel", dice: number[] = [3,
   clearHands(G);
   G.powers.GE.hand = ["IE-A065"];
   for (const space of Object.values(G.spaces)) space.pacification = 0;
+  G.spaces.dagestan.control = null;
   G.spaces.dagestan.influence = "GE";
   G.spaces.dagestan.pacification = 3;
   // 12.11 requires a land unit in the space to pacify it.
@@ -211,6 +212,7 @@ test("the rebel mode flips a reduced rebel to full strength and draws", () => {
   clearHands(G);
   G.powers.GE.hand = ["IE-A065"];
   for (const space of Object.values(G.spaces)) space.pacification = 0;
+  G.spaces.dagestan.control = null;
   G.spaces.dagestan.influence = "GE";
   const reduced = placeUnit(G, "REBEL:Poland", "rebelArmy", "dagestan", 1);
 
@@ -230,6 +232,7 @@ test("declining the card rolls the pacification as printed", () => {
   clearHands(G);
   G.powers.GE.hand = ["IE-A065"];
   for (const space of Object.values(G.spaces)) space.pacification = 0;
+  G.spaces.dagestan.control = null;
   G.spaces.dagestan.influence = "GE";
   G.spaces.dagestan.pacification = 0;
   // 12.11 requires a land unit in the space to pacify it.

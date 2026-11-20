@@ -394,6 +394,7 @@ describe("pacification cost (33.1 / 33.4)", () => {
   test("Continental Power charges AU 2 CP", () => {
     const G = fresh();
     startAction(G, "AU", 4);
+    G.spaces["bosnia-herzegovina"].control = null;
     G.spaces["bosnia-herzegovina"].influence = "AU";
     // 12.11 requires a land unit in the space to pacify it.
     placeUnit(G, "AU", "army", "bosnia-herzegovina", 2);
@@ -412,6 +413,7 @@ describe("pacification cost (33.1 / 33.4)", () => {
 
     const live = fresh();
     startAction(live, "GE", 4);
+    live.spaces["bosnia-herzegovina"].control = null;
     live.spaces["bosnia-herzegovina"].influence = "GE";
     placeUnit(live, "GE", "army", "bosnia-herzegovina", 2);
     expect(pacify(live, makeCtx([4, 4], seat("GE")), "bosnia-herzegovina")).toBeUndefined();
