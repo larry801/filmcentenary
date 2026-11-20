@@ -1,5 +1,55 @@
 # Imperial Elegy — implementation status
 
+## Fixed: the fort action had no placement rule, no level 2 and no upgrade (2026-11-20)
+
+Found by playing the 1850 campaign hotseat: GE spent 1 CP and built a level 1
+fort in **Vienna**, Austria's capital, which was controlled by AU and held an AU
+army.  The log read `fortBuilt {space: vienna, level: 1}`.
+
+`moves.ts#buildFort` checked the CP, the region, a once-per-decade flag, an
+existing fort and the three-fort cap, and nothing else.  Two printed clauses of
+12.1 were therefore unreachable, because the only UI entry point
+(`actionAvailability.ts`) called `buildFort(space, 1)` and the move refused every
+space that already held a fort:
+
+- **placement** — a fort now needs a European space the power controls or
+  occupies with one of its own land units.  The printed card that places a fort
+  outside a battle says "a friendly controlled space", and 20.1's benefit is
+  written for the player's own fortification;
+- **level = CP spent** — a new fort may be built at level 1 (1 CP) or level 2
+  (2 CP), so the Orders list offers a "Build level 2 fort" row;
+- **the 1 CP upgrade** — a fort of your own is upgraded one level for 1 CP and
+  never past level 2 (a third attempt is refused), logged as `fortUpgraded`.
+
+The missing upgrade was not cosmetic: 20.2 degrades every unprotected fort by one
+level and removes it at level 0, so a fort built with the only available 1 CP was
+deleted in the same turn's end phase.  A level 2 fort now survives that step.
+
+**20.1 Militarism offered every fort on the board.**  `militarismOptions` did not
+filter by owner ("the printed text does not restrict which fort may be
+protected"), so a seat's whole Militarism step could go to an opponent's fort —
+and the Rule 34 bot took it every time: in a seeded campaign's turn-1 end phase
+GE, UK, RU and OT all chose `fort:berlin`, a fort only GE owned.  The step now
+offers the power's own forts only.
+
+### Two smaller defects found in the same session
+
+- **12.1 pacification price.**  The Orders row passed no `cost`, so it fell back
+  to `ACTION_COSTS.pacify = 1` and displayed "Pacify · 1 CP" for GE (not unified)
+  and AU, while `moves.pacify` charges `pacificationCost()` = 2.  The row now
+  quotes the cost the move charges, including the A065 rows.
+- **A printed decline and the generic one.**  13.4.2's aid search prints its own
+  "decline" option, and `PendingPanel` also appended the panel's generic
+  拒绝/Decline button, so the seat saw two identical decline buttons.  One
+  `pendingDeclinesItself` predicate now hides the generic one when the decision
+  already has a `decline`/`refuse` option.
+
+Coverage: `fortConstruction.test.ts` (11 — foreign capital, neutral minor,
+controlled home key, occupied-but-foreign space, level 1 and 2 builds, the 1 CP
+upgrade, the level 2 ceiling, a foreign fort, the three Orders rows and 20.1's
+own-fort filter) and `pacificationAndDecline.test.ts` (4 — AU's 2 CP row against
+the move's wallet, unified/ununified GE, 13.4.2's single decline).
+
 ## Fixed: three printed events that settled nothing (2026-11-20)
 
 Reported as "帝国挽歌大部分特殊事件效果都没实现 … 干练外交官 俄土战争 现代化

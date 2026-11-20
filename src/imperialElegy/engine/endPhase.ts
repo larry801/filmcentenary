@@ -86,11 +86,13 @@ export interface MilitarismOption {
  * the recruit move makes.  A reserve step needs room in the holding box and a
  * reserve counter.
  *
- * Defensive simplification: the printed text does not restrict which fort may
- * be protected, so every non-Indian fort of level 1-2 is offered (the Indian
- * fort never degrades, so protecting it would be a no-op).  The printed rule
- * gives no "skip" choice: it is only present when no benefit is legal, so a
- * player who can take a step must take one.
+ * The benefit is the power's own fort: 24.1's "prevent a fort from degrading"
+ * is written for the player's own fortifications, and offering every fort on
+ * the board let a seat spend its whole Militarism step protecting an opponent's
+ * (the Rule 34 bot reliably did, picking the first fort in map order).  The
+ * Indian fort never degrades, so protecting it would be a no-op.  The printed
+ * rule gives no "skip" choice: it is only present when no benefit is legal, so
+ * a player who can take a step must take one.
  */
 export const militarismOptions = (G: ImperialElegyState, power: Power): MilitarismOption[] => {
   const options: MilitarismOption[] = [];
@@ -132,7 +134,7 @@ export const militarismOptions = (G: ImperialElegyState, power: Power): Militari
   // Fort protection: levels 1-2 degrade in 20.2; a level 3 fort cannot be protected.
   for (const space of spaces) {
     const fort = G.spaces[space]?.fort;
-    if (!fort || fort.indian === true || fort.level > 2) continue;
+    if (!fort || fort.power !== power || fort.indian === true || fort.level > 2) continue;
     options.push({
       id: `fort:${space}`,
       benefit: "fort",

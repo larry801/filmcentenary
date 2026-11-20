@@ -1532,6 +1532,12 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `built a level ${level} fort in ${space}.`, `在${space}建造 ${level} 级要塞。`);
   },
 
+  fortUpgraded: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const level = num(entry.args?.level);
+    return withActor(entry, locale, `upgraded the fort in ${space} to level ${level}.`, `将${space}的要塞升级为 ${level} 级。`);
+  },
+
   indianFortPlaced: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     const level = num(entry.args?.level);

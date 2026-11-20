@@ -9,6 +9,16 @@ import {ConfirmButton} from "./ConfirmButton";
 import {ScorePanel} from "./ScorePanel";
 import {pendingOptionSafety} from "./pendingSafety";
 
+/**
+ * A decision that prints its own decline option (13.4.2's aid search, the
+ * treaty and war windows) must not also be given the panel's generic one: the
+ * seat would see two identical 拒绝 buttons whose only difference is which
+ * move they dispatch.
+ */
+export const pendingDeclinesItself = (
+  pending: {options?: readonly {id: string}[]} | null | undefined,
+): boolean => (pending?.options ?? []).some((option) => option.id === "decline" || option.id === "refuse");
+
 export interface PendingPanelProps {
   G: ImperialElegyState;
   pending: ImperialElegyState["pending"];

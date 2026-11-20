@@ -1968,15 +1968,42 @@ const rollPacification = (G: ImperialElegyState, ctx: Ctx, power: Power, space: 
 const hasAdjacentNaval = (G: ImperialElegyState, power: Power, space: SpaceId): boolean =>
   (SPACES[space]?.ports ?? []).some((box) => navalUnitsIn(G, box).some((u) => u.owner === power));
 
+/**
+ * 12.1 Construct Fort: "1–2 CP; fort level = CP spent, max 3 forts per player,
+ * a fort can be upgraded for 1 CP (not to level 3)."
+ *
+ * Placement follows the printed card that places a fort without a battle
+ * ("a friendly controlled space"): a new fort needs a European space the acting
+ * power controls or occupies with one of its own land units.  That gate is what
+ * keeps a great power from dropping a fort into another power's capital or an
+ * unallied minor's home space, which the move previously allowed.
+ *
+ * A space that already holds a fort is either the acting power's (the action is
+ * then the printed 1 CP upgrade, capped at level 2) or someone else's (refused).
+ */
 export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level: 1 | 2 = 1): string | void => {
   const playerID = ctx.playerID ?? null;
-  const power = requireCp(G, ctx, playerID, level);
+  const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (G.powers[power].flags[`fort_${space}`]) return INVALID_MOVE;
   if (SPACES[space]?.region !== "europe") return INVALID_MOVE;
-  if (G.spaces[space].fort) return INVALID_MOVE;
+  const existing = G.spaces[space]?.fort ?? null;
+  if (existing !== null) {
+    if (existing.power !== power) return INVALID_MOVE;
+    // 12.1's upgrade: 1 CP, one level, never to level 3.
+    if (level !== 1 || existing.level >= 2) return INVALID_MOVE;
+    const paid = requireCp(G, ctx, playerID, 1);
+    if (paid === INVALID_MOVE) return INVALID_MOVE;
+    existing.level = (existing.level + 1) as 1 | 2;
+    log(G, power, "fortUpgraded", {space, level: existing.level});
+    return undefined;
+  }
+  if (G.powers[power].flags[`fort_${space}`]) return INVALID_MOVE;
+  const occupied = landUnitsIn(G, space).some((unit) => unit.owner === power);
+  if (G.spaces[space]?.control !== power && !occupied) return INVALID_MOVE;
   const forts = Object.values(G.spaces).filter((s) => s.fort?.power === power).length;
   if (forts >= 3) return INVALID_MOVE;
+  const paid = requireCp(G, ctx, playerID, level);
+  if (paid === INVALID_MOVE) return INVALID_MOVE;
   G.spaces[space].fort = {power, level};
   G.powers[power].flags[`fort_${space}`] = true;
   log(G, power, "fortBuilt", {space, level});

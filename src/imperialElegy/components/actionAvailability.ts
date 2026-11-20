@@ -15,7 +15,8 @@
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  effectiveKeyType, efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower, ownsKey,
+  effectiveKeyType, efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower,
+  landUnitsIn, ownsKey,
 } from "../engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -48,7 +49,8 @@ import type {RecruitDecision} from "../engine/characteristics";
 export type ActionId =
   | "recruitArmy" | "recruitCw" | "recruitReserve" | "recruitEc" | "polishArmy" | "polishReserve"
   | "minorArmy" | "minorSquadron" | "minorDreadnought"
-  | "buildSquadron" | "buildDreadnought" | "refitFleet" | "buildFort" | "buildEf" | "moveEf"
+  | "buildSquadron" | "buildDreadnought" | "refitFleet" | "buildFort" | "buildFort2" | "upgradeFort"
+  | "buildEf" | "moveEf"
   | "influence" | "diplomacy" | "minorAlliance" | "removeInfluence" | "breakAlliance" | "pacify"
   | "pacifyA065Marker" | "pacifyA065Rebel"
   | "move" | "gwNaval" | "gwMarch" | "gwRail" | "refit" | "rapidDeploy"
@@ -72,6 +74,8 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   buildDreadnought: 3,
   refitFleet: 1,
   buildFort: 1,
+  buildFort2: 2,
+  upgradeFort: 1,
   buildEf: 2,
   moveEf: 1,
   influence: 1,
@@ -102,7 +106,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
 export const ACTION_COST_ORDER: readonly ActionId[] = [
   "recruitArmy", "recruitReserve", "recruitEc", "recruitCw", "polishArmy", "polishReserve",
   "minorArmy", "minorSquadron", "minorDreadnought",
-  "buildSquadron", "buildDreadnought", "refitFleet", "buildFort", "buildEf", "moveEf",
+  "buildSquadron", "buildDreadnought", "refitFleet", "buildFort", "buildFort2", "upgradeFort", "buildEf", "moveEf",
   "influence", "diplomacy", "pacify", "removeInfluence", "minorAlliance", "breakAlliance",
   "move", "deployReserves", "landBattle", "navalBattle", "gwDraft", "gwDeploy", "gwElite",
   "refit", "gwMarch", "gwRail", "gwNaval", "rapidDeploy",
@@ -122,6 +126,8 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   buildDreadnought: {en: "Build dreadnought", zh: "建造无畏舰"},
   refitFleet: {en: "Refit fleet", zh: "整补舰队"},
   buildFort: {en: "Build fort", zh: "建造要塞"},
+  buildFort2: {en: "Build level 2 fort", zh: "建造 2 级要塞"},
+  upgradeFort: {en: "Upgrade fort", zh: "升级要塞"},
   buildEf: {en: "Build expeditionary force", zh: "建造远征军"},
   moveEf: {en: "Move expeditionary force here", zh: "远征军移至此处"},
   influence: {en: "Place influence", zh: "放置影响标记"},
@@ -504,19 +510,56 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       });
     }
     void homeKey;
-    const fortPresent = G.spaces[space]?.fort !== undefined && G.spaces[space]?.fort !== null;
+    // 12.1's fort action: 1–2 CP for a new fort (its level is the CP spent), a
+    // 1 CP upgrade of your own fort (never to level 3), and the printed
+    // placement — a European space you control or occupy with a land unit.
+    // Every row reads the same gate `buildFort` enforces.
+    const existingFort = G.spaces[space]?.fort ?? null;
     const fortThisDecade = me.flags[`fort_${space}`] !== undefined;
+    const fortMobile = landUnitsIn(G, space).some((unit) => unit.owner === viewer);
+    const fortPlaceable = G.spaces[space]?.control === viewer || fortMobile;
     // A space id the map does not know has no region: treat it as a plain
     // refusal rather than crashing the whole Orders list.
-    const fortReason = spaceDef === undefined ? bi(locale, "Fortresses can only be built on the map.", "只能在地图上的空间建造要塞。")
+    const fortPlaceReason = spaceDef === undefined ? bi(locale, "Fortresses can only be built on the map.", "只能在地图上的空间建造要塞。")
       : spaceDef.region !== "europe" ? bi(locale, "Forts can only be built in Europe.", "要塞只能在欧洲建造。")
-      : fortPresent ? bi(locale, "This space already has a fort.", "此空间已有要塞。")
+        : !fortPlaceable ? bi(locale, "A new fort needs a space you control or occupy with a land unit.", "新建要塞需位于你控制、或驻有你陆军单位的空间。")
+          : null;
+    const fortOwn = existingFort !== null && existingFort.power === viewer;
+    const fortUpgradable = fortOwn && existingFort.level < 2;
+    const fortBuildReason = fortPlaceReason
+      ?? (existingFort !== null
+        ? fortOwn
+          ? bi(locale, "This space already holds your fort; upgrade it for 1 CP.", "此空间已有你的要塞：可花 1 CP 升级。")
+          : bi(locale, "This space already has another power's fort.", "此空间已有其他势力的要塞。")
         : myForts >= 3 ? bi(locale, "Fort limit reached (3).", "已达要塞上限（3座）。")
-          : fortThisDecade ? bi(locale, "A fort was built here this decade.", "本年代已在此建造要塞。") : null;
-    const fortEnabled = fortReason === null && canSpend(ACTION_COSTS.buildFort);
+          : fortThisDecade ? bi(locale, "A fort was built here this decade.", "本年代已在此建造要塞。") : null);
+    const fortEnabled = fortBuildReason === null && canSpend(ACTION_COSTS.buildFort);
     push({
       id: "buildFort", group: "build", enabled: fortEnabled,
-      reason: fortEnabled ? undefined : fortReason ?? spendReason(ACTION_COSTS.buildFort),
+      reason: fortEnabled ? undefined : fortBuildReason ?? spendReason(ACTION_COSTS.buildFort),
+      run: () => doAction(() => moves.buildFort(space, 1)),
+    });
+    const fort2Enabled = fortBuildReason === null && !fortOwn && canSpend(ACTION_COSTS.buildFort2);
+    push({
+      id: "buildFort2", group: "build", enabled: fort2Enabled,
+      reason: fort2Enabled
+        ? undefined
+        : fortBuildReason
+          ?? (fortOwn
+            ? bi(locale, "A level 2 fort is a new fort only; upgrade instead.", "2 级要塞只能新建；已有要塞请用升级。")
+            : spendReason(ACTION_COSTS.buildFort2)),
+      run: () => doAction(() => moves.buildFort(space, 2)),
+    });
+    const upgradeEnabled = fortUpgradable && canSpend(ACTION_COSTS.upgradeFort);
+    push({
+      id: "upgradeFort", group: "build", enabled: upgradeEnabled,
+      reason: upgradeEnabled
+        ? undefined
+        : !fortOwn
+          ? bi(locale, "No fort of yours here to upgrade.", "此处没有你的要塞可升级。")
+          : fortUpgradable
+            ? spendReason(ACTION_COSTS.upgradeFort)
+            : bi(locale, "A fort cannot be upgraded past level 2.", "要塞最高只能到 2 级。"),
       run: () => doAction(() => moves.buildFort(space, 1)),
     });
     // 12.10: the EF teleports, but only into a printed destination.  The row
@@ -606,7 +649,9 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
         : me.flags[`pacified_${space}`] !== undefined ? bi(locale, "Pacified here this decade already.", "本年代已在此绥靖。") : null;
     const pacifyEnabled = pacifyReason === null && canSpendColonial(pacifyCost);
     push({
-      id: "pacify", group: "diplomacy", enabled: pacifyEnabled,
+      // 12.1's pacification cost is not flat: GE pays 2 CP until it unifies and
+      // AU always pays 2 CP, so the row quotes the same figure the move charges.
+      id: "pacify", group: "diplomacy", enabled: pacifyEnabled, cost: pacifyCost,
       reason: pacifyEnabled ? undefined : pacifyReason ?? colonialSpendReason(pacifyCost),
       run: () => doAction(() => moves.pacify(space)),
     });
@@ -615,11 +660,11 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // still letting its holder use it at the printed moment.
     if (pacifyEnabled && me.hand.includes("IE-A065")) {
       push({
-        id: "pacifyA065Marker", group: "diplomacy", enabled: true,
+        id: "pacifyA065Marker", group: "diplomacy", enabled: true, cost: pacifyCost,
         run: () => doAction(() => moves.pacify(space, "marker")),
       });
       push({
-        id: "pacifyA065Rebel", group: "diplomacy", enabled: true,
+        id: "pacifyA065Rebel", group: "diplomacy", enabled: true, cost: pacifyCost,
         run: () => doAction(() => moves.pacify(space, "rebel")),
       });
     }
