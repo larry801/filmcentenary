@@ -783,6 +783,11 @@ export interface VQGame {
      */
     pendingInterceptionOrder?: {power: Power; defender: Power; moveFrom: string; to: string; destinationHadEnemy: boolean};
     interceptedThisImpulse?: {impulse: number; spaces: string[]};
+    /**
+     * Rule 13.3: the power whose interception succeeded into a space, keyed by
+     * that space.  Only that power is barred from avoiding battle there.
+     */
+    interceptedByThisMove?: Partial<Record<string, Power>>;
     pendingBattle?: {
         phase: "field" | "naval" | "assault";
         location: string;
@@ -950,6 +955,12 @@ export interface VQGame {
     /** Piracy actions and targeted zones this turn. */
     piracyActions?: Partial<Record<Power, number>>;
     piracyZones?: Partial<Record<string, Power[]>>;
+    /**
+     * Rule 16.5: when a Spanish fortress is connected to the ocean zone, Spain
+     * withholds one treasure from a world-piracy draw.  Stored as the index into
+     * `powers.spain.treasures`.
+     */
+    worldPiracyWithholds?: Partial<Record<Power, number>>;
     worldFortressesBuilt?: number;
     /** Spanish Armada: strength 2/4/6/8 and current port or sea zone. */
     armada?: {strength: 2 | 4 | 6 | 8; location: string; land?: LandStack};

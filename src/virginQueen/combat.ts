@@ -394,6 +394,7 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
         // discard or battle-card mutation if a client submits it directly.
         if (id === "vq-039" && battle.treachery) return INVALID_MOVE;
         removeCardFromHand(G, battle.responding, id);
+        // `asEvent: true` also records the play for the rule 6.2 retrieval bar.
         discardCard(G, battle.responding, id, true);
         battle.cards[battle.responding] ??= [];
         battle.cards[battle.responding]!.push(id);

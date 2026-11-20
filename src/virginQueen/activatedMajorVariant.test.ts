@@ -47,6 +47,8 @@ const diplomacyContext = (playerID: string, events: Events): Ctx => ({
 const warGame = (): VQGame => {
     const G = setupGame(baseContext());
     G.activePower = "spain";
+    // Spain→HRE costs 4 CP on the printed Diplomatic Status Chart (rule 9.4).
+    G.powers.spain.treasures = [4];
     return G;
 };
 
@@ -107,7 +109,8 @@ describe("Activated Major Power control after a declaration of war", () => {
         expect(activateMajor(G, diplomacyContext("0", eventsMock()), "hre", "spain")).toBe(true);
         expect(ownerOf(G, "hre")).toBe("0");
         G.activePower = "england";
-        // War declarations are paid with cards or treasures (rule 9.4).
+        // War declarations are paid with cards or treasures (rule 9.4);
+        // England→HRE costs 3 CP on the printed Diplomatic Status Chart.
         G.powers.england.treasures = [3];
 
         expect(declareWar(G, diplomacyContext("1", eventsMock()), {target: "hre"})).toBeUndefined();

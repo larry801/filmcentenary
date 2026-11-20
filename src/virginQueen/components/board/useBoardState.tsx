@@ -101,6 +101,8 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     };
     const [expeditionCaptain, setExpeditionCaptain] = React.useState("");
     const [expeditionHasColony, setExpeditionHasColony] = React.useState(false);
+    /** Rule 17.4: non-Ottoman expeditions start at the North Atlantic or Guinea Coast. */
+    const [expeditionZone, setExpeditionZone] = React.useState("northAtlantic");
     const [foreignArmySize, setForeignArmySize] = React.useState(3);
     const [foreignWarUnits, setForeignWarUnits] = React.useState<{space: string; kind: keyof LandStack}[]>([]);
     const [foreignWarLeader, setForeignWarLeader] = React.useState("");
@@ -374,6 +376,22 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     React.useEffect(() => {setSelectedCard(undefined);}, [me, playerID]);
 
     React.useEffect(() => {
+        // Hotseat: MUI dialogs/drawers/snackbars portal to document.body, so
+        // hiding an inactive seat's panel with `display:none` does not hide a
+        // confirmation or card drawer left open on that seat.  Clear every
+        // transient overlay when the device user switches seats, otherwise a
+        // modal describing another seat's action keeps eating input.
+        setConfirmAction(null);
+        setSelectedCard(undefined);
+        setFrom(null);
+        setTransportZones([]);
+        setSheetOpen(false);
+        setFormationSheetOpen(false);
+        setActionNotice(undefined);
+        setMode("inspect");
+    }, [me]);
+
+    React.useEffect(() => {
         // Hotseat boards stay mounted while other seats finish the game.  A
         // pass/end-impulse confirmation left open on an earlier tab would
         // otherwise sit on top of the game-over panel and look clickable.
@@ -548,6 +566,11 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         G.pendingReliefSplit?.power ?? G.pendingForeignWar?.power ??
         cityRebelsOwner ??
         G.pendingMutiny?.owner ??
+        // The Spring choices are mandatory too, so name the tab that owns them.
+        (G.pendingCatholicLeague !== undefined ? "spain" as Power : undefined) ??
+        (G.pendingHreReplacement !== undefined ? "hre" as Power : undefined) ??
+        (G.orangeArrivalPending ? "protestant" as Power : undefined) ??
+        G.navalLeaderArrivals?.[0]?.power ??
         (G.pendingAbjuration !== undefined ? "protestant" as Power : undefined);
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
     // Winter attrition choices are mandatory but are not `pending*` responses,
@@ -599,7 +622,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         polishElectionBids, armyMutinySelection, staffordSelection, germanRecruitmentSelection, setEventTarget,
         setEspionageEventTarget, setHolyLeagueEventTarget, setMenendezEventTarget, setPolishElectionBids,
         setArmyMutinySelection, setStaffordSelection, setGermanRecruitmentSelection, setEventBranches, setEventBranchParam,
-        openCard, expeditionCaptain, setExpeditionCaptain, expeditionHasColony, setExpeditionHasColony, foreignArmySize, setForeignArmySize,
+        openCard, expeditionCaptain, setExpeditionCaptain, expeditionHasColony, setExpeditionHasColony, expeditionZone, setExpeditionZone, foreignArmySize, setForeignArmySize,
         foreignWarUnits, setForeignWarUnits, foreignWarLeader, setForeignWarLeader, gregorianTarget, setGregorianTarget,
         selectedActionResponder, setSelectedActionResponder, selectedAbjurationPower, setSelectedAbjurationPower,
         confirmAction, setConfirmAction, sheetOpen, setSheetOpen, formationSheetOpen, setFormationSheetOpen, viewPower, setViewPower,

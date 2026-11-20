@@ -13,7 +13,7 @@ import i18n from "../../../../constant/i18n";
 import {powerName, landCount, VQGame} from "../../../constant/general";
 import {LEADER_BY_ID} from "../../../constant/leaders";
 import {SPACES} from "../../../mapData";
-import {landNeighbors} from "../../../util";
+import {continueTargets, landNeighbors} from "../../../util";
 import {ownerOf} from "../../../ownership";
 import {blockingPendingReason} from "../helpers";
 
@@ -77,7 +77,9 @@ export const ActionPhasePanel = () => {
                 {i18n.chain.vq.board.continueMarch}{i18n.chain.vq.punct.comma}{i18n.chain.vq.board.orReturn} {placeLabel(G.pendingContinue.origin)}{i18n.chain.vq.punct.period}
             </Typography>
             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap", mt: 0.5}}>
-                {landNeighbors(G.pendingContinue.space).map((neighbor) => {
+                {landNeighbors(G.pendingContinue.space)
+                    .filter((neighbor) => continueTargets(G, G.pendingContinue!).includes(neighbor.id))
+                    .map((neighbor) => {
                     // Rule 13.4: continuing costs 1 CP, or 2 CP across a pass.
                     // Pass crossings used to be filtered out entirely, which hid
                     // a legal (if expensive) continuation from the player.
@@ -147,7 +149,7 @@ export const ActionPhasePanel = () => {
                 <Button size="small" variant="outlined" onClick={() => (moves as unknown as {dragutFallsRoll: () => void}).dragutFallsRoll()}>
                     {i18n.chain.vq.actionUi.dragutFallsRoll}
                 </Button>}
-            {G.powers[me].cards.includes("vq-102") && G.espionage?.walsingham !== undefined &&
+            {myTurn && G.powers[me].cards.includes("vq-102") && G.espionage?.walsingham !== undefined &&
                 <Button size="small" variant="outlined" onClick={() => (moves as unknown as {cancelWalsingham: () => void}).cancelWalsingham()}>
                     {i18n.chain.vq.actionUi.staffordCancel}
                 </Button>}

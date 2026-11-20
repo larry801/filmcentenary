@@ -20,7 +20,11 @@ describe("Unrest in the Realm / Ruler Falls Ill", () => {
         const G = game();
         G.powers.france.cards = ["vq-025"];
         for (const id of ["istanbul", "edirne", "athens", "sofia"]) {
+            // Rule 12.4: "unoccupied" means no land units, no naval units and
+            // no leaders of any power, so the fixture must clear all three.
             G.spaces[id].land = {};
+            G.spaces[id].naval = {};
+            G.spaces[id].leaders = [];
             G.spaces[id].unrest = false;
         }
 
@@ -30,6 +34,27 @@ describe("Unrest in the Realm / Ruler Falls Ill", () => {
         expect(G.spaces.edirne.unrest).toBe(true);
         expect(G.spaces.athens.unrest).toBe(true);
         expect(G.spaces.sofia.unrest).toBe(false);
+    });
+
+    it("skips a home space that holds only a fleet or only a leader", () => {
+        const G = game();
+        G.powers.france.cards = ["vq-025"];
+        for (const space of SPACES.filter((def) => def.home === "ottoman")) {
+            G.spaces[space.id].land = {};
+            G.spaces[space.id].naval = {};
+            G.spaces[space.id].leaders = [];
+            G.spaces[space.id].unrest = false;
+        }
+        // Istanbul keeps a fleet; Edirne keeps only a leader.
+        G.spaces.istanbul.naval = {ottoman: {galley: 1, galleon: 0, racebuilt: 0, corsair: 0}};
+        G.spaces.edirne.leaders = ["mehmed"];
+        G.leaders.mehmed = {id: "mehmed", location: "edirne"};
+
+        expect(playCard(G, context(), {cardId: "vq-025", asEvent: true, target: "ottoman"})).toBeUndefined();
+
+        expect(G.spaces.istanbul.unrest).toBe(false);
+        expect(G.spaces.edirne.unrest).toBe(false);
+        expect(SPACES.filter((space) => space.home === "ottoman" && G.spaces[space.id].unrest)).toHaveLength(3);
     });
 
     it("places three unrest in Ottoman home spaces", () => {

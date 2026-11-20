@@ -9,6 +9,12 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
     }
     if (G.pendingWithdraw && move !== "chooseWithdraw") return "请先决定是否退入要塞。";
     if (G.pendingContinue && !["continueMove", "stopContinue"].includes(move)) return "请先完成撤退后的移动选择。";
+    // Rule 15.2: after a lost relief battle the relief power must choose how
+    // many units stay inside.  The choice is mandatory, so it cannot be left
+    // for a later phase by passing or ending the impulse.
+    if (G.pendingReliefSplit !== undefined && move !== "chooseReliefSplit") {
+        return "请先决定解围战败后留在城内的单位数。";
+    }
     if (G.pendingEspionage && move !== "chooseEspionage") return "请先完成当前谍报结算。";
     if (G.pendingCardEvent && move !== "chooseCardEvent") return "请先完成当前事件响应。";
     if (G.pendingRebelMove && move !== "chooseRebelMove") return "请先完成叛军移动。";
