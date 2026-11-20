@@ -1,5 +1,21 @@
 # Imperial Elegy — implementation status
 
+## Fixed: Liberal Reforms' CP still built minor-ally armies (2026-11-21)
+
+A16 prints *"The CP from this card cannot be used to build new armies."*  The
+own-power gate (`characteristics.ts#recruitmentLimits`) enforced
+`noBuildArmiesThisImpulse`, but the 12.2/12.4 minor-ally path
+(`minorBuildDecision`) never read it.  A GE player could therefore play Liberal
+Reforms and spend its CP on a Bavarian or Serbian army.
+
+`minorBuildDecision` now refuses a `minorArmy` build when the controlling
+power's `noBuildArmiesThisImpulse` flag is set, with the printed reason.  Naval
+construction and other non-army builds are untouched.
+
+**Coverage:** `liberalReforms.test.ts` (2 — the own-army refusal and the
+minor-ally refusal).  `npx tsc --noEmit` clean; the recruitment and
+characteristics suites pass.
+
 ## Fixed: a fourth National Goal was kept, and A22 returned the oldest automatically (2026-11-21)
 
 2.4 and 20.11 print *"if a player has more than 3 NG cards, they choose one and

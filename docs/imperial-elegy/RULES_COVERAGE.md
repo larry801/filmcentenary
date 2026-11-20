@@ -183,6 +183,8 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   the CP spent (1 or 2), and a fort of your own upgrades one level for 1 CP and
   never past level 2 — all four rows share the move's gate, and 20.1 offers only
   your own forts to protect.
+- **A16 Liberal Reforms** now applies its no-new-armies restriction to the
+  minor-ally build gate as well as the player's own recruitment.
 - **12.11 pacification is complete.** One shared gate
   (`engine/pacification.ts#pacificationProblem`) requires either the acting
   power's own influence marker (an uncontrolled space, which the success
