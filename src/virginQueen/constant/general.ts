@@ -66,6 +66,19 @@ export const MERC_LIMITS: Record<Power, number> = {
     ottoman: 0, spain: 15, england: 10, france: 15, hre: 20, protestant: 15,
 };
 
+/**
+ * Rule 17.2(c): "the only unit which the Spanish player may build in the
+ * Netherlands Religious Struggle area are Walloons.  The three Walloon regular
+ * counters represent a special subset of the Spanish force pool. ... they can
+ * only be constructed in spaces in the Netherlands, and they are the only
+ * Spanish units that can be constructed in the Netherlands."
+ *
+ * The Walloon counters are ordinary Spanish regulars for play purposes, so the
+ * engine tracks the three counters as a separate build allowance rather than a
+ * new unit type.
+ */
+export const WALLOON_LIMIT = 3;
+
 /** Per-power per-ship-type naval force-pool limits (counter mix). */
 export const GALLEY_LIMITS: Record<Power, number> = {
     ottoman: 20, spain: 10, england: 0, france: 5, hre: 0, protestant: 0,
@@ -627,6 +640,13 @@ export interface SiegeState {
     inside?: Controller[];
     /** Impulse number in which the siege began. */
     sinceImpulse: number;
+    /**
+     * Rule 15.1: "A space may only be subjected to one assault in a single
+     * impulse."  Rule 15.1 also forbids an assault "in the same impulse in
+     * which the space was first put under siege by that power", so the record
+     * is keyed by besieging power and impulse.
+     */
+    assaultedIn?: {impulse: number; powers: Power[]};
 }
 
 export interface SpaceState {
@@ -973,6 +993,11 @@ export interface VQGame {
     protestantCapital?: string;
     unionOfArras?: boolean;
     dutchSpanishHome?: boolean;
+    /**
+     * Rule 17.2(c): Spanish regulars (Walloons) built in the Netherlands so far
+     * this game.  The three printed Walloon counters are the whole allowance.
+     */
+    walloonsBuilt?: number;
     gregorianNext?: Power;
     /** #101 response window opened after the named power finished its turn. */
     gregorianResponse?: {after: Power; responder: Power};

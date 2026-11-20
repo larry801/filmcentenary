@@ -16,6 +16,7 @@ import {
     MINOR_POWERS,
     MINOR_REGULAR_LIMITS,
     MERC_LIMITS,
+    WALLOON_LIMIT,
     NAVAL_LIMITS,
     GALLEY_LIMITS,
     GALLEON_LIMITS,
@@ -721,6 +722,7 @@ export const navigationCheck = (G: VQGame, ctx: Ctx, captainId: string): boolean
         } else {
             G.powers[expedition.power].seaCaptains = G.powers[expedition.power].seaCaptains.filter((id) => id !== captainId);
             pushLog(G, `${captain.nameEn}'s expedition is eliminated; the captain is removed from the game.`);
+            if (captainId === "leTestu") removeLeTestuScientist(G);
         }
         return false;
     }
@@ -1751,6 +1753,21 @@ export const recordNavalLoss = (G: VQGame, owner: Controller, kind: keyof NavalS
 
 export const navalLostCount = (G: VQGame, p: Power): number => navalCount(G.navalLost?.[p]);
 
+/**
+ * Rule 16.2 step 8: "If both sides are eliminated, the side that rolled more
+ * dice retains 1 unit."  The retained unit must be one of the types that side
+ * actually had on the map before the casualties were applied — the printed
+ * rule says "1 unit", not "1 galley" — so the caller reports the type to keep.
+ */
+export const restoreRetainedNavalUnit = (G: VQGame, owner: Controller, kind: keyof NavalStack): void => {
+    const lost = G.navalLost?.[owner as Power];
+    if (lost !== undefined) {
+        // The retained counter is not a rebuild: undo its pending-loss
+        // bookkeeping so it does not also block construction this year.
+        lost[kind] = Math.max(0, lost[kind] - 1);
+    }
+};
+
 export const navalForceCount = (G: VQGame, p: Power): number => {
     let total = 0;
     for (const zone of Object.values(G.seaZones)) total += navalCount(zone.naval[p]);
@@ -1809,6 +1826,33 @@ export const regularCount = (G: VQGame, p: Power): number => {
     total += G.foreignWars[p]?.units.regular ?? 0;
     if (p === "spain" && G.armada?.land !== undefined) total += G.armada.land.regular;
     return total;
+};
+
+/**
+ * Rule 17.2(c): "the only unit which the Spanish player may build in the
+ * Netherlands Religious Struggle area are Walloons.  The three Walloon regular
+ * counters represent a special subset of the Spanish force pool.  They are
+ * treated as Spanish regulars for all purposes.  The only exception is in unit
+ * construction: they can only be constructed in spaces in the Netherlands, and
+ * they are the only Spanish units that can be constructed in the Netherlands."
+ *
+ * The Walloon counters are ordinary Spanish regulars once on the map, so the
+ * engine models the rule as a three-counter construction allowance rather than
+ * a distinct unit type: `walloonsBuilt` counts the regulars Spain has built in
+ * the Netherlands this game, and mercenaries/cavalry remain forbidden there.
+ * #109 Union of Arras makes the Dutch spaces Spanish home spaces but does NOT
+ * lift the restriction ("Even after this event, Walloons remain the only units
+ * that Spain may build in the Netherlands." — Scenario Book p. 30).
+ */
+export const canBuildInNetherlands = (G: VQGame, p: Power, def: {area?: string}, kind: "regular" | "merc" | "cav"): boolean => {
+    if (p !== "spain" || def.area !== "netherlands") return true;
+    return kind === "regular" && (G.walloonsBuilt ?? 0) < WALLOON_LIMIT;
+};
+
+/** Record a Walloon regular just constructed in the Netherlands (rule 17.2c). */
+export const recordWalloonBuilt = (G: VQGame, p: Power, def: {area?: string}, kind: "regular" | "merc" | "cav"): void => {
+    if (p !== "spain" || def.area !== "netherlands" || kind !== "regular") return;
+    G.walloonsBuilt = (G.walloonsBuilt ?? 0) + 1;
 };
 
 export const controlledKeys = (G: VQGame, p: Power): string[] =>
@@ -2092,6 +2136,42 @@ export const defenderOwners = (G: VQGame, space: string): Controller[] => {
 export const defenderLandCount = (G: VQGame, space: string): number =>
     totalLand(G, space, defenderOwners(G, space));
 
+/**
+ * Rule 15.3: "A siege is broken immediately if the besieging stack no longer
+ * contains more land units than are in the fortification (cavalry units are
+ * included in these counts).  This may occur if part of the besieging force
+ * leaves the space as part of a Move action, a successful interception, or a
+ * successful avoid battle attempt."  When the siege breaks, "the stack must
+ * retreat to any adjacent space that meets the following restrictions."
+ *
+ * Call this after any action that removes units from a besieging stack.  It
+ * returns true when it lifted a siege (and already retreated the besiegers).
+ */
+export const reconcileSiege = (G: VQGame, space: string, departTo?: string): boolean => {
+    const state = G.spaces[space];
+    if (state?.siege === undefined) return false;
+    const besiegers = [...besiegerOwners(G, space)];
+    if (besiegers.length === 0) {
+        delete state.siege;
+        return true;
+    }
+    const staff = totalLand(G, space, besiegers);
+    if (staff > defenderLandCount(G, space)) return false;
+    delete state.siege;
+    pushLog(G, `The siege of ${SPACE_BY_ID[space].name} is broken.`);
+    // Rule 15.3 restrictions: no unrest, no non-allied units, not a sea zone,
+    // and never the space the departing force just marched into.
+    const captor = isPower(state.control) ? state.control : besiegers[0];
+    const avoid = departTo === undefined ? [] : [departTo];
+    for (const owner of besiegers) {
+        if (!isPower(owner)) continue;
+        if (totalLand(G, space, [owner]) === 0) continue;
+        const leaders = G.spaces[space].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+        retreatLand(G, owner, space, [owner], leaders, captor, avoid);
+    }
+    return true;
+};
+
 /** Add `power` to a space's besiegers, creating the siege if needed. */
 export const addBesieger = (G: VQGame, space: string, power: Power): void => {
     const state = G.spaces[space];
@@ -2290,6 +2370,23 @@ export const moveLeaders = (G: VQGame, from: string, to: string, ids: string[]):
         G.leaders[id].location = to;
     }
 };
+
+/**
+ * Rule 21.4: "Elizabeth I, Henry III, Henry Navarre and William of Orange may
+ * die from assassination.  In this situation the marriage is ended just as if
+ * the 'Back in pool; no bonuses' result occurred, though the royal that died is
+ * of course removed from play."  Two of those royals double as army leaders
+ * under a different id.
+ */
+export const ARMY_LEADER_FOR_ROYAL: Record<string, string> = {
+    williamOrange: "orange",
+    henryIV: "navarre",
+};
+
+/** Royally-identified army leaders whose assassination also kills the royal. */
+export const ROYAL_FOR_ARMY_LEADER: Record<string, string> = Object.fromEntries(
+    Object.entries(ARMY_LEADER_FOR_ROYAL).map(([royal, leader]) => [leader, royal]),
+);
 
 export const captureLeaders = (G: VQGame, loc: string, owners: Controller[], captor: Power): number => {
     let n = 0;
@@ -2576,6 +2673,9 @@ export const autoResolveOrangeArrival = (G: VQGame): void => {
  * calls chooseNavalLeaderPort). Without it, or when no port is legal, the
  * original automatic placement applies.
  */
+/** Protestant army leaders the Scenario Book places directly instead of deferring. */
+const ORANGE_ARRIVAL_LEADERS = ["orange"];
+
 export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): void => {
     for (const p of POWERS) {
         if (ownerOf(G, p) === undefined) continue;
@@ -2612,8 +2712,26 @@ export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): voi
                 pushLog(G, "William of Orange has arrived; Protestant must choose to place him in the capital or hold him back for a rebellion.");
                 continue;
             }
-            const destination = cap;
-            if (destination === undefined || G.spaces[destination] === undefined || !friendlyControlled(G, p, destination) || G.spaces[destination].unrest) continue;
+            // Rule 10.4: "Army leaders are placed in any fortified home space
+            // under friendly control. ... If no such space exists, the leader
+            // remains on the Turn Track until next turn.  The Protestant player
+            // has the option of not immediately adding his leaders to the map
+            // and instead waiting to add them during a rebellion action."
+            // Protestant leaders therefore stay in the pool until a rebellion
+            // brings them in; the rest take the capital when it is a fortified
+            // friendly home space, else another such space.
+            // Rule 10.4: "The Protestant player has the option of not
+            // immediately adding his leaders to the map and instead waiting to
+            // add them during a rebellion action."  Huguenot/Dutch army leaders
+            // use their pool marker that way, so they are not auto-placed; the
+            // Scenario Book still puts William of Orange in the capital.
+            if (p === "protestant" && !ORANGE_ARRIVAL_LEADERS.includes(id)) continue;
+            const fortifiedHome = (id: string): boolean =>
+                G.spaces[id] !== undefined && isFortifiedSpace(G, id) && spaceHomes(SPACE_BY_ID[id]).includes(p) &&
+                friendlyControlled(G, p, id) && !G.spaces[id].unrest;
+            const destination = [cap, ...SPACES.map((def) => def.id).filter((id) => isFortifiedSpace(G, id))]
+                .find((id): id is string => id !== undefined && fortifiedHome(id));
+            if (destination === undefined) continue;
             placeArrivingLeader(G, id, destination);
         }
         const standardInPlay = Object.keys(G.leaders).some((id) => {
@@ -3003,10 +3121,16 @@ export const resolveConversions = (
         converted.push(target);
     }
     let unrestTokens = 0;
+    // Rule 18.5 step 7: "Add each Unrest marker taken in Step 4 to the map.
+    // The space is chosen by the power taking the conversion attempts. It must
+    // be a space converted during this action or event. Skip placing excess
+    // markers if you have more Unrest markers than spaces converted."
+    // Iconoclastic Fury takes one marker per rolled "1", but they still land on
+    // converted spaces only.
     if (unrestOnOnes) {
-        const candidates = SPACES.filter((space) => space.area === area && !G.spaces[space.id].unrest);
-        for (const space of candidates.slice(0, ones + extraUnrest)) {
-            G.spaces[space.id].unrest = true;
+        for (const target of converted.slice(0, ones + extraUnrest)) {
+            if (G.spaces[target].unrest) continue;
+            G.spaces[target].unrest = true;
             unrestTokens += 1;
         }
     } else {
@@ -3496,6 +3620,9 @@ export const attemptLandAvoidBattle = (
         delete G.spaces[space].land[owner];
         moveLeaders(G, space, destination, leaders);
         pushLog(G, `${label} avoids battle and moves to ${SPACE_BY_ID[destination].name}.`);
+        // Rule 15.3: a successful avoid-battle attempt that strips units out of
+        // a besieging stack breaks that siege immediately.
+        reconcileSiege(G, space, destination);
         moved = true;
     }
     return moved;
@@ -3577,6 +3704,9 @@ export const attemptLandInterception = (
         cleanupLand(G, candidate.space, candidate.power);
         moveLeaders(G, candidate.space, to, leaders);
         pushLog(G, `${powerLabel(candidate.power)} intercepts the move into ${SPACE_BY_ID[to].name}.`);
+        // Rule 15.3: a successful interception may strip units out of a
+        // besieging stack, which breaks that siege immediately.
+        reconcileSiege(G, candidate.space, to);
         // Rule 13.3: a power whose units intercepted into this space may not
         // avoid battle; other defending powers in the space still may.
         G.interceptedByThisMove = {...(G.interceptedByThisMove ?? {}), [to]: candidate.power};
@@ -3714,7 +3844,13 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
         retreatLand(G, p, space, [p], leaders, isPower(s.control) ? s.control : p);
         pushLog(G, "The siege is broken.");
     } else {
-        s.siege = {by: p, besiegers: besiegerOwners(G, space), inside: [...defendersList], sinceImpulse: G.impulse};
+        // Rule 15.1: an unsuccessful assault leaves the siege in place.  Keep
+        // the original `sinceImpulse` — re-dating it to this impulse would let
+        // a failed assault block the besiegers from marching away under 13.1,
+        // although the siege was placed in an earlier impulse.
+        const besiegers = besiegerOwners(G, space);
+        s.siege = {by: s.siege?.by ?? p, besiegers, inside: [...defendersList],
+            sinceImpulse: s.siege?.sinceImpulse ?? G.impulse, ...(s.siege?.assaultedIn ? {assaultedIn: s.siege.assaultedIn} : {})};
     }
     return false;
 };
@@ -4122,10 +4258,6 @@ export const resolveMarriage = (G: VQGame, ctx: Ctx, betrothal: { male: string; 
         // the map and place a default leader if he was the only one.  Some
         // royals double as army leaders under a different id (William of
         // Orange -> `orange`, Henry of Navarre -> `navarre`).
-        const ARMY_LEADER_FOR_ROYAL: Record<string, string> = {
-            williamOrange: "orange",
-            henryIV: "navarre",
-        };
         const leaderId = ARMY_LEADER_FOR_ROYAL[male.id] ?? male.id;
         const leaderDef = LEADER_BY_ID[leaderId];
         if (leaderDef !== undefined && leaderDef.kind === "army") {
@@ -4291,6 +4423,20 @@ const claimScienceBonus = (G: VQGame, p: Power): boolean => {
     G.powers[p].scienceBonuses.push(bonus.id);
     pushLog(G, `${powerLabel(p)} claims science bonus ${bonus.nameEn}.`);
     return true;
+};
+
+/**
+ * Rule 22.2 (Le Testu): he doubles as a sea captain.  "If any result other than
+ * a 9 is received when evaluating his work as a scientist, remove the sea
+ * captain marker from play as well.  Likewise if he is eliminated while on the
+ * World Map as a sea captain, be sure to also remove the scientist counter."
+ * Call this wherever Le Testu leaves the game as a captain.
+ */
+export const removeLeTestuScientist = (G: VQGame): void => {
+    if (G.patronsAvailable.includes("leTestu")) {
+        G.patronsAvailable = G.patronsAvailable.filter((id) => id !== "leTestu");
+        pushLog(G, "Le Testu's scientist counter is removed from play with his sea captain marker.");
+    }
 };
 
 const removePatronFromPool = (G: VQGame, patronId: string): void => {
@@ -5259,10 +5405,17 @@ export const checkCatholicLeague = (G: VQGame, ctx: Ctx): boolean => {
     return true;
 };
 
-/** Unfortified French home spaces Spain may still take for the League. */
+/**
+ * Unfortified French home spaces Spain may take for the League (rule 20.10
+ * step 1): "Reims and 2 other unfortified French home spaces that are not
+ * Huguenot home spaces (i.e., solid blue spaces)."  The white/blue split
+ * spaces of the Netherlands and the French two-color spaces are Huguenot
+ * homes, so they are not eligible.
+ */
 export const catholicLeagueSpaceOptions = (G: VQGame): string[] => {
     if (G.pendingCatholicLeague === undefined) return [];
     return SPACES.filter((def) => spaceHomes(def).includes("france") && def.id !== "reims" &&
+        !spaceHomes(def).includes("protestant") &&
         !isFortifiedSpace(G, def.id) && !(G.catholicLeagueSpaces ?? []).includes(def.id))
         .map((def) => def.id);
 };
@@ -6018,6 +6171,8 @@ const canRecruitAt = (G: VQGame, p: Power, id: string, kind: "regular" | "merc" 
     if (kind === "merc" && mercCount(G, p) >= MERC_LIMITS[p]) return false;
     if (p === "ottoman" && (id === "algiers" || id === "tripoli")) return false;
     if (p === "spain" && (id === "oran" || id === "malta")) return false;
+    // Rule 17.2(c): Spain may only build Walloon regulars in the Netherlands.
+    if (!canBuildInNetherlands(G, p, def, kind)) return false;
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return false;
     return true;
 };
@@ -6085,6 +6240,9 @@ const canBuildFortressAt = (G: VQGame, p: Power, id: string): boolean => {
     if (def.kind !== "open" || s.fortress) return false;
     if ((!minorFortress && s.control !== p) || (minorFortress && s.control !== minorFortressHome)) return false;
     if (s.unrest) return false;
+    // Rule 17.5: "not occupied by enemy units".  Keep this in step with the
+    // `buildFortress` guard so the map never highlights an illegal target.
+    if (spaceHasEnemyLand(G, p, id)) return false;
     if (!minorFortress && !homes.includes(p)) return false;
     return true;
 };
@@ -6093,7 +6251,10 @@ const canBuildFortressAt = (G: VQGame, p: Power, id: string): boolean => {
 const canAssaultAt = (G: VQGame, p: Power, id: string): boolean => {
     const s = G.spaces[id];
     if (s === undefined || s.siege === undefined || !besiegerOwners(G, id).includes(p)) return false;
-    if (s.siege.sinceImpulse >= G.impulse) return false; // one impulse of siege first
+    if (s.siege.sinceImpulse >= G.impulse) return false; // rule 15.1: one impulse of siege first
+    // Rule 15.1: "A space may only be subjected to one assault in a single
+    // impulse."
+    if (s.siege.assaultedIn?.impulse === G.impulse) return false;
     if (!hasLOC(G, p, id)) return false;
     // Rule 16.7: the inland-waterway link blocks an assault unless the
     // attacker holds the North Sea (or plays #10).

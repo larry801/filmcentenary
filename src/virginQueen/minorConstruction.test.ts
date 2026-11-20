@@ -66,3 +66,30 @@ describe("minor powers 24.3 — allied construction", () => {
         expect(recruit(G, context(), {space: "rome", kind: "regular"})).toBe("INVALID_MOVE");
     });
 });
+
+describe("fortress construction requires an unoccupied space (rule 17.5)", () => {
+    it("refuses a fortress in a home space held by enemy units", () => {
+        const G = game();
+        G.powers.spain.wars = [...new Set([...G.powers.spain.wars, "england"])];
+        G.spaces.valencia.control = "spain";
+        G.spaces.valencia.unrest = false;
+        G.spaces.valencia.fortress = false;
+        // An English army stands on the space while Spain still controls it.
+        G.spaces.valencia.land.england = {regular: 1, merc: 0, cav: 0};
+
+        expect(buildFortress(G, context(), {space: "valencia"})).toBe("INVALID_MOVE");
+        expect(G.spaces.valencia.fortress).toBeFalsy();
+        expect(G.powers.spain.cp).toBe(20);
+    });
+
+    it("still allows a fortress over friendly or neutral units", () => {
+        const G = game();
+        G.spaces.valencia.control = "spain";
+        G.spaces.valencia.unrest = false;
+        G.spaces.valencia.fortress = false;
+        G.spaces.valencia.land.spain = {regular: 1, merc: 0, cav: 0};
+
+        expect(buildFortress(G, context(), {space: "valencia"})).toBeUndefined();
+        expect(G.spaces.valencia.fortress).toBe(true);
+    });
+});

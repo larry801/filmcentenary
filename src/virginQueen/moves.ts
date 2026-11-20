@@ -78,6 +78,8 @@ import {
     autoResolveWinterReturnChoices,
     bestBattle,
     bestPiracy,
+    canBuildInNetherlands,
+    recordWalloonBuilt,
     canControlSpace,
     canMoveNavalTo,
     canDeclareWar,
@@ -4335,7 +4337,17 @@ export const ransom = (G: VQGame, ctx: Ctx, args: { leaderId: string }): void | 
     } else {
         G.powers[captor].treasures.push(paid.value);
     }
-    const dest = capitalOf(G, tutorialHreRansom ? "hre" : p) ?? KEY_SPACES.find((id) => G.spaces[id].control === (tutorialHreRansom ? "hre" : p));
+    // Rule 9.3: "Place that army leader in his capital if possible; if not
+    // place him in a friendly home key."  The capital is the printed capital
+    // only — `capitalOf` degrades to "any controlled key", which is the very
+    // behaviour the fallback clause replaces.
+    const ransomPower = tutorialHreRansom ? "hre" : p;
+    const capital = capitalSpacesFor(G, ransomPower).find((id) => {
+        const c = G.spaces[id]?.control;
+        return c === ransomPower || (isPower(c) && allied(G, ransomPower, c));
+    });
+    const dest = capital ?? SPACES.find((def) =>
+        def.kind === "key" && spaceHomes(def).includes(ransomPower) && G.spaces[def.id].control === ransomPower)?.id;
     if (dest === undefined) {
         return INVALID_MOVE;
     }
@@ -4574,6 +4586,10 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     // Rule 17.2 construction exceptions.
     if (p === "ottoman" && ["algiers", "tripoli"].includes(space)) return INVALID_MOVE;
     if (p === "spain" && ["oran", "malta"].includes(space)) return INVALID_MOVE;
+    // Rule 17.2(c): "the only unit which the Spanish player may build in the
+    // Netherlands Religious Struggle area are Walloons" — three regular
+    // counters, and no mercenaries or cavalry at all.
+    if (!canBuildInNetherlands(G, p, def, args.kind)) return INVALID_MOVE;
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return INVALID_MOVE;
     const recruitCost = args.kind === "regular" ? 2 : 1;
     const action = "recruit" + args.kind[0].toUpperCase() + args.kind.slice(1);
@@ -4582,6 +4598,7 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         return INVALID_MOVE;
     }
     addLand(G, space, p, args.kind, 1);
+    recordWalloonBuilt(G, p, def, args.kind);
     pushLog(G, `${powerLabel(p)} recruits 1 ${args.kind} in ${def.name}.`);
 };
 
@@ -4682,7 +4699,12 @@ export const buildFortress = (G: VQGame, ctx: Ctx, args: { space: string }): voi
     // Minor-home fortresses: the allied major may build in a minor home it controls.
     const minorFortress = spaceHomes(def).some((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never)) &&
         s.control !== p && spaceHomes(def).includes(s.control);
-    if (def.kind !== "open" || s.fortress || ((!minorFortress && s.control !== p) || (minorFortress && s.control !== spaceHomes(def).find((h) => !isPower(h) && h !== "independent"))) || s.unrest || (!minorFortress && !spaceHomes(def).includes(p))) {
+    // Rule 17.5: "Fortresses may be constructed in any controlled, unfortified
+    // home space ... that is not occupied by enemy units or an existing
+    // fortress marker (and is not in unrest)."  `enemyOwners` counts only
+    // powers at war, exactly like the recruitment check above.
+    if (def.kind !== "open" || s.fortress || ((!minorFortress && s.control !== p) || (minorFortress && s.control !== spaceHomes(def).find((h) => !isPower(h) && h !== "independent"))) ||
+        s.unrest || spaceHasEnemyLand(G, p, args.space) || (!minorFortress && !spaceHomes(def).includes(p))) {
         return INVALID_MOVE;
     }
     if (!spend(G, p, 2, "buildFortress")) {
@@ -5221,7 +5243,9 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
         if (warCost(G, "spain", "england") > 3) return INVALID_MOVE;
         if (!atWar(G, "spain", "england")) setWar(G, "spain", "england");
     }
-    if (p === "england" && SPACE_BY_ID[args.to]?.area === "netherlands") {
+    // Rule 9.4: "English troops entering the Netherlands (unless allied with
+    // Spain)".
+    if (p === "england" && SPACE_BY_ID[args.to]?.area === "netherlands" && !allied(G, "england", "spain")) {
         if (!atWar(G, "england", "spain")) setWar(G, "england", "spain");
     }
     const transportCost = args.zones.length + 1 - (inland !== undefined ? 1 : 0);
@@ -5346,12 +5370,14 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     const destControl = dest.control;
     // Rule 9.5/9.4: Spain may not enter Ireland/Scotland until the war cost is
     // 3 or less; entry then triggers war with England. English entry into the
-    // Netherlands likewise triggers war with Spain.
+    // Netherlands likewise triggers war with Spain — but the printed trigger
+    // list reads "English troops entering the Netherlands (unless allied with
+    // Spain)", so an alliance suppresses it.
     if (p === "spain" && (spaceHomes(SPACE_BY_ID[to]).includes("ireland" as never) || spaceHomes(SPACE_BY_ID[to]).includes("scotland" as never))) {
         if (warCost(G, "spain", "england") > 3) return INVALID_MOVE;
         if (!atWar(G, "spain", "england")) setWar(G, "spain", "england");
     }
-    if (p === "england" && SPACE_BY_ID[to]?.area === "netherlands") {
+    if (p === "england" && SPACE_BY_ID[to]?.area === "netherlands" && !allied(G, "england", "spain")) {
         if (!atWar(G, "england", "spain")) setWar(G, "england", "spain");
     }
     const canEnter = friendlyControlled(G, p, to)
@@ -5399,13 +5425,22 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     }
     // Rule 13.1: "If an army leader is ever alone in an unfortified space when
     // enemy land units enter (due to enemy movement, retreat or interception),
-    // that leader is captured."  A lone leader is captured by the arriving
-    // enemy formation before any battle is fought.
+    // that leader is captured."  The same sentence continues: "If a naval
+    // leader is ever alone in an unfortified space ..., place that leader on
+    // the Turn Track to reenter play on the next turn."
     if (!leadersOnly && !isFortifiedSpace(G, to)) {
-        const loneLeaders = G.spaces[to].leaders.filter((id) =>
-            LEADER_BY_ID[id]?.kind === "army" && !friendlyController(G, p, LEADER_BY_ID[id].power) &&
-            totalLand(G, to, [LEADER_BY_ID[id].power]) === 0);
-        if (loneLeaders.length > 0) captureLeaders(G, to, loneLeaders.map((id) => LEADER_BY_ID[id].power), p);
+        const isAlone = (id: string): boolean => {
+            const owner = LEADER_BY_ID[id]?.power;
+            return owner !== undefined && !friendlyController(G, p, owner) && totalLand(G, to, [owner]) === 0;
+        };
+        const lone = G.spaces[to].leaders.filter(isAlone);
+        const army = lone.filter((id) => LEADER_BY_ID[id]?.kind === "army");
+        if (army.length > 0) captureLeaders(G, to, army.map((id) => LEADER_BY_ID[id].power), p);
+        for (const id of lone.filter((candidate) => LEADER_BY_ID[candidate]?.kind === "naval")) {
+            G.spaces[to].leaders = G.spaces[to].leaders.filter((x) => x !== id);
+            G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
+            pushLog(G, `${LEADER_BY_ID[id]?.name ?? id} is caught alone and returns to the Turn Track.`);
+        }
     }
     pushLog(G, `${powerLabel(p)} moves ${landCount(stack)} unit(s) from ${SPACE_BY_ID[from].name} to ${SPACE_BY_ID[to].name}.`);
     if (isRelief) {
@@ -5737,6 +5772,12 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (s.siege.sinceImpulse >= G.impulse) {
         return INVALID_MOVE;
     }
+    // Rule 15.1: "A space may only be subjected to one assault in a single
+    // impulse (though a power may initiate multiple assaults in different
+    // spaces in the same impulse)."
+    if (s.siege.assaultedIn?.impulse === G.impulse) {
+        return INVALID_MOVE;
+    }
     if (!hasLOC(G, p, args.space)) {
         return INVALID_MOVE;
     }
@@ -5752,6 +5793,7 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (!spend(G, p, 1, "assault")) {
         return INVALID_MOVE;
     }
+    s.siege.assaultedIn = {impulse: G.impulse, powers: [...(s.siege.assaultedIn?.impulse === G.impulse ? s.siege.assaultedIn.powers : []), p]};
     if (G.scenario === "tutorial") {
         startBattle(G, ctx, "assault", args.space, p, defenderOwners(G, args.space), args.space);
     } else assaultSpace(G, ctx, p, args.space);

@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VQGame, landCount, navalCount} from "./constant/general";
+import {POWERS, VQGame, landCount, navalCount} from "./constant/general";
 import {buildNaval, recruit} from "./moves";
 import {setupGame} from "./util";
 
@@ -98,5 +98,65 @@ describe("construction costs and restrictions (rules 17.2-17.3)", () => {
         expect(buildNaval(G, context("1"), {port: "barcelona", kind: "galleon"})).toBe(INVALID_MOVE);
         expect(buildNaval(G, context("1"), {port: "seville", kind: "galleon"})).toBeUndefined();
         expect(G.powers.spain.cp).toBe(2);
+    });
+});
+
+/**
+ * Rule 17.2(c): "the only unit which the Spanish player may build in the
+ * Netherlands Religious Struggle area are Walloons.  The three Walloon regular
+ * counters represent a special subset of the Spanish force pool.  ... they can
+ * only be constructed in spaces in the Netherlands, and they are the only
+ * Spanish units that can be constructed in the Netherlands."
+ * #109 Union of Arras keeps the restriction ("Even after this event, Walloons
+ * remain the only units that Spain may build in the Netherlands.").
+ */
+describe("Spanish construction in the Netherlands (rule 17.2c)", () => {
+    const prepare = (G: VQGame): void => {
+        G.activePower = "spain";
+        G.powers.spain.cp = 20;
+        G.spaces.brussels.control = "spain";
+        G.spaces.brussels.unrest = false;
+        G.spaces.brussels.land = {};
+        G.spaces.brussels.siege = undefined;
+        for (const p of POWERS) G.powers[p].wars = G.powers[p].wars.filter((w) => w !== "spain");
+    };
+
+    it("refuses a Spanish mercenary in the Netherlands", () => {
+        const G = game();
+        prepare(G);
+
+        expect(recruit(G, context("1"), {space: "brussels", kind: "merc"})).toBe("INVALID_MOVE");
+        expect(G.spaces.brussels.land.spain).toBeUndefined();
+    });
+
+    it("refuses a fourth Spanish regular once the three Walloons are on the map", () => {
+        const G = game();
+        prepare(G);
+        G.walloonsBuilt = 3;
+
+        expect(recruit(G, context("1"), {space: "brussels", kind: "regular"})).toBe("INVALID_MOVE");
+        expect(G.spaces.brussels.land.spain).toBeUndefined();
+    });
+
+    it("allows the three Walloon regulars and then stops", () => {
+        const G = game();
+        prepare(G);
+
+        expect(recruit(G, context("1"), {space: "brussels", kind: "regular"})).toBeUndefined();
+        expect(recruit(G, context("1"), {space: "brussels", kind: "regular"})).toBeUndefined();
+        expect(recruit(G, context("1"), {space: "brussels", kind: "regular"})).toBeUndefined();
+        expect(G.walloonsBuilt).toBe(3);
+        expect(G.spaces.brussels.land.spain.regular).toBe(3);
+        expect(recruit(G, context("1"), {space: "brussels", kind: "regular"})).toBe("INVALID_MOVE");
+        expect(G.spaces.brussels.land.spain.regular).toBe(3);
+    });
+
+    it("leaves Spanish construction outside the Netherlands untouched", () => {
+        const G = game();
+        prepare(G);
+        G.spaces.madrid.land.spain = {regular: 0, merc: 0, cav: 0};
+
+        expect(recruit(G, context("1"), {space: "madrid", kind: "merc"})).toBeUndefined();
+        expect(G.spaces.madrid.land.spain.merc).toBe(1);
     });
 });

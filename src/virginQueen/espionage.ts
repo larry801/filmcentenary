@@ -10,7 +10,7 @@ import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
 import {addLand, addVp, allied, atWar, capitalOf, discardCard, drawCards, ensureLand, ensureNaval,
     ensureDefaultLeader, hits, isFortifiedSpace, pushLog, removeCardFromHand, removeCardFromGame,
-    removePragueCulturalCenterOnRudolfDeath, roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
+    removePragueCulturalCenterOnRudolfDeath, ROYAL_FOR_ARMY_LEADER, roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
 export const espionageState = (G: VQGame): EspionageState => G.espionage ??= {
     jesuits: [], jesuitsOnCard: G.scenario === "tournament" ? 1 : 0, douai: false,
@@ -271,11 +271,19 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
                 if (p.target === "dragut") removeCardFromGame(G, "vq-011");
                 const deadDef = LEADER_BY_ID[p.target!];
                 if (deadDef?.kind === "army") ensureDefaultLeader(G, deadDef.power);
-                // Rule 21.4: an assassinated Henry III cancels any betrothal.
-                if (p.target === "henryIII") {
-                    const royal = G.royals.find((r) => r.id === "henryIII");
+                // Rule 21.4: "Elizabeth I, Henry III, Henry Navarre and William
+                // of Orange may die from assassination.  In this situation the
+                // marriage is ended just as if the 'Back in pool; no bonuses'
+                // result occurred, though the royal that died is of course
+                // removed from play."  Henry of Navarre and William of Orange
+                // double as army leaders under different ids.
+                const royalId = p.target === "henryIII" ? "henryIII"
+                    : ROYAL_FOR_ARMY_LEADER[p.target!];
+                if (royalId !== undefined) {
+                    const royal = G.royals.find((r) => r.id === royalId);
                     if (royal !== undefined) { royal.alive = false; royal.status = "dead"; }
-                    G.betrothals = G.betrothals.filter((b) => b.male !== "henryIII" && b.female !== "henryIII");
+                    G.betrothals = G.betrothals.filter((b) => b.male !== royalId && b.female !== royalId);
+                    pushLog(G, `${royalId} is dead; the betrothal is cancelled.`);
                 }
             }
             addVp(G, p.power, 1);

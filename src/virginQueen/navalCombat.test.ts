@@ -1,6 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {VQGame, navalCount} from "./constant/general";
 import {chooseNavalOrder, moveNaval} from "./moves";
+import {navalRetreatCandidates, resolveNavalCombatEnemy} from "./navalCombat";
 import {SPACES} from "./mapData";
 import {setWar, setupGame} from "./util";
 
@@ -170,7 +171,48 @@ describe("official naval combat (rule 16.2)", () => {
         expect(moveNaval(G, context([1, 1, 6, 6, 6, 6]), {from: "calais", to: "englishChannel"})).toBeUndefined();
 
         expect(navalCount(G.seaZones.englishChannel.naval.france)).toBe(0);
-        expect(navalCount(G.seaZones.englishChannel.naval.england)).toBe(1);
-        expect(G.log.join("\n")).toContain("retains 1 galley");
+        // Rule 16.2 step 8: the survivor keeps "1 unit" of a type it actually
+        // had, not a galley of a fleet that never fielded one.
+        expect(G.seaZones.englishChannel.naval.england).toEqual({galley: 0, galleon: 1, racebuilt: 0, corsair: 0});
+        expect(G.log.join("\n")).toContain("retains 1 galleon");
+    });
+
+    it("keeps the destroyed fleet's own ship type rather than inventing a galley", () => {
+        const G = game();
+        // No galleys anywhere: France and England both field galleons in the
+        // Channel.  Rule 16.2 step 8 keeps "1 unit", so the survivor must be a
+        // galleon, not a galley that neither side possessed.
+        G.seaZones.englishChannel.naval.france = {galley: 0, galleon: 2, racebuilt: 0, corsair: 0};
+        G.seaZones.englishChannel.naval.england = {galley: 0, galleon: 2, racebuilt: 0, corsair: 0};
+        setWar(G, "france", "england");
+
+        resolveNavalCombatEnemy(G, context([6, 6, 6, 6, 6, 6, 6, 6]), "englishChannel", "france", "england");
+
+        const survivor = G.seaZones.englishChannel.naval.france ?? G.seaZones.englishChannel.naval.england;
+        expect(survivor).toBeDefined();
+        expect(navalCount((G.seaZones.englishChannel.naval.france ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0})) +
+            navalCount((G.seaZones.englishChannel.naval.england ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0}))).toBe(1);
+        expect(G.log.join("\n")).toMatch(/retains 1 (galleon|race-built galleon)/);
+        expect(G.log.join("\n")).not.toContain("retains 1 galley");
+    });
+});
+
+describe("naval retreat destinations (rules 16.2 step 9 / 16.7)", () => {
+    it("never retreats a defeated fleet into Antwerp or Rotterdam", () => {
+        const G = game();
+        // Antwerp is a key bordering the North Sea, but rule 16.7 says no
+        // naval unit may ever enter the two inland ports.  Make Antwerp the
+        // only port Spain controls on the North Sea, so a candidate list that
+        // ignored the inland-port ban would pick it.
+        for (const id of ["amsterdam", "rotterdam", "bruges", "flushing", "brielle", "alkmaar", "haarlem", "utrecht", "ghent", "brussels"]) {
+            G.spaces[id].control = "england";
+        }
+        G.spaces.antwerp.control = "spain";
+        G.spaces.antwerp.naval = {};
+        setWar(G, "spain", "england");
+        G.seaZones.northSea.naval.spain = {galley: 0, galleon: 1, racebuilt: 0, corsair: 0};
+
+        expect(navalRetreatCandidates(G, "northSea", ["spain"])).not.toContain("antwerp");
+        expect(navalRetreatCandidates(G, "northSea", ["spain"])).not.toContain("rotterdam");
     });
 });

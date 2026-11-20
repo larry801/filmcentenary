@@ -87,3 +87,37 @@ describe("lone army leaders (rule 13.1)", () => {
         expect(G.leaders.norreys.capturedBy).toBe("france");
     });
 });
+
+/**
+ * Rule 13.1, the companion sentence: "If a naval leader is ever alone in an
+ * unfortified space when enemy land units enter due to enemy movement, retreat,
+ * or interception, place that leader on the Turn Track to reenter play on the
+ * next turn."  (An army leader in the same position is captured instead.)
+ */
+describe("lone naval leaders (rule 13.1)", () => {
+    it("returns a lone naval leader to the Turn Track instead of capturing him", () => {
+        const G = game();
+        G.powers.france.cp = 2;
+        G.powers.france.wars = [...new Set([...G.powers.france.wars, "england"])];
+        G.powers.england.wars = [...new Set([...G.powers.england.wars, "france"])];
+        G.spaces.paris.land.france = {regular: 2, merc: 0, cav: 0};
+        G.spaces.paris.control = "france";
+        G.spaces.paris.unrest = false;
+        // An English naval leader is caught ashore alone at the open, unfortified Amiens.
+        G.spaces.amiens.control = "england";
+        G.spaces.amiens.unrest = false;
+        G.spaces.amiens.land = {};
+        G.spaces.amiens.leaders = ["howard"];
+        G.leaders.howard = {id: "howard", location: "amiens"};
+
+        expect(moveLand(G, context([1, 1, 1, 1]), {
+            from: "paris", to: "amiens", units: {regular: 2}, leaders: [],
+        })).toBeUndefined();
+
+        expect(G.spaces.amiens.leaders).not.toContain("howard");
+        expect(G.leaders.howard.location).not.toBe("captured");
+        expect(G.leaders.howard.location).toBe("pool");
+        expect(G.leaders.howard.returnTurn).toBe(G.year + 1);
+        expect(G.log.join("\n")).toContain("returns to the Turn Track");
+    });
+});

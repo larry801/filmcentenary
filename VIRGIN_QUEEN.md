@@ -1657,3 +1657,57 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 | — | MUI 对话框／抽屉／提示通过 portal 渲染，切换热座标签页后仍覆盖在新标签页上 | 切换座位时清空确认框、卡牌抽屉、编队表与提示 |
 
 验证：`tsc --noEmit` 通过；`jest src/virginQueen --silent --maxWorkers=4` 258 suites、1565 tests passed（新增 `alliedLosses.test.ts` 5 项、`continueTargets.test.ts` 2 项、`actionPickerFilter.test.ts` 6 项）；`playwright test e2e/hotseat.spec.ts e2e/diplomacy.spec.ts e2e/tutorial.spec.ts e2e/map.spec.ts` 11 passed。
+
+## 规则书逐条审计（第四轮：航海、围城与尼德兰建造）
+
+按 2024 Living Rules 原文复核了海军、建造与战斗章节，修复以下与印刷规则不符之处（每项都有回归测试，且测试在未修复的代码上会失败）：
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 17.5 | 可以在驻扎敌军部队的本国家乡地区修筑要塞（`buildFortress` 与 `canBuildFortressAt` 都没检查敌方陆军） | 两处都加上"该地区不得有敌方陆军"检查；地图高亮与 move 校验保持同步 |
+| 16.7 / 16.2 step 9 | 战败舰队可撤退进安特卫普/鹿特丹——规则明文"海军单位永远不能进入"两港；撤退候选也没有排除内河港 | `navalRetreatCandidates` 排除内河港（`isInlandPort`） |
+| 16.2 step 8 | 双方全灭时无条件"保留 1 艘桨帆船"，即使该势力根本没有桨帆船（西班牙在英吉利海峡只剩大帆船时也拿到桨帆船）；且保留的单位仍计入当年重建上限 | 改为保留该势力实际拥有的最强舰种；新增 `restoreRetainedNavalUnit` 冲销这次的 `navalLost` 记账（它在场不算重建）；日志文案按舰种本地化 |
+| 9.4 | 英格兰陆军进入尼德兰时无条件对西班牙宣战，忽略印刷触发条件"（除非与西班牙结盟）" | 陆军移动与海运两条路径都加上 `!allied(G, "england", "spain")` |
+| 17.2(c) | 西班牙可在尼德兰任意招募正规军/雇佣兵；规则规定"西班牙在尼德兰宗教斗争区唯一可建造的单位是瓦隆卫队"，且仅有 3 枚瓦隆正规军计数片 | 新增 `canBuildInNetherlands`/`recordWalloonBuilt` 与 `G.walloonsBuilt`：尼德兰内禁止雇佣兵与骑兵，正规军（瓦隆卫队）全局最多 3 个；#109 阿拉斯联盟不解除该限制 |
+
+验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` **572 suites / 5745 tests** 全部通过（新增 `construction.test.ts` 4 项、`minorConstruction.test.ts` 2 项、`navalCombat.test.ts` 2 项、`navalTransport.test.ts` 2 项）。
+
+### 审计第四轮续：陆军单将、围城与拦截
+
+按 2024 Living Rules 第 13、15 节复核并修复：
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 13.1 | 海军将领单独留在无设防地区、遭敌军陆军进入时既不撤退也不上回合记录轨（原代码只处理陆军将领的"被俘"分支，`kind === "army"` 直接过滤掉海军将领） | 同一句规则的第二个分句："海军将领……放到回合记录轨，次年重返游戏"；现在单独的海军将领进入 `pool + returnTurn`，陆军将领仍被俘 |
+| 15.3 | 成功的拦截或避战把部队抽出围城堆后，围城不会解除（原代码只在"移动离开"、"解围战"、"强攻失败"三条路径上重新比较兵力） | 新增 `reconcileSiege`，在拦截成功与避战成功后调用：围城方不再多于守军时立即解除围城并按 15.3 撤退围城部队 |
+| 15.1 | 强攻失败会把 `sinceImpulse` 改写成当前行动轮次，于是 13.1 误认为"本轮刚结束围城"，禁止围城部队撤离；而"每格每轮只能强攻一次"是这条副作用顺带实现的 | `SiegeState` 新增 `assaultedIn` 记录真实的"每格每轮一次强攻"；强攻失败保留原始 `sinceImpulse` |
+
+验证：`tsc --noEmit` 通过；`jest src/virginQueen --silent --maxWorkers=4` 258 suites、1579 tests 全部通过（新增 `loneLeader.test.ts` 1 项、`interceptionFull.test.ts` 1 项、`impulseLimits.test.ts` 2 项）。
+
+### 审计第四轮（续）：21.4 刺杀王室、20.10 选格、9.3 赎回
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 21.4 | 刺杀亨利·纳瓦拉或威廉·奥兰治时只移除了陆军将领，对应的王室仍"在世"，冬季照常结算婚约并给加值（规则：这四位王室被刺杀等于"回池、无任何加值"，且该王室移出游戏） | 新增 `ROYAL_FOR_ARMY_LEADER` 映射（`williamOrange→orange`、`henryIV→navarre`），刺杀时同步处理王室死亡与订婚取消 |
+| 20.10 step 1 | 天主教联盟选地会提供奥尔良、布尔日、里昂等"双色/新教家乡"地区；规则限定"非新教家乡地区（即纯蓝色地区）" | `catholicLeagueSpaceOptions` 排除 `spaceHomes` 含 `protestant` 的地区 |
+| 9.3 | 赎回将领的兜底地点是"本国控制的任意关键地区"；规则为"首都，否则本国家乡关键地区"（`capitalOf` 本身会退化成任意受控关键地区） | 改用印刷首都（`capitalSpacesFor`），兜底限定为 `spaceHomes` 含本国 key；两者都没有时拒绝赎回而不是把人放到别国地区 |
+
+验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` 572 suites、5752 tests 全部通过（新增 `pragueMarkerAssassination.test.ts` 1 项、`catholicLeague.test.ts` 1 项、`diplomacyBinding.test.ts` 1 项）。
+
+### 审计第四轮（续）：10.4 将领入场的落点
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 10.4 | 入场陆军将领直接放在 `capitalOf` 的返回值上，而该函数会退化成"本国控制的任意关键地区"（可能是别国家乡地区）；规则要求"任何友方控制下的**设防家乡地区**"，否则留在回合记录轨 | 落点必须是 `spaceHomes` 含本国且 `isFortifiedSpace` 的友方无动荡地区，首都优先；不满足则顺延到其他设防家乡地区，仍无则本轮不入场 |
+| 10.4 | 新教陆军将领自动入场；规则允许"先放在势力卡上，等到叛乱行动时再入场" | 新教陆军将领不再自动入场（Scenario Book 明确直接摆放的威廉·奥兰治除外） |
+
+验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` 572 suites、5752 tests 全部通过。
+
+### 审计第四轮（续）：18.5 动荡落点与 22.2 Le Testu
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 18.5 step 7 | 圣像破坏运动（#55）把动荡放在该区域内任意无动荡地区（原测试还把它写成预期）；规则要求"动荡标记必须放在本次行动/事件中被转化的地区，多余的标记丢弃" | 只在本批次 `converted` 的地区上放置动荡，超出数量的标记丢弃 |
+| 22.2 | Le Testu 作为海船长在世界地图被消灭时，科学家计数片仍留在赞助池里可被再次赞助（原注释声称"反向同步已在船长被消灭处处理"，实际没有） | 新增 `removeLeTestuScientist`，在船长"移出游戏"分支调用（环航/进回合记录轨不算移出游戏） |
+
+验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` 572 suites、5754 tests 全部通过（新增 `iconoclasm.test.ts` 1 项、`patronageRandom.test.ts` 1 项）。
