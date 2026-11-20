@@ -604,12 +604,12 @@ card id / number in a test file vs. handler name only.
 修复轮次前：**91 / 122** 有直接覆盖，**24 张零信号**。修复轮次后
 （`cardEventDefects.test.ts` 新增 45 个断言）：
 
-- **104 / 122** 有直接覆盖。
+- **105 / 122** 有直接覆盖。
 - **8** 只有 handler 级覆盖。
-- **10 张零信号**（既无 id 也无 handler 提及）：
+- **9 张零信号**（既无 id 也无 handler 提及）：
 
 ```
-A016 A022 A033 A042 A050 A090
+A016 A033 A042 A050 A090
 H-GE-2 H-FR-6 H-OT-12 H-RU-9
 ```
 
@@ -617,8 +617,8 @@ H-GE-2 H-FR-6 H-OT-12 H-RU-9
 A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 已全部进入新套件；A025/A037 在 2026-11-21 的分支补齐了各自的印刷空间选择与
 绥靖掷骰，A097 同步补上了标记选择与 20.8 独立序列，A086 改为 12.11.2 的 11+
-特殊标记，A014 与 A013 共用新的殖民地冲突资格过滤。剩余 10 张是没有已知缺陷的
-牌，建议作为下一步补测目标；
+特殊标记，A014 与 A013 共用新的殖民地冲突资格过滤，A022 与 20.11 的 NG 上限
+改为玩家选择。剩余 9 张是没有已知缺陷的牌，建议作为下一步补测目标；
 其中 A050（掷骰三档）与 A097（WoI +1 → 独立）逻辑分支最多，优先级最高。
 
 `fuzz.test.ts` 的“每张行动牌/本国牌/大战牌打出后不抛错且能答完 20 个决策”是
@@ -680,7 +680,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A019` | Skilled Diplomats | event | 2 | `mpitChoice` | choice | yes |
 | `IE-A020` | Diplomatic Incident | event | 1 | `removeAnyMinorAlliance` | choice | yes |
 | `IE-A021` | National Railroad | event | 2 | `industry` | — | yes |
-| `IE-A022` | New Administration | event | 2 | `newAdministration` | choice | **no** |
+| `IE-A022` | New Administration | event | 2 | `newAdministration` | choice | yes |
 | `IE-A023` | New Rifles | response | 3 | `warLandDrm` | — | yes |
 | `IE-A024` | New Artillery | response | 3 | `warLandDrm` | — | yes |
 | `IE-A025` | Divide and Conquer | event | 2 | `divideAndConquer` | choice | yes |
