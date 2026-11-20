@@ -722,6 +722,7 @@ export const navigationCheck = (G: VQGame, ctx: Ctx, captainId: string): boolean
         } else {
             G.powers[expedition.power].seaCaptains = G.powers[expedition.power].seaCaptains.filter((id) => id !== captainId);
             pushLog(G, `${captain.nameEn}'s expedition is eliminated; the captain is removed from the game.`);
+            if (captainId === "leTestu") removeLeTestuScientist(G);
         }
         return false;
     }
@@ -3120,10 +3121,16 @@ export const resolveConversions = (
         converted.push(target);
     }
     let unrestTokens = 0;
+    // Rule 18.5 step 7: "Add each Unrest marker taken in Step 4 to the map.
+    // The space is chosen by the power taking the conversion attempts. It must
+    // be a space converted during this action or event. Skip placing excess
+    // markers if you have more Unrest markers than spaces converted."
+    // Iconoclastic Fury takes one marker per rolled "1", but they still land on
+    // converted spaces only.
     if (unrestOnOnes) {
-        const candidates = SPACES.filter((space) => space.area === area && !G.spaces[space.id].unrest);
-        for (const space of candidates.slice(0, ones + extraUnrest)) {
-            G.spaces[space.id].unrest = true;
+        for (const target of converted.slice(0, ones + extraUnrest)) {
+            if (G.spaces[target].unrest) continue;
+            G.spaces[target].unrest = true;
             unrestTokens += 1;
         }
     } else {
@@ -4416,6 +4423,20 @@ const claimScienceBonus = (G: VQGame, p: Power): boolean => {
     G.powers[p].scienceBonuses.push(bonus.id);
     pushLog(G, `${powerLabel(p)} claims science bonus ${bonus.nameEn}.`);
     return true;
+};
+
+/**
+ * Rule 22.2 (Le Testu): he doubles as a sea captain.  "If any result other than
+ * a 9 is received when evaluating his work as a scientist, remove the sea
+ * captain marker from play as well.  Likewise if he is eliminated while on the
+ * World Map as a sea captain, be sure to also remove the scientist counter."
+ * Call this wherever Le Testu leaves the game as a captain.
+ */
+export const removeLeTestuScientist = (G: VQGame): void => {
+    if (G.patronsAvailable.includes("leTestu")) {
+        G.patronsAvailable = G.patronsAvailable.filter((id) => id !== "leTestu");
+        pushLog(G, "Le Testu's scientist counter is removed from play with his sea captain marker.");
+    }
 };
 
 const removePatronFromPool = (G: VQGame, patronId: string): void => {

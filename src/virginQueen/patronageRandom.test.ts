@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
 import {patronize} from "./moves";
 import {patronDef} from "./scenario";
-import {resolvePatronage, setupGame} from "./util";
+import {navigationCheck, resolvePatronage, setupGame} from "./util";
 
 const context = (values: number[] = [6], playerID = "3"): Ctx => ({
     currentPlayer: playerID,
@@ -62,5 +62,27 @@ describe("Le Testu's scientist result removes his sea captain (rule 22.2)", () =
         // 1+1+rating 1 = 3 -> still 6 or less.  Use 4+4 to land on 9.
         resolvePatronage(G, context([4, 4]));
         expect(G.powers.france.seaCaptains).toContain("leTestu");
+    });
+});
+
+/**
+ * Rule 22.2 (Le Testu): "Likewise if he is eliminated while on the World Map as
+ * a sea captain, be sure to also remove the scientist counter."  (A result of 9
+ * as a scientist is the one case that leaves the captain in play.)
+ */
+describe("Le Testu's two counters (rule 22.2)", () => {
+    it("removes the scientist counter when the captain is lost at sea", () => {
+        const G = game();
+        G.year = 2;
+        G.patronsAvailable = [...new Set([...G.patronsAvailable, "leTestu"])];
+        G.powers.france.seaCaptains = [...new Set([...G.powers.france.seaCaptains, "leTestu"])];
+        G.worldCaptains.leTestu = {power: "france", location: "northAtlantic", damaged: false, colony: false};
+        // A navigation roll of 2-6 eliminates the expedition outright.
+        const ctx = {...context(), random: {Die: () => 1, Shuffle: (a: unknown[]) => a}} as Ctx;
+
+        expect(navigationCheck(G, ctx, "leTestu")).toBe(false);
+
+        expect(G.worldCaptains.leTestu).toBeUndefined();
+        expect(G.patronsAvailable).not.toContain("leTestu");
     });
 });
