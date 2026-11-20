@@ -37,7 +37,6 @@ import {
   militarismOptions,
   navalReturnPlan,
   nonPlayerBuildPlan,
-  unitMinor,
   woiProgressPlan,
   type MilitarismBenefit,
   type NavalReturnEntry,
@@ -144,7 +143,7 @@ import {planWartimeLandMove, wartimeRailed} from "./engine/wartimeMovement";
 // without an import cycle; re-export them for direct callers and tests.
 export {beginImpulseUpkeep, resolveImpulseLoss} from "./engine/rules";
 import {closeDecision, decision, openDecision, option, powerOfSeat, seatOf} from "./engine/pending";
-import {finishCard, placeNonPlayerCounter, placeUnit, removeUnit, resolveCard, resolveCardDecision, resolveEffects, spendReserveSteps, addReserve, damageUnit, resolveAllianceStep, resolveItalyAllianceStep, displaceIndianArmies, grantRapidDeployment, displaceUnitToFriendlyLoc, displaceUnitsNotFriendlyTo, registerPolishIndependence, LOOSE_GRIP_CARD, looseGripRemovalDue, resolveAmericanCivilWarEndPhase} from "./engine/effects";
+import {applyWoiIndependence, finishCard, placeNonPlayerCounter, placeUnit, removeUnit, resolveCard, resolveCardDecision, resolveEffects, spendReserveSteps, addReserve, damageUnit, resolveAllianceStep, resolveItalyAllianceStep, displaceIndianArmies, grantRapidDeployment, displaceUnitsNotFriendlyTo, LOOSE_GRIP_CARD, looseGripRemovalDue, resolveAmericanCivilWarEndPhase} from "./engine/effects";
 import {POLAND, polishDeploySpace, polishRecruitDecision, polishReserveDeployer, polishReserveIds} from "./engine/poland";
 import {
   allianceResolutionOrder,
@@ -6725,15 +6724,6 @@ const endPhaseProgressTruces = (G: ImperialElegyState): void => {
 };
 
 /**
- * 5.7: the WoI independence step displaces every unit that does not belong to
- * the newly independent minor.  The reusable helper owns the printed
- * destination/tie-breaking rules; this wrapper keeps the call site readable.
- */
-const displaceUnitForWoi = (G: ImperialElegyState, unitId: string): void => {
-  displaceUnitToFriendlyLoc(G, unitId);
-};
-
-/**
  * 20.8 Progress Wars of Independence.
  *
  * A marker that began the step on its +1 side gains independence: every unit
@@ -6744,37 +6734,7 @@ const displaceUnitForWoi = (G: ImperialElegyState, unitId: string): void => {
 const endPhaseProgressWarsOfIndependence = (G: ImperialElegyState, ctx: Ctx): void => {
   const plan = woiProgressPlan(G);
   for (const independence of plan.independence) {
-    const state = G.spaces[independence.space];
-    if (!state) continue;
-    if (independence.controller !== null) {
-      changeStability(G, independence.controller, -1, ctx, {cause: "other", space: independence.space});
-    }
-    for (const unitId of [...state.units]) {
-      const unit = G.units[unitId];
-      if (!unit) continue;
-      if (unitMinor(unit.owner) === independence.minor) continue;
-      displaceUnitForWoi(G, unitId);
-    }
-    setSpaceControl(
-      G,
-      independence.space,
-      isIndependentIndia(G, independence.space) ? null : independence.minor,
-    );
-    state.rebellion = null;
-    // 33.2.2: a legacy/card path that reaches a WoI in independent India must
-    // not write a control marker there.  Log the rejection instead.
-    if (isIndependentIndia(G, independence.space)) {
-      log(G, undefined, "indiaMarkerRejected", {space: independence.space, marker: "control"});
-    }
-    // 22.5 / 3.8: an independent Poland gets its reserve holding box and its
-    // two printed reserve-army counters, and joins the 20.3 build roster.
-    if (independence.minor === "Poland") registerPolishIndependence(G);
-    log(G, undefined, "woiIndependence", {
-      space: independence.space,
-      minor: independence.minor,
-      stability: independence.controller === null ? 0 : -1,
-      power: independence.controller ?? undefined,
-    });
+    applyWoiIndependence(G, ctx, independence.space, independence.minor, independence.controller);
   }
   for (const space of plan.advance) {
     const rebellion = G.spaces[space]?.rebellion;

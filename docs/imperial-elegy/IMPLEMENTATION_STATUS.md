@@ -1,5 +1,28 @@
 # Imperial Elegy — implementation status
 
+## Fixed: A97 Diplomatic Recognition skipped the independence sequence (2026-11-21)
+
+Found in the same hotseat rules audit.  A97 prints *"Flip a 0 WoI marker to its
++1 side.  A space with a +1 WoI marker immediately gains independence."*  The
+handler instead searched the map for the **first** 0 marker, flipped it, wrote
+the minor's control marker and deleted the rebellion.  It never let the active
+player choose which marker to flip, and it skipped the two clauses 20.8 attaches
+to independence: *"all units, except those belonging to the newly independent
+minor power, are immediately displaced [5.7], and the player who lost the space
+decreases their stability by 1."*
+
+`engine/effects.ts#applyWoiIndependence` is now the shared 20.8 sequence; both
+the end-phase step (`moves.ts#endPhaseProgressWarsOfIndependence`) and A97 call
+it.  A97 opens one `eventTargetSpace` option per 0 marker, and the chosen space
+displaces non-minor units, applies the controller's −1 stability, hands control
+to the new minor and logs `woiIndependence`.  With no 0 marker the card has no
+effect and logs `noLegalTarget`.
+
+**Coverage:** `diplomaticRecognition.test.ts` (3 — every 0 marker offered,
+the chosen space's displacement/stability/control, and the no-marker case).
+`npx tsc --noEmit` clean; the end-phase, card-defect and hotseat-audit suites
+pass.
+
 ## Fixed: A25 Divide and Conquer and A37 The Great Game settled the wrong spaces and never rolled (2026-11-21)
 
 Found during the local-hotseat rules audit and reproduced through the real
