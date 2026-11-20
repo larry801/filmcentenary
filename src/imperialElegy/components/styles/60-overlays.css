@@ -187,6 +187,56 @@
 
 .ie-lightbox-image { max-width: 100%; max-height: 100%; object-fit: contain; cursor: zoom-in; background: var(--ie-paper); }
 
+.ie-lightbox-modes { display: flex; gap: 4px; }
+
+.ie-lightbox-stage.ie-lightbox-text { display: block; overflow: auto; padding: var(--ie-space-3); }
+
+/* The transcribed charts: text on paper, at the board's own type scale.
+   Prose stays at a comfortable measure (~72 characters) while wide tables
+   (the crisis track has eight columns) get the full stage width, so no cell
+   collapses into a column of single characters. */
+.ie-chart-text {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: var(--ie-space-3) var(--ie-space-4);
+  background: var(--ie-paper);
+  color: var(--ie-ink);
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  font-size: var(--ie-font-sm);
+  line-height: var(--ie-font-sm-line);
+}
+
+.ie-chart-text p, .ie-chart-text ul, .ie-chart-text h4, .ie-chart-text h5 { max-width: 74ch; }
+
+.ie-chart-text-section + .ie-chart-text-section { margin-top: var(--ie-space-4); padding-top: var(--ie-space-3); border-top: 1px solid var(--ie-paper-rule); }
+
+.ie-chart-text-title { margin: 0 0 var(--ie-space-2); font-family: var(--ie-font-display); font-size: var(--ie-font-md); color: var(--ie-ink); }
+
+.ie-chart-text-rule { font-family: var(--ie-font-ui); font-size: var(--ie-font-xs); color: var(--ie-ink-muted); }
+
+.ie-chart-text-sub { margin: var(--ie-space-3) 0 var(--ie-space-1); font-size: var(--ie-font-sm); color: var(--ie-ink-2); }
+
+.ie-chart-text-line { margin: var(--ie-space-1) 0; }
+
+.ie-chart-text-bullets { margin: var(--ie-space-1) 0; padding-left: 18px; }
+
+.ie-chart-text-bullets li + li { margin-top: 2px; }
+
+.ie-chart-text-sublist { list-style: circle; margin: 2px 0 2px 18px; font-size: var(--ie-font-xs); color: var(--ie-ink-2); }
+
+.ie-chart-text-table { width: 100%; border-collapse: collapse; margin: var(--ie-space-2) 0; font-size: var(--ie-font-xs); }
+
+.ie-chart-text-table th, .ie-chart-text-table td { padding: 3px 6px; border: 1px solid var(--ie-paper-rule); text-align: left; vertical-align: top; }
+
+/* Cells hold short labels, not prose: keep a CJK word together with its
+   printed marker (`国际会议*`), so a marker never lands on a line of its own. */
+.ie-chart-text-table th, .ie-chart-text-table td { word-break: keep-all; }
+
+.ie-chart-text-table thead th { background: var(--ie-paper-2); color: var(--ie-ink); font-weight: 600; }
+
+.ie-chart-text-note { margin: var(--ie-space-1) 0; font-size: var(--ie-font-xs); color: var(--ie-ink-muted); }
+
 /* Intent chooser: anchored between the map and the turn panel's Actions tab. */
 .ie-intent-chooser {
   grid-area: turn;
