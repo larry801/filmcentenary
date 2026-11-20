@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VQGame} from "./constant/general";
+import {VQGame, spaceHomes} from "./constant/general";
 import {SPACE_BY_ID, SPACES} from "./mapData";
 import {chooseCatholicLeagueSpace, makePeace, moveLand} from "./moves";
 import {atWar, catholicLeagueSpaceOptions, checkCatholicLeague, isFortifiedSpace, resolvePendingCatholicLeague, setupGame, winter} from "./util";
@@ -213,5 +213,31 @@ describe("Catholic League formation (rule 20.10)", () => {
         expect(G.spaces.reims.land.france).toBeUndefined();
         expect(G.spaces.reims.land.spain?.regular).toBeGreaterThanOrEqual(4);
         expect(SPACE_BY_ID.reims.name).toBe("Reims");
+    });
+});
+
+/**
+ * Rule 20.10 step 1: "The Spanish player chooses Reims and 2 other unfortified
+ * French home spaces that are not Huguenot home spaces (i.e., solid blue
+ * spaces)."  The white/blue split spaces (Orleans, Bourges, Clermont, Lyon,
+ * Marseille, Toulouse, Bordeaux, Nantes) are Huguenot homes and ineligible.
+ */
+describe("Catholic League space choices (rule 20.10 step 1)", () => {
+    it("never offers a Huguenot split home space", () => {
+        const G = game();
+        G.year = 4;
+        giveProtestantKeys(G);
+        checkCatholicLeague(G, context());
+
+        const options = catholicLeagueSpaceOptions(G);
+        expect(options.length).toBeGreaterThan(0);
+        for (const id of options) {
+            expect(spaceHomes(SPACE_BY_ID[id])).not.toContain("protestant");
+            expect(isFortifiedSpace(G, id)).toBe(false);
+        }
+        // The eight split spaces of France are all excluded.
+        for (const split of ["orleans", "bourges", "clermont", "lyon", "marseille", "toulouse", "bordeaux", "nantes"]) {
+            expect(options).not.toContain(split);
+        }
     });
 });

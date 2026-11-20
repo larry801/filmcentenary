@@ -1,7 +1,8 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {VQGame} from "./constant/general";
-import {returnCapturedLeader, yieldSpace} from "./moves";
+import {VQGame, spaceHomes} from "./constant/general";
+import {SPACE_BY_ID} from "./mapData";
+import {ransom, returnCapturedLeader, yieldSpace} from "./moves";
 import {addLand, setupGame} from "./util";
 
 const context = (player = "3"): Ctx => ({
@@ -73,5 +74,29 @@ describe("binding diplomatic agreements (rule 9.1)", () => {
 
         expect(returnCapturedLeader(G, context("3"), {leaderId: "guise"})).toBe(INVALID_MOVE);
         expect(G.leaders.guise.location).toBe("captured");
+    });
+});
+
+/**
+ * Rule 9.3: "Place that army leader in his capital if possible; if not place him
+ * in a friendly home key."  The fallback must be a home key of the returning
+ * power, not merely any key it happens to control.
+ */
+describe("ransom destinations (rule 9.3)", () => {
+    it("refuses the ransom when only a foreign key is available", () => {
+        const G = game();
+        // Spain is driven out of its own capital and every home key; the only
+        // key it still holds is Rome, a Papal home space.
+        for (const id of Object.keys(G.spaces)) {
+            if (spaceHomes(SPACE_BY_ID[id]).includes("spain")) G.spaces[id].control = "france";
+        }
+        G.spaces.rome.control = "spain";
+        G.spaces.rome.unrest = false;
+        G.powers.spain.cards = ["vq-020"];
+        G.leaders.parma = {id: "parma", location: "captured", capturedBy: "france"};
+
+        // No capital and no friendly home key: there is nowhere to put him.
+        expect(ransom(G, context("1"), {leaderId: "parma"})).toBe("INVALID_MOVE");
+        expect(G.leaders.parma.location).toBe("captured");
     });
 });

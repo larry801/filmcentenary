@@ -2370,6 +2370,23 @@ export const moveLeaders = (G: VQGame, from: string, to: string, ids: string[]):
     }
 };
 
+/**
+ * Rule 21.4: "Elizabeth I, Henry III, Henry Navarre and William of Orange may
+ * die from assassination.  In this situation the marriage is ended just as if
+ * the 'Back in pool; no bonuses' result occurred, though the royal that died is
+ * of course removed from play."  Two of those royals double as army leaders
+ * under a different id.
+ */
+export const ARMY_LEADER_FOR_ROYAL: Record<string, string> = {
+    williamOrange: "orange",
+    henryIV: "navarre",
+};
+
+/** Royally-identified army leaders whose assassination also kills the royal. */
+export const ROYAL_FOR_ARMY_LEADER: Record<string, string> = Object.fromEntries(
+    Object.entries(ARMY_LEADER_FOR_ROYAL).map(([royal, leader]) => [leader, royal]),
+);
+
 export const captureLeaders = (G: VQGame, loc: string, owners: Controller[], captor: Power): number => {
     let n = 0;
     for (const id of [...leadersAt(G, loc)]) {
@@ -4213,10 +4230,6 @@ export const resolveMarriage = (G: VQGame, ctx: Ctx, betrothal: { male: string; 
         // the map and place a default leader if he was the only one.  Some
         // royals double as army leaders under a different id (William of
         // Orange -> `orange`, Henry of Navarre -> `navarre`).
-        const ARMY_LEADER_FOR_ROYAL: Record<string, string> = {
-            williamOrange: "orange",
-            henryIV: "navarre",
-        };
         const leaderId = ARMY_LEADER_FOR_ROYAL[male.id] ?? male.id;
         const leaderDef = LEADER_BY_ID[leaderId];
         if (leaderDef !== undefined && leaderDef.kind === "army") {
@@ -5350,10 +5363,17 @@ export const checkCatholicLeague = (G: VQGame, ctx: Ctx): boolean => {
     return true;
 };
 
-/** Unfortified French home spaces Spain may still take for the League. */
+/**
+ * Unfortified French home spaces Spain may take for the League (rule 20.10
+ * step 1): "Reims and 2 other unfortified French home spaces that are not
+ * Huguenot home spaces (i.e., solid blue spaces)."  The white/blue split
+ * spaces of the Netherlands and the French two-color spaces are Huguenot
+ * homes, so they are not eligible.
+ */
 export const catholicLeagueSpaceOptions = (G: VQGame): string[] => {
     if (G.pendingCatholicLeague === undefined) return [];
     return SPACES.filter((def) => spaceHomes(def).includes("france") && def.id !== "reims" &&
+        !spaceHomes(def).includes("protestant") &&
         !isFortifiedSpace(G, def.id) && !(G.catholicLeagueSpaces ?? []).includes(def.id))
         .map((def) => def.id);
 };

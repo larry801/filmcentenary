@@ -116,3 +116,36 @@ describe("#35 Rudolf assassination", () => {
         expect(espionageDice(G, pending)).toEqual({attack: 4, defense: 2});
     });
 });
+
+/**
+ * Rule 21.4: "Elizabeth I, Henry III, Henry Navarre and William of Orange may
+ * die from assassination.  In this situation the marriage is ended just as if
+ * the 'Back in pool; no bonuses' result occurred, though the royal that died is
+ * of course removed from play."  Navarre and Orange double as army leaders
+ * under different ids (`navarre`, `orange`).
+ */
+describe("assassinating a royal army leader (rule 21.4)", () => {
+    const prepareRoyal = (G: VQGame, leaderId: string, royalId: string): void => {
+        const leader = G.leaders[leaderId];
+        leader.location = "bearn";
+        G.spaces.bearn.leaders = [...G.spaces.bearn.leaders.filter((id) => id !== leaderId), leaderId];
+        G.spaces.bearn.control = "protestant";
+        G.spaces.bearn.unrest = false;
+        G.royals = G.royals.filter((r) => r.id !== royalId);
+        G.royals.push({id: royalId, name: royalId, power: "protestant", gender: "male",
+            eligibility: 3, alive: true, married: false, status: "available"});
+        G.betrothals = [{male: royalId, female: "elizabeth", power: "protestant"}];
+    };
+
+    it("kills Henry of Navarre's royal and cancels the betrothal", () => {
+        const G = game();
+        prepareRoyal(G, "navarre", "henryIV");
+
+        expect(assassinationTargets(G, "spain")).toContain("navarre");
+        expect(assassinate(G, context("spain", [6, 6, 6, 6, 1, 1]), {target: "navarre", cp: 4})).toBeUndefined();
+        drainResponses(G);
+
+        expect(G.royals.find((r) => r.id === "henryIV")?.alive).toBe(false);
+        expect(G.betrothals).toEqual([]);
+    });
+});

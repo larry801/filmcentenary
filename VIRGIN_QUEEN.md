@@ -1683,3 +1683,13 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 | 15.1 | 强攻失败会把 `sinceImpulse` 改写成当前行动轮次，于是 13.1 误认为"本轮刚结束围城"，禁止围城部队撤离；而"每格每轮只能强攻一次"是这条副作用顺带实现的 | `SiegeState` 新增 `assaultedIn` 记录真实的"每格每轮一次强攻"；强攻失败保留原始 `sinceImpulse` |
 
 验证：`tsc --noEmit` 通过；`jest src/virginQueen --silent --maxWorkers=4` 258 suites、1579 tests 全部通过（新增 `loneLeader.test.ts` 1 项、`interceptionFull.test.ts` 1 项、`impulseLimits.test.ts` 2 项）。
+
+### 审计第四轮（续）：21.4 刺杀王室、20.10 选格、9.3 赎回
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 21.4 | 刺杀亨利·纳瓦拉或威廉·奥兰治时只移除了陆军将领，对应的王室仍"在世"，冬季照常结算婚约并给加值（规则：这四位王室被刺杀等于"回池、无任何加值"，且该王室移出游戏） | 新增 `ROYAL_FOR_ARMY_LEADER` 映射（`williamOrange→orange`、`henryIV→navarre`），刺杀时同步处理王室死亡与订婚取消 |
+| 20.10 step 1 | 天主教联盟选地会提供奥尔良、布尔日、里昂等"双色/新教家乡"地区；规则限定"非新教家乡地区（即纯蓝色地区）" | `catholicLeagueSpaceOptions` 排除 `spaceHomes` 含 `protestant` 的地区 |
+| 9.3 | 赎回将领的兜底地点是"本国控制的任意关键地区"；规则为"首都，否则本国家乡关键地区"（`capitalOf` 本身会退化成任意受控关键地区） | 改用印刷首都（`capitalSpacesFor`），兜底限定为 `spaceHomes` 含本国 key；两者都没有时拒绝赎回而不是把人放到别国地区 |
+
+验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` 572 suites、5752 tests 全部通过（新增 `pragueMarkerAssassination.test.ts` 1 项、`catholicLeague.test.ts` 1 项、`diplomacyBinding.test.ts` 1 项）。

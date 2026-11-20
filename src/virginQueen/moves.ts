@@ -4337,7 +4337,17 @@ export const ransom = (G: VQGame, ctx: Ctx, args: { leaderId: string }): void | 
     } else {
         G.powers[captor].treasures.push(paid.value);
     }
-    const dest = capitalOf(G, tutorialHreRansom ? "hre" : p) ?? KEY_SPACES.find((id) => G.spaces[id].control === (tutorialHreRansom ? "hre" : p));
+    // Rule 9.3: "Place that army leader in his capital if possible; if not
+    // place him in a friendly home key."  The capital is the printed capital
+    // only — `capitalOf` degrades to "any controlled key", which is the very
+    // behaviour the fallback clause replaces.
+    const ransomPower = tutorialHreRansom ? "hre" : p;
+    const capital = capitalSpacesFor(G, ransomPower).find((id) => {
+        const c = G.spaces[id]?.control;
+        return c === ransomPower || (isPower(c) && allied(G, ransomPower, c));
+    });
+    const dest = capital ?? SPACES.find((def) =>
+        def.kind === "key" && spaceHomes(def).includes(ransomPower) && G.spaces[def.id].control === ransomPower)?.id;
     if (dest === undefined) {
         return INVALID_MOVE;
     }
