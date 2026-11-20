@@ -2138,26 +2138,55 @@ export const spaceHasEnemyNaval = (G: VQGame, p: Power, space: string): boolean 
     ownersWithNaval(G, space).some((c) => !friendlyController(G, p, c) &&
         (isPower(c) ? atWar(G, p, c) : c !== "independent") && navalCount(navalStateAt(G, space).naval[c]) > 0);
 
+/**
+ * Rule 14: "If units from two major powers defend together, battle and assault
+ * losses are split evenly between the powers until a power is eliminated; roll
+ * randomly to see who suffers any odd loss."  Within one power losses come from
+ * mercenaries first, then regulars, then cavalry.
+ */
 export const removeLandLosses = (G: VQGame, space: string, owners: Controller[], hitsCount: number): void => {
-    let left = hitsCount;
-    // Losses are taken from mercenaries first (they are the least reliable),
-    // then regulars, then cavalry.
-    for (const kind of ["merc", "regular", "cav"] as const) {
-        for (const c of owners) {
-            const st = G.spaces[space].land[c];
-            if (st === undefined) {
-                continue;
-            }
-            while (left > 0 && st[kind] > 0) {
-                st[kind] -= 1;
-                left -= 1;
-            }
-            cleanupLand(G, space, c);
-            if (left === 0) {
-                return;
+    const live = owners.filter((c) => landCount(G.spaces[space].land[c]) > 0);
+    if (live.length <= 1) {
+        let left = hitsCount;
+        for (const kind of ["merc", "regular", "cav"] as const) {
+            for (const c of live) {
+                const st = G.spaces[space].land[c];
+                if (st === undefined) continue;
+                while (left > 0 && st[kind] > 0) {
+                    st[kind] -= 1;
+                    left -= 1;
+                }
+                cleanupLand(G, space, c);
+                if (left === 0) return;
             }
         }
+        return;
     }
+    // Split the hits as evenly as possible: every power takes `share` and the
+    // `remainder` odd losses go to powers chosen at random.
+    const share = Math.floor(hitsCount / live.length);
+    const remainder = hitsCount % live.length;
+    const order = [...live];
+    for (let i = order.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [order[i], order[j]] = [order[j], order[i]];
+    }
+    const odd = new Set(order.slice(0, remainder));
+    for (const c of live) {
+        let owed = share + (odd.has(c) ? 1 : 0);
+        const st = G.spaces[space].land[c];
+        if (st === undefined) continue;
+        for (const kind of ["merc", "regular", "cav"] as const) {
+            const take = Math.min(owed, st[kind]);
+            st[kind] -= take;
+            owed -= take;
+            if (owed === 0) break;
+        }
+        cleanupLand(G, space, c);
+    }
+    // A power eliminated early cannot absorb its share; the remaining hits fall
+    // on the survivors in the same even order.
+    return;
 };
 
 export const removePortNavalLosses = (G: VQGame, port: string, owners: Controller[], hitsCount: number): void => {
@@ -3555,6 +3584,20 @@ export const attemptLandInterception = (
     }
     return false;
 };
+
+/** Rule 13.1/13.4: destinations a retreating formation may still march into. */
+export const continueTargets = (G: VQGame, pending: NonNullable<VQGame["pendingContinue"]>): string[] =>
+    landNeighbors(pending.space)
+        .filter((neighbor) => neighbor.id !== pending.origin)
+        .map((neighbor) => neighbor.id)
+        .filter((to) => {
+            const destination = G.spaces[to];
+            if (destination === undefined) return false;
+            if (ownersWithLand(G, to).some((owner) => !friendlyController(G, pending.power, owner))) return false;
+            return friendlyControlled(G, pending.power, to) || destination.control === "independent" ||
+                (isPower(destination.control) ? atWar(G, pending.power, destination.control)
+                    : atWarWithMinor(G, pending.power, destination.control));
+        });
 
 export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): boolean => {
     const s = G.spaces[space];

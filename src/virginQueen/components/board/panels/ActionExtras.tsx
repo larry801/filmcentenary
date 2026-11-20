@@ -188,7 +188,8 @@ export const ActionExtras = () => {
                     {me === "spain" && WORLD_SETTLEMENTS.filter((s) => s.seaZone === zone.id &&
                         (G.worldControls[s.id] === "spain" || G.worldColonies[s.id] === "spain") &&
                         G.worldFortresses?.[s.id] === undefined).map((s) =>
-                        <Button key={`fort-${s.id}`} size="small" variant="outlined" disabled={!myTurn || cp < 2 || (G.worldFortressesBuilt ?? 0) >= 2}
+                        <Button key={`fort-${s.id}`} size="small" variant="outlined"
+                            disabled={!myTurn || cp < 2 || (G.worldFortressesBuilt ?? 0) >= (ps?.scienceBonuses.includes("coastalFortification") ? 2 : 1)}
                             onClick={() => moves.buildWorldFortress({settlement: s.id})}>{dataName(s)} · {i18n.chain.vq.worldUi.buildFortress}</Button>)}
                     {here.filter(([, ex]) => ex.power === me).map(([id]) => <Stack key={id} direction="row" spacing={0.5} sx={{mt: 0.5, flexWrap: "wrap"}}>
                         {zone.adjacent.map((next) => <Button key={next} size="small" variant="text" disabled={!myTurn || (cp < 1 && !Object.values(G.worldCaptains).some((ex) => ex.power === me && ex.movedImpulse === G.impulse)) || G.worldCaptains[id].movedImpulse === G.impulse}

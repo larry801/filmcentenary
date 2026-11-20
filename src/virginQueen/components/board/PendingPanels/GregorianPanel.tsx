@@ -19,15 +19,18 @@ export const PendingGregorianPanel = ({G, moves, playerID, target, onTargetChang
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     if (G.gregorianResponse === undefined) return null;
+    // Only a power with a seat can take the next action round; an unowned
+    // major power would leave the turn order without a player.
+    const seats = POWERS.filter((power) => ownerOf(G, power) !== undefined);
     return <Stack spacing={1}>
         <Typography>{i18n.chain.vq.gregorian.title} · {powerName(G.gregorianResponse.after, vqLocale)} {i18n.chain.vq.gregorian.ended}{i18n.chain.vq.punct.comma}{i18n.chain.vq.gregorian.waiting} {powerName(G.gregorianResponse.responder, vqLocale)} {i18n.chain.vq.gregorian.decide}</Typography>
         {ownerOf(G, G.gregorianResponse.responder) === playerID && <>
             <Typography variant="body2">{i18n.chain.vq.gregorian.chooseNext}</Typography>
-            <Select size="small" value={target} onChange={(event) => onTargetChange(event.target.value as Power)}>
-                {POWERS.map((power) => <MenuItem key={power} value={power}>{powerName(power, vqLocale)}</MenuItem>)}
+            <Select size="small" value={seats.includes(target) ? target : seats[0]} onChange={(event) => onTargetChange(event.target.value as Power)}>
+                {seats.map((power) => <MenuItem key={power} value={power}>{powerName(power, vqLocale)}</MenuItem>)}
             </Select>
             <Stack direction="row" spacing={0.5}>
-                <Button variant="contained" onClick={() => moves.playCard({cardId: "vq-101", asEvent: true, target})}>
+                <Button variant="contained" onClick={() => moves.playCard({cardId: "vq-101", asEvent: true, target: seats.includes(target) ? target : seats[0]})}>
                     {i18n.chain.vq.gregorian.play}
                 </Button>
                 <Button variant="outlined" onClick={() => moves.declineGregorianCalendar()}>{i18n.chain.vq.gregorian.decline}</Button>

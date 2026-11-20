@@ -1640,3 +1640,20 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 | 16.5 | 世界海盗忽略西班牙要塞的“扣留 1 个宝藏”与只剩 1 个宝藏的禁取限制 | 新增 `worldPiracyWithholds`，扣留后随机抽取并遵守禁取 |
 
 验证：`tsc --noEmit` 通过；`jest src/virginQueen --silent --maxWorkers=4` 255 suites、1552 tests passed（新增 `warCostChart.test.ts` 9 项、`treasureActionTypes.test.ts` 4 项、`retrievalRestriction.test.ts` 3 项、`expeditionStartZone.test.ts` 4 项、`dryDock.test.ts` 3 项、`moveRestrictions.test.ts` 3 项、`loneLeader.test.ts` 3 项、`interceptAvoidPower.test.ts` 2 项，`worldPiracy.test.ts` +2 项、`espionage.test.ts` +1 项、`unrestRuler.test.ts` +1 项）；`playwright test e2e/hotseat.spec.ts e2e/diplomacy.spec.ts e2e/map.spec.ts e2e/tutorial.spec.ts` 11 passed；`playwright test e2e/vq-playthrough.spec.ts` 7 passed。
+
+### 审计第三轮补遗：热座界面与联合防守
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 14 | 两个盟国同格防守时，损失全部由列表靠前的势力承担（规则要求两队均分，奇数损失随机） | `removeLandLosses` 改为均分，奇数损失随机分配 |
+| 15.2 | 解围战败后的“留多少单位在城内”可被 pass／结束行动轮次跳过，留下无法推进的待选状态 | `moveError` 阻止其他动作，必须先行选择 |
+| 17.2/17.3 | 行动选择器向任何强国显示所有建造项（西班牙能选快帆船、英格兰能选海盗船等），选中后地图无合法目标 | 新增 `MODE_POWER_ALLOWED`，按印刷限制过滤 |
+| 17.5 | 世界要塞上限在界面写死 2，未计 Coastal Fortification 之外的情况（引擎为 1） | 界面与引擎一致 |
+| 9.4 | 小国宣战标题固定写“2 CP”，与逐格费用冲突 | 改为“费用见表”，费用显示在各按钮上 |
+| 13.4 | 撤退后继续行军列出全部相邻地区，点到非法地区无任何反馈 | 新增 `continueTargets`，只列 13.1 允许进入的地区 |
+| 23.5/#101 | 公历纪年法允许把下一行动轮次交给没有玩家的强国，导致行动顺序取不到座位 | 规则与界面都只允许有座位的强国 |
+| 10 | 奥兰治登场选择硬编码英文，中文热座中突然出现英文 | 改走 i18n |
+| — | 待选窗口（HRE 补员、天主教联盟选地、奥兰治登场、海军将领选港）未在横幅上提示应切换到的标签页 | 并入 `pendingPower` |
+| — | MUI 对话框／抽屉／提示通过 portal 渲染，切换热座标签页后仍覆盖在新标签页上 | 切换座位时清空确认框、卡牌抽屉、编队表与提示 |
+
+验证：`tsc --noEmit` 通过；`jest src/virginQueen --silent --maxWorkers=4` 258 suites、1565 tests passed（新增 `alliedLosses.test.ts` 5 项、`continueTargets.test.ts` 2 项、`actionPickerFilter.test.ts` 6 项）；`playwright test e2e/hotseat.spec.ts e2e/diplomacy.spec.ts e2e/tutorial.spec.ts e2e/map.spec.ts` 11 passed。

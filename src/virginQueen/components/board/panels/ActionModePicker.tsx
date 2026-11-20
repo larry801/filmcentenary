@@ -14,6 +14,17 @@ import {seaZoneName} from "../../../mapData";
 import {ACTION_BUTTON_GROUPS, modeLabel, placeLabel, vqLocaleNow} from "../helpers";
 import {useVQBoard} from "../BoardContext";
 
+/** Rule 17.2/17.3/15.1: which build and assault modes the printed rules allow this power. */
+export const MODE_POWER_ALLOWED: Partial<Record<string, (me: string) => boolean>> = {
+    recruitMerc: (me) => me !== "ottoman",
+    recruitCav: (me) => me === "ottoman",
+    buildGalley: (me) => ["ottoman", "spain", "france", "hre"].includes(me),
+    buildGalleon: (me) => ["spain", "england", "france", "protestant"].includes(me),
+    buildRacebuilt: (me) => me === "england",
+    buildCorsair: (me) => me === "ottoman",
+    rebellion: (me) => me === "protestant",
+};
+
 export const ActionModePicker = () => {
     const {navalOrders, setNavalOrders, submitNavalOrders, canAct, cp} = useVQBoard();
     const {G, myTurn, setActionNotice, isDesktop, setMobileView, mode, setMode, from, setFrom, transportZones, setTransportZones, rebelCp, setRebelCp, me, modeDisabledReason, transportCandidates, stackPicker} = useVQBoard();
@@ -30,9 +41,7 @@ export const ActionModePicker = () => {
             </Button>
             {Object.entries(ACTION_BUTTON_GROUPS).map(([group, candidates]) => {
                 const visible = candidates.filter((candidate) =>
-                    (candidate !== "recruitMerc" || me !== "ottoman") &&
-                    (candidate !== "recruitCav" || me === "ottoman") &&
-                    (candidate !== "rebellion" || me === "protestant") &&
+                    MODE_POWER_ALLOWED[candidate]?.(me) !== false &&
                     (G.scenario !== "tutorial" || !["buildFortress", "buildRacebuilt", "rebellion"].includes(candidate)));
                 if (visible.length === 0) return null;
                 return <div key={group} className="vq-action-group">

@@ -2152,10 +2152,14 @@ const resolveDunkirkPrivateers = (G: VQGame, ctx: Ctx, target?: string): void =>
 
 const resolveGregorianCalendar = (G: VQGame, ctx: Ctx, p: Power, target?: string): void => {
     if (target === undefined || !isPower(target)) return;
-    G.gregorianNext = target;
+    // Rule 23.5/#101: the chosen power must be one that can actually take the
+    // next action round; an unowned major power would leave the turn order
+    // without a seated player, so fall back to the responder.
+    const chosen = ownerOf(G, target) !== undefined ? target : p;
+    G.gregorianNext = chosen;
     if (G.powers[p].alliedMinors.includes("papacy")) drawCards(G, ctx, p, 1);
     removeCardFromGame(G, "vq-101");
-    pushLog(G, `Gregorian Calendar: ${powerLabel(target)} will begin the next action round.`);
+    pushLog(G, `Gregorian Calendar: ${powerLabel(chosen)} will begin the next action round.`);
 };
 
 /**

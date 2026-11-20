@@ -45,18 +45,16 @@ export const SpringPanel = () => {
             </Stack>)}
         </Stack>}
         {orangeChoice && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
-            <Typography variant="subtitle2">William of Orange Arrives</Typography>
-            <Typography variant="caption" color="text.secondary">
-                Place him in the Protestant capital or hold him back to lead a rebellion (Scenario Book p. 9).
-            </Typography>
+            <Typography variant="subtitle2">{i18n.chain.vq.spring.orangeArrives}</Typography>
+            <Typography variant="caption" color="text.secondary">{i18n.chain.vq.spring.orangeArrivesDesc}</Typography>
             <Stack direction="row" spacing={0.5}>
                 <Button size="small" variant="outlined" disabled={!myTurn}
                     onClick={() => moves.chooseOrangePlacement({place: true})}>
-                    Place in Capital
+                    {i18n.chain.vq.spring.orangePlace}
                 </Button>
                 <Button size="small" variant="outlined" disabled={!myTurn}
                     onClick={() => moves.chooseOrangePlacement({place: false})}>
-                    Hold Back (Rebellion)
+                    {i18n.chain.vq.spring.orangeHold}
                 </Button>
             </Stack>
         </Stack>}
