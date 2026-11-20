@@ -1,5 +1,23 @@
 # Imperial Elegy — implementation status
 
+## Fixed: Sepoy Mutiny left the key penalty until the next end phase (2026-11-21)
+
+A33 places a Sepoy rebel army in India, and 21.1 says the rebel-held space
+cannot be controlled and the UK loses India's keys *until the Sepoys are
+eliminated*.  The handler placed the rebellion but did not call
+`recomputeTracks`, which is not automatic; the double colonial key (and the
+India card bonus) stayed on the UK display until some later move happened to
+recompute the tracks.
+
+The handler now recomputes immediately after placing the rebel, so the key loss
+and the loss of the India card bonus are visible at once.  Eliminating the
+Sepoy still clears the 0 WoI marker and restores the keys through the 21.0
+`removeUnit` path.
+
+**Coverage:** `sepoyMutiny.test.ts` (2 — immediate key/card-bonus loss with the
+marker cleanup, and a second rebel keeping the WoI alive).  `npx tsc --noEmit`
+clean; the India/rebel/characteristics suites pass.
+
 ## Fixed: rebels did not reduce keys, and a cleared rebellion never ended (2026-11-21)
 
 21.1 prints *"While a space contains rebel units it cannot be controlled. When
