@@ -30,7 +30,7 @@ import type {Ctx} from "boardgame.io";
 import type {ImperialElegyState, Power, SpaceId} from "../types";
 import {SPACES, isNavalBox} from "../constant/spaces";
 import {isIndependentIndia, pacificationModifier} from "./characteristics";
-import {die, isArmyKind, isPower, landUnitsIn, log, navalUnitsIn, setSpaceControl} from "./rules";
+import {die, hasPacificationMarker, isArmyKind, isPower, landUnitsIn, log, navalUnitsIn, setSpaceControl} from "./rules";
 
 /** Why 12.11's pacification action cannot be taken here, or null when it can. */
 export type PacificationProblem =
@@ -42,6 +42,8 @@ export type PacificationProblem =
   | "no-influence"
   /** A controlled space's event marker is cleared by its controller only. */
   | "not-controller"
+  /** A controlled space with no marker has nothing to pacify. */
+  | "no-marker"
   /** 12.11: "Players must have a land unit in a space to pacify it." */
   | "no-land-unit"
   /** 12.12.1: the rebel army has to be beaten first. */
@@ -107,6 +109,7 @@ export const pacificationProblem = (
     // rebelling against colonial rule") is cleared by that controller, not by
     // an influence marker the controller does not have.
     if (state.control !== power) return "not-controller";
+    if (!hasPacificationMarker(G, space)) return "no-marker";
   } else if (state.influence !== power) {
     return "no-influence";
   }
@@ -150,10 +153,16 @@ export const reconcilePacificationMarkers = (G: ImperialElegyState): void => {
     if (state.control !== null) continue;
     const occupied = landUnitsIn(G, space as SpaceId).length > 0;
     if (occupied) {
-      if ((state.pacification ?? 0) <= 0) state.pacification = pacificationEntryValue(space as SpaceId);
+      if (!hasPacificationMarker(G, space as SpaceId)) {
+        state.pacification = pacificationEntryValue(space as SpaceId);
+        state.pacificationMarker = true;
+      }
       continue;
     }
-    if ((state.pacification ?? 0) > 0) state.pacification = 0;
+    if (hasPacificationMarker(G, space as SpaceId)) {
+      state.pacification = 0;
+      state.pacificationMarker = false;
+    }
   }
 };
 
@@ -163,10 +172,11 @@ export const removeOrphanedPacificationMarkers = (G: ImperialElegyState): number
   for (const [space, state] of Object.entries(G.spaces)) {
     if (!state) continue;
     if (state.control !== null) continue;
-    if ((state.pacification ?? 0) <= 0) continue;
+    if (!hasPacificationMarker(G, space as SpaceId)) continue;
     if (isNavalBox(space)) continue;
     if (landUnitsIn(G, space as SpaceId).length > 0) continue;
     state.pacification = 0;
+    state.pacificationMarker = false;
     removed += 1;
   }
   return removed;
@@ -218,12 +228,14 @@ export const attemptPacification = (
     // power already controls simply goes away (12.11.2).
     if (state.control !== power) setSpaceControl(G, space, power, {clearInfluence: true});
     state.pacification = 0;
+    state.pacificationMarker = false;
     // 12.11.2: "Remove the counter once the space is pacified."
     if (G.persistent?.goe === space) delete G.persistent.goe;
     if (G.persistent?.boers === space) delete G.persistent.boers;
     log(G, power, "pacified", {space, roll, cost, target});
   } else {
     state.pacification = value + 1;
+    state.pacificationMarker = true;
     log(G, power, "pacificationFailed", {space, roll, cost, target});
   }
 };

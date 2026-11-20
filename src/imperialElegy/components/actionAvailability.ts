@@ -239,6 +239,7 @@ export const PACIFICATION_TEXT: Record<PacificationProblem, [string, string]> = 
   "naval-box": ["Naval boxes cannot be pacified.", "海军区不能绥靖。"],
   "no-influence": ["You need your own influence marker here.", "此处需有己方影响标记。"],
   "not-controller": ["Only the power that controls this space can clear its pacification marker.", "只有控制该空间的玩家可以清除此处的绥靖标记。"],
+  "no-marker": ["There is no pacification marker here.", "此处没有绥靖标记。"],
   "no-land-unit": ["12.11 requires one of your land units in the space to pacify it.", "12.11：绥靖需在该空间有你的陆军单位。"],
   "rebel-present": ["12.12.1: a rebel army here must be eliminated in a land battle before you can pacify.", "12.12.1：须先以陆战消灭此处的叛军，才能绥靖。"],
   "already-this-impulse": ["12.11: one pacification per space per impulse — retry in a later impulse.", "12.11：每个空间每行动轮只能绥靖一次，请在后续行动轮再试。"],

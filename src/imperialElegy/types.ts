@@ -214,6 +214,12 @@ export interface SpaceState {
   fort?: Fort | null;
   /** Pacification value (0, 1, 2, ...). */
   pacification?: number;
+  /**
+   * True while a pacification marker is physically in the space.  A 0-value
+   * marker is a real marker (12.11/12.11.2), so the value alone cannot tell
+   * "no marker" from "0 marker".
+   */
+  pacificationMarker?: boolean;
   rebellion?: Rebellion | null;
   units: string[];
   /** Trench battle marker (GW). */

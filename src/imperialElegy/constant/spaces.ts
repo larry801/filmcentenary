@@ -690,6 +690,7 @@ export const createSpaceStates = (): Record<SpaceId, SpaceState> => {
       ally: null,
       fort: null,
       pacification: 0,
+      pacificationMarker: false,
       rebellion: null,
       units: [],
       trench: null,

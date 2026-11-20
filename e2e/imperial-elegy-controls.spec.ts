@@ -917,7 +917,16 @@ test.describe("Imperial Elegy solo vs bot", () => {
             return G.log.filter((entry: any) => entry.power && entry.power !== "GE").length;
         });
         const before = await botEntries();
-        await expect.poll(botEntries, {timeout: 45_000}).toBeGreaterThanOrEqual(before + 2);
+        // A mandatory event played by a bot can owe the human seat a decision
+        // (A17 Assassination asks GE to lose stability or discard).  The bot
+        // stops until that answer, so sweep decisions while waiting instead of
+        // assuming two bot impulses are decision-free.
+        const deadline = Date.now() + 45_000;
+        while (Date.now() < deadline && await botEntries() < before + 2) {
+            await answerStartPending(page);
+            await page.waitForTimeout(500);
+        }
+        expect(await botEntries()).toBeGreaterThanOrEqual(before + 2);
 
         // The regression this guards: the bot re-sent `chooseHomeCard` (an
         // illegal move outside diplomacy) forever once its home card had been
