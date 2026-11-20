@@ -43,6 +43,8 @@ import {beginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
 import {gwDraftSpaces, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
 import {currentGwImpulse, gwActionAllowance, gwCardProblem, gwFinishImpulseProblem} from "./gwImpulse";
+import {declarationTargetCandidates} from "./declarationTargets";
+import {warDeclarationEntitlement} from "./rules";
 import {reserveRemaining} from "./economy";
 import {hasCounterFor} from "./counters";
 
@@ -452,6 +454,42 @@ export const botPendingMove = (
   }
 };
 
+/**
+ * The home-card war declaration this seat still owes, as a `declareWar` move.
+ *
+ * Four home cards print "declare war using this card's CP value".  Their event
+ * leaves a declaration entitlement instead of banking CP, and the entitlement
+ * belongs to that impulse: `finishImpulse` clears it, so a seat that hands the
+ * impulse over without declaring loses the printed effect entirely.  Rule 34
+ * gives no table row for the declaration, but B1's "play the home card" cannot
+ * be honoured without it — refusing to declare makes Bismarck, Aux Armes,
+ * Russo-Turkish Wars and Jihad resolve to nothing in every bot-driven seat,
+ * which is how they read as unimplemented in solo play.
+ *
+ * The first legal candidate from the shared enumeration is used, so the bot
+ * can only send a declaration `declareWar` accepts (13.0 aim validation, 13.4
+ * resolution, 13.5 truces, the card's own target/aim limits).  A restricted
+ * card (RU-9: the Ottomans; Jihad: RU or an Ottoman-home controller) therefore
+ * always finds exactly the printed defender.
+ */
+const homeDeclarationMove = (G: ImperialElegyState, power: Power): BotMove | null => {
+  if (G.phase !== "action") return null;
+  const entitlement = warDeclarationEntitlement(G, power);
+  if (entitlement === null || G.war !== null) return null;
+  const candidates = declarationTargetCandidates(G, power, entitlement);
+  if (candidates.length === 0) return null;
+  // Prefer the most rewarding aim the card allows: a liberation or conquest
+  // declaration is what its printed text is written around, and `ALL_WAR_AIMS`
+  // order otherwise puts conquest first even for RU-9's Balkan liberation.
+  const preferred = candidates.find((candidate) => candidate.aim === "liberation")
+    ?? candidates.find((candidate) => candidate.aim === "conquest")
+    ?? candidates[0];
+  return {
+    move: "declareWar",
+    args: [preferred.target, preferred.aim, [preferred.objective], entitlement.cp],
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Action Phase — Priority 1
 // ---------------------------------------------------------------------------
@@ -504,6 +542,14 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
       return {move: "landBattle", args: [rebel.from, rebel.space]};
     }
   }
+
+  // 2b. A home-card war declaration is an obligation of this impulse: the card
+  // already resolved (Bismarck, Aux Armes, Russo-Turkish Wars, Jihad) and the
+  // printed declaration is funded by its CP.  `pass` clears the entitlement in
+  // `finishImpulse`, so a bot that never declares silently loses the whole
+  // printed effect — that is what made RU-9 look unimplemented in solo play.
+  const declaration = homeDeclarationMove(G, power);
+  if (declaration !== null) return declaration;
 
   // 3. Always-play event from the printed BOT BOX (B1 / 34.3.4).
   const boxEvent = botBoxEvent(G, power);

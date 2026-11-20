@@ -2461,6 +2461,48 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // A019 Skilled Diplomats allocates its printed CP one marker at a time.
+  mpitInfluenceAllocated: (entry, locale) => {
+    const target = powerLabel(entry.args?.target, locale);
+    const track = trackLabel(entry.args?.track, locale);
+    return withActor(
+      entry,
+      locale,
+      `spent a CP of influence on ${target} (${track}).`,
+      `花费 1 CP 影响力：${target}（${track}）。`,
+    );
+  },
+
+  // OT-11 Modernization: the 12.13.1 offer round.
+  modernizationOffered: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(
+      entry,
+      locale,
+      `offered ${card} to the Ottomans (${str(entry.args?.cp)} CP).`,
+      `向奥斯曼提供 ${card}（${str(entry.args?.cp)} CP）。`,
+    );
+  },
+
+  modernizationAccepted: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    const from = powerLabel(entry.args?.from, locale);
+    return withActor(
+      entry,
+      locale,
+      `placed ${card} from ${from} into Ottoman industrialization; ${from} draws a card.`,
+      `将${from}的 ${card} 放入奥斯曼工业化区；${from} 抽 1 张牌。`,
+    );
+  },
+
+  modernizationNoOffer: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "received no industrialization card and used Modernization for 3 CP.",
+      "未获赠工业化卡牌，将“现代化”当 3 CP 使用。",
+    ),
+
   warManeuverStarted: (entry, locale) =>
     withActor(entry, locale, "started the war maneuver.", "开始战争机动。"),
 

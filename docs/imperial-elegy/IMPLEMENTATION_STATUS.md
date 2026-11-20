@@ -1,5 +1,67 @@
 # Imperial Elegy — implementation status
 
+## Fixed: three printed events that settled nothing (2026-11-20)
+
+Reported as "帝国挽歌大部分特殊事件效果都没实现 … 干练外交官 俄土战争 现代化
+都有效果未结算".  The report named three cards; each was reproduced by playing
+the real card and reading the state back, and each failed for a *different*
+reason, so the generalisation "most special events are unimplemented" does not
+hold — but these three were genuinely broken.
+
+### A019 Skilled Diplomats — 4 CP allocated in one answer
+
+`mpitChoice` opened a single `mpitAllocation` decision, and
+`resolveCardDecision` added the whole printed amount to the chosen track of the
+actor's own column.  A GE player therefore always ended with `GE/TA = 4`, and
+12.7's *"Players can move their own MPIT markers or MPIT markers belonging to
+other powers … not limited to influencing a single power … in any direction"*
+was unreachable.
+
+- The decision now offers every column × track pair (`GE:te`, `UK:neutral`, …),
+  one marker per answer, and re-opens itself with the remaining amount so the
+  4 points can be split across powers and tracks.
+- Each marker logs `mpitInfluenceAllocated` (both locales), so the allocation is
+  readable in the log instead of appearing as one silent 4-point jump.
+
+### RU-9 Russo-Turkish Wars (and every home-card declaration) — the bot never declared
+
+The event itself resolved correctly: it allies the Balkan minor and leaves the
+errata-12.17 declaration entitlement funded by the card's 3 CP.  The defect was
+downstream — Rule 34's bot had no declaration row, so `priorityOne` fell through
+to `pass`, and `finishImpulse` clears the entitlement.  In solo play (RU is a bot
+seat) the card read as "no effect".
+
+- `engine/bot.ts#homeDeclarationMove` sends the `declareWar` the entitlement
+  owes, taken from the shared `declarationTargetCandidates` enumeration so the
+  bot can only send a declaration `declareWar` accepts.  Preference is
+  liberation → conquest → the enumeration's first row, which makes RU-9's
+  printed Balkan liberation the bot's choice.
+- The same path covers Bismarck, Aux Armes and Jihad.
+
+### OT-11 Modernization — only the +1 stability settled
+
+12.13.1's offer round was missing entirely, and the `modernization` flag the
+handler wrote was read by nothing (it has been dropped from the public-flag
+allowlist).
+
+- `effects.ts#openModernizationStep` asks each other power in seat order whether
+  it will offer a card (its printed CP value is on the option label, matching
+  the card's "they must tell you the true CP value"), then the Ottoman seat
+  accepts one offer or none.
+- An accepted card leaves the giver's hand, becomes OT's `industryCard`, and the
+  giver draws a replacement — exactly the printed clause.  With no offer the
+  home card is spent for its printed 3 CP of actions.
+- New bilingual log keys: `modernizationOffered`, `modernizationAccepted`,
+  `modernizationNoOffer`.
+
+Coverage: `cardEventSettlement.test.ts` (11 — per-marker allocation across
+columns and tracks, the all-in-one-cell case, the allocation log, the bot's
+`declareWar` for RU-9 plus the Bismarck/Jihad path, the hand-over control that
+still drops the entitlement, the 12.13.1 offer→accept chain with the giver's
+draw, declining every offer for the 3 CP fallback, and the no-offer case).
+Full local run: `npx tsc --noEmit` clean, `npx jest --ci` → **559 suites /
+5669 tests passed**.
+
 ## Added: a solo page that asks which great power you command (2026-11-20)
 
 Reported as "帝国挽歌单人模式添加独立页面 单选一个大国开始游戏".  Solo play used to

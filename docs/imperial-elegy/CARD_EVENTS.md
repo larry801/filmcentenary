@@ -674,7 +674,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A016` | Liberal Reforms | mandatory | 2 | `liberalReforms` | auto | **no** |
 | `IE-A017` | Assassination! | mandatory | 2 | `wtt` + `choosePlayerStabilityOrCard` | choice | yes |
 | `IE-A018` | Socialist Musings | event | 1 | `choosePlayerStabilityOrCard` | choice | yes |
-| `IE-A019` | Skilled Diplomats | event | 2 | `mpitChoice` | — | yes |
+| `IE-A019` | Skilled Diplomats | event | 2 | `mpitChoice` | choice | yes |
 | `IE-A020` | Diplomatic Incident | event | 1 | `removeAnyMinorAlliance` | choice | yes |
 | `IE-A021` | National Railroad | event | 2 | `industry` | — | yes |
 | `IE-A022` | New Administration | event | 2 | `newAdministration` | choice | **no** |
@@ -781,9 +781,9 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | auto | yes |
 | `IE-H-AU-7` | Habsburg Dynasty | event | 3 | `habsburgDynasty` | choice | yes |
 | `IE-H-AU-8` | Kaiserreich | event | 3 | `kaiserreich` | auto | yes |
-| `IE-H-RU-9` | Russo-Turkish Wars | event | 3 | `russoTurkishWars` | auto | yes |
+| `IE-H-RU-9` | Russo-Turkish Wars | event | 3 | `russoTurkishWars`→`declareWar` | choice | yes |
 | `IE-H-RU-10` | God Save the Tsar | event | 3 | `godSaveTheTsar` | auto | yes |
-| `IE-H-OT-11` | Modernization | event | 3 | `modernization` | auto | yes |
+| `IE-H-OT-11` | Modernization | event | 3 | `modernization` | choice | yes |
 | `IE-H-OT-12` | Jihad | event | 3 | `jihad` + `jihadWar` | auto | yes |
 
 #### 大战牌 Great War cards (10)

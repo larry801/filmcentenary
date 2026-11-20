@@ -82,7 +82,6 @@ export interface RedactContext {
  *  - `warDeclaration` — a home-card war declaration entitlement (Bismarck,
  *    Aux Armes, Russo-Turkish Wars, Jihad) is public once the card resolves.
  *  - `balanceOfPower` — the UK home card's public declaration response.
- *  - `modernization` — the OT Modernization home-card event, public.
  *  - `noBuildArmiesThisImpulse` — Liberal Reforms' public restriction.
  *  - `freeColonialCp` — a public event grant of free colonial CP (Sun Never
  *    Sets, Our Place in the Sun).
@@ -106,7 +105,6 @@ export const PUBLIC_POWER_FLAGS: readonly string[] = [
   "industryDrm",
   "warDeclaration",
   "balanceOfPower",
-  "modernization",
   "noBuildArmiesThisImpulse",
   "freeColonialCp",
   // A89/A109 print "Play if Russian stability has been decreased"; the
