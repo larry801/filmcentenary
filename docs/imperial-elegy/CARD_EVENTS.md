@@ -604,12 +604,12 @@ card id / number in a test file vs. handler name only.
 修复轮次前：**91 / 122** 有直接覆盖，**24 张零信号**。修复轮次后
 （`cardEventDefects.test.ts` 新增 45 个断言）：
 
-- **105 / 122** 有直接覆盖。
+- **106 / 122** 有直接覆盖。
 - **8** 只有 handler 级覆盖。
-- **9 张零信号**（既无 id 也无 handler 提及）：
+- **8 张零信号**（既无 id 也无 handler 提及）：
 
 ```
-A016 A033 A042 A050 A090
+A033 A042 A050 A090
 H-GE-2 H-FR-6 H-OT-12 H-RU-9
 ```
 
@@ -618,7 +618,8 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 已全部进入新套件；A025/A037 在 2026-11-21 的分支补齐了各自的印刷空间选择与
 绥靖掷骰，A097 同步补上了标记选择与 20.8 独立序列，A086 改为 12.11.2 的 11+
 特殊标记，A014 与 A013 共用新的殖民地冲突资格过滤，A022 与 20.11 的 NG 上限
-改为玩家选择。剩余 9 张是没有已知缺陷的牌，建议作为下一步补测目标；
+改为玩家选择，A016 的小国建军训令与本国同门槛。剩余 8 张是没有已知缺陷的
+牌，建议作为下一步补测目标；
 其中 A050（掷骰三档）与 A097（WoI +1 → 独立）逻辑分支最多，优先级最高。
 
 `fuzz.test.ts` 的“每张行动牌/本国牌/大战牌打出后不抛错且能答完 20 个决策”是
@@ -674,7 +675,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A013` | Colonial Conflict | mandatory | 2 | `colonialConflict` | choice | yes |
 | `IE-A014` | Colonial Conflict | mandatory | 2 | `colonialConflict` | choice | yes |
 | `IE-A015` | Shifting Alliances | mandatory | 2 | `shiftingAlliances` + `allianceResolution` + `allianceSystemTension` | mixed | yes |
-| `IE-A016` | Liberal Reforms | mandatory | 2 | `liberalReforms` | auto | **no** |
+| `IE-A016` | Liberal Reforms | mandatory | 2 | `liberalReforms` | auto | yes |
 | `IE-A017` | Assassination! | mandatory | 2 | `wtt` + `choosePlayerStabilityOrCard` | choice | yes |
 | `IE-A018` | Socialist Musings | event | 1 | `choosePlayerStabilityOrCard` | choice | yes |
 | `IE-A019` | Skilled Diplomats | event | 2 | `mpitChoice` | choice | yes |

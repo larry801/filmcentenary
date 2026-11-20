@@ -1125,6 +1125,14 @@ export const minorBuildDecision = (
     reasons.push("No player controls this minor power");
     return decision;
   }
+  // A16 Liberal Reforms: "The CP from this card cannot be used to build new
+  // armies."  The own-power gate lives in `recruitmentLimits`; the minor-ally
+  // path needs the same check, otherwise the card's CP could build a Bavarian
+  // or Serbian army instead.
+  if (kind === "army" && G.powers[power].flags.noBuildArmiesThisImpulse === true) {
+    reasons.push("Armies may not be built this impulse (Liberal Reforms)");
+    return decision;
+  }
   if (G.phase !== "action") {
     reasons.push("Recruitment and construction are action-phase actions (12.2/12.4)");
     return decision;
