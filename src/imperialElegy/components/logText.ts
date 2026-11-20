@@ -2479,17 +2479,6 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
-  // A86 Boer Wars: 12.11.2's special 11+ counter.
-  boerWars: (entry, locale) => {
-    const where = spaceName(str(entry.args?.space), locale);
-    return withActor(
-      entry,
-      locale,
-      `placed the Boer pacification marker in ${where} (pacified on 11+).`,
-      `在${where}放置布尔绥靖标记（需掷 11+ 才能绥靖）。`,
-    );
-  },
-
   // A25 Divide and Conquer: the card chooses a space instead of defaulting.
   divideAndConquer: (entry, locale) => {
     const mode = str(entry.args?.mode);

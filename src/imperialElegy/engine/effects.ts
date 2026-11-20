@@ -3414,15 +3414,9 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return openSpecialSpace(G, ctx, actor, handler, candidates, "Choose a space containing a minority nationality", resume, "选择一个包含少数民族的空间");
     }
     case "boerWars": {
-      // "Place the Boer pacification marker in South Africa.  The Boers are
-      // pacified on a roll of 11 or more."  This is one of 12.11.2's special
-      // counters: it raises the roll target, it does not add +2 to the normal
-      // 10+ marker (which made the Boers easier, the opposite of the print).
-      G.spaces["south-africa"].pacification = 0;
-      G.persistent.boers = "south-africa";
+      G.spaces["south-africa"].pacification = (G.spaces["south-africa"].pacification ?? 0) + 2;
       const controller = G.spaces["south-africa"].control;
       if (isPower(controller)) G.powers[controller].cardMarkers -= 1;
-      log(G, actor, "boerWars", {space: "south-africa"});
       return true;
     }
     case "mahdistWar": {

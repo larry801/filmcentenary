@@ -1,33 +1,5 @@
 # Imperial Elegy — implementation status
 
-## Fixed: 12.11.2's controlled-space markers and special pacification targets (2026-11-21)
-
-Found in the hotseat rules audit.  12.11.2 prints two clauses the live gate did
-not implement:
-
-- **A marker in a player-controlled space.**  *"When a pacification marker is
-  placed in a player-controlled space it represents local tribes and/or kingdoms
-  rebelling against colonial rule … the space must be pacified in order to count
-  as a controlled space for all other purposes."*  A13/A14 Colonial Conflict and
-  A86 Boer Wars place exactly such a marker, but `pacificationProblem` required
-  the acting power's **influence** marker.  A controller has control, not
-  influence, so the marker could never be removed (and `recomputeTracks` kept
-  docking its key).  The gate now accepts the controller of a controlled space;
-  success clears the marker and leaves control unchanged, and any other power is
-  refused as `not-controller`.
-- **The GoE and Boer counters.**  *"These events increase the difficulty of
-  pacifying certain spaces … Remove the counter once the space is pacified."*
-  A31 wrote `persistent.goe`, but nothing read it, and A86 added **+2** to the
-  ordinary marker (making the Boers easier) instead of placing the special
-  counter.  `pacificationTarget` now returns 12 for Graveyard of Empires
-  (Afghanistan) and 11 for the Boers (South Africa), and a successful roll
-  removes the counter.  A86 places the marker at 0 and logs `boerWars`.
-
-**Coverage:** `pacificationSpecialMarkers.test.ts` (5 — controller-only clearing,
-the foreign-controller refusal, A86's 0 marker, the 11+ Boer roll with the
-failed retry, and the 12+ GoE roll) plus the updated
-`pacificationAndDecline.test.ts` fixtures.  `npx tsc --noEmit` clean.
-
 ## Fixed: A97 Diplomatic Recognition skipped the independence sequence (2026-11-21)
 
 Found in the same hotseat rules audit.  A97 prints *"Flip a 0 WoI marker to its

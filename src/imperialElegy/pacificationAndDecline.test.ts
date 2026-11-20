@@ -87,7 +87,6 @@ describe("12.1 pacification cost", () => {
   test("AU's row quotes 2 CP and the move charges 2 CP", () => {
     const G = fresh();
     beginAction(G, "AU", 4);
-    G.spaces.saxony.control = null;
     G.spaces.saxony.influence = "AU";
     // 12.11 requires a land unit in the space to pacify it.
     placeUnit(G, "AU", "army", "saxony", 2);
@@ -103,7 +102,6 @@ describe("12.1 pacification cost", () => {
   test("a unified Germany pays 1 CP, an ununified one pays 2", () => {
     const G = fresh();
     beginAction(G, "GE", 4);
-    G.spaces.saxony.control = null;
     G.spaces.saxony.influence = "GE";
     G.powers.GE.unified = false;
     const ununified = spaceActions(input(G, "GE", "saxony")).find((entry) => entry.id === "pacify");
@@ -111,7 +109,6 @@ describe("12.1 pacification cost", () => {
 
     const H = fresh();
     beginAction(H, "GE", 4);
-    H.spaces.saxony.control = null;
     H.spaces.saxony.influence = "GE";
     H.powers.GE.unified = true;
     const unified = spaceActions(input(H, "GE", "saxony")).find((entry) => entry.id === "pacify");
