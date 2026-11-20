@@ -11,8 +11,15 @@ import {BotSeatsContext} from "./botContext";
 import {SeatStrip, deriveSeatStatuses} from "./SeatStrip";
 import {SeatUiContext} from "./seatUiContext";
 import {IE_NO_GW_LABEL, IE_SCENARIOS} from "../configuration";
-import {SCENARIOS, ScenarioId, scenarioFromSetupData} from "../constant/scenarios";
+import {ScenarioId} from "../constant/scenarios";
 import {setupImperialElegy} from "../engine/setup";
+import {
+  readLocalSetup,
+  saveBotSeats,
+  saveMatchSetup,
+  scenarioAllowsNoGw,
+  scenarioSummary,
+} from "./localSetup";
 
 const HotseatBoard = (props: React.ComponentProps<typeof ImperialElegyBoard>) =>
   <ImperialElegyBoard {...props} hotseat/>;
@@ -65,61 +72,6 @@ const boardClientFor = (scenario: ScenarioId, noGw: boolean): typeof BoardClient
 
 const MATCH_ID = "local_imperial_elegy";
 
-/** Storage key for the bot-seat configuration. */
-const BOT_SEATS_KEY = "ie_local_bot_seats";
-
-/** Storage key for the hotseat scenario choice (`IE_playbook.pdf` pp. 3-10). */
-const SCENARIO_KEY = "ie_local_scenario";
-
-/** Storage key for Scenario 4's "No GW" modifier. */
-const NO_GW_KEY = "ie_local_no_gw";
-
-const loadScenario = (): ScenarioId => {
-  try {
-    return scenarioFromSetupData(localStorage.getItem(SCENARIO_KEY));
-  } catch {/* ignore */}
-  return "campaign";
-};
-
-const loadNoGw = (): boolean => {
-  try {
-    return localStorage.getItem(NO_GW_KEY) === "1";
-  } catch {/* ignore */}
-  return false;
-};
-
-const loadBotSeats = (): Set<Power> => {
-  try {
-    const raw = localStorage.getItem(BOT_SEATS_KEY);
-    if (raw) {
-      const arr = JSON.parse(raw) as string[];
-      return new Set(arr.filter((p): p is Power => (POWERS as readonly string[]).includes(p)));
-    }
-  } catch {/* ignore */}
-  return new Set();
-};
-
-const loadBotSeatsMaybeSolo = (): Set<Power> => {
-  const saved = loadBotSeats();
-  if (saved.size > 0) return saved;
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("solo") === "1") {
-    // Pre-select P2–P6 as bots; leave P1 (index 0) for the human player.
-    return new Set(POWERS.slice(1));
-  }
-  return new Set();
-};
-
-/** `?solo=1` opens the seat-setup screen first; plain `/localIE` starts at once. */
-const wantsSeatSetup = (): boolean =>
-  new URLSearchParams(window.location.search).get("solo") === "1";
-
-const saveBotSeats = (seats: Set<Power>): void => {
-  try {
-    localStorage.setItem(BOT_SEATS_KEY, JSON.stringify([...seats]));
-  } catch {/* ignore */}
-};
-
 const stateKey = (G: ImperialElegyState | null): string => {
   if (G === null) return "";
   return [G.turn, G.phase, G.activePower, G.log.length, G.pending?.id ?? "-", G.pending?.power ?? "-"]
@@ -130,21 +82,26 @@ const LocalImperialElegy = () => {
   i18n.use();
   const t = ieT();
   const locale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
-  const [tab, setTab] = React.useState(0);
+  // One read of the saved setup: the solo page's hand-over and the multi-seat
+  // seat setup both land here, and the initial state must describe one
+  // coherent configuration.
+  const [initial] = React.useState(() => readLocalSetup(window.location.search));
+  const [tab, setTab] = React.useState(initial.tabIndex);
   const seatCount = POWERS.length;
-  const [botSeats, setBotSeats] = React.useState<Set<Power>>(loadBotSeatsMaybeSolo);
+  const [botSeats, setBotSeats] = React.useState<Set<Power>>(initial.botSeats);
   // Plain `/localIE` keeps the historical behaviour: the board is live
   // immediately.  Only the explicit solo entrance opens the seat setup.
-  const [showSetup, setShowSetup] = React.useState(wantsSeatSetup);
+  const [showSetup, setShowSetup] = React.useState(initial.showSetup);
   // The printed scenario the hotseat match plays, and Scenario 4's "No GW"
   // victory-condition modifier.  Both are setup data, so changing either deals
   // a new match (the nonce below).
-  const [scenario, setScenario] = React.useState<ScenarioId>(loadScenario);
-  const [noGw, setNoGw] = React.useState<boolean>(loadNoGw);
-  const [setupScenario, setSetupScenario] = React.useState<ScenarioId>(loadScenario);
-  const [setupNoGw, setSetupNoGw] = React.useState<boolean>(loadNoGw);
-  // Bumping the match id discards the running match and deals a new one.
-  const [matchNonce, setMatchNonce] = React.useState(0);
+  const [scenario, setScenario] = React.useState<ScenarioId>(initial.scenario);
+  const [noGw, setNoGw] = React.useState<boolean>(initial.noGw);
+  const [setupScenario, setSetupScenario] = React.useState<ScenarioId>(initial.scenario);
+  const [setupNoGw, setSetupNoGw] = React.useState<boolean>(initial.noGw);
+  // Bumping the match id discards the running match and deals a new one.  A
+  // solo hand-over carries its own stamp, so the new match is dealt on mount.
+  const [matchNonce, setMatchNonce] = React.useState(initial.fresh);
   // Language switches must re-render: the i18n object is mutable state that
   // React cannot observe.
   const [, setLocaleTick] = React.useState(0);
@@ -219,14 +176,10 @@ const LocalImperialElegy = () => {
   const SeatBoard = React.useMemo(() => boardClientFor(scenario, noGw), [scenario, noGw]);
 
   // A one-line summary of the chosen scenario for the setup screen.
-  const scenarioSummary = React.useMemo(() => {
-    const def = SCENARIOS[setupScenario];
-    const turns = def.firstTurn === def.lastTurn ? `${def.firstTurn}` : `${def.firstTurn}-${def.lastTurn}`;
-    const vp = def.special.countVp ? t.scenarioCountsVp : t.scenarioNoVp;
-    const gw = def.special.gwTutorial || def.special.altGw ? ` · ${t.scenarioStartsInGw}` : "";
-    const noGw = setupNoGw ? ` · ${locale === "en" ? IE_NO_GW_LABEL.en : IE_NO_GW_LABEL.zh_CN}` : "";
-    return `${t.scenarioTurns} ${turns} · ${vp}${gw}${noGw}`;
-  }, [setupScenario, setupNoGw, locale, t]);
+  const scenarioText = React.useMemo(
+    () => scenarioSummary(setupScenario, setupNoGw, locale, t),
+    [setupScenario, setupNoGw, locale, t],
+  );
 
   const botContext = React.useMemo(() => ({seats: botSeats, setSeatBot}), [botSeats, setSeatBot]);
 
@@ -266,7 +219,14 @@ const LocalImperialElegy = () => {
             <select
               data-testid="ie-local-scenario"
               value={setupScenario}
-              onChange={(event) => setSetupScenario(event.target.value as ScenarioId)}
+              onChange={(event) => {
+                const next = event.target.value as ScenarioId;
+                setSetupScenario(next);
+                // Scenario 4's modifier is not printed for the tutorials; a
+                // stale tick would otherwise travel into a scenario that has no
+                // Great War to decide.
+                if (!scenarioAllowsNoGw(next)) setSetupNoGw(false);
+              }}
             >
               {IE_SCENARIOS.map((entry) => (
                 <option key={entry.id} value={entry.id}>
@@ -280,11 +240,12 @@ const LocalImperialElegy = () => {
               type="checkbox"
               data-testid="ie-local-no-gw"
               checked={setupNoGw}
+              disabled={!scenarioAllowsNoGw(setupScenario)}
               onChange={(event) => setSetupNoGw(event.target.checked)}
             />
             <span>{locale === "en" ? IE_NO_GW_LABEL.en : IE_NO_GW_LABEL.zh_CN}</span>
           </label>
-          <p className="ie-muted" data-testid="ie-local-scenario-summary">{scenarioSummary}</p>
+          <p className="ie-muted" data-testid="ie-local-scenario-summary">{scenarioText}</p>
           <button
             type="button"
             className="ie-btn primary ie-local-start"
@@ -294,10 +255,7 @@ const LocalImperialElegy = () => {
               // nonce so the local master cannot resume the abandoned one.
               setScenario(setupScenario);
               setNoGw(setupNoGw);
-              try {
-                localStorage.setItem(SCENARIO_KEY, setupScenario);
-                localStorage.setItem(NO_GW_KEY, setupNoGw ? "1" : "0");
-              } catch {/* ignore */}
+              saveMatchSetup(setupScenario, setupNoGw);
               setMatchNonce((n) => n + 1);
               setShowSetup(false);
             }}

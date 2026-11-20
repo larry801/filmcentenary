@@ -1,0 +1,199 @@
+/**
+ * The local (hotseat / solo) entrance's saved setup.
+ *
+ * The boardgame.io `Local()` master deals the match on demand with
+ * `setupData: undefined`, so neither the scenario nor the bot seats can travel
+ * through the normal online setup bag.  They live in `localStorage` instead,
+ * written by the setup screens (`local.tsx`, `solo.tsx`) and read once when the
+ * shell mounts.  Keeping the keys and the parsing in one module means the seat
+ * setup screen and the solo page cannot disagree about where a choice is kept.
+ */
+import {POWERS, Power} from "../types";
+import {ScenarioId, scenarioFromSetupData, SCENARIOS} from "../constant/scenarios";
+import {IE_NO_GW_LABEL} from "../configuration";
+import type {IELocale, IEStrings} from "./i18n";
+
+/** Storage key for the bot-seat configuration. */
+export const BOT_SEATS_KEY = "ie_local_bot_seats";
+
+/** Storage key for the hotseat scenario choice (`IE_playbook.pdf` pp. 3-10). */
+export const SCENARIO_KEY = "ie_local_scenario";
+
+/** Storage key for Scenario 4's "No GW" modifier. */
+export const NO_GW_KEY = "ie_local_no_gw";
+
+/** Storage key for the single power a solo match hands to the player. */
+export const SOLO_POWER_KEY = "ie_local_solo_power";
+
+export const loadScenario = (): ScenarioId => {
+  try {
+    return scenarioFromSetupData(localStorage.getItem(SCENARIO_KEY));
+  } catch {/* ignore */}
+  return "campaign";
+};
+
+export const loadNoGw = (): boolean => {
+  try {
+    return localStorage.getItem(NO_GW_KEY) === "1";
+  } catch {/* ignore */}
+  return false;
+};
+
+export const loadBotSeats = (): Set<Power> => {
+  try {
+    const raw = localStorage.getItem(BOT_SEATS_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw) as string[];
+      return new Set(arr.filter((p): p is Power => (POWERS as readonly string[]).includes(p)));
+    }
+  } catch {/* ignore */}
+  return new Set();
+};
+
+export const saveBotSeats = (seats: ReadonlySet<Power>): void => {
+  try {
+    localStorage.setItem(BOT_SEATS_KEY, JSON.stringify([...seats]));
+  } catch {/* ignore */}
+};
+
+/**
+ * The power the player took for a solo match, if a solo match was started.
+ *
+ * It only decides which seat the shell shows first after the solo page hands
+ * over; the bot seats themselves are the saved seat set, exactly as in a
+ * hotseat match.
+ */
+export const loadSoloPower = (): Power | null => {
+  try {
+    const raw = localStorage.getItem(SOLO_POWER_KEY);
+    return (POWERS as readonly string[]).includes(raw ?? "") ? raw as Power : null;
+  } catch {/* ignore */}
+  return null;
+};
+
+/** The five bot seats of a solo match: every power but the one the player took. */
+export const soloBotSeats = (power: Power): Set<Power> =>
+  new Set<Power>(POWERS.filter((candidate) => candidate !== power));
+
+/**
+ * Record everything the local shell needs to deal the chosen solo match.
+ *
+ * The other five seats are bots, and the chosen power becomes the first seat
+ * shown.  Called by the solo page immediately before it navigates to the shell.
+ */
+export const saveSoloSetup = (power: Power, scenario: ScenarioId, noGw: boolean): void => {
+  saveBotSeats(soloBotSeats(power));
+  try {
+    localStorage.setItem(SOLO_POWER_KEY, power);
+    localStorage.setItem(SCENARIO_KEY, scenario);
+    localStorage.setItem(NO_GW_KEY, noGw ? "1" : "0");
+  } catch {/* ignore */}
+};
+
+/** Persist a seat-setup screen's choices (the multi-seat hotseat path). */
+export const saveMatchSetup = (scenario: ScenarioId, noGw: boolean): void => {
+  try {
+    localStorage.setItem(SCENARIO_KEY, scenario);
+    localStorage.setItem(NO_GW_KEY, noGw ? "1" : "0");
+  } catch {/* ignore */}
+};
+
+/**
+ * `?solo=1` opens the seat-setup screen first; plain `/localIE` starts at once.
+ * The dedicated solo page (`/localIE/solo`) does not use this flag.
+ */
+export const wantsSeatSetup = (search: string): boolean =>
+  new URLSearchParams(search).get("solo") === "1";
+
+/**
+ * The fresh-match nonce the solo page passes to the shell.
+ *
+ * A solo start must deal a new match instead of resuming whatever hotseat match
+ * the local master still holds, so the page navigates with `?fresh=<stamp>` and
+ * the shell folds that stamp into the `matchID`.
+ */
+export const loadFreshNonce = (search: string): number => {
+  const raw = Number(new URLSearchParams(search).get("fresh"));
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
+};
+
+/** The shell URL that deals the solo match just saved (`saveSoloSetup`). */
+export const soloMatchPath = (wing = Date.now()): string => `/localIE?fresh=${wing}`;
+
+/**
+ * The scenario line, Scenario-4 availability, the seat setup and the hand-over
+ * stamp are all read from `localStorage` and the URL.  They are gathered in one
+ * read so the shell's initial state describes one coherent setup instead of
+ * three independent lookups that could disagree.
+ */
+export interface ILocalSetup {
+  botSeats: Set<Power>;
+  /** The seat the shell opens on. */
+  tabIndex: number;
+  /** The fresh-match stamp of a solo hand-over (0 for a plain hotseat visit). */
+  fresh: number;
+  scenario: ScenarioId;
+  noGw: boolean;
+  /** True when `?solo=1` asks for the multi-seat setup screen first. */
+  showSetup: boolean;
+}
+
+/**
+ * Read the whole local setup for one shell mount.
+ *
+ * `?solo=1` is the old seat-setup entrance: with nothing saved it pre-selects
+ * P2–P6 as bots and leaves P1 for the person at the keyboard.  The dedicated
+ * solo page (`/localIE/solo`) writes its own full set before handing over with
+ * `?fresh=…`, which also tells the shell which seat to open on.
+ */
+export const readLocalSetup = (search: string): ILocalSetup => {
+  const fresh = loadFreshNonce(search);
+  const showSetup = wantsSeatSetup(search);
+  const saved = loadBotSeats();
+  const botSeats = saved.size > 0
+    ? saved
+    : showSetup ? new Set<Power>(POWERS.slice(1)) : new Set<Power>();
+  const solo = fresh > 0 ? loadSoloPower() : null;
+  // A saved setup can make P1 a bot; opening a read-only bot board would look
+  // like a broken match, so fall back to the first seat a person owns.
+  const firstHuman = POWERS.findIndex((power) => !botSeats.has(power));
+  const tabIndex = solo !== null
+    ? Math.max(0, POWERS.indexOf(solo))
+    : firstHuman < 0 ? 0 : firstHuman;
+  return {
+    botSeats,
+    tabIndex,
+    fresh,
+    scenario: loadScenario(),
+    noGw: loadNoGw(),
+    showSetup,
+  };
+};
+
+/**
+ * A one-line summary of a chosen scenario, shared by the hotseat seat-setup
+ * screen and the solo page so both describe the same printed setup.
+ */
+export const scenarioSummary = (
+  scenario: ScenarioId,
+  noGw: boolean,
+  locale: IELocale,
+  t: IEStrings,
+): string => {
+  const def = SCENARIOS[scenario];
+  const turns = def.firstTurn === def.lastTurn ? `${def.firstTurn}` : `${def.firstTurn}-${def.lastTurn}`;
+  const vp = def.special.countVp ? t.scenarioCountsVp : t.scenarioNoVp;
+  const gw = def.special.gwTutorial || def.special.altGw ? ` · ${t.scenarioStartsInGw}` : "";
+  const noGwLabel = noGw ? ` · ${locale === "en" ? IE_NO_GW_LABEL.en : IE_NO_GW_LABEL.zh_CN}` : "";
+  return `${t.scenarioTurns} ${turns} · ${vp}${gw}${noGwLabel}`;
+};
+
+/**
+ * Whether a printed scenario offers Scenario 4's "No GW" modifier.
+ *
+ * The playbook applies the modifier to "whichever scenario you wish to play",
+ * but the two tutorials print their own victory checks (`allowsNoGw: false`),
+ * so the toggle is hidden rather than silently ignored.
+ */
+export const scenarioAllowsNoGw = (scenario: ScenarioId): boolean =>
+  SCENARIOS[scenario].special.allowsNoGw !== false;

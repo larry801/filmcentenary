@@ -30,6 +30,7 @@ const Lobby = React.lazy(() => import("./components/lobby"));
 const Local = React.lazy(() => import("./songJinn/components/local"));
 const LocalVirginQueen = React.lazy(() => import("./virginQueen/components/local"));
 const LocalImperialElegy = React.lazy(() => import("./imperialElegy/components/local"));
+const LocalImperialElegySolo = React.lazy(() => import("./imperialElegy/components/solo"));
 const PrintedImperialElegy = React.lazy(() => import("./imperialElegy/components/PrintedBoardPage"));
 
 const RouteFallback = () => (
@@ -75,6 +76,7 @@ createRoot(rootElement).render(
                 <Route path="/local" element={<Local/>}/>
                 <Route path="/localVQ" element={<LocalVirginQueen/>}/>
                 <Route path="/localVQ/tutorial" element={<LocalVirginQueen initialScenario="tutorial"/>}/>
+                <Route path="/localIE/solo" element={<LocalImperialElegySolo/>}/>
                 <Route path="/localIE" element={<LocalImperialElegy/>}/>
                 <Route path="/board/imperialElegy" element={<PrintedImperialElegy/>}/>
                 <Route path="/local2p" element={<Local2p/>}/>

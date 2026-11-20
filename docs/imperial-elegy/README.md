@@ -66,6 +66,7 @@ yarn serve          # build + boardgame.io server (multiplayer)
 ```
 
 - Local hotseat: <http://localhost:5173/localIE>
+- Solo (pick one great power): <http://localhost:5173/localIE/solo>
 - Printed board (static, 1:1 vector sheet): <http://localhost:5173/board/imperialElegy>
 - Online match creation: `/imperialElegy`
 - Join/spectate: `/join/imperialElegy/:matchID/:player` (or `/spectate`)
@@ -73,6 +74,18 @@ yarn serve          # build + boardgame.io server (multiplayer)
 Seat order is fixed by rule 4.3: **GE, UK, FR, AU, RU, OT** (seats 0–5).
 Local hotseat keeps all six clients mounted; switching tabs never restarts the
 match. Keys `1`–`6` (or `[` / `]`) switch seats.
+
+### Solo: one great power against five bots
+
+`/localIE/solo` is the solo entrance: one radio per great power, the printed
+scenario picker and Scenario 4's "No GW" modifier, and a single **Start solo
+match** button. The five powers you do not pick become the Rule 34 bot seats,
+so the page writes `{power, scenario, noGw}` (`components/localSetup.ts`) and
+hands over to the hotseat shell with `/localIE?fresh=<stamp>`. The stamp is
+what makes the shell deal a *new* match on the picked seat instead of resuming
+whatever `Local()` master the hotseat tab still holds. The old multi-seat
+entrance `/localIE?solo=1` still exists (it pre-ticks P2–P6 and is linked from
+the solo page), and plain `/localIE` still starts on P1 with six human seats.
 
 ### Online tables of 2–6 humans
 
@@ -88,7 +101,7 @@ seats are played by the Rule 34 bot:
 - `configuration.ts` owns the split (`IE_MIN_HUMANS`, `parseBotPowers`,
   `humanPowers`, `firstHumanSeat`, `validateIESetupData`); `validateSetupData`
   refuses fewer than two humans, because 1 human + 5 bots is the local solo
-  entrance (`/localIE?solo=1`), not an online match.
+  entrance (`/localIE/solo`), not an online match.
 - `engine/setup.ts` copies the list into the public `G.bots`, which every view
   keeps: the board marks those seats read-only and shows the bot banner, the
   lobby's match table labels them 🤖, and the join page offers invite links for

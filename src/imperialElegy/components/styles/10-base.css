@@ -173,6 +173,52 @@
 
 .ie-local-start { font-size: var(--ie-font-sm); padding: 8px 20px; }
 
+/* ---------------------------------------------------------------- solo entrance */
+/* One card per great power; the chosen one is the only "radio" the page asks
+   for, so it carries both the pip and the brass edge. */
+.ie-solo-powers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--ie-space-2);
+  margin: var(--ie-space-3) 0;
+}
+
+.ie-solo-power {
+  display: flex;
+  align-items: center;
+  gap: var(--ie-space-2);
+  padding: 8px 10px;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-2);
+  font-size: var(--ie-font-sm);
+  color: var(--ie-on-dark);
+  cursor: pointer;
+}
+
+.ie-solo-power input { accent-color: var(--ie-brass); width: 18px; height: 18px; }
+
+.ie-solo-power-seat { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+
+.ie-solo-power-name { font-weight: var(--ie-font-lg-weight); }
+
+.ie-solo-power[data-selected="true"] {
+  border-color: var(--ie-brass-soft);
+  background: var(--ie-panel-3);
+}
+
+.ie-solo-power:hover { background: var(--ie-panel-3); }
+
+.ie-solo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ie-space-3);
+  margin-top: var(--ie-space-3);
+}
+
+.ie-solo-hotseat { font-size: var(--ie-font-xs); }
+
 .ie-board :is(.ie-select, .ie-input) { padding: 6px; }
 
 .ie-mt-6 { margin-top: 6px; }
