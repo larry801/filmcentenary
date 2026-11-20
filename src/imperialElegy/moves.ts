@@ -482,6 +482,7 @@ const finishImpulse = (G: ImperialElegyState, ctx: Ctx): void => {
       // 12.15: a redeployment action covers one impulse; the next impulse pays
       // its own 1 CP for a new one.
       delete G.powers[p].flags.redeployActionThisImpulse;
+      delete G.powers[p].flags.auxArmesFreePlay;
       // A home-card war declaration (Bismarck) belongs to the impulse that
       // played the card; a seat that hands over without declaring loses it.
       clearWarDeclarationEntitlement(G, p);
@@ -589,7 +590,10 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   // forfeited) before the next card play, not followed by one.  There is no
   // no-pass exception: a used impulse can always be handed over through `pass`,
   // so a "rescue" play on top of banked CP would itself be a second card.
-  if (impulseAlreadyUsed(G, power)) return INVALID_MOVE;
+  // H-FR-6 Aux Armes is the printed exception: the card it takes from the
+  // discard may be played immediately, once.
+  const auxFreePlay = G.powers[power].flags.auxArmesFreePlay === cardId;
+  if (impulseAlreadyUsed(G, power) && !auxFreePlay) return INVALID_MOVE;
   const mandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
   // 6.1/12.0: a home card is playable while it is **in hand**.  Normally only
   // the card chosen in Diplomacy is there, but A040 British Trade explicitly
@@ -600,6 +604,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   // forbids passing): no legal move at all.
   // Remove from hand before resolving.
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
+  if (auxFreePlay) delete G.powers[power].flags.auxArmesFreePlay;
   if (G.powers[power].selectedHomeCard === cardId) G.powers[power].selectedHomeCard = null;
   if (G.phase === "action") G.powers[power].flags.actionCpSpentThisImpulse = true;
   // A099 Dreadnought: "if this is the first card you play this turn, gain an

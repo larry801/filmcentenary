@@ -1,5 +1,27 @@
 # Imperial Elegy — implementation status
 
+## Fixed: Aux Armes left French Intervention and Papal Influence in the discard (2026-11-21)
+
+H-FR-6 prints *"Take either French Intervention or Papal Influence from the
+discard pile; you may play it immediately."*  The handler only added two reserve
+steps and the war-declaration entitlement; both events stayed in the discard.
+
+The event now:
+
+- offers every one of the two cards that is actually in the discard pile and
+  moves the chosen one into the French hand (the take is mandatory when one is
+  present);
+- records `auxArmesFreePlay` for that exact card.  `playCard` recognises it once
+  and ignores 12.0's one-card-per-impulse limit for that card, so "you may play
+  it immediately" is real; the marker is cleared when it is used or when the
+  impulse passes;
+- leaves the normal discard/removal flow intact for the played event, and logs
+  `cardTaken` when the card leaves the discard.
+
+**Coverage:** `auxArmes.test.ts` (3 — the two-card choice, the immediate play
+of French Intervention, and the no-card case).  `npx tsc --noEmit` clean; the
+card-choice, board and one-card-per-impulse suites pass.
+
 ## Added: every battle dice modifier now names its printed source (2026-11-21)
 
 Reported as "帝国挽歌战斗进行中和展示结果时 详细展示每个dice modifier的来源".

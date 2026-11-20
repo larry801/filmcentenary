@@ -3766,7 +3766,20 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         "FR",
         isCardId(G.resolvingCard) ? G.resolvingCard : AUX_ARMES_HOME_CARD,
       );
-      return true;
+      // "Take either French Intervention or Papal Influence from the discard
+      // pile; you may play it immediately."  Taking is mandatory when one is
+      // in the discard; the free-play marker lets `playCard` ignore 12.0's
+      // one-card limit for that exact card once.
+      const retrievable = ["IE-A046", "IE-A070"].filter((id) => G.discard.includes(id as CardId)) as CardId[];
+      if (retrievable.length === 0) return true;
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        "FR",
+        "Aux Armes: take French Intervention or Papal Influence from the discard pile",
+        retrievable.map((id) => option(`take:${id}`, cardById(id).title, {card: id}, false, cardById(id).titleZh)),
+        {resume, special: handler, stage: "retrieve"},
+      ));
+      return false;
     }
     case "habsburgDynasty": {
       // "Choose an independent minor power in Europe.  Remove an opposing
@@ -4449,6 +4462,22 @@ export const resolveCardDecision = (
     return;
   }
   const data: EffectContext = {...context, choice: optionId, targetSpace: optData.space as SpaceId | undefined, targetPower: optData.power as Power | undefined};
+  if (special === "auxArmes" && context.stage === "retrieve") {
+    const separator = optionId.indexOf(":");
+    const cardId = (optData.card as CardId | undefined) ??
+      (separator >= 0 ? optionId.slice(separator + 1) as CardId : undefined);
+    if (cardId !== undefined && G.discard.includes(cardId) && ["IE-A046", "IE-A070"].includes(cardId)) {
+      G.discard = G.discard.filter((id) => id !== cardId);
+      G.powers.FR.hand.push(cardId);
+      // Public marker: `playCard` may spend this one card despite the impulse
+      // already having played the home card.  A second play is still refused.
+      G.powers.FR.flags.auxArmesFreePlay = cardId;
+      log(G, "FR", "cardTaken", {card: cardId, from: "discard"});
+    }
+    closeDecision(G, ctx);
+    resumeEffects(G, ctx, pending, data);
+    return;
+  }
   if (special === "germanGeneralStaff") {
     const stage = String(context.stage ?? "mode");
     if (stage === "mode") {

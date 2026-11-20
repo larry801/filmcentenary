@@ -106,7 +106,10 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   // CP mode, which is what let a spent impulse play a second card.  The printed
   // no-pass cards (`forcedCardIds`) grant no exception: a used impulse can be
   // handed over, so the card never needs a second slot in the same impulse.
-  const impulseUsed = impulseAlreadyUsed(G, power);
+  // H-FR-6 Aux Armes: the card taken from the discard may be played
+  // immediately, once, even though the impulse's home card is already played.
+  const auxFreePlay = G.powers[power].flags.auxArmesFreePlay === cardId;
+  const impulseUsed = impulseAlreadyUsed(G, power) && !auxFreePlay;
   const cpModeOk = canActionCard && cpAllowed && !impulseUsed;
   const eventModeOk = canActionCard && eventAllowed && !impulseUsed && (eventGate === null || eventGate.ok);
   const responseEligible = card.type === "response" ? responseCardEligibility(G, power, cardId) : null;

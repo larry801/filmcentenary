@@ -604,13 +604,13 @@ card id / number in a test file vs. handler name only.
 修复轮次前：**91 / 122** 有直接覆盖，**24 张零信号**。修复轮次后
 （`cardEventDefects.test.ts` 新增 45 个断言）：
 
-- **108 / 122** 有直接覆盖。
+- **109 / 122** 有直接覆盖。
 - **8** 只有 handler 级覆盖。
-- **6 张零信号**（既无 id 也无 handler 提及）：
+- **5 张零信号**（既无 id 也无 handler 提及）：
 
 ```
 A042 A050 A090
-H-FR-6 H-OT-12 H-RU-9
+H-OT-12 H-RU-9
 ```
 
 修复前零覆盖的牌里，A080/A091（§3.3/§3.4）、A032/A073/A107/A109/A048/A045/
@@ -619,8 +619,8 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 绥靖掷骰，A097 同步补上了标记选择与 20.8 独立序列，A086 改为 12.11.2 的 11+
 特殊标记，A014 与 A013 共用新的殖民地冲突资格过滤，A022 与 20.11 的 NG 上限
 改为玩家选择，A016 的小国建军训令与本国同门槛，A033 在放置叛军时立即重算
-关键区，H-GE-2 补上印刷的“取弃牌或获得 2 精英军”选择。剩余 6 张是没有已知
-缺陷的牌，建议作为下一步补测目标；
+关键区，H-GE-2 补上印刷的“取弃牌或获得 2 精英军”选择，H-FR-6 补上了弃牌堆取牌与立即打出的例外。剩余 5 张是没有已知缺陷的
+牌，建议作为下一步补测目标；
 其中 A050（掷骰三档）与 A097（WoI +1 → 独立）逻辑分支最多，优先级最高。
 
 `fuzz.test.ts` 的“每张行动牌/本国牌/大战牌打出后不抛错且能答完 20 个决策”是
@@ -783,7 +783,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` | auto | yes |
 | `IE-H-UK-4` | Balance of Power | event | 3 | `balanceOfPower` | auto | handler |
 | `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | auto | yes |
-| `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | auto | yes |
+| `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | choice | yes |
 | `IE-H-AU-7` | Habsburg Dynasty | event | 3 | `habsburgDynasty` | choice | yes |
 | `IE-H-AU-8` | Kaiserreich | event | 3 | `kaiserreich` | auto | yes |
 | `IE-H-RU-9` | Russo-Turkish Wars | event | 3 | `russoTurkishWars`→`declareWar` | choice | yes |
