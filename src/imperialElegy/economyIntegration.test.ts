@@ -307,9 +307,13 @@ test("two chained cards fund one action of at most 4 CP and are discarded at act
   expect(cpChain(G, ctx, two)).toBeUndefined();
   G.activePower = "GE";
 
+  // The card played to spend the chain is a third card from hand (errata).
+  const fund = actionCard(1);
+  giveToHand(G, "GE", fund);
   expect(G.powers.GE.cpChain).toEqual([four, two]);
-  // 6 CP are banked, but a single action may draw at most 4.
-  expect(useCpChain(G, ctx)).toBeUndefined();
+  // 6 chained CP are capped at 4 for the single action; the funding card's CP
+  // stays inside the same 4-CP action budget.
+  expect(useCpChain(G, ctx, fund)).toBeUndefined();
   expect(G.cpRemaining).toBe(4);
   expect(G.flags.cpChainActive).toBe(true);
   expect(G.flags.cpChainSpent).toBe(true);
@@ -317,7 +321,7 @@ test("two chained cards fund one action of at most 4 CP and are discarded at act
   expect(G.powers.GE.cpChain).toEqual([four, two]);
 
   // One chain-funded action per action phase.
-  expect(useCpChain(G, ctx)).toBe(INVALID_MOVE);
+  expect(useCpChain(G, ctx, fund)).toBe(INVALID_MOVE);
 
   G.passed = [...POWERS];
   G.activePower = "GE";
@@ -351,8 +355,10 @@ test("a mandatory event played into the CP chain still resolves", () => {
   expect(G.discard).not.toContain(funeral);
 
   G.activePower = "GE";
-  expect(useCpChain(G, ctx)).toBeUndefined();
-  expect(G.cpRemaining).toBe(2);
+  const fund = actionCard(1);
+  giveToHand(G, "GE", fund);
+  expect(useCpChain(G, ctx, fund)).toBeUndefined();
+  expect(G.cpRemaining).toBe(3);
 
   G.passed = [...POWERS];
   pass(G, ctx);
@@ -375,8 +381,10 @@ test("chained cards and their CP cannot be used to industrialize", () => {
   expect(industrialize(G, ctx, card)).toBe(INVALID_MOVE);
   expect(G.powers.GE.industryCard).toBeNull();
 
-  expect(useCpChain(G, ctx)).toBeUndefined();
-  expect(G.cpRemaining).toBe(2);
+  const fund = actionCard(1);
+  giveToHand(G, "GE", fund);
+  expect(useCpChain(G, ctx, fund)).toBeUndefined();
+  expect(G.cpRemaining).toBe(3);
   expect(G.powers.GE.industryCard).toBeNull();
   expect(G.powers.GE.industry).toBe(industryBefore);
 });

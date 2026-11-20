@@ -746,11 +746,15 @@ export const cpBudgetFor = (G: ImperialElegyState, power: Power): number =>
 
 /** Charge `amount` CP against the phase's wallet; false when short or unavailable. */
 export const spendCpFor = (G: ImperialElegyState, power: Power, amount: number): boolean => {
+  // 12.14: the CP chain may fund only one action.  The flag is set by the
+  // first CP payer after `useCpChain`; a second CP-spending action is refused.
+  if (G.flags.cpChainActive === true && G.flags.cpChainActionUsed === true) return false;
   const wallet = cpWalletFor(G, power);
   if (wallet === null) return false;
   const budget = wallet.get();
   if (budget < amount) return false;
   wallet.set(budget - amount);
+  if (G.flags.cpChainActive === true) G.flags.cpChainActionUsed = true;
   return true;
 };
 

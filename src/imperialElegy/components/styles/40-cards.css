@@ -96,6 +96,17 @@
 
 .ie-cp-chain .ie-btn { margin: 0; }
 
+.ie-cp-chain-select {
+  max-width: 150px;
+  min-width: 0;
+  padding: 1px 4px;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel);
+  color: var(--ie-on-dark);
+  font-size: var(--ie-font-xs);
+}
+
 .ie-cp-chain .ie-btn:disabled { display: none; }
 
 .ie-hand {

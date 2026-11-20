@@ -331,12 +331,15 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   panel enables those rows when the grant alone can pay.
 - **CP chain (12.14):** **implemented.** `cpChain` moves up to two cards from
   hand into `PowerState.cpChain`; a chained mandatory event resolves immediately,
-  controlled by the active player. `useCpChain` starts one chain-funded impulse
-  per action phase, setting `cpRemaining` to the banked total capped at 4. The
-  cards stay face-up while the phase runs and are discarded at action-phase end;
-  they are not returned to hand and their CP does not carry over. The board
-  exposes a “Use CP chain” button, and chained cards cannot be used to
-  industrialize.
+  controlled by the active player. On a future impulse the player must **play a
+  card for CP** (`useCpChain(cardId)`, rendered as a card select plus the
+  “Use CP chain” button); the card is discarded normally and its CP joins the
+  chain's spendable amount, with the single action capped at 4 CP. The two
+  chained cards do not include that funding card (errata), stay face-up while
+  the phase runs and are discarded at action-phase end; they are not returned
+  to hand and their CP does not carry over. `spendCpFor`/`requireColonialCp`
+  mark the chain's one CP-funded action, so a second action cannot draw on the
+  same chain. Chained cards cannot be used to industrialize.
 - **Industrialisation:** card + end-phase roll (`d6 + CP + DRM` vs 5; RU/OT
   target 6), with `autoIndustry` carrying a failed roll into the next turn.
   The selected home card may be used as the industry card; it leaves the hand,

@@ -1,5 +1,33 @@
 # Imperial Elegy — implementation status
 
+## Fixed: the CP Chain started a card-less impulse and funded several actions (2026-11-21)
+
+12.14 prints *"Players may spend the CP in their CP Chain when they play a card
+for CP on a future impulse"*, and the errata clarifies that the two-card limit
+*"does not include the card played to expend CP in the chain"*.  The old
+`useCpChain()` ignored both clauses: it required no card, set `cpRemaining` to
+the chain total alone, and left the ordinary CP payer free to spend that budget
+on several actions in the same impulse.
+
+- `useCpChain(cardId)` now requires a non-mandatory, non-home card in hand, plays
+  it through the canonical CP path (so A70/A79 removal and the discard pile stay
+  correct), and adds the chain's spendable CP to that card's CP.  The combined
+  single action is capped at 4 CP.
+- `spendCpFor` and `requireColonialCp` reject a second CP-funded action while
+  `cpChainActive` is set and record the first one with `cpChainActionUsed`.  The
+  marker is cleared when the impulse passes; `cpChainSpent` still prevents a
+  second chain use in the same action phase.
+- `cpChain` also refuses a card id already in the chain, so one physical card
+  cannot be chained twice.
+- The hand tray now selects the funding card (`ie-cp-chain-card`) before the
+  “Use CP chain” button; with no eligible card the button and its printed reason
+  explain why.
+
+**Coverage:** `cpChainRules.test.ts` (5 — card requirement, card + chain totals,
+single-action enforcement, mandatory/home refusal, impulse hand-over) and the
+updated `economyIntegration.test.ts` CP-chain fixtures.  `npx tsc --noEmit`
+clean.
+
 ## Fixed: a 0-value pacification marker was invisible to key counting (2026-11-21)
 
 12.11 prints *"When a land unit is placed in (or moved to) an uncontrolled
