@@ -285,6 +285,13 @@ function passToEndAction(clients: any[]) {
         if (state.ctx.phase !== "action" || state.G.consecutivePasses >= 6) {
             return;
         }
+        // Rule 18.5 Step 4: a conversion event may pause for the unrest
+        // choice.  The simulation keeps the Unrest so play can continue.
+        if (state.G.pendingConversion !== undefined) {
+            const seat = Number(state.ctx.currentPlayer);
+            clients[seat].moves.chooseConversionNullify({downgrade: "none"});
+            continue;
+        }
         // The Ottoman's post-first-impulse #16 window is optional; decline it.
         if (state.G.pendingAction) {
             const responder = state.G.pendingAction.responder ??
