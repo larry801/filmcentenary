@@ -171,20 +171,33 @@ describe("redeploy movement-end stacking", () => {
 
   test("a move into a full European key is refused; one with room is allowed", () => {
     const G = redeployFixture();
+    // 15.2.4: wartime land movement is a march, so the fixture marches into an
+    // adjacent controlled home key (Berlin → Saxony) instead of the old
+    // unlimited 12.15 redeploy.
+    G.spaces.saxony.control = "GE";
+    G.spaces.saxony.occupiedBy = "GE";
+    clearLand(G, "saxony");
     const mover = placeUnit(G, "GE", "army", "berlin", 2);
-    for (let i = 0; i < 3; i += 1) placeUnit(G, "GE", "army", "paris", 2);
+    for (let i = 0; i < 3; i += 1) placeUnit(G, "GE", "army", "saxony", 2);
     const ctx = makeCtx([], seat("GE"));
-    expect(redeploy(G, ctx, mover.id, "paris")).toBe(INVALID_MOVE);
+    expect(redeploy(G, ctx, mover.id, "saxony")).toBe(INVALID_MOVE);
     expect(G.units[mover.id].space).toBe("berlin");
-    removeUnit(G, landUnitsIn(G, "paris")[0].id);
-    expect(redeploy(G, ctx, mover.id, "paris")).toBeUndefined();
-    expect(G.units[mover.id].space).toBe("paris");
+    removeUnit(G, landUnitsIn(G, "saxony")[0].id);
+    expect(redeploy(G, ctx, mover.id, "saxony")).toBeUndefined();
+    expect(G.units[mover.id].space).toBe("saxony");
   });
 
   test("an Ottoman home space ends at two armies", () => {
     const G = redeployFixture();
+    // 15.2.4/15.2.5: Istanbul is not adjacent to Berlin, so the test reaches it
+    // with the rail action, which is the printed way to travel an unlimited
+    // distance over friendly land.
     G.spaces.istanbul.control = "GE";
     G.spaces.istanbul.occupiedBy = "GE";
+    for (const id of ["pomerania", "poland", "galicia", "romania", "bulgaria"]) {
+      G.spaces[id].control = "GE";
+      G.spaces[id].occupiedBy = "GE";
+    }
     for (let i = 0; i < 2; i += 1) placeUnit(G, "GE", "army", "istanbul", 2);
     const mover = placeUnit(G, "GE", "army", "berlin", 2);
     const ctx = makeCtx([], seat("GE"));
@@ -193,11 +206,13 @@ describe("redeploy movement-end stacking", () => {
 
   test("a unit leaving an overstacked source is not blocked (only the destination is checked)", () => {
     const G = redeployFixture();
+    G.spaces.saxony.control = "GE";
+    G.spaces.saxony.occupiedBy = "GE";
     for (let i = 0; i < 4; i += 1) placeUnit(G, "GE", "army", "berlin", 2);
     const mover = landUnitsIn(G, "berlin")[3];
     const ctx = makeCtx([], seat("GE"));
-    expect(redeploy(G, ctx, mover.id, "paris")).toBeUndefined();
-    expect(G.units[mover.id].space).toBe("paris");
+    expect(redeploy(G, ctx, mover.id, "saxony")).toBeUndefined();
+    expect(G.units[mover.id].space).toBe("saxony");
   });
 });
 

@@ -2464,6 +2464,46 @@ const FORMATTERS: Record<string, Formatter> = {
   warManeuverStarted: (entry, locale) =>
     withActor(entry, locale, "started the war maneuver.", "开始战争机动。"),
 
+  gwPoliticalPressureSatisfied: (entry, locale) => {
+    const where = spaceName(str(entry.args?.space), locale);
+    return withActor(entry, locale, `occupied ${where}, satisfying Political Pressure.`, `占领${where}，满足“政治压力”的攻击条件。`);
+  },
+
+  wartimeMoveRejected: (entry, locale) => {
+    const kind = str(entry.args?.kind) === "rail" ? "rail move" : "march";
+    const where = spaceName(str(entry.args?.to), locale);
+    const reason = str(entry.args?.reason);
+    const reasons: Record<string, [string, string]> = {
+      "not-commanded": ["that unit is not yours to move", "该单位不归你指挥"],
+      "not-land": ["only land units march or rail", "只有陆军可行军或铁路移动"],
+      "no-origin": ["the unit is not on the map", "该单位不在地图上"],
+      "same-space": ["the origin and destination are the same space", "起点与终点相同"],
+      "no-connection": ["there is no land connection", "没有陆路连接"],
+      "too-far": ["a march is one space, or two spaces on clear connections", "行军为 1 格；连接皆为通畅时可 2 格"],
+      "enemy-units": ["the destination holds enemy land units or a fort", "目的地有敌方陆军或要塞"],
+      "enemy-fort": ["the destination holds an enemy fort", "目的地有敌方要塞"],
+      "neutral": ["a march may not enter neutral territory", "行军不能进入中立领土"],
+      "no-rail-path": ["there is no friendly rail path", "没有友方铁路路径"],
+      "rail-allowance": ["this power has already railed its allowance", "该势力本行动轮铁路额度已用完"],
+    };
+    const [en, zh] = reasons[reason] ?? ["the move is not legal", "该移动不合法"];
+    return withActor(entry, locale, `could not ${kind} into ${where}: ${en}.`, `无法${kind === "rail move" ? "铁路移动" : "行军"}至${where}：${zh}。`);
+  },
+
+  wartimeMarch: (entry, locale) => {
+    const to = spaceName(str(entry.args?.to), locale);
+    return withActor(entry, locale, `marched an army into ${to}.`, `行军 1 支军团至${to}。`);
+  },
+
+  // 9.1.5: the mandatory response grants no CP but draws another card.
+  impulsiveRuler: (entry, locale) =>
+    withActor(entry, locale, "resolved Impulsive Ruler (no CP, one card drawn).", "结算“冲动的统治者”（不获得 CP，抽 1 张牌）。"),
+
+  wartimeRail: (entry, locale) => {
+    const to = spaceName(str(entry.args?.to), locale);
+    return withActor(entry, locale, `railed an army into ${to}.`, `以铁路移动 1 支军团至${to}。`);
+  },
+
   // ------------------------------------------- 33 national characteristics
   recruitRejected: (entry, locale) => {
     const kind = unitKind(entry.args?.kind, locale);

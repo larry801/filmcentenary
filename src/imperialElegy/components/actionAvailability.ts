@@ -333,6 +333,14 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   const commandOwner = gwAllyImpulseFor(G, viewer) ?? viewer;
   const canSpend = (cost: number): boolean => canAct && input.cp >= cost;
   const spendReason = (cost: number): string => !canAct ? REASON.notYourTurn(locale) : REASON.cp(locale, cost);
+  // A088/UK-3: the free colonial grant pays for naval movement, fleet builds,
+  // expeditionary forces and pacification before the ordinary CP wallet, so a
+  // row that spends it must not be disabled for want of ordinary CP.
+  const freeColonial = Number(me.flags.freeColonialCp ?? 0);
+  const canSpendColonial = (cost: number): boolean =>
+    canAct && freeColonial + input.cp >= cost;
+  const colonialSpendReason = (cost: number): string =>
+    !canAct ? REASON.notYourTurn(locale) : spendReason(cost);
   const selected = selectedUnit ? G.units[selectedUnit] : undefined;
   const commandsSelected = (unitId: string): boolean => {
     const unit = G.units[unitId];
@@ -474,18 +482,18 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       ? bi(locale, "New fleets need a territorial home key on the main map.", "新建舰队需位于主地图的本国领土关键区。")
       : null);
     if (hasPort) {
-      const sqEnabled = fleetHomeReason === null && canSpend(ACTION_COSTS.buildSquadron);
+      const sqEnabled = fleetHomeReason === null && canSpendColonial(ACTION_COSTS.buildSquadron);
       push({
         id: "buildSquadron", group: "build", enabled: sqEnabled,
-        reason: sqEnabled ? undefined : fleetHomeReason ?? spendReason(ACTION_COSTS.buildSquadron),
+        reason: sqEnabled ? undefined : fleetHomeReason ?? colonialSpendReason(ACTION_COSTS.buildSquadron),
         run: () => doAction(() => moves.constructFleet(space, "squadron", false)),
       });
       const dreadnoughtLocked = G.persistent.dreadnoughts !== true && !me.flags.navalLimit;
-      const dnEnabled = fleetHomeReason === null && !dreadnoughtLocked && canSpend(ACTION_COSTS.buildDreadnought);
+      const dnEnabled = fleetHomeReason === null && !dreadnoughtLocked && canSpendColonial(ACTION_COSTS.buildDreadnought);
       push({
         id: "buildDreadnought", group: "build", enabled: dnEnabled,
         reason: dnEnabled ? undefined
-          : fleetHomeReason ?? (dreadnoughtLocked ? bi(locale, "Dreadnought must have been played.", "需先打出“无畏舰”。") : spendReason(ACTION_COSTS.buildDreadnought)),
+          : fleetHomeReason ?? (dreadnoughtLocked ? bi(locale, "Dreadnought must have been played.", "需先打出“无畏舰”。") : colonialSpendReason(ACTION_COSTS.buildDreadnought)),
         // The button's label is the panel's English key; keep the printed name.
         run: () => doAction(() => moves.constructFleet(space, "dreadnought", false)),
       });
@@ -512,10 +520,10 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     const efReason = efDestinationAllowed(G, space, viewer)
       ? null
       : bi(locale, "An EF needs a friendly controlled or home space, or your influence marker.", "远征军需置于友方控制区、本国核心领土，或有你影响标记的空间。");
-    const efEnabled = efReason === null && canSpend(ACTION_COSTS.buildEf);
+    const efEnabled = efReason === null && canSpendColonial(ACTION_COSTS.buildEf);
     push({
       id: "buildEf", group: "build", enabled: efEnabled,
-      reason: efEnabled ? undefined : efReason ?? spendReason(ACTION_COSTS.buildEf),
+      reason: efEnabled ? undefined : efReason ?? colonialSpendReason(ACTION_COSTS.buildEf),
       run: () => doAction(() => moves.buildEf(space)),
     });
     if (selectedUnit !== null && selected?.kind === "expeditionary" && selected.owner === viewer && selected.space !== space) {
@@ -591,10 +599,10 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     const pacifyReason = !state2 ? null
       : state2.influence !== viewer ? bi(locale, "You need your own influence marker here.", "此处需有己方影响标记。")
         : me.flags[`pacified_${space}`] !== undefined ? bi(locale, "Pacified here this decade already.", "本年代已在此绥靖。") : null;
-    const pacifyEnabled = pacifyReason === null && canSpend(pacifyCost);
+    const pacifyEnabled = pacifyReason === null && canSpendColonial(pacifyCost);
     push({
       id: "pacify", group: "diplomacy", enabled: pacifyEnabled,
-      reason: pacifyEnabled ? undefined : pacifyReason ?? spendReason(pacifyCost),
+      reason: pacifyEnabled ? undefined : pacifyReason ?? colonialSpendReason(pacifyCost),
       run: () => doAction(() => moves.pacify(space)),
     });
   }

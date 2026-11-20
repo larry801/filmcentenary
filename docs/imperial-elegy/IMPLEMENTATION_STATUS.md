@@ -1,5 +1,96 @@
 # Imperial Elegy — implementation status
 
+## Fixed: five printed rules that were still simplified (2026-11-20)
+
+Reported as "帝国挽歌规则简化部分实现".  The pass took the open items in
+"Known fallbacks and simplifications" and closed the ones whose printed text the
+live engine can now express.  Each closed item names the printed clause, the live
+path and the evidence.
+
+### 15.2.4 / 15.2.5 — wartime land movement is a march or a rail, not 12.15
+
+The live wartime land move used to be the peacetime 12.15 redeployment: unlimited
+distance along controlled/influenced land, ending in a friendly space.  That is
+the *action phase* action, not the wartime one, so a wartime army could reach any
+friendly space for 1 CP and the printed distance/network rules never applied.
+
+- New `engine/wartimeMovement.ts` is the single pure planner:
+  - **15.2.4 march** — one space, or two when *both* hops are clear connections
+    ("two spaces, if both spaces have clear connections, or 1 space via difficult
+    or severe connections").  An enemy land unit, an enemy fort or neutral
+    territory stops it; an enemy space with no enemy land unit/fort may be passed
+    through, which is the printed exception.
+  - **15.2.5 rail** — an unlimited path over friendly controlled/occupied land
+    only ("cannot move through enemy or neutral spaces"), gated by the printed
+    half-industry allowance (`ceil(industry / 2)`, minimum 1).  The allowance is
+    charged per army and cleared with the other per-impulse flags.
+- `moves.ts#redeploy` routes wartime land moves through the planner and keeps the
+  peacetime 12.15 path for the action phase; a refusal is logged as
+  `wartimeMoveRejected` with the printed reason.  Successes log `wartimeMarch` /
+  `wartimeRail` (both localized).
+- `components/legalTargets.ts` reads the same planner, so the map's move rings and
+  the move agree instead of the rings promising the old unlimited move.
+- `combat.ts#commandsAlliedMinor` moved to `rules.ts` so the battle path, the
+  planner and the Great War maneuvers share one allied-minor command predicate.
+
+Coverage: `wartimeMovement.test.ts` (16 — distance, difficult/severe hops,
+pass-through, enemy army/fort/neutral stops, the half-industry allowance and its
+per-impulse reset, the live march/rail/rejection paths, and peacetime 12.15 still
+being unlimited).  `movementStacking.test.ts` / `occupationRecording.test.ts`
+fixtures were rewritten to a legal march or rail because they had encoded the old
+unlimited move.
+
+### 9.1.5 — A105 Impulsive Ruler granted CP and drew nothing
+
+`impulsiveRuler` was an empty handler, so a played Impulsive Ruler kept the
+mandatory event's 2 CP in the wallet and never drew the printed compensation.
+
+- The handler now clears `cpRemaining`, raises the WTT by 1 (the card's response
+  clause) and draws one card — exactly 9.1.5's "does not get any CP to spend …
+  but instead draws another card".
+- Playing it for CP still resolves no event (the printed "If played for CP the
+  event does not trigger"), which the `cp` path already guaranteed.
+
+Coverage: `impulsiveRuler.test.ts` (4).
+
+### A088 / UK-3 — the free colonial CP was a flag nothing read
+
+Both cards grant CP restricted to colonial actions ("naval movement, construct
+fleet, expeditionary force and/or pacification").  The grant was written to
+`flags.freeColonialCp` and never spent, so the cards' CP were unusable.
+
+- `rules.ts#freeColonialCp` / `spendFreeColonialCp` / `spendColonialCp` drain the
+  grant before the ordinary wallet.
+- `moves.ts#requireColonialCp` is the shared payer for the four printed colonial
+  actions (naval move, construct fleet, EF, pacification) and keeps the impulse
+  bookkeeping; a refused action restores the grant untouched.
+- `components/actionAvailability.ts` enables those four rows when the grant alone
+  can pay, so the board does not hide a legal action behind an empty wallet.
+
+Coverage: `colonialFreeCp.test.ts` (6 — grant-first spending, wallet overflow,
+each of the four actions, non-colonial actions refused, a refused action spends
+nothing).
+
+### GW-08/09 — "occupying an empty enemy key" also satisfies the pressure
+
+Political Pressure's attack condition only counted a *land battle*
+(`landAttackTurn` was stamped in `beginLandBattle`), so the printed occupation
+clause was unreachable.
+
+- `greatWarFlow.ts#notePoliticalPressureOccupation` stamps the condition when a
+  pressured power's army comes to hold an enemy-controlled/occupied key; it is
+  called from the great-war march/rail finish path (the printed way to walk into
+  an empty key).
+
+Coverage: `flagEnforcement.test.ts` (+2).
+
+Still open after this pass, and unchanged: card playability conditions that are
+purely cosmetic on the face, Egypt's `colonial home spaces` not changing
+`SpaceDef.keyType` (it does set the typed `keyTypeOverride`), the Balkans'
+displacement destination (now the shared 5.7 helper, so the earlier "first
+friendly controlled space" note was already stale), and the GW joint-naval
+one-sea-connection limit.
+
 ## Fixed: no English left in the zh_CN UI (2026-11-20)
 
 Reported as "帝国挽歌 检查UI没有本地化的文本并修复".  An audit of what a zh_CN
@@ -1386,12 +1477,14 @@ sweep alone takes minutes and is run explicitly instead.
   Young Turks** now enforce their stored flags (see below).
 - **Still simplified or gapped:** card playability conditions printed on some
   faces are not gated engine-wide; auction cards are not publicly revealed
-  after the auction; Egypt’s “colonial home spaces” set a `homeOverride` but do
-  not change `SpaceDef.keyType`; Loose Grip takes one chosen space, not all
-  named Ottoman spaces; Political Pressure’s “occupying an empty enemy key”
-  condition is unreachable in the current maneuver model; Exhaustion activates
-  when played rather than at the impulse boundary; the Balkans displace units
-  to the first friendly controlled space rather than a free displacement.
+  after the auction; Egypt’s “colonial home spaces” set a `homeOverride` and a
+  typed `keyTypeOverride` rather than changing `SpaceDef.keyType`; the GW
+  `gwJointNaval` still allows one sea connection per action point.
+  **Closed 2026-11-20:** Loose Grip takes every named Ottoman space (no choice);
+  Political Pressure's "occupying an empty enemy key" clause is live
+  (`notePoliticalPressureOccupation`); Exhaustion already activates at the
+  impulse boundary (`queueGwExhaustion` / `activateGwExhaustion`); the Balkans and
+  every other displacement now go through 5.7's closest-friendly-LoC helper.
 - A few older specials still auto-pick or log only (the specific Italian table
   results, several “log-only” display effects).
 
@@ -1468,9 +1561,11 @@ sweep alone takes minutes and is run explicitly instead.
 - **GW-08/GW-09 Political Pressure is enforced.** The cards target a player with
   war budget ≥2 that is adjacent to an enemy army; the target and the GW turn
   are stored (`persistent.politicalPressure`), a land attack is recorded in
-  `beginLandBattle` (`flags.landAttackTurn`), and at `resolveGwWinter` an
-  unsatisfied, still-adjacent player loses 1 stability; the flags are then
-  cleared.
+  `beginLandBattle` (`flags.landAttackTurn`), **and the printed "occupying an
+  empty key controlled or occupied by an enemy" clause is recorded by
+  `notePoliticalPressureOccupation`** from the great-war march/rail path.  At
+  `resolveGwWinter` an unsatisfied, still-adjacent player loses 1 stability; the
+  flags are then cleared.
 - **GW-10 Exhaustion is enforced.** On GW turn 0 it does nothing; otherwise the
   player chooses “stability” (major/decisive defeats cost 2 instead of 1) or
   “vp” (only if a neutral player exists; every GW belligerent loses 1 VP). The

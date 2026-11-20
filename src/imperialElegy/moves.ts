@@ -67,6 +67,7 @@ import {
   resolveAuUnstableChoice,
   clearTurnDurationFlags,
   changeWtt,
+  commandsAlliedMinor,
   computePowerProjection,
   cpBudgetFor,
   controlledBy,
@@ -101,6 +102,8 @@ import {
   resolveImpulseLoss,
   setSpaceControl,
   spendCpFor,
+  spendColonialCp,
+  freeColonialCp,
   unitById,
   unitsOfPower,
   BISMARCK_HOME_CARD,
@@ -134,6 +137,7 @@ import {
 } from "./engine/playability";
 import {ensureStateDefaults} from "./engine/migrations";
 import {botFreeRedeployment, warBotPowers} from "./engine/botRedeployment";
+import {planWartimeLandMove, wartimeRailed} from "./engine/wartimeMovement";
 
 // The start-of-impulse penalties live in rules.ts so the GW flow can run them
 // without an import cycle; re-export them for direct callers and tests.
@@ -375,6 +379,8 @@ const clearActionImpulseSpend = (G: ImperialElegyState): void => {
     // 12.15: a redeployment action covers one impulse; the next impulse pays
     // its own 1 CP before moving anything.
     delete G.powers[power].flags.redeployActionThisImpulse;
+    // 15.2.5: the same for the wartime rail allowance.
+    delete G.powers[power].flags.wartimeRailedThisImpulse;
     // 33.5 is "per impulse", so the railroad allowance resets when the
     // impulse passes to the next player (4.5).
     delete G.powers[power].flags.tsrrRailImpulse;
@@ -397,6 +403,9 @@ const clearWarImpulseSpend = (G: ImperialElegyState): void => {
     delete G.powers[power].flags.warCpSpentThisImpulse;
     // 33.5: a new wartime impulse re-enables the one-army railroad move.
     delete G.powers[power].flags.tsrrRailImpulse;
+    // 15.2.5: the half-industry rail allowance is per action, and each action is
+    // one impulse wide.
+    delete G.powers[power].flags.wartimeRailedThisImpulse;
   }
   delete G.flags.decisiveBattle;
   delete G.flags.decisiveFollowUp;
@@ -973,6 +982,39 @@ const requireCp = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null, a
   return power;
 };
 
+/**
+ * A088 Our Place in the Sun / UK-3 Sun Never Sets: the printed "free CP" grants
+ * may only pay for colonial actions (naval movement, construct fleet,
+ * expeditionary force, pacification).  This payer drains the public
+ * `freeColonialCp` grant first and then the ordinary wallet, so the grant is
+ * spendable instead of being a flag nothing reads.  It keeps `requireCp`'s
+ * impulse bookkeeping (response window and the wartime pass run).
+ */
+const requireColonialCp = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  playerID: PlayerID | null,
+  amount: number,
+): Power | typeof INVALID_MOVE => {
+  if (G.phase === "gwManeuver" && hasLiveGwImpulse(G)) return INVALID_MOVE;
+  const power = requireActive(G, ctx, playerID);
+  if (power === INVALID_MOVE) return INVALID_MOVE;
+  const free = freeColonialCp(G, power);
+  if (!spendColonialCp(G, power, amount)) {
+    // Restore the grant when the ordinary wallet could not cover the rest, so a
+    // refused action never burns free CP.
+    if (free > 0) G.powers[power].flags.freeColonialCp = free;
+    return INVALID_MOVE;
+  }
+  if (G.phase === "action") {
+    G.powers[power].flags.actionCpSpentThisImpulse = true;
+  } else if (G.phase === "wartime") {
+    G.powers[power].flags.warCpSpentThisImpulse = true;
+    noteWartimeAction(G);
+  }
+  return power;
+};
+
 export interface RecruitOptions {
   /** OT only: build a Turkish or Arab army.  Defaults to the space's kind. */
   ottoman?: "turkish" | "arab";
@@ -1269,7 +1311,8 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
   if (!hasCounterFor(G, power, counter)) return INVALID_MOVE;
   // 5.5.4: a port holds at most 4 naval units.
   if (navalUnitsIn(G, space).length >= PORT_NAVAL_LIMIT) return INVALID_MOVE;
-  const paid = requireCp(G, ctx, playerID, cost);
+  // A088/UK-3: constructing a fleet is a printed colonial action.
+  const paid = requireColonialCp(G, ctx, playerID, cost);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   placeUnit(G, power, kind, space, reduced ? 1 : 2);
   // 3.3.1: the naval-unit cap on power projection changes with every new ship.
@@ -1390,7 +1433,8 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
     if (!res.ok && res.pending === true) return undefined;
     return res.ok ? undefined : INVALID_MOVE;
   }
-  const power = requireCp(G, ctx, playerID, 1);
+  // A088/UK-3: naval movement is a printed colonial action.
+  const power = requireColonialCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   const units = unitIds.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && u.owner === power && u.naval === true);
   if (units.length === 0) return INVALID_MOVE;
@@ -1735,7 +1779,9 @@ export const buildEf = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, existin
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (!efDestinationAllowed(G, space, power)) return INVALID_MOVE;
-  const paid = requireCp(G, ctx, playerID, existing ? 1 : 2);
+  // A088/UK-3: an expeditionary force is a colonial action, so the free
+  // colonial grant may pay for it first.
+  const paid = requireColonialCp(G, ctx, playerID, existing ? 1 : 2);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   if (existing) {
     const unit = G.units[existing];
@@ -1850,7 +1896,9 @@ export const pacify = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string 
   if (G.powers[power].flags[`pacified_${space}`]) return INVALID_MOVE;
   // 33.4 Continental Power / 33.1 Continental Focus: pacification costs 2 CP.
   const cost = pacificationCost(G, power);
-  const paid = requireCp(G, ctx, playerID, cost.cost);
+  // A088/UK-3: pacification is one of the printed colonial actions, so the free
+  // colonial grant may pay for it first.
+  const paid = requireColonialCp(G, ctx, playerID, cost.cost);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   const value = state.pacification ?? 0;
   // 33.3 Zouaves / A78 elite colonial EF: an elite colonial unit in the space
@@ -2322,6 +2370,21 @@ export const redeploy = (
   const actorPower = actor(G, playerID);
   if (actorPower === null) return INVALID_MOVE;
   let power = actorPower;
+  // 15.2.4 / 15.2.5: wartime land movement is march or rail, not 12.15.  Both
+  // are one-CP actions, so they share the action's CP charge below, but each
+  // unit is validated against its own printed distance and network and the
+  // rail allowance is charged per army.
+  const wartimeMove = G.phase === "wartime" && G.war !== null && G.war.status === "maneuver";
+  if (wartimeMove) {
+    if (G.powers[actorPower].flags.redeployActionThisImpulse !== true) {
+      // Validate before spending: a refused click must not cost CP.
+      const plan = planWartimeLandMove(G, actorPower, ids[0], to);
+      if (!plan.ok) {
+        log(G, actorPower, "wartimeMoveRejected", {kind: plan.kind, to, reason: plan.reason ?? ""});
+        return INVALID_MOVE;
+      }
+    }
+  }
   if (G.powers[actorPower].flags.redeployActionThisImpulse === true) {
     if (requireActive(G, ctx, playerID) === INVALID_MOVE) return INVALID_MOVE;
     // A later unit of the same action still counts as acting: the first CP of
@@ -2338,11 +2401,59 @@ export const redeploy = (
   let moved = 0;
   let lastError: string | void = undefined;
   for (const id of ids) {
-    const result = moveOneLandUnit(G, power, id, to);
+    const result = wartimeMove
+      ? moveOneWartimeLandUnit(G, power, id, to)
+      : moveOneLandUnit(G, power, id, to);
     if (result === undefined) moved += 1;
     else lastError = result;
   }
   return moved > 0 ? undefined : lastError ?? INVALID_MOVE;
+};
+
+/**
+ * 15.2.4 / 15.2.5: one army's part of a wartime march/rail action.
+ *
+ * The march validates its distance and pass-through rule, the rail validates the
+ * friendly network and spends one slot of the printed half-industry allowance.
+ * Everything else the peacetime path already checks (the 15.2.3 deployment lock,
+ * 5.5.3 stacking at the destination and 15.3 occupation) applies unchanged.
+ */
+const moveOneWartimeLandUnit = (
+  G: ImperialElegyState,
+  power: Power,
+  unitId: string,
+  to: SpaceId,
+): string | void => {
+  const unit = G.units[unitId];
+  if (!unit) return INVALID_MOVE;
+  const commands = unit.owner === power || commandsAlliedMinor(G, power, unit.owner);
+  if (!commands) return INVALID_MOVE;
+  // 15.2.3: a reserve army deployed this impulse cannot march, rail or attack.
+  if (unit.flags?.deployedThisImpulse === true) return INVALID_MOVE;
+  const plan = planWartimeLandMove(G, power, unitId, to);
+  if (!plan.ok) {
+    log(G, power, "wartimeMoveRejected", {kind: plan.kind, to, reason: plan.reason ?? ""});
+    return INVALID_MOVE;
+  }
+  if (movementEndProblem(G, to, [unit]) !== null) return INVALID_MOVE;
+  const from = unit.space ?? null;
+  if (from === null) return INVALID_MOVE;
+  G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unitId);
+  G.spaces[to].units.push(unitId);
+  unit.space = to;
+  if (plan.kind === "rail") {
+    G.powers[power].flags.wartimeRailedThisImpulse = wartimeRailed(G, power) + 1;
+  }
+  // Separate calls so the log key is a literal: the log-localization inventory
+  // reads keys from the source and a computed key would be invisible to it.
+  if (plan.kind === "rail") {
+    log(G, power, "wartimeRail", {unit: unitId, from, to, path: plan.path.join(",")});
+  } else {
+    log(G, power, "wartimeMarch", {unit: unitId, from, to, path: plan.path.join(",")});
+  }
+  // 15.3: the last player to solely be in a space occupies it.
+  recordOccupation(G, to);
+  return undefined;
 };
 
 /**

@@ -1717,6 +1717,8 @@ export const performGwManeuver = (
     // reconciled here.
     if (request.kind === "march" || request.kind === "rail") {
       if (payload.to !== undefined) recordOccupation(G, payload.to);
+      // GW-08/09: occupying an empty enemy key satisfies the attack condition.
+      if (payload.to !== undefined) notePoliticalPressureOccupation(G, power, payload.to);
     }
     recordGwAction(G, power, request.kind, allowance);
     if (allowance.funding === "staff") log(G, power, "superiorStaffWork", {space: payload.to, count: payload.unitIds?.length ?? 1, scope: "gw"});
@@ -3721,6 +3723,51 @@ export const POLITICAL_PRESSURE_TURN_KEY = "politicalPressureTurn";
 export const EXHAUSTION_KEY = "exhaustion";
 /** Per-power flag: the GW turn in which that power made a land attack. */
 export const LAND_ATTACK_TURN_FLAG = "landAttackTurn";
+
+/**
+ * GW-08/09: "Occupying an empty key controlled or occupied by an enemy also
+ * counts as satisfying the attack condition."  `recordOccupation` runs on every
+ * live land maneuver (march, rail, transport landing, battle advance), so the
+ * check is made whenever a pressured power's army comes to hold an enemy key it
+ * did not already occupy.  Calling it from the maneuver path (and from the
+ * battle advance, which does not go through `performGwManeuver`) satisfies the
+ * clause without a separate "did you attack" bookkeeping path.
+ */
+export const notePoliticalPressureOccupation = (
+  G: ImperialElegyState,
+  power: Power,
+  space: SpaceId,
+): boolean => {
+  if (!G.gw?.active) return false;
+  const turn = G.gw.turn;
+  if (Number(G.persistent[POLITICAL_PRESSURE_TURN_KEY] ?? -1) !== turn) return false;
+  if (!pressuredPowers(G).includes(power)) return false;
+  if (Number(G.powers[power]?.flags[LAND_ATTACK_TURN_FLAG] ?? -1) === turn) return false;
+  const state = G.spaces[space];
+  if (!state || !isGwKeySpace(space)) return false;
+  if (state.control === power) return false;
+  // "controlled or occupied by an enemy": the key's controller, or its current
+  // occupier, must be a power this one is at war with.
+  const holders = [state.control, state.occupiedBy].filter(
+    (owner): owner is NonNullable<typeof owner> => owner !== null && owner !== undefined,
+  );
+  const enemy = holders.some((owner) =>
+    isPower(owner) ? atWar(G, power, owner) : (() => {
+      const controller = minorController(G, owner);
+      return controller !== null && atWar(G, power, controller);
+    })(),
+  );
+  if (!enemy) return false;
+  G.powers[power].flags[LAND_ATTACK_TURN_FLAG] = turn;
+  log(G, power, "gwPoliticalPressureSatisfied", {space});
+  return true;
+};
+
+/** A key, capital or subcapital — the prerequisites the printed clause names. */
+const isGwKeySpace = (space: SpaceId): boolean => {
+  const type = SPACES[space]?.type;
+  return type === "key" || type === "capital" || type === "subcapital";
+};
 
 /**
  * GW-10 Exhaustion (27.3): "This event takes effect at the end of this

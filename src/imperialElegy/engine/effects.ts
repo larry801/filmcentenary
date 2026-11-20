@@ -2731,6 +2731,19 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "impulsiveRuler": {
+      // 9.1.5: "It must be played as a response card when its conditions are
+      // met. Once its event is resolved, the player who played it does not get
+      // any CP to spend (as it would with a mandatory event) but instead draws
+      // another card."  The card text repeats both halves and adds the response
+      // play's WTT increase.  `playCard` gives every mandatory response its
+      // printed CP, so the CP this handler must not grant is cleared here; the
+      // draw is the printed compensation.
+      if (G.resolvingCard === "IE-A105") {
+        G.cpRemaining = 0;
+        changeWtt(G, 1, ctx, "IE-A105");
+        drawCards(G, ctx, actor, 1);
+        log(G, actor, "impulsiveRuler", {wtt: G.wtt});
+      }
       return true;
     }
     case "removeAnyMinorAlliance": {

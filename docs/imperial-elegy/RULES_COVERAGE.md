@@ -172,7 +172,8 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   box.
 - **Action:** CP/event play, mandatory handling, recruitment, fleet construction,
   naval movement, influence/diplomacy placement/removal, minor alliances, EF
-  build/move, pacification, forts, industrialisation, CP chain, redeployment,
+  build/move, pacification, forts, industrialisation, CP chain, redeployment
+  (12.15 in the action phase, 15.2.4 march / 15.2.5 rail in a war),
   declarations of war and land battles — **live**, with the simplifications
   below. **12.10 EF destination is enforced** from the March 2026 errata text
   (`efDestinationAllowed`: a friendly controlled/home space or the player's
@@ -281,7 +282,16 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   reported as `impulsive-ruler-hand`. `cardAvailability` derives
   `cpAllowed`/`cpModeOk` from the same predicate, so the tray button and
   `playCard(id, "cp")` always agree; the bot's `isCpSpendable` no longer filters
-  by card type and consults the predicate before naming a card.
+  by card type and consults the predicate before naming a card. 9.1.5's
+  compensation is live too: resolving A105 clears the mandatory CP, raises the
+  WTT by 1 and draws a card (`impulsiveRuler`), while its CP mode resolves no
+  event.
+- **Free colonial CP (A088 / UK-3):** both cards' printed "free CP" grant is
+  live. `rules.ts#spendColonialCp` drains `flags.freeColonialCp` before the
+  ordinary wallet, `moves.ts#requireColonialCp` is the shared payer for the four
+  printed colonial actions (naval movement, construct fleet, expeditionary force,
+  pacification) and restores the grant when an action is refused, and the Orders
+  panel enables those rows when the grant alone can pay.
 - **CP chain (12.14):** **implemented.** `cpChain` moves up to two cards from
   hand into `PowerState.cpChain`; a chained mandatory event resolves immediately,
   controlled by the active player. `useCpChain` starts one chain-funded impulse
@@ -384,6 +394,15 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
     main-map space with a land-only LoC, and no attack/support/move in the
     placement impulse. A063 makes the first deploy free and adds one reserve
     army per deploy (still capped at three).
+  - **15.2.4 / 15.2.5 land movement is live** (`engine/wartimeMovement.ts`):
+    a march is one space, or two over clear connections, and stops at an enemy
+    land unit, an enemy fort or neutral territory (an enemy space with no enemy
+    land unit/fort may be passed through); a rail move traces an unlimited
+    friendly-only land path and spends one slot of the half-industry allowance
+    (`ceil(industry / 2)`, minimum 1) per army. `redeploy` routes wartime land
+    moves through the planner, logs `wartimeMoveRejected` with the printed
+    reason, and `components/legalTargets.ts` draws the rings from the same
+    planner. Peacetime keeps the 12.15 unlimited redeployment.
   - `war.treaties` is populated by the treaty chooser. Realignment with more than
     one legal minor opens a follow-up `treatySpace` decision with
     `context.kind = "minor"`; exactly one legal minor applies the validated

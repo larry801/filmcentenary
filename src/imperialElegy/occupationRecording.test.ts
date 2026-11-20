@@ -320,9 +320,15 @@ describe("15.3 live wartime moves", () => {
     G.war.budgets = {GE: 6, FR: 6};
     resetSpace(G, "berlin");
     resetSpace(G, "westphalia");
+    resetSpace(G, "hanover");
     G.spaces.berlin.control = "GE";
     G.spaces.westphalia.control = null;
     G.spaces.westphalia.influence = "GE";
+    // 15.2.4: a wartime land move is a march (Berlin → Hanover → Westphalia are
+    // clear connections), not the peacetime 12.15 redeploy.  Hanover is a
+    // friendly minor here so the two-space march is legal.
+    G.spaces.hanover.control = "Hanover";
+    G.spaces.hanover.ally = "GE";
     const army = placeUnit(G, "GE", "army", "berlin", 2).id;
 
     expect(redeploy(G, makeCtx([], seat("GE")), army, "westphalia")).toBeUndefined();
