@@ -349,8 +349,9 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   Divide and Conquer also prompt. A025 now asks which space receives the +2 and
   resolves the printed two-dice pacification roll (including the errata's
   Egyptian special); A037 follows the five spaces' normal placement
-  restrictions and makes its printed pacification roll. The cards whose printed
-  “OR” used to resolve by
+  restrictions and makes its printed pacification roll. A097 now chooses which
+  0 WoI marker to flip and runs 20.8's displacement/stability independence
+  sequence. The cards whose printed “OR” used to resolve by
   a deterministic default (A045 A048 A051 A052 A068 A073 A107 A109, GW-01 and
   AU-7) now open real player choices; A073 and A107 run a per-player sequential
   chain. A039 offers the UK its printed 3/4-CP discard-to-ignore window, A069’s

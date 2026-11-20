@@ -604,19 +604,20 @@ card id / number in a test file vs. handler name only.
 修复轮次前：**91 / 122** 有直接覆盖，**24 张零信号**。修复轮次后
 （`cardEventDefects.test.ts` 新增 45 个断言）：
 
-- **101 / 122** 有直接覆盖。
+- **102 / 122** 有直接覆盖。
 - **8** 只有 handler 级覆盖。
-- **13 张零信号**（既无 id 也无 handler 提及）：
+- **12 张零信号**（既无 id 也无 handler 提及）：
 
 ```
-A014 A016 A022 A033 A042 A050 A086 A090 A097
+A014 A016 A022 A033 A042 A050 A086 A090
 H-GE-2 H-FR-6 H-OT-12 H-RU-9
 ```
 
 修复前零覆盖的牌里，A080/A091（§3.3/§3.4）、A032/A073/A107/A109/A048/A045/
 A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 已全部进入新套件；A025/A037 在 2026-11-21 的分支补齐了各自的印刷空间选择与
-绥靖掷骰。剩余 13 张是没有已知缺陷的牌，建议作为下一步补测目标；
+绥靖掷骰，A097 同步补上了标记选择与 20.8 独立序列。剩余 12 张是没有已知缺陷的
+牌，建议作为下一步补测目标；
 其中 A050（掷骰三档）与 A097（WoI +1 → 独立）逻辑分支最多，优先级最高。
 
 `fuzz.test.ts` 的“每张行动牌/本国牌/大战牌打出后不抛错且能答完 20 个决策”是
@@ -753,7 +754,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A094` | The Boxer Rebellion | mandatory | 2 | `boxerRebellion` | auto | yes |
 | `IE-A095` | Death of Franz Joseph | mandatory | 2 | `grantRightsOrCitizenship` | auto | yes |
 | `IE-A096` | Empire of the Sun | event | 1 | `empireOfTheSun` | choice | yes |
-| `IE-A097` | Diplomatic Recognition | event | 1 | `diplomaticRecognition` | auto | **no** |
+| `IE-A097` | Diplomatic Recognition | event | 1 | `diplomaticRecognition` | choice | yes |
 | `IE-A098` | Dreyfus Affair | response | 1 | `frLandDrm` + `drawReplacement` | — | yes |
 | `IE-A099` | Dreadnought | event | 1 | `dreadnought` | auto | yes |
 | `IE-A100` | The Balkan Wars | mandatory | 2 | `wtt` + `balkanWars` + `wtt` + `balkanWarsAward` | choice | yes |
