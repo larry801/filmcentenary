@@ -4718,13 +4718,33 @@ export const resolveCardDecision = (
   }
   if (pending.kind === "goalChoice") {
     const p = G.powers[pending.power];
+    if (context.mode === "return") {
+      // 2.4 / 20.11 / A22: "if a player has more than 3 NG cards, they choose
+      // one and return it to their NG deck."  The old handler removed the
+      // oldest automatically.
+      if (p.goals.includes(optionId)) {
+        p.goals = p.goals.filter((id) => id !== optionId);
+        p.goalDeck.push(optionId);
+        log(G, pending.power, "goalRemoved", {goal: optionId, kept: p.goals.join(",")});
+      }
+      closeDecision(G, ctx);
+      resumeEffects(G, ctx, pending, data);
+      return;
+    }
     const drawn = (context.drawn as string[] | undefined) ?? [];
     if (drawn.includes(optionId)) {
       p.goals.push(optionId);
       p.goalDeck.push(...drawn.filter((id) => id !== optionId));
       if (p.goals.length > 3) {
-        const returned = p.goals.shift();
-        if (returned) p.goalDeck.push(returned);
+        // Ask which Goal to return instead of silently dropping the oldest.
+        openDecision(G, ctx, decision(
+          "goalChoice",
+          pending.power,
+          "Return one National Goal to your NG deck",
+          p.goals.map((id) => option(id, GOALS_BY_ID[id]?.title ?? id, undefined, false, GOALS_BY_ID[id]?.titleZh)),
+          {mode: "return", resume: context.resume},
+        ));
+        return;
       }
     }
     closeDecision(G, ctx);

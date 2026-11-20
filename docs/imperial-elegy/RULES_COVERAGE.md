@@ -576,9 +576,10 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   enemy-occupied friendly ports excluded; **20.5** owner-chosen trimming of
   standing armies over the final manpower; **20.6** industrialisation; **20.7**
   truces; **20.8** WoI progress/independence; **20.9** alliance resolution with
-  a player choice on a tied roll; 20.10 WTT −1; 20.11 NG draw (1/3/5); 20.12
-  turn/decade advance and the turn-7 finish; `endPhaseTurn` auto-keeps an
-  undecided NG draw.
+  a player choice on a tied roll; 20.10 WTT −1; 20.11 NG draw (1/3/5) with the
+  printed choice of which Goal to return when the player would hold a fourth;
+  20.12 turn/decade advance and the turn-7 finish; `endPhaseTurn` keeps the
+  first drawn Goal only when the NG choice itself is still undecided.
 - **Remaining (round-8 refresh):** 20.1 offers “skip” only when no legal
   benefit exists (it is the deterministic fallback, not an option); 20.5 uses
   UK/OT per-track limits; 20.8 follows the printed displacement/−1 stability/0→+1

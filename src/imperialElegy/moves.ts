@@ -7088,6 +7088,17 @@ export const chooseGoal = (G: ImperialElegyState, ctx: Ctx, goalId: string): str
   p.goals.push(goalId);
   p.goalDeck.push(...choices.filter((id) => id !== goalId));
   p.flags.ngChoices = "";
+  // 2.4 / 20.11: "if a player has more than 3 NG cards, they choose one and
+  // return it to their NG deck."  Block the end phase on that choice.
+  if (p.goals.length > 3) {
+    openDecision(G, ctx, decision(
+      "goalChoice",
+      power,
+      "Return one National Goal to your NG deck",
+      p.goals.map((id) => option(id, GOALS_BY_ID[id]?.title ?? id, undefined, false, GOALS_BY_ID[id]?.titleZh)),
+      {mode: "return"},
+    ));
+  }
   return undefined;
 };
 

@@ -1,5 +1,24 @@
 # Imperial Elegy — implementation status
 
+## Fixed: a fourth National Goal was kept, and A22 returned the oldest automatically (2026-11-21)
+
+2.4 and 20.11 print *"if a player has more than 3 NG cards, they choose one and
+return it to their NG deck."*  A22 New Administration repeats the clause.
+
+- The end-phase `chooseGoal` pushed the kept Goal and never returned one, so a
+  player could end a turn holding four Goals and score them all.
+- A22 did check the fourth Goal, but removed `p.goals.shift()` — the oldest —
+  without asking the player.
+
+Both paths now open a `goalChoice` decision with `mode: "return"` and one option
+per held Goal.  The chosen Goal goes back to its deck and logs `goalRemoved`;
+the card/end phase then continues.  `endPhaseTurn` still refuses to close while
+the return decision is open.
+
+**Coverage:** `ngLimit.test.ts` (2 — A22's draw→return chain and the end-phase
+draw→return chain).  `npx tsc --noEmit` clean; the end-phase, card-defect and
+board suites pass.
+
 ## Fixed: Colonial Conflict accepted minor-controlled and already-marked spaces (2026-11-21)
 
 A13/A14 print *"Choose a space in Asia, Africa, or North America that is
