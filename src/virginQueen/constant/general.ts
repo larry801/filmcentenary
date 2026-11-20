@@ -388,7 +388,13 @@ export const landCount = (s: LandStack | undefined): number =>
 export const navalCount = (s: NavalStack | undefined): number =>
     s === undefined ? 0 : s.galley + s.galleon + s.racebuilt + s.corsair;
 
-export type LeaderKind = "army" | "naval";
+/**
+ * Rule 10 step 4: "Don John is placed as either an army leader or a naval
+ * leader.  He may switch leader type at any time during a Spanish impulse if he
+ * occupies a port space under friendly control."  `both` models such a leader:
+ * he counts as an army leader and as a naval leader wherever either matters.
+ */
+export type LeaderKind = "army" | "naval" | "both";
 
 export interface LeaderDef {
     id: string;

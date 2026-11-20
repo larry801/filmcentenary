@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
-import {LEADER_BY_ID} from "./constant/leaders";
+import {LEADER_BY_ID, leaderIsArmy} from "./constant/leaders";
 import {resolveUntimelyDeath} from "./cardEvents";
 import {arriveLeaders, setupGame} from "./util";
 
@@ -16,7 +16,7 @@ const game = (): VQGame => setupGame({...context(), numPlayers: 6} as Ctx);
 
 const removeSpanishArmyLeaders = (G: VQGame): void => {
     for (const id of Object.keys(G.leaders)) {
-        if (LEADER_BY_ID[id]?.power === "spain" && LEADER_BY_ID[id]?.kind === "army") {
+        if (LEADER_BY_ID[id]?.power === "spain" && leaderIsArmy(id)) {
             delete G.leaders[id];
         }
     }

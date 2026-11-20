@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, NavalStack, Power, POWERS, VQGame, isPower, navalCount, spaceHomes} from "./constant/general";
-import {LEADER_BY_ID} from "./constant/leaders";
+import {LEADER_BY_ID, isArmyKind, leaderIsArmy, leaderIsNaval} from "./constant/leaders";
 import {cardById} from "./constant/cards";
 import i18n from "../constant/i18n";
 import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES, mapName} from "./mapData";
@@ -42,7 +42,7 @@ export const assassinationTargets = (G: VQGame, p: Power): string[] => [
         const def = LEADER_BY_ID[id];
         const loc = G.leaders[id].location;
         // 19.3: default army leaders are not eligible targets.
-        return def?.kind === "army" && !id.startsWith("default-") && def.power !== p &&
+        return isArmyKind(def) && !id.startsWith("default-") && def.power !== p &&
             !isActivatedMajor(G, def.power) && !!G.spaces[loc] && G.spaces[loc].leaders.includes(id);
     }),
 ];
@@ -446,9 +446,9 @@ const queueDisplacements = (G: VQGame, id: string, primary = false): void => {
         if (!owner) {delete s.land[controller]; delete s.naval[controller]; continue;}
         const leaders = s.leaders.filter((id) => LEADER_BY_ID[id]?.power === controller);
         const land = s.land[controller];
-        if (land && land.regular + land.merc + land.cav > 0 || leaders.some((id) => LEADER_BY_ID[id].kind === "army")) p.displacements.push({owner, controller, from: id, kind: "land"});
+        if (land && land.regular + land.merc + land.cav > 0 || leaders.some((id) => leaderIsArmy(id))) p.displacements.push({owner, controller, from: id, kind: "land"});
         else delete s.land[controller];
-        if (navalCount(s.naval[controller]) > 0 || leaders.some((id) => LEADER_BY_ID[id].kind === "naval")) p.displacements.push({owner, controller, from: id, kind: "naval"});
+        if (navalCount(s.naval[controller]) > 0 || leaders.some((id) => leaderIsNaval(id))) p.displacements.push({owner, controller, from: id, kind: "naval"});
         else delete s.naval[controller];
     }
 };

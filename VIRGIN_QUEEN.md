@@ -1711,3 +1711,13 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 | 22.2 | Le Testu 作为海船长在世界地图被消灭时，科学家计数片仍留在赞助池里可被再次赞助（原注释声称"反向同步已在船长被消灭处处理"，实际没有） | 新增 `removeLeTestuScientist`，在船长"移出游戏"分支调用（环航/进回合记录轨不算移出游戏） |
 
 验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` 572 suites、5754 tests 全部通过（新增 `iconoclasm.test.ts` 1 项、`patronageRandom.test.ts` 1 项）。
+
+## 唐·约翰的双重身份（规则 10.4 / 19.3 / 20.4）
+
+规则书写明"Don John is placed as either an army leader or a naval leader. He may switch leader type at any time during a Spanish impulse if he occupies a port space under friendly control"，20.4 又补充冬季他可"切换到陆军将领并返回任一西班牙首都"，19.3 则把"正担任海军将领的唐·约翰"排除在刺杀目标之外。此前 `constant/leaders.ts` 把他固定成 `kind: "army"`（官方数据表本身写的是 `both`），因此他永远无法作为海军将领指挥舰队、也不会给海战加骰。
+
+现在 `LeaderKind` 增加 `"both"`，`constant/leaders.ts` 提供 `leaderIsArmy`/`leaderIsNaval`/`leaderIsKind`（按 id）与 `isArmyKind`/`isNavalKind`（按已取到的定义），并把全部 54 处 `kind === "army"/"naval"` 判断改为调用这些助手：`bestBattle` 在两种角色下都计入他的战斗值，海军移动/拦截/避战/撤退、借调、被俘遣返、叛乱与事件选将都按角色识别他。入场时他按陆军将领放置（进入设防家乡地区），符合"要么陆军、要么海军"的印刷要求。
+
+回归测试 `donJohnDualLeader.test.ts`：分类正确、海战加 1 骰、陆战加 1 骰。
+
+验证：`tsc --noEmit` 通过；`jest src/virginQueen --silent --maxWorkers=4` 259 suites、1587 tests 全部通过。

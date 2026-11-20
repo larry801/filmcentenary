@@ -71,7 +71,7 @@ import {cardById, officialCardById} from "./constant/cards";
 import {OFFICIAL_CARDS} from "./data/cards";
 import {PatronageVpAward} from "./data/types";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
-import {DEFAULT_LEADER_BY_POWER, LEADER_BY_ID, LEADERS, SEA_CAPTAIN_LEADER_BY_CAPTAIN, startingLeaders} from "./constant/leaders";
+import {DEFAULT_LEADER_BY_POWER, LEADERS, LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN, isArmyKind, isNavalKind, leaderIsArmy, leaderIsKind, leaderIsNaval, startingLeaders} from "./constant/leaders";
 import {
     ScenarioSetupData,
     patronDef,
@@ -1633,7 +1633,7 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
                     target.merc += source.merc;
                     target.cav += source.cav;
                     delete space.land[other];
-                    moveLeaders(G, def.id, destination.id, space.leaders.filter((id) => LEADER_BY_ID[id]?.power === other && LEADER_BY_ID[id].kind === "army"));
+                    moveLeaders(G, def.id, destination.id, space.leaders.filter((id) => LEADER_BY_ID[id]?.power === other && leaderIsArmy(id)));
                 }
             }
             if (space.naval[other]) {
@@ -1643,7 +1643,7 @@ export const deactivateMajor = (G: VQGame, power: Power): void => {
                     const target = ensureNaval(G, destination.id, other);
                     for (const kind of ["galley", "galleon", "racebuilt", "corsair"] as const) target[kind] += space.naval[other]![kind];
                     delete space.naval[other];
-                    moveLeaders(G, def.id, destination.id, space.leaders.filter((id) => LEADER_BY_ID[id]?.power === other && LEADER_BY_ID[id].kind === "naval"));
+                    moveLeaders(G, def.id, destination.id, space.leaders.filter((id) => LEADER_BY_ID[id]?.power === other && leaderIsNaval(id)));
                 }
             }
         }
@@ -2166,7 +2166,7 @@ export const reconcileSiege = (G: VQGame, space: string, departTo?: string): boo
     for (const owner of besiegers) {
         if (!isPower(owner)) continue;
         if (totalLand(G, space, [owner]) === 0) continue;
-        const leaders = G.spaces[space].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+        const leaders = G.spaces[space].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && leaderIsArmy(id));
         retreatLand(G, owner, space, [owner], leaders, captor, avoid);
     }
     return true;
@@ -2328,7 +2328,8 @@ export const bestBattle = (G: VQGame, loc: string, owners: Controller[], kind: "
     let best = 0;
     for (const id of leadersAt(G, loc)) {
         const def = LEADER_BY_ID[id];
-        if (def === undefined || def.kind !== kind) {
+        // A `both` leader (Don John) uses his Battle Rating in either role.
+        if (def === undefined || !leaderIsKind(id, kind)) {
             continue;
         }
         const owner = leaderPower(G, id);
@@ -2614,7 +2615,7 @@ export const ensureDefaultLeader = (G: VQGame, p: Power): void => {
     const standardInPlay = Object.keys(G.leaders).some((id) => {
         const leader = LEADER_BY_ID[id];
         const state = G.leaders[id];
-        return id !== def.id && leader?.power === p && leader.kind === "army" &&
+        return id !== def.id && leader?.power === p && isArmyKind(leader) &&
             state.location !== "pool" && state.location !== "offMap";
     });
     if (standardInPlay) return;
@@ -2686,7 +2687,10 @@ export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): voi
             const st = G.leaders[id];
             if (def === undefined || def.power !== p || isDefaultLeader(id) || st.location !== "pool" ||
                 (st.returnTurn ?? 0) > G.year) continue;
-            if (def.kind === "naval") {
+            // Rule 10 step 4: "Don John is placed as either an army leader or a
+            // naval leader."  A dual leader arrives as an army leader (into a
+            // fortified home space) and may switch to naval later.
+            if (isNavalKind(def) && !isArmyKind(def)) {
                 const ports = homePortsFor(G, p);
                 // No legal port: the leader keeps waiting in the pool.
                 if (ports.length === 0) continue;
@@ -2737,7 +2741,7 @@ export const arriveLeaders = (G: VQGame, options?: {interactive?: boolean}): voi
         const standardInPlay = Object.keys(G.leaders).some((id) => {
             const leader = LEADER_BY_ID[id];
             const state = G.leaders[id];
-            return leader?.power === p && leader.kind === "army" && !isDefaultLeader(id) &&
+            return leader?.power === p && isArmyKind(leader) && !isDefaultLeader(id) &&
                 state.location !== "pool" && state.location !== "offMap";
         });
         if (standardInPlay) {
@@ -3596,7 +3600,7 @@ export const attemptLandAvoidBattle = (
             });
         if (destinations.length === 0) continue;
         const leaders = G.spaces[space].leaders.filter((id) =>
-            LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+            LEADER_BY_ID[id]?.power === owner && leaderIsArmy(id));
         const coveredByLostBattle = G.lostBattleImpulse?.impulse === G.impulse &&
             G.lostBattleImpulse.owners.includes(owner);
         const ottomanCavalry = owner === "ottoman" && stack.cav > 0 ? 1 : 0;
@@ -3673,7 +3677,7 @@ export const attemptLandInterception = (
         if (stack === undefined || landCount(stack) === 0) continue;
         if (!used.includes(candidate.space)) used.push(candidate.space);
         const leaders = source.leaders
-            .filter((id) => LEADER_BY_ID[id]?.power === candidate.power && LEADER_BY_ID[id]?.kind === "army")
+            .filter((id) => LEADER_BY_ID[id]?.power === candidate.power && leaderIsArmy(id))
             .sort((a, b) => (LEADER_BY_ID[b].battle ?? 0) - (LEADER_BY_ID[a].battle ?? 0))
             .slice(0, 2);
         const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
@@ -3743,7 +3747,7 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
     // Rule 15.1: only a single formation may assault, even when more friendly
     // units are present in the space.
     const attackerLeaders = G.spaces[space].leaders.filter(
-        (id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "army");
+        (id) => LEADER_BY_ID[id]?.power === p && leaderIsArmy(id));
     const attackerNonCavalry = (G.spaces[space].land[p]?.regular ?? 0) + (G.spaces[space].land[p]?.merc ?? 0);
     const desperate = G.powers[p].cards.includes("vq-007");
     const defending = defendersList.find(isPower);
@@ -3828,7 +3832,7 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
         }
         const navalLeaders = leadersAt(G, space).filter((id) => {
             const def = LEADER_BY_ID[id];
-            return def?.kind === "naval" && defendersList.includes(def.power);
+            return isNavalKind(def) && defendersList.includes(def.power);
         });
         for (const id of navalLeaders) {
             s.leaders = s.leaders.filter((leader) => leader !== id);
@@ -4734,7 +4738,7 @@ const winterAddUnits = (G: VQGame, space: string, p: Power, units: LandStack): v
 
 const winterArmyLeaders = (G: VQGame, space: string, p: Power): string[] =>
     G.spaces[space].leaders.filter((id) =>
-        LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "army");
+        LEADER_BY_ID[id]?.power === p && leaderIsArmy(id));
 
 /** A displaced leader returns to a controlled capital, or waits in the pool. */
 const winterLeadersHome = (G: VQGame, from: string, p: Power, leaders: string[]): void => {
@@ -4817,7 +4821,7 @@ const winterReturnNaval = (G: VQGame): void => {
                 // Card Draw; the automatic port is already on the board.
                 const followers = zone.leaders.filter((id) => {
                     const def = LEADER_BY_ID[id];
-                    return def?.kind === "naval" && def.power === owner;
+                    return isNavalKind(def) && def.power === owner;
                 });
                 G.winterNavalReturnChoices = [...(G.winterNavalReturnChoices ?? []), {
                     id: nextWinterChoiceId(G),
@@ -4835,7 +4839,7 @@ const winterReturnNaval = (G: VQGame): void => {
         // started the phase in this sea zone (rule 20.4).
         for (const id of [...zone.leaders]) {
             const def = LEADER_BY_ID[id];
-            if (def === undefined || def.kind !== "naval") continue;
+            if (def === undefined || !isNavalKind(def)) continue;
             const port = destinations[def.power];
             if (port !== undefined) {
                 moveLeaders(G, zoneDef.id, port, [id]);
@@ -6351,7 +6355,7 @@ export const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string, sel
     const unitPowers = (Object.keys(src.land) as Controller[])
         .filter((owner) => (selectedOwner === undefined || selectedOwner === owner) && friendlyController(G, p, owner) && landCount(src.land[owner]) > 0);
     // Rule 13.1: one or more army leaders may also move without land units.
-    const leaderOnly = src.leaders.some((id) => LEADER_BY_ID[id]?.kind === "army" &&
+    const leaderOnly = src.leaders.some((id) => leaderIsArmy(id) &&
         friendlyController(G, p, LEADER_BY_ID[id].power));
     if (unitPowers.length === 0 && !leaderOnly) return false;
     const defTo = SPACE_BY_ID[to];

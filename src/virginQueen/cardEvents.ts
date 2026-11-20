@@ -1,7 +1,7 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {CardDef, Power, VQGame, landCount, spaceHomes} from "./constant/general";
-import {LEADER_BY_ID} from "./constant/leaders";
+import {LEADER_BY_ID, leaderIsArmy} from "./constant/leaders";
 import {SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import i18n from "../constant/i18n";
 import {ownerOf} from "./ownership";
@@ -161,6 +161,6 @@ export const resolveUntimelyDeath = (G: VQGame, target: string): void => {
     if (target === "dragut") removeCardFromGame(G, "vq-011");
     pushLog(G, `Untimely Death: ${LEADER_BY_ID[target]?.name ?? target} is removed from the game.`);
     const power = LEADER_BY_ID[target]?.power;
-    const armyLeader = LEADER_BY_ID[target]?.kind === "army";
+    const armyLeader = leaderIsArmy(target);
     if (armyLeader && power !== undefined) ensureDefaultLeader(G, power);
 };

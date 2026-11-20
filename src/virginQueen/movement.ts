@@ -1,5 +1,5 @@
 import {Controller, LandStack, MinorPower, Power, VQGame, isPower, landCount, navalCount, spaceHomes} from "./constant/general";
-import {LEADER_BY_ID} from "./constant/leaders";
+import {LEADER_BY_ID, leaderIsArmy} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID, inlandPortLink, isInlandPort} from "./mapData";
 import {moveError} from "./movePolicy";
 import {atWar, atWarWithMinor, canMoveLandTo, formationCapacity, friendlyController, friendlyControlled, inFrenchReligiousArea, isPort, isSeaZone, passBetween, portZones, spaceHasEnemyNaval, springTargetsFrom, warCost} from "./util";
@@ -24,7 +24,7 @@ export const formationIssue = (G: VQGame, owner: Controller, order: FormationOrd
     if (available && Object.entries(units).some(([kind, count]) =>
         !Number.isInteger(count) || count < 0 || count > available[kind as keyof LandStack])) return "invalidFormation";
     if (new Set(order.leaders).size !== order.leaders.length || order.leaders.some((id) =>
-        !source.leaders.includes(id) || LEADER_BY_ID[id]?.power !== owner || LEADER_BY_ID[id]?.kind !== "army")) return "invalidFormation";
+        !source.leaders.includes(id) || LEADER_BY_ID[id]?.power !== owner || !leaderIsArmy(id))) return "invalidFormation";
     if ((transport || G.scenario === "tutorial") && order.leaders.length > 2) return "invalidFormation";
     if (transport && landCount(units) > 5) return "transportCapacity";
     if (landCount(units) > formationCapacity(order.leaders)) return "formationCapacity";
@@ -35,7 +35,7 @@ export const formationIssue = (G: VQGame, owner: Controller, order: FormationOrd
 /** Stage a legal-sized formation, including when the unit owner is an ally. */
 export const defaultFormation = (G: VQGame, from: string, owner: Controller, transport = false) => {
     const leaders = (G.spaces[from]?.leaders ?? [])
-        .filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army").slice(0, 2);
+        .filter((id) => LEADER_BY_ID[id]?.power === owner && leaderIsArmy(id)).slice(0, 2);
     const available = G.spaces[from]?.land[owner];
     let remaining = Math.min(formationCapacity(leaders), transport ? 5 : Infinity);
     const units: LandStack = {regular: 0, merc: 0, cav: 0};
