@@ -188,6 +188,8 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
 - **H-GE-2 German General Staff** offers the printed "take a response/combat
   card from the discard pile OR gain two elite corps" choice, with the ECs
   stacked on an army as 5.1.3 requires.
+- **H-FR-6 Aux Armes** takes French Intervention or Papal Influence from the
+  discard and allows that card to be played immediately, once, as printed.
 - **12.11 pacification is complete.** One shared gate
   (`engine/pacification.ts#pacificationProblem`) requires either the acting
   power's own influence marker (an uncontrolled space, which the success

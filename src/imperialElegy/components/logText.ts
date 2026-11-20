@@ -1558,6 +1558,17 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `chained ${card} for CP.`, `将 ${card} 加入 CP 链。`);
   },
 
+  cardTaken: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    const from = str(entry.args?.from);
+    return withActor(
+      entry,
+      locale,
+      from === "discard" ? `took ${card} back from the discard pile.` : `took ${card}.`,
+      from === "discard" ? `从弃牌堆取回 ${card}。` : `取得 ${card}。`,
+    );
+  },
+
   eliteCorpsGained: (entry, locale) => {
     const where = spaceName(str(entry.args?.space), locale);
     return withActor(
