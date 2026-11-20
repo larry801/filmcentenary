@@ -1919,6 +1919,8 @@ export const minorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): 
   state.ally = power;
   state.diplomacy = null;
   log(G, power, "minorAlliance", {space});
+  // 3.3.1: allied-minor naval units count toward Power Projection.
+  recomputeTracks(G);
   return undefined;
 };
 

@@ -1,5 +1,29 @@
 # Imperial Elegy — implementation status
 
+## Closed: every printed card now has a direct or handler regression (2026-11-21)
+
+The per-card inventory had five zero-signal cards left.  Added direct assertions
+for them in `uncoveredPrintCards.test.ts`:
+
+- A42 The Ruhr raises German industry by one and does not occupy the
+  industrialisation slot;
+- A50 Reforms of the 1860s covers all three die bands (1–2, 3–4, 5–6);
+- A90 The Eiffel Tower adds one City of Light point and stops at the printed
+  maximum of 6;
+- H-OT-12 Jihad grants two markers and its declaration entitlement without a
+  WTT/stability penalty;
+- H-RU-9 Russo-Turkish Wars turns a Balkan diplomacy marker into an alliance and
+  leaves the OT declaration entitlement.
+
+The same pass found a stale-cache issue on the alliance path: both the
+`minorAlliance` move and `gainMinorAlliance` (used by H-RU-9 and other events)
+wrote the ally marker without recomputing the tracks, so 3.3.1's allied-minor
+naval units did not reach Power Projection until a later recompute.  Both paths
+now call `recomputeTracks` immediately.
+
+**Coverage:** `uncoveredPrintCards.test.ts` (5) plus the existing card/board
+suites.  `npx tsc --noEmit` clean.
+
 ## Added: the defender can play one card into its war budget (13.7) (2026-11-21)
 
 13.7 prints *"At this point the defender may play a card to add CP to their war
