@@ -13,19 +13,25 @@ import {PendingPanelProps} from "./types";
  * one Unrest marker by reducing a "6" to a "5".  The downgrade is chosen here
  * because it turns that die into a minor conversion.
  */
-export const PendingConversionPanel = ({G, moves, playerID}: PendingPanelProps) => {
+export const PendingConversionPanel = ({G, moves, playerID, ctx}: PendingPanelProps) => {
     i18n.use();
     const locale = vqLocaleNow();
     const pending = G.pendingConversion;
     if (pending === undefined) return null;
     const t = i18n.chain.vq.turn.conversion;
-    const canChoose = ownerOf(G, pending.power) === playerID;
+    const isOwner = ownerOf(G, pending.power) === playerID;
+    // Event/response conversions can belong to a power other than the active
+    // seat.  That seat may resolve the choice on its behalf so play never stalls.
+    const isActiveSeat = playerID !== null && ctx !== undefined &&
+        (playerID === ctx.currentPlayer || ctx.activePlayers?.[playerID] !== undefined);
+    const canChoose = isOwner || isActiveSeat;
     const sixes = pending.dice.map((die, index) => ({die, index})).filter((entry) => entry.die === 6);
     return <Stack spacing={1}>
         <Typography>{t.title} · {powerName(pending.power, locale)}</Typography>
         <Typography variant="body2">{t.rolls}: [{pending.dice.join(", ")}]</Typography>
         {canChoose ? <>
             <Typography variant="body2">{t.hint}</Typography>
+            {!isOwner && <Typography variant="caption" color="text.secondary">{t.proxy}</Typography>}
             <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
                 <Button variant="outlined" onClick={() => moves.chooseConversionNullify({downgrade: "none"})}>
                     {t.keep}

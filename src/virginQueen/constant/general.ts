@@ -1119,6 +1119,12 @@ export interface VQGame {
     /** Rule 18.5 step 4 choice pending before conversions are allocated. */
     pendingConversion?: PendingConversion;
     /**
+     * Further conversion batches from the same event/action, kept in order
+     * behind `pendingConversion`.  Batches without a Step 4 choice wait here
+     * too, so their target selection still runs after the earlier batches.
+     */
+    pendingConversionQueue?: PendingConversion[];
+    /**
      * After Irish Rebellion places rebels in Ulster, the allied power may
      * move them one space as per section 24.2 step 6.
      */

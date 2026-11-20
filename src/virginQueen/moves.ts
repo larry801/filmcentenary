@@ -155,8 +155,8 @@ import {
     removePortNavalLosses,
     removeSeaNavalLosses,
     resolveConversions,
-    beginInteractiveConversions,
     applyConversionRolls,
+    advanceConversionQueue,
     autoResolvePendingConversion,
     eligibleScienceBonuses,
     resolveEvent,
@@ -6000,7 +6000,7 @@ export const preach = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void 
         return INVALID_MOVE;
     }
     pushLog(G, `${powerLabel(p)} preaches a sermon in ${args.area}.`);
-    beginInteractiveConversions(G, ctx, p, side, args.area, 5);
+    resolveConversions(G, ctx, p, side, args.area, 5);
 };
 
 export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void | typeof INVALID_MOVE => {
@@ -6021,7 +6021,7 @@ export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): voi
         return INVALID_MOVE;
     }
     pushLog(G, `${powerLabel(p)} suppresses heresy in ${args.area}.`);
-    beginInteractiveConversions(G, ctx, p, side, args.area, 5);
+    resolveConversions(G, ctx, p, side, args.area, 5);
 };
 
 /**
@@ -6032,7 +6032,14 @@ export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): voi
 export const chooseConversionNullify = (G: VQGame, ctx: Ctx, args: {downgrade: number | "none"}): void | typeof INVALID_MOVE => {
     if (moveError(G, "chooseConversionNullify", args)) return INVALID_MOVE;
     const pending = G.pendingConversion;
-    if (pending === undefined || ctx.playerID !== ownerOf(G, pending.power)) return INVALID_MOVE;
+    if (pending === undefined) return INVALID_MOVE;
+    // The converting power owns the choice.  When an event or response opened
+    // it during another power's window, that active player may resolve it on
+    // their behalf so the table cannot stall.
+    const owner = ownerOf(G, pending.power);
+    const activeSeat = ctx.playerID !== undefined && ctx.playerID !== null &&
+        (ctx.playerID === ctx.currentPlayer || ctx.activePlayers?.[ctx.playerID] !== undefined);
+    if (ctx.playerID !== owner && !activeSeat) return INVALID_MOVE;
     const dice = [...pending.dice];
     if (args.downgrade !== "none") {
         const index = Number(args.downgrade);
@@ -6043,6 +6050,7 @@ export const chooseConversionNullify = (G: VQGame, ctx: Ctx, args: {downgrade: n
     delete G.pendingConversion;
     applyConversionRolls(G, ctx, pending.power, pending.side, pending.area, dice, pending.extraUnrest,
         pending.unrestOnOnes, args.downgrade !== "none");
+    advanceConversionQueue(G, ctx);
 };
 
 export const rebellion = (G: VQGame, ctx: Ctx, args: { space: string; cp: number }): void | typeof INVALID_MOVE => {

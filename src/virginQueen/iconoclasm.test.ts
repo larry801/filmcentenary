@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {VQGame} from "./constant/general";
-import {playCard} from "./moves";
+import {chooseConversionNullify, playCard} from "./moves";
 import {SPACES} from "./mapData";
 import {setupGame} from "./util";
 
@@ -24,6 +24,11 @@ describe("Iconoclastic Fury (card #55)", () => {
         }
 
         expect(playCard(G, context(), {cardId: "vq-055", asEvent: true, target: "france"})).toBeUndefined();
+
+        // The first die is an automatic 6 and the rest are 1s, so Step 4 now
+        // pauses for the choice.  Keep the Unrest markers to test Step 7.
+        expect(G.pendingConversion).toBeDefined();
+        expect(chooseConversionNullify(G, context(), {downgrade: "none"})).toBeUndefined();
 
         expect(SPACES.filter((space) => space.area === "france" && G.spaces[space.id].unrest).length).toBeGreaterThan(0);
     });

@@ -1857,6 +1857,7 @@ const en = {
                 hint: "You may cancel one Unrest marker by reducing a rolled 6 to a 5. The downgraded die becomes a minor conversion.",
                 keep: "Keep the Unrest (no change)",
                 downgrade: "Cancel 1 Unrest",
+                proxy: "The converting power is not the active seat; the active seat may choose instead.",
                 waiting: "Waiting for the converting power to choose.",
             },
             scienceTreasure: {

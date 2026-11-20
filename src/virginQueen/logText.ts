@@ -137,6 +137,7 @@ const RULES: Rule[] = [
     [/^(.+) claims science bonus (.+) from the treasure\.$/, (_m, p, bonus) => `${p} 从宝藏领取科学奖励 ${bonus}。`],
     [/^(.+) discards a Science Bonus treasure: no unclaimed science bonus is available\.$/, (_m, p) => `${p} 弃置科学奖励宝藏：没有可领取的科学奖励。`],
     [/^The conversion may cancel one Unrest by reducing a 6 to a 5\.$/, () => `本次转化可将一个 6 降为 5，以取消 1 个动荡。`],
+    [/^(.+): conversion dice for (.+) await the Step 4 choice: \[(.+)\]$/, (_m, p, area, dice) => `${p}：${area} 的转化掷骰 [${dice}] 等待第 4 步选择。`],
     [/^(.+) reduces a 6 to a 5 to cancel one Unrest\.$/, (_m, p) => `${p} 将一个 6 降为 5，取消 1 个动荡。`],
     [/^(.+) receives (\d+) CP after the mandatory event\.$/, (_m, p, cp) => `${p} 在强制事件后获得 ${cp} CP。`],
     [/^(.+) pays (\d+) CP for the declaration of war\.$/, (_m, p, cp) => `${p} 支付 ${cp} CP 宣战。`],

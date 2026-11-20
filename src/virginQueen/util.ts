@@ -30,6 +30,7 @@ import {
     POWER_INDEX,
     POWER_NAMES,
     POWERS,
+    PendingConversion,
     Power,
     Religion,
     ReligionArea,
@@ -3041,10 +3042,6 @@ const pickCandidate = (G: VQGame, ctx: Ctx, side: Religion, area: ReligionArea, 
     return shuffled[0];
 };
 
-/**
- * Resolve a batch of conversion attempts (rules 18.5), auto-allocating the
- * dice. Returns a short report for the log.
- */
 export const checkCyprusVp = (G: VQGame, power: Power, location: string): void => {
     if (power !== "ottoman" || G.cyprusAwarded === true || G.cyprusTarget !== location) return;
     G.cyprusAwarded = true;
@@ -3188,9 +3185,38 @@ export const applyConversionRolls = (
     return G.lastRolls;
 };
 
+const hasConversionChoice = (dice: number[]): boolean => dice.includes(1) && dice.includes(6);
+
+const logPendingConversion = (G: VQGame, pending: PendingConversion): void => {
+    G.lastRolls = `${pending.side} conversions in ${AREA_NAMES[pending.area].en}: [${pending.dice.join(", ")}]`;
+    pushLog(G, `${powerLabel(pending.power)}: conversion dice for ${AREA_NAMES[pending.area].en} await the Step 4 choice: [${pending.dice.join(", ")}]`);
+    pushLog(G, "The conversion may cancel one Unrest by reducing a 6 to a 5.");
+};
+
 /**
- * Resolve a batch of conversion attempts (rules 18.5), auto-allocating the
- * dice. Returns a short report for the log.
+ * Queue a rolled conversion batch.  The batch at the head of the queue pauses
+ * for `chooseConversionNullify` when Step 4 offers a choice; batches behind it
+ * wait even if they have no choice, so conversions keep their printed order.
+ */
+const enqueueConversion = (G: VQGame, ctx: Ctx, pending: PendingConversion): void => {
+    if (G.pendingConversion === undefined && (G.pendingConversionQueue?.length ?? 0) === 0) {
+        if (hasConversionChoice(pending.dice)) {
+            G.pendingConversion = pending;
+            logPendingConversion(G, pending);
+            return;
+        }
+        applyConversionRolls(G, ctx, pending.power, pending.side, pending.area, pending.dice,
+            pending.extraUnrest, pending.unrestOnOnes);
+        return;
+    }
+    G.pendingConversionQueue = [...(G.pendingConversionQueue ?? []), pending];
+};
+
+/**
+ * Resolve a batch of conversion attempts (rules 18.5).  Rolls are made
+ * immediately; the allocation runs now unless the Step 4 choice is available
+ * (at least one "1" and one "6"), in which case it is queued for the
+ * interactive decision.  Returns the last public roll line.
  */
 export const resolveConversions = (
     G: VQGame,
@@ -3205,42 +3231,37 @@ export const resolveConversions = (
     unrestOnOnes = false,
 ): string => {
     const adjusted = rollConversionDice(ctx, attempts, autoSix, rollOptions);
-    return applyConversionRolls(G, ctx, p, side, area, adjusted, extraUnrest, unrestOnOnes);
+    enqueueConversion(G, ctx, {power: p, side, area, dice: adjusted, extraUnrest, unrestOnOnes});
+    return G.lastRolls;
 };
 
-/**
- * Roll a player-initiated conversion action and, when the Step 4 choice is
- * available (at least one "1" and one "6"), pause for the interactive
- * `chooseConversionNullify` decision.  Otherwise resolve immediately.
- */
-export const beginInteractiveConversions = (
-    G: VQGame,
-    ctx: Ctx,
-    p: Power,
-    side: Religion,
-    area: ReligionArea,
-    attempts: number,
-    extraUnrest = 0,
-    rollOptions: {fivesAsSix?: boolean; threesAsFour?: boolean} = {},
-    unrestOnOnes = false,
-): void => {
-    const adjusted = rollConversionDice(ctx, attempts, false, rollOptions);
-    if (adjusted.includes(1) && adjusted.includes(6)) {
-        G.pendingConversion = {power: p, side, area, dice: adjusted, extraUnrest, unrestOnOnes};
-        G.lastRolls = `${side} conversions in ${AREA_NAMES[area].en}: [${adjusted.join(", ")}]`;
-        pushLog(G, `${powerLabel(p)}: ${G.lastRolls}`);
-        pushLog(G, "The conversion may cancel one Unrest by reducing a 6 to a 5.");
-        return;
+/** Apply the head batch and surface the next queued batch that needs a choice. */
+export const advanceConversionQueue = (G: VQGame, ctx: Ctx): void => {
+    while (G.pendingConversionQueue !== undefined && G.pendingConversionQueue.length > 0) {
+        const [next, ...rest] = G.pendingConversionQueue;
+        G.pendingConversionQueue = rest.length > 0 ? rest : undefined;
+        if (hasConversionChoice(next.dice)) {
+            G.pendingConversion = next;
+            logPendingConversion(G, next);
+            return;
+        }
+        applyConversionRolls(G, ctx, next.power, next.side, next.area, next.dice,
+            next.extraUnrest, next.unrestOnOnes);
     }
-    applyConversionRolls(G, ctx, p, side, area, adjusted, extraUnrest, unrestOnOnes);
 };
 
-/** Safety net: an abandoned conversion choice resolves as if the power kept the Unrest. */
+/** Safety net: an abandoned conversion choice keeps every Unrest and drains the queue. */
 export const autoResolvePendingConversion = (G: VQGame, ctx: Ctx): void => {
-    const pending = G.pendingConversion;
-    if (pending === undefined) return;
+    const batches = [
+        ...(G.pendingConversion === undefined ? [] : [G.pendingConversion]),
+        ...(G.pendingConversionQueue ?? []),
+    ];
     delete G.pendingConversion;
-    applyConversionRolls(G, ctx, pending.power, pending.side, pending.area, pending.dice, pending.extraUnrest, pending.unrestOnOnes);
+    delete G.pendingConversionQueue;
+    for (const pending of batches) {
+        applyConversionRolls(G, ctx, pending.power, pending.side, pending.area, pending.dice,
+            pending.extraUnrest, pending.unrestOnOnes);
+    }
 };
 
 // --------------------------------------------------------------------------
