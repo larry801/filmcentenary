@@ -1272,6 +1272,12 @@ export interface ImperialElegyState {
   gw: GreatWarState | null;
   /** Active battle state. */
   battle: BattleState | null;
+  /**
+   * The last battle's public result, kept after `battle` clears so every seat
+   * can be reminded of the dice, the winner and the losses both sides took.
+   * Optional so older saves and hand-written test states remain valid.
+   */
+  battleReport?: BattleReport | null;
   /** Pending decision that blocks the active action. */
   pending: PendingDecision | null;
   /** Stack of suspended decisions (nested responses). */
@@ -1484,6 +1490,59 @@ export interface BattleState {
    * the loss/reward sequence.
    */
   dreadnoughtsSunk?: string[];
+  /**
+   * 18.6: step losses actually taken by each side.  The loss queue decrements
+   * `attackerLosses`/`defenderLosses` as a seat answers, so these counters
+   * preserve what the battle really cost for the end-of-battle report.
+   */
+  lossesTaken?: {attacker: number; defender: number};
+  /** 18.6: the unit counters that took those losses, for the report. */
+  casualties?: {attacker: BattleLossRecord[]; defender: BattleLossRecord[]};
+}
+
+/** One unit counter's share of a battle's step losses (18.6). */
+export interface BattleLossRecord {
+  unitId: string;
+  owner: string;
+  kind: string;
+  /** Steps this counter lost in the battle. */
+  steps: number;
+  /** True when the counter lost its last step; false when it was reduced. */
+  eliminated: boolean;
+}
+
+/**
+ * The public result of a finished battle.  It is kept in `G` (not only in the
+ * log) so every client can raise the same result dialog from shared state: the
+ * dice, the winner, and how many step losses each side actually took.
+ */
+export interface BattleReport {
+  /** Stable per-battle id; a client dismisses the dialog by this id. */
+  id: string;
+  kind: "land" | "naval";
+  from: SpaceId;
+  to: SpaceId;
+  attacker: Power;
+  defender: Power;
+  winner: "attacker" | "defender";
+  decisive: boolean;
+  attackerRoll?: number;
+  defenderRoll?: number;
+  differential?: number;
+  attackerDrm: number;
+  defenderDrm: number;
+  /** Step losses actually taken, not the CRT's required loss budget. */
+  attackerLosses: number;
+  defenderLosses: number;
+  attackerUnits: BattleLossRecord[];
+  defenderUnits: BattleLossRecord[];
+  /** 19.4 mine hits included in the attacker's losses. */
+  mines: number;
+  /** 28.1: this was a trench battle (the attacker pays the extra loss). */
+  trench: boolean;
+  retreatTo?: SpaceId;
+  noRetreat: boolean;
+  turn: number;
 }
 
 export interface MoveContext {

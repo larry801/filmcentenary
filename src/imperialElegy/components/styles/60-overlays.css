@@ -438,6 +438,103 @@
    card faces and the battle/result report, and it must not squeeze a face. */
 .ie-decision-modal { width: min(860px, 100%); max-height: min(86dvh, 760px); }
 
+/* The after-battle report is a read-only summary; it is wider than a card
+   choice because the two damage columns sit side by side on desktop. */
+.ie-battle-result-modal { width: min(760px, 100%); max-height: min(88dvh, 720px); }
+
+.ie-battle-result-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: var(--ie-space-2);
+  border-bottom: 1px solid var(--ie-rule);
+}
+
+.ie-battle-result-space { color: var(--ie-brass-soft); font-size: var(--ie-font-sm); }
+
+.ie-battle-result-matchup { font-size: var(--ie-font-lg); font-weight: var(--ie-font-lg-weight); line-height: var(--ie-font-lg-line); }
+
+.ie-battle-result-winner { color: var(--ie-ok-text-dark); font-size: var(--ie-font-sm); }
+
+.ie-battle-result-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ie-space-2) var(--ie-space-4);
+  margin: var(--ie-space-2) 0 0;
+  padding: 0;
+}
+
+.ie-battle-result-facts div { display: flex; flex-direction: column; gap: 1px; }
+
+.ie-battle-result-facts dt { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+
+.ie-battle-result-facts dd { margin: 0; font-weight: 600; }
+
+.ie-battle-result-damage { margin-top: var(--ie-space-3); }
+
+.ie-battle-result-damage h3 {
+  margin: 0 0 var(--ie-space-2);
+  color: var(--ie-brass-soft);
+  font-size: var(--ie-font-sm);
+}
+
+.ie-battle-result-sides {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--ie-space-2);
+}
+
+.ie-battle-result-side {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--ie-space-2) var(--ie-space-3);
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-2);
+}
+
+.ie-battle-result-side.is-winner { border-color: var(--ie-ok-text-dark); }
+
+.ie-battle-result-role { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+
+.ie-battle-result-power { font-size: var(--ie-font-sm); font-weight: 600; }
+
+.ie-battle-result-number {
+  color: var(--ie-warn-text-dark);
+  font-size: var(--ie-font-lg);
+  font-weight: var(--ie-font-lg-weight);
+  line-height: var(--ie-font-lg-line);
+}
+
+.ie-battle-result-unit { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+
+.ie-battle-result-casualties { font-size: var(--ie-font-xs); line-height: 1.4; }
+
+.ie-battle-result-detail { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+
+.ie-battle-result-tag {
+  position: absolute;
+  top: var(--ie-space-2);
+  right: var(--ie-space-2);
+  color: var(--ie-ok-text-dark);
+  font-size: var(--ie-font-xs);
+  font-weight: 700;
+}
+
+.ie-battle-result-notes {
+  margin: var(--ie-space-2) 0 0;
+  padding-left: 1.2em;
+  color: var(--ie-on-dark-2);
+  font-size: var(--ie-font-xs);
+  line-height: 1.45;
+}
+
+@media (max-width: 560px) {
+  .ie-battle-result-sides { grid-template-columns: minmax(0, 1fr); }
+}
+
 .ie-choice-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: var(--ie-space-3); }
 
 .ie-choice-foot {

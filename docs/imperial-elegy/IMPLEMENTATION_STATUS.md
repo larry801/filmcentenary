@@ -330,6 +330,37 @@ pinned by `components/localization.test.tsx`.
   link); the sheet's own printed art stays English, which is what it
   reproduces.
 
+## Fixed: the battle result is a public dialog showing both sides' damage (2026-11-21)
+
+Reported as "帝国挽歌战斗结果弹出提醒所有玩家 对战斗双方承受伤害界面也在弹出的里面".
+A battle used to end with only a log line: the loss panel vanished as the last
+`combatLosses` answer resolved, and nothing announced the result to the other
+seats.  The engine now keeps the finished battle as public state and the board
+raises it as a dismissible dialog for every client.
+
+- **`G.battleReport`** (`types.ts#BattleReport`) records the kind, spaces,
+  powers, winner, decisive flag, dice, differential, resolved DRMs, mine hits,
+  trench flag, retreat and no-retreat state, and — the part the report is for —
+  the step losses each side actually took.
+- **Actual losses, not the CRT budget.**  `BattleState` gained `lossesTaken` and
+  `casualties`; `applyOneLoss` increments them, so a `combatLosses` answer that
+  decrements the queue still leaves the report counting what was really lost.
+  Casualties collapse per unit counter (steps + reduced/eliminated).
+- **`components/BattleResultModal.tsx`** reads the public report and puts the
+  two damage columns inside the same popup as the winner and dice:
+  `ie-battle-result-modal`, `ie-battle-result-damage`,
+  `ie-battle-result-attacker` / `-defender`, `-losses`, `-units`.  The dialog is
+  dismissible (✕, footer `知道了` / "Got it", Escape) and remembers only the
+  report id it closed, so the next battle opens again; `BoardLayout` suppresses
+  it while a new battle is live or this seat owes a decision/card choice.
+- **Public by construction.**  The report lives in `G`, so every opponent and
+  spectator's `playerView` gets the same object (covered by
+  `battleReport.test.ts`), unlike a client-local notice derived from the log.
+
+Coverage: `battleReport.test.ts` (3), `components/battleResultModal.test.tsx`
+(5) and `components/board.test.tsx` (+2: the dialog opens for attacker and
+defender, and stays closed while a new battle owns the board).
+
 ## Fixed: every decision is a dialog, the map key tells targets apart, home cards pin to the front (2026-11-20)
 
 Reported as "帝国挽歌home card固定置顶放置 进攻 和 仅铁路 目前颜色一样应该不同
