@@ -6,6 +6,7 @@ import {POWER_DEFS} from "../constant/powers";
 import {canSurrender, isLoneMinorWar, loneMinorDefender, neutralJoinEligibility} from "../engine/limitedWar";
 import {treatyOptionLabel} from "../engine/treatyChoice";
 import {BALANCE_OF_POWER_CARD} from "../moves";
+import {cardById} from "../engine/deck";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
 import {bi, powerOrMinorLabel} from "./boardHelpers";
@@ -72,6 +73,17 @@ export const WarPanel = (props: WarPanelProps) => {
     && (war.status === "warAim" || war.status === "alliance")
     ? neutralJoinEligibility(G, war, viewer)
     : null;
+  // 13.7: the defending seat may play one card for its CP war budget while the
+  // war is still in its war-aim/alliance steps.
+  const isDefender = viewer !== null && (viewer === war.defender || war.defenderAllies.includes(viewer));
+  const budgetCards = viewer === null || !isDefender || eliminated || pending !== null
+    || !["warAim", "alliance", "shift"].includes(war.status)
+    || (war.defenderBudgetCards ?? []).some((entry) => entry.power === viewer)
+    ? []
+    : G.powers[viewer].hand.filter((id) => {
+        const card = cardById(id);
+        return card.type !== "mandatory" && card.type !== "mandatoryResponse";
+      });
   return (
     <IEPanel title={`${t.phases.wartime} · ${warStatusLabel}`} actions={<IEBadge tone="warn">{warStatusLabel}</IEBadge>}>
       <div className="ie-war" data-testid="ie-war">
@@ -102,6 +114,19 @@ export const WarPanel = (props: WarPanelProps) => {
         </div>
         <div><strong>{t.warAim}:</strong> {warAimLabel(war.warAim)} · <strong>{t.objectives}:</strong> {war.objectives.map((id) => spaceLabel(id, locale)).join(", ")}</div>
         <div className="ie-war-budgets" data-testid="ie-war-budgets"><strong>{t.cp}:</strong> {warBudgetRows.map((p) => <span key={p} className={p === active ? "active" : ""}>{t.seats[p]} {war.budgets[p] ?? 0}</span>)}</div>
+        {budgetCards.length > 0 && (
+          <div className="ie-inline" data-testid="ie-war-budget-cards">
+            <span className="ie-muted">{bi(locale, "13.7: play a card for your war budget", "13.7：打出一张牌增加战争预算")}:</span>
+            {budgetCards.map((id) => {
+              const card = cardById(id);
+              return (
+                <button key={id} className="ie-btn secondary ie-btn-xs" onClick={() => doAction(() => moves.playWarBudgetCard(id), {label: bi(locale, "Play for war budget", "打出以增加战争预算")})}>
+                  {locale === "zh_CN" ? card.titleZh : card.title} (+{card.cp})
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div><strong>{t.pass}:</strong> {war.passed.map((p) => t.seats[p]).join(", ") || "—"}</div>
         {war.initiative.length > 0 && <div><strong>{bi(locale, "Initiative", "先手")}:</strong> {war.initiative.map((p) => t.seats[p]).join(" → ")}</div>}
         {war.treaties.length > 0 && <div data-testid="ie-war-treaties"><strong>{t.treaty}:</strong> {war.treaties.map((option) => treatyOptionLabel(option, locale)).join(", ")}</div>}

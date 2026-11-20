@@ -3039,6 +3039,10 @@ const finalizeWarDeclaration = (
     cp,
     minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {},
   );
+  // 13.7 is a defending-seat action during the war-aim/alliance steps, while
+  // boardgame.io otherwise dispatches only the attacker's moves.  Widen
+  // dispatch; every other move still checks `G.activePower`.
+  ctx.events?.setActivePlayers?.({all: "play"});
   if (coDefender !== null) {
     // The co-defender is recorded both as a typed declaration target and as a
     // defending-side belligerent, so every side/initiative/battle helper sees
@@ -3811,6 +3815,34 @@ export const declareWar = (
   }
   if (playerDefender === null) return INVALID_MOVE;
   return finalizeWarDeclaration(G, ctx, power, playerDefender, aim, objectives, cp, legacy.discount);
+};
+
+/**
+ * 13.7 — the defender may play one card to add its CP to the war budget.
+ *
+ * The declaration itself is made by the attacker, so this is a separate move
+ * for a defending seat while the war is still in its war-aim/alliance steps.
+ * One card per defending power; the card is spent and its printed CP is added
+ * directly to `war.budgets`, never to the ordinary action wallet.
+ */
+export const playWarBudgetCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string | void => {
+  const power = actor(G, ctx.playerID ?? null);
+  if (power === null) return INVALID_MOVE;
+  const war = G.war;
+  if (!war || G.gw?.active) return INVALID_MOVE;
+  if (!["warAim", "alliance", "shift"].includes(war.status)) return INVALID_MOVE;
+  const defending = power === war.defender || war.defenderAllies.includes(power);
+  if (!defending) return INVALID_MOVE;
+  if ((war.defenderBudgetCards ?? []).some((entry) => entry.power === power)) return INVALID_MOVE;
+  if (!G.powers[power].hand.includes(cardId)) return INVALID_MOVE;
+  const card = cardById(cardId);
+  // 13.7: "cannot play a mandatory event to add to their war budget."
+  if (card.type === "mandatory" || card.type === "mandatoryResponse") return INVALID_MOVE;
+  discardCard(G, power, cardId, "discard");
+  war.budgets[power] = (war.budgets[power] ?? 0) + card.cp;
+  war.defenderBudgetCards = [...(war.defenderBudgetCards ?? []), {power, card: cardId}];
+  log(G, power, "warBudgetCard", {card: cardId, cp: card.cp, budget: war.budgets[power]});
+  return undefined;
 };
 
 /**

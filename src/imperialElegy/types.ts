@@ -553,6 +553,11 @@ export interface WarSide {
   postWarDrawChoice?: Power;
   /** CP war budgets. */
   budgets: Partial<Record<Power, number>>;
+  /**
+   * 13.7: defender cards played to add their CP to the war budget.  One card
+   * per defending power; archived with the war for the log and the UI.
+   */
+  defenderBudgetCards?: {power: Power; card: CardId}[];
   initiative: Power[];
   /**
    * Rule 15.6: player allies knocked out of this war, in the order recorded.
