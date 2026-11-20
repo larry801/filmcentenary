@@ -1,5 +1,34 @@
 # Imperial Elegy — implementation status
 
+## Fixed: a 0-value pacification marker was invisible to key counting (2026-11-21)
+
+12.11 prints *"When a land unit is placed in (or moved to) an uncontrolled
+space, a 0 pacification marker is also placed"*, and 12.11.2 prints the same
+0-value marker for Colonial Conflict and Boer Wars.  `SpaceState` stores the
+marker as a number and every space starts at `pacification: 0`, so the engine
+could not tell "no marker" from "0 marker".  Two consequences were live:
+
+- `recomputeTracks` only docked a controlled space's key when
+  `pacification > 0`, so a freshly played Colonial Conflict / Boer Wars marker
+  (value 0) had no effect until a failed roll raised it.
+- After 12.11.2 allowed a controller to clear its own controlled-space marker,
+  the Orders panel offered a "Pacify" row on every controlled space with a land
+  unit, even where no marker existed.
+
+`SpaceState.pacificationMarker` now records the marker itself, separate from its
+value.  `hasPacificationMarker` is the single presence predicate used by
+`recomputeTracks`, the marker lifecycle, the move gate and the Orders panel.
+`pacificationProblem` gains `no-marker` for a controlled space with nothing to
+clear; success removes the flag, failure/entry sets it.  Legacy saves that only
+have a positive value still read as marked, and the 0-marker key penalty is now
+live.
+
+**Coverage:** `pacificationSpecialMarkers.test.ts` (7 — the controller-only
+clear, the no-marker refusal, the 0-marker key penalty, the foreign-controller
+refusal, A86's 0 marker, the 11+ Boer roll and the 12+ GoE roll).  `npx tsc
+--noEmit` clean; the 12-suite pacification/end-phase/card sweep and the
+6000-state card sweep pass.
+
 ## Fixed: 12.11.2's controlled-space markers and special pacification targets (2026-11-21)
 
 Found in the hotseat rules audit.  12.11.2 prints two clauses the live gate did

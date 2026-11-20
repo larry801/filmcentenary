@@ -196,10 +196,14 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   The marker lifecycle is reconciled at the impulse boundary
   (`rules.ts#reconcilePacificationMarkers`): a land unit entering an
   uncontrolled space places the printed 0 marker (2 in a naval base), and the
-  marker goes when the last land unit leaves. Controlled spaces keep their
-  event markers, and their controller now clears them (12.11.2). The two
-  special counters use their printed targets in `pacificationTarget`:
-  Graveyard of Empires on 12+ and the Boers on 11+; success removes the counter.
+  marker goes when the last land unit leaves. A 0-value marker is a real marker:
+  `SpaceState.pacificationMarker` records presence separately from the value, so
+  a controlled space's 0 marker costs its key (`recomputeTracks`) and a
+  controlled space with no marker has no "Pacify" action (`no-marker`).
+  Controlled spaces keep their event markers, and their controller now clears
+  them (12.11.2). The two special counters use their printed targets in
+  `pacificationTarget`: Graveyard of Empires on 12+ and the Boers on 11+;
+  success removes the counter.
 - **15.2 / 27.5's action lists are enforced.** `engine/phaseActions.ts` is the
   single gate: 12.1's peacetime actions (recruit, fleet, refit, influence,
   diplomacy, minor alliance, break alliance, EF, pacification, fort,

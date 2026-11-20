@@ -14,6 +14,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
 import {pacificationProblem} from "./engine/pacification";
+import {recomputeTracks} from "./engine/rules";
 import {playCard, pacify, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID = "0"): Ctx => {
@@ -47,6 +48,7 @@ describe("12.11.2 pacification in a controlled space", () => {
     G.spaces["south-africa"].control = "UK";
     G.spaces["south-africa"].influence = null;
     G.spaces["south-africa"].pacification = 0;
+    G.spaces["south-africa"].pacificationMarker = true;
     placeUnit(G, "UK", "army", "south-africa", 2);
     expect(pacificationProblem(G, "UK", "south-africa")).toBeNull();
 
@@ -56,10 +58,33 @@ describe("12.11.2 pacification in a controlled space", () => {
     expect(G.spaces["south-africa"].pacification).toBe(0);
   });
 
+  test("a controlled space with no marker has nothing to pacify", () => {
+    const G = begin("UK");
+    G.spaces["south-africa"].control = "UK";
+    G.spaces["south-africa"].pacification = 0;
+    G.spaces["south-africa"].pacificationMarker = false;
+    placeUnit(G, "UK", "army", "south-africa", 2);
+    expect(pacificationProblem(G, "UK", "south-africa")).toBe("no-marker");
+  });
+
+  test("a 0-value event marker still costs the controller a key", () => {
+    const G = begin("UK");
+    G.spaces["south-africa"].control = "UK";
+    G.spaces["south-africa"].pacification = 0;
+    G.spaces["south-africa"].pacificationMarker = false;
+    recomputeTracks(G);
+    const before = G.powers.UK.colonialKeys;
+
+    G.spaces["south-africa"].pacificationMarker = true;
+    recomputeTracks(G);
+    expect(G.powers.UK.colonialKeys).toBe(before - 1);
+  });
+
   test("another power cannot clear the controller's marker", () => {
     const G = begin("UK");
     G.spaces["south-africa"].control = "FR";
     G.spaces["south-africa"].pacification = 0;
+    G.spaces["south-africa"].pacificationMarker = true;
     placeUnit(G, "UK", "army", "south-africa", 2);
     expect(pacificationProblem(G, "UK", "south-africa")).toBe("not-controller");
   });
@@ -84,6 +109,7 @@ describe("12.11.2 special counters", () => {
     G.spaces["south-africa"].control = "UK";
     G.spaces["south-africa"].influence = null;
     G.spaces["south-africa"].pacification = 0;
+    G.spaces["south-africa"].pacificationMarker = true;
     placeUnit(G, "UK", "army", "south-africa", 2);
     G.persistent.boers = "south-africa";
     const ctx = makeCtx([5, 5], seat("UK"));
@@ -105,6 +131,7 @@ describe("12.11.2 special counters", () => {
     G.spaces.afghanistan.control = null;
     G.spaces.afghanistan.influence = "UK";
     G.spaces.afghanistan.pacification = 0;
+    G.spaces.afghanistan.pacificationMarker = true;
     placeUnit(G, "UK", "army", "afghanistan", 2);
     G.persistent.goe = "afghanistan";
     const ctx = makeCtx([6, 5], seat("UK"));

@@ -2045,10 +2045,12 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
   // TSRR adds +2 Russian keys.
   if (G.powers.RU.tsrr) G.powers.RU.territorialKeys += 2;
   // Pacification in a controlled space reduces that player's keys by one.
+  // A 0-value marker (12.11/12.11.2) is still a marker, so presence comes from
+  // `hasPacificationMarker`, not from the number.
   for (const def of Object.values(SPACES)) {
     const state = G.spaces[def.id];
-    if (!state || state.pacification === undefined || state.pacification === null) continue;
-    if (state.pacification <= 0) continue;
+    if (!state) continue;
+    if (!hasPacificationMarker(G, def.id)) continue;
     if (isPower(state.control)) {
       const keyType = keyTypeForPower(G, def.id, state.control);
       if (keyType === undefined) continue;
@@ -2645,6 +2647,21 @@ export const setSpaceControl = (
   return changed;
 };
 
+/**
+ * True when a pacification marker is physically in `space`.
+ *
+ * 12.11 and 12.11.2 print 0-value markers (a land unit entering an uncontrolled
+ * space, and the Colonial Conflict / Boer Wars events), so the numeric value
+ * cannot stand in for presence: every space starts at 0.  `pacificationMarker`
+ * records the marker itself; the value check keeps legacy saves that predate
+ * the flag readable.
+ */
+export const hasPacificationMarker = (G: ImperialElegyState, space: SpaceId): boolean => {
+  const state = G.spaces[space];
+  if (!state) return false;
+  return state.pacificationMarker === true || (state.pacification ?? 0) > 0;
+};
+
 export const log = (G: ImperialElegyState, power: Power | undefined, key: string, args?: Record<string, unknown>): void => {
   G.log.push({id: G.nextLogId++, turn: G.turn, phase: G.phase, power, key, args});
 };
@@ -3194,12 +3211,16 @@ export const reconcilePacificationMarkers = (G: ImperialElegyState): void => {
     if (state.control !== null) continue;
     const occupied = unitsIn(G, space).some((unit) => unit.naval !== true);
     if (occupied) {
-      if ((state.pacification ?? 0) <= 0) {
+      if (!hasPacificationMarker(G, space as SpaceId)) {
         state.pacification = SPACES[space]?.type === "navalBase" ? 2 : 0;
+        state.pacificationMarker = true;
       }
       continue;
     }
-    if ((state.pacification ?? 0) > 0) state.pacification = 0;
+    if (hasPacificationMarker(G, space as SpaceId)) {
+      state.pacification = 0;
+      state.pacificationMarker = false;
+    }
   }
 };
 

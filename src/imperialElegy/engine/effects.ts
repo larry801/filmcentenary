@@ -845,6 +845,8 @@ const applyPacification = (G: ImperialElegyState, space: SpaceId, value: number)
   const state = G.spaces[space];
   if (!state) return;
   state.pacification = Math.max(0, (state.pacification ?? 0) + value);
+  // A 0-value marker is still a marker: record its presence separately.
+  state.pacificationMarker = true;
 };
 
 /** One player's resolved alliance step, for logs and tests. */
@@ -3419,6 +3421,7 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // counters: it raises the roll target, it does not add +2 to the normal
       // 10+ marker (which made the Boers easier, the opposite of the print).
       G.spaces["south-africa"].pacification = 0;
+      G.spaces["south-africa"].pacificationMarker = true;
       G.persistent.boers = "south-africa";
       const controller = G.spaces["south-africa"].control;
       if (isPower(controller)) G.powers[controller].cardMarkers -= 1;
