@@ -72,6 +72,15 @@ describe("the map panel", () => {
     expect(html).not.toContain("ie-tabs");
   });
 
+  test("the map is split into Europe/America, Asia and Africa sheets", () => {
+    const html = renderToStaticMarkup(<MapPanel {...props()} />);
+    expect(html).toContain('role="tablist"');
+    expect(html).toContain('data-testid="ie-map-section-europeAmerica"');
+    expect(html).toContain('data-testid="ie-map-section-asia"');
+    expect(html).toContain('data-testid="ie-map-section-africa"');
+    for (const label of ["欧美", "亚洲", "非洲"]) expect(html).toContain(label);
+  });
+
   test("a selection stays readable in the title bar", () => {
     const html = renderToStaticMarkup(<MapPanel {...props({selected: "berlin"})} />);
     expect(html).toContain("柏林");

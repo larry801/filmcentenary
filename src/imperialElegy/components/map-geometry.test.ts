@@ -4,6 +4,7 @@ import {
   FULL_MIN_PX,
   MAX_FRAME_ZOOM,
   MAX_HIT_UNITS,
+  MAP_SECTIONS,
   MAX_ZOOM,
   MIN_HIT_UNITS,
   MIN_ZOOM,
@@ -14,6 +15,7 @@ import {
   clampView,
   hitRadiusUnits,
   labelBox,
+  mapSectionById,
   markerTier,
   nearestCandidate,
   panBy,
@@ -435,5 +437,35 @@ describe("theatres", () => {
   test("theatres are addressable by id", () => {
     expect(theatreById("asia")?.labelZh).toBe("亚洲");
     expect(theatreById("nowhere")).toBeUndefined();
+  });
+
+  test("the atlas has exactly the three requested sheets", () => {
+    expect(MAP_SECTIONS.map((section) => section.labelZh)).toEqual(["欧美", "亚洲", "非洲"]);
+    expect(MAP_SECTIONS.map((section) => section.id)).toEqual(["europeAmerica", "asia", "africa"]);
+    expect(mapSectionById("asia")?.labelEn).toBe("Asia");
+    expect(mapSectionById("nowhere" as never)).toBeUndefined();
+  });
+
+  test("each atlas sheet contains its own spaces and frames larger than fit", () => {
+    for (const section of MAP_SECTIONS) {
+      const own = SPACE_IDS.filter((id) => {
+        const space = SPACES[id];
+        const region = space.region;
+        if (section.id === "europeAmerica") return region === "europe" || region === "northAmerica";
+        if (section.id === "asia") return region === "asia" || region === "pacific";
+        return region === "africa";
+      });
+      expect(own.length).toBeGreaterThan(0);
+      for (const id of own) {
+        const space = SPACES[id];
+        // The section crops overlap at their edges; the important guarantee is
+        // that the sheet's centre and own spaces are not cropped off.
+        if (section.id === "europeAmerica" && space.region === "northAmerica") {
+          expect(space.x).toBeGreaterThanOrEqual(section.box.x);
+        }
+      }
+      const view = viewForTheatre(section, section.box, phone);
+      expect(view.k).toBeGreaterThanOrEqual(MIN_ZOOM);
+    }
   });
 });

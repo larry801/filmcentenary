@@ -17,6 +17,7 @@ import {
   DRAG_THRESHOLD_PX,
   MAX_ZOOM,
   MIN_ZOOM,
+  BoardRect,
   MapView,
   MarkerPoint,
   PressRecord,
@@ -48,8 +49,6 @@ const PAPER = {
   width: background.paper[2] - background.paper[0],
   height: background.paper[3] - background.paper[1],
 };
-const BOARD = PAPER;
-
 /** Printed space-marker size, in board units (taken from the printed counters). */
 const markerRadius = (id: SpaceId): number => (isNavalBox(id) ? 104 : SPACES[id].type === "territory" ? 62 : 74);
 
@@ -204,6 +203,12 @@ export interface IEMapProps {
   frame?: MapFrameRequest | null;
   /** The seat whose capital the map opens on. */
   homeCapital?: SpaceId | null;
+  /**
+   * The atlas sheet to show.  When set, the SVG viewBox is cropped to this
+   * rectangle and pan/zoom are clamped to it; `null` shows the whole printed
+   * board.  The three values come from `MAP_SECTIONS`.
+   */
+  section?: BoardRect | null;
 }
 
 /**
@@ -224,7 +229,8 @@ export const mapPropsEqual = (prev: IEMapProps, next: IEMapProps): boolean =>
   prev.focus === next.focus &&
   prev.emphasis === next.emphasis &&
   prev.frame === next.frame &&
-  prev.homeCapital === next.homeCapital;
+  prev.homeCapital === next.homeCapital &&
+  prev.section === next.section;
 
 /**
  * The printed board, drawn as vectors.
@@ -241,8 +247,12 @@ export const mapPropsEqual = (prev: IEMapProps, next: IEMapProps): boolean =>
  */
 export const IEMap = React.memo(
   ({G, selected, onSelect, targets = [], locale, focus = null, emphasis = null, onFocusTarget = undefined,
-    frame = null, homeCapital = null}: IEMapProps) => {
+    frame = null, homeCapital = null, section = null}: IEMapProps) => {
     const t = ieT();
+    // A section crop uses the same board-space maths as the whole sheet; only
+    // the viewport rectangle changes.  `PAPER` stays the full sheet for masks
+    // and paint servers.
+    const board = section ?? PAPER;
     const [view, setView] = React.useState<MapView>({k: MIN_ZOOM, x: 0, y: 0});
     /** Whether the map has framed itself once. After that the view belongs to the player. */
     const framed = React.useRef(false);
@@ -286,14 +296,14 @@ export const IEMap = React.memo(
     const screenPoint = React.useCallback((x: number, y: number) => {
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return null;
-      const fit = Math.min(rect.width / BOARD.width, rect.height / BOARD.height);
-      const offsetX = (rect.width - BOARD.width * fit) / 2;
-      const offsetY = (rect.height - BOARD.height * fit) / 2;
+      const fit = Math.min(rect.width / board.width, rect.height / board.height);
+      const offsetX = (rect.width - board.width * fit) / 2;
+      const offsetY = (rect.height - board.height * fit) / 2;
       return {
-        left: offsetX + (x * view.k + view.x - BOARD.x) * fit,
-        top: offsetY + (y * view.k + view.y - BOARD.y) * fit,
+        left: offsetX + (x * view.k + view.x - board.x) * fit,
+        top: offsetY + (y * view.k + view.y - board.y) * fit,
       };
-    }, [view]);
+    }, [view, board]);
 
     const closeStack = React.useCallback(() => setStackOpen(false), []);
 
@@ -314,12 +324,12 @@ export const IEMap = React.memo(
         const space = SPACES[pioneer];
         // A capital is framed by its theatre, not by a fixed zoom: the view has
         // to hold its neighbours (where the fighting starts) and little else.
-        if (space) setView(viewForTheatre(theatreOf(space), BOARD, viewport));
+        if (space) setView(viewForTheatre(theatreOf(space), board, viewport));
         return;
       }
       const theatre: Theatre | undefined = request.theatre ? theatreById(request.theatre) : undefined;
-      setView(theatre ? viewForTheatre(theatre, BOARD, viewport) : {k: MIN_ZOOM, x: 0, y: 0});
-    }, [homeCapital]);
+      setView(theatre ? viewForTheatre(theatre, board, viewport) : {k: MIN_ZOOM, x: 0, y: 0});
+    }, [homeCapital, board]);
 
     // Track the element's rendered size: hit radii and label density depend on
     // how many pixels a board unit actually occupies.
@@ -391,8 +401,8 @@ export const IEMap = React.memo(
 
     React.useEffect(() => {
       if (!focus) return;
-      setView(centreOn({x: focus.x, y: focus.y}, focus.k ?? 3.2, BOARD));
-    }, [focus]);
+      setView(centreOn({x: focus.x, y: focus.y}, focus.k ?? 3.2, board));
+    }, [focus, board]);
 
     const label = React.useCallback(
       (id: SpaceId) => (locale === "zh_CN" ? SPACES[id].nameZh : SPACES[id].name),
@@ -416,16 +426,16 @@ export const IEMap = React.memo(
         event.preventDefault();
         const rect = node.getBoundingClientRect();
         setView((current) => {
-          const anchor = toBoardPoint({x: event.clientX, y: event.clientY}, rect, BOARD, current);
-          return zoomAt(current, event.deltaY < 0 ? 1.2 : 1 / 1.2, anchor, BOARD);
+          const anchor = toBoardPoint({x: event.clientX, y: event.clientY}, rect, board, current);
+          return zoomAt(current, event.deltaY < 0 ? 1.2 : 1 / 1.2, anchor, board);
         });
       };
       node.addEventListener("wheel", onWheel, {passive: false});
       return () => node.removeEventListener("wheel", onWheel);
-    }, []);
+    }, [board]);
 
-    const zoom = (factor: number, anchor = {x: PAPER.x + BOARD.width / 2, y: PAPER.y + BOARD.height / 2}) =>
-      setView((current) => zoomAt(current, factor, anchor, BOARD));
+    const zoom = (factor: number, anchor = {x: board.x + board.width / 2, y: board.y + board.height / 2}) =>
+      setView((current) => zoomAt(current, factor, anchor, board));
 
     const onPointerDown = (event: React.PointerEvent) => {
       if (event.button !== 0) return;
@@ -460,7 +470,7 @@ export const IEMap = React.memo(
           const midX = (previous.x + second.x) / 2;
           const midY = (previous.y + second.y) / 2;
           const ratio = after / before;
-          setView((v) => zoomAt(v, ratio, toBoardPoint({x: midX, y: midY}, rect, BOARD, v), BOARD));
+          setView((v) => zoomAt(v, ratio, toBoardPoint({x: midX, y: midY}, rect, board, v), board));
         }
         pointers.current.set(event.pointerId, current);
         return;
@@ -477,12 +487,12 @@ export const IEMap = React.memo(
         return;
       }
       started.moved = true;
-      const fit = Math.min(rect.width / BOARD.width, rect.height / BOARD.height);
+      const fit = Math.min(rect.width / board.width, rect.height / board.height);
       // Pan by the step since the last move, against the view *now*.  A pinch
       // changes the zoom mid-press, and dragging from a view captured at
       // pointerdown would undo it: fingers never leave the glass together, so
       // the finger left behind must pan the map the player just zoomed.
-      setView((v) => panBy(v, current.x - previous.x, current.y - previous.y, fit, BOARD));
+      setView((v) => panBy(v, current.x - previous.x, current.y - previous.y, fit, board));
       pointers.current.set(event.pointerId, current);
     };
 
@@ -511,8 +521,8 @@ export const IEMap = React.memo(
       press.current = null;
       const rect = svgRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const point = toBoardPoint({x: event.clientX, y: event.clientY}, rect, BOARD, view);
-      const radius = hitRadiusUnits(size, BOARD, view.k, coarse.current);
+      const point = toBoardPoint({x: event.clientX, y: event.clientY}, rect, board, view);
+      const radius = hitRadiusUnits(size, board, view.k, coarse.current);
       const candidates = SPACE_IDS.filter((id) => G.spaces[id]).map((id) => ({
         id,
         x: SPACES[id].x,
@@ -541,7 +551,7 @@ export const IEMap = React.memo(
       setKbFocus(next);
       onFocusTarget?.(next);
       const space = SPACES[next];
-      if (space) setView((current) => centreOn({x: space.x, y: space.y}, current.k, BOARD));
+      if (space) setView((current) => centreOn({x: space.x, y: space.y}, current.k, board));
       window.setTimeout(() => svgRef.current?.focus(), 0);
     };
     const onMapKeyDown = (event: React.KeyboardEvent<SVGSVGElement>) => {
@@ -577,7 +587,7 @@ export const IEMap = React.memo(
       }
     };
 
-    const unitsPerPx = unitsPerPixel(size, BOARD, view.k);
+    const unitsPerPx = unitsPerPixel(size, board, view.k);
     const labelSize = LABEL_PX * unitsPerPx;
     // The board's detail level, taken from a typical land marker.  It must be
     // decided in *screen pixels*: the same zoom is comfortable on a desktop and
@@ -709,7 +719,7 @@ export const IEMap = React.memo(
               data-testid="ie-map-fit-targets"
               onClick={() => setView(viewForPoints(
                 [...highlight.keys()].map((id) => ({x: SPACES[id].x, y: SPACES[id].y})),
-                BOARD, size,
+                board, size,
               ))}
             >◎</button>
           )}
@@ -718,14 +728,14 @@ export const IEMap = React.memo(
               aria-label={t.mapFocus}
               title={t.mapFocus}
               data-testid="ie-map-focus-selected"
-              onClick={() => setView(centreOn({x: SPACES[selected].x, y: SPACES[selected].y}, Math.max(view.k, 2.6), BOARD))}
+              onClick={() => setView(centreOn({x: SPACES[selected].x, y: SPACES[selected].y}, Math.max(view.k, 2.6), board))}
             ><Icon name="crosshair" size={16}/></button>
           )}
         </div>
         <svg
           ref={svgRef}
           className={`ie-map ${dragging ? "dragging" : ""}`}
-          viewBox={`${PAPER.x} ${PAPER.y} ${PAPER.width} ${PAPER.height}`}
+          viewBox={`${board.x} ${board.y} ${board.width} ${board.height}`}
           preserveAspectRatio="xMidYMid meet"
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
