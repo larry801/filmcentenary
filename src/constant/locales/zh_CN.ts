@@ -1648,7 +1648,6 @@ const zh_CN: Locale = {
             winterNavalReturnsDesc: "舰队已返回最近的合法港口；同距离港口可改选，返回后不会再移动。不选择则保留自动结果。",
             needMove: "需撤出",
             moveTo: "改往",
-            stayPut: "留在原地",
             chooseComposition: "选择撤出的兵种",
             winterLosses: "冬季损失：选择或确认失去的单位类型",
             winterLossesDesc: "已自动移除相应数量的单位；普通冬季损失可改选该地现有足够数量的类型，或保留自动结果；莫里斯科人随 #28 离场，只能确认。",

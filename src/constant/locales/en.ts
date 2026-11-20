@@ -1561,7 +1561,6 @@ const en = {
             winterNavalReturnsDesc: "The fleet already returned to the nearest legal port; an equidistant port may be chosen instead. Either way it does not move again. Leaving it unset keeps the automatic result.",
             needMove: "must move",
             moveTo: "Move to",
-            stayPut: "Stay put",
             chooseComposition: "Choose which units leave",
             winterLosses: "Winter losses: choose or confirm lost unit types",
             winterLossesDesc: "The corresponding units have already been removed automatically; normal winter losses may be swapped for an available type in that space, or keep the automatic result; Moriscos leave with #28 and can only be confirmed.",

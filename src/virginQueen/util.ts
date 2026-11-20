@@ -4957,16 +4957,7 @@ const winterReturnLand = (G: VQGame, p: Power): void => {
             pushLog(G, `${powerLabel(p)} has no capital and loses ${excess} overstacked unit(s) in ${SPACE_BY_ID[id].name}.`);
             continue;
         }
-        if (excess === 0) {
-            if (capitals.length < 2) continue;
-            // Optional recall of a whole garrison: moving nothing keeps the
-            // automatic result, so record only for the owner to consider.
-            G.winterReturnChoices = [...(G.winterReturnChoices ?? []), {
-                id: nextWinterChoiceId(G), power: p, from: id, options: [id, ...capitals],
-                before, autoTo: id, autoMoved: emptyLand(), autoLost: emptyLand(), leaders: [], minMove: 0,
-            }];
-            continue;
-        }
+        if (excess === 0) continue;
         // Automatic default: exactly the excess leaves for the nearest capital.
         const autoTo = capitals[0];
         const moving = winterTakeFrom({...before}, excess);

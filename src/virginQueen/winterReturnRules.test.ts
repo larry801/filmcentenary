@@ -39,38 +39,7 @@ describe("winter return choice rules", () => {
         const legal = legalWinterLandReturnOptions(G, "spain", record!);
         // The origin must shed units, so staying put is not offered.
         expect(legal).not.toContain("barcelona");
-        expect(legal.every((id) => id !== "barcelona")).toBe(true);
         expect(legal.length).toBeGreaterThan(0);
-    });
-
-    it("allows staying put only for a garrison that does not have to shed units", () => {
-        const G = game();
-        G.activePower = "spain";
-        // A friendly Spanish fortress holding two units: nothing has to move.
-        G.spaces.naples.control = "spain";
-        G.spaces.naples.land.spain = {regular: 2, merc: 0, cav: 0};
-        winter(G, context("1", "action"));
-        const record = recordFor(G, "naples");
-        expect(record).toBeDefined();
-
-        const legal = legalWinterLandReturnOptions(G, "spain", record!);
-        expect(legal).toContain("naples");
-        expect(legalWinterLandReturnUnits(G, "spain", record!, "naples")).toEqual([{regular: 0, merc: 0, cav: 0}]);
-    });
-
-    it("staying put keeps the garrison in place", () => {
-        const G = game();
-        G.activePower = "spain";
-        G.spaces.naples.control = "spain";
-        G.spaces.naples.land.spain = {regular: 2, merc: 0, cav: 0};
-        winter(G, context("1", "action"));
-        const record = recordFor(G, "naples")!;
-        const before = landCount(G.spaces.naples.land.spain);
-
-        expect(chooseWinterReturn(G, context("1"), {id: record.id, to: "naples"})).toBeUndefined();
-
-        expect(landCount(G.spaces.naples.land.spain)).toBe(before);
-        expect(G.log.join("\n")).toContain("keeps 2 unit(s) in Naples for the winter");
     });
 
     it("eliminates Guise when no winter quarters lie inside the area", () => {

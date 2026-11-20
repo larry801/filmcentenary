@@ -109,11 +109,6 @@ export const CardDrawPanel = () => {
                             onClick={() => moves.chooseWinterReturn({id: entry.id, to: option})}>
                             {i18n.chain.vq.cardDraw.moveTo} {placeLabel(option)}
                         </Button>)}
-                        {destinations.includes(entry.from) && <Button size="small" variant="outlined"
-                            disabled={!myTurn}
-                            onClick={() => moves.chooseWinterReturn({id: entry.id, to: entry.from})}>
-                            {i18n.chain.vq.cardDraw.stayPut}
-                        </Button>}
                     </Stack>
                     {compositions.length > 0 && <WinterCompositionPicker entry={entry} options={compositions} disabled={!myTurn}
                         unitNames={unitNames}
