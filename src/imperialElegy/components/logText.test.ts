@@ -226,6 +226,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   cpChainUsed: {key: "cpChainUsed", power: "GE", args: {card: CARD_ID, cp: 4}},
   eliteCorpsGained: {key: "eliteCorpsGained", power: "GE", args: {space: "berlin", count: 2}},
   cardTaken: {key: "cardTaken", power: "FR", args: {card: CARD_ID, from: "discard"}},
+  warBudgetCard: {key: "warBudgetCard", power: "FR", args: {card: CARD_ID, cp: 2, budget: 4}},
   minorJoinedWar: {key: "minorJoinedWar", power: "GE", args: {minor: "Saxony", side: "attacker"}},
   minorAllyAsked: {key: "minorAllyAsked", power: "GE", args: {minor: "Belgium", power: "FR", step: 0, diplomacy: false}},
   minorAidRoll: {key: "minorAidRoll", power: "GE", args: {minor: "Belgium", order: "UK,GE", rolls: "UK:5,GE:2"}},

@@ -1558,6 +1558,16 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `chained ${card} for CP.`, `将 ${card} 加入 CP 链。`);
   },
 
+  warBudgetCard: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(
+      entry,
+      locale,
+      `played ${card} for +${str(entry.args?.cp)} CP of war budget.`,
+      `打出 ${card}，战争预算 +${str(entry.args?.cp)} CP。`,
+    );
+  },
+
   cardTaken: (entry, locale) => {
     const card = cardLabel(entry.args?.card, locale);
     const from = str(entry.args?.from);

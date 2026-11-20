@@ -431,9 +431,10 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
 
 - Declaration validation (aim and objectives checked before CP is spent), war
   aim, one or two objectives controlled by the defender, CP war budget (card CP
-  + industry), ally calls, initiative, march/rail/naval/land-battle/deploy/
-  reserves actions, surrender move, victory classification, interactive treaty
-  chooser, truce length and demobilisation — **live and partial**.
+  + industry), **13.7's one defender card played into that budget**, ally calls,
+  initiative, march/rail/naval/land-battle/deploy/reserves actions, surrender
+  move, victory classification, interactive treaty chooser, truce length and
+  demobilisation — **live and partial**.
 - **Live details:**
   - `declareWar` uses `validateWarAim`; conquest applies the WTT/stability
     penalty; the attacker’s starting control is snapshotted for defensive

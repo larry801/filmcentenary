@@ -1,5 +1,27 @@
 # Imperial Elegy — implementation status
 
+## Added: the defender can play one card into its war budget (13.7) (2026-11-21)
+
+13.7 prints *"At this point the defender may play a card to add CP to their war
+budget [14.3].  Important: the defending player cannot play a mandatory event to
+add to their war budget."*  `createWarState` always gave a player defender a
+budget of 0 and the only card-CP path was the attacker's declaration card, so
+the defending seat had no way to use the printed allowance.
+
+- New move `playWarBudgetCard(cardId)`: available to a defending power (the
+  primary or a defending ally) while the war is still in its war-aim / alliance
+  / shift steps; one card per defending power; mandatory events refused; the
+  card is discarded and its printed CP is added to `war.budgets`.
+- `WarState.defenderBudgetCards` records the card, and the move logs
+  `warBudgetCard`.
+- The War panel shows one button per eligible defending hand card while the
+  allowance is unused; declaring war widens move dispatch to all seats so the
+  defending seat can act, while every other move still checks `G.activePower`.
+
+**Coverage:** `defenderWarBudget.test.ts` (3 — the budget increase and discard,
+the attacker's refusal, and the mandatory-event refusal).  `npx tsc --noEmit`
+clean; the war, board, card-state and log suites pass.
+
 ## Fixed: Aux Armes left French Intervention and Papal Influence in the discard (2026-11-21)
 
 H-FR-6 prints *"Take either French Intervention or Papal Influence from the
