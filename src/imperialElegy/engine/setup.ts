@@ -134,6 +134,8 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   for (const entry of def.influence) G.spaces[entry.space].influence = entry.power;
   for (const entry of def.pacification) {
     G.spaces[entry.space].pacification = entry.value;
+    // Scenarios print "Pac 0" as a real marker, not as an unset value.
+    G.spaces[entry.space].pacificationMarker = true;
   }
 
   // Printed "Ally marker" entries: a minor power already allied to a player at

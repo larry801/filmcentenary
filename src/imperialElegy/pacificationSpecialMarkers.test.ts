@@ -90,6 +90,13 @@ describe("12.11.2 pacification in a controlled space", () => {
   });
 });
 
+test("a scenario-printed Pac 0 entry is a real marker", () => {
+  const G = begin("UK");
+  // The campaign prints Algeria "Pac 0", not "no marker".
+  expect(G.spaces.algeria.pacification).toBe(0);
+  expect(G.spaces.algeria.pacificationMarker).toBe(true);
+});
+
 describe("12.11.2 special counters", () => {
   test("A86 places the Boer marker at 0, not +2", () => {
     const G = begin("UK");
