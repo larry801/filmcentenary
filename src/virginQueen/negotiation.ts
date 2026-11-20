@@ -9,7 +9,7 @@ import {
     spaceHomes,
 } from "./constant/general";
 import {cardById} from "./constant/cards";
-import {LEADER_BY_ID} from "./constant/leaders";
+import {LEADER_BY_ID, isArmyKind, isNavalKind} from "./constant/leaders";
 import {SPACES, SPACE_BY_ID} from "./mapData";
 import {royalAvailable} from "./scenario";
 import {ownerOf, samePlayer} from "./ownership";
@@ -401,7 +401,7 @@ export const validateNegotiation = (
             const def = LEADER_BY_ID[term.leaderId];
             const state = G.leaders[term.leaderId];
             if (def === undefined || state === undefined || state.location !== "captured" ||
-                def.kind !== "army" || def.power !== term.to ||
+                !isArmyKind(def) || def.power !== term.to ||
                 (state.capturedBy !== undefined && state.capturedBy !== term.from)) {
                 issues.push({term: index, code: "leaderUnavailable", params: {leader: term.leaderId}});
             } else {
@@ -434,7 +434,7 @@ export const validateNegotiation = (
             if (term.leader !== undefined) {
                 const leader = G.leaders[term.leader];
                 const def = LEADER_BY_ID[term.leader];
-                if (leader === undefined || leader.location !== term.fromPort || def?.kind !== "naval" || def.power !== term.from) {
+                if (leader === undefined || leader.location !== term.fromPort || !isNavalKind(def) || def.power !== term.from) {
                     issues.push({term: index, code: "leaderUnavailable", params: {leader: term.leader}});
                 }
             }
@@ -691,7 +691,7 @@ export const returnableLeaders = (G: VQGame, from: Power, to: Power): string[] =
     Object.keys(G.leaders).filter((id) => {
         const def = LEADER_BY_ID[id];
         const state = G.leaders[id];
-        return def?.kind === "army" && def.power === to && state.location === "captured" &&
+        return isArmyKind(def) && def.power === to && state.location === "captured" &&
             (state.capturedBy === undefined || state.capturedBy === from);
     }).sort();
 

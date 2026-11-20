@@ -1,6 +1,6 @@
 import {isPower, Power, powerName, POWERS, spaceHomes, VQGame} from "./constant/general";
 import {cardById, cardName} from "./constant/cards";
-import {LEADER_BY_ID, leaderName} from "./constant/leaders";
+import {LEADER_BY_ID, leaderIsArmy, leaderName} from "./constant/leaders";
 import {MINOR_DIPLOMACY} from "./data/minorDiplomacy";
 import {WORLD_SETTLEMENTS} from "./data/world";
 import {SPACE_BY_ID, SPACES, spaceName} from "./mapData";
@@ -206,7 +206,7 @@ export const eventBranchChoice = (G: VQGame, cardId: string, power: Power, numPl
             }
             const returnTargets = playerPowers(G, power).filter((target) =>
                 Object.values(G.leaders).some((leader) => leader.id !== "guise" && LEADER_BY_ID[leader.id]?.power === target &&
-                    LEADER_BY_ID[leader.id]?.kind === "army" && leader.location !== "pool" && leader.location !== "dead" && G.spaces[leader.location] !== undefined));
+                    leaderIsArmy(leader.id) && leader.location !== "pool" && leader.location !== "dead" && G.spaces[leader.location] !== undefined));
             if (returnTargets.length > 0) {
                 branches.push(branch("return", text("跳过行动轮并归还将领", "Skip the action round and return a commander"),
                     (values) => `${values.power}:return${values.leader === undefined || values.leader === "" ? "" : `:${values.leader}`}`, [
@@ -216,7 +216,7 @@ export const eventBranchChoice = (G: VQGame, cardId: string, power: Power, numPl
                             if (target === undefined) return [];
                             return leaderOptions(G, Object.values(G.leaders)
                                 .filter((leader) => leader.id !== "guise" && LEADER_BY_ID[leader.id]?.power === target &&
-                                    LEADER_BY_ID[leader.id]?.kind === "army" && leader.location !== "pool" &&
+                                    leaderIsArmy(leader.id) && leader.location !== "pool" &&
                                     leader.location !== "dead" && G.spaces[leader.location] !== undefined)
                                 .map((leader) => leader.id));
                         }, true),
@@ -405,7 +405,7 @@ export const eventBranchChoice = (G: VQGame, cardId: string, power: Power, numPl
             const leaders = Object.values(G.leaders).filter((leader) => {
                 const location = leader.location;
                 const space = SPACE_BY_ID[location];
-                return LEADER_BY_ID[leader.id]?.kind === "army" && LEADER_BY_ID[leader.id]?.power !== power &&
+                return leaderIsArmy(leader.id) && LEADER_BY_ID[leader.id]?.power !== power &&
                     space !== undefined && (space.area === "france" || spaceHomes(space).includes("france")) &&
                     G.spaces[location]?.leaders.includes(leader.id);
             }).map((leader) => leader.id);

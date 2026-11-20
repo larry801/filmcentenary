@@ -20,7 +20,9 @@ export const LEADERS: LeaderDef[] = [
     // Spain
     {id: "alba", name: "Duke of Alba", power: "spain", kind: "army", battle: 2, command: 6, start: "brussels"},
     {id: "parma", name: "Duke of Parma", power: "spain", kind: "army", battle: 2, command: 6, start: "milan"},
-    {id: "donJohn", name: "Don John of Austria", power: "spain", kind: "army", battle: 1, command: 5, start: "madrid"},
+    // Rule 10 step 4 / 19.3 / 20.4: Don John may serve as an army leader or a
+    // naval leader and may switch between the two.
+    {id: "donJohn", name: "Don John of Austria", power: "spain", kind: "both", battle: 1, command: 5, start: "madrid"},
     {id: "santaCruz", name: "Marquis of Santa Cruz", power: "spain", kind: "naval", battle: 2, start: "seville"},
     {id: "medinaSidonia", name: "Duke of Medina Sidonia", power: "spain", kind: "naval", battle: 0, start: "corunna"},
 
@@ -88,6 +90,30 @@ export const LEADER_BY_ID: Record<string, LeaderDef> = Object.fromEntries(
 for (const leader of [...LEADERS, ...DEFAULT_LEADERS, ...SEA_CAPTAIN_LEADERS]) {
     leader.nameZh ??= LEADER_NAME_ZH[leader.id];
 }
+
+/**
+ * Is this leader usable in the given role?  A `both` leader (Don John) counts
+ * as an army leader and as a naval leader wherever either role matters.
+ */
+export const leaderIsArmy = (id: string): boolean => {
+    const kind = LEADER_BY_ID[id]?.kind;
+    return kind === "army" || kind === "both";
+};
+
+export const leaderIsNaval = (id: string): boolean => {
+    const kind = LEADER_BY_ID[id]?.kind;
+    return kind === "naval" || kind === "both";
+};
+
+export const leaderIsKind = (id: string, role: "army" | "naval"): boolean =>
+    role === "army" ? leaderIsArmy(id) : leaderIsNaval(id);
+
+/** Same role test applied to a definition the caller already holds. */
+export const isArmyKind = (def: {kind?: string} | undefined): boolean =>
+    def?.kind === "army" || def?.kind === "both";
+
+export const isNavalKind = (def: {kind?: string} | undefined): boolean =>
+    def?.kind === "naval" || def?.kind === "both";
 
 export const leaderName = (id: string, locale: "en" | "zh_CN" = "zh_CN"): string => {
     const def = LEADER_BY_ID[id];

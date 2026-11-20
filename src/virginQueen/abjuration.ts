@@ -1,7 +1,7 @@
 import {BoardProps} from "boardgame.io/react";
 import i18n from "../constant/i18n";
 import {Power, powerName, spaceHomes, VQGame} from "./constant/general";
-import {LEADER_BY_ID, leaderName} from "./constant/leaders";
+import {LEADER_BY_ID, leaderIsArmy, leaderName} from "./constant/leaders";
 import {SPACES, spaceName as localizedSpaceName} from "./mapData";
 
 /**
@@ -44,7 +44,7 @@ export const abjurationOfferDetails = (G: VQGame, offer: {power: Power; space: s
     }
     const units = 5 - remaining;
     const leaderId = sources.flatMap((id) => G.spaces[id].leaders)
-        .find((id) => LEADER_BY_ID[id]?.power === offer.power && LEADER_BY_ID[id]?.kind === "army");
+        .find((id) => LEADER_BY_ID[id]?.power === offer.power && leaderIsArmy(id));
     const powerNameStr = powerName(offer.power, locale);
     const spaceName = localizedSpaceName(offer.space, locale);
     const troops = units > 0 ? `${units} ${i18n.chain.vq.board.regulars}` : i18n.chain.vq.board.noRegulars;

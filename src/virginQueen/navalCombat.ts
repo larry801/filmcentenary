@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import i18n from "../constant/i18n";
 import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
 import {recordNavalLoss, restoreRetainedNavalUnit} from "./util";
-import {LEADER_BY_ID, leaderName} from "./constant/leaders";
+import {LEADER_BY_ID, leaderIsNaval, leaderName} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID, isInlandPort, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {
@@ -192,7 +192,7 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
             }
             delete navalAt(G, location)[owner];
         }
-        const leaders = leadersAt(G, location).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
+        const leaders = leadersAt(G, location).filter((id) => leaderIsNaval(id) &&
             leaderPower(G, id) !== undefined && owners.includes(leaderPower(G, id)!));
         if (leaders.length > 0) moveLeaders(G, location, "pool", leaders);
         if (owners.includes("spain") && G.armada?.location === location) delete G.armada;
@@ -211,7 +211,7 @@ export const retreatNaval = (G: VQGame, location: string, owners: Controller[], 
         navalAt(G, destination)[owner] = target;
         delete navalAt(G, location)[owner];
     }
-    const leaders = leadersAt(G, location).filter((id) => LEADER_BY_ID[id]?.kind === "naval" &&
+    const leaders = leadersAt(G, location).filter((id) => leaderIsNaval(id) &&
         leaderPower(G, id) !== undefined && owners.includes(leaderPower(G, id)!));
     if (leaders.length > 0) moveLeaders(G, location, destination, leaders);
     if (owners.includes("spain") && G.armada?.location === location) G.armada.location = destination;
@@ -264,7 +264,7 @@ export const completeNavalInterception = (G: VQGame, power: Power, from: string,
         delete navalAt(G, from)[power];
     }
     const leaders = leadersAt(G, from).filter((id) =>
-        leaderPower(G, id) === power && LEADER_BY_ID[id]?.kind === "naval");
+        leaderPower(G, id) === power && leaderIsNaval(id));
     if (leaders.length > 0) moveLeaders(G, from, to, leaders);
     if (power === "spain" && G.armada?.location === from) G.armada.location = to;
     pushLog(G, `${powerLabel(power)} intercepts the naval move into ${SPACE_BY_ID[to]?.name ?? to}.`);

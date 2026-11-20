@@ -3,7 +3,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {Controller, LandStack, MinorPower, MINOR_POWERS, Power, VQGame, controllerName, isPower, landCount, minorName, navalCount, powerName, spaceHomes} from "./constant/general";
 import {cardById, cardName} from "./constant/cards";
 import {beginGrandVizierEvent, canPlayGrandVizier} from "./cardEvents";
-import {LEADER_BY_ID, leaderName} from "./constant/leaders";
+import {LEADER_BY_ID, isArmyKind, isNavalKind, leaderIsArmy, leaderName} from "./constant/leaders";
 import {LAND_NEIGHBORS, SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import i18n from "../constant/i18n";
 import {ownerOf} from "./ownership";
@@ -112,7 +112,7 @@ const finishCityRebels = (G: VQGame, ctx: Ctx): void => {
     const armyOwners: Controller[] = [];
     for (const id of [...state.leaders]) {
         const def = LEADER_BY_ID[id];
-        if (def?.kind === "naval") {
+        if (isNavalKind(def)) {
             state.leaders = state.leaders.filter((leader) => leader !== id);
             G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
         } else if (def) armyOwners.push(def.power);
@@ -196,7 +196,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
                 if (selected > 0) result.push(option(`remove:${owner}:${kind}`, `${i18n.chain.vq.engine.removeUnit} ${label}`));
             }
         }
-        for (const id of G.spaces.milan.leaders.filter((id) => LEADER_BY_ID[id]?.power === "spain" && LEADER_BY_ID[id].kind === "army")) {
+        for (const id of G.spaces.milan.leaders.filter((id) => LEADER_BY_ID[id]?.power === "spain" && leaderIsArmy(id))) {
             result.push(option(`formationLeader:${id}`, (formation.leaders.includes(id) ? i18n.chain.vq.engine.deselectLeader : i18n.chain.vq.engine.selectLeader).replace("{leader}", leaderName(id))));
         }
         if ((roadSize(G) > 0 || formation.leaders.length > 0) && roadSize(G) <= roadCapacity(G)) {
@@ -215,7 +215,7 @@ export const tutorialEventOptions = (G: VQGame): TutorialEventOption[] => {
     if (pending.step === "illness") return [option("discard", i18n.chain.vq.engine.discardRandomCard), option("skip", i18n.chain.vq.engine.skipAndRecallLeader)].filter((entry) => entry.id !== "discard" || G.powers[pending.responding].cards.some((id) => id !== "vq-006"));
     if (pending.step === "leader") return [option("none", i18n.chain.vq.engine.noLeaderMove), ...Object.values(G.leaders).filter((leader) => {
         const def = LEADER_BY_ID[leader.id];
-        return def?.power === (pending.targetPower ?? power) && def.kind === "army" && G.spaces[leader.location] &&
+        return def?.power === (pending.targetPower ?? power) && isArmyKind(def) && G.spaces[leader.location] &&
             (number !== 3 || !G.spaces[leader.location].siege);
     }).map((leader) => option(`leader:${leader.id}`, leaderName(leader.id)))];
     if (pending.step === "papalBenefit") return [option("none", i18n.chain.vq.engine.noExtraBenefit),

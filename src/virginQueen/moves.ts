@@ -44,7 +44,7 @@ import {attemptNavalAvoidBattle, attemptNavalInterception, completeNavalIntercep
 import type {InterceptionCandidate} from "./navalCombat";
 import {offerInterception, resolveBeaconInterception} from "./interception";
 import {tutorialSpaceAllowed} from "./tutorial";
-import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN} from "./constant/leaders";
+import {LEADER_BY_ID, SEA_CAPTAIN_LEADER_BY_CAPTAIN, isNavalKind, leaderIsArmy, leaderIsNaval} from "./constant/leaders";
 import {
     CAPITAL_SPACES,
     KEY_SPACES,
@@ -1064,7 +1064,7 @@ export const spanishRoadMove = (G: VQGame, ctx: Ctx, args: {to: string; units?: 
     if (source === undefined) return INVALID_MOVE;
     const stack = {regular: args.units?.regular ?? source.regular, merc: args.units?.merc ?? 0, cav: args.units?.cav ?? 0};
     if (landCount(stack) < 1 || Object.entries(stack).some(([kind, count]) => count < 0 || count > source[kind as keyof LandStack])) return INVALID_MOVE;
-    const availableLeaders = G.spaces.milan.leaders.filter((id) => LEADER_BY_ID[id]?.power === "spain" && LEADER_BY_ID[id].kind === "army");
+    const availableLeaders = G.spaces.milan.leaders.filter((id) => LEADER_BY_ID[id]?.power === "spain" && leaderIsArmy(id));
     const leaders = args.leaders ?? [];
     if (new Set(leaders).size !== leaders.length || leaders.some((id) => !availableLeaders.includes(id))) return INVALID_MOVE;
     const capacity = Math.max(4, leaders.reduce((total, id) => total + (LEADER_BY_ID[id].command ?? 0), 0));
@@ -1220,7 +1220,7 @@ export const chooseAbjuration = (G: VQGame, ctx: Ctx, args: {power: Power}): voi
         if (remaining === 0) break;
     }
     const leader = sources.flatMap((id) => G.spaces[id].leaders)
-        .find((id) => LEADER_BY_ID[id]?.power === offer.power && LEADER_BY_ID[id]?.kind === "army");
+        .find((id) => LEADER_BY_ID[id]?.power === offer.power && leaderIsArmy(id));
     if (leader !== undefined) {
         const from = G.leaders[leader].location;
         moveLeaders(G, from, offer.space, [leader]);
@@ -1599,7 +1599,7 @@ const finishCityRebelsLoss = (G: VQGame, pending: CityRebelsLossChoice, ctx?: Ct
             totalNaval(G, pending.space, ownersWithNaval(G, pending.space)) === 0) {
             for (const id of [...state.leaders]) {
                 const leader = LEADER_BY_ID[id];
-                if (leader?.kind !== "naval" || leader.power !== pending.controller) continue;
+                if (!isNavalKind(leader) || leader.power !== pending.controller) continue;
                 state.leaders = state.leaders.filter((leaderId) => leaderId !== id);
                 G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
             }
@@ -2002,7 +2002,7 @@ const resolveRulerFallsIll = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
         // commander"; the leader move does not replace the skipped impulse.
         G.skipImpulse = [...(G.skipImpulse ?? []), targetPower];
         pushLog(G, `Ruler Falls Ill: ${powerLabel(targetPower)} will skip its next action round.`);
-        const leader = Object.values(G.leaders).find((state) => state.id !== "guise" && LEADER_BY_ID[state.id]?.power === targetPower && LEADER_BY_ID[state.id]?.kind === "army" &&
+        const leader = Object.values(G.leaders).find((state) => state.id !== "guise" && LEADER_BY_ID[state.id]?.power === targetPower && leaderIsArmy(state.id) &&
             (extra === undefined || state.id === extra) &&
             state.location !== "pool" && state.location !== "dead" && G.spaces[state.location] !== undefined);
         // Printed text: return to the capital, unless it is besieged or
@@ -2436,7 +2436,7 @@ const resolveBlackQueen = (G: VQGame, ctx: Ctx, p: Power, target?: string): void
     if (target.startsWith("assassinate:")) {
         const leader = target.slice("assassinate:".length);
         const location = G.leaders[leader]?.location;
-        if (location === undefined || (SPACE_BY_ID[location]?.area !== "france" && !spaceHomes(SPACE_BY_ID[location]!).includes("france")) || LEADER_BY_ID[leader]?.kind !== "army") return;
+        if (location === undefined || (SPACE_BY_ID[location]?.area !== "france" && !spaceHomes(SPACE_BY_ID[location]!).includes("france")) || !leaderIsArmy(leader)) return;
         G.powers[p].cp += 4;
         const result = startEspionage(G, ctx, "assassination", {target: leader, cp: 4});
         if (result === INVALID_MOVE) {
@@ -4191,7 +4191,7 @@ export const loanNaval = (G: VQGame, ctx: Ctx, args: {target: Power; fromPort: s
     if (args.leader !== undefined) {
         const leader = G.leaders[args.leader];
         if (leader === undefined || leader.location !== args.fromPort || leaderPower(G, args.leader) !== p ||
-            LEADER_BY_ID[args.leader]?.kind !== "naval") return INVALID_MOVE;
+            !leaderIsNaval(args.leader)) return INVALID_MOVE;
     }
     const source = G.spaces[args.fromPort].naval[p];
     if (source === undefined || source[args.kind] < 1) return INVALID_MOVE;
@@ -4422,7 +4422,7 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
         const available = G.spaces[args.from].land[p];
         if (!available) return INVALID_MOVE;
         const stack = args.units ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0} : {...available};
-        const availableLeaders = G.spaces[args.from].leaders.filter((id) => LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id].kind === "army");
+        const availableLeaders = G.spaces[args.from].leaders.filter((id) => LEADER_BY_ID[id]?.power === p && leaderIsArmy(id));
         const leaders = args.leaders ?? availableLeaders.slice(0, 2);
         const capacity = formationCapacity(leaders);
         if (formationIssue(G, p, {from: args.from, to, units: stack, leaders})) return INVALID_MOVE;
@@ -4463,7 +4463,7 @@ export const springDeploy = (G: VQGame, ctx: Ctx, args: { from: string; to: stri
     const source = G.spaces[args.from].land[p];
     if (source === undefined || landCount(source) === 0) return INVALID_MOVE;
     const availableLeaders = G.spaces[args.from].leaders.filter((id) =>
-        LEADER_BY_ID[id]?.power === p && LEADER_BY_ID[id]?.kind === "army");
+        LEADER_BY_ID[id]?.power === p && leaderIsArmy(id));
     const leaders = args.leaders ?? availableLeaders.slice(0, 2);
     const stack: LandStack = args.units
         ? {regular: args.units.regular ?? 0, merc: args.units.merc ?? 0, cav: args.units.cav ?? 0}
@@ -5050,7 +5050,7 @@ export const commitForeignWarForce = (
     }
     if (args.leaderId !== undefined) {
         const leader = G.leaders[args.leaderId];
-        if (LEADER_BY_ID[args.leaderId]?.power !== p || LEADER_BY_ID[args.leaderId]?.kind !== "army" ||
+        if (LEADER_BY_ID[args.leaderId]?.power !== p || !leaderIsArmy(args.leaderId) ||
             leader === undefined || leader.location === "pool" || leader.location === "captured" ||
             !Object.values(G.spaces).some((s) => s.leaders.includes(args.leaderId!))) return INVALID_MOVE;
     }
@@ -5100,7 +5100,7 @@ export const autoResolveForeignWarForce = (G: VQGame): boolean => {
         return false;
     }
     const leader = Object.values(G.leaders).find((state) =>
-        LEADER_BY_ID[state.id]?.power === beneficiary && LEADER_BY_ID[state.id]?.kind === "army" &&
+        LEADER_BY_ID[state.id]?.power === beneficiary && leaderIsArmy(state.id) &&
         state.location !== "pool" && state.location !== "captured" && G.spaces[state.location]?.leaders.includes(state.id));
     const owner = ownerOf(G, beneficiary);
     const fakeCtx = {currentPlayer: owner ?? "0", playerID: owner, phase: "action", events: {endStage: () => undefined}} as unknown as Ctx;
@@ -5259,7 +5259,7 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
     if (spaceHasEnemyNaval(G, p, args.to) || (!friendlyControlled(G, p, args.to) && destination.control !== "independent" &&
         !(isPower(destination.control) ? atWar(G, p, destination.control) : atWarWithMinor(G, p, destination.control as MinorPower)))) return INVALID_MOVE;
     const leaders = args.leaders ?? [];
-    if (leaders.length > 2 || new Set(leaders).size !== leaders.length || leaders.some((id) => !G.spaces[args.from].leaders.includes(id) || LEADER_BY_ID[id]?.power !== p || LEADER_BY_ID[id]?.kind !== "army")) return INVALID_MOVE;
+    if (leaders.length > 2 || new Set(leaders).size !== leaders.length || leaders.some((id) => !G.spaces[args.from].leaders.includes(id) || LEADER_BY_ID[id]?.power !== p || !leaderIsArmy(id))) return INVALID_MOVE;
     // Rule 20.10: the Duke of Guise may not leave the French religious struggle area.
     if (leaders.includes("guise") && !inFrenchReligiousArea(args.to)) return INVALID_MOVE;
     const capacity = Math.max(4, leaders.reduce((sum, id) => sum + (LEADER_BY_ID[id].command ?? 0), 0));
@@ -5318,7 +5318,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     if (p === "ottoman" && unitPower === "ottoman" && G.morisco?.space === from &&
         (landDistance("granada", to) ?? Number.POSITIVE_INFINITY) > 2) return INVALID_MOVE;
     const source = G.spaces[from].land[unitPower];
-    const availableLeaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === unitPower && LEADER_BY_ID[id]?.kind === "army");
+    const availableLeaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === unitPower && leaderIsArmy(id));
     const requestLeaders = args.leaders ?? availableLeaders;
     // Rule 13.1: "One or more army leaders may move without accompanying land
     // units as long as they don't enter a space controlled by an enemy power or
@@ -5434,9 +5434,9 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
             return owner !== undefined && !friendlyController(G, p, owner) && totalLand(G, to, [owner]) === 0;
         };
         const lone = G.spaces[to].leaders.filter(isAlone);
-        const army = lone.filter((id) => LEADER_BY_ID[id]?.kind === "army");
+        const army = lone.filter((id) => leaderIsArmy(id));
         if (army.length > 0) captureLeaders(G, to, army.map((id) => LEADER_BY_ID[id].power), p);
-        for (const id of lone.filter((candidate) => LEADER_BY_ID[candidate]?.kind === "naval")) {
+        for (const id of lone.filter((candidate) => leaderIsNaval(candidate))) {
             G.spaces[to].leaders = G.spaces[to].leaders.filter((x) => x !== id);
             G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
             pushLog(G, `${LEADER_BY_ID[id]?.name ?? id} is caught alone and returns to the Turn Track.`);
@@ -5465,7 +5465,7 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
                 const captor = isPower(G.spaces[from].control) ? G.spaces[from].control : p;
                 for (const owner of besiegers) {
                     if (!isPower(owner)) continue;
-                    const leaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+                    const leaders = G.spaces[from].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && leaderIsArmy(id));
                     retreatLand(G, owner, from, [owner], leaders, captor);
                 }
             }
@@ -5612,7 +5612,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: NavalMoveOrder | {fleets: N
     const departures = fleets.map(({from, to}) => ({
         from, to,
         stack: location(from).naval[p] ? {...location(from).naval[p]!} : undefined,
-        leaders: location(from).leaders.filter((id) => leaderPower(G, id) === p && LEADER_BY_ID[id]?.kind === "naval"),
+        leaders: location(from).leaders.filter((id) => leaderPower(G, id) === p && leaderIsNaval(id)),
         armada: p === "spain" && G.armada?.location === from,
         destinationHadEnemy: ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner)),
     }));
@@ -5836,7 +5836,7 @@ export const chooseWithdraw = (G: VQGame, ctx: Ctx, args: {withdraw: boolean}): 
     if (G.powers[pending.active].cp >= 1) {
         const stack = state.land[owner];
         if (stack !== undefined) {
-            const leaders = state.leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+            const leaders = state.leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && leaderIsArmy(id));
             G.pendingContinue = {power: pending.active, unitPower: owner, origin: pending.origin, space: pending.space, units: {...stack}, leaders};
             pushLog(G, "The defenders withdraw; the active formation may spend 1 CP to continue or return.");
         }
