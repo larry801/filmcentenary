@@ -179,4 +179,20 @@ describe("19.1 joint naval transit interception", () => {
     expect(G.units[au].space).toBe("western-mediterranean");
     expect(G.powers.GE.gwBudget).toBe(5);
   });
+
+  test("a joint operation crosses several sea connections when nothing intercepts it", () => {
+    const {G, ge, au} = jointFixture();
+    // Brittany was the only enemy port on the route; make it friendly and empty
+    // so the 12.3 move can run its full Pomerania -> Baltic -> North Atlantic ->
+    // Western Mediterranean path in one joint action.
+    clearNaval(G, "brittany");
+    G.spaces.brittany.control = "GE";
+    expect(gwJointNaval(G, makeCtx([], seat("GE")), "AU", [ge], [au], "western-mediterranean")).toBeUndefined();
+    expect(G.units[ge].space).toBe("western-mediterranean");
+    expect(G.units[au].space).toBe("western-mediterranean");
+    expect(G.navalTransit ?? null).toBeNull();
+    expect(G.pending ?? null).toBeNull();
+    // One action point for the whole multi-connection route.
+    expect(G.powers.GE.gwBudget).toBe(5);
+  });
 });

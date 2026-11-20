@@ -194,11 +194,15 @@ export const eventPlayability = (
 ): EventPlayability => {
   const card = CARD_BY_ID[cardId];
   if (card === undefined) return deny("unknown-card");
-  // A41 is the one printed response that also allows a normal-event play
-  // ("This can also be played as a standard event during your impulse"), so it
-  // keeps its event mode; every other response/combat card is battle-window
-  // only.
-  if ((card.type === "response" || card.type === "combat") && cardId !== "IE-A041") {
+  // A41 and A67 are printed with an explicit normal-event mode ("This can also
+  // be played as a standard event during your impulse" / "OR play as a normal
+  // event (not as a response) to decrease the WTT by 1"), so they keep their
+  // event mode; every other response/combat card is battle-window only.
+  if (
+    (card.type === "response" || card.type === "combat") &&
+    cardId !== "IE-A041" &&
+    cardId !== "IE-A067"
+  ) {
     return deny("battle-window");
   }
 
@@ -250,6 +254,75 @@ export const eventPlayability = (
         : deny("dual-monarchy");
     default:
       return OK;
+  }
+};
+
+/** Printed response triggers that depend on live state, not on the impulse. */
+export type ResponseTriggerBlock =
+  /** A67 is printed "Play when the WTT reaches 5". */
+  | "crisis-window"
+  /** A67 cannot be played in response to A105 Impulsive Ruler. */
+  | "impulsive-ruler"
+  /** A44's printed French loss / stability decrease. */
+  | "france-trigger"
+  /** A89/A109's printed Russian stability decrease. */
+  | "russia-trigger"
+  /** A65 is played inside the pacification window, never at impulse start. */
+  | "pacification-window";
+
+/** True when a recorded turn is the current or the previous one. */
+const recentTurn = (G: ImperialElegyState, value: unknown): boolean =>
+  Number(value ?? -1) >= G.turn - 1;
+
+/**
+ * The live half of a printed response trigger.
+ *
+ * 9.1.3: "Response card events all have specific conditions which must be met
+ * in order to be played."  The impulse window alone is not that condition, so
+ * this predicate answers the card's own clause.  `null` means the printed
+ * trigger is met (or the card has no live trigger).
+ */
+export const responseTriggerBlock = (
+  G: ImperialElegyState,
+  power: Power,
+  cardId: CardId,
+): ResponseTriggerBlock | null => {
+  // The acting seat is part of the printed power lists, not of these triggers;
+  // A44/A89/A109 are played by any holder whose condition is met.
+  void power;
+  switch (cardId) {
+    case "IE-A067": {
+      // The only fixed point where the crisis roll can be amended is the open
+      // crisis decision itself; outside it the card's +2 DRM has no roll.
+      if (G.pending?.kind !== "crisis") return "crisis-window";
+      const inciting = String(G.flags.crisisIncitingCard ?? G.pending.context?.inciting ?? "");
+      // "exception: cannot be played in response to Impulsive Ruler."
+      return inciting === "IE-A105" ? "impulsive-ruler" : null;
+    }
+    case "IE-A065":
+      // "Play prior to a pacification roll."  That roll is a move, and the
+      // pacifying player is offered this card as one of its pre-roll options
+      // (`moves.ts#pacify`), so it is never a generic impulse response.
+      return "pacification-window";
+    case "IE-A044": {
+      // "Play during the Victory Step of a war in which France lost or if
+      // French stability decreases."  The engine's response window is the
+      // start of an impulse, which can fall on the next turn after a victory
+      // step, so the present-tense trigger also covers the previous turn.
+      const lost = recentTurn(G, G.flags.frLostWarTurn);
+      const decreased = recentTurn(G, G.powers.FR?.flags.stabilityDecreasedTurn);
+      return lost || decreased ? null : "france-trigger";
+    }
+    case "IE-A089":
+      // "Play if Russian stability has been decreased."  Past tense: the loss
+      // stays a legal trigger for the rest of the game.
+      return G.powers.RU?.flags.stabilityDecreased === true ? null : "russia-trigger";
+    case "IE-A109":
+      // "Play if Russian stability decreases."  Present tense, but the impulse
+      // window can open just after the turn boundary.
+      return recentTurn(G, G.powers.RU?.flags.stabilityDecreasedTurn) ? null : "russia-trigger";
+    default:
+      return null;
   }
 };
 

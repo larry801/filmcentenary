@@ -8,13 +8,16 @@
  * the Ottomans never track colonial keys).
  */
 import type {Ctx} from "boardgame.io";
+import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {effectiveKeyType, keySpaces, recomputeTracks} from "./engine/rules";
 import {africaKeys, colonialKeys} from "./engine/victory";
 import {CARDS} from "./constant/cards.data";
-import {playCard, resolvePending} from "./moves";
+import {SPACES} from "./constant/spaces";
+import {constructFleet, playCard, resolvePending} from "./moves";
+import {gwStabilityKey} from "./engine/greatWar";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -188,5 +191,51 @@ describe("Egypt key type — dynamic legacy-save fallback", () => {
     expect(effectiveKeyType(G, "egypt")).toBe("territorial");
     G.spaces.egypt.control = "Egypt";
     expect(effectiveKeyType(G, "egypt")).toBe("territorial");
+  });
+});
+
+describe("Egypt key type — engine-wide readers", () => {
+  /** UK won A71: Egypt is now a UK colonial home key on the main map. */
+  const ukEgypt = (G: ImperialElegyState): void => {
+    G.spaces.egypt.control = "UK";
+    G.spaces.egypt.homeOverride = "UK";
+    G.spaces.egypt.keyTypeOverride = "colonial";
+  };
+
+  test("12.4 fleet construction reads the live colonial type", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "UK";
+    G.cpRemaining = 6;
+    ukEgypt(G);
+    expect(effectiveKeyType(G, "egypt")).toBe("colonial");
+
+    // Egypt has ports and is a UK home key, but it is no longer territorial.
+    expect(constructFleet(G, makeCtx([], seat("UK")), "egypt", "squadron")).toBe(INVALID_MOVE);
+    // The same seat can still build in a printed territorial home key.
+    expect(constructFleet(G, makeCtx([], seat("UK")), "london", "squadron")).toBeUndefined();
+  });
+
+  test("30.0 GW stability ignores the reclassified Egyptian key", () => {
+    const G = fresh();
+    ukEgypt(G);
+    expect(gwStabilityKey(G, "egypt", "UK")).toBe(false);
+    expect(gwStabilityKey(G, "london", "UK")).toBe(true);
+  });
+
+  test("A78 places its elite colonial EF in the now-colonial Egyptian key", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "UK";
+    G.cpRemaining = 0;
+    ukEgypt(G);
+    // Leave Egypt as the only UK-controlled colonial key.
+    for (const def of Object.values(SPACES)) {
+      if (def.id !== "egypt" && effectiveKeyType(G, def.id) === "colonial") G.spaces[def.id].control = "OT";
+    }
+    G.powers.UK.hand = ["IE-A078"];
+    expect(playCard(G, makeCtx([], seat("UK")), "IE-A078", "event")).toBeUndefined();
+    const elite = Object.values(G.units).find((unit) => unit.kind === "eliteColonialEf");
+    expect(elite?.space).toBe("egypt");
   });
 });

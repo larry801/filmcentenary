@@ -3121,7 +3121,10 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "crackColonialTroops": {
-      const target = Object.values(SPACES).find((s) => s.keyType === "colonial" && G.spaces[s.id].control === actor);
+      // A71 can make Egypt a colonial key, so read the live type.
+      const target = Object.values(SPACES).find(
+        (s) => effectiveKeyType(G, s.id) === "colonial" && G.spaces[s.id].control === actor,
+      );
       if (target) placeUnit(G, actor, "eliteColonialEf", target.id, 1, {elite: true});
       return true;
     }

@@ -241,6 +241,8 @@ describe("A54 Failed Reforms", () => {
     const G = fresh();
     setActive(G, "OT", 0);
     G.persistent.youngTurks = true;
+    // A44 still answers its own printed trigger (France lost stability).
+    G.powers.FR.flags.stabilityDecreasedTurn = G.turn;
     G.powers.OT.hand.push("IE-A044");
     expect(responseCardEligibility(G, "OT", "IE-A044")).toEqual({ok: true});
   });

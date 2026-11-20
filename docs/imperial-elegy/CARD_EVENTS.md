@@ -574,6 +574,11 @@ is, and, if they cannot agree, the attacker decides.”*
   12.0 的“每个行动轮只出 1 张牌”由 `impulseAlreadyUsed` 单独把关：CP 花到 0 之后
   仍算已用，强制事件给的 2 CP 是该轮的预算而不是第二个行动轮，手牌按钮与
   `playCard` 共用该谓词。
+- **Printed response triggers** — 9.1.3 的卡面触发条件也由同一谓词把关：
+  `responseTriggerBlock` 读取 `stabilityDecreased(Turn)` 与 `frLostWarTurn` 来判定
+  A44/A89/A109；A67 只在已打开的 `crisis` 决策内可用（并拒绝 A105 引发的危机，
+  同时恢复其“作为普通事件”模式）；A65 由 `pacify` 的 `a065` 模式提供
+  （标记 −1 / 叛军恢复满编，卡牌在掷骰前结算），不再从行动轮开始时的通用响应窗口打出。
 - **Combat cards** — 7 张动作战斗牌 + GW-03–06 全部数据驱动；实测 A058 攻城炮
   在骰前削减要塞 2 级、A059 侧翼攻击造成 1 步损失且末尾触发“决定性胜利”、
   A062 通讯失误打开支援否定的强制选择（拒绝会重新打开）。
@@ -694,7 +699,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A041` | Prussian Military Tradition | response | 2 | `prussianTradition` | auto | yes |
 | `IE-A042` | The Ruhr | event | 4 | `industry`→GE | — | **no** |
 | `IE-A043` | At Any Cost | combat | 2 | `combatDrm` | — | yes |
-| `IE-A044` | Paris Commune | response | 1 | `stability` + `drawReplacement` | — | yes |
+| `IE-A044` | Paris Commune | response | 1 | `stability` + `drawReplacement`; needs France's lost-war/stability trigger | — | yes |
 | `IE-A045` | Folie de Grandeur | event | 3 | `folieDeGrandeur` | choice | yes |
 | `IE-A046` | French Intervention | event | 1 | `frenchIntervention` | choice | yes |
 | `IE-A047` | The Dual Monarchy | event | 2 | `stability` + `dualMonarchy` | auto | yes |
@@ -715,9 +720,9 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A062` | Miscommunication | combat | 2 | `miscommunication` | auto | yes |
 | `IE-A063` | Rapid Mobilization | response | 1 | `rapidMobilization` | — | yes |
 | `IE-A064` | Secret Treaty | response | 3 | `secretTreaty` | auto | yes |
-| `IE-A065` | Indian Ocean Arms Trade | response | 1 | **Decrease a pacification marker by 1/Flip a reduced rebel army to full strength** → `indianOceanArms` | auto | yes |
+| `IE-A065` | Indian Ocean Arms Trade | response | 1 | **Decrease a pacification marker by 1/Flip a reduced rebel army to full strength** → `indianOceanArms`; `pacify(..., "marker" | "rebel")` | choice | yes |
 | `IE-A066` | Damn the Torpedoes | combat | 2 | `noMines` | — | yes |
-| `IE-A067` | International Conference | response | 4 | **Apply +2 DRM to the crisis roll/Decrease the WTT by 1** → `internationalConference` | auto | yes |
+| `IE-A067` | International Conference | response | 4 | **Apply +2 DRM to the open crisis roll/Decrease the WTT by 1 as a normal event** → `internationalConference` | auto | yes |
 | `IE-A068` | The United States | event | 4 | `theUnitedStates` | choice | yes |
 | `IE-A069` | Concert of Europe | event | 2 | `wtt` | — | yes |
 | `IE-A070` | Papal Influence | event | 2 | `papalInfluence` | choice | yes |

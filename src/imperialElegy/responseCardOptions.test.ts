@@ -1,7 +1,9 @@
+import {INVALID_MOVE} from "boardgame.io/core";
 import {ACTION_CARDS} from "./constant/cards.data";
 import {placeUnit} from "./engine/effects";
 import {setupImperialElegy} from "./engine/setup";
-import {playResponseCard, resolvePending} from "./moves";
+import {pacify, playCard, playResponseCard, resolvePending, responseCardEligibility} from "./moves";
+import {openCrisisDecision} from "./engine/greatWar";
 import {POWERS} from "./types";
 
 const makeCtx = (playerID: string | null = "0") => ({
@@ -13,6 +15,11 @@ const makeCtx = (playerID: string | null = "0") => ({
 }) as any;
 
 const fresh = () => setupImperialElegy(makeCtx());
+
+const makeCtxWith = (dice: number[]) => ({
+  ...makeCtx("0"),
+  random: {Die: () => dice.shift() ?? 3},
+}) as any;
 
 const clearHands = (G: ReturnType<typeof fresh>) => {
   for (const p of POWERS) G.powers[p].hand = [];
@@ -54,51 +61,76 @@ test("International Conference prints two distinct, non-empty options", () => {
   expect(JSON.stringify(reduceWtt.effects)).toContain('"wtt"');
 });
 
-test("International Conference offers both printed options when played as a response", () => {
-  const {G} = startResponse("IE-A067");
+/** A67's printed response window is the open crisis decision itself. */
+const startCrisisResponse = (inciting: string | null = null) => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 0;
+  clearHands(G);
+  G.powers.GE.hand = ["IE-A067"];
+  G.wtt = 5;
+  G.resolvingCard = inciting;
+  const ctx = makeCtx("0");
+  openCrisisDecision(G, ctx, "GE", []);
+  expect(G.pending?.kind).toBe("crisis");
+  return {G, ctx};
+};
 
-  expect(G.pending?.options.map((o) => o.id)).toEqual(["opt0", "opt1"]);
-  expect(G.pending?.options.map((o) => o.label)).toEqual([
-    "Apply +2 DRM to the crisis roll",
-    "Decrease the WTT by 1",
-  ]);
-  // One-off card option labels keep their printed Chinese text in the pending.
-  expect(G.pending?.options.map((o) => o.labelZh)).toEqual([
-    "危机掷骰 +2 DRM",
-    "世界紧张 -1",
-  ]);
-  expect(G.powers.GE.hand).not.toContain("IE-A067");
+test("International Conference is not a generic impulse response", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 0;
+  G.powers.GE.hand = ["IE-A067"];
+
+  expect(responseCardEligibility(G, "GE", "IE-A067")).toMatchObject({
+    ok: false,
+    reason: "crisis-window",
+  });
+  expect(playResponseCard(G, makeCtx("0"), "IE-A067")).toBe(INVALID_MOVE);
+  expect(G.powers.GE.hand).toContain("IE-A067");
 });
 
-test("International Conference option 1 applies +2 DRM to the crisis roll", () => {
-  const {G, ctx} = startResponse("IE-A067");
+test("International Conference adds its +2 DRM and keeps the crisis roll open", () => {
+  const {G, ctx} = startCrisisResponse();
 
   expect(G.flags.crisisDrm).toBeUndefined();
-  resolvePending(G, ctx, "opt0");
+  expect(playResponseCard(G, ctx, "IE-A067")).toBeUndefined();
 
   expect(G.flags.crisisDrm).toBe(2);
-  expect(G.wtt).toBe(0);
-  expect(G.pending).toBeNull();
+  expect(G.pending?.kind).toBe("crisis");
+  expect(G.pending?.options.map((o) => o.id)).toEqual(["roll"]);
   expect(G.flags.pendingResponse).toBeUndefined();
+  expect(G.powers.GE.hand).not.toContain("IE-A067");
   expect(G.discard.filter((id) => id === "IE-A067")).toHaveLength(1);
-  // A response card must not end the impulse when its pending choice resolves.
-  expect(G.phase).toBe("action");
-  expect(G.activePower).toBe("GE");
 });
 
-test("International Conference option 2 decreases the WTT by 1", () => {
-  const {G, ctx} = startResponse("IE-A067");
+test("International Conference cannot answer Impulsive Ruler's crisis", () => {
+  const {G} = startCrisisResponse("IE-A105");
+
+  expect(responseCardEligibility(G, "GE", "IE-A067")).toMatchObject({
+    ok: false,
+    reason: "impulsive-ruler",
+  });
+});
+
+test("International Conference's event mode is the printed WTT decrease", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 0;
+  clearHands(G);
+  G.powers.GE.hand = ["IE-A067"];
   G.wtt = 3;
+  const ctx = makeCtx("0");
 
-  resolvePending(G, ctx, "opt1");
-
+  expect(playCard(G, ctx, "IE-A067", "event")).toBeUndefined();
+  // Only the WTT branch: the +2 DRM is exclusive to the open crisis window.
   expect(G.wtt).toBe(2);
   expect(G.flags.crisisDrm ?? 0).toBe(0);
   expect(G.pending).toBeNull();
-  expect(G.flags.pendingResponse).toBeUndefined();
-  expect(G.discard.filter((id) => id === "IE-A067")).toHaveLength(1);
-  expect(G.phase).toBe("action");
-  expect(G.activePower).toBe("GE");
+  expect(G.discard).toContain("IE-A067");
 });
 
 test("Indian Ocean Arms Trade prints two distinct, non-empty options", () => {
@@ -120,49 +152,101 @@ test("Indian Ocean Arms Trade prints two distinct, non-empty options", () => {
   expect(JSON.stringify(flipRebel.effects)).toContain("flipReducedRebelToFull");
 });
 
-test("Indian Ocean Arms Trade offers both printed options when played as a response", () => {
-  const {G} = startResponse("IE-A065");
-
-  expect(G.pending?.options.map((o) => o.id)).toEqual(["opt0", "opt1"]);
-  expect(G.pending?.options.map((o) => o.label)).toEqual([
-    "Decrease a pacification marker by 1",
-    "Flip a reduced rebel army to full strength",
-  ]);
-  expect(G.powers.GE.hand).not.toContain("IE-A065");
-});
-
-test("Indian Ocean Arms Trade option 1 decreases a pacification marker and draws a card", () => {
-  const {G, ctx} = startResponse("IE-A065");
+/**
+ * A65 is printed "Play prior to a pacification roll", so it no longer resolves
+ * from the generic impulse window: `pacify`'s printed `a065` mode offers it at
+ * the roll itself.
+ */
+const startPacifyWithArmsTrade = (mode: "marker" | "rebel", dice: number[] = [3, 3]) => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 5;
+  clearHands(G);
+  G.powers.GE.hand = ["IE-A065"];
   for (const space of Object.values(G.spaces)) space.pacification = 0;
-  G.spaces.dagestan.pacification = 2;
-  const handBefore = G.powers.GE.hand.length;
+  G.spaces.dagestan.influence = "GE";
+  G.spaces.dagestan.pacification = 3;
+  const ctx = makeCtxWith(dice);
 
-  resolvePending(G, ctx, "opt0");
+  expect(pacify(G, ctx, "dagestan", mode)).toBeUndefined();
+  return {G, ctx};
+};
 
-  expect(G.spaces.dagestan.pacification).toBe(1);
-  expect(G.powers.GE.hand.length).toBe(handBefore + 1);
-  expect(G.pending).toBeNull();
-  expect(G.flags.pendingResponse).toBeUndefined();
-  expect(G.discard.filter((id) => id === "IE-A065")).toHaveLength(1);
-  expect(G.phase).toBe("action");
-  expect(G.activePower).toBe("GE");
+test("Indian Ocean Arms Trade is only offered in the pacification window", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 0;
+  G.powers.GE.hand = ["IE-A065"];
+  expect(responseCardEligibility(G, "GE", "IE-A065")).toMatchObject({
+    ok: false,
+    reason: "pacification-window",
+  });
+  expect(playResponseCard(G, makeCtx("0"), "IE-A065")).toBe(INVALID_MOVE);
+  expect(G.powers.GE.hand).toContain("IE-A065");
 });
 
-test("Indian Ocean Arms Trade option 2 flips a reduced rebel to full strength and draws", () => {
-  const {G, ctx} = startResponse("IE-A065");
-  const reduced = placeUnit(G, "REBEL:Poland", "rebelArmy", "poland", 1);
-  const full = placeUnit(G, "REBEL:Ireland", "rebelArmy", "ireland", 2);
-  G.spaces.poland.pacification = 1;
-  const handBefore = G.powers.GE.hand.length;
+test("the marker mode decreases the marker before the roll and draws a card", () => {
+  // 5 + 5 + the reduced marker (2) = 12: the roll only reaches 10+ if the
+  // card's -1 was applied before it.
+  const {G} = startPacifyWithArmsTrade("marker", [5, 5]);
 
-  resolvePending(G, ctx, "opt1");
+  expect(G.powers.GE.hand).not.toContain("IE-A065");
+  expect(G.powers.GE.hand).toHaveLength(1);
+  expect(G.discard.filter((id) => id === "IE-A065")).toHaveLength(1);
+  expect(G.spaces.dagestan.control).toBe("GE");
+  expect(G.spaces.dagestan.pacification).toBe(0);
+  expect(G.log.some((entry) => entry.key === "pacified" && entry.args?.space === "dagestan" && entry.args?.roll === 12)).toBe(true);
+  expect(G.pending).toBeNull();
+});
+
+test("the rebel mode flips a reduced rebel to full strength and draws", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 5;
+  clearHands(G);
+  G.powers.GE.hand = ["IE-A065"];
+  for (const space of Object.values(G.spaces)) space.pacification = 0;
+  G.spaces.dagestan.influence = "GE";
+  const reduced = placeUnit(G, "REBEL:Poland", "rebelArmy", "dagestan", 1);
+
+  expect(pacify(G, makeCtxWith([3, 3]), "dagestan", "rebel")).toBeUndefined();
 
   expect(G.units[reduced.id].steps).toBe(2);
-  expect(G.units[full.id].steps).toBe(2);
-  expect(G.powers.GE.hand.length).toBe(handBefore + 1);
-  expect(G.pending).toBeNull();
-  expect(G.flags.pendingResponse).toBeUndefined();
+  expect(G.powers.GE.hand).toHaveLength(1);
   expect(G.discard.filter((id) => id === "IE-A065")).toHaveLength(1);
-  expect(G.phase).toBe("action");
-  expect(G.activePower).toBe("GE");
+  expect(G.pending).toBeNull();
+});
+
+test("declining the card rolls the pacification as printed", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 5;
+  clearHands(G);
+  G.powers.GE.hand = ["IE-A065"];
+  for (const space of Object.values(G.spaces)) space.pacification = 0;
+  G.spaces.dagestan.influence = "GE";
+  G.spaces.dagestan.pacification = 0;
+
+  expect(pacify(G, makeCtxWith([6, 6]), "dagestan")).toBeUndefined();
+
+  expect(G.powers.GE.hand).toContain("IE-A065");
+  expect(G.spaces.dagestan.control).toBe("GE");
+});
+
+test("asking for the card without holding it is refused before any CP is spent", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 5;
+  clearHands(G);
+  G.spaces.dagestan.influence = "GE";
+  const before = G.cpRemaining;
+
+  expect(pacify(G, makeCtx("0"), "dagestan", "marker")).toBe(INVALID_MOVE);
+  expect(G.cpRemaining).toBe(before);
+  expect(G.pending ?? null).toBeNull();
 });

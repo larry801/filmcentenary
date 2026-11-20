@@ -86,6 +86,8 @@ export interface RedactContext {
  *  - `noBuildArmiesThisImpulse` — Liberal Reforms' public restriction.
  *  - `freeColonialCp` — a public event grant of free colonial CP (Sun Never
  *    Sets, Our Place in the Sun).
+ *  - `stabilityDecreased`, `stabilityDecreasedTurn` — a stability loss sits on
+ *    the public track, and A89/A109 may be held by any player.
  */
 export const PUBLIC_POWER_FLAGS: readonly string[] = [
   "passedGw", // 27.7's consecutive-pass history is public turn progress.
@@ -107,6 +109,11 @@ export const PUBLIC_POWER_FLAGS: readonly string[] = [
   "modernization",
   "noBuildArmiesThisImpulse",
   "freeColonialCp",
+  // A89/A109 print "Play if Russian stability has been decreased"; the
+  // stability track is public, and the holder may be any player, so the
+  // response gate must see the same trigger the server does.
+  "stabilityDecreased",
+  "stabilityDecreasedTurn",
 ] as const;
 
 const PUBLIC_POWER_FLAG_SET = new Set<string>(PUBLIC_POWER_FLAGS);

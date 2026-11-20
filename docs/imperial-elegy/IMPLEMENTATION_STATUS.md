@@ -130,12 +130,27 @@ clause was unreachable.
 
 Coverage: `flagEnforcement.test.ts` (+2).
 
-Still open after this pass, and unchanged: card playability conditions that are
-purely cosmetic on the face, Egypt's `colonial home spaces` not changing
-`SpaceDef.keyType` (it does set the typed `keyTypeOverride`), the Balkans'
-displacement destination (now the shared 5.7 helper, so the earlier "first
-friendly controlled space" note was already stale), and the GW joint-naval
-one-sea-connection limit.
+**Closed 2026-11-21 (next pass):**
+
+- **Printed response triggers are live.** `playability.ts#responseTriggerBlock`
+  gates A44, A65, A67, A89 and A109. `changeStability` records the decrease
+  (`stabilityDecreased`, `stabilityDecreasedTurn`) and the war-end step stamps
+  `frLostWarTurn`, so A44 ("France lost a war or lost stability") and
+  A89/A109 ("Russian stability has been decreased") now answer from state.
+  A67 is offered inside the open crisis decision and refuses the Impulsive
+  Ruler crisis; its printed normal-event mode is enabled. A65 is offered by
+  `moves.ts#pacify`'s `a065` mode (and the matching board rows) as the printed
+  pre-roll window instead of the generic impulse window.
+- **Egypt's colonial home spaces are honoured engine-wide.** The live typed
+  `keyTypeOverride`/`homeOverride` now drive 12.4 fleet construction, 30.0 GW
+  stability keys, A78's colonial-key target and the board's build row.
+  `SpaceDef` itself is not mutated: the static catalog is the printed map for
+  every seat and every save, and `effectiveKeyType` is the live accessor.
+- **GW joint naval already crosses several sea connections.** A regression
+  test now pins Pomerania → Baltic → North Atlantic → Western Mediterranean in
+  one joint action; the old "one sea connection per action point" note was
+  stale. The real remaining joint-naval simplification is that both
+  contingents must start in the same box.
 
 ## Fixed: no English left in the zh_CN UI (2026-11-20)
 
@@ -1521,16 +1536,17 @@ sweep alone takes minutes and is run explicitly instead.
   Macedonia award) and **Submarines** (blockade condition, ±2 DRM, printed
   table). **Political Pressure**, **Exhaustion**, **Nicholas II** and **The
   Young Turks** now enforce their stored flags (see below).
-- **Still simplified or gapped:** card playability conditions printed on some
-  faces are not gated engine-wide; auction cards are not publicly revealed
-  after the auction; Egypt’s “colonial home spaces” set a `homeOverride` and a
-  typed `keyTypeOverride` rather than changing `SpaceDef.keyType`; the GW
-  `gwJointNaval` still allows one sea connection per action point.
+- **Still simplified or gapped:** auction cards are not publicly revealed
+  after the auction; a few older specials still auto-pick or log only; both
+  contingents of a GW joint naval operation must start in the same box.
   **Closed 2026-11-20:** Loose Grip takes every named Ottoman space (no choice);
   Political Pressure's "occupying an empty enemy key" clause is live
   (`notePoliticalPressureOccupation`); Exhaustion already activates at the
   impulse boundary (`queueGwExhaustion` / `activateGwExhaustion`); the Balkans and
   every other displacement now go through 5.7's closest-friendly-LoC helper.
+  **Closed 2026-11-21:** the printed triggers on A44/A65/A67/A89/A109 are
+  engine-wide; Egypt's live colonial home key drives 12.4/30.0/A78 and the
+  board; `gwJointNaval` is pinned across three sea connections.
 - A few older specials still auto-pick or log only (the specific Italian table
   results, several “log-only” display effects).
 
@@ -1688,10 +1704,10 @@ sweep alone takes minutes and is run explicitly instead.
   uses the same contact chain.
 - **Remaining:** general action-phase joint naval operations are not exposed;
   amphibious loading starts from a friendly port because there is no separate
-  naval-transport move; the GW `gwJointNaval` still allows one sea connection
-  per action point; 19.1’s “continue after winning an interception” is not
-  implemented; 19.5’s port-count DRMs feed the 19.2 avoid roll rather than the
-  battle dice.
+  naval-transport move; both GW joint-naval contingents must start in the same
+  box (the move itself traces the full 12.3 NMP route, several boxes at a
+  time); 19.1’s “continue after winning an interception” is not implemented;
+  19.5’s port-count DRMs feed the 19.2 avoid roll rather than the battle dice.
 - Interception/avoidance/amphibious for the **GW** follow the same limitations;
   `beginLandBattle`’s amphibious flag is now reachable from `amphibiousAssault`.
 
@@ -1758,8 +1774,9 @@ sweep alone takes minutes and is run explicitly instead.
   squadron in Naples/Piedmont.
 - **Remaining:** non-GW 15.6 knockout is still computed only at victory;
   20.3’s Italian rebuild uses its own legacy placement; the 32.1 guard has no
-  live US land route out of North America yet; `gwJointNaval` still allows one
-  sea connection per action point.
+  live US land route out of North America yet; a joint naval operation still
+  requires both contingents to begin in the same box (the route itself may
+  cross any number of sea connections on one NMP).
 
 ### Minor-defender support and windows
 
@@ -1922,7 +1939,7 @@ controls and 3/3 spectator passed. The full commands are in
 | National characteristics | `characteristics.test.ts` (pure), `characteristicsIntegration.test.ts`, `recruitmentLimitsLive.test.ts` (14) and `characteristicsLive.test.ts` (35) cover card draws, stability decisions, DRMs, support, save limits, recruitment pools, AU/FR/RU/OT special actions, Jihad, TSRR rail and government changes. |
 | Combat / logistics | `combatCards.test.ts` (43), `combatCardsIntegration.test.ts` (9), `combatCardModes*.test.ts`, `combatFallbacks.test.ts` (27), `combatResiduals.test.ts` (17), `gw05Flip.test.ts` (5), `overstacking.test.ts` (11), `brokenLoc.test.ts` (13), `trenchCreation.test.ts` (13), `counterLimits.test.ts` (9) and `amphibiousInterception.test.ts` (9). |
 | Card choices / GW flags | `cardTargetChoices.test.ts` (33) covers the printed target choices and auctions; `flagEnforcement.test.ts` (22) covers Political Pressure, Exhaustion, Nicholas II, Young Turks and Submarines conditions. |
-| Response windows | `responseWindows.test.ts` (8), `responseCardOptions.test.ts`, `responseAlliance.test.ts` and `components/board.test.tsx` cover impulse-start windows, mid-impulse blocking, combat/GW-06 rejection, A065/A067 options and board gating. |
+| Response windows | `responseWindows.test.ts` (8), `responseTriggers.test.ts` (7), `responseCardOptions.test.ts`, `responseAlliance.test.ts` and `components/board.test.tsx` cover impulse-start windows, mid-impulse blocking, combat/GW-06 rejection, the printed A44/A65/A67/A89/A109 triggers, the crisis and pacification windows, and board gating. |
 | Privacy | `privacy.test.ts`, `privateInfo.test.ts`, `privacyFlags.test.ts` (6) and `newPendingPrivacy.test.ts` cover seat/spectator redaction, hidden deck order, pending decisions, the public-flag allowlist, auction bids and face-up combat cards. |
 | End phase / alliance / naval | `economy.test.ts`, `economyIntegration.test.ts`, `endPhaseSteps.test.ts` (20), `endPhaseResiduals.test.ts` (13), `allianceCap.test.ts` (9), `navalPath.test.ts` (9), `navalAvoidance.test.ts` (15), `trenchBattleSpace.test.ts` (11), `movementStacking.test.ts` (11), `minorBrokenLoc.test.ts` (8) and `components/logText.test.ts` cover the 12-step live order, 20.1/20.5/20.9 choices, the three-player cap, NMP paths, 19.2 avoidance, trench-space movement and bilingual log rendering. |
 | Great War home front | `gwBlockade.test.ts` (10), `gwColonialWar.test.ts` (19) and `gwNeutralEntry.test.ts` (14) cover capital→box blockade/max industry, the printed colonial-war modifiers/losses/transfers/stability/bonus CP, and the neutral join/stay-out decisions with the three-player cap. |
@@ -1981,3 +1998,42 @@ checkout contains **501** published files.
    seat is not the active power. The rules remain gated by `G.activePower` and
    the seat check in `resolvePending`; this is a transport-level change worth
    keeping when the pending model is next revised.
+
+## Printed response triggers and live key types (2026-11-21)
+
+Three items that the previous pass listed as open were closed together because
+each was a place where the printed text (or the map data) was cosmetic.
+
+- **Response triggers (9.1.3).** `responseTriggerBlock` is the single live
+  predicate behind both the hand button and `playResponseCard`:
+  - A44 Paris Commune — closed unless France lost a war (`frLostWarTurn`) or
+    lost stability (`stabilityDecreasedTurn`) in the current or previous turn;
+  - A89 Cossacks — closed until Russia's stability has been decreased (past
+    tense, so the loss stays a legal trigger);
+  - A109 Revolution of 1905 — the same trigger, for the current or previous
+    turn;
+  - A67 International Conference — its only response window is the open
+    `crisis` decision, where it adds its +2 DRM without replacing the roll; the
+    Impulsive Ruler exception is enforced. Its printed normal-event mode is now
+    reachable and applies only the WTT decrease (`eventPlayability` allows A67
+    like A41);
+  - A65 Indian Ocean Arms Trade — `pacify(..., "marker" | "rebel")` consumes
+    the card before its own roll (and the board offers one row per printed
+    effect when the pacifying player holds it), so the printed "prior to a
+    pacification roll" window is the only place it can be used.
+- **Egypt's live colonial home.** `effectiveKeyType`/`homeOverride` now decide
+  12.4 fleet construction (`moves.ts#constructFleet` and the build row in
+  `actionAvailability.ts`), 30.0 GW stability keys (`greatWar.ts#gwStabilityKey`)
+  and A78's colonial-key target (`effects.ts#crackColonialTroops`). The static
+  `SpaceDef.keyType` remains the printed map: the override is per-game state,
+  and mutating the catalog would leak one match's A71 result into every other
+  seat and save.
+- **GW joint naval.** The move already used `planNavalMove` for both
+  contingents; a regression now pins a three-connection joint route. The claim
+  that it allowed only one sea connection per action point was stale and is
+  removed. The remaining honest limitation is the shared starting box.
+
+Coverage: `responseTriggers.test.ts` (7), `responseCardOptions.test.ts`
+(rewritten A65/A67 windows), `egyptKeyType.test.ts` (+3 engine-wide readers),
+`components/actionAvailability.test.ts` (Egypt build row) and
+`jointTransitInterception.test.ts` (+1 multi-connection joint move).
