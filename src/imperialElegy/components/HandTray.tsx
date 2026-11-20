@@ -125,6 +125,7 @@ export const HandTray = (props: HandTrayProps) => {
     onOpenReference, expandAll = false, isPhone = false, isBotViewer = false,
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
+  const [chainCard, setChainCard] = React.useState<string>("");
   // Reads the saved preference when the tray mounts; `Preferences` in the
   // command menu writes it, and the tray picks the new value up on remount.
   // The board passes the live preference so the Display menu can flip it; a
@@ -167,6 +168,17 @@ export const HandTray = (props: HandTrayProps) => {
       .map(([key, text]) => [key, bi(locale, text.en, text.zh_CN)])),
     bi: (en, zh) => bi(locale, en, zh),
   });
+  // 12.14: the chain is spent by playing a card for CP, so the UI must name
+  // that card instead of silently starting a card-less impulse.
+  const chainCardChoices = hand.filter((id) => {
+    const card = cardById(id);
+    if (card.kind === "home" || card.type === "mandatory" || card.type === "mandatoryResponse") return false;
+    return availability(id).cpModeOk;
+  });
+  const selectedChainCard = chainCardChoices.includes(chainCard) ? chainCard : chainCardChoices[0] ?? "";
+  const chainReason = chainDisabledReason ?? (!selectedChainCard
+    ? bi(locale, "No non-mandatory card in hand can fund the chain.", "手中没有可用于 CP 链的非强制牌。")
+    : undefined);
 
   /**
    * Whether a card has any operation to offer at all — legal right now, or
@@ -353,10 +365,21 @@ export const HandTray = (props: HandTrayProps) => {
                   ? me.cpChain.map((id) => <IEChip key={id}>{homeCardTitle(id)}</IEChip>)
                   : <span className="ie-muted">{bi(locale, "No chained cards.", "CP 链中没有牌。")}</span>}
               </span>
-              <button className="ie-btn secondary ie-btn-xs" data-testid="ie-use-cp-chain" disabled={!chainReady} title={chainDisabledReason} onClick={() => doAction(() => moves.useCpChain(), {label: bi(locale, "Use the CP chain", "使用 CP 链"), reason: chainDisabledReason})}>
+              {chainReady && chainCardChoices.length > 0 && (
+                <select
+                  className="ie-cp-chain-select"
+                  data-testid="ie-cp-chain-card"
+                  aria-label={bi(locale, "Card to play for CP with the chain", "用于支付 CP 链的牌")}
+                  value={selectedChainCard}
+                  onChange={(event) => setChainCard(event.target.value)}
+                >
+                  {chainCardChoices.map((id) => <option key={id} value={id}>{homeCardTitle(id)}</option>)}
+                </select>
+              )}
+              <button className="ie-btn secondary ie-btn-xs" data-testid="ie-use-cp-chain" disabled={!chainReady || !selectedChainCard} title={chainReason} onClick={() => doAction(() => moves.useCpChain(selectedChainCard), {label: bi(locale, "Use the CP chain", "使用 CP 链"), reason: chainReason})}>
                 {bi(locale, "Use CP chain", "使用 CP 链")}
               </button>
-              {!chainReady && chainDisabledReason && <span className="ie-muted ie-tray-chain-reason" data-testid="ie-cp-chain-reason">{chainDisabledReason}</span>}
+              {(!chainReady || !selectedChainCard) && chainReason && <span className="ie-muted ie-tray-chain-reason" data-testid="ie-cp-chain-reason">{chainReason}</span>}
             </div>
 
             <div className="ie-hand">

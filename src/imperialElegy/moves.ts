@@ -24,6 +24,7 @@ import {
   autoIndustrySuccess,
   cpChainResolution,
   CP_CHAIN_MAX_CARDS,
+  CP_CHAIN_SINGLE_ACTION_CAP,
   decadeForTurn,
   endPhaseOrder,
   industryRollNeeded,
@@ -403,6 +404,10 @@ const clearActionImpulseSpend = (G: ImperialElegyState): void => {
   // 12.11's pacification limit is "once per space, per impulse", so a failed
   // attempt becomes retryable in the next impulse.
   clearPacificationImpulse(G);
+  // 12.14: the chain-funded action is one impulse wide; `cpChainSpent` stays
+  // for the phase, but the "this impulse's single action" marker resets.
+  delete G.flags.cpChainActive;
+  delete G.flags.cpChainActionUsed;
   delete G.flags.decisiveBattle;
   delete G.flags.decisiveFollowUp;
   delete G.flags.decisiveBonusUsed;
@@ -435,6 +440,7 @@ const addLog = log;
 
 const clearCpChainPhaseFlags = (G: ImperialElegyState): void => {
   delete G.flags.cpChainActive;
+  delete G.flags.cpChainActionUsed;
   delete G.flags.cpChainSpent;
   delete G.flags.cpChainPower;
 };
@@ -1032,6 +1038,7 @@ const requireColonialCp = (
   if (G.phase === "gwManeuver" && hasLiveGwImpulse(G)) return INVALID_MOVE;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (G.flags.cpChainActive === true && G.flags.cpChainActionUsed === true) return INVALID_MOVE;
   const free = freeColonialCp(G, power);
   if (!spendColonialCp(G, power, amount)) {
     // Restore the grant when the ordinary wallet could not cover the rest, so a
@@ -1045,6 +1052,7 @@ const requireColonialCp = (
     G.powers[power].flags.warCpSpentThisImpulse = true;
     noteWartimeAction(G);
   }
+  if (G.flags.cpChainActive === true) G.flags.cpChainActionUsed = true;
   return power;
 };
 
@@ -2273,6 +2281,7 @@ export const cpChain = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string
   if (power === null || G.phase !== "action" || G.pending !== null) return INVALID_MOVE;
   const p = G.powers[power];
   if (p.cpChain.length >= CP_CHAIN_MAX_CARDS) return INVALID_MOVE;
+  if (p.cpChain.includes(cardId)) return INVALID_MOVE;
   if (!p.hand.includes(cardId)) return INVALID_MOVE;
   const card = cardById(cardId);
   p.hand = p.hand.filter((id) => id !== cardId);
@@ -2304,24 +2313,39 @@ export const cpChain = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string
  * chain-funded action has been used.  The physical cards stay faceup in the
  * chain until `finishImpulse` ends the action phase, which then discards them.
  */
-export const useCpChain = (G: ImperialElegyState, ctx: Ctx): string | void => {
+export const useCpChain = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.phase !== "action" || G.pending !== null) return INVALID_MOVE;
-  // The chain supplements the start of a fresh impulse, never a half-spent one.
+  // 12.14: "Players may spend the CP in their CP Chain when they play a card
+  // for CP on a future impulse."  The card played to spend the chain is not one
+  // of the two chained cards (errata), so it comes from hand now.
   if (G.cpRemaining > 0) return INVALID_MOVE;
   if (G.flags.cpChainSpent === true) return INVALID_MOVE;
   const p = G.powers[power];
   if (p.cpChain.length === 0) return INVALID_MOVE;
+  if (!p.hand.includes(cardId)) return INVALID_MOVE;
+  const card = cardById(cardId);
+  // A mandatory event's CP play is its event; using it as the chain's funding
+  // card would need the event's pending chain.  Home cards have their own
+  // printed selection slot.  Both stay on the ordinary `playCard` path.
+  if (card.kind === "home" || card.type === "mandatory" || card.type === "mandatoryResponse") return INVALID_MOVE;
+  if (!cpPlayability(G, power, cardId).ok) return INVALID_MOVE;
   const resolved = cpChainResolution(G, power);
   if (resolved.cpSpendable <= 0) return INVALID_MOVE;
-  G.cpRemaining = resolved.cpSpendable;
-  // The chain starts a fresh impulse; its CP has not been spent yet.
-  delete G.powers[power].flags.actionCpSpentThisImpulse;
+  // Reuse the canonical CP-play path for the card's removal/discard rules.
+  const played = playCard(G, ctx, cardId, "cp");
+  if (played !== undefined) return played;
+  if (G.pending !== null) return INVALID_MOVE;
+  // One action cannot exceed 4 CP: the card's CP plus the chain's spendable
+  // portion are the same single action's budget.
+  G.cpRemaining = Math.min(G.cpRemaining + resolved.cpSpendable, CP_CHAIN_SINGLE_ACTION_CAP);
   G.flags.cpChainActive = true;
   G.flags.cpChainSpent = true;
   G.flags.cpChainPower = power;
+  G.flags.cpChainActionUsed = false;
+  log(G, power, "cpChainUsed", {card: cardId, cp: G.cpRemaining});
   return undefined;
 };
 

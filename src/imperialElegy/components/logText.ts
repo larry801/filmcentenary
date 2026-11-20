@@ -1558,6 +1558,16 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `chained ${card} for CP.`, `将 ${card} 加入 CP 链。`);
   },
 
+  cpChainUsed: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(
+      entry,
+      locale,
+      `spent the CP chain with ${card}: ${str(entry.args?.cp)} CP for one action.`,
+      `用 ${card} 启动 CP 链：${str(entry.args?.cp)} CP 用于一次行动。`,
+    );
+  },
+
   // ------------------------------------------------------------------ Great War flow
   gwImpulse: (entry, locale) => {
     const kind = str(entry.args?.kind);
