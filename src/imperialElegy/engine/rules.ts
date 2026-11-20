@@ -1030,6 +1030,28 @@ export const resolveCapitalSurrenders = (G: ImperialElegyState, ctx?: Ctx): Powe
   return eliminated;
 };
 
+/**
+ * 5.6.1: a non-player power allied to a player is part of that player's side
+ * for supply, even outside a war ("home spaces of minor powers allied to your
+ * major power allies").  Only an allied *minor* qualifies; a neutral minor
+ * that merely sits on the route is not a supply corridor.
+ */
+const alliedMinorController = (
+  G: ImperialElegyState,
+  power: Power,
+  holder: PowerOrMinor | null | undefined,
+): Power | null => {
+  if (holder === null || holder === undefined || isPower(holder)) return null;
+  const controller = minorController(G, holder) ?? minorUpkeepPower(G, holder);
+  if (controller === null || controller === power) return null;
+  // The ally marker is the printed "minor ally"; a controller that merely pays
+  // the minor's upkeep (an occupied minor) is not enough at peace.
+  const marker = G.spaces && Object.values(G.spaces).some(
+    (state) => state.control === holder && state.ally === controller,
+  );
+  return marker && allied(G, controller, power) ? controller : null;
+};
+
 /** 4.9.4: only allies actually participating in this war supply one another. */
 const locAllies = (G: ImperialElegyState, power: Power): readonly Power[] => {
   if (G.gw?.active) {
@@ -1177,6 +1199,10 @@ export const isSupplySource = (
   requireTwoSources = true,
   respectNavalGates = true,
 ): boolean => {
+  // 5.6: a supply source is a friendly-controlled, fortified **home key** of the
+  // power or of a home key behind an ally's home space.  A home *territory*
+  // (no key type) is never a source by itself; the track-type override a card
+  // may write is honoured by `isKeySpace`/`effectiveKeyType`.
   const ownHomeKey = (id: SpaceId): boolean =>
     isKeySpace(G, id) && ownsKey(G, id, power) && isHomeSpace(G, id, power) && locFriendlySpace(G, id, power);
   if (!ownHomeKey(space)) return false;
@@ -3256,6 +3282,9 @@ const moveUnitForUpkeep = (G: ImperialElegyState, unit: Unit, to: SpaceId): void
  * player's impulse (the earliest point the owning player is prompted), which
  * is the live fallback for "immediately".
  */
+export const repairBrokenLinesOfCommunication = (G: ImperialElegyState, power: Power): number =>
+  displacePeacetimeBrokenLoc(G, power);
+
 const displacePeacetimeBrokenLoc = (G: ImperialElegyState, power: Power): number => {
   if (G.war !== null || G.gw?.active) return 0;
   let moved = 0;
@@ -3383,7 +3412,9 @@ export const beginImpulseUpkeep = (
   // land unit stands in it, and a unit entering one places the printed entry
   // marker.  Reconciled here so every movement path is covered once.
   reconcilePacificationMarkers(G);
-  displacePeacetimeBrokenLoc(G, power);
+  // 5.6.3: peacetime broken LoCs repair "immediately"; the impulse boundary is
+  // the fallback for saves made before the immediate callers existed.
+  repairBrokenLinesOfCommunication(G, power);
   const penalties = impulsePenalties(G, power);
   if (penalties.length === 0) return false;
   return continueImpulseUpkeep(G, ctx, power, penalties, 0);
