@@ -483,6 +483,13 @@ const MUICreateMatch = ({serverURL, gameName}: CreateMatchProps) => {
                             </FormControl>
                         )}
                         {gameName === imperialElegyName && (
+                            <Box sx={{mb: 1}}>
+                                <Button component={Link} to="/localIE/solo" variant="outlined" size="small" data-testid="ie-solo-link">
+                                    {vqLocale === "zh_CN" ? "单人模式：选一个大国" : "Solo: pick one great power"}
+                                </Button>
+                            </Box>
+                        )}
+                        {gameName === imperialElegyName && (
                             <FormControl variant="outlined" sx={styles.formControl} fullWidth>
                                 <InputLabel htmlFor="ie-scenario">{ieScenarioLabel}</InputLabel>
                                 <Select native value={ieScenario} onChange={(e) => setIeScenario(String(e.target.value))}

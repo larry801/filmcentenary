@@ -685,6 +685,45 @@ test.describe("Imperial Elegy new controls", () => {
 });
 
 test.describe("Imperial Elegy solo vs bot", () => {
+    test("the solo page picks one great power and starts a match on that seat", async ({page}) => {
+        // The dedicated solo entrance is its own page: one radio per great
+        // power, the other five seats become bots, and the chosen seat is the
+        // one the shell opens on.
+        const errors: string[] = [];
+        page.on("console", (message) => {
+            if (message.type() === "error") errors.push(message.text());
+        });
+        await page.goto("/localIE/solo");
+        await expect(page.getByRole("heading", {name: "帝国挽歌 — 单人模式"})).toBeVisible();
+        const powers = page.getByTestId("ie-solo-powers");
+        await expect(powers).toBeVisible();
+        // Exactly one radio, and exactly one of them is checked.
+        await expect(powers.locator('input[type="radio"]')).toHaveCount(6);
+        await expect(page.getByTestId("ie-solo-power-GE")).toBeChecked();
+        await expect(page.getByTestId("ie-solo-summary")).toContainText("德国");
+
+        // Taking France (a middle seat, not the first) is the case a tail-only
+        // default could never produce.
+        await page.getByTestId("ie-solo-power-FR").check();
+        await expect(page.getByTestId("ie-solo-power-FR")).toBeChecked();
+        await expect(page.getByTestId("ie-solo-power-GE")).not.toBeChecked();
+        await expect(page.getByTestId("ie-solo-summary")).toContainText("法国");
+        await expect(page.getByTestId("ie-solo-summary")).toContainText("5");
+
+        await page.getByTestId("ie-solo-start").click();
+        // The shell deals a fresh match and opens on the picked seat.
+        await expect(page.locator('[data-testid="ie-seat-FR"]')).toHaveAttribute("data-active", "true");
+        // The five other seats are bots; the player's own seat is playable.
+        const human = page.locator('[data-testid="ie-seat-FR"]');
+        await expect(human.locator(".ie-bot-banner")).toHaveCount(0);
+        await page.getByRole("tab", {name: /P1/}).click();
+        await expect(page.locator('[data-testid="ie-seat-GE"]').locator(".ie-bot-banner")).toContainText("机器人");
+        // The solo hand-over also dealt a new match, not the hotseat one the
+        // local master may still hold: the seat setup screen is skipped.
+        await expect(page.getByTestId("ie-start-match")).toHaveCount(0);
+        expect(errors).toEqual([]);
+    });
+
     test("the solo entrance starts a match with P2-P6 as read-only bot seats", async ({page}) => {
         await page.goto("/localIE?solo=1");
         // The seat-setup screen only appears on the explicit solo entrance; the

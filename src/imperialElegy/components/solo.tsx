@@ -1,0 +1,146 @@
+import React from "react";
+import {Link, useNavigate} from "react-router-dom";
+import {IESurface} from "./theme";
+import {ieT} from "./i18n";
+import i18n from "../../constant/i18n";
+import {POWERS, Power} from "../types";
+import {IE_NO_GW_LABEL, IE_SCENARIOS} from "../configuration";
+import {ScenarioId} from "../constant/scenarios";
+import {
+  loadNoGw,
+  loadScenario,
+  loadSoloPower,
+  saveSoloSetup,
+  scenarioAllowsNoGw,
+  scenarioSummary,
+  soloBotSeats,
+  soloMatchPath,
+} from "./localSetup";
+
+/**
+ * The solo entrance: a page of its own where the player picks the one great
+ * power they command.
+ *
+ * A solo match is the hotseat shell with five bot seats, so the page does not
+ * own a game client.  It collects the one choice the hotseat board cannot ask
+ * for (which power the player takes), writes the resulting seat setup and hands
+ * over to `/localIE?fresh=…`, which deals a fresh match on the chosen seat.  The
+ * five remaining powers are always the bots.
+ */
+const LocalImperialElegySolo = () => {
+  i18n.use();
+  const t = ieT();
+  const locale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
+  const navigate = useNavigate();
+  // The power is a single choice: keep the last one the player took, and fall
+  // back to the first printed seat (GE) so the radio group always has one.
+  const [power, setPower] = React.useState<Power>(() => loadSoloPower() ?? POWERS[0]);
+  const [scenario, setScenario] = React.useState<ScenarioId>(loadScenario);
+  const [noGw, setNoGw] = React.useState<boolean>(loadNoGw);
+
+  // Language switches must re-render: the i18n object is mutable state that
+  // React cannot observe.
+  const [, setLocaleTick] = React.useState(0);
+  React.useEffect(() => i18n.listen(() => setLocaleTick((n) => n + 1)), []);
+
+  const summary = React.useMemo(
+    () => scenarioSummary(scenario, noGw, locale, t),
+    [scenario, noGw, locale, t],
+  );
+  const bots = soloBotSeats(power);
+
+  return (
+    <IESurface className="ie-local ie-local-setup ie-solo">
+      <header className="ie-local-head">
+        <h1 className="ie-local-title">{t.soloTitle}</h1>
+      </header>
+      <div className="ie-local-setup-body">
+        <h2 className="ie-local-subtitle">{t.soloPowerTitle}</h2>
+        <p className="ie-muted">{t.soloPowerIntro}</p>
+        <div
+          className="ie-solo-powers"
+          role="radiogroup"
+          aria-label={t.soloPowerTitle}
+          data-testid="ie-solo-powers"
+        >
+          {POWERS.map((p, index) => (
+            <label
+              key={p}
+              className="ie-solo-power"
+              data-power={p}
+              data-selected={p === power ? "true" : "false"}
+            >
+              <input
+                type="radio"
+                name="ie-solo-power"
+                value={p}
+                data-testid={`ie-solo-power-${p}`}
+                checked={p === power}
+                onChange={() => setPower(p)}
+              />
+              <span className={`ie-power-pip ie-power-pip-${p.toLowerCase()}`} aria-hidden="true"/>
+              <span className="ie-solo-power-seat">P{index + 1}</span>
+              <span className="ie-solo-power-name">{t.seats[p]}</span>
+            </label>
+          ))}
+        </div>
+        <p className="ie-muted" data-testid="ie-solo-summary">
+          {`${t.soloYouPlay} ${t.seats[power]} · ${t.soloBotsRest} ${bots.size}`}
+        </p>
+
+        <h2 className="ie-local-subtitle">{t.scenarioTitle}</h2>
+        <p className="ie-muted">{t.scenarioIntro}</p>
+        <label className="ie-local-scenario">
+          <span>{t.scenarioLabel}</span>
+          <select
+            data-testid="ie-solo-scenario"
+            value={scenario}
+            onChange={(event) => {
+              const next = event.target.value as ScenarioId;
+              setScenario(next);
+              if (!scenarioAllowsNoGw(next)) setNoGw(false);
+            }}
+          >
+            {IE_SCENARIOS.map((entry) => (
+              <option key={entry.id} value={entry.id}>
+                {locale === "en" ? entry.name : entry.nameZh}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="ie-local-no-gw">
+          <input
+            type="checkbox"
+            data-testid="ie-solo-no-gw"
+            checked={noGw}
+            disabled={!scenarioAllowsNoGw(scenario)}
+            onChange={(event) => setNoGw(event.target.checked)}
+          />
+          <span>{locale === "en" ? IE_NO_GW_LABEL.en : IE_NO_GW_LABEL.zh_CN}</span>
+        </label>
+        <p className="ie-muted" data-testid="ie-solo-scenario-summary">{summary}</p>
+
+        <div className="ie-solo-actions">
+          <button
+            type="button"
+            className="ie-btn primary ie-local-start"
+            data-testid="ie-solo-start"
+            onClick={() => {
+              // Persist the single choice and hand over to the hotseat shell,
+              // which deals a new match on the picked seat (`?fresh=…`).
+              saveSoloSetup(power, scenario, noGw);
+              navigate(soloMatchPath());
+            }}
+          >
+            {t.soloStart}
+          </button>
+          <Link className="ie-link ie-solo-hotseat" to="/localIE?solo=1" data-testid="ie-solo-hotseat">
+            {t.soloHotseatLink}
+          </Link>
+        </div>
+      </div>
+    </IESurface>
+  );
+};
+
+export default LocalImperialElegySolo;

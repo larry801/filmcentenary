@@ -31,6 +31,7 @@ written next to it.
 - [ ] The seat strip `data-testid="ie-seat-strip"` shows six tabs, `data-testid="ie-seat-status-GE"` … `ie-seat-status-OT`, in the printed order GE · UK · FR · AU · RU · OT (P1–P6).
 - [ ] Press `2` (or `]`): the focus moves to the UK board without reloading the page or restarting the match. `1`–`6` and `[` / `]` switch seats.
 - [ ] Optional, for the bot section: `http://localhost:5173/localIE?solo=1` opens the seat-setup screen first (`data-testid="ie-local-bot-seats"`), with a **Start match** / `开始对局` button `data-testid="ie-start-match"`.
+- [ ] Optional, for the dedicated solo page: `http://localhost:5173/localIE/solo` lists one radio per great power (`data-testid="ie-solo-power-GE"` … `ie-solo-power-OT`); the five seats you do not pick are bots.
 - [ ] Optional, for the online bot section: open `/imperialElegy`, choose **人类玩家 / Human players** (`#outlined-ie-humans`) between 2 and 6, and check the seat preview `data-testid="ie-lobby-seats"`: the tail seats (`ie-lobby-seat-FR` … `ie-lobby-seat-OT` for a 2-human table) show 🤖 and the summary reads `2 名人类 + 4 名机器人（规则 34）`. Creating the match posts `numPlayers: 6` with `setupData.bots`.
 
 ---
@@ -153,7 +154,10 @@ Prerequisite: a match with a Great War running (play to the outbreak, or use a s
 
 ## 6. Bots
 
-- [ ] Open `http://localhost:5173/localIE?solo=1`. The setup screen lists six checkboxes under `机器人席位（规则 34）`; P2–P6 are pre-ticked, P1 is not; each row also names its current controller (`玩家` / `机器人`), and `ie-local-seat-summary` counts them. Click `开始对局` / **Start match**.
+- [ ] Open `http://localhost:5173/localIE/solo` and pick one great power with its radio (`ie-solo-power-<power>`). The other five seats are always the bots, and `ie-solo-summary` names your power and counts the five bot seats. Choose a scenario (`ie-solo-scenario`) and start with `ie-solo-start` (`开始单人游戏` / **Start solo match**).
+- [ ] The solo match opens on the seat you picked (its tab is already active) and deals a **new** match: the seat-setup screen is skipped even if you had one open before.
+- [ ] The five seats you did not pick carry the read-only bot banner `ie-bot-banner`; your own seat does not.
+- [ ] **The multi-seat seat setup still works.** Open `http://localhost:5173/localIE?solo=1`. The setup screen lists six checkboxes under `机器人席位（规则 34）`; P2–P6 are pre-ticked, P1 is not; each row also names its current controller (`玩家` / `机器人`), and `ie-local-seat-summary` counts them. Click `开始对局` / **Start match**.
 - [ ] **Any seat may be a bot, not only the tail.** Tick the P1 checkbox (`ie-local-bot-GE`): the summary reads `机器人 6`, the row's role becomes `机器人`, and the match starts with Germany (the first seat) driven by the bot. Unticking it restores `玩家 1`. The online lobby (`/imperialElegy`) offers the same choice on its six seat chips `ie-lobby-seat-<power>` (see `e2e/lobby.spec.ts`).
 - [ ] **Hand a live seat over, and take it back.** In a running match, the status line for a human seat carries `ie-hand-over-seat` (`交给机器人托管` / "Hand this seat to the bot"); clicking it sends the `setSeatBot` move, the banner `ie-bot-banner` appears, and the seat strip shows `机器人` / `Bot`. A bot seat's banner carries `ie-take-back-seat` (`收回席位` / "Take this seat back"), which returns it to the person at the keyboard. Nothing restarts: `G.bots` is the only thing that changes.
 - [ ] **A handover waits for an open decision.** While `G.pending` or `G.battle` is set, neither control is drawn: the person answers the question first, and the seat can then be handed over.

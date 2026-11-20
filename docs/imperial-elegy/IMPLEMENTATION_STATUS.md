@@ -1,5 +1,40 @@
 # Imperial Elegy — implementation status
 
+## Added: a solo page that asks which great power you command (2026-11-20)
+
+Reported as "帝国挽歌单人模式添加独立页面 单选一个大国开始游戏".  Solo play used to
+hide inside the hotseat shell: `/localIE?solo=1` opened a six-checkbox seat
+setup where the player had to work out that the one seat they left unticked was
+their own, and a solo match opened on P1 even when they had taken another seat.
+
+- **`/localIE/solo` is its own page** (`components/solo.tsx`, linked from the
+  nav drawer, the home page and the online create panel).  It is one radio group
+  — `ie-solo-powers`, one `ie-solo-power-<POWER>` per printed seat, with the
+  power's pip — plus the scenario picker and Scenario 4's "No GW" toggle.  The
+  other five powers are always the bots; `ie-solo-summary` names the player's
+  power and counts them.
+- **The choice is a real hand-over, not a pre-tick.**  The page writes
+  `{power, scenario, noGw}` through `components/localSetup.ts` and navigates to
+  `/localIE?fresh=<stamp>`.  The stamp becomes the shell's `matchID` nonce, so a
+  solo start **deals a new match** instead of resuming the `Local()` master the
+  hotseat tab may still hold, and the shell opens on the picked seat instead of
+  P1.
+- **The hotseat entrance is unchanged.**  `/localIE` still starts on P1 with six
+  human seats, and `/localIE?solo=1` still opens the multi-seat setup screen
+  with P2–P6 pre-ticked (now reachable from the solo page too).  Both entrances
+  read their saved setup through the same `readLocalSetup`, so they can no
+  longer disagree about the bot seats, the scenario or the starting tab.  A
+  saved setup whose P1 is a bot opens on the first human seat rather than a
+  read-only board.
+- **"No GW" follows the playbook.**  The toggle is disabled (and a stale tick
+  cleared) for the tutorials, which print their own victory checks
+  (`allowsNoGw: false`), instead of being accepted and silently ignored.
+
+`components/localSetup.test.tsx` pins the seat set, the storage round trip, the
+`?fresh=` hand-over, the starting-seat fallback and the rendered solo page; the
+`e2e/imperial-elegy-controls.spec.ts` "solo vs bot" block picks France (a middle
+seat) and checks the match opens on that seat with the other five as bots.
+
 ## Added: the nine printed reference charts, transcribed in both languages (2026-11-20)
 
 Reported as "帝国挽歌9个参考表翻译成中文".  The nine charts are published
