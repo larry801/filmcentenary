@@ -204,15 +204,32 @@ async function findSavableCard(board: Locator): Promise<Locator | null> {
     const page = board.page();
     const cards = board.locator(".ie-hand .ie-card");
     for (let i = 0; i < await cards.count(); i += 1) {
-        const card = await openCard(cards.nth(i));
-        // Every operation (play, Save, Industrialize, CP chain) lives in the
-        // CardInspector, which the row opens.
-        const inspector = board.locator('[data-testid="ie-card-inspector"]');
-        const save = inspector.getByRole("button", {name: "保留", exact: true});
-        const found = await save.count() > 0 && await save.isEnabled();
-        await page.keyboard.press("Escape");
-        await expect(inspector).toHaveCount(0);
-        if (found) return card;
+      const card = await openCard(cards.nth(i));
+      // Every operation (play, Save, Industrialize, CP chain) lives in the
+      // CardInspector, which the row opens.
+      const inspector = board.locator('[data-testid="ie-card-inspector"]');
+      const save = inspector.getByRole("button", {name: "保留", exact: true});
+      const found = await save.count() > 0 && await save.isEnabled();
+      await page.keyboard.press("Escape");
+      await expect(inspector).toHaveCount(0);
+      if (found) return card;
+    }
+    return null;
+}
+
+/**
+ * A savable card anywhere on the table, with the seat that holds it.
+ *
+ * The opening deal is shuffled, so a seat's hand can legitimately be all home
+ * and mandatory cards — none of which may be saved (12.13).  That is a legal
+ * deal, not a broken board, so the caller looks across the seats: any seat's
+ * hand is the same control surface.
+ */
+async function findSavableCardAnywhere(page: Page): Promise<{seat: string; card: Locator} | null> {
+    for (const seat of SEATS) {
+        await focusSeat(page, seat);
+        const card = await findSavableCard(boardFor(page, seat));
+        if (card !== null) return {seat, card};
     }
     return null;
 }
@@ -570,14 +587,18 @@ test.describe("Imperial Elegy new controls", () => {
 
     test("card economy controls render on the row and Save toggles the card state", async ({page}) => {
         await reachAction(page);
-        const board = boardFor(page, "GE");
 
-        const card = await findSavableCard(board);
-        expect(card).not.toBeNull();
+        // Any seat may hold the savable card: the opening deal is shuffled and a
+        // hand of home plus mandatory cards is legal but has nothing to save.
+        const found = await findSavableCardAnywhere(page);
+        expect(found).not.toBeNull();
+        await focusSeat(page, found!.seat);
+        const board = boardFor(page, found!.seat);
+        const card = found!.card;
         // On a desktop the row itself carries the economy controls; the
         // inspector repeats them.  Play the Save from the row, then confirm the
         // inspector shows the same state.
-        const rowActions = card!.locator(".ie-card-row-actions");
+        const rowActions = card.locator(".ie-card-row-actions");
         await expect(rowActions).toBeVisible();
         const save = rowActions.getByRole("button", {name: "保留", exact: true});
         const industrialize = rowActions.getByRole("button", {name: "工业化", exact: true});
@@ -592,10 +613,11 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(save).toHaveAttribute("aria-pressed", "false");
 
         await save.click();
+        // The saved-card chip lives on the holding seat's own tray.
         await expect(board.locator(".ie-hand-meta")).toContainText("已保留的牌");
 
         // The inspector tells the same story: the same card reads 取消保留.
-        await openCard(card!);
+        await openCard(card);
         const inspector = board.locator('[data-testid="ie-card-inspector"]');
         await expect(inspector).toBeVisible();
         const unsave = inspector.getByRole("button", {name: "取消保留", exact: true});
