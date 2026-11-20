@@ -847,6 +847,7 @@ const CARD_CHAIN_SPECIALS: ReadonlySet<string> = new Set([
   "polishRevolt",
   "revolution1905",
   "gwMinorPowerEntry",
+  "modernization",
   "stabilityOrCard",
 ]);
 
@@ -874,6 +875,31 @@ const spaceOptions = (G: ImperialElegyState, spaces: SpaceId[]) =>
 
 const powerOptions = (powers: readonly Power[]) =>
   powers.map((p) => option(p, POWER_DEFS[p].name, undefined, false, POWER_DEFS[p].nameZh));
+
+/**
+ * 12.7 — one marker of the Major Power Influence Track.
+ *
+ * A marker is a (column, track) pair: the column is the power whose track is
+ * being advanced and the track is Triple Entente / Triple Alliance / neutral.
+ * The printed action lets a player influence *any* power's column in *any*
+ * direction, so the options are the cross product rather than one prompt per
+ * track with the actor's own column implied.  Option ids are `POWER:track`,
+ * which is what `resolveCardDecision`'s `mpitAllocation` branch reads back.
+ */
+const mpitAllocationOptions = () => {
+  const tracks: {id: "te" | "ta" | "neutral"; en: string; zh: string}[] = [
+    {id: "te", en: "Triple Entente", zh: "协约国"},
+    {id: "ta", en: "Triple Alliance", zh: "同盟国"},
+    {id: "neutral", en: "Neutral", zh: "中立"},
+  ];
+  return POWERS.flatMap((p) => tracks.map((track) => option(
+    `${p}:${track.id}`,
+    `${POWER_DEFS[p].name} · ${track.en}`,
+    {power: p, track: track.id},
+    false,
+    `${POWER_DEFS[p].nameZh} · ${track.zh}`,
+  )));
+};
 
 const chainQueue = (G: ImperialElegyState, powers: readonly Power[]): Power[] =>
   powers.filter((p) => !G.powers[p].eliminated);
@@ -1463,6 +1489,94 @@ const openEconomicPanicStep = (
   // Every power answered: log the outcome and continue the card.
   log(G, owner, "economicPanicResolved", {powers: pending.join(",")});
   return false;
+};
+
+/**
+ * 12.13.1 — Ottoman Industrialization.
+ *
+ * "The OT player does not industrialize like the other players; they can only
+ * industrialize through the play of their Modernization home card.  When this
+ * card is played, each player can offer the OT player a card.  To do so they
+ * tell the OT player the CP value of the card they will give them (and they
+ * cannot lie).  The OT player accepts one of these cards and places an
+ * industrialization chit on it, the gifting player then draws a card.  If a
+ * player gives OT a mandatory event, the OT player conducts the event.  If no
+ * player gives OT a card they may use their home card for 3 CP worth of
+ * actions instead."
+ *
+ * The offers are public (the printer's "they cannot lie" means the CP value is
+ * announced), so every power with a givable card is asked in seat order.  The
+ * giver's reward is the replacement draw; the card itself becomes OT's
+ * industrialization card.  When nobody offers, the home card is spent for its
+ * printed 3 CP of actions, exactly as the card's own text says.
+ */
+const openModernizationStep = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  resume: Effect[],
+  owner: Power,
+  queue: Power[],
+  offers: {power: Power; card: CardId}[] = [],
+): boolean => {
+  const rest = [...queue];
+  while (rest.length > 0) {
+    const power = rest[0];
+    const offerable = G.powers[power].hand.filter((id) => {
+      const def = cardById(id);
+      // A home card is the power's own reserved card, and a mandatory event is
+      // printed to resolve instead of being gifted; 9.1 already governs when a
+      // mandatory event must be played.  Everything else can be offered.
+      return def.kind !== "home" && def.type !== "mandatoryResponse";
+    });
+    if (G.powers[power].eliminated || power === owner || offerable.length === 0) {
+      rest.shift();
+      continue;
+    }
+    openDecision(G, ctx, decision(
+      "eventChoice",
+      power,
+      "Modernization: offer the Ottomans a card?",
+      [
+        option("pass", "Offer nothing", undefined, false, "不提供牌"),
+        ...offerable.map((id) => option(
+          `offer:${id}`,
+          `Offer ${cardById(id).title} (${cardById(id).cp} CP)`,
+          {card: id},
+          false,
+          `提供 ${cardById(id).titleZh}（${cardById(id).cp} CP）`,
+        )),
+      ],
+      {resume, special: "modernization", stage: "offer", queue: rest.slice(1), offers, owner, required: true},
+    ));
+    return true;
+  }
+  // Every power has answered.  The Ottoman player picks an offer (or, with
+  // none, spends the card for 3 CP).
+  if (offers.length === 0) {
+    G.cpRemaining += 3;
+    log(G, owner, "modernizationNoOffer", {cp: 3});
+    return false;
+  }
+  openDecision(G, ctx, decision(
+    "eventChoice",
+    owner,
+    "Modernization: accept one offered card",
+    [
+      option("accept:none", "Accept nothing (use the card for 3 CP)", undefined, false, "不接受（本牌当 3 CP）"),
+      ...offers.map((entry) => {
+        const def = cardById(entry.card);
+        return option(
+          `accept:${entry.card}`,
+          `Accept ${def.title} from ${POWER_DEFS[entry.power].name} (${def.cp} CP)`,
+          {card: entry.card, power: entry.power},
+          false,
+          `接受 ${POWER_DEFS[entry.power].nameZh} 的 ${def.titleZh}（${def.cp} CP）`,
+        );
+      }),
+    ],
+    {resume, special: "modernization", stage: "accept", offers, owner, required: true},
+  ));
+  return true;
 };
 
 /**
@@ -2426,6 +2540,47 @@ const resolveCardChain = (
       const control = award === "OT" ? "OT" : (balkanMinorOf(award) ?? "Independent");
       placeControlMarker(G, "macedonia", control);
       displaceUnits(G, "macedonia", control);
+      finishCardChain(G, ctx, pending);
+      return;
+    }
+    case "modernization": {
+      const stage = String(context.stage ?? "");
+      const offers = (context.offers as {power: Power; card: CardId}[] | undefined) ?? [];
+      const queue = (context.queue as Power[] | undefined) ?? [];
+      if (stage === "offer") {
+        const power = pending.power;
+        let recorded = offers;
+        if (optionId.startsWith("offer:")) {
+          const cardId = optionId.slice("offer:".length) as CardId;
+          if (G.powers[power].hand.includes(cardId)) {
+            recorded = [...offers, {power, card: cardId}];
+            log(G, power, "modernizationOffered", {card: cardId, cp: cardById(cardId).cp});
+          }
+        }
+        if (openModernizationStep(G, ctx, resume, owner, queue, recorded)) return;
+        finishCardChain(G, ctx, pending);
+        return;
+      }
+      // The Ottoman seat answered: accept an offered card, or fall back to the
+      // card's own 3 CP.
+      const choice = optionId.startsWith("accept:") ? optionId.slice("accept:".length) : "none";
+      const entry = choice === "none" ? undefined : offers.find((o) => o.card === choice);
+      if (entry === undefined) {
+        G.cpRemaining += 3;
+        log(G, owner, "modernizationNoOffer", {cp: 3});
+        finishCardChain(G, ctx, pending);
+        return;
+      }
+      // "places an industrialization chit on it, the gifting player then draws a
+      // card": the offered card becomes OT's industrialization card and the
+      // giver is replaced with a fresh draw.
+      const giver = G.powers[entry.power];
+      giver.hand = giver.hand.filter((id) => id !== entry.card);
+      giver.cpChain = giver.cpChain.filter((id) => id !== entry.card);
+      drawCards(G, ctx, entry.power, 1);
+      G.powers.OT.industryCard = entry.card;
+      G.powers.OT.autoIndustry = false;
+      log(G, owner, "modernizationAccepted", {card: entry.card, from: entry.power});
       finishCardChain(G, ctx, pending);
       return;
     }
@@ -3513,9 +3668,12 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return true;
     }
     case "modernization": {
+      // 12.13.1: "+1 stability" (the card's own printed first clause) and then
+      // the offer round.  The card's 3 CP are not banked up front: only when no
+      // player offers a card does the Ottoman seat "use their home card for 3 CP
+      // worth of actions instead".
       changeStability(G, "OT", 1, ctx);
-      G.powers.OT.flags.modernization = true;
-      return true;
+      return openModernizationStep(G, ctx, resume, "OT", chainQueue(G, POWERS));
     }
     case "jihadWar": {
       // "Declare war against a power that controls an OT home space or RU using
@@ -3765,11 +3923,20 @@ export const performEffect = (
       return true;
     }
     case "mpitChoice": {
-      openDecision(G, ctx, decision("mpitAllocation", actor, "Allocate influence", [
-        option("te", "Triple Entente"),
-        option("ta", "Triple Alliance"),
-        option("neutral", "Neutral"),
-      ], {resume, amount: effect.amount, track: effect.track}));
+      // 12.7: the CP buy influence on the Major Power Influence Track, one
+      // marker per CP, and "players can move … MPIT markers belonging to other
+      // powers … in any direction".  The decision therefore offers a column and
+      // a track (two answers per marker served on one prompt), and it stays
+      // open until the printed amount is fully allocated.
+      openDecision(G, ctx, decision(
+        "mpitAllocation",
+        actor,
+        "Allocate influence",
+        mpitAllocationOptions(),
+        {resume, amount: effect.amount, track: effect.track},
+        undefined,
+        "分配影响力",
+      ));
       return false;
     }
     case "allianceShift": {
@@ -4293,8 +4460,33 @@ export const resolveCardDecision = (
     return;
   }
   if (pending.kind === "mpitAllocation") {
-    const track = optionId as "te" | "ta" | "neutral";
-    G.powers[actor].mpit[track] += Number(context.amount ?? 1);
+    // 12.7: "Players can move their own MPIT markers or MPIT markers belonging
+    // to other powers … Players are not limited to influencing a single power,
+    // likewise players can influence powers in any direction."  The card buys
+    // influence with CP (1 CP per marker), so A019's 4 points are allocated one
+    // marker at a time — same column, another column, any track — instead of
+    // being dumped into a single cell by one answer.
+    const total = Math.max(1, Number(context.amount ?? 1));
+    const [columnId, trackId] = optionId.split(":");
+    const target = isPower(columnId) ? columnId : actor;
+    const chosen: "te" | "ta" | "neutral" = trackId === "te" || trackId === "ta" ? trackId : "neutral";
+    G.powers[target].mpit[chosen] += 1;
+    log(G, actor, "mpitInfluenceAllocated", {target, track: chosen, remaining: total - 1});
+    const left = total - 1;
+    if (left > 0) {
+      // One marker per answer: re-open the same decision with the rest.
+      closeDecision(G, ctx);
+      openDecision(G, ctx, decision(
+        "mpitAllocation",
+        actor,
+        "Allocate influence",
+        mpitAllocationOptions(),
+        {...context, amount: left},
+        undefined,
+        "分配影响力",
+      ));
+      return;
+    }
     closeDecision(G, ctx);
     resumeEffects(G, ctx, pending, data);
     return;
