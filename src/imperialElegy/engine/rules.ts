@@ -3164,6 +3164,45 @@ export const displaceAlliedUnitsInTerritory = (
   return displaced;
 };
 
+/**
+ * 12.11's pacification-marker lifecycle, reconciled once per impulse.
+ *
+ * Printed:
+ *  - "When a land unit is placed in (or moved to) an uncontrolled space, a 0
+ *    pacification marker is also placed in that space if it did not already
+ *    contain one. Exception: if the space is a naval base, place a 2
+ *    pacification marker instead."
+ *  - "If all a player's units leave an uncontrolled space with a pacification
+ *    marker, remove the pacification marker."
+ *
+ * Both halves are consequences of movement, and movement reaches the map
+ * through many moves (redeploy, march, rail, naval transport, event placement,
+ * combat advance).  Reconciling at the impulse boundary covers all of them
+ * once, instead of hooking every move: an uncontrolled space holding land
+ * units keeps — or gains — its printed entry marker, and one with no land
+ * units loses it.
+ *
+ * Controlled spaces are left alone: 12.11's event marker in a player's own
+ * space has a different lifecycle (it reduces the owner's keys until the space
+ * is pacified).
+ */
+export const reconcilePacificationMarkers = (G: ImperialElegyState): void => {
+  for (const [space, state] of Object.entries(G.spaces)) {
+    if (!state) continue;
+    if (isNavalBox(space)) continue;
+    // A controlled space's marker comes from an event, not from a force.
+    if (state.control !== null) continue;
+    const occupied = unitsIn(G, space).some((unit) => unit.naval !== true);
+    if (occupied) {
+      if ((state.pacification ?? 0) <= 0) {
+        state.pacification = SPACES[space]?.type === "navalBase" ? 2 : 0;
+      }
+      continue;
+    }
+    if ((state.pacification ?? 0) > 0) state.pacification = 0;
+  }
+};
+
 // ---------------------------------------------------------------------------
 // 5.5.3 / 5.6.2 / 5.6.3 start-of-impulse upkeep
 //
@@ -3310,6 +3349,10 @@ export const beginImpulseUpkeep = (
   const stamp = `${G.phase}|${G.turn}|${G.turnIndex}|${G.gw?.turn ?? ""}|${G.war?.status ?? ""}|${power}`;
   if (G.flags.impulseUpkeepStamp === stamp) return false;
   G.flags.impulseUpkeepStamp = stamp;
+  // 12.11: an uncontrolled space keeps its pacification marker only while a
+  // land unit stands in it, and a unit entering one places the printed entry
+  // marker.  Reconciled here so every movement path is covered once.
+  reconcilePacificationMarkers(G);
   displacePeacetimeBrokenLoc(G, power);
   const penalties = impulsePenalties(G, power);
   if (penalties.length === 0) return false;

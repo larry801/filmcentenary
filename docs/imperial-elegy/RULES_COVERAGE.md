@@ -183,6 +183,26 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   the CP spent (1 or 2), and a fort of your own upgrades one level for 1 CP and
   never past level 2 — all four rows share the move's gate, and 20.1 offers only
   your own forts to protect.
+- **12.11 pacification is complete.** One shared gate
+  (`engine/pacification.ts#pacificationProblem`) requires the acting power's own
+  influence marker (what the success replaces), one of its land units in the
+  space, no rebel army (12.12.1: "it must first be eliminated in a land battle
+  before a pacification roll can be attempted") and the printed once-per-space,
+  **per impulse** limit — the old `pacified_<space>` flag was permanent, so one
+  failed roll locked a space for the rest of the match. A65's marker mode is
+  the printed pre-roll window; its *rebel* branch is a separate normal-event
+  play that makes no roll. The marker lifecycle is reconciled at the impulse
+  boundary (`rules.ts#reconcilePacificationMarkers`): a land unit entering an
+  uncontrolled space places the printed 0 marker (2 in a naval base), and the
+  marker goes when the last land unit leaves. Controlled spaces keep their
+  event markers.
+- **15.2 / 27.5's action lists are enforced.** `engine/phaseActions.ts` is the
+  single gate: 12.1's peacetime actions (recruit, fleet, refit, influence,
+  diplomacy, minor alliance, break alliance, EF, pacification, fort,
+  industrialisation, MPIT) are refused once a limited war's maneuver step or the
+  Great War replaces the list, and the Orders panel disables the same rows with
+  the printed reason. 33.3's Third Republic grant remains spendable on 12.7
+  during the war, because that clause names the moment and the action itself.
 - **13.4.4 Attacking China (errata):** a war of conquest on Qing China places
   the Qing army at full strength in the targeted key, and the aiding player
   gains a +1 card marker regardless of the outcome. 12.4's refit row is live as `refitNavalUnit`: 1 CP flips a reduced
@@ -531,7 +551,6 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
     port-fort rules are live.
 
 ## 20 End phase
-
 - The live end phase (`beginEndPhase`, with `resolveEnd` as the deterministic
   one-shot driver) walks `engine/economy.ts#endPhaseOrder()` and suspends on
   decisions: **20.1** one army step or protection for a level 1–2 fort per

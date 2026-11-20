@@ -1,5 +1,79 @@
 # Imperial Elegy — implementation status
 
+## Fixed: six printed rules found by playing a local hotseat campaign (2026-11-21)
+
+Found by actually playing `/localIE` and reading the state back.  Six clauses
+were not enforced; every one below was reproduced against the real moves before
+being fixed, and each now has a regression test in
+[`hotseatRuleAudit.test.ts`](../../src/imperialElegy/hotseatRuleAudit.test.ts).
+
+### 12.11 — a failed pacification could never be retried
+
+The once-per-attempt guard was a `pacified_<space>` flag on the acting power,
+and nothing ever cleared it.  One bad roll therefore locked that space for the
+rest of the match, although 12.11 prints "Pacification actions can only be taken
+once per space, per impulse; meaning if the attempt fails you must wait until a
+future impulse to roll again in that space."
+
+The limit is now impulse-scoped (`pacifiedThisImpulse:<space>`), cleared by
+`clearPacificationImpulse` when the impulse passes, and the old permanent flag
+is dropped on load so an existing match is unlocked too.
+
+### 12.11 — pacification required no land unit
+
+"Players must have a land unit in a space to pacify it" was never checked: the
+move only looked at the influence marker, so a seat could pacify a space its
+armies had never reached.  The new shared gate in `engine/pacification.ts`
+(refused as `no-land-unit`) now requires one of the acting power's own armies.
+
+### 12.12.1 — a rebel army did not block the roll
+
+"If a rebel army occupies a space with a pacification marker, it must first be
+eliminated in a land battle before a pacification roll can be attempted."  A
+rebel now blocks the action (`rebel-present`).  A65's *rebel* branch is a
+different printed thing ("OR play as a normal event to flip a rebel army from
+reduced to full strength"), so it is a separate path that makes no roll and is
+not gated by 12.12.1.
+
+### 12.11 — the marker lifecycle never ran
+
+Both halves were missing: "When a land unit is placed in (or moved to) an
+uncontrolled space, a 0 pacification marker is also placed … Exception: if the
+space is a naval base, place a 2 pacification marker instead" and "If all a
+player's units leave an uncontrolled space with a pacification marker, remove
+the pacification marker."
+
+`rules.ts#reconcilePacificationMarkers` runs in the impulse-upkeep pass, so every
+movement path (redeploy, march, rail, naval transport, event placement, combat
+advance) is covered once.  Controlled spaces are untouched — their markers are
+12.11's event markers with a different lifecycle.
+
+### 12.12 — a fort destroyed by 20.2 could never be rebuilt
+
+`buildFort` set a `fort_<space>` flag that nothing cleared, and refused any
+space carrying it.  A level 1 fort is removed by 20.2's decay, so the space was
+permanently barred from a new fort.  12.12 prints no once-per-game limit; the
+printed limits are the CP, the placement rule, one fort per space and three per
+player, and those still apply.  The flag and its misleading "this decade" row
+copy are gone.
+
+### 15.2 / 27.5 — the action list did not change with the phase
+
+Every 12.1 peacetime action was accepted during a limited war **and** during the
+Great War, on the war budget: recruit, construct fleet, EF, influence,
+diplomacy, minor alliance, pacification, fort, MPIT.  15.2 prints a six-item
+limited-war list ("players cannot perform recruitment or refit actions in
+wartime"), and 27.5 prints the GW list.  `engine/phaseActions.ts` holds both
+lists as one gate read by the moves and the Orders panel; 33.3's Third Republic
+grant is a named, printed exception that still buys 12.7 during the war.
+
+**Coverage:** `hotseatRuleAudit.test.ts` (35 — the retry, the legacy flag, the
+land-unit gate, the rebel gate, the marker entry/removal/naval-base cases, the
+fort rebuild and its caps, and every peacetime action in action/wartime/GW).
+Full local run: `npx tsc --noEmit` clean, `npx jest src/imperialElegy` →
+**303 suites / 4120 tests passed**.  The seeded self-play harness
+(`tools/ie-sim/sweep`) still finishes with no refused decision or stall.
+
 ## Fixed: the fort action had no placement rule, no level 2 and no upgrade (2026-11-20)
 
 Found by playing the 1850 campaign hotseat: GE spent 1 CP and built a level 1

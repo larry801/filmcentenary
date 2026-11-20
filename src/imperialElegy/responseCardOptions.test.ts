@@ -167,6 +167,8 @@ const startPacifyWithArmsTrade = (mode: "marker" | "rebel", dice: number[] = [3,
   for (const space of Object.values(G.spaces)) space.pacification = 0;
   G.spaces.dagestan.influence = "GE";
   G.spaces.dagestan.pacification = 3;
+  // 12.11 requires a land unit in the space to pacify it.
+  placeUnit(G, "GE", "army", "dagestan", 2);
   const ctx = makeCtxWith(dice);
 
   expect(pacify(G, ctx, "dagestan", mode)).toBeUndefined();
@@ -230,6 +232,8 @@ test("declining the card rolls the pacification as printed", () => {
   for (const space of Object.values(G.spaces)) space.pacification = 0;
   G.spaces.dagestan.influence = "GE";
   G.spaces.dagestan.pacification = 0;
+  // 12.11 requires a land unit in the space to pacify it.
+  placeUnit(G, "GE", "army", "dagestan", 2);
 
   expect(pacify(G, makeCtxWith([6, 6]), "dagestan")).toBeUndefined();
 
