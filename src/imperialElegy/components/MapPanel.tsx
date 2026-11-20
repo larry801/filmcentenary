@@ -16,7 +16,7 @@ import {SpacePicker} from "./SpacePicker";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
 import {MapLegend} from "./MapLegend";
-import {THEATRES} from "./map-geometry";
+import {MAP_SECTIONS, MapSectionId, THEATRES, mapSectionById} from "./map-geometry";
 
 export interface MapPanelProps {
   G: ImperialElegyState;
@@ -54,12 +54,25 @@ export const MapPanel = ({
   // the war is one press away instead of starting on an illegible world view.
   const capital = (viewer !== null ? POWER_DEFS[viewer]?.capital : undefined) as SpaceId | undefined;
   const [theatre, setTheatre] = React.useState("capital");
+  // The atlas is split into three playable sheets.  `null` is the whole
+  // printed board, which the existing "Whole map" chip still offers.
+  const [section, setSection] = React.useState<MapSectionId | null>(null);
+  const sectionBox = section === null ? null : mapSectionById(section)?.box ?? null;
   const [frame, setFrame] = React.useState<MapFrameRequest | null>(null);
   const frameTheatre = React.useCallback((id: string) => {
+    setSection(null);
     setTheatre(id);
     setFrame({kind: id === "all" ? "fit" : "theatre", theatre: id, nonce: Date.now()});
   }, []);
+  const frameSection = React.useCallback((id: MapSectionId) => {
+    setSection(id);
+    setTheatre("section");
+    // The frame request is the same "fit" the whole-map chip uses, but the
+    // cropped viewBox makes it fill the panel with this sheet.
+    setFrame({kind: "fit", nonce: Date.now()});
+  }, []);
   const frameCapital = React.useCallback(() => {
+    setSection(null);
     setTheatre("capital");
     setFrame({kind: "capital", space: capital, nonce: Date.now()});
   }, [capital]);
@@ -72,7 +85,12 @@ export const MapPanel = ({
 
   const focusSpace = React.useCallback((id: SpaceId) => {
     const space = SPACES[id];
-    if (space) setLocalFocus({x: space.x, y: space.y, nonce: Date.now()});
+    if (!space) return;
+    // Keep the split atlas on the sheet that contains the space being found:
+    // a search result in India should not leave the player on the Europe crop.
+    setSection(space.region === "africa" ? "africa"
+      : space.region === "asia" || space.region === "pacific" ? "asia" : "europeAmerica");
+    setLocalFocus({x: space.x, y: space.y, nonce: Date.now()});
   }, []);
   const choose = React.useCallback((id: SpaceId) => {
     onSelect(id);
@@ -154,6 +172,7 @@ export const MapPanel = ({
           focus={focus ?? localFocus}
           frame={frame}
           homeCapital={capital ?? null}
+          section={sectionBox}
         />
 
         {showPicker && (
@@ -174,6 +193,22 @@ export const MapPanel = ({
 
         <div className="ie-map-views" data-testid="ie-map-views" role="group"
           aria-label={bi(locale, "Map framing", "地图取景")}>
+          <div className="ie-map-sections" role="tablist"
+            aria-label={bi(locale, "Atlas sheets", "地图分册")}>
+            {MAP_SECTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                role="tab"
+                className={`ie-view-chip ie-map-section-chip${section === option.id ? " selected" : ""}`}
+                data-testid={`ie-map-section-${option.id}`}
+                aria-selected={section === option.id}
+                onClick={() => frameSection(option.id)}
+              >
+                {locale === "zh_CN" ? option.labelZh : option.labelEn}
+              </button>
+            ))}
+          </div>
           <button
             type="button"
             className={`ie-view-chip${theatre === "all" ? " selected" : ""}`}

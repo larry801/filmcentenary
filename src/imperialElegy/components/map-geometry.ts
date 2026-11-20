@@ -341,6 +341,29 @@ export const THEATRES: readonly Theatre[] = [
 export const theatreById = (id: string): Theatre | undefined =>
   THEATRES.find((theatre) => theatre.id === id);
 
+/** The three sheets the interactive atlas is split into. */
+export type MapSectionId = "europeAmerica" | "asia" | "africa";
+
+/**
+ * The physical map is one printed sheet, but reading it as one view makes
+ * every space a few pixels wide.  These three overlapping crops are the
+ * playable sheets: the Atlantic/European board with the North America inset,
+ * the Asian board, and the African board with its inset.  They are deliberately
+ * wider than the strict space bounds so coastlines and the inset frames stay
+ * legible at the crop edge.
+ */
+export const MAP_SECTIONS: readonly (Theatre & {id: MapSectionId})[] = [
+  {id: "europeAmerica", labelEn: "Europe & America", labelZh: "欧美",
+    box: {x: 480, y: 532, width: 5200, height: 4000}},
+  {id: "asia", labelEn: "Asia", labelZh: "亚洲",
+    box: {x: 4920, y: 532, width: 2253, height: 2400}},
+  {id: "africa", labelEn: "Africa", labelZh: "非洲",
+    box: {x: 480, y: 3000, width: 4100, height: 1914}},
+];
+
+export const mapSectionById = (id: MapSectionId): (Theatre & {id: MapSectionId}) | undefined =>
+  MAP_SECTIONS.find((section) => section.id === id);
+
 /** The narrowest theatre that contains a board point, or `all` when none does. */
 export const theatreOf = (point: Point): Theatre => {
   const containing = THEATRES.filter((theatre) =>

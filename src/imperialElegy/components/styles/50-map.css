@@ -41,6 +41,17 @@
 
 .ie-map-views::-webkit-scrollbar { display: none; }
 
+/* Three atlas sheets: Europe & America, Asia, Africa.  Kept inside the same
+   scrolling framing bar so the chips never cover the map's working area. */
+.ie-map-sections { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+.ie-map-sections::after {
+  content: "";
+  width: 1px;
+  height: 18px;
+  margin: 0 2px;
+  background: var(--ie-rule-strong);
+}
+
 .ie-view-chip {
   flex: 0 0 auto;
   min-height: 28px;

@@ -18,6 +18,25 @@ The map is now drawn as vectors:
   (1.6 MB) reference map with no interactive spaces, fetched only when its tab is
   opened.
 
+## Three atlas sheets
+
+The interactive board is split into the three playable sheets the war is
+actually fought on:
+
+- **Europe & America (`欧美`)** — the Atlantic/European board plus the North
+  America inset;
+- **Asia (`亚洲`)** — the Asian board and its Pacific boxes;
+- **Africa (`非洲`)** — the African board, including the Africa inset and the
+  North African spaces printed on the main map.
+
+The chips live in the map's framing bar (`ie-map-section-europeAmerica`,
+`ie-map-section-asia`, `ie-map-section-africa`).  Selecting one crops the SVG
+viewBox in `components/map.tsx` to the section's box and clamps pan/zoom to that
+crop, so the three sheets can each use the full panel instead of sharing it with
+the whole world map.  The **Whole map** chip still restores the complete printed
+sheet, and the space finder automatically switches to the sheet containing the
+space it locates.
+
 ## Regenerating the terrain
 
 The traced paths are generated, not hand-drawn. Regenerate them after replacing
