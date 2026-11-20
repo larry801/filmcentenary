@@ -92,7 +92,7 @@ import {
 import {checkGermanUnification, checkItalianUnification} from "./victory";
 import {noteGwUnitEliminated} from "./gwMajors";
 import {ALLIANCE_TRACK, allianceMembers, canJoinAlliance, shiftAlliance, sideOfAllianceBox, stepAllianceBox, type AllianceShiftResult} from "./alliance";
-import {initialNonPlayerBuildBox} from "./endPhase";
+import {initialNonPlayerBuildBox, unitMinor} from "./endPhase";
 import {hasCounterFor, nonPlayerCounterKindFor, nonPlayerHasCounterFor} from "./counters";
 import {attemptPacification, pacificationProblem} from "./pacification";
 import {
@@ -447,6 +447,49 @@ export const registerPolishIndependence = (G: ImperialElegyState): boolean => {
     });
   }
   return changed;
+};
+
+/**
+ * 20.8 / A97: give one WoI space its independence.
+ *
+ * Printed sequence: every unit except those belonging to the newly independent
+ * minor is displaced (5.7), the player who lost the space loses 1 stability,
+ * and the space is controlled by the new minor.  A97 Diplomatic Recognition
+ * reaches the same result from a card, so both paths share this helper instead
+ * of the card silently writing a control marker.
+ */
+export const applyWoiIndependence = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  space: SpaceId,
+  minor: string,
+  controller: Power | null,
+): void => {
+  const state = G.spaces[space];
+  if (!state) return;
+  if (controller !== null) {
+    changeStability(G, controller, -1, ctx, {cause: "other", space});
+  }
+  for (const unitId of [...state.units]) {
+    const unit = G.units[unitId];
+    if (!unit) continue;
+    if (unitMinor(unit.owner) === minor) continue;
+    displaceUnitToFriendlyLoc(G, unitId);
+  }
+  setSpaceControl(G, space, isIndependentIndia(G, space) ? null : minor);
+  state.rebellion = null;
+  if (isIndependentIndia(G, space)) {
+    log(G, undefined, "indiaMarkerRejected", {space, marker: "control"});
+  }
+  // 22.5 / 3.8: an independent Poland gets its reserve holding box and joins
+  // the 20.3 build roster.
+  if (minor === "Poland") registerPolishIndependence(G);
+  log(G, undefined, "woiIndependence", {
+    space,
+    minor,
+    stability: controller === null ? 0 : -1,
+    power: controller ?? undefined,
+  });
 };
 
 /**
@@ -3426,16 +3469,24 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return false;
     }
     case "diplomaticRecognition": {
-      const target = Object.values(SPACES).find((s) => G.spaces[s.id].rebellion?.step === 0);
-      if (target) {
-        const rebellion = G.spaces[target.id].rebellion;
-        if (rebellion) {
-          rebellion.step = 1;
-          setSpaceControl(G, target.id, rebellion.minor);
-          G.spaces[target.id].rebellion = null;
-        }
+      // "Flip a 0 WoI marker to its +1 side.  A space with a +1 WoI marker
+      // immediately gains independence."  With more than one 0 marker the
+      // active player chooses; the chosen space then runs 20.8's independence
+      // sequence (displace non-minor units, losing player -1 stability, control
+      // to the new minor), not just a silent control write on the first marker.
+      const targets = Object.values(SPACES)
+        .filter((s) => G.spaces[s.id]?.rebellion?.step === 0)
+        .map((s) => s.id);
+      if (targets.length === 0) {
+        log(G, actor, "noLegalTarget", {card: G.resolvingCard});
+        return true;
       }
-      return true;
+      return openSpecialSpace(
+        G, ctx, actor, handler, targets,
+        "Diplomatic Recognition: choose a 0 WoI marker to flip",
+        resume,
+        "外交承认：选择一个 0 独立战争标记翻面",
+      );
     }
     case "dreadnought": {
       const port = Object.values(SPACES).find((s) => s.region === "europe" && s.ports?.length && G.spaces[s.id].control === actor);
@@ -4481,6 +4532,12 @@ export const resolveCardDecision = (
       placeNonPlayerCounter(G, "REBEL:Mahdi", "rebelArmy", space, 1);
       applyPacification(G, space, 1);
       if (isPower(G.spaces[space].control)) G.powers[G.spaces[space].control as Power].cardMarkers -= 1;
+    } else if (special === "diplomaticRecognition") {
+      const rebellion = G.spaces[space].rebellion;
+      if (rebellion) {
+        const controller = isPower(G.spaces[space].control) ? G.spaces[space].control : null;
+        applyWoiIndependence(G, ctx, space, rebellion.minor, controller);
+      }
     } else if (special === "removeAnyMinorAlliance") {
       G.spaces[space].ally = null;
       G.spaces[space].diplomacy = null;
