@@ -92,6 +92,28 @@ describe("one assault per space per impulse (rule 15.1)", () => {
         expect(assault(G, context([1, 1, 1, 1, 1, 1]), {space: "utrecht"})).toBeUndefined();
     });
 
+    it("keeps the original siege date when an assault fails", () => {
+        const G = game();
+        prepare(G);
+
+        // No hits on either side: the siege survives and is NOT re-dated to
+        // this impulse, so rule 13.1's "marched away this impulse" restriction
+        // still reflects the impulse in which the siege was actually placed.
+        expect(assault(G, context([1, 1, 1, 1, 1, 1]), {space: "ghent"})).toBeUndefined();
+        if (G.spaces.ghent.siege !== undefined) {
+            expect(G.spaces.ghent.siege.sinceImpulse).toBe(1);
+        }
+    });
+
+    it("records the assaulting power so the limit is per space and impulse", () => {
+        const G = game();
+        prepare(G);
+
+        expect(assault(G, context([1, 1, 1, 1, 1, 1]), {space: "ghent"})).toBeUndefined();
+        expect(G.spaces.ghent.siege?.assaultedIn?.impulse).toBe(G.impulse);
+        expect(G.spaces.ghent.siege?.assaultedIn?.powers).toContain("france");
+    });
+
     it("resets the limit in a new impulse", () => {
         const G = game();
         prepare(G);

@@ -84,3 +84,37 @@ describe("full-game land interception (rule 13.2)", () => {
         expect(G.spaces.rouen.land.france?.regular).toBe(2);
     });
 });
+
+/**
+ * Rule 15.3: "A siege is broken immediately if the besieging stack no longer
+ * contains more land units than are in the fortification ... This may occur if
+ * part of the besieging force leaves the space as part of a Move action, a
+ * successful interception, or a successful avoid battle attempt."
+ */
+describe("a successful interception breaks the siege it weakens (rule 15.3)", () => {
+    it("lifts the siege when intercepted units leave the besieging stack", () => {
+        const G = game();
+        // England besieges French-held Amiens with 3 units against a garrison
+        // of 1.  France marches Paris -> Reims, and the English besieging stack
+        // intercepts into the open Reims.  Amiens is left with 1 besieger,
+        // which no longer outnumbers the garrison.
+        G.spaces.amiens.control = "france";
+        G.spaces.amiens.unrest = false;
+        G.spaces.amiens.land = {
+            england: {regular: 3, merc: 0, cav: 0},
+            france: {regular: 1, merc: 0, cav: 0},
+        };
+        G.spaces.amiens.siege = {by: "england", besiegers: ["england"], inside: ["france"], sinceImpulse: 1};
+        G.spaces.paris.land = {france: {regular: 4, merc: 0, cav: 0}};
+        G.spaces.reims.control = "france";
+        G.spaces.reims.unrest = false;
+        G.spaces.reims.land = {};
+        G.powers.france.cp = 2;
+
+        expect(moveLand(G, context(6), {from: "paris", to: "reims", units: {regular: 2}, leaders: []})).toBeUndefined();
+
+        expect(G.log.join("\n")).toContain("intercepts the move into Reims");
+        expect(G.spaces.amiens.siege).toBeUndefined();
+        expect(G.log.join("\n")).toContain("siege of Amiens is broken");
+    });
+});

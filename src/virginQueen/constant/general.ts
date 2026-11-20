@@ -640,6 +640,13 @@ export interface SiegeState {
     inside?: Controller[];
     /** Impulse number in which the siege began. */
     sinceImpulse: number;
+    /**
+     * Rule 15.1: "A space may only be subjected to one assault in a single
+     * impulse."  Rule 15.1 also forbids an assault "in the same impulse in
+     * which the space was first put under siege by that power", so the record
+     * is keyed by besieging power and impulse.
+     */
+    assaultedIn?: {impulse: number; powers: Power[]};
 }
 
 export interface SpaceState {

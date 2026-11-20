@@ -1671,3 +1671,15 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 | 17.2(c) | 西班牙可在尼德兰任意招募正规军/雇佣兵；规则规定"西班牙在尼德兰宗教斗争区唯一可建造的单位是瓦隆卫队"，且仅有 3 枚瓦隆正规军计数片 | 新增 `canBuildInNetherlands`/`recordWalloonBuilt` 与 `G.walloonsBuilt`：尼德兰内禁止雇佣兵与骑兵，正规军（瓦隆卫队）全局最多 3 个；#109 阿拉斯联盟不解除该限制 |
 
 验证：`tsc --noEmit` 通过；`jest --silent --maxWorkers=4` **572 suites / 5745 tests** 全部通过（新增 `construction.test.ts` 4 项、`minorConstruction.test.ts` 2 项、`navalCombat.test.ts` 2 项、`navalTransport.test.ts` 2 项）。
+
+### 审计第四轮续：陆军单将、围城与拦截
+
+按 2024 Living Rules 第 13、15 节复核并修复：
+
+| 规则 | 问题 | 修复 |
+| --- | --- | --- |
+| 13.1 | 海军将领单独留在无设防地区、遭敌军陆军进入时既不撤退也不上回合记录轨（原代码只处理陆军将领的"被俘"分支，`kind === "army"` 直接过滤掉海军将领） | 同一句规则的第二个分句："海军将领……放到回合记录轨，次年重返游戏"；现在单独的海军将领进入 `pool + returnTurn`，陆军将领仍被俘 |
+| 15.3 | 成功的拦截或避战把部队抽出围城堆后，围城不会解除（原代码只在"移动离开"、"解围战"、"强攻失败"三条路径上重新比较兵力） | 新增 `reconcileSiege`，在拦截成功与避战成功后调用：围城方不再多于守军时立即解除围城并按 15.3 撤退围城部队 |
+| 15.1 | 强攻失败会把 `sinceImpulse` 改写成当前行动轮次，于是 13.1 误认为"本轮刚结束围城"，禁止围城部队撤离；而"每格每轮只能强攻一次"是这条副作用顺带实现的 | `SiegeState` 新增 `assaultedIn` 记录真实的"每格每轮一次强攻"；强攻失败保留原始 `sinceImpulse` |
+
+验证：`tsc --noEmit` 通过；`jest src/virginQueen --silent --maxWorkers=4` 258 suites、1579 tests 全部通过（新增 `loneLeader.test.ts` 1 项、`interceptionFull.test.ts` 1 项、`impulseLimits.test.ts` 2 项）。

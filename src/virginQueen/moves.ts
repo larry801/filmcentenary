@@ -5415,13 +5415,22 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
     }
     // Rule 13.1: "If an army leader is ever alone in an unfortified space when
     // enemy land units enter (due to enemy movement, retreat or interception),
-    // that leader is captured."  A lone leader is captured by the arriving
-    // enemy formation before any battle is fought.
+    // that leader is captured."  The same sentence continues: "If a naval
+    // leader is ever alone in an unfortified space ..., place that leader on
+    // the Turn Track to reenter play on the next turn."
     if (!leadersOnly && !isFortifiedSpace(G, to)) {
-        const loneLeaders = G.spaces[to].leaders.filter((id) =>
-            LEADER_BY_ID[id]?.kind === "army" && !friendlyController(G, p, LEADER_BY_ID[id].power) &&
-            totalLand(G, to, [LEADER_BY_ID[id].power]) === 0);
-        if (loneLeaders.length > 0) captureLeaders(G, to, loneLeaders.map((id) => LEADER_BY_ID[id].power), p);
+        const isAlone = (id: string): boolean => {
+            const owner = LEADER_BY_ID[id]?.power;
+            return owner !== undefined && !friendlyController(G, p, owner) && totalLand(G, to, [owner]) === 0;
+        };
+        const lone = G.spaces[to].leaders.filter(isAlone);
+        const army = lone.filter((id) => LEADER_BY_ID[id]?.kind === "army");
+        if (army.length > 0) captureLeaders(G, to, army.map((id) => LEADER_BY_ID[id].power), p);
+        for (const id of lone.filter((candidate) => LEADER_BY_ID[candidate]?.kind === "naval")) {
+            G.spaces[to].leaders = G.spaces[to].leaders.filter((x) => x !== id);
+            G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
+            pushLog(G, `${LEADER_BY_ID[id]?.name ?? id} is caught alone and returns to the Turn Track.`);
+        }
     }
     pushLog(G, `${powerLabel(p)} moves ${landCount(stack)} unit(s) from ${SPACE_BY_ID[from].name} to ${SPACE_BY_ID[to].name}.`);
     if (isRelief) {
@@ -5753,6 +5762,12 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (s.siege.sinceImpulse >= G.impulse) {
         return INVALID_MOVE;
     }
+    // Rule 15.1: "A space may only be subjected to one assault in a single
+    // impulse (though a power may initiate multiple assaults in different
+    // spaces in the same impulse)."
+    if (s.siege.assaultedIn?.impulse === G.impulse) {
+        return INVALID_MOVE;
+    }
     if (!hasLOC(G, p, args.space)) {
         return INVALID_MOVE;
     }
@@ -5768,6 +5783,7 @@ export const assault = (G: VQGame, ctx: Ctx, args: { space: string }): void | ty
     if (!spend(G, p, 1, "assault")) {
         return INVALID_MOVE;
     }
+    s.siege.assaultedIn = {impulse: G.impulse, powers: [...(s.siege.assaultedIn?.impulse === G.impulse ? s.siege.assaultedIn.powers : []), p]};
     if (G.scenario === "tutorial") {
         startBattle(G, ctx, "assault", args.space, p, defenderOwners(G, args.space), args.space);
     } else assaultSpace(G, ctx, p, args.space);

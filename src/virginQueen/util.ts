@@ -2135,6 +2135,42 @@ export const defenderOwners = (G: VQGame, space: string): Controller[] => {
 export const defenderLandCount = (G: VQGame, space: string): number =>
     totalLand(G, space, defenderOwners(G, space));
 
+/**
+ * Rule 15.3: "A siege is broken immediately if the besieging stack no longer
+ * contains more land units than are in the fortification (cavalry units are
+ * included in these counts).  This may occur if part of the besieging force
+ * leaves the space as part of a Move action, a successful interception, or a
+ * successful avoid battle attempt."  When the siege breaks, "the stack must
+ * retreat to any adjacent space that meets the following restrictions."
+ *
+ * Call this after any action that removes units from a besieging stack.  It
+ * returns true when it lifted a siege (and already retreated the besiegers).
+ */
+export const reconcileSiege = (G: VQGame, space: string, departTo?: string): boolean => {
+    const state = G.spaces[space];
+    if (state?.siege === undefined) return false;
+    const besiegers = [...besiegerOwners(G, space)];
+    if (besiegers.length === 0) {
+        delete state.siege;
+        return true;
+    }
+    const staff = totalLand(G, space, besiegers);
+    if (staff > defenderLandCount(G, space)) return false;
+    delete state.siege;
+    pushLog(G, `The siege of ${SPACE_BY_ID[space].name} is broken.`);
+    // Rule 15.3 restrictions: no unrest, no non-allied units, not a sea zone,
+    // and never the space the departing force just marched into.
+    const captor = isPower(state.control) ? state.control : besiegers[0];
+    const avoid = departTo === undefined ? [] : [departTo];
+    for (const owner of besiegers) {
+        if (!isPower(owner)) continue;
+        if (totalLand(G, space, [owner]) === 0) continue;
+        const leaders = G.spaces[space].leaders.filter((id) => LEADER_BY_ID[id]?.power === owner && LEADER_BY_ID[id]?.kind === "army");
+        retreatLand(G, owner, space, [owner], leaders, captor, avoid);
+    }
+    return true;
+};
+
 /** Add `power` to a space's besiegers, creating the siege if needed. */
 export const addBesieger = (G: VQGame, space: string, power: Power): void => {
     const state = G.spaces[space];
@@ -3539,6 +3575,9 @@ export const attemptLandAvoidBattle = (
         delete G.spaces[space].land[owner];
         moveLeaders(G, space, destination, leaders);
         pushLog(G, `${label} avoids battle and moves to ${SPACE_BY_ID[destination].name}.`);
+        // Rule 15.3: a successful avoid-battle attempt that strips units out of
+        // a besieging stack breaks that siege immediately.
+        reconcileSiege(G, space, destination);
         moved = true;
     }
     return moved;
@@ -3620,6 +3659,9 @@ export const attemptLandInterception = (
         cleanupLand(G, candidate.space, candidate.power);
         moveLeaders(G, candidate.space, to, leaders);
         pushLog(G, `${powerLabel(candidate.power)} intercepts the move into ${SPACE_BY_ID[to].name}.`);
+        // Rule 15.3: a successful interception may strip units out of a
+        // besieging stack, which breaks that siege immediately.
+        reconcileSiege(G, candidate.space, to);
         // Rule 13.3: a power whose units intercepted into this space may not
         // avoid battle; other defending powers in the space still may.
         G.interceptedByThisMove = {...(G.interceptedByThisMove ?? {}), [to]: candidate.power};
@@ -3757,7 +3799,13 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
         retreatLand(G, p, space, [p], leaders, isPower(s.control) ? s.control : p);
         pushLog(G, "The siege is broken.");
     } else {
-        s.siege = {by: p, besiegers: besiegerOwners(G, space), inside: [...defendersList], sinceImpulse: G.impulse};
+        // Rule 15.1: an unsuccessful assault leaves the siege in place.  Keep
+        // the original `sinceImpulse` — re-dating it to this impulse would let
+        // a failed assault block the besiegers from marching away under 13.1,
+        // although the siege was placed in an earlier impulse.
+        const besiegers = besiegerOwners(G, space);
+        s.siege = {by: s.siege?.by ?? p, besiegers, inside: [...defendersList],
+            sinceImpulse: s.siege?.sinceImpulse ?? G.impulse, ...(s.siege?.assaultedIn ? {assaultedIn: s.siege.assaultedIn} : {})};
     }
     return false;
 };
@@ -6141,7 +6189,10 @@ const canBuildFortressAt = (G: VQGame, p: Power, id: string): boolean => {
 const canAssaultAt = (G: VQGame, p: Power, id: string): boolean => {
     const s = G.spaces[id];
     if (s === undefined || s.siege === undefined || !besiegerOwners(G, id).includes(p)) return false;
-    if (s.siege.sinceImpulse >= G.impulse) return false; // one impulse of siege first
+    if (s.siege.sinceImpulse >= G.impulse) return false; // rule 15.1: one impulse of siege first
+    // Rule 15.1: "A space may only be subjected to one assault in a single
+    // impulse."
+    if (s.siege.assaultedIn?.impulse === G.impulse) return false;
     if (!hasLOC(G, p, id)) return false;
     // Rule 16.7: the inland-waterway link blocks an assault unless the
     // attacker holds the North Sea (or plays #10).
