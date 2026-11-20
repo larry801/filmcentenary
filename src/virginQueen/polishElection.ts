@@ -32,7 +32,9 @@ export const polishElectionBidOptions = (G: VQGame, power: PolishElectionPower, 
             const def = cardById(id);
             return {value: id, label: `${cardName(id, locale)}${i18n.chain.vq.eventTargets.parenOpen}${i18n.chain.vq.board.hand} ${def.cp} CP${i18n.chain.vq.eventTargets.parenClose}`};
         });
-    const treasures = [...G.powers[power].treasures].sort((a, b) => b - a)
+    const treasures = G.powers[power].treasures
+        .filter((value): value is number => typeof value === "number")
+        .sort((a, b) => b - a)
         .map((value) => ({value: `treasure:${value}`, label: `${i18n.chain.vq.board.treasure} ${value}${i18n.chain.vq.eventTargets.parenOpen}${value} CP${i18n.chain.vq.eventTargets.parenClose}`}));
     return [{value: "", label: i18n.chain.vq.board.polishAuto}, ...cards, ...treasures];
 };

@@ -37,9 +37,12 @@ import {
     ROYALS,
     SeaZoneID,
     SpaceDef,
+    Treasure,
+    TREASURE_TABLE,
     VQGame,
     VQLocale,
     VictoryReason,
+    treasureCp,
     WinterLossChoice,
     WinterNavalReturnChoice,
     WinterReturnChoice,
@@ -496,7 +499,7 @@ export const drawRandomMixedFromHand = (
     G: VQGame,
     ctx: Ctx,
     p: Power,
-): {kind: "card"; cardId: string} | {kind: "treasure"; value: number} | undefined => {
+): {kind: "card"; cardId: string} | {kind: "treasure"; value: Treasure} | undefined => {
     const cards = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
     const treasures = G.powers[p].treasures;
     const treasureFirst = treasures.length > 0 && treasures.length >= cards.length;
@@ -822,7 +825,7 @@ export const returnSeaCaptains = (G: VQGame): void => {
 /** 6.3/20.7: Portuguese treasure row refresh and winter award. */
 export const refreshPortugueseTreasures = (G: VQGame, ctx: Ctx): void => {
     if (G.portugalEntered === true && (G.portugueseTreasures?.length ?? 0) === 0) {
-        G.portugueseTreasures = Array.from({length: 3}, () => 1 + die(ctx, 5) - 1);
+        G.portugueseTreasures = Array.from({length: 3}, () => shuffleTreasure(ctx));
     }
 };
 
@@ -981,12 +984,21 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     // empties the row into his hand, so the old hand-empty test skipped it).
     if (G.scenario !== "tutorial") {
         const boxes = G.philippinesSpanish === true ? 5 : 4;
-        G.spanishTreasureRow = Array.from({length: boxes}, () => 1 + die(ctx, 5) - 1);
+        G.spanishTreasureRow = Array.from({length: boxes}, () => shuffleTreasure(ctx));
     }
     resolveColonies(G, ctx);
 };
 
-export const shuffleTreasure = (ctx: Ctx): number => 1 + (die(ctx, 5) - 1);
+/**
+ * Draw one treasure from the official 30-counter mix.  The table keeps the
+ * five low slots equal to 1-5 CP, so callers that used to roll 1d5 for a CP
+ * value still receive the same value; the remaining 25 slots carry the rest of
+ * the official distribution, including the four special treasures.
+ */
+export const shuffleTreasure = (ctx: Ctx): Treasure => {
+    const slot = Math.max(1, Math.min(TREASURE_TABLE.length, die(ctx, TREASURE_TABLE.length)));
+    return TREASURE_TABLE[slot - 1];
+};
 
 export const addTreasure = (G: VQGame, ctx: Ctx, p: Power, n: number): void => {
     if (G.scenario === "tutorial") return;
@@ -1001,9 +1013,9 @@ export const playTreasure = (G: VQGame, p: Power, index: number): number => {
         return 0;
     }
     G.powers[p].treasures.splice(index, 1);
-    G.powers[p].cp += t;
+    G.powers[p].cp += treasureCp(t);
     G.powers[p].treasurePlayed = true;
-    return t;
+    return treasureCp(t);
 };
 
 // --------------------------------------------------------------------------
@@ -1132,7 +1144,7 @@ export const ottomanTributeTargets = (G: VQGame): OttomanTributeTarget[] => {
 export const canPayOttomanTribute = (target: OttomanTributeTarget): target is Power => isPower(target) && target !== "ottoman";
 
 /** The non-Home cards and treasures a power could hand over as tribute. */
-export const tributeAssets = (G: VQGame, power: Power): {cards: string[]; treasures: number[]} => ({
+export const tributeAssets = (G: VQGame, power: Power): {cards: string[]; treasures: Treasure[]} => ({
     cards: G.powers[power].cards.filter((id) => cardById(id).kind !== "home"),
     treasures: G.powers[power].treasures,
 });
@@ -3040,24 +3052,36 @@ export const checkCyprusVp = (G: VQGame, power: Power, location: string): void =
     pushLog(G, "The Ottoman seizes the Cyprus VP target and gains 1 VP.");
 };
 
-export const resolveConversions = (
+const rollConversionDice = (
+    ctx: Ctx,
+    attempts: number,
+    autoSix: boolean,
+    rollOptions: {fivesAsSix?: boolean; threesAsFour?: boolean},
+): number[] => {
+    const dice: number[] = [];
+    for (let i = 0; i < attempts; i++) {
+        dice.push(i === 0 && autoSix ? 6 : die(ctx, 6));
+    }
+    return dice.map((d) => rollOptions.fivesAsSix && d === 5 ? 6 :
+        rollOptions.threesAsFour && d === 3 ? 4 : d);
+};
+
+/**
+ * Apply a batch of already-adjusted conversion dice (rules 18.5), allocating
+ * the major/minor conversions and unrest automatically.  The interactive
+ * caller may lower one "6" to a "5" before calling this (Step 4).
+ */
+export const applyConversionRolls = (
     G: VQGame,
     ctx: Ctx,
     p: Power,
     side: Religion,
     area: ReligionArea,
-    attempts: number,
-    autoSix = false,
+    adjusted: number[],
     extraUnrest = 0,
-    rollOptions: {fivesAsSix?: boolean; threesAsFour?: boolean} = {},
     unrestOnOnes = false,
+    nullifyOneUnrest = false,
 ): string => {
-    const dice: number[] = [];
-    for (let i = 0; i < attempts; i++) {
-        dice.push(i === 0 && autoSix ? 6 : die(ctx, 6));
-    }
-    const adjusted = dice.map((d) => rollOptions.fivesAsSix && d === 5 ? 6 :
-        rollOptions.threesAsFour && d === 3 ? 4 : d);
     const ones = adjusted.filter((d) => d === 1).length;
     const minor = adjusted.filter((d) => d === 4 || d === 5).length;
     const major = adjusted.filter((d) => d === 6).length;
@@ -3132,13 +3156,15 @@ export const resolveConversions = (
     // Iconoclastic Fury takes one marker per rolled "1", but they still land on
     // converted spaces only.
     if (unrestOnOnes) {
-        for (const target of converted.slice(0, ones + extraUnrest)) {
+        const markers = Math.max(0, ones + extraUnrest - (nullifyOneUnrest ? 1 : 0));
+        for (const target of converted.slice(0, markers)) {
             if (G.spaces[target].unrest) continue;
             G.spaces[target].unrest = true;
             unrestTokens += 1;
         }
     } else {
-        unrestTokens = Math.min((ones > 0 ? 1 : 0) + extraUnrest, converted.length);
+        const markers = Math.max(0, (ones > 0 ? 1 : 0) + extraUnrest - (nullifyOneUnrest ? 1 : 0));
+        unrestTokens = Math.min(markers, converted.length);
         for (let i = 0; i < unrestTokens; i++) {
             const target = converted[i % converted.length];
             if (target !== undefined) {
@@ -3146,7 +3172,7 @@ export const resolveConversions = (
             }
         }
     }
-    G.lastRolls = `${side} conversions in ${AREA_NAMES[area].en}: [${dice.join(", ")}]`;
+    G.lastRolls = `${side} conversions in ${AREA_NAMES[area].en}: [${adjusted.join(", ")}]`;
     pushLog(G, `${powerLabel(p)}: ${G.lastRolls}`);
     if (converted.length > 0) {
         pushLog(G, `Converted: ${converted.map((id) => SPACE_BY_ID[id].name).join(", ")}${unrestTokens > 0 ? `; unrest in ${unrestTokens} space(s)` : ""}.`);
@@ -3160,6 +3186,61 @@ export const resolveConversions = (
         pushLog(G, `Restored off-map: ${offMapRestored} Protestant space(s).`);
     }
     return G.lastRolls;
+};
+
+/**
+ * Resolve a batch of conversion attempts (rules 18.5), auto-allocating the
+ * dice. Returns a short report for the log.
+ */
+export const resolveConversions = (
+    G: VQGame,
+    ctx: Ctx,
+    p: Power,
+    side: Religion,
+    area: ReligionArea,
+    attempts: number,
+    autoSix = false,
+    extraUnrest = 0,
+    rollOptions: {fivesAsSix?: boolean; threesAsFour?: boolean} = {},
+    unrestOnOnes = false,
+): string => {
+    const adjusted = rollConversionDice(ctx, attempts, autoSix, rollOptions);
+    return applyConversionRolls(G, ctx, p, side, area, adjusted, extraUnrest, unrestOnOnes);
+};
+
+/**
+ * Roll a player-initiated conversion action and, when the Step 4 choice is
+ * available (at least one "1" and one "6"), pause for the interactive
+ * `chooseConversionNullify` decision.  Otherwise resolve immediately.
+ */
+export const beginInteractiveConversions = (
+    G: VQGame,
+    ctx: Ctx,
+    p: Power,
+    side: Religion,
+    area: ReligionArea,
+    attempts: number,
+    extraUnrest = 0,
+    rollOptions: {fivesAsSix?: boolean; threesAsFour?: boolean} = {},
+    unrestOnOnes = false,
+): void => {
+    const adjusted = rollConversionDice(ctx, attempts, false, rollOptions);
+    if (adjusted.includes(1) && adjusted.includes(6)) {
+        G.pendingConversion = {power: p, side, area, dice: adjusted, extraUnrest, unrestOnOnes};
+        G.lastRolls = `${side} conversions in ${AREA_NAMES[area].en}: [${adjusted.join(", ")}]`;
+        pushLog(G, `${powerLabel(p)}: ${G.lastRolls}`);
+        pushLog(G, "The conversion may cancel one Unrest by reducing a 6 to a 5.");
+        return;
+    }
+    applyConversionRolls(G, ctx, p, side, area, adjusted, extraUnrest, unrestOnOnes);
+};
+
+/** Safety net: an abandoned conversion choice resolves as if the power kept the Unrest. */
+export const autoResolvePendingConversion = (G: VQGame, ctx: Ctx): void => {
+    const pending = G.pendingConversion;
+    if (pending === undefined) return;
+    delete G.pendingConversion;
+    applyConversionRolls(G, ctx, pending.power, pending.side, pending.area, pending.dice, pending.extraUnrest, pending.unrestOnOnes);
 };
 
 // --------------------------------------------------------------------------
@@ -4410,13 +4491,16 @@ const claimPatronageVpAward = (G: VQGame, p: Power, awardId: string | undefined)
     return award.vp;
 };
 
-const eligibleScienceBonus = (G: VQGame, p: Power) =>
+/** All unclaimed science bonuses the power may choose under rule 22.2. */
+export const eligibleScienceBonuses = (G: VQGame, p: Power) =>
     G.scienceBonusesAvailable
         .map((id) => scienceBonusById(id))
-        .find((bonus) => bonus !== undefined &&
+        .filter((bonus): bonus is NonNullable<typeof bonus> => bonus !== undefined &&
             (bonus.eligible === "any" ||
                 (bonus.eligible === "any-except-spain" && p !== "spain") ||
                 (Array.isArray(bonus.eligible) && bonus.eligible.includes(p))));
+
+const eligibleScienceBonus = (G: VQGame, p: Power) => eligibleScienceBonuses(G, p)[0];
 
 const claimScienceBonus = (G: VQGame, p: Power): boolean => {
     const bonus = eligibleScienceBonus(G, p);

@@ -55,7 +55,7 @@ export const canAffordWarCost = (G: VQGame, p: Power, cost: number): boolean => 
         const def = cardById(id);
         return def.kind === "home" || def.officialKind === "mandatory" ? total : total + def.cp;
     }, 0);
-    const treasures = G.powers[p].treasures.reduce((total, value) => total + value, 0);
+    const treasures = G.powers[p].treasures.reduce<number>((total, value) => total + (typeof value === "number" ? value : 0), 0);
     return cards + treasures >= cost;
 };
 

@@ -21,7 +21,7 @@ import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 import Typography from "@mui/material/Typography";
 import i18n from "../../../constant/i18n";
-import {CardDef, powerName, powerShortName, minorName, landCount, POWERS, Power, RoyalDef, VQGame, isPower, VictoryReason, VICTORY_TEXT, victoryText} from "../../constant/general";
+import {CardDef, powerName, powerShortName, minorName, landCount, POWERS, Power, RoyalDef, VQGame, isPower, VictoryReason, VICTORY_TEXT, victoryText, treasureCp, treasureName} from "../../constant/general";
 import {cardById, cardImageUrl, cardName} from "../../constant/cards";
 import {leaderName} from "../../constant/leaders";
 import {royalAvailable} from "../../scenario";
@@ -159,6 +159,8 @@ export const blockingPendingReason = (G: VQGame): string | undefined => {
         : G.pendingPiracy ? b.piracy
         : G.pendingPolishElection ? b.election
         : G.pendingCityRebels || G.pendingRebelMove ? b.rebels
+        : G.pendingConversion ? b.conversion
+        : G.pendingScienceTreasure ? b.scienceTreasure
         : G.pendingTribute ? b.tribute
         : G.pendingMutiny ? b.mutiny
         : G.pendingForeignWar ? b.foreignWar
@@ -974,13 +976,15 @@ export const staffordDiscardOptions = (G: VQGame, power: Power | string): Staffo
             const def = cardById(id);
             return {value: `card:${id}`, label: `${cardName(id, vqLocaleNow())}${i18n.chain.vq.punct.openParen}${i18n.chain.vq.board.hand} ${def.cp} CP${i18n.chain.vq.punct.closeParen}`};
         });
-    const treasures = [...new Set(G.powers[power].treasures)].sort((a, b) => b - a)
+    const treasures = [...new Set(G.powers[power].treasures)]
+        .sort((a, b) => treasureCp(b) - treasureCp(a) || String(a).localeCompare(String(b)))
         .map((value) => {
             const count = G.powers[power].treasures.filter((treasure) => treasure === value).length;
-            return {
-                value: `treasure:${value}`,
-                label: `${i18n.chain.vq.board.treasure} ${value}${i18n.chain.vq.punct.openParen}${value} CP${count > 1 ? `${i18n.chain.vq.punct.comma}${i18n.chain.vq.board.total} ${count} ${i18n.chain.vq.board.pieces}` : ""}${i18n.chain.vq.punct.closeParen}`,
-            };
+            const suffix = count > 1 ? `${i18n.chain.vq.punct.comma}${i18n.chain.vq.board.total} ${count} ${i18n.chain.vq.board.pieces}` : "";
+            const label = typeof value === "number"
+                ? `${i18n.chain.vq.board.treasure} ${value}${i18n.chain.vq.punct.openParen}${value} CP${suffix}${i18n.chain.vq.punct.closeParen}`
+                : `${i18n.chain.vq.board.treasure} ${treasureName(value, vqLocaleNow())}${suffix}`;
+            return {value: `treasure:${value}`, label};
         });
     return [...cards, ...treasures];
 };

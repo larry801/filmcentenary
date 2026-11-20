@@ -215,7 +215,8 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         const tab = switchToTab(G.activePower);
         return tab === undefined ? base : `${base} ${tab}`;
     };
-    const canAct = myTurn && phase === "action" && !G.pendingNavalMoves && !G.pendingNavalOrder && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingWithdraw && !G.pendingContinue && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingTribute && !G.pendingMutiny && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar;
+    const canAct = myTurn && phase === "action" && !G.pendingNavalMoves && !G.pendingNavalOrder && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingWithdraw && !G.pendingContinue && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingTribute && !G.pendingMutiny && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar &&
+            !G.pendingConversion && !G.pendingScienceTreasure;
     const vqCombatRetrieve = virginQueenCombatRetrieveOptions(G, playerID);
 
     /** Why an action mode is unavailable, or undefined when it can be picked. */
