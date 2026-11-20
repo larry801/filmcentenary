@@ -395,7 +395,8 @@ describe("pacification cost (33.1 / 33.4)", () => {
     const G = fresh();
     startAction(G, "AU", 4);
     G.spaces["bosnia-herzegovina"].influence = "AU";
-    G.powers.AU.flags["pacified_bosnia-herzegovina"] = false;
+    // 12.11 requires a land unit in the space to pacify it.
+    placeUnit(G, "AU", "army", "bosnia-herzegovina", 2);
     expect(pacify(G, makeCtx([4, 4], seat("AU")), "bosnia-herzegovina")).toBeUndefined();
     expect(G.cpRemaining).toBe(2);
     expect(lastLog(G, "pacificationFailed")?.args).toMatchObject({cost: 2});
@@ -412,6 +413,7 @@ describe("pacification cost (33.1 / 33.4)", () => {
     const live = fresh();
     startAction(live, "GE", 4);
     live.spaces["bosnia-herzegovina"].influence = "GE";
+    placeUnit(live, "GE", "army", "bosnia-herzegovina", 2);
     expect(pacify(live, makeCtx([4, 4], seat("GE")), "bosnia-herzegovina")).toBeUndefined();
     expect(live.cpRemaining).toBe(2);
   });

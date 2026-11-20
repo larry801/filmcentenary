@@ -81,6 +81,8 @@ describe("A088 / UK-3 spendable colonial CP", () => {
     G.spaces.egypt.influence = "UK";
     // 12.5's influence marker is not printed on these cards, so give the power
     // one colony it already influences and let the free CP pay its 1 CP cost.
+    // 12.11 also requires a land unit in the space to pacify it.
+    placeUnit(G, "UK", "army", "egypt", 2);
     expect(pacify(G, makeCtx([], seat("UK")), "egypt")).toBeUndefined();
     expect(freeColonialCp(G, "UK")).toBe(1);
   });

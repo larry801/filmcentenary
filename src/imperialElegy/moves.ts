@@ -222,6 +222,12 @@ import {
   tsrrRail,
   type TsrrRailDecision,
 } from "./engine/characteristics";
+import {
+  clearPacificationImpulse,
+  notePacificationAttempt,
+  pacificationProblem,
+} from "./engine/pacification";
+import {phaseActionProblem, type ActionFamily} from "./engine/phaseActions";
 import {checkGermanUnification, checkItalianUnification, checkAutoVictory, finishGame, finishScenario, scoreGame} from "./engine/victory";
 import {
   blocksUkAmphibiousPort,
@@ -358,6 +364,16 @@ const requireActive = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | nul
   return power;
 };
 
+/**
+ * 15.2 / 27.5: refuse a 12.1 peacetime action once a war replaces the action
+ * list.  Every action move calls this after `requireActive`, so a limited war
+ * or the Great War cannot be fought with peacetime actions on the war budget.
+ */
+const requireActionFamily = (
+  G: ImperialElegyState,
+  family: ActionFamily,
+): typeof INVALID_MOVE | null => (phaseActionProblem(G, family) === null ? null : INVALID_MOVE);
+
 const spend = (G: ImperialElegyState, amount: number): boolean => {
   if (G.cpRemaining < amount) return false;
   G.cpRemaining -= amount;
@@ -386,6 +402,9 @@ const clearActionImpulseSpend = (G: ImperialElegyState): void => {
     // impulse passes to the next player (4.5).
     delete G.powers[power].flags.tsrrRailImpulse;
   }
+  // 12.11's pacification limit is "once per space, per impulse", so a failed
+  // attempt becomes retryable in the next impulse.
+  clearPacificationImpulse(G);
   delete G.flags.decisiveBattle;
   delete G.flags.decisiveFollowUp;
   delete G.flags.decisiveBonusUsed;
@@ -1305,6 +1324,7 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
   // click never costs CP.
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (requireActionFamily(G, "constructFleet") === INVALID_MOVE) return INVALID_MOVE;
   // A92 Naval Arms Race: the discount applies "for the rest of this turn and
   // during the next turn", tracked by the flag's expiry turn.
   const discount =
@@ -1796,6 +1816,7 @@ export const buildEf = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, existin
   // refused click costs no CP.  The same predicate is read by the Orders panel.
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (requireActionFamily(G, "buildEf") === INVALID_MOVE) return INVALID_MOVE;
   if (!efDestinationAllowed(G, space, power)) return INVALID_MOVE;
   // A088/UK-3: an expeditionary force is a colonial action, so the free
   // colonial grant may pay for it first.
@@ -1819,6 +1840,9 @@ export const buildEf = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, existin
 
 export const placeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string | void => {
   const playerID = ctx.playerID ?? null;
+  // 15.2 / 27.5: the phase gate runs before the wallet, so a refused
+  // action never spends CP.
+  if (requireActionFamily(G, "placeInfluence") === INVALID_MOVE) return INVALID_MOVE;
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyInfluenced) return INVALID_MOVE;
@@ -1834,6 +1858,9 @@ export const placeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId):
 
 export const placeDiplomacy = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string | void => {
   const playerID = ctx.playerID ?? null;
+  // 15.2 / 27.5: the phase gate runs before the wallet, so a refused
+  // action never spends CP.
+  if (requireActionFamily(G, "placeDiplomacy") === INVALID_MOVE) return INVALID_MOVE;
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyInfluenced) return INVALID_MOVE;
@@ -1849,6 +1876,9 @@ export const placeDiplomacy = (G: ImperialElegyState, ctx: Ctx, space: SpaceId):
 
 export const removeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string | void => {
   const playerID = ctx.playerID ?? null;
+  // 15.2 / 27.5: the phase gate runs before the wallet, so a refused
+  // action never spends CP.
+  if (requireActionFamily(G, "removeInfluence") === INVALID_MOVE) return INVALID_MOVE;
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.powers[power].flags.alreadyRemovedInfluence) return INVALID_MOVE;
@@ -1864,6 +1894,9 @@ export const removeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId)
 
 export const minorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): string | void => {
   const playerID = ctx.playerID ?? null;
+  // 15.2 / 27.5: the phase gate runs before the wallet, so a refused
+  // action never spends CP.
+  if (requireActionFamily(G, "minorAlliance") === INVALID_MOVE) return INVALID_MOVE;
   const power = requireCp(G, ctx, playerID, 3);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   // Rule 12.8, including 4.2.1's five-ally cap and 4.6.2's "the US and a
@@ -1882,6 +1915,7 @@ export const removeMinorAlliance = (G: ImperialElegyState, ctx: Ctx, space: Spac
   // naval box do the same action for 3 CP.
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (requireActionFamily(G, "breakAlliance") === INVALID_MOVE) return INVALID_MOVE;
   // The space gate runs before the wallet so a refusal here costs nothing.
   if (removeMinorAllianceProblem(G, space) !== null) return INVALID_MOVE;
   const cost = removeAllianceCost(G, power, space);
@@ -1912,11 +1946,31 @@ export const pacify = (
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (isIndependentIndia(G, space)) return INVALID_MOVE;
+  if (requireActionFamily(G, "pacify") === INVALID_MOVE) return INVALID_MOVE;
+  // A65 prints two different things: "Decrease the value of a pacification
+  // marker by 1 … Play prior to a pacification roll" (the marker mode, which
+  // is part of a pacification) and "OR play as a normal event to flip a rebel
+  // army from reduced to full strength" (the rebel mode, which is *not* a
+  // pacification and therefore makes no roll and needs none of 12.11's
+  // preconditions).  Splitting them keeps 12.12.1 from blocking the printed
+  // event.
+  if (a065 === "rebel") {
+    if (!G.powers[power].hand.includes("IE-A065")) return INVALID_MOVE;
+    const rebel = landUnitsIn(G, space).find((unit) => unit.kind === "rebelArmy" && unit.steps === 1);
+    if (!rebel) return INVALID_MOVE;
+    G.powers[power].hand = G.powers[power].hand.filter((id) => id !== "IE-A065");
+    discardCard(G, power, "IE-A065");
+    rebel.steps = 2;
+    drawCards(G, ctx, power, 1);
+    log(G, power, "responsePlayed", {card: "IE-A065"});
+    return undefined;
+  }
+  // 12.11 / 12.12.1: one shared gate for independent India, the land unit, a
+  // rebel army in the space and the once-per-impulse limit.  The Orders panel
+  // reads the same predicate, so a disabled row and a refused move agree.
+  if (pacificationProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
   if (!state) return INVALID_MOVE;
-  if (state.influence !== power) return INVALID_MOVE;
-  if (G.powers[power].flags[`pacified_${space}`]) return INVALID_MOVE;
   // 33.4 Continental Power / 33.1 Continental Focus: pacification costs 2 CP.
   const cost = pacificationCost(G, power);
   // Validate A65 before spending anything, so a wrong/stale row costs nothing.
@@ -1929,16 +1983,11 @@ export const pacify = (
   // so the printed window is this move's optional `a065` argument (the board
   // offers one row per printed effect).  A65 is never a generic impulse
   // response; see `responseTriggerBlock`.
-  if (a065 !== undefined) {
+  if (a065 === "marker") {
     const p = G.powers[power];
     p.hand = p.hand.filter((id) => id !== "IE-A065");
     discardCard(G, power, "IE-A065");
-    if (a065 === "marker") {
-      state.pacification = Math.max(0, (state.pacification ?? 0) - 1);
-    } else {
-      const rebel = landUnitsIn(G, space).find((unit) => unit.kind === "rebelArmy" && unit.steps === 1);
-      if (rebel) rebel.steps = 2;
-    }
+    state.pacification = Math.max(0, (state.pacification ?? 0) - 1);
     drawCards(G, ctx, power, 1);
     log(G, power, "responsePlayed", {card: "IE-A065"});
   }
@@ -1954,7 +2003,9 @@ const rollPacification = (G: ImperialElegyState, ctx: Ctx, power: Power, space: 
   const modifier = pacificationModifier(G, power, space);
   const roll =
     die(ctx, 6) + die(ctx, 6) + value + (hasAdjacentNaval(G, power, space) ? 1 : 0) + modifier.drm;
-  G.powers[power].flags[`pacified_${space}`] = true;
+  // 12.11's limit is "once per space, per impulse", not once per game: the
+  // attempt is recorded for this impulse only (see `clearPacificationImpulse`).
+  notePacificationAttempt(G, power, space);
   if (roll >= 10) {
     setSpaceControl(G, space, power, {clearInfluence: true});
     state.pacification = 0;
@@ -1985,6 +2036,7 @@ export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (requireActionFamily(G, "buildFort") === INVALID_MOVE) return INVALID_MOVE;
   if (SPACES[space]?.region !== "europe") return INVALID_MOVE;
   const existing = G.spaces[space]?.fort ?? null;
   if (existing !== null) {
@@ -2000,7 +2052,6 @@ export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level
     log(G, power, "fortUpgraded", {space, level: existing.level});
     return undefined;
   }
-  if (G.powers[power].flags[`fort_${space}`]) return INVALID_MOVE;
   const occupied = landUnitsIn(G, space).some((unit) => unit.owner === power);
   if (G.spaces[space]?.control !== power && !occupied) return INVALID_MOVE;
   const forts = Object.values(G.spaces).filter((s) => s.fort?.power === power).length;
@@ -2008,7 +2059,11 @@ export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level
   const paid = requireCp(G, ctx, playerID, level);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   G.spaces[space].fort = {power, level};
-  G.powers[power].flags[`fort_${space}`] = true;
+  // 12.12 prints no "once per space, per game" limit on the fort action; the
+  // old `fort_<space>` flag was never cleared, so a fort that 20.2 degraded
+  // away could never be rebuilt in that space for the rest of the match.  The
+  // CP, the placement rule, the one-fort-per-space rule and the three-fort cap
+  // are the printed limits, and they all still apply.
   log(G, power, "fortBuilt", {space, level});
   return undefined;
 };
@@ -8193,17 +8248,40 @@ export const saveCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): strin
 };
 
 // ------------------------------------------------------------------ influence track
+/**
+ * 33.3 The Third Republic grants FR 2 free CP "at the beginning of the alliance
+ * resolution step … that may immediately spend on alliance track actions
+ * [12.7]".  That is a printed exception to 15.2's action list: the grant is
+ * spendable on the MPIT track during a war even though 12.7 is a peacetime
+ * action, because the rule names the moment and the action itself.
+ */
+const frRepublicMpitAvailable = (G: ImperialElegyState, power: Power): boolean =>
+  power === "FR"
+  && Number(G.flags.frAllianceCpTurn ?? -1) === G.turn
+  && Number(G.flags.frAllianceCp ?? 0) > 0;
+
 export const placeMpit = (G: ImperialElegyState, ctx: Ctx, target: Power, track: "te" | "ta" | "neutral"): string | void => {
   const playerID = ctx.playerID ?? null;
-  const power = requireActive(G, ctx, playerID);
-  if (power === INVALID_MOVE) return INVALID_MOVE;
+  // 12.7's influence action is a 12.1 peacetime action, so 15.2 and 27.5 do
+  // not offer it once a war replaces the action list — except for 33.3's
+  // printed Third Republic grant, which is spent here at the alliance step.
+  const power = actor(G, playerID);
+  if (power === null) return INVALID_MOVE;
+  // 12.7's influence action is a 12.1 peacetime action, so 15.2 and 27.5 do
+  // not offer it once a war replaces the action list — except for 33.3's
+  // printed Third Republic grant, which is spent here at the alliance step.
+  if (!frRepublicMpitAvailable(G, power)) {
+    if (requireActionFamily(G, "placeMpit") === INVALID_MOVE) return INVALID_MOVE;
+  }
+  const active = requireActive(G, ctx, playerID);
+  if (active === INVALID_MOVE) return INVALID_MOVE;
   if (!G.powers[target]) return INVALID_MOVE;
   // 33.3 The Third Republic: FR's 2 free CP are spendable only on alliance
   // track actions, i.e. here, and only during the turn they were granted.
   const freeTurn = Number(G.flags.frAllianceCpTurn ?? -1);
   const freeCp = Number(G.flags.frAllianceCp ?? 0);
   let free = false;
-  if (power === "FR" && freeTurn === G.turn && freeCp > 0) {
+  if (frRepublicMpitAvailable(G, power)) {
     G.flags.frAllianceCp = freeCp - 1;
     free = true;
   } else {

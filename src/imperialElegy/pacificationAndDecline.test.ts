@@ -12,6 +12,7 @@ import type {Ctx} from "boardgame.io";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
+import {placeUnit} from "./engine/effects";
 import {pacificationCost} from "./engine/characteristics";
 import {declareWar, pacify} from "./moves";
 import * as moves from "./moves";
@@ -87,6 +88,8 @@ describe("12.1 pacification cost", () => {
     const G = fresh();
     beginAction(G, "AU", 4);
     G.spaces.saxony.influence = "AU";
+    // 12.11 requires a land unit in the space to pacify it.
+    placeUnit(G, "AU", "army", "saxony", 2);
     expect(pacificationCost(G, "AU").cost).toBe(2);
     const row = spaceActions(input(G, "AU", "saxony")).find((entry) => entry.id === "pacify");
     expect(row?.cost).toBe(2);

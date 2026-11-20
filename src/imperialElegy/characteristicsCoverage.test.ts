@@ -145,6 +145,8 @@ describe("audit fix: Zouaves / elite colonial EF pacification DRM (33.3, A78)", 
     G.spaces["west-africa"].influence = "FR";
     G.spaces["west-africa"].pacification = 0;
     placeUnit(G, "FR", "zouave", "west-africa", 1);
+    // 12.11 requires a land unit in the space to pacify it.
+    placeUnit(G, "FR", "army", "west-africa", 2);
 
     // Two dice 4+5 = 9 plus the Zouaves' +1 reaches the printed 10.
     expect(pacify(G, makeCtx([4, 5], seat("FR")), "west-africa")).toBeUndefined();
@@ -159,6 +161,8 @@ describe("audit fix: Zouaves / elite colonial EF pacification DRM (33.3, A78)", 
     G.pending = null;
     G.spaces["west-africa"].influence = "FR";
     G.spaces["west-africa"].pacification = 0;
+    // 12.11 requires a land unit in the space to pacify it.
+    placeUnit(G, "FR", "army", "west-africa", 2);
 
     expect(pacify(G, makeCtx([4, 5], seat("FR")), "west-africa")).toBeUndefined();
     expect(G.spaces["west-africa"].control).toBeNull();
@@ -174,6 +178,8 @@ describe("audit fix: Zouaves / elite colonial EF pacification DRM (33.3, A78)", 
     G.spaces["west-africa"].influence = "UK";
     G.spaces["west-africa"].pacification = 0;
     placeUnit(G, "UK", "eliteColonialEf", "west-africa", 1);
+    // 12.11 requires a land unit in the space to pacify it.
+    placeUnit(G, "UK", "army", "west-africa", 2);
 
     expect(pacify(G, makeCtx([4, 5], seat("UK")), "west-africa")).toBeUndefined();
     expect(G.spaces["west-africa"].control).toBe("UK");

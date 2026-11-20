@@ -41,6 +41,11 @@ import {
   pacificationCost,
 } from "../engine/characteristics";
 import {hasCounterFor} from "../engine/counters";
+import {phaseActionProblem, type ActionFamily} from "../engine/phaseActions";
+import {
+  pacificationProblem,
+  type PacificationProblem,
+} from "../engine/pacification";
 import {polishReserveDeployer} from "../engine/poland";
 import {legalUnitTargets} from "./legalTargets";
 import {unitIsCommanded} from "./boardHelpers";
@@ -209,6 +214,73 @@ const FOREIGN_AFFAIRS_TEXT: Record<ForeignAffairsProblem, [string, string]> = {
 export const foreignAffairsText = (problem: ForeignAffairsProblem, locale: "en" | "zh_CN"): string => {
   const entry = FOREIGN_AFFAIRS_TEXT[problem];
   return locale === "zh_CN" ? entry[1] : entry[0];
+};
+
+/** 15.2 / 27.5: why a peacetime action is not on this phase's action list. */
+export const PHASE_ACTION_TEXT: Record<"wartime-only" | "gw-only" | "peacetime-only", [string, string]> = {
+  "wartime-only": [
+    "15.2 replaces the peacetime actions during a war: only naval movement, joint naval, deploy reserves, march, rail and land battle are allowed.",
+    "战时 15.2 以新行动表取代和平时期行动：只允许海军移动、联合海军、部署预备军、行军、铁路移动与陆战。",
+  ],
+  "gw-only": [
+    "27.5 prints the Great War action list; this peacetime action is not on it.",
+    "27.5 规定大战行动表，此和平时期行动不在其中。",
+  ],
+  "peacetime-only": [
+    "This is an action-phase action.",
+    "此行动只在行动阶段可用。",
+  ],
+};
+
+/** 12.11 / 12.12.1's bilingual refusal sentences. */
+export const PACIFICATION_TEXT: Record<PacificationProblem, [string, string]> = {
+  "unknown-space": ["No such space.", "没有该空间。"],
+  "independent-india": ["India is independent and cannot be marked or pacified.", "印度已独立，不能放置标记或绥靖。"],
+  "naval-box": ["Naval boxes cannot be pacified.", "海军区不能绥靖。"],
+  "no-influence": ["You need your own influence marker here.", "此处需有己方影响标记。"],
+  "no-land-unit": ["12.11 requires one of your land units in the space to pacify it.", "12.11：绥靖需在该空间有你的陆军单位。"],
+  "rebel-present": ["12.12.1: a rebel army here must be eliminated in a land battle before you can pacify.", "12.12.1：须先以陆战消灭此处的叛军，才能绥靖。"],
+  "already-this-impulse": ["12.11: one pacification per space per impulse — retry in a later impulse.", "12.11：每个空间每行动轮只能绥靖一次，请在后续行动轮再试。"],
+};
+
+export const pacificationText = (problem: PacificationProblem, locale: "en" | "zh_CN"): string => {
+  const entry = PACIFICATION_TEXT[problem];
+  return locale === "zh_CN" ? entry[1] : entry[0];
+};
+
+/**
+ * The 12.1 action family of each Orders row, so 15.2 / 27.5 can gate the whole
+ * list once.  Rows not listed here are printed on the war/GW lists themselves
+ * (march, rail, land battle, deploy, draft, refit, joint naval) and need no
+ * gate.
+ */
+const ACTION_PHASE_FAMILY: Partial<Record<ActionId, ActionFamily>> = {
+  recruitArmy: "recruit",
+  recruitCw: "recruit",
+  recruitReserve: "recruit",
+  recruitEc: "recruit",
+  polishArmy: "recruit",
+  polishReserve: "recruit",
+  minorArmy: "minorAlliance",
+  minorSquadron: "minorAlliance",
+  minorDreadnought: "minorAlliance",
+  buildSquadron: "constructFleet",
+  buildDreadnought: "constructFleet",
+  refitFleet: "refitFleet",
+  buildFort: "buildFort",
+  buildFort2: "buildFort",
+  upgradeFort: "buildFort",
+  buildEf: "buildEf",
+  moveEf: "buildEf",
+  influence: "placeInfluence",
+  diplomacy: "placeDiplomacy",
+  minorAlliance: "minorAlliance",
+  removeInfluence: "removeInfluence",
+  breakAlliance: "breakAlliance",
+  pacify: "pacify",
+  pacifyA065Marker: "pacify",
+  pacifyA065Rebel: "pacify",
+  rapidDeploy: "navalMovement",
 };
 
 /** The groups, in the order the player aid prints them. */
@@ -515,7 +587,6 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // placement — a European space you control or occupy with a land unit.
     // Every row reads the same gate `buildFort` enforces.
     const existingFort = G.spaces[space]?.fort ?? null;
-    const fortThisDecade = me.flags[`fort_${space}`] !== undefined;
     const fortMobile = landUnitsIn(G, space).some((unit) => unit.owner === viewer);
     const fortPlaceable = G.spaces[space]?.control === viewer || fortMobile;
     // A space id the map does not know has no region: treat it as a plain
@@ -536,8 +607,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
         ? fortOwn
           ? bi(locale, "This space already holds your fort; upgrade it for 1 CP.", "此空间已有你的要塞：可花 1 CP 升级。")
           : bi(locale, "This space already has another power's fort.", "此空间已有其他势力的要塞。")
-        : myForts >= 3 ? bi(locale, "Fort limit reached (3).", "已达要塞上限（3座）。")
-          : fortThisDecade ? bi(locale, "A fort was built here this decade.", "本年代已在此建造要塞。") : null);
+        : myForts >= 3 ? bi(locale, "Fort limit reached (3).", "已达要塞上限（3座）。") : null);
     const fortEnabled = fortBuildReason === null && canSpend(ACTION_COSTS.buildFort);
     push({
       id: "buildFort", group: "build", enabled: fortEnabled,
@@ -628,7 +698,6 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       reason: allyEnabled ? undefined : allyReason ?? spendReason(ACTION_COSTS.minorAlliance),
       run: () => doAction(() => moves.minorAlliance(space)),
     });
-    const state2 = G.spaces[space];
     const removeProblem = removeMarkerProblem(G, viewer, space);
     const removeInfluenceReason = me.flags.alreadyRemovedInfluence === true ? bi(locale, "You already removed influence this impulse.", "本行动轮已移除影响。")
       : removeProblem === null ? null
@@ -653,10 +722,16 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       run: () => doAction(() => moves.removeMinorAlliance(space)),
     });
     const pacifyCost = pacificationCost(G, viewer).cost;
-    const pacifyReason = !state2 ? null
-      : state2.influence !== viewer ? bi(locale, "You need your own influence marker here.", "此处需有己方影响标记。")
-        : me.flags[`pacified_${space}`] !== undefined ? bi(locale, "Pacified here this decade already.", "本年代已在此绥靖。") : null;
-    const pacifyEnabled = pacifyReason === null && canSpendColonial(pacifyCost);
+    // 12.11 / 12.12.1: the row reads the same gate `pacify` enforces (own
+    // influence marker, a land unit in the space, no rebel army, and once per
+    // space per impulse).  The old copy only checked the influence marker and
+    // a permanent "pacified" flag, so it offered — and the move then refused —
+    // a pacification the rules forbid, and it forbade the retry the rules allow.
+    const pacifyProblem = pacificationProblem(G, viewer, space);
+    const pacifyReason = pacifyProblem === null ? null : pacificationText(pacifyProblem, locale);
+    const pacifyEnabled = pacifyReason === null
+      && phaseActionProblem(G, "pacify") === null
+      && canSpendColonial(pacifyCost);
     push({
       // 12.1's pacification cost is not flat: GE pays 2 CP until it unifies and
       // AU always pays 2 CP, so the row quotes the same figure the move charges.
@@ -842,6 +917,20 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
 
   void selectedIsOther;
   void input.canActionCard;
+
+  // 15.2 / 27.5: one phase gate over the whole list.  A limited war replaces
+  // 12.1's peacetime actions with its own list, and the Great War prints a
+  // third, so a row the phase forbids is shown disabled with the printed reason
+  // instead of being offered and then refused by the move.
+  for (const row of rows) {
+    const family = ACTION_PHASE_FAMILY[row.id];
+    if (family === undefined) continue;
+    const problem = phaseActionProblem(G, family);
+    if (problem === null) continue;
+    const [en, zh] = PHASE_ACTION_TEXT[problem];
+    row.enabled = false;
+    row.reason = bi(locale, en, zh);
+  }
 
   return rows;
 };
