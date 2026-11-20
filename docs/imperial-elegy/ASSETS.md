@@ -5,6 +5,13 @@ All published images come from `Imperial Elegy 1.1.0-beta.4.vmod` (VASSAL
 script copies the files byte-for-byte; it does not recolour, crop or re-encode
 artwork.
 
+The nine reference charts additionally have a **bilingual text transcription**
+under `src/imperialElegy/components/referenceCharts/`, rendered by
+`components/ChartTextView.tsx`. It is markup, not art: no new image is produced
+and the published PNGs stay untouched. Where the printed sheet, the rulebook and
+the Mar. 2026 errata disagree, the transcription prints the sheet and adds the
+errata note; see `IMPLEMENTATION_STATUS.md`.
+
 | Kind | Count | Published under | Source |
 | --- | --- | --- | --- |
 | Maps | 2 | `maps/world.jpg`, `maps/greatWar.jpg` | `Map-World f.jpg`, `GW Main Map T3.jpg` |

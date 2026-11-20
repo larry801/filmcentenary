@@ -6,6 +6,12 @@
  * play) are rendered as markup and addressable by anchor, which is what the
  * track strip, the mat and the "?" controls link to.
  *
+ * Each of the nine charts is also transcribed in both UI languages
+ * (`referenceCharts/`), because the art is printed English.  The lightbox
+ * opens on the transcription for a zh_CN reader and on the printed sheet for
+ * an English one, and a two-button switch swaps between the two; the printed
+ * sheet stays authoritative.
+ *
  * Focus is trapped while open, Esc closes, and the scroll position returns to
  * the page underneath.
  */
@@ -15,6 +21,8 @@ import {Power} from "../types";
 import {POWER_DEFS} from "../constant/powers";
 import {bi} from "./boardHelpers";
 import {useFocusTrap} from "./useFocusTrap";
+import {ChartTextView} from "./ChartTextView";
+import {chartTextById} from "./referenceCharts";
 
 export interface ChartEntry {
   id: string;
@@ -106,12 +114,28 @@ export interface ChartLightboxProps {
   onZoom?: () => void;
 }
 
+/**
+ * How one chart opens: the transcription for a reader whose language the art
+ * does not use, the printed sheet for an English one.  A display board (or a
+ * chart without a transcription) has no text view, so it always opens as art.
+ */
+export const initialChartMode = (chart: ChartEntry, locale: "en" | "zh_CN"): "text" | "print" =>
+  (locale === "zh_CN" && chartTextById(chart.id) !== undefined ? "text" : "print");
+
 export const ChartLightbox = ({chart, locale, onClose, onZoom}: ChartLightboxProps) => {
   const closeRef = React.useRef<HTMLButtonElement | null>(null);
   const title = locale === "zh_CN" ? chart.titleZh : chart.title;
+  const text = chartTextById(chart.id);
+  const [mode, setMode] = React.useState<"text" | "print">(() => initialChartMode(chart, locale));
+  // Moving to another chart (the drawer can open one while this is mounted)
+  // re-picks the default for that chart and language.
+  React.useEffect(() => {
+    setMode(initialChartMode(chart, locale));
+  }, [chart, locale]);
   // Focus moves into the dialog and stays there: Esc closes it, Tab cycles its
   // controls, and focus returns to whatever opened the chart.
   const dialogRef = useFocusTrap<HTMLDivElement>({active: true, onEscape: onClose});
+  const showingText = mode === "text" && text !== undefined;
 
   return (
     <div
@@ -119,13 +143,40 @@ export const ChartLightbox = ({chart, locale, onClose, onZoom}: ChartLightboxPro
       className="ie-lightbox"
       data-testid="ie-chart-lightbox"
       data-chart={chart.id}
+      data-mode={showingText ? "text" : "print"}
       role="dialog"
       aria-modal="true"
       aria-label={title}
     >
       <div className="ie-lightbox-bar">
         <h2 className="ie-lightbox-title">{title}</h2>
-        <span className="ie-muted">{bi(locale, "Printed chart · Esc closes", "印刷图表 · Esc 关闭")}</span>
+        {text !== undefined && (
+          <div className="ie-lightbox-modes" role="group" aria-label={bi(locale, "Chart view", "图表视图")}>
+            <button
+              type="button"
+              className="ie-btn secondary"
+              data-testid="ie-chart-mode-text"
+              aria-pressed={showingText}
+              onClick={() => setMode("text")}
+            >
+              {bi(locale, "Text", "文字")}
+            </button>
+            <button
+              type="button"
+              className="ie-btn secondary"
+              data-testid="ie-chart-mode-print"
+              aria-pressed={!showingText}
+              onClick={() => setMode("print")}
+            >
+              {bi(locale, "Printed sheet", "印刷原图")}
+            </button>
+          </div>
+        )}
+        <span className="ie-muted">
+          {showingText
+            ? bi(locale, "Transcribed from the printed chart · Esc closes", "据印刷图表转录 · Esc 关闭")
+            : bi(locale, "Printed chart · Esc closes", "印刷图表 · Esc 关闭")}
+        </span>
         <button
           ref={closeRef}
           type="button"
@@ -138,18 +189,27 @@ export const ChartLightbox = ({chart, locale, onClose, onZoom}: ChartLightboxPro
           <Icon name="close" size={16}/>
         </button>
       </div>
-      <div className="ie-lightbox-stage" onClick={onClose}>
-        <img
-          className="ie-lightbox-image"
-          src={chartSrc(chart)}
-          alt={title}
-          data-testid="ie-chart-image"
-          onClick={(event) => {
-            event.stopPropagation();
-            onZoom?.();
-          }}
-        />
-      </div>
+      {showingText ? (
+        // The transcription is text to read, not a backdrop to dismiss: only
+        // the bar's ✕ and Esc close it, so a click while selecting a line does
+        // not throw the reader back to the board.
+        <div className="ie-lightbox-stage ie-lightbox-text" data-testid="ie-chart-text-stage">
+          <ChartTextView chart={text} locale={locale}/>
+        </div>
+      ) : (
+        <div className="ie-lightbox-stage" onClick={onClose}>
+          <img
+            className="ie-lightbox-image"
+            src={chartSrc(chart)}
+            alt={title}
+            data-testid="ie-chart-image"
+            onClick={(event) => {
+              event.stopPropagation();
+              onZoom?.();
+            }}
+          />
+        </div>
+      )}
     </div>
   );
 };

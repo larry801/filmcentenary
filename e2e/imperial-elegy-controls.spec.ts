@@ -941,6 +941,40 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         expect(new Set(swatches).size).toBe(swatches.length);
     });
 
+    test("a printed chart opens as its Chinese transcription and switches to the printed sheet", async ({page}) => {
+        await openLocal(page);
+        const board = boardFor(page, "GE");
+        await board.locator('[data-testid="ie-open-reference"]').click();
+        const drawer = board.locator('[data-testid="ie-reference-drawer"]');
+        await expect(drawer).toBeVisible();
+
+        // The CRT is one of the nine transcribed charts.  On a zh_CN board it
+        // opens as text: the printed PNG is English art and cannot be read.
+        await board.locator('[data-testid="ie-chart-combat-crt"]').click();
+        const lightbox = board.locator('[data-testid="ie-chart-lightbox"]');
+        await expect(lightbox).toBeVisible();
+        await expect(lightbox).toHaveAttribute("data-chart", "combat-crt");
+        await expect(lightbox).toHaveAttribute("data-mode", "text");
+        const text = lightbox.locator('[data-testid="ie-chart-text"]');
+        await expect(text).toBeVisible();
+        await expect(text).toContainText("战斗结果表");
+        await expect(text).toContainText("伤亡：攻/守");
+        // No English prose leaks into the transcription.
+        await expect(text).not.toContainText("Combat Results Table");
+        await expect(lightbox.locator('[data-testid="ie-chart-image"]')).toHaveCount(0);
+
+        // The printed sheet is one click away and back again.
+        await lightbox.locator('[data-testid="ie-chart-mode-print"]').click();
+        await expect(lightbox).toHaveAttribute("data-mode", "print");
+        await expect(lightbox.locator('[data-testid="ie-chart-image"]')).toBeVisible();
+        await lightbox.locator('[data-testid="ie-chart-mode-text"]').click();
+        await expect(lightbox).toHaveAttribute("data-mode", "text");
+        await expect(lightbox.locator('[data-testid="ie-chart-text"]')).toBeVisible();
+
+        await board.locator('[data-testid="ie-chart-close"]').click();
+        await expect(lightbox).toHaveCount(0);
+    });
+
     test("the printed player display closes with Esc and with the ✕", async ({page}) => {
         await openLocal(page);
         const board = boardFor(page, "GE");

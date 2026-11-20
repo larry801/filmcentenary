@@ -154,6 +154,13 @@ export const ReferenceTables = (props: ReferenceTablesProps) => {
 
       <section className="ie-ref-section" data-testid="ie-ref-charts">
         <h3>{bi(locale, "Reference charts", "参考图表")}</h3>
+        <p className="ie-muted">
+          {bi(
+            locale,
+            "The printed charts are English art. Every one of the nine is transcribed in both languages, so open a chart and switch to Text to read it.",
+            "印刷图表为英文原图。九张图表均已提供双语文字转录：打开图表后切换到「文字」即可阅读。",
+          )}
+        </p>
         <div className="ie-chart-grid">
           {CHARTS.map((chart) => (
             <figure key={chart.id}>

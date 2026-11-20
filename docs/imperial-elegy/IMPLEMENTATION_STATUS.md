@@ -1,5 +1,51 @@
 # Imperial Elegy — implementation status
 
+## Added: the nine printed reference charts, transcribed in both languages (2026-11-20)
+
+Reported as "帝国挽歌9个参考表翻译成中文".  The nine charts are published
+English PNGs, so a zh_CN board could only ever show English art.  Each one now
+has a bilingual transcription (`src/imperialElegy/components/referenceCharts/`,
+one module per chart, rendered by `ChartTextView`):
+
+- **The lightbox gained a view switch.**  `ChartLightbox` opens a transcribed
+  chart as text on a zh_CN board and as the printed sheet in English, and its
+  bar carries `文字` / `印刷原图` (`ie-chart-mode-text` / `ie-chart-mode-print`)
+  so either view is one click away.  `data-mode` states which is showing, and
+  the printed PNG stays the authority — the transcription says so in its own
+  heading.  The player-display boards are art only and still open as art.
+- **Text, not pictures.**  Each chart is structured data (prose, bullets, a
+  table, a sub-heading) rather than an image, so it reflows, takes the board's
+  own type scale, and can be checked against the engine.  The CRT rows, the
+  crisis rows, the Balkan States table, the non-player alliance rows and the
+  counter mix are all cross-checked against `crt()`, `engine/crisisTable.ts`,
+  `engine/limitedWar.ts` and `engine/counters.ts` in
+  `components/referenceCharts.test.tsx`; a transcription that drifts from the
+  rules fails the suite.
+- **The drawer says where the text is.**  `ie-ref-charts` carries a line
+  explaining that the printed art is English and each of the nine has a text
+  view.
+
+Two discrepancies surfaced while transcribing, and both are recorded rather
+than silently smoothed over:
+
+1. **Denmark's 3rd Choice.**  The player-aid chart prints `GE/RU*` in the 2nd
+   Choice column and `Germany` in the 3rd; the rulebook's own 13.4.3 table
+   (`IE_rule.pdf`, p. 15) prints `-` there, and the Mar. 2026 errata ("13.4.3
+   Non-Player Alliance Table (page 30) — Denmark's 3rd choice is Austria")
+   corrects the aid.  `NON_PLAYER_ALLIANCE_TABLE` carries no third choice for
+   Denmark, so it matches neither source.  The transcription prints the aid's
+   cell with the errata note, and the test asserts that `Germany` is the only
+   printed column the engine does not carry.  **Open question:** add AU as
+   Denmark's 3rd Choice (errata) as a separate rules change with its own tests.
+2. **The Flashpoint Summary's Germany threshold.**  The chart prints "control 8
+   keys" for Germany while `FLASHPOINTS.germany.keys` is 6 (the "three keys"
+   printed on the vector board's own Flashpoints panel is a different,
+   unverified number again).  The chart's numbers are transcribed as printed;
+   the engine's threshold is left alone because no rulebook page states it and
+   the chart is the only source, so changing it would be a rules change, not a
+   translation.  **Open question for the rules audit:** which of 6 / 8 is the
+   printed value.
+
 ## Fixed: five printed rules that were still simplified (2026-11-20)
 
 Reported as "帝国挽歌规则简化部分实现".  The pass took the open items in
