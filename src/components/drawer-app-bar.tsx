@@ -106,6 +106,7 @@ const DrawerAppBar = () => {
             <IconButton
                 color="inherit"
                 aria-label={i18n.chain.drawer.navigation}
+                data-testid="drawer-open"
                 onClick={handleOpen}
                 edge="start"
             >

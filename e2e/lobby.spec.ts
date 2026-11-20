@@ -49,7 +49,9 @@ test("app bar home link returns to the landing page", async ({page}) => {
 
 test("the drawer footer shows the build time and commit", async ({page}) => {
     await page.goto("/");
-    await page.getByRole("button", {name: "open drawer"}).click();
+    // The menu button is labelled by the active locale (导航 in zh_CN), so the
+    // test addresses it by its stable test id rather than an English name.
+    await page.getByTestId("drawer-open").click();
     const buildInfo = page.getByTestId("drawer-build-info");
     await expect(buildInfo).toBeVisible();
     // Both values come from `define` in vite.config.mts, so they are present in
