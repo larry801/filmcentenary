@@ -8,7 +8,7 @@ import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
 import {chooseInterception} from "./interception";
-import {arriveLeaders, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, autoResolveWinterReturnChoices, checkImmediateVictory, checkVictory, chooseReliefSplit, dealYear, pushLog, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
+import {arriveLeaders, autoResolvePendingConversion, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, autoResolveWinterReturnChoices, checkImmediateVictory, checkVictory, chooseReliefSplit, dealYear, pushLog, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
 import {
     assault,
     autoInterceptionOrder,
@@ -99,6 +99,9 @@ import {
     startActionTurn,
     autoResolveCityRebelsLosses,
     chooseCityRebelsLoss,
+    chooseScienceTreasureBonus,
+    chooseConversionNullify,
+    autoResolvePendingScienceTreasure,
 } from "./moves";
 import {counterDeal, proposeDeal, respondDeal, withdrawDeal} from "./negotiationMoves";
 import {expireOpenOffer, negotiationState} from "./negotiation";
@@ -107,6 +110,8 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
     // Safety net: an abandoned #18 allocation is completed with the automatic
     // unit order before the next turn begins.
     if (G.pendingCityRebels !== undefined) autoResolveCityRebelsLosses(G);
+    autoResolvePendingConversion(G, ctx);
+    autoResolvePendingScienceTreasure(G);
     if (ctx.phase === "cardDraw" &&
         ((G.winterLossChoices?.some((entry) => entry.power === G.activePower) ||
             G.winterNavalLossChoices?.some((entry) => entry.power === G.activePower)) ||
@@ -158,6 +163,11 @@ const phaseBegin = (G: VQGame, ctx?: Ctx): void => {
     if (ctx?.phase !== "diplomacy") expireOpenOffer(G);
     // A #18 choice cannot cross a phase boundary; apply the automatic order.
     if (G.pendingCityRebels !== undefined) autoResolveCityRebelsLosses(G);
+    // An abandoned Step 4 conversion choice keeps the Unrest (rule 18.5).
+    if (ctx !== undefined) {
+        autoResolvePendingConversion(G, ctx);
+        autoResolvePendingScienceTreasure(G);
+    }
     // #95 is only attached for the Diplomacy Phase in which it was played.
     delete G.louiseAttachment;
     restorePatrons(G);
@@ -439,6 +449,8 @@ export const VirginQueenGameDef: Game<VQGame> = {
         dragutFallsRoll,
     chooseAbjuration,
     chooseCityRebelsLoss,
+    chooseScienceTreasureBonus,
+    chooseConversionNullify,
     giveTreasure,
     cancelWalsingham,
     scurvyNavigation,

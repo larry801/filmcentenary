@@ -242,6 +242,23 @@ export interface NavalStack {
 }
 
 /**
+ * Rule 18.5 step 4: after the conversion dice are rolled the power taking the
+ * conversions may cancel one Unrest marker by reducing a rolled "6" to a "5".
+ * The choice is resolved before the major/minor conversions are allocated, so
+ * it can change whether one conversion may enter a space with a Catholic unit
+ * or Jesuit.
+ */
+export interface PendingConversion {
+    power: Power;
+    side: Religion;
+    area: ReligionArea;
+    /** Adjusted dice values after Belgic Confession / Iconoclastic Fury. */
+    dice: number[];
+    extraUnrest: number;
+    unrestOnOnes: boolean;
+}
+
+/**
  * A winter attrition loss whose unit composition has not been confirmed by the
  * owner yet. The automatic losses have already been applied; choosing another
  * composition restores the automatically removed units to `space` and takes
@@ -674,12 +691,45 @@ export interface SeaState {
     leaders: string[];
 }
 
+/**
+ * Rule 11: treasure counters are either CP values 1-5 or one of the three
+ * automatic treasures.  Special treasures have no CP value; playing one
+ * resolves its printed effect instead of extending the impulse with CP.
+ */
+export type SpecialTreasure = "drawCard" | "scienceBonus" | "vp";
+export type Treasure = number | SpecialTreasure;
+
+/** The official 30-counter mix (BGG counter list): 1x5CP, 5x4CP, 7x3CP, 8x2CP, 5x1CP, 2 Draw Card, 1 Science Bonus, 1 VP. */
+export const TREASURE_TABLE: Treasure[] = [
+    1, 2, 3, 4, 5,
+    1, 1, 1, 1,
+    2, 2, 2, 2, 2, 2, 2,
+    3, 3, 3, 3, 3, 3,
+    4, 4, 4, 4,
+    "drawCard", "drawCard", "scienceBonus", "vp",
+];
+
+export const isSpecialTreasure = (t: Treasure): t is SpecialTreasure => typeof t !== "number";
+
+/** CP value of a treasure; special treasures are worth nothing for CP. */
+export const treasureCp = (t: Treasure): number => typeof t === "number" ? t : 0;
+
+const SPECIAL_TREASURE_NAMES: Record<SpecialTreasure, {en: string; zh: string}> = {
+    drawCard: {en: "Draw Card", zh: "抽一张牌"},
+    scienceBonus: {en: "Science Bonus", zh: "科学奖励"},
+    vp: {en: "1 VP", zh: "1 胜利点"},
+};
+
+/** Human-readable treasure label used by the hand and log panels. */
+export const treasureName = (t: Treasure, locale: VQLocale = "zh_CN"): string =>
+    typeof t === "number" ? `${t} CP` : (locale === "en" ? SPECIAL_TREASURE_NAMES[t].en : SPECIAL_TREASURE_NAMES[t].zh);
+
 export interface PowerState {
     power: Power;
     /** Current ruler id (the Ottoman changes from Suleiman to Selim II). */
     ruler: string;
     cards: string[];
-    treasures: number[];
+    treasures: Treasure[];
     /** Command points left in the current impulse. */
     cp: number;
     cardPlayed: boolean;
@@ -940,7 +990,7 @@ export interface VQGame {
     rebellionAreasThisImpulse?: {impulse: number; areas: string[]};
     /** Most recent fortress capture; gates Sack! (#44) and Spanish Fury (#46). */
     lastCapture?: {space: string; attacker: Power; impulse: number};
-    spanishTreasureRow?: number[];
+    spanishTreasureRow?: Treasure[];
     /** Impulse in which a naval transport was already made (16.3). */
     navalTransportImpulse?: number;
     /** Set at the end of the Action Phase so endIf can score the winter. */
@@ -967,7 +1017,7 @@ export interface VQGame {
     /** Powers that have used their once-per-turn assassination action. */
     assassinationUsed: Power[];
     /** Sea captains currently on the World Map, with an optional colony aboard. */
-    worldCaptains: Record<string, {power: Power; location: string; damaged: boolean; colony: boolean; movedImpulse?: number; route?: string[]; navigationBonus?: number; navigationPenalty?: number; companion?: string; treasureValues?: number[]}>;
+    worldCaptains: Record<string, {power: Power; location: string; damaged: boolean; colony: boolean; movedImpulse?: number; route?: string[]; navigationBonus?: number; navigationPenalty?: number; companion?: string; treasureValues?: Treasure[]}>;
     /** Settlements already occupied by a permanent colony. */
     worldColonies: Partial<Record<string, Power>>;
     /** Colony Table results from the current Card Draw (rule 8.4). */
@@ -1062,6 +1112,13 @@ export interface VQGame {
      */
     pendingCityRebels?: CityRebelsLossChoice;
     /**
+     * A Science Bonus treasure was played and the power must choose one of the
+     * unclaimed bonuses it is eligible for (rule 11 / 22.2).
+     */
+    pendingScienceTreasure?: {power: Power};
+    /** Rule 18.5 step 4 choice pending before conversions are allocated. */
+    pendingConversion?: PendingConversion;
+    /**
      * After Irish Rebellion places rebels in Ulster, the allied power may
      * move them one space as per section 24.2 step 6.
      */
@@ -1101,7 +1158,7 @@ export interface VQGame {
     loanedNaval?: {lender: Power; borrower: Power; kind: "galley" | "galleon" | "racebuilt"; fromPort: string; toPort: string; leader?: string}[];
     /** Portugal has entered play and its three-treasure row. */
     portugalEntered?: boolean;
-    portugueseTreasures?: number[];
+    portugueseTreasures?: Treasure[];
     /** Galleons assigned to the Treasure Fleet escorts box. */
     treasureFleetEscorts?: number;
     /**

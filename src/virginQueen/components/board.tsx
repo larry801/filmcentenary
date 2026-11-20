@@ -14,6 +14,8 @@ import {PendingBeaconPanel} from "./board/PendingPanels/BeaconPanel";
 import {PendingEspionagePanel} from "./board/PendingPanels/EspionagePanel";
 import {PendingAbjurationPanel} from "./board/PendingPanels/AbjurationPanel";
 import {PendingCityRebelsPanel} from "./board/PendingPanels/CityRebelsPanel";
+import {PendingConversionPanel} from "./board/PendingPanels/ConversionPanel";
+import {PendingScienceTreasurePanel} from "./board/PendingPanels/ScienceTreasurePanel";
 import {PendingGregorianPanel} from "./board/PendingPanels/GregorianPanel";
 import {PendingCardEventPanel} from "./board/PendingPanels/CardEventPanel";
 import {PendingActionResponsePanel} from "./board/PendingPanels/ActionResponsePanel";
@@ -31,7 +33,7 @@ import Paper from "@mui/material/Paper";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import i18n from "../../constant/i18n";
-import {CONTROLLER_COLORS, powerName, powerShortName, minorName, landCount, Power, powerAt} from "../constant/general";
+import {CONTROLLER_COLORS, powerName, powerShortName, minorName, landCount, Power, powerAt, treasureName} from "../constant/general";
 import {cardById, cardName} from "../constant/cards";
 import {seaZoneName} from "../mapData";
 import {formationCapacity, landNeighbors} from "../util";
@@ -68,6 +70,8 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
         if (G.pendingAbjuration) return <PendingAbjurationPanel G={G} moves={moves} playerID={playerID}
             selectedPower={selectedAbjurationPower} onSelect={setSelectedAbjurationPower}/>;
         if (G.pendingCityRebels) return <PendingCityRebelsPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingConversion) return <PendingConversionPanel G={G} moves={moves} playerID={playerID}/>;
+        if (G.pendingScienceTreasure) return <PendingScienceTreasurePanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingTribute) return <PendingTributePanel G={G} moves={moves} playerID={playerID}/>;
         if (G.pendingMutiny) return <PendingMutinyPanel G={G} moves={moves} playerID={playerID}/>;
         if (G.gregorianResponse) return <PendingGregorianPanel G={G} moves={moves} playerID={playerID}
@@ -208,7 +212,7 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
                 <div className="vq-panel-heading"><h2>{i18n.chain.vq.shell.handTitle} <span style={{fontWeight: 400}}>· {hand.length} {i18n.chain.vq.cardTray.cards}</span></h2>
                     <Stack direction="row" spacing={0.5}>
                         {ps?.treasures.map((treasure, index) => <Button key={index} size="small" variant="outlined"
-                            disabled={!canAct || !ps.cardPlayed || ps.treasurePlayed} onClick={() => moves.playTreasure({index})}>{i18n.chain.vq.intel.treasures} {treasure} CP</Button>)}
+                            disabled={!canAct || !ps.cardPlayed || ps.treasurePlayed} onClick={() => moves.playTreasure({index})}>{treasureName(treasure, vqLocale)}</Button>)}
                         {isDesktop && <Button size="small" aria-expanded={handExpanded} aria-controls={`${panelID}-cards`}
                             onClick={() => setHandExpanded(!handExpanded)}>{handExpanded ? i18n.chain.vq.cardTray.collapse : i18n.chain.vq.cardTray.expand}</Button>}
                     </Stack>

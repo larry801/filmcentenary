@@ -22,7 +22,11 @@ import {CardDef,
     Religion,
     ReligionArea,
     VQGame,
+    Treasure,
     isPower,
+    isSpecialTreasure,
+    treasureCp,
+    treasureName,
     powerAt, spaceHomes, MINOR_REGULAR_LIMITS, MINOR_NAVAL_LIMITS} from "./constant/general";
 import {cardById, cardName} from "./constant/cards";
 import i18n from "../constant/i18n";
@@ -151,6 +155,10 @@ import {
     removePortNavalLosses,
     removeSeaNavalLosses,
     resolveConversions,
+    beginInteractiveConversions,
+    applyConversionRolls,
+    autoResolvePendingConversion,
+    eligibleScienceBonuses,
     resolveEvent,
     resolveImmediateBetrothals,
     resolveMoriscoRevolt,
@@ -636,8 +644,11 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
     }
     if (total < cost) {
         // Treasures may be used to pay for declarations of war (rule 9.4).
-        while (total < cost && G.powers[p].treasures.length > 0) {
-            total += G.powers[p].treasures.pop() ?? 0;
+        // Special treasures have no CP value and cannot pay this cost.
+        while (total < cost) {
+            const index = G.powers[p].treasures.findIndex((t) => !isSpecialTreasure(t));
+            if (index < 0) break;
+            total += treasureCp(G.powers[p].treasures.splice(index, 1)[0]);
         }
         if (total < cost) {
             return false;
@@ -765,7 +776,7 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string)
 /** Spanish Armada home card: place it and grant CP, or grant CP if already placed. */
 /** Treasure Fleet mandatory event (23.2). */
 const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
-    G.powers.spain.treasures.push(die(ctx, 5));
+    addTreasure(G, ctx, "spain", 1);
     const escorts = G.treasureFleetEscorts ?? 0;
     const count = Math.min(escorts >= 2 ? 3 : 2, G.powers.spain.treasures.length);
     const fleet = G.powers.spain.treasures.splice(0, count);
@@ -873,7 +884,7 @@ const resolveCouncilOfTroubles = (G: VQGame, ctx: Ctx): void => {
 const resolveConquestOfPhilippines = (G: VQGame, ctx: Ctx): void => {
     G.worldControls.philippines = "spain";
     G.philippinesSpanish = true;
-    if (G.powers.spain.treasures.length < 5) G.powers.spain.treasures.push(die(ctx, 5));
+    if (G.powers.spain.treasures.length < 5) addTreasure(G, ctx, "spain", 1);
     pushLog(G, "Spain conquers the Philippines and gains a fifth New World treasure box.");
 };
 
@@ -900,18 +911,20 @@ const resolveSirEdwardStafford = (G: VQGame, ctx: Ctx, target?: string): void =>
         return;
     }
     if (kind === "treasure" && chosen !== undefined && chosen.trim() !== "") {
-        const value = Number(chosen);
-        const index = Number.isFinite(value) ? treasures.indexOf(value) : -1;
+        const value: Treasure | undefined = chosen === "drawCard" || chosen === "scienceBonus" || chosen === "vp"
+            ? chosen
+            : Number.isFinite(Number(chosen)) ? Number(chosen) : undefined;
+        const index = value === undefined ? -1 : treasures.indexOf(value);
         if (index >= 0) {
             G.powers[targetPower].treasures.splice(index, 1);
-            pushLog(G, `Sir Edward Stafford discards a ${value} CP treasure from ${powerLabel(targetPower)}.`);
+            pushLog(G, `Sir Edward Stafford discards ${typeof value === "number" ? `a ${value} CP treasure` : `the ${treasureName(value!, "en")} treasure`} from ${powerLabel(targetPower)}.`);
             return;
         }
     }
     if (treasures.length >= cards.length) {
         const index = Math.min(treasures.length - 1, Math.max(0, die(ctx, treasures.length) - 1));
         const [value] = treasures.splice(index, 1);
-        pushLog(G, `Sir Edward Stafford discards a ${value} CP treasure from ${powerLabel(targetPower)}.`);
+        pushLog(G, `Sir Edward Stafford discards ${typeof value === "number" ? `a ${value} CP treasure` : `the ${treasureName(value, "en")} treasure`} from ${powerLabel(targetPower)}.`);
     } else {
         const card = cards[Math.min(cards.length - 1, Math.max(0, die(ctx, cards.length) - 1))];
         G.powers[targetPower].cards = G.powers[targetPower].cards.filter((id) => id !== card);
@@ -2266,9 +2279,14 @@ const finishPolishElection = (G: VQGame, ctx: Ctx, manualBids: Map<string, strin
             bid = cardById(card).cp;
             removeCardFromHand(G, power, card);
             discardCard(G, power, card, false);
-        } else if (G.powers[power].treasures.length > 0) {
-            bid = Math.max(...G.powers[power].treasures);
-            G.powers[power].treasures = G.powers[power].treasures.filter((value) => value !== bid);
+        } else {
+            // Special treasures have no CP value, so only numeric counters
+            // may serve as a Polish election bid.
+            const numeric = G.powers[power].treasures.filter((value): value is number => typeof value === "number");
+            if (numeric.length > 0) {
+                bid = Math.max(...numeric);
+                G.powers[power].treasures = G.powers[power].treasures.filter((value) => value !== bid);
+            }
         }
         const score = die(ctx, 6) + bid;
         scores.push({power, score});
@@ -3546,7 +3564,7 @@ export const playVirginQueenCombat = (G: VQGame, ctx: Ctx, args: {target?: strin
     if (ctx.playerID !== ownerOf(G, battle.responding)) ctx.events?.endStage();
 };
 
-export const playTreasure = (G: VQGame, ctx: Ctx, args: { index: number }): void | typeof INVALID_MOVE => {
+export const playTreasure = (G: VQGame, ctx: Ctx, args: {index: number}): void | typeof INVALID_MOVE => {
     if (moveError(G, "playTreasure", args)) return INVALID_MOVE;
     if (ctx.phase !== "action") {
         return INVALID_MOVE;
@@ -3557,15 +3575,61 @@ export const playTreasure = (G: VQGame, ctx: Ctx, args: { index: number }): void
         return INVALID_MOVE;
     }
     const idx = Number(args.index);
-    const value = ps.treasures[idx];
-    if (value === undefined) {
+    const treasure = ps.treasures[idx];
+    if (treasure === undefined) {
         return INVALID_MOVE;
     }
     ps.treasures.splice(idx, 1);
     ps.cardActionCount = ps.actionsThisImpulse?.length ?? 0;
-    ps.cp += value;
     ps.treasurePlayed = true;
-    pushLog(G, `${powerLabel(p)} extends the impulse with a ${value} CP treasure.`);
+    if (typeof treasure === "number") {
+        ps.cp += treasure;
+        pushLog(G, `${powerLabel(p)} extends the impulse with a ${treasure} CP treasure.`);
+        return;
+    }
+    // Rule 11: the three special treasures resolve automatically instead of
+    // granting CP.  Draw Card is held for a future impulse; 1 VP goes to the
+    // Bonus VP box and never returns to the pool; Science Bonus opens a choice.
+    if (treasure === "drawCard") {
+        const drawn = drawCards(G, ctx, p, 1);
+        pushLog(G, `${powerLabel(p)} uses a Draw Card treasure${drawn.length > 0 ? ` and draws ${cardName(drawn[0])}` : " but the deck is empty"}.`);
+        return;
+    }
+    if (treasure === "vp") {
+        addVp(G, p, 1);
+        pushLog(G, `${powerLabel(p)} places a 1 VP treasure in the Bonus VP box.`);
+        return;
+    }
+    if (eligibleScienceBonuses(G, p).length === 0) {
+        pushLog(G, `${powerLabel(p)} discards a Science Bonus treasure: no unclaimed science bonus is available.`);
+        return;
+    }
+    G.pendingScienceTreasure = {power: p};
+    pushLog(G, `${powerLabel(p)} plays a Science Bonus treasure and must choose an unclaimed bonus.`);
+};
+
+/** Safety net: an abandoned Science Bonus choice claims the first legal bonus. */
+export const autoResolvePendingScienceTreasure = (G: VQGame): void => {
+    const pending = G.pendingScienceTreasure;
+    if (pending === undefined) return;
+    delete G.pendingScienceTreasure;
+    const bonus = eligibleScienceBonuses(G, pending.power)[0];
+    if (bonus === undefined) return;
+    G.scienceBonusesAvailable = G.scienceBonusesAvailable.filter((id) => id !== bonus.id);
+    G.powers[pending.power].scienceBonuses.push(bonus.id);
+    pushLog(G, `${powerLabel(pending.power)} claims science bonus ${bonus.nameEn} from the treasure.`);
+};
+
+export const chooseScienceTreasureBonus = (G: VQGame, ctx: Ctx, args: {bonus: string}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "chooseScienceTreasureBonus", args)) return INVALID_MOVE;
+    const pending = G.pendingScienceTreasure;
+    if (pending === undefined || ctx.playerID !== ownerOf(G, pending.power)) return INVALID_MOVE;
+    const bonus = eligibleScienceBonuses(G, pending.power).find((entry) => entry.id === args.bonus);
+    if (bonus === undefined) return INVALID_MOVE;
+    G.scienceBonusesAvailable = G.scienceBonusesAvailable.filter((id) => id !== bonus.id);
+    G.powers[pending.power].scienceBonuses.push(bonus.id);
+    delete G.pendingScienceTreasure;
+    pushLog(G, `${powerLabel(pending.power)} claims science bonus ${bonus.nameEn} from the treasure.`);
 };
 
 export const pass = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE => {
@@ -4967,13 +5031,13 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
             pushLog(G, targetIsPortugal ? "A Portuguese patrol is eliminated." : "A Spanish patrol is eliminated.");
         } else if (chosen === "treasure") {
             if (portugueseTreasureAvailable && (G.portugueseTreasures?.length ?? 0) > 0) {
-                const treasure = (G.portugueseTreasures as number[]).pop()!;
+                const treasure = G.portugueseTreasures!.pop()!;
                 if (expedition.treasureValues === undefined) expedition.treasureValues = [];
                 if (expedition.treasureValues.length < capacity) {
                     expedition.treasureValues.push(treasure);
-                    pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
+                    pushLog(G, `${powerLabel(p)} loads ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure onto the expedition.`);
                 } else {
-                    pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Portuguese treasure (no room).`);
+                    pushLog(G, `${powerLabel(p)} discards ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure (no room).`);
                 }
             } else if (!targetIsPortugal && G.powers.spain.treasures.some((value) => value !== withholdSpanishTreasure)) {
                 // Draw at random from the Spanish pool, skipping the treasure
@@ -4986,9 +5050,9 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
                 if (expedition.treasureValues === undefined) expedition.treasureValues = [];
                 if (expedition.treasureValues.length < capacity) {
                     expedition.treasureValues.push(treasure);
-                    pushLog(G, `${powerLabel(p)} loads a ${treasure} CP treasure onto the expedition.`);
+                    pushLog(G, `${powerLabel(p)} loads ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure onto the expedition.`);
                 } else {
-                    pushLog(G, `${powerLabel(p)} discards a ${treasure} CP Spanish treasure (no room).`);
+                    pushLog(G, `${powerLabel(p)} discards ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure (no room).`);
                 }
             }
         } else {
@@ -5936,7 +6000,7 @@ export const preach = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void 
         return INVALID_MOVE;
     }
     pushLog(G, `${powerLabel(p)} preaches a sermon in ${args.area}.`);
-    resolveConversions(G, ctx, p, side, args.area, 5);
+    beginInteractiveConversions(G, ctx, p, side, args.area, 5);
 };
 
 export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): void | typeof INVALID_MOVE => {
@@ -5957,7 +6021,28 @@ export const suppress = (G: VQGame, ctx: Ctx, args: { area: ReligionArea }): voi
         return INVALID_MOVE;
     }
     pushLog(G, `${powerLabel(p)} suppresses heresy in ${args.area}.`);
-    resolveConversions(G, ctx, p, side, args.area, 5);
+    beginInteractiveConversions(G, ctx, p, side, args.area, 5);
+};
+
+/**
+ * Rule 18.5 step 4: resolve a pending conversion batch.  `downgrade` is the
+ * index of the "6" the power lowers to a "5" to cancel one Unrest marker, or
+ * "none" to keep the Unrest and all major conversions.
+ */
+export const chooseConversionNullify = (G: VQGame, ctx: Ctx, args: {downgrade: number | "none"}): void | typeof INVALID_MOVE => {
+    if (moveError(G, "chooseConversionNullify", args)) return INVALID_MOVE;
+    const pending = G.pendingConversion;
+    if (pending === undefined || ctx.playerID !== ownerOf(G, pending.power)) return INVALID_MOVE;
+    const dice = [...pending.dice];
+    if (args.downgrade !== "none") {
+        const index = Number(args.downgrade);
+        if (!Number.isInteger(index) || dice[index] !== 6) return INVALID_MOVE;
+        dice[index] = 5;
+        pushLog(G, `${powerLabel(pending.power)} reduces a 6 to a 5 to cancel one Unrest.`);
+    }
+    delete G.pendingConversion;
+    applyConversionRolls(G, ctx, pending.power, pending.side, pending.area, dice, pending.extraUnrest,
+        pending.unrestOnOnes, args.downgrade !== "none");
 };
 
 export const rebellion = (G: VQGame, ctx: Ctx, args: { space: string; cp: number }): void | typeof INVALID_MOVE => {

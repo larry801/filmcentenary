@@ -28,6 +28,12 @@ export const moveError = (G: VQGame, move: string, args?: unknown): string | und
     if (G.pendingAbjuration && move !== "chooseAbjuration") return "请先完成誓绝法案的提议选择。";
     if (G.pendingTribute && move !== "chooseTribute") return "请先完成奥斯曼贡金的纳贡选择。";
     if (G.pendingCityRebels && move !== "chooseCityRebelsLoss") return "请先完成城邦起义的损失选择。";
+    if (G.pendingScienceTreasure !== undefined && move !== "chooseScienceTreasureBonus") {
+        return "请先选择科学奖励宝藏带来的科学奖励。";
+    }
+    if (G.pendingConversion !== undefined && move !== "chooseConversionNullify") {
+        return "请先决定是否用 6 换 5 取消 1 个动荡。";
+    }
     if (G.pendingBeacon && move !== "respondBeaconFires") return "请先完成烽火响应。";
     if (G.pendingInterceptionOrder && move !== "chooseInterceptionOrder" && move !== "autoInterceptionOrder") {
         return "请先选择海军拦截顺序。";
