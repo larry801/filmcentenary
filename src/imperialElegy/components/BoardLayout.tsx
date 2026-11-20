@@ -50,6 +50,7 @@ import {TrenchBoard} from "./TrenchBoard";
 import {MpitPanel} from "./MpitPanel";
 import {CardChoiceModal} from "./CardChoiceModal";
 import {DecisionModal} from "./DecisionModal";
+import {BattleResultModal} from "./BattleResultModal";
 import {Toast} from "./Toast";
 import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {MobileDock, type MobileDockTab} from "./MobileDock";
@@ -552,6 +553,26 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   const showInlineDecision = decisionOwed && !decisionModalOpen;
 
   /**
+   * The finished battle's report is public state, so every client raises the
+   * same dialog even when this seat was not the one answering the loss
+   * decisions.  It is dismissible and remembers only the report id it closed,
+   * which lets the next battle's report open by itself.
+   *
+   * It waits while this seat owes a decision (or a required card choice): two
+   * blockers over one board would fight for the keyboard, and the report can
+   * still be dismissed after the decision is answered.  A live battle hides
+   * the previous report; the new one replaces it when it ends.
+   */
+  const battleReport = G.battleReport ?? null;
+  const [dismissedBattleReport, setDismissedBattleReport] = React.useState<string | null>(null);
+  const battleReportOpen = battleReport !== null &&
+    battleReport.id !== dismissedBattleReport &&
+    isCurrentSeat &&
+    G.battle === null &&
+    !decisionModalOpen &&
+    !choiceModalOpen;
+
+  /**
    * The optional prep discard is a real choice but a skippable one, so it stays
    * one line at the top of the Actions page instead of becoming a dialog.
    * `HandChoices` renders the required choice too; while a decision already owns
@@ -890,6 +911,19 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
         doAction={doAction}
         confirmActions={confirmActions}
         moves={moves}
+      />
+
+      {/* The finished battle's public report.  Every seat gets its own copy of
+          this dialog; dismissing one seat's copy leaves the other seats' copies
+          (and a hotseat switch) untouched. */}
+      <BattleResultModal
+        report={battleReport}
+        open={battleReportOpen}
+        locale={locale}
+        t={t}
+        onClose={() => {
+          if (battleReport !== null) setDismissedBattleReport(battleReport.id);
+        }}
       />
 
       {/* A refused move is explained here: the engine answers a bare

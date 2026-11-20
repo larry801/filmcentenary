@@ -1,5 +1,5 @@
 import {Ctx} from "boardgame.io";
-import {BattleState, ImperialElegyState, NavalTransitState, PendingDecision, Power, PowerOrMinor, POWERS, SpaceId, Unit} from "../types";
+import {BattleReport, BattleState, ImperialElegyState, NavalTransitState, PendingDecision, Power, PowerOrMinor, POWERS, SpaceId, Unit} from "../types";
 import {SPACES, connectionsOf, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {endlessSpaceSupport, landBattleModifier} from "./characteristics";
@@ -573,6 +573,7 @@ export const beginLandBattle = (
     defenderDrm: 0,
     attackerLosses: 0,
     defenderLosses: 0,
+    lossesTaken: {attacker: 0, defender: 0},
     decisive: false,
     winner: undefined,
     amphibious,
@@ -1699,6 +1700,24 @@ const applyOneLoss = (
   }
   if (!target) return;
   markFirstLoss(battle, side);
+  const taken = battle.lossesTaken ?? (battle.lossesTaken = {attacker: 0, defender: 0});
+  taken[side] += 1;
+  const recordCasualty = (eliminated: boolean): void => {
+    const casualties = battle.casualties ?? (battle.casualties = {attacker: [], defender: []});
+    const existing = casualties[side].find((entry) => entry.unitId === target.id);
+    if (existing) {
+      existing.steps += 1;
+      existing.eliminated = eliminated;
+      return;
+    }
+    casualties[side].push({
+      unitId: target.id,
+      owner: String(target.owner),
+      kind: target.kind,
+      steps: 1,
+      eliminated,
+    });
+  };
   if (battle.kind === "naval" && target.kind === "dreadnought") {
     const counts = battle.dreadnoughtLosses ?? {attacker: 0, defender: 0};
     counts[side] += 1;
@@ -1706,9 +1725,11 @@ const applyOneLoss = (
   }
   if (target.kind === "eliteCorps" || target.kind === "expeditionary" || target.kind === "eliteColonialEf" || target.kind === "zouave") {
     removeUnit(G, target.id);
+    recordCasualty(true);
     return;
   }
   damageUnit(G, target.id, 1);
+  recordCasualty(!G.units[target.id]);
   if (!G.units[target.id]) {
     // 30.0: a dreadnought eliminated in battle costs its owner 1 stability.
     // Record the owner here (the unit is already gone) and charge it when the
@@ -2938,6 +2959,42 @@ export const resolveNavalPortContinuation = (
 };
 
 /**
+ * Capture the public after-battle report before `G.battle` clears.  The CRT's
+ * loss budget is deliberately not reused: a seat may answer a `combatLosses`
+ * decision, which decrements that budget, so `lossesTaken` records what the
+ * battle actually cost.  The log id makes the report stable across clients so
+ * each one can dismiss the same dialog exactly once.
+ */
+const buildBattleReport = (
+  G: ImperialElegyState,
+  battle: BattleState,
+  winner: "attacker" | "defender",
+): BattleReport => ({
+  id: `battle-${G.turn}-${G.nextLogId}-${battle.kind}-${battle.to}`,
+  kind: battle.kind,
+  from: battle.from,
+  to: battle.to,
+  attacker: battle.attacker,
+  defender: battle.defender,
+  winner,
+  decisive: battle.decisive,
+  attackerRoll: battle.attackerRoll,
+  defenderRoll: battle.defenderRoll,
+  differential: battle.diff,
+  attackerDrm: battle.attackDrmTotal ?? battle.attackerDrm,
+  defenderDrm: battle.defenceDrmTotal ?? battle.defenderDrm,
+  attackerLosses: battle.lossesTaken?.attacker ?? 0,
+  defenderLosses: battle.lossesTaken?.defender ?? 0,
+  attackerUnits: [...(battle.casualties?.attacker ?? [])],
+  defenderUnits: [...(battle.casualties?.defender ?? [])],
+  mines: Math.max(0, battle.mines ?? 0),
+  trench: battle.trench === true,
+  retreatTo: battle.retreatTo,
+  noRetreat: battle.notes.includes("noRetreat"),
+  turn: G.turn,
+});
+
+/**
  * Finish a battle.  Land battles use 18.7's retreat/advance; naval battles use
  * 19.7/19.8/19.9 (loser retreats to a friendly port or empty naval box, the
  * attacker displaces back to its origin when the battle was in a port, and a
@@ -3379,6 +3436,9 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       log(G, owner, "eliteBonusDestroyed", {to: battle.to, side, kind});
     }
   }
+  // Every seat reads this from shared state: the result dialog is a public
+  // report, not the active player's private notification.
+  G.battleReport = buildBattleReport(G, battle, winner);
   G.battle = null;
   G.flags.combatDrm = 0;
   G.flags.enemyLandDrm = 0;
@@ -4106,6 +4166,7 @@ export const beginNavalBattle = (
     defenderDrm: 0,
     attackerLosses: 0,
     defenderLosses: 0,
+    lossesTaken: {attacker: 0, defender: 0},
     decisive: false,
     notes: [],
   };

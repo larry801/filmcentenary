@@ -954,3 +954,67 @@ describe("Rule 34 handover control", () => {
     expect(markup).toContain("收回席位");
   });
 });
+
+describe("the public battle result dialog", () => {
+  const withReport = (): ImperialElegyState => {
+    const G = freshGame();
+    G.battle = null;
+    G.battleReport = {
+      id: "battle-1-7-land-saxony",
+      kind: "land",
+      from: "berlin",
+      to: "saxony",
+      attacker: "GE",
+      defender: "FR",
+      winner: "attacker",
+      decisive: false,
+      attackerRoll: 4,
+      defenderRoll: 4,
+      differential: 0,
+      attackerDrm: 0,
+      defenderDrm: 0,
+      attackerLosses: 1,
+      defenderLosses: 1,
+      attackerUnits: [{unitId: "u-ge-1", owner: "GE", kind: "army", steps: 1, eliminated: false}],
+      defenderUnits: [{unitId: "u-fr-1", owner: "FR", kind: "army", steps: 1, eliminated: false}],
+      mines: 0,
+      trench: false,
+      noRetreat: false,
+      turn: 1,
+    } as never;
+    return G;
+  };
+
+  test("opens for the attacker and for the defender alike", () => {
+    const G = withReport();
+    for (const playerID of ["0", "1"]) {
+      const markup = html(G, playerID);
+      expect(markup).toContain('data-testid="ie-battle-result-modal"');
+      expect(markup).toContain('data-testid="ie-battle-result-damage"');
+    }
+  });
+
+  test("stays closed while a new battle owns the board", () => {
+    const G = withReport();
+    G.battle = {
+      kind: "land",
+      attacker: "GE",
+      defender: "FR",
+      from: "berlin",
+      to: "saxony",
+      mainAttack: [],
+      mainDefense: [],
+      supportAttack: [],
+      supportDefense: [],
+      stage: "roll",
+      supportSide: "attacker",
+      attackerDrm: 0,
+      defenderDrm: 0,
+      attackerLosses: 0,
+      defenderLosses: 0,
+      decisive: false,
+      notes: [],
+    } as never;
+    expect(html(G, "0")).not.toContain('data-testid="ie-battle-result-modal"');
+  });
+});
