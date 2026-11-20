@@ -43,6 +43,27 @@ report without a breakdown still prints both totals) and
 `components/boardActions.test.tsx` (1 new — the live panel shows both DRM
 columns).  `npx tsc --noEmit` clean; the battle, card, characteristic, save and
 bot suites pass locally.
+## Fixed: German General Staff always took the first discard card and had no EC option (2026-11-21)
+
+H-GE-2 prints *"Take any response or combat card from the discard pile; it cannot
+be played this impulse. OR gain 1 stability and two elite corps."*  The handler
+took the first response/combat card it found and never offered the elite-corps
+branch; with no eligible discard card it still resolved silently.
+
+The card now opens the printed OR:
+
+- **Take a card** — a second choice lists every response/combat card in the
+  discard pile and puts the chosen one into the German hand.  The event ends the
+  impulse, so the printed "cannot be played this impulse" restriction holds.
+- **Elite corps** — two ECs are placed with one of Germany's armies in its
+  current space (5.1.3 requires an EC to stack with an army), respecting the
+  counter pool; the placement logs `eliteCorpsGained`.
+
+With no eligible discard card the EC branch resolves directly.
+
+**Coverage:** `germanGeneralStaff.test.ts` (3 — the OR, choosing the discard
+card, and the two-EC branch).  `npx tsc --noEmit` clean.
+
 ## Fixed: Sepoy Mutiny left the key penalty until the next end phase (2026-11-21)
 
 A33 places a Sepoy rebel army in India, and 21.1 says the rebel-held space

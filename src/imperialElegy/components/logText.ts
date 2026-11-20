@@ -1558,6 +1558,16 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `chained ${card} for CP.`, `将 ${card} 加入 CP 链。`);
   },
 
+  eliteCorpsGained: (entry, locale) => {
+    const where = spaceName(str(entry.args?.space), locale);
+    return withActor(
+      entry,
+      locale,
+      `gained ${str(entry.args?.count)} elite corps in ${where}.`,
+      `在${where}获得 ${str(entry.args?.count)} 个精英军。`,
+    );
+  },
+
   cpChainUsed: (entry, locale) => {
     const card = cardLabel(entry.args?.card, locale);
     return withActor(
