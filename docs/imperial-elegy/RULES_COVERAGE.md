@@ -594,7 +594,10 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
 ## 21–23 Rebels, Italy/Poland, crisis
 
 - Rebels, per-space WoI state, control denial and rebel armies — **implemented**
-  as state plus card/GW events.
+  as state plus card/GW events.  21.1's key penalty is applied in
+  `recomputeTracks` whenever a space actually contains a rebel army, and 21.0's
+  rule — eliminating a rebel under a WoI marker removes the marker and restores
+  the key — is handled by `removeUnit`.
 - Italy: Italian Minor Power Table, unification roll, Kingdom of Italy table and
   Italian units — **partial**; several table results only log or set flags.
   **22.3.1's allied clause is live:** a 7+ result with Italy and OT in the same

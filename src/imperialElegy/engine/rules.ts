@@ -2024,6 +2024,11 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
     if (def.id === "india" && G.powers.UK.indiaIndependent === true) continue;
     const state = G.spaces[def.id];
     if (!state) continue;
+    // 21.1: "While a space contains rebel units it cannot be controlled. When
+    // rebel armies are placed, decrease the controlling player's keys … until
+    // the rebels are eliminated."  Read the actual units, so a stale rebellion
+    // id cannot keep a freed key suppressed.
+    if (state.units.some((id) => G.units[id]?.kind === "rebelArmy")) continue;
     const owner = state.control;
     if (!isPower(owner)) continue;
     const keyType = keyTypeForPower(G, def.id, owner);
