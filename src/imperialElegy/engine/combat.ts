@@ -1,8 +1,9 @@
 import {Ctx} from "boardgame.io";
-import {BattleReport, BattleState, ImperialElegyState, NavalTransitState, PendingDecision, Power, PowerOrMinor, POWERS, SpaceId, Unit} from "../types";
+import {BattleDrmBreakdown, BattleReport, BattleState, ImperialElegyState, NavalTransitState, PendingDecision, Power, PowerOrMinor, POWERS, SpaceId, Unit} from "../types";
 import {SPACES, connectionsOf, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {POWER_DEFS} from "../constant/powers";
 import {endlessSpaceSupport, landBattleModifier} from "./characteristics";
+import {battleDrmRecords, recordBattleDrm} from "./battleDrm";
 import {
   allied,
   atWar,
@@ -579,45 +580,72 @@ export const beginLandBattle = (
     amphibious,
     trench: trenchTerrain,
     notes: [],
+    drmSources: {attacker: [], defender: []},
   };
   if (defenderMinor) battle.notes.push("minorDefender");
   if (overstackedDefence) battle.notes.push("overstackedDefence");
   // GW-08/09 Political Pressure: record that this power made a land attack in
   // the current GW turn (the end-of-turn check reads `landAttackTurn`).
   if (G.gw?.active) G.powers[actor].flags.landAttackTurn = G.gw.turn;
-  // Modifiers.
-  if (amphibious) battle.attackerDrm -= 1;
+  // Modifiers.  Every clause below records its name with `recordBattleDrm` so
+  // the battle panel and the result dialog can explain both totals.
+  if (amphibious) recordBattleDrm(battle, "attacker", -1, "amphibious", undefined, "rule");
   const attackerStability = stabilityDrm(G, actor);
   const defenderStability = stabilityDrm(G, defender);
-  battle.attackerDrm += attackerStability;
-  battle.defenderDrm += defenderStability;
+  recordBattleDrm(battle, "attacker", attackerStability, "stability", {
+    power: actor,
+    value: G.powers[actor]?.stability,
+  }, "rule");
+  recordBattleDrm(battle, "defender", defenderStability, "stability", {
+    power: defender,
+    value: G.powers[defender]?.stability,
+  }, "rule");
   // 18.2.1: "Manpower exhausted (GW only): -1" is part of the printed land
   // battle modifier list, not only the 19.5 naval one.  Supporting armies never
   // suffer it (the rule applies to units in the main attack/defense), so the
   // side's leader is charged exactly once.
   if (manpowerExhausted(G, actor)) {
-    battle.attackerDrm -= 1;
+    recordBattleDrm(battle, "attacker", -1, "manpowerExhausted", undefined, "rule");
     battle.notes.push("manpowerExhaustedAttacker");
   }
   const landDefenderLeader = defenderSupportPower(G, battle);
   if (landDefenderLeader !== null && manpowerExhausted(G, landDefenderLeader)) {
-    battle.defenderDrm -= 1;
+    recordBattleDrm(battle, "defender", -1, "manpowerExhausted", undefined, "rule");
     battle.notes.push("manpowerExhaustedDefender");
   }
-  if (isReducedOnly(attackUnits)) battle.attackerDrm -= 1;
-  if (isReducedOnly(defenceCandidates) && !G.spaces[to].fort) battle.defenderDrm -= 1;
+  if (isReducedOnly(attackUnits)) recordBattleDrm(battle, "attacker", -1, "reducedOnly", undefined, "rule");
+  if (isReducedOnly(defenceCandidates) && !G.spaces[to].fort) {
+    recordBattleDrm(battle, "defender", -1, "reducedOnly", undefined, "rule");
+  }
   // National characteristics (1st Army, Indian armies, Zouaves, Prussian
-  // Military Tradition): route the helper's DRM by the side it reports.
+  // Military Tradition): route the helper's DRM by the side it reports, and
+  // keep each of its named sources so the breakdown names the clause.
   const attackerCharacteristic = landBattleModifier(G, actor, battle);
-  if (attackerCharacteristic.side === "attacker") battle.attackerDrm += attackerCharacteristic.drm;
+  for (const source of attackerCharacteristic.sources) {
+    if (source.side !== "attacker") continue;
+    recordBattleDrm(battle, "attacker", source.drm, source.id, {power: actor}, source.origin);
+  }
   const defenderCharacteristic = landBattleModifier(G, defender, battle);
-  if (defenderCharacteristic.side === "defender") battle.defenderDrm += defenderCharacteristic.drm;
+  for (const source of defenderCharacteristic.sources) {
+    if (source.side !== "defender") continue;
+    recordBattleDrm(battle, "defender", source.drm, source.id, {power: defender}, source.origin);
+  }
   const conn = connectionsOf(from).find((c) => (c.a === from ? c.b : c.a) === to);
-  if (conn && (conn.type === "difficult" || conn.type === "severe")) battle.attackerDrm -= 1;
-  if (G.flags.warLandDrm && G.war) battle.attackerDrm += Number(G.flags.warLandDrm);
-  if (G.flags.combatDrm) battle.attackerDrm += Number(G.flags.combatDrm);
-  if (G.flags.enemyLandDrm) battle.defenderDrm += Number(G.flags.enemyLandDrm);
-  if (G.flags.gwCombatDrm) battle.attackerDrm += Number(G.flags.gwCombatDrm);
+  if (conn && (conn.type === "difficult" || conn.type === "severe")) {
+    recordBattleDrm(battle, "attacker", -1, "difficultTerrain", {space: to}, "rule");
+  }
+  if (G.flags.warLandDrm && G.war) {
+    recordBattleDrm(battle, "attacker", Number(G.flags.warLandDrm), "warLandDrm", undefined, "flag");
+  }
+  if (G.flags.combatDrm) {
+    recordBattleDrm(battle, "attacker", Number(G.flags.combatDrm), "combatDrm", undefined, "flag");
+  }
+  if (G.flags.enemyLandDrm) {
+    recordBattleDrm(battle, "defender", Number(G.flags.enemyLandDrm), "enemyLandDrm", undefined, "flag");
+  }
+  if (G.flags.gwCombatDrm) {
+    recordBattleDrm(battle, "attacker", Number(G.flags.gwCombatDrm), "gwCombatDrm", undefined, "flag");
+  }
   if (G.persistent.machineGuns) battle.notes.push("machineGuns");
   if (G.persistent.hydraulicRecoil) battle.notes.push("hydraulicRecoil");
   // 18.2.1 / 5.6.2: a force whose armies have a broken LoC suffers -1.  A unit
@@ -631,7 +659,7 @@ export const beginLandBattle = (
       attackUnits.some((u) => isMinorPowerOwner(u.owner) && minorBrokenLoc(G, u.owner, from)) ||
       (attackUnits.some((u) => u.owner === "IT") && italianBrokenLoc(G, from));
     if (attackerOutOfSupply) {
-      battle.attackerDrm -= 1;
+      recordBattleDrm(battle, "attacker", -1, "brokenLoc", {space: from}, "rule");
       battle.notes.push("brokenLocAttacker");
     }
     const defenderLeader = defenderSupportPower(G, battle);
@@ -640,7 +668,7 @@ export const beginLandBattle = (
       defenceCandidates.some((u) => isMinorPowerOwner(u.owner) && minorBrokenLoc(G, u.owner, to)) ||
       (defenceCandidates.some((u) => u.owner === "IT") && italianBrokenLoc(G, to));
     if (defenderOutOfSupply) {
-      battle.defenderDrm -= 1;
+      recordBattleDrm(battle, "defender", -1, "brokenLoc", {space: to}, "rule");
       battle.notes.push("brokenLocDefender");
     }
   }
@@ -1017,6 +1045,119 @@ const refreshBattleDrmTotals = (G: ImperialElegyState, battle: BattleState): voi
   const {attackFp, defenceFp} = battleFpTotals(G, battle);
   battle.attackDrmTotal = battle.attackerDrm + eliteBonusDrm(battle, "attacker") + Math.max(0, attackFp - defenceFp);
   battle.defenceDrmTotal = battle.defenderDrm + eliteBonusDrm(battle, "defender") + Math.max(0, defenceFp - attackFp);
+  // A frozen breakdown must move with the totals it explains, or the panel
+  // would show a list that no longer adds up after denied support.
+  if (battle.drmBreakdown !== undefined) battle.drmBreakdown = liveDrmBreakdown(G, battle);
+};
+
+/**
+ * The complete named DRM breakdown for a battle, ready for the board and the
+ * result dialog.
+ *
+ * The recorded sources cover every clause that mutated `attackerDrm` /
+ * `defenderDrm`.  Two contributions are derived rather than recorded — the
+ * committed elite bonus and the force-point differential — because both are
+ * recomputed from the live main forces/support every time they are needed
+ * (support may change after a card resolves).  They are added here so the
+ * listed entries always add up to the printed totals.
+ *
+ * Once the dice are rolled the battle freezes a snapshot (`drmBreakdown`), so
+ * a running loss sequence or a finished report still explains the roll it
+ * actually scored rather than the board as it looks afterwards.
+ */
+const liveDrmBreakdown = (
+  G: ImperialElegyState,
+  battle: BattleState,
+): BattleDrmBreakdown => {
+  const records = battleDrmRecords(battle);
+  const {attackFp, defenceFp} = battleFpTotals(G, battle);
+  const attacker = [...records.attacker];
+  const defender = [...records.defender];
+  const attackerElite = eliteBonusDrm(battle, "attacker");
+  const defenderElite = eliteBonusDrm(battle, "defender");
+  if (attackerElite !== 0) {
+    attacker.push({
+      key: "eliteBonus",
+      side: "attacker",
+      drm: attackerElite,
+      origin: "elite",
+      detail: {count: committedEliteIds(battle, "attacker").length},
+    });
+  }
+  if (defenderElite !== 0) {
+    defender.push({
+      key: "eliteBonus",
+      side: "defender",
+      drm: defenderElite,
+      origin: "elite",
+      detail: {count: committedEliteIds(battle, "defender").length},
+    });
+  }
+  const attackerFpEdge = Math.max(0, attackFp - defenceFp);
+  const defenderFpEdge = Math.max(0, defenceFp - attackFp);
+  if (attackerFpEdge !== 0) {
+    attacker.push({
+      key: "forcePointEdge",
+      side: "attacker",
+      drm: attackerFpEdge,
+      origin: "support",
+      detail: {count: attackerFpEdge},
+    });
+  }
+  if (defenderFpEdge !== 0) {
+    defender.push({
+      key: "forcePointEdge",
+      side: "defender",
+      drm: defenderFpEdge,
+      origin: "support",
+      detail: {count: defenderFpEdge},
+    });
+  }
+  // A080 Machine Guns changes a die instead of a total; listing it at 0 keeps
+  // the report honest about why a rolled 1 or 2 counted as 3.
+  if (machineGunsApplies(G, battle, "attacker")) {
+    attacker.push({key: "machineGuns", side: "attacker", drm: 0, origin: "flag"});
+  }
+  if (machineGunsApplies(G, battle, "defender")) {
+    defender.push({key: "machineGuns", side: "defender", drm: 0, origin: "flag"});
+  }
+  return {attacker, defender};
+};
+
+/** The battle's breakdown: the frozen post-roll snapshot, else the live list. */
+export const battleDrmBreakdown = (
+  G: ImperialElegyState,
+  battle: BattleState,
+): BattleDrmBreakdown => battle.drmBreakdown ?? liveDrmBreakdown(G, battle);
+
+/**
+ * Re-freeze an already-rolled battle's snapshot after a late modifier (19.5's
+ * failed-avoid roll and 33.6's Jihad are both legal at this point in some
+ * callers).  A battle that has not rolled keeps its live list.
+ */
+export const refreshBattleDrmSnapshot = (
+  G: ImperialElegyState,
+  battle: BattleState,
+): void => {
+  if (battle.drmBreakdown !== undefined) battle.drmBreakdown = liveDrmBreakdown(G, battle);
+};
+
+/** The same totals `rollBattleDice` would use, from the current battle state. */
+export const battleDrmTotals = (
+  G: ImperialElegyState,
+  battle: BattleState,
+): {attacker: number; defender: number} => {
+  if (battle.attackDrmTotal !== undefined || battle.defenceDrmTotal !== undefined) {
+    return {
+      attacker: battle.attackDrmTotal ?? battle.attackerDrm,
+      defender: battle.defenceDrmTotal ?? battle.defenderDrm,
+    };
+  }
+  const {attackFp, defenceFp} = battleFpTotals(G, battle);
+  return {
+    attacker: battle.attackerDrm + eliteBonusDrm(battle, "attacker") + Math.max(0, attackFp - defenceFp),
+    defender: battle.defenderDrm + eliteBonusDrm(battle, "defender") + Math.max(0, defenceFp - attackFp),
+  };
 };
 
 /** "The majority (more than half)" of `n` losses is `floor(n/2) + 1`. */
@@ -1436,6 +1577,9 @@ const rollBattleDice = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): v
   const defenceDrm = battle.defenderDrm + eliteBonusDrm(battle, "defender") + Math.max(0, defenceFp - attackFp);
   battle.attackDrmTotal = attackDrm;
   battle.defenceDrmTotal = defenceDrm;
+  // Snapshot the named modifiers with the roll, so the report can still explain
+  // it after the units and support have left the board.
+  battle.drmBreakdown = battleDrmBreakdown(G, battle);
   let a = die(ctx, 6);
   let d = die(ctx, 6);
   if (machineGunsApplies(G, battle, "attacker")) a = Math.max(3, a);
@@ -2983,6 +3127,7 @@ const buildBattleReport = (
   differential: battle.diff,
   attackerDrm: battle.attackDrmTotal ?? battle.attackerDrm,
   defenderDrm: battle.defenceDrmTotal ?? battle.defenderDrm,
+  drmSources: battle.drmBreakdown ?? battle.drmSources,
   attackerLosses: battle.lossesTaken?.attacker ?? 0,
   defenderLosses: battle.lossesTaken?.defender ?? 0,
   attackerUnits: [...(battle.casualties?.attacker ?? [])],
@@ -4055,6 +4200,8 @@ export interface NavalPortBattleModifiers {
   attackerDrm: number;
   defenderDrm: number;
   notes: string[];
+  /** The named clauses behind each total, for the DRM breakdown. */
+  sources: {side: "attacker" | "defender"; key: string; drm: number}[];
 }
 
 /**
@@ -4097,23 +4244,28 @@ export const navalPortBattleModifiers = (
   const attackerPorts = count(attacker);
   const defenderPorts = count(defender);
   const notes: string[] = [];
+  const sources: NavalPortBattleModifiers["sources"] = [];
   let attackerDrm = 0;
   let defenderDrm = 0;
   if (attackerPorts === 0) {
     attackerDrm -= 2;
     notes.push("attackerNoPortsBattle");
+    sources.push({side: "attacker", key: "noFriendlyPorts", drm: -2});
   } else if (attackerPorts - defenderPorts >= 2) {
     attackerDrm += 1;
     notes.push("attackerPortAdvantageBattle");
+    sources.push({side: "attacker", key: "portAdvantage", drm: 1});
   }
   if (defenderPorts === 0) {
     defenderDrm -= 2;
     notes.push("defenderNoPortsBattle");
+    sources.push({side: "defender", key: "noFriendlyPorts", drm: -2});
   } else if (defenderPorts - attackerPorts >= 2) {
     defenderDrm += 1;
     notes.push("defenderPortAdvantageBattle");
+    sources.push({side: "defender", key: "portAdvantage", drm: 1});
   }
-  return {attackerDrm, defenderDrm, notes};
+  return {attackerDrm, defenderDrm, notes, sources};
 };
 
 export const beginNavalBattle = (
@@ -4169,6 +4321,7 @@ export const beginNavalBattle = (
     lossesTaken: {attacker: 0, defender: 0},
     decisive: false,
     notes: [],
+    drmSources: {attacker: [], defender: []},
   };
   // 19.4: "All keys that are ports inherently have mines.  During naval
   // battles in keys that are ports, the defending player will roll for mines."
@@ -4186,8 +4339,9 @@ export const beginNavalBattle = (
   // 19.5: apply the port-count battle DRMs (the 19.2 avoid roll keeps its own
   // printed +1/-1 list in `navalAvoidanceModifiers`).
   const portBattleMods = navalPortBattleModifiers(G, battle.attacker, defender, to, battle.portBox);
-  battle.attackerDrm += portBattleMods.attackerDrm;
-  battle.defenderDrm += portBattleMods.defenderDrm;
+  for (const source of portBattleMods.sources) {
+    recordBattleDrm(battle, source.side, source.drm, source.key, undefined, "rule");
+  }
   battle.notes.push(...portBattleMods.notes);
   // 19.5: the remaining printed naval battle modifiers.  Stability comes from
   // each side's display (the defender uses its deciding player, never a
@@ -4195,29 +4349,35 @@ export const beginNavalBattle = (
   // GW-only exhausted-manpower penalty apply per side.
   const attackerStability = stabilityDrm(G, battle.attacker);
   if (attackerStability !== 0) {
-    battle.attackerDrm += attackerStability;
+    recordBattleDrm(battle, "attacker", attackerStability, "stability", {
+      power: battle.attacker,
+      value: G.powers[battle.attacker]?.stability,
+    }, "rule");
     battle.notes.push("stabilityAttacker");
   }
   const defenderLeader = defenderSupportPower(G, battle);
   const defenderStability = defenderLeader === null ? 0 : stabilityDrm(G, defenderLeader);
   if (defenderLeader !== null && defenderStability !== 0) {
-    battle.defenderDrm += defenderStability;
+    recordBattleDrm(battle, "defender", defenderStability, "stability", {
+      power: defenderLeader,
+      value: G.powers[defenderLeader]?.stability,
+    }, "rule");
     battle.notes.push("stabilityDefender");
   }
   if (isReducedOnly(attackUnits)) {
-    battle.attackerDrm -= 1;
+    recordBattleDrm(battle, "attacker", -1, "reducedOnly", undefined, "rule");
     battle.notes.push("reducedOnlyAttacker");
   }
   if (defendUnits.length > 0 && isReducedOnly(defendUnits)) {
-    battle.defenderDrm -= 1;
+    recordBattleDrm(battle, "defender", -1, "reducedOnly", undefined, "rule");
     battle.notes.push("reducedOnlyDefender");
   }
   if (manpowerExhausted(G, battle.attacker)) {
-    battle.attackerDrm -= 1;
+    recordBattleDrm(battle, "attacker", -1, "manpowerExhausted", undefined, "rule");
     battle.notes.push("manpowerExhaustedAttacker");
   }
   if (defenderLeader !== null && manpowerExhausted(G, defenderLeader)) {
-    battle.defenderDrm -= 1;
+    recordBattleDrm(battle, "defender", -1, "manpowerExhausted", undefined, "rule");
     battle.notes.push("manpowerExhaustedDefender");
   }
   G.battle = battle;

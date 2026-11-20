@@ -8,6 +8,8 @@ import {CardChoice, CardChoiceFace} from "./CardChoice";
 import {ConfirmButton} from "./ConfirmButton";
 import {ScorePanel} from "./ScorePanel";
 import {pendingOptionSafety} from "./pendingSafety";
+import {BattleDrmList} from "./BattleDrmList";
+import {battleDrmBreakdown, battleDrmTotals} from "../engine/combat";
 
 /**
  * A decision that prints its own decline option (13.4.2's aid search, the
@@ -104,6 +106,13 @@ export const DecisionBody = ({
     if (group) group.options.push(o);
     else groups.push({face, options: [o]});
   }
+
+  // Rule 18.2.1/19.5: the live battle's named modifiers and the totals they add
+  // up to, computed once for both side panels.  A hand-written state may leave
+  // `battle` undefined, so the check is truthiness, not `=== null`.
+  const liveBattle = G.battle ?? null;
+  const battleBreakdown = liveBattle === null ? null : battleDrmBreakdown(G, liveBattle);
+  const battleTotals = liveBattle === null ? null : battleDrmTotals(G, liveBattle);
 
   return (
     <>
@@ -203,7 +212,27 @@ export const DecisionBody = ({
           <h4>{bi(locale, G.battle.kind === "naval" ? "Naval battle" : "Land battle", G.battle.kind === "naval" ? "海战" : "陆战")} · {spaceLabel(G.battle.from, locale)} → {spaceLabel(G.battle.to, locale)}</h4>
           <div>{t.seats[G.battle.attacker]} → {t.seats[G.battle.defender]} · {bi(locale, "Step", "阶段")}: {BATTLE_STAGE[G.battle.stage] ? bi(locale, BATTLE_STAGE[G.battle.stage].en, BATTLE_STAGE[G.battle.stage].zh) : G.battle.stage}</div>
           {(G.battle.attackerRoll !== undefined || G.battle.defenderRoll !== undefined) && <div>{bi(locale, "Rolls", "掷骰")}: {G.battle.attackerRoll ?? "—"} / {G.battle.defenderRoll ?? "—"} · {bi(locale, "Diff", "差")} {G.battle.diff ?? "—"}</div>}
-          <div>{bi(locale, "Losses", "损失")}: {G.battle.attackerLosses} / {G.battle.defenderLosses} · DRM {G.battle.attackerDrm}/{G.battle.defenderDrm}</div>
+          <div>{bi(locale, "Losses", "损失")}: {G.battle.attackerLosses} / {G.battle.defenderLosses}</div>
+          {/* The two totals alone hid which printed clause produced them, so the
+              live panel lists every named modifier for both sides. */}
+          <div className="ie-battle-drms">
+            <BattleDrmList
+              side="attacker"
+              breakdown={battleBreakdown ?? undefined}
+              total={battleTotals?.attacker ?? G.battle.attackerDrm}
+              locale={locale}
+              live
+              testId="ie-battle-drm-attacker"
+            />
+            <BattleDrmList
+              side="defender"
+              breakdown={battleBreakdown ?? undefined}
+              total={battleTotals?.defender ?? G.battle.defenderDrm}
+              locale={locale}
+              live
+              testId="ie-battle-drm-defender"
+            />
+          </div>
           {G.battle.notes.length > 0 && <div className="ie-muted">{G.battle.notes.join(", ")}</div>}
           {viewer === "OT" && jihadDecision !== null && (
             <div className="ie-inline" data-testid="ie-jihad-actions">

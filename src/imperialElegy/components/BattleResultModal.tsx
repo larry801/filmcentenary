@@ -15,6 +15,7 @@ import {unitKindLabel} from "../engine/unitKind";
 import {Modal} from "./Modal";
 import {bi} from "./boardHelpers";
 import {ieT} from "./i18n";
+import {BattleDrmList} from "./BattleDrmList";
 
 export interface BattleResultModalProps {
   report: BattleReport | null;
@@ -136,6 +137,26 @@ const BattleResultBody = ({report, locale, t}: {
           <dd>{signed(report.attackerDrm)} / {signed(report.defenderDrm)}</dd>
         </div>
       </dl>
+
+      <section className="ie-battle-result-drms" data-testid="ie-battle-result-drms">
+        <h3>{bi(locale, "Dice modifiers", "掷骰修正来源")}</h3>
+        <div className="ie-battle-result-sides">
+          <BattleDrmList
+            side="attacker"
+            breakdown={report.drmSources}
+            total={report.attackerDrm}
+            locale={locale}
+            testId="ie-battle-result-drm-attacker"
+          />
+          <BattleDrmList
+            side="defender"
+            breakdown={report.drmSources}
+            total={report.defenderDrm}
+            locale={locale}
+            testId="ie-battle-result-drm-defender"
+          />
+        </div>
+      </section>
 
       <section className="ie-battle-result-damage" data-testid="ie-battle-result-damage">
         <h3>{bi(locale, "Damage taken", "承受伤害")}</h3>

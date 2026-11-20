@@ -312,3 +312,24 @@ describe("33.6 Ottoman Jihad markers", () => {
     expect(titleOf(tree, "ie-use-jihad")).toContain("No Jihad marker");
   });
 });
+
+describe("the live battle's dice modifiers", () => {
+  test("both sides' named DRM lists show while the battle runs", () => {
+    const G = fresh("RU", 1);
+    G.battle = {
+      ...battleState(),
+      drmSources: {
+        attacker: [{key: "stability", side: "attacker", drm: -1, detail: {value: 1}}],
+        defender: [{key: "difficulty", side: "defender", drm: 0}],
+      },
+      attackerDrm: -1,
+      defenderDrm: 0,
+    } as BattleState;
+    const tree = renderTree(G, "RU", moveBag());
+    expect(byTestId(tree, "ie-battle-drm-attacker")).toBeDefined();
+    expect(byTestId(tree, "ie-battle-drm-defender")).toBeDefined();
+    // The named entry, not only the total, reaches the panel.
+    const attacker = byTestId(tree, "ie-battle-drm-attacker")!;
+    expect(JSON.stringify(attacker.props)).toContain("stability");
+  });
+});
