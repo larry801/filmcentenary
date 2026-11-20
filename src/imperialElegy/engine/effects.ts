@@ -2893,6 +2893,9 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       G.spaces.india.rebellion = {minor: "Sepoy", step: 0, rebels: []};
       const rebel = placeNonPlayerCounter(G, "REBEL:Sepoy", "rebelArmy", "india", 2);
       if (rebel) G.spaces.india.rebellion.rebels.push(rebel.id);
+      // 21.1: the rebel army takes India's double colonial key away now, not
+      // only at the next end phase.  `recomputeTracks` is not automatic.
+      recomputeTracks(G);
       return true;
     }
     case "secondOpiumWar": {
