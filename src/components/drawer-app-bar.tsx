@@ -105,7 +105,7 @@ const DrawerAppBar = () => {
         <Toolbar sx={isVQ || isIE ? {minHeight: "47px !important", gap: 1} : undefined}>
             <IconButton
                 color="inherit"
-                aria-label="open drawer"
+                aria-label={i18n.chain.drawer.navigation}
                 onClick={handleOpen}
                 edge="start"
             >

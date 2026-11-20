@@ -116,7 +116,6 @@
   overflow: hidden;
 }
 
-.ie-play-column { display: flex; min-width: 0; min-height: 0; overflow: hidden; }
 
 .ie-right-col { display: flex; flex-direction: column; gap: var(--ie-space-3); min-width: 0; }
 
