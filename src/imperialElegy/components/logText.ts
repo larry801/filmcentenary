@@ -1514,6 +1514,17 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `formed a minor alliance with ${space}.`, `与${space}结盟。`);
   },
 
+  minorAllyCapRefused: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const cap = num(entry.args?.cap);
+    return withActor(
+      entry,
+      locale,
+      `did not ally with ${space}: the ${cap}-minor-ally limit (4.2.1) is already reached.`,
+      `未与${space}结盟：已达 4.2.1 的 ${cap} 个小国盟友上限。`,
+    );
+  },
+
   pacified: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     const roll = num(entry.args?.roll);

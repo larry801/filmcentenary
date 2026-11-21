@@ -43,6 +43,7 @@ import {
   minorController,
   minorFriendlySpace,
   minorHasLoc,
+  minorAlliesOf,
   minorUpkeepPower,
   PAPAL_STATES_SPACE,
   SETUP_PLACEMENT_FLAG,
@@ -809,9 +810,34 @@ const openSpecialSpace = (
  * removing an opposing diplomacy/ally marker in the space first.  Also used
  * for the card's second mode, which targets another Italian minor power.
  */
+/** 4.2.1: "Players can have a maximum of five minor power allies." */
+export const MINOR_ALLY_CAP = 5;
+
+/**
+ * 4.2.1 on the event paths.  `minorAlliance` (12.8) has always refused a sixth
+ * distinct minor ally, but the card handlers wrote `state.ally` directly, so an
+ * event — or 22.1.1's Italian petition (and its diplomatic-recognition follow-up)
+ * for an already allied minor — could take a player to six, seven, … allies.
+ * A minor that is already allied does not count twice, so re-affirming an
+ * existing alliance is always allowed.
+ */
+export const canGainMinorAlly = (G: ImperialElegyState, actor: Power, space: SpaceId): boolean => {
+  const state = G.spaces[space];
+  if (!state) return false;
+  // Only a minor power's space is a minor-ally target; a player's space is not.
+  if (state.control === actor || (state.control !== null && isPower(state.control))) return false;
+  if (state.ally === actor) return true;
+  const allied = minorAlliesOf(G, actor).filter((minor) => minor !== state.control);
+  return allied.length < MINOR_ALLY_CAP;
+};
+
 const allyItalianMinor = (G: ImperialElegyState, actor: Power, space: SpaceId): void => {
   const state = G.spaces[space];
   if (!state) return;
+  if (!canGainMinorAlly(G, actor, space)) {
+    log(G, actor, "minorAllyCapRefused", {space, cap: MINOR_ALLY_CAP});
+    return;
+  }
   // An alliance marker replaces whatever diplomacy/ally marker is present.
   state.diplomacy = null;
   state.ally = actor;
@@ -830,9 +856,14 @@ const papalInfluenceCardBonus = (G: ImperialElegyState, actor: Power): boolean =
  * 12.8: an alliance grows out of the player's own diplomacy marker, and the
  * marker is spent turning into the ally side.
  */
-const gainMinorAlliance = (G: ImperialElegyState, actor: Power, space: SpaceId): boolean => {
+export const gainMinorAlliance = (G: ImperialElegyState, actor: Power, space: SpaceId): boolean => {
   const state = G.spaces[space];
   if (!state) return false;
+  // 4.2.1 applies to every path that creates an alliance, card events included.
+  if (!canGainMinorAlly(G, actor, space)) {
+    log(G, actor, "minorAllyCapRefused", {space, cap: MINOR_ALLY_CAP});
+    return false;
+  }
   state.diplomacy = null;
   state.ally = actor;
   log(G, actor, "minorAlliance", {space});
