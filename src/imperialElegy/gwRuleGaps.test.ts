@@ -291,6 +291,53 @@ describe("22.1 Italian Minor Power Table", () => {
     expect(G.persistent.italyUnified).not.toBe(true);
   });
 
+  test("an answered Nationalist Wave cannot lock the table (the 22.1.4 live-lock)", () => {
+    const G = fresh();
+    for (const space of italianUnificationSpaces()) G.spaces[space].control = null;
+    italyTable(G, makeCtx(6), "GE", {interactive: true});
+    resolvePending(G, makeCtx(1, seat("GE")), ITALIAN_INTERNAL_WAR_POWERS[0]);
+    const pair = G.pending!.options.find((entry) => entry.id === "rome|naples");
+    expect(resolvePending(G, makeCtx(1, seat("GE")), pair!.id)).toBeUndefined();
+    expect(G.flags.italianNationalistWaveApplied).toBe(true);
+    // The wave's own unification roll may offer a fresh decision, but answering
+    // it must close it: a state that predates the wave cannot re-open a pair
+    // choice whose keys the wave already took (the seed IE-SIM-2 lock: the same
+    // decision answered 40 000 times, no progress).
+    let pending = G.pending;
+    for (let guard = 0; pending?.kind === "italianNationalistWave" && guard < 3; guard += 1) {
+      const stage = pending.context?.stage;
+      const answer = stage === "keys"
+        ? pending.options[0].id
+        : pending.options[0].id;
+      resolvePending(G, makeCtx(1, seat("GE")), answer);
+      expect(G.pending).toBeNull();
+      pending = G.pending;
+    }
+    // The wave's keys are still the ones it granted.
+    expect(G.spaces.rome.control).toBe(ITALIAN_INTERNAL_WAR_POWERS[0]);
+    expect(G.spaces.naples.control).toBe(ITALIAN_INTERNAL_WAR_POWERS[0]);
+  });
+
+  test("the wave always terminates, whatever is left on the board", () => {
+    for (const keep of [0, 1, 2]) {
+      const G = fresh();
+      const spaces = italianUnificationSpaces();
+      for (const space of spaces) G.spaces[space].control = null;
+      // GE holds everything but the last `keep` keys: the wave's roll cannot
+      // succeed, which is exactly the state that used to re-open the decision.
+      for (const space of spaces.slice(0, spaces.length - keep)) G.spaces[space].control = "GE";
+      italyTable(G, makeCtx(6), "GE", {interactive: true});
+      for (let guard = 0; G.pending?.kind === "italianNationalistWave" && guard < 4; guard += 1) {
+        const answer = G.pending.context?.stage === "minor"
+          ? ITALIAN_INTERNAL_WAR_POWERS[0]
+          : G.pending.options[0].id;
+        expect(resolvePending(G, makeCtx(1, seat("GE")), answer)).toBeUndefined();
+      }
+      // Every answer closes the decision instead of re-opening it forever.
+      expect(G.pending).toBeNull();
+    }
+  });
+
   test("an illegal Nationalist key pair is rejected and the decision stays open", () => {
     const G = fresh();
     for (const space of italianUnificationSpaces()) G.spaces[space].control = null;

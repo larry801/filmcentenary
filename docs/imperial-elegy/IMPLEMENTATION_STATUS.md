@@ -1,5 +1,37 @@
 # Imperial Elegy — implementation status
 
+## Fixed: an answered Nationalist Wave could lock the table (22.1.4) (2026-11-21)
+
+A seeded self-play sweep found a live-lock, not a rules gap: **IE-SIM-2**'s
+campaign stood in turn 4 for 40 000 steps, answering the same
+`italianNationalistWave` decision (`piedmont|tuscany`) over and over with no
+refusal — and it reproduced on the pre-session engine with identical numbers,
+so it was not a regression from this work.
+
+The cause is 22.1.4's interactive path.  The wave grants an Italian minor two
+uncontrolled Italian keys and then rolls the unification die; when the roll
+fails, `italianUnificationRoll`'s 22.1.4 branch *re-opened the wave*.  By then
+the wave's own grants had left fewer than two uncontrolled keys, so the pair
+choice offered inside the decision could no longer satisfy its own validation:
+every answer was refused, `resolvePending` returned `INVALID_MOVE`, and a
+client that re-sends the decision spins forever.
+
+The wave now happens once and always terminates:
+
+- `applyItalianNationalistWave` stamps `flags.italianNationalistWaveApplied`;
+- a failed unification roll no longer re-offers the interactive wave;
+- answering either stage on an already-applied wave closes the decision
+  instead of re-opening it, and a minor answer with fewer than two free keys
+  applies the wave to what is left.
+
+**Coverage:** `gwRuleGaps.test.ts` (+2 — the lock itself: a post-wave decision is
+answered and closes at every stage, and the wave terminates with 0, 1 or 2 keys
+left) and the self-play evidence above: `IE_SEEDS=IE-SIM-2 npx jest
+--testPathPatterns "tools/ie-sim/sweep" --runInBand` now reports
+`steps=1431 turn=8 phase=end finished=true reason=endOfTurn7`.  `npx tsc
+--noEmit` clean; the full IE Jest suite passes locally (**326 suites / 4257
+tests**).  Remote verification is the feature branch's GitHub Actions run.
+
 ## Fixed: card events bypassed the five-minor-ally cap (4.2.1) (2026-11-21)
 
 4.2.1 prints *"Players can have a maximum of five minor power allies."*  The
