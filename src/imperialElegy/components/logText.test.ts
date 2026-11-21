@@ -303,6 +303,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   polishRecruitRejected: {key: "polishRecruitRejected", power: "GE", args: {kind: "army", space: "poland", reasons: "Polish armies already equal the 22.5 limit (2)"}},
   impulseUpkeepLoss: {key: "impulseUpkeepLoss", power: "GE", args: {space: "paris", cause: "brokenLoc", unit: "u1", kind: "army"}},
   aloneEliteEliminated: {key: "aloneEliteEliminated", power: "GE", args: {space: "paris", owner: "GE", unit: "u1", kind: "eliteCorps"}},
+  efLossCoupling: {key: "efLossCoupling", power: "FR", args: {space: "paris", unit: "u1", owner: "FR", side: "defender"}},
   amphibiousAssault: {key: "amphibiousAssault", power: "UK", args: {from: "western-mediterranean", to: "naples", units: "u1,u2"}},
   amphibiousLanding: {key: "amphibiousLanding", power: "UK", args: {from: "western-mediterranean", to: "naples", units: "u1,u2"}},
   amphibiousNavalBattle: {key: "amphibiousNavalBattle", power: "UK", args: {from: "western-mediterranean", to: "naples", armies: "u1,u2"}},

@@ -137,10 +137,23 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   on.  5.1.4's ordinary EFs and 5.1.2's reserve armies print the weaker "must
   end a move with a standing army" form and are not swept.  Coverage:
   `aloneEliteElimination.test.ts` (8).
-- **Still open:** 5.1.2's reserve army that must end a move with a standing army
-  is enforced only at deployment time, and 5.3.1/5.3.2's loss coupling is not
-  wired — the open items tracked in
-  [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
+- **5.1.2 has no "standing army" movement clause.**  The printed 5.1.2 lists
+  exactly three differences from a standing army (the peacetime holding box,
+  wartime-only deployment and the demobilisation return) after "reserve armies
+  function identically to standing armies", so only the deployment gate is owed;
+  the earlier "must end a move with a standing army" note was not printed.
+- **5.3.2 / 18.6.3 loss coupling (audited 2026-11-21).**  `lossCandidates` keeps
+  an EF out of the loss list whenever its force holds an army (5.3.2's "a force
+  comprised of EFs and armies cannot take losses on the EFs" / 18.6.3's first
+  bullet) and a force of EFs only may not eliminate a full-strength non-rebel
+  army, only reduce it.  18.6.3's third bullet — "when a force comprised of EFs
+  and armies takes a step loss on an army they must also eliminate an EF" — now
+  runs for the whole loss group (`combat.ts#eliminateCoupledEfs`), not only when
+  the army happens to be eliminated; the counter is recorded on the battle and
+  in the public `BattleReport.efCouplings`, and the per-unit elimination
+  fallback is kept.  5.1.5's elite colonial EF and 5.1.6's Zouave are "treated
+  as ECs for the purposes of elimination", so a force that also holds one does
+  not print the plain EF coupling.  Coverage: `efLossCoupling.test.ts` (9).
 - **2026-11-21 supply audit:**
   - 5.6's source list is enforced.  `isSupplySource` now requires an actual
     controlled **home key** for the acting power, and a wartime second source

@@ -2949,6 +2949,19 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // ------------------------------------------------------------------ 18.6.3 loss coupling
+  efLossCoupling: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const kind = unitKind(entry.args?.kind, locale);
+    const owner = str(entry.args?.owner);
+    const ownerLabel = entry.power ? powerLabel(entry.power, locale) : minorLabel(owner, locale);
+    return text(
+      locale,
+      `${ownerLabel} lost a ${kind} in ${space} with the step loss on its army (18.6.3).`,
+      `${ownerLabel}在${space}因军团承受步骤损失而同时损失了${kind}（18.6.3）。`,
+    );
+  },
+
   // ------------------------------------------------------------------ 5.7 general displacement
   unitDisplaced: (entry, locale) => {
     const from = spaceName(entry.args?.from, locale);
