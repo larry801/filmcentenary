@@ -5838,7 +5838,7 @@ export const resolvePending = (G: ImperialElegyState, ctx: Ctx, optionId: string
  * The upkeep path is idempotent, so a state that is already legal is untouched.
  */
 const repairPeacetimeSupply = (G: ImperialElegyState): void => {
-  if (G.war !== null || G.gw?.active) return;
+  if (G.phase !== "action" || G.war !== null || G.gw?.active) return;
   for (const power of POWERS) {
     if (G.powers[power]?.eliminated) continue;
     repairBrokenLinesOfCommunication(G, power);

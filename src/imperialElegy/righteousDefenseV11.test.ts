@@ -56,7 +56,11 @@ describe("16.2.4(3) minority liberation", () => {
       control: "Bohemia", ally: "FR", occupiedBy: null,
       independentHome: {power: "Bohemia", nationality: "Czechs"},
     });
-    expect(G.units[friendly.id].space).toBe("bohemia");
+    // 5.6: a supply source is a controlled **home key**, and Bohemia is a
+    // minor's home key, not a French one.  Once the war ends the French army
+    // there is out of supply, so 5.6.3 displaces it immediately.  The new
+    // allied minor is still supplied for its own units (5.6.1).
+    expect(G.units[friendly.id].space).not.toBe("bohemia");
     expect(G.units[enemy.id]?.space).not.toBe("bohemia");
     expect(isIndependentMinor(G, "Bohemia")).toBe(true);
     expect(minorController(G, "Bohemia")).toBe("FR");
