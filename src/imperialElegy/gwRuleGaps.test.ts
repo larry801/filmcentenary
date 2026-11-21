@@ -10,7 +10,8 @@ import {MINOR_POWER_HOMES} from "./constant/setup";
 import {italianUnificationSpaces} from "./engine/rules";
 import {placeUnit, removeUnit} from "./engine/effects";
 import {finishBattle} from "./engine/combat";
-import {gwDraft, gwPass, placeItalyMpit, resolvePending} from "./moves";
+import {gwDraft, gwPass, pass, placeItalyMpit, resolvePending} from "./moves";
+import {actionPhaseExitForPhase, phaseExitMove} from "./engine/bot";
 import {
   ITALIAN_INTERNAL_WAR_POWERS,
   ITALY_TABLE_CARD,
@@ -459,5 +460,29 @@ describe("30.0 / 30.1 — an eliminated seat still holding the impulse", () => {
     // still reach.  The precise forward progress is pinned by the seeded sweep
     // (`IE_SEEDS=IE-BATCH-8-war`), which only finishes with this tolerance.
     void before;
+  });
+});
+
+describe("one exit per phase", () => {
+  test("the bot never names another phase's exit", () => {
+    const G = fresh();
+    G.phase = "gwManeuver";
+    expect(actionPhaseExitForPhase(G, {move: "pass"})).toEqual({move: "gwPass"});
+    G.phase = "wartime";
+    expect(actionPhaseExitForPhase(G, {move: "pass"})).toEqual({move: "passWarMove"});
+    G.phase = "action";
+    expect(actionPhaseExitForPhase(G, {move: "pass"})).toEqual({move: "pass"});
+    // A decision that is not a pass is left alone.
+    expect(actionPhaseExitForPhase(G, {move: "gwMarch", args: ["u1", "berlin"]}))
+      .toEqual({move: "gwMarch", args: ["u1", "berlin"]});
+    expect(phaseExitMove(G)).toEqual({move: "pass"});
+  });
+
+  test("the action-phase exit is refused outside its phase and says so", () => {
+    const G = fresh();
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    expect(pass(G, makeCtx([], seat("GE")))).toBe(INVALID_MOVE);
+    expect(G.log.some((entry) => entry.key === "passRefused" && entry.args?.reason === "wrong-phase")).toBe(true);
   });
 });

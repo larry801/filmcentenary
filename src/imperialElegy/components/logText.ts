@@ -1514,6 +1514,20 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `formed a minor alliance with ${space}.`, `与${space}结盟。`);
   },
 
+  passRefused: (entry, locale) => {
+    const reason = str(entry.args?.reason);
+    const phase = str(entry.args?.phase);
+    const reasonText = reason === "wrong-phase"
+      ? (locale === "zh_CN" ? `当前为${phase}阶段` : `this is the ${phase} phase`)
+      : (locale === "zh_CN" ? "当前不可停牌" : "a pass is not legal now");
+    return withActor(
+      entry,
+      locale,
+      `could not pass the action-phase impulse: ${reasonText}.`,
+      `无法在行动阶段停牌：${reasonText}。`,
+    );
+  },
+
   gwPassRefused: (entry, locale) => {
     const reason = str(entry.args?.reason);
     const reasonEn: Record<string, string> = {
