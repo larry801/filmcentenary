@@ -1,6 +1,6 @@
 # Imperial Elegy — implementation status
 
-## Partially fixed: two Great War impulse locks found by a 24-seed batch (2026-11-22)
+## Fixed: two Great War impulse locks found by a 24-seed batch (2026-11-22)
 
 `IE_BATCH=24` over all six modes (144 games) surfaced two seeds that cannot
 leave a Great War impulse.  They are **not** regressions from this work; both
@@ -20,22 +20,35 @@ bonus" the seat had already used, and `gwPass` refused it forever (seed
   played — the seat's printed exit — and logs the bilingual `gwPassRefused`
   with its reason for every other refusal.
 
-### Still open: a bonus slot is asked to the wrong seat
+### Fixed: an eliminated seat could not wind down its own slot
 
-The same seed also shows the alliance bonus slot (`25.7.1`) asking its pass of a
-seat that is not its claimant: the refusal is `notActive`, so no seat can wind
-that slot down and the sweep stalls at `order: "bonus"`.  The `gwBonusImpulse`
-decision exists for the multi-candidate case, but the single-candidate bonus
-activation does not give the activating alliance member a pass.  This needs the
-slot-owner contract (who may answer a bonus slot) settled before it is changed —
-the obvious patches either bypass the choice or break `gwBonusImpulse
-.test.ts`'s pass semantics — so it is recorded here rather than half-done.
+The same seed's second half: 30.0 eliminates a power the instant its stability
+(or capital) falls, and 30.1 turns its initiative position into a bonus marker
+for its alliance.  A seat eliminated *while its impulse was open* is still
+`G.activePower` and is still asked for the pass that ends it — but
+`gwFinishImpulseProblem` now reports it as no belligerent (`notActive`), so
+`gwPass` was refused on the only slot that seat could still reach and the
+maneuver step could never reach the bonus marker (seed `IE-BATCH-8-war`, which
+now finishes in 764 steps by GW turn limit).
 
-**Evidence:** full IE Jest suite **327 suites / 4272 tests passed**;
-`components/logText.test.ts` covers the new key.  **Seed status:** the
-`IE-BATCH-8-war` deadlock is now a clean refusal sequence rather than an endless
-loop, but that seed still does not finish — see the open item above.  Remote
-verification is the feature branch's GitHub Actions run.
+- `gwPass` treats the eliminated seat's pass as what 30.0 prints — it has
+  nothing left to end — and advances instead of refusing, still logging
+  `gwPassRefused` for every other refusal.
+- `advanceGwImpulse` starts from the previous slot when the cursor stands on a
+  bonus slot of a seat that is no longer a belligerent, so 25.7.1's alliance
+  choice is reached instead of the dead seat being asked forever.
+
+**Coverage:** `gwRuleGaps.test.ts` (+1) pins the pass; the decisive evidence is
+the seeded sweep, `IE_SEEDS=IE-BATCH-8-war … "tools/ie-sim/war"` →
+`steps=764 turn=3 phase=gameOver finished=true reason=gwTurnLimit:stability`.
+
+**Evidence:** full IE Jest suite **327 suites / 4273 tests passed**;
+`components/logText.test.ts` covers the new key.  **Seed status:**
+`IE-BATCH-8-war` now finishes.  `IE-BATCH-10-amphibious` still reports refused
+harness staging probes (`amphibiousAssault` with invented units) that the engine
+correctly refuses; the game itself finishes, and the harness falls back, so this
+is a sweep-heuristic limitation rather than an engine lock.  Remote verification
+is the feature branches' GitHub Actions runs.
 
 ## Fixed: an answered Nationalist Wave could lock the table (22.1.4) (2026-11-21)
 

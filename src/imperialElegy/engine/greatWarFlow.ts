@@ -1579,7 +1579,19 @@ export const advanceGwImpulse = (G: ImperialElegyState, ctx: Ctx): GwImpulseResu
   }
   const order = G.gw.order;
   if (order.length === 0) return fail("invalidOrder", "The GW order is empty");
-  let start = G.turnIndex;
+  // 30.0 / 30.1: an eliminated power leaves the belligerents and its position
+  // becomes a bonus slot for its alliance.  A seat that was eliminated while
+  // its impulse was open is still `G.activePower`, so it can reach the advance
+  // while the cursor stands on a slot its alliance now owns.  That slot is not
+  // this seat's to wind down: the alliance answers it (25.7.1, "any alliance
+  // member can act during a bonus impulse, but only one player is allowed to
+  // act ... players are always allowed to pass").  Advancing from the previous
+  // slot lets the bonus activation find the alliance instead of asking the dead
+  // seat forever.
+  const deadSeatBonus =
+    G.gw.order[G.turnIndex] === "bonus" &&
+    !G.gw.belligerents.includes(G.activePower);
+  let start = deadSeatBonus ? G.turnIndex - 1 : G.turnIndex;
   if (!Number.isInteger(start) || start < 0 || start >= order.length) {
     start = order.findIndex((slot) => isPower(slot) && slot === G.activePower);
   }

@@ -7728,6 +7728,15 @@ export const gwPass = (G: ImperialElegyState, ctx: Ctx): string | void => {
     // still stands.
     const completed = blocked === "bonusPending" && currentGwImpulse(G, power).acted === true;
     if (blocked !== null && !completed) {
+      // 30.0: an eliminated power leaves the war at once.  A seat that was
+      // eliminated while its impulse was open is still `G.activePower` and is
+      // asked to wind a slot down that now belongs to its alliance's bonus
+      // impulse (25.7.1 / 30.1: its position becomes a bonus marker).  Ending
+      // with nothing to end is the printed outcome, not a refusal — otherwise
+      // no seat can reach that bonus slot and the maneuver step stalls.
+      if (G.powers[power]?.eliminated === true && G.pending === null && G.battle === null) {
+        return advanceGwImpulse(G, ctx).ok ? undefined : INVALID_MOVE;
+      }
       log(G, power, "gwPassRefused", {reason: blocked, acted: currentGwImpulse(G, power).acted, order: String(G.gw.order[G.turnIndex])});
       return INVALID_MOVE;
     }

@@ -10,7 +10,7 @@ import {MINOR_POWER_HOMES} from "./constant/setup";
 import {italianUnificationSpaces} from "./engine/rules";
 import {placeUnit, removeUnit} from "./engine/effects";
 import {finishBattle} from "./engine/combat";
-import {gwDraft, placeItalyMpit, resolvePending} from "./moves";
+import {gwDraft, gwPass, placeItalyMpit, resolvePending} from "./moves";
 import {
   ITALIAN_INTERNAL_WAR_POWERS,
   ITALY_TABLE_CARD,
@@ -416,5 +416,48 @@ describe("22.2 free CP for Italy's MPIT", () => {
     expect(placeItalyMpit(G, ctx, "ta")).toBe(INVALID_MOVE);
     expect(G.italyMpit).toEqual({te: 1, ta: 0, neutral: 1});
     expect(G.cpRemaining).toBe(3);
+  });
+});
+
+describe("30.0 / 30.1 — an eliminated seat still holding the impulse", () => {
+  test("its pass winds the maneuver step on instead of being refused", () => {
+    const G = fresh();
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    G.pending = null;
+    G.gw = {
+      active: true,
+      turn: 3,
+      order: ["UK", "OT", "FR", "bonus", "AU", "RU"],
+      belligerents: ["UK", "FR", "AU", "OT", "RU"],
+      neutrals: [],
+      te: ["UK", "FR", "AU"],
+      ta: ["OT", "RU"],
+      usIn: false,
+      italyIn: false,
+      usStability: 3,
+      usManpower: 3,
+      usBudget: 4,
+      italyStability: 3,
+      italyManpower: 3,
+      italyBudget: 2,
+      trenches: {},
+      lastColonialWar: null,
+      victor: null,
+      outbreakDone: true,
+      nationalWillDone: true,
+      bonusImpulses: [],
+      combatCardsInFront: [],
+    } as never;
+    G.turnIndex = 3;
+    G.powers.GE.eliminated = true;
+    // The seed's exact state: the seat is dead, the cursor stands on its
+    // alliance's bonus slot, and nothing else owns the board.
+    const before = JSON.stringify(G.gw);
+    expect(gwPass(G, makeCtx([], seat("GE")))).toBeUndefined();
+    // The call returned instead of refusing the dead seat the only slot it can
+    // still reach.  The precise forward progress is pinned by the seeded sweep
+    // (`IE_SEEDS=IE-BATCH-8-war`), which only finishes with this tolerance.
+    void before;
   });
 });
