@@ -207,6 +207,9 @@ const applyItalianNationalistWave = (
   minor: ItalianInternalWarPower,
   keys: readonly SpaceId[],
 ): void => {
+  // 22.1.4 happens once; the marker is what keeps the interactive choice from
+  // re-opening itself.
+  G.flags.italianNationalistWaveApplied = true;
   for (const key of keys) {
     if (G.spaces[key]) setSpaceControl(G, key, minor);
   }
@@ -238,7 +241,18 @@ export const resolveItalianNationalistWaveChoice = (
   const stage = pending.context?.stage;
   if (stage === "minor") {
     if (!isItalianInternalWarPower(choice)) return false;
+    // A second "minor" answer cannot start a second wave either.
+    if (G.flags.italianNationalistWaveApplied === true) {
+      G.pending = null;
+      return true;
+    }
     const keys = italianUncontrolledKeys(G);
+    if (keys.length < 2) {
+      // Fewer than the printed two keys: the wave takes what is left, so the
+      // decision can never open a pair choice it cannot satisfy.
+      applyItalianNationalistWave(G, ctx, pending.power, choice, keys);
+      return true;
+    }
     if (keys.length > 2) {
       openDecision(
         G,
@@ -265,11 +279,21 @@ export const resolveItalianNationalistWaveChoice = (
     return true;
   }
   if (stage === "keys") {
+    // 22.1.4 happens once.  If the wave was already applied — by the printed
+    // fallback or by an earlier answer — re-answering it from a state that
+    // predates the wave would overwrite the result and, once fewer than two
+    // keys are still uncontrolled, re-open this same decision forever (the
+    // IE-SIM-2 live-lock: 40 000 steps, one decision, no progress).
+    if (G.flags.italianNationalistWaveApplied === true) {
+      G.pending = null;
+      return true;
+    }
     const minor = pending.context?.minor;
     if (typeof minor !== "string" || !isItalianInternalWarPower(minor)) return false;
     const chosen = choice.split("|").filter((id) => id.length > 0);
     const uncontrolled = new Set(italianUncontrolledKeys(G));
-    if (chosen.length !== 2 || chosen[0] === chosen[1]) return false;
+    if (chosen.length === 0 || chosen.length > 2) return false;
+    if (chosen.length === 2 && chosen[0] === chosen[1]) return false;
     if (!chosen.every((id) => uncontrolled.has(id as SpaceId))) return false;
     applyItalianNationalistWave(G, ctx, pending.power, minor, chosen as SpaceId[]);
     return true;
@@ -607,8 +631,11 @@ export const italyTable = (
     return true;
   }
   // 22.1.4 Nationalist Wave: choose the minor and the two uncontrolled Italian
-  // keys it immediately gains, then roll the unification die.
-  if (options.interactive === true) {
+  // keys it immediately gains, then roll the unification die.  It happens once:
+  // the wave's own unification roll must not re-offer it, or a failed roll —
+  // after the wave consumed its keys — would open a pair choice that can only
+  // re-open itself (the IE-SIM-2 live-lock).
+  if (options.interactive === true && G.flags.italianNationalistWaveApplied !== true) {
     openDecision(
       G,
       ctx,
