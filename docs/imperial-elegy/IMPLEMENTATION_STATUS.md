@@ -1,5 +1,42 @@
 # Imperial Elegy — implementation status
 
+## Partially fixed: two Great War impulse locks found by a 24-seed batch (2026-11-22)
+
+`IE_BATCH=24` over all six modes (144 games) surfaced two seeds that cannot
+leave a Great War impulse.  They are **not** regressions from this work; both
+predate it.
+
+### Fixed: a GW-06 response could leave `bonusPending` set forever
+
+`noteGwCard` sets `impulse.bonusPending` when a card is played for its bonus,
+and only a **budget**-funded action cleared it.  A GW-06 "They Shall Not Pass"
+played inside the post-dice window therefore left the impulse "waiting for a
+bonus" the seat had already used, and `gwPass` refused it forever (seed
+`IE-BATCH-8-war`: three refused `gwPass` calls, then the harness deadlock).
+
+- `gwImpulse.ts` now also settles `bonusPending`, `cardPlayed` and `acted` when
+  an action is funded by the card's bonus (27.2: that action *is* the bonus).
+- `gwPass` tolerates exactly that one flag when the impulse's action is already
+  played — the seat's printed exit — and logs the bilingual `gwPassRefused`
+  with its reason for every other refusal.
+
+### Still open: a bonus slot is asked to the wrong seat
+
+The same seed also shows the alliance bonus slot (`25.7.1`) asking its pass of a
+seat that is not its claimant: the refusal is `notActive`, so no seat can wind
+that slot down and the sweep stalls at `order: "bonus"`.  The `gwBonusImpulse`
+decision exists for the multi-candidate case, but the single-candidate bonus
+activation does not give the activating alliance member a pass.  This needs the
+slot-owner contract (who may answer a bonus slot) settled before it is changed —
+the obvious patches either bypass the choice or break `gwBonusImpulse
+.test.ts`'s pass semantics — so it is recorded here rather than half-done.
+
+**Evidence:** full IE Jest suite **327 suites / 4272 tests passed**;
+`components/logText.test.ts` covers the new key.  **Seed status:** the
+`IE-BATCH-8-war` deadlock is now a clean refusal sequence rather than an endless
+loop, but that seed still does not finish — see the open item above.  Remote
+verification is the feature branch's GitHub Actions run.
+
 ## Fixed: an answered Nationalist Wave could lock the table (22.1.4) (2026-11-21)
 
 A seeded self-play sweep found a live-lock, not a rules gap: **IE-SIM-2**'s

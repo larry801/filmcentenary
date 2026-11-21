@@ -101,6 +101,13 @@ export const recordGwAction = (
   } else if (allowance.funding === "card") {
     impulse.bonusPending = false;
     impulse.bonusAction = kind;
+    // 27.2: a card spent for its bonus funds one immediate action.  That action
+    // settles the `bonusPending` a post-dice response card records, which is
+    // what used to leave the impulse "waiting for the bonus" forever: the pass
+    // guard refused, so a seat whose only legal exit was the pass could not
+    // leave its impulse (found by the 24-seed self-play batch).
+    impulse.cardPlayed = true;
+    impulse.acted = true;
   } else G.powers.GE.flags.superiorStaffWorkGwUsed = true;
   impulse.acted = true;
   G.gw!.impulse = impulse;

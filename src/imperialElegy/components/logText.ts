@@ -1514,6 +1514,32 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `formed a minor alliance with ${space}.`, `与${space}结盟。`);
   },
 
+  gwPassRefused: (entry, locale) => {
+    const reason = str(entry.args?.reason);
+    const reasonEn: Record<string, string> = {
+      mustAct: "a budget action is still owed",
+      bonusPending: "the card's bonus action is still owed",
+      exhaustion: "Exhaustion must resolve first",
+      notActive: "not this power's impulse",
+      notBelligerent: "not a belligerent",
+      busy: "a decision or battle is open",
+    };
+    const reasonZh: Record<string, string> = {
+      mustAct: "尚需一次预算行动",
+      bonusPending: "牌面奖励行动尚未结算",
+      exhaustion: "须先结算“耗竭”",
+      notActive: "非该势力之行动轮",
+      notBelligerent: "非参战方",
+      busy: "尚有决策或战斗未结算",
+    };
+    return withActor(
+      entry,
+      locale,
+      `could not end the Great War impulse: ${reasonEn[reason] ?? reason}.`,
+      `无法结束大战行动轮：${reasonZh[reason] ?? reason}。`,
+    );
+  },
+
   minorAllyCapRefused: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     const cap = num(entry.args?.cap);
