@@ -739,13 +739,23 @@ export const pass = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (G.phase !== "action") return INVALID_MOVE;
+  if (G.phase !== "action") {
+    // The board and the bot both name one exit per phase; a client that keeps
+    // sending the action-phase exit outside its phase used to fail silently and
+    // spin (the batch sweep found it in the Great War).  Log the reason so the
+    // next report names the phase instead of just "invalid move".
+    log(G, power, "passRefused", {reason: "wrong-phase", phase: G.phase});
+    return INVALID_MOVE;
+  }
   if (hasActedThisImpulse(G, power)) {
     G.cpRemaining = 0;
     finishImpulse(G, ctx);
     return undefined;
   }
-  if (!canPassNow(G, power)) return INVALID_MOVE;
+  if (!canPassNow(G, power)) {
+    log(G, power, "passRefused", {reason: "cannot-pass", phase: G.phase});
+    return INVALID_MOVE;
+  }
   if (!G.passed.includes(power)) G.passed.push(power);
   addLog(G, power, "passed", {});
   finishImpulse(G, ctx);

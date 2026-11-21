@@ -1012,6 +1012,30 @@ export const botDecision = (
   ctx: Ctx,
   power: Power,
 ): BotMove => {
+  return actionPhaseExitForPhase(G, botDecisionInPhase(G, ctx, power));
+};
+
+/**
+ * One exit per phase, and the bot never names another phase's.
+ *
+ * `pass` is 12.0's action-phase exit; the Great War has `gwPass` and a limited
+ * war `passWarMove`.  A decision assembled from a view that was captured just
+ * before a phase change can still carry the action-phase exit — the batch sweep
+ * caught the bot re-sending `pass` in the Great War until the driver's repeat
+ * guard tripped.  Rewriting it to the phase's own exit is what the board gives
+ * a human in the same state.
+ */
+export const actionPhaseExitForPhase = (G: ImperialElegyState, decision: BotMove): BotMove => {
+  if (decision.move !== "pass") return decision;
+  if (G.phase === "gwManeuver") return {move: "gwPass"};
+  if (G.phase === "wartime") return {move: "passWarMove"};
+  return decision;
+};
+
+/** The phase's own exit, for callers that need to name it directly. */
+export const phaseExitMove = (G: ImperialElegyState): BotMove => actionPhaseExitForPhase(G, {move: "pass"});
+
+const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotMove => {
   // Handle any open pending decision first.
   const pendingMove = botPendingMove(G, power);
   if (pendingMove !== null) return pendingMove;
