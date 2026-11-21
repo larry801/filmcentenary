@@ -696,6 +696,18 @@
 
 .ie-war-controls { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; border-top: 1px solid var(--ie-rule); padding-top: 6px; }
 
+/* The War tab's move console: the Orders page's unit picker and "Move &
+   battle" rows, printed a second time so a wartime player never has to switch
+   tabs to march, rail, sail or fight.  It is deliberately quiet — the war
+   report below it stays the tab's subject. */
+.ie-move-console-space { font-size: var(--ie-font-xs); color: var(--ie-brass-soft); white-space: nowrap; }
+
+.ie-move-console-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+
+.ie-move-console-head { display: flex; align-items: baseline; gap: 4px; font-size: var(--ie-font-xs); color: var(--ie-brass-soft); min-width: 0; }
+
+.ie-move-console-head b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 .ie-gw-sides { font-size: var(--ie-font-xs); line-height: 1.45; }
 
 .ie-gw-order { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-size: var(--ie-font-xs); margin-top: 5px; }

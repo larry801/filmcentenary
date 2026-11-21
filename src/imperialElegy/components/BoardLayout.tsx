@@ -43,6 +43,7 @@ import {NationalActionsPanel} from "./NationalActionsPanel";
 import {AmphibiousPanel, NavalTransportPanel, NavalInterceptPanel} from "./NavalPanel";
 import {WarPanel} from "./WarPanel";
 import {WarDeclarationPanel} from "./WarDeclarationPanel";
+import {MoveConsole} from "./MoveConsole";
 import {GreatWarPanel} from "./GreatWarPanel";
 import {SeatAlert} from "./SeatStrip";
 import {IntentChooser} from "./IntentChooser";
@@ -374,7 +375,15 @@ export const OrdersRegion = (props: OrdersSlice & {
 };
 
 /** War tab: the limited war (when there is one) and the Great War (when there is). */
-export const WarRegion = (props: WarSlice) => {
+export const WarRegion = (props: WarSlice & {
+  /**
+   * The War tab's own unit-move console (move & battle rows for the selected
+   * space).  The shell builds it from the Orders slice because the movers, the
+   * selection and the CP budget all live there, and renders it inside this tab
+   * so a wartime player does not have to switch to Orders to march or fight.
+   */
+  moveConsole?: React.ReactNode;
+}) => {
   const {
     war, G, viewer, me, active, phase, locale, t, warStatusLabel, warAimLabel, warBelligerents,
     isPrincipal, isBelligerent, eliminated, pending, isActive, warBudgetRows, warDefenderMinors,
@@ -383,7 +392,7 @@ export const WarRegion = (props: WarSlice) => {
     italyShowing, italyBox, italyBoxLabel, italyHow, gwTransferToValue, setGwTransferTo,
     gwTransferAmountValue, setGwTransferAmount, canGwTransfer, gwSideAllies, canGwReveal,
     canGwDraft, canGwDeployHere, forcedGwCard, selected, trenchRows, onSelect, onOpenReference,
-    canActionCard, cpBudget, confirmActions, homeCardTitle,
+    canActionCard, cpBudget, confirmActions, homeCardTitle, moveConsole,
   } = props;
   const viewerCanSeeTrenches = gw !== null && gw !== undefined && gw.active;
   // Before a war exists the War body is where a declaration is made: defender,
@@ -404,6 +413,12 @@ export const WarRegion = (props: WarSlice) => {
         <TrenchBoard rows={trenchRows} locale={locale} selected={selected} onSelect={onSelect}/>
       )}
       {declaration}
+      {/* The movement half of the Orders page, printed here as well: a unit can
+          be picked, marched, railed or sent into battle without leaving the War
+          tab.  It leads the war report because it is what a wartime player uses
+          most; it appears once a war or the Great War runs (a declaration form
+          has no units to move) and never for a spectator. */}
+      {viewer !== null && !eliminated && (war !== null || (gw !== null && gw !== undefined)) && moveConsole}
       {war && (
         <WarPanel
           war={war} G={G} viewer={viewer} active={active} phase={phase} locale={locale} t={t}
@@ -827,7 +842,21 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
                   ) : null}
                 </>
               ),
-              war: <WarRegion key={`war-${locale}`} {...war} locale={locale} t={t}/>,
+              war: (
+                <WarRegion
+                  key={`war-${locale}`}
+                  {...war}
+                  locale={locale}
+                  t={t}
+                  moveConsole={
+                    <MoveConsole
+                      {...orders}
+                      showUnavailable={showUnavailableMenu}
+                      setShowUnavailable={setUnavailablePreference}
+                    />
+                  }
+                />
+              ),
               log: <LogRegion key={`log-${locale}`} G={G} locale={locale} t={t} mode={cardFaceMode}/>,
             }}
           />

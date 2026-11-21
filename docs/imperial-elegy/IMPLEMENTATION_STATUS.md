@@ -348,6 +348,44 @@ The event now:
 **Coverage:** `auxArmes.test.ts` (3 — the two-card choice, the immediate play
 of French Intervention, and the no-card case).  `npx tsc --noEmit` clean; the
 card-choice, board and one-card-per-impulse suites pass.
+## Added: the unit-move console is also in the War tab (2026-11-21)
+
+Reported as "帝国挽歌的单位移动ui 在战局标签里面也放一份 战争时不用来回切换".
+Declaring a war parks the turn panel on the War tab, but every march, rail,
+naval move and battle lived only on the Orders page, so a wartime player had to
+switch tabs between the war situation and the units doing the fighting.
+
+- **One console, printed twice.**  New `components/MoveConsole.tsx` mounts the
+  Orders page's own two controls — the unit picker and the space's action rows —
+  a second time inside the War tab, restricted to the player aid's "Move &
+  battle" group (`isMovementRow`).  Nothing is re-implemented: it calls the same
+  `useSpaceActions` hook and renders the same `SpaceActionsPanel`, so labels,
+  costs, engine legality gates and the printed refusal reasons cannot drift
+  between the two copies.
+- **Both mounted copies stay addressable.**  The turn panel only hides inactive
+  bodies, so both copies are in the DOM at once.  `SpaceUnitPicker` and
+  `SpaceActionsPanel` take a `testIdPrefix` (`ie-` by default); the War copy
+  passes `ie-war-`, giving `ie-war-unit-<id>`, `ie-war-action-move`,
+  `ie-war-march`, … while the Orders page keeps `ie-unit-<id>`,
+  `ie-action-move`.  The e2e and control suites that address the Orders ids are
+  unchanged.
+- **It drives the board's one selection.**  Picking a unit in the War tab rings
+  the same legal destinations on the map and shows the same unit pressed on the
+  Orders page; a half-made selection and the bots' effects survive a tab switch.
+- **It leads the war report** and appears once a limited war or the Great War
+  runs (a declaration form has no units to move), never for a spectator.  With
+  no space picked it prints a one-line "pick a space, then a unit" hint instead
+  of an empty list, and a refused row keeps its printed reason rather than
+  disappearing.
+
+**Coverage:** `components/moveConsole.test.tsx` (12 — movement-only filter,
+prefixed ids vs the Orders copy, empty selection hint, locale space label,
+selection echo, controlled-minor command in the GW, printed reasons at zero CP,
+no duplicated Orders head, engine-derived battle row) plus the new e2e case in
+`imperial-elegy-controls.spec.ts`: after a declaration the console is visible in
+the War body, lists Berlin's army under `ie-war-unit-…`, arms the map rings on
+click while the Orders copy shows it pressed, and offers the movement row
+without the recruitment rows.
 
 ## Added: every battle dice modifier now names its printed source (2026-11-21)
 
