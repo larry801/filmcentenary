@@ -137,6 +137,13 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   on.  5.1.4's ordinary EFs and 5.1.2's reserve armies print the weaker "must
   end a move with a standing army" form and are not swept.  Coverage:
   `aloneEliteElimination.test.ts` (8).
+- **33.2.2's port clause.**  "Land units using this movement must end their
+  movement in a friendly port" is transitive: the grant is one free naval
+  movement, which embarks no land unit, and every path out of that movement
+  (`freeNavalDestinations`, the 5.5.4/movement-end checks, 12.3's transport) is
+  already friendly-port gated, so no separate clause is owed.  Verified by
+  `ukRapidDeployment.test.ts` (the free move ends in a friendly port or box, and
+  a land unit is never carried by it).
 - **5.1.2 has no "standing army" movement clause.**  The printed 5.1.2 lists
   exactly three differences from a standing army (the peacetime holding box,
   wartime-only deployment and the demobilisation return) after "reserve armies
