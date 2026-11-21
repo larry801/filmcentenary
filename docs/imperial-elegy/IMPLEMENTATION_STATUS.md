@@ -1,5 +1,28 @@
 # Imperial Elegy — implementation status
 
+## Fixed: the bot named another phase's exit (12.0 / 27.1) (2026-11-22)
+
+Re-running `IE_BATCH=24` (144 games, six modes) against the fixed tree confirmed
+the earlier locks are gone — **144/144 finish** — and surfaced one dominant
+remaining signature: *"bot repeated a rejected decision three times: `pass` in
+the Great War"*, 38 seeds.  The bot assembled the action-phase exit (12.0's
+`pass`) for a Great War state, where the board offers `gwPass`; the engine
+refused it and the driver's repeat guard tripped.
+
+- `bot.ts#actionPhaseExitForPhase` rewrites an exit named against the wrong phase
+  into that phase's own (`gwPass` for the GW, `passWarMove` for a limited war),
+  and `botDecision` runs it over every decision.
+- `moves.ts#pass` now logs the bilingual `passRefused` with its reason (wrong
+  phase, or `canPassNow`), so the next sweep names the phase instead of only
+  "invalid move".
+
+**Coverage:** `gwRuleGaps.test.ts` (+2 — the three-phase mapping and the logged
+wrong-phase refusal) plus `components/logText.test.ts` for the new key.  Full IE
+Jest suite **327 suites / 4275 tests** pass locally.  The remaining batch
+signatures are the sweep's own staging probes (`amphibiousAssault` with invented
+units) and `recruit` refusals the engine is right to make; the games finish and
+the harness falls back.
+
 ## Fixed: two Great War impulse locks found by a 24-seed batch (2026-11-22)
 
 `IE_BATCH=24` over all six modes (144 games) surfaced two seeds that cannot
