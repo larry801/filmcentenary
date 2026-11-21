@@ -72,9 +72,11 @@ describe("CardInspector", () => {
     expect(markup).toContain('data-testid="ie-card-inspector-unavailable"');
     expect(markup).toContain('data-testid="ie-card-inspector-close"');
     expect(markup).toContain("Close");
-    // The scan is a folded reference, not part of the default reading view.
+    // The scan is one tap away, behind a button; it is not part of the reading
+    // view and nothing is fetched until that button is pressed.
     expect(markup).toContain('data-testid="ie-card-inspector-original"');
     expect(markup).toContain("Original card image");
+    expect(markup).toContain('aria-pressed="false"');
     expect(markup).not.toContain("/imperial-elegy/cards/action-001.jpg");
     expect(markup).not.toContain("<img");
   });
@@ -95,47 +97,58 @@ describe("CardInspector", () => {
       .toBeLessThan(markup.indexOf('data-testid="ie-card-inspector-actions"'));
   });
 
-  test("print mode renders the scanned card image plus the localized event text", () => {
-    const markup = render({mode: "print"});
-
-    expect(markup).toContain('data-face-mode="print"');
-    expect(markup).toContain("<img");
-    expect(markup).toContain('data-testid="ie-card-inspector-image"');
-    expect(markup).toContain("/imperial-elegy/cards/action-001.jpg");
-    expect(markup).toContain('alt="The Eastern Question"');
-    // The scan is printed in English, so the reader's language is repeated.
-    expect(markup).toContain('data-testid="ie-card-inspector-text"');
-    expect(markup).toContain("Event text");
-    expect(markup).toContain("Gain 1 VP.");
-    expect(markup).toContain('lang="en"');
-    expect(markup).not.toContain("<svg");
-    expect(markup).not.toContain('data-testid="ie-card-inspector-original"');
-  });
-
-  test("print mode prints the event text in the reader's language", () => {
+  test("print mode preference still opens on the localized face, one language at a time", () => {
+    // A reader who prefers printed faces in the hand must not get the English
+    // scan stacked over the Chinese transcription inside the panel.
     const markup = render({mode: "print", locale: "zh_CN"});
 
-    expect(markup).toContain('data-testid="ie-card-inspector-text"');
-    expect(markup).toContain("事件文本");
-    expect(markup).toContain("获得 1 VP。");
-    expect(markup).toContain('lang="zh-CN"');
-    expect(markup).not.toContain("Gain 1 VP.");
-  });
-
-  test("the folded original is labelled in Chinese on a zh_CN board", () => {
-    const markup = render({locale: "zh_CN"});
-
-    expect(markup).toContain('data-testid="ie-card-inspector-original"');
-    expect(markup).toContain("原图");
+    expect(markup).toContain('data-face-mode="print"');
+    expect(markup).toContain("<svg");
     expect(markup).toContain("东方问题");
     expect(markup).not.toContain("<img");
+    expect(markup).not.toContain("/imperial-elegy/cards/action-001.jpg");
+    // Nothing at all prints the other language: neither the old "事件文本"
+    // panel under the scan nor the face's own "English text" disclosure.
+    expect(markup).not.toContain('data-testid="ie-card-inspector-text"');
+    expect(markup).not.toContain("事件文本");
+    expect(markup).not.toContain('lang="en"');
   });
 
-  test("the original disclosure loads its image only after it is opened", () => {
+  test("the panel prints no text in the other language", () => {
+    const zh = render({locale: "zh_CN"});
+
+    expect(zh).not.toContain("ie-card-translation");
+    expect(zh).not.toContain('lang="en"');
+    expect(zh).not.toContain("Gain 1 VP.");
+
+    const en = render();
+    expect(en).not.toContain("ie-card-translation");
+    expect(en).not.toContain('lang="zh-CN"');
+    expect(en).not.toContain("获得 1 VP。");
+  });
+
+  test("the original is labelled in the reader's language", () => {
+    const zh = render({locale: "zh_CN"});
+
+    expect(zh).toContain('data-testid="ie-card-inspector-original"');
+    expect(zh).toContain("英文原图");
+    expect(zh).toContain("东方问题");
+    expect(zh).not.toContain("<img");
+
+    expect(render()).toContain("Original card image");
+  });
+
+  test("the original button toggles the body between the face and the scan", () => {
     const source = readFileSync(join(__dirname, "CardInspector.tsx"), "utf8");
 
-    expect(source).toContain("onToggle={event => setOriginalOpen(event.currentTarget.open)}");
-    expect(source).toMatch(/\{originalOpen && \(\s*<img/);
+    // The scan replaces the face in the body while the toggle is pressed, so
+    // the header, the close control and the operations stay in place.
+    expect(source).toMatch(/showingScan && originalImage !== null \? \(\s*<img/);
+    expect(source).toContain("onClick={() => setShowingScan((shown) => !shown)}");
+    expect(source).toContain('aria-pressed={showingScan}');
+    // The scan is offered after the operations, not above them.
+    expect(source.indexOf('data-testid="ie-card-inspector-actions"'))
+      .toBeLessThan(source.indexOf('data-testid="ie-card-inspector-original"'));
   });
 
   test("print mode falls back to the svg face when the card has no image", () => {
@@ -144,11 +157,10 @@ describe("CardInspector", () => {
     expect(markup).toContain('data-face-mode="print"');
     expect(markup).toContain("<svg");
     expect(markup).not.toContain("<img");
-    // The vector face already carries the localized text; no duplicate panel.
-    expect(markup).not.toContain('data-testid="ie-card-inspector-text"');
+    expect(markup).not.toContain('data-testid="ie-card-inspector-original"');
   });
 
-  test("print mode always uses the svg face for a National Goal", () => {
+  test("a National Goal never offers the printed scan", () => {
     const markup = render({mode: "print", face: {goal: goalCard}, locale: "zh_CN"});
 
     expect(markup).toContain('data-face-mode="print"');

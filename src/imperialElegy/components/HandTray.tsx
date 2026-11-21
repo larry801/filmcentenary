@@ -83,26 +83,6 @@ export interface HandTrayProps {
   onOpenReference?: (anchor: string) => void;
 }
 
-const translated = (card: CardDef | GoalDef, locale: "en" | "zh_CN") => ({
-  title: cardDisplayName(card, locale),
-  otherTitle: cardDisplayName(card, locale === "zh_CN" ? "en" : "zh_CN"),
-  text: locale === "zh_CN" ? card.text : card.textZh,
-  lang: locale === "zh_CN" ? "en" : "zh-CN",
-});
-
-const CardTranslation = ({card, locale}: {card: CardDef | GoalDef; locale: "en" | "zh_CN"}) => {
-  const text = translated(card, locale);
-  return (
-    <details className="ie-card-translation">
-      <summary>{locale === "zh_CN" ? "English text" : "中文译文"}</summary>
-      <div lang={text.lang} className={locale === "en" ? "ie-card-zh" : undefined}>
-        <strong>{text.otherTitle}</strong>
-        <p>{text.text}</p>
-      </div>
-    </details>
-  );
-};
-
 /**
  * The bottom hand tray.
  *
@@ -387,10 +367,12 @@ export const HandTray = (props: HandTrayProps) => {
                 const card = cardById(id);
                 const a = availability(id);
                 const playable = a.cpModeOk || a.eventModeOk || a.responseOk;
-                // `expandAll` is the static-suite body: the face, the buttons
-                // and the translation inline.  A desktop row draws the same
-                // operations directly under the name; a phone row keeps them in
-                // the inspector the tap opens.
+                // `expandAll` is the static-suite body: the face and the
+                // buttons inline.  A desktop row draws the same operations
+                // directly under the name; a phone row keeps them in the
+                // inspector the tap opens.  The face carries no translation
+                // either: the printed original is one button away, inside the
+                // inspector, so the hand never shows two languages at once.
                 const rowOpen = expandAll;
                 return (
                   <article
@@ -447,7 +429,6 @@ export const HandTray = (props: HandTrayProps) => {
                               ))}
                             </div>
                           )}
-                          <CardTranslation card={card} locale={locale}/>
                         </div>
                       </div>
                     )}

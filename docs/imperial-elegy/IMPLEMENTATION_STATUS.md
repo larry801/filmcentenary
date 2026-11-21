@@ -2729,3 +2729,36 @@ Coverage: `responseTriggers.test.ts` (7), `responseCardOptions.test.ts`
 (rewritten A65/A67 windows), `egyptKeyType.test.ts` (+3 engine-wide readers),
 `components/actionAvailability.test.ts` (Egypt build row) and
 `jointTransitInterception.test.ts` (+1 multi-connection joint move).
+
+## Card inspector: one language per view, close control always reachable (2026-11-21)
+
+Reported as "帝国挽歌点开卡牌之后的界面移除另外一个语言的文本，关闭按钮不明显
+容易被挡住 参考图表页面只留按钮不要再附带显示英文原图 点进去之后留着英文原图按钮就行".
+
+- **One language at a time.** The inspector used to lead with the English scan in
+  print-face mode and print the reader's-language transcription under it
+  (`ie-card-inspector-text`, "事件文本"), so a zh_CN reader saw two copies of the
+  same card in two languages. `CardInspector` now always opens on the vector
+  CardFace in the reader's language; the transcription panel is gone, and so is
+  the face's own "English text / 中文译文" disclosure (the inspector passes
+  `showTranslation={false}`). `HandTray`'s edit-in-place body dropped its copy of
+  that disclosure (`CardTranslation`) for the same reason — its rows never show
+  it on the live board.
+- **The original is a button, like the charts.** Beneath the card's operations
+  sits one full-width toggle, `ie-card-inspector-original` — **英文原图** on
+  zh_CN, **Original card image** on en — that swaps the body to the printed scan
+  and back (**中文卡面 / Localized face**), mirroring the chart lightbox's
+  *文字 / 印刷原图* pair. `aria-pressed` carries the state, the scan is mounted
+  (and fetched) only while it is shown, and toggling resets whenever another
+  card opens. The hand's `ie_card_face` preference still dresses the hand rows
+  and the inspector's `data-face-mode`, but no longer decides the inspector's
+  body.
+- **The close control cannot hide.** The header is sticky and panel-coloured
+  with a hairline rule below it, and the ✕ is now a brass-filled 36 px (44 px on
+  a phone) icon button with a `关闭（Esc）` tooltip instead of a short text
+  button that a long title or a tall scan could push out of reach.
+
+Coverage: `CardInspector.test.tsx` (rewritten for the single-language body and
+the toggle wiring) and `e2e/imperial-elegy-controls.spec.ts` (the inspector test
+now toggles the scan, asserts the face is replaced rather than stacked, and that
+the ✕ stays in the viewport).

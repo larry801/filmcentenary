@@ -253,8 +253,6 @@
   border-radius: 2px;
 }
 
-.ie-hand .ie-card .ie-card-translation { margin: 0; font-size: var(--ie-font-xs); }
-
 /* An unfolded card with nothing legal to do still owes the player a reason. */
 .ie-card-why {
   display: flex;
@@ -335,28 +333,6 @@
 
 .ie-card-more-actions button:disabled { opacity: .45; cursor: not-allowed; }
 
-.ie-hand .ie-card-translation { flex: 0 0 auto; border-top: 1px solid var(--ie-on-dark-2); }
-
-.ie-hand .ie-card-translation summary { padding: 1px 5px; font-size: var(--ie-font-xs); color: var(--ie-ink-2); cursor: pointer; }
-
-.ie-hand .ie-card-translation > div { display: none; }
-
-.ie-hand .ie-card-translation[open] > div {
-  display: block;
-  position: absolute;
-  left: 0;
-  bottom: calc(100% + 4px);
-  z-index: 80;
-  width: min(320px, 80vw);
-  max-height: 44vh;
-  overflow: auto;
-  padding: 10px;
-  border: 1px solid var(--ie-rule);
-  border-radius: var(--ie-radius-md);
-  background: var(--ie-paper);
-  color: var(--ie-ink);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .65);
-}
 
 .ie-tray-extras { display: flex; gap: var(--ie-space-2); align-items: flex-start; flex: 0 0 auto; height: 100%; overflow: hidden; }
 
@@ -476,74 +452,66 @@ img.ie-card-face { background: var(--ie-paper-2); }
   animation: ie-inspector-in .16s ease-out;
 }
 
-.ie-inspector-head { display: flex; align-items: flex-start; gap: var(--ie-space-2); }
+/* The header never scrolls away: a long printed scan makes the panel taller
+   than the drawer, and the ✕ used to be reachable only by scrolling back up. */
+.ie-inspector-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ie-space-2);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: calc(var(--ie-space-3) * -1) calc(var(--ie-space-3) * -1) 0;
+  padding: var(--ie-space-3);
+  background: var(--ie-panel);
+  border-bottom: 1px solid var(--ie-rule);
+}
 
-.ie-inspector-head h2 { margin: 0; font-family: var(--ie-font-display); font-size: var(--ie-font-lg); color: var(--ie-on-dark); line-height: var(--ie-font-lg-line); }
+.ie-inspector-heading { min-width: 0; }
 
-.ie-inspector-sub { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+.ie-inspector-title { margin: 0; font-family: var(--ie-font-display); font-size: var(--ie-font-lg); color: var(--ie-on-dark); line-height: var(--ie-font-lg-line); }
 
+.ie-inspector-subtitle { color: var(--ie-on-dark-2); font-size: var(--ie-font-xs); }
+
+/* Brass-filled, top-right, above the scroll: the one way out that must never
+   be hard to find.  It precedes the card operations in the DOM, so it is also
+   the first tab stop the focus trap lands on. */
 .ie-inspector-close {
   margin-left: auto;
   flex: 0 0 auto;
+  display: grid;
+  place-items: center;
   width: 36px;
   height: 36px;
-  border: 1px solid var(--ie-rule-strong);
+  padding: 0;
+  border: 1px solid var(--ie-brass);
   border-radius: var(--ie-radius-sm);
-  background: var(--ie-panel-3);
-  color: var(--ie-on-dark);
+  background: var(--ie-brass);
+  color: var(--ie-ink);
   font-size: var(--ie-font-md);
   cursor: pointer;
 }
+
+.ie-inspector-close:hover { background: var(--ie-brass-soft); }
+
+.ie-inspector-close:focus-visible { outline: 2px solid var(--ie-brass-soft); outline-offset: 2px; }
 
 .ie-inspector-face { background: var(--ie-paper); border: 1px solid var(--ie-paper-rule); border-radius: var(--ie-radius-sm); overflow: hidden; }
 
 .ie-inspector-face svg.ie-card-face, .ie-inspector-face img.ie-card-face { width: 100%; height: auto; max-height: 62vh; object-fit: contain; }
 
-.ie-inspector-print { width: 100%; height: auto; display: block; }
+/* The panel shows one language at a time: the vector face (or the scan, when
+   the footer toggle asks for it), never both stacked. */
+.ie-card-inspector-body { display: flex; flex-direction: column; }
 
-/* Print mode leads with the English scan, so the event text follows it in the
-   reader's language — the scan alone would be unreadable on a zh_CN board. */
-.ie-card-inspector-text {
-  margin-top: var(--ie-space-2);
-  padding: 10px 12px;
-  background: var(--ie-paper);
-  border: 1px solid var(--ie-paper-rule);
-  border-radius: var(--ie-radius-sm);
-  color: var(--ie-ink);
-}
+.ie-card-inspector-print { width: 100%; height: auto; display: block; }
 
-.ie-card-inspector-text-title {
-  margin: 0 0 4px;
-  font-family: var(--ie-font-display);
-  font-size: var(--ie-font-xs);
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  color: var(--ie-ink-2);
-}
-
-.ie-card-inspector-text-body {
-  margin: 0;
-  font-family: Georgia, "Times New Roman", "Songti SC", SimSun, serif;
-  font-size: var(--ie-font-sm);
-  line-height: 1.55;
-  white-space: pre-line;
-}
-
-.ie-card-inspector-original { border-top: 1px solid var(--ie-rule); padding-top: 4px; font-size: var(--ie-font-xs); }
-
-.ie-card-inspector-original summary { cursor: pointer; color: var(--ie-ink-2); }
-
-.ie-card-inspector-original-image {
-  display: block;
+/* "English scan / 中文卡面": one full-width toggle beneath the operations, so
+   it never competes with them for width and stays put between the two views. */
+.ie-card-inspector-original {
   width: 100%;
-  height: auto;
-  max-height: 62vh;
-  object-fit: contain;
-  margin-top: 6px;
-  background: var(--ie-paper);
-  border: 1px solid var(--ie-paper-rule);
-  border-radius: var(--ie-radius-sm);
+  min-height: 36px;
+  text-align: center;
 }
 
 .ie-card-inspector-actions, .ie-inspector-actions { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -569,12 +537,6 @@ img.ie-card-face { background: var(--ie-paper-2); }
   font-size: var(--ie-font-xs);
   line-height: 1.45;
 }
-
-.ie-inspector .ie-card-translation { border-top: 1px solid var(--ie-on-dark-2); }
-
-.ie-inspector .ie-card-translation summary { color: var(--ie-ink-2); }
-
-.ie-inspector .ie-card-translation > div { color: var(--ie-ink); }
 
 /* Spectator: no hand, but the board still says why. */
 .ie-private-info {

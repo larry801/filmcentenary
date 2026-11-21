@@ -37,8 +37,11 @@
   .ie-mode-pill-from { max-width: 70px; }
   .ie-space-overlay { max-width: 200px; }
   .ie-inspector { width: 100%; border-left: 0; padding: 10px; }
+  /* The sticky header bleeds by the panel's own padding, which is 10 px here. */
+  .ie-inspector-header { margin: -10px -10px 0; padding: 10px; }
+  /* A fingertip-sized way out, per VISUAL_SYSTEM §10.9. */
+  .ie-inspector-close { width: 44px; height: 44px; }
   .ie-card-more-actions { width: 100%; }
-  .ie-hand .ie-card-translation[open] > div { bottom: 110px; right: 8px; }
   .ie-seat-tab { padding: 2px 6px; }
   .ie-seat-name { display: none; }
   .ie-local-head { min-height: 38px; gap: 6px; }
