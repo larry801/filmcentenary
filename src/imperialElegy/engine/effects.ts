@@ -44,6 +44,7 @@ import {
   minorHasLoc,
   minorUpkeepPower,
   PAPAL_STATES_SPACE,
+  SETUP_PLACEMENT_FLAG,
   efDestinationAllowed,
   isArmyKind,
   isPower,
@@ -3424,10 +3425,13 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "crackColonialTroops": {
       // A71 can make Egypt a colonial key, so read the live type.
+      // The elite colonial EF arrives alone (it is an expedition, not a corps
+      // attached to an army), so this placement carries 5.1.3's placement
+      // exemption until the game has moved on (see `SETUP_PLACEMENT_FLAG`).
       const target = Object.values(SPACES).find(
         (s) => effectiveKeyType(G, s.id) === "colonial" && G.spaces[s.id].control === actor,
       );
-      if (target) placeUnit(G, actor, "eliteColonialEf", target.id, 1, {elite: true});
+      if (target) placeUnit(G, actor, "eliteColonialEf", target.id, 1, {elite: true, flags: {[SETUP_PLACEMENT_FLAG]: G.turn}});
       return true;
     }
     case "conquestCentralAsia": {

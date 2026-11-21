@@ -2936,6 +2936,19 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // ------------------------------------------------------------------ 5.1.3 / 5.1.5 / 5.1.6
+  aloneEliteEliminated: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const kind = unitKind(entry.args?.kind, locale);
+    const owner = str(entry.args?.owner);
+    const ownerLabel = entry.power ? powerLabel(entry.power, locale) : minorLabel(owner, locale);
+    return text(
+      locale,
+      `${ownerLabel}'s ${kind} was alone in ${space} and was eliminated (5.1.3).`,
+      `${ownerLabel}的${kind}独自滞留于${space}，因而被消灭（5.1.3）。`,
+    );
+  },
+
   // ------------------------------------------------------------------ 5.7 general displacement
   unitDisplaced: (entry, locale) => {
     const from = spaceName(entry.args?.from, locale);
