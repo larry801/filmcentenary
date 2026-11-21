@@ -1553,6 +1553,8 @@ export interface BattleState {
   lossesTaken?: {attacker: number; defender: number};
   /** 18.6: the unit counters that took those losses, for the report. */
   casualties?: {attacker: BattleLossRecord[]; defender: BattleLossRecord[]};
+  /** 18.6.3: the EFs the printed loss coupling eliminated (both sides). */
+  efCouplings?: string[];
 }
 
 /** One unit counter's share of a battle's step losses (18.6). */
@@ -1597,6 +1599,8 @@ export interface BattleReport {
   defenderLosses: number;
   attackerUnits: BattleLossRecord[];
   defenderUnits: BattleLossRecord[];
+  /** 18.6.3: the EFs the printed loss coupling eliminated, both sides. */
+  efCouplings?: string[];
   /** 19.4 mine hits included in the attacker's losses. */
   mines: number;
   /** 28.1: this was a trench battle (the attacker pays the extra loss). */
