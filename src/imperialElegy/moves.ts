@@ -96,6 +96,7 @@ import {
   powerLabel,
   recomputeTracks,
   randomIndex,
+  repairBrokenLinesOfCommunication,
   recordOccupation,
   redeployLandPath,
   refreshPowerProjection,
@@ -482,6 +483,7 @@ const finishImpulse = (G: ImperialElegyState, ctx: Ctx): void => {
       // 12.15: a redeployment action covers one impulse; the next impulse pays
       // its own 1 CP for a new one.
       delete G.powers[p].flags.redeployActionThisImpulse;
+      delete G.powers[p].flags.auxArmesFreePlay;
       // A home-card war declaration (Bismarck) belongs to the impulse that
       // played the card; a seat that hands over without declaring loses it.
       clearWarDeclarationEntitlement(G, p);
@@ -589,7 +591,10 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   // forfeited) before the next card play, not followed by one.  There is no
   // no-pass exception: a used impulse can always be handed over through `pass`,
   // so a "rescue" play on top of banked CP would itself be a second card.
-  if (impulseAlreadyUsed(G, power)) return INVALID_MOVE;
+  // H-FR-6 Aux Armes is the printed exception: the card it takes from the
+  // discard may be played immediately, once.
+  const auxFreePlay = G.powers[power].flags.auxArmesFreePlay === cardId;
+  if (impulseAlreadyUsed(G, power) && !auxFreePlay) return INVALID_MOVE;
   const mandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
   // 6.1/12.0: a home card is playable while it is **in hand**.  Normally only
   // the card chosen in Diplomacy is there, but A040 British Trade explicitly
@@ -600,6 +605,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   // forbids passing): no legal move at all.
   // Remove from hand before resolving.
   G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
+  if (auxFreePlay) delete G.powers[power].flags.auxArmesFreePlay;
   if (G.powers[power].selectedHomeCard === cardId) G.powers[power].selectedHomeCard = null;
   if (G.phase === "action") G.powers[power].flags.actionCpSpentThisImpulse = true;
   // A099 Dreadnought: "if this is the first card you play this turn, gain an
@@ -1914,6 +1920,8 @@ export const minorAlliance = (G: ImperialElegyState, ctx: Ctx, space: SpaceId): 
   state.ally = power;
   state.diplomacy = null;
   log(G, power, "minorAlliance", {space});
+  // 3.3.1: allied-minor naval units count toward Power Projection.
+  recomputeTracks(G);
   return undefined;
 };
 
@@ -3034,6 +3042,10 @@ const finalizeWarDeclaration = (
     cp,
     minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {},
   );
+  // 13.7 is a defending-seat action during the war-aim/alliance steps, while
+  // boardgame.io otherwise dispatches only the attacker's moves.  Widen
+  // dispatch; every other move still checks `G.activePower`.
+  ctx.events?.setActivePlayers?.({all: "play"});
   if (coDefender !== null) {
     // The co-defender is recorded both as a typed declaration target and as a
     // defending-side belligerent, so every side/initiative/battle helper sees
@@ -3806,6 +3818,34 @@ export const declareWar = (
   }
   if (playerDefender === null) return INVALID_MOVE;
   return finalizeWarDeclaration(G, ctx, power, playerDefender, aim, objectives, cp, legacy.discount);
+};
+
+/**
+ * 13.7 — the defender may play one card to add its CP to the war budget.
+ *
+ * The declaration itself is made by the attacker, so this is a separate move
+ * for a defending seat while the war is still in its war-aim/alliance steps.
+ * One card per defending power; the card is spent and its printed CP is added
+ * directly to `war.budgets`, never to the ordinary action wallet.
+ */
+export const playWarBudgetCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string | void => {
+  const power = actor(G, ctx.playerID ?? null);
+  if (power === null) return INVALID_MOVE;
+  const war = G.war;
+  if (!war || G.gw?.active) return INVALID_MOVE;
+  if (!["warAim", "alliance", "shift"].includes(war.status)) return INVALID_MOVE;
+  const defending = power === war.defender || war.defenderAllies.includes(power);
+  if (!defending) return INVALID_MOVE;
+  if ((war.defenderBudgetCards ?? []).some((entry) => entry.power === power)) return INVALID_MOVE;
+  if (!G.powers[power].hand.includes(cardId)) return INVALID_MOVE;
+  const card = cardById(cardId);
+  // 13.7: "cannot play a mandatory event to add to their war budget."
+  if (card.type === "mandatory" || card.type === "mandatoryResponse") return INVALID_MOVE;
+  discardCard(G, power, cardId, "discard");
+  war.budgets[power] = (war.budgets[power] ?? 0) + card.cp;
+  war.defenderBudgetCards = [...(war.defenderBudgetCards ?? []), {power, card: cardId}];
+  log(G, power, "warBudgetCard", {card: cardId, cp: card.cp, budget: war.budgets[power]});
+  return undefined;
 };
 
 /**
@@ -5781,6 +5821,7 @@ export const resolvePending = (G: ImperialElegyState, ctx: Ctx, optionId: string
   const result = resolvePendingDecision(G, ctx, optionId);
   if (result === undefined) {
     settleBattleCharacteristics(G);
+    repairPeacetimeSupply(G);
     // 15.1: a start-of-maneuver battle queue parked behind an upkeep decision
     // resumes as soon as that decision closes.
     if (G.pending === null && G.battle === null && navalStartQueuePending(G)) {
@@ -5788,6 +5829,20 @@ export const resolvePending = (G: ImperialElegyState, ctx: Ctx, optionId: string
     }
   }
   return result;
+};
+
+/**
+ * 5.6.3: after any resolution that can move control markers (an event, a
+ * treaty, an independence), re-check every peacetime army's LoC so an army cut
+ * off by the change displaces *now* instead of at its owner's next impulse.
+ * The upkeep path is idempotent, so a state that is already legal is untouched.
+ */
+const repairPeacetimeSupply = (G: ImperialElegyState): void => {
+  if (G.war !== null || G.gw?.active) return;
+  for (const power of POWERS) {
+    if (G.powers[power]?.eliminated) continue;
+    repairBrokenLinesOfCommunication(G, power);
+  }
 };
 
 const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: string): string | void => {
@@ -8327,6 +8382,10 @@ export const startWarManeuver = (G: ImperialElegyState, ctx: Ctx): string | void
   if (G.war.status !== "warAim" && G.war.status !== "alliance") return INVALID_MOVE;
   const rapid = rapidMobilizationBelligerent(G, G.war);
   G.war.status = "maneuver";
+  // 5.6.3: a war may open paths and close others at once (allies stop supplying
+  // enemies and start supplying each other), so the first maneuver impulse's
+  // supply is repaired before the upkeep below reads it.
+  repairPeacetimeSupply(G);
   // 8.2 / 14.2: the alliance-shift step closes the defender's open choice.
   settleDefenderShiftChoice(G, G.war);
   // Rule 14.3: card CP first, GE only wins ties (Bewegungskrieg), then

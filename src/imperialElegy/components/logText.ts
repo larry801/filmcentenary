@@ -1514,6 +1514,17 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `formed a minor alliance with ${space}.`, `与${space}结盟。`);
   },
 
+  minorAllyCapRefused: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const cap = num(entry.args?.cap);
+    return withActor(
+      entry,
+      locale,
+      `did not ally with ${space}: the ${cap}-minor-ally limit (4.2.1) is already reached.`,
+      `未与${space}结盟：已达 4.2.1 的 ${cap} 个小国盟友上限。`,
+    );
+  },
+
   pacified: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     const roll = num(entry.args?.roll);
@@ -1556,6 +1567,37 @@ const FORMATTERS: Record<string, Formatter> = {
   cpChained: (entry, locale) => {
     const card = cardLabel(entry.args?.card, locale);
     return withActor(entry, locale, `chained ${card} for CP.`, `将 ${card} 加入 CP 链。`);
+  },
+
+  warBudgetCard: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(
+      entry,
+      locale,
+      `played ${card} for +${str(entry.args?.cp)} CP of war budget.`,
+      `打出 ${card}，战争预算 +${str(entry.args?.cp)} CP。`,
+    );
+  },
+
+  cardTaken: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    const from = str(entry.args?.from);
+    return withActor(
+      entry,
+      locale,
+      from === "discard" ? `took ${card} back from the discard pile.` : `took ${card}.`,
+      from === "discard" ? `从弃牌堆取回 ${card}。` : `取得 ${card}。`,
+    );
+  },
+
+  eliteCorpsGained: (entry, locale) => {
+    const where = spaceName(str(entry.args?.space), locale);
+    return withActor(
+      entry,
+      locale,
+      `gained ${str(entry.args?.count)} elite corps in ${where}.`,
+      `在${where}获得 ${str(entry.args?.count)} 个精英军。`,
+    );
   },
 
   cpChainUsed: (entry, locale) => {
@@ -2902,6 +2944,32 @@ const FORMATTERS: Record<string, Formatter> = {
       locale,
       `took one step loss on a ${kind} in ${space} at the start of the impulse (${causeEn}).`,
       `行动轮开始时，${space}的${kind}因${causeZh}承受 1 步损失。`,
+    );
+  },
+
+  // ------------------------------------------------------------------ 5.1.3 / 5.1.5 / 5.1.6
+  aloneEliteEliminated: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const kind = unitKind(entry.args?.kind, locale);
+    const owner = str(entry.args?.owner);
+    const ownerLabel = entry.power ? powerLabel(entry.power, locale) : minorLabel(owner, locale);
+    return text(
+      locale,
+      `${ownerLabel}'s ${kind} was alone in ${space} and was eliminated (5.1.3).`,
+      `${ownerLabel}的${kind}独自滞留于${space}，因而被消灭（5.1.3）。`,
+    );
+  },
+
+  // ------------------------------------------------------------------ 18.6.3 loss coupling
+  efLossCoupling: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const kind = unitKind(entry.args?.kind, locale);
+    const owner = str(entry.args?.owner);
+    const ownerLabel = entry.power ? powerLabel(entry.power, locale) : minorLabel(owner, locale);
+    return text(
+      locale,
+      `${ownerLabel} lost a ${kind} in ${space} with the step loss on its army (18.6.3).`,
+      `${ownerLabel}在${space}因军团承受步骤损失而同时损失了${kind}（18.6.3）。`,
     );
   },
 

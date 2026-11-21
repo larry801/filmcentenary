@@ -35,6 +35,7 @@ import {
 } from "../constant/spaces";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "../constant/setup";
 import {cardById, discardCard, isCardId} from "./deck";
+import {removeUnit} from "./effects";
 import {closeDecision, decision, openDecision, option} from "./pending";
 import {unitKindLabel} from "./unitKind";
 
@@ -1030,6 +1031,28 @@ export const resolveCapitalSurrenders = (G: ImperialElegyState, ctx?: Ctx): Powe
   return eliminated;
 };
 
+/**
+ * 5.6.1: a non-player power allied to a player is part of that player's side
+ * for supply, even outside a war ("home spaces of minor powers allied to your
+ * major power allies").  Only an allied *minor* qualifies; a neutral minor
+ * that merely sits on the route is not a supply corridor.
+ */
+const alliedMinorController = (
+  G: ImperialElegyState,
+  power: Power,
+  holder: PowerOrMinor | null | undefined,
+): Power | null => {
+  if (holder === null || holder === undefined || isPower(holder)) return null;
+  const controller = minorController(G, holder) ?? minorUpkeepPower(G, holder);
+  if (controller === null || controller === power) return null;
+  // The ally marker is the printed "minor ally"; a controller that merely pays
+  // the minor's upkeep (an occupied minor) is not enough at peace.
+  const marker = G.spaces && Object.values(G.spaces).some(
+    (state) => state.control === holder && state.ally === controller,
+  );
+  return marker && allied(G, controller, power) ? controller : null;
+};
+
 /** 4.9.4: only allies actually participating in this war supply one another. */
 const locAllies = (G: ImperialElegyState, power: Power): readonly Power[] => {
   if (G.gw?.active) {
@@ -1177,6 +1200,10 @@ export const isSupplySource = (
   requireTwoSources = true,
   respectNavalGates = true,
 ): boolean => {
+  // 5.6: a supply source is a friendly-controlled, fortified **home key** of the
+  // power or of a home key behind an ally's home space.  A home *territory*
+  // (no key type) is never a source by itself; the track-type override a card
+  // may write is honoured by `isKeySpace`/`effectiveKeyType`.
   const ownHomeKey = (id: SpaceId): boolean =>
     isKeySpace(G, id) && ownsKey(G, id, power) && isHomeSpace(G, id, power) && locFriendlySpace(G, id, power);
   if (!ownHomeKey(space)) return false;
@@ -3234,6 +3261,91 @@ export const reconcilePacificationMarkers = (G: ImperialElegyState): void => {
 };
 
 // ---------------------------------------------------------------------------
+// 5.1.2–5.1.6 "alone in a space" elimination
+// ---------------------------------------------------------------------------
+
+/**
+ * 5.1.3 ECs: "If an EC is ever alone in a space at the end of a combat or at
+ * the end of a movement, it is eliminated."  5.1.5's elite colonial EFs and
+ * 5.1.6's Zouaves carry the same clause (and are treated as ECs for elimination
+ * elsewhere), so the three kinds are swept together.  5.1.4's ordinary EFs and
+ * 5.1.2's reserve armies print the weaker "must end a move with a standing
+ * army" form and are not eliminated by this helper.
+ */
+export const isAloneSensitiveKind = (kind: Unit["kind"]): boolean => isEliteKind(kind);
+
+/**
+ * The one setup exception.  5.1.3's clause is written for the end of a combat or
+ * a movement; a counter the campaign setup *places* on the printed map (the FR
+ * Zouave in Algeria, the UK elite colonial EF at Suez) is not the end of
+ * either.  `setup.ts` stamps those counters with their start turn, and the
+ * sweep leaves them alone until an impulse of a later turn has passed, so the
+ * printed 1850 setup cannot eliminate itself before play starts.
+ */
+export const SETUP_PLACEMENT_FLAG = "setupPlacedTurn";
+
+export const isSetupPlacement = (G: ImperialElegyState, unit: Unit): boolean => {
+  const flags = unit.flags as Record<string, unknown> | undefined;
+  const turn = flags?.[SETUP_PLACEMENT_FLAG];
+  return typeof turn === "number" && turn === G.turn;
+};
+
+/** The counter a loose EC/elite unit is supposed to be stacked with. */
+const isStackArmyKind = (kind: Unit["kind"]): boolean => isArmyKind(kind) && kind !== "rebelArmy";
+
+export interface AloneElimination {
+  unitId: string;
+  owner: PowerOrMinor;
+  space: SpaceId;
+  kind: Unit["kind"];
+}
+
+/**
+ * 5.1.3 / 5.1.5 / 5.1.6 at one space: every EC, elite colonial EF and Zouave
+ * that is not stacked with a land army of its own power is eliminated.
+ *
+ * The commonest way for one to be left alone is the way its army leaves a
+ * space — a retirement, a march, a rail move, a naval transport, a 5.7
+ * displacement, an event placement, or a battle in which that army was
+ * eliminated — so rather than hooking every move the sweep runs where the
+ * printed clause is observable: at the end of a battle
+ * (`combat.ts#finishBattle`, claim-based: only a counter whose own army that
+ * battle removed) and at the impulse boundary (`beginImpulseUpkeep`), which is
+ * the end of the movement that produced the split.  Idempotent: a second pass
+ * over a settled board finds nothing.
+ */
+export const eliminateAloneEliteUnits = (
+  G: ImperialElegyState,
+  options: {space?: SpaceId; exclude?: Iterable<string>} = {},
+): AloneElimination[] => {
+  const excluded = new Set(options.exclude ?? []);
+  const out: AloneElimination[] = [];
+  const spaces = options.space === undefined ? Object.keys(G.spaces) : [options.space];
+  for (const id of spaces) {
+    const state = G.spaces[id];
+    if (!state || state.units.length === 0) continue;
+    const present = state.units
+      .map((unitId) => G.units[unitId])
+      .filter((unit): unit is Unit => Boolean(unit));
+    for (const unit of present) {
+      if (excluded.has(unit.id)) continue;
+      if (!isAloneSensitiveKind(unit.kind)) continue;
+      if (isSetupPlacement(G, unit)) continue;
+      const stacked = present.some(
+        (other) => other.id !== unit.id && other.owner === unit.owner && isStackArmyKind(other.kind),
+      );
+      if (stacked) continue;
+      const kind = unit.kind;
+      const owner = unit.owner;
+      removeUnit(G, unit.id);
+      log(G, isPower(owner) ? owner : undefined, "aloneEliteEliminated", {unit: unit.id, owner, space: id, kind});
+      out.push({unitId: unit.id, owner, space: id, kind});
+    }
+  }
+  return out;
+};
+
+// ---------------------------------------------------------------------------
 // 5.5.3 / 5.6.2 / 5.6.3 start-of-impulse upkeep
 //
 // Lives in rules.ts (not moves.ts) so both the move layer and the Great War
@@ -3256,6 +3368,9 @@ const moveUnitForUpkeep = (G: ImperialElegyState, unit: Unit, to: SpaceId): void
  * player's impulse (the earliest point the owning player is prompted), which
  * is the live fallback for "immediately".
  */
+export const repairBrokenLinesOfCommunication = (G: ImperialElegyState, power: Power): number =>
+  displacePeacetimeBrokenLoc(G, power);
+
 const displacePeacetimeBrokenLoc = (G: ImperialElegyState, power: Power): number => {
   if (G.war !== null || G.gw?.active) return 0;
   let moved = 0;
@@ -3379,11 +3494,19 @@ export const beginImpulseUpkeep = (
   const stamp = `${G.phase}|${G.turn}|${G.turnIndex}|${G.gw?.turn ?? ""}|${G.war?.status ?? ""}|${power}`;
   if (G.flags.impulseUpkeepStamp === stamp) return false;
   G.flags.impulseUpkeepStamp = stamp;
+  // 5.1.3/5.1.5/5.1.6: an EC, elite colonial EF or Zouave left alone in a space
+  // "at the end of a movement" is eliminated.  The impulse boundary is the end
+  // of the movement whose split made it alone, whatever move produced it.  The
+  // wait ends when the next seat acts, so a decision that placed one of them out
+  // of stack on purpose has already settled by then.
+  eliminateAloneEliteUnits(G);
   // 12.11: an uncontrolled space keeps its pacification marker only while a
   // land unit stands in it, and a unit entering one places the printed entry
   // marker.  Reconciled here so every movement path is covered once.
   reconcilePacificationMarkers(G);
-  displacePeacetimeBrokenLoc(G, power);
+  // 5.6.3: peacetime broken LoCs repair "immediately"; the impulse boundary is
+  // the fallback for saves made before the immediate callers existed.
+  repairBrokenLinesOfCommunication(G, power);
   const penalties = impulsePenalties(G, power);
   if (penalties.length === 0) return false;
   return continueImpulseUpkeep(G, ctx, power, penalties, 0);

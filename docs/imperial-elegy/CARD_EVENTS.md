@@ -604,14 +604,9 @@ card id / number in a test file vs. handler name only.
 修复轮次前：**91 / 122** 有直接覆盖，**24 张零信号**。修复轮次后
 （`cardEventDefects.test.ts` 新增 45 个断言）：
 
-- **107 / 122** 有直接覆盖。
+- **114 / 122** 有直接覆盖。
 - **8** 只有 handler 级覆盖。
-- **7 张零信号**（既无 id 也无 handler 提及）：
-
-```
-A042 A050 A090
-H-GE-2 H-FR-6 H-OT-12 H-RU-9
-```
+- **0 张零信号。**
 
 修复前零覆盖的牌里，A080/A091（§3.3/§3.4）、A032/A073/A107/A109/A048/A045/
 A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
@@ -619,7 +614,8 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 绥靖掷骰，A097 同步补上了标记选择与 20.8 独立序列，A086 改为 12.11.2 的 11+
 特殊标记，A014 与 A013 共用新的殖民地冲突资格过滤，A022 与 20.11 的 NG 上限
 改为玩家选择，A016 的小国建军训令与本国同门槛，A033 在放置叛军时立即重算
-关键区。剩余 7 张是没有已知缺陷的牌，建议作为下一步补测目标；
+关键区，H-GE-2 补上印刷的“取弃牌或获得 2 精英军”选择，H-FR-6 补上了弃牌堆取牌与立即打出的例外。A042/A050/A090/H-OT-12/
+H-RU-9 也补上了直接测试，因此不再有零信号牌。
 其中 A050（掷骰三档）与 A097（WoI +1 → 独立）逻辑分支最多，优先级最高。
 
 `fuzz.test.ts` 的“每张行动牌/本国牌/大战牌打出后不抛错且能答完 20 个决策”是
@@ -701,7 +697,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A039` | Uprising in Ireland | event | 2 | `uprisingInIreland` | choice | yes |
 | `IE-A040` | British Trade | event | 1 | `britishTrade` | auto | yes |
 | `IE-A041` | Prussian Military Tradition | response | 2 | `prussianTradition` | auto | yes |
-| `IE-A042` | The Ruhr | event | 4 | `industry`→GE | — | **no** |
+| `IE-A042` | The Ruhr | event | 4 | `industry`→GE | — | yes |
 | `IE-A043` | At Any Cost | combat | 2 | `combatDrm` | — | yes |
 | `IE-A044` | Paris Commune | response | 1 | `stability` + `drawReplacement`; needs France's lost-war/stability trigger | — | yes |
 | `IE-A045` | Folie de Grandeur | event | 3 | `folieDeGrandeur` | choice | yes |
@@ -709,7 +705,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A047` | The Dual Monarchy | event | 2 | `stability` + `dualMonarchy` | auto | yes |
 | `IE-A048` | Multicultural Empire | event | 1 | `multiculturalEmpire` | choice | yes |
 | `IE-A049` | South German Confederation | event | 3 | `southGermanConfederation` | auto | yes |
-| `IE-A050` | Reforms of the 1860s | event | 1 | `reforms1860s` | auto | **no** |
+| `IE-A050` | Reforms of the 1860s | event | 1 | `reforms1860s` | auto | yes |
 | `IE-A051` | Polish Revolt | event | 2 | `polishRevolt` | choice | yes |
 | `IE-A052` | Eastern Orthodoxy | event | 3 | `easternOrthodoxy` | choice | yes |
 | `IE-A053` | Powder Keg | mandatory | 2 | `wtt` + `powderKeg` | auto | yes |
@@ -749,7 +745,7 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | `IE-A087` | Mahdist War | event | 1 | `mahdistWar` | choice | yes |
 | `IE-A088` | Our Place in the Sun | event | 3 | `ourPlaceInTheSun` | auto | yes |
 | `IE-A089` | Cossacks | response | 2 | `stability` + `drawReplacement` | — | yes |
-| `IE-A090` | The Eiffel Tower | event | 1 | `cityOfLight` | — | **no** |
+| `IE-A090` | The Eiffel Tower | event | 1 | `cityOfLight` | — | yes |
 | `IE-A091` | Hydraulic Recoil | event | 2 | `hydraulicRecoil` | — | yes |
 | `IE-A092` | Naval Arms Race | event | 2 | `navalArmsRace` | choice | yes |
 | `IE-A093` | Nicholas II | event | 2 | `nicholasII` | — | yes |
@@ -778,11 +774,11 @@ A052/A051/A068/GW-01/H-AU-7/H-FR-5/A029/A039/A072/A099/A083/A096/GE-1/UK-3
 | Card | 名称 Name | Type | CP | 引擎入口 Engine entry | 交互 Interaction | 测试 Test |
 | --- | --- | --- | --- | --- | --- | --- |
 | `IE-H-GE-1` | Otto von Bismarck | event | 3 | `stability` + `bismarckWar`→`declareWar` | choice | yes |
-| `IE-H-GE-2` | German General Staff | event | 3 | `germanGeneralStaff` | auto | **no** |
+| `IE-H-GE-2` | German General Staff | event | 3 | `germanGeneralStaff` | choice | yes |
 | `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` | auto | yes |
 | `IE-H-UK-4` | Balance of Power | event | 3 | `balanceOfPower` | auto | handler |
 | `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | auto | yes |
-| `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | auto | yes |
+| `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | choice | yes |
 | `IE-H-AU-7` | Habsburg Dynasty | event | 3 | `habsburgDynasty` | choice | yes |
 | `IE-H-AU-8` | Kaiserreich | event | 3 | `kaiserreich` | auto | yes |
 | `IE-H-RU-9` | Russo-Turkish Wars | event | 3 | `russoTurkishWars`→`declareWar` | choice | yes |

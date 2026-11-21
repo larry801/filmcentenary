@@ -37,6 +37,7 @@ import {
   changeStability,
   resolveCapitalSurrenders,
   commandsAlliedMinor,
+  eliminateAloneEliteUnits,
 } from "./rules";
 import {decision, openDecision, option} from "./pending";
 import {unitKindLabel} from "./unitKind";
@@ -1827,6 +1828,7 @@ const applyOneLoss = (
   side: "attacker" | "defender",
   unitId?: string,
   includeSupport = false,
+  options: {skipElimination?: boolean} = {},
 ): void => {
   const candidates = lossCandidates(G, battle, side, includeSupport);
   if (candidates.length === 0) return;
@@ -1873,8 +1875,16 @@ const applyOneLoss = (
     return;
   }
   damageUnit(G, target.id, 1);
-  recordCasualty(!G.units[target.id]);
-  if (!G.units[target.id]) {
+  // 18.6.3's first bullet: a force of EFs alone "can inflict a step loss on a
+  // non-rebel army that is at full strength" but "cannot eliminate" it.  Such a
+  // loss is recorded and the army stays on the board.
+  if (options.skipElimination === true) {
+    recordCasualty(false);
+    return;
+  }
+  const eliminate = !G.units[target.id];
+  recordCasualty(eliminate);
+  if (eliminate) {
     // 30.0: a dreadnought eliminated in battle costs its owner 1 stability.
     // Record the owner here (the unit is already gone) and charge it when the
     // battle's other effects are resolved.
@@ -1901,6 +1911,17 @@ const applyOneLoss = (
         (u) => u.kind === "expeditionary" && u.space === target.space && u.owner === target.owner,
       );
       if (attachedEf) removeUnit(G, attachedEf.id);
+    }
+  } else if (target.kind === "army") {
+    // 18.6.3's third bullet as the per-unit fallback: when the chosen army of a
+    // mixed force loses its last step, an EF of the same force goes with it even
+    // when `chooseLoss` did not reach the group-level coupling.
+    const attachedEf = Object.values(G.units).find(
+      (u) => u.kind === "expeditionary" && u.space === target.space && u.owner === target.owner,
+    );
+    if (attachedEf) {
+      removeUnit(G, attachedEf.id);
+      battle.efCouplings = [...(battle.efCouplings ?? []), attachedEf.id];
     }
   }
 };
@@ -1991,7 +2012,64 @@ export const applyPreDiceCardEffects = (
   }
 };
 
-const applyLosses = (G: ImperialElegyState, ctx: Ctx, side: "attacker" | "defender"): void => {
+/** 18.6.3's first bullet: a battle force comprised exclusively of EFs. */
+const isEfOnlyForce = (G: ImperialElegyState, battle: BattleState, side: "attacker" | "defender"): boolean => {
+  const units = lossCandidates(G, battle, side, true);
+  return units.length > 0 &&
+    units.every((unit) => isEliteKind(unit.kind) || unit.kind === "expeditionary");
+};
+
+/**
+ * 18.6.3's third bullet: "When a force comprised of EFs and armies takes a step
+ * loss on an army they must also eliminate an EF."  The engine scoped the
+ * coupling to the moment an army is *eliminated* (`applyOneLoss`), so a mixed
+ * force whose army merely went full → reduced kept its EF.  The printed clause
+ * is about any step loss applied to an army of a mixed force, so the whole loss
+ * group is answered here.
+ *
+ * The exception is 5.1.5's elite colonial EF and 5.1.6's Zouave: "treated as
+ * ECs for the purposes of elimination", i.e. they go with the army only when
+ * that army is eliminated (18.6.2).  A force that also holds one of those
+ * counters is not a plain EF+army force, and the coupling does not print.
+ */
+const eliminateCoupledEfs = (G: ImperialElegyState, battle: BattleState, side: "attacker" | "defender"): void => {
+  const space = battle.to;
+  const present = (G.spaces[space]?.units ?? [])
+    .map((id) => G.units[id])
+    .filter((unit): unit is Unit => Boolean(unit) && unit.space === space);
+  const armies = present.filter((unit) => isArmyKind(unit.kind));
+  if (armies.length === 0) return;
+  const efs = present.filter((unit) => unit.kind === "expeditionary");
+  if (efs.length === 0) return;
+  // The exception: an elite colonial EF / Zouave in the force makes it an
+  // EC-bearing force, and the EF coupling does not print for those.
+  if (present.some((unit) => isEliteKind(unit.kind))) return;
+  // One EF per loss group, taken from the side that lost: the EFs in the battle
+  // space that belong to that side's units.  A mixed force of several allied
+  // contingents still prints one elimination.
+  const sideOwners = new Set(
+    (side === "attacker" ? battle.mainAttack : battle.mainDefense).map((id) => G.units[id]?.owner),
+  );
+  // One EF per loss group, even when its force fielded several.
+  const coupled = efs.filter((unit) => sideOwners.has(unit.owner)).sort((a, b) => a.id.localeCompare(b.id));
+  if (coupled.length === 0) return;
+  // The counter named by `efCouplings` for this space: the first EF of the
+  // losing force; its own step already kept it alive on the board.
+  const ef = coupled[0];
+  if (!G.units[ef.id]) return;
+  removeUnit(G, ef.id);
+  // Keep the loss step's own record on the battle: 18.7's retreat and 18.8's
+  // follow-up settle the space afterwards, and the coupling must still be
+  // readable (and reportable) once they have.
+  battle.efCouplings = [...(battle.efCouplings ?? []), ef.id];
+  // Record it among the battle's casualties as well, so the public result
+  // dialog lists the EF the printed coupling destroyed.
+  const casualties = battle.casualties ?? (battle.casualties = {attacker: [], defender: []});
+  casualties[side].push({unitId: ef.id, owner: String(ef.owner), kind: ef.kind, steps: 1, eliminated: true});
+  log(G, isPower(ef.owner) ? ef.owner : undefined, "efLossCoupling", {space, unit: ef.id, owner: ef.owner, side});
+};
+
+export const applyLosses = (G: ImperialElegyState, ctx: Ctx, side: "attacker" | "defender"): void => {
   const battle = G.battle;
   if (!battle) return;
   const losses = side === "attacker" ? battle.attackerLosses : battle.defenderLosses;
@@ -2010,14 +2088,32 @@ const applyLosses = (G: ImperialElegyState, ctx: Ctx, side: "attacker" | "defend
     }
     return;
   }
+  // 18.6.3: a mixed EF+army force that takes a step loss on an army also
+  // eliminates an EF.  Applied once for the group, after the army losses below.
+  let losesArmyStep = false;
+  const noteArmyLoss = (unitId: string | undefined, allowSupport: boolean): void => {
+    const chosen = unitId
+      ? candidates.find((unit) => unit.id === unitId)
+      : lossCandidates(G, battle, side, allowSupport)[0];
+    if (chosen && isArmyKind(chosen.kind)) losesArmyStep = true;
+  };
+  // 18.6.3's first bullet: "a force comprised exclusively of EFs cannot
+  // eliminate non-rebel armies (full strength armies can still suffer
+  // losses)".  The engine removed a full-strength army on that step loss, so an
+  // all-EF side could eliminate an army with the very clause the bullet
+  // forbids.  Such a step reduces the army; it is never the step that removes
+  // it.
+  const efOnlyBefore = isEfOnlyForce(G, battle, side);
   if (allCandidates.length <= 1 || losses >= allCandidates.length) {
     // Every loss can be applied without a real choice: take the first from the
     // main force, then allow supporting armies for the remainder.
     let allowSupport = includeSupport;
     for (let i = 0; i < losses; i += 1) {
-      applyOneLoss(G, battle, side, undefined, allowSupport);
+      noteArmyLoss(undefined, allowSupport);
+      applyOneLoss(G, battle, side, undefined, allowSupport, {skipElimination: efOnlyBefore && i === losses - 1});
       allowSupport = true;
     }
+    if (losesArmyStep) eliminateCoupledEfs(G, battle, side);
     if (side === "attacker") applyLosses(G, ctx, "defender");
     else finishBattle(G, ctx);
     return;
@@ -2027,9 +2123,11 @@ const applyLosses = (G: ImperialElegyState, ctx: Ctx, side: "attacker" | "defend
   if (side === "defender" && !hasDefenderPlayer(G, battle)) {
     let allowSupport = includeSupport;
     for (let i = 0; i < losses; i += 1) {
-      applyOneLoss(G, battle, side, undefined, allowSupport);
+      noteArmyLoss(undefined, allowSupport);
+      applyOneLoss(G, battle, side, undefined, allowSupport, {skipElimination: efOnlyBefore && i === losses - 1});
       allowSupport = true;
     }
+    if (losesArmyStep) eliminateCoupledEfs(G, battle, side);
     finishBattle(G, ctx);
     return;
   }
@@ -2070,7 +2168,13 @@ export const chooseLoss = (G: ImperialElegyState, ctx: Ctx, unitId: string): voi
   const includeSupport = pending.context?.includeSupport === true || firstLossTaken(battle, side);
   const candidates = withDreadnoughtPriority(battle, side, lossCandidates(G, battle, side, includeSupport));
   if (!candidates.some((unit) => unit.id === unitId)) return;
-  applyOneLoss(G, battle, side, unitId, includeSupport);
+  // 18.6.3: a loss group that is only EFs cannot eliminate a full-strength
+  // non-rebel army (see `applyLosses`).
+  const efOnlyLoss = isEfOnlyForce(G, battle, side);
+  applyOneLoss(G, battle, side, unitId, includeSupport, {skipElimination: efOnlyLoss});
+  if (lossCandidates(G, battle, side, includeSupport).some((unit) => isArmyKind(unit.kind))) {
+    eliminateCoupledEfs(G, battle, side);
+  }
   const remaining = Number(pending.context?.remaining ?? 1) - 1;
   battle[pending.context?.side === "attacker" ? "attackerLosses" : "defenderLosses"] -= 1;
   G.pending = null;
@@ -3132,6 +3236,7 @@ const buildBattleReport = (
   defenderLosses: battle.lossesTaken?.defender ?? 0,
   attackerUnits: [...(battle.casualties?.attacker ?? [])],
   defenderUnits: [...(battle.casualties?.defender ?? [])],
+  efCouplings: [...(battle.efCouplings ?? [])],
   mines: Math.max(0, battle.mines ?? 0),
   trench: battle.trench === true,
   retreatTo: battle.retreatTo,
@@ -3580,6 +3685,22 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       if (unit) removeUnit(G, unitId);
       log(G, owner, "eliteBonusDestroyed", {to: battle.to, side, kind});
     }
+  }
+  // 5.1.3 / 5.1.5 / 5.1.6: "If an EC is ever alone in a space ... at the end of
+  // a combat ... it is eliminated."  The sweep is claim-based: it only removes a
+  // counter this battle stranded, so one that was already standing alone (a
+  // free redeployment, a draft, a setup placement) is not silently destroyed by
+  // an unrelated battle in its space — that case is the impulse boundary's.
+  // It runs after the retreat/advance, when the surviving stacks are final.
+  {
+    // The battle's own participants, still on the board or already gone.
+    const participants = new Set([
+      ...battle.mainAttack,
+      ...battle.mainDefense,
+      ...battle.supportAttack.flatMap((entry) => entry.units),
+      ...battle.supportDefense.flatMap((entry) => entry.units),
+    ]);
+    eliminateAloneEliteUnits(G, {space: battle.to, exclude: [...participants]});
   }
   // Every seat reads this from shared state: the result dialog is a public
   // report, not the active player's private notification.

@@ -124,14 +124,22 @@ data. Inline SVG draws the frame, CP/VP, type, title, rules and vector emblems;
 card faces make no raster-image or external-font requests. The original card
 assets total approximately 13.4 MiB and remain available as source references.
 
-Faces follow the selected UI language. Expand **English text / 中文译文** below
-a face to read the other language (English includes the full rule transcription).
-The card inspector also offers **Original card image / 原图** as a folded
-reference: the scan is fetched only when that disclosure is opened, so the
-default reading view stays fast and in the chosen language. Long rules extend
-the SVG height instead of being clipped or reduced to tiny type. Missing module
-faces, including action cards 21/82 and goal 22, use the same renderer. The
-photographs are represented by lightweight vector emblems.
+Faces follow the selected UI language and print that language only: there is no
+**English text / 中文译文** disclosure beside a face in the hand or in the card
+inspector. A player who wants the other language switches the board's language.
+
+The card inspector shows one language at a time: it always opens on the vector
+face in the reader's language, and a single full-width button beneath the
+card's operations — **英文原图 / Original card image** — swaps the body to the
+printed English scan and back (**中文卡面 / Localized face**). This is the chart
+lightbox's *文字 / 印刷原图* swap, not a second copy of the card stacked under the
+scan: nothing is fetched until the button is pressed, and the operations and
+the sticky header (whose ✕ is brass-filled and always on screen) stay in place
+while the scan is shown. The edit-in-place (`expandAll`) body likewise drops the
+translation disclosure. Long rules extend the SVG height instead of being
+clipped or reduced to tiny type. Missing module faces, including action cards
+21/82 and goal 22, use the same renderer. The photographs are represented by
+lightweight vector emblems.
 
 ### Card choices
 
@@ -666,14 +674,19 @@ Important boundaries (the status document has the full list):
   losing-side unit-loss choice, player-chosen transfers and bonus-CP
   allocation). 15.6/30.1/30.2 also displace
   allied units and enforce formerly-controlled march/rail and symmetric US/Italy
-  chit cleanup.
+  chit cleanup. 29.1's "RU and its allies" test now reads the running war's
+  side rosters, so a *neutral* RU does not cut the other alliance's Pacific
+  route.
   28.1 trench terrain is created on every printed key at GW turn 1, and the
   trench-battle marker lifecycle is maintained by the battle path.
 - **AU's Unstable Situation and unified Italy's LoC are live choices.** A failed
   AU stability roll opens a private discard-or-marker decision instead of
   auto-discarding; 5.6.1's Italian Exception gives unified `IT` units a
   player-style LoC to an Italian controlled home key that connects to another
-  Italian controlled home key.
+  Italian controlled home key. 5.6 supply only starts from a controlled home
+  **key**, and 5.6.3's peacetime displacement now really is immediate
+  (`rules.ts#repairBrokenLinesOfCommunication` runs after every resolved
+  decision).
 - **All printed national characteristics now have a live path.** The
   `characteristicsCoverage` registry maps all 38 bullets to helpers/moves with
   zero display-only entries; the round-7 pass closed FR Second Empire/Cultural

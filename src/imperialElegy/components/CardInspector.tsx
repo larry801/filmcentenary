@@ -2,9 +2,21 @@
  * Modal card inspector: the "zoom in" view of a card or a National Goal.
  *
  * Kept deliberately free of MUI so it can be server-rendered and unit-tested
- * with `renderToStaticMarkup`.  The inspector shows either the vector CardFace
- * or, in print mode, the module's scanned card image, plus every operation the
- * engine offers for that card and a single aggregated "cannot play" line.
+ * with `renderToStaticMarkup`.  The panel shows the vector CardFace — always in
+ * the reader's language — plus every operation the engine offers for that card
+ * and a single aggregated "cannot play" line.
+ *
+ * The panel draws nothing in the other language: the face's own "中文译文 /
+ * English text" disclosure is suppressed, because a zh_CN reader who wants the
+ * printed card can ask for it below.
+ *
+ * The English scan of the printed card is one tap away, not a second copy of
+ * the card in the panel: a footer button swaps the body to the scan (the same
+ * arrangement as the chart lightbox's "Printed sheet" toggle), and a second tap
+ * returns to the localized face.  A zh_CN reader therefore never gets two
+ * languages printed one under the other, and the card's operations — and the
+ * close control — stay on screen instead of being pushed below a full-size
+ * scan.
  *
  * It is a real modal dialog: `useFocusTrap` keeps Tab/Shift+Tab inside it, Esc
  * closes it, and focus returns to whatever opened it.
@@ -15,6 +27,7 @@ import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
 import {bi} from "./boardHelpers";
 import {CardFace} from "./CardFace";
+import {Icon} from "./Icon";
 import {cardImageSrc} from "./preferences";
 import type {CardFaceMode} from "./preferences";
 import {ieStringsFor} from "./i18n";
@@ -65,12 +78,15 @@ export const CardInspector = ({
   // so its cleanup runs after the trap's, letting the explicit target win.
   const returnFocusRef = useRef(returnFocus);
   returnFocusRef.current = returnFocus;
-  // The printed scan is reference material: keep the image out of the DOM —
-  // and out of the network — until a reader actually opens the disclosure.
-  const [originalOpen, setOriginalOpen] = useState(false);
+  // The printed scan is the English reference: the panel opens on the
+  // localized vector face and the footer's button swaps the body to the scan.
+  // Only the body changes — the operations, the header and the close control
+  // stay where they were.
+  const [showingScan, setShowingScan] = useState(false);
   const faceId = "card" in face ? face.card.id : face.goal.id;
+  // A different card (or a reopened panel) starts from the localized face.
   useEffect(() => {
-    setOriginalOpen(false);
+    setShowingScan(false);
   }, [faceId, open]);
   useEffect(() => {
     if (!open || returnFocusRef.current === undefined) return;
@@ -97,18 +113,13 @@ export const CardInspector = ({
   const closeLabel = ieStringsFor(locale).close;
   const reasons = unavailable ?? [];
   const originalImage = card ? cardImageSrc(card.image) : null;
-  // Print mode already leads with the scan; the vector face keeps it folded.
-  const printImage = mode === "print" ? originalImage : null;
-  // The scan is printed in English, so print mode also prints the event text in
-  // the reader's language beneath it; otherwise a zh_CN reader opening a card
-  // in print mode could not read what the event does.
-  const localizedText = card ? (locale === "zh_CN" ? card.textZh : card.text) : "";
   const stopPropagation = (event: MouseEvent<HTMLElement>) => event.stopPropagation();
 
   return (
     <div
       className="ie-inspector-backdrop"
       data-testid="ie-card-inspector-backdrop"
+      data-face-mode={mode}
       onClick={onClose}
     >
       <aside
@@ -131,63 +142,51 @@ export const CardInspector = ({
             className="ie-inspector-close"
             data-testid="ie-card-inspector-close"
             aria-label={closeLabel}
+            title={bi(locale, "Close (Esc)", "关闭（Esc）")}
             onClick={onClose}
           >
-            {closeLabel}
+            <Icon name="close" size={20}/>
           </button>
         </header>
 
         <div className="ie-card-inspector-body">
-          {printImage ? (
-            <>
-              <img
-                className="ie-card-inspector-print"
-                src={printImage}
-                alt={title}
-                data-testid="ie-card-inspector-image"
-              />
-              {card !== undefined && (
-                <section
-                  className="ie-card-inspector-text"
-                  data-testid="ie-card-inspector-text"
-                  lang={locale === "zh_CN" ? "zh-CN" : "en"}
-                >
-                  <h3 className="ie-card-inspector-text-title">
-                    {bi(locale, "Event text", "事件文本")}
-                  </h3>
-                  <p className="ie-card-inspector-text-body">{localizedText}</p>
-                </section>
-              )}
-            </>
+          {showingScan && originalImage !== null ? (
+            <img
+              className="ie-card-inspector-print"
+              src={originalImage}
+              alt={bi(locale, `Original printed card: ${title}`, `原版卡牌：${title}`)}
+              data-testid="ie-card-inspector-image"
+            />
           ) : goal ? (
-            <CardFace locale={locale} goal={goal}/>
+            <CardFace locale={locale} goal={goal} showTranslation={false}/>
           ) : (
-            <CardFace locale={locale} card={card!}/>
+            <CardFace locale={locale} card={card!} showTranslation={false}/>
           )}
         </div>
-
-        {originalImage !== null && printImage === null && (
-          <details
-            key={data.id}
-            className="ie-card-inspector-original"
-            data-testid="ie-card-inspector-original"
-            onToggle={event => setOriginalOpen(event.currentTarget.open)}
-          >
-            <summary>{bi(locale, "Original card image", "原图")}</summary>
-            {originalOpen && (
-              <img
-                className="ie-card-inspector-original-image"
-                src={originalImage}
-                alt={bi(locale, `Original printed card: ${title}`, `原版卡牌：${title}`)}
-                data-testid="ie-card-inspector-original-image"
-              />
-            )}
-          </details>
-        )}
 
         <div className="ie-card-inspector-actions" data-testid="ie-card-inspector-actions">
           {actions}
         </div>
+
+        {originalImage !== null && (
+          // One button, two states — the chart lightbox's "文字 / 印刷原图"
+          // pair, collapsed into a single toggle that names what a tap gives
+          // you.  The scan is only mounted (and fetched) while it is shown.
+          <button
+            type="button"
+            className="ie-btn secondary ie-card-inspector-original"
+            data-testid="ie-card-inspector-original"
+            aria-pressed={showingScan}
+            title={showingScan
+              ? bi(locale, "Back to the localized card face", "返回中文卡面")
+              : bi(locale, "The printed card is in English", "印刷卡牌为英文原图")}
+            onClick={() => setShowingScan((shown) => !shown)}
+          >
+            {showingScan
+              ? bi(locale, "Localized face", "中文卡面")
+              : bi(locale, "Original card image", "英文原图")}
+          </button>
+        )}
 
         {reasons.length > 0 ? (
           <div className="ie-card-inspector-unavailable" data-testid="ie-card-inspector-unavailable">

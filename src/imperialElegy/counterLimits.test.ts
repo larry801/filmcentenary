@@ -2,7 +2,7 @@ import type {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {placeUnit} from "./engine/effects";
+import {gainMinorAlliance, placeUnit} from "./engine/effects";
 import {
   counterPool,
   counterRemaining,
@@ -188,5 +188,56 @@ describe("4.2.1 minor ally cap", () => {
     G.spaces.belgium.ally = null;
     expect(minorAlliance(G, ctx, "greece")).toBeUndefined();
     expect(minorAlliesOf(G, "GE")).toHaveLength(5);
+  });
+});
+
+describe("4.2.1 — the five-minor-ally limit on the event paths", () => {
+  /** The space a minor controls at setup. */
+  const minorSpace = (G: ImperialElegyState, minor: string): string => {
+    const space = Object.entries(G.spaces).find(([, state]) => state.control === minor)?.[0];
+    if (space === undefined) throw new Error(`no space starts controlled by ${minor}`);
+    return space;
+  };
+
+  const fiveAllies = (G: ImperialElegyState): void => {
+    for (const minor of ["Belgium", "Netherlands", "Hanover", "Saxony", "Bavaria"]) {
+      G.spaces[minorSpace(G, minor)].ally = "GE";
+    }
+  };
+
+  test("a card event cannot take a power to a sixth minor ally", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "GE";
+    fiveAllies(G);
+    const sixth = minorSpace(G, "Greece");
+    G.spaces[sixth].diplomacy = "GE";
+
+    // The event-path setter (RU-9's Balkan alliance, A097's follow-up) reads the
+    // same 4.2.1 cap the 12.8 move does.
+    expect(gainMinorAlliance(G, "GE", sixth)).toBe(false);
+    expect(minorAlliesOf(G, "GE")).toHaveLength(5);
+    expect(G.spaces[sixth].ally).toBeNull();
+    expect(G.log.some((entry) => entry.key === "minorAllyCapRefused")).toBe(true);
+  });
+
+  test("re-affirming an existing ally is always allowed", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "GE";
+    fiveAllies(G);
+    // 22.1.1's petition may re-affirm one of the five: that is not a sixth.
+    const existing = minorSpace(G, "Belgium");
+    G.spaces[existing].diplomacy = "GE";
+    expect(gainMinorAlliance(G, "GE", existing)).toBe(true);
+    expect(minorAlliesOf(G, "GE")).toHaveLength(5);
+  });
+
+  test("a player's own space is never a minor-ally target", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "GE";
+    expect(gainMinorAlliance(G, "GE", "berlin")).toBe(false);
+    expect(gainMinorAlliance(G, "GE", minorSpace(G, "Greece"))).toBe(true);
   });
 });

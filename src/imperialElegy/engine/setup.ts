@@ -17,7 +17,12 @@ import {goalsForPower} from "../constant/goals";
 import {CARDS} from "../constant/cards.data";
 import {CARD_BY_ID} from "./deck";
 import {prepareDeck, shuffle, drawCards, cardsForDecade} from "./deck";
-import {log, cardsToDraw} from "./rules";
+import {
+  log,
+  cardsToDraw,
+  isAloneSensitiveKind,
+  SETUP_PLACEMENT_FLAG,
+} from "./rules";
 import {ensureStateDefaults} from "./migrations";
 import {botPowersOf, parseBotDifficulty, parseBotPowers, parseNoGw, parseScenarioId} from "../configuration";
 import {initialNonPlayerBuildBox} from "./endPhase";
@@ -169,6 +174,12 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
     if (setup.special === "eliteColonialEf") unit.elite = true;
     if (setup.owner === "UK" && setup.kind === "army" && setup.space === "london") {
       unit.flags = {...(unit.flags ?? {}), firstArmy: true};
+    }
+    // 5.1.3 / 5.1.5 / 5.1.6: a counter the printed setup places on its own (the
+    // FR Zouave in Algeria, the UK elite colonial EF at Suez) is exempt from the
+    // end-of-movement alone clause until the game has actually moved on.
+    if (isAloneSensitiveKind(setup.kind as Unit["kind"])) {
+      unit.flags = {...(unit.flags ?? {}), [SETUP_PLACEMENT_FLAG]: G.turn};
     }
     if (setup.space === null) {
       const power = setup.owner as Power;

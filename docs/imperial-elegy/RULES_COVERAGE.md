@@ -85,11 +85,93 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   overstacked defenders' contributing FP.
 - `hasLoc` / `isSupplySource` / `brokenLoc` — BFS trace through friendly or
   occupied spaces; a supply source is a controlled home key connected to
-  another. **5.6.2 broken LoC** now costs one step at the start of the owning
+  another. **5.6.2 broken LoC** costs one step at the start of the owning
   player's impulse, gives −1 BDRM and forbids support; **5.6.3** displaces a
   peacetime broken-LoC army to the nearest friendly LoC space. **Partial:**
-  supply remains an approximation, minor-owned armies are not penalised, and
-  general 5.7 event displacement is limited to the WoI/broken-LoC paths.
+  general 5.7 event displacement is limited to the WoI/broken-LoC/WP paths.
+- **5.6's two clocks (audited 2026-11-21).**  5.6 reads "if, **at any point**,
+  an army cannot trace to a supply source it has a broken LoC"; 5.6.2 then
+  charges its step loss "(1) … at the start of the player's impulse" while
+  (2) the −1 land battle modifier and (3) the loss of support are properties of
+  the battle.  The two clocks are now kept apart in one place — the engine's
+  broken-LoC predicate (`rules.ts#brokenLoc` / `minorBrokenLoc` /
+  `italianBrokenLoc`) is answered at the moment of the check, and only the
+  **step** is charged on an impulse boundary:
+  - **(2)/(3) are live at "any point"**: `combat.ts#locBlocksSupport` filters the
+    support candidates at every support window and the broken-LoC DRM block is
+    re-evaluated at every battle start, so a LoC cut inside an impulse — by a
+    won battle, an event, a treaty, an alliance shift, a detachment of the
+    column — forbids support and gives −1 for the rest of that impulse.
+  - **(1) is charged only at the start of the owner's next impulse** and once
+    per impulse (`beginImpulseUpkeep` → `impulsePenalties`, with the
+    `impulseUpkeepStamp` guard).  A stack whose corridor is restored before
+    that point is not broken at the printed moment of step (1) and keeps its
+    step; a stack cut mid-impulse pays at the next impulse start, never inside
+    the battle that cut it.
+  Coverage: `supplyWindow5_6.test.ts` (timing, once-per-impulse, in-supply and
+  -1/no-support-before-the-step behaviour).
+- **5.6 is a supply *check*, not a supply *economy*.**  The printed 5.6 has no
+  supply points, no consumption and no forage step: an army either traces an
+  uninterrupted chain of land connections and/or naval boxes back to a supply
+  source or it is out of supply, and the only effects are 5.6.2's three
+  penalties and 5.6.3's peacetime displacement.  The errata (March 2026) and
+  the playbook add none.  There is no printed supply to consume, so none is
+  invented; the "consumption/forage step" an earlier refresh listed as a gap
+  does not exist in the printed rules and adding one would change the game.
+- **Only armies check a LoC (5.6).**  "Naval units, ECs, EFs, and Elite Colonial
+  EFs do not check for LoCs", so they never take a 5.6.2 penalty and never
+  supply themselves; the supply check in a space is its army's.  The engine
+  already keeps them out of `impulsePenalties` (armies only) and the support
+  filter, which is the printed reading.
+- **5.1.3 / 5.1.5 / 5.1.6 "alone in a space" (audited 2026-11-21).**  "If an EC
+  is ever alone in a space at the end of a combat or at the end of a movement,
+  it is eliminated."  `rules.ts#eliminateAloneEliteUnits` sweeps every EC, elite
+  colonial EF and Zouave that has no land army of its own owner in its space.
+  It runs at the end of a battle (`combat.ts#finishBattle`, claim-based: only a
+  counter that battle stranded) and at the impulse boundary
+  (`beginImpulseUpkeep`) — the end of the movement, whatever move produced the
+  split (redeploy, march, rail, naval transport, 5.7 displacement, an event
+  placement).  Two exemptions keep printed positions legal: the campaign setup's
+  own lone counters (the FR Zouave in Algeria, the UK elite colonial EF at Suez)
+  and A78's placement carry a `setupPlacedTurn` stamp until the game has moved
+  on.  5.1.4's ordinary EFs and 5.1.2's reserve armies print the weaker "must
+  end a move with a standing army" form and are not swept.  Coverage:
+  `aloneEliteElimination.test.ts` (8).
+- **33.2.2's port clause.**  "Land units using this movement must end their
+  movement in a friendly port" is transitive: the grant is one free naval
+  movement, which embarks no land unit, and every path out of that movement
+  (`freeNavalDestinations`, the 5.5.4/movement-end checks, 12.3's transport) is
+  already friendly-port gated, so no separate clause is owed.  Verified by
+  `ukRapidDeployment.test.ts` (the free move ends in a friendly port or box, and
+  a land unit is never carried by it).
+- **5.1.2 has no "standing army" movement clause.**  The printed 5.1.2 lists
+  exactly three differences from a standing army (the peacetime holding box,
+  wartime-only deployment and the demobilisation return) after "reserve armies
+  function identically to standing armies", so only the deployment gate is owed;
+  the earlier "must end a move with a standing army" note was not printed.
+- **5.3.2 / 18.6.3 loss coupling (audited 2026-11-21).**  `lossCandidates` keeps
+  an EF out of the loss list whenever its force holds an army (5.3.2's "a force
+  comprised of EFs and armies cannot take losses on the EFs" / 18.6.3's first
+  bullet) and a force of EFs only may not eliminate a full-strength non-rebel
+  army, only reduce it.  18.6.3's third bullet — "when a force comprised of EFs
+  and armies takes a step loss on an army they must also eliminate an EF" — now
+  runs for the whole loss group (`combat.ts#eliminateCoupledEfs`), not only when
+  the army happens to be eliminated; the counter is recorded on the battle and
+  in the public `BattleReport.efCouplings`, and the per-unit elimination
+  fallback is kept.  5.1.5's elite colonial EF and 5.1.6's Zouave are "treated
+  as ECs for the purposes of elimination", so a force that also holds one does
+  not print the plain EF coupling.  Coverage: `efLossCoupling.test.ts` (9).
+- **2026-11-21 supply audit:**
+  - 5.6's source list is enforced.  `isSupplySource` now requires an actual
+    controlled **home key** for the acting power, and a wartime second source
+    may also be an allied minor's home key (`isSupplySource` + the new
+    `alliedMinorController`); a foreign key a power merely occupies, such as
+    Britain holding Shanghai, no longer supplies its garrison.
+  - 5.6.3's "immediately displace" is now immediate.  New
+    `rules.ts#repairBrokenLinesOfCommunication` re-checks every army's LoC and
+    runs after every resolved pending decision (`resolvePending`), at
+    `startWarManeuver`, and on the impulse boundary (which stays the fallback
+    for older saves).  Coverage: `supplyRule5_6.test.ts`.
 
 ## 6–7 Displays and tracks
 
@@ -185,6 +267,13 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   your own forts to protect.
 - **A16 Liberal Reforms** now applies its no-new-armies restriction to the
   minor-ally build gate as well as the player's own recruitment.
+- **H-GE-2 German General Staff** offers the printed "take a response/combat
+  card from the discard pile OR gain two elite corps" choice, with the ECs
+  stacked on an army as 5.1.3 requires.
+- **H-FR-6 Aux Armes** takes French Intervention or Papal Influence from the
+  discard and allows that card to be played immediately, once, as printed.
+- `minorAlliance` and event-driven `gainMinorAlliance` recompute the tracks at
+  once, so 3.3.1's allied-minor naval units reach Power Projection immediately.
 - **12.11 pacification is complete.** One shared gate
   (`engine/pacification.ts#pacificationProblem`) requires either the acting
   power's own influence marker (an uncontrolled space, which the success
@@ -426,9 +515,10 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
 
 - Declaration validation (aim and objectives checked before CP is spent), war
   aim, one or two objectives controlled by the defender, CP war budget (card CP
-  + industry), ally calls, initiative, march/rail/naval/land-battle/deploy/
-  reserves actions, surrender move, victory classification, interactive treaty
-  chooser, truce length and demobilisation — **live and partial**.
+  + industry), **13.7's one defender card played into that budget**, ally calls,
+  initiative, march/rail/naval/land-battle/deploy/reserves actions, surrender
+  move, victory classification, interactive treaty chooser, truce length and
+  demobilisation — **live and partial**.
 - **Live details:**
   - `declareWar` uses `validateWarAim`; conquest applies the WTT/stability
     penalty; the attacker’s starting control is snapshotted for defensive
@@ -698,6 +788,10 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
     a closed/blocked Suez and a refused Dardanelles), reduces each
     blockaded power’s maximum industry by 1 per GW year (floor 3) and clamps
     industry; the US North Atlantic check is part of the winter result.
+    4.9.4's "RU and its allies" is now read from the running war: the new
+    `blockade.ts#ruWarAlly` refuses a neutral RU whose 8.x box happens to match
+    a belligerent's, so one alliance's neutrality can no longer cut the other
+    alliance's ordinary Pacific sea route (`blockadeNeutralRu.test.ts`).
   - **29.2 colonial war** applies the printed EF/elite/army/naval-supremacy
     modifiers, opposed rolls, one/two-step losses, territorial transfer, UK/RU
     stability and the 1/3 bonus CP at the next planning step. Transfer LoC

@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import {markMinorGwBelligerent} from "./greatWar";
 import {
   CardId,
   ImperialElegyState,
@@ -42,8 +43,10 @@ import {
   minorController,
   minorFriendlySpace,
   minorHasLoc,
+  minorAlliesOf,
   minorUpkeepPower,
   PAPAL_STATES_SPACE,
+  SETUP_PLACEMENT_FLAG,
   efDestinationAllowed,
   isArmyKind,
   isPower,
@@ -807,9 +810,34 @@ const openSpecialSpace = (
  * removing an opposing diplomacy/ally marker in the space first.  Also used
  * for the card's second mode, which targets another Italian minor power.
  */
+/** 4.2.1: "Players can have a maximum of five minor power allies." */
+export const MINOR_ALLY_CAP = 5;
+
+/**
+ * 4.2.1 on the event paths.  `minorAlliance` (12.8) has always refused a sixth
+ * distinct minor ally, but the card handlers wrote `state.ally` directly, so an
+ * event — or 22.1.1's Italian petition (and its diplomatic-recognition follow-up)
+ * for an already allied minor — could take a player to six, seven, … allies.
+ * A minor that is already allied does not count twice, so re-affirming an
+ * existing alliance is always allowed.
+ */
+export const canGainMinorAlly = (G: ImperialElegyState, actor: Power, space: SpaceId): boolean => {
+  const state = G.spaces[space];
+  if (!state) return false;
+  // Only a minor power's space is a minor-ally target; a player's space is not.
+  if (state.control === actor || (state.control !== null && isPower(state.control))) return false;
+  if (state.ally === actor) return true;
+  const allied = minorAlliesOf(G, actor).filter((minor) => minor !== state.control);
+  return allied.length < MINOR_ALLY_CAP;
+};
+
 const allyItalianMinor = (G: ImperialElegyState, actor: Power, space: SpaceId): void => {
   const state = G.spaces[space];
   if (!state) return;
+  if (!canGainMinorAlly(G, actor, space)) {
+    log(G, actor, "minorAllyCapRefused", {space, cap: MINOR_ALLY_CAP});
+    return;
+  }
   // An alliance marker replaces whatever diplomacy/ally marker is present.
   state.diplomacy = null;
   state.ally = actor;
@@ -828,12 +856,20 @@ const papalInfluenceCardBonus = (G: ImperialElegyState, actor: Power): boolean =
  * 12.8: an alliance grows out of the player's own diplomacy marker, and the
  * marker is spent turning into the ally side.
  */
-const gainMinorAlliance = (G: ImperialElegyState, actor: Power, space: SpaceId): boolean => {
+export const gainMinorAlliance = (G: ImperialElegyState, actor: Power, space: SpaceId): boolean => {
   const state = G.spaces[space];
   if (!state) return false;
+  // 4.2.1 applies to every path that creates an alliance, card events included.
+  if (!canGainMinorAlly(G, actor, space)) {
+    log(G, actor, "minorAllyCapRefused", {space, cap: MINOR_ALLY_CAP});
+    return false;
+  }
   state.diplomacy = null;
   state.ally = actor;
   log(G, actor, "minorAlliance", {space});
+  // 3.3.1 counts allied-minor naval units in Power Projection; refresh the
+  // cached track as soon as the alliance is live.
+  recomputeTracks(G);
   return true;
 };
 
@@ -2277,6 +2313,9 @@ const resolveCardChain = (
       const roll = die(ctx, 6);
       if (minorHome && roll >= 5) {
         G.spaces[space].ally = owner;
+        // GW-01 draws the minor into the GW (25.2.1): record it as a belligerent
+        // the same way a `**` crisis result does.
+        markMinorGwBelligerent(G, space);
         placeNonPlayerCounter(G, minorHome, "minorArmy", space, 2);
         log(G, owner, "gwMinorJoined", {space, roll});
       } else {
@@ -3421,10 +3460,13 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "crackColonialTroops": {
       // A71 can make Egypt a colonial key, so read the live type.
+      // The elite colonial EF arrives alone (it is an expedition, not a corps
+      // attached to an army), so this placement carries 5.1.3's placement
+      // exemption until the game has moved on (see `SETUP_PLACEMENT_FLAG`).
       const target = Object.values(SPACES).find(
         (s) => effectiveKeyType(G, s.id) === "colonial" && G.spaces[s.id].control === actor,
       );
-      if (target) placeUnit(G, actor, "eliteColonialEf", target.id, 1, {elite: true});
+      if (target) placeUnit(G, actor, "eliteColonialEf", target.id, 1, {elite: true, flags: {[SETUP_PLACEMENT_FLAG]: G.turn}});
       return true;
     }
     case "conquestCentralAsia": {
@@ -3701,12 +3743,27 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "germanGeneralStaff": {
       changeStability(G, "GE", 1, ctx);
-      const candidate = G.discard.find((id) => ["response", "combat"].includes(cardById(id).type));
-      if (candidate) {
-        G.discard = G.discard.filter((id) => id !== candidate);
-        G.powers.GE.hand.push(candidate);
+      const retrievable = G.discard.filter((id) => ["response", "combat"].includes(cardById(id).type));
+      // Printed OR: take a response/combat card from the discard pile, or gain
+      // two elite corps.  With no eligible discard card only the EC option
+      // remains.
+      if (retrievable.length === 0) {
+        grantEliteCorps(G, actor);
+        return true;
       }
-      return true;
+      const options = [
+        option("card", "Take a response or combat card from the discard pile", undefined, false,
+          "从弃牌堆取 1 张响应或战斗牌"),
+        option("ec", "Gain two elite corps", undefined, false, "获得 2 个精英军"),
+      ];
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        actor,
+        "German General Staff: take a card or gain two elite corps",
+        options,
+        {resume, special: handler, stage: "mode"},
+      ));
+      return false;
     }
     case "sunNeverSets": {
       // The +1 stability is the card's declared `stability` effect already
@@ -3751,7 +3808,20 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
         "FR",
         isCardId(G.resolvingCard) ? G.resolvingCard : AUX_ARMES_HOME_CARD,
       );
-      return true;
+      // "Take either French Intervention or Papal Influence from the discard
+      // pile; you may play it immediately."  Taking is mandatory when one is
+      // in the discard; the free-play marker lets `playCard` ignore 12.0's
+      // one-card limit for that exact card once.
+      const retrievable = ["IE-A046", "IE-A070"].filter((id) => G.discard.includes(id as CardId)) as CardId[];
+      if (retrievable.length === 0) return true;
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        "FR",
+        "Aux Armes: take French Intervention or Papal Influence from the discard pile",
+        retrievable.map((id) => option(`take:${id}`, cardById(id).title, {card: id}, false, cardById(id).titleZh)),
+        {resume, special: handler, stage: "retrieve"},
+      ));
+      return false;
     }
     case "habsburgDynasty": {
       // "Choose an independent minor power in Europe.  Remove an opposing
@@ -4396,6 +4466,25 @@ export const performEffect = (
   }
 };
 
+/** H-GE-2's "gain two elite corps"; ECs must stack with an army (5.1.3). */
+const grantEliteCorps = (G: ImperialElegyState, power: Power, count = 2): number => {
+  const army = Object.values(G.units).find(
+    (unit) => unit.owner === power && unit.space !== null && unit.space !== undefined && isArmyKind(unit.kind),
+  );
+  if (!army || !army.space) {
+    log(G, power, "noLegalTarget", {card: G.resolvingCard});
+    return 0;
+  }
+  let placed = 0;
+  for (let i = 0; i < count; i += 1) {
+    if (!hasCounterFor(G, power, "eliteCorps")) break;
+    placeUnit(G, power, "eliteCorps", army.space, 1);
+    placed += 1;
+  }
+  if (placed > 0) log(G, power, "eliteCorpsGained", {space: army.space, count: placed});
+  return placed;
+};
+
 /** Resolve a decision produced by a card effect. */
 export const resolveCardDecision = (
   G: ImperialElegyState,
@@ -4415,6 +4504,55 @@ export const resolveCardDecision = (
     return;
   }
   const data: EffectContext = {...context, choice: optionId, targetSpace: optData.space as SpaceId | undefined, targetPower: optData.power as Power | undefined};
+  if (special === "auxArmes" && context.stage === "retrieve") {
+    const separator = optionId.indexOf(":");
+    const cardId = (optData.card as CardId | undefined) ??
+      (separator >= 0 ? optionId.slice(separator + 1) as CardId : undefined);
+    if (cardId !== undefined && G.discard.includes(cardId) && ["IE-A046", "IE-A070"].includes(cardId)) {
+      G.discard = G.discard.filter((id) => id !== cardId);
+      G.powers.FR.hand.push(cardId);
+      // Public marker: `playCard` may spend this one card despite the impulse
+      // already having played the home card.  A second play is still refused.
+      G.powers.FR.flags.auxArmesFreePlay = cardId;
+      log(G, "FR", "cardTaken", {card: cardId, from: "discard"});
+    }
+    closeDecision(G, ctx);
+    resumeEffects(G, ctx, pending, data);
+    return;
+  }
+  if (special === "germanGeneralStaff") {
+    const stage = String(context.stage ?? "mode");
+    if (stage === "mode") {
+      if (optionId === "ec") {
+        grantEliteCorps(G, actor);
+        closeDecision(G, ctx);
+        resumeEffects(G, ctx, pending, data);
+        return;
+      }
+      if (optionId === "card") {
+        const retrievable = G.discard.filter((id) => ["response", "combat"].includes(cardById(id).type));
+        if (retrievable.length > 0) {
+          openDecision(G, ctx, decision(
+            "eventChoice",
+            actor,
+            "German General Staff: choose a card from the discard pile",
+            retrievable.map((id) => option(id, cardById(id).title, undefined, false, cardById(id).titleZh)),
+            {resume: context.resume, special, stage: "card"},
+          ));
+          return;
+        }
+      }
+    }
+    if (stage === "card") {
+      if (G.discard.includes(optionId) && ["response", "combat"].includes(cardById(optionId).type)) {
+        G.discard = G.discard.filter((id) => id !== optionId);
+        G.powers[actor].hand.push(optionId);
+      }
+      closeDecision(G, ctx);
+      resumeEffects(G, ctx, pending, data);
+      return;
+    }
+  }
   if (special === "divideAndConquer") {
     // A25 is resolved entirely from the option ids (`pacify:<space>`,
     // `rebel:<space>`, `egypt`, then the EF choice), so the printed card no
