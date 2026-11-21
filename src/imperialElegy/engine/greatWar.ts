@@ -1185,10 +1185,43 @@ const minorAlly = (G: ImperialElegyState, minor: string): Power | null => {
   return isPower(ally) ? ally : null;
 };
 
+/**
+ * Record a minor power as a GW belligerent.  23.3 and 25.2.1 print two
+ * different things:
+ *
+ *  - a minor power's **pre-GW ally marker** (a player power's ally from an
+ *    earlier limited war) does **not** bring it into the Great War — "minor
+ *    power allies will not join the GW at this time. They will only join the GW
+ *    via certain special crisis table results or the Minor Power Entry GW
+ *    card";
+ *  - a `**` crisis result (or GW-01) **draws** the minor into the GW.
+ *
+ * `SpaceState.ally` alone cannot tell the two apart, so every drawing path
+ * (the bordering-nation result, every Balkan Table draw, the threatened and
+ * threatening Balkan states) stamps the minor's home with
+ * `gwMinorBelligerent`.  A pre-GW ally marker never gets the stamp, which is
+ * what makes the two states distinguishable without a second roster.
+ */
+export const markMinorGwBelligerent = (G: ImperialElegyState, home: SpaceId): void => {
+  const existing = String(G.flags.gwMinorBelligerents ?? "");
+  const stamps = existing ? existing.split(",") : [];
+  if (!stamps.includes(home)) stamps.push(home);
+  G.flags.gwMinorBelligerents = stamps.join(",");
+};
+
+/** The minor powers drawn into the GW by a `**` result or GW-01, by home space. */
+export const gwMinorBelligerents = (G: ImperialElegyState): SpaceId[] => {
+  const existing = String(G.flags.gwMinorBelligerents ?? "");
+  return existing ? (existing.split(",").filter((id) => id.length > 0) as SpaceId[]) : [];
+};
+
 const setMinorAlly = (G: ImperialElegyState, actor: Power, minor: string, ally: Power): void => {
   const home = balkanHome(minor);
   if (home === null || !G.spaces[home]) return;
   G.spaces[home].ally = ally;
+  // The drawing paths all reach this one setter; the stamp is what tells a drawn
+  // belligerent apart from a leftover pre-GW ally marker (25.2.1).
+  markMinorGwBelligerent(G, home);
   log(G, actor, "minorAlliance", {space: home});
 };
 

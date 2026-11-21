@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import {markMinorGwBelligerent} from "./greatWar";
 import {
   CardId,
   ImperialElegyState,
@@ -2281,6 +2282,9 @@ const resolveCardChain = (
       const roll = die(ctx, 6);
       if (minorHome && roll >= 5) {
         G.spaces[space].ally = owner;
+        // GW-01 draws the minor into the GW (25.2.1): record it as a belligerent
+        // the same way a `**` crisis result does.
+        markMinorGwBelligerent(G, space);
         placeNonPlayerCounter(G, minorHome, "minorArmy", space, 2);
         log(G, owner, "gwMinorJoined", {space, roll});
       } else {
