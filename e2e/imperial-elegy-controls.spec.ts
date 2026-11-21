@@ -1082,15 +1082,24 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await expect(inspector).toBeVisible();
         await expect(inspector).toHaveAttribute("data-face-mode", "svg");
         await expect(inspector.locator("svg.ie-card-face")).toBeVisible();
-        // The printed scan is a folded reference: no image is fetched until a
-        // reader asks for it, and the default text stays in the chosen language.
+        // The printed scan is one button away: no image is fetched until a
+        // reader asks for it, and the body shows exactly one language at a time.
         const original = inspector.locator('[data-testid="ie-card-inspector-original"]');
         await expect(original).toBeVisible();
-        expect(await original.evaluate(el => (el as HTMLDetailsElement).open)).toBe(false);
-        await expect(original.locator("img")).toHaveCount(0);
-        await original.locator("summary").click();
-        expect(await original.evaluate(el => (el as HTMLDetailsElement).open)).toBe(true);
-        await expect(original.locator('[data-testid="ie-card-inspector-original-image"]')).toBeVisible();
+        await expect(original).toHaveAttribute("aria-pressed", "false");
+        await expect(original).toContainText("原图");
+        await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toHaveCount(0);
+        await original.click();
+        await expect(original).toHaveAttribute("aria-pressed", "true");
+        await expect(original).not.toContainText("原图");
+        await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toBeVisible();
+        // The scan replaces the face instead of sitting under it; the close
+        // control stays on screen above the scan.
+        await expect(inspector.locator("svg.ie-card-face")).toHaveCount(0);
+        await expect(inspector.locator('[data-testid="ie-card-inspector-close"]')).toBeInViewport();
+        await original.click();
+        await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toHaveCount(0);
+        await expect(inspector.locator("svg.ie-card-face")).toBeVisible();
         // Every operation lives in place.  Industrialize, CP chain and Save are
         // always offered; the CP-only button is absent for a mandatory event
         // (its CP play is the event) and the event button is absent for a
@@ -1107,11 +1116,13 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         await page.keyboard.press("Escape");
         await expect(inspector).toHaveCount(0);
 
-        // Switch the face preference, reopen, and see the scanned image.
+        // Switch the face preference, reopen, and see the panel still opens on
+        // the localized face: the preference dresses the hand rows in the
+        // printed scan, while the inspector keeps one language at a time.
         // The display preference lives in the strip's menu, under its own
         // "显示" disclosure.  The toggle writes React state, so wait for the
         // stored preference *and* for the reopened inspector to report print
-        // mode before asking for the scan.
+        // mode before checking its body.
         await board.locator('[data-testid="ie-menu-toggle"]').click();
         await board.locator('[data-testid="ie-menu"] [data-testid="ie-display-menu"] > summary').click();
         await board.locator('[data-testid="ie-card-face-print"]').first().click();
@@ -1119,13 +1130,16 @@ test.describe("Imperial Elegy one-screen acceptance", () => {
         // One tap on the row reopens the inspector with the new face mode.
         await openCard(card);
         await expect(inspector).toHaveAttribute("data-face-mode", "print");
+        await expect(inspector.locator("svg.ie-card-face")).toBeVisible();
+        await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toHaveCount(0);
+        // The scan is printed in English and the face carries the board
+        // language; pressing the footer button swaps one for the other, so a
+        // zh_CN reader never sees both at once.
+        const scan = inspector.locator('[data-testid="ie-card-inspector-original"]');
+        await expect(scan).toContainText("原图");
+        await scan.click();
         await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toBeVisible();
-        // The scan is printed in English; the event text underneath follows the
-        // board language so a zh_CN reader can still read what the card does.
-        const eventText = inspector.locator('[data-testid="ie-card-inspector-text"]');
-        await expect(eventText).toBeVisible();
-        await expect(eventText).toHaveAttribute("lang", "zh-CN");
-        await expect(eventText.locator(".ie-card-inspector-text-body")).toContainText(/[\u4e00-\u9fff]/);
+        await expect(inspector.locator("svg.ie-card-face")).toHaveCount(0);
         await page.keyboard.press("Escape");
 
         // Leave the default in place for the rest of the suite.  The menu keeps

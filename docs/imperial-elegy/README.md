@@ -124,14 +124,22 @@ data. Inline SVG draws the frame, CP/VP, type, title, rules and vector emblems;
 card faces make no raster-image or external-font requests. The original card
 assets total approximately 13.4 MiB and remain available as source references.
 
-Faces follow the selected UI language. Expand **English text / 中文译文** below
-a face to read the other language (English includes the full rule transcription).
-The card inspector also offers **Original card image / 原图** as a folded
-reference: the scan is fetched only when that disclosure is opened, so the
-default reading view stays fast and in the chosen language. Long rules extend
-the SVG height instead of being clipped or reduced to tiny type. Missing module
-faces, including action cards 21/82 and goal 22, use the same renderer. The
-photographs are represented by lightweight vector emblems.
+Faces follow the selected UI language and print that language only: there is no
+**English text / 中文译文** disclosure beside a face in the hand or in the card
+inspector. A player who wants the other language switches the board's language.
+
+The card inspector shows one language at a time: it always opens on the vector
+face in the reader's language, and a single full-width button beneath the
+card's operations — **英文原图 / Original card image** — swaps the body to the
+printed English scan and back (**中文卡面 / Localized face**). This is the chart
+lightbox's *文字 / 印刷原图* swap, not a second copy of the card stacked under the
+scan: nothing is fetched until the button is pressed, and the operations and
+the sticky header (whose ✕ is brass-filled and always on screen) stay in place
+while the scan is shown. The edit-in-place (`expandAll`) body likewise drops the
+translation disclosure. Long rules extend the SVG height instead of being
+clipped or reduced to tiny type. Missing module faces, including action cards
+21/82 and goal 22, use the same renderer. The photographs are represented by
+lightweight vector emblems.
 
 ### Card choices
 

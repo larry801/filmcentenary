@@ -263,17 +263,18 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect(face).toHaveAttribute("lang", "zh-CN");
         await expect(face.locator(".ie-card-rules")).toContainText(/[\u4e00-\u9fff]/);
         await expect(board.locator(".ie-card img, .ie-card image")).toHaveCount(0);
-        // The inspector is the one place a card's face and text live; its
-        // translation disclosure prints the other language.
-        await inspector.locator(".ie-card-translation > summary").click();
-        await expect(inspector.locator(".ie-card-translation > div")).toBeVisible();
-        await expect(inspector.locator(".ie-card-translation > div")).toHaveAttribute("lang", "en");
+        // The inspector prints one language only: no translation disclosure
+        // beside the face, and the printed English original is an explicit
+        // button press rather than a second copy under the face.
+        await expect(inspector.locator(".ie-card-translation")).toHaveCount(0);
         await page.locator(".MuiSwitch-input").click();
         await expect(page.getByRole("heading", {name: "Imperial Elegy — local hotseat"})).toBeVisible();
         await expect(face).toHaveAttribute("data-card-id", original!);
         await expect(face).toHaveAttribute("lang", "en");
         await expect(face.locator(".ie-card-rules")).toContainText(/[A-Za-z]/);
-        await expect(inspector.locator(".ie-card-translation > div")).toHaveAttribute("lang", "zh-CN");
+        await expect(inspector.locator(".ie-card-translation")).toHaveCount(0);
+        // Switching language never pulls the English scan in on its own.
+        await expect(inspector.locator('[data-testid="ie-card-inspector-image"]')).toHaveCount(0);
         expect(cardImageRequests).toEqual([]);
     });
 

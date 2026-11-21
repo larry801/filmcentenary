@@ -736,7 +736,12 @@ the `--ie-brass-soft` keyline and a 1 px lift, so contrast is stable.
 - Print face: `--ie-paper-2` mat, 1 px rule, 12 px caption.
 - Inspector: 440 px drawer on desktop, full width on phone; dark chrome, paper
   card face, 2 px brass top rule, folio. Actions in two columns, 36 px.
-- Close button 36 px desktop / 44 px phone. Focus trap and Esc unchanged.
+- One language per view: the body shows the vector face or the printed scan,
+  never both. The **英文原图 / 中文卡面** toggle is one full-width, 36 px secondary
+  button under the actions; the scan is fetched only while it is shown.
+- The header is sticky (panel-coloured, hairline rule below) so the title and
+  the close control never scroll away behind a tall scan. Close button 36 px
+  desktop / 44 px phone, brass fill with ink glyph. Focus trap and Esc unchanged.
 
 ### 10.10 Map
 
