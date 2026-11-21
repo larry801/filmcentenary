@@ -47,7 +47,30 @@ const boxHasEnemyNaval = (G: ImperialElegyState, power: Power, box: SpaceId): bo
  * printed "1 army via the TSRR per impulse" is the action's own limit.
  */
 export const tsrrConnectionUsable = (G: ImperialElegyState, power: Power): boolean =>
-  G.powers.RU?.tsrr === true && (power === "RU" || allied(G, power, "RU"));
+  G.powers.RU?.tsrr === true && ruWarAlly(G, power);
+
+/**
+ * 4.9.4: is `power` allied to RU *in the running war*?  During the Great War
+ * the participating allies are the side rosters; outside it the 8.x alliance
+ * boxes decide.  A neutral RU never qualifies.
+ */
+const ruWarAlly = (G: ImperialElegyState, power: Power): boolean => {
+  if (power === "RU") return true;
+  if (G.gw?.active) {
+    const side = gwSideOf(G, power);
+    const ruSide = gwSideOf(G, "RU");
+    return side !== null && ruSide !== null && ruSide === side;
+  }
+  return allied(G, power, "RU");
+};
+
+/** The Great War side a power fights on, or null while it is neutral. */
+const gwSideOf = (G: ImperialElegyState, power: Power): "te" | "ta" | null => {
+  if (!G.gw) return null;
+  if (G.gw.te.includes(power)) return "te";
+  if (G.gw.ta.includes(power)) return "ta";
+  return null;
+};
 
 /**
  * 17.1 / 29.1: the naval boxes a power can reach from its capital with an
@@ -78,7 +101,9 @@ export const blockadeTrace = (G: ImperialElegyState, power: Power): SpaceId[] =>
   const reached: SpaceId[] = [];
   const visited = new Set<SpaceId>([capital]);
   const queue: SpaceId[] = [capital];
-  const usesRuPacific = power === "RU" || allied(G, power, "RU");
+  // 4.9.4: "RU and its allies" means allies *in this war*; see
+  // `tsrrConnectionUsable` for the neutral RU case.
+  const usesRuPacific = power === "RU" || ruWarAlly(G, power);
   const tsrrComplete = tsrrConnectionUsable(G, power);
   while (queue.length > 0) {
     const current = queue.shift()!;

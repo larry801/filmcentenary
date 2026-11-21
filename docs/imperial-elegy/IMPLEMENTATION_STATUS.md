@@ -1,5 +1,48 @@
 # Imperial Elegy — implementation status
 
+## Fixed: 5.6 supply accepted any held home territory, and 5.6.3 was not immediate (2026-11-21)
+
+Continuing the residual-rule audit for §5.6 / LoC and the §13–17 war
+settlement, two shared-engine defects were live:
+
+- **5.6 printed a controlled home *key* as the source.**  `isSupplySource`
+  already required one, but its trace ran through `locFriendlySpace`, and the
+  peacetime branch of that helper accepted any space the power merely *held*
+  (`control === power`), home territory included.  A player could therefore
+  draw supply from an ordinary home space, or from a wartime ally's home
+  territory with no ally home key on the route.  The `5.6.1` allied-minor
+  exception ("home spaces of minor powers allied to your major power allies")
+  was also absent from the peacetime source list.
+- **5.6.3 printed "immediately displace".**  `displacePeacetimeBrokenLoc` only
+  ran inside `beginImpulseUpkeep`, so an army stranded by a card event or a
+  treaty waited until its owner's next impulse.
+
+What is live now:
+
+- `isSupplySource` requires the acting power's own controlled **home key** and
+  admits a wartime second source that is an allied minor's home key
+  (`alliedMinorController`, keyed by the literal `ally` marker).
+- New exported `rules.ts#repairBrokenLinesOfCommunication` re-checks every
+  peacetime army and displaces it through the existing 5.7 destination helper.
+  It runs after every resolved pending decision (`resolvePending`), at
+  `startWarManeuver`, and the impulse boundary keeps calling it as the fallback
+  for older saves.
+- **17.1 / 29.1 follow-up:** `blockade.ts#tsrrConnectionUsable` (and
+  `blockadeTrace`'s own `usesRuPacific`) used the 8.x `allied()` question, so a
+  *neutral* RU sharing an alliance-track box with a belligerent silently cut
+  that alliance's ordinary Pacific sea route.  Both now read the running war's
+  side rosters (`ruWarAlly`), per 4.9.4.
+
+**Coverage:** `supplyRule5_6.test.ts` (7 — a held foreign key, an occupied
+foreign home territory, a peacetime ally corridor, an ally home key that only
+counts once the war starts, the immediate repair helper, the impulse-boundary
+fallback, and a resolved event leaving an in-supply army in place) and
+`blockadeNeutralRu.test.ts` (3 — neutral RU vs a real RU war ally vs the
+peacetime question).  `npx tsc --noEmit` clean; the supply/LoC, blockade,
+displacement, foreign-affairs, demobilisation, treaty and Great-War suites
+pass locally (15 suites / 180 tests targeted).  Remote verification is the
+feature branch's GitHub Actions run.
+
 ## Closed: every printed card now has a direct or handler regression (2026-11-21)
 
 The per-card inventory had five zero-signal cards left.  Added direct assertions

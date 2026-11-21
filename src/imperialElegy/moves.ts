@@ -96,6 +96,7 @@ import {
   powerLabel,
   recomputeTracks,
   randomIndex,
+  repairBrokenLinesOfCommunication,
   recordOccupation,
   redeployLandPath,
   refreshPowerProjection,
@@ -5820,6 +5821,7 @@ export const resolvePending = (G: ImperialElegyState, ctx: Ctx, optionId: string
   const result = resolvePendingDecision(G, ctx, optionId);
   if (result === undefined) {
     settleBattleCharacteristics(G);
+    repairPeacetimeSupply(G);
     // 15.1: a start-of-maneuver battle queue parked behind an upkeep decision
     // resumes as soon as that decision closes.
     if (G.pending === null && G.battle === null && navalStartQueuePending(G)) {
@@ -5827,6 +5829,20 @@ export const resolvePending = (G: ImperialElegyState, ctx: Ctx, optionId: string
     }
   }
   return result;
+};
+
+/**
+ * 5.6.3: after any resolution that can move control markers (an event, a
+ * treaty, an independence), re-check every peacetime army's LoC so an army cut
+ * off by the change displaces *now* instead of at its owner's next impulse.
+ * The upkeep path is idempotent, so a state that is already legal is untouched.
+ */
+const repairPeacetimeSupply = (G: ImperialElegyState): void => {
+  if (G.war !== null || G.gw?.active) return;
+  for (const power of POWERS) {
+    if (G.powers[power]?.eliminated) continue;
+    repairBrokenLinesOfCommunication(G, power);
+  }
 };
 
 const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: string): string | void => {
@@ -8366,6 +8382,10 @@ export const startWarManeuver = (G: ImperialElegyState, ctx: Ctx): string | void
   if (G.war.status !== "warAim" && G.war.status !== "alliance") return INVALID_MOVE;
   const rapid = rapidMobilizationBelligerent(G, G.war);
   G.war.status = "maneuver";
+  // 5.6.3: a war may open paths and close others at once (allies stop supplying
+  // enemies and start supplying each other), so the first maneuver impulse's
+  // supply is repaired before the upkeep below reads it.
+  repairPeacetimeSupply(G);
   // 8.2 / 14.2: the alliance-shift step closes the defender's open choice.
   settleDefenderShiftChoice(G, G.war);
   // Rule 14.3: card CP first, GE only wins ties (Bewegungskrieg), then

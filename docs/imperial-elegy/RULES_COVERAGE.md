@@ -88,8 +88,19 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   another. **5.6.2 broken LoC** now costs one step at the start of the owning
   player's impulse, gives −1 BDRM and forbids support; **5.6.3** displaces a
   peacetime broken-LoC army to the nearest friendly LoC space. **Partial:**
-  supply remains an approximation, minor-owned armies are not penalised, and
-  general 5.7 event displacement is limited to the WoI/broken-LoC paths.
+  supply remains an approximation (no consumption/forage step) and general 5.7
+  event displacement is limited to the WoI/broken-LoC/WP paths.
+- **2026-11-21 supply audit:**
+  - 5.6's source list is enforced.  `isSupplySource` now requires an actual
+    controlled **home key** for the acting power, and a wartime second source
+    may also be an allied minor's home key (`isSupplySource` + the new
+    `alliedMinorController`); a foreign key a power merely occupies, such as
+    Britain holding Shanghai, no longer supplies its garrison.
+  - 5.6.3's "immediately displace" is now immediate.  New
+    `rules.ts#repairBrokenLinesOfCommunication` re-checks every army's LoC and
+    runs after every resolved pending decision (`resolvePending`), at
+    `startWarManeuver`, and on the impulse boundary (which stays the fallback
+    for older saves).  Coverage: `supplyRule5_6.test.ts`.
 
 ## 6–7 Displays and tracks
 
@@ -706,6 +717,10 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
     a closed/blocked Suez and a refused Dardanelles), reduces each
     blockaded power’s maximum industry by 1 per GW year (floor 3) and clamps
     industry; the US North Atlantic check is part of the winter result.
+    4.9.4's "RU and its allies" is now read from the running war: the new
+    `blockade.ts#ruWarAlly` refuses a neutral RU whose 8.x box happens to match
+    a belligerent's, so one alliance's neutrality can no longer cut the other
+    alliance's ordinary Pacific sea route (`blockadeNeutralRu.test.ts`).
   - **29.2 colonial war** applies the printed EF/elite/army/naval-supremacy
     modifiers, opposed rolls, one/two-step losses, territorial transfer, UK/RU
     stability and the 1/3 bonus CP at the next planning step. Transfer LoC
