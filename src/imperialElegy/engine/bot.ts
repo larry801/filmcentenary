@@ -98,6 +98,40 @@ export const bmpitTarget = (die1: number, die2: number): {power: Power; track: M
   return {power, track};
 };
 
+/**
+ * 34.3's neutral exception: "Neutral bots may split their CP" across powers.
+ * The split walks the printed BMPIT columns in order so the result is
+ * reproducible: the current power's next neighbour on the column its marker
+ * has not yet covered, which spreads a neutral bot's CP over several powers
+ * instead of pouring every point into one.
+ */
+export const neutralBmpitTarget = (
+  G: ImperialElegyState,
+  power: Power,
+): {power: Power; track: MpitTrack} => {
+  const own = POWERS.indexOf(power);
+  // Prefer the column the bot has influenced least; ties keep the printed
+  // column order, so a fixed board always yields the same answer.
+  let best: Power = POWERS[(own + 1) % POWERS.length];
+  let bestTotal = Number.POSITIVE_INFINITY;
+  for (let offset = 1; offset < POWERS.length; offset += 1) {
+    const candidate = POWERS[(own + offset) % POWERS.length];
+    const mpit = G.powers[candidate]?.mpit;
+    if (!mpit) continue;
+    const total = mpit.te + mpit.ta + mpit.neutral;
+    if (total < bestTotal) {
+      best = candidate;
+      bestTotal = total;
+    }
+  }
+  const mpit = G.powers[best].mpit;
+  // The row is chosen the same way the allied branch chooses it: the track the
+  // bot is furthest from.  A neutral bot still has no TA commitment to keep, so
+  // it steers its split towards whichever field is lowest on that power.
+  const track: MpitTrack = mpit.te > mpit.ta ? "ta" : mpit.te >= 3 ? "neutral" : "te";
+  return {power: best, track};
+};
+
 // ---------------------------------------------------------------------------
 // Space classification helpers for BDIT targeting
 // ---------------------------------------------------------------------------
@@ -725,11 +759,18 @@ const excessCp = (G: ImperialElegyState, power: Power): BotMove | null => {
 
   // Then BMPIT influence.  `placeInfluence` places a *map* influence marker
   // and takes a SpaceId; the alliance track is moved with `placeMpit`.
-  // Deterministic first choice: the next power, on whichever of its tracks the
-  // bot is furthest from, preferring TA while it is still open.
-  const targetPower = POWERS[(POWERS.indexOf(power) + 1) % POWERS.length];
-  const track = G.powers[targetPower].mpit.te >= 3 ? "neutral" : "te";
-  return {move: "placeMpit", args: [targetPower, track]};
+  //
+  // 34.3: "Bots will always spend all their CP to influence a single power.
+  // Exception: Neutral bots may split their CP, see below BMPIT on bot PAC."
+  // A player in the neutral box splits its CP across powers; every allied bot
+  // keeps spending on one power only.  The power/track pair comes from the
+  // deterministic BMPIT walk below, so the choice stays reproducible.
+  const target = G.powers[power]?.alliance === "neutral"
+    ? neutralBmpitTarget(G, power)
+    : {power: POWERS[(POWERS.indexOf(power) + 1) % POWERS.length],
+      track: undefined as MpitTrack | undefined};
+  const track = target.track ?? (G.powers[target.power].mpit.te >= 3 ? "neutral" : "te");
+  return {move: "placeMpit", args: [target.power, track]};
 };
 
 /**
