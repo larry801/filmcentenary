@@ -197,7 +197,6 @@ describe("18.6.3 — EF losses are coupled to the force's army losses", () => {
     // "Treated as ECs for the purposes of elimination": the Zouave stays while
     // its army stands (an EC goes only with an eliminated army, 18.6.2).
     expect(f.board()).toContain("FR:zouave");
-    console.log("COUP", JSON.stringify(f.coupled()), JSON.stringify(f.board()), f.G.battle !== null);
     // The plain EF coupling does not print for an EC-bearing force: both
     // counters are still in the space.
     expect(f.board()).toEqual(["FR:army", "FR:zouave"]);
