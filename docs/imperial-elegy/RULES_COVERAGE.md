@@ -122,10 +122,24 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   EFs do not check for LoCs", so they never take a 5.6.2 penalty and never
   supply themselves; the supply check in a space is its army's.  The engine
   already keeps them out of `impulsePenalties` (armies only) and the support
-  filter, which is the printed reading.  Their printed elimination clauses —
-  5.1.3–5.1.6's "alone in a space at the end of a combat or at the end of a
-  movement", 5.1.2's reserve army that must end a move with a standing army, and
-  5.3.1/5.3.2's loss coupling — remain the open items tracked in
+  filter, which is the printed reading.
+- **5.1.3 / 5.1.5 / 5.1.6 "alone in a space" (audited 2026-11-21).**  "If an EC
+  is ever alone in a space at the end of a combat or at the end of a movement,
+  it is eliminated."  `rules.ts#eliminateAloneEliteUnits` sweeps every EC, elite
+  colonial EF and Zouave that has no land army of its own owner in its space.
+  It runs at the end of a battle (`combat.ts#finishBattle`, claim-based: only a
+  counter that battle stranded) and at the impulse boundary
+  (`beginImpulseUpkeep`) — the end of the movement, whatever move produced the
+  split (redeploy, march, rail, naval transport, 5.7 displacement, an event
+  placement).  Two exemptions keep printed positions legal: the campaign setup's
+  own lone counters (the FR Zouave in Algeria, the UK elite colonial EF at Suez)
+  and A78's placement carry a `setupPlacedTurn` stamp until the game has moved
+  on.  5.1.4's ordinary EFs and 5.1.2's reserve armies print the weaker "must
+  end a move with a standing army" form and are not swept.  Coverage:
+  `aloneEliteElimination.test.ts` (8).
+- **Still open:** 5.1.2's reserve army that must end a move with a standing army
+  is enforced only at deployment time, and 5.3.1/5.3.2's loss coupling is not
+  wired — the open items tracked in
   [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
 - **2026-11-21 supply audit:**
   - 5.6's source list is enforced.  `isSupplySource` now requires an actual

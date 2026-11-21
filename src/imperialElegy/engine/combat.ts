@@ -37,6 +37,7 @@ import {
   changeStability,
   resolveCapitalSurrenders,
   commandsAlliedMinor,
+  eliminateAloneEliteUnits,
 } from "./rules";
 import {decision, openDecision, option} from "./pending";
 import {unitKindLabel} from "./unitKind";
@@ -3580,6 +3581,22 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       if (unit) removeUnit(G, unitId);
       log(G, owner, "eliteBonusDestroyed", {to: battle.to, side, kind});
     }
+  }
+  // 5.1.3 / 5.1.5 / 5.1.6: "If an EC is ever alone in a space ... at the end of
+  // a combat ... it is eliminated."  The sweep is claim-based: it only removes a
+  // counter this battle stranded, so one that was already standing alone (a
+  // free redeployment, a draft, a setup placement) is not silently destroyed by
+  // an unrelated battle in its space — that case is the impulse boundary's.
+  // It runs after the retreat/advance, when the surviving stacks are final.
+  {
+    // The battle's own participants, still on the board or already gone.
+    const participants = new Set([
+      ...battle.mainAttack,
+      ...battle.mainDefense,
+      ...battle.supportAttack.flatMap((entry) => entry.units),
+      ...battle.supportDefense.flatMap((entry) => entry.units),
+    ]);
+    eliminateAloneEliteUnits(G, {space: battle.to, exclude: [...participants]});
   }
   // Every seat reads this from shared state: the result dialog is a public
   // report, not the active player's private notification.
