@@ -7718,8 +7718,19 @@ export const gwPass = (G: ImperialElegyState, ctx: Ctx): string | void => {
     if (G.pending !== null || G.battle !== null) return INVALID_MOVE;
     const heldCard = G.powers[power].gwCard;
     if (heldCard && passRestriction(G, power, [heldCard]).forced) return INVALID_MOVE;
-  } else if (power === null || gwFinishImpulseProblem(G, power) !== null || !G.gw) {
-    return INVALID_MOVE;
+  } else {
+    if (power === null || !G.gw) return INVALID_MOVE;
+    const blocked = gwFinishImpulseProblem(G, power);
+    // 27.1/27.2: the bonus action a card buys is the seat's action; once that
+    // action is played, the impulse is completed and its pass is the printed
+    // exit even if the bonus-pending flag of a post-dice response (GW-06) was
+    // never cleared.  Only that flag is tolerated here — every other refusal
+    // still stands.
+    const completed = blocked === "bonusPending" && currentGwImpulse(G, power).acted === true;
+    if (blocked !== null && !completed) {
+      log(G, power, "gwPassRefused", {reason: blocked, acted: currentGwImpulse(G, power).acted, order: String(G.gw.order[G.turnIndex])});
+      return INVALID_MOVE;
+    }
   }
   const impulse = currentGwImpulse(G, power);
   const major = gwAllyImpulseFor(G, power);
