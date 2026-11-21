@@ -514,6 +514,65 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(war.getByRole("button", {name: "召唤盟友"})).toBeVisible();
     });
 
+    test("the War tab carries the unit-move console, so a wartime player never switches tabs", async ({page}) => {
+        await reachAction(page);
+        const board = boardFor(page, "GE");
+        await playCpCard(board);
+
+        // Declare a war from the War tab (no map click), which brings that tab
+        // to the front by itself.
+        await board.locator('[data-testid="ie-turn-tab-war"]').click();
+        const declare = board.locator('[data-testid="ie-war-declare"]');
+        await expect(declare).toBeVisible();
+        await declare.locator('[data-testid="ie-war-declare-defender"]').selectOption("AU");
+        await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("bohemia");
+        await declare.locator('[data-testid="ie-war-declare-cp"]').selectOption("1");
+        const warButton = declare.locator('[data-testid="ie-declare-war"]');
+        await expect(warButton).toBeEnabled({timeout: 15_000});
+        await warButton.click();
+        await warButton.click();
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("wartime");
+
+        // The console is mounted inside the War body, above the war report.
+        const war = board.locator('[data-testid="ie-turn-panel-war"]');
+        const console = war.locator('[data-testid="ie-war-move-console"]');
+        await expect(war.locator('[data-testid="ie-war"]')).toBeVisible();
+        await expect(console).toBeVisible();
+
+        // With no space picked it says what to click instead of printing an
+        // empty list; the war report below it is untouched.
+        await expect(console.locator('[data-testid="ie-war-move-hint"]')).toBeVisible();
+
+        // Pick a Berlin army on the map: the console's own picker lists it, with
+        // its own (prefixed) test id, and the Orders page's copy keeps the plain
+        // one — the two mounted bodies never answer to the same selector.
+        await clickSpace(board, "berlin", "柏林");
+        const unitId = await page.evaluate((): string | null => {
+            const G = (window as any).__IE_STATE__;
+            const ids: string[] = (G.spaces.berlin.units ?? []).filter((id: string) =>
+                G.units[id]?.owner === "GE" && !G.units[id]?.naval);
+            return ids[0] ?? null;
+        });
+        if (unitId === null) throw new Error("Berlin holds no German land unit to select");
+        await expect(war.locator('[data-testid="ie-war-move-space"]')).toContainText("柏林");
+        const warUnit = war.locator(`[data-testid="ie-war-unit-${unitId}"]`);
+        await expect(warUnit).toBeVisible();
+        await expect(board.locator(`[data-testid="ie-unit-${unitId}"]`)).toHaveCount(1);
+
+        // Selecting it in the War tab drives the board's one selection: the map
+        // rings its legal destinations and the Orders copy shows it pressed.
+        await warUnit.click();
+        await expect(warUnit).toHaveAttribute("aria-pressed", "true");
+        await expect(board.locator('[data-testid="ie-mode-pill"]')).toBeVisible();
+        await expect(board.locator(`[data-testid="ie-unit-${unitId}"]`)).toHaveAttribute("aria-pressed", "true");
+
+        // The War copy prints movement rows only: a wartime march/rail row is
+        // there, and the Orders-only recruitment rows are not.
+        await expect(war.locator('[data-testid="ie-war-action-list"]')).toBeVisible();
+        await expect(war.locator('[data-testid="ie-war-action-move"]')).toHaveCount(1);
+        await expect(war.locator('[data-testid="ie-war-action-recruitArmy"]')).toHaveCount(0);
+    });
+
     test("the Bismarck event opens the War panel's declaration and declares unification", async ({page}) => {
         await openLocal(page);
         await finishPrep(page);

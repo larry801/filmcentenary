@@ -50,6 +50,15 @@ interface SpaceBaseProps {
 export interface SpaceUnitPickerProps extends SpaceBaseProps {
   selectedUnit: string | null;
   setSelectedUnit: (id: string | null) => void;
+  /**
+   * Namespace for the picker's test ids.
+   *
+   * The same picker is printed twice while the turn panel is open — on the
+   * Orders page and in the War tab's move console — and both bodies stay
+   * mounted (inactive ones are only `hidden`).  A prefix keeps each copy
+   * addressable: `ie-war-unit-…` in the War tab, `ie-unit-…` on the Orders page.
+   */
+  testIdPrefix?: string;
   /** Every unit of the current selection, primary first (12.15/16.1 stacks). */
   selectedUnitIds?: string[];
   /** Add or remove one unit from the current selection (the stack form). */
@@ -147,7 +156,10 @@ export const SpaceUnitPicker = (props: SpaceUnitPickerProps) => {
     G, selected, viewer, locale, t, phase, canAct,
     selectedUnit, setSelectedUnit, selectedUnitIds = [], toggleUnitSelection, selectUnitGroup,
     pending, canDecide, doAction, moves,
+    testIdPrefix = "ie-",
   } = props;
+  /** `ie-unit-…` on the Orders page, `ie-war-unit-…` in the War tab's copy. */
+  const tid = (name: string): string => `${testIdPrefix}${name}`;
 
   const selectedState = selected ? G.spaces[selected] : null;
   if (selectedState === null) return null;
@@ -169,7 +181,7 @@ export const SpaceUnitPicker = (props: SpaceUnitPickerProps) => {
   const allSelected = movable.length > 0 && movable.every((u) => selectedUnitIds.includes(u.id));
 
   return (
-    <div className="ie-unit-picker" data-testid="ie-unit-picker">
+    <div className="ie-unit-picker" data-testid={tid("unit-picker")}>
       <div className="ie-space-units">
         <strong>{t.units}:</strong>
         {selectedState.units.map((id) => {
@@ -187,7 +199,7 @@ export const SpaceUnitPicker = (props: SpaceUnitPickerProps) => {
           const onClick = toggleUnitSelection !== undefined
             ? () => (selectedUnit === id && selectedUnitIds.length === 1 ? setSelectedUnit(null) : toggleUnitSelection(id))
             : () => setSelectedUnit(id);
-          return <button key={id} data-testid={`ie-unit-${id}`} className="ie-btn secondary" aria-pressed={selectedHere} onClick={onClick}>{unitLabel(u, t, locale)}</button>;
+          return <button key={id} data-testid={tid(`unit-${id}`)} className="ie-btn secondary" aria-pressed={selectedHere} onClick={onClick}>{unitLabel(u, t, locale)}</button>;
         })}
       </div>
       {/*
@@ -201,7 +213,7 @@ export const SpaceUnitPicker = (props: SpaceUnitPickerProps) => {
           <button
             type="button"
             className="ie-btn secondary ie-mini"
-            data-testid="ie-select-stack"
+            data-testid={tid("select-stack")}
             data-all-selected={allSelected ? "true" : "false"}
             onClick={() => {
               if (allSelected) { setSelectedUnit(null); return; }
@@ -247,6 +259,24 @@ export interface SpaceActionsPanelProps extends SpaceBaseProps {
   setBattleFrom: (id: SpaceId | null) => void;
   navalFrom: SpaceId | null;
   setNavalFrom: (id: SpaceId | null) => void;
+  /**
+   * Render only the rows this predicate accepts.
+   *
+   * The War tab prints the movement half of this same list (the "Move & battle"
+   * group) so a wartime player does not have to switch to the Orders page to
+   * march, rail, sail or fight.  One renderer keeps the labels, costs and printed
+   * reasons identical to the Orders page; only the subset differs.
+   */
+  rowFilter?: (row: SpaceAction) => boolean;
+  /**
+   * Namespace for every test id inside the panel.
+   *
+   * Both panel bodies stay mounted while the turn panel is open, so the War
+   * tab's copy must not collide with the Orders page's addresses.
+   */
+  testIdPrefix?: string;
+  /** Print the space's name, the page hint and the cost link (default true). */
+  showHead?: boolean;
 }
 
 /**
@@ -266,12 +296,12 @@ const LEGACY_ACTION_IDS: Partial<Record<SpaceAction["id"], string>> = {
 };
 
 /** The space's name and control, always on screen above the action list. */
-const ActionsHeading = ({G, selected, locale, t}: Pick<SpaceBaseProps, "G" | "selected" | "locale" | "t">) => {
+const ActionsHeading = ({G, selected, locale, t, testIdPrefix = "ie-"}: Pick<SpaceBaseProps, "G" | "selected" | "locale" | "t"> & {testIdPrefix?: string}) => {
   const space = selected ? SPACES[selected] : null;
   const state = selected ? G.spaces[selected] : null;
-  if (!space || !state) return <div className="ie-muted" data-testid="ie-actions-space">{t.noSpace}</div>;
+  if (!space || !state) return <div className="ie-muted" data-testid={`${testIdPrefix}actions-space`}>{t.noSpace}</div>;
   return (
-    <div className="ie-actions-space" data-testid="ie-actions-space">
+    <div className="ie-actions-space" data-testid={`${testIdPrefix}actions-space`}>
       <b>{locale === "zh_CN" ? space.nameZh : space.name}</b>
       <span className="ie-muted"> · {t.control}: {controlLabel(t, state.control)}</span>
     </div>
@@ -281,11 +311,13 @@ const ActionsHeading = ({G, selected, locale, t}: Pick<SpaceBaseProps, "G" | "se
 export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
   const {
     G, selected, viewer, locale, t, canAct, onOpenReference,
-    rows, cpRemaining,
+    rows: allRows, cpRemaining,
     polishReserve, setPolishReserve, selectedUnitDef, setSelectedUnit,
     battleFrom, setBattleFrom, navalFrom, setNavalFrom,
+    rowFilter, testIdPrefix = "ie-", showHead = true,
     showUnavailable: liveShowUnavailable, setShowUnavailable: setLiveShowUnavailable,
   } = props;
+  const rows = rowFilter === undefined ? allRows : allRows.filter(rowFilter);
 
   /**
    * The fold state is remembered per browser (`ie_show_unavailable`): a reader
@@ -326,12 +358,14 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
    * rows in the "available now" strip, refused ones behind the fold — so a
    * selector finds the same control wherever it is rendered.
    */
-  const actionRow = (item: SpaceAction) => (
+  const actionRow = (item: SpaceAction) => {
+    const legacy = LEGACY_ACTION_IDS[item.id];
+    return (
     <div
       key={item.uid ?? item.id}
       className={`ie-action${item.enabled ? " ie-action-legal" : ""}`}
-      data-testid={`ie-action-${item.uid ?? item.id}`}
-      data-legacy-testid={LEGACY_ACTION_IDS[item.id]}
+      data-testid={`${testIdPrefix}action-${item.uid ?? item.id}`}
+      data-legacy-testid={legacy}
       data-enabled={item.enabled ? "true" : "false"}
     >
       <button
@@ -340,8 +374,11 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
         // The button keeps the name of the control it replaced (`ie-gw-march`,
         // …); a row without a historic name is addressed by its wrapper's
         // `ie-action-<id>` and, while legal, also by the strip's
-        // `ie-action-now-<id>`.
-        data-testid={LEGACY_ACTION_IDS[item.id] ?? (item.enabled ? `ie-action-now-${item.uid ?? item.id}` : undefined)}
+        // `ie-action-now-<id>`.  The War tab's copy prefixes every id so the two
+        // mounted copies never answer to the same selector.
+        data-testid={legacy !== undefined
+          ? `${testIdPrefix}${legacy.replace(/^ie-/, "")}`
+          : (item.enabled ? `${testIdPrefix}action-now-${item.uid ?? item.id}` : undefined)}
         disabled={!item.enabled}
         title={item.reason ?? item.label}
         onClick={() => runAction(item)}
@@ -353,7 +390,8 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
           must be legible on a phone, where a tooltip needs a pointer. */}
       {!item.enabled && item.reason !== undefined && <span className="ie-action-reason">{item.reason}</span>}
     </div>
-  );
+    );
+  };
 
   /**
    * The legal rows, cheapest first.  Cost order rather than rulebook order: the
@@ -384,18 +422,20 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
   const deployLegal = enabledRows.some((item) => item.id === "deployReserves");
 
   return (
-    <section className="ie-space-actions" data-testid="ie-space-actions">
-      <ActionsHeading G={G} selected={selected} locale={locale} t={t}/>
+    <section className="ie-space-actions" data-testid={`${testIdPrefix}space-actions`}>
+      {showHead && <ActionsHeading G={G} selected={selected} locale={locale} t={t} testIdPrefix={testIdPrefix}/>}
 
       {canAct && (
-        <div className="ie-action-groups" data-testid="ie-action-list">
-          <div className="ie-action-groups-head">
-            <span className="ie-action-groups-hint">
-              {bi(locale, "Every action the rules allow here, and why the rest are closed.", "此处规则允许的全部行动，以及其余行动不可用的原因。")}
-            </span>
-            {/* The player aid's cost list, rendered from ACTION_COSTS. */}
-            <RuleLink anchor="rules:costs" locale={locale} onOpenReference={onOpenReference} testId="ie-rule-ref-action-costs"/>
-          </div>
+        <div className="ie-action-groups" data-testid={`${testIdPrefix}action-list`}>
+          {showHead && (
+            <div className="ie-action-groups-head">
+              <span className="ie-action-groups-hint">
+                {bi(locale, "Every action the rules allow here, and why the rest are closed.", "此处规则允许的全部行动，以及其余行动不可用的原因。")}
+              </span>
+              {/* The player aid's cost list, rendered from ACTION_COSTS. */}
+              <RuleLink anchor="rules:costs" locale={locale} onOpenReference={onOpenReference} testId={`${testIdPrefix}rule-ref-action-costs`}/>
+            </div>
+          )}
 
           {/*
             * The legal rows, and the only copy of them.  A typical space
@@ -403,7 +443,7 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
             * first, in cost order, with no scroll and no second list below.
             */}
           {enabledRows.length > 0 ? (
-            <div className="ie-action-now" data-testid="ie-action-available" data-count={enabledRows.length}>
+            <div className="ie-action-now" data-testid={`${testIdPrefix}action-available`} data-count={enabledRows.length}>
               <span className="ie-action-now-label">
                 {bi(locale, `${enabledRows.length} available now`, `${enabledRows.length} 项现在可用`)}
               </span>
@@ -413,14 +453,14 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
               {/* 22.5(2): the modifier belongs to the deploy row, which lives in
                   this strip while it is legal. */}
               {deployLegal && polishOwner && (
-                <label className="ie-inline ie-check" data-testid="ie-polish-reserve-toggle" title={bi(locale, "22.5(2): a deploy-reserves action may also deploy one Polish reserve army.", "22.5(2)：部署预备军行动可额外部署 1 支波兰预备军。")}>
+                <label className="ie-inline ie-check" data-testid={`${testIdPrefix}polish-reserve-toggle`} title={bi(locale, "22.5(2): a deploy-reserves action may also deploy one Polish reserve army.", "22.5(2)：部署预备军行动可额外部署 1 支波兰预备军。")}>
                   <input type="checkbox" checked={polishReserve} onChange={(e) => setPolishReserve(e.target.checked)} />
                   {bi(locale, "Also deploy 1 Polish reserve army", "同时部署 1 支波兰预备军")}
                 </label>
               )}
             </div>
           ) : (
-            <div className="ie-muted" data-testid="ie-action-none">
+            <div className="ie-muted" data-testid={`${testIdPrefix}action-none`}>
               {bi(locale, "No action is legal in this space right now.", "此空间当前没有可执行的行动。")}
             </div>
           )}
@@ -433,19 +473,19 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
           {refusedByGroup.length > 0 && (
             <details
               className="ie-unavailable"
-              data-testid="ie-unavailable"
+              data-testid={`${testIdPrefix}unavailable`}
               open={showUnavailable}
               onToggle={(event) => {
                 const open = (event.currentTarget as HTMLDetailsElement).open;
                 setShowUnavailable(open);
               }}
             >
-              <summary className="ie-unavailable-summary" data-testid="ie-unavailable-summary">
+              <summary className="ie-unavailable-summary" data-testid={`${testIdPrefix}unavailable-summary`}>
                 {bi(locale, `Unavailable (${refusedRows.length})`, `不可用（${refusedRows.length}）`)}
               </summary>
               <div className="ie-unavailable-body">
                 {refusedByGroup.map(({group, items}) => (
-                  <section key={group} className="ie-action-group" data-testid={`ie-actions-${group}`} data-available="0">
+                  <section key={group} className="ie-action-group" data-testid={`${testIdPrefix}actions-${group}`} data-available="0">
                     <h5 className="ie-action-group-title">
                       {locale === "zh_CN" ? ACTION_GROUP_LABELS[group].zh : ACTION_GROUP_LABELS[group].en}
                       <span className="ie-action-group-badge" aria-label={bi(locale, "0 available", "0 项可用")}>0</span>
@@ -460,7 +500,7 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
       )}
 
       {canAct && (battleFrom !== null || navalFrom !== null) && (
-        <div className="ie-target-hint" data-testid="ie-target-hint">
+        <div className="ie-target-hint" data-testid={`${testIdPrefix}target-hint`}>
           <strong>{battleFrom ?? navalFrom}</strong>: {bi(locale, "choose a highlighted adjacent target space on the map.", "在地图上选择高亮的相邻目标空间。")}
           <button className="ie-btn secondary ie-mini" onClick={() => { setBattleFrom(null); setNavalFrom(null); }}>{t.cancel}</button>
         </div>
@@ -470,10 +510,10 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
           and the cost chip answers "what can I afford" at a glance now that the
           grouped heads are gone. */}
       {canAct && (selectedUnitDef !== undefined || enabledRows.length > 0) && (
-        <div className="ie-action-foot" data-testid="ie-action-foot">
+        <div className="ie-action-foot" data-testid={`${testIdPrefix}action-foot`}>
           <span className="ie-action-cp-note">{bi(locale, `CP left this impulse: ${cpRemaining}`, `本行动轮剩余 CP：${cpRemaining}`)}</span>
           {selectedUnitDef !== undefined && selectedUnitDef.space === selected && (
-            <span className="ie-action-selected" data-testid="ie-action-selected">
+            <span className="ie-action-selected" data-testid={`${testIdPrefix}action-selected`}>
               <span>{bi(locale, "Selected:", "已选：")}</span>
               <button className="ie-btn secondary ie-mini" onClick={() => setSelectedUnit(null)}>
                 {bi(locale, "Clear unit selection", "取消单位选择")}
