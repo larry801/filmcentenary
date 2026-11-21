@@ -1,5 +1,45 @@
 # Imperial Elegy — implementation status
 
+## Verified: §1–4's counter chart and the §7.1.1 stability table (2026-11-21)
+
+An audit pass, not a code change.  Two `Partial` rows named specific data
+claims that could be settled directly against the printed sources.
+
+- **§4.2's `counter-count` chart.**  The published
+  `charts/counter-count.png` was read row by row against
+  `engine/counters.ts#PLAYER_COUNTER_CHART` / `NON_PLAYER_COUNTER_CHART`:
+  the six player rows (5/5/5/5/5/4 standing, 11/0/9/9/11/1 reserve, the UK's
+  5 special standing and the OT 2+2 Arab armies, 79/68/26/26 totals), every
+  "Special" counter, and all 24 non-player rows (Italy … Boxers) match the
+  transcription exactly, including the Sar-Pied control-marker flip-side note.
+  The six rows the chart does not print stay `null` by design.  §4.2.1's
+  five-minor-ally cap is pinned by `counterLimits.test.ts` and
+  `foreignAffairs.test.ts`.
+- **§1–4's "cannot be played by" clauses.**  A search of all 122 card faces
+  prints no per-power playability clause; the only printed power windows
+  (A041 GE, A054 OT, A098 FR) are gated by `PRINTED_RESPONSE_POWERS` in
+  `moves.ts`.  §5.5.3's overstacking ("the stack suffers one step loss total,
+  not every unit ... FP limited to the space's stacking limit") is fully
+  modelled by `impulsePenalties`.
+- **§7.1.1's stability table.**  Every printed cause is live:
+  a WoI independence −1 and a major defeat −1 / major victory +1
+  (`applyWoiIndependence`, `classifyVictory`'s `{winner: 1, loser: -1}`),
+  a conquest declaration −X on the post-increase WTT
+  (`conquestDeclarationPenalty`), and a dreadnought lost in battle −1.
+- **§33's open port-formula question was re-checked and needs no change.**
+  `computePowerProjection` yields FR 2 and RU 3; the v1.1 playbook's display
+  line says FR 3 / RU 3.  France controls two ordinary ports in two different
+  boxes (one point each) and no naval base, while the *rule text*'s base
+  pairing would leave a lone base at one as well, so the display's FR 3 cannot
+  come from the printed formula over the printed campaign setup.  The engine
+  keeps `CAMPAIGN_SETUP`'s printed FR 3 as the display value and the derived 2
+  as the track, as `powerProjection.test.ts` pins.
+
+**Evidence:** `counterLimits.test.ts`, `foreignAffairs.test.ts`,
+`powerProjection.test.ts`, `supplyRule5_6.test.ts` and the full IE Jest suite
+are the existing coverage; nothing in this pass changed code, so the last green
+remote run remains the reported verification.
+
 ## Fixed: 18.6.3's EF loss coupling only ran on elimination (2026-11-21)
 
 Continuing the §5 residual audit, the printed loss coupling was the next
@@ -1759,7 +1799,7 @@ the scope. See [`SCENARIOS.md`](SCENARIOS.md).
 
 | Rules | Status | Live implementation at this refresh | Principal gaps / fallbacks |
 | --- | --- | --- | --- |
-| **1–4 Key concepts** | **Partial** | Seat order GE, UK, FR, AU, RU, OT; phases; active power; dice through `ctx.random`; half-FP rounding; impulse loop with pass/end-impulse. **4.2 counter pools are transcribed from the printed `counter-count` chart** for all six players **and 24 non-player rows** (armies/reserves/EC/EF/squadrons/dreadnoughts) and enforced in recruit/buildEf/constructFleet/GW draft/Polish recruitment; the printed naval limits (GE/AU/OT 2/2 until A092 4/4 or GE unification) sit on top. 4.2.1’s five-minor-ally cap is enforced by distinct minor power. | A few non-player rows the chart omits (Tuscany, Papal States, Egypt, Morocco, Korea, Mexico) stay `null` rather than invented; some printed “cannot be played by” clauses remain event-mode only (see §9–12). |
+| **1–4 Key concepts** | **Partial** | Seat order GE, UK, FR, AU, RU, OT; phases; active power; dice through `ctx.random`; half-FP rounding; impulse loop with pass/end-impulse. **4.2 counter pools are transcribed from the printed `counter-count` chart** for all six players **and 24 non-player rows** (armies/reserves/EC/EF/squadrons/dreadnoughts) and enforced in recruit/buildEf/constructFleet/GW draft/Polish recruitment; the printed naval limits (GE/AU/OT 2/2 until A092 4/4 or GE unification) sit on top. 4.2.1’s five-minor-ally cap is enforced by distinct minor power. | **The counter-count transcription was verified row by row against the published PNG (2026-11-21):** all six player rows (standing/reserve/EC/EF/squadron/dreadnought, the UK 5 special standing armies and the OT 2+2 Arab armies, with the 79/68/26/26 totals) and all 24 non-player rows match the chart. The six non-player rows the chart does not print (Tuscany, Papal States, Egypt, Morocco, Korea, Mexico) stay `null` by design rather than invented, and the only printed per-mode power restrictions (A041/A054/A098's own response windows) are gated engine-wide — the 122 card faces print no further "played by" clause (searched across the whole deck). |
 | **5 Units, stacking, LoC** | **Implemented** (non-army counter elimination and 5.7 event displacement Partial) | Typed armies, reserve armies, EC/EF, elite colonial EF, Zouaves, squadrons, dreadnoughts; two-step armies; stacking caps 3 (Europe) / 2 (elsewhere, including all OT home spaces); ports hold 4 naval units; BFS LoC and supply sources. **5.5.3 overstacking** costs one step per overstacked stack at the start of the owning player's impulse (owner chooses; one step total) and caps contributing defenders; **5.6.2 broken LoC** charges its step at impulse start, gives −1 BDRM and forbids support; **5.6.3** displaces a peacetime broken-LoC army to the nearest friendly LoC space. **5.6's two clocks are kept apart**: (2)/(3) are answered at "any point" — at every battle start and every support window — while (1) is charged only at the start of the owner's next impulse, and only to a stack that is still cut off then (a corridor restored before that point costs no step). **Only armies check a LoC**, so EC/EF/elite/naval counters never take a 5.6.2 penalty. | 5.6 prints no supply points or consumption step, so none is modelled; 5.1.3–5.1.6's "alone in a space at the end of a combat or at the end of a movement" elimination is live for ECs, elite colonial EFs and Zouaves (`rules.ts#eliminateAloneEliteUnits`, run at battle end and at the impulse boundary, with the printed setup placements exempt); 5.1.2 prints no "standing army" movement clause (its only three differences are the peacetime holding box, wartime-only deployment and the demobilisation return, and "they function identically to standing armies"), so there is nothing to wire there, and 33.2.2's "land units using this movement must end their movement in a friendly port" is transitive on the free naval movement the UK's Rapid Deployment grant performs, which embarks no land unit and whose land-unit continuations are already port-gated (`freeNavalDestinations`/movement-end checks); 5.3.1/5.3.2's loss coupling — 5.3.2's two bullets and 18.6.3's EF coupling plus "a force comprised exclusively of EFs cannot eliminate non-rebel armies" — is live in `combat.ts` (`lossCandidates`/`applyLosses`/`eliminateCoupledEfs`/`isEfOnlyForce`); the one remaining interpretation is the 5.1.5/Zouave "treated as ECs for the purposes of elimination" exception to the EF coupling, which the engine reads as suppressing it for an EC-bearing force; supply now traces through naval boxes and is blocked by enemy naval boxes in wartime; the 5.6.1 minor supply sources are live, including the sea trace. 5.7 has reusable displacement helpers used by war-end and event paths, and movement-end stacking is enforced on the remaining movement paths (free TSRR rail, GW deploy and draft). The 5.6.1 Italian Exception is live: after unification, `IT` units trace a player-style LoC to an Italian controlled home key that has a LoC to another Italian controlled home key, and their broken LoC charges the combat DRM/support/impulse rules. |
 | **6–7 Displays and tracks** | **Partial** | Stability, manpower, industry, territorial/colonial/Arab keys, reserves, City of Light, citizenship/rights, India stability, TSRR, Jihad; stability VP/BM/card tables, industry card counts and key→manpower tables. UK colonial keys 7; UK secondary-manpower track, four port links and Egypt `minorHome` corrected. All printed characteristic bullets are wired through `engine/characteristics.ts`/`characteristicsCoverage`. | A71’s Egypt colonial-home key type is live (explicit override plus a dynamic legacy-save fallback keyed on the UK/FR home override); India independence and Poland’s limits are live; the remaining display gaps are the per-bullet partial clauses in the registry notes. |
 | **8 Alliances and MPIT** | **Partial** | MPIT placement, alliance-track shifts, the 20.9 resolution (highest total first, d6 + influence per positive marker, ≥10 = two boxes, 8.5 reset), card-driven shifts, the **8.2 declaration shift**, the **8.6 action-phase Alliance System tie** (`allianceTie` pending), **A015/A111 adjacent shift / neutral lock / conditional WTT**, **unified Italy’s random declaration shift**, **typed Italy MPIT (8.5/8.6)** resolved in 20.9 and card events, **13.4.2 Seeking Aid**, **13.4.1 abandonment + 14.0 refusal**, the **14.2 Italy aid shift**, and **RU-9’s Balkan diplomacy-marker alliance** (12.8 gate, player choice when several qualify); 8.4’s three-player cap is enforced across 20.9, card shifts, neutral entry and calls. | 13.4.1’s abandonment −1 and 14.0’s committed-box −1 are separate penalties and now stack; the US and Italy are exempt from the cap by the printed wording; no separate alliance-resolution phase (runs as 20.9 and card events); Italy resolves after player powers. |
