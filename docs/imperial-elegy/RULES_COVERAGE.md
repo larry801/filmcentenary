@@ -85,11 +85,48 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   overstacked defenders' contributing FP.
 - `hasLoc` / `isSupplySource` / `brokenLoc` — BFS trace through friendly or
   occupied spaces; a supply source is a controlled home key connected to
-  another. **5.6.2 broken LoC** now costs one step at the start of the owning
+  another. **5.6.2 broken LoC** costs one step at the start of the owning
   player's impulse, gives −1 BDRM and forbids support; **5.6.3** displaces a
   peacetime broken-LoC army to the nearest friendly LoC space. **Partial:**
-  supply remains an approximation (no consumption/forage step) and general 5.7
-  event displacement is limited to the WoI/broken-LoC/WP paths.
+  general 5.7 event displacement is limited to the WoI/broken-LoC/WP paths.
+- **5.6's two clocks (audited 2026-11-21).**  5.6 reads "if, **at any point**,
+  an army cannot trace to a supply source it has a broken LoC"; 5.6.2 then
+  charges its step loss "(1) … at the start of the player's impulse" while
+  (2) the −1 land battle modifier and (3) the loss of support are properties of
+  the battle.  The two clocks are now kept apart in one place — the engine's
+  broken-LoC predicate (`rules.ts#brokenLoc` / `minorBrokenLoc` /
+  `italianBrokenLoc`) is answered at the moment of the check, and only the
+  **step** is charged on an impulse boundary:
+  - **(2)/(3) are live at "any point"**: `combat.ts#locBlocksSupport` filters the
+    support candidates at every support window and the broken-LoC DRM block is
+    re-evaluated at every battle start, so a LoC cut inside an impulse — by a
+    won battle, an event, a treaty, an alliance shift, a detachment of the
+    column — forbids support and gives −1 for the rest of that impulse.
+  - **(1) is charged only at the start of the owner's next impulse** and once
+    per impulse (`beginImpulseUpkeep` → `impulsePenalties`, with the
+    `impulseUpkeepStamp` guard).  A stack whose corridor is restored before
+    that point is not broken at the printed moment of step (1) and keeps its
+    step; a stack cut mid-impulse pays at the next impulse start, never inside
+    the battle that cut it.
+  Coverage: `supplyWindow5_6.test.ts` (timing, once-per-impulse, in-supply and
+  -1/no-support-before-the-step behaviour).
+- **5.6 is a supply *check*, not a supply *economy*.**  The printed 5.6 has no
+  supply points, no consumption and no forage step: an army either traces an
+  uninterrupted chain of land connections and/or naval boxes back to a supply
+  source or it is out of supply, and the only effects are 5.6.2's three
+  penalties and 5.6.3's peacetime displacement.  The errata (March 2026) and
+  the playbook add none.  There is no printed supply to consume, so none is
+  invented; the "consumption/forage step" an earlier refresh listed as a gap
+  does not exist in the printed rules and adding one would change the game.
+- **Only armies check a LoC (5.6).**  "Naval units, ECs, EFs, and Elite Colonial
+  EFs do not check for LoCs", so they never take a 5.6.2 penalty and never
+  supply themselves; the supply check in a space is its army's.  The engine
+  already keeps them out of `impulsePenalties` (armies only) and the support
+  filter, which is the printed reading.  Their printed elimination clauses —
+  5.1.3–5.1.6's "alone in a space at the end of a combat or at the end of a
+  movement", 5.1.2's reserve army that must end a move with a standing army, and
+  5.3.1/5.3.2's loss coupling — remain the open items tracked in
+  [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
 - **2026-11-21 supply audit:**
   - 5.6's source list is enforced.  `isSupplySource` now requires an actual
     controlled **home key** for the acting power, and a wartime second source
