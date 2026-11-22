@@ -76,6 +76,23 @@ test("the chip row and the popover carry the same figures as the grid", () => {
   expect(figures).toBeGreaterThanOrEqual(6);
 });
 
+test("the Austrian mat prints the eight nationalities with rights and citizenship", () => {
+  const G = game();
+  G.powers.AU.rights = ["Italians"];
+  G.powers.AU.citizenship = ["Italians"];
+  const html = render(G, "AU");
+  expect(html).toContain('data-testid="ie-mat-au-nationalities"');
+  // 33.4.1 prints Italians with both states; Czechs have neither.
+  expect(html).toContain('data-nationality="Italians" data-state="citizen"');
+  expect(html).toContain('data-nationality="Czechs" data-state="none"');
+  // The state is spelled out in the UI language, not left in the log only.
+  expect(html).toContain("意大利");
+  expect(html).toContain("完整公民权");
+  expect(html).toContain("权利");
+  // Another power's display has no such table.
+  expect(render(G, "GE")).not.toContain('data-testid="ie-mat-au-nationalities"');
+});
+
 test("no mat is rendered for a spectator", () => {
   expect(render(game(), null)).toBe("");
 });

@@ -1492,3 +1492,33 @@
 .ie-trench-side.ie-power-pip-ru .ie-trench-power { color: var(--ie-power-ru); }
 
 .ie-trench-side.ie-power-pip-ot .ie-trench-power { color: var(--ie-power-ot); }
+
+/* 33.4.1: the eight AU nationalities and their rights / citizenship state. */
+.ie-mat-nationalities { gap: 3px; }
+
+.ie-mat-nationality-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px 8px;
+  width: 100%;
+}
+
+.ie-mat-nationality {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: var(--ie-font-xs);
+  color: var(--ie-on-dark-muted);
+  min-width: 0;
+}
+
+.ie-mat-nationality-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.ie-mat-nationality[data-rights="true"] .ie-mat-nationality-name { color: var(--ie-on-dark); }
+
+.ie-mat-nationality[data-citizenship="true"] { color: var(--ie-on-dark); font-weight: 600; }
+
+.ie-mat-nationality-state { font-variant-numeric: tabular-nums; white-space: nowrap; }

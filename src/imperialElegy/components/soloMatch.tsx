@@ -27,16 +27,20 @@ import {ImperialElegyGameDef} from "../game";
 import {ImperialElegyBoard} from "./board";
 import {POWERS, Power} from "../types";
 import {ScenarioId} from "../constant/scenarios";
+import {BotDifficulty} from "../configuration";
 import {setupImperialElegy} from "../engine/setup";
 import {Modal} from "./Modal";
 import {SoloBotSeat} from "./soloBots";
 import {
+  botDifficultyLabel,
+  loadBotDifficulty,
   loadNoGw,
   loadScenario,
   loadSoloPower,
   scenarioSummary,
   soloBotSeats,
 } from "./localSetup";
+import {auFormedForScenario, seatPowerName} from "./seatNames";
 
 /** The player's board: no hotseat seat switching, no Rule 34 hand-over. */
 const SoloPlayerBoard = (props: React.ComponentProps<typeof ImperialElegyBoard>) =>
@@ -51,14 +55,19 @@ const SoloPlayerBoard = (props: React.ComponentProps<typeof ImperialElegyBoard>)
  * the definitions are cached by their setup.
  */
 const soloGames = new Map<string, typeof ImperialElegyGameDef>();
-const soloGameFor = (scenario: ScenarioId, noGw: boolean): typeof ImperialElegyGameDef => {
-  const key = `${scenario}:${noGw ? "noGw" : "normal"}`;
+const soloGameFor = (
+  scenario: ScenarioId,
+  noGw: boolean,
+  botDifficulty: BotDifficulty,
+): typeof ImperialElegyGameDef => {
+  const key = `${scenario}:${noGw ? "noGw" : "normal"}:${botDifficulty}`;
   const cached = soloGames.get(key);
   if (cached !== undefined) return cached;
   const game = {
     ...ImperialElegyGameDef,
     setup: (ctx: Parameters<typeof setupImperialElegy>[0]) =>
-      setupImperialElegy(ctx, {scenario, ...(noGw ? {noGw: true} : {})}),
+      // 34.1: the setup page's one difficulty level for every bot seat.
+      setupImperialElegy(ctx, {scenario, ...(noGw ? {noGw: true} : {}), botDifficulty}),
   };
   soloGames.set(key, game);
   return game;
@@ -71,11 +80,15 @@ interface SoloClients {
 
 /** The player client and the headless bot client, both on the same master. */
 const soloClients = new Map<string, SoloClients>();
-const soloClientFor = (scenario: ScenarioId, noGw: boolean): SoloClients => {
-  const key = `${scenario}:${noGw ? "noGw" : "normal"}`;
+const soloClientFor = (
+  scenario: ScenarioId,
+  noGw: boolean,
+  botDifficulty: BotDifficulty,
+): SoloClients => {
+  const key = `${scenario}:${noGw ? "noGw" : "normal"}:${botDifficulty}`;
   const cached = soloClients.get(key);
   if (cached !== undefined) return cached;
-  const game = soloGameFor(scenario, noGw);
+  const game = soloGameFor(scenario, noGw, botDifficulty);
   const created: SoloClients = {
     Player: Client({
       numPlayers: POWERS.length,
@@ -111,6 +124,7 @@ const LocalImperialElegySoloMatch = () => {
   const [power] = React.useState<Power | null>(loadSoloPower);
   const [scenario] = React.useState<ScenarioId>(loadScenario);
   const [noGw] = React.useState<boolean>(loadNoGw);
+  const [botDifficulty] = React.useState<BotDifficulty>(loadBotDifficulty);
   const [session] = React.useState<number>(() => Date.now());
   const [confirmNewGame, setConfirmNewGame] = React.useState(false);
 
@@ -122,7 +136,7 @@ const LocalImperialElegySoloMatch = () => {
   const bots = soloBotSeats(power);
   const index = POWERS.indexOf(power);
   const matchID = `ie_solo_${power}_${session}`;
-  const {Player, Bot} = soloClientFor(scenario, noGw);
+  const {Player, Bot} = soloClientFor(scenario, noGw, botDifficulty);
   const summary = scenarioSummary(scenario, noGw, locale, t);
 
   // "New game" does not silently deal the same setup again: it goes back to the
@@ -139,10 +153,13 @@ const LocalImperialElegySoloMatch = () => {
       <div className="ie-local-top ie-solo-match-top">
         <h1 className="ie-local-title">{t.soloTitle}</h1>
         <span className="ie-muted ie-solo-match-power" data-testid="ie-solo-match-power">
-          {`${t.soloYouPlay} ${t.seats[power]}`}
+          {`${t.soloYouPlay} ${seatPowerName(t, power, locale, auFormedForScenario(scenario))}`}
         </span>
         <span className="ie-muted ie-solo-match-scenario" data-testid="ie-solo-match-scenario">
           {summary}
+        </span>
+        <span className="ie-muted ie-solo-match-difficulty" data-testid="ie-solo-match-difficulty">
+          {t.botDifficultyLabel}: {botDifficultyLabel(botDifficulty, locale)}
         </span>
         <button
           type="button"

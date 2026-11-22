@@ -126,7 +126,9 @@ export const botEscapeMove = (G: ImperialElegyState, phase: string, power?: Powe
       const unchosen = POWERS.find((candidate) => (
         !G.powers[candidate]?.eliminated && G.powers[candidate]?.flags.homeChosen !== true && (G.powers[candidate]?.homeCards.length ?? 0) > 0
       ));
-      if (unchosen !== undefined) return {move: "chooseHomeCard", args: [G.powers[unchosen].homeCards[0]]};
+      // 34.2: a bot adds a hidden home card to its pile; it never enters the
+      // human "choose" flow (whose public log would misstate the action).
+      if (unchosen !== undefined) return {move: "pileHomeCard"};
       return {move: "endDiplomacy"};
     }
     case "end": return {move: "endPhaseTurn"};

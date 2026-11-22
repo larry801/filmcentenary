@@ -2,6 +2,7 @@ import React from "react";
 import {Power, SpaceId} from "../types";
 import {spaceLabel} from "../constant/spaces";
 import {AU_NATIONALITIES} from "../engine/characteristics";
+import {nationalityLabel} from "../engine/nationality";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
@@ -68,16 +69,16 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
         {viewer === "AU" && (
           <div data-testid="ie-au-actions">
             <div className="ie-inline">
-              <span className="ie-section-title">{t.auReforms}</span>
+              <span className="ie-section-title">{t.auTargetNationality}</span>
               <select className="ie-select" data-testid="ie-au-reform-target" value={auReformValue} onChange={(e) => setAuReformTarget(e.target.value)}>
-                {AU_NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationality}</option>)}
+                {AU_NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationalityLabel(nationality, locale)}</option>)}
               </select>
               <button className="ie-btn" data-testid="ie-au-reforms" disabled={auReformDecision?.allowed !== true || cpBudget() < 3} title={auReformReason} onClick={() => doAction(() => moves.auAction("reforms", auReformValue), {label: t.auReforms, reason: auReformReason})}>{t.auReforms}</button>
             </div>
             <div className="ie-inline">
-              <span className="ie-section-title">{t.auExpandCitizenship}</span>
+              <span className="ie-section-title">{t.auTargetNationality}</span>
               <select className="ie-select" data-testid="ie-au-citizenship-target" value={auCitizenValue} onChange={(e) => setAuCitizenTarget(e.target.value)}>
-                {AU_NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationality}</option>)}
+                {AU_NATIONALITIES.map((nationality) => <option key={nationality} value={nationality}>{nationalityLabel(nationality, locale)}</option>)}
               </select>
               <label className="ie-muted">
                 <input type="checkbox" data-testid="ie-au-sacrifice" checked={auSacrifice} onChange={(e) => setAuSacrifice(e.target.checked)}/> {t.auSacrificeStability}
@@ -85,7 +86,7 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
               <button className="ie-btn" data-testid="ie-au-citizenship" disabled={auCitizenDecision?.allowed !== true || cpBudget() < 3} title={auCitizenReason} onClick={() => doAction(() => moves.auAction("expandCitizenship", auCitizenValue, auSacrifice), {label: t.auExpandCitizenship, reason: auCitizenReason})}>{t.auExpandCitizenship}</button>
             </div>
             <div className="ie-inline">
-              <span className="ie-section-title">{t.auIncorporate}</span>
+              <span className="ie-section-title">{t.auTargetMinor}</span>
               <select className="ie-select" data-testid="ie-au-incorporate-target" value={auIncorporateValue} onChange={(e) => setAuIncorporateTarget(e.target.value)} disabled={auIncorporateCandidates.length === 0}>
                 {auIncorporateCandidates.length === 0
                   ? <option value="">{bi(locale, "No allied minor power", "没有盟国小国")}</option>

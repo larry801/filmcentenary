@@ -67,6 +67,30 @@ describe("bot decisions are legal moves", () => {
     expect(result).not.toBe(INVALID_MOVE);
   });
 
+  test("a bot piles a hidden home card and reveals it on its action impulse", () => {
+    // 34.2: "Do not choose a home card for bots, instead each bot adds a random
+    // home card to their pile… On a bot's impulse reveal the top card."
+    const G = fresh("diplomacy", "FR");
+    const before = G.powers.FR.hand.length;
+    const pile = runDecision(G, "FR");
+    expect(pile.move).toBe("pileHomeCard");
+    expect(pile.result).not.toBe(INVALID_MOVE);
+    expect(G.powers.FR.flags.homeChosen).toBe(true);
+    expect(G.powers.FR.hand.length).toBe(before + 1);
+    expect(G.powers.FR.selectedHomeCard).not.toBeNull();
+    // The public log must not present the pile as a diplomacy choice.
+    expect(G.log.some((entry) => entry.key === "homeCardChosen" && entry.power === "FR")).toBe(false);
+
+    G.phase = "action";
+    G.activePower = "FR";
+    const reveal = runDecision(G, "FR");
+    expect(reveal.move).toBe("revealHomeCard");
+    expect(reveal.result).not.toBe(INVALID_MOVE);
+    expect(G.log.some((entry) => entry.key === "homeCardRevealed" && entry.power === "FR")).toBe(true);
+    // The reveal happens once per turn, so the driver cannot spin on it.
+    expect(runDecision(G, "FR").move).not.toBe("revealHomeCard");
+  });
+
   test("a mandatory card is never spent for CP", () => {
     // Mandatory cards may only be played for their event; `playCard(..., "cp")`
     // refuses them, and a mandatory card in hand also blocks passing.

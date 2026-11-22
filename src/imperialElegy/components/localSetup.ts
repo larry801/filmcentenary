@@ -10,7 +10,7 @@
  */
 import {POWERS, Power} from "../types";
 import {ScenarioId, scenarioFromSetupData, SCENARIOS} from "../constant/scenarios";
-import {IE_NO_GW_LABEL} from "../configuration";
+import {BotDifficulty, DEFAULT_BOT_DIFFICULTY, IE_NO_GW_LABEL} from "../configuration";
 import type {IELocale, IEStrings} from "./i18n";
 
 /** Storage key for the bot-seat configuration. */
@@ -25,11 +25,23 @@ export const NO_GW_KEY = "ie_local_no_gw";
 /** Storage key for the single power a solo match hands to the player. */
 export const SOLO_POWER_KEY = "ie_local_solo_power";
 
+/** Storage key for Rule 34.1's single difficulty level for this match's bots. */
+export const BOT_DIFFICULTY_KEY = "ie_local_bot_difficulty";
+
 export const loadScenario = (): ScenarioId => {
   try {
     return scenarioFromSetupData(localStorage.getItem(SCENARIO_KEY));
   } catch {/* ignore */}
   return "campaign";
+};
+
+/** 34.1: the saved bot difficulty, or the rulebook default. */
+export const loadBotDifficulty = (): BotDifficulty => {
+  try {
+    const raw = localStorage.getItem(BOT_DIFFICULTY_KEY);
+    return raw === "easy" || raw === "normal" || raw === "hard" ? raw : DEFAULT_BOT_DIFFICULTY;
+  } catch {/* ignore */}
+  return DEFAULT_BOT_DIFFICULTY;
 };
 
 export const loadNoGw = (): boolean => {
@@ -80,12 +92,18 @@ export const soloBotSeats = (power: Power): Set<Power> =>
  * The other five seats are bots, and the chosen power becomes the first seat
  * shown.  Called by the solo page immediately before it navigates to the shell.
  */
-export const saveSoloSetup = (power: Power, scenario: ScenarioId, noGw: boolean): void => {
+export const saveSoloSetup = (
+  power: Power,
+  scenario: ScenarioId,
+  noGw: boolean,
+  difficulty: BotDifficulty = DEFAULT_BOT_DIFFICULTY,
+): void => {
   saveBotSeats(soloBotSeats(power));
   try {
     localStorage.setItem(SOLO_POWER_KEY, power);
     localStorage.setItem(SCENARIO_KEY, scenario);
     localStorage.setItem(NO_GW_KEY, noGw ? "1" : "0");
+    localStorage.setItem(BOT_DIFFICULTY_KEY, difficulty);
   } catch {/* ignore */}
 };
 
@@ -121,6 +139,24 @@ export const SOLO_MATCH_PATH = "/localIE/solo/play";
 export const soloMatchPath = (): string => SOLO_MATCH_PATH;
 
 /**
+ * The display name of a Rule 34.1 difficulty level.
+ *
+ * Kept next to the saved setup so the solo page, the local shell and the bot
+ * badge all print the same three words.
+ */
+export const botDifficultyLabel = (
+  difficulty: BotDifficulty,
+  locale: IELocale,
+): string => {
+  const labels: Record<BotDifficulty, {en: string; zh_CN: string}> = {
+    easy: {en: "Easy", zh_CN: "简单"},
+    normal: {en: "Normal", zh_CN: "普通"},
+    hard: {en: "Hard", zh_CN: "困难"},
+  };
+  return labels[difficulty][locale];
+};
+
+/**
  * The scenario line, Scenario-4 availability, the seat setup and the hand-over
  * stamp are all read from `localStorage` and the URL.  They are gathered in one
  * read so the shell's initial state describes one coherent setup instead of
@@ -134,6 +170,8 @@ export interface ILocalSetup {
   fresh: number;
   scenario: ScenarioId;
   noGw: boolean;
+  /** 34.1: the match's one bot difficulty level. */
+  botDifficulty: BotDifficulty;
   /** True when `?solo=1` asks for the multi-seat setup screen first. */
   showSetup: boolean;
 }
@@ -163,6 +201,7 @@ export const readLocalSetup = (search: string): ILocalSetup => {
     fresh,
     scenario: loadScenario(),
     noGw: loadNoGw(),
+    botDifficulty: loadBotDifficulty(),
     showSetup,
   };
 };

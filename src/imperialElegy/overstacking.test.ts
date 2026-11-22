@@ -181,9 +181,8 @@ describe("5.5.3 overstacking losses", () => {
     clearLand(G, "berlin");
     [0, 1, 2, 3].forEach(() => placeUnit(G, "GE", "army", "berlin", 2));
     expect(endDiplomacy(G, makeCtx([], "0"))).toBeUndefined();
-    expect(G.phase).toBe("action");
-    // 33.4 Metternich's Legacy opens the AU choice before Germany's first
-    // impulse; answer it so the 5.5.3 upkeep runs.
+    // 33.4 Metternich's Legacy resolves at the end of diplomacy, before the
+    // action phase opens; answer the AU choice so the 5.5.3 upkeep runs.
     while (G.pending?.kind === "metternich") {
       const option = G.pending.options[0];
       expect(resolvePending(G, makeCtx([], "3"), option.id)).toBeUndefined();

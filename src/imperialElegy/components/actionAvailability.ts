@@ -13,6 +13,8 @@
  * the engine would refuse.
  */
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
+// Engine refusal reasons are English state; this is the shared display table.
+import {engineReasonText} from "./reasonText";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
   effectiveKeyType, efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower,
@@ -372,6 +374,7 @@ export interface SpaceActionsInput {
 
 const bi = (locale: "en" | "zh_CN", en: string, zh: string): string => (locale === "zh_CN" ? zh : en);
 
+
 /** Short reason builders, shared with the tests. */
 export const REASON = {
   cp: (locale: "en" | "zh_CN", n: number) => bi(locale, `Needs ${n} CP in this impulse.`, `本行动轮需要 ${n} CP。`),
@@ -385,19 +388,10 @@ const recruitReason = (locale: "en" | "zh_CN", decision: RecruitDecision): strin
     ? bi(locale, "Not allowed here.", "此处不允许。")
     : decision.reasons.join(" · ");
 
-const recruitReasonText = (locale: "en" | "zh_CN", reason: string): string => {
-  // The engine speaks English; the UI only translates its own best reason.
-  if (locale !== "zh_CN") return reason;
-  const table: Record<string, string> = {
-    "Not a home space": "不是本国核心领土",
-    "Does not own the key": "未控制此空间的关键区",
-    "Stacking limit reached": "已达堆叠上限",
-    "Reserve limit 0 reached": "预备军已满",
-    "Armies may not be built this impulse": "本轮不能建造军团",
-    "An elite corps needs a friendly army to attach to": "精锐军团需有友方军团可编入",
-  };
-  return reason.split(" · ").map((part) => table[part] ?? part).join(" · ");
-};
+const recruitReasonText = (locale: "en" | "zh_CN", reason: string): string =>
+  // The engine speaks English; `reasonText.ts` is the shared translation table
+  // (manpower ceilings, AU nationalities, the stacking gates, …).
+  engineReasonText(locale, reason);
 
 /**
  * Every action row for the selected space, grouped.  Rows that are structurally

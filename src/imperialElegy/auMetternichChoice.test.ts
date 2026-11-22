@@ -48,7 +48,10 @@ describe("33.4 Metternich's Legacy", () => {
     const G = fresh();
     runDiplomacy(G);
 
-    expect(G.phase).toBe("action");
+    // 33.4 resolves "at the end of the diplomacy phase", so the phase stays
+    // diplomacy until the second ally has been applied (the bug report caught
+    // the old order: the phase bar already said Action).
+    expect(G.phase).toBe("diplomacy");
     expect(G.pending?.kind).toBe("metternich");
     expect(G.pending?.power).toBe("AU");
     const candidates = metternichAllies(G).candidates;
@@ -67,6 +70,7 @@ describe("33.4 Metternich's Legacy", () => {
     expect(resolvePending(G, makeCtx([3], seat("AU")), secondPick)).toBeUndefined();
 
     expect(G.pending).toBeNull();
+    expect(G.phase).toBe("action");
     expect(G.spaces[firstPick].ally).toBe("AU");
     expect(G.spaces[secondPick].ally).toBe("AU");
     expect(G.persistent.metternich).toBe(true);

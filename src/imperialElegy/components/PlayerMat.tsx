@@ -32,6 +32,9 @@ import {displayAnchor} from "./ChartLightbox";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
 import {cardDisplayNameById} from "./cardDisplay";
+import {AU_NATIONALITIES} from "../engine/characteristics";
+import {nationalityLabel} from "../engine/nationality";
+import {auFormedForState, seatPowerName} from "./seatNames";
 
 export interface PlayerMatProps {
   G: ImperialElegyState;
@@ -126,6 +129,7 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
   const shownOpen = forceOpen || open;
 
   const def = POWER_DEFS[viewer];
+  const seatName = seatPowerName(t, viewer, locale, auFormedForState(G));
   // Only the UK and OT displays print a secondary (colonial / Arab) manpower
   // ladder; `ensureStateDefaults` fills `secondaryManpower`/`arabKeys` on every
   // power, so the printed tracks — not the state shape — decide what shows.
@@ -297,11 +301,11 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
       data-power={viewer}
       data-active={viewer === active ? "true" : "false"}
       data-chips={`${t.stability} ${me.stability} · ${t.manpower} ${me.manpower}${hasSecondaryManpower ? `/${me.secondaryManpower ?? 0}` : ""} · ${t.industry} ${me.industry} · ${t.territorialKeys} ${me.territorialKeys} · ${arabKeys !== undefined ? `${t.arabKeys} ${arabKeys}` : `${t.colonialKeys} ${me.colonialKeys}`} · ${t.reserves} ${reserves}/${reserveCap} · ${bi(locale, "draw", "抽牌")} ${draw}`}
-      aria-label={bi(locale, `Player mat: ${t.seats[viewer]}`, `玩家面板：${t.seats[viewer]}`)}
+      aria-label={bi(locale, `Player mat: ${seatName}`, `玩家面板：${seatName}`)}
     >
       <header className="ie-mat-head">
         <span className={`ie-power-pip ie-power-pip-${viewer.toLowerCase()}`} aria-hidden="true"/>
-        <h3 className="ie-mat-title">{t.seats[viewer]}</h3>
+        <h3 className="ie-mat-title">{seatName}</h3>
         {me.eliminated && <span className="ie-mat-flag">{t.eliminated}</span>}
         <button
           type="button"
@@ -421,6 +425,41 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
             </span>
           </div>
 
+          {/* 33.4.1: the eight AU nationalities and the two states that decide
+              instability DRMs, citizenship difficulty, annexation and war aims.
+              They are printed on the Austrian player display, so the mat prints
+              them too instead of leaving the only trace in the log. */}
+          {viewer === "AU" && (
+            <div className="ie-mat-figure ie-mat-nationalities" data-testid="ie-mat-au-nationalities">
+              <span className="ie-mat-figure-label">{t.auNationalities}</span>
+              <ul className="ie-mat-nationality-list">
+                {AU_NATIONALITIES.map((nationality) => {
+                  const rights = me.rights.includes(nationality);
+                  const citizen = me.citizenship.includes(nationality);
+                  const state = citizen ? "citizen" : rights ? "rights" : "none";
+                  return (
+                    <li
+                      key={nationality}
+                      className="ie-mat-nationality"
+                      data-nationality={nationality}
+                      data-state={state}
+                      data-rights={rights ? "true" : "false"}
+                      data-citizenship={citizen ? "true" : "false"}
+                      title={`${nationalityLabel(nationality, locale)}: ${
+                        citizen ? t.auFullCitizenship : rights ? t.auRights : bi(locale, "no rights", "无权利")
+                      }`}
+                    >
+                      <span className="ie-mat-nationality-name">{nationalityLabel(nationality, locale)}</span>
+                      <span className="ie-mat-nationality-state">
+                        {citizen ? t.auFullCitizenship : rights ? t.auRights : "—"}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
           <div className="ie-mat-figure" data-testid="ie-mat-vp" title={bi(locale, "Victory points", "胜利点")}>
             <span className="ie-mat-figure-label">{t.vp}</span>
             <b className="ie-mat-figure-value">{me.vp}</b>
@@ -493,6 +532,20 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
           <dd>{reserves}/{reserveCap}</dd>
           <dt>{t.industryCard}</dt>
           <dd>{me.industryCard ? cardName(me.industryCard, locale) : "—"}</dd>
+          {viewer === "AU" && (
+            <>
+              <dt>{t.auNationalities}</dt>
+              <dd>
+                {AU_NATIONALITIES.map((nationality) => {
+                  const rights = me.rights.includes(nationality);
+                  const citizen = me.citizenship.includes(nationality);
+                  return `${nationalityLabel(nationality, locale)}: ${
+                    citizen ? t.auFullCitizenship : rights ? t.auRights : "—"
+                  }`;
+                }).join(" · ")}
+              </dd>
+            </>
+          )}
           <dt>{t.cpChain}</dt>
           <dd>{me.cpChain.length === 0 ? "—" : me.cpChain.map((id) => cardName(id, locale)).join(", ")}</dd>
         </dl>

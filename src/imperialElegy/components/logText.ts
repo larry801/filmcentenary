@@ -1376,6 +1376,16 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `chose home card ${card}.`, `选择了本土牌 ${card}。`);
   },
 
+  homeCardRevealed: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(
+      entry,
+      locale,
+      `revealed home card ${card} from its pile (34.2).`,
+      `从牌堆顶揭示了本土牌 ${card}（34.2）。`,
+    );
+  },
+
   metternichAlliance: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     return text(

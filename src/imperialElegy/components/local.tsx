@@ -10,17 +10,19 @@ import {ImperialElegyState, POWERS, Power} from "../types";
 import {BotSeatsContext} from "./botContext";
 import {SeatStrip, deriveSeatStatuses} from "./SeatStrip";
 import {SeatUiContext} from "./seatUiContext";
-import {IE_NO_GW_LABEL, IE_SCENARIOS} from "../configuration";
+import {BotDifficulty, IE_NO_GW_LABEL, IE_SCENARIOS} from "../configuration";
 import {ScenarioId} from "../constant/scenarios";
 import {setupImperialElegy} from "../engine/setup";
 import {Modal} from "./Modal";
 import {
+  botDifficultyLabel,
   readLocalSetup,
   saveBotSeats,
   saveMatchSetup,
   scenarioAllowsNoGw,
   scenarioSummary,
 } from "./localSetup";
+import {auFormedForScenario, auFormedForState, seatPowerName} from "./seatNames";
 
 const HotseatBoard = (props: React.ComponentProps<typeof ImperialElegyBoard>) =>
   <ImperialElegyBoard {...props} hotseat/>;
@@ -35,10 +37,10 @@ const HotseatBoard = (props: React.ComponentProps<typeof ImperialElegyBoard>) =>
  * carries the scenario is the equivalent, and it keeps `setupImperialElegy`
  * the single setup path for both entrances.
  */
-const hotseatGame = (scenario: ScenarioId, noGw: boolean) => ({
+const hotseatGame = (scenario: ScenarioId, noGw: boolean, botDifficulty: BotDifficulty) => ({
   ...ImperialElegyGameDef,
   setup: (ctx: Parameters<typeof setupImperialElegy>[0]) =>
-    setupImperialElegy(ctx, {scenario, ...(noGw ? {noGw: true} : {})}),
+    setupImperialElegy(ctx, {scenario, ...(noGw ? {noGw: true} : {}), botDifficulty}),
 });
 
 const BoardClient = Client({
@@ -56,13 +58,13 @@ const MemoBoardClient = React.memo(BoardClient);
 
 /** Cache one client per (scenario, No-GW) pair so React keeps the same component. */
 const clients = new Map<string, typeof BoardClient>();
-const boardClientFor = (scenario: ScenarioId, noGw: boolean): typeof BoardClient => {
-  const key = `${scenario}:${noGw ? "noGw" : "normal"}`;
+const boardClientFor = (scenario: ScenarioId, noGw: boolean, botDifficulty: BotDifficulty): typeof BoardClient => {
+  const key = `${scenario}:${noGw ? "noGw" : "normal"}:${botDifficulty}`;
   const cached = clients.get(key);
   if (cached !== undefined) return cached;
   const created = Client({
     numPlayers: 6,
-    game: hotseatGame(scenario, noGw),
+    game: hotseatGame(scenario, noGw, botDifficulty),
     board: HotseatBoard,
     multiplayer: Local(),
     debug: false,
@@ -110,6 +112,9 @@ const LocalImperialElegy = () => {
   // a new match (the nonce below).
   const [scenario, setScenario] = React.useState<ScenarioId>(initial.scenario);
   const [noGw, setNoGw] = React.useState<boolean>(initial.noGw);
+  // 34.1: the single difficulty saved by the solo page (the hotseat default is
+  // normal).  It travels in the game definition like the scenario does.
+  const [botDifficulty] = React.useState<BotDifficulty>(initial.botDifficulty);
   const [setupScenario, setSetupScenario] = React.useState<ScenarioId>(initial.scenario);
   const [setupNoGw, setSetupNoGw] = React.useState<boolean>(initial.noGw);
   // Bumping the match id discards the running match and deals a new one.  An
@@ -191,7 +196,7 @@ const LocalImperialElegy = () => {
 
   // `Local()` never forwards setupData, so the scenario travels in the game
   // definition the client was built with (see `hotseatGame` above).
-  const SeatBoard = React.useMemo(() => boardClientFor(scenario, noGw), [scenario, noGw]);
+  const SeatBoard = React.useMemo(() => boardClientFor(scenario, noGw, botDifficulty), [scenario, noGw, botDifficulty]);
 
   // A one-line summary of the chosen scenario for the setup screen.
   const scenarioText = React.useMemo(
@@ -237,13 +242,16 @@ const LocalImperialElegy = () => {
                   checked={setupBotSeats.has(p)}
                   onChange={() => toggleBot(p)}
                 />
-                <span>P{index + 1} {t.seats[p]}</span>
+                <span>P{index + 1} {seatPowerName(t, p, locale, auFormedForScenario(setupScenario))}</span>
                 <em className="ie-local-bot-seat-role">
                   {setupBotSeats.has(p) ? t.seatSetupBot : t.seatSetupHuman}
                 </em>
               </label>
             ))}
           </div>
+          <p className="ie-muted" data-testid="ie-local-bot-difficulty">
+            {t.botDifficultyLabel}: {botDifficultyLabel(initial.botDifficulty, locale)}
+          </p>
           <p className="ie-muted" data-testid="ie-local-seat-summary">
             {setupBotSeats.size === 0 ? t.seatSetupAnyHuman : `${t.seatSetupHuman} ${POWERS.length - setupBotSeats.size} · ${t.seatSetupBot} ${setupBotSeats.size}`}
           </p>
@@ -325,6 +333,9 @@ const LocalImperialElegy = () => {
     <IESurface className="ie-local">
       <div className="ie-local-top">
         <h1 className="ie-local-title">{t.localTitle}</h1>
+        <span className="ie-chip" data-testid="ie-local-difficulty">
+          {t.botDifficultyLabel} {botDifficultyLabel(botDifficulty, locale)}
+        </span>
         <details className="ie-local-help">
           <summary>{t.localHelpLabel}</summary>
           <div className="ie-muted">{t.localHelp}</div>
@@ -338,7 +349,12 @@ const LocalImperialElegy = () => {
         >
           {t.newGame}
         </button>
-        <SeatStrip seats={seats} onSelect={switchSeat} locale={locale}/>
+        <SeatStrip
+          seats={seats}
+          onSelect={switchSeat}
+          locale={locale}
+          auFormed={snapshot === null ? auFormedForScenario(scenario) : auFormedForState(snapshot)}
+        />
       </div>
       <Modal
         open={confirmNewGame}

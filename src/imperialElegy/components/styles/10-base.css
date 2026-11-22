@@ -287,3 +287,32 @@
     border: 1px solid ButtonText;
   }
 }
+
+/* 34.1: the solo page's one level for every bot seat (a compact horizontal
+   radio row, distinct from the power cards above). */
+.ie-solo-difficulty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ie-space-2);
+  margin: var(--ie-space-2) 0 var(--ie-space-3);
+}
+
+.ie-solo-difficulty-level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-2);
+  color: var(--ie-on-dark);
+  font-size: var(--ie-font-sm);
+  cursor: pointer;
+}
+
+.ie-solo-difficulty-level input { accent-color: var(--ie-brass); width: 16px; height: 16px; }
+
+.ie-solo-difficulty-level[data-selected="true"] {
+  border-color: var(--ie-brass-soft);
+  background: var(--ie-panel-3);
+}

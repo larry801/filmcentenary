@@ -6,6 +6,7 @@ import {IEBadge, IEChip, IEPanel} from "./theme";
 import {RuleRef} from "./RuleRef";
 import {ieT} from "./i18n";
 import {POWER_KEYS, bi, powerOrMinorLabel} from "./boardHelpers";
+import {auFormedForState, seatPowerName} from "./seatNames";
 
 export interface DashboardPanelProps {
   G: ImperialElegyState;
@@ -28,7 +29,7 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
         return (
           <div key={p} className={`ie-power ${p === active ? "active" : ""} ${state.eliminated ? "eliminated" : ""}`} data-testid={`ie-power-${p}`}>
             <div className="ie-power-head">
-              <span className="ie-power-name">{t.seats[p]}</span>
+              <span className="ie-power-name">{seatPowerName(t, p, locale, auFormedForState(G))}</span>
               <span>
                 {state.eliminated && <IEBadge tone="warn">{t.eliminated}</IEBadge>}
                 <IEBadge tone={p.toLowerCase()}>{state.alliance === "neutral" ? t.neutral : state.alliance}</IEBadge>
