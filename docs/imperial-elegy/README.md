@@ -77,15 +77,19 @@ match. Keys `1`–`6` (or `[` / `]`) switch seats.
 
 ### Solo: one great power against five bots
 
-`/localIE/solo` is the solo entrance: one radio per great power, the printed
+`/localIE/solo` is the solo setup page: one radio per great power, the printed
 scenario picker and Scenario 4's "No GW" modifier, and a single **Start solo
 match** button. The five powers you do not pick become the Rule 34 bot seats,
 so the page writes `{power, scenario, noGw}` (`components/localSetup.ts`) and
-hands over to the hotseat shell with `/localIE?fresh=<stamp>`. The stamp is
-what makes the shell deal a *new* match on the picked seat instead of resuming
-whatever `Local()` master the hotseat tab still holds. The old multi-seat
-entrance `/localIE?solo=1` still exists (it pre-ticks P2–P6 and is linked from
-the solo page), and plain `/localIE` still starts on P1 with six human seats.
+opens `/localIE/solo/play`, a dedicated match page (`components/soloMatch.tsx`).
+That page mounts **one** board, the power you chose, plus five headless bot
+clients; it never mounts the hotseat shell. There is no seat strip, no seat
+switching and no bot board to open. The only exit is **Restart match**, which
+asks for confirmation and then deals a fresh match with the same setup.
+
+The multi-seat hotseat entrance `/localIE?solo=1` still exists for local play
+(it pre-ticks P2–P6), and plain `/localIE` still starts on P1 with six human
+seats. Neither is used by solo mode.
 
 ### Online tables of 2–6 humans
 

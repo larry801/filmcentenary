@@ -82,7 +82,7 @@ const LocalImperialElegy = () => {
   i18n.use();
   const t = ieT();
   const locale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
-  // One read of the saved setup: the solo page's hand-over and the multi-seat
+  // One read of the saved setup: a `?fresh=<stamp>` link and the multi-seat
   // seat setup both land here, and the initial state must describe one
   // coherent configuration.
   const [initial] = React.useState(() => readLocalSetup(window.location.search));
@@ -90,7 +90,8 @@ const LocalImperialElegy = () => {
   const seatCount = POWERS.length;
   const [botSeats, setBotSeats] = React.useState<Set<Power>>(initial.botSeats);
   // Plain `/localIE` keeps the historical behaviour: the board is live
-  // immediately.  Only the explicit solo entrance opens the seat setup.
+  // immediately.  Only the explicit `?solo=1` seat-setup entrance opens the
+  // setup screen first.
   const [showSetup, setShowSetup] = React.useState(initial.showSetup);
   // The printed scenario the hotseat match plays, and Scenario 4's "No GW"
   // victory-condition modifier.  Both are setup data, so changing either deals
@@ -99,8 +100,9 @@ const LocalImperialElegy = () => {
   const [noGw, setNoGw] = React.useState<boolean>(initial.noGw);
   const [setupScenario, setSetupScenario] = React.useState<ScenarioId>(initial.scenario);
   const [setupNoGw, setSetupNoGw] = React.useState<boolean>(initial.noGw);
-  // Bumping the match id discards the running match and deals a new one.  A
-  // solo hand-over carries its own stamp, so the new match is dealt on mount.
+  // Bumping the match id discards the running match and deals a new one.  An
+  // explicit `?fresh=<stamp>` link carries its own stamp, so the new match is
+  // dealt on mount.
   const [matchNonce, setMatchNonce] = React.useState(initial.fresh);
   // Language switches must re-render: the i18n object is mutable state that
   // React cannot observe.

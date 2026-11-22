@@ -70,6 +70,8 @@ export interface BoardModelProps {
   moves: Record<string, (...args: any[]) => void>;
   playerID: string | null;
   hotseat?: boolean;
+  /** Rule 34 seat hand-over is offered; the solo page sets this false. */
+  allowSeatHandover?: boolean;
   /**
    * Force the hand tray open (or shut) instead of the viewport default.  The
    * board itself never passes this; it exists for embeds and for the rules
@@ -119,8 +121,8 @@ export const useIsPhone = (): boolean => {
 };
 
 export const useBoardModel = ({
-  G, ctx, moves, playerID, hotseat = false, handOpen, expandHand = false,
-  _stateID, isConnected = true, injectedUi,
+  G, ctx, moves, playerID, hotseat = false, allowSeatHandover = true,
+  handOpen, expandHand = false, _stateID, isConnected = true, injectedUi,
 }: BoardModelProps) => {
   i18n.use();
   const t = injectedUi?.i18n ?? ieT();
@@ -908,15 +910,16 @@ export const useBoardModel = ({
   // through the engine's own gates, and handing a seat over mid-question would
   // leave the question with a controller that cannot see it.
   const handoverBlocked = pending !== null || battle !== null;
-  const canHandOverSeat = viewer !== null && !handoverBlocked && typeof moves.setSeatBot === "function";
+  const canHandOverSeat = allowSeatHandover && viewer !== null && !handoverBlocked &&
+    typeof moves.setSeatBot === "function";
   const setSeatBot = React.useCallback((bot: boolean) => {
-    if (viewer === null || handoverBlocked || typeof moves.setSeatBot !== "function") return;
+    if (!allowSeatHandover || viewer === null || handoverBlocked || typeof moves.setSeatBot !== "function") return;
     doAction(
       () => moves.setSeatBot(bot),
       {label: bi(actualLocale, bot ? "Hand this seat to the bot" : "Take this seat back", bot ? "交给机器人托管" : "收回席位")},
     );
     botContext?.setSeatBot?.(viewer, bot);
-  }, [botContext, viewer, handoverBlocked, moves, doAction, actualLocale]);
+  }, [allowSeatHandover, botContext, viewer, handoverBlocked, moves, doAction, actualLocale]);
 
     const beginTargeting = React.useRef<(intent: Parameters<typeof interactionPrompt>[0], from: SpaceId, targets: SpaceId[], sources?: string[]) => void>(() => {});
   beginTargeting.current = (intent, from, targets, sources = []) => {
