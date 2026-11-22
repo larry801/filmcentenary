@@ -984,7 +984,7 @@ test.describe("Imperial Elegy solo vs bot", () => {
         expect(errors).toEqual([]);
     });
 
-    test("solo restart is confirmed and deals a genuinely new match", async ({page}) => {
+    test("solo new game is confirmed and returns to the setup page", async ({page}) => {
         await page.goto("/localIE/solo");
         await page.getByTestId("ie-solo-power-GE").check();
         await page.getByTestId("ie-solo-start").click();
@@ -993,23 +993,32 @@ test.describe("Imperial Elegy solo vs bot", () => {
         const firstMatch = await seat.getAttribute("data-match-id");
         expect(firstMatch).toBeTruthy();
 
-        // One stray click only raises the confirmation; it must not restart.
-        await page.getByTestId("ie-solo-restart").click();
-        await expect(page.getByTestId("ie-solo-restart-dialog")).toBeVisible();
-        await expect(page.getByTestId("ie-solo-restart-body")).toContainText("当前对局将结束");
+        // One stray click only raises the confirmation; it must not leave the
+        // match or deal a new one.
+        await page.getByTestId("ie-solo-new-game").click();
+        await expect(page.getByTestId("ie-solo-new-game-dialog")).toBeVisible();
+        await expect(page.getByTestId("ie-solo-new-game-body")).toContainText("返回选择大国与剧本的页面");
         await expect(seat).toHaveAttribute("data-match-id", firstMatch!);
 
         // Cancel leaves the same match running.
-        await page.getByTestId("ie-solo-restart-cancel").click();
-        await expect(page.getByTestId("ie-solo-restart-dialog")).toHaveCount(0);
+        await page.getByTestId("ie-solo-new-game-cancel").click();
+        await expect(page.getByTestId("ie-solo-new-game-dialog")).toHaveCount(0);
         await expect(seat).toHaveAttribute("data-match-id", firstMatch!);
 
-        // Confirm deals a new match id, still on the same single seat.
-        await page.getByTestId("ie-solo-restart").click();
-        await page.getByTestId("ie-solo-restart-confirm").click();
-        await expect(page.getByTestId("ie-solo-restart-dialog")).toHaveCount(0);
-        await expect(seat).not.toHaveAttribute("data-match-id", firstMatch!);
-        await expect(page.locator('[data-testid="ie-seat-GE"]')).toBeVisible();
+        // Confirm goes back to the setup page instead of silently dealing the
+        // same power and scenario again.
+        await page.getByTestId("ie-solo-new-game").click();
+        await page.getByTestId("ie-solo-new-game-confirm").click();
+        await expect(page).toHaveURL(/\/localIE\/solo$/);
+        await expect(page.getByTestId("ie-solo-powers")).toBeVisible();
+
+        // The setup page deals a genuinely new match on the next start: same
+        // power, new session id, so the abandoned match cannot be resumed.
+        await page.getByTestId("ie-solo-power-GE").check();
+        await page.getByTestId("ie-solo-start").click();
+        const next = page.locator('[data-testid="ie-seat-GE"]');
+        await expect(next).toBeVisible();
+        await expect(next).not.toHaveAttribute("data-match-id", firstMatch!);
         await expect(page.getByTestId("ie-seat-strip")).toHaveCount(0);
     });
 
@@ -1102,6 +1111,41 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.bots))
             .toContain("FR");
         await expect(botBoard.locator(".ie-bot-banner")).toContainText("机器人");
+    });
+
+    test("the hotseat New game button asks for confirmation and can go back", async ({page}) => {
+        // The header button used to open the seat-setup screen with no way back:
+        // that read as "a click forces a brand-new match".  It now only opens
+        // the setup screen, and a match is dealt solely by Start match.
+        await page.goto("/localIE");
+        const seat = page.locator('[data-testid="ie-seat-GE"]');
+        await expect(seat).toBeVisible();
+        const matchId = await seat.getAttribute("data-match-id");
+        expect(matchId).toBeTruthy();
+        const turn = await page.evaluate(() => (window as any).__IE_STATE__.turn);
+
+        // The button reads 新游戏 and only raises the confirmation.
+        const open = page.getByTestId("ie-seat-setup");
+        await expect(open).toHaveText("新游戏");
+        await open.click();
+        await expect(page.getByTestId("ie-new-game-dialog")).toBeVisible();
+        await expect(page.getByTestId("ie-new-game-body")).toContainText("只有点击「开始对局」时才会丢弃当前这一局");
+        // Still on the running match behind the dialog.
+        await expect(seat).toHaveAttribute("data-match-id", matchId!);
+
+        // Cancel keeps the match and reopens nothing.
+        await page.getByTestId("ie-new-game-cancel").click();
+        await expect(page.getByTestId("ie-new-game-dialog")).toHaveCount(0);
+        await expect(seat).toHaveAttribute("data-match-id", matchId!);
+
+        // Confirming opens the setup screen, and that screen is closable.
+        await open.click();
+        await page.getByTestId("ie-new-game-confirm").click();
+        await expect(page.getByTestId("ie-start-match")).toBeVisible();
+        await page.getByTestId("ie-back-to-match").click();
+        await expect(seat).toHaveAttribute("data-match-id", matchId!);
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.turn)).toBe(turn);
+        await expect(page.getByTestId("ie-new-game-dialog")).toHaveCount(0);
     });
 
     test("the scenario picker sets the printed setup of a hotseat match", async ({page}) => {

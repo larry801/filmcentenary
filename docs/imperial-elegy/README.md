@@ -84,8 +84,14 @@ so the page writes `{power, scenario, noGw}` (`components/localSetup.ts`) and
 opens `/localIE/solo/play`, a dedicated match page (`components/soloMatch.tsx`).
 That page mounts **one** board, the power you chose, plus five headless bot
 clients; it never mounts the hotseat shell. There is no seat strip, no seat
-switching and no bot board to open. The only exit is **Restart match**, which
-asks for confirmation and then deals a fresh match with the same setup.
+switching and no bot board to open. **New game** asks for confirmation and then
+returns to `/localIE/solo`, where the power and the scenario are chosen again;
+it never silently deals the same setup.
+
+The hotseat shell's own header button is also **New game**
+(`ie-seat-setup`): it confirms first (`ie-new-game-dialog`), then opens the
+seat-setup screen, whose `ie-back-to-match` returns to the running match. A new
+match is dealt only by `ie-start-match` ("Start match").
 
 The multi-seat hotseat entrance `/localIE?solo=1` still exists for local play
 (it pre-ticks P2–P6), and plain `/localIE` still starts on P1 with six human
