@@ -25,6 +25,7 @@ import {
   isIndependentMinor,
   pendingGoalChoice,
   resolveGoalChoice,
+  resolveStartingGoal,
   spendBuildPoint,
 } from "./engine/scenarioSetup";
 import {truceRivals} from "./engine/limitedWar";
@@ -52,6 +53,16 @@ const ctxOf = (die = 1): Ctx => ({
 const setupScenario = (scenario: string, options: {noGw?: boolean; bots?: Power[]} = {}): ImperialElegyState => {
   const ctx = ctxOf();
   return setupImperialElegy(ctx, {scenario, ...options});
+};
+
+/** Answer every seat's opening "draw N, keep 1" with its first choice. */
+const keepStartingGoals = (G: ImperialElegyState): void => {
+  for (const power of POWERS) {
+    const raw = G.powers[power].flags.startingGoalChoices;
+    if (typeof raw !== "string") continue;
+    const first = raw.split(",").filter(Boolean)[0];
+    if (first !== undefined) resolveStartingGoal(G, power, first);
+  }
 };
 
 // ---------------------------------------------------------------------------
@@ -188,8 +199,19 @@ test("the 1870 scenario draws on turns 3 and 5 and starts with one NG", () => {
   G.turn = 5;
   expect(drawsNgsThisTurn(G)).toBe(true);
   expect(hasBloodAndIron(G)).toBe(false);
-  // "players start with 1 NG in the 1870 and 1880 scenarios"
+  // "players start with 1 NG in the 1870 and 1880 scenarios": the opening
+  // draw 3 keeps the cards pending until each seat answers, then exactly one
+  // is kept and the other two return to the NG deck (2.4 / 20.11).
+  for (const power of POWERS) {
+    expect(G.powers[power].goals).toHaveLength(0);
+    expect(String(G.powers[power].flags.startingGoalChoices ?? "").split(",").filter(Boolean)).toHaveLength(
+      power === "GE" ? 2 : 3,
+    );
+  }
+  const auDeckBefore = G.powers.AU.goalDeck.length;
+  keepStartingGoals(G);
   for (const power of POWERS) expect(G.powers[power].goals).toHaveLength(1);
+  expect(G.powers.AU.goalDeck).toHaveLength(auDeckBefore + 2);
   // "The GE player only draws 2 NGs"
   expect(ngDrawCount(G, "GE")).toBe(2);
   expect(ngDrawCount(G, "UK")).toBe(3);
@@ -209,6 +231,8 @@ test("the 1880 scenario draws on turns 4 and 6 and deals OT an extra card", () =
   expect(drawsNgsThisTurn(G)).toBe(true);
   expect(extraPrepCards(G, "OT")).toBe(1);
   expect(extraPrepCards(G, "GE")).toBe(0);
+  for (const power of POWERS) expect(G.powers[power].goals).toHaveLength(0);
+  keepStartingGoals(G);
   for (const power of POWERS) expect(G.powers[power].goals).toHaveLength(1);
 });
 
@@ -241,14 +265,37 @@ test("the campaign pool excludes the scenario-only Austrian goal", () => {
   expect(setupScenario("campaign").powers.AU.goalDeck).not.toContain("NG-31");
 });
 
-test("resolving the printed goal removal keeps one and drops the other", () => {
+test("the printed goal removal removes the chosen goal, not the other one", () => {
   const G = setupScenario("s1870");
+  // Put both printed candidates back into the deck so the choice is exercised
+  // even when the opening draw happened to hold one of them.
+  G.powers.AU.goalDeck = ["NG-29", "NG-30", "NG-31"];
+  G.flags["goalChoice:AU"] = "NG-29,NG-30";
   expect(resolveGoalChoice(G, "AU", "NG-29")).toBe(true);
-  expect(G.powers.AU.goalDeck).toContain("NG-29");
-  expect(G.powers.AU.goalDeck).not.toContain("NG-30");
+  expect(G.powers.AU.goalDeck).not.toContain("NG-29");
+  expect(G.powers.AU.goalDeck).toContain("NG-30");
   expect(pendingGoalChoice(G)).toEqual([]);
+  // The log names the goal that actually left the deck.
+  const removed = G.log.filter((entry) => entry.key === "goalRemoved").pop();
+  expect(removed?.args?.goal).toBe("NG-29");
   // A second attempt is refused: the choice is spent.
   expect(resolveGoalChoice(G, "AU", "NG-30")).toBe(false);
+});
+
+test("the printed goal removal offers keep-both and never removes a held goal", () => {
+  const G = setupScenario("s1870");
+  G.powers.AU.goalDeck = ["NG-29", "NG-30"];
+  G.flags["goalChoice:AU"] = "NG-29,NG-30";
+  expect(resolveGoalChoice(G, "AU", "keep")).toBe(true);
+  expect(G.powers.AU.goalDeck).toEqual(["NG-29", "NG-30"]);
+  expect(pendingGoalChoice(G)).toEqual([]);
+
+  // A candidate the opening draw already took into the hand is not in the
+  // deck, so it cannot be removed from the deck.
+  const H = setupScenario("s1870");
+  H.powers.AU.goalDeck = ["NG-30"];
+  H.flags["goalChoice:AU"] = "NG-29,NG-30";
+  expect(resolveGoalChoice(H, "AU", "NG-29")).toBe(false);
 });
 
 // ---------------------------------------------------------------------------
@@ -542,7 +589,7 @@ test("the UK amphibious restriction only exists in the scenario that prints it",
 // Board controls for the scenario setup decisions
 // ---------------------------------------------------------------------------
 
-test.each(["francoPrussianConcession", "scenarioGoalChoice", "gwBuildPoint"] as const)(
+test.each(["startingGoal", "francoPrussianConcession", "scenarioGoalChoice", "gwBuildPoint"] as const)(
   "%s is a declared pending kind with a bilingual label",
   (kind) => {
     expect(PENDING_KINDS).toContain(kind);
@@ -550,10 +597,19 @@ test.each(["francoPrussianConcession", "scenarioGoalChoice", "gwBuildPoint"] as 
 );
 
 test("the printed setup decisions are offered in printed order", () => {
-  // 1870 offers the Franco-Prussian War first: it is step 1 of the printed
-  // "prior to the Prep Phase" procedure.
   const G = setupScenario("s1870");
-  const made = openSetupDecisions(G, ctxOf());
+  // The opening NG draw runs first: every seat answers "keep one".
+  let made = openSetupDecisions(G, ctxOf());
+  expect(made).toBe(true);
+  expect(G.pending?.kind).toBe("startingGoal");
+  // GE draws two in the 1870 scenario; every other seat draws three.
+  expect(G.pending?.power).toBe("GE");
+  expect(G.pending?.options).toHaveLength(2);
+  keepStartingGoals(G);
+  G.pending = null;
+  // Then the Franco-Prussian War: step 1 of the printed "prior to the Prep
+  // Phase" procedure.
+  made = openSetupDecisions(G, ctxOf());
   expect(made).toBe(true);
   expect(G.pending?.kind).toBe("francoPrussianConcession");
   expect(G.pending?.power).toBe("FR");

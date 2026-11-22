@@ -5,7 +5,7 @@
  * in common game states without throwing.
  */
 import {setupImperialElegy} from "./engine/setup";
-import {botDecision, bmpitTarget, enumerateBot} from "./engine/bot";
+import {botDecision, botPendingMove, bmpitTarget, enumerateBot} from "./engine/bot";
 import {cardById} from "./engine/deck";
 import {playCard, resolvePending} from "./moves";
 import {POWERS} from "./types";
@@ -137,4 +137,19 @@ test("the bot offers in the Modernization round and accepts the highest CP offer
   expect(G.powers.OT.industryCard).not.toBeNull();
   // The Ottoman seat's own best offer, i.e. the 3 CP card.
   expect(cardById(G.powers.OT.industryCard!).cp).toBe(3);
+});
+
+
+test("34.3 rolls a die for the Franco-Prussian concession instead of always conceding", () => {
+  const G = setupImperialElegy(ctx);
+  G.pending = {
+    id: "p1",
+    kind: "francoPrussianConcession",
+    power: "FR",
+    prompt: "concede or fight",
+    options: [{id: "concede", label: "Concede"}, {id: "fight", label: "Fight"}],
+  } as never;
+  const roll = (n: number) => ({...ctx, random: {Die: () => n}}) as never;
+  expect(botPendingMove(G, "FR", roll(1))).toEqual({move: "resolvePending", args: ["concede"]});
+  expect(botPendingMove(G, "FR", roll(2))).toEqual({move: "resolvePending", args: ["fight"]});
 });

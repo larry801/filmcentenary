@@ -11,7 +11,9 @@ import {
   isMinorityNationalitySpace,
   minorityNationalities,
   minorityNationalitiesFor,
+  nationalityLabel,
 } from "./engine/nationality";
+import {AU_NATIONALITIES} from "./engine/characteristics";
 
 const makeCtx = () => ({
   playerID: "0",
@@ -239,4 +241,15 @@ describe("citizenshipMatchesSpace", () => {
     G.spaces.bohemia.control = "RU";
     expect(matching()).toBe(3);
   });
+});
+
+
+test("every AU nationality has a Chinese label (33.4.1 display)", () => {
+  for (const nationality of AU_NATIONALITIES) {
+    const zh = nationalityLabel(nationality, "zh_CN");
+    // The fallback is the English key; every printed nationality must resolve.
+    expect(zh).not.toBe(nationality);
+  }
+  expect(nationalityLabel("Slovaks", "zh_CN")).toBe("斯洛伐克");
+  expect(nationalityLabel("Slovaks", "en")).toBe("Slovaks");
 });

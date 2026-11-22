@@ -39,6 +39,7 @@ import {
   loadSoloPower,
   scenarioSummary,
   soloBotSeats,
+  soloSetupData,
 } from "./localSetup";
 import {auFormedForScenario, seatPowerName} from "./seatNames";
 
@@ -56,18 +57,23 @@ const SoloPlayerBoard = (props: React.ComponentProps<typeof ImperialElegyBoard>)
  */
 const soloGames = new Map<string, typeof ImperialElegyGameDef>();
 const soloGameFor = (
+  power: Power,
   scenario: ScenarioId,
   noGw: boolean,
   botDifficulty: BotDifficulty,
+  bots: readonly Power[],
 ): typeof ImperialElegyGameDef => {
-  const key = `${scenario}:${noGw ? "noGw" : "normal"}:${botDifficulty}`;
+  const key = `${power}:${scenario}:${noGw ? "noGw" : "normal"}:${botDifficulty}`;
   const cached = soloGames.get(key);
   if (cached !== undefined) return cached;
   const game = {
     ...ImperialElegyGameDef,
     setup: (ctx: Parameters<typeof setupImperialElegy>[0]) =>
-      // 34.1: the setup page's one difficulty level for every bot seat.
-      setupImperialElegy(ctx, {scenario, ...(noGw ? {noGw: true} : {}), botDifficulty}),
+      // Rule 34: the engine must know which seats are bots.  Without the list
+      // the solo bots are just five more "players" to the engine, so 34.1's
+      // NG counts and 34.4.5's free bot redeployment never apply.  34.1: the
+      // setup page's one difficulty level covers every bot seat.
+      setupImperialElegy(ctx, soloSetupData(power, scenario, noGw, botDifficulty)),
   };
   soloGames.set(key, game);
   return game;
@@ -81,14 +87,16 @@ interface SoloClients {
 /** The player client and the headless bot client, both on the same master. */
 const soloClients = new Map<string, SoloClients>();
 const soloClientFor = (
+  power: Power,
   scenario: ScenarioId,
   noGw: boolean,
   botDifficulty: BotDifficulty,
+  bots: readonly Power[],
 ): SoloClients => {
-  const key = `${scenario}:${noGw ? "noGw" : "normal"}:${botDifficulty}`;
+  const key = `${power}:${scenario}:${noGw ? "noGw" : "normal"}:${botDifficulty}`;
   const cached = soloClients.get(key);
   if (cached !== undefined) return cached;
-  const game = soloGameFor(scenario, noGw, botDifficulty);
+  const game = soloGameFor(power, scenario, noGw, botDifficulty, bots);
   const created: SoloClients = {
     Player: Client({
       numPlayers: POWERS.length,
@@ -136,7 +144,7 @@ const LocalImperialElegySoloMatch = () => {
   const bots = soloBotSeats(power);
   const index = POWERS.indexOf(power);
   const matchID = `ie_solo_${power}_${session}`;
-  const {Player, Bot} = soloClientFor(scenario, noGw, botDifficulty);
+  const {Player, Bot} = soloClientFor(power, scenario, noGw, botDifficulty, [...bots]);
   const summary = scenarioSummary(scenario, noGw, locale, t);
 
   // "New game" does not silently deal the same setup again: it goes back to the

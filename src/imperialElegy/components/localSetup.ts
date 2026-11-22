@@ -86,6 +86,26 @@ export const loadSoloPower = (): Power | null => {
 export const soloBotSeats = (power: Power): Set<Power> =>
   new Set<Power>(POWERS.filter((candidate) => candidate !== power));
 
+
+/**
+ * The setup bag a solo match hands the engine.
+ *
+ * Rule 34: the five seats the player does not take are bots, and the engine has
+ * to be told so (`G.bots`) or 34.1's bot NG counts and 34.4.5's free bot
+ * redeployment never apply.  34.1: one difficulty covers every bot seat.
+ */
+export const soloSetupData = (
+  power: Power,
+  scenario: ScenarioId,
+  noGw: boolean,
+  botDifficulty: BotDifficulty,
+): {scenario: ScenarioId; noGw?: true; botDifficulty: BotDifficulty; bots: Power[]} => ({
+  scenario,
+  ...(noGw ? {noGw: true as const} : {}),
+  botDifficulty,
+  bots: [...soloBotSeats(power)],
+});
+
 /**
  * Record everything the local shell needs to deal the chosen solo match.
  *

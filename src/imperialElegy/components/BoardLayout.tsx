@@ -206,7 +206,7 @@ export const OrdersRegion = (props: OrdersSlice & {
     dealTarget, setDealTarget, dealGive, setDealGive, dealTake, setDealTake, dealPromises, setDealPromises,
     handCounts,
     showNationalActions, zouaveInPlay, zouaveReason, auReformValue, setAuReformTarget, auReformDecision,
-    auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason, auSacrifice,
+    auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenRoll, auCitizenReason, auSacrifice,
     setAuSacrifice, auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate,
     auIncorporateReason, tsrrArmies, tsrrUnitValue, setTsrrUnitId, tsrrDestinations, tsrrToValue,
     setTsrrTo, tsrrDecision, tsrrReason, amphibiousVisible, amphibiousOrigins, amphibiousFromValue,
@@ -348,6 +348,7 @@ export const OrdersRegion = (props: OrdersSlice & {
               auCitizenValue={auCitizenValue}
               setAuCitizenTarget={setAuCitizenTarget}
               auCitizenDecision={auCitizenDecision as never}
+              auCitizenRoll={auCitizenRoll}
               auCitizenReason={auCitizenReason}
               auSacrifice={auSacrifice}
               setAuSacrifice={setAuSacrifice}

@@ -166,6 +166,7 @@ export interface ModelValues {
   auCitizenEligible: string[];
   auCitizenValue: string;
   auCitizenDecision: Decision;
+  auCitizenRoll: {difficulty: number; rollNeeded: number; guaranteed: boolean; impossible: boolean} | null;
   auIncorporateCandidates: string[];
   auIncorporateEligible: string[];
   auIncorporateValue: string;

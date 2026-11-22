@@ -79,6 +79,12 @@ const MANDATORY_PENDING_KINDS: ReadonlySet<string> = new Set([
   "manpowerExcess",
   "allianceTie",
   "goalChoice",
+  // 2.4/20.11 ("keep one, return the other two") and the 1870/1880 printed
+  // setup choices: every one of these must be answered, so the generic 拒绝
+  // must not be offered.  Declining them only re-opens the same decision.
+  "startingGoal",
+  "scenarioGoalChoice",
+  "francoPrussianConcession",
 ]);
 
 export interface BoardModelProps {
@@ -513,6 +519,17 @@ export const useBoardModel = ({
     : auCitizenDecision.allowed !== true
       ? engineReasonText(actualLocale, auCitizenDecision.reasons.join(" · "))
       : cpBudget() < 3 ? needsCp(3) : undefined;
+  // 33.4: show the citizenship roll the player is paying 3 CP for — the base
+  // 3+, +1 per existing citizen, -2 when the stability sacrifice is ticked —
+  // instead of leaving the number to be recomputed from the eight-item list.
+  const auCitizenRoll = auCitizenDecision === null
+    ? null
+    : {
+        difficulty: auCitizenDecision.difficulty,
+        rollNeeded: auCitizenDecision.rollNeeded,
+        guaranteed: auCitizenDecision.guaranteed,
+        impossible: auCitizenDecision.impossible,
+      };
   const auIncorporateReason = auIncorporate === null
     ? bi(actualLocale, "No allied minor power is eligible.", "没有符合条件的盟国小国。")
     : auIncorporate.allowed !== true
@@ -1746,6 +1763,7 @@ export const useBoardModel = ({
     auCitizenEligible,
     auCitizenValue,
     auCitizenDecision,
+    auCitizenRoll,
     auIncorporateCandidates,
     auIncorporateEligible,
     auIncorporateValue,

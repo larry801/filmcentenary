@@ -470,3 +470,43 @@ test("12.13.1 an accepted Modernization gift is faceup; the offer itself names o
     if (playerID !== "1") expect(offeredInView.args?.card).toBe(HIDDEN_CARD);
   }
 });
+
+
+test("playerView never writes into a frozen master state (26.1 faceup combat cards)", () => {
+  const G = fresh();
+  G.gw = {
+    active: true,
+    turn: 0,
+    order: [],
+    belligerents: ["GE", "FR"],
+    neutrals: [],
+    te: ["FR"],
+    ta: ["GE"],
+    usIn: false,
+    italyIn: false,
+    usStability: 3,
+    usManpower: 3,
+    usBudget: 4,
+    italyStability: 3,
+    italyManpower: 3,
+    italyBudget: 2,
+    italyAlliance: "neutral",
+    trenches: {},
+    lastColonialWar: null,
+    victor: null,
+    outbreakDone: true,
+    nationalWillDone: true,
+    bonusImpulses: [],
+    combatCardsInFront: [{holder: "GE", cardId: "IE-GW-03"}],
+  } as never;
+  // boardgame.io hands `playerView` a frozen master state in a local match; the
+  // old faceup-combat sync wrote into `G.flags` and threw.
+  const frozen = JSON.parse(JSON.stringify(G));
+  const deepFreeze = (value: unknown): void => {
+    if (value === null || typeof value !== "object") return;
+    for (const child of Object.values(value as Record<string, unknown>)) deepFreeze(child);
+    Object.freeze(value);
+  };
+  deepFreeze(frozen);
+  expect(() => redactForView(frozen as ImperialElegyState, "0")).not.toThrow();
+});

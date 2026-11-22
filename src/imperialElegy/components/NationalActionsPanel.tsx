@@ -24,6 +24,7 @@ export interface NationalActionsPanelProps {
   auCitizenValue: string;
   setAuCitizenTarget: (s: string) => void;
   auCitizenDecision: {allowed: boolean; reasons: string[]} | null;
+  auCitizenRoll: {difficulty: number; rollNeeded: number; guaranteed: boolean; impossible: boolean} | null;
   auCitizenReason: string | undefined;
   auSacrifice: boolean;
   setAuSacrifice: (b: boolean) => void;
@@ -50,7 +51,7 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
     show, viewer, locale, t, cpBudget,
     zouaveInPlay, zouaveReason,
     auReformValue, setAuReformTarget, auReformDecision, auReformReason,
-    auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason,
+    auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenRoll, auCitizenReason,
     auSacrifice, setAuSacrifice,
     auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate, auIncorporateReason,
     tsrrArmies, tsrrUnitValue, setTsrrUnitId, tsrrDestinations, tsrrToValue, setTsrrTo, tsrrDecision, tsrrReason,
@@ -84,6 +85,17 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
                 <input type="checkbox" data-testid="ie-au-sacrifice" checked={auSacrifice} onChange={(e) => setAuSacrifice(e.target.checked)}/> {t.auSacrificeStability}
               </label>
               <button className="ie-btn" data-testid="ie-au-citizenship" disabled={auCitizenDecision?.allowed !== true || cpBudget() < 3} title={auCitizenReason} onClick={() => doAction(() => moves.auAction("expandCitizenship", auCitizenValue, auSacrifice), {label: t.auExpandCitizenship, reason: auCitizenReason})}>{t.auExpandCitizenship}</button>
+              {auCitizenRoll !== null && (
+                <span className="ie-muted" data-testid="ie-au-citizenship-roll">
+                  {auCitizenRoll.guaranteed
+                    ? bi(locale, "Automatic success", "自动成功")
+                    : auCitizenRoll.impossible
+                      ? bi(locale, "Cannot succeed (needs over 6)", "无法成功（需要大于 6）")
+                      : auCitizenRoll.rollNeeded < auCitizenRoll.difficulty
+                        ? bi(locale, `Roll ${auCitizenRoll.rollNeeded}+ (difficulty ${auCitizenRoll.difficulty}, -${auCitizenRoll.difficulty - auCitizenRoll.rollNeeded} DRM)`, `掷 ${auCitizenRoll.rollNeeded}+（难度 ${auCitizenRoll.difficulty}，修正 -${auCitizenRoll.difficulty - auCitizenRoll.rollNeeded}）`)
+                        : bi(locale, `Roll ${auCitizenRoll.rollNeeded}+ (difficulty ${auCitizenRoll.difficulty})`, `掷 ${auCitizenRoll.rollNeeded}+（难度 ${auCitizenRoll.difficulty}）`)}
+                </span>
+              )}
             </div>
             <div className="ie-inline">
               <span className="ie-section-title">{t.auTargetMinor}</span>

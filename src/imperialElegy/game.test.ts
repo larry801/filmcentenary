@@ -259,6 +259,12 @@ test("combat cards are offered in the battle card window", () => {
 
 test("Great War victory produces a result", () => {
   const G = fresh();
+  // 25.5 tops every player up to 3 NGs at the outbreak; this test pins the
+  // alliance-victory path, so leave the NG decks empty and keep the VP at 0.
+  for (const power of POWERS) {
+    G.powers[power].goals = [];
+    G.powers[power].goalDeck = [];
+  }
   G.powers.GE.alliance = "taCommitted";
   G.powers.AU.alliance = "taCommitted";
   G.powers.FR.alliance = "teCommitted";

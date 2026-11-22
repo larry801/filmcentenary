@@ -78,7 +78,7 @@ const ORDERS_KEYS = [
   "doAction", "confirmActions", "moves", "selected", "selectedUnit", "setSelectedUnit", "battleFrom", "setBattleFrom",
   "navalFrom", "setNavalFrom", "showNationalActions", "zouaveInPlay", "zouaveReason",
   "auReformValue", "setAuReformTarget", "auReformDecision", "auReformReason", "auCitizenValue",
-  "setAuCitizenTarget", "auCitizenDecision", "auCitizenReason", "auSacrifice", "setAuSacrifice",
+  "setAuCitizenTarget", "auCitizenDecision", "auCitizenRoll", "auCitizenReason", "auSacrifice", "setAuSacrifice",
   "auIncorporateCandidates", "auIncorporateValue", "setAuIncorporateTarget", "auIncorporate",
   "auIncorporateReason", "tsrrArmies", "tsrrUnitValue", "setTsrrUnitId", "tsrrDestinations",
   "tsrrToValue", "setTsrrTo", "tsrrDecision", "tsrrReason", "amphibiousVisible", "amphibiousOrigins",

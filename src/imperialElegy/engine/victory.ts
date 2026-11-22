@@ -20,6 +20,7 @@ import {
   setSpaceControl,
 } from "./rules";
 import {matchedAuCitizenshipCount} from "./nationality";
+import {drawBotGoals} from "./botGoals";
 import {campaignWindow, countsVp, isNoGwScenario, noGwVictory} from "./scenario";
 
 const initialControl = (id: SpaceId): string | null => {
@@ -427,7 +428,10 @@ export const finishGame = (G: ImperialElegyState, reason: string): void => {
  *     readings of `engine/scenario.ts#noGwVictory`.
  *  3. **Every other scenario**: rule 2.2.1's normal end-of-scenario scoring.
  */
-export const finishScenario = (G: ImperialElegyState): void => {
+export const finishScenario = (G: ImperialElegyState, ctx: Ctx): void => {
+  // 34.1: "bots draw all their NGs at the end of the game (if there has been no
+  // GW)".  The GW path deals them at the outbreak instead.
+  drawBotGoals(G, ctx);
   // 2.2.1: "At the end of turn 7 (or the end of the scenario)".  The reason
   // names the scenario's printed final turn, so the campaign still reports
   // `endOfTurn7` and the shorter scenarios report their own last turn.

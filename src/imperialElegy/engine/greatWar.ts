@@ -1,4 +1,5 @@
 import {Ctx} from "boardgame.io";
+import {isBotPower} from "../configuration";
 import {AllianceBox, CardId, ImperialElegyState, PendingDecision, Power, POWERS, SpaceId} from "../types";
 import {POWER_DEFS, POWER_NAMES_ZH} from "../constant/powers";
 import {minorLabel} from "./minorLabel";
@@ -6,7 +7,8 @@ import {SPACES, connectionsOf, neighboursOf, spaceLabel} from "../constant/space
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import type {ScenarioDef} from "../constant/scenarios/types";
 import type {Effect} from "../constant/cards";
-import {discardCard, removeCard} from "./deck";
+import {discardCard, removeCard, shuffle} from "./deck";
+import {GOALS_BY_ID} from "../constant/goals";
 import {
   allianceOf,
   allied,
@@ -29,6 +31,7 @@ import {
 import {closeDecision, decision, openDecision, option} from "./pending";
 import {counterRemaining} from "./counters";
 import {scoreGame, scoreGoals} from "./victory";
+import {drawBotGoals} from "./botGoals";
 import {grantRapidDeployment, placeNonPlayerCounter, placeUnit, removeUnit} from "./effects";
 import {resolveGwNeutralOption, resolveGwWinter, resolveItalyAtOutbreak, redeployItaly} from "./greatWarFlow";
 import {usNorthAtlanticCheck} from "./gwMajors";
@@ -820,24 +823,32 @@ export const applyGwKeyCapture = (
   return result;
 };
 
-const formAlliances = (G: ImperialElegyState): void => {
+const formAlliances = (G: ImperialElegyState, ctx: Ctx): void => {
   const te = POWERS.filter((p) => G.powers[p].alliance === "teAligned" || G.powers[p].alliance === "teCommitted");
   const ta = POWERS.filter((p) => G.powers[p].alliance === "taAligned" || G.powers[p].alliance === "taCommitted");
   if (te.length === 0 && ta.length === 0) {
     // 25.2.2: neither alliance has a player - roll a die for a pair of enemies.
-    const roll = (G.seed % 6) + 1;
+    // The roll must be a real die: keying it on the constant setup seed made
+    // the pair always GE vs FR.
+    const roll = die(ctx, 6);
     const pairs: [Power, Power][] = [["GE", "FR"], ["FR", "UK"], ["UK", "RU"], ["RU", "OT"], ["OT", "AU"], ["AU", "GE"]];
     const [a, b] = pairs[(roll - 1) % pairs.length];
     G.powers[a].alliance = a === "GE" ? "taCommitted" : "teCommitted";
     G.powers[b].alliance = b === "GE" ? "taCommitted" : "teCommitted";
     G.powers[a].mpit = {te: 0, ta: 1, neutral: 0};
     G.powers[b].mpit = {te: 1, ta: 0, neutral: 0};
-  } else if (te.length === 0) {
-    const target = POWERS.find((p) => G.powers[p].alliance === "neutral");
-    if (target) G.powers[target].alliance = "teCommitted";
-  } else if (ta.length === 0) {
-    const target = POWERS.find((p) => G.powers[p].alliance === "neutral");
-    if (target) G.powers[target].alliance = "taCommitted";
+    log(G, undefined, "gwAllianceRoll", {roll, first: a, second: b});
+  } else if (te.length === 0 || ta.length === 0) {
+    // 25.2.2: "the alliance with players declares war on a player of their
+    // choice (roll a die to break a dispute)".  With no live player choice at
+    // the outbreak step the die picks the target, instead of the old
+    // seat-order-first pick.
+    const neutrals = POWERS.filter((p) => G.powers[p].alliance === "neutral");
+    if (neutrals.length > 0) {
+      const target = neutrals[die(ctx, neutrals.length) - 1];
+      G.powers[target].alliance = te.length === 0 ? "teCommitted" : "taCommitted";
+      log(G, undefined, "gwAllianceTarget", {target, side: te.length === 0 ? "te" : "ta"});
+    }
   }
 };
 
@@ -916,7 +927,7 @@ export const outbreakGreatWar = (
     G.powers[p].homeCards = [];
     G.powers[p].selectedHomeCard = null;
   }
-  formAlliances(G);
+  formAlliances(G, ctx);
   const te = POWERS.filter((p) => sideOf(G, p) === "te");
   const ta = POWERS.filter((p) => sideOf(G, p) === "ta");
   const neutrals = POWERS.filter((p) => sideOf(G, p) === null);
@@ -975,6 +986,32 @@ export const outbreakGreatWar = (
     G.powers.RU.outbreakSecondRomeVp = 2;
     log(G, "RU", "secondRomeVp", {vp: 2});
   }
+  // 25.5: "If the GW occurs early, it is possible for players to have less than
+  // 3 NGs.  If this happens, all players with less than 3 NGs draw 3 NGs and
+  // choose one to keep.  They repeat this process until they have 3 NGs to
+  // score."  The Outbreak Step runs inside one move, so the printed choice is
+  // resolved deterministically (keep the highest printed VP) instead of
+  // suspending the step; the card count the rule requires is always met.  A
+  // resumable Outbreak Step would let the player pick.
+  for (const power of POWERS) {
+    if (isBotPower(G, power)) continue;
+    const p = G.powers[power];
+    while (p.goals.length < 3) {
+      p.goalDeck = shuffle(ctx, p.goalDeck);
+      const drawn = p.goalDeck.splice(0, Math.min(3, p.goalDeck.length));
+      if (drawn.length === 0) break;
+      const keep = drawn.reduce(
+        (best, id) => ((GOALS_BY_ID[id]?.vp ?? 0) > (GOALS_BY_ID[best]?.vp ?? 0) ? id : best),
+        drawn[0],
+      );
+      p.goals.push(keep);
+      p.goalDeck.push(...drawn.filter((id) => id !== keep));
+      log(G, power, "outbreakGoalTopUp", {goal: keep, drawn: drawn.length, goals: p.goals.length});
+    }
+  }
+  // 34.1: "bots draw all their NGs … at the start of the GW", so the difficulty
+  // count is dealt before 25.5 scores them.
+  drawBotGoals(G, ctx);
   // Score NGs at the outbreak (25.5).  Keep the lines so the final score panel
   // can still explain the VP that is now banked on the player display.
   const scores = scoreGoals(G);

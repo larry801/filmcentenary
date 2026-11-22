@@ -229,7 +229,10 @@ export const stabilityLoss = (
   // AU Unstable Situation (33.4): no effect during the GW, and only when AU
   // actually loses a point of stability.
   const unstableApplies = power === "AU" && appliedDelta < 0 && !gw;
-  const rights = p.rights.length;
+  // 33.4.1: "a nationality with full citizenship is no longer considered a
+  // minority nationality to the AU player", so a citizen does not add the
+  // 33.4 Unstable Situation +1 DRM on top of the rights it already held.
+  const rights = p.rights.filter((nationality) => !p.citizenship.includes(nationality)).length;
   const dieRoll = typeof ctx.dieRoll === "number" ? ctx.dieRoll : null;
   const total = dieRoll === null ? null : dieRoll + rights;
   const passes = total === null ? null : total >= 6;
