@@ -226,3 +226,19 @@ describe("the reader's own hand size", () => {
     expect(markup).toContain("本土牌永不参与转交");
   });
 });
+
+describe("6.0/9.1 the home-card step follows the table", () => {
+  test("an outstanding home card offers the next step, with a button", () => {
+    const markup = html(diplomacy(), {homeChoice: true, onOpenHomeChoice: () => undefined});
+    expect(markup).toContain('data-testid="ie-deals-home-step"');
+    expect(markup).toContain('data-testid="ie-open-home-card-from-deals"');
+    expect(markup).toContain("下一步：选择本土牌");
+  });
+
+  test("a chosen home card (or no handler) shows no next step", () => {
+    expect(html(diplomacy(), {homeChoice: false, onOpenHomeChoice: () => undefined}))
+      .not.toContain('data-testid="ie-deals-home-step"');
+    expect(html(diplomacy(), {homeChoice: true}))
+      .not.toContain('data-testid="ie-deals-home-step"');
+  });
+});

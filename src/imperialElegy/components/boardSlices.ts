@@ -44,6 +44,7 @@ const CORE_KEYS = [
   "otherSeatPending", "seatUi", "pendingPrompt", "pendingKind", "responseWindow", "handChoicesHint",
   "cardFaceMode", "setCardFaceMode", "confirmActions", "setConfirmActions", "board", "setBoard", "railTab", "setRailTab", "choiceKinds",
   "choicesProps", "targetingHint", "handCounts", "goalCounts", "minorMarkerRows", "homeCardTitle",
+  "homeChoice", "goalChoice", "homeCardDialogOpen", "setHomeCardDialogOpen",
   "doAction", "mapHint", "pendingSpaceTargets", "optionLabel", "optionFace", "optionAction", "canDecline",
   "jihadDecision", "jihadReason", "onOpenReference", "refAnchor", "setRefAnchor",
   "toast", "dismissToast",
@@ -63,6 +64,9 @@ const ORDERS_KEYS = [
   // 11.0/11.1: the diplomacy negotiation table's page.
   "deals", "dealsVisible", "pendingDeals", "myDealOffers", "dealTarget", "setDealTarget",
   "dealGive", "setDealGive", "dealTake", "setDealTake", "dealPromises", "setDealPromises",
+  // 6.0/9.1: the Deals page offers the way on to the home-card choice once the
+  // seat is done negotiating.
+  "homeChoice", "setHomeCardDialogOpen",
   "canActionCard", "pending", "canDecide", "war", "onOpenReference",
   "gwJointNavalAllies", "gwJointNavalUnitIds", "polishReserve", "setPolishReserve",
   "deployLimit", "deployFree", "canDeployHere", "canGwDraft", "canGwDeployHere", "polishArmyDecision",

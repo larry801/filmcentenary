@@ -346,6 +346,17 @@ export interface ModelValues {
   targetingHint: {title: string; body: string; cancel: () => void} | null;
   choicesProps: HandChoicesProps;
   choiceKinds: {required: boolean; optional: boolean};
+  /**
+   * 9.1/11.0: the diplomacy home-card choice is outstanding.  It is a required
+   * choice, but the seat opens its dialog from the dock after negotiating
+   * instead of having it raised over the table.
+   */
+  homeChoice: boolean;
+  /** The end-step National Goal choice is outstanding (still a raised dialog). */
+  goalChoice: boolean;
+  /** Whether the home-card dialog is on screen; the reader opens and closes it. */
+  homeCardDialogOpen: boolean;
+  setHomeCardDialogOpen: (open: boolean) => void;
   dockChoices: boolean;
   dockVisible: boolean;
   dockSummary: string;

@@ -209,6 +209,12 @@ export const useBoardModel = ({
   const [gwTransferTo, setGwTransferTo] = React.useState<string>("");
   const [gwTransferAmount, setGwTransferAmount] = React.useState(1);
   const [dockCollapsed, setDockCollapsed] = React.useState(false);
+  // The required card choices are dialogs the player opens, not pop-ups.  The
+  // diplomacy home card used to raise itself the instant the phase began, which
+  // covered the negotiation table (11.0/11.1) before anyone could talk; the
+  // seat now negotiates first and opens the choice when it is done.  A closed
+  // dialog keeps the choice outstanding, so the dock's button brings it back.
+  const [homeCardDialogOpen, setHomeCardDialogOpen] = React.useState(false);
   // The phone shell is one bottom sheet; `mobileTab` picks the body it shows.
   const isPhone = useIsPhone();
   const [mobileTab, setMobileTab] = React.useState<MobileTab>("orders");
@@ -341,12 +347,24 @@ export const useBoardModel = ({
     "Passing needs at most one card in hand (two for the UK), with no home card or mandatory event.",
     "停牌需要手牌不超过 1 张（英国 2 张），且不能持有本国牌或强制事件。");
   const hasPhaseButtons = viewer !== null && !eliminated && ((phase === "prep" || phase === "diplomacy") ? canPhaseAct : phase === "action" ? isActive : phase === "end" ? canPhaseAct : false);
+  // 6.0 / 9.1: the diplomacy home-card selection is a step of its own, after the
+  // negotiation segment.  Whether it is still outstanding is the same test
+  // `HandChoices` uses, so the dock button and the dialog can never disagree.
+  const homeCardChoicePending = phase === "diplomacy" && me !== null &&
+    me.homeCards.length > 0 && me.selectedHomeCard === null;
   // Buttons that end or continue the current phase step.  They belong in the
   // pinned dock with the pending decisions: both answer "what may I do now",
   // and neither may be pushed below the fold by a tall map or a long hand.
   const phaseActions: PhaseAction[] = hasPhaseButtons ? [
     ...(phase === "prep" && canPhaseAct && !me?.flags.prepDone
       ? [{key: "finishPrep", label: t.finishPrep, testId: "ie-finish-prep", onClick: () => doAction(() => moves.finishPrep(), {label: t.finishPrep})}]
+      : []),
+    ...(phase === "diplomacy" && canPhaseAct && homeCardChoicePending && pending === null && battle === null && G.result === null
+      // 9.1/11.0: the negotiation segment runs before the home card, so the
+      // choice is opened by the player, never raised over the table.  A decision
+      // or battle already owns the board; the choice waits for it rather than
+      // fighting it for focus.
+      ? [{key: "chooseHomeCard", label: t.chooseHome, testId: "ie-open-home-card", onClick: () => setHomeCardDialogOpen(true)}]
       : []),
     ...(phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard
       // 6.0: once diplomacy ends there is no way back, so it confirms.
@@ -1394,6 +1412,15 @@ export const useBoardModel = ({
     else if (!dealsVisible && ordersTab === "deals") setOrdersTab("actions");
     dealWasPending.current = pendingDeals.length > 0;
   }, [pendingDeals.length, dealsVisible, ordersTab]);
+  // 9.1 puts the negotiation segment first, so the diplomacy step brings the
+  // table to the front once — also when the board mounts straight into it (a
+  // resumed save).  Without this the seat landed on the actions page and had to
+  // know the Deals page existed before it could talk.
+  const phaseWasDiplomacy = React.useRef(false);
+  React.useEffect(() => {
+    if (diplomacyPhase && !phaseWasDiplomacy.current && dealsVisible) setOrdersTab("deals");
+    phaseWasDiplomacy.current = diplomacyPhase;
+  }, [diplomacyPhase, dealsVisible]);
 
   const responseInHand = hand.some((id) => cardById(id).type === "response");
   const responseWindow = viewer !== null && responseInHand &&
@@ -1444,6 +1471,20 @@ export const useBoardModel = ({
   };
   const choiceKinds = handChoiceAvailability(choicesProps);
   const dockChoices = choiceKinds.required || choiceKinds.optional;
+  // The home card is a required choice, but it is no longer a blocker that
+  // covers the table the moment diplomacy opens: 9.1's negotiation segment
+  // comes first, and the seat opens the dialog from the dock when it is done.
+  // `choiceKinds.required` still reports the outstanding choice, so the dock's
+  // summary and the hand tray's pointer stay truthful.  Only the seat whose
+  // diplomacy turn it is may choose (the printed order advances after each
+  // pick), so the dock reports it only there.
+  const homeChoice = phase === "diplomacy" && choiceKinds.required && canPhaseAct;
+  const goalChoice = phase === "end" && choiceKinds.required;
+  // Choosing the card (or leaving the phase) closes the dialog; the state only
+  // ever means "the reader asked to see the choice".
+  React.useEffect(() => {
+    if (!homeChoice) setHomeCardDialogOpen(false);
+  }, [homeChoice]);
   // The dock also carries the phase buttons now, so it must render whenever
   // there is something to press — not only when a decision is pending.
   const dockVisible = pending !== null || battle !== null || G.result !== null ||
@@ -1456,19 +1497,28 @@ export const useBoardModel = ({
         ? t.gameOver
         : targetingHint !== null
           ? targetingHint.title
-          : choiceKinds.required
-            ? bi(actualLocale, "Required card choice", "需要选择卡牌")
-            : choiceKinds.optional
-              // An optional action must not read as a blocker.
-              ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
-              : canAct
-                ? bi(actualLocale, "Your impulse", "你的行动轮")
-                : bi(actualLocale, "Waiting", "等待");
-  const handChoicesHint = choiceKinds.required
-    ? bi(actualLocale, "Required choices are in the dialog over the board.", "当前必须做出的选择在覆盖面板的对话框中。")
-    : choiceKinds.optional
-      ? bi(actualLocale, "An optional random discard for +1 stability is at the top of the Orders actions.", "可选随机弃牌换 +1 稳定位于指令面板行动页顶部。")
-      : null;
+          : choiceKinds.required && homeChoice
+            // 9.1/11.0: the negotiation segment comes before the home card, so
+            // this reads as the step still owed, not as a dialog covering the
+            // table.
+            ? bi(actualLocale, "Home card not chosen yet", "尚未选择本土牌")
+            : choiceKinds.required && goalChoice
+              ? bi(actualLocale, "Required card choice", "需要选择卡牌")
+              : choiceKinds.optional
+                // An optional action must not read as a blocker.
+                ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
+                : canAct
+                  ? bi(actualLocale, "Your impulse", "你的行动轮")
+                  : bi(actualLocale, "Waiting", "等待");
+  const handChoicesHint = homeChoice
+    ? bi(actualLocale,
+      "Negotiate first (11.0/11.1), then open the home-card choice from the Orders dock.",
+      "先进行谈判（11.0/11.1），完成后从指令区的按钮打开本土牌选择。")
+    : goalChoice
+      ? bi(actualLocale, "The National Goal choice is in the dialog over the board.", "国家目标选择在覆盖面板的对话框中。")
+      : choiceKinds.optional
+        ? bi(actualLocale, "An optional random discard for +1 stability is at the top of the Orders actions.", "可选随机弃牌换 +1 稳定位于指令面板行动页顶部。")
+        : null;
   const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
     : battleFrom !== null
@@ -1779,6 +1829,10 @@ export const useBoardModel = ({
     targetingHint,
     choicesProps,
     choiceKinds,
+    homeChoice,
+    goalChoice,
+    homeCardDialogOpen,
+    setHomeCardDialogOpen,
     dockChoices,
     dockVisible,
     dockSummary,

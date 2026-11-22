@@ -24,16 +24,21 @@ import {Modal} from "./Modal";
 export interface CardChoiceModalProps {
   /** Whether a required choice is on screen at all. */
   open: boolean;
-  /** The home card is a blocker; the Goal pick may be closed. */
+  /** A blocker cannot be closed; a dismissible choice may be. */
   dismissible: boolean;
   /** The choice form (`HandChoices`). */
   children?: React.ReactNode;
   locale: "en" | "zh_CN";
   title: string;
+  /**
+   * What the footer button says.  The Goal pick keeps the first Goal when it is
+   * closed; a closed home-card dialog only hides the choice, which stays owed.
+   */
+  continueLabel?: string;
   onClose: () => void;
 }
 
-export const CardChoiceModal = ({open, dismissible, children, locale, title, onClose}: CardChoiceModalProps) => (
+export const CardChoiceModal = ({open, dismissible, children, locale, title, continueLabel, onClose}: CardChoiceModalProps) => (
   <Modal
     open={open}
     dismissible={dismissible}
@@ -51,7 +56,7 @@ export const CardChoiceModal = ({open, dismissible, children, locale, title, onC
         data-testid="ie-choice-continue"
         onClick={onClose}
       >
-        {bi(locale, "Continue with the first Goal", "继续（保留第一张目标）")}
+        {continueLabel ?? bi(locale, "Continue with the first Goal", "继续（保留第一张目标）")}
       </button>
     )}
   >

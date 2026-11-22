@@ -32,8 +32,16 @@ export interface DiplomacyPanelProps extends Pick<
   OrdersSlice,
   "G" | "locale" | "viewer" | "me" | "phase" | "eliminated" | "doAction" | "moves" |
   "deals" | "pendingDeals" | "myDealOffers" | "dealTarget" | "setDealTarget" |
-  "dealGive" | "setDealGive" | "dealTake" | "setDealTake" | "dealPromises" | "setDealPromises"
-> {}
+  "dealGive" | "setDealGive" | "dealTake" | "setDealTake" | "dealPromises" | "setDealPromises" |
+  "homeChoice"
+> {
+  /**
+   * 6.0/9.1: open the home-card choice.  The negotiation segment comes first,
+   * so the choice is a dialog the seat opens when it is done talking rather
+   * than a pop-up that covers this table.
+   */
+  onOpenHomeChoice?: () => void;
+}
 
 const powerName = (locale: "en" | "zh_CN"): ((power: Power) => string) => {
   const t = locale === "zh_CN"
@@ -51,6 +59,7 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
     G, locale, viewer, me, phase, eliminated, doAction, moves,
     deals, pendingDeals, myDealOffers,
     dealTarget, setDealTarget, dealGive, setDealGive, dealTake, setDealTake, dealPromises, setDealPromises,
+    homeChoice, onOpenHomeChoice,
   } = props;
   const name = powerName(locale);
 
@@ -125,6 +134,31 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
             "协议本身不具约束力：可以出示手牌、随口许诺。唯一有约束力的是 11.1——双方正式同意随机转交行动牌，并在外交阶段结束时结算。")}
         </p>
       </div>
+
+      {/* 6.0 / 9.1: the negotiation segment comes first, and the home-card
+          choice is the seat's own next step.  It used to be raised over the
+          board the instant diplomacy opened, which covered this table; the
+          button keeps the printed order ("negotiate, then choose"). */}
+      {homeChoice && onOpenHomeChoice !== undefined && (
+        <div className="ie-deals-block" data-testid="ie-deals-home-step">
+          <div className="ie-section-title">{bi(locale, "Next: choose your home card", "下一步：选择本土牌")}</div>
+          <p className="ie-hint">
+            {bi(locale,
+              "When you are done negotiating, choose the Home card you keep for this turn. The choice opens in a dialog and can be closed again without answering.",
+              "谈判结束后，选择本回合保留的本土牌。选择会在对话框中打开，也可关闭后稍再返回。")}
+          </p>
+          <div className="ie-inline">
+            <button
+              type="button"
+              className="ie-btn primary"
+              data-testid="ie-open-home-card-from-deals"
+              onClick={onOpenHomeChoice}
+            >
+              {bi(locale, "Choose home card", "选择本土牌")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ------------------------------------------------------------ 11.0 shown */}
       {(deals.shown.length > 0) && (
