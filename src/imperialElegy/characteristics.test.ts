@@ -148,6 +148,20 @@ describe("stabilityLoss", () => {
     expect(duringGw.unstableSituation.effect).toBe("none");
   });
 
+  test("AU Unstable Situation DRM excludes nationalities with full citizenship", () => {
+    // 33.4.1: "a nationality with full citizenship is no longer considered a
+    // minority nationality to the AU player", so it stops adding the 33.4 +1
+    // DRM even though it keeps the benefits of rights.
+    const G = fresh();
+    G.powers.AU.stability = 3;
+    G.powers.AU.rights = ["Hungarians", "Czechs"];
+    G.powers.AU.citizenship = ["Hungarians"];
+    const result = stabilityLoss(G, "AU", -1, {dieRoll: 3});
+    expect(result.unstableSituation.rights).toBe(1);
+    expect(result.unstableSituation.total).toBe(4);
+    expect(result.unstableSituation.passes).toBe(false);
+  });
+
   test("AU Unstable Situation does not trigger on a gain or a clamped non-loss", () => {
     const G = fresh();
     G.powers.AU.stability = 3;

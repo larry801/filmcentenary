@@ -357,6 +357,19 @@ const findRebelTarget = (G: ImperialElegyState, power: Power): {space: SpaceId; 
 // ---------------------------------------------------------------------------
 
 /**
+ * 34.3's die for a decision the Bot PAC does not list.
+ *
+ * `ctx` is optional so a caller without a boardgame.io context (a pure
+ * inspection) still gets a stable index instead of an exception.
+ */
+const botChoiceIndex = (ctx: Ctx | undefined, count: number): number => {
+  if (count <= 1) return 0;
+  const random = ctx?.random as {Die?: (sides: number) => number} | undefined;
+  if (typeof random?.Die === "function") return (random.Die(count) - 1) % count;
+  return 0;
+};
+
+/**
  * When a pending decision is open and it belongs to this bot, return the
  * move that answers it.  Bots pick the first legal option (the printed rule
  * says to roll a die for undocumented cases; here we default to first option).
@@ -364,6 +377,7 @@ const findRebelTarget = (G: ImperialElegyState, power: Power): {space: SpaceId; 
 export const botPendingMove = (
   G: ImperialElegyState,
   power: Power,
+  ctx?: Ctx,
 ): BotMove | null => {
   const pending = G.pending;
   if (!pending || pending.power !== power) return null;
@@ -493,6 +507,17 @@ export const botPendingMove = (
     case "crisis":
     case "italianInternalWar":
       return {move: "resolvePending", args: [pending.options[0].id]};
+
+    case "francoPrussianConcession":
+    case "scenarioGoalChoice":
+      // 34.3: "if a bot ever has to make a decision that isn't explicitly laid
+      // out on the bot PAC, roll a die to determine the result."  Both are
+      // scenario setup decisions with no PAC row; taking option 0 always made
+      // the FR bot concede the Franco-Prussian War in every solo 1870 game.
+      return {
+        move: "resolvePending",
+        args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id],
+      };
 
     default:
       return {move: "resolvePending", args: [pending.options[0].id]};
@@ -1062,7 +1087,7 @@ export const phaseExitMove = (G: ImperialElegyState): BotMove => actionPhaseExit
 
 const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotMove => {
   // Handle any open pending decision first.
-  const pendingMove = botPendingMove(G, power);
+  const pendingMove = botPendingMove(G, power, ctx);
   if (pendingMove !== null) return pendingMove;
 
   const phase = G.phase;

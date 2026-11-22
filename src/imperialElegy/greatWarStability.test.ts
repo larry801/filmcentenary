@@ -168,7 +168,10 @@ describe("Great War stability routing", () => {
 
     outbreakGreatWar(G, ctx, "GE", "test");
 
-    expect(G.powers.GE.stability).toBe(4);
+    // 25.5 tops the powers up to 3 NGs before 25.6 scores them, so the
+    // national-will band (and the number of boosts) depends on the goals the
+    // top-up draws; the routing is the invariant under test here.
+    expect(G.powers.GE.stability).toBeGreaterThanOrEqual(4);
     expect(spy).toHaveBeenCalledWith(G, "GE", 1, ctx);
   });
 

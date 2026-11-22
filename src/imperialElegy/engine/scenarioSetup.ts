@@ -52,25 +52,55 @@ export const applyGoalDeckEdits = (G: ImperialElegyState, def: ScenarioDef, ctx:
  * Resolve the printed "may remove either A or B" deck edit.
  *
  * The playbook gives the power the choice, so it is a pending decision offered
- * during the preparation of the first turn.  `keep` is the goal the power keeps
- * (the other candidate leaves the deck).
+ * during the preparation of the first turn.  `choice` is the goal the power
+ * removes from its NG deck; the printed "may" also allows keeping both, passed
+ * as the literal `keep`.  Only a candidate that is actually still in the deck
+ * can be removed — the opening draw may already have taken one into the hand.
  */
 export const resolveGoalChoice = (
   G: ImperialElegyState,
   power: Power,
-  keep: string,
+  choice: string,
 ): boolean => {
   const raw = G.flags[`goalChoice:${power}`];
   if (typeof raw !== "string") return false;
   const candidates = raw.split(",").filter(Boolean);
+  if (choice !== "keep" && !candidates.includes(choice)) return false;
+  const p = G.powers[power];
+  if (choice === "keep") {
+    delete G.flags[`goalChoice:${power}`];
+    log(G, power, "goalRemovalDeclined", {});
+    return true;
+  }
+  if (!p.goalDeck.includes(choice)) return false;
+  p.goalDeck = p.goalDeck.filter((entry) => entry !== choice);
+  delete G.flags[`goalChoice:${power}`];
+  log(G, power, "goalRemoved", {goal: choice, kept: candidates.filter((id) => id !== choice).join(",")});
+  return true;
+};
+
+/**
+ * Resolve the scenario's opening "draw N NGs, keep one, return the rest".
+ *
+ * 2.4 / 20.11: "players will shuffle their NG deck, draw three NG cards, keep
+ * one card, and return the other two to their NG deck."  The unkept cards are
+ * pushed back instead of being dropped, so the NG deck keeps its printed size.
+ */
+export const resolveStartingGoal = (
+  G: ImperialElegyState,
+  power: Power,
+  keep: string,
+): boolean => {
+  const raw = G.powers[power].flags.startingGoalChoices;
+  if (typeof raw !== "string") return false;
+  const candidates = raw.split(",").filter(Boolean);
   if (!candidates.includes(keep)) return false;
   const p = G.powers[power];
-  for (const id of candidates) {
-    if (id === keep) continue;
-    p.goalDeck = p.goalDeck.filter((entry) => entry !== id);
-  }
-  delete G.flags[`goalChoice:${power}`];
-  log(G, power, "goalRemoved", {goal: candidates.filter((id) => id !== keep).join(","), kept: keep});
+  p.goals.push(keep);
+  p.goalDeck.push(...candidates.filter((id) => id !== keep));
+  p.flags.startingGoal = keep;
+  delete p.flags.startingGoalChoices;
+  log(G, power, "goalKept", {goal: keep, returned: candidates.length - 1});
   return true;
 };
 

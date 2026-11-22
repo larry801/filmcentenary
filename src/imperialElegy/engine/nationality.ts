@@ -122,7 +122,8 @@ const NATIONALITY_LABELS_ZH: Readonly<Record<string, string>> = {
   Germans: "德意志", Greeks: "希腊", Hungarians: "匈牙利", Irish: "爱尔兰",
   Italians: "意大利", Latvians: "拉脱维亚", Lithuanians: "立陶宛", Macedonians: "马其顿",
   Palestinians: "巴勒斯坦", Poles: "波兰", Romanians: "罗马尼亚", Scots: "苏格兰",
-  Serbians: "塞尔维亚", Syrians: "叙利亚", Ukrainians: "乌克兰", Welsh: "威尔士",
+  Serbians: "塞尔维亚", Slovaks: "斯洛伐克", Slovenes: "斯洛文尼亚", Syrians: "叙利亚",
+  Ukrainians: "乌克兰", Welsh: "威尔士",
 };
 
 export const nationalityLabel = (nationality: string, locale: "en" | "zh_CN"): string =>

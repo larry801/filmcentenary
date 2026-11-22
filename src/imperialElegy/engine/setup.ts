@@ -299,17 +299,23 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   // ---------------------------------------------------------------- national goals
   // 20.11 Play Note: "Players do not start the campaign game with any NGs
   // (players start with 1 NG in the 1870 and 1880 scenarios)."  A scenario
-  // prints that as the opening "draw 3 NGs and pick one" (GE draws 2), so the
-  // drawn cards are recorded as the pending choice and one is kept.
+  // prints that as the opening "draw 3 NGs and pick one" (GE draws 2).  2.4 /
+  // 20.11 require the deck to be shuffled, one card kept and the other two
+  // *returned to the NG deck*, so the drawn cards are held in
+  // `startingGoalChoices` until the seat answers the setup decision; nothing is
+  // discarded here.
+  // 34.1: a bot does not draw NGs with the players — its NGs are drawn at the
+  // end of the game (or the start of the GW), so bot seats skip this draw.
   for (const power of POWERS) {
     const draw = def.special.startingGoalDraw?.[power] ?? 0;
     if (draw <= 0) continue;
+    if (bots.includes(power)) continue;
     const p = G.powers[power];
+    p.goalDeck = shuffle(ctx, p.goalDeck);
     const drawn = p.goalDeck.splice(0, draw);
     if (drawn.length === 0) continue;
-    p.goals.push(drawn[0]);
-    p.flags.startingGoal = drawn[0];
-    log(G, power, "goalDrawn", {count: drawn.length, kept: drawn[0]});
+    p.flags.startingGoalChoices = drawn.join(",");
+    log(G, power, "goalDrawn", {count: drawn.length});
   }
 
   // ---------------------------------------------------------------- alt-GW setup

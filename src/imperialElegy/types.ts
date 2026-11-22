@@ -1051,6 +1051,8 @@ export const PENDING_KINDS = [
   "dardanellesPassage",
   /** 1870 scenario: FR may concede the Franco-Prussian War before the first prep. */
   "francoPrussianConcession",
+  /** A scenario's opening "draw N NGs, keep one, return the rest" choice. */
+  "startingGoal",
   /** 1870/1880 scenario: AU drops one of the two printed National Goals. */
   "scenarioGoalChoice",
   /** Alternate GW: spend a build point on stability or industry (p. 8 step 2). */

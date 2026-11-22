@@ -20,8 +20,8 @@ import {FLASHPOINTS, POWER_DEFS} from "./constant/powers";
 import type {Effect} from "./constant/cards";
 import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "./constant/setup";
 import {GOALS_BY_ID} from "./constant/goals";
-import {botPowersOf, handOverSeat} from "./configuration";
-import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId, removeCard} from "./engine/deck";
+import {botPowersOf, handOverSeat, isBotPower} from "./configuration";
+import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId, removeCard, shuffle} from "./engine/deck";
 import {
   dealProblem,
   expireOffers,
@@ -262,6 +262,7 @@ import {
   hasFrancoPrussianWar,
   pendingGoalChoice,
   resolveGoalChoice,
+  resolveStartingGoal,
   spendBuildPoint,
 } from "./engine/scenarioSetup";
 import {grantAuNewWayForward} from "./engine/nationality";
@@ -6102,6 +6103,36 @@ const resolveGwBuildPoint = (
  * whole sequence runs before the first prep phase can close.
  */
 export const openSetupDecisions = (G: ImperialElegyState, ctx: Ctx): boolean => {
+  // ------------------------------------------- opening "draw N, keep 1" NGs
+  // 2.4 / 20.11: every player shuffles their NG deck, draws three, keeps one
+  // and returns the other two.  The setup seeded `startingGoalChoices`; the
+  // choice runs before the scenario's other printed setup decisions so the
+  // 1870/1880 NG-deck edit sees the hand the power actually kept.
+  for (const power of POWERS) {
+    const raw = G.powers[power].flags.startingGoalChoices;
+    if (typeof raw !== "string") continue;
+    const candidates = raw.split(",").filter(Boolean);
+    if (candidates.length === 0) {
+      delete G.powers[power].flags.startingGoalChoices;
+      continue;
+    }
+    openDecision(G, setupCtx(ctx), decision(
+      "startingGoal",
+      power,
+      "Keep one starting National Goal; the others return to your NG deck.",
+      candidates.map((id) => option(
+        id,
+        GOALS_BY_ID[id]?.title ?? id,
+        undefined,
+        false,
+        GOALS_BY_ID[id]?.titleZh ?? id,
+      )),
+      undefined,
+      undefined,
+      "保留 1 张起始国家目标，其余返回国家目标牌堆",
+    ));
+    return true;
+  }
   // ------------------------------------------------------------------ 1870 war
   if (hasFrancoPrussianWar(G) && G.persistent.francoPrussianConceded === undefined
       && G.flags.francoPrussianAsked !== true) {
@@ -6119,19 +6150,43 @@ export const openSetupDecisions = (G: ImperialElegyState, ctx: Ctx): boolean => 
   }
   // ------------------------------------------------- printed NG deck edits
   const goalChoices = pendingGoalChoice(G);
-  if (goalChoices.length > 0) {
-    const entry = goalChoices[0];
+  for (const entry of goalChoices) {
+    // The opening draw may already hold one candidate; the printed edit is a
+    // *deck* edit, so only a goal still in the deck can be removed.  When
+    // neither candidate is left the edit is a no-op and the flag is cleared.
+    const removable = entry.candidates.filter((id) => G.powers[entry.power].goalDeck.includes(id));
+    if (removable.length === 0) {
+      delete G.flags[`goalChoice:${entry.power}`];
+      continue;
+    }
+    if (removable.length === 1) {
+      // "may remove" still gives the power the choice to keep it.
+      openDecision(G, setupCtx(ctx), decision(
+        "scenarioGoalChoice",
+        entry.power,
+        "Remove this National Goal from the deck, or keep both?",
+        [
+          option(removable[0], `Remove ${GOALS_BY_ID[removable[0]]?.title ?? removable[0]}`, undefined, false,
+            `移除「${GOALS_BY_ID[removable[0]]?.titleZh ?? removable[0]}」`),
+          option("keep", "Keep both National Goals", undefined, false, "保留两张国家目标"),
+        ],
+      ));
+      return true;
+    }
     openDecision(G, setupCtx(ctx), decision(
       "scenarioGoalChoice",
       entry.power,
-      "Remove one of these National Goals from the deck?",
-      entry.candidates.map((id) => option(
-        id,
-        GOALS_BY_ID[id]?.title ?? id,
-        undefined,
-        false,
-        GOALS_BY_ID[id]?.titleZh ?? id,
-      )),
+      "Remove one of these National Goals from the deck, or keep both?",
+      [
+        ...removable.map((id) => option(
+          id,
+          `Remove ${GOALS_BY_ID[id]?.title ?? id}`,
+          undefined,
+          false,
+          `移除「${GOALS_BY_ID[id]?.titleZh ?? id}」`,
+        )),
+        option("keep", "Keep both National Goals", undefined, false, "保留两张国家目标"),
+      ],
     ));
     return true;
   }
@@ -6467,6 +6522,12 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   }
   if (pending.kind === "francoPrussianConcession") {
     return resolveFrancoPrussianConcession(G, ctx, pending, optionId);
+  }
+  if (pending.kind === "startingGoal") {
+    if (!resolveStartingGoal(G, pending.power, optionId)) return INVALID_MOVE;
+    G.pending = null;
+    continueSetupDecisions(G, ctx);
+    return undefined;
   }
   if (pending.kind === "scenarioGoalChoice") {
     return resolveScenarioGoalChoice(G, ctx, pending, optionId);
@@ -6989,7 +7050,7 @@ export const endPhaseTurn = (G: ImperialElegyState, ctx: Ctx): string | void => 
     // window replaces the campaign's hard-coded turn 7 so the two four-turn
     // scenarios and the two-turn tutorial end on their own printed turn.
     if (Number(G.flags.turnEnded ?? 0) >= campaignWindow(G).last) {
-      finishScenario(G);
+      finishScenario(G, ctx);
       ctx.events?.endGame?.({winner: G.result?.winners[0] ?? "GE"});
     } else {
       G.phase = "prep";
@@ -7470,6 +7531,9 @@ const endPhaseDrawNgs = (
   for (let index = start; index < POWERS.length; index += 1) {
     const power = POWERS[index];
     const p = G.powers[power];
+    // 34.1: "Bots do not draw NGs when player's draw NGs".  A bot's NGs are
+    // dealt in one batch at the end of the game or the start of the GW.
+    if (isBotPower(G, power)) continue;
     if (
       interactive &&
       G.turn === 1 &&
@@ -7495,6 +7559,8 @@ const endPhaseDrawNgs = (
       );
       return true;
     }
+    // 2.4 / 20.11: "players will shuffle their NG deck, draw three NG cards".
+    p.goalDeck = shuffle(ctx, p.goalDeck);
     // The 1870/1880 scenarios print "The GE player only draws 2 NGs".
     const drawn = p.goalDeck.splice(0, ngDrawCount(G, power));
     p.flags.ngChoices = drawn.join(",");
@@ -7730,7 +7796,7 @@ export const endTurn = (G: ImperialElegyState, ctx: Ctx): void => {
   G.flags.endDone = false;
   // 2.2.1: the scenario's last turn ends the game, not a hard-coded turn 7.
   if (G.turn > campaignWindow(G).last) {
-    finishScenario(G);
+    finishScenario(G, ctx);
   }
 };
 

@@ -513,6 +513,17 @@ export const useBoardModel = ({
     : auCitizenDecision.allowed !== true
       ? engineReasonText(actualLocale, auCitizenDecision.reasons.join(" · "))
       : cpBudget() < 3 ? needsCp(3) : undefined;
+  // 33.4: show the citizenship roll the player is paying 3 CP for — the base
+  // 3+, +1 per existing citizen, -2 when the stability sacrifice is ticked —
+  // instead of leaving the number to be recomputed from the eight-item list.
+  const auCitizenRoll = auCitizenDecision === null
+    ? null
+    : {
+        difficulty: auCitizenDecision.difficulty,
+        rollNeeded: auCitizenDecision.rollNeeded,
+        guaranteed: auCitizenDecision.guaranteed,
+        impossible: auCitizenDecision.impossible,
+      };
   const auIncorporateReason = auIncorporate === null
     ? bi(actualLocale, "No allied minor power is eligible.", "没有符合条件的盟国小国。")
     : auIncorporate.allowed !== true
@@ -1746,6 +1757,7 @@ export const useBoardModel = ({
     auCitizenEligible,
     auCitizenValue,
     auCitizenDecision,
+    auCitizenRoll,
     auIncorporateCandidates,
     auIncorporateEligible,
     auIncorporateValue,
