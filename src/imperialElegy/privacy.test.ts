@@ -7,7 +7,7 @@
  */
 
 import {setupImperialElegy} from "./engine/setup";
-import {playCard} from "./moves";
+import {playCard, resolvePending} from "./moves";
 import {cardById, drawCards} from "./engine/deck";
 import {HIDDEN_CARD, redactForView, RedactedView} from "./engine/privacy";
 import {logText} from "./components/logText";
@@ -433,5 +433,40 @@ test("an incitingCard note follows the public play of that card but nothing else
     const entry = asView(G, playerID).log.find((e) => e.id === publicEntry.id)!;
     expect(entry).toEqual(publicEntry);
     expect(entry.args).toEqual({});
+  }
+});
+
+test("12.13.1 an accepted Modernization gift is faceup; the offer itself names only its CP", () => {
+  const G = fresh();
+  G.phase = "action";
+  G.activePower = "OT";
+  G.powers.OT.hand.push("IE-H-OT-11");
+  G.powers.OT.selectedHomeCard = "IE-H-OT-11";
+  // Only the UK can offer, so the round is offer -> accept.
+  G.powers.UK.hand.push("IE-A029");
+  for (const power of ["GE", "FR", "AU", "RU"] as Power[]) G.powers[power].hand = [];
+
+  playCard(G, makeCtx("5"), "IE-H-OT-11", "event");
+  const offer = G.pending!;
+  expect(offer.power).toBe("UK");
+  expect(offer.options.map((o) => o.id)).toContain("offer:IE-A029");
+
+  resolvePending(G, makeCtx("1") as never, "offer:IE-A029");
+  resolvePending(G, makeCtx("5") as never, "accept:IE-A029");
+
+  const offered = G.log.find((entry) => entry.key === "modernizationOffered")!;
+  const accepted = G.log.find((entry) => entry.key === "modernizationAccepted")!;
+  expect(accepted.args).toMatchObject({card: "IE-A029", from: "UK"});
+
+  for (const playerID of [...SEATS, null]) {
+    const view = asView(G, playerID);
+    // The card sits faceup in the Ottoman industrialization slot with a chit on
+    // it, exactly like `industrializeCard`, so every seat may read its name.
+    expect(view.log.find((e) => e.id === accepted.id)!.args?.card).toBe("IE-A029");
+    // "They tell the OT player the CP value" — the CP is public, the card the
+    // UK was still holding is not.
+    const offeredInView = view.log.find((e) => e.id === offered.id)!;
+    expect(offeredInView.args?.cp).toBe(cardById("IE-A029").cp);
+    if (playerID !== "1") expect(offeredInView.args?.card).toBe(HIDDEN_CARD);
   }
 });

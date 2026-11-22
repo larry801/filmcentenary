@@ -6,6 +6,8 @@
  */
 import {setupImperialElegy} from "./engine/setup";
 import {botDecision, bmpitTarget, enumerateBot} from "./engine/bot";
+import {cardById} from "./engine/deck";
+import {playCard, resolvePending} from "./moves";
 import {POWERS} from "./types";
 
 const ctx: any = {
@@ -69,4 +71,38 @@ test("botDecision prep phase offers discardForStability when stability <= 2", ()
   const move = botDecision(G, ctx, "GE");
   // The move draws the card at random, so it takes no card argument.
   expect(move).toEqual({move: "discardForStability", args: []});
+});
+
+/**
+ * 12.13.1 Modernization.  The generic "answer the first option" rule picked
+ * `pass` in the offer round, so a bot never offered a card and the Ottoman seat
+ * never got to industrialize — the one thing the home card is printed for.  The
+ * offer is free for the giver (it draws a replacement), so the bot gives its
+ * cheapest card and the Ottoman seat takes the best offer it gets.
+ */
+test("the bot offers in the Modernization round and accepts the highest CP offer", () => {
+  const G = setupImperialElegy({...ctx, phase: "action"});
+  G.phase = "action";
+  G.activePower = "OT";
+  G.cpRemaining = 0;
+  G.powers.OT.hand = ["IE-H-OT-11"];
+  G.powers.OT.selectedHomeCard = "IE-H-OT-11";
+  // The UK holds a 3 CP event and RU a 2 CP one: the giver gives the cheaper
+  // card, the Ottoman seat takes the more valuable offer.
+  G.powers.UK.hand = ["IE-A035"];
+  G.powers.RU.hand = ["IE-A027"];
+  for (const power of ["GE", "FR", "AU"] as const) G.powers[power].hand = [];
+
+  playCard(G, {...ctx, playerID: "5"} as never, "IE-H-OT-11", "event");
+  let guard = 0;
+  while (G.pending && guard++ < 12) {
+    const step = G.pending;
+    const move = botDecision(G, {...ctx, playerID: String(POWERS.indexOf(step.power))} as never, step.power);
+    expect(move.move).toBe("resolvePending");
+    resolvePending(G, {...ctx, playerID: String(POWERS.indexOf(step.power))} as never, String(move.args?.[0]));
+  }
+  expect(G.pending).toBeNull();
+  expect(G.powers.OT.industryCard).not.toBeNull();
+  // The Ottoman seat's own best offer, i.e. the 3 CP card.
+  expect(cardById(G.powers.OT.industryCard!).cp).toBe(3);
 });

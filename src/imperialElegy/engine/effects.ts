@@ -1605,8 +1605,13 @@ const openEconomicPanicStep = (
  * The offers are public (the printer's "they cannot lie" means the CP value is
  * announced), so every power with a givable card is asked in seat order.  The
  * giver's reward is the replacement draw; the card itself becomes OT's
- * industrialization card.  When nobody offers, the home card is spent for its
- * printed 3 CP of actions, exactly as the card's own text says.
+ * industrialization card.  Because the rule says "the OT player accepts one",
+ * a round with at least one offer has no "take the 3 CP instead" answer: the 3
+ * CP are the fallback for a round in which *nobody* gave OT a card.
+ *
+ * A gifted mandatory event is then conducted by the Ottoman seat, but its CP
+ * are not granted — the card is busy industrializing, not being played for CP
+ * (12.13's "played into industrialization still trigger" clause).
  */
 const openModernizationStep = (
   G: ImperialElegyState,
@@ -1621,10 +1626,10 @@ const openModernizationStep = (
     const power = rest[0];
     const offerable = G.powers[power].hand.filter((id) => {
       const def = cardById(id);
-      // A home card is the power's own reserved card, and a mandatory event is
-      // printed to resolve instead of being gifted; 9.1 already governs when a
-      // mandatory event must be played.  Everything else can be offered.
-      return def.kind !== "home" && def.type !== "mandatoryResponse";
+      // A home card is the power's own reserved card, never a gift.  Everything
+      // else can be offered, mandatory events included: 12.13.1 prints exactly
+      // what happens when one is given ("the OT player conducts the event").
+      return def.kind !== "home";
     });
     if (G.powers[power].eliminated || power === owner || offerable.length === 0) {
       rest.shift();
@@ -1645,11 +1650,13 @@ const openModernizationStep = (
         )),
       ],
       {resume, special: "modernization", stage: "offer", queue: rest.slice(1), offers, owner, required: true},
+      undefined,
+      "现代化：向奥斯曼提供 1 张牌？",
     ));
     return true;
   }
-  // Every power has answered.  The Ottoman player picks an offer (or, with
-  // none, spends the card for 3 CP).
+  // Every power has answered.  With no offer the home card is its printed 3 CP;
+  // otherwise the Ottoman player must accept one of the offered cards.
   if (offers.length === 0) {
     G.cpRemaining += 3;
     log(G, owner, "modernizationNoOffer", {cp: 3});
@@ -1659,20 +1666,19 @@ const openModernizationStep = (
     "eventChoice",
     owner,
     "Modernization: accept one offered card",
-    [
-      option("accept:none", "Accept nothing (use the card for 3 CP)", undefined, false, "不接受（本牌当 3 CP）"),
-      ...offers.map((entry) => {
-        const def = cardById(entry.card);
-        return option(
-          `accept:${entry.card}`,
-          `Accept ${def.title} from ${POWER_DEFS[entry.power].name} (${def.cp} CP)`,
-          {card: entry.card, power: entry.power},
-          false,
-          `接受 ${POWER_DEFS[entry.power].nameZh} 的 ${def.titleZh}（${def.cp} CP）`,
-        );
-      }),
-    ],
+    offers.map((entry) => {
+      const def = cardById(entry.card);
+      return option(
+        `accept:${entry.card}`,
+        `Accept ${def.title} from ${POWER_DEFS[entry.power].name} (${def.cp} CP)`,
+        {card: entry.card, power: entry.power},
+        false,
+        `接受 ${POWER_DEFS[entry.power].nameZh} 的 ${def.titleZh}（${def.cp} CP）`,
+      );
+    }),
     {resume, special: "modernization", stage: "accept", offers, owner, required: true},
+    undefined,
+    "现代化：接受 1 张被提供的牌",
   ));
   return true;
 };
@@ -2662,11 +2668,13 @@ const resolveCardChain = (
         finishCardChain(G, ctx, pending);
         return;
       }
-      // The Ottoman seat answered: accept an offered card, or fall back to the
-      // card's own 3 CP.
+      // The Ottoman seat answered.  "The OT player accepts one of these cards":
+      // a round that produced an offer has no "take the 3 CP instead" answer, so
+      // an unknown choice (a legacy save still carrying `accept:none`) falls back
+      // to the 3 CP rather than stalling the card.
       const choice = optionId.startsWith("accept:") ? optionId.slice("accept:".length) : "none";
       const entry = choice === "none" ? undefined : offers.find((o) => o.card === choice);
-      if (entry === undefined) {
+      if (entry === undefined || G.powers.OT.industryCard !== null) {
         G.cpRemaining += 3;
         log(G, owner, "modernizationNoOffer", {cp: 3});
         finishCardChain(G, ctx, pending);
@@ -2675,14 +2683,29 @@ const resolveCardChain = (
       // "places an industrialization chit on it, the gifting player then draws a
       // card": the offered card becomes OT's industrialization card and the
       // giver is replaced with a fresh draw.
+      const def = cardById(entry.card);
       const giver = G.powers[entry.power];
       giver.hand = giver.hand.filter((id) => id !== entry.card);
       giver.cpChain = giver.cpChain.filter((id) => id !== entry.card);
       drawCards(G, ctx, entry.power, 1);
+      // The face-up card must be in the slot *before* the event chain unwinds:
+      // `isHeldAsIndustryCard` keeps `finalizePendingCard` from discarding it.
       G.powers.OT.industryCard = entry.card;
-      G.powers.OT.autoIndustry = false;
+      // 12.13: "All players with auto industrialization chits automatically
+      // industrialize if they played a card, of any CP value, into
+      // industrialization."  A gift is such a card, so the chit stays (`the
+      // playbook's own OT example accepts a 1 CP card precisely to cash it in).
       log(G, owner, "modernizationAccepted", {card: entry.card, from: entry.power});
       finishCardChain(G, ctx, pending);
+      // "If a player gives OT a mandatory event, the OT player conducts the
+      // event."  The card is industrializing, not played for CP, so no CP are
+      // granted; `pendingCard` still names the Modernization home card, which is
+      // what the outer chain finalizes once the event's own decisions are done.
+      if (def.type === "mandatory" || def.type === "mandatoryResponse") {
+        const done = resolveCard(G, ctx, "OT", def);
+        if (!done) return;
+        G.resolvingCard = null;
+      }
       return;
     }
     case "gwSubmarines": {
@@ -3902,6 +3925,15 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // player offers a card does the Ottoman seat "use their home card for 3 CP
       // worth of actions instead".
       changeStability(G, "OT", 1, ctx);
+      // An industry slot that is already taken (A027 Foreign Investment parks a
+      // card there) cannot receive a second chit, and overwriting it would make
+      // the parked card vanish from every zone.  The offer round is skipped and
+      // the home card is spent for its printed 3 CP.
+      if (G.powers.OT.industryCard !== null) {
+        G.cpRemaining += 3;
+        log(G, "OT", "modernizationNoOffer", {cp: 3, reason: "industry-slot-full"});
+        return true;
+      }
       return openModernizationStep(G, ctx, resume, "OT", chainQueue(G, POWERS));
     }
     case "jihadWar": {
