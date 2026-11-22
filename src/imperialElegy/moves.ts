@@ -322,6 +322,7 @@ import {
   initiativeRollOff,
   isItalianUnificationWar,
   isMinorWarTargetArg,
+  holdsWarImpulse,
   minorWarDefender,
   minorWarInfo,
   nonPlayerHome,
@@ -372,6 +373,20 @@ const requireActive = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | nul
   if (G.phase === "action" || G.phase === "prep" || G.phase === "diplomacy" || G.phase === "end" || G.phase === "gwPlanning" || G.phase === "gwManeuver") {
     if (power !== G.activePower) return INVALID_MOVE;
   }
+  return power;
+};
+
+/**
+ * 13.2 — the aim and 14.3 — the maneuver start belong to the seat that opened
+ * the war.  The defender's own choices in those steps (13.7's budget card,
+ * 8.2's shift, 13.6's surrender) have their own moves.
+ */
+const requireWarPrincipal = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null): Power | typeof INVALID_MOVE => {
+  const power = actor(G, playerID);
+  const war = G.war;
+  if (power === null || war === null) return INVALID_MOVE;
+  if (G.pending !== null) return INVALID_MOVE;
+  if (power !== war.attacker && power !== war.defender) return INVALID_MOVE;
   return power;
 };
 
@@ -4011,7 +4026,7 @@ export const playWarBudgetCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardI
   if (power === null) return INVALID_MOVE;
   const war = G.war;
   if (!war || G.gw?.active) return INVALID_MOVE;
-  if (!["warAim", "alliance", "shift"].includes(war.status)) return INVALID_MOVE;
+  if (!["warAim", "alliance"].includes(war.status)) return INVALID_MOVE;
   const defending = power === war.defender || war.defenderAllies.includes(power);
   if (!defending) return INVALID_MOVE;
   if ((war.defenderBudgetCards ?? []).some((entry) => entry.power === power)) return INVALID_MOVE;
@@ -4162,6 +4177,11 @@ const settleDefenderShiftChoice = (G: ImperialElegyState, war: WarState): void =
 export const chooseWarAim = (G: ImperialElegyState, ctx: Ctx, aim: "liberation" | "unification" | "conquest"): string | void => {
   const playerID = ctx.playerID ?? null;
   if (!G.war || G.war.status !== "warAim") return INVALID_MOVE;
+  // 13.2's aim belongs to the attacker; the defender's own 13.6 window is the
+  // surrender move.  Declaration widens dispatch to every seat so the defender
+  // can answer 13.7/15.5, so the check has to happen here.
+  const power = requireWarPrincipal(G, ctx, playerID);
+  if (power === INVALID_MOVE || power !== G.war.attacker) return INVALID_MOVE;
   // A card-funded declaration keeps its printed aim list and rules for the
   // whole aim step (13.1.2's Balkan liberation, Aux Armes' two conquest keys).
   const policy = G.war.declarationCard !== null && G.war.declarationCard !== undefined
@@ -4206,6 +4226,10 @@ export const surrender = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const war = G.war;
   const power = actor(G, playerID);
   if (!war || power === null || !canSurrender(G, power)) return INVALID_MOVE;
+  // 13.6 / 15.5: only a primary belligerent answers for its own side, and only
+  // at an impulse boundary — `canSurrender` already requires no open battle or
+  // pending decision.  `declareWar` widens dispatch to every seat so the
+  // defender can answer 13.7, which is why the seat check cannot live in the UI.
   if (power === war.attacker && isPower(war.defender)) {
     // 15.5: only the defending primary can refuse an attacker's surrender.
     // Keep the entire maneuver state intact while the defending seat decides.
@@ -4261,6 +4285,22 @@ const recordWarPass = (G: ImperialElegyState, ctx: Ctx, power: Power): string | 
   const war = G.war;
   if (!war || G.pending !== null) return INVALID_MOVE;
   if (!belligerentsOf(war).includes(power)) return INVALID_MOVE;
+  // 15.0: passing is a maneuver-step action.  A war in its aim/alliance step is
+  // advanced by the attacker.  A war already recorded as won by a 15.5
+  // surrender has no maneuver left: the printed next step is victory, so the
+  // same move routes to the settlement instead of being refused.
+  if (war.status === "victory") return resolveWar(G, ctx);
+  if (war.status !== "maneuver") {
+    log(G, power, "warPassRefused", {reason: "war-status", status: war.status});
+    return INVALID_MOVE;
+  }
+  // 4.4: only the belligerent holding the maneuver impulse may pass it on.
+  // Widened dispatch lets every seat send the move, so an ally waiting its
+  // turn must not be able to end the impulse holder's maneuver.
+  if (!holdsWarImpulse(G, power)) {
+    log(G, power, "warPassRefused", {reason: "not-active", active: G.activePower});
+    return INVALID_MOVE;
+  }
   // 33.1 Superior Staff Work: GE's free deploy reserves action is only
   // available during its first impulse; passing forfeits it (once per war).
   if (power === "GE" && superiorStaffWorkFreeDeploy(G, power, war)) {
@@ -7520,6 +7560,16 @@ export const resolveWar = (
 ): string | void => {
   const war = G.war;
   if (!war || G.pending !== null) return INVALID_MOVE;
+  // Rule 15.0: "if all players consecutively pass the war is over."  During
+  // maneuver the settlement therefore belongs to the all-passed boundary —
+  // `passWarMove` calls this itself as the last seat passes.  Any seat pressing
+  // it earlier would end a war its owner is still fighting, so the shortcut is
+  // refused instead of being an unprinted second exit.
+  if (war.status === "maneuver" && !belligerentsOf(war).every((p) => war.passed.includes(p))) {
+    const actorPower = actor(G, ctx.playerID ?? null);
+    log(G, actorPower ?? undefined, "warResolveRefused", {reason: "not-all-passed"});
+    return INVALID_MOVE;
+  }
 
   const rawStart: unknown = G.flags.limitedWarAttackerStart;
   const attackerControlledAtStart = Array.isArray(rawStart)
@@ -8577,6 +8627,14 @@ export const startWarManeuver = (G: ImperialElegyState, ctx: Ctx): string | void
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (!G.war || (G.war.attacker !== power && G.war.defender !== power)) return INVALID_MOVE;
+  // 13.2/14.3: the aim and initiative steps belong to the attacker; the
+  // defender's own choices in them (13.7's budget card, 8.2's shift, 13.6's
+  // surrender) have their own moves.  Only the seat that opened the war may
+  // advance it past them.
+  if (power !== G.war.attacker) {
+    log(G, power, "warManeuverRefused", {reason: "not-attacker"});
+    return INVALID_MOVE;
+  }
   if (G.war.status !== "warAim" && G.war.status !== "alliance") return INVALID_MOVE;
   const rapid = rapidMobilizationBelligerent(G, G.war);
   G.war.status = "maneuver";

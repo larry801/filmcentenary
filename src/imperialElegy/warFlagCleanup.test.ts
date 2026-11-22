@@ -1,6 +1,6 @@
 import {setupImperialElegy} from "./engine/setup";
 import {playResponseCard, resolvePending, resolveWar, WAR_DURATION_FLAG_DEFAULTS} from "./moves";
-import {createWarState} from "./engine/limitedWar";
+import {createWarState, belligerentsOf} from "./engine/limitedWar";
 import {beginLandBattle} from "./engine/combat";
 import {placeUnit} from "./engine/effects";
 import {CARDS} from "./constant/cards.data";
@@ -40,6 +40,9 @@ const setWarDurationFlags = (G: ImperialElegyState): void => {
 const settleWithoutTreaties = (G: ImperialElegyState): void => {
   const ctx = makeCtx("0");
   G.spaces.bohemia.control = "GE";
+  // Rule 15.0: the war is settled at the all-passed boundary, so the maneuver
+  // has to reach it before `resolveWar` will classify the result.
+  G.war!.passed = [...belligerentsOf(G.war!)];
   expect(resolveWar(G, ctx, [])).toBeUndefined();
   expect(G.war).toBeNull();
 };
@@ -63,6 +66,7 @@ test("the interactive treaty path also clears war-duration flags", () => {
   setWarDurationFlags(G);
   const ctx = makeCtx("0");
   G.spaces.bohemia.control = "GE";
+  G.war!.passed = [...belligerentsOf(G.war!)];
 
   expect(resolveWar(G, ctx)).toBeUndefined();
   expect(G.war).not.toBeNull();
