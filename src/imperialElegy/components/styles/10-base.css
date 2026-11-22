@@ -217,7 +217,24 @@
   margin-top: var(--ie-space-3);
 }
 
-.ie-solo-hotseat { font-size: var(--ie-font-xs); }
+.ie-solo-match-top .ie-solo-match-power { white-space: nowrap; }
+
+.ie-solo-match-top .ie-solo-match-scenario {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ie-solo-match-top > .ie-btn { margin-left: auto; }
+
+.ie-solo-restart-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ie-space-2);
+  margin-top: var(--ie-space-3);
+}
 
 .ie-board :is(.ie-select, .ie-input) { padding: 6px; }
 

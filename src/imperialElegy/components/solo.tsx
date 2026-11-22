@@ -1,5 +1,5 @@
 import React from "react";
-import {Link, useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import {IESurface} from "./theme";
 import {ieT} from "./i18n";
 import i18n from "../../constant/i18n";
@@ -21,11 +21,11 @@ import {
  * The solo entrance: a page of its own where the player picks the one great
  * power they command.
  *
- * A solo match is the hotseat shell with five bot seats, so the page does not
- * own a game client.  It collects the one choice the hotseat board cannot ask
- * for (which power the player takes), writes the resulting seat setup and hands
- * over to `/localIE?fresh=…`, which deals a fresh match on the chosen seat.  The
- * five remaining powers are always the bots.
+ * A solo match has its own page (`/localIE/solo/play`) and its own client: it
+ * does not reuse the six-board hotseat shell.  This setup page only collects
+ * the power the player commands (plus the printed scenario), writes the solo
+ * setup and hands over to that page.  The five remaining powers are always the
+ * bots, and the match page never exposes their boards or a seat switcher.
  */
 const LocalImperialElegySolo = () => {
   i18n.use();
@@ -126,17 +126,14 @@ const LocalImperialElegySolo = () => {
             className="ie-btn primary ie-local-start"
             data-testid="ie-solo-start"
             onClick={() => {
-              // Persist the single choice and hand over to the hotseat shell,
-              // which deals a new match on the picked seat (`?fresh=…`).
+              // Persist the single choice and hand over to the dedicated solo
+              // match page, which deals a fresh match on the picked seat.
               saveSoloSetup(power, scenario, noGw);
               navigate(soloMatchPath());
             }}
           >
             {t.soloStart}
           </button>
-          <Link className="ie-link ie-solo-hotseat" to="/localIE?solo=1" data-testid="ie-solo-hotseat">
-            {t.soloHotseatLink}
-          </Link>
         </div>
       </div>
     </IESurface>
