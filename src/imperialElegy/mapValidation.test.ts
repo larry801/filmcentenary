@@ -486,11 +486,11 @@ test.each(POWER_TABLE)("%s track arrays are monotonic", (power) => {
   checkNonDecreasing(definition.stability.map((entry) => entry.bm ?? 0), "stability.bm");
   checkNonDecreasing(definition.stability.map((entry) => entry.abm ?? 0), "stability.abm");
   checkNonIncreasing(definition.stability.map((entry) => entry.cards ?? 0), "stability.cards");
-  definition.stability.forEach((entry, index) => {
-    if ((entry.cardDelta ?? 0) < 0) {
-      violations.push(`${power} stability.cardDelta[${index}] = ${entry.cardDelta} must not be negative`);
-    }
-  });
+  // Boxes print their card effect as a boxed delta: "-1 card" at 0-1 and
+  // "+1 card" at 6 (10.2 applies these plus/minus markers to the industry draw
+  // and then enforces the three-card minimum), so a negative delta is the
+  // printed value and the ladder must not shrink as stability rises.
+  checkNonDecreasing(definition.stability.map((entry) => entry.cardDelta ?? 0), "stability.cardDelta");
   checkNonDecreasing(definition.industryCards, "industryCards");
   checkNonDecreasing(definition.keyManpower, "keyManpower");
   if (definition.secondaryKeyManpower) {

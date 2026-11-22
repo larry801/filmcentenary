@@ -884,8 +884,9 @@ Summary:
 - **RU:** TSRR +1 card/+2 keys and free rail move; Endless Space; Agrarian 6;
   Tsarist Repression; Second Rome VP/Istanbul capture (the start-of-GW 2 VPs
   are awarded separately at outbreak); Scorched Earth; Russian Steamroller
-  reserve limit; Endless Space keys on the battle spaces only. The TSRR is a
-  movement allowance, not a distinct railroad unit (as printed).
+  reserve limit; Endless Space keys on the battle spaces only; the printed
+  Total Keys ladder (MP 5 at keys 10-14, the first MP 6 at key 15). The TSRR is
+  a movement allowance, not a distinct railroad unit (as printed).
 - **OT:** 2-stack home limit; Local Autonomy incl. Egypt Arab key and
   Tunisia/Tripoli LoC; Turkish/Arab split with separate Arab manpower;
   Europeanization 6 and no-own-card rejection; Jihad gain/use/discard; A106 two

@@ -3,8 +3,19 @@ import {Power, PowerState} from "../types";
 export interface StabilityEffect {
   vp?: number;
   bm?: number;
-  /** Absolute cards (replaces the industry-derived amount), or a delta when delta is true. */
+  /**
+   * An absolute card count that replaces the industry-derived draw.  No printed
+   * display uses it — every box prints a boxed plus/minus marker instead (see
+   * `cardDelta`) — so it exists only for a scenario override that would want to
+   * pin the draw outright.
+   */
   cards?: number;
+  /**
+   * The boxed plus/minus card marker printed in a box (`-1 card` at 0-1,
+   * `+1 card` at 6).  10.2 adds it to the industry-derived draw and then
+   * applies the printed three-card minimum, so a low-stability power still
+   * draws three.
+   */
   cardDelta?: number;
   abm?: number;
 }
@@ -47,9 +58,19 @@ export interface PowerDef {
   notes?: {en: string; zh: string}[];
 }
 
+/**
+ * The printed stability track every power shares (boxes 0-6).
+ *
+ * 10.2 deals cards from the industry level and then applies the **plus or
+ * minus card markers**, and 10.2's minimum is always three.  The display's
+ * boxes 0 and 1 print a boxed `-1` beside the word "card", exactly like box 6's
+ * boxed `+1`: both are modifiers, not an absolute hand size.  Reading them as
+ * an absolute (the old `cards: 1`) made a power at stability 0-1 draw a single
+ * card a turn, below the printed three-card floor.
+ */
 const genericStability: StabilityEffect[] = [
-  {vp: -2, bm: -2, cards: 1},
-  {vp: -1, bm: -1, cards: 1},
+  {vp: -2, bm: -2, cardDelta: -1},
+  {vp: -1, bm: -1, cardDelta: -1},
   {vp: -1, bm: -1},
   {},
   {},
@@ -178,8 +199,8 @@ export const POWER_DEFS: Record<Power, PowerDef> = {
     subcapital: "moscow",
     start: {stability: 3, manpower: 5, industry: 0, territorialKeys: 12, colonialKeys: 0},
     stability: [
-      {vp: -2, bm: -2, cards: 1},
-      {vp: -1, bm: -1, cards: 1},
+      {vp: -2, bm: -2, cardDelta: -1},
+      {vp: -1, bm: -1, cardDelta: -1},
       {vp: -1, bm: -1},
       {},
       {},
@@ -187,7 +208,10 @@ export const POWER_DEFS: Record<Power, PowerDef> = {
       {cardDelta: 1},
     ],
     industryCards: [3, 3, 3, 4, 4, 4, 5],
-    keyManpower: [2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6],
+    // Printed key ladder: boxes 10-14 all read MP=5 and box 15 is the first
+    // MP=6 box, so 11 keys still give 5 manpower and 15 gives 6 (the old table
+    // advanced to 5 at box 10 and 6 at box 14).
+    keyManpower: [2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6, 6],
     autoVictoryKeys: 20,
     reserveFormula: "manpowerPlusOne",
     characteristics: [
@@ -212,8 +236,8 @@ export const POWER_DEFS: Record<Power, PowerDef> = {
     subcapital: "ankara",
     start: {stability: 3, manpower: 3, secondaryManpower: 1, industry: 0, territorialKeys: 8, colonialKeys: 0, arabKeys: 5},
     stability: [
-      {vp: -2, bm: -2, abm: -2, cards: 1},
-      {vp: -1, bm: -2, abm: -2, cards: 1},
+      {vp: -2, bm: -2, abm: -2, cardDelta: -1},
+      {vp: -1, bm: -2, abm: -2, cardDelta: -1},
       {vp: -1, bm: -1, abm: -2},
       {abm: -1},
       {},
