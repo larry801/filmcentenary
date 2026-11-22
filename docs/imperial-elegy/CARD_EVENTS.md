@@ -775,7 +775,7 @@ H-RU-9 也补上了直接测试，因此不再有零信号牌。
 | --- | --- | --- | --- | --- | --- | --- |
 | `IE-H-GE-1` | Otto von Bismarck | event | 3 | `stability` + `bismarckWar`→`declareWar` | choice | yes |
 | `IE-H-GE-2` | German General Staff | event | 3 | `germanGeneralStaff` | choice | yes |
-| `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` | auto | yes |
+| `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` (naval/India choice) | choice | yes |
 | `IE-H-UK-4` | Balance of Power | event | 3 | `balanceOfPower` | auto | handler |
 | `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | auto | yes |
 | `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | choice | yes |

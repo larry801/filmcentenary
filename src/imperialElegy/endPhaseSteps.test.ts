@@ -21,7 +21,7 @@ import {endPhaseOrder, reserveAllowance} from "./engine/economy";
 import {initialNonPlayerBuildBox, nonPlayerBuildPlan} from "./engine/endPhase";
 import {unifyItaly} from "./engine/greatWar";
 import {allianceMembers} from "./engine/alliance";
-import {playCard, resolveEnd} from "./moves";
+import {playCard, resolveEnd, resolvePending} from "./moves";
 import {SPACES} from "./constant/spaces";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
@@ -93,6 +93,9 @@ test("the Indian fort is created with fort.indian by the Sun Never Sets home car
   G.powers.UK.hand.push("IE-H-UK-3");
 
   expect(playCard(G, ctx, "IE-H-UK-3", "event")).toBeUndefined();
+  // The card is now the printed two-way choice; the India half places the fort.
+  expect(G.pending?.kind).toBe("eventChoice");
+  expect(resolvePending(G, ctx, "india")).toBeUndefined();
   expect(G.spaces.india.fort).toMatchObject({power: "UK", level: 1, indian: true});
 
   // 20.2 then leaves it alone while degrading the ordinary forts.

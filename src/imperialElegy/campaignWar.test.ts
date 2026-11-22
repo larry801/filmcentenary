@@ -321,12 +321,15 @@ describe("campaign limited war", () => {
     expect(G.wars[0].treaties).toEqual([]);
     expect(G.phase).toBe("action");
     expect(G.cpRemaining).toBe(0);
-    expect(G.activePower).toBe("GE");
-    expect(G.flags.postWarWinner).toBe("GE");
+    // 16.1.5: a white peace has no winning side, so the action phase resumes
+    // with the next seat after the attacker (UK) instead of handing GE a
+    // second impulse after the war it just declared.
+    expect(G.activePower).toBe("UK");
+    expect(G.flags.postWarWinner).toBe("UK");
     expect(G.flags.limitedWarAttackerStart).toBeUndefined();
 
     actionBegin()(G, ctx);
-    expect(G.activePower).toBe("GE");
+    expect(G.activePower).toBe("UK");
     expect(G.flags.postWarWinner).toBeUndefined();
   });
 

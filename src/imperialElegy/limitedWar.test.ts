@@ -450,7 +450,9 @@ test("demobilization returns reserves, clears the war and hands back the action 
   expect(G.wars).toContain(war);
   expect(war.status).toBe("done");
   expect(G.phase).toBe("action");
-  expect(G.activePower).toBe("GE");
+  // The fixture war is a white peace: no winning side, so play resumes with the
+  // next seat after the attacker (GE -> UK) rather than replaying GE.
+  expect(G.activePower).toBe("UK");
   expect(G.passed).toEqual([]);
   expect(ctx.events.setPhase).toHaveBeenCalledWith("action");
   expect(result.freeActions[0]).toMatchObject({power: "GE", side: "attacker", order: 1});

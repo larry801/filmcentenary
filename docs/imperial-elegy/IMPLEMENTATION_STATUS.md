@@ -1,5 +1,47 @@
 # Imperial Elegy — implementation status
 
+## Fixed: Bismarck's white-peace war no longer gives GE a second card (2026-11-22)
+
+Reported as "德国bot在事件俾斯麦之后打出了另一张牌".  The record showed GE
+playing Bismarck, declaring its unification war, the war ending in a white
+peace, and then the GE bot playing South German Confederation for CP before the
+UK had acted.
+
+Rule 16.1.5: a white peace has **no winning side**.  `demobilizeWar` nevertheless
+fell back to `war.victor ?? "attacker"` and set `G.activePower` to the attacker,
+so the action phase restarted with the very seat whose impulse the declaration
+had already spent.  A white peace now resumes at the next seat in printed turn
+order after the attacker (4.3); a real winner still receives the first impulse
+as before.
+
+**Coverage:** `bismarckWar.test.ts` (a full Bismarck → white peace → demobilise
+run asserts `activePower === "UK"`) and the white-peace case in
+`campaignWar.test.ts`.
+
+## Fixed: Sun Never Sets is now the printed two-way choice (2026-11-22)
+
+Reported as "英国的日不落应该有选项让玩家二选一 印度还是建造 1 个分舰队/无畏舰并花 2 CP 于远征军、绥靖或海军移动".
+
+The old handler resolved **both** halves: it flipped the Indian marker, placed a
+London squadron, granted 2 free colonial CP and placed the Indian Fort.  The
+card now opens an `eventChoice`:
+
+- **Naval** — build 1 squadron **or** dreadnought (a second choice when both are
+  legal) at a legal territorial home port, then grant 2 CP restricted to
+  expeditionary force, pacification and naval movement.
+- **India** — flip the Indian Stability marker (forced unstable while India is
+  independent), place/upgrade the Indian Fort, then grant 2 CP restricted to
+  Indian army steps or an EF in India/Bengal.
+
+The grants are separate public flags (`freeOperationCp`, `freeIndianCp`) with
+their own payers, so neither can pay for a fleet or a British army.  A British
+army build in India/Bengal now also refits the matching Indian counter, and an
+Indian refit is no longer blocked by the Indian army cap.
+
+**Coverage:** `sunNeverSetsChoice.test.ts` (9 — both halves, fort upgrade,
+squadron/dreadnought choice, and each grant's allowed/refused spends), plus the
+updated `endPhaseSteps.test.ts` and `indiaIndependence.test.ts`.
+
 ## Changed: solo play has its own match page, not the hotseat shell (2026-11-22)
 
 Reported as "帝国挽歌 solo模式使用单独页面 不复用本地热座 solo不显示其他机器人的界面 solo没有更换席位功能 只能重新开局 重开增加确认防止误点".
