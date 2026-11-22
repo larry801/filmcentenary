@@ -18,7 +18,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {BISMARCK_HOME_CARD, warDeclarationEntitlement} from "./engine/rules";
 import {allyCallEligibility, warBudgetFor, warCardCp} from "./engine/limitedWar";
-import {BISMARCK_CARD, declareWar, pass, playCard, resolvePending} from "./moves";
+import {BISMARCK_CARD, declareWar, declinePending, pass, passWarMove, playCard, resolvePending, startWarManeuver} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -239,5 +239,31 @@ describe("Otto von Bismarck's war of unification", () => {
     expect(G.powers.GE.flags.warDeclaration).toBeUndefined();
     expect(warDeclarationEntitlement(G, "GE")).toBeNull();
     expect(G.activePower).not.toBe("GE");
+  });
+
+  test("a white peace after Bismarck resumed the action phase with the next seat, not GE", () => {
+    // Reported as "德国bot在事件俾斯麦之后打出了另一张牌": the white-peace
+    // settlement handed the action phase back to the attacker, so the GE bot
+    // could immediately play a second card (South German Confederation) in the
+    // same turn before the UK ever acted.
+    const G = bismarckImpulse();
+    playBismarck(G);
+    expect(declareWar(G, makeCtx([], seat("GE")), "FR", "unification", ["alsace-lorraine"], 3)).toBeUndefined();
+    expect(startWarManeuver(G, makeCtx([], seat("GE")))).toBeUndefined();
+    let guard = 0;
+    while (G.war !== null && guard++ < 10) {
+      const power = G.activePower;
+      expect(passWarMove(G, makeCtx([], seat(power)))).toBeUndefined();
+    }
+    expect(G.war).toBeNull();
+    expect(G.wars[0]?.victor).toBeNull();
+    while (G.pending !== null && guard++ < 20) {
+      expect(declinePending(G, makeCtx([], seat(G.pending.power)))).toBeUndefined();
+    }
+    expect(G.pending).toBeNull();
+    expect(G.phase).toBe("action");
+    // 4.3: the attacker's impulse was spent on the declaration, so play resumes
+    // with the next seat in printed order (UK), never the attacker again.
+    expect(G.activePower).toBe("UK");
   });
 });

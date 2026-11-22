@@ -768,6 +768,45 @@ export const spendCpFor = (G: ImperialElegyState, power: Power, amount: number):
 export const freeColonialCp = (G: ImperialElegyState, power: Power): number =>
   Number(G.powers[power]?.flags.freeColonialCp ?? 0);
 
+/**
+ * UK-3 Sun Never Sets has two separate 2 CP grants.  The naval option's CP may
+ * pay only for expeditionary force, pacification and naval movement actions;
+ * the India option's CP may pay only for Indian army steps or an EF in India or
+ * Bengal.  Keeping them as named flags (instead of folding them into the
+ * ordinary wallet) is what makes the printed restrictions enforceable.
+ */
+export type FreeCpGrant = "freeColonialCp" | "freeOperationCp" | "freeIndianCp";
+
+export const freeGrantCp = (G: ImperialElegyState, power: Power, grant: FreeCpGrant): number =>
+  Number(G.powers[power]?.flags[grant] ?? 0);
+
+/**
+ * Spend from the named grants in order, then the ordinary wallet.  A refused
+ * action restores every grant because the caller only mutates state after the
+ * whole amount is covered.
+ */
+export const spendGrantCp = (
+  G: ImperialElegyState,
+  power: Power,
+  amount: number,
+  grants: readonly FreeCpGrant[],
+): boolean => {
+  let remaining = amount;
+  for (const grant of grants) {
+    if (remaining <= 0) break;
+    const left = freeGrantCp(G, power, grant);
+    const used = Math.min(left, remaining);
+    if (used > 0) {
+      const rest = left - used;
+      if (rest > 0) G.powers[power].flags[grant] = rest;
+      else delete G.powers[power].flags[grant];
+    }
+    remaining -= used;
+  }
+  if (remaining === 0) return true;
+  return spendCpFor(G, power, remaining);
+};
+
 /** Spend from the free colonial grant first; returns the CP the wallet still owes. */
 export const spendFreeColonialCp = (G: ImperialElegyState, power: Power, amount: number): number => {
   const left = freeColonialCp(G, power);
@@ -781,11 +820,8 @@ export const spendFreeColonialCp = (G: ImperialElegyState, power: Power, amount:
 };
 
 /** Charge `amount` CP against the wallet and, first, any free colonial grant. */
-export const spendColonialCp = (G: ImperialElegyState, power: Power, amount: number): boolean => {
-  const owed = spendFreeColonialCp(G, power, amount);
-  if (owed === 0) return true;
-  return spendCpFor(G, power, owed);
-};
+export const spendColonialCp = (G: ImperialElegyState, power: Power, amount: number): boolean =>
+  spendGrantCp(G, power, amount, ["freeColonialCp"]);
 
 export const enemiesOf = (G: ImperialElegyState, power: Power): Power[] =>
   POWERS.filter((p) => p !== power && atWar(G, power, p));
