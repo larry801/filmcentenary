@@ -20,7 +20,7 @@ import {
   warDeclarationEntitlement,
 } from "./engine/rules";
 import {declarationTargetCandidates, declarationSecondTargets, declarationObjectives, declarationSecondObjectives, declarationDefenders, warTargetCandidateKey, warTargetKey} from "./engine/declarationTargets";
-import {createWarState} from "./engine/limitedWar";
+import {createWarState, validateWarAim} from "./engine/limitedWar";
 import {SPACES} from "./constant/spaces";
 import {declareWar, playCard, resolvePending} from "./moves";
 
@@ -251,6 +251,30 @@ describe("two-target declarations", () => {
     const {entitlement, fr} = entriesFor(G);
     const pair = declarationSecondObjectives(G, "GE", entitlement, fr, "unification", "alsace-lorraine");
     expect(Array.isArray(pair)).toBe(true);
+  });
+
+  test("an ordinary unification takes two spaces of the same power (13.2)", () => {
+    // "其他统一和解放战争是同一 power 的 2 个地块": the campaign's setup leaves
+    // each power one German space, so drive FR into Schleswig-Holstein and check
+    // the panel offers the pair — no home card involved.
+    const G = setupImperialElegy(makeCtx());
+    G.phase = "action";
+    G.activePower = "GE";
+    G.cpRemaining = 4;
+    G.spaces["schleswig-holstein"].control = "FR";
+    G.spaces["schleswig-holstein"].minorHome = null;
+
+    const fr = declarationDefenders(G, "GE", null).find((entry) => entry.target === "FR")!;
+    const first = declarationObjectives(G, "GE", null, fr, "unification");
+    expect(first).toEqual(expect.arrayContaining(["alsace-lorraine", "schleswig-holstein"]));
+    const second = declarationSecondObjectives(G, "GE", null, fr, "unification", first[0]);
+    expect(second).toHaveLength(1);
+
+    // Both spaces, and 13.0's ceiling still refuses a third.
+    expect(declareWar(G, makeCtx([2, 1], seat("GE")), "FR", "unification", [first[0], second[0]], 2)).toBeUndefined();
+    expect(G.war?.objectives).toEqual([first[0], second[0]]);
+    expect(validateWarAim(G, "GE", "FR", "unification", ["alsace-lorraine", "schleswig-holstein", "bavaria"]).ok)
+      .toBe(false);
   });
 });
 
