@@ -252,12 +252,16 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   in printed seat order when the diplomacy phase closes — so accepting a deal
   moves nothing by itself. Every draw excludes home cards and is announced in
   the public log (“the random card draw is done in full view of all players”).
-  Unconfirmed offers lapse at the phase’s end rather than blocking it. See
-  [`NEGOTIATION.md`](NEGOTIATION.md). The **home-card choice** comes after the
-  table in this implementation: it is a dialog the seat opens from the dock
-  (`ie-open-home-card`) or the Deals page (`ie-deals-home-step`) once it is done
-  negotiating, and it closes without answering while the choice stays owed. It
-  used to pop up as diplomacy opened and covered the negotiation table.
+  Unconfirmed offers lapse at the phase’s end rather than blocking it. The deal
+  form is one-way in practice: a give/take switch plus a count dropdown, with
+  the inactive direction zero. See [`NEGOTIATION.md`](NEGOTIATION.md). The
+  **home-card choice** comes after the table in this implementation, and the
+  order is enforced: every surviving seat presses `finishNegotiation`
+  (`ie-finish-negotiation`) and `chooseHomeCard` refuses until
+  `negotiationConcluded`; only then do the dock (`ie-open-home-card`) and the
+  Deals page (`ie-deals-home-step`) offer the dialog. It closes without
+  answering while the choice stays owed. It used to pop up as diplomacy opened
+  and covered the negotiation table.
 - **Bot box (9.2 / 34.3.4):** the printed 2×3 box under each action card’s CP
   value is transcribed card by card (`BOT_BOX` in `constant/cards.data.ts`,
   read onto `CardDef.botBox`). 32 action cards print a box; the rest print none
