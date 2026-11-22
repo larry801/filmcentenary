@@ -1,5 +1,37 @@
 # Imperial Elegy — implementation status
 
+## Fixed: a click on the hotseat bot-seat button used to force a new match (2026-11-22)
+
+Reported as "帝国挽歌本地热座 点击选择机器人席位无法关闭相当于强制新开一局 按钮文字改成新游戏并添加确认 solo模式重新开局应该回到选择剧本和国家的页面而不是直接不改设置重新开局".
+
+The hotseat header button opened the seat-setup screen with no way back, so
+reading it as "change bot seats" and clicking it silently promised a brand-new
+match.  Solo's "restart" had the same complaint from the other side: it dealt
+the same power and scenario again instead of letting the player choose.
+
+- **The hotseat button reads New game** (`新游戏`) and only raises a
+  confirmation dialog (`ie-new-game-dialog`, `ie-new-game-cancel` /
+  `ie-new-game-confirm`).  Cancel (or Esc, or the backdrop) leaves the running
+  match exactly as it was.
+- **The setup screen is closable.**  Confirming opens the seat-setup screen, and
+  that screen now carries `ie-back-to-match` (`返回对局` / Back to the match):
+  leaving it without pressing Start match keeps the running match, its turn and
+  its state.  A new match is dealt only by `ie-start-match` (`开始对局`), which
+  is exactly what the dialog's body says.
+- The seat strip's number shortcuts are ignored while the setup screen is open,
+  so the form cannot be switched out from under the reader.
+- **Solo's New game returns to the setup page.**  `ie-solo-new-game` (label
+  `新游戏` / New game) confirms through `ie-solo-new-game-dialog`, then
+  navigates back to `/localIE/solo`, where the great power and the scenario are
+  chosen again.  It no longer re-deals the same power and scenario.
+
+**Coverage:** the new `e2e/imperial-elegy-controls.spec.ts` cases "the hotseat
+New game button asks for confirmation and can go back" (dialog without a state
+change, cancel, then confirm → setup → back with the same match id and turn) and
+the reworked "solo new game is confirmed and returns to the setup page" (cancel
+keeps the match, confirm lands on `/localIE/solo`, and the next start deals a
+different seat).
+
 ## Fixed: two-target declarations and the non-player aid hint (13.0 / 13.4.2 / 14.1) (2026-11-22)
 
 Reported as "帝国挽歌俾斯麦应该是可以选择2个power做目标 其他统一和解放战争是同一power的2个地块 按照这个修复宣战界面 同时标明non player power可能触发的盟友".
@@ -156,16 +188,18 @@ and left `?fresh=` as the only guard against resuming an old match.
   no keyboard seat shortcut on the solo page.  The player's board also passes
   `allowSeatHandover={false}`, so Rule 34's "hand this seat to the bot" control
   is absent.
-- **Restart is guarded.**  `ie-solo-restart` opens a confirmation dialog
-  (`ie-solo-restart-dialog`) with cancel/confirm.  Confirming changes the match
-  id, which remounts every client and deals a fresh game with the same power and
-  scenario; a stray first click only opens the dialog.
+- **Restart is guarded.**  `ie-solo-new-game` (label `新游戏` / New game) opens
+  a confirmation dialog (`ie-solo-new-game-dialog`) with cancel/confirm.  A
+  stray first click only opens the dialog; cancel leaves the match running.
+  Confirming returns to `/localIE/solo`, the setup page, instead of silently
+  dealing the same power and scenario again, so the power and the scenario are
+  chosen anew and the next match is genuinely different.
 
 **Coverage:** `components/localSetup.test.tsx` (the dedicated route and the
 setup page's removal of the hotseat link), `components/board.test.tsx` (a board
 can opt out of the hand-over control), and the reworked solo tests in
 `e2e/imperial-elegy-controls.spec.ts` (one visible seat, no hotseat controls,
-and the cancel/confirm restart flow).
+and the cancel/confirm new-game flow back to the setup page).
 
 ## Fixed: the home-card dialog covered the negotiation table (9.1) (2026-11-22)
 

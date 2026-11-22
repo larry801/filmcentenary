@@ -9,12 +9,12 @@
  *
  *   • one visible board, the power the player chose;
  *   • five headless bot clients (`SoloBotSeat`) that never render a seat UI;
- *   • no seat strip and no seat switching — the only way out is a restart;
- *   • restart is guarded by a confirmation dialog so a stray tap cannot wipe a
- *     running game.
+ *   • no seat strip and no seat switching;
+ *   • "New game" is guarded by a confirmation dialog and then returns to the
+ *     solo setup page, where the power and the scenario are chosen again.
  *
- * The match id is unique per page session (and per restart), so a restart
- * always deals a fresh match instead of resuming the abandoned one.
+ * The match id is unique per page session, so a visit always deals a fresh
+ * match instead of resuming the abandoned one.
  */
 import React from "react";
 import {Navigate, useNavigate} from "react-router-dom";
@@ -111,8 +111,8 @@ const LocalImperialElegySoloMatch = () => {
   const [power] = React.useState<Power | null>(loadSoloPower);
   const [scenario] = React.useState<ScenarioId>(loadScenario);
   const [noGw] = React.useState<boolean>(loadNoGw);
-  const [session, setSession] = React.useState<number>(() => Date.now());
-  const [confirmRestart, setConfirmRestart] = React.useState(false);
+  const [session] = React.useState<number>(() => Date.now());
+  const [confirmNewGame, setConfirmNewGame] = React.useState(false);
 
   if (power === null) {
     // A direct visit (or a cleared storage) has no solo setup to play.
@@ -125,13 +125,13 @@ const LocalImperialElegySoloMatch = () => {
   const {Player, Bot} = soloClientFor(scenario, noGw);
   const summary = scenarioSummary(scenario, noGw, locale, t);
 
-  const restart = () => {
-    setConfirmRestart(false);
-    // A new match id abandons the old local master state.  `Date.now()` is
-    // monotonic enough per click, and `Math.max` keeps a rapid double restart
-    // from reusing the id of the match it just replaced.
-    setSession((previous) => Math.max(Date.now(), previous + 1));
-    navigate("/localIE/solo/play", {replace: true});
+  // "New game" does not silently deal the same setup again: it goes back to the
+  // solo setup page, where the power and the scenario are chosen again.  The
+  // setup page then writes a new setup and the match page mounts with a new
+  // session id, so the abandoned match cannot be resumed.
+  const startNewGame = () => {
+    setConfirmNewGame(false);
+    navigate("/localIE/solo");
   };
 
   return (
@@ -147,10 +147,10 @@ const LocalImperialElegySoloMatch = () => {
         <button
           type="button"
           className="ie-btn secondary ie-btn-xs"
-          data-testid="ie-solo-restart"
-          onClick={() => setConfirmRestart(true)}
+          data-testid="ie-solo-new-game"
+          onClick={() => setConfirmNewGame(true)}
         >
-          {t.restartMatch}
+          {t.newGame}
         </button>
       </div>
       <div className="ie-local-boards ie-solo-boards">
@@ -171,32 +171,32 @@ const LocalImperialElegySoloMatch = () => {
         ))}
       </div>
       <Modal
-        open={confirmRestart}
+        open={confirmNewGame}
         dismissible
         locale={locale}
-        title={t.soloRestartTitle}
-        onClose={() => setConfirmRestart(false)}
-        testId="ie-solo-restart-dialog"
-        backdropTestId="ie-solo-restart-backdrop"
-        closeTestId="ie-solo-restart-close"
+        title={t.soloNewGameTitle}
+        onClose={() => setConfirmNewGame(false)}
+        testId="ie-solo-new-game-dialog"
+        backdropTestId="ie-solo-new-game-backdrop"
+        closeTestId="ie-solo-new-game-close"
       >
-        <p className="ie-muted" data-testid="ie-solo-restart-body">{t.soloRestartBody}</p>
-        <div className="ie-solo-restart-actions">
+        <p className="ie-muted" data-testid="ie-solo-new-game-body">{t.soloNewGameBody}</p>
+        <div className="ie-dialog-actions">
           <button
             type="button"
             className="ie-btn secondary"
-            data-testid="ie-solo-restart-cancel"
-            onClick={() => setConfirmRestart(false)}
+            data-testid="ie-solo-new-game-cancel"
+            onClick={() => setConfirmNewGame(false)}
           >
-            {t.soloRestartCancel}
+            {t.newGameCancel}
           </button>
           <button
             type="button"
             className="ie-btn primary"
-            data-testid="ie-solo-restart-confirm"
-            onClick={restart}
+            data-testid="ie-solo-new-game-confirm"
+            onClick={startNewGame}
           >
-            {t.soloRestartConfirm}
+            {t.soloNewGameConfirm}
           </button>
         </div>
       </Modal>

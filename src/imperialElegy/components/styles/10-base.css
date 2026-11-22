@@ -229,7 +229,8 @@
 
 .ie-solo-match-top > .ie-btn { margin-left: auto; }
 
-.ie-solo-restart-actions {
+/* Confirm/cancel row shared by the local shell's and the solo page's dialogs. */
+.ie-dialog-actions {
   display: flex;
   justify-content: flex-end;
   gap: var(--ie-space-2);
