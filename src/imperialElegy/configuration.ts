@@ -149,6 +149,13 @@ export const parseBotDifficulty = (setupData: unknown): BotDifficulty => {
   return isBotDifficulty(raw) ? raw : DEFAULT_BOT_DIFFICULTY;
 };
 
+/** True when a `setupData` bag explicitly names a difficulty. */
+export const declaresBotDifficulty = (setupData: unknown): boolean =>
+  setupData !== null
+  && typeof setupData === "object"
+  && !Array.isArray(setupData)
+  && IE_BOT_DIFFICULTY_SETUP_KEY in (setupData as Record<string, unknown>);
+
 /** Read the difficulty of a live game state (legacy saves read as the default). */
 export const botDifficultyOf = (G: {botDifficulty?: unknown} | null | undefined): BotDifficulty => {
   const raw = G?.botDifficulty;

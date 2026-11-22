@@ -28,6 +28,8 @@ import {
   SCENARIO_KEY,
   NO_GW_KEY,
   SOLO_POWER_KEY,
+  BOT_DIFFICULTY_KEY,
+  loadBotDifficulty,
   loadBotSeats,
   loadFreshNonce,
   loadNoGw,
@@ -79,6 +81,14 @@ describe("solo seat setup", () => {
     expect(loadSoloPower()).toBe<Power>("FR");
     expect(loadScenario()).toBe("s1870");
     expect(loadNoGw()).toBe(true);
+    expect(loadBotDifficulty()).toBe("normal");
+  });
+
+  test("34.1's difficulty is saved per match and a bad value reads as normal", () => {
+    saveSoloSetup("FR", "s1870", false, "hard");
+    expect(loadBotDifficulty()).toBe("hard");
+    localStorage.setItem(BOT_DIFFICULTY_KEY, "impossible");
+    expect(loadBotDifficulty()).toBe("normal");
   });
 
   test("a garbage saved power and bot list read as the defaults", () => {
@@ -121,6 +131,7 @@ describe("reading the whole local setup", () => {
     expect([...setup.botSeats]).toEqual(["GE", "UK", "FR", "AU", "OT"]);
     expect(setup.scenario).toBe("s1880");
     expect(setup.noGw).toBe(false);
+    expect(setup.botDifficulty).toBe("normal");
   });
 
   test("a plain hotseat visit keeps P1 and six humans", () => {
@@ -181,8 +192,13 @@ describe("the solo page", () => {
     for (const power of POWERS) {
       expect(html).toContain(`data-testid="ie-solo-power-${power}"`);
     }
-    expect((html.match(/type="radio"/g) ?? []).length).toBe(POWERS.length);
-    expect((html.match(/checked=""/g) ?? []).length).toBe(1);
+    // Six power radios plus Rule 34.1's three difficulty levels; one of each
+    // group is selected (GE and Normal).
+    expect((html.match(/type="radio"/g) ?? []).length).toBe(POWERS.length + 3);
+    expect((html.match(/checked=""/g) ?? []).length).toBe(2);
+    for (const level of ["easy", "normal", "hard"]) {
+      expect(html).toContain(`data-testid="ie-solo-difficulty-${level}"`);
+    }
     // The button that hands over to the match is present, and the summary names
     // the five bot seats.
     expect(html).toContain('data-testid="ie-solo-start"');

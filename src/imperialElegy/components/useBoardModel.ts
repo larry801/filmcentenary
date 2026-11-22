@@ -55,6 +55,7 @@ import {
 } from "./moveFeedback";
 import {pendingOptionSafety} from "./pendingSafety";
 import {pendingDeclinesItself} from "./PendingPanel";
+import {engineReasonText} from "./reasonText";
 import {ARM_MS} from "./ConfirmButton";
 import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
@@ -63,6 +64,22 @@ import {botMoveFor} from "../engine/bot";
 import {botPowersOf} from "../configuration";
 
 const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
+
+/**
+ * Decisions whose printed benefit is mandatory ("gains", "set manpower", a tied
+ * alliance direction, returning an NG).  The panel's generic 拒绝 is only a
+ * convenience for optional windows; offering it here would let a player decline
+ * a benefit the rules grant, so these kinds answer only through their printed
+ * options.  The engine's `declinePending` stays available as the unattended
+ * fallback for bots and stale clients.
+ */
+const MANDATORY_PENDING_KINDS: ReadonlySet<string> = new Set([
+  "metternich",
+  "militarism",
+  "manpowerExcess",
+  "allianceTie",
+  "goalChoice",
+]);
 
 export interface BoardModelProps {
   G: ImperialElegyState;
@@ -305,6 +322,22 @@ export const useBoardModel = ({
     warWasActive.current = hasWar;
   }, [war, gw, isPhone]);
 
+  // A finished bot war leaves the War body in front; the next human impulse
+  // then has no visible Orders tab (action/space/influence/naval), so the seat
+  // that just took the impulse sees no way to act.  Bring Orders back on the
+  // false→true edge of "this viewer holds the action impulse", exactly once, so
+  // a player who deliberately opened War during their own turn stays there.
+  const viewerHoldsImpulse = viewer !== null && G.activePower === viewer
+    && (G.phase === "action" || G.phase === "wartime");
+  const viewerHeldImpulse = React.useRef(false);
+  React.useEffect(() => {
+    if (viewerHoldsImpulse && !viewerHeldImpulse.current) {
+      setRailTab("action");
+      setMobileTab("orders");
+    }
+    viewerHeldImpulse.current = viewerHoldsImpulse;
+  }, [viewerHoldsImpulse]);
+
   // A decision arriving on a phone brings the one bottom sheet up to half
   // height on the Orders tab.  It fires on the false→true edge only, so a
   // player who collapses the sheet while answering keeps it collapsed; when the
@@ -429,6 +462,10 @@ export const useBoardModel = ({
   const auCitizenDecision = auCitizenValue !== ""
     ? canGrantCitizenship(G, "AU", auCitizenValue, {sacrificeStability: auSacrifice})
     : null;
+  // 33.4: only an allied minor that already has a nationality with full AU
+  // citizenship can be incorporated.  The picker must not offer the others
+  // (the reported bug listed the Netherlands and Hanover while the button was
+  // disabled); it should list only legal targets.
   const auIncorporateCandidates = nationalActionPhase && viewer === "AU"
     ? Object.values(SPACES)
         .filter((space) => {
@@ -436,6 +473,7 @@ export const useBoardModel = ({
           return typeof control === "string" && !isPowerKey(control) && G.spaces[space.id]?.ally === "AU";
         })
         .map((space) => space.id)
+        .filter((space) => auIncorporateDecision(G, space).allowed)
     : [];
   const auIncorporateEligible = auIncorporateCandidates.filter((space) => auIncorporateDecision(G, space).allowed);
   const auIncorporateValue = nationalActionPhase && viewer === "AU"
@@ -468,26 +506,26 @@ export const useBoardModel = ({
   const auReformReason = auReformDecision === null
     ? undefined
     : auReformDecision.allowed !== true
-      ? auReformDecision.reasons.join(" | ")
+      ? engineReasonText(actualLocale, auReformDecision.reasons.join(" · "))
       : cpBudget() < 3 ? needsCp(3) : undefined;
   const auCitizenReason = auCitizenDecision === null
     ? undefined
     : auCitizenDecision.allowed !== true
-      ? auCitizenDecision.reasons.join(" | ")
+      ? engineReasonText(actualLocale, auCitizenDecision.reasons.join(" · "))
       : cpBudget() < 3 ? needsCp(3) : undefined;
   const auIncorporateReason = auIncorporate === null
     ? bi(actualLocale, "No allied minor power is eligible.", "没有符合条件的盟国小国。")
     : auIncorporate.allowed !== true
-      ? auIncorporate.reasons.join(" | ")
+      ? engineReasonText(actualLocale, auIncorporate.reasons.join(" · "))
       : cpBudget() < 3 ? needsCp(3) : undefined;
   const tsrrReason = tsrrArmies.length === 0
     ? bi(actualLocale, "No army is on the Trans-Siberian Railroad.", "西伯利亚铁路上没有军团。")
     : tsrrDecision !== null && tsrrDecision.allowed !== true
-      ? tsrrDecision.reasons.join(" | ")
+      ? engineReasonText(actualLocale, tsrrDecision.reasons.join(" · "))
       : undefined;
   const jihadDecision = battle !== null ? jihadUse(G, "OT", battle) : null;
   const jihadReason = jihadDecision !== null && jihadDecision.allowed !== true
-    ? jihadDecision.reasons.join(" | ")
+    ? engineReasonText(actualLocale, jihadDecision.reasons.join(" · "))
     : undefined;
   const polishOwner = viewer === null ? null : polishController(G);
   const polishArmyDecision = viewer !== null && selected !== null && phase === "action" && polishOwner === viewer
@@ -1272,7 +1310,7 @@ export const useBoardModel = ({
   // A decision that prints its own "decline" option (13.4.2's aid search, most
   // pending windows) must not also get the generic one: the panel would show
   // two identical 拒绝 buttons whose only difference is the option id.
-  const canDecline = canDecide && pending !== null && !pendingDeclinesItself(pending) && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
+  const canDecline = canDecide && pending !== null && !pendingDeclinesItself(pending) && !MANDATORY_PENDING_KINDS.has(pending.kind) && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
 
   // Only the rungs `WarState.status` actually holds; `shift`, `initiative` and
   // `demobilization` are printed steps the engine resolves inside the alliance

@@ -199,6 +199,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   gameOver: {key: "gameOver", args: {winners: "GE,AU", reason: "autoVictory:GE"}},
   diplomacyStarted: {key: "diplomacyStarted", args: {}},
   homeCardChosen: {key: "homeCardChosen", power: "GE", args: {card: CARD_ID}},
+  homeCardRevealed: {key: "homeCardRevealed", power: "FR", args: {card: CARD_ID}},
   metternichAlliance: {key: "metternichAlliance", power: "AU", args: {space: "saxony"}},
   actionPhaseStarted: {key: "actionPhaseStarted", args: {}},
   cardShownPublic: {key: "cardShownPublic", power: "GE", args: {card: CARD_ID}},

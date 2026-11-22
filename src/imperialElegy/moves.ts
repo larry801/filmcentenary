@@ -970,7 +970,9 @@ const resolveMetternichChoice = (
   if (!applyMetternichAlly(G, optionId)) return INVALID_MOVE;
   const next = [...picked, optionId];
   if (openMetternichChoice(G, ctx, next)) return undefined;
-  return startFirstActionImpulse(G, ctx);
+  // The choice was opened at the *end of the diplomacy phase*, so the action
+  // phase starts only once the second ally has been applied.
+  return enterActionPhase(G, ctx);
 };
 
 /** 5.5.3 / 5.6.2: the first impulse of the action phase. */
@@ -980,11 +982,7 @@ const startFirstActionImpulse = (G: ImperialElegyState, ctx: Ctx): undefined => 
 };
 
 /** Enter the action phase (the first impulse may wait for a decision). */
-const beginActionPhaseAfterDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => {
-  // 11.1: the confirmed card draws are announced and performed "at the end of
-  // the diplomacy phase", in printed seat order, in full view of all players.
-  settleDeals(G, ctx);
-  expireOffers(G);
+const enterActionPhase = (G: ImperialElegyState, ctx: Ctx): string | void => {
   G.phase = "action";
   G.activePower = "GE";
   G.cpRemaining = 0;
@@ -994,12 +992,37 @@ const beginActionPhaseAfterDiplomacy = (G: ImperialElegyState, ctx: Ctx): string
   ctx.events?.setPhase?.("action");
   log(G, undefined, "actionPhaseStarted", {});
   ctx.events?.setActivePlayers?.({value: {[seatOf("GE")]: "play"}});
-  // 33.4 Metternich's Legacy resolves at the end of the turn-1 diplomacy
-  // phase; the AU choice is answered before Germany's first impulse starts.
+  return startFirstActionImpulse(G, ctx);
+};
+
+/**
+ * Close the diplomacy phase: 33.4 Metternich's Legacy resolves "at the end of
+ * the diplomacy phase of turn 1", so the AU choice is answered *before* the
+ * action phase opens.  Entering the action phase first (the old order) put the
+ * decision after `actionPhaseStarted` and left the phase bar saying "Action"
+ * while AU still owed a diplomacy obligation.
+ */
+const beginActionPhaseAfterDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  // 11.1: the confirmed card draws are announced and performed "at the end of
+  // the diplomacy phase", in printed seat order, in full view of all players.
+  settleDeals(G, ctx);
+  expireOffers(G);
   if (G.turn === 1 && !G.persistent.metternich) {
     if (openMetternichChoice(G, ctx, [])) return undefined;
   }
-  return startFirstActionImpulse(G, ctx);
+  return enterActionPhase(G, ctx);
+};
+
+/** Hand the diplomacy step on, or close the phase once every seat has chosen. */
+const finishHomeCardSelection = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  if (POWERS.every((x) => G.powers[x].flags.homeChosen)) {
+    return beginActionPhaseAfterDiplomacy(G, ctx);
+  }
+  const index = POWERS.indexOf(G.activePower);
+  const next = POWERS[(index + 1) % POWERS.length];
+  G.activePower = next;
+  ctx.events?.endTurn?.();
+  return undefined;
 };
 
 /**
@@ -1031,6 +1054,9 @@ export const chooseHomeCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId):
   // 9.1: the negotiation segment comes first.  `negotiationConcluded` treats a
   // pre-step save as already done, so a resumed old phase is not blocked.
   if (!negotiationConcluded(G)) return INVALID_MOVE;
+  // Metternich's Legacy is now answered *inside* the diplomacy phase, so a
+  // stale client could otherwise re-enter the phase while that choice is open.
+  if (G.pending !== null) return INVALID_MOVE;
   const p = G.powers[power];
   // 1870 Franco-Prussian branch step 5: "on the first turn, GE does not select
   // a home card".  The obligation is pre-settled as the diplomacy phase opens
@@ -1046,18 +1072,69 @@ export const chooseHomeCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId):
   if (!p.hand.includes(cardId)) p.hand.push(cardId);
   p.flags.homeChosen = true;
   log(G, power, "homeCardChosen", {card: cardId});
-  if (POWERS.every((x) => G.powers[x].flags.homeChosen)) {
-    return beginActionPhaseAfterDiplomacy(G, ctx);
+  return finishHomeCardSelection(G, ctx);
+};
+
+/**
+ * 34.2: "Do not choose a home card for bots, instead each bot adds a random
+ * home card to their pile. When a bot home card is revealed, use the 'Home Card
+ * Revealed' section in the PAC."
+ *
+ * The bot never enters the human `chooseHomeCard` flow (whose public log says a
+ * *choice* happened).  It adds one home card to its hand as a hidden pile
+ * entry; the card is revealed later, at the bot's action impulse, through
+ * `revealHomeCard`.  The PAC's pile-order rules are honoured where the printed
+ * order matters: GE and OT put the card on top (the first printed home card),
+ * UK on the bottom (the last), FR/AU/RU shuffle it in (a die roll).
+ */
+export const pileHomeCard = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  if (!negotiationConcluded(G)) return INVALID_MOVE;
+  if (G.pending !== null) return INVALID_MOVE;
+  const p = G.powers[power];
+  if (p.flags.homeChosen) return INVALID_MOVE;
+  const candidates = p.homeCards.filter((id) => !p.hand.includes(id) && id !== p.selectedHomeCard);
+  if (candidates.length > 0) {
+    const cardId = power === "GE" || power === "OT"
+      ? candidates[0]
+      : power === "UK"
+        ? candidates[candidates.length - 1]
+        : candidates[randomIndex(ctx, candidates.length)];
+    p.selectedHomeCard = cardId;
+    p.hand.push(cardId);
   }
-  const index = POWERS.indexOf(G.activePower);
-  const next = POWERS[(index + 1) % POWERS.length];
-  G.activePower = next;
-  ctx.events?.endTurn?.();
+  p.flags.homeChosen = true;
+  return finishHomeCardSelection(G, ctx);
+};
+
+/**
+ * The bot's action impulse reveals the home card it added to its pile.
+ *
+ * The card is only private until this point: `pileHomeCard` records no public
+ * log, and the reveal entry is what every client (and the printed PAC) reads as
+ * "the top card of the bot's pile".  A seat that has no piled home card, or
+ * that already revealed it this turn, has nothing to do.
+ */
+export const revealHomeCard = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "action" || G.activePower !== power) return INVALID_MOVE;
+  const p = G.powers[power];
+  const cardId = p.selectedHomeCard;
+  if (cardId === null || !p.hand.includes(cardId)) return INVALID_MOVE;
+  if (p.flags.homeCardRevealedTurn === G.turn) return INVALID_MOVE;
+  p.flags.homeCardRevealedTurn = G.turn;
+  log(G, power, "homeCardRevealed", {card: cardId});
   return undefined;
 };
 
 export const endDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => {
   if (G.phase !== "diplomacy") return INVALID_MOVE;
+  // The Metternich decision is part of closing diplomacy: a second close while
+  // it is open would open a duplicate decision.
+  if (G.pending !== null) return INVALID_MOVE;
   if (!POWERS.every((x) => G.powers[x].flags.homeChosen)) return INVALID_MOVE;
   return beginActionPhaseAfterDiplomacy(G, ctx);
 };

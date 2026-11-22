@@ -234,6 +234,23 @@ describe("33.4 Austrian special actions", () => {
     }
   });
 
+  test("an allied minor without full citizenship is never offered as a target", () => {
+    const G = fresh("AU", 3);
+    G.spaces.netherlands.ally = "AU";
+    const tree = renderTree(G, "AU", moveBag("auAction"));
+    const select = byTestId(tree, "ie-au-incorporate-target");
+    expect(select).toBeDefined();
+    const values: string[] = [];
+    walk(select, (element) => {
+      if (element.type === "option") values.push(String(element.props.value));
+    });
+    expect(values).not.toContain("netherlands");
+    expect(values).toContain("");
+    // The button explains the empty picker rather than naming an illegal target.
+    expect(isDisabled(tree, "ie-au-incorporate")).toBe(true);
+    expect(titleOf(tree, "ie-au-incorporate")).toContain("eligible");
+  });
+
   test("ineligible targets surface the decision reasons", () => {
     const G = fresh("AU", 3);
     const tree = renderTree(G, "AU", moveBag("auAction"));

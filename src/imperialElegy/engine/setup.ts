@@ -24,7 +24,14 @@ import {
   SETUP_PLACEMENT_FLAG,
 } from "./rules";
 import {ensureStateDefaults} from "./migrations";
-import {botPowersOf, parseBotDifficulty, parseBotPowers, parseNoGw, parseScenarioId} from "../configuration";
+import {
+  botPowersOf,
+  declaresBotDifficulty,
+  parseBotDifficulty,
+  parseBotPowers,
+  parseNoGw,
+  parseScenarioId,
+} from "../configuration";
 import {initialNonPlayerBuildBox} from "./endPhase";
 import {
   buildPointsFor,
@@ -71,9 +78,13 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   // passes no setupData at all and keeps its per-seat toggles on the client.
   // Stored in rulebook seat order, so every reader sees the same list.
   const bots = botPowersOf({bots: parseBotPowers(setupData) ?? []});
-  // 34.1: one difficulty for the whole table.  Only written for a match that
-  // actually has bot seats, so a hotseat state keeps the field absent.
-  const botDifficulty = bots.length > 0 ? parseBotDifficulty(setupData) : undefined;
+  // 34.1: one difficulty for the whole table.  Written for a match that names
+  // bot seats *or* explicitly names a level (the local/solo shell keeps its bot
+  // seats on the client, so `bots` is empty there).  An ordinary hotseat visit
+  // names neither and keeps the field absent.
+  const botDifficulty = bots.length > 0 || declaresBotDifficulty(setupData)
+    ? parseBotDifficulty(setupData)
+    : undefined;
   const scenarioId = parseScenarioId(setupData);
   const def: ScenarioDef = scenarioById(scenarioId);
   const noGw = parseNoGw(setupData);

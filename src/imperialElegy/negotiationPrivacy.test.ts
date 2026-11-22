@@ -14,7 +14,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {HIDDEN_CARD} from "./engine/privacy";
 import {ImperialElegyGameDef} from "./game";
-import {chooseHomeCard, proposeDeal, respondDeal, showCard} from "./moves";
+import {chooseHomeCard, proposeDeal, respondDeal, resolvePending, showCard} from "./moves";
 
 const seat = (power: Power): string => String(POWERS.indexOf(power));
 
@@ -79,6 +79,11 @@ describe("11.1 a settled deal is public", () => {
       G.activePower = power;
       G.powers[power].flags.homeChosen = true;
       expect(chooseHomeCard(G, makeCtx(power), G.powers[power].homeCards[0])).toBeUndefined();
+    }
+    // 33.4 resolves at the end of diplomacy, so the action phase waits for AU's
+    // two Metternich picks.
+    while (G.pending?.kind === "metternich") {
+      expect(resolvePending(G, makeCtx("AU"), G.pending.options[0].id)).toBeUndefined();
     }
     expect(G.phase).toBe("action");
 

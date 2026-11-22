@@ -122,7 +122,8 @@ describe("botEscapeMove", () => {
     // Diplomacy refuses to close until every power has chosen, so the escape is
     // the seat's own choice first.
     const diplomacy = botEscapeMove(G, "diplomacy");
-    expect(["chooseHomeCard", "endDiplomacy"]).toContain(diplomacy!.move);
+    // 34.2: a bot adds a hidden home card to its pile instead of choosing one.
+    expect(["pileHomeCard", "endDiplomacy"]).toContain(diplomacy!.move);
     expect(botEscapeMove(G, "end")).toEqual({move: "endPhaseTurn"});
     expect(botEscapeMove(G, "gwPlanning")).toEqual({move: "endGwPlanningMove"});
     expect(botEscapeMove(G, "gwWinter")).toEqual({move: "gwResolveWinter"});

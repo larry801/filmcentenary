@@ -58,6 +58,9 @@ import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {MobileDock, type MobileDockTab} from "./MobileDock";
 import type {MobileTab} from "./modelValues";
 import {mobileTabForTurnTab, resolveTurnTab, turnTabForMobileTab, type TurnTab} from "./turnPanelTab";
+import {botDifficultyLabel} from "./localSetup";
+import {botDifficultyOf} from "../configuration";
+import {auFormedForState, seatPowerName} from "./seatNames";
 import type {BoardModel} from "./useBoardModel";
 import type {CoreSlice, HandSlice, InteractionSlice, OrdersSlice, ReferenceSlice, WarSlice, T} from "./boardSlices";
 
@@ -707,7 +710,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       )}
       {viewer !== null && botSeats.has(viewer) && (
         <div className="ie-bot-banner" data-testid="ie-bot-banner" role="status" aria-live="polite">
-          <Icon name="bot" size={14}/> {t.seats[viewer]} — {t.botSeatBadge} · {t.seatBotHint}
+          <Icon name="bot" size={14}/> {seatPowerName(t, viewer, locale, auFormedForState(G))} — {t.botSeatBadge} · {t.botDifficultyLabel} {botDifficultyLabel(botDifficultyOf(G), locale)} · {t.seatBotHint}
           {/* A local hotseat seat can be taken back; the bot keeps the seat
               until someone claims it, so the control lives on the banner. */}
           {canHandOverSeat && (
@@ -809,7 +812,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             cp={viewer ? cpBudget() : G.cpRemaining}
             phaseActions={phaseActions}
             phaseLabel={PHASE_LABEL(t, phase)}
-            activeLabel={`${t.active}: ${t.seats[active]}`}
+            activeLabel={`${t.active}: ${seatPowerName(t, active, locale, auFormedForState(G))}`}
             turn={G.turn}
             summary={core.dockSummary}
             hasDecision={decisionOwed}

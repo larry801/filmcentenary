@@ -158,6 +158,23 @@ describe("Imperial Elegy board controls", () => {
     expect(otherSeat).not.toContain("data-testid=\"ie-impulse-actions\"");
   });
 
+  test("a mandatory benefit offers no generic refuse button", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-mil",
+      kind: "militarism",
+      power: "GE",
+      prompt: "End phase 20.1",
+      options: [{id: "reserve", label: "Reserve army step"}],
+      createdAt: 1,
+    };
+    const markup = html(G, "0");
+    expect(markup).toContain('data-testid="ie-pending-option-reserve"');
+    // 20.1 says "gain one of the following"; the engine's decline fallback is
+    // for unattended seats, not a player-facing option.
+    expect(buttonTag(markup, "ie-pending-option-decline")).toBe("");
+  });
+
   test("pending decision renders options and highlights legal spaces", () => {
     const G = freshGame();
     G.pending = {

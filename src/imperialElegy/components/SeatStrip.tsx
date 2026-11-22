@@ -13,6 +13,7 @@ import {POWERS, type Power} from "../types";
 import {ieStringsFor, type IELocale} from "./i18n";
 import {Icon} from "./Icon";
 import {useRovingTabs} from "./useRovingTabs";
+import {seatPowerName} from "./seatNames";
 
 export type SeatState = "decide" | "pending" | "active" | "bot" | "eliminated" | "waiting";
 
@@ -96,6 +97,8 @@ export interface SeatStripProps {
   seats: SeatStatus[];
   onSelect: (power: Power) => void;
   locale: IELocale;
+  /** A047: print "Austrian Empire" until the Dual Monarchy is formed. */
+  auFormed?: boolean;
 }
 
 /**
@@ -107,7 +110,7 @@ export interface SeatStripProps {
  * select it (automatic activation), so `onSelect` fires for the seat that just
  * received focus — a keyboard user never presses Enter to switch seats.
  */
-export const SeatStrip: React.FC<SeatStripProps> = ({seats, onSelect, locale}) => {
+export const SeatStrip: React.FC<SeatStripProps> = ({seats, onSelect, locale, auFormed = false}) => {
   const t = ieStringsFor(locale);
   const seatKeys = seats.map((seat) => seat.power);
   // Fall back to the first seat so the strip always has exactly one tab stop,
@@ -137,7 +140,7 @@ export const SeatStrip: React.FC<SeatStripProps> = ({seats, onSelect, locale}) =
           onClick={() => onSelect(seat.power)}
         >
           <span className="ie-seat-code">P{seat.index + 1} · {seat.power}</span>{" "}
-          <span className="ie-seat-name">{t.seats[seat.power]}</span>{" "}
+          <span className="ie-seat-name">{seatPowerName(t, seat.power, locale, auFormed)}</span>{" "}
           <span className="ie-seat-dot" aria-hidden="true">{stateDot(seat.state)}</span>{" "}
           <span className="ie-seat-state">{seat.label}</span>
         </button>
