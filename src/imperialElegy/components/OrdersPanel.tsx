@@ -8,11 +8,12 @@
  * below a wall of disabled ones, and MPIT (a once-per-impulse lever) competed
  * for the same first screen.
  *
- * They are four pages now, behind one sticky segmented control:
+ * They are five pages now, behind one sticky segmented control:
  *
  *   actions    the space's name, its legal actions, the folded refused rows
  *   space      what the space *is*, and its unit selection
  *   influence  the MPIT matrix and the national characteristics
+ *   deals      the 11.0/11.1 negotiation table (only during the diplomacy phase)
  *   naval      amphibious / transport / interception (only while offered)
  *
  * Every page stays mounted and inactive pages are `hidden`, the same contract
@@ -23,12 +24,16 @@
  * jumps to the front when an interception window opens (the window is short and
  * belongs to the defender), and falls back to the actions page when the window
  * closes under the reader.
+ *
+ * The deals page is conditional for the same reason (rules 11.0/11.1): the
+ * negotiation table only exists during the diplomacy phase, and an offer
+ * addressed to the reader pulls it to the front so a deal cannot sit unread.
  */
 import React from "react";
 import {bi} from "./boardHelpers";
 import {useRovingTabs} from "./useRovingTabs";
 
-export type OrdersTab = "actions" | "space" | "influence" | "naval";
+export type OrdersTab = "actions" | "space" | "influence" | "deals" | "naval";
 
 export interface OrdersPanelProps {
   locale: "en" | "zh_CN";
@@ -36,12 +41,17 @@ export interface OrdersPanelProps {
     actions: string;
     space: string;
     influence: string;
+    deals: string;
     naval: string;
   };
   active: OrdersTab;
   onTab: (tab: OrdersTab) => void;
   /** The naval page has something to offer this render. */
   navalVisible: boolean;
+  /** 11.0/11.1: the diplomacy phase's negotiation table is open this render. */
+  dealsVisible?: boolean;
+  /** A deal addressed to the reader just arrived: pull its page to the front. */
+  dealUrgent?: boolean;
   /** An interception window just opened: pull the naval page to the front. */
   navalUrgent?: boolean;
   /** The selected space's name, for the always-on heading above the pages. */
@@ -56,18 +66,28 @@ export interface OrdersPanelProps {
  * "first key", which is what both the turn panel and the phone dock do with
  * their own tab strips.
  */
-export const ordersTabKeys = (navalVisible: boolean): OrdersTab[] =>
-  navalVisible ? ["actions", "space", "influence", "naval"] : ["actions", "space", "influence"];
+export const ordersTabKeys = (navalVisible: boolean, dealsVisible = false): OrdersTab[] => [
+  "actions",
+  "space",
+  "influence",
+  ...(dealsVisible ? ["deals" as OrdersTab] : []),
+  ...(navalVisible ? ["naval" as OrdersTab] : []),
+];
 
 /** Where the panel lands when the requested page no longer exists. */
-export const resolveOrdersTab = (requested: OrdersTab, navalVisible: boolean): OrdersTab =>
-  ordersTabKeys(navalVisible).includes(requested) ? requested : "actions";
+export const resolveOrdersTab = (
+  requested: OrdersTab,
+  navalVisible: boolean,
+  dealsVisible = false,
+): OrdersTab =>
+  ordersTabKeys(navalVisible, dealsVisible).includes(requested) ? requested : "actions";
 
 export const OrdersPanel = ({
-  locale, labels, active, onTab, navalVisible, navalUrgent = false, heading, tabs,
+  locale, labels, active, onTab, navalVisible, navalUrgent = false,
+  dealsVisible = false, dealUrgent = false, heading, tabs,
 }: OrdersPanelProps) => {
-  const keys = ordersTabKeys(navalVisible);
-  const selected = resolveOrdersTab(active, navalVisible);
+  const keys = ordersTabKeys(navalVisible, dealsVisible);
+  const selected = resolveOrdersTab(active, navalVisible, dealsVisible);
   const roving = useRovingTabs(keys, selected, (key) => onTab(key as OrdersTab));
 
   return (
@@ -90,7 +110,7 @@ export const OrdersPanel = ({
               id={`ie-orders-tab-${key}`}
               aria-selected={isSelected}
               aria-controls={`ie-orders-panel-${key}`}
-              className={`ie-orders-tab${key === "naval" && navalUrgent ? " urgent" : ""}`}
+              className={`ie-orders-tab${(key === "naval" && navalUrgent) || (key === "deals" && dealUrgent) ? " urgent" : ""}`}
               data-testid={`ie-orders-tab-${key}`}
               {...roving(key)}
               onClick={() => onTab(key)}
@@ -98,6 +118,9 @@ export const OrdersPanel = ({
               {labels[key]}
               {key === "naval" && navalUrgent && (
                 <span className="ie-orders-tab-badge" aria-label={bi(locale, "Interception offered", "可尝试拦截")}>!</span>
+              )}
+              {key === "deals" && dealUrgent && (
+                <span className="ie-orders-tab-badge" aria-label={bi(locale, "Deal to answer", "有待确认的交易")}>!</span>
               )}
             </button>
           );

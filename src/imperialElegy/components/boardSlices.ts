@@ -58,8 +58,11 @@ const INTERACTION_KEYS = [
 
 /** The turn panel's Action tab. */
 const ORDERS_KEYS = [
-  "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "canAct", "canSpend", "cpBudget",
+  "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "eliminated", "canAct", "canSpend", "cpBudget",
   "selectedUnitIds", "toggleUnitSelection", "selectUnitGroup", "startMoveTargeting",
+  // 11.0/11.1: the diplomacy negotiation table's page.
+  "deals", "dealsVisible", "pendingDeals", "myDealOffers", "dealTarget", "setDealTarget",
+  "dealGive", "setDealGive", "dealTake", "setDealTake", "dealPromises", "setDealPromises",
   "canActionCard", "pending", "canDecide", "war", "onOpenReference",
   "gwJointNavalAllies", "gwJointNavalUnitIds", "polishReserve", "setPolishReserve",
   "deployLimit", "deployFree", "canDeployHere", "canGwDraft", "canGwDeployHere", "polishArmyDecision",
@@ -91,9 +94,9 @@ const ORDERS_KEYS = [
 /** The hand tray and the card inspector. */
 const HAND_KEYS = [
   "G", "t", "locale", "actualLocale", "viewer", "me", "phase", "isActive", "eliminated", "pending",
-  "canActionCard", "confirmActions", "isBelligerent", "war", "forcedCardIds", "hand", "saveList", "giveCards",
+  "canActionCard", "confirmActions", "isBelligerent", "war", "forcedCardIds", "hand", "saveList", "shownCards", "cardsShownToMe",
   "open", "onToggleOpen", "expanded", "onToggleExpanded",
-  "giveTarget", "setGiveTarget", "responseInHand",
+  "responseInHand",
   "responseWindow", "chainNonEmpty", "chainSpendable", "chainCap", "chainReady",
   "chainDisabledReason", "cpBudget", "doAction", "moves", "handChoicesHint", "cardFaceMode",
   // The row draws its operations inline on desktop and folds them into the

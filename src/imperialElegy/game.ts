@@ -23,6 +23,7 @@ import {
   chooseSupportMove,
   chooseWarAim,
   constructFleet,
+  counterDeal,
   cpChain,
   declinePending,
   declineRapidDeployment,
@@ -35,7 +36,6 @@ import {
   endPhaseTurn,
   endTurn,
   finishPrep,
-  giveCard,
   gwDeploy,
   gwDraft,
   gwEndTurn,
@@ -50,6 +50,7 @@ import {
   gwRevealCombat,
   gwResolveWinter,
   gwTransferBudget,
+  hideCard,
   joinWarAsNeutral,
   playGwCardMove,
   industrialize,
@@ -72,6 +73,7 @@ import {
   playCard,
   playResponseCard,
   polishRecruit,
+  proposeDeal,
   rapidDeploy,
   rebuildZouave,
   refitNavalUnit,
@@ -79,15 +81,18 @@ import {
   redeploy,
   removeInfluence,
   removeMinorAlliance,
+  respondDeal,
   resolvePending,
   resolveWar,
-  startWarManeuver,
   saveCard,
   setSeatBot,
+  showCard,
+  startWarManeuver,
   surrender,
   tsrrRailMove,
   useCpChain,
   useJihad,
+  withdrawDeal,
 } from "./moves";
 import {
   beginGwTurn,
@@ -95,6 +100,7 @@ import {
   startGwManeuver,
 } from "./engine/greatWarFlow";
 import {redactForView} from "./engine/privacy";
+import {expireOffers} from "./engine/negotiation";
 import {ensureStateDefaults} from "./engine/migrations";
 import {beginEndPhase} from "./moves";
 import {enumerateBot} from "./engine/bot";
@@ -107,7 +113,12 @@ const ALL_MOVES = {
   finishPrep,
   chooseHomeCard,
   endDiplomacy,
-  giveCard,
+  showCard,
+  hideCard,
+  proposeDeal,
+  respondDeal,
+  counterDeal,
+  withdrawDeal,
   discardForStability,
   recruit,
   refitNavalUnit,
@@ -179,7 +190,12 @@ const ALL_MOVES = {
   gwEndTurn,
   endTurn,
 };
-const SENSITIVE_MOVES = new Set(["playCard", "playGwCardMove", "playResponseCard", "chooseHomeCard", "giveCard", "chooseGoal", "chooseWarAim", "resolvePending", "declinePending", "industrialize", "cpChain", "useCpChain", "saveCard"]);
+// 11.0/11.1: the negotiation moves read the acting seat's hand and the two
+// sides' offers, and the settlement draws from `ctx.random`.  `redact` keeps the
+// move arguments out of the other seats' action logs; the moves stay
+// `client: true` because a hotseat reducer runs them locally and they never
+// read another power's hidden hand.
+const SENSITIVE_MOVES = new Set(["playCard", "playGwCardMove", "playResponseCard", "chooseHomeCard", "chooseGoal", "chooseWarAim", "resolvePending", "declinePending", "industrialize", "cpChain", "useCpChain", "saveCard", "showCard", "hideCard", "proposeDeal", "respondDeal", "counterDeal", "withdrawDeal"]);
 const MOVES = Object.fromEntries(Object.entries(ALL_MOVES).map(([name, move]) => [
   name,
   SENSITIVE_MOVES.has(name) ? {move, redact: true as const} : move,
@@ -247,6 +263,10 @@ const diplomacyBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   G.phase = "diplomacy";
   G.activePower = "GE";
   for (const p of POWERS) G.powers[p].flags.homeChosen = false;
+  // 11.0/11.1: a shown card lasts only for the diplomacy phase that showed it,
+  // and an unconfirmed offer never survives a turn.  The close already does
+  // this; the open repeats it so a resumed save is clean too.
+  expireOffers(G);
   // 1870 Franco-Prussian branch step 5: "on the first turn, GE does not select a
   // home card."  The obligation is settled as the phase opens (rather than by
   // refusing a move, which must never mutate state), so the printed diplomacy

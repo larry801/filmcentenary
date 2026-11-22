@@ -844,23 +844,25 @@ describe("Imperial Elegy board controls", () => {
     expect(markup).not.toContain("data-testid=\"ie-stability-discard\"");
   });
 
-  test("the optional diplomacy card transfer stays in the hand panel", () => {
+  test("11.0 shows a card from the hand and the deals page owns the offers", () => {
     const G = freshGame();
     G.phase = "diplomacy";
+    G.activePower = "GE";
+    G.powers.GE.hand = ["IE-A018", "IE-A019"];
     const markup = html(G, "0");
-    // Giving a card is optional, so it must not take over the pinned dock.
-    expect(markup).toContain("data-testid=\"ie-give-card\"");
-    const layout = markup.indexOf("class=\"ie-table\"");
-    expect(markup.indexOf("data-testid=\"ie-give-card\"")).toBeGreaterThan(layout);
-    // It carries the same "optional" tag and skip hint as the stability discard.
-    expect(markup).toContain(`data-testid="ie-give-card-optional"`);
-    // The card is a random draw: no per-card selector or face preview.
-    expect(markup).not.toContain(`data-testid="ie-give-card-preview"`);
-    const hint = markup.slice(
-      markup.indexOf(`data-testid="ie-give-card-hint"`),
-      markup.indexOf(`data-testid="ie-give-card-hint"`) + 400,
-    );
-    expect(hint).toContain("并非必须");
+
+    // 11.0: "Players are allowed to show other players their action cards."
+    // The row offers the public show; no card face is previewed, because the
+    // show is the player's own choice and the card is already in hand.
+    expect(markup).toContain('data-testid="ie-show-card-IE-A018"');
+    expect(markup).toContain('data-testid="ie-show-card-IE-A019"');
+
+    // 11.1's formal agreement is not a hand-panel button any more: the offer
+    // form lives on the Orders panel's deals page, where both counts and the
+    // promises are entered.
+    expect(markup).not.toContain('data-testid="ie-give-card"');
+    expect(markup).toContain('data-testid="ie-orders-tab-deals"');
+    expect(markup).toContain('data-testid="ie-deals-form"');
   });
 
   test("every move the board calls is registered on the game definition", () => {

@@ -504,7 +504,7 @@
 .ie-action-now .ie-btn { background: var(--ie-brass); }
 
 /* ---------------------------------------------------------------- Orders pages */
-/* The Orders body's own navigation: four pages behind one segmented control.
+/* The Orders body's own navigation: five pages behind one segmented control.
    The strip sticks to the top of the panel body so the page stays nameable
    while its content scrolls. */
 .ie-orders { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -577,6 +577,60 @@
 .ie-orders-pane { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 
 .ie-orders-pane[hidden] { display: none; }
+
+/* ----------------------------------------------------------- 11.0 / 11.1 deals page */
+/* Four blocks, each a bordered surface: shown cards, the offer form, the open
+   offers and the settlements.  A long list scrolls with the page, not inside a
+   nested scroller, so the turn panel keeps one scroll bar. */
+.ie-deals { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+
+.ie-deals-intro .ie-hint { margin: 4px 0 0; }
+
+.ie-deals-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel);
+}
+
+.ie-deals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ie-deals-list > li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-2);
+  font-size: var(--ie-font-xs);
+}
+
+.ie-deals-terms { display: flex; flex-direction: column; gap: 2px; }
+
+.ie-deals-promises {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0 0 0 10px;
+  list-style: disc;
+  color: var(--ie-on-dark-muted);
+}
+
+.ie-deals-promises i { color: var(--ie-brass-soft); font-style: normal; }
+
+.ie-deals .ie-warn { color: var(--ie-warn-text-dark); }
 
 /* ---------------------------------------------------------------- actions page */
 .ie-space-actions { display: flex; flex-direction: column; gap: 6px; min-width: 0; }

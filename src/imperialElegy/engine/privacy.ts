@@ -158,6 +158,10 @@ const PUBLIC_CARD_ARG_KEYS: ReadonlySet<string> = new Set([
   "noLegalTarget",
   "unhandledSpecial",
   "gwTurnZero",
+  // 11.0/11.1: a card shown to the table is faceup by definition, and a card
+  // drawn for a settled deal is announced "in full view of all players".
+  "cardShownPublic",
+  "dealCardDrawn",
 ]);
 
 /**
@@ -426,6 +430,18 @@ export const redactForView = (
   }
 
   view.log = redactLog(G, view.log ?? [], seat);
+
+  // Rules 11.0/11.1: the negotiation table is private to the two sides while an
+  // offer is open.  The settled deals are public (11.1 announces the draws "in
+  // full view of all players"), and a card shown to one power stays private to
+  // the two of them.
+  const deals = view.negotiation;
+  if (deals !== undefined && deals !== null) {
+    deals.offers = (deals.offers ?? []).filter((offer) =>
+      viewerPower !== null && (offer.from === viewerPower || offer.to === viewerPower));
+    deals.shown = (deals.shown ?? []).filter((entry) =>
+      entry.to === null || (viewerPower !== null && (entry.from === viewerPower || entry.to === viewerPower)));
+  }
   return view;
 };
 

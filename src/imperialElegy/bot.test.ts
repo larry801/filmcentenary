@@ -26,6 +26,26 @@ test("botDecision returns a move object in prep phase for each power", () => {
   }
 });
 
+test("11.1 the bot refuses an offer addressed to it instead of haggling", () => {
+  const G = setupImperialElegy(ctx);
+  G.phase = "diplomacy";
+  G.activePower = "GE";
+  G.negotiation = {
+    offers: [{
+      id: "deal-1", from: "GE", to: "FR", give: 1, take: 0, promises: [],
+      status: "proposed", turn: G.turn, seq: 2,
+    }],
+    history: [],
+    shown: [],
+    nextId: 3,
+  };
+  expect(botDecision(G, ctx, "FR")).toEqual({move: "respondDeal", args: ["deal-1", false]});
+  // The proposing seat has nothing to answer and proceeds with diplomacy.
+  expect(botDecision(G, ctx, "GE").move).toBe("chooseHomeCard");
+  // An unrelated seat never touches the table.
+  expect(botDecision(G, ctx, "RU").move).toBe("chooseHomeCard");
+});
+
 test("botDecision does not throw in action phase", () => {
   const G = setupImperialElegy(ctx);
   G.phase = "action";

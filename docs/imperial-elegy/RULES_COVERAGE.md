@@ -241,8 +241,19 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   canonical `decadeForTurn`, and `logText` localizes the 1860s/1910s labels.
   The first deal now uses the printed 10.2 `cardsToDraw` formula (industry
   cards, stability, flashpoints and characteristics), not a hard-coded table.
-- **Diplomacy:** home-card selection, random card gifts, Metternich’s Legacy on turn 1
-  — **implemented**.
+- **Diplomacy (11.0/11.1):** home-card selection, Metternich’s Legacy on turn 1,
+  and the **negotiation table** — **implemented**. 11.0’s “players are allowed
+  to show other players their action cards” is `showCard`/`hideCard`; a shown
+  card is faceup to the whole table (or privately to one power) for the
+  diplomacy phase that showed it, and never has a rules effect. 11.1’s card
+  transfer is a **formal agreement, not a one-way gift**: `proposeDeal` takes
+  counts only (a specific card can never be named), the other side
+  `respondDeal`s or `counterDeal`s, and `settleDeals` performs the random draws
+  in printed seat order when the diplomacy phase closes — so accepting a deal
+  moves nothing by itself. Every draw excludes home cards and is announced in
+  the public log (“the random card draw is done in full view of all players”).
+  Unconfirmed offers lapse at the phase’s end rather than blocking it. See
+  [`NEGOTIATION.md`](NEGOTIATION.md).
 - **Bot box (9.2 / 34.3.4):** the printed 2×3 box under each action card’s CP
   value is transcribed card by card (`BOT_BOX` in `constant/cards.data.ts`,
   read onto `CardDef.botBox`). 32 action cards print a box; the rest print none

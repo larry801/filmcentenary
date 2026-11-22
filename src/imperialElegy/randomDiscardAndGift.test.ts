@@ -1,13 +1,13 @@
 /**
- * Two "draw one card at random" moves, not "pick a card" moves:
+ * The prep discard for +1 stability is a "draw one card at random" move, not a
+ * "pick a card" move.  It used to accept a specific card from the client, which
+ * turns a random draw into a free choice: a player could dump the worst card
+ * and keep the good one.  The move now resolves the card from `ctx.random`, so
+ * its arguments cannot name a card at all.
  *
- *  - the optional prep discard for +1 stability, and
- *  - the diplomacy gift of one card to another power.
- *
- * Both used to accept a specific card from the client, which turns a random
- * draw into a free choice: a player could dump the worst card and keep the
- * good one, or push a chosen card onto an ally.  The move now resolves the
- * card from `ctx.random`, so its arguments cannot name a card at all.
+ * The diplomacy card transfer (11.1) is the same kind of draw but a **formal
+ * agreement**, so it no longer lives here as a one-way gift: `negotiation.test.ts`
+ * covers the offered counts, the confirmation and the end-of-phase settlement.
  */
 import type {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -15,7 +15,7 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {cardById} from "./engine/deck";
-import {discardForStability, giveCard} from "./moves";
+import {discardForStability} from "./moves";
 
 const seat = (power: Power): string => String(POWERS.indexOf(power));
 
@@ -109,59 +109,5 @@ describe("prep discard for stability is a random draw", () => {
     G.phase = "action";
     G.powers.GE.hand = [...FIXED_HAND];
     expect(discardForStability(G, makeCtx([1]))).toBe(INVALID_MOVE);
-  });
-});
-
-describe("the diplomacy gift is a random draw", () => {
-  const diplomacy = (): ImperialElegyState => {
-    const G = fresh();
-    G.phase = "diplomacy";
-    G.activePower = "GE";
-    G.powers.GE.hand = [...FIXED_HAND];
-    return G;
-  };
-
-  test("the die selects the gifted card, not the caller", () => {
-    const G = diplomacy();
-    const ctx = makeCtx([2]);
-
-    expect(giveCard(G, ctx, "FR")).toBeUndefined();
-
-    expect(G.powers.GE.hand).toEqual([FIXED_HAND[0], FIXED_HAND[2]]);
-    expect(G.powers.FR.hand).toContain(FIXED_HAND[1]);
-    expect(G.log.find((entry) => entry.key === "cardGiven")?.args).toMatchObject({
-      card: FIXED_HAND[1],
-      target: "FR",
-    });
-  });
-
-  test("home cards are never gifted", () => {
-    const G = diplomacy();
-    const home = G.powers.GE.homeCards[0];
-    G.powers.GE.hand = [home, "IE-A019"];
-
-    expect(giveCard(G, makeCtx([1]), "FR")).toBeUndefined();
-    expect(G.powers.FR.hand).not.toContain(home);
-    expect(G.powers.FR.hand).toContain("IE-A019");
-    expect(G.powers.GE.hand).toContain(home);
-  });
-
-  test("a power cannot give to itself", () => {
-    const G = diplomacy();
-    expect(giveCard(G, makeCtx([1]), "GE")).toBe(INVALID_MOVE);
-    expect(G.powers.GE.hand).toEqual(FIXED_HAND);
-  });
-
-  test("an empty hand has nothing to give", () => {
-    const G = diplomacy();
-    G.powers.GE.hand = [];
-    expect(giveCard(G, makeCtx([1]), "FR")).toBe(INVALID_MOVE);
-  });
-
-  test("gifts are diplomacy-only", () => {
-    const G = diplomacy();
-    G.phase = "action";
-    expect(giveCard(G, makeCtx([1]), "FR")).toBe(INVALID_MOVE);
-    expect(G.powers.GE.hand).toEqual(FIXED_HAND);
   });
 });

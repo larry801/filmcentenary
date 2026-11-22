@@ -398,6 +398,15 @@ export const ensureStateDefaults = (G: ImperialElegyState): ImperialElegyState =
   // 19.1: interrupted naval moves.
   if (G.navalContinuation === undefined) G.navalContinuation = null;
   if (G.navalTransit === undefined) G.navalTransit = null;
+  // 11.0/11.1: the diplomacy negotiation table.  A save from before it reads as
+  // an empty table; the record itself is only created on first use so a hotseat
+  // state that never negotiated keeps the field absent.
+  if (G.negotiation !== undefined && G.negotiation !== null) {
+    G.negotiation.offers ??= [];
+    G.negotiation.history ??= [];
+    G.negotiation.shown ??= [];
+    if (!Number.isFinite(G.negotiation.nextId) || G.negotiation.nextId < 1) G.negotiation.nextId = 1;
+  }
 
   // ------------------------------------------------------------ nested records
   ensureNonPlayerBuildBox(G);

@@ -1,7 +1,7 @@
 /**
  * The Orders panel's page navigation.
  *
- * The panel is four pages behind one segmented control, and both the pages and
+ * The panel is five pages behind one segmented control, and both the pages and
  * the control have non-obvious rules worth pinning without a browser:
  *
  * 1. every page stays mounted and only the inactive ones are `hidden`, so an
@@ -16,7 +16,7 @@ import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
 import {OrdersPanel, ordersTabKeys, resolveOrdersTab, type OrdersTab} from "./OrdersPanel";
 
-const labels = {actions: "Actions", space: "Space", influence: "Influence", naval: "Naval"};
+const labels = {actions: "Actions", space: "Space", influence: "Influence", deals: "Deals", naval: "Naval"};
 
 const render = (over: Partial<React.ComponentProps<typeof OrdersPanel>> = {}): string =>
   renderToStaticMarkup(
@@ -30,6 +30,7 @@ const render = (over: Partial<React.ComponentProps<typeof OrdersPanel>> = {}): s
         actions: <p data-testid="marker-actions">a</p>,
         space: <p data-testid="marker-space">s</p>,
         influence: <p data-testid="marker-influence">i</p>,
+        deals: <p data-testid="marker-deals">d</p>,
         naval: <p data-testid="marker-naval">n</p>,
       }}
       {...over}
@@ -42,14 +43,27 @@ describe("which pages exist", () => {
     expect(ordersTabKeys(true)).toEqual(["actions", "space", "influence", "naval"]);
   });
 
+  test("the deals page joins only during the diplomacy phase (11.0/11.1)", () => {
+    expect(ordersTabKeys(false, true)).toEqual(["actions", "space", "influence", "deals"]);
+    expect(ordersTabKeys(true, true)).toEqual(["actions", "space", "influence", "deals", "naval"]);
+  });
+
   test("a page that stops existing falls back to actions", () => {
     expect(resolveOrdersTab("naval", false)).toBe("actions");
     expect(resolveOrdersTab("naval", true)).toBe("naval");
     expect(resolveOrdersTab("influence", false)).toBe("influence");
+    expect(resolveOrdersTab("deals", false, false)).toBe("actions");
+    expect(resolveOrdersTab("deals", false, true)).toBe("deals");
   });
 });
 
 describe("the rendered panel", () => {
+  test("a pending offer marks the deals page urgent", () => {
+    const markup = render({dealsVisible: true, dealUrgent: true});
+    expect(markup).toContain('data-testid="ie-orders-tab-deals"');
+    expect(markup).toContain("ie-orders-tab urgent");
+  });
+
   test("three pages by default, four while a naval flow is offered", () => {
     const peace = render();
     expect((peace.match(/role="tab"/g) ?? []).length).toBe(3);

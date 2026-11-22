@@ -18,6 +18,7 @@ import {
   SpaceId,
 } from "../types";
 import {cardById} from "./deck";
+import {dealsOf} from "./negotiation";
 import {powerOfSeat, seatOf} from "./pending";
 import {cpPlayability, eventPlayability, type PlayBlockReason} from "./playability";
 import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
@@ -1067,6 +1068,15 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
 
   // ------------------------------------------------------------ diplomacy
   if (phase === "diplomacy") {
+    // 11.1: a deal only stands if both sides agree.  The bot refuses anything
+    // addressed to it rather than negotiating back and forth with a human (or
+    // another bot) forever — an unanswered offer lapses when the phase closes,
+    // so refusing keeps the table free for the next seat.
+    const openOffer = dealsOf(G).offers.find((offer) =>
+      offer.status === "proposed" && offer.to === power);
+    if (openOffer !== undefined) {
+      return {move: "respondDeal", args: [openOffer.id, false]};
+    }
     // B1: "do not choose a home card for bots, instead each bot adds a
     // random home card to their pile".  Add first available home card.
     // `chooseHomeCard` is diplomacy-only and only accepts a card that has not
