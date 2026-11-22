@@ -16,6 +16,7 @@ import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isAr
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
+import {negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
 import {GOALS_BY_ID} from "../constant/goals";
 import {ieT} from "./i18n";
 import {cardDisplayName} from "./cardDisplay";
@@ -353,22 +354,39 @@ export const useBoardModel = ({
   // negotiation segment.  Whether it is still outstanding is the same test
   // `HandChoices` uses, so the dock button and the dialog can never disagree.
   const homeCardChoicePending = phase === "diplomacy" && me !== null &&
-    me.homeCards.length > 0 && me.selectedHomeCard === null;
+    me.homeCards.length > 0 && me.selectedHomeCard === null && me.flags.homeChosen !== true;
+  // 9.1: the negotiation segment runs before the home-card step.  The home card
+  // stays unavailable until every surviving seat has ended its negotiation,
+  // and the seat's own "finish negotiating" button is offered to every seat,
+  // not only the one whose diplomacy turn it is.
+  const negotiationConcludedNow = negotiationConcluded(G);
+  const negotiationsOwed = viewer !== null && !negotiationDoneFor(G, viewer);
+  const canFinishNegotiation = phase === "diplomacy" && viewer !== null && !eliminated && !isBotViewer &&
+    negotiationsOwed && pending === null && battle === null && G.result === null;
   // Buttons that end or continue the current phase step.  They belong in the
   // pinned dock with the pending decisions: both answer "what may I do now",
   // and neither may be pushed below the fold by a tall map or a long hand.
-  const phaseActions: PhaseAction[] = hasPhaseButtons ? [
+  const phaseActions: PhaseAction[] = [
+    ...(canFinishNegotiation
+      ? [{
+          key: "finishNegotiation",
+          label: bi(actualLocale, "Finish negotiating", "结束谈判"),
+          testId: "ie-finish-negotiation",
+          onClick: () => doAction(() => moves.finishNegotiation(), {label: bi(actualLocale, "Finish negotiating", "结束谈判")}),
+        }]
+      : []),
+    ...(hasPhaseButtons ? [
     ...(phase === "prep" && canPhaseAct && !me?.flags.prepDone
       ? [{key: "finishPrep", label: t.finishPrep, testId: "ie-finish-prep", onClick: () => doAction(() => moves.finishPrep(), {label: t.finishPrep})}]
       : []),
-    ...(phase === "diplomacy" && canPhaseAct && homeCardChoicePending && pending === null && battle === null && G.result === null
+    ...(phase === "diplomacy" && canPhaseAct && homeCardChoicePending && negotiationConcludedNow && pending === null && battle === null && G.result === null
       // 9.1/11.0: the negotiation segment runs before the home card, so the
       // choice is opened by the player, never raised over the table.  A decision
       // or battle already owns the board; the choice waits for it rather than
       // fighting it for focus.
       ? [{key: "chooseHomeCard", label: t.chooseHome, testId: "ie-open-home-card", onClick: () => setHomeCardDialogOpen(true)}]
       : []),
-    ...(phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard
+    ...(phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard && negotiationConcludedNow
       // 6.0: once diplomacy ends there is no way back, so it confirms.
       ? [{key: "endDiplomacy", label: t.endDiplomacy, testId: "ie-end-diplomacy", confirm: true, onClick: () => doAction(() => moves.endDiplomacy(), {label: t.endDiplomacy})}]
       : []),
@@ -390,7 +408,8 @@ export const useBoardModel = ({
     ...(phase === "end" && canPhaseAct
       ? [{key: "endPhaseTurn", label: t.continue, testId: "ie-end-phase-turn", confirm: true, onClick: () => doAction(() => moves.endPhaseTurn(), {label: t.continue})}]
       : []),
-  ] : [];
+    ] : []),
+  ];
 
   // ------------------------------------------------------------- 33.x national actions
   const nationalActionPhase = viewer !== null && !eliminated && isActive && phase === "action" && pending === null;
@@ -670,10 +689,19 @@ export const useBoardModel = ({
     //   • It is this power's normal turn to act (action / wartime / prep /
     //     diplomacy / gwManeuver all use isActive; end / gwPlanning / gwWinter
     //     ask all powers to take their turn sequentially so canPhaseAct is true).
+    // 9.1: during the negotiation segment every seat may close its own
+    // segment (and answer an offer addressed to it) out of turn, so a bot must
+    // not wait for `isActive` — the active seat is Germany until the home-card
+    // step, which stays blocked until every bot has also finished talking.
+    const negotiatingBot = phase === "diplomacy" && (
+      !negotiationDoneFor(G, viewer) ||
+      (G.negotiation?.offers ?? []).some((offer) => offer.status === "proposed" && offer.to === viewer)
+    );
     const needsAct =
       (pending !== null && pending.power === viewer) ||
       (pending === null && (
         isActive ||
+        negotiatingBot ||
         phase === "end" ||
         phase === "gwPlanning" ||
         phase === "gwWinter"
@@ -1470,6 +1498,10 @@ export const useBoardModel = ({
   // cannot hide them. HandPanel only shows a pointer.
   const choicesProps = {
     viewer, me, locale: actualLocale, t, phase, canPhaseAct, hand, ngChoices,
+    // 9.1: the home-card faces are not offered while the table is still
+    // negotiating, so the inline fallback (a decision owns the board) cannot
+    // become a second, premature home-card entry.
+    homeReady: negotiationConcludedNow,
     doAction, moves,
   };
   const choiceKinds = handChoiceAvailability(choicesProps);
@@ -1481,7 +1513,7 @@ export const useBoardModel = ({
   // summary and the hand tray's pointer stay truthful.  Only the seat whose
   // diplomacy turn it is may choose (the printed order advances after each
   // pick), so the dock reports it only there.
-  const homeChoice = phase === "diplomacy" && choiceKinds.required && canPhaseAct;
+  const homeChoice = phase === "diplomacy" && choiceKinds.required && canPhaseAct && negotiationConcludedNow;
   const goalChoice = phase === "end" && choiceKinds.required;
   // Choosing the card (or leaving the phase) closes the dialog; the state only
   // ever means "the reader asked to see the choice".
@@ -1505,23 +1537,31 @@ export const useBoardModel = ({
             // this reads as the step still owed, not as a dialog covering the
             // table.
             ? bi(actualLocale, "Home card not chosen yet", "尚未选择本土牌")
-            : choiceKinds.required && goalChoice
-              ? bi(actualLocale, "Required card choice", "需要选择卡牌")
-              : choiceKinds.optional
-                // An optional action must not read as a blocker.
-                ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
-                : canAct
-                  ? bi(actualLocale, "Your impulse", "你的行动轮")
-                  : bi(actualLocale, "Waiting", "等待");
-  const handChoicesHint = homeChoice
+            : phase === "diplomacy" && homeCardChoicePending && !negotiationConcludedNow
+              // 9.1: the home card is not refused to the seat, it is simply
+              // not its step yet — the whole table is still negotiating.
+              ? bi(actualLocale, "Negotiations in progress", "谈判进行中")
+              : choiceKinds.required && goalChoice
+                ? bi(actualLocale, "Required card choice", "需要选择卡牌")
+                : choiceKinds.optional
+                  // An optional action must not read as a blocker.
+                  ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
+                  : canAct
+                    ? bi(actualLocale, "Your impulse", "你的行动轮")
+                    : bi(actualLocale, "Waiting", "等待");
+  const handChoicesHint = phase === "diplomacy" && homeCardChoicePending && !negotiationConcludedNow
     ? bi(actualLocale,
-      "Negotiate first (11.0/11.1), then open the home-card choice from the Orders dock.",
-      "先进行谈判（11.0/11.1），完成后从指令区的按钮打开本土牌选择。")
-    : goalChoice
-      ? bi(actualLocale, "The National Goal choice is in the dialog over the board.", "国家目标选择在覆盖面板的对话框中。")
-      : choiceKinds.optional
-        ? bi(actualLocale, "An optional random discard for +1 stability is at the top of the Orders actions.", "可选随机弃牌换 +1 稳定位于指令面板行动页顶部。")
-        : null;
+      "Finish negotiating first: every seat must press \"Finish negotiating\", then the home-card choice opens.",
+      "先结束谈判：所有席位都点击“结束谈判”后，才会开放本土牌选择。")
+    : homeChoice
+      ? bi(actualLocale,
+        "Negotiations are over — open the home-card choice from the Orders dock or the Deals page.",
+        "谈判已结束——从指令区按钮或谈判桌打开本土牌选择。")
+      : goalChoice
+        ? bi(actualLocale, "The National Goal choice is in the dialog over the board.", "国家目标选择在覆盖面板的对话框中。")
+        : choiceKinds.optional
+          ? bi(actualLocale, "An optional random discard for +1 stability is at the top of the Orders actions.", "可选随机弃牌换 +1 稳定位于指令面板行动页顶部。")
+          : null;
   const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
     : battleFrom !== null

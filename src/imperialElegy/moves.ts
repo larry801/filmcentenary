@@ -25,6 +25,7 @@ import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId
 import {
   dealProblem,
   expireOffers,
+  negotiationConcluded,
   negotiationOf,
   readPromises,
   settleDeals,
@@ -966,10 +967,35 @@ const beginActionPhaseAfterDiplomacy = (G: ImperialElegyState, ctx: Ctx): string
   return startFirstActionImpulse(G, ctx);
 };
 
+/**
+ * 9.1: close this seat's negotiation segment.
+ *
+ * The printed diplomacy phase runs negotiation first and the home-card step
+ * second.  The home card is therefore refused until every surviving power has
+ * declared itself done (`negotiationConcluded`), which keeps a seat from
+ * settling its card while another player is still talking.  Declaring done is
+ * not a lock: 11.0's shows and 11.1's offers stay legal until the phase closes,
+ * so a player who speaks up again can still be heard.
+ */
+export const finishNegotiation = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  const p = G.powers[power];
+  if (p.eliminated === true) return INVALID_MOVE;
+  if (p.flags.negotiationDone === true) return INVALID_MOVE;
+  p.flags.negotiationDone = true;
+  log(G, power, "negotiationFinished", {});
+  return undefined;
+};
+
 export const chooseHomeCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  // 9.1: the negotiation segment comes first.  `negotiationConcluded` treats a
+  // pre-step save as already done, so a resumed old phase is not blocked.
+  if (!negotiationConcluded(G)) return INVALID_MOVE;
   const p = G.powers[power];
   // 1870 Franco-Prussian branch step 5: "on the first turn, GE does not select
   // a home card".  The obligation is pre-settled as the diplomacy phase opens

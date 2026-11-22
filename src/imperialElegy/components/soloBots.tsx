@@ -17,6 +17,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, Power} from "../types";
 import {POWER_KEYS} from "./boardHelpers";
 import {botMoveFor} from "../engine/bot";
+import {negotiationDoneFor} from "../engine/negotiation";
 
 export interface SoloBotSeatProps {
   G: ImperialElegyState;
@@ -62,11 +63,19 @@ export const SoloBotSeat = ({G, ctx, moves, playerID}: SoloBotSeatProps) => {
 
     // A decision addressed to this seat, or this seat's own turn.  This is the
     // same gate the hotseat board uses, so a solo match advances exactly like
-    // a hotseat match whose other five seats are bots.
+    // a hotseat match whose other five seats are bots.  9.1 adds one case: in
+    // the diplomacy negotiation segment every seat may close its own segment
+    // (and answer an offer addressed to it) out of turn, so a bot must not wait
+    // behind the active power — the home-card step stays blocked until it does.
+    const negotiatingBot = phase === "diplomacy" && (
+      !negotiationDoneFor(G, viewer) ||
+      (G.negotiation?.offers ?? []).some((offer) => offer.status === "proposed" && offer.to === viewer)
+    );
     const needsAct =
       (pending !== null && pending.power === viewer) ||
       (pending === null && (
         isActive ||
+        negotiatingBot ||
         phase === "end" ||
         phase === "gwPlanning" ||
         phase === "gwWinter"

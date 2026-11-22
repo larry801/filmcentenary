@@ -1,6 +1,6 @@
 import React from "react";
 import {Icon} from "./Icon";
-import {ImperialElegyState, Power} from "../types";
+import {ImperialElegyState, Power, POWERS} from "../types";
 import {CardDef} from "../constant/cards";
 import {GoalDef} from "../constant/goals";
 import {GOALS_BY_ID} from "../constant/goals";
@@ -11,6 +11,7 @@ import {RESPONSE_REASON_TEXT, bi, gwImpulseReasonText} from "./boardHelpers";
 import {gwCardProblem} from "../engine/gwImpulse";
 import {CardFace} from "./CardFace";
 import {CardInspector} from "./CardInspector";
+import {Modal} from "./Modal";
 import {CardChoiceFace} from "./CardChoice";
 import {CardFaceMode, cardImageSrc, readConfirmActions} from "./preferences";
 import {RuleLink} from "./RuleRef";
@@ -99,7 +100,7 @@ export interface HandTrayProps {
 export const HandTray = (props: HandTrayProps) => {
   const {
     G, viewer, me, locale, t, phase, isActive, eliminated, pending, canActionCard, isBelligerent, war,
-    forcedCardIds, hand, saveList, shownCards, cardsShownToMe,
+    forcedCardIds, hand, saveList, cardsShownToMe,
     responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
     cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded, decisionPeek = false,
@@ -107,6 +108,12 @@ export const HandTray = (props: HandTrayProps) => {
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
   const [chainCard, setChainCard] = React.useState<string>("");
+  /**
+   * 11.0: the card whose "show to others" target picker is open.  11.0 lets a
+   * seat show an action card to the table or privately to one power, so the
+   * row's one button asks whom before it sends the move.
+   */
+  const [showPickerFor, setShowPickerFor] = React.useState<string | null>(null);
   // Reads the saved preference when the tray mounts; `Preferences` in the
   // command menu writes it, and the tray picks the new value up on remount.
   // The board passes the live preference so the Display menu can flip it; a
@@ -120,8 +127,42 @@ export const HandTray = (props: HandTrayProps) => {
   React.useEffect(() => {
     if (inspector !== null && "card" in inspector.face && !hand.includes(inspector.key)) setInspector(null);
   }, [hand, inspector]);
+  // A shown card, a phase change or a seat handover invalidates an open picker.
+  React.useEffect(() => {
+    if (showPickerFor !== null && (phase !== "diplomacy" || !hand.includes(showPickerFor))) {
+      setShowPickerFor(null);
+    }
+  }, [hand, phase, showPickerFor]);
 
   if (!viewer || !me) return null;
+
+  // 11.0: every show this seat made this phase, with whom it was shared.
+  const ownShows = (G.negotiation?.shown ?? []).filter((entry) => entry.from === viewer);
+  // One row per card, listing every recipient: the same card may be shown to
+  // several seats, and a duplicate key/test id would make "Hide" ambiguous.
+  const shownGroups: {card: string; targets: (Power | null)[]}[] = [];
+  for (const entry of ownShows) {
+    let group = shownGroups.find((candidate) => candidate.card === entry.card);
+    if (group === undefined) {
+      group = {card: entry.card, targets: []};
+      shownGroups.push(group);
+    }
+    group.targets.push(entry.to);
+  }
+  const shownPublicly = (id: string): boolean =>
+    ownShows.some((entry) => entry.card === id && entry.to === null);
+  const alreadyShownTo = (id: string, to: Power): boolean =>
+    ownShows.some((entry) => entry.card === id && entry.to === to);
+  const showTargets = POWERS.filter((power) => power !== viewer && G.powers[power]?.eliminated !== true);
+  const showCard = (id: string, to: Power | null): void => {
+    const target = to === null ? null : to;
+    doAction(() => moves.showCard(id, target), {
+      label: target === null
+        ? bi(locale, "Show this card to the table", "向全桌展示此牌")
+        : bi(locale, `Show this card to ${t.seats[target]}`, `向${t.seats[target]}展示此牌`),
+    });
+    setShowPickerFor(null);
+  };
 
   const homeCardTitle = (id: string): string => {
     const card = cardById(id);
@@ -264,14 +305,18 @@ export const HandTray = (props: HandTrayProps) => {
         )}
         {all && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} title={!a.industOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.industrialize(id), {label: t.industrialize, reason: a.firstReason})}>{t.industrialize}</button>}
         {/* 11.0: "Players are allowed to show other players their action cards."
-            The row offers the public show; the deals page picks a single power. */}
-        {all && phase === "diplomacy" && !shownCards.includes(id) && (
+            The button asks whom: the whole table or one power.  A card already
+            faceup to the table has nothing left to show. */}
+        {all && phase === "diplomacy" && !shownPublicly(id) && (
           <button
             key="show"
             data-testid={`ie-show-card-${id}`}
-            onClick={() => doAction(() => moves.showCard(id, null), {label: bi(locale, "Show this card to the table", "向全桌展示此牌")})}
+            onClick={() => {
+              setInspector(null);
+              setShowPickerFor(id);
+            }}
           >
-            {bi(locale, "Show", "展示")}
+            {bi(locale, "Show to others", "向他人展示")}
           </button>
         )}
         {all && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} title={!a.chainOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.cpChain(id), {label: t.cpChain, reason: a.firstReason})}>{t.cpChain}</button>}
@@ -505,22 +550,27 @@ export const HandTray = (props: HandTrayProps) => {
                 </div>
               )}
 
-              {phase === "diplomacy" && shownCards.length > 0 && (
+              {phase === "diplomacy" && shownGroups.length > 0 && (
                 <div className="ie-tray-shown" data-testid="ie-shown-cards">
                   {/* 11.0: a card shown this phase stays faceup at the table
-                      until the phase closes; the owner may take it back. */}
+                      until the phase closes; the owner may take it back.  One
+                      row per card lists every recipient it was shown to. */}
                   <div className="ie-section-title">
                     {bi(locale, "Shown this phase", "本阶段已展示")}
                   </div>
                   <div className="ie-inline">
-                    {shownCards.map((id) => (
-                      <span key={id} className="ie-inline">
-                        <span data-testid={`ie-shown-card-${id}`}>{cardDisplayName(cardById(id), locale)}</span>
+                    {shownGroups.map((group) => (
+                      <span key={group.card} className="ie-inline">
+                        <span data-testid={`ie-shown-card-${group.card}`}>
+                          {cardDisplayName(cardById(group.card), locale)}
+                          {" → "}
+                          {group.targets.map((target) => target === null ? bi(locale, "table", "全桌") : t.seats[target]).join(locale === "zh_CN" ? "、" : ", ")}
+                        </span>
                         <button
                           type="button"
                           className="ie-btn secondary ie-mini"
-                          data-testid={`ie-hide-card-${id}`}
-                          onClick={() => doAction(() => moves.hideCard(id), {label: bi(locale, "Turn face down again", "收回展示")})}
+                          data-testid={`ie-hide-card-${group.card}`}
+                          onClick={() => doAction(() => moves.hideCard(group.card), {label: bi(locale, "Turn face down again", "收回展示")})}
                         >
                           {bi(locale, "Hide", "收回")}
                         </button>
@@ -566,6 +616,52 @@ export const HandTray = (props: HandTrayProps) => {
             ? availability(inspectorCard.id).reasons
             : [bi(locale, "National Goals have no card operation - they score at game end.", "国家目标没有卡牌操作——在游戏结束时计分。")]}
         />
+      )}
+
+      {/* 11.0: "show other players their action cards" — the table or exactly
+          one power.  A target already holding this show is disabled rather than
+          hidden, so the reader can see whom they have already told. */}
+      {showPickerFor !== null && hand.includes(showPickerFor) && (
+        <Modal
+          open
+          dismissible
+          locale={locale}
+          title={bi(locale,
+            `Show ${cardDisplayName(cardById(showPickerFor), locale)} to…`,
+            `向谁展示 ${cardDisplayName(cardById(showPickerFor), locale)}？`)}
+          onClose={() => setShowPickerFor(null)}
+          testId="ie-show-target-picker"
+          backdropTestId="ie-show-target-backdrop"
+          closeTestId="ie-show-target-close"
+          footer={(
+            <button type="button" className="ie-btn" data-testid="ie-show-target-cancel" onClick={() => setShowPickerFor(null)}>
+              {bi(locale, "Cancel", "取消")}
+            </button>
+          )}
+        >
+          <div className="ie-inline" data-testid="ie-show-target-options">
+            <button
+              type="button"
+              className="ie-btn primary"
+              data-testid="ie-show-target-table"
+              disabled={shownPublicly(showPickerFor)}
+              onClick={() => showCard(showPickerFor, null)}
+            >
+              {bi(locale, "The table (public)", "全桌（公开）")}
+            </button>
+            {showTargets.map((power) => (
+              <button
+                key={power}
+                type="button"
+                data-testid={`ie-show-target-${power}`}
+                disabled={alreadyShownTo(showPickerFor, power)}
+                onClick={() => showCard(showPickerFor, power)}
+              >
+                {bi(locale, `Privately to ${t.seats[power]}`, `私下向${t.seats[power]}展示`)}
+              </button>
+            ))}
+          </div>
+        </Modal>
       )}
     </section>
   );

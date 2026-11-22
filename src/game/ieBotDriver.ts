@@ -24,6 +24,7 @@ import {Master} from "boardgame.io/master";
 import {ImperialElegyState, Power, POWERS} from "../imperialElegy/types";
 import {botDecision} from "../imperialElegy/engine/bot";
 import {powerOfSeat} from "../imperialElegy/engine/pending";
+import {dealsOf, negotiationConcluded, negotiationDoneFor} from "../imperialElegy/engine/negotiation";
 import {botPowersOf, powerSeat} from "../imperialElegy/configuration";
 
 /** A move name and its arguments, the shape `botDecision` returns. */
@@ -61,7 +62,27 @@ export const botSeatToAct = (
   if (ctx.gameover !== undefined) return null;
   if (G.pending !== null && G.pending !== undefined) return G.pending.power;
   const phase = String(G.phase);
-  if (phase === "prep" || phase === "diplomacy") return powerOfSeat(ctx.currentPlayer) ?? null;
+  if (phase === "prep") return powerOfSeat(ctx.currentPlayer) ?? null;
+  if (phase === "diplomacy") {
+    // 9.1: every seat may end its negotiation segment out of turn, so a bot
+    // must not wait behind the framework's current player — that is a human
+    // seat on most tables, and the home-card step is blocked for everyone
+    // until the bots have spoken too.
+    if (!negotiationConcluded(G)) {
+      const bots = botPowersOf(G);
+      const answering = POWERS.find((power) => bots.includes(power) &&
+        G.powers[power]?.eliminated !== true &&
+        dealsOf(G).offers.some((offer) => offer.status === "proposed" && offer.to === power));
+      if (answering !== undefined) return answering;
+      const negotiating = POWERS.find((power) => bots.includes(power) &&
+        G.powers[power]?.eliminated !== true && !negotiationDoneFor(G, power));
+      // A bot that has already finished has nothing to do while the human
+      // seats talk; returning null parks the drain instead of hammering a
+      // home card the engine refuses.
+      return negotiating ?? null;
+    }
+    return powerOfSeat(ctx.currentPlayer) ?? null;
+  }
   if (phase === "end") {
     return POWERS.find((power) => !G.powers[power]?.eliminated && G.powers[power]?.flags.endDone !== true) ?? null;
   }
@@ -86,7 +107,7 @@ const allSeatsAreBots = (G: ImperialElegyState): boolean => {
  * diplomacy seat that has not chosen a home card yet chooses one instead of
  * asking to close a phase the engine will refuse.
  */
-export const botEscapeMove = (G: ImperialElegyState, phase: string): BotMove | null => {
+export const botEscapeMove = (G: ImperialElegyState, phase: string, power?: Power): BotMove | null => {
   if (G.pending !== null && G.pending !== undefined) {
     const option = G.pending.options[0];
     return option === undefined ? {move: "declinePending"} : {move: "resolvePending", args: [option.id]};
@@ -96,13 +117,16 @@ export const botEscapeMove = (G: ImperialElegyState, phase: string): BotMove | n
     case "wartime": return {move: "passWarMove"};
     case "prep": return {move: "finishPrep"};
     case "diplomacy": {
+      // 9.1: a seat still at the negotiating table closes that segment before
+      // it may pick a home card.
+      const seat = power ?? G.activePower;
+      if (seat !== undefined && !negotiationDoneFor(G, seat)) return {move: "finishNegotiation"};
       // `endDiplomacy` refuses until every power has chosen, and the deciding
       // seat's own choice is the part it can still make.
-      const unchosen = POWERS.find((power) => (
-        !G.powers[power]?.eliminated && G.powers[power]?.flags.homeChosen !== true && (G.powers[power]?.homeCards.length ?? 0) > 0
+      const unchosen = POWERS.find((candidate) => (
+        !G.powers[candidate]?.eliminated && G.powers[candidate]?.flags.homeChosen !== true && (G.powers[candidate]?.homeCards.length ?? 0) > 0
       ));
-      const power = unchosen ?? null;
-      if (power !== null) return {move: "chooseHomeCard", args: [G.powers[power].homeCards[0]]};
+      if (unchosen !== undefined) return {move: "chooseHomeCard", args: [G.powers[unchosen].homeCards[0]]};
       return {move: "endDiplomacy"};
     }
     case "end": return {move: "endPhaseTurn"};
@@ -411,7 +435,7 @@ export const createIEBotDriver = (options: BotDriverOptions): BotDriver => {
 
         // The engine keeps refusing this decision on an unchanged state.  Take
         // the phase's own exit so the match continues instead of stalling.
-        const escape = botEscapeMove(G, String(G.phase));
+        const escape = botEscapeMove(G, String(G.phase), power);
         if (escape === null || escape.move === decision.move) {
           log(`giving up on ${matchID} ${power}: ${decision.move} is refused`);
           hitStepCap = false;

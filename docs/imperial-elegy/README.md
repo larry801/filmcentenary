@@ -225,10 +225,15 @@ Below the head are the panel's three tabs:
     faceup cards, the offer form, the inbox (confirm / refuse / counter /
     withdraw) and this turn's settlements.  The page exists only during the
     diplomacy phase; an offer arriving pulls it to the front and marks its tab.
-    When the seat still owes its Home card, the page ends with the next step
-    (`ie-deals-home-step`, button `ie-open-home-card-from-deals`): 9.1 puts
-    negotiation before the choice, so the table is where the player finishes
-    talking and opens the dialog.
+    The offer form is **one-way by construction**: a `给出 / 获取` switch
+    (`ie-deals-direction-give|take`) and a count dropdown
+    (`ie-deals-count`) bounded by that direction's dealable hand, so the
+    second count is not a field.  Until the whole table has finished
+    negotiating, the page shows the 9.1 finish step
+    (`ie-deals-negotiation-step`, button `ie-finish-negotiation-from-deals`)
+    and names the seats still talking; once every seat is done, the page ends
+    with the home-card step (`ie-deals-home-step`, button
+    `ie-open-home-card-from-deals`).
   - **Naval** (`ie-orders-tab-naval`) — amphibious assault, naval transport and
     interception.  The page exists only while one of them is offered; an
     interception window opening pulls it to the front and marks its tab.
@@ -252,8 +257,11 @@ they pushed the action list below the fold.  They differ in **when** they open:
 - the **home card** is opened by the seat from `ie-open-home-card` in the dock
   (or `ie-open-home-card-from-deals` on the Deals page), because 9.1 puts the
   negotiation segment first: showing cards (11.0) and agreeing on random draws
-  (11.1) happen *before* anyone chooses a Home card.  Raising it as diplomacy
-  opened covered the negotiation table and made talking impossible.  It can be
+  (11.1) happen *before* anyone chooses a Home card.  The gate is real: each
+  seat first presses `ie-finish-negotiation` (or
+  `ie-finish-negotiation-from-deals`), and the home-card entry stays absent
+  until every surviving seat has done so.  Raising it as diplomacy opened
+  covered the negotiation table and made talking impossible.  It can be
   closed without answering (`ie-choice-close`, `ie-choice-continue` reads
   `暂时关闭——稍后再选` / "Close for now — choose later"), and the choice stays
   owed until a card is picked.

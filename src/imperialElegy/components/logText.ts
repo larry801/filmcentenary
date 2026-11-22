@@ -1377,6 +1377,10 @@ const FORMATTERS: Record<string, Formatter> = {
   cardHidden: (entry, locale) =>
     withActor(entry, locale, `took a card back face down.`, `将一张手牌收回背面。`),
 
+  /** 9.1: the seat is done talking; the home-card step waits for the table. */
+  negotiationFinished: (entry, locale) =>
+    withActor(entry, locale, `finished negotiating.`, `结束了谈判。`),
+
   dealProposed: (entry, locale) => {
     const target = powerLabel(entry.args?.to, locale);
     return withActor(entry, locale, `proposed a deal to ${target}.`, `向${target}提出了一项交易。`);

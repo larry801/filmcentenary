@@ -18,7 +18,7 @@ import {
   SpaceId,
 } from "../types";
 import {cardById} from "./deck";
-import {dealsOf} from "./negotiation";
+import {dealsOf, negotiationDoneFor} from "./negotiation";
 import {powerOfSeat, seatOf} from "./pending";
 import {cpPlayability, eventPlayability, type PlayBlockReason} from "./playability";
 import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
@@ -1088,6 +1088,13 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
       offer.status === "proposed" && offer.to === power);
     if (openOffer !== undefined) {
       return {move: "respondDeal", args: [openOffer.id, false]};
+    }
+    // 9.1: every seat closes its negotiation segment before the home-card
+    // step.  A bot has nothing else to say, so it declares done first; the
+    // engine then refuses its home card until every human seat has done the
+    // same (the driver parks a waiting bot instead of spinning on a refusal).
+    if (!negotiationDoneFor(G, power)) {
+      return {move: "finishNegotiation"};
     }
     // B1: "do not choose a home card for bots, instead each bot adds a
     // random home card to their pile".  Add first available home card.

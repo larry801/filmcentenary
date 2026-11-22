@@ -22,7 +22,16 @@
 import React from "react";
 import {DealOffer, Power, POWERS} from "../types";
 import {cardById} from "../engine/deck";
-import {dealProblem, dealTermsText, MAX_PROMISE_LENGTH, MAX_PROMISES, readPromises} from "../engine/negotiation";
+import {
+  dealProblem,
+  dealTermsText,
+  MAX_PROMISE_LENGTH,
+  MAX_PROMISES,
+  negotiationConcluded,
+  negotiationDoneFor,
+  negotiatingPowers,
+  readPromises,
+} from "../engine/negotiation";
 import {cardDisplayName} from "./cardDisplay";
 import {bi} from "./boardHelpers";
 import {RuleLink} from "./RuleRef";
@@ -33,7 +42,7 @@ export interface DiplomacyPanelProps extends Pick<
   "G" | "locale" | "viewer" | "me" | "phase" | "eliminated" | "doAction" | "moves" |
   "deals" | "pendingDeals" | "myDealOffers" | "dealTarget" | "setDealTarget" |
   "dealGive" | "setDealGive" | "dealTake" | "setDealTake" | "dealPromises" | "setDealPromises" |
-  "homeChoice"
+  "handCounts" | "homeChoice"
 > {
   /**
    * 6.0/9.1: open the home-card choice.  The negotiation segment comes first,
@@ -59,17 +68,56 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
     G, locale, viewer, me, phase, eliminated, doAction, moves,
     deals, pendingDeals, myDealOffers,
     dealTarget, setDealTarget, dealGive, setDealGive, dealTake, setDealTake, dealPromises, setDealPromises,
-    homeChoice, onOpenHomeChoice,
+    handCounts, homeChoice, onOpenHomeChoice,
   } = props;
   const name = powerName(locale);
 
   if (viewer === null) return null;
+  // 9.1: negotiation is the phase's first segment and the home-card step is
+  // the second.  `negotiationDoneFor` treats a legacy save as already done.
+  const concluded = negotiationConcluded(G);
+  const negotiating = negotiatingPowers(G);
+  const selfDone = negotiationDoneFor(G, viewer);
   const eligible = (power: Power): number =>
     (G.powers[power]?.hand ?? []).filter((id) => cardById(id).kind !== "home").length;
   const targets = POWERS.filter((power) => power !== viewer && G.powers[power]?.eliminated !== true);
   const target = targets.includes(dealTarget) ? dealTarget : targets[0];
-  const problem = dealProblem(G, viewer, target, clampCount(dealGive, eligible(viewer)), clampCount(dealTake, eligible(target)));
+  // 11.1 deals are usually one-way in practice, so the form offers one
+  // direction at a time: a give/receive switch plus a count.  The engine still
+  // models `give` and `take`; the inactive half is simply zero.
+  const giveMax = eligible(viewer);
+  // An opponent's hand is hidden in a player view, so the public count is the
+  // only honest upper bound for "how many may I take".  During the negotiation
+  // segment no home card sits in a hand yet, so the count is the dealable one.
+  const takeMax = target === undefined ? 0 : (handCounts?.[target] ?? eligible(target));
+  const direction: "give" | "take" = clampCount(dealTake, takeMax) > 0 ? "take" : "give";
+  const directionMax = direction === "give" ? giveMax : takeMax;
+  const rawCount = direction === "give" ? clampCount(dealGive, giveMax) : clampCount(dealTake, takeMax);
+  const count = directionMax <= 0 ? 0 : Math.max(1, Math.min(rawCount > 0 ? rawCount : 1, directionMax));
+  const give = direction === "give" ? count : 0;
+  const take = direction === "take" ? count : 0;
+  const problem = dealProblem(G, viewer, target, give, take, {[viewer]: giveMax, ...(target === undefined ? {} : {[target]: takeMax})});
   const canDeal = phase === "diplomacy" && !eliminated && target !== undefined && problem === null;
+  const setDirection = (next: "give" | "take"): void => {
+    const kept = Math.max(1, count);
+    if (next === "give") {
+      setDealGive(Math.min(kept, giveMax));
+      setDealTake(0);
+    } else {
+      setDealTake(Math.min(kept, takeMax));
+      setDealGive(0);
+    }
+  };
+  const setCount = (next: number): void => {
+    const clamped = clampCount(next, directionMax);
+    if (direction === "give") {
+      setDealGive(clamped);
+      setDealTake(0);
+    } else {
+      setDealTake(clamped);
+      setDealGive(0);
+    }
+  };
 
   const reasonText = (code: string | null): string | undefined => {
     if (code === null) return undefined;
@@ -106,14 +154,14 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
       // 11.1 counter-offer: the form's counts are the countering side's own, so
       // the directions flip and the previous offer leaves the table.
       doAction(
-        () => moves.counterDeal(countering.id, clampCount(dealGive, eligible(viewer)), clampCount(dealTake, eligible(countering.from)), promises),
+        () => moves.counterDeal(countering.id, give, take, promises),
         {label: bi(locale, "Counter the deal", "提出还价"), reason: reasonText(problem)},
       );
       setCounterOf(null);
       return;
     }
     doAction(
-      () => moves.proposeDeal(target, clampCount(dealGive, eligible(viewer)), clampCount(dealTake, eligible(target)), promises),
+      () => moves.proposeDeal(target, give, take, promises),
       {label: bi(locale, "Propose the deal", "提出交易"), reason: reasonText(problem)},
     );
   };
@@ -135,17 +183,55 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
         </p>
       </div>
 
-      {/* 6.0 / 9.1: the negotiation segment comes first, and the home-card
-          choice is the seat's own next step.  It used to be raised over the
-          board the instant diplomacy opened, which covered this table; the
-          button keeps the printed order ("negotiate, then choose"). */}
-      {homeChoice && onOpenHomeChoice !== undefined && (
+      {/* 9.1: negotiation is the first segment of the phase, and the home-card
+          step is the second.  A seat must not choose its card while anybody is
+          still at the table, so the panel shows the finish step first; the
+          home-card dialog opens only once every seat has pressed it. */}
+      {!concluded && (
+        <div className="ie-deals-block" data-testid="ie-deals-negotiation-step">
+          <div className="ie-section-title">{bi(locale, "Finish negotiating", "结束谈判")}</div>
+          <p className="ie-hint">
+            {bi(locale,
+              "Choose a home card only after every seat has finished negotiating. When you are done talking, press the button below; the table waits for the other seats.",
+              "谈判全部结束后才选择本土牌。谈完后点击下面的按钮；桌子会等待其他席位。")}
+          </p>
+          {negotiating.length > 0 && (
+            <p className="ie-hint" data-testid="ie-deals-still-negotiating">
+              {bi(locale,
+                `Still negotiating: ${negotiating.map(name).join(", ")}.`,
+                `仍在谈判：${negotiating.map(name).join("、")}。`)}
+            </p>
+          )}
+          {!selfDone && !eliminated ? (
+            <div className="ie-inline">
+              <button
+                type="button"
+                className="ie-btn primary"
+                data-testid="ie-finish-negotiation-from-deals"
+                onClick={() => doAction(() => moves.finishNegotiation(), {
+                  label: bi(locale, "Finish negotiating", "结束谈判"),
+                })}
+              >
+                {bi(locale, "Finish negotiating", "结束谈判")}
+              </button>
+            </div>
+          ) : (
+            <p className="ie-hint" data-testid="ie-deals-negotiation-waiting">
+              {bi(locale,
+                "You have finished negotiating. The home-card step opens when every seat is done.",
+                "你已结束谈判；所有席位结束后开放本土牌选择。")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {concluded && homeChoice && onOpenHomeChoice !== undefined && (
         <div className="ie-deals-block" data-testid="ie-deals-home-step">
           <div className="ie-section-title">{bi(locale, "Next: choose your home card", "下一步：选择本土牌")}</div>
           <p className="ie-hint">
             {bi(locale,
-              "When you are done negotiating, choose the Home card you keep for this turn. The choice opens in a dialog and can be closed again without answering.",
-              "谈判结束后，选择本回合保留的本土牌。选择会在对话框中打开，也可关闭后稍再返回。")}
+              "Negotiation is over for the table. Choose the Home card you keep for this turn. The choice opens in a dialog and can be closed again without answering.",
+              "全桌谈判已结束。选择本回合保留的本土牌。选择会在对话框中打开，也可关闭后稍再返回。")}
           </p>
           <div className="ie-inline">
             <button
@@ -157,6 +243,17 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
               {bi(locale, "Choose home card", "选择本土牌")}
             </button>
           </div>
+        </div>
+      )}
+
+      {concluded && !homeChoice && (
+        <div className="ie-deals-block" data-testid="ie-deals-negotiation-done">
+          <div className="ie-section-title">{bi(locale, "Negotiation complete", "谈判已结束")}</div>
+          <p className="ie-hint">
+            {bi(locale,
+              "Every seat has finished negotiating. The home-card step now runs in turn order.",
+              "所有席位都已结束谈判。本土牌步骤按回合顺序进行。")}
+          </p>
         </div>
       )}
 
@@ -189,8 +286,8 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
         {countering !== undefined && (
           <p className="ie-hint" data-testid="ie-deals-counter-hint">
             {bi(locale,
-              `This counters ${name(countering.from)}'s offer ${countering.id}: the counts below are what you give and receive, and their offer leaves the table.`,
-              `这是对${name(countering.from)}的 ${countering.id} 的还价：下面的数字是你交出与收到的张数，对方原提议随之失效。`)}
+              `This counters ${name(countering.from)}'s offer ${countering.id}: pick the direction and count from your side, and their offer leaves the table.`,
+              `这是对${name(countering.from)}的 ${countering.id} 的还价：下面选择你这边的方向与张数，对方原提议随之失效。`)}
           </p>
         )}
         <div className="ie-inline">
@@ -206,29 +303,49 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
               {targets.map((power) => <option key={power} value={power}>{name(power)}</option>)}
             </select>
           </label>
+          <span
+            className="ie-inline"
+            role="group"
+            aria-label={bi(locale, "Deal direction", "交易方向")}
+            data-testid="ie-deals-direction"
+          >
+            <button
+              type="button"
+              className={`ie-chip${direction === "give" ? " selected" : ""}`}
+              data-testid="ie-deals-direction-give"
+              aria-pressed={direction === "give"}
+              disabled={giveMax === 0}
+              onClick={() => setDirection("give")}
+            >
+              {bi(locale, "You give", "你给出")}
+            </button>
+            <button
+              type="button"
+              className={`ie-chip${direction === "take" ? " selected" : ""}`}
+              data-testid="ie-deals-direction-take"
+              aria-pressed={direction === "take"}
+              disabled={takeMax === 0}
+              onClick={() => setDirection("take")}
+            >
+              {bi(locale, "You take", "你获取")}
+            </button>
+          </span>
           <label>
-            {bi(locale, "You give", "你交出")}
-            <input
-              className="ie-input"
-              data-testid="ie-deals-give"
-              type="number"
-              min={0}
-              max={eligible(viewer)}
-              value={clampCount(dealGive, eligible(viewer))}
-              onChange={(event) => setDealGive(clampCount(Number(event.target.value), eligible(viewer)))}
-            />
-          </label>
-          <label>
-            {bi(locale, "You receive", "你收到")}
-            <input
-              className="ie-input"
-              data-testid="ie-deals-take"
-              type="number"
-              min={0}
-              max={target === undefined ? 0 : eligible(target)}
-              value={clampCount(dealTake, target === undefined ? 0 : eligible(target))}
-              onChange={(event) => setDealTake(clampCount(Number(event.target.value), target === undefined ? 0 : eligible(target)))}
-            />
+            {direction === "give"
+              ? bi(locale, "Cards you give", "给出的张数")
+              : bi(locale, "Cards you take", "获取的张数")}
+            <select
+              className="ie-select"
+              data-testid="ie-deals-count"
+              value={count}
+              disabled={directionMax === 0}
+              onChange={(event) => setCount(Number(event.target.value))}
+            >
+              {directionMax === 0
+                ? <option value={0}>0</option>
+                : Array.from({length: directionMax}, (_, index) => index + 1)
+                  .map((value) => <option key={value} value={value}>{value}</option>)}
+            </select>
           </label>
         </div>
         <div className="ie-inline">
@@ -244,8 +361,8 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
         </div>
         <p className="ie-hint" data-testid="ie-deals-terms">
           {bi(locale,
-            `Terms: ${dealTermsText({from: viewer, to: target ?? viewer, give: clampCount(dealGive, eligible(viewer)), take: clampCount(dealTake, target === undefined ? 0 : eligible(target))}, "en", name)} Every card is drawn at random; home cards never move. Up to ${MAX_PROMISES} promises are recorded and never enforced.`,
-            `条款：${dealTermsText({from: viewer, to: target ?? viewer, give: clampCount(dealGive, eligible(viewer)), take: clampCount(dealTake, target === undefined ? 0 : eligible(target))}, "zh_CN", name)} 所有卡牌随机抽取，本土牌不参与。最多记录 ${MAX_PROMISES} 条许诺，引擎不强制执行。`)}
+            `Terms: ${dealTermsText({from: viewer, to: target ?? viewer, give, take}, "en", name)} Every card is drawn at random; home cards never move. Up to ${MAX_PROMISES} promises are recorded and never enforced.`,
+            `条款：${dealTermsText({from: viewer, to: target ?? viewer, give, take}, "zh_CN", name)} 所有卡牌随机抽取，本土牌不参与。最多记录 ${MAX_PROMISES} 条许诺，引擎不强制执行。`)}
         </p>
         {problem !== null && (
           <p className="ie-hint ie-warn" data-testid="ie-deals-problem">{reasonText(problem)}</p>

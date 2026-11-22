@@ -201,6 +201,7 @@ export const OrdersRegion = (props: OrdersSlice & {
     ordersTab, setOrdersTab, navalVisible, deals, dealsVisible, pendingDeals, myDealOffers,
     homeChoice, setHomeCardDialogOpen,
     dealTarget, setDealTarget, dealGive, setDealGive, dealTake, setDealTake, dealPromises, setDealPromises,
+    handCounts,
     showNationalActions, zouaveInPlay, zouaveReason, auReformValue, setAuReformTarget, auReformDecision,
     auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason, auSacrifice,
     setAuSacrifice, auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate,
@@ -374,6 +375,7 @@ export const OrdersRegion = (props: OrdersSlice & {
             dealGive={dealGive} setDealGive={setDealGive}
             dealTake={dealTake} setDealTake={setDealTake}
             dealPromises={dealPromises} setDealPromises={setDealPromises}
+            handCounts={handCounts}
             homeChoice={homeChoice}
             onOpenHomeChoice={setHomeCardDialogOpen !== undefined ? () => setHomeCardDialogOpen(true) : undefined}
           />

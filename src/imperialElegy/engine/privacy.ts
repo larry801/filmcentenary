@@ -91,6 +91,9 @@ export interface RedactContext {
  *    in India or Bengal.
  *  - `stabilityDecreased`, `stabilityDecreasedTurn` — a stability loss sits on
  *    the public track, and A89/A109 may be held by any player.
+ *  - `negotiationDone` — 9.1: whether a seat has finished the diplomacy
+ *    negotiation segment is announced at the table, and every client must see
+ *    it or it would read the others as done and offer the home card early.
  */
 export const PUBLIC_POWER_FLAGS: readonly string[] = [
   "passedGw", // 27.7's consecutive-pass history is public turn progress.
@@ -118,6 +121,7 @@ export const PUBLIC_POWER_FLAGS: readonly string[] = [
   // response gate must see the same trigger the server does.
   "stabilityDecreased",
   "stabilityDecreasedTurn",
+  "negotiationDone",
 ] as const;
 
 const PUBLIC_POWER_FLAG_SET = new Set<string>(PUBLIC_POWER_FLAGS);
