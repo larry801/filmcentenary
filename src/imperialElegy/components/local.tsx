@@ -308,6 +308,10 @@ const LocalImperialElegy = () => {
   const eliminated = new Set<Power>(
     snapshot === null ? [] : POWERS.filter((power) => snapshot.powers[power]?.eliminated === true),
   );
+  // One match id for every seat of this shell: it is the same `Local()` master,
+  // and exposing it on each seat is what lets a test (or the reader) tell a
+  // re-dealt match from the running one without reading localStorage.
+  const matchID = matchNonce === 0 ? MATCH_ID : `${MATCH_ID}_${matchNonce}`;
   const seats = deriveSeatStatuses({
     pendingPower: snapshot?.pending?.power ?? null,
     activePower: snapshot?.activePower ?? "GE",
@@ -384,12 +388,13 @@ const LocalImperialElegy = () => {
                 key={p}
                 className="ie-seat"
                 data-active={tab === index ? "true" : "false"}
+                data-match-id={matchID}
                 data-testid={`ie-seat-${p}`}
               >
                 <SeatBoard
                   // A seat-setup or scenario change deals a new match, so the old
                   // one is never silently resumed with a different configuration.
-                  matchID={matchNonce === 0 ? MATCH_ID : `${MATCH_ID}_${matchNonce}`}
+                  matchID={matchID}
                   playerID={String(index)}
                   debug={false}
                 />
