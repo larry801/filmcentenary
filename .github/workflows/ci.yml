@@ -60,6 +60,29 @@ jobs:
       - name: Run unit tests
         run: yarn test --ci
 
+  # The seeded self-play suites under tools/ are outside `yarn test`'s paths
+  # (see jest.config.js), so the fixed-seed full game needs its own explicit
+  # remote gate.  It plays one continuous campaign turn 1 -> Great War turn 5
+  # with all six seats human-controlled and asserts no refused move.
+  ie-sim-full-game:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run the fixed-seed full game
+        run: >-
+          yarn test --ci --runInBand
+          --testPathPatterns "tools/ie-sim/fullGame"
+          --testPathIgnorePatterns "/node_modules/"
+
   # Production build plus the server bundle.  The E2E jobs reuse `build/`
   # instead of paying for a second build, and e2e/imperial-elegy-spectator
   # needs build/server.js to exist before it starts.
