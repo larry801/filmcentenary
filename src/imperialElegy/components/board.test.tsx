@@ -44,6 +44,8 @@ const Board = (props: Parameters<typeof useBoardModel>[0]) => {
 import {PendingPanel, TargetDock} from "./PendingPanel";
 import {DecisionDock} from "./DecisionDock";
 import {PhaseActions} from "./PhaseActions";
+import {CardChoiceModal} from "./CardChoiceModal";
+import {HandChoices} from "./HandChoices";
 import {ieT} from "./i18n";
 import {ImperialElegyGameDef} from "../game";
 import {setupImperialElegy} from "../engine/setup";
@@ -601,38 +603,64 @@ describe("Imperial Elegy board controls", () => {
     expect(buttonTag(stripe, "ie-dock-target-cancel")).toContain("取消");
   });
 
-  test("the required home-card choice is raised as a dialog over the board", () => {
+  test("the home-card choice waits behind the negotiation table instead of popping up", () => {
     const G = freshGame();
     G.phase = "diplomacy";
     G.activePower = "GE";
     const markup = html(G, "0");
-    // The choice is a blocker, so it is a dialog: not one more panel stacked
-    // above the Orders body.
-    const modal = markup.indexOf("data-testid=\"ie-choice-modal\"");
-    expect(modal).toBeGreaterThan(-1);
-    expect(markup).toContain("data-testid=\"ie-choice-modal-backdrop\"");
-    expect(markup.indexOf("data-testid=\"ie-home-card-choice\"")).toBeGreaterThan(modal);
-    // It is not painted into the Orders body any more: the space's action list
-    // keeps the column to itself.
-    const orders = markup.indexOf("data-testid=\"ie-turn-panel-action\"");
-    expect(orders).toBeGreaterThan(-1);
-    const choice = markup.indexOf("data-testid=\"ie-home-card-choice\"");
-    expect(choice).toBeGreaterThan(orders);
-    // The hand panel only points at the dialog instead of duplicating the buttons.
+    // 9.1: negotiation comes first.  The choice must not cover the table the
+    // instant diplomacy opens, or talking (11.0) and dealing (11.1) is
+    // impossible.
+    expect(markup).not.toContain("data-testid=\"ie-choice-modal\"");
+    // The step is still owed, and says so in the dock and in the hand tray.
+    expect(markup).toContain("尚未选择本土牌");
     expect(markup).toContain("data-testid=\"ie-hand-choices-hint\"");
-    expect(markup.match(/data-testid="ie-home-card-choice"/g)).toHaveLength(1);
-    // The home card cannot be dismissed: the step cannot continue without it.
-    expect(markup).toContain('data-dismissible="false"');
-    expect(markup).not.toContain("data-testid=\"ie-choice-close\"");
+    expect(markup).toContain("先进行谈判");
+    // The seat opens it from the dock, and the Deals page offers the same step.
+    expect(markup).toContain("data-testid=\"ie-open-home-card\"");
+    expect(markup).toContain("data-testid=\"ie-deals-home-step\"");
+    expect(markup).toContain("data-testid=\"ie-open-home-card-from-deals\"");
+    // The hand panel does not duplicate the card buttons.
+    expect(markup.match(/data-testid="ie-home-card-choice"/g)).toBeNull();
+  });
+
+  test("the home-card dialog is dismissible: the choice stays owed when it is closed", () => {
+    // The dialog itself is opened by the reader, so it must be closable; the
+    // engine still refuses `endDiplomacy` until a card is chosen.
+    const html = renderToStaticMarkup(
+      React.createElement(CardChoiceModal, {
+        open: true,
+        dismissible: true,
+        locale: "zh_CN" as const,
+        title: "选择本土牌",
+        continueLabel: "暂时关闭——稍后再选",
+        onClose: () => undefined,
+        children: React.createElement("p", {"data-testid": "choice-body"}, "cards"),
+      }),
+    );
+    expect(html).toContain('data-dismissible="true"');
+    expect(html).toContain('data-testid="ie-choice-close"');
+    expect(html).toContain("暂时关闭——稍后再选");
   });
 
   test("a home-card choice renders the printed face, not just its title", () => {
     const G = freshGame();
     G.phase = "diplomacy";
     G.activePower = "GE";
-    const markup = html(G, "0");
     const home = G.powers.GE.homeCards[0];
     // The face carries the card id and the rules text; the button stays bare.
+    const markup = renderToStaticMarkup(React.createElement(HandChoices, {
+      viewer: "GE",
+      me: G.powers.GE,
+      locale: "zh_CN",
+      t: ieT(),
+      phase: "diplomacy",
+      canPhaseAct: true,
+      hand: G.powers.GE.hand,
+      ngChoices: [],
+      doAction: (fn: () => void) => fn(),
+      moves: {},
+    }));
     expect(markup).toContain(`data-card-id="${home}"`);
     const face = markup.match(new RegExp(`<article[^>]*data-testid="ie-home-card-${home}"[\\s\\S]*?</article>`))?.[0] ?? "";
     expect(face).toContain("<svg");
@@ -811,7 +839,9 @@ describe("Imperial Elegy board controls", () => {
     home.phase = "diplomacy";
     home.activePower = "GE";
     const homeMarkup = html(home, "0");
-    expect(homeMarkup).toContain("需要选择卡牌");
+    // 9.1: the home card is still required, but the dock reports the step it
+    // owes rather than a dialog that has already covered the table.
+    expect(homeMarkup).toContain("尚未选择本土牌");
     expect(homeMarkup).not.toContain("ie-dock-choice-optional");
     expect(homeMarkup).not.toContain(`data-testid="ie-stability-discard-optional"`);
 

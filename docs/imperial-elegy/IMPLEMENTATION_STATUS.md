@@ -1,5 +1,40 @@
 # Imperial Elegy — implementation status
 
+## Fixed: the home-card dialog covered the negotiation table (9.1) (2026-11-22)
+
+Reported as "外交阶段直接弹出必选本土牌了 无法进行谈判 应该谈判完成后再弹出 而且改为可关闭/打开发界面".
+
+The diplomacy phase raised `ie-choice-modal` the instant it opened, as a
+**blocker** with no close button.  That covered the very table the 11.0/11.1
+negotiation work added, so the negotiation segment 9.1 prints first could not be
+played at all.
+
+- `useBoardModel` no longer derives the dialog from `choiceKinds.required`.
+  The home choice is `homeChoice` (the seat's own turn in the diplomacy step),
+  and the dialog opens only when the reader asks for it, via
+  `homeCardDialogOpen`.
+- New dock button `ie-open-home-card` (`选择本土牌`) for the seat whose diplomacy
+  turn it is, and `ie-deals-home-step` / `ie-open-home-card-from-deals` at the
+  end of the negotiation table: finish talking, then choose.
+- `CardChoiceModal` takes a `continueLabel`, and the home dialog is now
+  `dismissible`: `ie-choice-close` and `ie-choice-continue`
+  (`暂时关闭——稍后再选` / "Close for now — choose later") hide it **without
+  answering**.  The choice stays owed — `endDiplomacy` still refuses until a card
+  is chosen — and the dock button brings the dialog back.
+- The dock summary now says `尚未选择本土牌` / "Home card not chosen yet" in the
+  diplomacy step (so it never reads as "a dialog is blocking you"), and the hand
+  tray's hint says to negotiate first.  The end-step National Goal pick is
+  unchanged: it still raises itself and still closes with
+  `继续（保留第一张目标）`.
+
+**Coverage:** `components/homeCardChoice.test.tsx` (5 — the dialog is absent on
+open, the dock button opens it, closing leaves it owed, the Deals page carries
+the same step, only the seat being asked gets the button, and choosing calls
+`chooseHomeCard`), plus the reworked board assertions in
+`components/board.test.tsx`.  The e2e helpers now open the dialog before
+clicking a face (`e2e/imperial-elegy.spec.ts` adds an open → close → reopen
+case).  Full IE Jest suite **333 suites / 4378 tests** pass locally.
+
 ## Fixed: 12.13.1 Ottoman Industrialization now follows the printed text (2026-11-22)
 
 Checked clause by clause against `IE_rule.pdf` p. 27 §12.13.1, the OT-11 card

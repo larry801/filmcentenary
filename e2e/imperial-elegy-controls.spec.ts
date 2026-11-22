@@ -47,14 +47,27 @@ async function finishPrep(page: Page) {
 }
 
 async function chooseHomeCards(page: Page) {
-    for (const seat of SEATS) {
-        await focusSeat(page, seat);
-        const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
-        // The home card is chosen by clicking a specific card's face, so each
-        // choice is explicit rather than an auto-pick of the first card.
-        const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
-        await expect(choose).toBeVisible({timeout: 15_000});
-        await clickUntilGone(page, choose);
+    // 9.1: negotiating comes first, so each seat opens its own choice.  The
+    // step advances one seat at a time; sweep the strip and answer the seat
+    // that is being asked.
+    for (let round = 0; round < SEATS.length; round += 1) {
+        let answered = false;
+        for (const seat of SEATS) {
+            await focusSeat(page, seat);
+            const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
+            // The home card is chosen by clicking a specific card's face, so each
+            // choice is explicit rather than an auto-pick of the first card.
+            const opener = board.locator('[data-testid="ie-open-home-card"]');
+            if (await opener.count() === 0) continue;
+            await opener.first().click();
+            const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
+            await expect(choose).toBeVisible({timeout: 15_000});
+            await clickUntilGone(page, choose);
+            answered = true;
+            break;
+        }
+        if (!answered) break;
+        if (await page.evaluate(() => (window as any).__IE_STATE__.phase) !== "diplomacy") break;
     }
     await answerStartPending(page);
 }
@@ -311,22 +324,44 @@ async function phoneFinishPrep(page: Page) {
     }
 }
 
+async function phoneOpenHomeChoice(page: Page, seat: string): Promise<boolean> {
+    const board = boardFor(page, seat);
+    // 9.1: negotiation comes first, so the choice waits behind a button inside
+    // the sheet instead of being raised over the board by itself.
+    await openDock(page, seat);
+    let opener = board.locator('[data-testid="ie-open-home-card"]');
+    if (await opener.count() === 0) {
+        // The Deals page carries the same step, for a seat reading the table.
+        const tab = board.locator('[data-testid="ie-orders-tab-deals"]');
+        if (await tab.count() > 0) await tab.click();
+        opener = board.locator('[data-testid="ie-open-home-card-from-deals"]');
+    }
+    if (await opener.count() === 0) return false;
+    await opener.first().click();
+    return true;
+}
+
 async function phoneChooseHomeCards(page: Page) {
-    for (const seat of SEATS) {
-        await focusSeat(page, seat);
-        const board = boardFor(page, seat);
-        // The home card is a dialog: it is up without the sheet being opened,
-        // and its backdrop would swallow a tap on the dock.
-        const dialog = board.locator('[data-testid="ie-choice-modal"]');
-        if (await dialog.count() > 0 && await dialog.isVisible()) {
+    // The diplomacy step advances one seat at a time, so only the seat whose
+    // turn it is offers the choice; walk the strip and answer that one.
+    for (let round = 0; round < SEATS.length; round += 1) {
+        let answered = false;
+        for (const seat of SEATS) {
+            await focusSeat(page, seat);
+            if (!(await phoneOpenHomeChoice(page, seat))) continue;
+            const dialog = boardFor(page, seat).locator('[data-testid="ie-choice-modal"]');
             const choose = dialog.locator('[data-testid^="ie-choose-home-"]').first();
+            if (await choose.count() === 0) {
+                const close = dialog.locator('[data-testid="ie-choice-close"]');
+                if (await close.count() > 0) await clickUntilGone(page, close);
+                continue;
+            }
             await clickUntilGone(page, choose);
-            continue;
+            answered = true;
+            break;
         }
-        await openDock(page, seat);
-        const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
-        await expect(choose).toBeVisible({timeout: 15_000});
-        await clickUntilGone(page, choose);
+        if (!answered) break;
+        if (await page.evaluate(() => (window as any).__IE_STATE__.phase) !== "diplomacy") break;
     }
     await phoneAnswerStartPending(page);
 }
@@ -578,14 +613,26 @@ test.describe("Imperial Elegy new controls", () => {
         await finishPrep(page);
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
         // GE must pick Bismarck itself; the other seats keep the first choice.
-        for (const seat of SEATS) {
-            await focusSeat(page, seat);
-            const board = boardFor(page, seat);
-            const choose = seat === "GE"
-                ? board.locator('[data-testid="ie-choose-home-IE-H-GE-1"]')
-                : board.locator('[data-testid^="ie-choose-home-"]').first();
-            await expect(choose).toBeVisible({timeout: 15_000});
-            await clickUntilGone(page, choose);
+        // 9.1: each seat opens its own choice after negotiating, and the step
+        // advances one seat at a time.
+        for (let round = 0; round < SEATS.length; round += 1) {
+            let answered = false;
+            for (const seat of SEATS) {
+                await focusSeat(page, seat);
+                const board = boardFor(page, seat);
+                const opener = board.locator('[data-testid="ie-open-home-card"]');
+                if (await opener.count() === 0) continue;
+                await opener.first().click();
+                const choose = seat === "GE"
+                    ? board.locator('[data-testid="ie-choose-home-IE-H-GE-1"]')
+                    : board.locator('[data-testid^="ie-choose-home-"]').first();
+                await expect(choose).toBeVisible({timeout: 15_000});
+                await clickUntilGone(page, choose);
+                answered = true;
+                break;
+            }
+            if (!answered) break;
+            if (await page.evaluate(() => (window as any).__IE_STATE__.phase) !== "diplomacy") break;
         }
         await answerStartPending(page);
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
@@ -915,9 +962,14 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await clickUntilGone(page, board.getByRole("button", {name: "准备完毕"}).first());
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
         // GE may be a bot seat in this fixture; if it is, it picks its own home
-        // card and there is nothing to click here.
-        const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
-        if (await choose.count()) await clickUntilGone(page, choose);
+        // card and there is nothing to click here.  9.1: the choice waits behind
+        // the dock's button, so open it first.
+        const opener = board.locator('[data-testid="ie-open-home-card"]');
+        if (await opener.count()) {
+            await opener.first().click();
+            const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
+            if (await choose.count()) await clickUntilGone(page, choose);
+        }
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
 
         // Play one card for CP and hand the impulse over.  The bug this guards

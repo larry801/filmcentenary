@@ -173,8 +173,9 @@ draw-and-keep are mandatory; the prep-phase stability discard and the 11.0
 "show a card" control are things a player *may* do. The board distinguishes them, so
 an optional action never reads as "you cannot continue until you pick":
 
-- a mandatory section is a solid gold-bordered box and the turn panel's
-  summary says `需要选择卡牌` / "Required card choice";
+- a mandatory section is a gold-bordered box; the dock's summary names the step
+  (`尚未选择本土牌` / "Home card not chosen yet" in the diplomacy step,
+  `需要选择卡牌` / "Required card choice" for the Goal pick);
 - an optional section uses a dashed frame and an `可选` / "Optional" tag, the
   summary says `可选：随机弃牌换稳定` / "Optional: discard a random card for
   stability", and a hint names the way out ("press Ready to continue without
@@ -220,6 +221,10 @@ Below the head are the panel's three tabs:
     faceup cards, the offer form, the inbox (confirm / refuse / counter /
     withdraw) and this turn's settlements.  The page exists only during the
     diplomacy phase; an offer arriving pulls it to the front and marks its tab.
+    When the seat still owes its Home card, the page ends with the next step
+    (`ie-deals-home-step`, button `ie-open-home-card-from-deals`): 9.1 puts
+    negotiation before the choice, so the table is where the player finishes
+    talking and opens the dialog.
   - **Naval** (`ie-orders-tab-naval`) — amphibious assault, naval transport and
     interception.  The page exists only while one of them is offered; an
     interception window opening pulls it to the front and marks its tab.
@@ -237,13 +242,24 @@ Below the head are the panel's three tabs:
 - **Log** — the public history, newest first.
 
 The required card choices — the diplomacy home card and the end-step National
-Goal — are a dialog (`components/CardChoiceModal.tsx`), not a panel: both are
-blockers, and painted inline they pushed the action list below the fold.  The
-home card cannot be dismissed (the step cannot continue without it); the Goal
-pick can be, and continuing keeps the first Goal.  While a decision already owns
-the Orders body the choice falls back to the inline form there, so two modals
-never compete.  The optional prep-phase stability discard stays inline at the top
-of the Actions page: it may be skipped, so it is not a blocker.
+Goal — are dialogs (`components/CardChoiceModal.tsx`), not panels: painted inline
+they pushed the action list below the fold.  They differ in **when** they open:
+
+- the **home card** is opened by the seat from `ie-open-home-card` in the dock
+  (or `ie-open-home-card-from-deals` on the Deals page), because 9.1 puts the
+  negotiation segment first: showing cards (11.0) and agreeing on random draws
+  (11.1) happen *before* anyone chooses a Home card.  Raising it as diplomacy
+  opened covered the negotiation table and made talking impossible.  It can be
+  closed without answering (`ie-choice-close`, `ie-choice-continue` reads
+  `暂时关闭——稍后再选` / "Close for now — choose later"), and the choice stays
+  owed until a card is picked.
+- the **National Goal** pick still raises itself, because the end step cannot
+  continue without it; continuing keeps the first Goal.
+
+While a decision already owns the Orders body the choice falls back to the
+inline form there, so two modals never compete.  The optional prep-phase
+stability discard stays inline at the top of the Actions page: it may be
+skipped, so it is not a blocker.
 
 A decision **this** seat owes is a dialog too (`components/DecisionModal.tsx`,
 sharing `components/Modal.tsx` with the card choice): it is a blocker, so it is

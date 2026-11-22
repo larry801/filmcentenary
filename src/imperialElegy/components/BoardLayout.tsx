@@ -199,6 +199,7 @@ export const OrdersRegion = (props: OrdersSlice & {
     selected, selectedUnit, setSelectedUnit, selectedUnitIds, toggleUnitSelection, selectUnitGroup,
     startMoveTargeting, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
     ordersTab, setOrdersTab, navalVisible, deals, dealsVisible, pendingDeals, myDealOffers,
+    homeChoice, setHomeCardDialogOpen,
     dealTarget, setDealTarget, dealGive, setDealGive, dealTake, setDealTake, dealPromises, setDealPromises,
     showNationalActions, zouaveInPlay, zouaveReason, auReformValue, setAuReformTarget, auReformDecision,
     auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason, auSacrifice,
@@ -373,6 +374,8 @@ export const OrdersRegion = (props: OrdersSlice & {
             dealGive={dealGive} setDealGive={setDealGive}
             dealTake={dealTake} setDealTake={setDealTake}
             dealPromises={dealPromises} setDealPromises={setDealPromises}
+            homeChoice={homeChoice}
+            onOpenHomeChoice={setHomeCardDialogOpen !== undefined ? () => setHomeCardDialogOpen(true) : undefined}
           />
         ),
         naval: (
@@ -525,6 +528,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     canHandOverSeat, setSeatBot,
     otherSeatPending, seatUi, pendingPrompt, pendingKind, responseWindow, cardFaceMode,
     setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
+    homeChoice, goalChoice, homeCardDialogOpen, setHomeCardDialogOpen,
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
     moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast, goalCounts,
     isPhone, mobileTab, setMobileTab, trayOpen, setTrayOpen, trayExpanded, setTrayExpanded, isCurrentSeat,
@@ -537,32 +541,44 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   const decisionOwed = Boolean(pending || battle || G.result);
 
   /**
-   * The required card choice is a dialog, not a panel.
+   * The required card choices are dialogs.
    *
-   * Both rules that ask for one — the diplomacy home card and the end-step
-   * National Goal — are blockers: nothing in the Orders panel may be played
-   * around them, and painted inline they pushed the space's action list below
-   * the fold.  The home card cannot be dismissed; the Goal pick can be, and
-   * continuing keeps the first Goal, which is exactly what its printed hint
-   * promises.
+   * The end-step National Goal pick is a blocker and still raises itself: the
+   * step cannot continue without it, and continuing keeps the first Goal, so
+   * the reader may close it.
    *
-   * A hotseat mounts six boards at once, so the dialog is limited to the seat
-   * being looked at: `useFocusTrap` focuses into its dialog on mount, and a
-   * hidden seat must never pull the keyboard out of the visible board.
+   * The diplomacy home card is different.  9.1 puts the negotiation segment
+   * first — players talk, show cards (11.0) and agree on random draws (11.1)
+   * before anyone chooses a Home card — so raising the choice as diplomacy
+   * opened covered the negotiation table and made talking impossible.  It is
+   * now opened by the seat, from the `ie-open-home-card` button in the dock,
+   * and it closes with `ie-choice-close` / `ie-choice-continue` without
+   * answering: the choice stays outstanding and the button brings it back.
+   *
+   * A hotseat mounts six boards at once, so both dialogs are limited to the
+   * seat being looked at: `useFocusTrap` focuses into its dialog on mount, and
+   * a hidden seat must never pull the keyboard out of the visible board.
    */
-  const homeChoiceOpen = choiceKinds.required && phase === "diplomacy";
-  const goalChoiceOpen = choiceKinds.required && phase === "end";
+  const goalChoiceOpen = goalChoice;
   const choiceReachable = isCurrentSeat;
   // A Goal pick the reader closed stays closed for that set of Goals; a new
   // draw (a different set) opens it again.
   const [dismissedGoals, setDismissedGoals] = React.useState<string | null>(null);
   const goalSignature = choicesProps.ngChoices.join(",");
   const goalDismissed = dismissedGoals === goalSignature;
-  // While a pending decision, a battle or the result owns the Orders body, the
-  // dialog would be a second modal asking to be answered at the same time: the
-  // choice falls back to the inline form on the Actions page there.
-  const choiceModalOpen = choiceReachable && !decisionOwed && (homeChoiceOpen || (goalChoiceOpen && !goalDismissed));
-  const choiceModalTitle = goalChoiceOpen ? t.chooseGoalTitle : t.chooseHomeTitle;
+  // While a pending decision, a battle or the result owns the Orders body, a
+  // raised Goal dialog would be a second modal asking to be answered at the
+  // same time: the choice falls back to the inline form on the Actions page.
+  const goalModalOpen = choiceReachable && !decisionOwed && goalChoiceOpen && !goalDismissed;
+  const homeModalOpen = choiceReachable && homeChoice && homeCardDialogOpen && !decisionOwed;
+  const choiceModalOpen = goalModalOpen || homeModalOpen;
+  const choiceModalTitle = goalModalOpen ? t.chooseGoalTitle : t.chooseHomeTitle;
+  // The home card may be closed without answering (the choice stays owed), the
+  // Goal pick closes by keeping the first Goal.
+  const closeChoice = (): void => {
+    if (goalModalOpen) setDismissedGoals(goalSignature);
+    else setHomeCardDialogOpen(false);
+  };
 
   /**
    * A decision this seat owes is a dialog too.
@@ -918,15 +934,23 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
         )}
       </div>
 
-      {/* The required card choice, as a dialog.  It sits outside the table so it
-          covers the board while it is answered, and it is never mounted for a
-          seat the reader is not looking at (a hotseat's six boards). */}
+      {/* The card choices, as dialogs.  They sit outside the table so they
+          cover the board while answered, and they are never mounted for a seat
+          the reader is not looking at (a hotseat's six boards).  The home card
+          has to be opened from the dock, so the negotiation table is reachable
+          first; either may be closed without answering and reopened later. */}
       <CardChoiceModal
         open={choiceModalOpen}
-        dismissible={goalChoiceOpen}
+        dismissible
         locale={locale}
         title={choiceModalTitle}
-        onClose={() => setDismissedGoals(goalSignature)}
+        // A dismissible choice keeps whatever the printed rule keeps when it is
+        // closed: the Goal pick keeps the first Goal, and a closed home-card
+        // dialog leaves the choice owed so `ie-open-home-card` brings it back.
+        continueLabel={goalModalOpen
+          ? bi(locale, "Continue with the first Goal", "继续（保留第一张目标）")
+          : bi(locale, "Close for now — choose later", "暂时关闭——稍后再选")}
+        onClose={closeChoice}
       >
         <HandChoices {...choicesProps}/>
       </CardChoiceModal>
