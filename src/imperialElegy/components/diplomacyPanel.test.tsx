@@ -61,6 +61,7 @@ const html = (
       setDealTake={() => undefined}
       dealPromises=""
       setDealPromises={() => undefined}
+      handCounts={{}}
       {...overrides}
     />,
   );
@@ -98,9 +99,10 @@ describe("11.1 the offer form", () => {
 
   test("choosing take flips the direction and the count is a dropdown of what the target holds", () => {
     const G = diplomacy();
-    // FR holds two dealable cards; the counter form is receiving one.
-    G.powers.FR.hand = ["IE-A018", "IE-A019"];
-    const markup = html(G, {dealGive: 0, dealTake: 2});
+    // In a real player view the opponent's hand is hidden, so the form reads
+    // the public count.  FR holds two dealable cards; the form is receiving.
+    G.powers.FR.hand = [];
+    const markup = html(G, {dealGive: 0, dealTake: 2, handCounts: {FR: 2}});
     const form = formOf(markup);
     expect(form).toContain('data-testid="ie-deals-direction-take"');
     // Two options (1, 2), with the current count selected.

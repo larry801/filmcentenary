@@ -64,6 +64,9 @@ const ORDERS_KEYS = [
   // 11.0/11.1: the diplomacy negotiation table's page.
   "deals", "dealsVisible", "pendingDeals", "myDealOffers", "dealTarget", "setDealTarget",
   "dealGive", "setDealGive", "dealTake", "setDealTake", "dealPromises", "setDealPromises",
+  // 11.1: the offer form needs the public hand counts (opponents' hands are
+  // hidden) to offer a legal "take" count in a player view.
+  "handCounts",
   // 6.0/9.1: the Deals page offers the way on to the home-card choice once the
   // seat is done negotiating.
   "homeChoice", "setHomeCardDialogOpen",

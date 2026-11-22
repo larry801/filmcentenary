@@ -108,13 +108,21 @@ export type DealProblem =
   | "nothing-moved"
   | "too-many-cards";
 
-/** Rules 11.0/11.1 — why `from` may not open a deal with `to` right now. */
+/**
+ * Rules 11.0/11.1 — why `from` may not open a deal with `to` right now.
+ *
+ * `handSizes` lets a client mirror the check from the public hand *counts*:
+ * an opponent's hand is hidden in a player view, so `dealableCards` would read
+ * zero and wrongly refuse every "take".  The server always calls without it
+ * and validates the real hands.
+ */
 export const dealProblem = (
   G: ImperialElegyState,
   from: Power,
   to: Power,
   give: number,
   take: number,
+  handSizes?: Partial<Record<Power, number>>,
 ): DealProblem | null => {
   if (G.phase !== "diplomacy") return "not-diplomacy";
   if (!(POWERS as readonly string[]).includes(to)) return "no-target";
@@ -123,8 +131,10 @@ export const dealProblem = (
   if (!Number.isInteger(give) || !Number.isInteger(take) || give < 0 || take < 0) return "nothing-moved";
   if (give + take < 1) return "nothing-moved";
   // Each side can only promise cards it holds; 11.1 draws from the hand.
-  if (give > dealableCards(G, from).length) return "too-many-cards";
-  if (take > dealableCards(G, to).length) return "too-many-cards";
+  const fromCards = handSizes?.[from] ?? dealableCards(G, from).length;
+  const toCards = handSizes?.[to] ?? dealableCards(G, to).length;
+  if (give > fromCards) return "too-many-cards";
+  if (take > toCards) return "too-many-cards";
   return null;
 };
 

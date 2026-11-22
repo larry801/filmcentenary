@@ -42,7 +42,7 @@ export interface DiplomacyPanelProps extends Pick<
   "G" | "locale" | "viewer" | "me" | "phase" | "eliminated" | "doAction" | "moves" |
   "deals" | "pendingDeals" | "myDealOffers" | "dealTarget" | "setDealTarget" |
   "dealGive" | "setDealGive" | "dealTake" | "setDealTake" | "dealPromises" | "setDealPromises" |
-  "homeChoice"
+  "handCounts" | "homeChoice"
 > {
   /**
    * 6.0/9.1: open the home-card choice.  The negotiation segment comes first,
@@ -68,7 +68,7 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
     G, locale, viewer, me, phase, eliminated, doAction, moves,
     deals, pendingDeals, myDealOffers,
     dealTarget, setDealTarget, dealGive, setDealGive, dealTake, setDealTake, dealPromises, setDealPromises,
-    homeChoice, onOpenHomeChoice,
+    handCounts, homeChoice, onOpenHomeChoice,
   } = props;
   const name = powerName(locale);
 
@@ -86,14 +86,17 @@ export const DiplomacyPanel = (props: DiplomacyPanelProps) => {
   // direction at a time: a give/receive switch plus a count.  The engine still
   // models `give` and `take`; the inactive half is simply zero.
   const giveMax = eligible(viewer);
-  const takeMax = target === undefined ? 0 : eligible(target);
+  // An opponent's hand is hidden in a player view, so the public count is the
+  // only honest upper bound for "how many may I take".  During the negotiation
+  // segment no home card sits in a hand yet, so the count is the dealable one.
+  const takeMax = target === undefined ? 0 : (handCounts?.[target] ?? eligible(target));
   const direction: "give" | "take" = clampCount(dealTake, takeMax) > 0 ? "take" : "give";
   const directionMax = direction === "give" ? giveMax : takeMax;
   const rawCount = direction === "give" ? clampCount(dealGive, giveMax) : clampCount(dealTake, takeMax);
   const count = directionMax <= 0 ? 0 : Math.max(1, Math.min(rawCount > 0 ? rawCount : 1, directionMax));
   const give = direction === "give" ? count : 0;
   const take = direction === "take" ? count : 0;
-  const problem = dealProblem(G, viewer, target, give, take);
+  const problem = dealProblem(G, viewer, target, give, take, {[viewer]: giveMax, ...(target === undefined ? {} : {[target]: takeMax})});
   const canDeal = phase === "diplomacy" && !eliminated && target !== undefined && problem === null;
   const setDirection = (next: "give" | "take"): void => {
     const kept = Math.max(1, count);

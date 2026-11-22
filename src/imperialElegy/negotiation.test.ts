@@ -91,6 +91,15 @@ describe("11.1 what may be offered", () => {
     expect(dealProblem(G, "GE", "FR", 1, 0)).toBe("eliminated");
   });
 
+  test("a player view mirrors the take limit from the public hand count", () => {
+    const G = diplomacy();
+    // Opponent hands are redacted to [] in a player view; the UI passes the
+    // public count so a private-hand seat can still be offered a legal take.
+    G.powers.FR.hand = [];
+    expect(dealProblem(G, "GE", "FR", 0, 1, {FR: 2})).toBeNull();
+    expect(dealProblem(G, "GE", "FR", 0, 3, {FR: 2})).toBe("too-many-cards");
+  });
+
   test("neither side can promise more cards than it holds", () => {
     const G = diplomacy();
     expect(dealProblem(G, "GE", "FR", FIXED_HAND.length + 1, 0)).toBe("too-many-cards");
