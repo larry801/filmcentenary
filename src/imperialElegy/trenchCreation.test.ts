@@ -4,6 +4,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit, removeUnit} from "./engine/effects";
 import {SPACES} from "./constant/spaces";
+import {trenchRows} from "./components/trenchRows";
 import {
   beginImpulseUpkeep,
   landUnitsIn,
@@ -109,8 +110,12 @@ describe("28.1 trench creation", () => {
     for (const def of keys) expect(G.spaces[def.id].trenchLine).toBe(true);
     const nonKey = Object.values(SPACES).find((def) => def.type === "territory" || def.type === "navalBase")!;
     expect(G.spaces[nonKey.id].trenchLine).toBeFalsy();
-    expect(G.gw!.trenches.berlin).toBeDefined();
-    expect(G.gw!.trenches.paris).toBeDefined();
+    // 28.1 terrain is not a 28.1.1 battle marker: no marker exists until an
+    // actual trench battle writes one.
+    expect(G.gw!.trenches.berlin).toBeUndefined();
+    expect(G.gw!.trenches.paris).toBeUndefined();
+    // The War tab lists 28.1.1 battle markers; terrain alone is not a battle.
+    expect(trenchRows(G)).toEqual([]);
   });
 
   test("re-entering planning keeps an existing trench battle marker", () => {

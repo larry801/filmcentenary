@@ -1230,7 +1230,11 @@ export const beginGwTurn = (G: ImperialElegyState, ctx: Ctx): GwBeginResult => {
       const hadLine = state.trenchLine === true;
       state.trenchLine = true;
       if (!hadLine) placed += 1;
-      gw.trenches[def.id] = state.trench?.status ?? gw.trenches[def.id] ?? "deadlock";
+      // 28.1's automatic trench is *terrain*, not a 28.1.1 trench battle
+      // marker.  The War tab reads `gw.trenches` as the marker list, so
+      // seeding a "deadlock" entry for every key made all 107 keys look like
+      // live deadlocked trench battles before a single attack.  Only
+      // `setTrenchBattleMarker` writes this record now.
     }
     if (placed > 0) log(G, undefined, "trenchesPlaced", {turn, count: placed});
   }

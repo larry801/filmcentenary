@@ -1965,7 +1965,8 @@ export const beginScenarioGw = (G: ImperialElegyState, def: ScenarioDef): void =
       if (space.type !== "key" && space.type !== "capital" && space.type !== "subcapital") continue;
       if (!G.spaces[space.id]) continue;
       G.spaces[space.id].trenchLine = true;
-      G.gw.trenches[space.id] = "deadlock";
+      // 28.1 terrain only: a 28.1.1 battle marker is written by
+      // `setTrenchBattleMarker` when a trench battle actually happens.
     }
   }
   // "In Effect: Suez Canal, Kiel Canal.  Permanent Events in Effect: Machine
