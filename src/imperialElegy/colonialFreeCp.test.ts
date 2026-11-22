@@ -17,8 +17,8 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit, removeUnit} from "./engine/effects";
-import {freeColonialCp, landUnitsIn, navalUnitsIn} from "./engine/rules";
-import {buildEf, constructFleet, navalMove, pacify, placeInfluence, recruit} from "./moves";
+import {freeColonialCp, freeGrantCp, landUnitsIn, navalUnitsIn} from "./engine/rules";
+import {buildEf, constructFleet, navalMove, pacify, pass, placeInfluence, playCard, recruit, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "1"): Ctx => {
   let index = 0;
@@ -115,5 +115,79 @@ describe("A088 / UK-3 spendable colonial CP", () => {
     for (let i = 0; i < 4; i += 1) placeUnit(G, "UK", "squadron", "london", 2);
     expect(constructFleet(G, makeCtx([], seat("UK")), "london", "squadron")).toBe(INVALID_MOVE);
     expect(freeColonialCp(G, "UK")).toBe(5);
+  });
+});
+
+/**
+ * The reported bug: "帝国挽歌英国打出日不落事件没有花费2cp界面直接结束行动轮了".
+ *
+ * An event play normally hands the impulse on as soon as it grants no ordinary
+ * CP (12.0), and these cards pay their printed CP as a named grant instead
+ * (`freeColonialCp` for A088, `freeOperationCp` / `freeIndianCp` for UK-3's two
+ * halves).  The impulse tail only asked `cpRemaining`, so Sun Never Sets ended
+ * the UK's impulse on the spot after its printed choice was answered and the 2
+ * CP it grants could never be spent — the grant then lingered into a later
+ * impulse where it bought a free action.
+ */
+describe("the printed free-CP grant keeps the impulse open (12.0)", () => {
+  test("Sun Never Sets does not hand the impulse over before its 2 CP are spent", () => {
+    const G = uk();
+    const ctx = makeCtx([], seat("UK"));
+    G.powers.UK.hand.push("IE-H-UK-3");
+    expect(playCard(G, ctx, "IE-H-UK-3", "event")).toBeUndefined();
+    // The event opens its printed choice; the 2 CP arrive with the answer.
+    expect(G.pending?.options.map((o) => o.id)).toContain("naval");
+    expect(resolvePending(G, ctx, "naval")).toBeUndefined();
+    // Still the UK's impulse: the printed "then spend 2 CP" is not optional.
+    expect(G.activePower).toBe("UK");
+    expect(G.cpRemaining).toBe(0);
+    expect(freeGrantCp(G, "UK", "freeOperationCp")).toBe(2);
+  });
+
+  test("the India half keeps the impulse open for its 2 Indian CP too", () => {
+    const G = uk();
+    const ctx = makeCtx([], seat("UK"));
+    G.powers.UK.hand.push("IE-H-UK-3");
+    expect(playCard(G, ctx, "IE-H-UK-3", "event")).toBeUndefined();
+    expect(resolvePending(G, ctx, "india")).toBeUndefined();
+    expect(G.activePower).toBe("UK");
+    expect(freeGrantCp(G, "UK", "freeIndianCp")).toBe(2);
+  });
+
+  test("Our Place in the Sun does not hand the impulse over before its 5 CP are spent", () => {
+    const G = uk();
+    G.powers.UK.hand.push("IE-A088");
+    expect(playCard(G, makeCtx([], seat("UK")), "IE-A088", "event")).toBeUndefined();
+    expect(G.activePower).toBe("UK");
+    expect(freeGrantCp(G, "UK", "freeColonialCp")).toBe(5);
+  });
+
+  test("the grant is spendable in that same impulse", () => {
+    const G = uk();
+    const ctx = makeCtx([], seat("UK"));
+    G.powers.UK.hand.push("IE-H-UK-3");
+    expect(playCard(G, ctx, "IE-H-UK-3", "event")).toBeUndefined();
+    expect(resolvePending(G, ctx, "naval")).toBeUndefined();
+    // The event's own free build leaves a squadron in London; the grant then
+    // pays for its naval movement, one printed "operation" action.
+    const ship = navalUnitsIn(G, "london")[0];
+    expect(ship).toBeDefined();
+    expect(navalMove(G, ctx, [ship.id], "north-atlantic")).toBeUndefined();
+    expect(freeGrantCp(G, "UK", "freeOperationCp")).toBe(1);
+    expect(G.cpRemaining).toBe(0);
+  });
+
+  test("handing the impulse over forfeits the unspent grant", () => {
+    const G = uk();
+    const ctx = makeCtx([], seat("UK"));
+    G.powers.UK.hand.push("IE-H-UK-3");
+    expect(playCard(G, ctx, "IE-H-UK-3", "event")).toBeUndefined();
+    expect(resolvePending(G, ctx, "naval")).toBeUndefined();
+    // Another seat still holds a card, so the impulse hands over instead of
+    // closing the action phase.
+    G.powers.GE.hand.push("IE-A001");
+    expect(pass(G, ctx)).toBeUndefined();
+    expect(G.activePower).not.toBe("UK");
+    expect(freeGrantCp(G, "UK", "freeOperationCp")).toBe(0);
   });
 });

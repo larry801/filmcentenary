@@ -411,6 +411,24 @@ const spend = (G: ImperialElegyState, amount: number): boolean => {
 };
 
 /**
+ * The printed free-CP grants (A088 Our Place in the Sun, UK-3 Sun Never Sets).
+ * Each is a named pool so its printed action restriction stays enforceable;
+ * `rules.ts#spendGrantCp` drains them before the ordinary wallet.
+ */
+const FREE_CP_GRANTS: readonly FreeCpGrant[] = ["freeColonialCp", "freeOperationCp", "freeIndianCp"];
+
+/**
+ * True while the seat still holds an unspent printed free-CP grant.  A grant is
+ * this impulse's budget exactly like `cpRemaining`: a card that hands one over
+ * (or a decision that grants one, as UK-3's two halves do) must not hand the
+ * impulse over, or the printed CP could never be spent.  Conversely the grant is
+ * forfeited when the impulse ends (`clearActionImpulseSpend`), so it can never
+ * buy a free action in a later impulse.
+ */
+const hasUnspentGrant = (G: ImperialElegyState, power: Power): boolean =>
+  FREE_CP_GRANTS.some((grant) => freeGrantCp(G, power, grant) > 0);
+
+/**
  * Response timing bookkeeping.  A response card may only be played at the very
  * start of an impulse, so each impulse records whether its CP/action budget has
  * already been used.  The action flag is cleared when `finishImpulse` hands the
@@ -431,6 +449,10 @@ const clearActionImpulseSpend = (G: ImperialElegyState): void => {
     // 33.5 is "per impulse", so the railroad allowance resets when the
     // impulse passes to the next player (4.5).
     delete G.powers[power].flags.tsrrRailImpulse;
+    // A088 Our Place in the Sun / UK-3 Sun Never Sets: the printed "spend N CP"
+    // is a pool for the impulse that played the card.  Whatever is left when the
+    // impulse hands over is forfeited — it must not buy a free action later.
+    for (const grant of FREE_CP_GRANTS) delete G.powers[power].flags[grant];
   }
   // 12.11's pacification limit is "once per space, per impulse", so a failed
   // attempt becomes retryable in the next impulse.
@@ -677,7 +699,12 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     pruneRemovedFromDiscard(G);
     G.resolvingCard = null;
     G.impulseCard = null;
-    if (G.cpRemaining <= 0 && G.pending === null && warDeclarationEntitlement(G, power) === null) {
+    if (
+      G.cpRemaining <= 0 &&
+      !hasUnspentGrant(G, power) &&
+      G.pending === null &&
+      warDeclarationEntitlement(G, power) === null
+    ) {
       finishImpulse(G, ctx);
     }
     return undefined;
@@ -700,11 +727,17 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     G.impulseCard = null;
     if (card.type !== "mandatory") {
       G.impulseCard = null;
-      // Event play ends the impulse unless the card grants CP, or the event
-      // itself opened a home-card war declaration (Bismarck).  That
-      // entitlement belongs to this impulse: the seat declares the war here or
-      // hands the impulse over (`finishImpulse` clears it).
-      if (G.cpRemaining <= 0 && G.pending === null && warDeclarationEntitlement(G, power) === null) {
+      // Event play ends the impulse unless the card grants CP — including the
+      // colonial pool of A088 Our Place in the Sun and UK-3 Sun Never Sets —
+      // or the event itself opened a home-card war declaration (Bismarck).
+      // Both belong to this impulse: the seat spends them here or hands the
+      // impulse over (`finishImpulse` clears them).
+      if (
+        G.cpRemaining <= 0 &&
+        !hasUnspentGrant(G, power) &&
+        G.pending === null &&
+        warDeclarationEntitlement(G, power) === null
+      ) {
         finishImpulse(G, ctx);
       }
     }
@@ -4576,12 +4609,18 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
   if (chained) {
     // A chain insertion is one impulse; resume the next player once its
     // mandatory event has finished (unless the event itself granted CP).
-    if (G.cpRemaining <= 0) finishImpulse(G, ctx);
+    if (G.cpRemaining <= 0 && !hasUnspentGrant(G, G.activePower)) finishImpulse(G, ctx);
   } else if (
     !(gwCard && hasLiveGwImpulse(G)) &&
     !mandatory &&
     !response &&
     G.cpRemaining <= 0 &&
+    // A088 / UK-3 hand their printed CP to the seat as a restricted pool
+    // (colonial, operation or Indian).  That pool belongs to the impulse the
+    // card opened, so it keeps the impulse open exactly like banked CP — this is
+    // the path UK-3 takes: its event opens a required choice, and the grant only
+    // arrives when the seat answers it.
+    !hasUnspentGrant(G, G.activePower) &&
     // A home-card war declaration (Bismarck, Aux Armes, Russo-Turkish Wars,
     // Jihad) belongs to this impulse even when its event paused on a printed
     // choice: the seat declares the war now or hands the impulse over.

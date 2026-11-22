@@ -538,6 +538,21 @@ describe("Imperial Elegy board controls", () => {
     expect(used).not.toContain("disabled");
   });
 
+  test("the dock names a printed free-CP grant the wallet readout cannot show", () => {
+    // Report follow-up: after Sun Never Sets the UK still has its 2 event CP to
+    // spend, so "Your impulse" must not read like an empty wallet.
+    const G = freshGame();
+    G.activePower = "UK";
+    G.cpRemaining = 0;
+    G.powers.UK.flags.actionCpSpentThisImpulse = true;
+    G.powers.UK.flags.freeOperationCp = 2;
+    const seat = String(POWERS.indexOf("UK"));
+    expect(html(G, seat)).toContain("你的行动轮——还有 2 点事件赠予 CP 可花");
+    // Without a grant the dock reads exactly as before.
+    delete G.powers.UK.flags.freeOperationCp;
+    expect(html(G, seat)).toContain("你的行动轮");
+  });
+
   test("a collapsed DecisionDock keeps the summary and phase buttons but hides the body", () => {
     const summary = "你的行动轮 · 剩余 3 CP";
     const open = renderToStaticMarkup(React.createElement(DecisionDock, {
