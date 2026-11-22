@@ -121,6 +121,7 @@ import {
   BISMARCK_HOME_CARD,
   clearWarDeclarationEntitlement,
   effectiveKeyType,
+  isTerritorialKeyForPower,
   warDeclarationAllowsTwoPowers,
   warDeclarationEntitlement,
   warDeclarationMayForbidJoins,
@@ -1699,7 +1700,10 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
   // India, South Africa, Australia) is neither territorial nor on the main map.
   // A71 can reclassify a printed territorial key (Egypt) as a colonial home
   // key, so the live type — not the static map data — decides 12.4.
-  if (SPACES[space]?.submap !== "main" || effectiveKeyType(G, space) !== "territorial") return INVALID_MOVE;
+  // 33.6 Local Autonomy makes Tripoli and Tunisia territorial keys for the
+  // Ottomans once a land LoC reaches them, so the live per-power key type is
+  // the gate here, not the printed (absent) key type.
+  if (SPACES[space]?.submap !== "main" || !isTerritorialKeyForPower(G, space, power)) return INVALID_MOVE;
   if (!portBoxes(space).length) return INVALID_MOVE;
   if (kind === "dreadnought" && G.persistent.dreadnoughts !== true && !G.powers[power].flags.navalLimit) return INVALID_MOVE;
   // 4.2: GE/AU/OT may only own 2 squadrons and 2 dreadnoughts until an event
@@ -2377,7 +2381,9 @@ export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (requireActionFamily(G, "buildFort") === INVALID_MOVE) return INVALID_MOVE;
-  if (SPACES[space]?.region !== "europe") return INVALID_MOVE;
+  // 12.12: "Forts can only be built on the main map (exception: the Indian
+  // fort)".  The main map includes North Africa, not just the Europe region.
+  if (SPACES[space]?.submap !== "main") return INVALID_MOVE;
   const existing = G.spaces[space]?.fort ?? null;
   if (existing !== null) {
     if (existing.power !== power) return INVALID_MOVE;

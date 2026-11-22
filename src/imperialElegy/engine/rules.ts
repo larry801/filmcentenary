@@ -1273,10 +1273,15 @@ export const brokenLoc = (G: ImperialElegyState, power: Power, space: SpaceId): 
  * 5.5.1 Army stacking: 3 armies on land spaces of the main map, 2 elsewhere,
  * and all Ottoman home spaces hold 2 (including those in Europe).  ECs and EFs
  * never count against this limit (5.5.2).
+ *
+ * The main map is a map area, not the `region` label: North Africa (Algeria,
+ * Tripoli, Tunisia, Egypt) is on it, so those spaces hold 3 like Europe, while
+ * the Africa submap and the colonial homes hold 2.  The Ottoman home-space
+ * exception applies first.
  */
 export const landStackingLimit = (space: SpaceId): number => {
   if (SPACES[space]?.home === "OT") return 2;
-  if (SPACES[space]?.region === "europe") return 3;
+  if (SPACES[space]?.submap === "main") return 3;
   return 2;
 };
 
@@ -2064,6 +2069,24 @@ export const hasOtAutonomyLandLoc = (G: ImperialElegyState, space: SpaceId): boo
     }
   }
   return false;
+};
+
+/**
+ * True when `space` currently counts as a territorial key for `power`.
+ *
+ * This is `keyTypeForPower` plus 33.6's Local Autonomy clause: Tripoli and
+ * Tunisia only count once a land LoC reaches the Ottoman rail of keys, so a
+ * fleet cannot be laid down in them merely because the printed map calls them
+ * home keys.
+ */
+export const isTerritorialKeyForPower = (
+  G: ImperialElegyState,
+  space: SpaceId,
+  power: Power,
+): boolean => {
+  if (keyTypeForPower(G, space, power) !== "territorial") return false;
+  if (power === "OT" && OT_AUTONOMY_KEYS.has(space) && !hasOtAutonomyLandLoc(G, space)) return false;
+  return true;
 };
 
 /** Recompute keys, manpower and PP from the board. */

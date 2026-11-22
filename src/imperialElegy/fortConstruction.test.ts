@@ -71,6 +71,21 @@ describe("12.1 buildFort — placement", () => {
     expect(G.spaces.saxony.fort ?? null).toBeNull();
   });
 
+  test("a North African main-map home space accepts a fort (12.12: main map, not Europe)", () => {
+    const G = fresh();
+    beginAction(G, "OT");
+    expect(buildFort(G, makeCtx([], seat("OT")), "tripoli", 1)).toBeUndefined();
+    expect(G.spaces.tripoli.fort).toEqual({power: "OT", level: 1});
+    expect(G.cpRemaining).toBe(3);
+  });
+
+  test("a colonial home space on a submap still refuses a fort", () => {
+    const G = fresh();
+    beginAction(G, "UK");
+    expect(buildFort(G, makeCtx([], seat("UK")), "canada", 1)).toBe(INVALID_MOVE);
+    expect(G.spaces.canada.fort ?? null).toBeNull();
+  });
+
   test("a controlled home key accepts the fort and charges its level", () => {
     const G = fresh();
     beginAction(G, "GE");
@@ -173,6 +188,15 @@ describe("12.1 fort rows and 20.1 Militarism read the same rules", () => {
     expect(row(list, "buildFort2")?.enabled).toBe(true);
     expect(row(list, "buildFort2")?.cost).toBe(2);
     expect(row(list, "upgradeFort")?.enabled).toBe(false);
+  });
+
+  test("Tripoli offers the fort rows to the Ottomans", () => {
+    const G = fresh();
+    beginAction(G, "OT");
+    const list = rows(G, "OT", "tripoli");
+    expect(row(list, "buildFort")?.enabled).toBe(true);
+    expect(row(list, "buildFort")?.reason).toBeUndefined();
+    expect(row(list, "buildFort2")?.enabled).toBe(true);
   });
 
   test("a level 1 fort of your own switches the rows to the 1 CP upgrade", () => {
