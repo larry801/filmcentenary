@@ -10,7 +10,7 @@ import {Ctx} from "boardgame.io";
 import {CreateGameReducer, InitializeGame, ProcessGameConfig} from "boardgame.io/internal";
 import {ImperialElegyGameDef} from "../../src/imperialElegy/game";
 import {redactForView} from "../../src/imperialElegy/engine/privacy";
-import {botDecision} from "../../src/imperialElegy/engine/bot";
+import {botDecision, phaseExitMove} from "../../src/imperialElegy/engine/bot";
 import {ImperialElegyState, POWERS, Power} from "../../src/imperialElegy/types";
 import {ensureStateDefaults} from "../../src/imperialElegy/engine/migrations";
 import {SPACES, isNavalBox, neighboursOf, portBoxes} from "../../src/imperialElegy/constant/spaces";
@@ -95,6 +95,8 @@ export interface SimResult {
   issues: SimIssue[];
   gw: boolean;
   events: SimEvent[];
+  /** The authoritative end state (for milestone assertions and reports). */
+  finalState: ImperialElegyState;
 }
 
 const cloneCtx = (ctx: Ctx): Ctx => JSON.parse(JSON.stringify(ctx)) as Ctx;
@@ -645,8 +647,11 @@ export function runSeededGame(opts: SimOptions): SimResult {
   /** True when this iteration already staged amphibious units (bounds a retry). */
   let stagedThisStep = false;
   let navalOverrideBlocked = false;
-  /** (unitId|dest) naval moves the engine refused — never proposed again. */
   const refusedNaval = new Set<string>();
+  /** Recruit attempts the engine refused (4.2 ceilings) — never re-proposed. */
+  const refusedRecruit = new Set<string>();
+  /** A GW card the engine refused this game — the seat falls back to its exit. */
+  let refusedGwCard = false;
 
   for (; steps < maxSteps; steps += 1) {
     const G = state.G as ImperialElegyState;
@@ -657,6 +662,20 @@ export function runSeededGame(opts: SimOptions): SimResult {
     if (seat === null) {
       issues.push({kind: "stall", step: steps, turn: G.turn, phase: G.phase, power: null, detail: "no acting seat"});
       break;
+    }
+    // 9.1: every surviving seat must close its negotiation segment before any
+    // seat may pile its home card.  The bot returns `finishNegotiation` but
+    // `actingSeatFor` keeps naming the current player, so the harness has to
+    // sweep the strip the way the hotseat driver does.  Without this every
+    // game deadlocks on the first seat's `pileHomeCard` refusal.
+    let forcedNegotiation = false;
+    if (!G.pending && G.phase === "diplomacy") {
+      const owing = POWERS.find((candidate) =>
+        G.powers[candidate].eliminated !== true && G.powers[candidate].flags.negotiationDone === false);
+      if (owing !== undefined) {
+        seat = String(POWERS.indexOf(owing));
+        forcedNegotiation = true;
+      }
     }
     // In sequential phases the bot must be asked for the seat that still owes
     // an action; the pending owner wins.
@@ -686,6 +705,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
     stagedThisStep = false;
     const decision = (() => {
       try {
+        if (forcedNegotiation) return {move: "finishNegotiation", args: []};
         if (G.pending) {
           const pendingView = view.pending ?? G.pending;
           if (opts.chaos && opts.chaos > 0 && rng() < opts.chaos && pendingView.options.length > 1) {
@@ -717,6 +737,21 @@ export function runSeededGame(opts: SimOptions): SimResult {
     // later read of units/CP must come from the current state or the harness
     // names a unit id that no longer exists (and the engine rightly refuses).
     const liveG = state.G as ImperialElegyState;
+    // A move the engine already refused is never named again: the sweep's job
+    // is to explore legal states, and repeating a refusal only re-stalls it.
+    if (decision.move === "playGwCardMove" && refusedGwCard) {
+      const exit = phaseExitMove(liveG);
+      decision.move = exit.move;
+      decision.args = exit.args ?? [];
+    }
+    if (decision.move === "recruit") {
+      const [space, kind] = (decision.args ?? []) as [string, string];
+      if (refusedRecruit.has(`${space}|${kind}`)) {
+        const exit = phaseExitMove(liveG);
+        decision.move = exit.move;
+        decision.args = exit.args ?? [];
+      }
+    }
     // Aggressive mode: declare a legal war when the action phase would
     // otherwise just bank CP, so the `wartime` phase actually runs.  The
     // declaration belongs to the *active* power: in the action phase only that
@@ -738,14 +773,47 @@ export function runSeededGame(opts: SimOptions): SimResult {
       && power === liveG.activePower
       && (decision.move === "pass" || decision.move === "placeMpit"
         || decision.move === "buildFort" || decision.move === "gwPass" || decision.move === "playCard")) {
+      // A sortie the engine would refuse (no budget left, or a power that is
+      // not a belligerent) is decided *before* the refusal ledger below, so the
+      // ledger only ever records real engine refusals and the override keeps
+      // the bot's own legal decision otherwise.
       const naval = navalAction(liveG, liveG.activePower);
-      if (naval !== null && naval.move === "navalMove") {
+      const liveBudgetEarly = liveG.phase === "gwManeuver" && liveG.gw?.active === true
+        ? liveG.powers[liveG.activePower].gwBudget ?? 0
+        : liveG.phase === "wartime" && liveG.war
+          ? liveG.war.budgets[liveG.activePower] ?? 0
+          : liveG.cpRemaining;
+      const belligerentEarly = liveG.phase !== "gwManeuver"
+        || liveG.gw?.belligerents.includes(liveG.activePower) === true;
+      const proposable = naval !== null && belligerentEarly
+        && (naval.move === "navalIntercept" || liveBudgetEarly >= 1);
+      // A refused battle is remembered the same way a refused move is: the
+      // sweep probes with the live engine, so re-naming one it already saw
+      // refused only re-stalls the run.
+      if (proposable && naval !== null && naval.move === "navalBattle") {
+        const [from, to] = naval.args as [string, string];
+        if (refusedNaval.has(`${from}|${to}`)) {
+          const exit = phaseExitMove(liveG);
+          decision.move = exit.move;
+          decision.args = exit.args ?? [];
+          navalOverrideBlocked = true;
+        }
+      }
+      if (proposable && naval !== null && naval.move === "navalMove") {
         const [ids, dest] = naval.args as [string[], string];
         if (refusedNaval.has(`${ids[0]}|${dest}`)) {
           // Skip a move this sweep already saw refused (a fleet stranded in a
           // port that stopped being friendly); otherwise it re-sends forever.
-          decision.move = "pass";
-          decision.args = [];
+          // The fallback is the *phase's own* exit: this branch runs in the
+          // action phase, a limited war and the Great War, and a hard-coded
+          // 12.0 `pass` is refused outside the action phase (the batch reported
+          // `invalid move: pass` in gwManeuver 192 times for one seed, which
+          // looked like an engine lock but was this sweep rewriting a legal
+          // ghwPass).
+          // The phase's own exit, from the engine that owns the mapping.
+          const exit = phaseExitMove(liveG);
+          decision.move = exit.move;
+          decision.args = exit.args ?? [];
           navalOverrideBlocked = true;
         }
       }
@@ -756,8 +824,16 @@ export function runSeededGame(opts: SimOptions): SimResult {
         : liveG.phase === "wartime" && liveG.war
           ? liveG.war.budgets[liveG.activePower] ?? 0
           : liveG.cpRemaining;
-      const affordable = naval !== null
-        && (naval.move === "navalIntercept" || liveBudget >= 1);
+      // A sortie the engine would refuse (no budget left, or a power that is
+      // not a belligerent) is not proposed at all: the sweep keeps the bot's
+      // own, legal decision instead of re-sending a move the engine must
+      // refuse.  Without this the override re-named the same refused sortie
+      // every step and the run stalled on a legal state.
+      const belligerent = liveG.phase !== "gwManeuver"
+        || liveG.gw?.belligerents.includes(liveG.activePower) === true
+        || liveG.gw?.neutralImpulses !== undefined;
+      const affordable = proposable && belligerent
+        && (naval!.move === "navalIntercept" || liveBudget >= 1);
       if (naval !== null && affordable && !navalOverrideBlocked) {
         decision.move = naval.move;
         decision.args = naval.args;
@@ -814,6 +890,23 @@ export function runSeededGame(opts: SimOptions): SimResult {
       if (decision.move === "navalMove") {
         const [ids, dest] = (decision.args ?? []) as [string[], string];
         if (ids?.[0]) refusedNaval.add(`${ids[0]}|${dest}`);
+      }
+      if (decision.move === "playGwCardMove") {
+        // A GW card the engine refuses (its timing window closed on this seat)
+        // is not proposed again: the bot's next legal choice is the exit.
+        refusedGwCard = true;
+      }
+      if (decision.move === "recruit") {
+        // 4.2's British/Indian counter and manpower ceilings refuse this build;
+        // retrying it only re-stalls the run on a legal board.
+        const [space, kind] = (decision.args ?? []) as [string, string];
+        if (space && kind) refusedRecruit.add(`${space}|${kind}`);
+      }
+      if (decision.move === "navalBattle") {
+        // A battle the engine refused is not proposed again: the sweep has no
+        // way to make it legal, and re-sending it stalled the run.
+        const [from, to] = (decision.args ?? []) as [string, string];
+        if (from && to) refusedNaval.add(`${from}|${to}`);
       }
       let reason = "";
       if (err.type === "action/invalid_move" && decision.move === "declareWar") {
@@ -961,6 +1054,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
     issues,
     gw: Boolean(finalG.gw?.outbreakDone),
     events,
+    finalState: finalG,
   };
 }
 

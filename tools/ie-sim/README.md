@@ -34,6 +34,11 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 ## Test suites here
 
 - `sweep.test.ts` — campaign + Great War per seed (the default gate).
+- `fullGame.test.ts` — one continuous fixed-seed match from campaign turn 1
+  through a real Great War outbreak and GW turns 0–5, with all six seats
+  human-controlled (no `G.bots`), asserting the printed milestones and no
+  refused move.  This is the hotseat/“整局” gate; it is slow (~35 s) and is run
+  explicitly like the other tools suites.
 - `war.test.ts` — campaign with limited-war declarations.
 - `navy.test.ts` — fleet builds, sea moves and naval battles (19.1–19.9).
 - `amph.test.ts` — 19.10 amphibious assaults (unopposed and contested).
