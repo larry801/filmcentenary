@@ -4,12 +4,19 @@
  * The four "declare war using this card's CP value" home cards (Bismarck, Aux
  * Armes, Russo-Turkish Wars, Jihad) leave a declaration entitlement when their
  * event resolves.  An ordinary declaration (no home card) has the same shape:
- * a defending power, an aim and one objective space.
+ * a defending power, an aim and one or two objective spaces.
+ *
+ * Rule 14.1 adds a second dimension: the GE and FR home cards may attack **two
+ * different powers** with one declaration.  That second target may be a player
+ * power or, as the reporter of the panel bug asked, a non-player power, so a
+ * declaration is described by a *pair* of targets here (`second` is null for
+ * the ordinary single-target case).
  *
  * This module is the single list the War panel reads, so it can never offer a
- * target the engine's `declareWar` would refuse.  It is split into three small
- * enumerations — defenders, aims and objective spaces — because the panel asks
- * one question at a time; the complete list is assembled from the three:
+ * target the engine's `declareWar` would refuse.  It is split into small
+ * enumerations — defenders, second targets, aims and objective spaces —
+ * because the panel asks one question at a time; the complete list is assembled
+ * from them:
  *
  *  - the same `warDeclarationTargetLegal` gate (Russo-Turkish Wars: OT only;
  *    Jihad: RU or an Ottoman-home controller);
@@ -17,12 +24,12 @@
  *    defender its objectives must belong to (an allied minor is therefore
  *    listed through that player, never as its own target);
  *  - the same `validateWarAim` call, with the card's policy rules (RU-9's
- *    Balkan liberation, Aux Armes' two-key limit);
+ *    Balkan liberation, Aux Armes' two-key limit) and every named defender;
  *  - 13.5 truces, eliminated seats and the 13.0 World Tension gate.
  *
- * Only a single objective is enumerated.  A second objective (Aux Armes' two
- * keys) and a second power (14.1) are optional clauses the declaration panel
- * adds after the primary target is fixed.
+ * Rule 13.0 lets an ordinary declaration name up to two spaces (13.1/13.2) and
+ * 13.3 allows two for a conquest as long as only one is a key, so the panel
+ * offers every legal pair of spaces, not one per target.
  */
 import {
   ImperialElegyState,
@@ -50,6 +57,7 @@ import {
   minorWarInfo,
   nonPlayerControlId,
   validateWarAim,
+  warTargetKey,
 } from "./limitedWar";
 
 /** One legal declaration the entitlement (or the ordinary action) can make. */
@@ -60,7 +68,7 @@ export interface WarTargetCandidate {
   defender: PowerOrMinor;
   /** The printed aim this declaration uses. */
   aim: WarDeclarationAim;
-  /** The objective space the declaration names. */
+  /** The objective space the declaration names (13.0's first space). */
   objective: SpaceId;
 }
 
@@ -73,15 +81,12 @@ export interface WarDeclarationDefender {
 /** Every aim an ordinary declaration may use, in the player aid's order. */
 export const ALL_WAR_AIMS: readonly WarDeclarationAim[] = ["conquest", "liberation", "unification"];
 
-/** A stable identity for a target, used as a React key and for de-duplication. */
-export const warTargetKey = (target: WarTarget): string =>
-  typeof target === "string" ? target : `minor:${target.minor}`;
-
 /** A stable identity for a candidate, used as a React key and for de-duplication. */
 export const warTargetCandidateKey = (candidate: WarTargetCandidate): string =>
   `${warTargetKey(candidate.target)}:${candidate.aim}:${candidate.objective}`;
 
-const candidateKey = warTargetCandidateKey;
+/** A target's identity is shared with the engine (`WarTarget` lives there). */
+export {warTargetKey};
 
 /** The aims a declaration may use: the card's printed list, or every aim. */
 export const declarationAimsFor = (
@@ -91,14 +96,27 @@ export const declarationAimsFor = (
   return entitlement.aim !== null ? [entitlement.aim] : [...warDeclarationAims(entitlement.card)];
 };
 
-/** The spaces a defender's objectives may name, in printed order. */
-const objectiveSpaces = (G: ImperialElegyState, defender: PowerOrMinor, minor: string | null): SpaceId[] => {
-  if (minor !== null) {
-    const controlId = nonPlayerControlId(minor);
-    return Object.keys(SPACES).filter((id) => G.spaces[id]?.control === controlId);
+/**
+ * The spaces one named target's objectives may come from, in printed order.
+ *
+ * A player power's list is the spaces it controls; a non-player power's list is
+ * the spaces its own control marker sits on.  An allied minor is resolved to
+ * its player ally first (13.4), because a declaration on it *is* a declaration
+ * on that player.
+ */
+const spacesOf = (G: ImperialElegyState, target: WarTarget): SpaceId[] => {
+  if (typeof target === "string") return Object.keys(SPACES).filter((id) => controlledBy(G, id, target));
+  const controlId = nonPlayerControlId(target.minor);
+  return Object.keys(SPACES).filter((id) => G.spaces[id]?.control === controlId);
+};
+
+/** The objective spaces a declaration on `targets` may name, before the aim. */
+const objectiveSpaces = (G: ImperialElegyState, targets: readonly WarTarget[]): SpaceId[] => {
+  const out: SpaceId[] = [];
+  for (const target of targets) {
+    for (const space of spacesOf(G, target)) if (!out.includes(space)) out.push(space);
   }
-  if (!isPower(defender)) return [];
-  return Object.keys(SPACES).filter((id) => controlledBy(G, id, defender));
+  return out;
 };
 
 /** The engine's printed aim policy, or no restrictions for an ordinary declaration. */
@@ -160,11 +178,45 @@ export const declarationDefenders = (
 };
 
 /**
+ * Every second target a two-target declaration may name beside `entry`.
+ *
+ * Rule 14.1: "through the play of one of their home cards … GE or FR [may]
+ * attack two different powers".  The printed wording is about *powers*, not
+ * about spaces, so a player power, a non-player power or a pair of two
+ * non-player powers are all offered.  The gates are the same ones `declareWar`
+ * runs for a second target — no truce (13.5), not eliminated, not the attacker,
+ * allowed by the card's printed target list — plus the pair rule: a second
+ * target whose only spaces the shared aim refuses would be a dead row, because
+ * 13.0 requires at least one objective.
+ */
+export const declarationSecondTargets = (
+  G: ImperialElegyState,
+  power: Power,
+  entitlement: WarDeclarationEntitlement | null,
+  entry: WarDeclarationDefender,
+  aim: WarDeclarationAim,
+): WarDeclarationDefender[] => {
+  if (entitlement === null) return [];
+  const policy = warDeclarationPolicy(entitlement.card);
+  if (policy === null || policy.maxPowers < 2 || !policy.twoPowerAims.includes(aim)) return [];
+
+  return declarationDefenders(G, power, entitlement)
+    .filter((candidate) => warTargetKey(candidate.target) !== warTargetKey(entry.target))
+    // A pair with no space in common is a dead row: the panel would show no
+    // objective, and `declareWar` needs at least one.
+    .filter((candidate) =>
+      declarationObjectives(G, power, entitlement, entry, aim, candidate).length > 0);
+};
+
+/**
  * The objective spaces a declaration against `entry` may name for `aim`.
  *
  * Every row is one the engine's `declareWar` accepts; the panel may therefore
  * render the list directly.  The aim decides the gates (13.3's key limit,
  * RU-9's Balkan list), which is why this is per-aim rather than all at once.
+ *
+ * When `second` is given, the row must also be part of a legal *pair* with the
+ * chosen second target, so a space only the pair refuses never appears.
  */
 export const declarationObjectives = (
   G: ImperialElegyState,
@@ -172,14 +224,19 @@ export const declarationObjectives = (
   entitlement: WarDeclarationEntitlement | null,
   entry: WarDeclarationDefender,
   aim: WarDeclarationAim,
+  second: WarDeclarationDefender | null = null,
 ): SpaceId[] => {
   if (G.war !== null) return [];
   if (G.wtt >= 3) return [];
   if (G.powers[power]?.eliminated === true) return [];
-  const minor = typeof entry.target === "string" ? null : entry.target.minor;
+  const targets: WarTarget[] = second === null ? [entry.target] : [entry.target, second.target];
+  const defenders: PowerOrMinor[] = second === null ? [entry.defender] : [entry.defender, second.defender];
   const rules = aimRulesFor(entitlement);
-  return objectiveSpaces(G, entry.defender, minor).filter((objective) =>
-    validateWarAim(G, power, entry.defender, aim, [objective], rules).ok);
+  return objectiveSpaces(G, targets).filter((objective) =>
+    validateWarAim(G, power, entry.defender, aim, [objective], {
+      ...rules,
+      ...(second === null ? {} : {defenders}),
+    }).ok);
 };
 
 /**
@@ -196,12 +253,12 @@ export const declarationSecondObjectives = (
   entry: WarDeclarationDefender,
   aim: WarDeclarationAim,
   selected: SpaceId,
-  secondTarget: Power | null,
+  second: WarDeclarationDefender | null = null,
 ): SpaceId[] => {
   const rules = aimRulesFor(entitlement);
   const defenders: PowerOrMinor[] | undefined =
-    secondTarget !== null ? [entry.defender, secondTarget] : undefined;
-  return declarationObjectives(G, power, entitlement, entry, aim)
+    second !== null ? [entry.defender, second.defender] : undefined;
+  return declarationObjectives(G, power, entitlement, entry, aim, second)
     .filter((objective) => objective !== selected)
     .filter((objective) => validateWarAim(G, power, entry.defender, aim, [selected, objective], {
       ...rules,
@@ -212,8 +269,8 @@ export const declarationSecondObjectives = (
 /**
  * Every declaration a live home-card entitlement can make, as complete
  * candidates.  Empty without an entitlement: the ordinary declaration form
- * asks its three questions one at a time, so it reads `declarationDefenders`
- * and `declarationObjectives` instead of this flat list.
+ * asks its questions one at a time, so it reads `declarationDefenders` and
+ * `declarationObjectives` instead of this flat list.
  */
 export const declarationTargetCandidates = (
   G: ImperialElegyState,
@@ -232,7 +289,7 @@ export const declarationTargetCandidates = (
   }
   const seen = new Set<string>();
   return candidates.filter((candidate) => {
-    const key = candidateKey(candidate);
+    const key = warTargetCandidateKey(candidate);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

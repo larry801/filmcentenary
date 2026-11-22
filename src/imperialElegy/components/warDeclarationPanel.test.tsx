@@ -270,9 +270,12 @@ describe("the War panel's declaration form", () => {
     const {tree, declared, props} = renderPanel(G, "GE");
     change(tree, "ie-war-declare-defender", "FR");
     let next = rerender(props);
-    change(next, "ie-war-declare-objective", "alsace-lorraine");
-    next = rerender(props);
+    // The second target sits beside the first one, so the shape of the
+    // declaration is visible before any space is picked (14.1).
+    expect(optionsOf(next, "ie-war-second-power")).toContain("AU");
     change(next, "ie-war-second-power", "AU");
+    next = rerender(props);
+    change(next, "ie-war-declare-objective", "alsace-lorraine");
     next = rerender(props);
     expect(byTestId(next, "ie-war-primary-defender")).toBeDefined();
 
@@ -293,6 +296,120 @@ describe("the War panel's declaration form", () => {
       cp: 3,
       options: {secondTarget: "AU", primary: "FR", forbidPlayers: true},
     }]);
+  });
+
+  test("a non-player power can be the second target (the reported gap)", () => {
+    const G = homeImpulse("GE", BISMARCK_HOME_CARD);
+    const {tree, declared, props} = renderPanel(G, "GE");
+    // Target 1: Denmark (non-player).  Target 2: France (player).
+    change(tree, "ie-war-declare-defender", "minor:Denmark");
+    let next = rerender(props);
+    expect(optionsOf(next, "ie-war-second-power")).toContain("FR");
+    change(next, "ie-war-second-power", "FR");
+    next = rerender(props);
+    // The pair's spaces are the union of both targets' legal objectives.
+    const objectives = optionsOf(next, "ie-war-declare-objective");
+    expect(objectives).toContain("schleswig-holstein");
+    expect(objectives).toContain("alsace-lorraine");
+    change(next, "ie-war-declare-objective", "schleswig-holstein");
+    next = rerender(props);
+    // The only named player is FR, so it is automatically the primary and the
+    // select is not drawn (there is nothing to choose).
+    expect(byTestId(next, "ie-war-primary-defender")).toBeUndefined();
+    click(next, "ie-declare-war");
+    expect(declared).toEqual([{
+      target: {minor: "Denmark"},
+      aim: "unification",
+      objectives: ["schleswig-holstein"],
+      cp: 3,
+      options: {secondTarget: "FR", primary: "FR"},
+    }]);
+  });
+
+  test("two non-player powers may be named together (14.1)", () => {
+    const G = homeImpulse("GE", BISMARCK_HOME_CARD);
+    const {tree, declared, props} = renderPanel(G, "GE");
+    change(tree, "ie-war-declare-defender", "minor:Denmark");
+    let next = rerender(props);
+    expect(optionsOf(next, "ie-war-second-power")).toContain("minor:Bavaria");
+    change(next, "ie-war-second-power", "minor:Bavaria");
+    next = rerender(props);
+    change(next, "ie-war-declare-objective", "schleswig-holstein");
+    next = rerender(props);
+    // Neither target is a player, so there is no primary to choose.
+    expect(byTestId(next, "ie-war-primary-defender")).toBeUndefined();
+    click(next, "ie-declare-war");
+    expect(declared).toEqual([{
+      target: {minor: "Denmark"},
+      aim: "unification",
+      objectives: ["schleswig-holstein"],
+      cp: 3,
+      // 14.1's primary clause names a player power, so a pair of two
+      // non-player powers leaves it out.
+      options: {secondTarget: {minor: "Bavaria"}},
+    }]);
+  });
+
+  test("a war may name two spaces, one from each named target", () => {
+    const G = homeImpulse("GE", BISMARCK_HOME_CARD);
+    const {tree, declared, props} = renderPanel(G, "GE");
+    change(tree, "ie-war-declare-defender", "FR");
+    let next = rerender(props);
+    change(next, "ie-war-second-power", "minor:Denmark");
+    next = rerender(props);
+    change(next, "ie-war-declare-objective", "alsace-lorraine");
+    next = rerender(props);
+    // 13.0's second space: Denmark's objective is now offered too.
+    expect(textOf(byTestId(next, "ie-war-two-objectives"))).toContain("up to two spaces");
+    const seconds = optionsOf(next, "ie-war-declare-second-objective");
+    expect(seconds).toContain("schleswig-holstein");
+    change(next, "ie-war-declare-second-objective", "schleswig-holstein");
+    next = rerender(props);
+    click(next, "ie-declare-war");
+    expect(declared).toEqual([{
+      target: "FR",
+      aim: "unification",
+      objectives: ["alsace-lorraine", "schleswig-holstein"],
+      cp: 3,
+      options: {secondTarget: {minor: "Denmark"}, primary: "FR"},
+    }]);
+  });
+
+  test("a second non-player target joins with the war, not the aid search", () => {
+    const G = homeImpulse("GE", BISMARCK_HOME_CARD);
+    const {tree, props} = renderPanel(G, "GE");
+    change(tree, "ie-war-declare-defender", "minor:Denmark");
+    let next = rerender(props);
+    change(next, "ie-war-second-power", "minor:Bavaria");
+    next = rerender(props);
+    // 13.4.2 asks only about the first target; the second is a co-defender
+    // minor recorded with the war, and the hint says so.
+    expect(textOf(byTestId(next, "ie-war-nonplayer-aid"))).toContain("only the first target");
+    // The aid candidates are still Denmark's row, not Bavaria's.
+    expect(textOf(byTestId(next, "ie-war-nonplayer-aid-candidates"))).toContain("Denmark");
+  });
+
+  test("a non-player target lists who may seek aid (13.4.2)", () => {
+    const G = homeImpulse("GE", BISMARCK_HOME_CARD);
+    const {tree, props} = renderPanel(G, "GE");
+    change(tree, "ie-war-declare-defender", "minor:Denmark");
+    const next = rerender(props);
+    const hint = byTestId(next, "ie-war-nonplayer-aid");
+    expect(hint).toBeDefined();
+    // Denmark's 13.4.3 row is UK/FR* then GE/RU*; the GE attacker is filtered.
+    const candidates = textOf(byTestId(next, "ie-war-nonplayer-aid-candidates"));
+    expect(candidates).toContain("Denmark");
+    expect(candidates).toContain("France");
+    expect(candidates).toContain("United Kingdom");
+
+    // Bismarck's join ban suppresses the search entirely (13.4.2 / 15.4.2).
+    const forbid = byTestId(next, "ie-war-forbid-join");
+    let checkbox: React.ReactElement<any> | undefined;
+    walk(forbid, (element) => { if (element.type === "input") checkbox = element; });
+    checkbox?.props?.onChange?.({target: {checked: true}});
+    const banned = rerender(props);
+    expect(textOf(byTestId(banned, "ie-war-nonplayer-aid"))).toContain("defends alone");
+    expect(byTestId(banned, "ie-war-nonplayer-aid-candidates")).toBeUndefined();
   });
 
   test("without an entitlement the ordinary aim/CP/defender pickers stay live", () => {

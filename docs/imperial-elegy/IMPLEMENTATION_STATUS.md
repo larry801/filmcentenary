@@ -1,5 +1,55 @@
 # Imperial Elegy — implementation status
 
+## Fixed: two-target declarations and the non-player aid hint (13.0 / 13.4.2 / 14.1) (2026-11-22)
+
+Reported as "帝国挽歌俾斯麦应该是可以选择2个power做目标 其他统一和解放战争是同一power的2个地块 按照这个修复宣战界面 同时标明non player power可能触发的盟友".
+
+Rule 14.1 lets the GE and FR home cards attack **two different powers** with one
+declaration.  The engine accepted that pair, but the panel could not express it
+and could not show what a non-player target would drag in:
+
+- **The panel offered no second target that worked.** `secondPowerOptions` only
+  listed player powers *when the first target was a player*, so a declaration
+  was always "power + power".  A second target is now a `WarTarget`: `minor +
+  power`, `power + minor` and `minor + minor` are all declarable, and the select
+  sits beside the first target so the shape of the declaration is visible before
+  any space is picked.
+- **The objective lists came from the first target only.** A legal "FR + AU"
+  declaration could never name AU's space, because both the first and second
+  objective lists were enumerated from the first defender.  `declarationObjectives`
+  and `declarationSecondObjectives` now take the second target and enumerate the
+  union of both targets' legal spaces, still through one `validateWarAim` call
+  with `{defenders: pair}`.  Rule 13.0's "up to two spaces" is offered for the
+  ordinary single-target case too (13.1/13.2 print it; 13.3 allows two as long
+  as only one is a key), which is the reporter's "其他统一和解放战争是同一power
+  的2个地块".
+- **Nothing said who a non-player target would call.** `ie-war-nonplayer-aid`
+  reads `seekingAidSlots` — the enumeration `beginSeekingAid` runs — and names
+  the 13.4.2 order: the diplomacy-marker holder, then the 13.4.3 table's
+  1st/2nd/3rd Choice, with `(*)` on the roll-off cells.  Bismarck's join ban
+  replaces it with "defends alone (13.4.2 / 15.4.2)", and a minor that already
+  has a player ally is named with that ally (13.4.1).
+- **The engine records both targets.** `declareWar` takes a `WarTarget` for
+  `secondTarget`/`primary`, `WarState.coDefenderMinors` carries the non-player
+  parts of a pair (it was declared but never written), `warTargetKey` /
+  `warTargetFromKey` carry a target through the 13.4.1/13.4.2 and Napoleon's
+  Legacy decisions as string flags, and `finalizeWarDeclaration` resolves which
+  named target is the primary (only a player power can be one — 14.1 uses it for
+  the capital that ends the war).  A pair may take one space from each target.
+- `declarationSecondTargets` hides a second target whose pair shares no legal
+  space, so no dead row reaches the panel.
+
+**Coverage:** `declarationTargets.test.ts` (6 new — second targets of both
+kinds in both directions, a card without the clause, the aim gate, the union of
+spaces, "every offered pair is accepted by `declareWar`", and a pair taking one
+space each), `components/warDeclarationPanel.test.tsx` (4 new — a non-player
+second target, two non-player targets, two spaces across a pair, and the aid
+hint with and without the join ban), and `e2e/imperial-elegy-controls.spec.ts`
+(a new two-target case: Denmark + France, asserting the aid candidates and the
+settled war; the existing Bismarck case now also asserts the second-target
+select).  Full IE Jest suite **335 suites / 4447 tests** pass locally.
+
+
 ## Fixed: show targets, one-way deals, and negotiation before the home card (2026-11-22)
 
 Reported as "外交阶段展示卡牌没有向单独一个玩家展示的入口 点击展示之后应该选择目标玩家 展示按钮本身名字容易误会 改成向他人展示 谈判时不应该能选择本土牌 谈判结束后再选"，随后追加"外交阶段卡牌交易一般是单向的 改成开关切换 给出/获取 数量用下拉列表"。

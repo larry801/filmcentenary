@@ -708,13 +708,17 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(declare.locator('[data-testid="ie-war-declare-aim-locked"]')).toContainText("统一");
         await expect(declare.locator('[data-testid="ie-war-declare-cp-locked"]')).toContainText("3 CP");
 
-        // Both a player power and an independent minor are offered.  Alsace-
-        // Lorraine is the French-held German objective: a unification war on
-        // France.
+        // Both a player power and an independent minor are offered, and the
+        // 14.1 second target sits beside the first one.  Alsace-Lorraine is the
+        // French-held German objective: a unification war on France.
         const defender = declare.locator('[data-testid="ie-war-declare-defender"]');
         await expect(defender.locator('option[value="FR"]')).toHaveCount(1);
         await expect(defender.locator('option[value="minor:Denmark"]')).toHaveCount(1);
         await defender.selectOption("FR");
+        const second = declare.locator('[data-testid="ie-war-second-power"]');
+        await expect(second).toBeVisible();
+        await expect(second.locator('option[value="AU"]')).toHaveCount(1);
+        await expect(second.locator('option[value="minor:Denmark"]')).toHaveCount(1);
         await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("alsace-lorraine");
 
         // Confirmed twice (arm, then declare).
@@ -735,6 +739,94 @@ test.describe("Imperial Elegy new controls", () => {
         // 战争界面").
         await expect(board.locator('[data-testid="ie-war"]')).toBeVisible({timeout: 15_000});
         await expect(board.locator('[data-testid="ie-turn-tab-war"]')).toHaveAttribute("aria-selected", "true");
+    });
+
+    test("Bismarck's declaration names two targets, one of them a non-player power", async ({page}) => {
+        await openLocal(page);
+        await finishPrep(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        await finishNegotiating(page);
+        for (let round = 0; round < SEATS.length; round += 1) {
+            let answered = false;
+            for (const seat of SEATS) {
+                await focusSeat(page, seat);
+                const board = boardFor(page, seat);
+                const opener = board.locator('[data-testid="ie-open-home-card"]');
+                if (await opener.count() === 0) continue;
+                await opener.first().click();
+                const choose = seat === "GE"
+                    ? board.locator('[data-testid="ie-choose-home-IE-H-GE-1"]')
+                    : board.locator('[data-testid^="ie-choose-home-"]').first();
+                await expect(choose).toBeVisible({timeout: 15_000});
+                await clickUntilGone(page, choose);
+                answered = true;
+                break;
+            }
+            if (!answered) break;
+            if (await page.evaluate(() => (window as any).__IE_STATE__.phase) !== "diplomacy") break;
+        }
+        await answerStartPending(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
+        await focusSeat(page, "GE");
+        const board = boardFor(page, "GE");
+
+        const card = board.locator('[data-testid="ie-card-IE-H-GE-1"]');
+        await expect(card).toBeVisible({timeout: 15_000});
+        await card.locator(".ie-card-open").click();
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        const event = inspector.locator('[data-testid="ie-play-event-IE-H-GE-1"]');
+        await expect(event).toBeEnabled({timeout: 10_000});
+        await event.click();
+        await event.click();
+        await expect(inspector).toHaveCount(0, {timeout: 10_000});
+        await expect(board.locator('[data-testid="ie-turn-tab-war"]')).toHaveAttribute("aria-selected", "true", {timeout: 15_000});
+
+        const declare = board.locator('[data-testid="ie-war-declare"]');
+        await expect(declare).toBeVisible();
+
+        // Target 1: Denmark, the non-player power.  The panel names who may
+        // answer its 13.4.2 aid search before the war is declared, and 13.4.3's
+        // roll-off cells are marked.
+        await declare.locator('[data-testid="ie-war-declare-defender"]').selectOption("minor:Denmark");
+        const aid = declare.locator('[data-testid="ie-war-nonplayer-aid"]');
+        await expect(aid).toBeVisible();
+        await expect(aid).toContainText("13.4.2");
+        const candidates = declare.locator('[data-testid="ie-war-nonplayer-aid-candidates"]');
+        await expect(candidates).toContainText("英国");
+        await expect(candidates).toContainText("法国");
+        await expect(candidates).toContainText("俄国");
+
+        // Target 2: France, a player power — "a minor + a power" is one
+        // declaration under 14.1.
+        await declare.locator('[data-testid="ie-war-second-power"]').selectOption("FR");
+        await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("schleswig-holstein");
+
+        const button = declare.locator('[data-testid="ie-declare-war"]');
+        await expect(button).toBeEnabled({timeout: 10_000});
+        await button.click();
+        await expect(button).toHaveAttribute("data-armed", "true");
+        await button.click();
+
+        // Denmark has no ally at setup and the other seats decline the aid
+        // search in the bot seats that follow, so the declaration settles with
+        // both targets on the defending side.
+        await expect.poll(async () => await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            if (G.war !== null) {
+                return {
+                    attacker: G.war.attacker,
+                    defender: G.war.defender,
+                    objectives: G.war.objectives,
+                    coDefenders: G.war.coDefenders ?? null,
+                    minors: G.war.defenderMinors,
+                };
+            }
+            return G.pending === null ? null : {pending: G.pending.kind, power: G.pending.power};
+        }), {timeout: 30_000}).toMatchObject({
+            attacker: "GE",
+            defender: "FR",
+            objectives: ["schleswig-holstein"],
+        });
     });
 
     test("card economy controls render on the row and Save toggles the card state", async ({page}) => {

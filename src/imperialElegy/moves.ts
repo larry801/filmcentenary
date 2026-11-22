@@ -345,6 +345,8 @@ import {
   validateWarAim,
   warBudgetFor,
   warDeclaredDefenders,
+  warTargetFromKey,
+  warTargetKey,
   type MinorWarInfo,
   type SeekingAidSlot,
   type TreatyChoice,
@@ -3209,6 +3211,13 @@ const markGoalRevealed = (G: ImperialElegyState, goalId: string): void => {
 };
 
 /**
+ * Rule 14.1's primary choice must be one of the two named targets.  Targets
+ * compare by key, so `"FR"` and `{minor: "Denmark"}` are handled alike.
+ */
+const warTargetKeyIn = (target: WarTarget, candidates: readonly WarTarget[]): boolean =>
+  candidates.some((candidate) => warTargetKey(candidate) === warTargetKey(target));
+
+/**
  * Rule 13.3: apply the conquest declaration penalty (shared by player and
  * non-player declarations).
  */
@@ -3238,6 +3247,12 @@ const applyConquestDeclarationPenalty = (
  * defends alone per 15.4.2: the war is live with the non-player as the typed
  * `minorTarget` defender, and the declaration is also mirrored into the
  * `G.minorDeclarations` ledger.
+ *
+ * `coDefenders` is the rest of a rule 14.1 two-target declaration: the other
+ * attacked targets, as the caller named them.  They also cross a pending
+ * decision on `G.flags.declarationSecond`, so both carriers are read and
+ * de-duplicated by target key.  A non-player co-defender keeps its own row in
+ * the war.
  */
 const finalizeWarDeclaration = (
   G: ImperialElegyState,
@@ -3249,6 +3264,7 @@ const finalizeWarDeclaration = (
   cp: number,
   stabilityDiscount = 0,
   minor: MinorWarInfo | null = null,
+  coDefenderTargets: WarTarget[] = [],
 ): string | void => {
   if (minor === null && !isPower(target)) return INVALID_MOVE;
   // The card that funds the declaration can print a conquest exception
@@ -3257,9 +3273,22 @@ const finalizeWarDeclaration = (
   // `G.flags.declarationCard`, so read it before the penalty is applied.
   const declarationCard = isCardId(G.flags.declarationCard) ? G.flags.declarationCard : null;
   // Rule 14.1's two-power clause and the two optional join clauses cross the
-  // same pending decisions on the public game flags.
-  const secondTarget = isPower(G.flags.declarationSecond) ? G.flags.declarationSecond : null;
-  const requestedPrimary = isPower(G.flags.declarationPrimary) ? G.flags.declarationPrimary : null;
+  // same pending decisions on the public game flags.  A target key is a string,
+  // so a non-player co-defender crosses them beside a player power.
+  const flagSecond = typeof G.flags.declarationSecond === "string"
+    ? warTargetFromKey(G.flags.declarationSecond)
+    : null;
+  const flagPrimary = typeof G.flags.declarationPrimary === "string"
+    ? warTargetFromKey(G.flags.declarationPrimary)
+    : null;
+  // The rest of a two-target declaration, as it was named.  `declareWar` puts
+  // the list on the flags so it survives a pending decision; the argument is the
+  // direct path for the one-shot decisions.
+  const secondTarget = flagSecond ?? coDefenderTargets[0] ?? null;
+  const declared: WarTarget[] = secondTarget === null
+    ? []
+    : [secondTarget, ...coDefenderTargets].filter((entry, index, list) =>
+      list.findIndex((other) => warTargetKey(other) === warTargetKey(entry)) === index);
   const forbidPlayers = G.flags.declarationForbid === true;
   const allowNeutralJoin = G.flags.declarationNeutralJoin === true;
   delete G.flags.declarationSecond;
@@ -3276,13 +3305,45 @@ const finalizeWarDeclaration = (
     .map((def) => def.id)
     .join(",");
   // 14.1: one defending player is the primary (the capital that ends the war);
-  // the other is a co-defender on the same side.
-  const primary = secondTarget !== null && requestedPrimary === secondTarget ? secondTarget : target;
-  const coDefender: Power | null = secondTarget === null
-    ? null
-    : primary === secondTarget
-      ? (isPower(target) ? target : null)
-      : secondTarget;
+  // the others are co-defenders on the same side.  "The defending players
+  // determine, between the two of them, who the primary defender is, and, if
+  // they cannot agree, the attacker decides", so the choice arrives already
+  // made.  Only a player power can be the primary: 14.1 uses it for the capital
+  // that ends the war, and a non-player has none.
+  //
+  // The targets named by the declaration, as typed records: the first target is
+  // the non-player itself when 13.4 sent us a resolved minor (`target` is then
+  // its ally or its control id), and the second one crosses on the flags (or in
+  // the argument when no decision intervened).  Keys de-duplicate them, because
+  // both carriers may name the same target.
+  const named: WarTarget[] = [];
+  const addNamed = (candidate: WarTarget | null): void => {
+    if (candidate === null) return;
+    if (named.some((entry) => warTargetKey(entry) === warTargetKey(candidate))) return;
+    named.push(candidate);
+  };
+  addNamed(minor !== null ? {minor: minor.minor} : isPower(target) ? target : null);
+  addNamed(flagSecond);
+  for (const other of coDefenderTargets) addNamed(other);
+  const playerCandidates: Power[] = named.filter(isPower);
+  const requested = flagPrimary !== null && isPower(flagPrimary) ? flagPrimary : null;
+  const primary: PowerOrMinor =
+    requested !== null && playerCandidates.includes(requested)
+      ? requested
+      : playerCandidates[0] ?? target;
+  // Every named target except the primary sits on the defending side as a
+  // co-defender, including the declaration's *first* target when the defenders
+  // made the second one primary (14.1).  A non-player's own row is `minorTarget`
+  // only when it is the primary; when a player defends it (13.4) the row is a
+  // co-defender minor.
+  const firstMinorIsPrimary = minor !== null && !isPower(primary);
+  const namedMinors = named
+    .filter(isMinorWarTargetArg)
+    .map((entry) => entry.minor)
+    .filter((entry) => !(firstMinorIsPrimary && entry === minor?.minor));
+  const namedPlayers = named.filter(isPower).filter((entry) => entry !== primary);
+  const coPower: Power | null = namedPlayers[0] ?? null;
+  const coMinors: string[] = namedMinors;
   G.war = createWarState(
     G,
     power,
@@ -3290,19 +3351,30 @@ const finalizeWarDeclaration = (
     aim,
     objectives,
     cp,
-    minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {},
+    {
+      ...(minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {}),
+      ...(coMinors.length > 0 ? {coDefenderMinors: coMinors} : {}),
+    },
   );
   // 13.7 is a defending-seat action during the war-aim/alliance steps, while
   // boardgame.io otherwise dispatches only the attacker's moves.  Widen
   // dispatch; every other move still checks `G.activePower`.
   ctx.events?.setActivePlayers?.({all: "play"});
-  if (coDefender !== null) {
+  if (coPower !== null) {
     // The co-defender is recorded both as a typed declaration target and as a
     // defending-side belligerent, so every side/initiative/battle helper sees
     // it.  It played no card: 14.3's budget is its industry alone.
-    G.war.coDefenders = [coDefender];
-    G.war.defenderAllies.push(coDefender);
-    G.war.budgets[coDefender] = warBudgetFor(G, coDefender, 0);
+    G.war.coDefenders = [coPower];
+    G.war.defenderAllies.push(coPower);
+    G.war.budgets[coPower] = warBudgetFor(G, coPower, 0);
+  }
+  if (coMinors.length > 0) {
+    // Rule 14.1 again, one row lower: a second *non-player* target.  It keeps
+    // its own marker (never its ally's) so its objectives are still held by it.
+    G.war.coDefenderMinors = [...coMinors];
+    for (const entry of coMinors) {
+      if (!G.war.defenderMinors.includes(entry)) G.war.defenderMinors.push(entry);
+    }
   }
   // Bismarck: "After declaring war you may choose to forbid other players from
   // joining the war.  Minor power allies may join the war as normal."
@@ -3382,15 +3454,15 @@ const finalizeWarDeclaration = (
     }
   } else if (isPower(primary)) {
     applyDefenderDeclarationShift(G, power, primary);
-    if (coDefender !== null) {
+    if (coPower !== null) {
       // Rule 8.2 applies to each attacked power.  The primary's both-neutral
       // choice is the live decision above; the co-defender's shift uses the
       // deterministic Triple-Entente-first fallback (the same default 8.6
       // uses) so two simultaneous choices cannot collide on `G.pending`.
-      const derived = declarationShiftDirection(G.powers[power].alliance, G.powers[coDefender].alliance);
-      const side: AllianceSide = derived ?? (canJoinAlliance(G, coDefender, "te") ? "te" : "ta");
-      const result = declarationShift(G, power, coDefender, side);
-      log(G, coDefender, "allianceShifted", {
+      const derived = declarationShiftDirection(G.powers[power].alliance, G.powers[coPower].alliance);
+      const side: AllianceSide = derived ?? (canJoinAlliance(G, coPower, "te") ? "te" : "ta");
+      const result = declarationShift(G, power, coPower, side);
+      log(G, coPower, "allianceShifted", {
         from: result.from,
         to: result.to,
         steps: result.steps,
@@ -3402,14 +3474,16 @@ const finalizeWarDeclaration = (
   }
   // 33.2 Rapid Deployment: the UK receives one free naval movement action the
   // first time it enters this war, whether it attacks or is attacked.
-  if (power === "UK" || target === "UK" || secondTarget === "UK") grantRapidDeployment(G, "limited");
+  if (power === "UK" || target === "UK" || primary === "UK" || coPower === "UK") {
+    grantRapidDeployment(G, "limited");
+  }
   G.phase = "wartime";
   ctx.events?.setPhase?.("wartime");
   G.activePower = power;
   addLog(G, power, "warDeclared", {
     target: minor?.minor ?? target,
-    secondary: coDefender ?? undefined,
-    primaryDefender: secondTarget !== null ? primary : undefined,
+    secondary: coPower ?? coMinors[0] ?? undefined,
+    primaryDefender: declared.length > 0 ? primary : undefined,
     aim,
     objectives: objectives.join(","),
     forbidPlayerJoins: forbidPlayers || undefined,
@@ -3438,8 +3512,12 @@ const finalizeUnopposedMinorDeclaration = (
   objectives: SpaceId[],
   cp: number,
   stabilityDiscount: number,
+  coDefenderKeys: readonly string[] = [],
 ): string | void => {
   const lone: MinorWarInfo = {...minor, ally: null};
+  const coTargets = coDefenderKeys
+    .map((key) => warTargetFromKey(key))
+    .filter((target): target is WarTarget => target !== null);
   const result = finalizeWarDeclaration(
     G,
     ctx,
@@ -3450,6 +3528,7 @@ const finalizeUnopposedMinorDeclaration = (
     cp,
     stabilityDiscount,
     lone,
+    coTargets,
   );
   if (result !== undefined) return result;
   log(G, power, "minorUnopposed", {target: minor.minor, war: true});
@@ -3468,6 +3547,12 @@ interface MinorDeclarationContext {
   objectives: SpaceId[];
   cp: number;
   stabilityDiscount: number;
+  /**
+   * Rule 14.1: the rest of a two-target declaration, as target keys.  The
+   * attack is resolved one target at a time — the first one's 13.4.1/13.4.2
+   * answers are asked first — and the others are created with the war.
+   */
+  coDefenders: string[];
 }
 
 /** Serializable state of one 13.4.2 aid search (the pending chain's context). */
@@ -3503,7 +3588,14 @@ const minorDeclarationContext = (pending: PendingDecision): MinorDeclarationCont
   if (!isWarAimValue(aim) || objectives === null || !Number.isFinite(cp)) return null;
   const rawDiscount = Number(pending.context?.stabilityDiscount ?? 0);
   const stabilityDiscount = Number.isFinite(rawDiscount) ? rawDiscount : 0;
-  return {attacker, minor, aim, objectives, cp, stabilityDiscount};
+  // Rule 14.1: the other targets travelled as a comma-joined key list.
+  const rawCo = pending.context?.coDefenders;
+  const coDefenders = Array.isArray(rawCo)
+    ? rawCo.filter((key): key is string => typeof key === "string")
+    : typeof rawCo === "string" && rawCo.length > 0
+      ? rawCo.split(",")
+      : [];
+  return {attacker, minor, aim, objectives, cp, stabilityDiscount, coDefenders};
 };
 
 /** The `MinorWarInfo` for a power that aids the attacked non-player (13.4.2). */
@@ -3557,6 +3649,9 @@ const finalizeMinorAid = (
     state.cp,
     state.stabilityDiscount,
     info,
+    state.coDefenders
+      .map((key) => warTargetFromKey(key))
+      .filter((target): target is WarTarget => target !== null),
   );
 };
 
@@ -3662,6 +3757,7 @@ const beginSeekingAid = (G: ImperialElegyState, ctx: Ctx, base: MinorDeclaration
     base.objectives,
     base.cp,
     base.stabilityDiscount,
+    base.coDefenders,
   );
 };
 
@@ -3680,6 +3776,7 @@ const beginMinorWarDeclaration = (
   objectives: SpaceId[],
   cp: number,
   stabilityDiscount: number,
+  coDefenders: WarTarget[] = [],
 ): string | void => {
   const base: MinorDeclarationContext = {
     attacker: power,
@@ -3688,6 +3785,7 @@ const beginMinorWarDeclaration = (
     objectives: [...objectives],
     cp,
     stabilityDiscount,
+    coDefenders: coDefenders.map(warTargetKey),
   };
   if (minor.ally !== null) {
     // 13.4.1: "A player ally can decline to enter a war after the attacker
@@ -3792,6 +3890,9 @@ const resolveMinorAbandon = (
       base.cp,
       base.stabilityDiscount,
       info,
+      base.coDefenders
+        .map((key) => warTargetFromKey(key))
+        .filter((target): target is WarTarget => target !== null),
     );
   }
   G.pending = null;
@@ -3836,6 +3937,7 @@ const resolveMinorAbandon = (
     base.objectives,
     base.cp,
     base.stabilityDiscount,
+    base.coDefenders,
   );
 };
 
@@ -3889,23 +3991,26 @@ const resolveMinorAid = (
     base.objectives,
     base.cp,
     base.stabilityDiscount,
+    state.coDefenders,
   );
 };
 
 /** Optional clauses of a home-card declaration (rules 14.1 / Bismarck / Aux Armes). */
 export interface DeclareWarOptions {
   /**
-   * Rule 14.1: the second player power named by the same declaration.  Only a
-   * card whose policy prints the two-power clause may pass it, and only for
-   * the aim that clause names.
+   * Rule 14.1: the second power named by the same declaration.  Only a card
+   * whose policy prints the two-power clause may pass it, and only for the aim
+   * that clause names.  A non-player power is a legal second target too, so a
+   * declaration may be "minor + power" or "minor + minor".
    */
-  secondTarget?: Power;
+  secondTarget?: WarTarget;
   /**
    * Rule 14.1: "the defending players determine, between the two of them, who
    * the primary defender is, and, if they cannot agree, the attacker decides."
-   * The move records the resulting choice; it must be one of the two targets.
+   * The move records the resulting choice; it must be one of the two targets
+   * and, like `secondTarget`, may name a non-player power.
    */
-  primary?: Power;
+  primary?: WarTarget;
   /**
    * Bismarck: "After declaring war you may choose to forbid other players
    * from joining the war."  Minor allies still join under 14.0.
@@ -3945,22 +4050,29 @@ export const declareWar = (
     if (cp !== entitlement.cp) return INVALID_MOVE;
   }
 
-  // Rule 14.1: a card's two-power clause.  The printed wording names player
-  // powers; a non-player target keeps the ordinary single-target 13.4 flow,
-  // which suspends on the 13.4.1/13.4.2 ally decisions.
+  // Rule 14.1: a card's two-power clause.  The printed wording counts "two
+  // different powers", and the panel offers a non-player power beside another
+  // one, so any `WarTarget` is a legal second target here.
   const secondTarget = options.secondTarget;
   if (secondTarget !== undefined) {
     if (entitlement === null || policy === null) return INVALID_MOVE;
     if (!warDeclarationAllowsTwoPowers(entitlement.card, aim)) return INVALID_MOVE;
-    if (!isPower(secondTarget) || secondTarget === power) return INVALID_MOVE;
-    if (isMinorWarTargetArg(target)) return INVALID_MOVE;
-    if (secondTarget === target) return INVALID_MOVE;
-    if (hasTruce(G, power, secondTarget)) return INVALID_MOVE;
-    if (!warDeclarationTargetLegal(G, entitlement, secondTarget)) return INVALID_MOVE;
-    if (options.primary !== undefined && options.primary !== target && options.primary !== secondTarget) {
+    if (warTargetKey(secondTarget) === warTargetKey(target)) return INVALID_MOVE;
+    if (isPower(secondTarget)) {
+      if (secondTarget === power) return INVALID_MOVE;
+      // Rule 13.5: players cannot break truces.
+      if (hasTruce(G, power, secondTarget)) return INVALID_MOVE;
+      if (!warDeclarationTargetLegal(G, entitlement, secondTarget)) return INVALID_MOVE;
+    } else {
+      const info = minorWarInfo(G, power, secondTarget.minor);
+      if (!info.ok) return INVALID_MOVE;
+      if (info.ally === power) return INVALID_MOVE;
+      if (!warDeclarationTargetLegal(G, entitlement, minorWarDefender(info))) return INVALID_MOVE;
+    }
+    if (options.primary !== undefined && !warTargetKeyIn(options.primary, [target, secondTarget])) {
       return INVALID_MOVE;
     }
-  } else if (options.primary !== undefined && options.primary !== target) {
+  } else if (options.primary !== undefined && warTargetKey(options.primary) !== warTargetKey(target)) {
     // A single-target declaration's primary is the target itself.
     return INVALID_MOVE;
   }
@@ -4001,14 +4113,26 @@ export const declareWar = (
   // Russian minor ally is correctly a declaration on Russia.  A two-power
   // clause checks the second power through the same lens.
   if (!warDeclarationTargetLegal(G, entitlement, defenderForAim)) return INVALID_MOVE;
-  if (secondTarget !== undefined && !warDeclarationTargetLegal(G, entitlement, secondTarget)) {
+  const secondInfo: MinorWarInfo | null =
+    secondTarget !== undefined && isMinorWarTargetArg(secondTarget)
+      ? minorWarInfo(G, power, secondTarget.minor)
+      : null;
+  const secondDefenderForAim: PowerOrMinor | null = secondTarget === undefined
+    ? null
+    : secondInfo !== null
+      ? minorWarDefender(secondInfo)
+      : isPower(secondTarget)
+        ? secondTarget
+        : null;
+  if (secondDefenderForAim !== null && !warDeclarationTargetLegal(G, entitlement, secondDefenderForAim)) {
     return INVALID_MOVE;
   }
   // Rule 13.0: validate the aim (and every objective's control) before the CP
-  // is spent, so an illegal declaration never mutates the state.  A two-power
+  // is spent, so an illegal declaration never mutates the state.  A two-target
   // declaration may target objectives controlled by either defender.
-  const declaredDefenders: PowerOrMinor[] | undefined =
-    secondTarget !== undefined ? [defenderForAim, secondTarget] : undefined;
+  const declaredDefenders: PowerOrMinor[] | undefined = secondDefenderForAim !== null
+    ? [defenderForAim, secondDefenderForAim]
+    : undefined;
   const validation = validateWarAim(G, power, defenderForAim, aim, objectives, {
     ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
     conquestKeyLimit: policy?.conquestKeyLimit,
@@ -4021,10 +4145,13 @@ export const declareWar = (
     // so `finalizeWarDeclaration` can stamp `war.declarationCard` (Balance of
     // Power "cannot be played in response to Otto von Bismarck").
     G.flags.declarationCard = entitlement.card;
-    // The optional clauses cross the Napoleon's Legacy decision the same way.
+    // The optional clauses cross the Napoleon's Legacy decision the same way;
+    // a target key is a string, so a non-player target crosses beside a player.
     if (secondTarget !== undefined) {
-      G.flags.declarationSecond = secondTarget;
-      G.flags.declarationPrimary = options.primary ?? defenderForAim;
+      const primaryTarget: WarTarget = options.primary
+        ?? (isPower(defenderForAim) ? defenderForAim : target);
+      G.flags.declarationSecond = warTargetKey(secondTarget);
+      G.flags.declarationPrimary = warTargetKey(primaryTarget);
     }
     if (options.forbidPlayers === true && warDeclarationMayForbidJoins(entitlement.card)) {
       G.flags.declarationForbid = true;
@@ -4058,16 +4185,33 @@ export const declareWar = (
           option("reveal", "Reveal Napoleon's Legacy (-2 stability loss)", undefined, false, "公开拿破仑的遗产（少受 2 点稳定度损失）"),
           option("decline", "Keep it secret (full stability loss)", undefined, false, "保守秘密（承受全部稳定度损失）"),
         ],
-        {target: minor === null ? playerDefender : defenderForAim, minor: minor?.minor, aim, objectives: [...objectives], cp},
+        {
+          target: minor === null ? playerDefender : defenderForAim,
+          minor: minor?.minor,
+          aim,
+          objectives: [...objectives],
+          cp,
+          // Rule 14.1's second target travels on the flags above, so the
+          // decision does not need to repeat it.
+        },
       ),
     );
     return undefined;
   }
+  // Rule 14.1: the rest of a two-target declaration, resolved to what the war
+  // records.  Both targets go through the 13.4 chain that follows, so a
+  // non-player target can still find an ally (or defend alone).
+  const coDefenders: WarTarget[] = secondTarget === undefined ? [] : [secondTarget];
   if (minor !== null) {
-    return beginMinorWarDeclaration(G, ctx, power, minor, aim, objectives, cp, legacy.discount);
+    return beginMinorWarDeclaration(
+      G, ctx, power, minor, aim, objectives, cp, legacy.discount,
+      coDefenders,
+    );
   }
   if (playerDefender === null) return INVALID_MOVE;
-  return finalizeWarDeclaration(G, ctx, power, playerDefender, aim, objectives, cp, legacy.discount);
+  return finalizeWarDeclaration(
+    G, ctx, power, playerDefender, aim, objectives, cp, legacy.discount, null, coDefenders,
+  );
 };
 
 /**
@@ -5959,10 +6103,12 @@ const resolveNapoleonsLegacy = (
     ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
     conquestKeyLimit: policy?.conquestKeyLimit,
   };
-  // 14.1: the second power of a home-card declaration also crossed the
-  // decision on the public flags.
-  const secondTarget = isPower(G.flags.declarationSecond) ? G.flags.declarationSecond : null;
-  if (secondTarget !== null && minorName !== null) return INVALID_MOVE;
+  // 14.1: the second target of a home-card declaration also crossed the
+  // decision on the public flags; it may be a non-player power.
+  const secondTarget = typeof G.flags.declarationSecond === "string"
+    ? warTargetFromKey(G.flags.declarationSecond)
+    : null;
+  const coTargets: WarTarget[] = secondTarget === null ? [] : [secondTarget];
   let discount = 0;
   if (optionId === "reveal") {
     markGoalRevealed(G, NAPOLEONS_LEGACY_GOAL);
@@ -5978,23 +6124,38 @@ const resolveNapoleonsLegacy = (
     G.pending = null;
     // 13.4.1 / 13.4.2: the ally's abandonment choice or the aid search runs
     // next, exactly as it does for a non-card declaration.
-    return beginMinorWarDeclaration(G, ctx, "FR", minor, aim, objectives, cp, discount);
+    return beginMinorWarDeclaration(G, ctx, "FR", minor, aim, objectives, cp, discount, coTargets);
   }
   if (!isPower(target)) return INVALID_MOVE;
+  let secondDefenderForAim: PowerOrMinor | null = null;
   if (secondTarget !== null) {
-    if (secondTarget === target || hasTruce(G, "FR", secondTarget)) return INVALID_MOVE;
-    if (!warDeclarationTargetLegal(
-      G,
-      declarationCard === null ? null : {card: declarationCard, cp, aim: null},
-      secondTarget,
-    )) return INVALID_MOVE;
+    if (warTargetKey(secondTarget) === target || isPower(secondTarget) && hasTruce(G, "FR", secondTarget)) {
+      return INVALID_MOVE;
+    }
+    if (isPower(secondTarget)) {
+      if (!warDeclarationTargetLegal(
+        G,
+        declarationCard === null ? null : {card: declarationCard, cp, aim: null},
+        secondTarget,
+      )) return INVALID_MOVE;
+      secondDefenderForAim = secondTarget;
+    } else {
+      const info = minorWarInfo(G, "FR", secondTarget.minor);
+      if (!info.ok) return INVALID_MOVE;
+      secondDefenderForAim = minorWarDefender(info);
+      if (!warDeclarationTargetLegal(
+        G,
+        declarationCard === null ? null : {card: declarationCard, cp, aim: null},
+        secondDefenderForAim,
+      )) return INVALID_MOVE;
+    }
   }
   if (!validateWarAim(G, "FR", target, aim, objectives, {
     ...aimRules,
-    ...(secondTarget !== null ? {defenders: [target, secondTarget]} : {}),
+    ...(secondDefenderForAim !== null ? {defenders: [target, secondDefenderForAim]} : {}),
   }).ok) return INVALID_MOVE;
   G.pending = null;
-  return finalizeWarDeclaration(G, ctx, "FR", target, aim, objectives, cp, discount);
+  return finalizeWarDeclaration(G, ctx, "FR", target, aim, objectives, cp, discount, null, coTargets);
 };
 
 /**

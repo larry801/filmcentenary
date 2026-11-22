@@ -373,7 +373,15 @@ export const createWarState = (
   aim: WarAim,
   objectives: readonly SpaceId[],
   cp: number,
-  options: {minor?: {minor: string; ally: Power | null}} = {},
+  options: {
+    minor?: {minor: string; ally: Power | null};
+    /**
+     * Rule 14.1: the other non-player powers the same declaration named.  They
+     * join `defenderMinors` beside `minor` and are recorded in
+     * `coDefenderMinors`, so every side/validation helper sees them.
+     */
+    coDefenderMinors?: readonly string[];
+  } = {},
 ): WarState => ({
   attacker,
   // Rule 15.4.2: an unaided non-player defender has no seat.  Its control id
@@ -383,7 +391,10 @@ export const createWarState = (
   attackerAllies: [],
   defenderAllies: [],
   attackerMinors: [],
-  defenderMinors: options.minor ? [options.minor.minor] : [],
+  defenderMinors: [
+    ...(options.minor ? [options.minor.minor] : []),
+    ...(options.coDefenderMinors ?? []).filter((minor) => minor !== options.minor?.minor),
+  ],
   warAim: aim,
   objectives: [...objectives],
   status: "warAim",
@@ -400,6 +411,9 @@ export const createWarState = (
   startedTurn: G.turn,
   ...(options.minor
     ? {minorTarget: {minor: options.minor.minor, ally: options.minor.ally}}
+    : {}),
+  ...(options.coDefenderMinors && options.coDefenderMinors.length > 0
+    ? {coDefenderMinors: [...options.coDefenderMinors]}
     : {}),
 });
 
@@ -433,6 +447,24 @@ export const isMinorWarTargetArg = (target: unknown): target is MinorWarTargetAr
   target !== null &&
   typeof (target as {minor?: unknown}).minor === "string" &&
   (target as {minor: string}).minor.length > 0;
+
+/**
+ * A stable string identity for a declaration target: the power id itself, or
+ * `minor:<name>` for a non-player power.  Used for flags (which only hold
+ * strings), React keys and de-duplication, so a value crossing a pending
+ * decision and the live one compare equal.
+ */
+export const warTargetKey = (target: WarTarget): string =>
+  typeof target === "string" ? target : `minor:${target.minor}`;
+
+/** The inverse of {@link warTargetKey}; `null` for anything malformed. */
+export const warTargetFromKey = (key: string): WarTarget | null => {
+  if (key.startsWith("minor:")) {
+    const minor = key.slice("minor:".length);
+    return minor.length > 0 ? {minor} : null;
+  }
+  return isPower(key) ? key : null;
+};
 
 /**
  * Rule 13.4: the home/key space that identifies a non-player power.  Unified
