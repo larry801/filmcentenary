@@ -79,6 +79,12 @@ const MANDATORY_PENDING_KINDS: ReadonlySet<string> = new Set([
   "manpowerExcess",
   "allianceTie",
   "goalChoice",
+  // 2.4/20.11 ("keep one, return the other two") and the 1870/1880 printed
+  // setup choices: every one of these must be answered, so the generic 拒绝
+  // must not be offered.  Declining them only re-opens the same decision.
+  "startingGoal",
+  "scenarioGoalChoice",
+  "francoPrussianConcession",
 ]);
 
 export interface BoardModelProps {

@@ -175,6 +175,21 @@ describe("Imperial Elegy board controls", () => {
     expect(buttonTag(markup, "ie-pending-option-decline")).toBe("");
   });
 
+  test("the opening National Goal choice is mandatory (no generic refuse)", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-goal",
+      kind: "startingGoal",
+      power: "GE",
+      prompt: "Keep one starting National Goal",
+      options: [{id: "NG-01", label: "European Keys"}],
+      createdAt: 1,
+    };
+    const markup = html(G, "0");
+    expect(markup).toContain('data-testid="ie-pending-option-NG-01"');
+    expect(buttonTag(markup, "ie-pending-option-decline")).toBe("");
+  });
+
   test("pending decision renders options and highlights legal spaces", () => {
     const G = freshGame();
     G.pending = {
