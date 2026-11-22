@@ -592,6 +592,31 @@ is, and, if they cannot agree, the attacker decides.”*
 
 ---
 
+### 3.16 H-FR-5 光之城缺少“放弃 X CP 换 -X DRM”的选择 / `IE-H-FR-5` never offered the pre-roll CP purchase
+
+卡面：*“Gain 1 stability and 3 CP to spend. Roll a die; if the result is less
+than or equal to the current turn gain 1 City of Light point. **Before rolling
+you may forgo X CP to apply a -X DRM to the die roll.**”*
+
+`cityOfLightHome` 处理器在同一句里既给了 3 CP 又立刻 `die(ctx, 6)` 掷骰，
+所以印刷的“掷前放弃 X CP”从未出现在桌面上：玩家无法用 CP 换取更好的结果。
+
+**Fix.** `effects.ts` 的 `cityOfLightHome` 先存入 3 CP，然后打开
+`eventChoice`（`special: "cityOfLightHome"`, `stage: "drm"`）：
+
+- 选项 `x0` = 不放弃 CP，按原样掷骰；
+- 选项 `x1…xN` = 放弃 N CP（N 上限为牌面 3，且不超过当前钱包），掷骰 -N；
+- 回答时经 `spendCpFor` 真实扣除钱包中的 CP（CP 链的“一动作”限制因此同样
+  生效），再由 `rollCityOfLight` 掷骰。修正后的结果被夹到 1–6，仍按
+  “≤ 当前回合数”判定是否 +1，点数上限 6 不变。
+- 新日志 `cityOfLightRoll`（中英文）记录原始骰、DRM、修正后点数与当前点数。
+
+回归：`frCityOfLightDrm.test.ts`（选项清单、CP 扣除、-X DRM 生效、无修正
+掷骰、点数上限 6、放弃决策走默认首项）；`components/logText.test.ts` 增加
+`cityOfLightRoll` 的双语样例。
+
+---
+
 ## 4. 已确认正确的实现 / Verified-correct behaviour
 
 以下结论来自运行验证，可作为回归基线。Confirmed by running the engine.
@@ -806,7 +831,7 @@ H-RU-9 也补上了直接测试，因此不再有零信号牌。
 | `IE-H-GE-2` | German General Staff | event | 3 | `germanGeneralStaff` | choice | yes |
 | `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` (naval/India choice) | choice | yes |
 | `IE-H-UK-4` | Balance of Power | event | 3 | `balanceOfPower` | auto | handler |
-| `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | auto | yes |
+| `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | choice | yes |
 | `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | choice | yes |
 | `IE-H-AU-7` | Habsburg Dynasty | event | 3 | `habsburgDynasty` | choice | yes |
 | `IE-H-AU-8` | Kaiserreich | event | 3 | `kaiserreich` | auto | yes |

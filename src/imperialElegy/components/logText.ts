@@ -619,6 +619,29 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `failed to grant ${nationality} citizenship (rolled ${roll}).`, `未能授予${nationality}完整公民权（掷出 ${roll}）。`);
   },
 
+  cityOfLightRoll: (entry, locale) => {
+    const roll = num(entry.args?.roll);
+    const drm = num(entry.args?.drm);
+    const total = num(entry.args?.total);
+    const points = num(entry.args?.points);
+    const modifierEn = drm > 0 ? ` -${drm} DRM = ${total}` : "";
+    const modifierZh = drm > 0 ? `，-${drm} 修正后 ${total}` : "";
+    if (bool(entry.args?.gained)) {
+      return withActor(
+        entry,
+        locale,
+        `rolled ${roll}${modifierEn} for The City of Light and gained a point (${points} points).`,
+        `为“光之城”掷出 ${roll}${modifierZh}，获得 1 点（共 ${points} 点）。`,
+      );
+    }
+    return withActor(
+      entry,
+      locale,
+      `rolled ${roll}${modifierEn} for The City of Light and gained no point.`,
+      `为“光之城”掷出 ${roll}${modifierZh}，未获得点数。`,
+    );
+  },
+
   polishRevoltRebels: (entry, locale) => {
     const spaces = str(entry.args?.spaces);
     return withActor(
