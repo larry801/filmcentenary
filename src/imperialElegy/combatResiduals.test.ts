@@ -2,7 +2,7 @@ import type {Ctx} from "boardgame.io";
 import type {BattleState, GreatWarState, ImperialElegyState, Power, Unit, WarState} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {beginLandBattle, beginNavalBattle, finishBattle, resolveBattleRoll} from "./engine/combat";
+import {applyLosses, beginLandBattle, beginNavalBattle, finishBattle, resolveBattleRoll} from "./engine/combat";
 import {chooseSupport, playCombatCard} from "./engine/combat";
 import {availableCombatCards} from "./engine/combatCards";
 import {drawCards} from "./engine/deck";
@@ -207,6 +207,32 @@ describe("A043 At Any Cost", () => {
     expect(G.discard).toContain("IE-A043");
     expect(G.battle?.attackerDrm).toBe(battle.attackerDrm + 1);
     expect(G.battle?.extraDraws ?? []).not.toContain("GE");
+  });
+});
+
+describe("18.6 loss-step labelling", () => {
+  test("after attacker losses resolve, the defender's choice is labelled lossesDefense", () => {
+    const G = fresh();
+    const ctx = makeCtx([3, 3]);
+    G.phase = "wartime";
+    G.activePower = "GE";
+    G.war = warState("GE", "FR");
+    clearHands(G);
+    const battle = stageLand(G, ctx, 1, 2);
+    finishSupport(G, ctx);
+    G.pending = null;
+    battle.stage = "lossesAttack";
+    battle.attackerLosses = 1;
+    battle.defenderLosses = 1;
+
+    applyLosses(G, ctx, "attacker");
+
+    // The attacker's single army is removed automatically; the defender now
+    // chooses from two armies, so the report must no longer say "attacker
+    // losses" while the French player is picking a defender loss.
+    expect(G.pending?.kind).toBe("combatLosses");
+    expect(G.pending?.context?.side).toBe("defender");
+    expect(G.battle?.stage).toBe("lossesDefense");
   });
 });
 

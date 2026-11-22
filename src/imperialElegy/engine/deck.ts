@@ -29,6 +29,29 @@ export const isCardId = (id: unknown): id is CardId => typeof id === "string" &&
 export const cardsForDecade = (decade: Decade): CardId[] =>
   CARDS.actions.filter((c) => c.entry === decade).map((c) => c.id);
 
+/** Printed decade order.  The 1860s and 1910s labels have no cards. */
+const DECADE_ORDER: readonly Decade[] = [
+  "1850s", "1860s", "1870s", "1880s", "1890s", "1900s", "1910s",
+];
+
+/**
+ * Every action card printed in `decade` or an earlier band.
+ *
+ * A scenario that opens mid-campaign (1870/1880) starts with all cards that
+ * entered before its first turn, not just the cards printed for that one
+ * decade.  Rule 10.1 makes the bands cumulative: a card marked 1850s is in the
+ * deck from the 1850s on.  Selecting only the opening band leaves the 1870
+ * deck with 11 cards, so the opening deal exhausts it and later powers receive
+ * no hand at all.
+ */
+export const cardsThroughDecade = (decade: Decade): CardId[] => {
+  const through = DECADE_ORDER.indexOf(decade);
+  if (through < 0) return [];
+  return CARDS.actions
+    .filter((c) => DECADE_ORDER.indexOf(c.entry) <= through)
+    .map((c) => c.id);
+};
+
 export const decadeLabel = (decade: Decade): {en: string; zh: string} => {
   switch (decade) {
     case "1850s": return {en: "1850s", zh: "1850 年代"};

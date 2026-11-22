@@ -126,6 +126,23 @@ test.each(SCENARIO_IDS)("%s sets up through the live game entry point", (id) => 
 // The scenario window replaces the hard-coded turn 7
 // ---------------------------------------------------------------------------
 
+test.each(["s1870", "s1880"] as const)("%s opens with its whole card pool, not just the first band", (id) => {
+  const G = setupScenario(id);
+  // A mid-campaign scenario starts after the earlier bands have entered play.
+  // Building the deck from only the opening band leaves 11 cards for the 1870
+  // scenario, so the opening deal exhausts it and later seats draw nothing.
+  const oldCards = CARDS.actions.filter(
+    (card) => card.entry === "1850s" && !G.removed.includes(card.id),
+  );
+  const inPlay = new Set([
+    ...G.deck,
+    ...POWERS.flatMap((power) => G.powers[power].hand),
+  ]);
+  for (const card of oldCards) expect(inPlay).toContain(card.id);
+  for (const power of POWERS) expect(G.powers[power].hand.length).toBeGreaterThanOrEqual(3);
+  expect(G.deck.length).toBeGreaterThan(0);
+});
+
 test.each(SCENARIO_IDS)("%s reports its printed turn window", (id) => {
   const G = setupScenario(id);
   const def = SCENARIOS[id];

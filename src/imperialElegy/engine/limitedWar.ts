@@ -398,10 +398,13 @@ export const createWarState = (
   warAim: aim,
   objectives: [...objectives],
   status: "warAim",
-  // Rule 14.3: a lone non-player defender has no player budget at all ("Minor
-  // powers defending alone ... receive no war budget", 13.7).
+  // Rule 14.3: a player's CP war budget is the card's CP plus their industry.
+  // A player defender has not played a card for the budget yet (13.7 is
+  // optional), so their base budget is industry alone; a lone non-player
+  // defender has no player budget at all ("Minor powers defending alone ...
+  // receive no war budget", 13.7).
   budgets: isPower(defender)
-    ? {[attacker]: warBudgetFor(G, attacker, cp), [defender]: 0}
+    ? {[attacker]: warBudgetFor(G, attacker, cp), [defender]: warBudgetFor(G, defender, 0)}
     : {[attacker]: warBudgetFor(G, attacker, cp)},
   initiative: [],
   treaties: [],

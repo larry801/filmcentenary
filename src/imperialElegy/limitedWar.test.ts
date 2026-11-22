@@ -16,6 +16,7 @@ import {
   settleLimitedWar,
   validateWarAim,
   warBudgetCardId,
+  warBudgetFor,
 } from "./engine/limitedWar";
 import {cardById} from "./engine/deck";
 import {POWERS, type Power, type WarState} from "./types";
@@ -124,7 +125,7 @@ test("war declaration helpers expose the conquest penalty and base budget", () =
 
   const war = createWarState(G, "GE", "AU", "conquest", ["bohemia"], 3);
   expect(war.budgets.GE).toBe(3 + G.powers.GE.industry);
-  expect(war.budgets.AU).toBe(0);
+  expect(war.budgets.AU).toBe(warBudgetFor(G, "AU", 0));
   expect(war.startedTurn).toBe(G.turn);
 });
 

@@ -12,7 +12,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {belligerentsOf, isLoneMinorWar} from "./engine/limitedWar";
+import {belligerentsOf, isLoneMinorWar, warBudgetFor} from "./engine/limitedWar";
 import {declareWar, resolvePending} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
@@ -170,7 +170,7 @@ describe("13.4.2 aid keeps the player-defended war", () => {
     expect(G.war?.minorTarget).toEqual({minor: "Belgium", ally: "UK"});
     expect(isLoneMinorWar(G.war)).toBe(false);
     expect(G.war?.defenderMinors).toEqual(["Belgium"]);
-    expect(G.war?.budgets.UK).toBe(0);
+    expect(G.war?.budgets.UK).toBe(warBudgetFor(G, "UK", 0));
     // No lone-war ledger entry on the aided path.
     expect(G.minorDeclarations ?? []).toHaveLength(0);
     expect(G.phase).toBe("wartime");

@@ -2114,8 +2114,12 @@ export const applyLosses = (G: ImperialElegyState, ctx: Ctx, side: "attacker" | 
       allowSupport = true;
     }
     if (losesArmyStep) eliminateCoupledEfs(G, battle, side);
-    if (side === "attacker") applyLosses(G, ctx, "defender");
-    else finishBattle(G, ctx);
+    if (side === "attacker") {
+      battle.stage = "lossesDefense";
+      applyLosses(G, ctx, "defender");
+    } else {
+      finishBattle(G, ctx);
+    }
     return;
   }
   // A minor defending alone has no player to pick a loss target; apply the
@@ -2182,8 +2186,12 @@ export const chooseLoss = (G: ImperialElegyState, ctx: Ctx, unitId: string): voi
     applyLosses(G, ctx, side);
     return;
   }
-  if (side === "attacker") applyLosses(G, ctx, "defender");
-  else finishBattle(G, ctx);
+  if (side === "attacker") {
+    battle.stage = "lossesDefense";
+    applyLosses(G, ctx, "defender");
+  } else {
+    finishBattle(G, ctx);
+  }
 };
 
 const moveUnitTo = (G: ImperialElegyState, unit: Unit, to: SpaceId): void => {

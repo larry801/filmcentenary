@@ -130,7 +130,8 @@ describe("campaign limited war", () => {
     declareCampaignWar(G, ctx);
 
     // The 2 CP are charged exactly once and fund the attacker's war budget
-    // (card CP + industry); the defender starts with no war budget.
+    // (card CP + industry).  The defender's base budget is industry alone (plus
+    // Second Empire) until they choose whether to play a 13.7 card.
     expect(G.cpRemaining).toBe(2);
     expect(G.phase).toBe("wartime");
     expect(G.war).toMatchObject({
@@ -144,7 +145,7 @@ describe("campaign limited war", () => {
       startedTurn: G.turn,
     });
     expect(G.war!.budgets.GE).toBe(2 + G.powers.GE.industry);
-    expect(G.war!.budgets.FR).toBe(0);
+    expect(G.war!.budgets.FR).toBe(G.powers.FR.industry + 1); // 14.3 + Second Empire
     expect(G.war!.initiative).toEqual([]);
 
     // Rule 16.1.2 snapshot: spaces GE controlled before the war, not the

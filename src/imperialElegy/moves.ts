@@ -4352,7 +4352,11 @@ export const playWarBudgetCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardI
   // 13.7: "cannot play a mandatory event to add to their war budget."
   if (card.type === "mandatory" || card.type === "mandatoryResponse") return INVALID_MOVE;
   discardCard(G, power, cardId, "discard");
-  war.budgets[power] = (war.budgets[power] ?? 0) + card.cp;
+  // 14.3: the budget is the card's CP plus industry.  The defender's base
+  // industry budget was set when the war began, so add the printed CP without
+  // dropping that base (the old code started the defender at 0 and then added
+  // only the card, leaving even a card-funded defender below its industry).
+  war.budgets[power] = (war.budgets[power] ?? warBudgetFor(G, power, 0)) + card.cp;
   war.defenderBudgetCards = [...(war.defenderBudgetCards ?? []), {power, card: cardId}];
   log(G, power, "warBudgetCard", {card: cardId, cp: card.cp, budget: war.budgets[power]});
   return undefined;
