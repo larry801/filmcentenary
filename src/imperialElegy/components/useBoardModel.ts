@@ -1442,7 +1442,7 @@ export const useBoardModel = ({
   );
   const deployLimit = viewer !== null ? deployReserveLimit(G, viewer, war) : 0;
   const deployRoom = selected !== null
-    ? Math.max(0, (SPACES[selected]?.home === "OT" ? 2 : SPACES[selected]?.region === "europe" ? 3 : 2) - (selectedState ? landUnitsIn(G, selected).filter((u) => isArmyKind(u.kind)).length : 0))
+    ? Math.max(0, landStackingLimit(selected) - (selectedState ? landUnitsIn(G, selected).filter((u) => isArmyKind(u.kind)).length : 0))
     : 0;
   const canDeployHere = Boolean(
     viewer !== null && me !== null && selected !== null && selectedState &&

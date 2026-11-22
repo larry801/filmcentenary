@@ -17,8 +17,8 @@ import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 import {engineReasonText} from "./reasonText";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  effectiveKeyType, efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower,
-  landUnitsIn, ownsKey,
+  efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower,
+  isTerritorialKeyForPower, landUnitsIn, ownsKey,
 } from "../engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -40,6 +40,7 @@ import {
   canRecruitIn,
   isCwArmySpace,
   minorBuildDecision,
+  ottomanArmyTypeFor,
   pacificationCost,
 } from "../engine/characteristics";
 import {hasCounterFor} from "../engine/counters";
@@ -443,9 +444,9 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   const spaceDef = SPACES[space];
   const gwAllowed = (kind: GwActionKind): {ok: boolean; reason?: string} => gwActionAllowance(G, viewer, kind);
 
-  const push = (row: Omit<SpaceAction, "label" | "cost"> & {cost?: number}): void => {
+  const push = (row: Omit<SpaceAction, "label" | "cost"> & {cost?: number; label?: string}): void => {
     const cost = row.cost ?? ACTION_COSTS[row.id];
-    const label = actionCostLabel(row.id, locale);
+    const label = row.label ?? actionCostLabel(row.id, locale);
     rows.push({
       ...row,
       cost,
@@ -460,7 +461,12 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   // The Great War ladder has its own actions; the campaign's recruitment stays
   // available (27.5's draft is what replaces it only where the GW prints it).
   {
-    const army = canRecruitIn(G, viewer, space, "army");
+    // 33.6: the build is Turkish or Arab by the key it happens in, and the two
+    // pools have separate ceilings.  `moves.recruit` infers the same type from
+    // the space, so the panel must ask `canRecruitIn` the same question or it
+    // reports the Turkish rule in an Arab key and hides a legal Arab build.
+    const ottoman = viewer === "OT" ? ottomanArmyTypeFor(space) : undefined;
+    const army = canRecruitIn(G, viewer, space, "army", {ottoman});
     const armyCost = ACTION_COSTS.recruitArmy;
     // 33.2: a UK army built in India/Bengal is an Indian army, so the Sun
     // Never Sets India grant can pay for that step.
@@ -469,8 +475,9 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       : canSpend(armyCost));
     push({
       id: "recruitArmy", group: "recruit", enabled: armyEnabled,
+      label: ottoman === "arab" ? bi(locale, "Recruit Arab army", "征募阿拉伯军团") : bi(locale, "Recruit army", "征募军团"),
       reason: armyEnabled ? undefined : !army.allowed ? recruitReasonText(locale, recruitReason(locale, army)) : spendReason(armyCost),
-      run: () => doAction(() => moves.recruit(space, "army", 1)),
+      run: () => doAction(() => moves.recruit(space, "army", 1, ottoman === undefined ? {} : {ottoman})),
     });
     if (viewer === "UK") {
       const cw = canRecruitIn(G, viewer, space, "army", {cw: true});
@@ -574,7 +581,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // 12.4: "Newly built fleets must be placed in a controlled, territorial
     // home key on the main map with a port."  A colonial home key on a submap
     // (Canada, India, South Africa, Australia) has a port but is not eligible.
-    const fleetHomeReason = homeReason ?? (SPACES[space]?.submap !== "main" || effectiveKeyType(G, space) !== "territorial"
+    const fleetHomeReason = homeReason ?? (SPACES[space]?.submap !== "main" || !isTerritorialKeyForPower(G, space, viewer)
       ? bi(locale, "New fleets need a territorial home key on the main map.", "新建舰队需位于主地图的本国领土关键区。")
       : null);
     if (hasPort) {
@@ -597,7 +604,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     void homeKey;
     // 12.1's fort action: 1–2 CP for a new fort (its level is the CP spent), a
     // 1 CP upgrade of your own fort (never to level 3), and the printed
-    // placement — a European space you control or occupy with a land unit.
+    // placement — a main-map space you control or occupy with a land unit.
     // Every row reads the same gate `buildFort` enforces.
     const existingFort = G.spaces[space]?.fort ?? null;
     const fortMobile = landUnitsIn(G, space).some((unit) => unit.owner === viewer);
@@ -605,7 +612,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // A space id the map does not know has no region: treat it as a plain
     // refusal rather than crashing the whole Orders list.
     const fortPlaceReason = spaceDef === undefined ? bi(locale, "Fortresses can only be built on the map.", "只能在地图上的空间建造要塞。")
-      : spaceDef.region !== "europe" ? bi(locale, "Forts can only be built in Europe.", "要塞只能在欧洲建造。")
+      : spaceDef.submap !== "main" ? bi(locale, "Forts can only be built on the main map.", "要塞只能在主地图建造。")
         : !fortPlaceable ? bi(locale, "A new fort needs a space you control or occupy with a land unit.", "新建要塞需位于你控制、或驻有你陆军单位的空间。")
           : null;
     const fortOwn = existingFort !== null && existingFort.power === viewer;
@@ -613,7 +620,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // printed counter and is upgraded by its home card ("place/upgrade the
     // Indian fort"), so it must not offer an action `buildFort` would refuse.
     const indianFortHere = existingFort?.indian === true;
-    const fortActionOnMap = spaceDef !== undefined && spaceDef.region === "europe" && !indianFortHere;
+    const fortActionOnMap = spaceDef !== undefined && spaceDef.submap === "main" && !indianFortHere;
     const fortUpgradable = fortOwn && existingFort.level < 2 && fortActionOnMap;
     const fortBuildReason = fortPlaceReason
       ?? (existingFort !== null
@@ -648,7 +655,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
           : indianFortHere
             ? bi(locale, "The Indian Fort is upgraded by its home-card event, not by this action.", "印度要塞由其本土牌事件升级，不走建造要塞行动。")
             : !fortActionOnMap
-              ? bi(locale, "Forts can only be built in Europe.", "要塞只能在欧洲建造。")
+              ? bi(locale, "Forts can only be built on the main map.", "要塞只能在主地图建造。")
               : fortUpgradable
                 ? spendReason(ACTION_COSTS.upgradeFort)
                 : bi(locale, "A fort cannot be upgraded past level 2.", "要塞最高只能到 2 级。"),

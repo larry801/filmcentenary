@@ -17,7 +17,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, Power} from "../types";
 import {POWER_KEYS} from "./boardHelpers";
 import {botMoveFor} from "../engine/bot";
-import {negotiationDoneFor} from "../engine/negotiation";
+import {negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
 
 export interface SoloBotSeatProps {
   G: ImperialElegyState;
@@ -71,9 +71,15 @@ export const SoloBotSeat = ({G, ctx, moves, playerID}: SoloBotSeatProps) => {
       !negotiationDoneFor(G, viewer) ||
       (G.negotiation?.offers ?? []).some((offer) => offer.status === "proposed" && offer.to === viewer)
     );
+    // 9.1: the home-card step stays closed until *every* seat has finished
+    // negotiating.  A bot that has closed its own segment must park; proposing
+    // `pileHomeCard` now is a move the engine refuses until the human answers.
+    const parkedUntilNegotiationCloses = phase === "diplomacy"
+      && negotiationConcluded(G) === false
+      && !negotiatingBot;
     const needsAct =
       (pending !== null && pending.power === viewer) ||
-      (pending === null && (
+      (pending === null && !parkedUntilNegotiationCloses && (
         isActive ||
         negotiatingBot ||
         phase === "end" ||

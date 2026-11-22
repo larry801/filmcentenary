@@ -53,7 +53,12 @@ export const CardChoice = ({locale, face, testId, actions}: CardChoiceProps) => 
   const selected = actions.some((action) => action.selected === true);
   return (
     <article className={`ie-card ie-choice-card${selected ? " selected" : ""}`} data-testid={testId} data-card-id={face.goal ? face.goal.id : face.card.id}>
-      {face.goal ? <CardFace goal={face.goal} locale={locale}/> : <CardFace card={face.card} locale={locale}/>}
+      {/* The face already prints the reader's language.  The extra
+          "English text" disclosure belongs to the inspector, not to a choice:
+          a modal full of cards should not mix languages. */}
+      {face.goal
+        ? <CardFace goal={face.goal} locale={locale} showTranslation={false}/>
+        : <CardFace card={face.card} locale={locale} showTranslation={false}/>}
       <div className="ie-card-actions">
         {actions.map((action) => action.confirm === true ? (
           <ConfirmButton

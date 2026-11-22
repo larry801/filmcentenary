@@ -39,7 +39,7 @@ import {
 } from "./rules";
 import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs";
 import {impulseAlreadyUsed, recruit as recruitMove} from "../moves";
-import {passRestriction} from "./characteristics";
+import {ottomanArmyTypeFor, passRestriction} from "./characteristics";
 import {beginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
 import {gwDraftSpaces, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
@@ -196,7 +196,10 @@ const botHomeRecruit = (G: ImperialElegyState, power: Power): SpaceId | null => 
 const botRecruitSpace = (G: ImperialElegyState, power: Power): SpaceId | null => {
   for (const [id, def] of Object.entries(SPACES)) {
     if (def.home !== power) continue;
-    const decision = canRecruitIn(G, power, id, "army", {});
+    // 33.6: an Arab key builds an Arab army from the separate Arab pool, so
+    // the Turkish default would hide every legal Arab build from the bot.
+    const ottoman = power === "OT" ? ottomanArmyTypeFor(id) : undefined;
+    const decision = canRecruitIn(G, power, id, "army", {ottoman});
     if (!decision.allowed) continue;
     // 4.2: the printed counter pool is a real limit, and `recruit` enforces it
     // after `canRecruitIn` has said "legal".  A reduced army of the same kind is

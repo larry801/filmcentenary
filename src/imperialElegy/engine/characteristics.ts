@@ -1031,11 +1031,12 @@ export const canRecruitIn = (
           return reject(["Arab armies may only be built in Arab/Egyptian keys"]);
         }
         if (!upgrade) {
-          if ((G.powers.OT.secondaryManpower ?? 0) <= 0) {
+          const arabManpower = G.powers.OT.secondaryManpower ?? 0;
+          if (arabManpower <= 0) {
             return reject(["No Arab manpower available"]);
           }
-          if (currentOttomanArmies(G, "arab") >= (G.powers.OT.secondaryManpower ?? 0)) {
-            return reject(["Arab manpower limit reached"]);
+          if (currentOttomanArmies(G, "arab") >= arabManpower) {
+            return reject([`Arab manpower limit ${arabManpower} reached`]);
           }
         }
       } else {

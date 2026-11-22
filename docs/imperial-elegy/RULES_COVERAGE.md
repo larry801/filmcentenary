@@ -78,7 +78,7 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
 
 - Standing/reserve armies, ECs, EFs, elite colonial EFs, Zouaves, squadrons and
   dreadnoughts — typed units; armies two steps, EC/EF one step.
-- Stacking caps — 3 in Europe, 2 elsewhere and for all Ottoman home spaces;
+- Stacking caps — 3 on the main map (North Africa included), 2 on the submaps and for all Ottoman home spaces;
   ports hold 4 naval units; EC/EF attachment and loss rules are applied in
   combat. **5.5.3 overstacking** now costs one step per overstacked stack at the
   start of the owning player's impulse (owner chooses; one step total) and caps
