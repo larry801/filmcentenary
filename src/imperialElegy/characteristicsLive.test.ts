@@ -673,6 +673,9 @@ describe("The Second Rome (33.5)", () => {
     const withIstanbul = fresh();
     for (const power of POWERS) {
       withIstanbul.powers[power].goals = [];
+      // 25.5 tops up to 3 NGs at the outbreak; empty decks keep this test's VP
+      // at the printed Second Rome 2.
+      withIstanbul.powers[power].goalDeck = [];
       withIstanbul.powers[power].vp = 0;
     }
     withIstanbul.spaces.istanbul.control = "RU";
@@ -684,6 +687,7 @@ describe("The Second Rome (33.5)", () => {
     const without = fresh();
     for (const power of POWERS) {
       without.powers[power].goals = [];
+      without.powers[power].goalDeck = [];
       without.powers[power].vp = 0;
     }
     outbreakGreatWar(without, makeCtx([3]), "GE", "incident");

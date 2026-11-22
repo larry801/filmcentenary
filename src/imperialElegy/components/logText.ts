@@ -3303,6 +3303,67 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // 2.4/20.11: the scenario's opening "draw 3, keep 1" answer.
+  goalKept: (entry, locale) => {
+    const goal = str(entry.args?.goal);
+    const returned = num(entry.args?.returned);
+    return withActor(
+      entry,
+      locale,
+      `kept ${goal} as a starting National Goal and returned ${returned} to the NG deck.`,
+      `保留 ${goal} 作为起始国家目标，其余 ${returned} 张放回国家目标牌堆。`,
+    );
+  },
+
+  goalRemovalDeclined: (entry, locale) =>
+    withActor(entry, locale, "kept both printed National Goals.", "保留了两张印刷国家目标。"),
+
+  // 34.1: the bot NG batch dealt at the game end / GW start.
+  botGoalsDrawn: (entry, locale) => {
+    const count = num(entry.args?.count);
+    const difficulty = str(entry.args?.difficulty);
+    return withActor(
+      entry,
+      locale,
+      `drew ${count} National Goals for its ${difficulty} difficulty (34.1).`,
+      `按${difficulty}难度抽取了 ${count} 张国家目标（34.1）。`,
+    );
+  },
+
+  // 25.5: the outbreak top-up for a player who entered the GW with fewer than 3.
+  outbreakGoalTopUp: (entry, locale) => {
+    const goal = str(entry.args?.goal);
+    const goals = num(entry.args?.goals);
+    return withActor(
+      entry,
+      locale,
+      `drew ${goal} as an outbreak National Goal (${goals} in hand; 25.5).`,
+      `在大战爆发时补抽国家目标 ${goal}（共 ${goals} 张；25.5）。`,
+    );
+  },
+
+  // 25.2.2: the outbreak's alliance formation.
+  gwAllianceRoll: (entry, locale) => {
+    const roll = num(entry.args?.roll);
+    const first = powerLabel(str(entry.args?.first) as never, locale);
+    const second = powerLabel(str(entry.args?.second) as never, locale);
+    return text(
+      locale,
+      `25.2.2: crisis die ${roll} makes ${first} and ${second} go to war.`,
+      `25.2.2：危机掷骰 ${roll}，${first}与${second}开战。`,
+    );
+  },
+
+  gwAllianceTarget: (entry, locale) => {
+    const target = powerLabel(str(entry.args?.target) as never, locale);
+    const side = str(entry.args?.side) === "te" ? text(locale, "the Triple Entente", "三国协约") : text(locale, "the Triple Alliance", "三国同盟");
+    return text(
+      locale,
+      `25.2.2: the empty alliance declares war on ${target}, who joins ${side}.`,
+      `25.2.2：空阵营向${target}宣战，${target}加入${side}。`,
+    );
+  },
+
   polishRecruitRejected: (entry, locale) => {
     const reasons = str(entry.args?.reasons);
     return withActor(

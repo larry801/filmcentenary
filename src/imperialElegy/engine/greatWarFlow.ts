@@ -1454,8 +1454,14 @@ export const revealGwCombatCard = (G: ImperialElegyState, power: Power): GwRevea
   return {ok: true, power, cardId};
 };
 
-/** Faceup combat cards for the current turn, for display and validation. */
-export const faceupCombatCards = (G: ImperialElegyState): FaceupCombatMap => {
+/**
+ * Faceup combat cards for the current turn, for display and validation.
+ *
+ * `syncFlag` is off for `playerView`: the view hook receives the master's game
+ * object, which boardgame.io may hand over frozen, and a read-only view must not
+ * write into it.  The returned map is the same either way.
+ */
+export const faceupCombatCards = (G: ImperialElegyState, syncFlag = true): FaceupCombatMap => {
   // `G.gw.combatCardsInFront` is authoritative (26.1): it changes immediately
   // when a card is placed or flipped, unlike the turn-start flag snapshot.
   // `playerView` calls this for legacy saves too, where the flag bag can still
@@ -1463,7 +1469,13 @@ export const faceupCombatCards = (G: ImperialElegyState): FaceupCombatMap => {
   const flags = G.flags as Record<string, boolean | number | string> | undefined;
   const live = faceupFromInFront(G);
   if (Object.keys(live).length > 0) {
-    if (flags !== undefined && flags !== null) flags[FACEUP_COMBAT_FLAG] = serializeFaceupCombat(live);
+    if (syncFlag && flags !== undefined && flags !== null) {
+      try {
+        flags[FACEUP_COMBAT_FLAG] = serializeFaceupCombat(live);
+      } catch {
+        // Frozen master state (playerView): the flag sync is only a cache.
+      }
+    }
     return live;
   }
   // Fallback for saves/tests that only seeded the public flag.

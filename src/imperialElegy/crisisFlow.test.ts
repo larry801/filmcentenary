@@ -324,6 +324,12 @@ describe("23.2/23.3 special results", () => {
 describe("23.1 the inciting card's post-WTT text", () => {
   test("a narrative outbreak ignores the rest of the Assassination! text", () => {
     const G = fresh();
+    // 25.5/25.6: empty NG decks keep the national-will step from adding a VP
+    // band that would shift stability unrelated to the card text under test.
+    for (const power of POWERS) {
+      G.powers[power].goals = [];
+      G.powers[power].goalDeck = [];
+    }
     setAlliances(G, {GE: "taCommitted", AU: "taCommitted", UK: "teCommitted", FR: "teCommitted"});
     armCard(G, "IE-A017");
     const stabilityBefore = G.powers.FR.stability;

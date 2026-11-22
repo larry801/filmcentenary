@@ -36,6 +36,12 @@ test("the breakdown names each score source and matches scoreGame", () => {
 
 test("the Great War outbreak banks named goals and the Second Rome VP", () => {
   const G = fresh();
+  // 25.5 tops every player up to 3 NGs at the outbreak; empty decks keep the
+  // banked lines to the one named goal this test pins.
+  for (const power of Object.keys(G.powers) as (keyof typeof G.powers)[]) {
+    G.powers[power].goals = [];
+    G.powers[power].goalDeck = [];
+  }
   G.powers.GE.goals = ["NG-01"];
   G.spaces.istanbul.control = "RU";
 

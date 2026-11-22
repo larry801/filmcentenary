@@ -35,7 +35,10 @@ test("campaign auto-play reaches a result", async () => {
   // shuffles takes the campaign into the Great War at the turn-7 crisis, which
   // is a legal and decisive ending; pinning the seed keeps this long auto-play
   // reproducible so a failure means a real regression rather than a new shuffle.
-  const game = {...ImperialElegyGameDef, seed: "campaign-autoplay"};
+  // The RNG stream changed when the NG draws started shuffling and the 25.2.2
+  // alliance roll became a real die, so the arm was re-pinned to a seed whose
+  // campaign still reaches a result inside the step budget.
+  const game = {...ImperialElegyGameDef, seed: "campaign-autoplay-3"};
   const cs = ["0","1","2","3","4","5"].map(playerID => Client({game, numPlayers: 6, multiplayer: Local(), playerID, debug: false}));
   cs.forEach(c => c.start());
   // `start()` performs the initial sync asynchronously.
@@ -114,6 +117,20 @@ test("campaign auto-play reaches a result", async () => {
     if (G.phase === "wartime") {
       const p = G.activePower; const i = POWERS.indexOf(p);
       await act(() => cs[i].moves.passWarMove()); continue;
+    }
+    if (G.phase === "gwManeuver") {
+      // The pinned seed now takes the turn-7 crisis into the GW; drive the
+      // maneuver step with the Rule 34 bot so the auto-play reaches a result
+      // instead of throwing on a phase it never used to visit.
+      const p = G.activePower;
+      const i = POWERS.indexOf(p);
+      const own = seatState(p);
+      const seatCtx = cs[i].getState()!.ctx;
+      const {botMoveFor} = await import("./engine/bot");
+      const decision = botMoveFor(own, seatCtx, p);
+      const send = (cs[i].moves as unknown as Record<string, (...args: unknown[]) => void>)[decision.move];
+      await act(() => send(...(decision.args ?? [])));
+      continue;
     }
     if (G.phase === "gwPlanning") { await act(() => cs[0].moves.endGwPlanningMove()); continue; }
     if (G.phase === "gwImpulse") {
