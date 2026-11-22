@@ -801,31 +801,40 @@ test.describe("Imperial Elegy new controls", () => {
         await declare.locator('[data-testid="ie-war-second-power"]').selectOption("FR");
         await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("schleswig-holstein");
 
+        // Bismarck's join ban suppresses the 13.4.2 aid search, so the
+        // declaration settles at once instead of queuing a decision for a
+        // human seat.  The hint switches to "defends alone".
+        await declare.locator('[data-testid="ie-war-forbid-join"] input').check();
+        await expect(declare.locator('[data-testid="ie-war-nonplayer-aid"]')).toContainText("15.4.2");
+        await expect(declare.locator('[data-testid="ie-war-nonplayer-aid-candidates"]')).toHaveCount(0);
+
         const button = declare.locator('[data-testid="ie-declare-war"]');
         await expect(button).toBeEnabled({timeout: 10_000});
         await button.click();
         await expect(button).toHaveAttribute("data-armed", "true");
         await button.click();
 
-        // Denmark has no ally at setup and the other seats decline the aid
-        // search in the bot seats that follow, so the declaration settles with
-        // both targets on the defending side.
+        // One war, two attacked targets: France is the defending primary and
+        // Denmark is a co-defender minor, with the declaration's objective.
         await expect.poll(async () => await page.evaluate(() => {
             const G = (window as any).__IE_STATE__;
-            if (G.war !== null) {
-                return {
+            return G.war === null
+                ? (G.pending === null ? null : {pending: G.pending.kind})
+                : {
                     attacker: G.war.attacker,
                     defender: G.war.defender,
                     objectives: G.war.objectives,
-                    coDefenders: G.war.coDefenders ?? null,
-                    minors: G.war.defenderMinors,
+                    coDefenderMinors: G.war.coDefenderMinors ?? null,
+                    defenderMinors: G.war.defenderMinors,
+                    forbidPlayerJoins: G.war.forbidPlayerJoins ?? false,
                 };
-            }
-            return G.pending === null ? null : {pending: G.pending.kind, power: G.pending.power};
         }), {timeout: 30_000}).toMatchObject({
             attacker: "GE",
             defender: "FR",
             objectives: ["schleswig-holstein"],
+            coDefenderMinors: ["Denmark"],
+            defenderMinors: ["Denmark"],
+            forbidPlayerJoins: true,
         });
     });
 
