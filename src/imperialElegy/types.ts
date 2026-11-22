@@ -1186,6 +1186,100 @@ export interface ItalyReinforcements {
 }
 
 /**
+ * Rule 11.1 — one non-binding promise attached to a deal.
+ *
+ * The rulebook says every diplomacy deal is non-binding apart from 11.1's card
+ * transfer, so a promise is text the table can read.  The engine records it and
+ * never enforces it: no effect, no scoring, no future-turn check.
+ */
+export interface DealPromise {
+  /** The power making the promise. */
+  from: Power;
+  /** Free text, truncated by the move. */
+  text: string;
+}
+
+/** Rule 11.1 — the lifecycle of one offer. */
+export type DealStatus = "proposed" | "accepted" | "refused" | "withdrawn" | "countered";
+
+/**
+ * Rule 11.1 — "Players can give other players a number of cards … This must be
+ * a formal agreement between both players".
+ *
+ * A deal moves randomly drawn action cards in both directions.  Neither side
+ * may name a card (11.1: "Players cannot give other players specific cards, all
+ * card draws must be random") and home cards are never drawn, so `give`/`take`
+ * are counts only.  The offer is settled when the diplomacy phase closes, not
+ * when it is accepted (11.1: "it is done at the end of the diplomacy phase").
+ */
+export interface DealOffer {
+  /** Stable id, `deal-<n>`. */
+  id: string;
+  /** The proposing (announcing) power. */
+  from: Power;
+  /** The power that must confirm it. */
+  to: Power;
+  /** Cards `from` gives `to` at settlement, drawn at random. */
+  give: number;
+  /** Cards `to` gives `from` at settlement, drawn at random. */
+  take: number;
+  promises: DealPromise[];
+  status: DealStatus;
+  /** The offer this one was a counter to, for the printed back-and-forth. */
+  counterOf?: string;
+  /** Campaign turn the offer was made in. */
+  turn: number;
+  /** Monotonic creation order, so the log and the panel read in order. */
+  seq: number;
+}
+
+/** Rule 11.1 — one settled deal, announced in full view of all players. */
+export interface DealSettlement {
+  id: string;
+  turn: number;
+  from: Power;
+  to: Power;
+  /** The cards actually drawn for `from` → `to`, public by rule. */
+  given: CardId[];
+  /** The cards actually drawn for `to` → `from`, public by rule. */
+  taken: CardId[];
+  /** True when a hand ran short, so fewer cards moved than the deal promised. */
+  shortfall: boolean;
+}
+
+/**
+ * Rule 11.0 — "Players are allowed to show other players their action cards".
+ *
+ * A shown card is visible to `to`, or to the whole table when `to` is `null`.
+ * It lasts for the diplomacy phase that showed it: `diplomacyBegin` clears the
+ * list, so a card shown last turn is not still faceup this turn.
+ */
+export interface ShownCard {
+  card: CardId;
+  from: Power;
+  /** `null` shows the card to the whole table (spectators included). */
+  to: Power | null;
+  turn: number;
+}
+
+/** Rules 11.0 / 11.1 — the diplomacy phase's negotiation table. */
+export interface DiplomacyDeals {
+  /** Offers still on the table (proposed or accepted, not yet settled). */
+  offers: DealOffer[];
+  /** Deals already settled — public, announced in turn order. */
+  history: DealSettlement[];
+  /** Cards shown to the table or to one power during this diplomacy phase. */
+  shown: ShownCard[];
+  nextId: number;
+  /**
+   * The campaign turn the offers were already settled for.  `settleDeals` is
+   * idempotent through this stamp: re-entering the action phase never draws the
+   * same cards twice.
+   */
+  settledTurn?: number;
+}
+
+/**
  * The serialized game state.
  *
  * The `?` fields are the round 1–6 additions.  Their documented defaults (and
@@ -1337,6 +1431,13 @@ export interface ImperialElegyState {
    * older saves remain valid.
    */
   navalTransit?: NavalTransitState | null;
+  /**
+   * Rules 11.0 / 11.1: the diplomacy phase's negotiation table (shown cards,
+   * the offers on the table and the deals already settled).  Optional so older
+   * saves and hand-written test states remain valid; `negotiationOf` gives the
+   * documented empty default.
+   */
+  negotiation?: DiplomacyDeals;
   /** Public scoreboard after scoring. */
   scores?: Partial<Record<Power, number>>;
   /** Card effects that persist for the whole game. */

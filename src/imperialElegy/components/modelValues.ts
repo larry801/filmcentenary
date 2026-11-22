@@ -13,6 +13,8 @@ import type {PhaseAction} from "./PhaseActions";
 import type {CardChoiceFace} from "./CardChoice";
 import type {HandChoicesProps} from "./HandChoices";
 import type {OrdersTab} from "./OrdersPanel";
+import type {DealOffer, DiplomacyDeals} from "../types";
+import type {DoAction} from "./moveFeedback";
 import type {ieStringsFor} from "./i18n";
 
 export type T = ReturnType<typeof ieStringsFor>;
@@ -253,7 +255,7 @@ export interface ModelValues {
   hand: string[];
   handCounts: Partial<Record<Power, number>>;
   goalCounts: Partial<Record<Power, number>>;
-  doAction: (fn: () => void) => void;
+  doAction: DoAction;
   beginTargeting: {current: (intent: TargetIntentLike, from: SpaceId, targets: SpaceId[], sources?: string[]) => void};
   setBattleFrom: {current: (id: SpaceId | null) => void};
   setNavalFrom: {current: (id: SpaceId | null) => void};
@@ -314,7 +316,24 @@ export interface ModelValues {
   homeCardTitle: (id: string) => string;
   saveList: string[];
   ngChoices: string[];
-  giveCards: string[];
+  /** 11.0: cards this seat has shown; 11.1: the offers it is party to. */
+  shownCards: string[];
+  cardsShownToMe: {card: string; from: Power}[];
+  deals: DiplomacyDeals;
+  /** The diplomacy deals page exists right now (seated, diplomacy phase). */
+  dealsVisible: boolean;
+  /** Offers this seat must confirm. */
+  pendingDeals: DealOffer[];
+  /** Every offer this seat is party to (proposed or accepted). */
+  myDealOffers: DealOffer[];
+  dealTarget: Power;
+  setDealTarget: (p: Power) => void;
+  dealGive: number;
+  setDealGive: (n: number) => void;
+  dealTake: number;
+  setDealTake: (n: number) => void;
+  dealPromises: string;
+  setDealPromises: (s: string) => void;
   responseInHand: boolean;
   responseWindow: boolean;
   chainInfo: unknown;
@@ -350,8 +369,6 @@ export interface ModelValues {
   setWarAlly: (p: Power) => void;
   warMinor: string;
   setWarMinor: (m: string) => void;
-  giveTarget: Power;
-  setGiveTarget: (p: Power) => void;
   confirmSurrender: boolean;
   setConfirmSurrender: (b: boolean) => void;
   auReformTarget: string;

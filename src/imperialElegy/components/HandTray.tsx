@@ -36,9 +36,10 @@ export interface HandTrayProps {
   forcedCardIds: string[];
   hand: string[];
   saveList: string[];
-  giveCards: string[];
-  giveTarget: Power;
-  setGiveTarget: (p: Power) => void;
+  /** 11.0: the cards this seat has shown to the table (or to one power). */
+  shownCards: string[];
+  /** 11.0: the private shows addressed to this seat, for the read-only list. */
+  cardsShownToMe: {card: string; from: Power}[];
   responseInHand: boolean;
   responseWindow: boolean;
   chainNonEmpty: boolean;
@@ -98,7 +99,7 @@ export interface HandTrayProps {
 export const HandTray = (props: HandTrayProps) => {
   const {
     G, viewer, me, locale, t, phase, isActive, eliminated, pending, canActionCard, isBelligerent, war,
-    forcedCardIds, hand, saveList, giveCards, giveTarget, setGiveTarget,
+    forcedCardIds, hand, saveList, shownCards, cardsShownToMe,
     responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
     cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded, decisionPeek = false,
@@ -262,6 +263,17 @@ export const HandTray = (props: HandTrayProps) => {
           </button>
         )}
         {all && <button key="industry" data-testid={`ie-industrialize-${id}`} disabled={!a.industOk} title={!a.industOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.industrialize(id), {label: t.industrialize, reason: a.firstReason})}>{t.industrialize}</button>}
+        {/* 11.0: "Players are allowed to show other players their action cards."
+            The row offers the public show; the deals page picks a single power. */}
+        {all && phase === "diplomacy" && !shownCards.includes(id) && (
+          <button
+            key="show"
+            data-testid={`ie-show-card-${id}`}
+            onClick={() => doAction(() => moves.showCard(id, null), {label: bi(locale, "Show this card to the table", "向全桌展示此牌")})}
+          >
+            {bi(locale, "Show", "展示")}
+          </button>
+        )}
         {all && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} title={!a.chainOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.cpChain(id), {label: t.cpChain, reason: a.firstReason})}>{t.cpChain}</button>}
         {all && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} title={!a.saveOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.saveCard(id), {label: a.saved ? t.unsave : t.saveCard, reason: a.firstReason})}>{a.saved ? t.unsave : t.saveCard}</button>}
       </>
@@ -493,25 +505,50 @@ export const HandTray = (props: HandTrayProps) => {
                 </div>
               )}
 
-              {phase === "diplomacy" && giveCards.length > 0 && (
-                <div className="ie-tray-give" data-testid="ie-give-card">
-                  {/* A visible control now: the old CSS hid it until focus, which
-                      made "give a card" undiscoverable for mouse users. */}
+              {phase === "diplomacy" && shownCards.length > 0 && (
+                <div className="ie-tray-shown" data-testid="ie-shown-cards">
+                  {/* 11.0: a card shown this phase stays faceup at the table
+                      until the phase closes; the owner may take it back. */}
                   <div className="ie-section-title">
-                    {bi(locale, "Give a random card (diplomacy)", "随机转交卡牌（外交阶段）")}
-                    <span className="ie-choice-tag" data-testid="ie-give-card-optional">{bi(locale, "Optional", "可选")}</span>
+                    {bi(locale, "Shown this phase", "本阶段已展示")}
                   </div>
                   <div className="ie-inline">
-                    <select className="ie-select" value={giveTarget} onChange={(e) => setGiveTarget(e.target.value as Power)}>
-                      {(["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]).filter((p) => p !== viewer).map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
-                    </select>
-                    <button className="ie-btn" disabled={giveTarget === viewer} onClick={() => doAction(() => moves.giveCard(giveTarget), {label: bi(locale, `Give a random card to ${t.seats[giveTarget]}`, `随机转交 1 张牌给${t.seats[giveTarget]}`)})}>{bi(locale, "Give", "转交")}</button>
+                    {shownCards.map((id) => (
+                      <span key={id} className="ie-inline">
+                        <span data-testid={`ie-shown-card-${id}`}>{cardDisplayName(cardById(id), locale)}</span>
+                        <button
+                          type="button"
+                          className="ie-btn secondary ie-mini"
+                          data-testid={`ie-hide-card-${id}`}
+                          onClick={() => doAction(() => moves.hideCard(id), {label: bi(locale, "Turn face down again", "收回展示")})}
+                        >
+                          {bi(locale, "Hide", "收回")}
+                        </button>
+                      </span>
+                    ))}
                   </div>
-                  <div className="ie-hint" data-testid="ie-give-card-hint">
-                    {bi(locale, "Optional: the card is drawn at random from your hand, so its identity stays unknown until it is handed over. Giving is never required — skip it and carry on with diplomacy.", "可选：从你的手牌中随机抽出 1 张转交，交出前连你也无法指定是哪张。转交并非必须——不做也可以继续外交阶段。")}
+                  <div className="ie-hint">
+                    {bi(locale, "A shown card stays faceup only until the diplomacy phase ends.", "展示的手牌仅在本外交阶段内保持明置。")}
                   </div>
                 </div>
               )}
+
+              {phase === "diplomacy" && cardsShownToMe.length > 0 && (
+                <div className="ie-tray-shown" data-testid="ie-shown-to-me">
+                  {/* 11.0: what the table (or one power) showed this seat. */}
+                  <div className="ie-section-title">
+                    {bi(locale, "Shown to you", "他人向你展示")}
+                  </div>
+                  <div className="ie-inline">
+                    {cardsShownToMe.map((entry) => (
+                      <span key={`${entry.from}-${entry.card}`} data-testid={`ie-shown-to-me-${entry.card}`}>
+                        {t.seats[entry.from]}: {cardDisplayName(cardById(entry.card), locale)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         </div>

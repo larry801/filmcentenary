@@ -190,7 +190,11 @@ export const useBoardModel = ({
   // whether a declaration is waiting, for the War tab's badge.
   const [warAlly, setWarAlly] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
   const [warMinor, setWarMinor] = React.useState<string>("");
-  const [giveTarget, setGiveTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
+  // 11.1: the deals page's own form state (target, counts, promises).
+  const [dealTarget, setDealTarget] = React.useState<Power>(POWER_KEYS.find((p) => p !== viewer) ?? "UK");
+  const [dealGive, setDealGive] = React.useState(1);
+  const [dealTake, setDealTake] = React.useState(0);
+  const [dealPromises, setDealPromises] = React.useState<string>("");
   const [confirmSurrender, setConfirmSurrender] = React.useState(false);
   const [auReformTarget, setAuReformTarget] = React.useState<string>("");
   const [auCitizenTarget, setAuCitizenTarget] = React.useState<string>("");
@@ -1369,7 +1373,27 @@ export const useBoardModel = ({
   };
   const saveList = String(me?.flags.savedCards ?? "").split(",").filter(Boolean);
   const ngChoices = String(me?.flags.ngChoices ?? "").split(",").filter(Boolean);
-  const giveCards = hand.filter((id) => cardById(id).kind !== "home");
+  // 11.0/11.1: the negotiation table as this seat sees it (already redacted by
+  // `playerView`).  `shownCards` are this seat's own shows, `cardsShownToMe` the
+  // private ones addressed to it, and `deals` the two-sided offers.
+  const deals = G.negotiation ?? {offers: [], history: [], shown: [], nextId: 1};
+  const shownCards = deals.shown.filter((entry) => entry.from === viewer).map((entry) => entry.card);
+  const cardsShownToMe = viewer === null
+    ? []
+    : deals.shown.filter((entry) => entry.to === viewer).map((entry) => ({card: entry.card, from: entry.from}));
+  // 11.0/11.1: the deals page exists for a seated power in the diplomacy phase.
+  const diplomacyPhase = phase === "diplomacy";
+  const dealsVisible = diplomacyPhase && viewer !== null && !eliminated;
+  const myDealOffers = viewer === null ? [] : deals.offers;
+  const pendingDeals = myDealOffers.filter((offer) => offer.status === "proposed" && offer.to === viewer);
+  // An offer addressed to this seat is something to answer, so its page comes
+  // to the front; leaving diplomacy drops it like the naval page does.
+  const dealWasPending = React.useRef(pendingDeals.length > 0);
+  React.useEffect(() => {
+    if (pendingDeals.length > 0 && !dealWasPending.current) setOrdersTab("deals");
+    else if (!dealsVisible && ordersTab === "deals") setOrdersTab("actions");
+    dealWasPending.current = pendingDeals.length > 0;
+  }, [pendingDeals.length, dealsVisible, ordersTab]);
 
   const responseInHand = hand.some((id) => cardById(id).type === "response");
   const responseWindow = viewer !== null && responseInHand &&
@@ -1729,7 +1753,20 @@ export const useBoardModel = ({
     homeCardTitle,
     saveList,
     ngChoices,
-    giveCards,
+    shownCards,
+    cardsShownToMe,
+    deals,
+    dealsVisible,
+    pendingDeals,
+    myDealOffers,
+    dealTarget,
+    setDealTarget,
+    dealGive,
+    setDealGive,
+    dealTake,
+    setDealTake,
+    dealPromises,
+    setDealPromises,
     responseInHand,
     responseWindow,
     chainInfo,
@@ -1761,8 +1798,6 @@ export const useBoardModel = ({
     setWarAlly,
     warMinor,
     setWarMinor,
-    giveTarget,
-    setGiveTarget,
     confirmSurrender,
     setConfirmSurrender,
     auReformTarget,

@@ -2,6 +2,8 @@ import {Ctx, PlayerID} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {
   CardId,
+  DealOffer,
+  DealPromise,
   EndPhaseProgress,
   GamePhase,
   ImperialElegyState,
@@ -20,6 +22,13 @@ import {CAMPAIGN_SETUP, MINOR_POWER_HOMES} from "./constant/setup";
 import {GOALS_BY_ID} from "./constant/goals";
 import {botPowersOf, handOverSeat} from "./configuration";
 import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId, removeCard} from "./engine/deck";
+import {
+  dealProblem,
+  expireOffers,
+  negotiationOf,
+  readPromises,
+  settleDeals,
+} from "./engine/negotiation";
 import {
   autoIndustrySuccess,
   cpChainResolution,
@@ -920,6 +929,10 @@ const startFirstActionImpulse = (G: ImperialElegyState, ctx: Ctx): undefined => 
 
 /** Enter the action phase (the first impulse may wait for a decision). */
 const beginActionPhaseAfterDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  // 11.1: the confirmed card draws are announced and performed "at the end of
+  // the diplomacy phase", in printed seat order, in full view of all players.
+  settleDeals(G, ctx);
+  expireOffers(G);
   G.phase = "action";
   G.activePower = "GE";
   G.cpRemaining = 0;
@@ -973,26 +986,167 @@ export const endDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => 
 };
 
 /**
- * 11.1 diplomacy gift: a power hands **one random** card to another power.
- * The giver picks the recipient, not the card — the printed gift is a random
- * draw, so a specific card can never be chosen (which would otherwise let a
- * player push a doomed or unplayable card onto an ally, or hide a card's
- * identity behind a negotiated deal).
+ * 11.1 diplomacy: the printed card transfer is a **formal agreement** settled
+ * when the diplomacy phase closes, not a one-way gift.  The moves below own the
+ * whole table (`engine/negotiation.ts` holds the rules):
+ *
+ *   showCard / hideCard      — 11.0, show an action card to the table or to one power
+ *   proposeDeal              — 11.1, offer a random-draw exchange
+ *   respondDeal              — 11.1, the other side accepts or refuses
+ *   counterDeal              — 11.1, the other side turns the table around
+ *   withdrawDeal             — take an unconfirmed offer back off the table
+ *
+ * No move here names a card: 11.1 requires every draw to be random, so a client
+ * can only ever send counts.  Nothing moves until `settleDeals` runs at the end
+ * of the phase.
  */
-export const giveCard = (G: ImperialElegyState, ctx: Ctx, target: Power): string | void => {
+export const showCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, to: Power | null = null): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
-  if (power === target) return INVALID_MOVE;
-  if (!isPower(target)) return INVALID_MOVE;
-  const eligible = G.powers[power].hand.filter((id) => cardById(id).kind !== "home");
-  if (eligible.length === 0) return INVALID_MOVE;
-  const cardId = eligible[randomIndex(ctx, eligible.length)];
-  G.powers[power].hand = G.powers[power].hand.filter((id) => id !== cardId);
-  G.powers[target].hand.push(cardId);
-  log(G, power, "cardGiven", {card: cardId, target});
+  if (!G.powers[power].hand.includes(cardId)) return INVALID_MOVE;
+  if (to !== null && (!isPower(to) || to === power)) return INVALID_MOVE;
+  const deals = negotiationOf(G);
+  if (deals.shown.some((entry) => entry.card === cardId && entry.from === power && entry.to === to)) return INVALID_MOVE;
+  deals.shown.push({card: cardId, from: power, to, turn: G.turn});
+  // The card is faceup at the table, so every seat may read it; a private show
+  // must not put the card id in the public log, so the entry only names the two
+  // powers (the panel reads the card from `deals.shown`).
+  if (to === null) log(G, power, "cardShownPublic", {card: cardId});
+  else log(G, power, "cardShownPrivate", {to});
   return undefined;
 };
+
+export const hideCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  const deals = negotiationOf(G);
+  const before = deals.shown.length;
+  deals.shown = deals.shown.filter((entry) => !(entry.card === cardId && entry.from === power));
+  if (deals.shown.length === before) return INVALID_MOVE;
+  log(G, power, "cardHidden", {});
+  return undefined;
+};
+
+/** 11.1: open a formal offer of randomly drawn action cards. */
+export const proposeDeal = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  target: Power,
+  give: number,
+  take: number,
+  promises: DealPromise[] = [],
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null) return INVALID_MOVE;
+  if (dealProblem(G, power, target, give, take) !== null) return INVALID_MOVE;
+  const deals = negotiationOf(G);
+  const offer: DealOffer = {
+    id: `deal-${deals.nextId++}`,
+    from: power,
+    to: target,
+    give,
+    take,
+    promises: readPromises(promises, power),
+    status: "proposed",
+    turn: G.turn,
+    seq: deals.nextId,
+  };
+  deals.offers.push(offer);
+  // Both sides see the terms; the public log only says that a table opened, so
+  // an offer can never leak through the log.  `privacy.ts` hides the offer from
+  // every third power.
+  log(G, power, "dealProposed", {id: offer.id, to: target});
+  return undefined;
+};
+
+/**
+ * 11.1: "An announced card draw must be confirmed by the other player in order
+ * for it to take place."  Accepting does not move a card — the settlement runs
+ * when the diplomacy phase closes.
+ */
+export const respondDeal = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  offerId: string,
+  accept: boolean,
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  const deals = negotiationOf(G);
+  const offer = deals.offers.find((entry) => entry.id === offerId);
+  if (offer === undefined || offer.status !== "proposed" || offer.to !== power) return INVALID_MOVE;
+  if (accept) {
+    // Accepting re-validates against the *current* hands: a hand that shrank
+    // since the offer was made cannot confirm more cards than it still holds.
+    // Validate before writing `status`, so a refused confirmation leaves the
+    // offer on the table.
+    if (dealProblem(G, offer.from, offer.to, offer.give, offer.take) !== null) return INVALID_MOVE;
+    offer.status = "accepted";
+    log(G, power, "dealAccepted", {id: offerId, from: offer.from});
+    return undefined;
+  }
+  offer.status = "refused";
+  deals.offers = deals.offers.filter((entry) => entry.id !== offerId);
+  log(G, power, "dealRefused", {id: offerId, from: offer.from});
+  return undefined;
+};
+
+/**
+ * 11.1 counter-offer: the power that was asked turns the table around.  The new
+ * offer runs in the opposite direction, so `give` is once again *the countering
+ * party's* payment and `take` what it receives — the panel can reuse one form.
+ */
+export const counterDeal = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  offerId: string,
+  give: number,
+  take: number,
+  promises: DealPromise[] = [],
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  const deals = negotiationOf(G);
+  const previous = deals.offers.find((entry) => entry.id === offerId);
+  if (previous === undefined || previous.status !== "proposed" || previous.to !== power) return INVALID_MOVE;
+  if (dealProblem(G, power, previous.from, give, take) !== null) return INVALID_MOVE;
+  previous.status = "countered";
+  deals.offers = deals.offers.filter((entry) => entry.id !== offerId);
+  const offer: DealOffer = {
+    id: `deal-${deals.nextId++}`,
+    from: power,
+    to: previous.from,
+    give,
+    take,
+    promises: readPromises(promises, power),
+    status: "proposed",
+    counterOf: previous.id,
+    turn: G.turn,
+    seq: deals.nextId,
+  };
+  deals.offers.push(offer);
+  log(G, power, "dealCountered", {id: offer.id, previous: offerId, from: previous.from});
+  return undefined;
+};
+
+/** The proposing side may take an unconfirmed offer off the table. */
+export const withdrawDeal = (G: ImperialElegyState, ctx: Ctx, offerId: string): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  const deals = negotiationOf(G);
+  const offer = deals.offers.find((entry) => entry.id === offerId);
+  if (offer === undefined || offer.from !== power) return INVALID_MOVE;
+  deals.offers = deals.offers.filter((entry) => entry.id !== offerId);
+  log(G, power, "dealWithdrawn", {id: offerId, to: offer.to});
+  return undefined;
+};
+
 
 /**
  * A GW card that has been played is no longer faceup for the turn.  The flag is

@@ -31,6 +31,7 @@ import {MapPanel} from "./MapPanel";
 import {SpaceActionsPanel, SpaceDetailPanel, SpaceUnitPicker} from "./SpacePanel";
 import {useSpaceActions} from "./spaceActionModel";
 import {OrdersPanel} from "./OrdersPanel";
+import {DiplomacyPanel} from "./DiplomacyPanel";
 import {PendingPanel} from "./PendingPanel";
 import {HandChoices} from "./HandChoices";
 import {HandTray} from "./HandTray";
@@ -172,7 +173,7 @@ const RulesReference = ({locale}: {locale: "en" | "zh_CN"}) => (
 // ---------------------------------------------------------------------------
 
 /**
- * The Orders page: four pages behind one segmented control.
+ * The Orders page: five pages behind one segmented control.
  *
  * Before, this was a single column holding the space's facts, its action list,
  * the MPIT matrix, the national characteristics and three naval flows.  Each is
@@ -190,14 +191,15 @@ export const OrdersRegion = (props: OrdersSlice & {
   setShowUnavailable?: (open: boolean) => void;
 }) => {
   const {
-    G, viewer, me, locale, t, phase, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
+    G, viewer, me, locale, t, phase, eliminated, canAct, canSpend, cpBudget, canActionCard, pending, canDecide, war,
     gwJointNavalAllies, gwJointNavalUnitIds,
     polishReserve, setPolishReserve, deployLimit, deployFree, canDeployHere, canGwDraft, canGwDeployHere,
     polishArmyDecision, polishReserveDecision, myOnMapArmies, myForts, myMinorAllies, ownLandInSelected,
     ownNavalInSelected, potentialLandTargets, potentialNavalTargets, doAction, confirmActions, moves,
     selected, selectedUnit, setSelectedUnit, selectedUnitIds, toggleUnitSelection, selectUnitGroup,
     startMoveTargeting, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
-    ordersTab, setOrdersTab, navalVisible,
+    ordersTab, setOrdersTab, navalVisible, deals, dealsVisible, pendingDeals, myDealOffers,
+    dealTarget, setDealTarget, dealGive, setDealGive, dealTake, setDealTake, dealPromises, setDealPromises,
     showNationalActions, zouaveInPlay, zouaveReason, auReformValue, setAuReformTarget, auReformDecision,
     auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenReason, auSacrifice,
     setAuSacrifice, auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate,
@@ -273,12 +275,15 @@ export const OrdersRegion = (props: OrdersSlice & {
         actions: t.ordersActions,
         space: t.ordersSpace,
         influence: t.ordersInfluence,
+        deals: t.ordersDeals,
         naval: t.ordersNaval,
       }}
       active={ordersTab}
       onTab={setOrdersTab}
       navalVisible={navalVisible}
       navalUrgent={interceptVisible}
+      dealsVisible={dealsVisible}
+      dealUrgent={pendingDeals.length > 0}
       heading={heading}
       tabs={{
         actions: (
@@ -358,6 +363,17 @@ export const OrdersRegion = (props: OrdersSlice & {
               moves={moves}
             />
           </>
+        ),
+        deals: (
+          <DiplomacyPanel
+            G={G} locale={locale} viewer={viewer} me={me} phase={phase} eliminated={eliminated}
+            doAction={doAction} moves={moves}
+            deals={deals} pendingDeals={pendingDeals} myDealOffers={myDealOffers}
+            dealTarget={dealTarget} setDealTarget={setDealTarget}
+            dealGive={dealGive} setDealGive={setDealGive}
+            dealTake={dealTake} setDealTake={setDealTake}
+            dealPromises={dealPromises} setDealPromises={setDealPromises}
+          />
         ),
         naval: (
           <>

@@ -1362,10 +1362,83 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
-  cardGiven: (entry, locale) => {
+  // ------------------------------------------------------ 11.0 / 11.1 negotiation
+  cardShownPublic: (entry, locale) => {
     const card = cardLabel(entry.args?.card, locale);
-    const target = powerLabel(entry.args?.target, locale);
-    return withActor(entry, locale, `gave ${card} to ${target}.`, `将 ${card} 交给${target}。`);
+    return withActor(entry, locale, `showed ${card} to the table.`, `向全桌展示了 ${card}。`);
+  },
+
+  /** 11.0: a private show names only the two powers — the card stays private. */
+  cardShownPrivate: (entry, locale) => {
+    const target = powerLabel(entry.args?.to, locale);
+    return withActor(entry, locale, `showed a card to ${target}.`, `向${target}展示了一张手牌。`);
+  },
+
+  cardHidden: (entry, locale) =>
+    withActor(entry, locale, `took a card back face down.`, `将一张手牌收回背面。`),
+
+  dealProposed: (entry, locale) => {
+    const target = powerLabel(entry.args?.to, locale);
+    return withActor(entry, locale, `proposed a deal to ${target}.`, `向${target}提出了一项交易。`);
+  },
+
+  dealAccepted: (entry, locale) => {
+    const from = powerLabel(entry.args?.from, locale);
+    return withActor(entry, locale, `confirmed ${from}'s deal.`, `确认了${from}的交易。`);
+  },
+
+  dealRefused: (entry, locale) => {
+    const from = powerLabel(entry.args?.from, locale);
+    return withActor(entry, locale, `refused ${from}'s deal.`, `拒绝了${from}的交易。`);
+  },
+
+  dealCountered: (entry, locale) => {
+    const from = powerLabel(entry.args?.from, locale);
+    return withActor(entry, locale, `answered ${from} with a counter-offer.`, `向${from}提出了还价。`);
+  },
+
+  dealWithdrawn: (entry, locale) => {
+    const target = powerLabel(entry.args?.to, locale);
+    return withActor(entry, locale, `withdrew its deal with ${target}.`, `撤回了一项向${target}提出的交易。`);
+  },
+
+  /** 11.1: "The random card draw is done in full view of all players." */
+  dealCardDrawn: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    const to = powerLabel(entry.args?.to, locale);
+    return withActor(entry, locale, `drew ${card} at random for ${to}.`, `随机抽出 ${card} 交给${to}。`);
+  },
+
+  dealSettled: (entry, locale) => {
+    const target = powerLabel(entry.args?.to, locale);
+    const given = num(entry.args?.given);
+    const taken = num(entry.args?.taken);
+    return withActor(
+      entry,
+      locale,
+      `settled its deal with ${target}: ${given} card${given === 1 ? "" : "s"} given, ${taken} received.`,
+      `与${target}的交易结算完毕：交出 ${given} 张，收到 ${taken} 张。`,
+    );
+  },
+
+  dealShortfall: (entry, locale) => {
+    const target = powerLabel(entry.args?.to, locale);
+    return withActor(
+      entry,
+      locale,
+      `could not pay every promised card to ${target}; the deal moved what was left in hand.`,
+      `无法付清向${target}承诺的全部卡牌，交易只转交了当时仍在手牌中的牌。`,
+    );
+  },
+
+  /** 11.1 requires a confirmation, so an unanswered offer simply lapses. */
+  dealsExpired: (entry, locale) => {
+    const count = num(entry.args?.count);
+    return text(
+      locale,
+      `${count} unconfirmed deal${count === 1 ? "" : "s"} lapsed when the diplomacy phase closed.`,
+      `外交阶段结束时，${count} 项未获确认的交易自动失效。`,
+    );
   },
 
   // 12.2 / 12.4 (errata) + 12.8: a player builds a unit for an allied minor.

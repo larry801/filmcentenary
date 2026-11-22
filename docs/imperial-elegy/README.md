@@ -154,20 +154,23 @@ mode. `components/CardChoice.tsx` is the shared wrapper; `HandChoices` (top of
 the Orders tab) and `PendingPanel` both use it. Space, power and unit options
 stay plain buttons.
 
-Two moves are **draws, not picks**, and deliberately show no card face: the
-prep-phase discard for +1 stability and the diplomacy card gift both take one
-card at random from the giver's hand (print: "discard a random card", and the
-11.1 gift is a random draw). Letting the client name the card would turn the
+Two card moves are **draws, not picks**, and deliberately show no card face: the
+prep-phase discard for +1 stability and the 11.1 deal's card transfer both take
+cards at random from the giver's hand (print: "discard a random card", and
+"all card draws must be random"). Letting the client name a card would turn the
 random draw into a free choice — dump the worst card, keep the good one, or push
-a chosen card onto an ally. The engine resolves the card from `ctx.random`, so
-the moves take no card argument at all; the dock/hand panel only offer the
-action, and mandatory events and home cards are excluded from the draw.
+a chosen card onto an ally. The engine resolves every card from `ctx.random` at
+the moment the rule names (the prep discard immediately, a deal when the
+diplomacy phase closes), so no move takes a card argument; mandatory events and
+home cards are excluded from every draw. A deal is a **formal agreement**, so it
+is proposed with counts, accepted by the other seat, and only then drawn — see
+[`NEGOTIATION.md`](NEGOTIATION.md).
 
 ### Required versus optional
 
 Not every choice blocks the game. The home card and the National Goal
-draw-and-keep are mandatory; the prep-phase stability discard and the diplomacy
-card transfer are things a player *may* do. The board distinguishes them, so
+draw-and-keep are mandatory; the prep-phase stability discard and the 11.0
+"show a card" control are things a player *may* do. The board distinguishes them, so
 an optional action never reads as "you cannot continue until you pick":
 
 - a mandatory section is a solid gold-bordered box and the turn panel's
@@ -197,7 +200,7 @@ second node carries the same test id on the track strip's phone-only chip
 also carries the buttons that end or continue the step (准备完毕, 停牌, 继续).
 Below the head are the panel's three tabs:
 
-- **Orders** — four pages behind one segmented control
+- **Orders** — five pages behind one segmented control
   (`components/OrdersPanel.tsx`), because one column could not hold the space's
   facts, its action list, the influence matrix, the national characteristics and
   three naval flows without burying the legal actions:
@@ -213,13 +216,17 @@ Below the head are the panel's three tabs:
     actions and arms the map's rings.
   - **Influence** (`ie-orders-tab-influence`) — the 8.0 MPIT matrix and the 33.x
     national actions.
+  - **Deals** (`ie-orders-tab-deals`) — the 11.0/11.1 negotiation table: the
+    faceup cards, the offer form, the inbox (confirm / refuse / counter /
+    withdraw) and this turn's settlements.  The page exists only during the
+    diplomacy phase; an offer arriving pulls it to the front and marks its tab.
   - **Naval** (`ie-orders-tab-naval`) — amphibious assault, naval transport and
     interception.  The page exists only while one of them is offered; an
     interception window opening pulls it to the front and marks its tab.
 
   Every page stays mounted and inactive pages are `hidden`, so an armed
   confirmation, a half-filled naval form and the bots' effects survive a switch.
-  All four pages share one computation of `spaceActions` (`useSpaceActions`), so
+  Every page shares one computation of `spaceActions` (`useSpaceActions`), so
   switching pages never re-runs the engine's gates.
 
   While a pending decision, an open battle or the result is showing, the Orders
@@ -433,11 +440,13 @@ state or the bots' effects. On desktop the wrapper and body are
 grid areas unchanged. Short phones (≤ 699 px tall) use 44 dvh for half,
 `calc(100dvh - 120px)` for full and a 46 dvh decision cap.
 
-- **Orders** — four pages behind a sticky segmented control
-  (`ie-orders-nav`, tabs `ie-orders-tab-actions|space|influence|naval`): the
-  Actions page (legal rows, then the folded `ie-unavailable` section), the Space
-  page (facts and unit selection), the Influence page (the MPIT matrix and the
-  national actions) and, only while a naval flow is offered, the Naval page.
+- **Orders** — five pages behind a sticky segmented control
+  (`ie-orders-nav`, tabs `ie-orders-tab-actions|space|influence|deals|naval`):
+  the Actions page (legal rows, then the folded `ie-unavailable` section), the
+  Space page (facts and unit selection), the Influence page (the MPIT matrix and
+  the national actions), the Deals page (the 11.0/11.1 negotiation table, only
+  in the diplomacy phase) and, only while a naval flow is offered, the Naval
+  page.
   Each page is a scroll surface of its own; the pages are pinned to their
   natural height (`flex: 0 0 auto`) so a page taller than the sheet is reachable
   with a drag rather than being squashed and clipped by its own
@@ -491,7 +500,11 @@ At a glance, the live game covers:
 
 - **Prep** — decade deck build, reshuffle, draw, optional random discard for +1
   stability (mandatory events and home cards stay).
-- **Diplomacy** — home-card selection, random card gifts and Metternich's Legacy.
+- **Diplomacy** — home-card selection and Metternich's Legacy, plus the 11.0/11.1
+  negotiation table: show action cards to the table or privately, propose a
+  formal pact to exchange randomly drawn cards, accept / refuse / counter it,
+  and have every confirmed deal drawn in seat order when the diplomacy phase
+  closes ([`NEGOTIATION.md`](NEGOTIATION.md)).
 - **Action** — cards for CP or events, recruitment, fleets, influence,
   diplomacy, minor alliances, EFs, pacification, forts, industry, redeployment
   and declarations of war. Every card is a CP card (12.0), response and combat

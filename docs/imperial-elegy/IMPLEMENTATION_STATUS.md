@@ -1289,6 +1289,54 @@ Coverage: `components/mapLegend.test.tsx` (6), `components/decisionModal.test.ts
 `components/HandTray.test.tsx` (+1 for the pinned row) and the rewritten
 `components/board.test.tsx` decision tests (2).
 
+## Rules 11.0 / 11.1: the diplomacy negotiation table (2026-11-22)
+
+The diplomacy phase only offered home-card selection, a one-way "give one random
+card" button and Metternich's Legacy. The printed rules ask for more, and for the
+one binding clause to be a *formal agreement*:
+
+- **11.0** — "Players are allowed to show other players their action cards to
+  encourage cooperation or to back up a threat." `showCard(card, to|null)` and
+  `hideCard(card)` are live: a shown card is faceup to the whole table or
+  privately to one power, for the diplomacy phase that showed it only
+  (`diplomacyBegin` and the phase's close both clear the list). It carries no
+  rules effect, exactly as 11.0 says.
+- **11.1** — the card transfer is "a formal agreement between both players …
+  done at the end of the diplomacy phase", "cannot give other players specific
+  cards, all card draws must be random and home cards can never be drawn", and
+  "the random card draw is done in full view of all players". The old `giveCard`
+  move was a one-way, immediate, unconfirmable gift; it is **gone**. In its place:
+
+| Rule text | Implementation |
+| --- | --- |
+| formal agreement between both players | `proposeDeal` → `respondDeal(accept)`; nothing moves on a proposal |
+| done at the end of the diplomacy phase | `settleDeals` runs from `beginActionPhaseAfterDiplomacy`, idempotent via `settledTurn` |
+| a number of cards, committed by each side | `DealOffer.give` / `DealOffer.take`, clamped to the live hand by `dealProblem` |
+| cannot give specific cards; all draws random | no move takes a card id; `drawRandomCards` resolves each card with `randomIndex(ctx, pool.length)` |
+| home cards can never be drawn | `dealableCards` filters `kind === "home"` |
+| announce the draws in turn order | accepted offers sort by printed seat order, then creation order |
+| must be confirmed by the other player | an unconfirmed offer lapses at the phase's close (`expireOffers`) |
+| draw done in full view of all players | every drawn card is logged as `dealCardDrawn` and left unmasked by `redactLog` |
+
+The panel is a fifth conditional page of the Orders body (`Deals`), reachable
+only during the diplomacy phase and pulled forward when an offer arrives. It
+carries the offer form (counts + up to three non-binding promises, mirrored into
+a terms sentence), an inbox with confirm / refuse / counter / withdraw, the
+faceup card list, and this turn's public settlements. A counter reverses the
+table and retires the previous offer, so the form's counts always mean *what the
+reader gives and receives*. The Rule 34 bot answers any offer addressed to it
+with a refusal rather than negotiating back and forth.
+
+Evidence: `negotiation.test.ts` (table legality, confirmation, refusals,
+withdrawals, counter chains), `negotiationSettlement.test.ts` (die→card mapping
+in both directions, home-card exclusion, seat order, shortfall, idempotence,
+lapsing, the public record), `negotiationPrivacy.test.ts` (third seats and
+spectators see neither an open offer nor a private show, while the settlement is
+public), `negotiationStage.test.ts` (six real boardgame.io clients: answering out
+of turn, the phase-close draw, a stale offer after the close), and
+`components/diplomacyPanel.test.tsx` (static render). `docs/imperial-elegy/
+NEGOTIATION.md` is the design note.
+
 ## Visual system pass (2026-11-18)
 
 Implemented [`VISUAL_SYSTEM.md`](VISUAL_SYSTEM.md) phases 1–7 on

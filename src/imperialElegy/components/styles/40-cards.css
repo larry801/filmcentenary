@@ -344,9 +344,12 @@
 
 .ie-tray-goals { display: flex; flex-direction: column; gap: 3px; min-width: 140px; max-width: 200px; }
 
-.ie-tray-give { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+/* 11.0: the cards this seat shows, and the private ones shown to it.  Both are
+   normal visible blocks in the tray — a faceup card at the table is public
+   information, so hiding it behind a focus hack made it undiscoverable. */
+.ie-tray-shown { display: flex; flex-direction: column; gap: 3px; min-width: 140px; max-width: 220px; }
 
-.ie-tray-give:focus-within { position: fixed; inset: auto 10% 10% 10%; width: auto; height: auto; clip: auto; z-index: 90; background: var(--ie-panel); padding: 10px; border: 1px solid var(--ie-brass); border-radius: var(--ie-radius-md); }
+.ie-tray-shown .ie-inline { gap: 4px; flex-wrap: wrap; align-items: center; }
 
 /* ---------------------------------------------------------------- cards */
 .ie-card {
@@ -613,5 +616,3 @@ img.ie-card-face { background: var(--ie-paper-2); }
   .ie-hand .ie-card, .ie-hand .ie-card:hover, .ie-hand .ie-card:focus-within { transform: none; transition: none; }
 }
 
-/* The diplomacy give-card control is a normal, visible block in the tray. */
-.ie-tray-give { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
