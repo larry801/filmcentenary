@@ -16,7 +16,7 @@ import type {Decade} from "../constant/cards";
 import {goalsForPower} from "../constant/goals";
 import {CARDS} from "../constant/cards.data";
 import {CARD_BY_ID} from "./deck";
-import {prepareDeck, shuffle, drawCards, cardsForDecade} from "./deck";
+import {shuffle, drawCards, cardsThroughDecade} from "./deck";
 import {
   log,
   cardsToDraw,
@@ -245,12 +245,14 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   // 'Contain Prussia'".  The add happens here; the removal is the power's
   // choice and is offered as a setup decision.
   applyGoalDeckEdits(G, def, ctx);
-  // 10.1: the deck starts with the scenario's opening decade band.  The
-  // campaign starts at the 1850s (58 cards); the 1870 and 1880 scenarios start
-  // at their own decade, and the printed "Removed Cards" never enter it.
-  G.deck = shuffle(ctx, [...cardsForDecade(decadeForScenarioTurn(def.firstTurn))]);
-  // The 1850s cards are all in the initial deck; remove the duplicates that
-  // the data may carry for scenario variants.
+  // 10.1: the deck starts with every card band up to and including the
+  // scenario's opening decade.  The campaign starts at the 1850s (58 cards);
+  // the 1870 and 1880 scenarios also include the earlier bands, and the printed
+  // "Removed Cards" never enter it.
+  G.deck = shuffle(ctx, [...cardsThroughDecade(decadeForScenarioTurn(def.firstTurn))]);
+  // A mid-campaign scenario opens with every card band already in play, plus
+  // its own band; the 1850s campaign starts with only the 1850s cards.  Remove
+  // the duplicates that the data may carry for scenario variants.
   G.deck = [...new Set(G.deck)];
   // Printed removals: the scenario's "Removed Cards" list names cards that are
   // out of the game entirely, so they are moved to `removed` (not left in the

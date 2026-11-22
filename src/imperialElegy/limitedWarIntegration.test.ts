@@ -13,7 +13,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import {ImperialElegyState, Power} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {cardById} from "./engine/deck";
-import {createWarState, classifyVictory, warBudgetCardId} from "./engine/limitedWar";
+import {createWarState, classifyVictory, warBudgetCardId, warBudgetFor} from "./engine/limitedWar";
 import {
   callWarAlly,
   callWarMinor,
@@ -103,7 +103,7 @@ describe("declareWar uses the limited-war validation and state builders", () => 
       startedTurn: G.turn,
     });
     expect(G.war!.budgets.GE).toBe(2 + G.powers.GE.industry);
-    expect(G.war!.budgets.AU).toBe(0);
+    expect(G.war!.budgets.AU).toBe(warBudgetFor(G, "AU", 0));
     expect(G.wtt).toBe(1);
 
     const snapshot = String(G.flags.limitedWarAttackerStart).split(",").filter(Boolean);

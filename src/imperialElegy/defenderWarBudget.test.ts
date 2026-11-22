@@ -5,15 +5,15 @@
  * [14.3].  Important: the defending player cannot play a mandatory event to add
  * to their war budget."
  *
- * The engine created every player defender's budget at 0 and offered no way to
- * spend that card.
+ * The defender's 14.3 industry budget exists before this optional card, and the
+ * card's printed CP is then added to it.
  */
 import type {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {createWarState} from "./engine/limitedWar";
+import {createWarState, warBudgetFor} from "./engine/limitedWar";
 import {ALL_CARDS} from "./engine/deck";
 import {playWarBudgetCard} from "./moves";
 
@@ -43,11 +43,20 @@ const card = (type: string, cp = 2) => {
 };
 
 describe("13.7 defender war budget card", () => {
+  test("a defender starts with its 14.3 industry budget before playing a card", () => {
+    const G = begin();
+    // 14.3: card CP + industry.  The card is optional, so an unfunded defender
+    // still holds its industry (plus a national-characteristic bonus).
+    expect(G.war!.budgets.FR).toBe(warBudgetFor(G, "FR", 0));
+    expect(G.war!.budgets.FR).toBeGreaterThan(0);
+  });
+
   test("a defending power adds the card's printed CP to its budget", () => {
     const G = begin();
     const id = card("event", 2);
     G.powers.FR.hand = [id];
     const before = G.war!.budgets.FR ?? 0;
+    expect(before).toBe(warBudgetFor(G, "FR", 0));
 
     expect(playWarBudgetCard(G, makeCtx(seat("FR")), id)).toBeUndefined();
     expect(G.war!.budgets.FR).toBe(before + 2);
