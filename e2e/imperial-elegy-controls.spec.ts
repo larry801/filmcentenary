@@ -46,7 +46,30 @@ async function finishPrep(page: Page) {
     }
 }
 
+/**
+ * 9.1: the whole table must finish negotiating before any home card is
+ * chosen.  The finish button is not turn-gated, so sweep the strip once.
+ */
+async function finishNegotiating(page: Page) {
+    for (const seat of SEATS) {
+        await focusSeat(page, seat);
+        const board = boardFor(page, seat);
+        const finish = board.locator('[data-testid="ie-finish-negotiation"]');
+        for (let attempt = 0; attempt < 3 && await finish.count() > 0; attempt += 1) {
+            await finish.first().click().catch(() => undefined);
+            await page.waitForTimeout(150);
+        }
+        await expect(finish).toHaveCount(0, {timeout: 5_000});
+    }
+    await expect.poll(async () => await page.evaluate(() => {
+        const G = (window as any).__IE_STATE__;
+        return ["GE", "UK", "FR", "AU", "RU", "OT"].every((power) =>
+            G.powers[power].eliminated === true || G.powers[power].flags.negotiationDone === true);
+    }), {timeout: 15_000}).toBe(true);
+}
+
 async function chooseHomeCards(page: Page) {
+    await finishNegotiating(page);
     // 9.1: negotiating comes first, so each seat opens its own choice.  The
     // step advances one seat at a time; sweep the strip and answer the seat
     // that is being asked.
@@ -341,7 +364,29 @@ async function phoneOpenHomeChoice(page: Page, seat: string): Promise<boolean> {
     return true;
 }
 
+/** 9.1 on the phone shell: finish the table's negotiation first. */
+async function phoneFinishNegotiating(page: Page) {
+    for (const seat of SEATS) {
+        await focusSeat(page, seat);
+        await openDock(page, seat);
+        const board = boardFor(page, seat);
+        let finish = board.locator('[data-testid="ie-finish-negotiation"]');
+        if (await finish.count() === 0) {
+            const tab = board.locator('[data-testid="ie-orders-tab-deals"]');
+            if (await tab.count() > 0) await tab.click();
+            finish = board.locator('[data-testid="ie-finish-negotiation-from-deals"]');
+        }
+        if (await finish.count() > 0) await clickUntilGone(page, finish.first());
+    }
+    await expect.poll(async () => await page.evaluate(() => {
+        const G = (window as any).__IE_STATE__;
+        return ["GE", "UK", "FR", "AU", "RU", "OT"].every((power) =>
+            G.powers[power].eliminated === true || G.powers[power].flags.negotiationDone === true);
+    }), {timeout: 15_000}).toBe(true);
+}
+
 async function phoneChooseHomeCards(page: Page) {
+    await phoneFinishNegotiating(page);
     // The diplomacy step advances one seat at a time, so only the seat whose
     // turn it is offers the choice; walk the strip and answer that one.
     for (let round = 0; round < SEATS.length; round += 1) {
@@ -613,8 +658,9 @@ test.describe("Imperial Elegy new controls", () => {
         await finishPrep(page);
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
         // GE must pick Bismarck itself; the other seats keep the first choice.
-        // 9.1: each seat opens its own choice after negotiating, and the step
-        // advances one seat at a time.
+        // 9.1: the table finishes negotiating before any home card, and the
+        // step then advances one seat at a time.
+        await finishNegotiating(page);
         for (let round = 0; round < SEATS.length; round += 1) {
             let answered = false;
             for (const seat of SEATS) {
@@ -961,6 +1007,15 @@ test.describe("Imperial Elegy solo vs bot", () => {
         // is already moving; the phase poll below is the real precondition.
         await clickUntilGone(page, board.getByRole("button", {name: "准备完毕"}).first());
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        // 9.1: negotiation first.  The bots close their own segments; the
+        // human GE seat clicks its finish button if it has one.
+        const finish = board.locator('[data-testid="ie-finish-negotiation"]');
+        if (await finish.count()) await clickUntilGone(page, finish.first());
+        await expect.poll(async () => await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            return ["GE", "UK", "FR", "AU", "RU", "OT"].every((power) =>
+                G.powers[power].eliminated === true || G.powers[power].flags.negotiationDone === true);
+        }), {timeout: 15_000}).toBe(true);
         // GE may be a bot seat in this fixture; if it is, it picks its own home
         // card and there is nothing to click here.  9.1: the choice waits behind
         // the dock's button, so open it first.

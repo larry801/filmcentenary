@@ -56,7 +56,7 @@ import {resolveWar, surrender} from "../moves";
 import {advanceGwImpulse} from "../engine/greatWarFlow";
 import {scoreGame} from "../engine/victory";
 import {resolveAnchor} from "./ReferenceDrawer";
-import {GreatWarState, ImperialElegyState} from "../types";
+import {GreatWarState, ImperialElegyState, POWERS} from "../types";
 import i18n from "../../constant/i18n";
 
 const testCtx = {
@@ -603,25 +603,40 @@ describe("Imperial Elegy board controls", () => {
     expect(buttonTag(stripe, "ie-dock-target-cancel")).toContain("取消");
   });
 
-  test("the home-card choice waits behind the negotiation table instead of popping up", () => {
+  test("the home-card choice waits until the whole table has finished negotiating", () => {
     const G = freshGame();
     G.phase = "diplomacy";
     G.activePower = "GE";
+    // 9.1: the phase opens in the negotiation segment.  The home card must not
+    // be offered until every seat has ended it.
+    for (const power of POWERS) G.powers[power].flags.negotiationDone = false;
     const markup = html(G, "0");
-    // 9.1: negotiation comes first.  The choice must not cover the table the
-    // instant diplomacy opens, or talking (11.0) and dealing (11.1) is
-    // impossible.
     expect(markup).not.toContain("data-testid=\"ie-choice-modal\"");
-    // The step is still owed, and says so in the dock and in the hand tray.
-    expect(markup).toContain("尚未选择本土牌");
+    expect(markup).not.toContain("data-testid=\"ie-open-home-card\"");
+    expect(markup).not.toContain("data-testid=\"ie-deals-home-step\"");
+    // The seat's own next step is to end its negotiation; the dock says the
+    // step is running and the tray points at it.
+    expect(markup).toContain("data-testid=\"ie-finish-negotiation\"");
+    expect(markup).toContain("谈判进行中");
     expect(markup).toContain("data-testid=\"ie-hand-choices-hint\"");
-    expect(markup).toContain("先进行谈判");
-    // The seat opens it from the dock, and the Deals page offers the same step.
+    expect(markup).toContain("先结束谈判");
+    expect(markup).toContain("data-testid=\"ie-deals-negotiation-step\"");
+    // The hand panel does not duplicate the card buttons.
+    expect(markup.match(/data-testid="ie-home-card-choice"/g)).toBeNull();
+  });
+
+  test("once every seat has finished negotiating the dock opens the home-card step", () => {
+    const G = freshGame();
+    G.phase = "diplomacy";
+    G.activePower = "GE";
+    for (const power of POWERS) G.powers[power].flags.negotiationDone = true;
+    const markup = html(G, "0");
+    expect(markup).not.toContain("data-testid=\"ie-choice-modal\"");
+    expect(markup).toContain("尚未选择本土牌");
     expect(markup).toContain("data-testid=\"ie-open-home-card\"");
     expect(markup).toContain("data-testid=\"ie-deals-home-step\"");
     expect(markup).toContain("data-testid=\"ie-open-home-card-from-deals\"");
-    // The hand panel does not duplicate the card buttons.
-    expect(markup.match(/data-testid="ie-home-card-choice"/g)).toBeNull();
+    expect(markup).not.toContain("data-testid=\"ie-finish-negotiation\"");
   });
 
   test("the home-card dialog is dismissible: the choice stays owed when it is closed", () => {

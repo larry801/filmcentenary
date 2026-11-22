@@ -90,7 +90,17 @@ const diplomacy = (): ImperialElegyState => {
   G.pending = null;
   G.battle = null;
   G.war = null;
-  for (const power of POWERS) G.powers[power].flags.homeChosen = false;
+  // Mirror `diplomacyBegin`: the phase opens in the negotiation segment.
+  for (const power of POWERS) {
+    G.powers[power].flags.homeChosen = false;
+    G.powers[power].flags.negotiationDone = false;
+  }
+  return G;
+};
+
+/** Simulate every seat pressing "finish negotiating". */
+const concludeNegotiation = (G: ImperialElegyState): ImperialElegyState => {
+  for (const power of POWERS) G.powers[power].flags.negotiationDone = true;
   return G;
 };
 
@@ -140,19 +150,40 @@ beforeEach(() => {
 });
 
 describe("the diplomacy home-card choice", () => {
-  test("does not pop up when diplomacy opens: the dialog waits behind a dock button", () => {
+  test("negotiation comes first: no home-card entry until every seat is done", () => {
     const tree = render(diplomacy(), "GE", {});
     expect(byTestId(tree, "ie-choice-modal")).toBeUndefined();
     expect(byTestId(tree, "ie-home-card-choice")).toBeUndefined();
-    // The step is still owed, and the dock names it.
-    expect(byTestId(tree, "ie-open-home-card")).toBeTruthy();
-    expect(byTestId(tree, "ie-dock-summary")?.props.children).toContain("尚未选择本土牌");
-    // The negotiation table is reachable while the choice is outstanding.
+    // 9.1: the seat's own step is to end its negotiation segment.
+    expect(byTestId(tree, "ie-open-home-card")).toBeUndefined();
+    expect(byTestId(tree, "ie-finish-negotiation")).toBeTruthy();
+    expect(byTestId(tree, "ie-dock-summary")?.props.children).toContain("谈判进行中");
+    // The negotiation table is reachable while the step is running.
     expect(byTestId(tree, "ie-deals")).toBeTruthy();
+    expect(byTestId(tree, "ie-deals-negotiation-step")).toBeTruthy();
   });
 
-  test("the dock button opens the choice, and closing it leaves it owed", () => {
+  test("the seat's own finish button calls finishNegotiation", () => {
     const G = diplomacy();
+    const moves = {finishNegotiation: jest.fn()};
+    click(render(G, "GE", moves), "ie-finish-negotiation");
+    expect(moves.finishNegotiation).toHaveBeenCalled();
+  });
+
+  test("one seat finishing does not open the home card for the table", () => {
+    const G = diplomacy();
+    G.powers.GE.flags.negotiationDone = true;
+    const tree = render(G, "GE", {});
+    expect(byTestId(tree, "ie-open-home-card")).toBeUndefined();
+    expect(byTestId(tree, "ie-finish-negotiation")).toBeUndefined();
+    expect(byTestId(tree, "ie-dock-summary")?.props.children).toContain("谈判进行中");
+    expect(byTestId(tree, "ie-deals-negotiation-waiting")).toBeTruthy();
+    // The panel names who the table is still waiting for.
+    expect(byTestId(tree, "ie-deals-still-negotiating")).toBeTruthy();
+  });
+
+  test("once every seat is done, the dock button opens the choice and closing leaves it owed", () => {
+    const G = concludeNegotiation(diplomacy());
     click(render(G, "GE", {}), "ie-open-home-card");
     const opened = render(G, "GE", {});
     expect(byTestId(opened, "ie-choice-modal")).toBeTruthy();
@@ -167,8 +198,8 @@ describe("the diplomacy home-card choice", () => {
     expect(byTestId(closed, "ie-open-home-card")).toBeTruthy();
   });
 
-  test("the deals page carries the same next step", () => {
-    const G = diplomacy();
+  test("the deals page carries the same next step after negotiation", () => {
+    const G = concludeNegotiation(diplomacy());
     const tree = render(G, "GE", {});
     expect(byTestId(tree, "ie-deals-home-step")).toBeTruthy();
     click(tree, "ie-open-home-card-from-deals");
@@ -176,14 +207,14 @@ describe("the diplomacy home-card choice", () => {
   });
 
   test("only the seat whose diplomacy turn it is offers the choice", () => {
-    const G = diplomacy();
+    const G = concludeNegotiation(diplomacy());
     // GE is first; FR is still waiting, so its dock has no home-card button.
     expect(byTestId(render(G, "GE", {}), "ie-open-home-card")).toBeTruthy();
     expect(byTestId(render(G, "FR", {}), "ie-open-home-card")).toBeUndefined();
   });
 
   test("choosing a card answers the step and closes the dialog", () => {
-    const G = diplomacy();
+    const G = concludeNegotiation(diplomacy());
     const moves = {chooseHomeCard: jest.fn()};
     click(render(G, "GE", moves), "ie-open-home-card");
     const opened = render(G, "GE", moves);

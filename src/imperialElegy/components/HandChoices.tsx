@@ -25,6 +25,12 @@ export interface HandChoicesProps {
   t: ReturnType<typeof ieT>;
   phase: string;
   canPhaseAct: boolean;
+  /**
+   * 9.1: the negotiation segment comes first, so the home-card faces are not
+   * offered until the whole table has finished negotiating.  Optional/defaults
+   * to true so a direct caller that only renders one choice keeps working.
+   */
+  homeReady?: boolean;
   hand: string[];
   ngChoices: string[];
   doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
@@ -45,10 +51,10 @@ export interface HandChoiceAvailability {
  * read as "you cannot continue until you pick".
  */
 export const handChoiceAvailability = ({
-  phase, canPhaseAct, me, ngChoices, viewer, hand,
-}: Pick<HandChoicesProps, "phase" | "canPhaseAct" | "me" | "ngChoices" | "viewer" | "hand">): HandChoiceAvailability => {
+  phase, canPhaseAct, me, ngChoices, viewer, hand, homeReady = true,
+}: Pick<HandChoicesProps, "phase" | "canPhaseAct" | "me" | "ngChoices" | "viewer" | "hand" | "homeReady">): HandChoiceAvailability => {
   if (viewer === null || me === null) return {required: false, optional: false};
-  const home = phase === "diplomacy" && me.homeCards.length > 0 && me.selectedHomeCard === null;
+  const home = homeReady && phase === "diplomacy" && me.homeCards.length > 0 && me.selectedHomeCard === null;
   const goals = phase === "end" && ngChoices.length > 0;
   // The discard needs a legal card in hand; otherwise the dock would announce a
   // choice with an empty body.
@@ -71,13 +77,14 @@ export const hasHandChoices = (props: Parameters<typeof handChoiceAvailability>[
 
 export const HandChoices = (props: HandChoicesProps) => {
   const {
-    viewer, me, locale, t, phase, canPhaseAct, hand, ngChoices, doAction, moves,
+    viewer, me, locale, t, phase, canPhaseAct, homeReady = true, hand, ngChoices, doAction, moves,
   } = props;
   if (viewer === null || me === null) return null;
 
   // Once the card is chosen the faces stay (they mark the selection) but the
-  // dock no longer treats the step as an open required choice.
-  const showHome = phase === "diplomacy" && me.homeCards.length > 0;
+  // dock no longer treats the step as an open required choice.  9.1 hides them
+  // entirely while the table is still negotiating.
+  const showHome = homeReady && phase === "diplomacy" && me.homeCards.length > 0;
   const showGoals = phase === "end" && ngChoices.length > 0;
   const showDiscard = phase === "prep" && canPhaseAct && !me.flags.prepStability &&
     hand.some((id) => isDiscardableForStability(id));

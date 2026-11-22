@@ -18,7 +18,16 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {dealProblem, dealsOf, negotiationOf, shownCardsFor} from "./engine/negotiation";
-import {hideCard, proposeDeal, respondDeal, counterDeal, showCard, withdrawDeal} from "./moves";
+import {
+  chooseHomeCard,
+  finishNegotiation,
+  hideCard,
+  proposeDeal,
+  respondDeal,
+  counterDeal,
+  showCard,
+  withdrawDeal,
+} from "./moves";
 
 const seat = (power: Power): string => String(POWERS.indexOf(power));
 
@@ -294,6 +303,59 @@ describe("11.0 showing action cards", () => {
     const G = diplomacy();
     G.phase = "action";
     expect(showCard(G, makeCtx(), "IE-A019", null)).toBe(INVALID_MOVE);
+  });
+});
+
+describe("9.1 finishing negotiation before the home card", () => {
+  /** The phase opens in the negotiation segment, as `diplomacyBegin` writes it. */
+  const negotiating = (): ImperialElegyState => {
+    const G = diplomacy();
+    for (const power of POWERS) G.powers[power].flags.negotiationDone = false;
+    return G;
+  };
+
+  test("a home card is refused while any seat is still negotiating", () => {
+    const G = negotiating();
+    expect(chooseHomeCard(G, makeCtx(), G.powers.GE.homeCards[0])).toBe(INVALID_MOVE);
+    expect(G.powers.GE.selectedHomeCard).toBeNull();
+  });
+
+  test("finishing marks only the acting seat and is not repeatable", () => {
+    const G = negotiating();
+    expect(finishNegotiation(G, makeCtx([], "FR"))).toBeUndefined();
+    expect(G.powers.FR.flags.negotiationDone).toBe(true);
+    expect(G.powers.GE.flags.negotiationDone).toBe(false);
+    expect(G.log.find((entry) => entry.key === "negotiationFinished")?.power).toBe("FR");
+    expect(finishNegotiation(G, makeCtx([], "FR"))).toBe(INVALID_MOVE);
+  });
+
+  test("one finished seat does not unlock the home card for the table", () => {
+    const G = negotiating();
+    expect(finishNegotiation(G, makeCtx([], "GE"))).toBeUndefined();
+    expect(chooseHomeCard(G, makeCtx(), G.powers.GE.homeCards[0])).toBe(INVALID_MOVE);
+  });
+
+  test("once every seat is done the home card is accepted", () => {
+    const G = negotiating();
+    for (const power of POWERS) expect(finishNegotiation(G, makeCtx([], power))).toBeUndefined();
+    const card = G.powers.GE.homeCards[0];
+    expect(chooseHomeCard(G, makeCtx(), card)).toBeUndefined();
+    expect(G.powers.GE.selectedHomeCard).toBe(card);
+  });
+
+  test("a legacy state without the flag is treated as already finished", () => {
+    const G = diplomacy();
+    for (const power of POWERS) delete G.powers[power].flags.negotiationDone;
+    expect(chooseHomeCard(G, makeCtx(), G.powers.GE.homeCards[0])).toBeUndefined();
+  });
+
+  test("an eliminated seat cannot hold the table at the negotiation step", () => {
+    const G = negotiating();
+    G.powers.FR.eliminated = true;
+    for (const power of POWERS) {
+      if (power !== "FR") expect(finishNegotiation(G, makeCtx([], power))).toBeUndefined();
+    }
+    expect(chooseHomeCard(G, makeCtx(), G.powers.GE.homeCards[0])).toBeUndefined();
   });
 });
 

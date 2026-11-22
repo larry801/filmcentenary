@@ -125,7 +125,9 @@ describe("11.1 over the running game", () => {
     expect(negotiationOf(ge.getState()!.G).offers[0].status).toBe("accepted");
     expect(fr.getState()!.G.powers.FR.hand).toEqual(HAND);
 
-    // Every seat picks a home card; the last one closes the phase and settles.
+    // 9.1: every seat first ends its negotiation segment, then picks a home
+    // card; the last pick closes the phase and settles.
+    await all(clients, (client) => client.moves.finishNegotiation());
     await all(clients, (client, power) => {
       const G = client.getState()!.G;
       client.moves.chooseHomeCard(G.powers[power].homeCards[0]);
@@ -152,6 +154,7 @@ describe("11.1 over the running game", () => {
     await settle(clients[0], before);
     const id = negotiationOf(ge.getState()!.G).offers[0].id;
 
+    await all(clients, (client) => client.moves.finishNegotiation());
     await all(clients, (client, power) => {
       const G = client.getState()!.G;
       client.moves.chooseHomeCard(G.powers[power].homeCards[0]);
@@ -182,6 +185,7 @@ describe("11.1 over the running game", () => {
       (clients[POWERS.indexOf(power)].getState()!.G.negotiation?.shown ?? []).length;
     for (const power of POWERS) expect(shown(power)).toBe(1);
 
+    await all(clients, (client) => client.moves.finishNegotiation());
     await all(clients, (client, power) => {
       const G = client.getState()!.G;
       client.moves.chooseHomeCard(G.powers[power].homeCards[0]);

@@ -37,6 +37,13 @@ test("prep, diplomacy and the first action-phase card", async () => {
     await settled(clients[0], before);
   }
   expect(clients[0].getState()!.G.phase).toBe("diplomacy");
+  // 9.1: each seat first ends its negotiation segment; the home-card step
+  // opens only after the whole table has done so.
+  for (const c of clients) {
+    const before = stateIdOf(clients[0]);
+    c.moves.finishNegotiation();
+    await settled(clients[0], before);
+  }
   for (const c of clients) {
     const G = c.getState()!.G;
     const p = POWERS[Number(c.playerID)];

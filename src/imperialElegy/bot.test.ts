@@ -48,6 +48,17 @@ test("11.1 the bot refuses an offer addressed to it instead of haggling", () => 
   expect(botDecision(G, ctx, "RU").move).toBe("chooseHomeCard");
 });
 
+test("9.1 a bot closes its negotiation segment before choosing a home card", () => {
+  const G = setupImperialElegy(ctx);
+  G.phase = "diplomacy";
+  G.activePower = "GE";
+  G.powers.GE.flags.negotiationDone = false;
+  expect(botDecision(G, ctx, "GE")).toEqual({move: "finishNegotiation"});
+  // Once the seat has finished talking, its home card is the next step.
+  G.powers.GE.flags.negotiationDone = true;
+  expect(botDecision(G, ctx, "GE").move).toBe("chooseHomeCard");
+});
+
 test("botDecision does not throw in action phase", () => {
   const G = setupImperialElegy(ctx);
   G.phase = "action";

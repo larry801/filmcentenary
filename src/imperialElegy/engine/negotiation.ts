@@ -67,6 +67,35 @@ export const dealableCards = (G: ImperialElegyState, power: Power): CardId[] =>
   (G.powers[power]?.hand ?? []).filter((id) => cardById(id).kind !== "home");
 
 // ---------------------------------------------------------------------------
+// 9.1 — the negotiation segment ends before the home-card step.
+// ---------------------------------------------------------------------------
+
+/**
+ * Whether a power has finished negotiating this diplomacy phase.
+ *
+ * The step is collective: `9.1` prints "reach agreements, announce them, then
+ * choose home cards".  A new diplomacy phase writes `negotiationDone = false`
+ * for every seat (`game.ts#diplomacyBegin`); a legacy save or a hand-written
+ * fixture that predates the step has the flag absent, which reads as done so an
+ * old phase still closes instead of stalling on a seat that cannot answer.
+ */
+export const negotiationDoneFor = (G: ImperialElegyState, power: Power): boolean =>
+  G.powers[power]?.flags?.negotiationDone !== false;
+
+/** The surviving powers still at the negotiation table, in printed order. */
+export const negotiatingPowers = (G: ImperialElegyState): Power[] =>
+  POWERS.filter((power) =>
+    G.powers[power]?.eliminated !== true && !negotiationDoneFor(G, power));
+
+/**
+ * 9.1: the negotiation segment is over only once every surviving power has
+ * declared itself done.  `chooseHomeCard` refuses until then, so nobody can
+ * pick a home card while another player is still talking.
+ */
+export const negotiationConcluded = (G: ImperialElegyState): boolean =>
+  negotiatingPowers(G).length === 0;
+
+// ---------------------------------------------------------------------------
 // Validation — shared by the moves and the panel, so a row is never offered for
 // a deal the engine would refuse.
 // ---------------------------------------------------------------------------

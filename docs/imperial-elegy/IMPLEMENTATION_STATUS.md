@@ -1,5 +1,49 @@
 # Imperial Elegy — implementation status
 
+## Fixed: show targets, one-way deals, and negotiation before the home card (2026-11-22)
+
+Reported as "外交阶段展示卡牌没有向单独一个玩家展示的入口 点击展示之后应该选择目标玩家 展示按钮本身名字容易误会 改成向他人展示 谈判时不应该能选择本土牌 谈判结束后再选"，随后追加"外交阶段卡牌交易一般是单向的 改成开关切换 给出/获取 数量用下拉列表"。
+
+The 11.0/11.1 table had three gaps:
+
+- **11.0 had no private-show entry.** The hand row's button was labelled `展示`
+  / "Show" and always called `showCard(card, null)`, so the engine's
+  one-power show could only be reached by a crafted client. The button now
+  reads `向他人展示` / "Show to others" and opens `ie-show-target-picker`,
+  which names `ie-show-target-table` (public) and one `ie-show-target-<POWER>`
+  per surviving opponent. The tray's `本阶段已展示` list names each recipient,
+  so the same card may be shown to more than one seat.
+- **The deal form asked for two counts.** Deals are usually one-way, so the
+  form is now a `给出 / 获取` switch (`ie-deals-direction-give|take`) plus a
+  `ie-deals-count` dropdown bounded by that direction's live dealable hand.
+  The inactive direction is always zero; the terms preview prints one
+  sentence. `startCounter` still mirrors the original terms into the form,
+  so a counter starts from the offer's direction.
+- **The home card could be chosen during negotiation.** `diplomacyBegin`
+  writes `flags.negotiationDone = false` for every seat, and the new
+  `finishNegotiation` move closes one seat's segment. `chooseHomeCard`
+  refuses until every surviving seat is done (`negotiationConcluded`). Both
+  the dock (`ie-finish-negotiation`) and the Deals page
+  (`ie-finish-negotiation-from-deals`, `ie-deals-negotiation-step`) offer the
+  step; the home-card entry (`ie-open-home-card` /
+  `ie-deals-home-step`) appears only afterwards. The Deals page names the
+  seats still negotiating, and the panel/national-goal inline fallback
+  (`HandChoices.homeReady`) hides the home faces until then. A legacy save
+  without the flag reads as already finished, so resumed games do not stall.
+
+Bots close their own segments (`finishNegotiation`) before choosing a home
+card; the online driver picks any bot still at the table instead of waiting
+behind the framework's current player, and parks a finished bot while human
+seats talk.
+
+**Coverage:** `negotiation.test.ts` adds the finish/gate cases (5),
+`homeCardChoice.test.tsx` rewrites the diplomacy suite around the two-step
+flow (7), `diplomacyPanel.test.tsx` adds the negotiation-step and one-way
+deal-form assertions, `HandTray.test.tsx` pins the renamed show button and
+the recipient list, `ieBotDriver.test.ts` covers bots finishing the segment,
+and the e2e helpers sweep `ie-finish-negotiation` before opening the home
+card.
+
 ## Fixed: the home-card dialog covered the negotiation table (9.1) (2026-11-22)
 
 Reported as "外交阶段直接弹出必选本土牌了 无法进行谈判 应该谈判完成后再弹出 而且改为可关闭/打开发界面".

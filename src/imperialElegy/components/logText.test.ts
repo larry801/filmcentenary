@@ -203,6 +203,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   cardShownPublic: {key: "cardShownPublic", power: "GE", args: {card: CARD_ID}},
   cardShownPrivate: {key: "cardShownPrivate", power: "GE", args: {to: "FR"}},
   cardHidden: {key: "cardHidden", power: "GE", args: {}},
+  negotiationFinished: {key: "negotiationFinished", power: "GE", args: {}},
   dealProposed: {key: "dealProposed", power: "GE", args: {id: "deal-1", to: "FR"}},
   dealAccepted: {key: "dealAccepted", power: "FR", args: {id: "deal-1", from: "GE"}},
   dealRefused: {key: "dealRefused", power: "FR", args: {id: "deal-1", from: "GE"}},

@@ -129,6 +129,12 @@ describe("botEscapeMove", () => {
     expect(botEscapeMove(G, "gwManeuver")).toEqual({move: "gwPass"});
   });
 
+  test("an unfinished negotiation is closed before a home card is chosen", () => {
+    const G2 = { ...G, powers: JSON.parse(JSON.stringify(G.powers)) } as ImperialElegyState;
+    G2.powers.GE.flags.negotiationDone = false;
+    expect(botEscapeMove(G2, "diplomacy", "GE")).toEqual({move: "finishNegotiation"});
+  });
+
   test("an open decision is answered with its first option, never declined blindly", () => {
     const pending = {
       id: "d1", kind: "eventChoice", power: "GE", prompt: "", createdAt: 1,
@@ -264,6 +270,11 @@ describe("the driver advances a match through its bot seats", () => {
     await driver.tick("match-5");
     live = state.get("match-5");
     expect((live.G as ImperialElegyState).phase).toBe("diplomacy");
+    // 9.1: the two humans close their negotiation segments first; the next
+    // drain lets the four bots do the same before any home card is chosen.
+    for (const seat of ["0", "1"]) await play(seat, "finishNegotiation");
+    await driver.tick("match-5");
+    live = state.get("match-5");
     for (const seat of ["0", "1"]) {
       const power = POWERS[Number(seat)];
       const card = (live.G as ImperialElegyState).powers[power].homeCards[0];
@@ -365,15 +376,18 @@ describe("the driver advances a match through its bot seats", () => {
     expect(afterOne.G.powers.OT.flags.prepDone).toBe(false);
 
     // The capped drain queued the next one, and the chain runs to completion
-    // without another human write.
+    // without another human write.  Each bot now has two steps: prep, then its
+    // 9.1 negotiation close, so the four bots need four drains.
     const deadline = Date.now() + 15000;
-    while (Date.now() < deadline && !(state.get("match-6").G as ImperialElegyState).powers.OT.flags.prepDone) {
+    const botsDone = () => botsForHumanCount(2).every((power) =>
+      (state.get("match-6").G as ImperialElegyState).powers[power].flags.negotiationDone === true);
+    while (Date.now() < deadline && !botsDone()) {
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
     const done = state.get("match-6");
     expect(done.G.powers.OT.flags.prepDone).toBe(true);
     expect(done.ctx.phase).toBe("diplomacy");
-    expect(done._stateID - live._stateID).toBe(botsForHumanCount(2).length);
+    expect(done._stateID - live._stateID).toBe(botsForHumanCount(2).length * 2);
     driver.stop();
   });
 
@@ -439,9 +453,10 @@ describe("the driver advances a match through its bot seats", () => {
     for (const power of botsForHumanCount(2)) expect(G.powers[power].flags.prepDone).toBe(true);
     expect(G.powers.GE.flags.prepDone).toBe(true);
     expect(G.powers.UK.flags.prepDone).toBe(true);
-    // The engine moved on to diplomacy / action once every power had prepped;
-    // either way the driver stopped asking bot seats.
-    expect(botSeatToAct(G, after.ctx)).not.toBe(null);
+    // The engine moved on to diplomacy once every power had prepped, and the
+    // same drain also closed the four bots' 9.1 negotiation segments.  The
+    // home-card turn now belongs to a human (GE), so no bot owes a move.
+    expect(botSeatToAct(G, after.ctx)).toBe(null);
     // Every dispatch was broadcast for the clients to pick up.
     expect(published.length).toBeGreaterThanOrEqual(4);
     expect(published.every((payload) => payload.type === "update" || payload.type === "patch")).toBe(true);
