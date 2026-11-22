@@ -348,19 +348,6 @@ const findRebelTarget = (G: ImperialElegyState, power: Power): {space: SpaceId; 
   return null;
 };
 
-/** True when the bot's home cards include the given card name handler. */
-const homeCardHandlerOf = (power: Power): string => {
-  switch (power) {
-    case "GE": return "bismarckWar";
-    case "UK": return "sunNeverSets";
-    case "FR": return "auxArmes";
-    case "AU": return "habsburgDynasty";
-    case "RU": return "russoTurkishWars";
-    case "OT": return "modernization";
-    default: return "";
-  }
-};
-
 // ---------------------------------------------------------------------------
 // Pending decision — bot auto-answer
 // ---------------------------------------------------------------------------
@@ -377,6 +364,30 @@ export const botPendingMove = (
   const pending = G.pending;
   if (!pending || pending.power !== power) return null;
   if (pending.options.length === 0) return null;
+
+  // 12.13.1 Modernization.  The default "first option" answer always picked
+  // `pass`, so a bot seat never offered a card and the Ottoman bot could never
+  // use the home card it is printed to rely on.  Offering is free (the giver
+  // draws a replacement), so the offer round gives the cheapest card, and the
+  // Ottoman seat accepts the highest CP offer: a higher CP card is more likely
+  // to reach the 6 the Ottomans need.
+  if (pending.context?.special === "modernization") {
+    const stage = String(pending.context.stage ?? "");
+    if (stage === "offer") {
+      const offers = pending.options
+        .filter((o) => o.id.startsWith("offer:"))
+        .sort((a, b) => cardById(String(a.data?.card)).cp - cardById(String(b.data?.card)).cp);
+      const pick = offers[0] ?? pending.options.find((o) => o.id === "pass") ?? pending.options[0];
+      return {move: "resolvePending", args: [pick.id]};
+    }
+    if (stage === "accept") {
+      const accepts = pending.options
+        .filter((o) => o.id.startsWith("accept:"))
+        .sort((a, b) => cardById(String(b.data?.card)).cp - cardById(String(a.data?.card)).cp);
+      const pick = accepts[0] ?? pending.options[0];
+      return {move: "resolvePending", args: [pick.id]};
+    }
+  }
 
   // For specific decision kinds, the bot has printed rules.
   switch (pending.kind) {

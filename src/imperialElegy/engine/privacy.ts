@@ -152,6 +152,9 @@ const PUBLIC_CARD_ARG_KEYS: ReadonlySet<string> = new Set([
   "responsePlayed",
   "combatCardPlayed",
   "industrializeCard",
+  // 12.13.1: an accepted card is placed faceup in the Ottoman
+  // industrialization slot with a chit on it, exactly like `industrializeCard`.
+  "modernizationAccepted",
   "cpChained",
   "gwCombatCardFaceup",
   "gwCombatCardFlipped",

@@ -300,6 +300,27 @@ describe("cardAvailability", () => {
     expect(homeAlreadyIndustrializing.reasons).toContain("A card is already industrializing");
   });
 
+  test("33.6 Europeanization closes the Ottoman industry slot on every card", () => {
+    const G = game(0);
+    const id = normalActionCard();
+    // The move refuses it (`industryRoll.allowed === false`), so the tray must
+    // not offer a button that is a guaranteed refusal.
+    const ot = cardAvailability(input(G, id, {power: "OT"}));
+    expect(ot.industOk).toBe(false);
+    expect(ot.firstReason).toBe("Europeanization: the Ottomans industrialize only through Modernization");
+
+    // A mandatory event hides its generic reasons, but the printed prohibition
+    // still has to be told: OT cannot industrialize at all.
+    const otMandatory = cardAvailability(input(G, mandatoryCard(), {power: "OT"}));
+    expect(otMandatory.industOk).toBe(false);
+    expect(otMandatory.reasons).toContain("Europeanization: the Ottomans industrialize only through Modernization");
+
+    // Every other power keeps the slot.
+    for (const power of ["GE", "UK", "FR", "AU", "RU"] as const) {
+      expect(cardAvailability(input(G, id, {power})).industOk).toBe(true);
+    }
+  });
+
   test("the CP chain accepts two cards and refuses a third", () => {
     const G = game(0);
     const id = normalActionCard();

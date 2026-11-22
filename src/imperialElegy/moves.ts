@@ -2251,6 +2251,20 @@ export const industrialize = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): 
   if (p.selectedHomeCard === cardId) p.selectedHomeCard = null;
   log(G, power, "industrializeCard", {card: cardId});
   G.cpRemaining = 0;
+  // 12.13 Important: "mandatory events that are played into industrialization
+  // still trigger".  The card is busy industrializing, not being played for CP,
+  // so its printed CP are *not* granted: `pendingMandatory` stays false and the
+  // event chain ends through `finalizePendingCard`, which leaves the face-up
+  // card alone because `isHeldAsIndustryCard` already names it.
+  if (card.type === "mandatory" || card.type === "mandatoryResponse") {
+    const done = resolveCard(G, ctx, power, card);
+    if (!done) {
+      G.flags.pendingCard = cardId;
+      G.flags.pendingMandatory = false;
+      return undefined;
+    }
+    G.resolvingCard = null;
+  }
   finishImpulse(G, ctx);
   return undefined;
 };

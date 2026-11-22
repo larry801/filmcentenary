@@ -447,8 +447,19 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   The selected home card may be used as the industry card; it leaves the hand,
   clears the home selection and returns to the permanent home slot after the
   end-phase roll instead of being discarded. `resolveEnd` now uses
-  `industryTarget`/`industryRollNeeded` and the auto-chit helper. **Partial**
-  relative to the printed modifiers; the OT “no own card” rule is now enforced.
+  `industryTarget`/`industryRollNeeded` and the auto-chit helper. A mandatory
+  event (or the mandatory response) placed into the slot still triggers its
+  event, with no CP granted (12.13 *Important*). **12.13.1 Ottoman
+  Industrialization** is a separate path: the Ottomans cannot use their own
+  cards at all (33.6 Europeanization, enforced by the move and shown in the
+  tray), and only OT-11 Modernization puts a card into their slot. That card
+  asks every other power in seat order whether it will gift a card (announcing
+  its true CP); with at least one offer the Ottoman seat **must** accept one,
+  the giver draws a replacement and the card becomes the industrialization
+  card, while the auto chit survives the gift; a gifted mandatory event is
+  conducted by the Ottoman player without its CP. Only a round with no offer at
+  all lets the home card be spent for its printed 3 CP. **Partial** relative to
+  the printed modifiers otherwise.
   Berlin Conference’s 12.5.2 Africa influence limit and 12.6 removal exception
   are live.
 - **Card targets:** explicit, validated choices now exist for Second Opium

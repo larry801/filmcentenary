@@ -418,20 +418,41 @@ test("the selected home card may industrialize and stays in the home slot", () =
   expect(G.discard).not.toContain(home);
 });
 
-test("mandatory events and the mandatory response may be used to industrialize", () => {
-  for (const type of ["mandatory", "mandatoryResponse"] as const) {
-    const G = fresh();
-    const ctx = makeCtx("0", 6);
-    beginAction(G);
+test("mandatory events and the mandatory response may be used to industrialize, and still trigger", () => {
+  // 12.13 Important: "mandatory events that are played into industrialization
+  // still trigger".  A104's printed event is "Decrease the WTT by 1", and the
+  // CP that 9.1.4 normally grants are *not* granted: the card is industrializing,
+  // not being played for CP.
+  const G = fresh();
+  const ctx = makeCtx("0", 6);
+  beginAction(G);
+  G.wtt = 3;
+  takeCard(G, "IE-A104");
+  G.powers.GE.hand.push("IE-A104");
 
-    const card = ALL_CARDS.find((c) => c.kind === "action" && c.type === type)!;
-    giveToHand(G, "GE", card.id);
+  expect(industrialize(G, ctx, "IE-A104")).toBeUndefined();
+  expect(G.powers.GE.industryCard).toBe("IE-A104");
+  expect(G.powers.GE.hand).not.toContain("IE-A104");
+  expect(G.wtt).toBe(2);
+  expect(G.cpRemaining).toBe(0);
+  // One physical card, one zone: not also in the discard pile.
+  expect(G.discard).not.toContain("IE-A104");
 
-    expect(industrialize(G, ctx, card.id)).toBeUndefined();
-    expect(G.powers.GE.industryCard).toBe(card.id);
-    expect(G.powers.GE.hand).not.toContain(card.id);
-    expect(G.cpRemaining).toBe(0);
-  }
+  // A105 Impulsive Ruler is the mandatory *response*; as a mandatory response
+  // it draws instead of granting CP, so the same slot still works.
+  const R = fresh();
+  const rctx = makeCtx("0", 6);
+  beginAction(R);
+  takeCard(R, "IE-A105");
+  R.powers.GE.hand.push("IE-A105");
+  const handBefore = R.powers.GE.hand.length;
+
+  expect(industrialize(R, rctx, "IE-A105")).toBeUndefined();
+  expect(R.powers.GE.industryCard).toBe("IE-A105");
+  expect(R.powers.GE.hand).not.toContain("IE-A105");
+  expect(R.cpRemaining).toBe(0);
+  // The response's printed draw is part of its event (minus the card itself).
+  expect(R.powers.GE.hand.length).toBe(handBefore - 1 + 1);
 });
 
 // ---------------------------------------------------------------------------

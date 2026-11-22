@@ -125,7 +125,12 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   // Trade, which grants the card for play, not for industrialization.
   // Mandatory events (and the mandatory response) may industrialize as well;
   // `isMandatory` still governs CP/event/response/save modes, not this slot.
-  const industOk = canActionCard && industryCard === null && homeIndustryOk;
+  // 33.6 Europeanization / 12.13.1: "The OT player does not industrialize like
+  // the other players; they can only industrialize through the play of their
+  // Modernization home card."  The move refuses every OT card, so the tray must
+  // not offer the slot either — otherwise the button is a guaranteed refusal.
+  const otIndustryBlocked = power === "OT";
+  const industOk = canActionCard && industryCard === null && homeIndustryOk && !otIndustryBlocked;
   const chainOk = canActionCard && cpChainLength < 2;
   const saveOk = (phase === "action" || phase === "end") && card.kind !== "home" && !isMandatory;
 
@@ -162,12 +167,14 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
     else if (!canActionCard) reasons.push(bi("Events are played at the start of an Action impulse", "事件需在行动轮开始时打出"));
     else if (impulseUsed) reasons.push(G.cpRemaining > 0 ? bi("Events are played before spending CP", "事件需在花费 CP 前打出") : oneCardReason);
   }
-  if (!industOk && !isMandatory) {
-    reasons.push(card.kind === "home" && !homeIndustryOk
-      ? bi("Set it as your home card during Diplomacy first", "需先在外交阶段选为本国牌")
-      : industryCard !== null
-        ? bi("A card is already industrializing", "已有牌在工业化")
-        : bi("Industrialize only during your Action impulse", "工业化仅限你的行动阶段行动轮"));
+  if (!industOk && (!isMandatory || otIndustryBlocked)) {
+    reasons.push(otIndustryBlocked
+      ? bi("Europeanization: the Ottomans industrialize only through Modernization", "欧洲化：奥斯曼只能通过“现代化”实现工业化")
+      : card.kind === "home" && !homeIndustryOk
+        ? bi("Set it as your home card during Diplomacy first", "需先在外交阶段选为本国牌")
+        : industryCard !== null
+          ? bi("A card is already industrializing", "已有牌在工业化")
+          : bi("Industrialize only during your Action impulse", "工业化仅限你的行动阶段行动轮"));
   }
   if (!chainOk && cpChainLength >= 2) reasons.push(bi("CP chain is full", "CP 链已满"));
   if (!saveOk) reasons.push(bi("Save only in the Action or End phase", "仅可在行动或结束阶段保留"));

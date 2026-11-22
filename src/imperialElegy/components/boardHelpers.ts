@@ -150,6 +150,8 @@ export const PROMPT_ZH: Record<string, string> = {
   /* --- Card events --------------------------------------------------- */
   "Economic Panic: discard a random card or lose one stability": "经济恐慌：随机弃 1 张牌或失去 1 点稳定",
   "World's Fair: discard a card?": "世界博览会：弃 1 张牌？",
+  "Modernization: offer the Ottomans a card?": "现代化：向奥斯曼提供 1 张牌？",
+  "Modernization: accept one offered card": "现代化：接受 1 张被提供的牌",
   "Berlin Conference: you may place the Belgian control marker in Africa": "柏林会议：你可以在非洲放置比利时的控制标记",
   "Urabi Revolt: play a card face down (its CP is your bid) or pass": "乌拉比起义：暗置打出 1 张牌（其 CP 为你的出价）或跳过",
   "Moroccan Crisis: play a card face down (its CP is your bid) or pass": "摩洛哥危机：暗置打出 1 张牌（其 CP 为你的出价）或跳过",

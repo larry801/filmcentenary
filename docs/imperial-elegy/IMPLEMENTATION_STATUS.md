@@ -1,5 +1,50 @@
 # Imperial Elegy — implementation status
 
+## Fixed: 12.13.1 Ottoman Industrialization now follows the printed text (2026-11-22)
+
+Checked clause by clause against `IE_rule.pdf` p. 27 §12.13.1, the OT-11 card
+face and the playbook's own Ottoman example.  The offer round itself existed;
+four clauses did not.
+
+- **"If a player gives OT a mandatory event, the OT player conducts the event."**
+  A gifted mandatory event was parked in the industrialization slot and never
+  resolved.  It is now resolved with the Ottoman seat as the actor — carrying no
+  CP, because the card is industrializing rather than being played for CP.  The
+  same gap existed on the generic path, so 12.13's *Important* clause
+  ("mandatory events that are played into industrialization still trigger") is
+  now honoured by `moves.ts#industrialize` too.
+- **"The OT player accepts one of these cards."** The accept step offered an
+  `accept:none` escape, which turned a round with offers into the 3 CP fallback.
+  The 3 CP now belong only to a round in which *nobody* gave OT a card; a round
+  with at least one offer must take one.  (A legacy save still answering
+  `accept:none` falls back to the 3 CP instead of stalling the card.)
+- **The auto-industrialization chit survives a gift.** The old handler forced
+  `autoIndustry = false`, so a failed Ottoman roll was thrown away by accepting
+  a card.  12.13 says the auto chit industrializes "if they played a card, of
+  any CP value, into industrialization", and the playbook's example is exactly
+  that: failed last turn, accepts a 1 CP card, industrializes.
+- **A taken industry slot is respected.** A027 Foreign Investment can already
+  park a card there; a second chit would overwrite it and the parked card would
+  exist in no zone.  The offer round is skipped and the home card is its printed
+  3 CP.
+- 33.6 Europeanization is visible in the UI: `cardAvailability.industOk` is
+  false for every OT card (the move always refused it, so the tray offered a
+  guaranteed refusal), with the printed reason on the button.
+- The offer/accept prompts carry `promptZh` and `PROMPT_ZH` entries;
+  `modernizationAccepted` is a public card argument like `industrializeCard`
+  (the card is faceup in the slot), while `modernizationOffered` keeps its card
+  masked and exposes only the CP the giver announced.
+- The bot's default "first option" answer always passed in the offer round, so
+  no bot ever offered and the Ottoman bot never industrialised; it now offers
+  its cheapest card (free — it draws a replacement) and accepts the highest CP
+  offer.
+
+**Coverage:** `cardEventSettlement.test.ts` (a mandatory gift is conducted, the
+accept step has no escape, the auto chit survives, an occupied slot falls back),
+`economyIntegration.test.ts` (mandatory event/response industrialization triggers
+its event and grants no CP), `components/cardAvailability.test.ts` (OT closure),
+`privacy.test.ts` (accepted gift faceup, offered card masked, CP public).
+
 ## Fixed: the bot named another phase's exit (12.0 / 27.1) (2026-11-22)
 
 Re-running `IE_BATCH=24` (144 games, six modes) against the fixed tree confirmed

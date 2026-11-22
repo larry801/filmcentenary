@@ -24,6 +24,7 @@ import {setupImperialElegy} from "./engine/setup";
 import {playCard, declareWar, pass, resolvePending} from "./moves";
 import {botDecision} from "./engine/bot";
 import {warDeclarationEntitlement} from "./engine/rules";
+import {cardById} from "./engine/deck";
 import {POWERS, type Power} from "./types";
 
 const seats = POWERS as unknown as string[];
@@ -220,12 +221,13 @@ describe("OT-11 Modernization — 12.13.1 offer round", () => {
     expect(G.pending).toBeNull();
   });
 
-  test("the Ottoman seat may refuse every offer and take the card's 3 CP", () => {
+  test("a round with an offer has no 3 CP fallback: the Ottoman seat must accept one card", () => {
     const G = setup("OT", "IE-H-OT-11");
     G.powers.UK.hand = ["IE-A029"];
     playCard(G, makeCtx(seatOf("OT")), "IE-H-OT-11", "event");
 
     let guard = 0;
+    let acceptOptions: string[] = [];
     while (G.pending && guard++ < 12) {
       const step = G.pending;
       const stage = step.context?.stage;
@@ -234,14 +236,70 @@ describe("OT-11 Modernization — 12.13.1 offer round", () => {
         const offer = step.options.find((o) => o.id === "offer:IE-A029");
         if (offer !== undefined) pick = offer.id;
       }
-      if (stage === "accept") pick = "accept:none";
+      if (stage === "accept") {
+        acceptOptions = step.options.map((o) => o.id);
+        pick = step.options[0].id;
+      }
       answer(G, step.power, pick);
     }
+    expect(guard).toBeLessThan(12);
+    // "The OT player accepts one of these cards" — no `accept:none`.
+    expect(acceptOptions).toEqual(["accept:IE-A029"]);
+    expect(G.cpRemaining).toBe(0);
+    expect(G.powers.OT.industryCard).toBe("IE-A029");
+    expect(G.powers.UK.hand).not.toContain("IE-A029");
+    expect(G.log.some((line) => line.key === "modernizationNoOffer")).toBe(false);
+  });
+
+  test("a gifted mandatory event is conducted by the Ottomans without granting its CP", () => {
+    const G = setup("OT", "IE-H-OT-11");
+    // A104 The Funeral of Edward VII: "Decrease the WTT by 1."
+    G.powers.UK.hand = ["IE-A104"];
+    for (const power of ["GE", "FR", "AU", "RU"] as Power[]) G.powers[power].hand = [];
+    G.wtt = 3;
+    playCard(G, makeCtx(seatOf("OT")), "IE-H-OT-11", "event");
+    // The mandatory event is offerable at all — 12.13.1 prints what happens
+    // when one is given.
+    expect(G.pending?.options.map((o) => o.id)).toContain("offer:IE-A104");
+    answer(G, "UK", "offer:IE-A104");
+    answer(G, "OT", "accept:IE-A104");
+
+    expect(G.wtt).toBe(2);
+    expect(G.pending).toBeNull();
+    // The card is industrializing, not played for CP.
+    expect(G.cpRemaining).toBe(0);
+    expect(G.powers.OT.industryCard).toBe("IE-A104");
+    // One physical card, one zone: not also in the discard pile.
+    expect(G.discard).not.toContain("IE-A104");
+    expect(G.powers.UK.hand).not.toContain("IE-A104");
+  });
+
+  test("a gifted card keeps the Ottoman auto-industrialization chit", () => {
+    const G = setup("OT", "IE-H-OT-11");
+    G.powers.UK.hand = ["IE-A029"];
+    for (const power of ["GE", "FR", "AU", "RU"] as Power[]) G.powers[power].hand = [];
+    // 12.13: failed last turn, so the auto chit is on the display.
+    G.powers.OT.autoIndustry = true;
+    playCard(G, makeCtx(seatOf("OT")), "IE-H-OT-11", "event");
+    answer(G, "UK", "offer:IE-A029");
+    answer(G, "OT", "accept:IE-A029");
+    // "All players with auto industrialization chits automatically industrialize
+    // if they played a card, of any CP value, into industrialization."
+    expect(G.powers.OT.autoIndustry).toBe(true);
+    expect(G.powers.OT.industryCard).toBe("IE-A029");
+  });
+
+  test("an occupied industry slot skips the offer round for the printed 3 CP", () => {
+    const G = setup("OT", "IE-H-OT-11");
+    G.powers.UK.hand = ["IE-A029"];
+    for (const power of ["GE", "FR", "AU", "RU"] as Power[]) G.powers[power].hand = ["IE-A029"];
+    // A027 Foreign Investment already parked a card in the slot.
+    G.powers.OT.industryCard = "IE-A002";
+    playCard(G, makeCtx(seatOf("OT")), "IE-H-OT-11", "event");
+    expect(G.pending).toBeNull();
     expect(G.cpRemaining).toBe(3);
-    expect(G.powers.OT.industryCard).toBeNull();
-    // The offered card stays with its owner when the Ottomans decline.
+    expect(G.powers.OT.industryCard).toBe("IE-A002");
     expect(G.powers.UK.hand).toContain("IE-A029");
-    expect(G.log.some((line) => line.key === "modernizationNoOffer")).toBe(true);
   });
 
   test("nobody can offer: the home card is worth its printed 3 CP", () => {
@@ -253,15 +311,17 @@ describe("OT-11 Modernization — 12.13.1 offer round", () => {
     expect(G.powers.OT.industryCard).toBeNull();
   });
 
-  test("a mandatory event is never offered as an industrialization card", () => {
+  test("a home card is never offered; a mandatory event is", () => {
     const G = setup("OT", "IE-H-OT-11");
-    const mandatory = G.powers.UK.hand.find((id) => id.length > 0);
-    void mandatory;
+    for (const power of POWERS) if (power !== "OT") G.powers[power].hand = ["IE-A104"];
     playCard(G, makeCtx(seatOf("OT")), "IE-H-OT-11", "event");
     const offers = G.pending?.options.filter((o) => o.id.startsWith("offer:")) ?? [];
+    expect(offers.length).toBeGreaterThan(0);
     for (const offer of offers) {
       const card = offer.id.slice("offer:".length);
-      expect(card).not.toMatch(/^IE-H-/);
+      // A home card is the power's own reserved card, never a gift; a mandatory
+      // event is (12.13.1 says OT then conducts it).
+      expect(cardById(card as never).kind).not.toBe("home");
     }
   });
 });
