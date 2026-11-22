@@ -41,6 +41,8 @@ export interface ModelDeps {
   moves: Record<string, (...args: any[]) => void>;
   playerID: string | null;
   hotseat?: boolean;
+  /** Rule 34 seat hand-over is offered; the solo page sets this false. */
+  allowSeatHandover?: boolean;
   /** Test seam: overrides for context values a stubbed React cannot provide. */
   injectedUi?: InjectedUi;
 }

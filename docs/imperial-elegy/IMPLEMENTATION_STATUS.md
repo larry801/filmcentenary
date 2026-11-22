@@ -1,5 +1,36 @@
 # Imperial Elegy — implementation status
 
+## Changed: solo play has its own match page, not the hotseat shell (2026-11-22)
+
+Reported as "帝国挽歌 solo模式使用单独页面 不复用本地热座 solo不显示其他机器人的界面 solo没有更换席位功能 只能重新开局 重开增加确认防止误点".
+
+The solo setup page already existed, but it handed over to `/localIE`, the
+six-board hotseat shell with five bot seats.  That let a solo player switch into
+a bot's board (and read its private hand), change seats or bot seats mid-game,
+and left `?fresh=` as the only guard against resuming an old match.
+
+- **`/localIE/solo/play` is a dedicated match page** (`components/soloMatch.tsx`).
+  The setup page writes the solo choice as before and navigates there; the
+  hotseat shell is no longer part of solo play.
+- **One visible board.**  Only the player's power is mounted.  The other five
+  seats are headless `Client`s driven by `components/soloBots.tsx`, which never
+  render a seat UI, so there is no bot board, no private bot hand and no
+  `ie-seat-<power>` element to switch to.
+- **No seat switching.**  There is no `SeatStrip`, no `ie-seat-setup` button and
+  no keyboard seat shortcut on the solo page.  The player's board also passes
+  `allowSeatHandover={false}`, so Rule 34's "hand this seat to the bot" control
+  is absent.
+- **Restart is guarded.**  `ie-solo-restart` opens a confirmation dialog
+  (`ie-solo-restart-dialog`) with cancel/confirm.  Confirming changes the match
+  id, which remounts every client and deals a fresh game with the same power and
+  scenario; a stray first click only opens the dialog.
+
+**Coverage:** `components/localSetup.test.tsx` (the dedicated route and the
+setup page's removal of the hotseat link), `components/board.test.tsx` (a board
+can opt out of the hand-over control), and the reworked solo tests in
+`e2e/imperial-elegy-controls.spec.ts` (one visible seat, no hotseat controls,
+and the cancel/confirm restart flow).
+
 ## Fixed: the home-card dialog covered the negotiation table (9.1) (2026-11-22)
 
 Reported as "外交阶段直接弹出必选本土牌了 无法进行谈判 应该谈判完成后再弹出 而且改为可关闭/打开发界面".

@@ -59,9 +59,8 @@ export const saveBotSeats = (seats: ReadonlySet<Power>): void => {
 /**
  * The power the player took for a solo match, if a solo match was started.
  *
- * It only decides which seat the shell shows first after the solo page hands
- * over; the bot seats themselves are the saved seat set, exactly as in a
- * hotseat match.
+ * The dedicated match page uses it to build the one visible board and to name
+ * the five headless bot seats.  A hotseat match ignores it.
  */
 export const loadSoloPower = (): Power | null => {
   try {
@@ -106,19 +105,20 @@ export const wantsSeatSetup = (search: string): boolean =>
   new URLSearchParams(search).get("solo") === "1";
 
 /**
- * The fresh-match nonce the solo page passes to the shell.
+ * The fresh-match nonce a hotseat entrance may pass to the shell.
  *
- * A solo start must deal a new match instead of resuming whatever hotseat match
- * the local master still holds, so the page navigates with `?fresh=<stamp>` and
- * the shell folds that stamp into the `matchID`.
+ * The dedicated solo page no longer uses this: it owns its own match id.  The
+ * hotseat shell still folds a supplied stamp into its `matchID` so an older
+ * `?fresh=<stamp>` link cannot resume the previous match.
  */
 export const loadFreshNonce = (search: string): number => {
   const raw = Number(new URLSearchParams(search).get("fresh"));
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 0;
 };
 
-/** The shell URL that deals the solo match just saved (`saveSoloSetup`). */
-export const soloMatchPath = (wing = Date.now()): string => `/localIE?fresh=${wing}`;
+/** The dedicated solo match page that deals the setup just saved. */
+export const SOLO_MATCH_PATH = "/localIE/solo/play";
+export const soloMatchPath = (): string => SOLO_MATCH_PATH;
 
 /**
  * The scenario line, Scenario-4 availability, the seat setup and the hand-over
@@ -130,7 +130,7 @@ export interface ILocalSetup {
   botSeats: Set<Power>;
   /** The seat the shell opens on. */
   tabIndex: number;
-  /** The fresh-match stamp of a solo hand-over (0 for a plain hotseat visit). */
+  /** The optional fresh-match stamp of a hotseat visit. */
   fresh: number;
   scenario: ScenarioId;
   noGw: boolean;
@@ -143,8 +143,8 @@ export interface ILocalSetup {
  *
  * `?solo=1` is the old seat-setup entrance: with nothing saved it pre-selects
  * P2–P6 as bots and leaves P1 for the person at the keyboard.  The dedicated
- * solo page (`/localIE/solo`) writes its own full set before handing over with
- * `?fresh=…`, which also tells the shell which seat to open on.
+ * solo pages (`/localIE/solo` and `/localIE/solo/play`) do not use this read:
+ * they derive every seat from the saved solo power.
  */
 export const readLocalSetup = (search: string): ILocalSetup => {
   const fresh = loadFreshNonce(search);
@@ -153,13 +153,10 @@ export const readLocalSetup = (search: string): ILocalSetup => {
   const botSeats = saved.size > 0
     ? saved
     : showSetup ? new Set<Power>(POWERS.slice(1)) : new Set<Power>();
-  const solo = fresh > 0 ? loadSoloPower() : null;
   // A saved setup can make P1 a bot; opening a read-only bot board would look
   // like a broken match, so fall back to the first seat a person owns.
   const firstHuman = POWERS.findIndex((power) => !botSeats.has(power));
-  const tabIndex = solo !== null
-    ? Math.max(0, POWERS.indexOf(solo))
-    : firstHuman < 0 ? 0 : firstHuman;
+  const tabIndex = firstHuman < 0 ? 0 : firstHuman;
   return {
     botSeats,
     tabIndex,

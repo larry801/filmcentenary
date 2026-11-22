@@ -791,10 +791,11 @@ test.describe("Imperial Elegy new controls", () => {
 });
 
 test.describe("Imperial Elegy solo vs bot", () => {
-    test("the solo page picks one great power and starts a match on that seat", async ({page}) => {
-        // The dedicated solo entrance is its own page: one radio per great
-        // power, the other five seats become bots, and the chosen seat is the
-        // one the shell opens on.
+    test("the solo page picks one great power and opens only that seat", async ({page}) => {
+        // Solo has its own match page: the setup page chooses a power, and the
+        // match page mounts only that board.  The five bots are headless, so
+        // there is no seat strip, no hotseat tab and no bot interface to click
+        // into (and no way to read a bot's private hand).
         const errors: string[] = [];
         page.on("console", (message) => {
             if (message.type() === "error") errors.push(message.text());
@@ -817,23 +818,59 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await expect(page.getByTestId("ie-solo-summary")).toContainText("5");
 
         await page.getByTestId("ie-solo-start").click();
-        // The shell deals a fresh match and opens on the picked seat.
-        await expect(page.locator('[data-testid="ie-seat-FR"]')).toHaveAttribute("data-active", "true");
-        // The five other seats are bots; the player's own seat is playable.
+        await expect(page).toHaveURL(/\/localIE\/solo\/play$/);
+        // The player's own seat is the only board on the page.
         const human = page.locator('[data-testid="ie-seat-FR"]');
+        await expect(human).toHaveAttribute("data-active", "true");
         await expect(human.locator(".ie-bot-banner")).toHaveCount(0);
-        await page.getByRole("tab", {name: /P1/}).click();
-        await expect(page.locator('[data-testid="ie-seat-GE"]').locator(".ie-bot-banner")).toContainText("机器人");
-        // The solo hand-over also dealt a new match, not the hotseat one the
-        // local master may still hold: the seat setup screen is skipped.
+        for (const bot of ["GE", "UK", "AU", "RU", "OT"]) {
+            await expect(page.getByTestId(`ie-seat-${bot}`)).toHaveCount(0);
+        }
+        // No hotseat shell controls: no seat strip, no seat tabs, no seat
+        // setup and no Rule 34 hand-over from this page.
+        await expect(page.getByTestId("ie-seat-strip")).toHaveCount(0);
+        await expect(page.locator('[data-testid^="ie-seat-status-"]')).toHaveCount(0);
+        await expect(page.getByTestId("ie-seat-setup")).toHaveCount(0);
+        await expect(page.getByTestId("ie-hand-over-seat")).toHaveCount(0);
+        await expect(page.getByTestId("ie-take-back-seat")).toHaveCount(0);
         await expect(page.getByTestId("ie-start-match")).toHaveCount(0);
         expect(errors).toEqual([]);
     });
 
-    test("the solo entrance starts a match with P2-P6 as read-only bot seats", async ({page}) => {
+    test("solo restart is confirmed and deals a genuinely new match", async ({page}) => {
+        await page.goto("/localIE/solo");
+        await page.getByTestId("ie-solo-power-GE").check();
+        await page.getByTestId("ie-solo-start").click();
+        const seat = page.locator('[data-testid="ie-seat-GE"]');
+        await expect(seat).toBeVisible();
+        const firstMatch = await seat.getAttribute("data-match-id");
+        expect(firstMatch).toBeTruthy();
+
+        // One stray click only raises the confirmation; it must not restart.
+        await page.getByTestId("ie-solo-restart").click();
+        await expect(page.getByTestId("ie-solo-restart-dialog")).toBeVisible();
+        await expect(page.getByTestId("ie-solo-restart-body")).toContainText("当前对局将结束");
+        await expect(seat).toHaveAttribute("data-match-id", firstMatch!);
+
+        // Cancel leaves the same match running.
+        await page.getByTestId("ie-solo-restart-cancel").click();
+        await expect(page.getByTestId("ie-solo-restart-dialog")).toHaveCount(0);
+        await expect(seat).toHaveAttribute("data-match-id", firstMatch!);
+
+        // Confirm deals a new match id, still on the same single seat.
+        await page.getByTestId("ie-solo-restart").click();
+        await page.getByTestId("ie-solo-restart-confirm").click();
+        await expect(page.getByTestId("ie-solo-restart-dialog")).toHaveCount(0);
+        await expect(seat).not.toHaveAttribute("data-match-id", firstMatch!);
+        await expect(page.locator('[data-testid="ie-seat-GE"]')).toBeVisible();
+        await expect(page.getByTestId("ie-seat-strip")).toHaveCount(0);
+    });
+
+    test("the hotseat seat-setup entrance still starts P2-P6 as read-only bots", async ({page}) => {
         await page.goto("/localIE?solo=1");
-        // The seat-setup screen only appears on the explicit solo entrance; the
-        // plain hotseat link keeps starting straight on the board.
+        // This is the *hotseat* multi-seat setup (kept for local play), not the
+        // dedicated solo page.  The plain hotseat link keeps starting straight
+        // on the board.
         const start = page.getByTestId("ie-start-match");
         await expect(start).toBeVisible();
         // Scope to the bot-seat list: the setup screen also carries round B's

@@ -947,6 +947,14 @@ describe("Rule 34 handover control", () => {
     expect(markup).toContain("交给机器人托管");
   });
 
+  test("a board that opts out (the solo page) renders no handover control", () => {
+    const markup = renderToStaticMarkup(React.createElement(Board, {
+      G: freshGame(), ctx: testCtx, playerID: "0", allowSeatHandover: false,
+      moves: {setSeatBot: () => undefined} as never,
+    }));
+    expect(withMove(markup)).toBe(false);
+  });
+
   test("a board without the move renders no handover control", () => {
     const markup = renderToStaticMarkup(React.createElement(Board, {
       G: freshGame(), ctx: testCtx, playerID: "0", moves: {},

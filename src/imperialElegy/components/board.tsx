@@ -12,6 +12,12 @@ export interface IEBoardProps {
   matchID?: string;
   hotseat?: boolean;
   /**
+   * Whether Rule 34's seat hand-over control is offered.  It defaults to true
+   * (an online match can hand a seat to the bot); the dedicated solo page turns
+   * it off, because the player's one seat is not a hotseat seat to give away.
+   */
+  allowSeatHandover?: boolean;
+  /**
    * Whether the hand tray starts expanded.  It defaults to collapsed: the map
    * needs the height, the tray's title bar already carries the hand count and
    * the CP chain, and a single press opens it.  A host that wants the cards
