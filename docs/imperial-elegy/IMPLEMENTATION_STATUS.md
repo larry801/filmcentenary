@@ -1,5 +1,40 @@
 # Imperial Elegy — implementation status
 
+## Fixed: the printed stability card markers and the Russian key ladder (2026-11-23)
+
+Found by playing a solo Russia campaign straight off the published player
+displays (`public/imperial-elegy/displays/`).  Two transcribed values disagreed
+with the board a player actually reads.
+
+- **The stability track's card values are plus/minus markers, not hand sizes.**
+  Every display prints a boxed **`-1 card`** in the 0 and 1 boxes and a boxed
+  **`+1 card`** in the 6 box.  10.2 deals from the industry level and then
+  applies "any plus or minus card markers", with a printed minimum of three
+  cards; 10.3 discards those markers after the deal.  `POWER_DEFS` stored the 0
+  and 1 boxes as an **absolute** `cards: 1`, so `cardsToDraw` returned a single
+  card — under the three-card floor and one *more* than stability 2, inverting
+  the printed ladder.  The boxes are now `cardDelta: -1` (and OT's own row is
+  aligned with them), so a low-stability power draws `industry - 1`, floored at
+  three, exactly as the display reads.
+- **Russia's Total Keys ladder was one box early.**  `displays/RU.jpg` prints
+  **MP=5 at keys 10-14** and the first **MP=6 at key 15**; the transcribed table
+  advanced to 5 at box 10 and to 6 at box 14, so Russia gained a manpower step a
+  key early.  The table (and the independent `KEY_MANPOWER_EXPECTED` copy the
+  validation suite compares against) now reads
+  `[2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,6]`.  The campaign still opens on the
+  circled box 12 with MP 5, so the start position is unchanged.
+
+`mapValidation.test.ts` used to forbid a negative `cardDelta`, which is why the
+absolute reading survived; it now checks that the card ladder is non-decreasing
+(the printed `-1 … +1` shape).  `components/PlayerMat.test.tsx` prints the
+corrected `-1 card` box.
+
+**Coverage:** new `printedDisplayData.test.ts` (7 — the card marker in every
+display's boxes, the three-card floor at stability 0-1, the industry draw above
+the floor, the full Russian ladder box by box, and the campaign's 12-key/MP-5
+opening).  Full IE Jest suite **335 suites / 4411 tests** pass locally;
+`tsc --noEmit` clean.
+
 ## Fixed: the home-card dialog covered the negotiation table (9.1) (2026-11-22)
 
 Reported as "外交阶段直接弹出必选本土牌了 无法进行谈判 应该谈判完成后再弹出 而且改为可关闭/打开发界面".

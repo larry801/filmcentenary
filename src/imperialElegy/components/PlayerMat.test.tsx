@@ -134,9 +134,11 @@ test("the stability track prints the VP, BM and card of each box", () => {
   const html = render(G);
   const stability = boxesOf(html, "ie-mat-stability-boxes");
   expect(stability).toEqual(POWER_DEFS.GE.stability.map((_, i) => String(i)));
-  // The 0 box prints "-2 VP · -2 BM · 1 card"; the 6 box prints "+1 card".
+  // Boxes 0 and 1 print a boxed "-1 card" and box 6 a boxed "+1 card": the
+  // printed boxed value is a plus/minus card marker (10.2/10.3), which the
+  // display shows with a sign.  It is not an absolute hand size.
   const zero = stabilityNote(POWER_DEFS.GE.stability[0], (n, signed) => `${signed && n > 0 ? "+" : ""}${n} card${Math.abs(n) === 1 ? "" : "s"}`);
-  expect(zero).toBe("-2 VP · -2 BM · 1 card");
+  expect(zero).toBe("-2 VP · -2 BM · -1 card");
   const six = stabilityNote(POWER_DEFS.GE.stability[6], (n, signed) => `${signed && n > 0 ? "+" : ""}${n} card${Math.abs(n) === 1 ? "" : "s"}`);
   expect(six).toBe("+1 card");
   // The mat prints the current box's effect in words.
