@@ -3,7 +3,7 @@ import {ImperialElegyState, Power} from "../types";
 import {SPACES, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {POWER_DEFS} from "../constant/powers";
-import {canSurrender, isLoneMinorWar, loneMinorDefender, neutralJoinEligibility} from "../engine/limitedWar";
+import {canPassWarImpulse, canSurrender, holdsWarImpulse, isLoneMinorWar, loneMinorDefender, neutralJoinEligibility, warAllPassed} from "../engine/limitedWar";
 import {treatyOptionLabel} from "../engine/treatyChoice";
 import {BALANCE_OF_POWER_CARD} from "../moves";
 import {cardById} from "../engine/deck";
@@ -27,7 +27,6 @@ export interface WarPanelProps {
   isBelligerent: boolean;
   eliminated: boolean;
   pending: ImperialElegyState["pending"];
-  isActive: boolean;
   warBudgetRows: Power[];
   warDefenderMinors: string[];
   callableAllies: Power[];
@@ -62,7 +61,7 @@ const minorName = (t: ReturnType<typeof ieT>, locale: "en" | "zh_CN", minor: str
 export const WarPanel = (props: WarPanelProps) => {
   const {
     war, G, viewer, active, phase, locale, t, warStatusLabel, warAimLabel,
-    warBelligerents, isPrincipal, isBelligerent, eliminated, pending, isActive,
+    warBelligerents, isPrincipal, isBelligerent, eliminated, pending,
     warBudgetRows, warDefenderMinors, callableAllies, warAllyValue, setWarAlly,
     callableMinors, warMinorValue, setWarMinor, confirmSurrender, setConfirmSurrender,
     doAction, moves, onOpenReference,
@@ -77,7 +76,7 @@ export const WarPanel = (props: WarPanelProps) => {
   // war is still in its war-aim/alliance steps.
   const isDefender = viewer !== null && (viewer === war.defender || war.defenderAllies.includes(viewer));
   const budgetCards = viewer === null || !isDefender || eliminated || pending !== null
-    || !["warAim", "alliance", "shift"].includes(war.status)
+    || !["warAim", "alliance"].includes(war.status)
     || (war.defenderBudgetCards ?? []).some((entry) => entry.power === viewer)
     ? []
     : G.powers[viewer].hand.filter((id) => {
@@ -134,7 +133,9 @@ export const WarPanel = (props: WarPanelProps) => {
 
         {isBelligerent && !eliminated && pending === null && (
           <div className="ie-war-controls">
-            {isActive && (war.status === "warAim" || war.status === "alliance") && (
+            {/* 13.2/14.3: the attacker opens the aim and initiative steps; the
+                defender's own choices there (13.7, 8.2, 13.6) are below. */}
+            {viewer === war.attacker && (war.status === "warAim" || war.status === "alliance") && (
               <button className="ie-btn" onClick={() => doAction(() => moves.startWarManeuver(), {label: t.startWar})}>{t.startWar}</button>
             )}
             {viewer === war.defender && war.defenderShift?.choice === true && (war.status === "warAim" || war.status === "alliance") && (
@@ -172,17 +173,27 @@ export const WarPanel = (props: WarPanelProps) => {
                 <button className="ie-btn" data-testid="ie-call-minor-button" disabled={warMinorValue === ""} onClick={() => doAction(() => moves.callWarMinor(warMinorValue), {label: t.callMinor})}>{t.callMinor}</button>
               </div>
             )}
-            {isPrincipal && viewer !== null && canSurrender(G, viewer) && (
+            {/* 13.6: a defender may concede before the maneuver starts, at any
+                impulse; 15.5 keeps the maneuver-time offer to the seat whose
+                impulse is open (4.4), so the button matches the move. */}
+            {isPrincipal && viewer !== null && canSurrender(G, viewer)
+              && (war.status !== "maneuver" || holdsWarImpulse(G, viewer)) && (
               <button data-testid="ie-surrender" className={`ie-btn secondary${confirmSurrender ? " danger" : ""}`} onClick={() => {
                 if (!confirmSurrender) { setConfirmSurrender(true); return; }
                 doAction(() => moves.surrender(), {label: bi(locale, "Surrender", "投降")});
                 setConfirmSurrender(false);
               }}>{confirmSurrender ? bi(locale, "Confirm surrender", "确认投降") : bi(locale, "Surrender", "投降")}</button>
             )}
-            {isActive && phase === "wartime" && (
+            {/* 15.0: the impulse holder passes its impulse on ("战争停牌"), and a
+                war already recorded as won (15.5) is sent on to its victory
+                step by any belligerent. */}
+            {phase === "wartime" && canPassWarImpulse(G, viewer!) && (
               <button className="ie-btn" disabled={war.passed.includes(viewer!)} onClick={() => doAction(() => moves.passWarMove(), {label: t.passWar})}>{t.passWar}</button>
             )}
-            {isActive && phase === "wartime" && (
+            {/* 15.0's all-passed boundary is where a maneuver settles; the last
+                pass already does this, so the button is the manual recovery for
+                a settlement that returned without opening a decision. */}
+            {phase === "wartime" && war.status === "maneuver" && warAllPassed(war) && (
               <button className="ie-btn" onClick={() => doAction(() => moves.resolveWar(), {label: t.resolveWar})}>{t.resolveWar}</button>
             )}
           </div>

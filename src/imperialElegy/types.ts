@@ -512,8 +512,16 @@ export interface WarSide {
   defenderMinors: string[];
   warAim: "liberation" | "unification" | "conquest" | null;
   objectives: SpaceId[];
-  /** Negotiated treaty state. */
-  status: "warAim" | "alliance" | "shift" | "initiative" | "maneuver" | "victory" | "demobilization" | "done";
+  /**
+   * The war's rung.  These are the only values the engine writes: the printed
+   * alliance-shift and initiative steps are resolved inside
+   * `startWarManeuver` (`moves.ts`), the victory step carries the 16.2 treaty
+   * chooser, and demobilisation is that same step's tail
+   * (`engine/limitedWar.ts#demobilizeWar`).  The printed ladder in
+   * `components/phaseSteps.ts` keeps those intermediate steps for the
+   * reference panel; they are not states of this field.
+   */
+  status: "warAim" | "alliance" | "maneuver" | "victory" | "done";
   /**
    * Rule 14.0: player allies already called into this war who refused the
    * call.  Such an ally cannot be asked a second time in the same war.
@@ -965,9 +973,6 @@ export const PENDING_KINDS = [
   "combatRetreat",
   "combatAdvance",
   "movementDestination",
-  "warAim",
-  "warAlly",
-  "warInitiative",
   /** 13.4.1/13.4.2: the called ally accepts or refuses the call. */
   "warAllyConsent",
   /** 13.4.1: a player ally may abandon the non-player power that was attacked. */

@@ -56,7 +56,7 @@ describe("pendingOptionSafety", () => {
   });
 
   test("a decision the rules call final is always confirmed", () => {
-    for (const kind of ["discardForStability", "warAim", "treatyOption", "combatLosses", "gwWinter"]) {
+    for (const kind of ["discardForStability", "warAllyConsent", "treatyOption", "combatLosses", "gwWinter"]) {
       const safety = pendingOptionSafety(pending(kind), option("Continue"), "en");
       expect(safety.confirm).toBe(true);
       expect(safety.reason).toBe("This cannot be undone.");
@@ -113,7 +113,7 @@ describe("pendingOptionSafety", () => {
 
   test("a missing decision or option is harmless", () => {
     expect(pendingOptionSafety(null, option("x"), "en").confirm).toBe(false);
-    expect(pendingOptionSafety(pending("warAim"), undefined, "en").confirm).toBe(false);
+    expect(pendingOptionSafety(pending("warAllyConsent"), undefined, "en").confirm).toBe(false);
     expect(pendingKindIsDestructive(null)).toBe(false);
   });
 });

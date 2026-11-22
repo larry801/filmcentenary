@@ -10,7 +10,7 @@ import {
   placeUnit,
   removeUnit,
 } from "./engine/effects";
-import {createWarState} from "./engine/limitedWar";
+import {belligerentsOf, createWarState} from "./engine/limitedWar";
 import {resolveEnd, resolveWar} from "./moves";
 
 /**
@@ -143,6 +143,7 @@ describe("5.7 live wiring", () => {
     G.activePower = "GE";
     G.war = createWarState(G, "GE", "FR", "conquest", ["alsace-lorraine"], 2);
     G.war.status = "maneuver";
+    G.war.passed = [...belligerentsOf(G.war)];
     G.spaces["alsace-lorraine"].occupiedBy = "GE";
     const french = placeUnit(G, "FR", "army", "alsace-lorraine", 2);
 
