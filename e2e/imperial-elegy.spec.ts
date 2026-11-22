@@ -135,7 +135,10 @@ async function finishNegotiating(page: Page) {
         const finish = board.locator('[data-testid="ie-finish-negotiation"]');
         for (let attempt = 0; attempt < 3 && await finish.count() > 0; attempt += 1) {
             await finish.first().click().catch(() => undefined);
-            await page.waitForTimeout(150);
+            // Wait for the local master to apply the move before re-clicking;
+            // a fixed pause either raced the sync or sent a second, refused
+            // finishNegotiation.
+            await expect(finish).toHaveCount(0, {timeout: 3_000}).catch(() => undefined);
         }
         await expect(finish).toHaveCount(0, {timeout: 5_000});
     }
