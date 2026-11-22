@@ -76,6 +76,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   economicPanicResolved: {key: "economicPanicResolved", power: "GE", args: {powers: "UK,FR"}},
   worldsFairResolved: {key: "worldsFairResolved", power: "GE", args: {discarded: 3}},
   rightsGranted: {key: "rightsGranted", power: "AU", args: {nationality: "Italians"}},
+  cityOfLightRoll: {key: "cityOfLightRoll", power: "FR", args: {roll: 4, drm: 2, total: 2, gained: true, points: 3}},
   citizenshipGranted: {key: "citizenshipGranted", power: "AU", args: {nationality: "Italians", roll: 5}},
   citizenshipFailed: {key: "citizenshipFailed", power: "AU", args: {nationality: "Italians", roll: 2}},
   polishRevoltRebels: {key: "polishRevoltRebels", power: "RU", args: {spaces: "poland,warsaw"}},

@@ -59,6 +59,7 @@ import {
   recomputeTracks,
   refreshPowerProjection,
   setSpaceControl,
+  spendCpFor,
   unitById,
   unitsOfPower,
   BISMARCK_HOME_CARD,
@@ -2805,6 +2806,21 @@ const applySunNeverSetsIndia = (G: ImperialElegyState): void => {
   G.powers.UK.flags.freeIndianCp = 2;
 };
 
+/**
+ * H-FR-5 The City of Light: roll the die, apply the purchased `-drm`, and grant
+ * the point when the modified result is less than or equal to the current turn
+ * ("if the result is less than or equal to the current turn").  The roll is
+ * clamped to 1 so a fully discounted die cannot score below the printed scale.
+ */
+const rollCityOfLight = (G: ImperialElegyState, ctx: Ctx, drm: number): boolean => {
+  const raw = die(ctx, 6);
+  const total = Math.max(1, Math.min(6, raw - drm));
+  const gained = total <= G.turn;
+  if (gained) G.powers.FR.cityOfLight = Math.min(6, (G.powers.FR.cityOfLight ?? 0) + 1);
+  log(G, "FR", "cityOfLightRoll", {roll: raw, drm, total, gained, points: G.powers.FR.cityOfLight ?? 0});
+  return gained;
+};
+
 const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: string, args: Record<string, unknown> = {}, resume: Effect[]): boolean => {
   switch (handler) {
     case "colonialConflict": {
@@ -3905,8 +3921,40 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // The +1 stability is the card's declared `stability` effect already
       // applied by `resolveEffects`; repeating it here granted +2.
       G.cpRemaining += 3;
-      if (die(ctx, 6) <= G.turn) G.powers.FR.cityOfLight = Math.min(6, (G.powers.FR.cityOfLight ?? 0) + 1);
-      return true;
+      // "…and 3 CP to spend.  Roll a die; if the result is less than or equal
+      // to the current turn gain 1 City of Light point.  Before rolling you may
+      // forgo X CP to apply a -X DRM to the die roll."  The CP arrive first and
+      // the printed pre-roll offer must be put to the seat: rolling straight
+      // away silently denied the DRM.  X is the card's own 3 CP (and never more
+      // than the wallet holds); a lower roll is the better result here, so the
+      // DRM is a real purchase.
+      const spendable = Math.max(0, Math.min(3, G.cpRemaining));
+      if (spendable === 0) {
+        rollCityOfLight(G, ctx, 0);
+        return true;
+      }
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        actor,
+        "The City of Light: forgo CP before rolling?",
+        [
+          option("x0", "Roll with no DRM", undefined, false, "无修正掷骰"),
+          ...Array.from({length: spendable}, (_, index) => {
+            const amount = index + 1;
+            return option(
+              `x${amount}`,
+              `Spend ${amount} CP: -${amount} DRM`,
+              undefined,
+              false,
+              `耗用 ${amount} CP：掷骰 -${amount}`,
+            );
+          }),
+        ],
+        {special: "cityOfLightHome", stage: "drm", resume},
+        undefined,
+        "光之城：掷骰前是否放弃 CP 换取掷骰修正？",
+      ));
+      return false;
     }
     case "auxArmes": {
       addReserve(G, "FR", 2);
@@ -4624,6 +4672,20 @@ export const resolveCardDecision = (
     return;
   }
   const data: EffectContext = {...context, choice: optionId, targetSpace: optData.space as SpaceId | undefined, targetPower: optData.power as Power | undefined};
+  if (special === "cityOfLightHome" && context.stage === "drm") {
+    // H-FR-5: the seat's pre-roll purchase.  `xN` spends N of the card's CP for
+    // a -N DRM; `x0` rolls plainly.  The CP belong to this impulse's wallet, so
+    // they are charged through the normal spend path rather than by decrementing
+    // the raw counter.
+    const amount = optionId === "x0" ? 0 : Math.max(0, Number(optionId.slice(1)) || 0);
+    // The DRM is only bought when the CP are actually paid; a short wallet rolls
+    // plainly rather than granting the discount for free.
+    const paid = amount > 0 && spendCpFor(G, actor, amount) ? amount : 0;
+    rollCityOfLight(G, ctx, paid);
+    closeDecision(G, ctx);
+    resumeEffects(G, ctx, pending, data);
+    return;
+  }
   if (special === "auxArmes" && context.stage === "retrieve") {
     const separator = optionId.indexOf(":");
     const cardId = (optData.card as CardId | undefined) ??
