@@ -32,6 +32,37 @@ the reworked "solo new game is confirmed and returns to the setup page" (cancel
 keeps the match, confirm lands on `/localIE/solo`, and the next start deals a
 different seat).
 
+## Fixed: a printed free-CP event ended the impulse before the CP were spent (2026-11-22)
+
+Reported as "帝国挽歌英国打出日不落事件没有花费2cp界面直接结束行动轮了".
+
+UK-3 Sun Never Sets pays its printed "then spend 2 CP" as a restricted grant
+(`freeOperationCp` for the naval half, `freeIndianCp` for the India half) rather
+than as ordinary `cpRemaining`; A088 Our Place in the Sun does the same with
+`freeColonialCp`.  The impulse tail only asked whether `cpRemaining` was zero, so
+playing the card (or, for Sun Never Sets, answering its printed choice) handed
+the impulse on immediately: the 2 CP could never be spent, and because nothing
+cleared the flag it survived into a later impulse where it bought a free action.
+
+- `moves.ts#hasUnspentGrant` treats every named grant (`freeColonialCp`,
+  `freeOperationCp`, `freeIndianCp`) as part of the impulse's budget, exactly
+  like banked ordinary CP.  The three event tails — `playCard`'s synchronous
+  resolution, its A067 special case, and `finalizePendingCard` (the path a card
+  choice takes) — now keep the impulse open while a grant is unspent.
+- `clearActionImpulseSpend` clears all three grants when the impulse hands over
+  or the action phase ends, so whatever the seat does not spend is forfeited
+  instead of leaking into a later impulse.
+- The board says where the budget is: the dock summary reads "你的行动轮——还有
+  N 点事件赠予 CP 可花" / "Your impulse — N event CP still to spend", and the
+  action foot's CP note adds "另有 N 点事件赠予 CP（仅限对应行动）" beside
+  "本行动轮剩余 CP：0".  The colonial rows were already enabled from the grant
+  (`actionAvailability.ts`), so the seat can act immediately.
+
+**Coverage:** `colonialFreeCp.test.ts` (+5 — Sun Never Sets keeps the impulse open
+after its choice, the India half likewise, A088 likewise, the grant is spendable
+in the same impulse, and a hand-over forfeits it) and
+`components/board.test.tsx` (+1 — the dock names the unspent grant).
+
 ## Fixed: two-target declarations and the non-player aid hint (13.0 / 13.4.2 / 14.1) (2026-11-22)
 
 Reported as "帝国挽歌俾斯麦应该是可以选择2个power做目标 其他统一和解放战争是同一power的2个地块 按照这个修复宣战界面 同时标明non player power可能触发的盟友".

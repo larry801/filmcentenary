@@ -12,7 +12,7 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, legalLandBattleTarget, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement} from "../engine/rules";
+import {cpBudgetFor, freeGrantCp, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, legalLandBattleTarget, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
@@ -1524,6 +1524,12 @@ export const useBoardModel = ({
   // there is something to press — not only when a decision is pending.
   const dockVisible = pending !== null || battle !== null || G.result !== null ||
     targetingHint !== null || dockChoices || phaseActions.length > 0;
+  // A088 / UK-3: a printed free-CP grant is still this impulse's budget even
+  // though the wallet (`cpBudgetFor`) reads 0.  The dock says so, and the
+  // impulse stays open until the seat spends the grant or hands it over.
+  const freeGrantTotal = viewer === null
+    ? 0
+    : freeGrantCp(G, viewer, "freeColonialCp") + freeGrantCp(G, viewer, "freeOperationCp") + freeGrantCp(G, viewer, "freeIndianCp");
   const dockSummary = pending !== null
     ? `${t.pendingFor}: ${t.seats[pending.power]}`
     : battle !== null
@@ -1547,7 +1553,11 @@ export const useBoardModel = ({
                   // An optional action must not read as a blocker.
                   ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
                   : canAct
-                    ? bi(actualLocale, "Your impulse", "你的行动轮")
+                    ? freeGrantTotal > 0
+                      ? bi(actualLocale,
+                        `Your impulse — ${freeGrantTotal} event CP still to spend`,
+                        `你的行动轮——还有 ${freeGrantTotal} 点事件赠予 CP 可花`)
+                      : bi(actualLocale, "Your impulse", "你的行动轮")
                     : bi(actualLocale, "Waiting", "等待");
   const handChoicesHint = phase === "diplomacy" && homeCardChoicePending && !negotiationConcludedNow
     ? bi(actualLocale,
