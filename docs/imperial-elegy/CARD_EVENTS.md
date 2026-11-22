@@ -509,24 +509,53 @@ is, and, if they cannot agree, the attacker decides.”*
 - Aux Armes 在“两个关键区或两个国家”时置 `WarState.allowNeutralJoin`；
   新增 `joinWarAsNeutral` move 让中立国玩家自行为防守方参战（打出一张
   event 牌作战争预算，并按 8.2 远离进攻方，仍受 8.4 三人上限约束）。
-- UI：宣战块新增第二国选择、主要防守方选择与“禁止玩家盟友参战”复选框；
-  战争面板显示两项参战限制，并在 `allowNeutralJoin` 时为中立座位提供参战按钮。
+- UI：宣战块把第二目标放在第一目标旁边（玩家或小国皆可）、主要防守方选择与
+  “禁止玩家盟友参战”复选框；战争面板显示两项参战限制，并在
+  `allowNeutralJoin` 时为中立座位提供参战按钮。
 
 回归：`bismarckWar.test.ts`（13 个断言：双目标、主要防守方、禁止参战、
 禁止参战压制 13.4.2 求援、既有小国盟友仍可参战、第二目标校验等）、
 `homeWarDeclarations.test.ts`（19 个断言：Aux Armes 双目标、双关键区、
 中立国参战与无条款时拒绝）与
-`components/bismarckDeclarePanel.test.tsx`（6 个断言）。
+`components/warDeclarationPanel.test.tsx`（6 个断言）。
+
+**Fix (2026-11-22)：第二目标可以是非玩家国家。** 玩家复报“俾斯麦应该是可以
+选择 2 个 power 做目标”，且要求“标明 non player power 可能触发的盟友”。上一轮
+只允许“玩家 + 玩家”，第一目标是小国时 `declareWar` 直接拒绝第二目标：
+
+- `DeclareWarOptions.secondTarget` / `primary` 改为 `WarTarget`。第二目标可以是
+  玩家国家、非玩家国家，或两个非玩家国家；“小国 + 玩家”“小国 + 小国”都能
+  按 14.1 一次宣战。
+- 13.4 的顺序不变：先解决第一目标（13.4.1 盟友放弃/参战，或 13.4.2 求援），
+  其余目标作为 `WarState.coDefenderMinors` 随战争一起建立；只有玩家能当
+  `primary`（14.1 只把 primary 用于“占领首都即终战”），两个小国时省略该条款。
+- `warTargetKey` / `warTargetFromKey` 把目标编码成字符串，因此第二目标可以像
+  第二玩家一样跨过拿破仑遗产与 13.4.1/13.4.2 决策。
+- UI：`ie-war-second-power` 移到第一目标旁边，选项来自
+  `declarationSecondTargets`（同一套 13.5/13.4/卡面限制，并过滤掉“配对后没有
+  任何合法目标空间”的死选项）；`declarationObjectives` /
+  `declarationSecondObjectives` 接受第二目标，目标空间列表是二者合法空间的
+  并集（13.0 的“至多两个空间”），因此“A 国一个空间 + B 国一个空间”的配对
+  可以真正发出。
+- 新增 `ie-war-nonplayer-aid`：选择无盟友小国时列出 13.4.2 会依次询问的
+  玩家（外交标记持有者 → 13.4.3 表的第 1/2/3 选择，`(*)` 为掷骰比大小），
+  与 `beginSeekingAid` 读同一个 `seekingAidSlots`；俾斯麦禁止参战时改显示
+  “独自防守（15.4.2）”，已有玩家盟友的小国则标出该盟友（13.4.1）。
+
+回归：`declarationTargets.test.ts` 新增 6 项、`components/warDeclarationPanel.test.tsx`
+新增 4 项、`e2e/imperial-elegy-controls.spec.ts` 新增“小国 + 玩家”端到端用例。
 
 **建模边界（仍记录为近似）：**
 
-- 双目标声明目前只支持“第一目标为玩家”的路径；第一目标是 13.4 小国时仍走
-  原有的放弃/求援流程，不能同时再指定第二国。
+- 一次宣战最多两个目标（14.1 只允许第二国）；第二目标之外的 `coDefenders`
+  字段保留为单元素数组。
 - 规则书把主要防守方的首要决定权给两名防守玩家；本实现把最终结果作为
   `declareWar` 的 `primary` 参数记录（默认第一目标）。UI 的选择器由进攻方
   操作，等价于 14.1“协商不成由进攻方决定”的回退，未另开防守方协商对话。
 - 第二防守方作为 `defenderAllies` 参与战斗与条约分配，但其首都失守按 15.6
   的盟友击倒处理，而不是“主要防守方首都”立即终战。
+- 非玩家第二目标同样会触发 13.4.2 求援（13.4 适用于每一个被攻击的小国），
+  但求援对话按目标依次进行，因此在宣战界面只作提示，不逐个预演。
 
 ### 3.15 RU-9 的巴尔干结盟与三张牌的获胜稳定度 / RU-9 alliance and win stability
 

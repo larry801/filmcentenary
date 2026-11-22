@@ -4,17 +4,25 @@
  * A declaration used to be assembled in two places: a home card's "choose the
  * war target" dialog, and a block in the Orders panel that only appeared once
  * the player had clicked a target's space on the map.  Both steps are gone:
- * this component asks the three questions itself — defender, aim, objective —
- * and derives every list from `engine/declarationTargets.ts`, so no click on
- * the map is needed and no offered target can be one `declareWar` refuses.
+ * this component asks the questions itself — aim, one or two targets, the
+ * objective spaces — and derives every list from `engine/declarationTargets.ts`,
+ * so no click on the map is needed and no offered target can be one
+ * `declareWar` refuses.
+ *
+ * Rule 14.1 gets its own row: the Bismarck and Aux Armes home cards may attack
+ * **two different powers**, and the second one may be a non-player power, so
+ * the form offers "target 2" beside the first target whenever the card prints
+ * the clause.  The objectives are then the legal pairs of spaces held by the
+ * named targets, which is exactly rule 13.0's "up to two spaces" with the
+ * defenders of 14.1.
  *
  * The choices are deliberately local state.  They are clamped on every render
- * (a defender that is no longer legal falls back to the first one, an
- * objective that the current aim refuses falls back to the aim's first space),
- * so a new impulse or a new home card cannot leave a stale selection behind —
- * which is exactly the reset the old block needed a model-level effect for.
- * The component unmounts when the declaration is made (a war starts and the
- * War panel switches to the war controls), so nothing survives a declaration.
+ * (a target that is no longer legal falls back to the first one, an objective
+ * that the current aim refuses falls back to the aim's first space), so a new
+ * impulse or a new home card cannot leave a stale selection behind — which is
+ * exactly the reset the old block needed a model-level effect for.  The
+ * component unmounts when the declaration is made (a war starts and the War
+ * panel switches to the war controls), so nothing survives a declaration.
  */
 import React from "react";
 import type {ImperialElegyState, Power, SpaceId} from "../types";
@@ -27,32 +35,32 @@ import {
   warDeclarationAllowsTwoPowers,
   warDeclarationEntitlement,
   warDeclarationMayForbidJoins,
-  warDeclarationTargetLegal,
   type WarDeclarationAim,
 } from "../engine/rules";
-import {hasTruce} from "../engine/limitedWar";
 import {
   declarationAimsFor,
   declarationDefenders,
   declarationObjectives,
   declarationSecondObjectives,
+  declarationSecondTargets,
   warTargetKey,
   type WarDeclarationDefender,
 } from "../engine/declarationTargets";
+import {warTargetFromKey, seekingAidSlots, type WarTarget} from "../engine/limitedWar";
 import {ConfirmButton} from "./ConfirmButton";
 import {IEPanel} from "./theme";
-import {bi, POWER_KEYS} from "./boardHelpers";
+import {bi} from "./boardHelpers";
 import type {ieT} from "./i18n";
 
 /** The war declaration the panel would send; `null` while none is complete. */
 export interface WarDeclaration {
-  target: WarDeclarationDefender["target"];
+  target: WarTarget;
   aim: WarDeclarationAim;
   objectives: SpaceId[];
   cp: number;
   options: {
-    secondTarget?: Power;
-    primary?: Power;
+    secondTarget?: WarTarget;
+    primary?: WarTarget;
     forbidPlayers?: boolean;
   } | undefined;
 }
@@ -101,8 +109,8 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   const [chosenObjective, setChosenObjective] = React.useState<SpaceId | "">("");
   const [chosenCp, setChosenCp] = React.useState(2);
   const [chosenSecondObjective, setChosenSecondObjective] = React.useState<SpaceId | "">("");
-  const [chosenSecondPower, setChosenSecondPower] = React.useState<Power | "">("");
-  const [chosenPrimary, setChosenPrimary] = React.useState<Power | "">("");
+  const [chosenSecondTarget, setChosenSecondTarget] = React.useState<string>("");
+  const [chosenPrimary, setChosenPrimary] = React.useState<string>("");
   const [forbidPlayers, setForbidPlayers] = React.useState(false);
 
   // A stable identity matters: the aim-selection memo below keys on this list,
@@ -150,44 +158,51 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   const entry: WarDeclarationDefender | undefined =
     defenders.find((candidate) => warTargetKey(candidate.target) === chosenDefender) ?? defenders[0];
 
-  const objectives = React.useMemo(
-    () => (entry === undefined ? [] : declarationObjectives(G, viewer, entitlement, entry, aim)),
+  // Rule 14.1: the second target and the primary defender are only offered when
+  // the live home card prints the two-target clause for the chosen aim.  The
+  // second target may be a power or a non-player power (`declarationSecondTargets`
+  // filters with the same gates `declareWar` runs), and only ones whose own
+  // declaration has an objective survive, so the pair can always be completed.
+  const twoTargetEligible = entitlement !== null && entry !== undefined
+    && warDeclarationAllowsTwoPowers(entitlement.card, aim);
+  const secondTargetOptions = React.useMemo(
+    () => (twoTargetEligible && entry !== undefined
+      ? declarationSecondTargets(G, viewer, entitlement, entry, aim)
+      : []),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim],
+    [twoTargetEligible, G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim],
+  );
+  const secondEntry: WarDeclarationDefender | undefined =
+    secondTargetOptions.find((candidate) => warTargetKey(candidate.target) === chosenSecondTarget);
+  // The spaces the declaration may name: a target pair uses both lists, so a
+  // pair such as FR + Denmark can take one objective from either.
+  const objectives = React.useMemo(
+    () => (entry === undefined ? [] : declarationObjectives(G, viewer, entitlement, entry, aim, secondEntry)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, secondEntry],
   );
   const objective: SpaceId | "" =
     chosenObjective !== "" && objectives.includes(chosenObjective) ? chosenObjective : objectives[0] ?? "";
-
-  // Rule 14.1: the second power and the primary defender are only offered when
-  // the live home card prints the two-power clause for the chosen aim.
-  const twoPowerEligible = entitlement !== null && entry !== undefined
-    && typeof entry.target === "string"
-    && warDeclarationAllowsTwoPowers(entitlement.card, aim);
-  const secondPowerOptions = twoPowerEligible
-    ? POWER_KEYS.filter((p) => p !== viewer && p !== entry.target
-      && !hasTruce(G, viewer, p)
-      && warDeclarationTargetLegal(G, entitlement, p))
-    : [];
-  const secondPower: Power | "" = secondPowerOptions.includes(chosenSecondPower as Power)
-    ? chosenSecondPower as Power
-    : "";
+  // Rule 13.0: "the attacker chooses up to two spaces".  The second one is
+  // optional, so the ordinary single-target declaration offers the same list.
   const secondObjectives = React.useMemo(
     () => (entry === undefined || objective === ""
       ? []
       : declarationSecondObjectives(
-        G, viewer, entitlement, entry, aim, objective as SpaceId,
-        secondPower === "" ? null : secondPower,
+        G, viewer, entitlement, entry, aim, objective as SpaceId, secondEntry ?? null,
       )),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, objective, secondPower],
+    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, objective, secondEntry],
   );
   const secondObjective: SpaceId | "" =
     chosenSecondObjective !== "" && secondObjectives.includes(chosenSecondObjective)
       ? chosenSecondObjective
       : "";
-  const primaryChoices: Power[] = entry !== undefined && typeof entry.target === "string" && secondPower !== ""
-    ? [entry.target, secondPower]
-    : [];
+  // 14.1: "the defending players determine, between the two of them, who the
+  // primary defender is".  Only a player power can be the primary (14.1 uses it
+  // for the capital that ends the war); a minor pair has no primary to choose.
+  const primaryChoices: Power[] = [entry?.target, secondEntry?.target]
+    .filter((candidate): candidate is Power => typeof candidate === "string");
   const primary: Power | "" = primaryChoices.includes(chosenPrimary as Power)
     ? chosenPrimary as Power
     : primaryChoices[0] ?? "";
@@ -207,12 +222,36 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
       objectives: secondObjective === "" ? [objective] : [objective, secondObjective],
       cp,
       options: {
-        ...(secondPower !== "" ? {secondTarget: secondPower, primary: primary as Power} : {}),
+        ...(secondEntry === undefined
+          ? {}
+          // 14.1's primary is a *player* power; a pair of two non-player
+          // powers has none to determine, so the clause is omitted.
+          : {
+            secondTarget: secondEntry.target,
+            ...(primaryChoices.length > 0 ? {primary: primary as Power} : {}),
+          }),
         ...(forbidPlayersAllowed && forbidPlayers ? {forbidPlayers: true} : {}),
       },
     };
   const options = declaration === null ? undefined : declaration.options;
   const hasOptions = options !== undefined && Object.keys(options).length > 0;
+
+  // Rule 13.4.2: a declaration on a non-player power *without* a player ally
+  // makes that power seek aid — the asked players are the diplomacy-marker
+  // holder, then the 13.4.3 table's 1st/2nd/3rd Choice.  Show who that is, so
+  // picking Denmark is not a blind pick.  `seekingAidSlots` is the same
+  // enumeration `beginSeekingAid` runs, so the hint cannot name a player the
+  // move would never ask (Bismarck's join ban suppresses it entirely).
+  const aidHint = React.useMemo(() => {
+    // Only the first target runs the 13.4 chain; a second non-player target is
+    // recorded as a co-defender minor with the war.
+    const minor = entry === undefined || typeof entry.target === "string" ? null : entry.target.minor;
+    if (minor === null) return null;
+    const forbidden = forbidPlayersAllowed && forbidPlayers;
+    const slots = forbidden ? [] : seekingAidSlots(G, viewer, minor);
+    return {minor, forbidden, slots};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [G, viewer, entry, forbidPlayersAllowed, forbidPlayers]);
 
   const reason = canDeclare
     ? undefined
@@ -247,7 +286,7 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
                     setChosenAim(option);
                     setChosenObjective("");
                     setChosenSecondObjective("");
-                    setChosenSecondPower("");
+                    setChosenSecondTarget("");
                     setChosenPrimary("");
                   }}
                 >
@@ -296,7 +335,7 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
                     setChosenDefender(event.target.value);
                     setChosenObjective("");
                     setChosenSecondObjective("");
-                    setChosenSecondPower("");
+                    setChosenSecondTarget("");
                     setChosenPrimary("");
                   }}
                   title={t.target}
@@ -308,6 +347,34 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
                   ))}
                 </select>
               </label>
+              {/* Rule 14.1: the GE and FR home cards may attack two different
+                  powers with one declaration.  Sitting beside the first target
+                  makes the shape of the declaration visible before the spaces
+                  are picked; a non-player power is offered too. */}
+              {twoTargetEligible && secondTargetOptions.length > 0 && (
+                <label className="ie-inline">
+                  <span className="ie-muted">{bi(locale, "Second target", "第二目标")}</span>
+                  <select
+                    className="ie-select"
+                    data-testid="ie-war-second-power"
+                    value={secondEntry === undefined ? "" : warTargetKey(secondEntry.target)}
+                    onChange={(event) => {
+                      setChosenSecondTarget(event.target.value);
+                      setChosenObjective("");
+                      setChosenSecondObjective("");
+                      setChosenPrimary("");
+                    }}
+                    title={bi(locale, "Second target (14.1)", "第二目标（14.1）")}
+                  >
+                    <option value="">{bi(locale, "One target", "单一目标")}</option>
+                    {secondTargetOptions.map((candidate) => (
+                      <option key={warTargetKey(candidate.target)} value={warTargetKey(candidate.target)}>
+                        {defenderLabel(candidate, locale, t)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
             </div>
 
             <div className="ie-inline">
@@ -341,21 +408,6 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
                     {secondObjectives.map((id) => <option key={id} value={id}>{spaceLabel(id, locale)}</option>)}
                   </select>
                 </label>
-              )}
-              {secondPowerOptions.length > 0 && (
-                <select
-                  className="ie-select"
-                  data-testid="ie-war-second-power"
-                  value={secondPower}
-                  onChange={(event) => {
-                    setChosenSecondPower(event.target.value as Power | "");
-                    setChosenSecondObjective("");
-                  }}
-                  title={bi(locale, "Second power (14.1)", "第二个国家（14.1）")}
-                >
-                  <option value="">{bi(locale, "One power", "单一国家")}</option>
-                  {secondPowerOptions.map((p) => <option key={p} value={p}>{t.seats[p]}</option>)}
-                </select>
               )}
               {primaryChoices.length > 1 && (
                 <select
@@ -415,15 +467,75 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
             {entitlement !== null && (
               <div className="ie-hint" data-testid="ie-war-entitlement">
                 {bi(locale,
-                  `${entitlement.card === BISMARCK_HOME_CARD ? "Bismarck" : "The card"} funds this declaration with its printed CP; pick the defender and objective here.`,
-                  `本牌以印制的 CP 支付宣战费用；在此选择防守方与目标空间。`)}
+                  `${entitlement.card === BISMARCK_HOME_CARD ? "Bismarck" : "The card"} funds this declaration with its printed CP; pick the target and objective here.`,
+                  `本牌以印制的 CP 支付宣战费用；在此选择目标与目标空间。`)}
               </div>
             )}
-            {secondPowerOptions.length > 0 && (
+            {twoTargetEligible && (
               <div className="ie-hint" data-testid="ie-war-two-powers">
                 {bi(locale,
-                  "This card may name a second power; the defenders agree on the primary, and the attacker decides if they cannot.",
-                  "本牌可同时指定第二个国家；防守方协商主要防守方，协商不成则由进攻方决定。")}
+                  "This card may name a second target; the defenders agree on the primary, and the attacker decides if they cannot.",
+                  "本牌可同时指定第二个目标；防守方协商主要防守方，协商不成则由进攻方决定。")}
+              </div>
+            )}
+            {aidHint !== null && (
+              <div className="ie-hint" data-testid="ie-war-nonplayer-aid">
+                {aidHint.forbidden
+                  ? bi(locale,
+                    "You forbid other players from joining: the non-player power defends alone (13.4.2 / 15.4.2).",
+                    "你已禁止其他玩家参战：该非玩家势力将独自防守（13.4.2 / 15.4.2）。")
+                  : (
+                    <>
+                      {bi(locale,
+                        "This target is a non-player power with no player ally. It will seek aid (13.4.2):",
+                        "该目标是没有玩家盟友的非玩家势力，会寻求援助（13.4.2）：")}
+                      {aidHint.slots.length > 0 && (
+                        <span data-testid="ie-war-nonplayer-aid-candidates">
+                          {" "}
+                          {aidHint.slots
+                            .map((slot) => {
+                              const who = slot.candidates.map((p) => t.seats[p]).join(" / ");
+                              const step = slot.diplomacy
+                                ? bi(locale, "diplomacy marker", "外交标记")
+                                : bi(locale, `choice ${slot.step - 1}`, `第 ${slot.step - 1} 选择`);
+                              return `${minorLabel(aidHint.minor, locale)}: ${step} — ${who}${slot.rollOff ? " (*)" : ""}`;
+                            })
+                            .join("; ")}
+                        </span>
+                      )}
+                      {aidHint.slots.length === 0 && (
+                        <span>
+                          {" "}
+                          {bi(locale,
+                            "no player may aid it, so it defends alone (15.4.2).",
+                            "没有玩家可以援助它，因此它独自防守（15.4.2）。")}
+                        </span>
+                      )}
+                      {aidHint.slots.some((slot) => slot.rollOff) && (
+                        <span>
+                          {" "}
+                          {bi(locale,
+                            "(*) both players roll off, higher roll asks first.",
+                            "(*) 两名玩家掷骰比大小，点数高者先被询问。")}
+                        </span>
+                      )}
+                      {secondEntry !== undefined && typeof secondEntry.target !== "string" && (
+                        <span>
+                          {" "}
+                          {bi(locale,
+                            `The second target, ${minorLabel(secondEntry.target.minor, locale)}, joins the defending side with the war; only the first target runs the aid search.`,
+                            `第二目标${minorLabel(secondEntry.target.minor, locale)}随战争加入防守方；求援只针对第一目标。`)}
+                        </span>
+                      )}
+                    </>
+                  )}
+              </div>
+            )}
+            {secondObjectives.length > 0 && (
+              <div className="ie-hint" data-testid="ie-war-two-objectives">
+                {bi(locale,
+                  "A war may target up to two spaces; a conquest may include only one key (13.0 / 13.3).",
+                  "战争可指定至多两个空间；征服战争至多包含一个关键区（13.0 / 13.3）。")}
               </div>
             )}
             {entitlement?.card === RUSSO_TURKISH_WARS_HOME_CARD && (
