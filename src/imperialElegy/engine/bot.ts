@@ -47,6 +47,7 @@ import {declarationTargetCandidates} from "./declarationTargets";
 import {warDeclarationEntitlement} from "./rules";
 import {reserveRemaining} from "./economy";
 import {hasCounterFor} from "./counters";
+import {holdsWarImpulse} from "./limitedWar";
 
 // ---------------------------------------------------------------------------
 // BDIT — Bot Diplomatic Interest Table (B2)
@@ -407,13 +408,8 @@ export const botPendingMove = (
       // Combat decisions: pick first option (take the loss / retreat / advance).
       return {move: "resolvePending", args: [pending.options[0].id]};
 
-    case "warAlly":
     case "warAllyConsent":
       // Bots always call allies (B2: "Bots will always call allies").
-      return {move: "resolvePending", args: [pending.options[0].id]};
-
-    case "warAim":
-    case "warInitiative":
       return {move: "resolvePending", args: [pending.options[0].id]};
 
     case "balanceOfPower":
@@ -831,17 +827,22 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
   const war = G.war;
   if (!war) return null;
   const budget = cpBudgetFor(G, power);
-  const principal = power === war.attacker || power === war.defender;
 
   // 13.2/14.3: a freshly declared war sits in `warAim`, then the alliance step
   // (`alliance`).  The maneuver actions below are only legal once the war
-  // reaches `maneuver`, and the board exposes "start maneuver" for exactly this
-  // transition.  Without it the bot named `deployReserves` in `warAim`, the
-  // engine refused it, and the seat had no other move to make.
-  if (principal && (war.status === "warAim" || war.status === "alliance")) {
-    return {move: "startWarManeuver"};
+  // reaches `maneuver`, and the board exposes "start maneuver" to the attacker
+  // for exactly this transition.  Without it the bot named `deployReserves` in
+  // `warAim`, the engine refused it, and the seat had no other move to make.
+  // The defender cannot advance the war past those steps, so it waits.
+  if (war.status === "warAim" || war.status === "alliance") {
+    return power === war.attacker ? {move: "startWarManeuver"} : null;
   }
-
+  // A war recorded as won (15.5 surrender, or the 16.2 chooser still running)
+  // is finished by the settlement move; passing is not an option there.
+  if (war.status === "victory") return {move: "resolveWar"};
+  // 4.4: only the impulse holder acts; every other belligerent waits for its
+  // turn instead of sending a move the engine now refuses.
+  if (!holdsWarImpulse(G, power)) return null;
   // Attack enemy capital if adjacent.
   const enemyPowers = [...war.attackerAllies, war.attacker, ...war.defenderAllies, war.defender]
     .filter((p) => p !== power);

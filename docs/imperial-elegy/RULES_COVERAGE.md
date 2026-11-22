@@ -519,6 +519,11 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
   initiative, march/rail/naval/land-battle/deploy/reserves actions, surrender
   move, victory classification, interactive treaty chooser, truce length and
   demobilisation — **live and partial**.
+- **Step ownership (4.4):** the aim and maneuver start belong to the attacker,
+  a maneuver impulse to exactly one belligerent (`holdsWarImpulse`), and the war
+  settles at 15.0's all-passed boundary.  The panel and the moves read the same
+  helper, so dispatch widening (`{all: "play"}`, needed for the defender's 13.7
+  and 15.5 answers) no longer lets an arbitrary seat act out of turn.
 - **Live details:**
   - `declareWar` uses `validateWarAim`; conquest applies the WTT/stability
     penalty; the attacker’s starting control is snapshotted for defensive

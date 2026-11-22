@@ -35,7 +35,6 @@ const DESTRUCTIVE_KINDS: readonly string[] = [
   "manpowerExcess",
   "treatyOption",
   "treatySpace",
-  "warAim",
   "warAllyConsent",
   "navalAvoid",
   "mineRetreat",

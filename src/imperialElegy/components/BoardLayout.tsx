@@ -424,7 +424,7 @@ export const WarRegion = (props: WarSlice & {
           war={war} G={G} viewer={viewer} active={active} phase={phase} locale={locale} t={t}
           warStatusLabel={warStatusLabel} warAimLabel={warAimLabel} warBelligerents={warBelligerents}
           isPrincipal={isPrincipal} isBelligerent={isBelligerent} eliminated={eliminated} pending={pending}
-          isActive={isActive} warBudgetRows={warBudgetRows} warDefenderMinors={warDefenderMinors}
+          warBudgetRows={warBudgetRows} warDefenderMinors={warDefenderMinors}
           callableAllies={callableAllies} warAllyValue={warAllyValue} setWarAlly={setWarAlly}
           callableMinors={callableMinors} warMinorValue={warMinorValue} setWarMinor={setWarMinor}
           confirmSurrender={confirmSurrender} setConfirmSurrender={setConfirmSurrender}

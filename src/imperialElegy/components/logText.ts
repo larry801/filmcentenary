@@ -2639,6 +2639,15 @@ const FORMATTERS: Record<string, Formatter> = {
   warManeuverStarted: (entry, locale) =>
     withActor(entry, locale, "started the war maneuver.", "开始战争机动。"),
 
+  warManeuverRefused: (entry, locale) =>
+    withActor(entry, locale, "cannot advance the war past its aim and alliance steps: only the attacker opens the maneuver.", "只有进攻方可以宣布战争目标并开始机动。"),
+
+  warPassRefused: (entry, locale) =>
+    withActor(entry, locale, "cannot pass the war impulse now.", "当前无法战争停牌。"),
+
+  warResolveRefused: (entry, locale) =>
+    withActor(entry, locale, "cannot settle the war until every belligerent has passed.", "所有参战方停牌后才能结算战争。"),
+
   gwPoliticalPressureSatisfied: (entry, locale) => {
     const where = spaceName(str(entry.args?.space), locale);
     return withActor(entry, locale, `occupied ${where}, satisfying Political Pressure.`, `占领${where}，满足“政治压力”的攻击条件。`);

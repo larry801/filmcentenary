@@ -1221,14 +1221,14 @@ export const useBoardModel = ({
   // two identical 拒绝 buttons whose only difference is the option id.
   const canDecline = canDecide && pending !== null && !pendingDeclinesItself(pending) && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
 
+  // Only the rungs `WarState.status` actually holds; `shift`, `initiative` and
+  // `demobilization` are printed steps the engine resolves inside the alliance
+  // and victory steps, so they are not war statuses here.
   const warStatusLabels: Record<string, string> = {
     warAim: t.warAim,
     alliance: t.warAlliance,
-    shift: bi(actualLocale, "Alliance shift", "同盟转换"),
-    initiative: bi(actualLocale, "Initiative", "先手"),
     maneuver: t.warManeuver,
     victory: t.warVictory,
-    demobilization: t.demobilization,
     done: t.done,
   };
   const warStatusLabel = war ? warStatusLabels[war.status] ?? war.status : "";

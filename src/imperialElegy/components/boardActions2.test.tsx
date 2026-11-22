@@ -341,7 +341,7 @@ const PENDING_KINDS: PendingKind[] = [
   "discardForStability", "chooseHomeCard", "giveCard", "eventTargetSpace", "eventTargetPower",
   "eventChoice", "eventUnits", "combatSupport", "navalAvoid", "combatElite", "combatCard",
   "combatDiscard", "combatLosses", "decisiveBattle", "combatRetreat", "combatAdvance",
-  "movementDestination", "warAim", "warAlly", "warInitiative", "warAllyConsent", "treatyOption",
+  "movementDestination", "warAllyConsent", "treatyOption",
   "treatySpace", "demobilizationFreeAction", "goalChoice", "industryCard", "mpitAllocation",
   "italyTable", "italianInternalWar", "crisis", "crisisIncident", "crisisAlliance", "gwDraft", "gwCard", "gwWinter",
   "scoringChoice", "responseCard", "confirm", "impulseLoss", "militarism", "manpowerExcess",

@@ -1530,6 +1530,57 @@ export const sidePowers = (war: WarState, side: WarSideName): Power[] =>
   );
 
 /**
+ * 4.4/4.5 — whether `power` holds this war's open maneuver impulse.
+ *
+ * `G.activePower` names the belligerent whose impulse is open, and the whole
+ * maneuver step is one impulse wide: the holder may take as many 15.2 actions
+ * as its budget allows, everyone else waits.  A belligerent that has already
+ * passed has left the maneuver, so it no longer holds anything.
+ *
+ * The engine and the War panel both read this, so a button that is hidden and
+ * a move that is refused cannot drift apart.
+ */
+export const holdsWarImpulse = (
+  G: ImperialElegyState,
+  power: Power,
+  war: WarState | null = G.war,
+): boolean => {
+  if (war === null) return false;
+  if (war.status !== "maneuver") return false;
+  if (war.passed.includes(power)) return false;
+  return G.activePower === power;
+};
+
+/**
+ * 15.0 — every belligerent has passed, which is the only boundary at which a
+ * maneuver settles.  Exposed so the panel can offer the manual settlement when
+ * a settlement step returned without opening a decision (a refused mandatory
+ * cession, say): at that point no impulse is open and no pass is owed, so the
+ * all-passed state itself is the player's next move.
+ */
+export const warAllPassed = (war: WarState | null = null): boolean => {
+  if (war === null) return false;
+  const belligerents = belligerentsOf(war);
+  return belligerents.length > 0 && belligerents.every((power) => war.passed.includes(power));
+};
+
+/**
+ * 15.0 — may `power` end its war impulse now?  During the maneuver only the
+ * impulse holder may, because passing hands the impulse on.  Once a 15.5
+ * surrender has recorded the result the maneuver is over and any belligerent
+ * may send the recorded war on to its victory step.
+ */
+export const canPassWarImpulse = (
+  G: ImperialElegyState,
+  power: Power,
+  war: WarState | null = G.war,
+): boolean => {
+  if (war === null) return false;
+  if (war.status === "victory") return belligerentsOf(war).includes(power);
+  return holdsWarImpulse(G, power, war);
+};
+
+/**
  * The powers a declaration named, in primary-first order: the defending
  * primary, then the second player power of a home-card double declaration,
  * then any non-player powers it named.  Rule 13.4 resolves a non-player target

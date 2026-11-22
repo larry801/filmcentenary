@@ -86,16 +86,31 @@ const declareCampaignWar = (G: ImperialElegyState, ctx: Ctx): void => {
   expect(declareWar(G, ctx, "FR", "conquest", OBJECTIVES, 2)).toBeUndefined();
 };
 
-/** Pass through every belligerent in initiative order. */
+/**
+ * Pass through every belligerent in initiative order.
+ *
+ * Rule 15.0 settles the war when every belligerent has passed, so the last
+ * pass itself can open the 16.2 chooser; a war already recorded as won by a
+ * 15.5 surrender settles on the first pass.  Either way the loop stops as soon
+ * as the victory step takes over.
+ */
 const passAllBelligerents = (G: ImperialElegyState): void => {
   const war = G.war;
   expect(war).not.toBeNull();
+  // 15.0: settle at the all-passed boundary.  A 15.5 surrender already ended
+  // the maneuver, so the same move routes straight to the victory step.
+  if (war!.status === "victory") {
+    expect(passWarMove(G, makeCtx(seat(war!.attacker)))).toBeUndefined();
+    return;
+  }
   const belligerents = [
     ...new Set([war!.attacker, war!.defender, ...war!.attackerAllies, ...war!.defenderAllies]),
   ];
   for (const power of belligerents) {
+    if (G.war === null || G.war.status !== "maneuver" || G.pending !== null) break;
     expect(passWarMove(G, makeCtx(seat(power)))).toBeUndefined();
   }
+  expect(G.war === null || G.war.status === "victory" || G.pending !== null).toBe(true);
 };
 
 const optionIds = (G: ImperialElegyState): string[] =>

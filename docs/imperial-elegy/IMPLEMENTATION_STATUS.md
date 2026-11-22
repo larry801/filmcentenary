@@ -1,5 +1,54 @@
 # Imperial Elegy — implementation status
 
+## Fixed: a limited war's steps belong to the seat the rules name (4.4 / 13.2 / 14.3 / 15.0) (2026-11-22)
+
+`declareWar` widens boardgame.io's dispatch to `{all: "play"}` so the defender
+can answer 13.7's budget card and 15.5's surrender inside the attacker's move.
+That widening was the only check on the war moves: any seat could announce the
+war aim, open the maneuver, spend a foreign war budget, pass for a belligerent
+or settle the war early — the buttons were merely hidden in `WarPanel`.
+
+- `engine/limitedWar.ts#holdsWarImpulse` is the one answer to 4.4/4.5: the
+  impulse belongs to `G.activePower` while the war is in `maneuver`, and a
+  belligerent that has passed holds nothing.  `warAllPassed` and
+  `canPassWarImpulse` sit beside it, so a hidden button and a refused move
+  cannot drift apart.
+- `chooseWarAim` (13.2) and `startWarManeuver` (14.3) now require the attacker;
+  the defender's own choices in those steps (`playWarBudgetCard`, 8.2's shift,
+  13.6's surrender) keep their own seats.
+- `passWarMove` refuses outside `maneuver`, refuses a non-holder, and settles
+  only at 15.0's all-passed boundary; `resolveWar` no longer offers an unprinted
+  "settle now" shortcut.  `resolveWar` reads the passive (`nullctx`) case too,
+  so the panel and the direct settlement path agree.
+- The bot uses the same helper: it starts the maneuver only as the attacker and
+  acts only while it holds the impulse, so a waiting seat stops instead of
+  re-sending a refusal.
+- A war already recorded as won by a 15.5 surrender has no maneuver left, so
+  `passWarMove` routes it to the victory step instead of being refused.
+
+**Also removed the dead rungs:** `WarState.status` declared `shift`,
+`initiative` and `demobilization`, and `PENDING_KINDS` declared `warAim`,
+`warAlly` and `warInitiative`, but the engine never writes or opens them — the
+alliance-shift and initiative rolls happen inside `startWarManeuver`, and
+demobilisation is the victory step's tail.  The union now holds only the five
+statuses a save can carry, the three pending kinds are gone from `i18n`,
+`pendingSafety`, `logText`'s inventory and the bot switch, and the status label
+map lists only what a war can be.  The printed ladder in
+`components/phaseSteps.ts` still shows all seven steps, because that panel is
+the reference for the rulebook, not a readout of `G.war.status`.
+
+**Coverage:** `warAuthority.test.ts` (23 tests) pins each rule above;
+`campaignWar.test.ts`, `loneMinorWar.test.ts`, `warFlagCleanup.test.ts` and
+`displacementRules.test.ts` now reach 15.0's boundary before settling, as the
+printed rule requires.  Full local Jest suite **602 suites / 5997 tests** pass;
+TypeScript, the token check and the contrast check pass.
+
+`tools/ie-sim/war.test.ts` (`yarn test` excludes `tools/`, run explicitly)
+still reports 12 UK `recruit` refusals for Indian armies in the **action**
+phase and the harness's 3-step deadlock fallback.  That signature is
+**pre-existing**: stashing this branch and re-running the same suite reproduces
+it exactly, and no war move is named.
+
 ## Fixed: the bot named another phase's exit (12.0 / 27.1) (2026-11-22)
 
 Re-running `IE_BATCH=24` (144 games, six modes) against the fixed tree confirmed
