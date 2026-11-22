@@ -22,7 +22,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {cardById} from "./engine/deck";
 import {dealsOf, negotiationOf, settleDeals} from "./engine/negotiation";
-import {chooseHomeCard, counterDeal, proposeDeal, respondDeal} from "./moves";
+import {chooseHomeCard, counterDeal, proposeDeal, respondDeal, resolvePending} from "./moves";
 
 const seat = (power: Power): string => String(POWERS.indexOf(power));
 
@@ -242,6 +242,11 @@ describe("the action phase is still entered", () => {
     expect(proposeDeal(G, makeCtx(), "FR", 1, 0)).toBeUndefined();
     expect(respondDeal(G, makeCtx([], "FR"), dealsOf(G).offers[0].id, true)).toBeUndefined();
     closeDiplomacy(G, [2]);
+    // 33.4 Metternich's Legacy resolves at the end of diplomacy, before the
+    // action phase opens; answer AU's choice and then the phase advances.
+    while (G.pending?.kind === "metternich") {
+      expect(resolvePending(G, makeCtx([2], "AU"), G.pending.options[0].id)).toBeUndefined();
+    }
     expect(G.phase).toBe("action");
     expect(G.activePower).toBe("GE");
     expect(negotiationOf(G).offers).toEqual([]);
