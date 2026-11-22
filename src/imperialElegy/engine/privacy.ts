@@ -83,8 +83,12 @@ export interface RedactContext {
  *    Aux Armes, Russo-Turkish Wars, Jihad) is public once the card resolves.
  *  - `balanceOfPower` — the UK home card's public declaration response.
  *  - `noBuildArmiesThisImpulse` — Liberal Reforms' public restriction.
- *  - `freeColonialCp` — a public event grant of free colonial CP (Sun Never
- *    Sets, Our Place in the Sun).
+ *  - `freeColonialCp` — a public event grant of free colonial CP (Our Place in
+ *    the Sun; UK-3's older saves).
+ *  - `freeOperationCp` — UK-3 Sun Never Sets' 2 CP for expeditionary force,
+ *    pacification and/or naval movement.
+ *  - `freeIndianCp` — UK-3 Sun Never Sets' 2 CP for Indian army steps or an EF
+ *    in India or Bengal.
  *  - `stabilityDecreased`, `stabilityDecreasedTurn` — a stability loss sits on
  *    the public track, and A89/A109 may be held by any player.
  *  - `negotiationDone` — 9.1: whether a seat has finished the diplomacy
@@ -110,6 +114,8 @@ export const PUBLIC_POWER_FLAGS: readonly string[] = [
   "balanceOfPower",
   "noBuildArmiesThisImpulse",
   "freeColonialCp",
+  "freeOperationCp",
+  "freeIndianCp",
   // A89/A109 print "Play if Russian stability has been decreased"; the
   // stability track is public, and the holder may be any player, so the
   // response gate must see the same trigger the server does.

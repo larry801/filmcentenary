@@ -418,12 +418,25 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   const commandOwner = gwAllyImpulseFor(G, viewer) ?? viewer;
   const canSpend = (cost: number): boolean => canAct && input.cp >= cost;
   const spendReason = (cost: number): string => !canAct ? REASON.notYourTurn(locale) : REASON.cp(locale, cost);
-  // A088/UK-3: the free colonial grant pays for naval movement, fleet builds,
-  // expeditionary forces and pacification before the ordinary CP wallet, so a
-  // row that spends it must not be disabled for want of ordinary CP.
+  // A088/UK-3: the free CP grants pay for their printed actions before the
+  // ordinary wallet, so a row that spends one must not be disabled for want of
+  // ordinary CP.  The three grants have different scopes:
+  //   freeColonialCp — naval movement, construct fleet, EF, pacification (A088)
+  //   freeOperationCp — EF, pacification, naval movement (UK-3 naval option)
+  //   freeIndianCp — Indian army steps or an EF in India/Bengal (UK-3 India)
   const freeColonial = Number(me.flags.freeColonialCp ?? 0);
+  const freeOperation = Number(me.flags.freeOperationCp ?? 0);
+  const freeIndian = Number(me.flags.freeIndianCp ?? 0);
+  const indianSpace = space === "india" || space === "bengal";
+  const operationBudget = freeColonial + freeOperation;
   const canSpendColonial = (cost: number): boolean =>
+    canAct && operationBudget + (indianSpace ? freeIndian : 0) + input.cp >= cost;
+  const canSpendOperation = (cost: number): boolean =>
+    canAct && operationBudget + input.cp >= cost;
+  const canSpendFleet = (cost: number): boolean =>
     canAct && freeColonial + input.cp >= cost;
+  const canSpendIndianArmy = (cost: number): boolean =>
+    canAct && freeIndian + input.cp >= cost;
   const colonialSpendReason = (cost: number): string =>
     !canAct ? REASON.notYourTurn(locale) : spendReason(cost);
   const selected = selectedUnit ? G.units[selectedUnit] : undefined;
@@ -455,7 +468,11 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   {
     const army = canRecruitIn(G, viewer, space, "army");
     const armyCost = ACTION_COSTS.recruitArmy;
-    const armyEnabled = army.allowed && canSpend(armyCost);
+    // 33.2: a UK army built in India/Bengal is an Indian army, so the Sun
+    // Never Sets India grant can pay for that step.
+    const armyEnabled = army.allowed && (viewer === "UK" && indianSpace
+      ? canSpendIndianArmy(armyCost)
+      : canSpend(armyCost));
     push({
       id: "recruitArmy", group: "recruit", enabled: armyEnabled,
       reason: armyEnabled ? undefined : !army.allowed ? recruitReasonText(locale, recruitReason(locale, army)) : spendReason(armyCost),
@@ -567,14 +584,14 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       ? bi(locale, "New fleets need a territorial home key on the main map.", "新建舰队需位于主地图的本国领土关键区。")
       : null);
     if (hasPort) {
-      const sqEnabled = fleetHomeReason === null && canSpendColonial(ACTION_COSTS.buildSquadron);
+      const sqEnabled = fleetHomeReason === null && canSpendFleet(ACTION_COSTS.buildSquadron);
       push({
         id: "buildSquadron", group: "build", enabled: sqEnabled,
         reason: sqEnabled ? undefined : fleetHomeReason ?? colonialSpendReason(ACTION_COSTS.buildSquadron),
         run: () => doAction(() => moves.constructFleet(space, "squadron", false)),
       });
       const dreadnoughtLocked = G.persistent.dreadnoughts !== true && !me.flags.navalLimit;
-      const dnEnabled = fleetHomeReason === null && !dreadnoughtLocked && canSpendColonial(ACTION_COSTS.buildDreadnought);
+      const dnEnabled = fleetHomeReason === null && !dreadnoughtLocked && canSpendFleet(ACTION_COSTS.buildDreadnought);
       push({
         id: "buildDreadnought", group: "build", enabled: dnEnabled,
         reason: dnEnabled ? undefined
@@ -656,7 +673,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       run: () => doAction(() => moves.buildEf(space)),
     });
     if (selectedUnit !== null && selected?.kind === "expeditionary" && selected.owner === viewer && selected.space !== space) {
-      const moveEnabled = efReason === null && canSpend(ACTION_COSTS.moveEf);
+      const moveEnabled = efReason === null && canSpendOperation(ACTION_COSTS.moveEf);
       push({
         id: "moveEf", group: "build", enabled: moveEnabled,
         reason: moveEnabled ? undefined : efReason ?? spendReason(ACTION_COSTS.moveEf),
@@ -733,7 +750,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     const pacifyReason = pacifyProblem === null ? null : pacificationText(pacifyProblem, locale);
     const pacifyEnabled = pacifyReason === null
       && phaseActionProblem(G, "pacify") === null
-      && canSpendColonial(pacifyCost);
+      && canSpendOperation(pacifyCost);
     push({
       // 12.1's pacification cost is not flat: GE pays 2 CP until it unifies and
       // AU always pays 2 CP, so the row quotes the same figure the move charges.

@@ -2866,6 +2866,25 @@ export const returnReserveArmies = (G: ImperialElegyState): {power: PowerOrMinor
 };
 
 /**
+ * The next seat in printed turn order after `power` that can still act.
+ *
+ * Used when a white peace ends a war: the attacker's impulse is already spent
+ * on the declaration, so the action phase resumes with the next seat (4.3)
+ * rather than replaying the attacker.  A seat with no card left is still
+ * returned when it is the only candidate so its pass can close the phase.
+ */
+const nextActionPowerAfter = (G: ImperialElegyState, power: Power): Power => {
+  const start = POWERS.indexOf(power);
+  for (let i = 1; i <= POWERS.length; i += 1) {
+    const candidate = POWERS[(start + i) % POWERS.length];
+    if (candidate === power) break;
+    if (G.powers[candidate].eliminated) continue;
+    if (G.powers[candidate].hand.length > 0) return candidate;
+  }
+  return power;
+};
+
+/**
  * Rule 17.0: return reserves, clear the active war, record its history and
  * hand the game back to the action phase.  Free redeploy/naval actions are
  * returned for the caller to prompt (winner first, loser second).
@@ -2985,7 +3004,15 @@ export const demobilizeWar = (
   // Rule 15.4.2: a lone non-player defender can win the war but takes no
   // impulse; the attacker remains the active player for the rule 17.0 free
   // actions (the non-player has none).
-  const actingWinner: Power = isPower(winner) ? winner : war.attacker;
+  //
+  // A white peace has no winning side (16.1.5), so there is nobody to hand the
+  // action phase to.  The war interrupted the attacker's impulse; play must
+  // resume in normal turn order with the next seat, not restart with the
+  // attacker (which handed the German bot a second card after Bismarck's
+  // unification war ended in a white peace).
+  const actingWinner: Power = war.victor === null
+    ? nextActionPowerAfter(G, war.attacker)
+    : isPower(winner) ? winner : war.attacker;
   G.phase = "action";
   G.activePower = actingWinner;
   G.passed = [];
@@ -2993,7 +3020,7 @@ export const demobilizeWar = (
   G.impulseCard = null;
   ctx?.events?.setPhase?.("action");
 
-  log(G, actingWinner, "warEnded", {
+  log(G, isPower(winner) ? winner : war.attacker, "warEnded", {
     victor: war.victor ?? "whitePeace",
     truceTurns: war.truceTurns,
     reserves: reservesReturned.reduce((total, entry) => total + entry.unitIds.length, 0),

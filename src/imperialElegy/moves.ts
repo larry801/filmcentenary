@@ -113,8 +113,9 @@ import {
   resolveImpulseLoss,
   setSpaceControl,
   spendCpFor,
-  spendColonialCp,
-  freeColonialCp,
+  spendGrantCp,
+  freeGrantCp,
+  type FreeCpGrant,
   unitById,
   unitsOfPower,
   BISMARCK_HOME_CARD,
@@ -1236,27 +1237,30 @@ const requireCp = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null, a
 
 /**
  * A088 Our Place in the Sun / UK-3 Sun Never Sets: the printed "free CP" grants
- * may only pay for colonial actions (naval movement, construct fleet,
- * expeditionary force, pacification).  This payer drains the public
- * `freeColonialCp` grant first and then the ordinary wallet, so the grant is
- * spendable instead of being a flag nothing reads.  It keeps `requireCp`'s
- * impulse bookkeeping (response window and the wartime pass run).
+ * may only pay for the actions they name.  `grants` is drained in order and the
+ * ordinary wallet covers the rest, so a grant is spendable instead of being a
+ * flag nothing reads.  The payer keeps `requireCp`'s impulse bookkeeping
+ * (response window and the wartime pass run).
  */
-const requireColonialCp = (
+const requireGrantCp = (
   G: ImperialElegyState,
   ctx: Ctx,
   playerID: PlayerID | null,
   amount: number,
+  grants: readonly FreeCpGrant[],
 ): Power | typeof INVALID_MOVE => {
   if (G.phase === "gwManeuver" && hasLiveGwImpulse(G)) return INVALID_MOVE;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.flags.cpChainActive === true && G.flags.cpChainActionUsed === true) return INVALID_MOVE;
-  const free = freeColonialCp(G, power);
-  if (!spendColonialCp(G, power, amount)) {
-    // Restore the grant when the ordinary wallet could not cover the rest, so a
-    // refused action never burns free CP.
-    if (free > 0) G.powers[power].flags.freeColonialCp = free;
+  const before = grants.map((grant) => [grant, freeGrantCp(G, power, grant)] as const);
+  if (!spendGrantCp(G, power, amount, grants)) {
+    // Restore every grant when the ordinary wallet could not cover the rest, so
+    // a refused action never burns free CP.
+    for (const [grant, value] of before) {
+      if (value > 0) G.powers[power].flags[grant] = value;
+      else delete G.powers[power].flags[grant];
+    }
     return INVALID_MOVE;
   }
   if (G.phase === "action") {
@@ -1268,6 +1272,15 @@ const requireColonialCp = (
   if (G.flags.cpChainActive === true) G.flags.cpChainActionUsed = true;
   return power;
 };
+
+/** A088/UK-3 free CP for colonial actions; kept as the common short form. */
+const requireColonialCp = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  playerID: PlayerID | null,
+  amount: number,
+  grants: readonly FreeCpGrant[] = ["freeColonialCp"],
+): Power | typeof INVALID_MOVE => requireGrantCp(G, ctx, playerID, amount, grants);
 
 export interface RecruitOptions {
   /** OT only: build a Turkish or Arab army.  Defaults to the space's kind. */
@@ -1354,7 +1367,12 @@ export const recruit = (
     const current = Object.values(G.units).filter(
       (unit) => unit.owner === "UK" && Boolean(unit.flags?.indian),
     ).length;
-    if (G.powers.UK.indiaIndependent === true || current >= cap) {
+    // A refit flips an existing Indian counter in place: it adds no army, so
+    // the cap and the independence limit only gate a new counter.
+    const indianRefit = landUnitsIn(G, space).some(
+      (unit) => unit.owner === "UK" && unit.kind === "army" && unit.steps < 2 && unit.flags?.indian === true,
+    );
+    if (!indianRefit && (G.powers.UK.indiaIndependent === true || current >= cap)) {
       log(G, power, "recruitRejected", {
         kind,
         space,
@@ -1393,7 +1411,13 @@ export const recruit = (
   // build must not relabel a British army (33.2.1), and a British build must
   // not consume the colonial track by upgrading a CW army.
   const existing = landUnitsIn(G, space).filter(
-    (u) => u.owner === power && u.kind === "army" && (u.flags?.cw === true) === cw,
+    (u) =>
+      u.owner === power &&
+      u.kind === "army" &&
+      (u.flags?.cw === true) === cw &&
+      // 33.2: an Indian build flips an Indian counter; a British build must not
+      // relabel a British army as Indian (or the reverse) in a mixed stack.
+      (u.flags?.indian === true) === (indian === true),
   );
   // 12.2: a step flips a reduced army rather than adding a new counter.  Pick
   // the reduced counter itself, not the first army in the space, or a stack
@@ -1412,7 +1436,11 @@ export const recruit = (
     if (!allowance.ok || gwAllyImpulseFor(G, power) !== null) return INVALID_MOVE;
     recordGwAction(G, power, "draft", allowance);
   } else {
-    const paid = requireCp(G, ctx, playerID, steps);
+    // UK-3 Sun Never Sets (India option): the printed 2 CP pay for Indian army
+    // steps; the grant may cover only that build, never a British army.
+    const paid = indian === true
+      ? requireGrantCp(G, ctx, playerID, steps, ["freeIndianCp"])
+      : requireCp(G, ctx, playerID, steps);
     if (paid === INVALID_MOVE) return INVALID_MOVE;
   }
   if (upgrade !== undefined) {
@@ -1690,8 +1718,8 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
     if (!res.ok && res.pending === true) return undefined;
     return res.ok ? undefined : INVALID_MOVE;
   }
-  // A088/UK-3: naval movement is a printed colonial action.
-  const power = requireColonialCp(G, ctx, playerID, 1);
+  // A088/UK-3: naval movement is a printed colonial/operation action.
+  const power = requireColonialCp(G, ctx, playerID, 1, ["freeColonialCp", "freeOperationCp"]);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   const units = unitIds.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && u.owner === power && u.naval === true);
   if (units.length === 0) return INVALID_MOVE;
@@ -2038,8 +2066,11 @@ export const buildEf = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, existin
   if (requireActionFamily(G, "buildEf") === INVALID_MOVE) return INVALID_MOVE;
   if (!efDestinationAllowed(G, space, power)) return INVALID_MOVE;
   // A088/UK-3: an expeditionary force is a colonial action, so the free
-  // colonial grant may pay for it first.
-  const paid = requireColonialCp(G, ctx, playerID, existing ? 1 : 2);
+  // colonial/operation grant may pay for it first.  The India option's grant
+  // applies only to a new EF built in India or Bengal, not to moving one.
+  const grants: FreeCpGrant[] = ["freeColonialCp", "freeOperationCp"];
+  if (existing === undefined && (space === "india" || space === "bengal")) grants.push("freeIndianCp");
+  const paid = requireColonialCp(G, ctx, playerID, existing ? 1 : 2, grants);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   if (existing) {
     const unit = G.units[existing];
@@ -2196,9 +2227,9 @@ export const pacify = (
   const cost = pacificationCost(G, power);
   // Validate A65 before spending anything, so a wrong/stale row costs nothing.
   if (a065 !== undefined && !G.powers[power].hand.includes("IE-A065")) return INVALID_MOVE;
-  // A088/UK-3: pacification is one of the printed colonial actions, so the free
-  // colonial grant may pay for it first.
-  const paid = requireColonialCp(G, ctx, playerID, cost.cost);
+  // A088/UK-3: pacification is one of the printed colonial/operation actions,
+  // so the free grants may pay for it first.
+  const paid = requireColonialCp(G, ctx, playerID, cost.cost, ["freeColonialCp", "freeOperationCp"]);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   // 9.1.3 / A65: "Play prior to a pacification roll."  The roll is immediate,
   // so the printed window is this move's optional `a065` argument (the board

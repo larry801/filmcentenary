@@ -13,7 +13,7 @@ import type {GreatWarState, ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {applyIndiaIndependence, placeIndianFort, placeUnit, resolveEffects} from "./engine/effects";
-import {applyWarEndCharacteristics, minorAlliance, pacify, placeInfluence, recruit} from "./moves";
+import {applyWarEndCharacteristics, minorAlliance, pacify, placeInfluence, recruit, resolvePending} from "./moves";
 import {
   canRecruitIn,
   cardDrawModifier,
@@ -193,7 +193,11 @@ describe("Indian Nationalism (A077) trigger", () => {
     expect(G.powers.UK.indiaIndependent).toBe(true);
 
     G.powers.UK.indiaStable = true;
-    expect(special(G, ctx, "UK", "sunNeverSets")).toBe(true);
+    // The card now asks for its naval or India half first; the India half is
+    // the one that touches the stability marker and the fort.
+    expect(special(G, ctx, "UK", "sunNeverSets")).toBe(false);
+    expect(G.pending?.kind).toBe("eventChoice");
+    expect(resolvePending(G, makeCtx([], seat("UK")), "india")).toBeUndefined();
     expect(G.powers.UK.indiaStable).toBe(false);
     expect(G.spaces.india.control).toBeNull();
     expect(G.spaces.india.fort).toBeNull();
