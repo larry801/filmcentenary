@@ -340,3 +340,27 @@ test("without the prop the tray still uses the stored preference", () => {
   expect(buttons.length).toBeGreaterThan(0);
   for (const tag of buttons) expect(tag).toContain('data-confirm="false"');
 });
+
+test("11.0 the hand row asks whom to show the card to", () => {
+  const G = game();
+  G.phase = "diplomacy";
+  G.powers.GE.hand = ["IE-A019"];
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)} phase="diplomacy"/>);
+  // The old label ("展示") read as a public reveal; 11.0 also allows a private
+  // show to exactly one power, so the button names the wider action.
+  expect(html).toContain('data-testid="ie-show-card-IE-A019"');
+  expect(html).toContain("向他人展示");
+  expect(html).not.toContain(">展示</button>");
+});
+
+test("a card already faceup to the table offers no further show", () => {
+  const G = game();
+  G.phase = "diplomacy";
+  G.powers.GE.hand = ["IE-A019"];
+  G.negotiation = {offers: [], history: [], nextId: 1, shown: [{card: "IE-A019", from: "GE", to: null, turn: G.turn}]};
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)} phase="diplomacy"/>);
+  expect(html).not.toContain('data-testid="ie-show-card-IE-A019"');
+  // The shown list names the recipient instead of just the card.
+  expect(html).toContain("本阶段已展示");
+  expect(html).toContain("全桌");
+});

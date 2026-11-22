@@ -1,10 +1,10 @@
 /**
- * The local entrance's saved setup, and the solo page built on top of it.
+ * The local entrance's saved setup, and the solo pages built on top of it.
  *
- * A solo match *is* a hotseat match whose five other seats are bots, so these
- * tests pin the wiring the solo page relies on: which seats become bots, the
- * "No GW" modifier's availability per scenario, and the hand-over URL that
- * makes the shell deal a fresh match instead of resuming the old one.
+ * Solo play has its own match page (it does not reuse the hotseat shell), but
+ * it still reads the same saved setup.  These tests pin that wiring: which
+ * seats become bots, the "No GW" modifier's availability per scenario, and the
+ * URL of the dedicated solo match page.
  */
 import React from "react";
 import {renderToStaticMarkup} from "react-dom/server";
@@ -28,6 +28,8 @@ import {
   SCENARIO_KEY,
   NO_GW_KEY,
   SOLO_POWER_KEY,
+  BOT_DIFFICULTY_KEY,
+  loadBotDifficulty,
   loadBotSeats,
   loadFreshNonce,
   loadNoGw,
@@ -79,6 +81,14 @@ describe("solo seat setup", () => {
     expect(loadSoloPower()).toBe<Power>("FR");
     expect(loadScenario()).toBe("s1870");
     expect(loadNoGw()).toBe(true);
+    expect(loadBotDifficulty()).toBe("normal");
+  });
+
+  test("34.1's difficulty is saved per match and a bad value reads as normal", () => {
+    saveSoloSetup("FR", "s1870", false, "hard");
+    expect(loadBotDifficulty()).toBe("hard");
+    localStorage.setItem(BOT_DIFFICULTY_KEY, "impossible");
+    expect(loadBotDifficulty()).toBe("normal");
   });
 
   test("a garbage saved power and bot list read as the defaults", () => {
@@ -92,9 +102,11 @@ describe("solo seat setup", () => {
   });
 });
 
-describe("the hand-over to the hotseat shell", () => {
-  test("a fresh match is announced by the URL, so the master cannot resume the old one", () => {
-    expect(soloMatchPath(1234)).toBe("/localIE?fresh=1234");
+describe("the hand-over to the solo match page", () => {
+  test("the solo page has its own route and never opens the hotseat shell", () => {
+    expect(soloMatchPath()).toBe("/localIE/solo/play");
+    // The hotseat shell still understands an explicit fresh stamp, but the
+    // dedicated solo page does not pass one.
     expect(loadFreshNonce("?fresh=1234")).toBe(1234);
     // A plain hotseat visit (or a junk stamp) is not a solo hand-over.
     expect(loadFreshNonce("")).toBe(0);
@@ -110,7 +122,7 @@ describe("the hand-over to the hotseat shell", () => {
 });
 
 describe("reading the whole local setup", () => {
-  test("a solo hand-over opens on the picked seat with the other five as bots", () => {
+  test("a saved solo setup still reads coherently for a hotseat visit", () => {
     saveSoloSetup("RU", "s1880", false);
     const setup = readLocalSetup("?fresh=42");
     expect(setup.fresh).toBe(42);
@@ -119,6 +131,7 @@ describe("reading the whole local setup", () => {
     expect([...setup.botSeats]).toEqual(["GE", "UK", "FR", "AU", "OT"]);
     expect(setup.scenario).toBe("s1880");
     expect(setup.noGw).toBe(false);
+    expect(setup.botDifficulty).toBe("normal");
   });
 
   test("a plain hotseat visit keeps P1 and six humans", () => {
@@ -139,7 +152,8 @@ describe("reading the whole local setup", () => {
   test("a saved setup whose P1 is a bot opens on the first human seat", () => {
     localStorage.setItem(BOT_SEATS_KEY, JSON.stringify(["GE", "UK"]));
     expect(readLocalSetup("").tabIndex).toBe(POWERS.indexOf("FR"));
-    // A solo hand-over still prefers the power the player explicitly picked.
+    // The solo setup leaves exactly one human seat, so the hotseat shell opens
+    // on it even when it is the first printed power.
     saveSoloSetup("GE", "campaign", false);
     expect(readLocalSetup("?fresh=7").tabIndex).toBe(POWERS.indexOf("GE"));
   });
@@ -178,13 +192,22 @@ describe("the solo page", () => {
     for (const power of POWERS) {
       expect(html).toContain(`data-testid="ie-solo-power-${power}"`);
     }
-    expect((html.match(/type="radio"/g) ?? []).length).toBe(POWERS.length);
-    expect((html.match(/checked=""/g) ?? []).length).toBe(1);
+    // Six power radios plus Rule 34.1's three difficulty levels; one of each
+    // group is selected (GE and Normal).
+    expect((html.match(/type="radio"/g) ?? []).length).toBe(POWERS.length + 3);
+    expect((html.match(/checked=""/g) ?? []).length).toBe(2);
+    for (const level of ["easy", "normal", "hard"]) {
+      expect(html).toContain(`data-testid="ie-solo-difficulty-${level}"`);
+    }
     // The button that hands over to the match is present, and the summary names
     // the five bot seats.
     expect(html).toContain('data-testid="ie-solo-start"');
     expect(html).toContain('data-testid="ie-solo-summary"');
     expect(html).toContain('data-testid="ie-solo-scenario"');
+    // Solo has its own match page; the setup page must not offer the hotseat
+    // entrance as an alternative way to start the same match.
+    expect(html).not.toContain('data-testid="ie-solo-hotseat"');
+    expect(html).not.toContain("/localIE?solo=1");
   });
 });
 

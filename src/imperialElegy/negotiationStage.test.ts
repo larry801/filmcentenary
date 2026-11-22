@@ -99,6 +99,21 @@ const all = async (
   }
 };
 
+/**
+ * 33.4 Metternich's Legacy resolves at the end of the turn-1 diplomacy phase,
+ * so the phase stays on diplomacy until the AU client has picked both allies.
+ */
+const answerMetternich = async (clients: Client<ImperialElegyState>[]): Promise<void> => {
+  const au = clients[POWERS.indexOf("AU")];
+  for (let pick = 0; pick < 3; pick += 1) {
+    const pending = au.getState()!.G.pending;
+    if (pending?.kind !== "metternich") return;
+    const before = stateId(clients[0]);
+    au.moves.resolvePending(pending.options[0].id);
+    await settle(clients[0], before);
+  }
+};
+
 describe("11.1 over the running game", () => {
   test("the other side answers out of turn, and the phase close draws", async () => {
     const clients = clientsFor();
@@ -125,12 +140,17 @@ describe("11.1 over the running game", () => {
     expect(negotiationOf(ge.getState()!.G).offers[0].status).toBe("accepted");
     expect(fr.getState()!.G.powers.FR.hand).toEqual(HAND);
 
-    // Every seat picks a home card; the last one closes the phase and settles.
+    // 9.1: every seat first ends its negotiation segment, then picks a home
+    // card; the last pick closes the phase and settles.
+    await all(clients, (client) => client.moves.finishNegotiation());
     await all(clients, (client, power) => {
       const G = client.getState()!.G;
       client.moves.chooseHomeCard(G.powers[power].homeCards[0]);
     });
 
+    // The close leaves Metternich's Legacy open inside the diplomacy phase.
+    expect(clients[0].getState()!.G.phase).toBe("diplomacy");
+    await answerMetternich(clients);
     const after = clients[0].getState()!.G;
     expect(after.phase).toBe("action");
     expect(negotiationOf(after).offers).toEqual([]);
@@ -152,10 +172,13 @@ describe("11.1 over the running game", () => {
     await settle(clients[0], before);
     const id = negotiationOf(ge.getState()!.G).offers[0].id;
 
+    await all(clients, (client) => client.moves.finishNegotiation());
     await all(clients, (client, power) => {
       const G = client.getState()!.G;
       client.moves.chooseHomeCard(G.powers[power].homeCards[0]);
     });
+    expect(clients[0].getState()!.G.phase).toBe("diplomacy");
+    await answerMetternich(clients);
     expect(clients[0].getState()!.G.phase).toBe("action");
 
     const fr = clients[POWERS.indexOf("FR")];
@@ -182,6 +205,7 @@ describe("11.1 over the running game", () => {
       (clients[POWERS.indexOf(power)].getState()!.G.negotiation?.shown ?? []).length;
     for (const power of POWERS) expect(shown(power)).toBe(1);
 
+    await all(clients, (client) => client.moves.finishNegotiation());
     await all(clients, (client, power) => {
       const G = client.getState()!.G;
       client.moves.chooseHomeCard(G.powers[power].homeCards[0]);

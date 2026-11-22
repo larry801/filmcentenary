@@ -65,6 +65,7 @@
   .ie-command-menu .ie-btn { display: none; }
   .ie-local-top .ie-local-title { display: block; font-size: var(--ie-font-xs); max-width: 42vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ie-local-top .ie-local-help { display: none; }
+  .ie-solo-match-top .ie-solo-match-scenario { display: none; }
   .ie-local-top { min-height: 40px; }
   .ie-local-top > .ie-btn { flex: 0 0 auto; }
 }

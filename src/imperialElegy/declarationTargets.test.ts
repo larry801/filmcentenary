@@ -19,8 +19,8 @@ import {
   RUSSO_TURKISH_WARS_HOME_CARD,
   warDeclarationEntitlement,
 } from "./engine/rules";
-import {declarationTargetCandidates, warTargetCandidateKey} from "./engine/declarationTargets";
-import {createWarState} from "./engine/limitedWar";
+import {declarationTargetCandidates, declarationSecondTargets, declarationObjectives, declarationSecondObjectives, declarationDefenders, warTargetCandidateKey, warTargetKey} from "./engine/declarationTargets";
+import {createWarState, validateWarAim} from "./engine/limitedWar";
 import {SPACES} from "./constant/spaces";
 import {declareWar, playCard, resolvePending} from "./moves";
 
@@ -143,6 +143,138 @@ describe("Bismarck's unification targets", () => {
     const targets = candidatesFor(G, "GE").map((candidate) => candidate.target);
     expect(targets).not.toContain("FR");
     expect(objectivesOf(G, "GE")).not.toContain("alsace-lorraine");
+  });
+});
+
+/**
+ * Rule 14.1 / 13.0 — a two-target declaration and its objective pairs.
+ */
+describe("two-target declarations", () => {
+  const bismarck = () => homeImpulse("GE", BISMARCK_HOME_CARD);
+
+  const entriesFor = (G: ImperialElegyState) => {
+    const entitlement = warDeclarationEntitlement(G, "GE");
+    const defenders = declarationDefenders(G, "GE", entitlement);
+    const fr = defenders.find((entry) => entry.target === "FR");
+    const denmark = defenders.find((entry) => typeof entry.target !== "string"
+      && entry.target.minor === "Denmark");
+    return {entitlement, fr: fr!, denmark: denmark!};
+  };
+
+  test("Bismarck offers a second target of either kind, in both directions", () => {
+    const G = bismarck();
+    const {entitlement, fr, denmark} = entriesFor(G);
+
+    // 14.1 counts "two different powers", and the reported fix is that a
+    // non-player power may be one of them.
+    const secondOfFr = declarationSecondTargets(G, "GE", entitlement, fr, "unification")
+      .map((entry) => warTargetKey(entry.target));
+    expect(secondOfFr).toContain("AU");
+    expect(secondOfFr).toContain("minor:Denmark");
+    expect(secondOfFr).not.toContain("FR");
+
+    const secondOfDenmark = declarationSecondTargets(G, "GE", entitlement, denmark, "unification")
+      .map((entry) => warTargetKey(entry.target));
+    expect(secondOfDenmark).toContain("FR");
+    expect(secondOfDenmark).toContain("minor:Bavaria");
+    expect(secondOfDenmark).not.toContain("minor:Denmark");
+  });
+
+  test("a card without the clause offers no second target", () => {
+    const G = homeImpulse("RU", RUSSO_TURKISH_WARS_HOME_CARD);
+    settlePending(G, "RU");
+    const entitlement = warDeclarationEntitlement(G, "RU");
+    const ot = declarationDefenders(G, "RU", entitlement).find((entry) => entry.target === "OT");
+    expect(declarationSecondTargets(G, "RU", entitlement, ot!, "conquest")).toEqual([]);
+  });
+
+  test("the aim decides whether the pair is offered at all (14.1)", () => {
+    const G = homeImpulse("FR", AUX_ARMES_HOME_CARD);
+    settlePending(G, "FR");
+    const entitlement = warDeclarationEntitlement(G, "FR");
+    const defenders = declarationDefenders(G, "FR", entitlement);
+    const first = defenders[0];
+    // Aux Armes prints the clause for a conquest aim only.
+    expect(declarationSecondTargets(G, "FR", entitlement, first, "conquest").length).toBeGreaterThan(0);
+    expect(declarationSecondTargets(G, "FR", entitlement, first, "liberation")).toEqual([]);
+  });
+
+  test("the objective list is the union of both targets' spaces", () => {
+    const G = bismarck();
+    const {entitlement, fr, denmark} = entriesFor(G);
+
+    // One target alone: only its own spaces.
+    expect(declarationObjectives(G, "GE", entitlement, fr, "unification")).toContain("alsace-lorraine");
+    expect(declarationObjectives(G, "GE", entitlement, fr, "unification")).not.toContain("schleswig-holstein");
+    // The pair: both, so each named target can contribute its space (13.0).
+    const pair = declarationObjectives(G, "GE", entitlement, fr, "unification", denmark);
+    expect(pair).toContain("alsace-lorraine");
+    expect(pair).toContain("schleswig-holstein");
+  });
+
+  test("every offered pair is a declaration the engine accepts", () => {
+    const base = bismarck();
+    const entitlement = warDeclarationEntitlement(base, "GE");
+    for (const first of declarationDefenders(base, "GE", entitlement)) {
+      for (const second of declarationSecondTargets(base, "GE", entitlement, first, "unification")) {
+        const objectives = declarationObjectives(base, "GE", entitlement, first, "unification", second);
+        expect(objectives.length).toBeGreaterThan(0);
+        for (const objective of objectives) {
+          const G = JSON.parse(JSON.stringify(base)) as ImperialElegyState;
+          const key = `${warTargetKey(first.target)}+${warTargetKey(second.target)}@${objective}`;
+          const result = declareWar(G, makeCtx([2, 1], seat("GE")), first.target, "unification", [objective], 3, {
+            secondTarget: second.target,
+          });
+          expect({key, result}).toEqual({key, result: undefined});
+          expect(G.war !== null || G.pending !== null).toBe(true);
+        }
+      }
+    }
+  });
+
+  test("a pair may take one space from each named target", () => {
+    const base = bismarck();
+    const {fr, denmark} = entriesFor(base);
+    const G = JSON.parse(JSON.stringify(base)) as ImperialElegyState;
+    expect(declareWar(G, makeCtx([2, 1], seat("GE")), fr.target, "unification",
+      ["alsace-lorraine", "schleswig-holstein"], 3, {secondTarget: denmark.target})).toBeUndefined();
+    // 13.0: the attacker chooses up to two spaces, and with two named targets
+    // they may come from either side of the pair.
+    expect(G.war?.objectives).toEqual(["alsace-lorraine", "schleswig-holstein"]);
+    expect(G.war?.defender).toBe("FR");
+  });
+
+  test("two spaces of one target stay legal without a second target", () => {
+    const G = bismarck();
+    // Aux Armes prints "up to two keys"; Bismarck's aim has no key limit, so
+    // any two German spaces of the same power are one legal declaration.
+    const {entitlement, fr} = entriesFor(G);
+    const pair = declarationSecondObjectives(G, "GE", entitlement, fr, "unification", "alsace-lorraine");
+    expect(Array.isArray(pair)).toBe(true);
+  });
+
+  test("an ordinary unification takes two spaces of the same power (13.2)", () => {
+    // "其他统一和解放战争是同一 power 的 2 个地块": the campaign's setup leaves
+    // each power one German space, so drive FR into Schleswig-Holstein and check
+    // the panel offers the pair — no home card involved.
+    const G = setupImperialElegy(makeCtx());
+    G.phase = "action";
+    G.activePower = "GE";
+    G.cpRemaining = 4;
+    G.spaces["schleswig-holstein"].control = "FR";
+    G.spaces["schleswig-holstein"].minorHome = null;
+
+    const fr = declarationDefenders(G, "GE", null).find((entry) => entry.target === "FR")!;
+    const first = declarationObjectives(G, "GE", null, fr, "unification");
+    expect(first).toEqual(expect.arrayContaining(["alsace-lorraine", "schleswig-holstein"]));
+    const second = declarationSecondObjectives(G, "GE", null, fr, "unification", first[0]);
+    expect(second).toHaveLength(1);
+
+    // Both spaces, and 13.0's ceiling still refuses a third.
+    expect(declareWar(G, makeCtx([2, 1], seat("GE")), "FR", "unification", [first[0], second[0]], 2)).toBeUndefined();
+    expect(G.war?.objectives).toEqual([first[0], second[0]]);
+    expect(validateWarAim(G, "GE", "FR", "unification", ["alsace-lorraine", "schleswig-holstein", "bavaria"]).ok)
+      .toBe(false);
   });
 });
 

@@ -1,5 +1,3 @@
-# Imperial Elegy — implementation status
-
 ## Fixed: the printed stability card markers and the Russian key ladder (2026-11-23)
 
 Found by playing a solo Russia campaign straight off the published player
@@ -34,6 +32,238 @@ display's boxes, the three-card floor at stability 0-1, the industry draw above
 the floor, the full Russian ladder box by box, and the campaign's 12-key/MP-5
 opening).  Full IE Jest suite **335 suites / 4411 tests** pass locally;
 `tsc --noEmit` clean.
+
+## Fixed: a click on the hotseat bot-seat button used to force a new match (2026-11-22)
+
+Reported as "帝国挽歌本地热座 点击选择机器人席位无法关闭相当于强制新开一局 按钮文字改成新游戏并添加确认 solo模式重新开局应该回到选择剧本和国家的页面而不是直接不改设置重新开局".
+
+The hotseat header button opened the seat-setup screen with no way back, so
+reading it as "change bot seats" and clicking it silently promised a brand-new
+match.  Solo's "restart" had the same complaint from the other side: it dealt
+the same power and scenario again instead of letting the player choose.
+
+- **The hotseat button reads New game** (`新游戏`) and only raises a
+  confirmation dialog (`ie-new-game-dialog`, `ie-new-game-cancel` /
+  `ie-new-game-confirm`).  Cancel (or Esc, or the backdrop) leaves the running
+  match exactly as it was.
+- **The setup screen is closable.**  Confirming opens the seat-setup screen, and
+  that screen now carries `ie-back-to-match` (`返回对局` / Back to the match):
+  leaving it without pressing Start match keeps the running match, its turn and
+  its state.  A new match is dealt only by `ie-start-match` (`开始对局`), which
+  is exactly what the dialog's body says.
+- The seat strip's number shortcuts are ignored while the setup screen is open,
+  so the form cannot be switched out from under the reader.
+- **Solo's New game returns to the setup page.**  `ie-solo-new-game` (label
+  `新游戏` / New game) confirms through `ie-solo-new-game-dialog`, then
+  navigates back to `/localIE/solo`, where the great power and the scenario are
+  chosen again.  It no longer re-deals the same power and scenario.
+
+**Coverage:** the new `e2e/imperial-elegy-controls.spec.ts` cases "the hotseat
+New game button asks for confirmation and can go back" (dialog without a state
+change, cancel, then confirm → setup → back with the same match id and turn) and
+the reworked "solo new game is confirmed and returns to the setup page" (cancel
+keeps the match, confirm lands on `/localIE/solo`, and the next start deals a
+different seat).
+
+## Fixed: a printed free-CP event ended the impulse before the CP were spent (2026-11-22)
+
+Reported as "帝国挽歌英国打出日不落事件没有花费2cp界面直接结束行动轮了".
+
+UK-3 Sun Never Sets pays its printed "then spend 2 CP" as a restricted grant
+(`freeOperationCp` for the naval half, `freeIndianCp` for the India half) rather
+than as ordinary `cpRemaining`; A088 Our Place in the Sun does the same with
+`freeColonialCp`.  The impulse tail only asked whether `cpRemaining` was zero, so
+playing the card (or, for Sun Never Sets, answering its printed choice) handed
+the impulse on immediately: the 2 CP could never be spent, and because nothing
+cleared the flag it survived into a later impulse where it bought a free action.
+
+- `moves.ts#hasUnspentGrant` treats every named grant (`freeColonialCp`,
+  `freeOperationCp`, `freeIndianCp`) as part of the impulse's budget, exactly
+  like banked ordinary CP.  The three event tails — `playCard`'s synchronous
+  resolution, its A067 special case, and `finalizePendingCard` (the path a card
+  choice takes) — now keep the impulse open while a grant is unspent.
+- `clearActionImpulseSpend` clears all three grants when the impulse hands over
+  or the action phase ends, so whatever the seat does not spend is forfeited
+  instead of leaking into a later impulse.
+- The board says where the budget is: the dock summary reads "你的行动轮——还有
+  N 点事件赠予 CP 可花" / "Your impulse — N event CP still to spend", and the
+  action foot's CP note adds "另有 N 点事件赠予 CP（仅限对应行动）" beside
+  "本行动轮剩余 CP：0".  The colonial rows were already enabled from the grant
+  (`actionAvailability.ts`), so the seat can act immediately.
+
+**Coverage:** `colonialFreeCp.test.ts` (+5 — Sun Never Sets keeps the impulse open
+after its choice, the India half likewise, A088 likewise, the grant is spendable
+in the same impulse, and a hand-over forfeits it) and
+`components/board.test.tsx` (+1 — the dock names the unspent grant).
+
+## Fixed: two-target declarations and the non-player aid hint (13.0 / 13.4.2 / 14.1) (2026-11-22)
+
+Reported as "帝国挽歌俾斯麦应该是可以选择2个power做目标 其他统一和解放战争是同一power的2个地块 按照这个修复宣战界面 同时标明non player power可能触发的盟友".
+
+Rule 14.1 lets the GE and FR home cards attack **two different powers** with one
+declaration.  The engine accepted that pair, but the panel could not express it
+and could not show what a non-player target would drag in:
+
+- **The panel offered no second target that worked.** `secondPowerOptions` only
+  listed player powers *when the first target was a player*, so a declaration
+  was always "power + power".  A second target is now a `WarTarget`: `minor +
+  power`, `power + minor` and `minor + minor` are all declarable, and the select
+  sits beside the first target so the shape of the declaration is visible before
+  any space is picked.
+- **The objective lists came from the first target only.** A legal "FR + AU"
+  declaration could never name AU's space, because both the first and second
+  objective lists were enumerated from the first defender.  `declarationObjectives`
+  and `declarationSecondObjectives` now take the second target and enumerate the
+  union of both targets' legal spaces, still through one `validateWarAim` call
+  with `{defenders: pair}`.  Rule 13.0's "up to two spaces" is offered for the
+  ordinary single-target case too (13.1/13.2 print it; 13.3 allows two as long
+  as only one is a key), which is the reporter's "其他统一和解放战争是同一power
+  的2个地块".
+- **Nothing said who a non-player target would call.** `ie-war-nonplayer-aid`
+  reads `seekingAidSlots` — the enumeration `beginSeekingAid` runs — and names
+  the 13.4.2 order: the diplomacy-marker holder, then the 13.4.3 table's
+  1st/2nd/3rd Choice, with `(*)` on the roll-off cells.  Bismarck's join ban
+  replaces it with "defends alone (13.4.2 / 15.4.2)", and a minor that already
+  has a player ally is named with that ally (13.4.1).
+- **The engine records both targets.** `declareWar` takes a `WarTarget` for
+  `secondTarget`/`primary`, `WarState.coDefenderMinors` carries the non-player
+  parts of a pair (it was declared but never written), `warTargetKey` /
+  `warTargetFromKey` carry a target through the 13.4.1/13.4.2 and Napoleon's
+  Legacy decisions as string flags, and `finalizeWarDeclaration` resolves which
+  named target is the primary (only a player power can be one — 14.1 uses it for
+  the capital that ends the war).  A pair may take one space from each target.
+- `declarationSecondTargets` hides a second target whose pair shares no legal
+  space, so no dead row reaches the panel.
+
+**Coverage:** `declarationTargets.test.ts` (6 new — second targets of both
+kinds in both directions, a card without the clause, the aim gate, the union of
+spaces, "every offered pair is accepted by `declareWar`", and a pair taking one
+space each), `components/warDeclarationPanel.test.tsx` (4 new — a non-player
+second target, two non-player targets, two spaces across a pair, and the aid
+hint with and without the join ban), and `e2e/imperial-elegy-controls.spec.ts`
+(a new two-target case: Denmark + France, asserting the aid candidates and the
+settled war; the existing Bismarck case now also asserts the second-target
+select).  Full IE Jest suite **335 suites / 4447 tests** pass locally.
+
+
+## Fixed: show targets, one-way deals, and negotiation before the home card (2026-11-22)
+
+Reported as "外交阶段展示卡牌没有向单独一个玩家展示的入口 点击展示之后应该选择目标玩家 展示按钮本身名字容易误会 改成向他人展示 谈判时不应该能选择本土牌 谈判结束后再选"，随后追加"外交阶段卡牌交易一般是单向的 改成开关切换 给出/获取 数量用下拉列表"。
+
+The 11.0/11.1 table had three gaps:
+
+- **11.0 had no private-show entry.** The hand row's button was labelled `展示`
+  / "Show" and always called `showCard(card, null)`, so the engine's
+  one-power show could only be reached by a crafted client. The button now
+  reads `向他人展示` / "Show to others" and opens `ie-show-target-picker`,
+  which names `ie-show-target-table` (public) and one `ie-show-target-<POWER>`
+  per surviving opponent. The tray's `本阶段已展示` list names each recipient,
+  so the same card may be shown to more than one seat.
+- **The deal form asked for two counts.** Deals are usually one-way, so the
+  form is now a `给出 / 获取` switch (`ie-deals-direction-give|take`) plus a
+  `ie-deals-count` dropdown bounded by that direction's live dealable hand.
+  The inactive direction is always zero; the terms preview prints one
+  sentence. `startCounter` still mirrors the original terms into the form,
+  so a counter starts from the offer's direction.
+- **The home card could be chosen during negotiation.** `diplomacyBegin`
+  writes `flags.negotiationDone = false` for every seat, and the new
+  `finishNegotiation` move closes one seat's segment. `chooseHomeCard`
+  refuses until every surviving seat is done (`negotiationConcluded`). Both
+  the dock (`ie-finish-negotiation`) and the Deals page
+  (`ie-finish-negotiation-from-deals`, `ie-deals-negotiation-step`) offer the
+  step; the home-card entry (`ie-open-home-card` /
+  `ie-deals-home-step`) appears only afterwards. The Deals page names the
+  seats still negotiating, and the panel/national-goal inline fallback
+  (`HandChoices.homeReady`) hides the home faces until then. A legacy save
+  without the flag reads as already finished, so resumed games do not stall.
+
+Bots close their own segments (`finishNegotiation`) before choosing a home
+card; the online driver picks any bot still at the table instead of waiting
+behind the framework's current player, and parks a finished bot while human
+seats talk.
+
+**Coverage:** `negotiation.test.ts` adds the finish/gate cases (5),
+`homeCardChoice.test.tsx` rewrites the diplomacy suite around the two-step
+flow (7), `diplomacyPanel.test.tsx` adds the negotiation-step and one-way
+deal-form assertions, `HandTray.test.tsx` pins the renamed show button and
+the recipient list, `ieBotDriver.test.ts` covers bots finishing the segment,
+and the e2e helpers sweep `ie-finish-negotiation` before opening the home
+card.
+
+## Fixed: Bismarck's white-peace war no longer gives GE a second card (2026-11-22)
+
+Reported as "德国bot在事件俾斯麦之后打出了另一张牌".  The record showed GE
+playing Bismarck, declaring its unification war, the war ending in a white
+peace, and then the GE bot playing South German Confederation for CP before the
+UK had acted.
+
+Rule 16.1.5: a white peace has **no winning side**.  `demobilizeWar` nevertheless
+fell back to `war.victor ?? "attacker"` and set `G.activePower` to the attacker,
+so the action phase restarted with the very seat whose impulse the declaration
+had already spent.  A white peace now resumes at the next seat in printed turn
+order after the attacker (4.3); a real winner still receives the first impulse
+as before.
+
+**Coverage:** `bismarckWar.test.ts` (a full Bismarck → white peace → demobilise
+run asserts `activePower === "UK"`) and the white-peace case in
+`campaignWar.test.ts`.
+
+## Fixed: Sun Never Sets is now the printed two-way choice (2026-11-22)
+
+Reported as "英国的日不落应该有选项让玩家二选一 印度还是建造 1 个分舰队/无畏舰并花 2 CP 于远征军、绥靖或海军移动".
+
+The old handler resolved **both** halves: it flipped the Indian marker, placed a
+London squadron, granted 2 free colonial CP and placed the Indian Fort.  The
+card now opens an `eventChoice`:
+
+- **Naval** — build 1 squadron **or** dreadnought (a second choice when both are
+  legal) at a legal territorial home port, then grant 2 CP restricted to
+  expeditionary force, pacification and naval movement.
+- **India** — flip the Indian Stability marker (forced unstable while India is
+  independent), place/upgrade the Indian Fort, then grant 2 CP restricted to
+  Indian army steps or an EF in India/Bengal.
+
+The grants are separate public flags (`freeOperationCp`, `freeIndianCp`) with
+their own payers, so neither can pay for a fleet or a British army.  A British
+army build in India/Bengal now also refits the matching Indian counter, and an
+Indian refit is no longer blocked by the Indian army cap.
+
+**Coverage:** `sunNeverSetsChoice.test.ts` (9 — both halves, fort upgrade,
+squadron/dreadnought choice, and each grant's allowed/refused spends), plus the
+updated `endPhaseSteps.test.ts` and `indiaIndependence.test.ts`.
+
+## Changed: solo play has its own match page, not the hotseat shell (2026-11-22)
+
+Reported as "帝国挽歌 solo模式使用单独页面 不复用本地热座 solo不显示其他机器人的界面 solo没有更换席位功能 只能重新开局 重开增加确认防止误点".
+
+The solo setup page already existed, but it handed over to `/localIE`, the
+six-board hotseat shell with five bot seats.  That let a solo player switch into
+a bot's board (and read its private hand), change seats or bot seats mid-game,
+and left `?fresh=` as the only guard against resuming an old match.
+
+- **`/localIE/solo/play` is a dedicated match page** (`components/soloMatch.tsx`).
+  The setup page writes the solo choice as before and navigates there; the
+  hotseat shell is no longer part of solo play.
+- **One visible board.**  Only the player's power is mounted.  The other five
+  seats are headless `Client`s driven by `components/soloBots.tsx`, which never
+  render a seat UI, so there is no bot board, no private bot hand and no
+  `ie-seat-<power>` element to switch to.
+- **No seat switching.**  There is no `SeatStrip`, no `ie-seat-setup` button and
+  no keyboard seat shortcut on the solo page.  The player's board also passes
+  `allowSeatHandover={false}`, so Rule 34's "hand this seat to the bot" control
+  is absent.
+- **Restart is guarded.**  `ie-solo-new-game` (label `新游戏` / New game) opens
+  a confirmation dialog (`ie-solo-new-game-dialog`) with cancel/confirm.  A
+  stray first click only opens the dialog; cancel leaves the match running.
+  Confirming returns to `/localIE/solo`, the setup page, instead of silently
+  dealing the same power and scenario again, so the power and the scenario are
+  chosen anew and the next match is genuinely different.
+
+**Coverage:** `components/localSetup.test.tsx` (the dedicated route and the
+setup page's removal of the hotseat link), `components/board.test.tsx` (a board
+can opt out of the hand-over control), and the reworked solo tests in
+`e2e/imperial-elegy-controls.spec.ts` (one visible seat, no hotseat controls,
+and the cancel/confirm new-game flow back to the setup page).
 
 ## Fixed: the home-card dialog covered the negotiation table (9.1) (2026-11-22)
 

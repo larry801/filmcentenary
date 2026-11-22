@@ -49,12 +49,18 @@ const clearNaval = (G: ImperialElegyState, space: string): void => {
 // ---------------------------------------------------------------------------
 
 describe("stacking limits", () => {
-  test("3 in Europe, 2 elsewhere, 2 for every Ottoman home space", () => {
+  test("3 on the main map (including North Africa), 2 on submaps, 2 for every Ottoman home space", () => {
     expect(landStackingLimit("berlin")).toBe(3);
     expect(landStackingLimit("paris")).toBe(3);
+    // North Africa is on the main map, not the Africa submap.
+    expect(landStackingLimit("algeria")).toBe(3);
     expect(landStackingLimit("india")).toBe(2);
+    expect(landStackingLimit("canada")).toBe(2);
+    // The Ottoman home-space exception applies even in Europe and Africa.
     expect(landStackingLimit("istanbul")).toBe(2);
     expect(landStackingLimit("macedonia")).toBe(2);
+    expect(landStackingLimit("tripoli")).toBe(2);
+    expect(landStackingLimit("egypt")).toBe(2);
   });
 
   test("ECs and EFs never count against the army limit", () => {
@@ -181,9 +187,8 @@ describe("5.5.3 overstacking losses", () => {
     clearLand(G, "berlin");
     [0, 1, 2, 3].forEach(() => placeUnit(G, "GE", "army", "berlin", 2));
     expect(endDiplomacy(G, makeCtx([], "0"))).toBeUndefined();
-    expect(G.phase).toBe("action");
-    // 33.4 Metternich's Legacy opens the AU choice before Germany's first
-    // impulse; answer it so the 5.5.3 upkeep runs.
+    // 33.4 Metternich's Legacy resolves at the end of diplomacy, before the
+    // action phase opens; answer the AU choice so the 5.5.3 upkeep runs.
     while (G.pending?.kind === "metternich") {
       const option = G.pending.options[0];
       expect(resolvePending(G, makeCtx([], "3"), option.id)).toBeUndefined();

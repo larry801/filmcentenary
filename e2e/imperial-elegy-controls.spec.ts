@@ -46,7 +46,30 @@ async function finishPrep(page: Page) {
     }
 }
 
+/**
+ * 9.1: the whole table must finish negotiating before any home card is
+ * chosen.  The finish button is not turn-gated, so sweep the strip once.
+ */
+async function finishNegotiating(page: Page) {
+    for (const seat of SEATS) {
+        await focusSeat(page, seat);
+        const board = boardFor(page, seat);
+        const finish = board.locator('[data-testid="ie-finish-negotiation"]');
+        for (let attempt = 0; attempt < 3 && await finish.count() > 0; attempt += 1) {
+            await finish.first().click().catch(() => undefined);
+            await page.waitForTimeout(150);
+        }
+        await expect(finish).toHaveCount(0, {timeout: 5_000});
+    }
+    await expect.poll(async () => await page.evaluate(() => {
+        const G = (window as any).__IE_STATE__;
+        return ["GE", "UK", "FR", "AU", "RU", "OT"].every((power) =>
+            G.powers[power].eliminated === true || G.powers[power].flags.negotiationDone === true);
+    }), {timeout: 15_000}).toBe(true);
+}
+
 async function chooseHomeCards(page: Page) {
+    await finishNegotiating(page);
     // 9.1: negotiating comes first, so each seat opens its own choice.  The
     // step advances one seat at a time; sweep the strip and answer the seat
     // that is being asked.
@@ -341,7 +364,29 @@ async function phoneOpenHomeChoice(page: Page, seat: string): Promise<boolean> {
     return true;
 }
 
+/** 9.1 on the phone shell: finish the table's negotiation first. */
+async function phoneFinishNegotiating(page: Page) {
+    for (const seat of SEATS) {
+        await focusSeat(page, seat);
+        await openDock(page, seat);
+        const board = boardFor(page, seat);
+        let finish = board.locator('[data-testid="ie-finish-negotiation"]');
+        if (await finish.count() === 0) {
+            const tab = board.locator('[data-testid="ie-orders-tab-deals"]');
+            if (await tab.count() > 0) await tab.click();
+            finish = board.locator('[data-testid="ie-finish-negotiation-from-deals"]');
+        }
+        if (await finish.count() > 0) await clickUntilGone(page, finish.first());
+    }
+    await expect.poll(async () => await page.evaluate(() => {
+        const G = (window as any).__IE_STATE__;
+        return ["GE", "UK", "FR", "AU", "RU", "OT"].every((power) =>
+            G.powers[power].eliminated === true || G.powers[power].flags.negotiationDone === true);
+    }), {timeout: 15_000}).toBe(true);
+}
+
 async function phoneChooseHomeCards(page: Page) {
+    await phoneFinishNegotiating(page);
     // The diplomacy step advances one seat at a time, so only the seat whose
     // turn it is offers the choice; walk the strip and answer that one.
     for (let round = 0; round < SEATS.length; round += 1) {
@@ -613,8 +658,9 @@ test.describe("Imperial Elegy new controls", () => {
         await finishPrep(page);
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
         // GE must pick Bismarck itself; the other seats keep the first choice.
-        // 9.1: each seat opens its own choice after negotiating, and the step
-        // advances one seat at a time.
+        // 9.1: the table finishes negotiating before any home card, and the
+        // step then advances one seat at a time.
+        await finishNegotiating(page);
         for (let round = 0; round < SEATS.length; round += 1) {
             let answered = false;
             for (const seat of SEATS) {
@@ -662,13 +708,17 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(declare.locator('[data-testid="ie-war-declare-aim-locked"]')).toContainText("统一");
         await expect(declare.locator('[data-testid="ie-war-declare-cp-locked"]')).toContainText("3 CP");
 
-        // Both a player power and an independent minor are offered.  Alsace-
-        // Lorraine is the French-held German objective: a unification war on
-        // France.
+        // Both a player power and an independent minor are offered, and the
+        // 14.1 second target sits beside the first one.  Alsace-Lorraine is the
+        // French-held German objective: a unification war on France.
         const defender = declare.locator('[data-testid="ie-war-declare-defender"]');
         await expect(defender.locator('option[value="FR"]')).toHaveCount(1);
         await expect(defender.locator('option[value="minor:Denmark"]')).toHaveCount(1);
         await defender.selectOption("FR");
+        const second = declare.locator('[data-testid="ie-war-second-power"]');
+        await expect(second).toBeVisible();
+        await expect(second.locator('option[value="AU"]')).toHaveCount(1);
+        await expect(second.locator('option[value="minor:Denmark"]')).toHaveCount(1);
         await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("alsace-lorraine");
 
         // Confirmed twice (arm, then declare).
@@ -689,6 +739,103 @@ test.describe("Imperial Elegy new controls", () => {
         // 战争界面").
         await expect(board.locator('[data-testid="ie-war"]')).toBeVisible({timeout: 15_000});
         await expect(board.locator('[data-testid="ie-turn-tab-war"]')).toHaveAttribute("aria-selected", "true");
+    });
+
+    test("Bismarck's declaration names two targets, one of them a non-player power", async ({page}) => {
+        await openLocal(page);
+        await finishPrep(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        await finishNegotiating(page);
+        for (let round = 0; round < SEATS.length; round += 1) {
+            let answered = false;
+            for (const seat of SEATS) {
+                await focusSeat(page, seat);
+                const board = boardFor(page, seat);
+                const opener = board.locator('[data-testid="ie-open-home-card"]');
+                if (await opener.count() === 0) continue;
+                await opener.first().click();
+                const choose = seat === "GE"
+                    ? board.locator('[data-testid="ie-choose-home-IE-H-GE-1"]')
+                    : board.locator('[data-testid^="ie-choose-home-"]').first();
+                await expect(choose).toBeVisible({timeout: 15_000});
+                await clickUntilGone(page, choose);
+                answered = true;
+                break;
+            }
+            if (!answered) break;
+            if (await page.evaluate(() => (window as any).__IE_STATE__.phase) !== "diplomacy") break;
+        }
+        await answerStartPending(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
+        await focusSeat(page, "GE");
+        const board = boardFor(page, "GE");
+
+        const card = board.locator('[data-testid="ie-card-IE-H-GE-1"]');
+        await expect(card).toBeVisible({timeout: 15_000});
+        await card.locator(".ie-card-open").click();
+        const inspector = board.locator('[data-testid="ie-card-inspector"]');
+        const event = inspector.locator('[data-testid="ie-play-event-IE-H-GE-1"]');
+        await expect(event).toBeEnabled({timeout: 10_000});
+        await event.click();
+        await event.click();
+        await expect(inspector).toHaveCount(0, {timeout: 10_000});
+        await expect(board.locator('[data-testid="ie-turn-tab-war"]')).toHaveAttribute("aria-selected", "true", {timeout: 15_000});
+
+        const declare = board.locator('[data-testid="ie-war-declare"]');
+        await expect(declare).toBeVisible();
+
+        // Target 1: Denmark, the non-player power.  The panel names who may
+        // answer its 13.4.2 aid search before the war is declared, and 13.4.3's
+        // roll-off cells are marked.
+        await declare.locator('[data-testid="ie-war-declare-defender"]').selectOption("minor:Denmark");
+        const aid = declare.locator('[data-testid="ie-war-nonplayer-aid"]');
+        await expect(aid).toBeVisible();
+        await expect(aid).toContainText("13.4.2");
+        const candidates = declare.locator('[data-testid="ie-war-nonplayer-aid-candidates"]');
+        await expect(candidates).toContainText("英国");
+        await expect(candidates).toContainText("法国");
+        await expect(candidates).toContainText("俄国");
+
+        // Target 2: France, a player power — "a minor + a power" is one
+        // declaration under 14.1.
+        await declare.locator('[data-testid="ie-war-second-power"]').selectOption("FR");
+        await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("schleswig-holstein");
+
+        // Bismarck's join ban suppresses the 13.4.2 aid search, so the
+        // declaration settles at once instead of queuing a decision for a
+        // human seat.  The hint switches to "defends alone".
+        await declare.locator('[data-testid="ie-war-forbid-join"] input').check();
+        await expect(declare.locator('[data-testid="ie-war-nonplayer-aid"]')).toContainText("15.4.2");
+        await expect(declare.locator('[data-testid="ie-war-nonplayer-aid-candidates"]')).toHaveCount(0);
+
+        const button = declare.locator('[data-testid="ie-declare-war"]');
+        await expect(button).toBeEnabled({timeout: 10_000});
+        await button.click();
+        await expect(button).toHaveAttribute("data-armed", "true");
+        await button.click();
+
+        // One war, two attacked targets: France is the defending primary and
+        // Denmark is a co-defender minor, with the declaration's objective.
+        await expect.poll(async () => await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            return G.war === null
+                ? (G.pending === null ? null : {pending: G.pending.kind})
+                : {
+                    attacker: G.war.attacker,
+                    defender: G.war.defender,
+                    objectives: G.war.objectives,
+                    coDefenderMinors: G.war.coDefenderMinors ?? null,
+                    defenderMinors: G.war.defenderMinors,
+                    forbidPlayerJoins: G.war.forbidPlayerJoins ?? false,
+                };
+        }), {timeout: 30_000}).toMatchObject({
+            attacker: "GE",
+            defender: "FR",
+            objectives: ["schleswig-holstein"],
+            coDefenderMinors: ["Denmark"],
+            defenderMinors: ["Denmark"],
+            forbidPlayerJoins: true,
+        });
     });
 
     test("card economy controls render on the row and Save toggles the card state", async ({page}) => {
@@ -791,10 +938,11 @@ test.describe("Imperial Elegy new controls", () => {
 });
 
 test.describe("Imperial Elegy solo vs bot", () => {
-    test("the solo page picks one great power and starts a match on that seat", async ({page}) => {
-        // The dedicated solo entrance is its own page: one radio per great
-        // power, the other five seats become bots, and the chosen seat is the
-        // one the shell opens on.
+    test("the solo page picks one great power and opens only that seat", async ({page}) => {
+        // Solo has its own match page: the setup page chooses a power, and the
+        // match page mounts only that board.  The five bots are headless, so
+        // there is no seat strip, no hotseat tab and no bot interface to click
+        // into (and no way to read a bot's private hand).
         const errors: string[] = [];
         page.on("console", (message) => {
             if (message.type() === "error") errors.push(message.text());
@@ -817,23 +965,96 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await expect(page.getByTestId("ie-solo-summary")).toContainText("5");
 
         await page.getByTestId("ie-solo-start").click();
-        // The shell deals a fresh match and opens on the picked seat.
-        await expect(page.locator('[data-testid="ie-seat-FR"]')).toHaveAttribute("data-active", "true");
-        // The five other seats are bots; the player's own seat is playable.
+        await expect(page).toHaveURL(/\/localIE\/solo\/play$/);
+        // The player's own seat is the only board on the page.
         const human = page.locator('[data-testid="ie-seat-FR"]');
+        await expect(human).toHaveAttribute("data-active", "true");
         await expect(human.locator(".ie-bot-banner")).toHaveCount(0);
-        await page.getByRole("tab", {name: /P1/}).click();
-        await expect(page.locator('[data-testid="ie-seat-GE"]').locator(".ie-bot-banner")).toContainText("机器人");
-        // The solo hand-over also dealt a new match, not the hotseat one the
-        // local master may still hold: the seat setup screen is skipped.
+        for (const bot of ["GE", "UK", "AU", "RU", "OT"]) {
+            await expect(page.getByTestId(`ie-seat-${bot}`)).toHaveCount(0);
+        }
+        // No hotseat shell controls: no seat strip, no seat tabs, no seat
+        // setup and no Rule 34 hand-over from this page.
+        await expect(page.getByTestId("ie-seat-strip")).toHaveCount(0);
+        await expect(page.locator('[data-testid^="ie-seat-status-"]')).toHaveCount(0);
+        await expect(page.getByTestId("ie-seat-setup")).toHaveCount(0);
+        await expect(page.getByTestId("ie-hand-over-seat")).toHaveCount(0);
+        await expect(page.getByTestId("ie-take-back-seat")).toHaveCount(0);
         await expect(page.getByTestId("ie-start-match")).toHaveCount(0);
         expect(errors).toEqual([]);
     });
 
-    test("the solo entrance starts a match with P2-P6 as read-only bot seats", async ({page}) => {
+    test("solo new game is confirmed and returns to the setup page", async ({page}) => {
+        await page.goto("/localIE/solo");
+        await page.getByTestId("ie-solo-power-GE").check();
+        await page.getByTestId("ie-solo-start").click();
+        const seat = page.locator('[data-testid="ie-seat-GE"]');
+        await expect(seat).toBeVisible();
+        const firstMatch = await seat.getAttribute("data-match-id");
+        expect(firstMatch).toBeTruthy();
+
+        // One stray click only raises the confirmation; it must not leave the
+        // match or deal a new one.
+        await page.getByTestId("ie-solo-new-game").click();
+        await expect(page.getByTestId("ie-solo-new-game-dialog")).toBeVisible();
+        await expect(page.getByTestId("ie-solo-new-game-body")).toContainText("返回选择大国与剧本的页面");
+        await expect(seat).toHaveAttribute("data-match-id", firstMatch!);
+
+        // Cancel leaves the same match running.
+        await page.getByTestId("ie-solo-new-game-cancel").click();
+        await expect(page.getByTestId("ie-solo-new-game-dialog")).toHaveCount(0);
+        await expect(seat).toHaveAttribute("data-match-id", firstMatch!);
+
+        // Confirm goes back to the setup page instead of silently dealing the
+        // same power and scenario again.
+        await page.getByTestId("ie-solo-new-game").click();
+        await page.getByTestId("ie-solo-new-game-confirm").click();
+        await expect(page).toHaveURL(/\/localIE\/solo$/);
+        await expect(page.getByTestId("ie-solo-powers")).toBeVisible();
+
+        // The setup page deals a genuinely new match on the next start: same
+        // power, new session id, so the abandoned match cannot be resumed.
+        await page.getByTestId("ie-solo-power-GE").check();
+        await page.getByTestId("ie-solo-start").click();
+        const next = page.locator('[data-testid="ie-seat-GE"]');
+        await expect(next).toBeVisible();
+        await expect(next).not.toHaveAttribute("data-match-id", firstMatch!);
+        await expect(page.getByTestId("ie-seat-strip")).toHaveCount(0);
+    });
+
+    test("the dedicated solo page finishes negotiation and reaches the action phase", async ({page}) => {
+        // 9.1 on the one-board solo shell: the five headless bot seats close
+        // their own negotiation segments out of turn, then the human does, and
+        // the home-card step opens.  Gating on `isActive` alone deadlocked here
+        // because every bot waited behind GE.
+        test.setTimeout(120_000);
+        await page.goto("/localIE/solo");
+        await page.getByTestId("ie-solo-power-GE").check();
+        await page.getByTestId("ie-solo-start").click();
+        const board = page.locator('[data-testid="ie-seat-GE"]');
+        await expect(board).toBeVisible();
+        await clickUntilGone(page, board.getByRole("button", {name: "准备完毕"}).first());
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        const finish = board.locator('[data-testid="ie-finish-negotiation"]');
+        if (await finish.count()) await clickUntilGone(page, finish.first());
+        await expect.poll(async () => await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            return ["UK", "FR", "AU", "RU", "OT"].every((power) =>
+                G.powers[power].flags.negotiationDone === true);
+        }), {timeout: 20_000}).toBe(true);
+        const opener = board.locator('[data-testid="ie-open-home-card"]');
+        await expect(opener).toBeVisible({timeout: 20_000});
+        await opener.click();
+        const choose = board.locator('[data-testid^="ie-choose-home-"]').first();
+        await clickUntilGone(page, choose);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("action");
+    });
+
+    test("the hotseat seat-setup entrance still starts P2-P6 as read-only bots", async ({page}) => {
         await page.goto("/localIE?solo=1");
-        // The seat-setup screen only appears on the explicit solo entrance; the
-        // plain hotseat link keeps starting straight on the board.
+        // This is the *hotseat* multi-seat setup (kept for local play), not the
+        // dedicated solo page.  The plain hotseat link keeps starting straight
+        // on the board.
         const start = page.getByTestId("ie-start-match");
         await expect(start).toBeVisible();
         // Scope to the bot-seat list: the setup screen also carries round B's
@@ -890,6 +1111,41 @@ test.describe("Imperial Elegy solo vs bot", () => {
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.bots))
             .toContain("FR");
         await expect(botBoard.locator(".ie-bot-banner")).toContainText("机器人");
+    });
+
+    test("the hotseat New game button asks for confirmation and can go back", async ({page}) => {
+        // The header button used to open the seat-setup screen with no way back:
+        // that read as "a click forces a brand-new match".  It now only opens
+        // the setup screen, and a match is dealt solely by Start match.
+        await page.goto("/localIE");
+        const seat = page.locator('[data-testid="ie-seat-GE"]');
+        await expect(seat).toBeVisible();
+        const matchId = await seat.getAttribute("data-match-id");
+        expect(matchId).toBeTruthy();
+        const turn = await page.evaluate(() => (window as any).__IE_STATE__.turn);
+
+        // The button reads 新游戏 and only raises the confirmation.
+        const open = page.getByTestId("ie-seat-setup");
+        await expect(open).toHaveText("新游戏");
+        await open.click();
+        await expect(page.getByTestId("ie-new-game-dialog")).toBeVisible();
+        await expect(page.getByTestId("ie-new-game-body")).toContainText("只有点击「开始对局」时才会丢弃当前这一局");
+        // Still on the running match behind the dialog.
+        await expect(seat).toHaveAttribute("data-match-id", matchId!);
+
+        // Cancel keeps the match and reopens nothing.
+        await page.getByTestId("ie-new-game-cancel").click();
+        await expect(page.getByTestId("ie-new-game-dialog")).toHaveCount(0);
+        await expect(seat).toHaveAttribute("data-match-id", matchId!);
+
+        // Confirming opens the setup screen, and that screen is closable.
+        await open.click();
+        await page.getByTestId("ie-new-game-confirm").click();
+        await expect(page.getByTestId("ie-start-match")).toBeVisible();
+        await page.getByTestId("ie-back-to-match").click();
+        await expect(seat).toHaveAttribute("data-match-id", matchId!);
+        expect(await page.evaluate(() => (window as any).__IE_STATE__.turn)).toBe(turn);
+        await expect(page.getByTestId("ie-new-game-dialog")).toHaveCount(0);
     });
 
     test("the scenario picker sets the printed setup of a hotseat match", async ({page}) => {
@@ -961,6 +1217,15 @@ test.describe("Imperial Elegy solo vs bot", () => {
         // is already moving; the phase poll below is the real precondition.
         await clickUntilGone(page, board.getByRole("button", {name: "准备完毕"}).first());
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        // 9.1: negotiation first.  The bots close their own segments; the
+        // human GE seat clicks its finish button if it has one.
+        const finish = board.locator('[data-testid="ie-finish-negotiation"]');
+        if (await finish.count()) await clickUntilGone(page, finish.first());
+        await expect.poll(async () => await page.evaluate(() => {
+            const G = (window as any).__IE_STATE__;
+            return ["GE", "UK", "FR", "AU", "RU", "OT"].every((power) =>
+                G.powers[power].eliminated === true || G.powers[power].flags.negotiationDone === true);
+        }), {timeout: 15_000}).toBe(true);
         // GE may be a bot seat in this fixture; if it is, it picks its own home
         // card and there is nothing to click here.  9.1: the choice waits behind
         // the dock's button, so open it first.

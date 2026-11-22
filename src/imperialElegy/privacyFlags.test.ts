@@ -41,6 +41,8 @@ const plantFlags = (G: ImperialElegyState): void => {
       industryDrm: 2,
       rapidMobilization: true,
       professionalArmy: false,
+      // 9.1: the negotiation segment is a public table state.
+      negotiationDone: false,
       // 12.4/A092 public naval limits and the Naval Arms Race discount window.
       navalLimit: 4,
       navalLimitRaised: 4,
@@ -105,6 +107,8 @@ test("an opponent sees the public flags but none of the private ones", () => {
     expect(flags.industryDrm).toBe(2);
     expect(flags.rapidMobilization).toBe(true);
     expect(flags.professionalArmy).toBe(false);
+    // 9.1: the table must see which seats have finished negotiating.
+    expect(flags.negotiationDone).toBe(false);
     expect(flags.navalLimit).toBe(4);
     expect(flags.navalLimitRaised).toBe(4);
     expect(flags.navalSquadronLimit).toBe(4);

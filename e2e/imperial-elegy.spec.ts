@@ -123,7 +123,34 @@ async function openHomeChoice(board: Locator): Promise<boolean> {
     return true;
 }
 
+/**
+ * 9.1: negotiation comes before the home-card step, and the whole table must
+ * finish it.  Every seat carries the button (it is not turn-gated), so sweep
+ * the strip once and wait for the engine to agree that no seat is left.
+ */
+async function finishNegotiating(page: Page) {
+    for (const seat of SEATS) {
+        await focusSeat(page, seat);
+        const board = page.locator(`[data-testid="ie-seat-${seat}"]`);
+        const finish = board.locator('[data-testid="ie-finish-negotiation"]');
+        for (let attempt = 0; attempt < 3 && await finish.count() > 0; attempt += 1) {
+            await finish.first().click().catch(() => undefined);
+            // Wait for the local master to apply the move before re-clicking;
+            // a fixed pause either raced the sync or sent a second, refused
+            // finishNegotiation.
+            await expect(finish).toHaveCount(0, {timeout: 3_000}).catch(() => undefined);
+        }
+        await expect(finish).toHaveCount(0, {timeout: 5_000});
+    }
+    await expect.poll(async () => await page.evaluate(() => {
+        const G = (window as any).__IE_STATE__;
+        return ["GE", "UK", "FR", "AU", "RU", "OT"].every((power) =>
+            G.powers[power].eliminated === true || G.powers[power].flags.negotiationDone === true);
+    }), {timeout: 15_000}).toBe(true);
+}
+
 async function chooseHomeCards(page: Page) {
+    await finishNegotiating(page);
     // 9.1's diplomacy step advances one seat at a time, so only the seat whose
     // turn it is offers the choice; walk the strip and answer the one that does.
     for (let round = 0; round < SEATS.length; round += 1) {
@@ -230,6 +257,11 @@ test.describe("Imperial Elegy local hotseat", () => {
         // 9.1: negotiating comes first, so the choice is not raised by itself.
         await expect(board.locator('[data-testid="ie-choice-modal"]')).toHaveCount(0);
         await expect(board.locator('[data-testid="ie-deals"]')).toBeVisible();
+        // 9.1: the home-card entry is not offered while the table is talking.
+        await expect(board.locator('[data-testid="ie-open-home-card"]')).toHaveCount(0);
+        await expect(board.locator('[data-testid="ie-finish-negotiation"]')).toBeVisible();
+        await finishNegotiating(page);
+        await focusSeat(page, "GE");
         await openHomeChoice(board);
         const choice = board.locator('[data-testid="ie-home-card-choice"]');
         await expect(choice).toBeVisible({timeout: 15_000});
@@ -242,12 +274,59 @@ test.describe("Imperial Elegy local hotseat", () => {
         await expect(choice.locator(".ie-card img, .ie-card image")).toHaveCount(0);
     });
 
+    test("11.0 the show button asks whom and lists the private recipient", async ({page}) => {
+        await openLocal(page);
+        await finishPrep(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        await focusSeat(page, "GE");
+        const board = page.locator('[data-testid="ie-seat-GE"]');
+        const show = board.locator('[data-testid^="ie-show-card-"]').first();
+        await expect(show).toBeVisible();
+        await expect(show).toContainText("向他人展示");
+        await show.click();
+        const picker = board.locator('[data-testid="ie-show-target-picker"]');
+        await expect(picker).toBeVisible();
+        // The table and every surviving power are one click away.
+        await expect(board.locator('[data-testid="ie-show-target-table"]')).toBeVisible();
+        await expect(board.locator('[data-testid="ie-show-target-FR"]')).toBeVisible();
+        await board.locator('[data-testid="ie-show-target-FR"]').click();
+        await expect(picker).toHaveCount(0);
+        await expect(board.locator('[data-testid="ie-shown-cards"]')).toBeVisible();
+        await expect(board.locator('[data-testid="ie-shown-cards"]')).toContainText("法国");
+    });
+
+    test("11.1 the deal form is a direction switch with a count dropdown", async ({page}) => {
+        await openLocal(page);
+        await finishPrep(page);
+        await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        await focusSeat(page, "GE");
+        const board = page.locator('[data-testid="ie-seat-GE"]');
+        await board.locator('[data-testid="ie-orders-tab-deals"]').click();
+        await expect(board.locator('[data-testid="ie-deals-direction"]')).toBeVisible();
+        const give = board.locator('[data-testid="ie-deals-direction-give"]');
+        const take = board.locator('[data-testid="ie-deals-direction-take"]');
+        const count = board.locator('[data-testid="ie-deals-count"]');
+        await expect(give).toHaveAttribute("aria-pressed", "true");
+        await expect(take).toHaveAttribute("aria-pressed", "false");
+        await expect(count).toHaveJSProperty("tagName", "SELECT");
+        // The terms name one direction only; switching flips who gives.
+        await expect(board.locator('[data-testid="ie-deals-terms"]')).toContainText("德国向英国随机转交");
+        await take.click();
+        await expect(take).toHaveAttribute("aria-pressed", "true");
+        await expect(board.locator('[data-testid="ie-deals-terms"]')).toContainText("英国向德国随机转交");
+        await expect(board.locator('[data-testid="ie-deals-terms"]')).not.toContainText("德国向英国随机转交");
+        // The dropdown carries real counts (at least "1").
+        await expect(count.locator("option")).not.toHaveCount(0);
+    });
+
     test("the home-card dialog closes without answering and reopens later", async ({page}) => {
         await openLocal(page);
         await finishPrep(page);
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
         await focusSeat(page, "GE");
         const board = page.locator('[data-testid="ie-seat-GE"]');
+        await finishNegotiating(page);
+        await focusSeat(page, "GE");
         await openHomeChoice(board);
         const dialog = board.locator('[data-testid="ie-choice-modal"]');
         await expect(dialog).toBeVisible();
@@ -258,6 +337,8 @@ test.describe("Imperial Elegy local hotseat", () => {
         // so.  The negotiation table is reachable again.
         await expect(board.locator('[data-testid="ie-dock-summary"]')).toContainText("尚未选择本土牌");
         await expect(board.locator('[data-testid="ie-deals"]')).toBeVisible();
+        await finishNegotiating(page);
+        await focusSeat(page, "GE");
         await openHomeChoice(board);
         await expect(dialog).toBeVisible();
     });
@@ -270,6 +351,7 @@ test.describe("Imperial Elegy local hotseat", () => {
         await openLocal(page);
         await finishPrep(page);
         await expect.poll(async () => await page.evaluate(() => (window as any).__IE_STATE__.phase)).toBe("diplomacy");
+        await finishNegotiating(page);
 
         // Walk to a seat that actually owes a home card, and open its dialog.
         let owing: string | null = null;

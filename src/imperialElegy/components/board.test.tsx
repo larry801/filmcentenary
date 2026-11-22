@@ -56,7 +56,7 @@ import {resolveWar, surrender} from "../moves";
 import {advanceGwImpulse} from "../engine/greatWarFlow";
 import {scoreGame} from "../engine/victory";
 import {resolveAnchor} from "./ReferenceDrawer";
-import {GreatWarState, ImperialElegyState} from "../types";
+import {GreatWarState, ImperialElegyState, POWERS} from "../types";
 import i18n from "../../constant/i18n";
 
 const testCtx = {
@@ -156,6 +156,23 @@ describe("Imperial Elegy board controls", () => {
     const otherSeat = html(freshGame(), "1");
     expect(otherSeat).not.toContain("data-testid=\"ie-mpit-controls\"");
     expect(otherSeat).not.toContain("data-testid=\"ie-impulse-actions\"");
+  });
+
+  test("a mandatory benefit offers no generic refuse button", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-mil",
+      kind: "militarism",
+      power: "GE",
+      prompt: "End phase 20.1",
+      options: [{id: "reserve", label: "Reserve army step"}],
+      createdAt: 1,
+    };
+    const markup = html(G, "0");
+    expect(markup).toContain('data-testid="ie-pending-option-reserve"');
+    // 20.1 says "gain one of the following"; the engine's decline fallback is
+    // for unattended seats, not a player-facing option.
+    expect(buttonTag(markup, "ie-pending-option-decline")).toBe("");
   });
 
   test("pending decision renders options and highlights legal spaces", () => {
@@ -538,6 +555,21 @@ describe("Imperial Elegy board controls", () => {
     expect(used).not.toContain("disabled");
   });
 
+  test("the dock names a printed free-CP grant the wallet readout cannot show", () => {
+    // Report follow-up: after Sun Never Sets the UK still has its 2 event CP to
+    // spend, so "Your impulse" must not read like an empty wallet.
+    const G = freshGame();
+    G.activePower = "UK";
+    G.cpRemaining = 0;
+    G.powers.UK.flags.actionCpSpentThisImpulse = true;
+    G.powers.UK.flags.freeOperationCp = 2;
+    const seat = String(POWERS.indexOf("UK"));
+    expect(html(G, seat)).toContain("你的行动轮——还有 2 点事件赠予 CP 可花");
+    // Without a grant the dock reads exactly as before.
+    delete G.powers.UK.flags.freeOperationCp;
+    expect(html(G, seat)).toContain("你的行动轮");
+  });
+
   test("a collapsed DecisionDock keeps the summary and phase buttons but hides the body", () => {
     const summary = "你的行动轮 · 剩余 3 CP";
     const open = renderToStaticMarkup(React.createElement(DecisionDock, {
@@ -603,25 +635,40 @@ describe("Imperial Elegy board controls", () => {
     expect(buttonTag(stripe, "ie-dock-target-cancel")).toContain("取消");
   });
 
-  test("the home-card choice waits behind the negotiation table instead of popping up", () => {
+  test("the home-card choice waits until the whole table has finished negotiating", () => {
     const G = freshGame();
     G.phase = "diplomacy";
     G.activePower = "GE";
+    // 9.1: the phase opens in the negotiation segment.  The home card must not
+    // be offered until every seat has ended it.
+    for (const power of POWERS) G.powers[power].flags.negotiationDone = false;
     const markup = html(G, "0");
-    // 9.1: negotiation comes first.  The choice must not cover the table the
-    // instant diplomacy opens, or talking (11.0) and dealing (11.1) is
-    // impossible.
     expect(markup).not.toContain("data-testid=\"ie-choice-modal\"");
-    // The step is still owed, and says so in the dock and in the hand tray.
-    expect(markup).toContain("尚未选择本土牌");
+    expect(markup).not.toContain("data-testid=\"ie-open-home-card\"");
+    expect(markup).not.toContain("data-testid=\"ie-deals-home-step\"");
+    // The seat's own next step is to end its negotiation; the dock says the
+    // step is running and the tray points at it.
+    expect(markup).toContain("data-testid=\"ie-finish-negotiation\"");
+    expect(markup).toContain("谈判进行中");
     expect(markup).toContain("data-testid=\"ie-hand-choices-hint\"");
-    expect(markup).toContain("先进行谈判");
-    // The seat opens it from the dock, and the Deals page offers the same step.
+    expect(markup).toContain("先结束谈判");
+    expect(markup).toContain("data-testid=\"ie-deals-negotiation-step\"");
+    // The hand panel does not duplicate the card buttons.
+    expect(markup.match(/data-testid="ie-home-card-choice"/g)).toBeNull();
+  });
+
+  test("once every seat has finished negotiating the dock opens the home-card step", () => {
+    const G = freshGame();
+    G.phase = "diplomacy";
+    G.activePower = "GE";
+    for (const power of POWERS) G.powers[power].flags.negotiationDone = true;
+    const markup = html(G, "0");
+    expect(markup).not.toContain("data-testid=\"ie-choice-modal\"");
+    expect(markup).toContain("尚未选择本土牌");
     expect(markup).toContain("data-testid=\"ie-open-home-card\"");
     expect(markup).toContain("data-testid=\"ie-deals-home-step\"");
     expect(markup).toContain("data-testid=\"ie-open-home-card-from-deals\"");
-    // The hand panel does not duplicate the card buttons.
-    expect(markup.match(/data-testid="ie-home-card-choice"/g)).toBeNull();
+    expect(markup).not.toContain("data-testid=\"ie-finish-negotiation\"");
   });
 
   test("the home-card dialog is dismissible: the choice stays owed when it is closed", () => {
@@ -945,6 +992,14 @@ describe("Rule 34 handover control", () => {
     }));
     expect(withMove(markup)).toBe(true);
     expect(markup).toContain("交给机器人托管");
+  });
+
+  test("a board that opts out (the solo page) renders no handover control", () => {
+    const markup = renderToStaticMarkup(React.createElement(Board, {
+      G: freshGame(), ctx: testCtx, playerID: "0", allowSeatHandover: false,
+      moves: {setSeatBot: () => undefined} as never,
+    }));
+    expect(withMove(markup)).toBe(false);
   });
 
   test("a board without the move renders no handover control", () => {

@@ -25,6 +25,7 @@ import {cardById, discardCard, drawCards, drawOne, handWithoutSpecials, isCardId
 import {
   dealProblem,
   expireOffers,
+  negotiationConcluded,
   negotiationOf,
   readPromises,
   settleDeals,
@@ -112,13 +113,15 @@ import {
   resolveImpulseLoss,
   setSpaceControl,
   spendCpFor,
-  spendColonialCp,
-  freeColonialCp,
+  spendGrantCp,
+  freeGrantCp,
+  type FreeCpGrant,
   unitById,
   unitsOfPower,
   BISMARCK_HOME_CARD,
   clearWarDeclarationEntitlement,
   effectiveKeyType,
+  isTerritorialKeyForPower,
   warDeclarationAllowsTwoPowers,
   warDeclarationEntitlement,
   warDeclarationMayForbidJoins,
@@ -343,6 +346,8 @@ import {
   validateWarAim,
   warBudgetFor,
   warDeclaredDefenders,
+  warTargetFromKey,
+  warTargetKey,
   type MinorWarInfo,
   type SeekingAidSlot,
   type TreatyChoice,
@@ -407,6 +412,24 @@ const spend = (G: ImperialElegyState, amount: number): boolean => {
 };
 
 /**
+ * The printed free-CP grants (A088 Our Place in the Sun, UK-3 Sun Never Sets).
+ * Each is a named pool so its printed action restriction stays enforceable;
+ * `rules.ts#spendGrantCp` drains them before the ordinary wallet.
+ */
+const FREE_CP_GRANTS: readonly FreeCpGrant[] = ["freeColonialCp", "freeOperationCp", "freeIndianCp"];
+
+/**
+ * True while the seat still holds an unspent printed free-CP grant.  A grant is
+ * this impulse's budget exactly like `cpRemaining`: a card that hands one over
+ * (or a decision that grants one, as UK-3's two halves do) must not hand the
+ * impulse over, or the printed CP could never be spent.  Conversely the grant is
+ * forfeited when the impulse ends (`clearActionImpulseSpend`), so it can never
+ * buy a free action in a later impulse.
+ */
+const hasUnspentGrant = (G: ImperialElegyState, power: Power): boolean =>
+  FREE_CP_GRANTS.some((grant) => freeGrantCp(G, power, grant) > 0);
+
+/**
  * Response timing bookkeeping.  A response card may only be played at the very
  * start of an impulse, so each impulse records whether its CP/action budget has
  * already been used.  The action flag is cleared when `finishImpulse` hands the
@@ -427,6 +450,10 @@ const clearActionImpulseSpend = (G: ImperialElegyState): void => {
     // 33.5 is "per impulse", so the railroad allowance resets when the
     // impulse passes to the next player (4.5).
     delete G.powers[power].flags.tsrrRailImpulse;
+    // A088 Our Place in the Sun / UK-3 Sun Never Sets: the printed "spend N CP"
+    // is a pool for the impulse that played the card.  Whatever is left when the
+    // impulse hands over is forfeited — it must not buy a free action later.
+    for (const grant of FREE_CP_GRANTS) delete G.powers[power].flags[grant];
   }
   // 12.11's pacification limit is "once per space, per impulse", so a failed
   // attempt becomes retryable in the next impulse.
@@ -673,7 +700,12 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     pruneRemovedFromDiscard(G);
     G.resolvingCard = null;
     G.impulseCard = null;
-    if (G.cpRemaining <= 0 && G.pending === null && warDeclarationEntitlement(G, power) === null) {
+    if (
+      G.cpRemaining <= 0 &&
+      !hasUnspentGrant(G, power) &&
+      G.pending === null &&
+      warDeclarationEntitlement(G, power) === null
+    ) {
       finishImpulse(G, ctx);
     }
     return undefined;
@@ -696,11 +728,17 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     G.impulseCard = null;
     if (card.type !== "mandatory") {
       G.impulseCard = null;
-      // Event play ends the impulse unless the card grants CP, or the event
-      // itself opened a home-card war declaration (Bismarck).  That
-      // entitlement belongs to this impulse: the seat declares the war here or
-      // hands the impulse over (`finishImpulse` clears it).
-      if (G.cpRemaining <= 0 && G.pending === null && warDeclarationEntitlement(G, power) === null) {
+      // Event play ends the impulse unless the card grants CP — including the
+      // colonial pool of A088 Our Place in the Sun and UK-3 Sun Never Sets —
+      // or the event itself opened a home-card war declaration (Bismarck).
+      // Both belong to this impulse: the seat spends them here or hands the
+      // impulse over (`finishImpulse` clears them).
+      if (
+        G.cpRemaining <= 0 &&
+        !hasUnspentGrant(G, power) &&
+        G.pending === null &&
+        warDeclarationEntitlement(G, power) === null
+      ) {
         finishImpulse(G, ctx);
       }
     }
@@ -933,7 +971,9 @@ const resolveMetternichChoice = (
   if (!applyMetternichAlly(G, optionId)) return INVALID_MOVE;
   const next = [...picked, optionId];
   if (openMetternichChoice(G, ctx, next)) return undefined;
-  return startFirstActionImpulse(G, ctx);
+  // The choice was opened at the *end of the diplomacy phase*, so the action
+  // phase starts only once the second ally has been applied.
+  return enterActionPhase(G, ctx);
 };
 
 /** 5.5.3 / 5.6.2: the first impulse of the action phase. */
@@ -943,11 +983,7 @@ const startFirstActionImpulse = (G: ImperialElegyState, ctx: Ctx): undefined => 
 };
 
 /** Enter the action phase (the first impulse may wait for a decision). */
-const beginActionPhaseAfterDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => {
-  // 11.1: the confirmed card draws are announced and performed "at the end of
-  // the diplomacy phase", in printed seat order, in full view of all players.
-  settleDeals(G, ctx);
-  expireOffers(G);
+const enterActionPhase = (G: ImperialElegyState, ctx: Ctx): string | void => {
   G.phase = "action";
   G.activePower = "GE";
   G.cpRemaining = 0;
@@ -957,18 +993,71 @@ const beginActionPhaseAfterDiplomacy = (G: ImperialElegyState, ctx: Ctx): string
   ctx.events?.setPhase?.("action");
   log(G, undefined, "actionPhaseStarted", {});
   ctx.events?.setActivePlayers?.({value: {[seatOf("GE")]: "play"}});
-  // 33.4 Metternich's Legacy resolves at the end of the turn-1 diplomacy
-  // phase; the AU choice is answered before Germany's first impulse starts.
+  return startFirstActionImpulse(G, ctx);
+};
+
+/**
+ * Close the diplomacy phase: 33.4 Metternich's Legacy resolves "at the end of
+ * the diplomacy phase of turn 1", so the AU choice is answered *before* the
+ * action phase opens.  Entering the action phase first (the old order) put the
+ * decision after `actionPhaseStarted` and left the phase bar saying "Action"
+ * while AU still owed a diplomacy obligation.
+ */
+const beginActionPhaseAfterDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  // 11.1: the confirmed card draws are announced and performed "at the end of
+  // the diplomacy phase", in printed seat order, in full view of all players.
+  settleDeals(G, ctx);
+  expireOffers(G);
   if (G.turn === 1 && !G.persistent.metternich) {
     if (openMetternichChoice(G, ctx, [])) return undefined;
   }
-  return startFirstActionImpulse(G, ctx);
+  return enterActionPhase(G, ctx);
+};
+
+/** Hand the diplomacy step on, or close the phase once every seat has chosen. */
+const finishHomeCardSelection = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  if (POWERS.every((x) => G.powers[x].flags.homeChosen)) {
+    return beginActionPhaseAfterDiplomacy(G, ctx);
+  }
+  const index = POWERS.indexOf(G.activePower);
+  const next = POWERS[(index + 1) % POWERS.length];
+  G.activePower = next;
+  ctx.events?.endTurn?.();
+  return undefined;
+};
+
+/**
+ * 9.1: close this seat's negotiation segment.
+ *
+ * The printed diplomacy phase runs negotiation first and the home-card step
+ * second.  The home card is therefore refused until every surviving power has
+ * declared itself done (`negotiationConcluded`), which keeps a seat from
+ * settling its card while another player is still talking.  Declaring done is
+ * not a lock: 11.0's shows and 11.1's offers stay legal until the phase closes,
+ * so a player who speaks up again can still be heard.
+ */
+export const finishNegotiation = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  const p = G.powers[power];
+  if (p.eliminated === true) return INVALID_MOVE;
+  if (p.flags.negotiationDone === true) return INVALID_MOVE;
+  p.flags.negotiationDone = true;
+  log(G, power, "negotiationFinished", {});
+  return undefined;
 };
 
 export const chooseHomeCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  // 9.1: the negotiation segment comes first.  `negotiationConcluded` treats a
+  // pre-step save as already done, so a resumed old phase is not blocked.
+  if (!negotiationConcluded(G)) return INVALID_MOVE;
+  // Metternich's Legacy is now answered *inside* the diplomacy phase, so a
+  // stale client could otherwise re-enter the phase while that choice is open.
+  if (G.pending !== null) return INVALID_MOVE;
   const p = G.powers[power];
   // 1870 Franco-Prussian branch step 5: "on the first turn, GE does not select
   // a home card".  The obligation is pre-settled as the diplomacy phase opens
@@ -984,18 +1073,69 @@ export const chooseHomeCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId):
   if (!p.hand.includes(cardId)) p.hand.push(cardId);
   p.flags.homeChosen = true;
   log(G, power, "homeCardChosen", {card: cardId});
-  if (POWERS.every((x) => G.powers[x].flags.homeChosen)) {
-    return beginActionPhaseAfterDiplomacy(G, ctx);
+  return finishHomeCardSelection(G, ctx);
+};
+
+/**
+ * 34.2: "Do not choose a home card for bots, instead each bot adds a random
+ * home card to their pile. When a bot home card is revealed, use the 'Home Card
+ * Revealed' section in the PAC."
+ *
+ * The bot never enters the human `chooseHomeCard` flow (whose public log says a
+ * *choice* happened).  It adds one home card to its hand as a hidden pile
+ * entry; the card is revealed later, at the bot's action impulse, through
+ * `revealHomeCard`.  The PAC's pile-order rules are honoured where the printed
+ * order matters: GE and OT put the card on top (the first printed home card),
+ * UK on the bottom (the last), FR/AU/RU shuffle it in (a die roll).
+ */
+export const pileHomeCard = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "diplomacy") return INVALID_MOVE;
+  if (!negotiationConcluded(G)) return INVALID_MOVE;
+  if (G.pending !== null) return INVALID_MOVE;
+  const p = G.powers[power];
+  if (p.flags.homeChosen) return INVALID_MOVE;
+  const candidates = p.homeCards.filter((id) => !p.hand.includes(id) && id !== p.selectedHomeCard);
+  if (candidates.length > 0) {
+    const cardId = power === "GE" || power === "OT"
+      ? candidates[0]
+      : power === "UK"
+        ? candidates[candidates.length - 1]
+        : candidates[randomIndex(ctx, candidates.length)];
+    p.selectedHomeCard = cardId;
+    p.hand.push(cardId);
   }
-  const index = POWERS.indexOf(G.activePower);
-  const next = POWERS[(index + 1) % POWERS.length];
-  G.activePower = next;
-  ctx.events?.endTurn?.();
+  p.flags.homeChosen = true;
+  return finishHomeCardSelection(G, ctx);
+};
+
+/**
+ * The bot's action impulse reveals the home card it added to its pile.
+ *
+ * The card is only private until this point: `pileHomeCard` records no public
+ * log, and the reveal entry is what every client (and the printed PAC) reads as
+ * "the top card of the bot's pile".  A seat that has no piled home card, or
+ * that already revealed it this turn, has nothing to do.
+ */
+export const revealHomeCard = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "action" || G.activePower !== power) return INVALID_MOVE;
+  const p = G.powers[power];
+  const cardId = p.selectedHomeCard;
+  if (cardId === null || !p.hand.includes(cardId)) return INVALID_MOVE;
+  if (p.flags.homeCardRevealedTurn === G.turn) return INVALID_MOVE;
+  p.flags.homeCardRevealedTurn = G.turn;
+  log(G, power, "homeCardRevealed", {card: cardId});
   return undefined;
 };
 
 export const endDiplomacy = (G: ImperialElegyState, ctx: Ctx): string | void => {
   if (G.phase !== "diplomacy") return INVALID_MOVE;
+  // The Metternich decision is part of closing diplomacy: a second close while
+  // it is open would open a duplicate decision.
+  if (G.pending !== null) return INVALID_MOVE;
   if (!POWERS.every((x) => G.powers[x].flags.homeChosen)) return INVALID_MOVE;
   return beginActionPhaseAfterDiplomacy(G, ctx);
 };
@@ -1210,27 +1350,30 @@ const requireCp = (G: ImperialElegyState, ctx: Ctx, playerID: PlayerID | null, a
 
 /**
  * A088 Our Place in the Sun / UK-3 Sun Never Sets: the printed "free CP" grants
- * may only pay for colonial actions (naval movement, construct fleet,
- * expeditionary force, pacification).  This payer drains the public
- * `freeColonialCp` grant first and then the ordinary wallet, so the grant is
- * spendable instead of being a flag nothing reads.  It keeps `requireCp`'s
- * impulse bookkeeping (response window and the wartime pass run).
+ * may only pay for the actions they name.  `grants` is drained in order and the
+ * ordinary wallet covers the rest, so a grant is spendable instead of being a
+ * flag nothing reads.  The payer keeps `requireCp`'s impulse bookkeeping
+ * (response window and the wartime pass run).
  */
-const requireColonialCp = (
+const requireGrantCp = (
   G: ImperialElegyState,
   ctx: Ctx,
   playerID: PlayerID | null,
   amount: number,
+  grants: readonly FreeCpGrant[],
 ): Power | typeof INVALID_MOVE => {
   if (G.phase === "gwManeuver" && hasLiveGwImpulse(G)) return INVALID_MOVE;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (G.flags.cpChainActive === true && G.flags.cpChainActionUsed === true) return INVALID_MOVE;
-  const free = freeColonialCp(G, power);
-  if (!spendColonialCp(G, power, amount)) {
-    // Restore the grant when the ordinary wallet could not cover the rest, so a
-    // refused action never burns free CP.
-    if (free > 0) G.powers[power].flags.freeColonialCp = free;
+  const before = grants.map((grant) => [grant, freeGrantCp(G, power, grant)] as const);
+  if (!spendGrantCp(G, power, amount, grants)) {
+    // Restore every grant when the ordinary wallet could not cover the rest, so
+    // a refused action never burns free CP.
+    for (const [grant, value] of before) {
+      if (value > 0) G.powers[power].flags[grant] = value;
+      else delete G.powers[power].flags[grant];
+    }
     return INVALID_MOVE;
   }
   if (G.phase === "action") {
@@ -1242,6 +1385,15 @@ const requireColonialCp = (
   if (G.flags.cpChainActive === true) G.flags.cpChainActionUsed = true;
   return power;
 };
+
+/** A088/UK-3 free CP for colonial actions; kept as the common short form. */
+const requireColonialCp = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  playerID: PlayerID | null,
+  amount: number,
+  grants: readonly FreeCpGrant[] = ["freeColonialCp"],
+): Power | typeof INVALID_MOVE => requireGrantCp(G, ctx, playerID, amount, grants);
 
 export interface RecruitOptions {
   /** OT only: build a Turkish or Arab army.  Defaults to the space's kind. */
@@ -1328,7 +1480,12 @@ export const recruit = (
     const current = Object.values(G.units).filter(
       (unit) => unit.owner === "UK" && Boolean(unit.flags?.indian),
     ).length;
-    if (G.powers.UK.indiaIndependent === true || current >= cap) {
+    // A refit flips an existing Indian counter in place: it adds no army, so
+    // the cap and the independence limit only gate a new counter.
+    const indianRefit = landUnitsIn(G, space).some(
+      (unit) => unit.owner === "UK" && unit.kind === "army" && unit.steps < 2 && unit.flags?.indian === true,
+    );
+    if (!indianRefit && (G.powers.UK.indiaIndependent === true || current >= cap)) {
       log(G, power, "recruitRejected", {
         kind,
         space,
@@ -1367,7 +1524,13 @@ export const recruit = (
   // build must not relabel a British army (33.2.1), and a British build must
   // not consume the colonial track by upgrading a CW army.
   const existing = landUnitsIn(G, space).filter(
-    (u) => u.owner === power && u.kind === "army" && (u.flags?.cw === true) === cw,
+    (u) =>
+      u.owner === power &&
+      u.kind === "army" &&
+      (u.flags?.cw === true) === cw &&
+      // 33.2: an Indian build flips an Indian counter; a British build must not
+      // relabel a British army as Indian (or the reverse) in a mixed stack.
+      (u.flags?.indian === true) === (indian === true),
   );
   // 12.2: a step flips a reduced army rather than adding a new counter.  Pick
   // the reduced counter itself, not the first army in the space, or a stack
@@ -1386,7 +1549,11 @@ export const recruit = (
     if (!allowance.ok || gwAllyImpulseFor(G, power) !== null) return INVALID_MOVE;
     recordGwAction(G, power, "draft", allowance);
   } else {
-    const paid = requireCp(G, ctx, playerID, steps);
+    // UK-3 Sun Never Sets (India option): the printed 2 CP pay for Indian army
+    // steps; the grant may cover only that build, never a British army.
+    const paid = indian === true
+      ? requireGrantCp(G, ctx, playerID, steps, ["freeIndianCp"])
+      : requireCp(G, ctx, playerID, steps);
     if (paid === INVALID_MOVE) return INVALID_MOVE;
   }
   if (upgrade !== undefined) {
@@ -1533,7 +1700,10 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
   // India, South Africa, Australia) is neither territorial nor on the main map.
   // A71 can reclassify a printed territorial key (Egypt) as a colonial home
   // key, so the live type — not the static map data — decides 12.4.
-  if (SPACES[space]?.submap !== "main" || effectiveKeyType(G, space) !== "territorial") return INVALID_MOVE;
+  // 33.6 Local Autonomy makes Tripoli and Tunisia territorial keys for the
+  // Ottomans once a land LoC reaches them, so the live per-power key type is
+  // the gate here, not the printed (absent) key type.
+  if (SPACES[space]?.submap !== "main" || !isTerritorialKeyForPower(G, space, power)) return INVALID_MOVE;
   if (!portBoxes(space).length) return INVALID_MOVE;
   if (kind === "dreadnought" && G.persistent.dreadnoughts !== true && !G.powers[power].flags.navalLimit) return INVALID_MOVE;
   // 4.2: GE/AU/OT may only own 2 squadrons and 2 dreadnoughts until an event
@@ -1664,8 +1834,8 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
     if (!res.ok && res.pending === true) return undefined;
     return res.ok ? undefined : INVALID_MOVE;
   }
-  // A088/UK-3: naval movement is a printed colonial action.
-  const power = requireColonialCp(G, ctx, playerID, 1);
+  // A088/UK-3: naval movement is a printed colonial/operation action.
+  const power = requireColonialCp(G, ctx, playerID, 1, ["freeColonialCp", "freeOperationCp"]);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   const units = unitIds.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && u.owner === power && u.naval === true);
   if (units.length === 0) return INVALID_MOVE;
@@ -2012,8 +2182,11 @@ export const buildEf = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, existin
   if (requireActionFamily(G, "buildEf") === INVALID_MOVE) return INVALID_MOVE;
   if (!efDestinationAllowed(G, space, power)) return INVALID_MOVE;
   // A088/UK-3: an expeditionary force is a colonial action, so the free
-  // colonial grant may pay for it first.
-  const paid = requireColonialCp(G, ctx, playerID, existing ? 1 : 2);
+  // colonial/operation grant may pay for it first.  The India option's grant
+  // applies only to a new EF built in India or Bengal, not to moving one.
+  const grants: FreeCpGrant[] = ["freeColonialCp", "freeOperationCp"];
+  if (existing === undefined && (space === "india" || space === "bengal")) grants.push("freeIndianCp");
+  const paid = requireColonialCp(G, ctx, playerID, existing ? 1 : 2, grants);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   if (existing) {
     const unit = G.units[existing];
@@ -2170,9 +2343,9 @@ export const pacify = (
   const cost = pacificationCost(G, power);
   // Validate A65 before spending anything, so a wrong/stale row costs nothing.
   if (a065 !== undefined && !G.powers[power].hand.includes("IE-A065")) return INVALID_MOVE;
-  // A088/UK-3: pacification is one of the printed colonial actions, so the free
-  // colonial grant may pay for it first.
-  const paid = requireColonialCp(G, ctx, playerID, cost.cost);
+  // A088/UK-3: pacification is one of the printed colonial/operation actions,
+  // so the free grants may pay for it first.
+  const paid = requireColonialCp(G, ctx, playerID, cost.cost, ["freeColonialCp", "freeOperationCp"]);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   // 9.1.3 / A65: "Play prior to a pacification roll."  The roll is immediate,
   // so the printed window is this move's optional `a065` argument (the board
@@ -2208,7 +2381,9 @@ export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   if (requireActionFamily(G, "buildFort") === INVALID_MOVE) return INVALID_MOVE;
-  if (SPACES[space]?.region !== "europe") return INVALID_MOVE;
+  // 12.12: "Forts can only be built on the main map (exception: the Indian
+  // fort)".  The main map includes North Africa, not just the Europe region.
+  if (SPACES[space]?.submap !== "main") return INVALID_MOVE;
   const existing = G.spaces[space]?.fort ?? null;
   if (existing !== null) {
     if (existing.power !== power) return INVALID_MOVE;
@@ -3152,6 +3327,13 @@ const markGoalRevealed = (G: ImperialElegyState, goalId: string): void => {
 };
 
 /**
+ * Rule 14.1's primary choice must be one of the two named targets.  Targets
+ * compare by key, so `"FR"` and `{minor: "Denmark"}` are handled alike.
+ */
+const warTargetKeyIn = (target: WarTarget, candidates: readonly WarTarget[]): boolean =>
+  candidates.some((candidate) => warTargetKey(candidate) === warTargetKey(target));
+
+/**
  * Rule 13.3: apply the conquest declaration penalty (shared by player and
  * non-player declarations).
  */
@@ -3181,6 +3363,12 @@ const applyConquestDeclarationPenalty = (
  * defends alone per 15.4.2: the war is live with the non-player as the typed
  * `minorTarget` defender, and the declaration is also mirrored into the
  * `G.minorDeclarations` ledger.
+ *
+ * `coDefenders` is the rest of a rule 14.1 two-target declaration: the other
+ * attacked targets, as the caller named them.  They also cross a pending
+ * decision on `G.flags.declarationSecond`, so both carriers are read and
+ * de-duplicated by target key.  A non-player co-defender keeps its own row in
+ * the war.
  */
 const finalizeWarDeclaration = (
   G: ImperialElegyState,
@@ -3192,6 +3380,7 @@ const finalizeWarDeclaration = (
   cp: number,
   stabilityDiscount = 0,
   minor: MinorWarInfo | null = null,
+  coDefenderTargets: WarTarget[] = [],
 ): string | void => {
   if (minor === null && !isPower(target)) return INVALID_MOVE;
   // The card that funds the declaration can print a conquest exception
@@ -3200,9 +3389,22 @@ const finalizeWarDeclaration = (
   // `G.flags.declarationCard`, so read it before the penalty is applied.
   const declarationCard = isCardId(G.flags.declarationCard) ? G.flags.declarationCard : null;
   // Rule 14.1's two-power clause and the two optional join clauses cross the
-  // same pending decisions on the public game flags.
-  const secondTarget = isPower(G.flags.declarationSecond) ? G.flags.declarationSecond : null;
-  const requestedPrimary = isPower(G.flags.declarationPrimary) ? G.flags.declarationPrimary : null;
+  // same pending decisions on the public game flags.  A target key is a string,
+  // so a non-player co-defender crosses them beside a player power.
+  const flagSecond = typeof G.flags.declarationSecond === "string"
+    ? warTargetFromKey(G.flags.declarationSecond)
+    : null;
+  const flagPrimary = typeof G.flags.declarationPrimary === "string"
+    ? warTargetFromKey(G.flags.declarationPrimary)
+    : null;
+  // The rest of a two-target declaration, as it was named.  `declareWar` puts
+  // the list on the flags so it survives a pending decision; the argument is the
+  // direct path for the one-shot decisions.
+  const secondTarget = flagSecond ?? coDefenderTargets[0] ?? null;
+  const declared: WarTarget[] = secondTarget === null
+    ? []
+    : [secondTarget, ...coDefenderTargets].filter((entry, index, list) =>
+      list.findIndex((other) => warTargetKey(other) === warTargetKey(entry)) === index);
   const forbidPlayers = G.flags.declarationForbid === true;
   const allowNeutralJoin = G.flags.declarationNeutralJoin === true;
   delete G.flags.declarationSecond;
@@ -3219,13 +3421,45 @@ const finalizeWarDeclaration = (
     .map((def) => def.id)
     .join(",");
   // 14.1: one defending player is the primary (the capital that ends the war);
-  // the other is a co-defender on the same side.
-  const primary = secondTarget !== null && requestedPrimary === secondTarget ? secondTarget : target;
-  const coDefender: Power | null = secondTarget === null
-    ? null
-    : primary === secondTarget
-      ? (isPower(target) ? target : null)
-      : secondTarget;
+  // the others are co-defenders on the same side.  "The defending players
+  // determine, between the two of them, who the primary defender is, and, if
+  // they cannot agree, the attacker decides", so the choice arrives already
+  // made.  Only a player power can be the primary: 14.1 uses it for the capital
+  // that ends the war, and a non-player has none.
+  //
+  // The targets named by the declaration, as typed records: the first target is
+  // the non-player itself when 13.4 sent us a resolved minor (`target` is then
+  // its ally or its control id), and the second one crosses on the flags (or in
+  // the argument when no decision intervened).  Keys de-duplicate them, because
+  // both carriers may name the same target.
+  const named: WarTarget[] = [];
+  const addNamed = (candidate: WarTarget | null): void => {
+    if (candidate === null) return;
+    if (named.some((entry) => warTargetKey(entry) === warTargetKey(candidate))) return;
+    named.push(candidate);
+  };
+  addNamed(minor !== null ? {minor: minor.minor} : isPower(target) ? target : null);
+  addNamed(flagSecond);
+  for (const other of coDefenderTargets) addNamed(other);
+  const playerCandidates: Power[] = named.filter(isPower);
+  const requested = flagPrimary !== null && isPower(flagPrimary) ? flagPrimary : null;
+  const primary: PowerOrMinor =
+    requested !== null && playerCandidates.includes(requested)
+      ? requested
+      : playerCandidates[0] ?? target;
+  // Every named target except the primary sits on the defending side as a
+  // co-defender, including the declaration's *first* target when the defenders
+  // made the second one primary (14.1).  A non-player's own row is `minorTarget`
+  // only when it is the primary; when a player defends it (13.4) the row is a
+  // co-defender minor.
+  const firstMinorIsPrimary = minor !== null && !isPower(primary);
+  const namedMinors = named
+    .filter(isMinorWarTargetArg)
+    .map((entry) => entry.minor)
+    .filter((entry) => !(firstMinorIsPrimary && entry === minor?.minor));
+  const namedPlayers = named.filter(isPower).filter((entry) => entry !== primary);
+  const coPower: Power | null = namedPlayers[0] ?? null;
+  const coMinors: string[] = namedMinors;
   G.war = createWarState(
     G,
     power,
@@ -3233,19 +3467,30 @@ const finalizeWarDeclaration = (
     aim,
     objectives,
     cp,
-    minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {},
+    {
+      ...(minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {}),
+      ...(coMinors.length > 0 ? {coDefenderMinors: coMinors} : {}),
+    },
   );
   // 13.7 is a defending-seat action during the war-aim/alliance steps, while
   // boardgame.io otherwise dispatches only the attacker's moves.  Widen
   // dispatch; every other move still checks `G.activePower`.
   ctx.events?.setActivePlayers?.({all: "play"});
-  if (coDefender !== null) {
+  if (coPower !== null) {
     // The co-defender is recorded both as a typed declaration target and as a
     // defending-side belligerent, so every side/initiative/battle helper sees
     // it.  It played no card: 14.3's budget is its industry alone.
-    G.war.coDefenders = [coDefender];
-    G.war.defenderAllies.push(coDefender);
-    G.war.budgets[coDefender] = warBudgetFor(G, coDefender, 0);
+    G.war.coDefenders = [coPower];
+    G.war.defenderAllies.push(coPower);
+    G.war.budgets[coPower] = warBudgetFor(G, coPower, 0);
+  }
+  if (coMinors.length > 0) {
+    // Rule 14.1 again, one row lower: a second *non-player* target.  It keeps
+    // its own marker (never its ally's) so its objectives are still held by it.
+    G.war.coDefenderMinors = [...coMinors];
+    for (const entry of coMinors) {
+      if (!G.war.defenderMinors.includes(entry)) G.war.defenderMinors.push(entry);
+    }
   }
   // Bismarck: "After declaring war you may choose to forbid other players from
   // joining the war.  Minor power allies may join the war as normal."
@@ -3325,15 +3570,15 @@ const finalizeWarDeclaration = (
     }
   } else if (isPower(primary)) {
     applyDefenderDeclarationShift(G, power, primary);
-    if (coDefender !== null) {
+    if (coPower !== null) {
       // Rule 8.2 applies to each attacked power.  The primary's both-neutral
       // choice is the live decision above; the co-defender's shift uses the
       // deterministic Triple-Entente-first fallback (the same default 8.6
       // uses) so two simultaneous choices cannot collide on `G.pending`.
-      const derived = declarationShiftDirection(G.powers[power].alliance, G.powers[coDefender].alliance);
-      const side: AllianceSide = derived ?? (canJoinAlliance(G, coDefender, "te") ? "te" : "ta");
-      const result = declarationShift(G, power, coDefender, side);
-      log(G, coDefender, "allianceShifted", {
+      const derived = declarationShiftDirection(G.powers[power].alliance, G.powers[coPower].alliance);
+      const side: AllianceSide = derived ?? (canJoinAlliance(G, coPower, "te") ? "te" : "ta");
+      const result = declarationShift(G, power, coPower, side);
+      log(G, coPower, "allianceShifted", {
         from: result.from,
         to: result.to,
         steps: result.steps,
@@ -3345,14 +3590,16 @@ const finalizeWarDeclaration = (
   }
   // 33.2 Rapid Deployment: the UK receives one free naval movement action the
   // first time it enters this war, whether it attacks or is attacked.
-  if (power === "UK" || target === "UK" || secondTarget === "UK") grantRapidDeployment(G, "limited");
+  if (power === "UK" || target === "UK" || primary === "UK" || coPower === "UK") {
+    grantRapidDeployment(G, "limited");
+  }
   G.phase = "wartime";
   ctx.events?.setPhase?.("wartime");
   G.activePower = power;
   addLog(G, power, "warDeclared", {
     target: minor?.minor ?? target,
-    secondary: coDefender ?? undefined,
-    primaryDefender: secondTarget !== null ? primary : undefined,
+    secondary: coPower ?? coMinors[0] ?? undefined,
+    primaryDefender: declared.length > 0 ? primary : undefined,
     aim,
     objectives: objectives.join(","),
     forbidPlayerJoins: forbidPlayers || undefined,
@@ -3381,8 +3628,12 @@ const finalizeUnopposedMinorDeclaration = (
   objectives: SpaceId[],
   cp: number,
   stabilityDiscount: number,
+  coDefenderKeys: readonly string[] = [],
 ): string | void => {
   const lone: MinorWarInfo = {...minor, ally: null};
+  const coTargets = coDefenderKeys
+    .map((key) => warTargetFromKey(key))
+    .filter((target): target is WarTarget => target !== null);
   const result = finalizeWarDeclaration(
     G,
     ctx,
@@ -3393,6 +3644,7 @@ const finalizeUnopposedMinorDeclaration = (
     cp,
     stabilityDiscount,
     lone,
+    coTargets,
   );
   if (result !== undefined) return result;
   log(G, power, "minorUnopposed", {target: minor.minor, war: true});
@@ -3411,6 +3663,12 @@ interface MinorDeclarationContext {
   objectives: SpaceId[];
   cp: number;
   stabilityDiscount: number;
+  /**
+   * Rule 14.1: the rest of a two-target declaration, as target keys.  The
+   * attack is resolved one target at a time — the first one's 13.4.1/13.4.2
+   * answers are asked first — and the others are created with the war.
+   */
+  coDefenders: string[];
 }
 
 /** Serializable state of one 13.4.2 aid search (the pending chain's context). */
@@ -3446,7 +3704,14 @@ const minorDeclarationContext = (pending: PendingDecision): MinorDeclarationCont
   if (!isWarAimValue(aim) || objectives === null || !Number.isFinite(cp)) return null;
   const rawDiscount = Number(pending.context?.stabilityDiscount ?? 0);
   const stabilityDiscount = Number.isFinite(rawDiscount) ? rawDiscount : 0;
-  return {attacker, minor, aim, objectives, cp, stabilityDiscount};
+  // Rule 14.1: the other targets travelled as a comma-joined key list.
+  const rawCo = pending.context?.coDefenders;
+  const coDefenders = Array.isArray(rawCo)
+    ? rawCo.filter((key): key is string => typeof key === "string")
+    : typeof rawCo === "string" && rawCo.length > 0
+      ? rawCo.split(",")
+      : [];
+  return {attacker, minor, aim, objectives, cp, stabilityDiscount, coDefenders};
 };
 
 /** The `MinorWarInfo` for a power that aids the attacked non-player (13.4.2). */
@@ -3500,6 +3765,9 @@ const finalizeMinorAid = (
     state.cp,
     state.stabilityDiscount,
     info,
+    state.coDefenders
+      .map((key) => warTargetFromKey(key))
+      .filter((target): target is WarTarget => target !== null),
   );
 };
 
@@ -3605,6 +3873,7 @@ const beginSeekingAid = (G: ImperialElegyState, ctx: Ctx, base: MinorDeclaration
     base.objectives,
     base.cp,
     base.stabilityDiscount,
+    base.coDefenders,
   );
 };
 
@@ -3623,6 +3892,7 @@ const beginMinorWarDeclaration = (
   objectives: SpaceId[],
   cp: number,
   stabilityDiscount: number,
+  coDefenders: WarTarget[] = [],
 ): string | void => {
   const base: MinorDeclarationContext = {
     attacker: power,
@@ -3631,6 +3901,7 @@ const beginMinorWarDeclaration = (
     objectives: [...objectives],
     cp,
     stabilityDiscount,
+    coDefenders: coDefenders.map(warTargetKey),
   };
   if (minor.ally !== null) {
     // 13.4.1: "A player ally can decline to enter a war after the attacker
@@ -3735,6 +4006,9 @@ const resolveMinorAbandon = (
       base.cp,
       base.stabilityDiscount,
       info,
+      base.coDefenders
+        .map((key) => warTargetFromKey(key))
+        .filter((target): target is WarTarget => target !== null),
     );
   }
   G.pending = null;
@@ -3779,6 +4053,7 @@ const resolveMinorAbandon = (
     base.objectives,
     base.cp,
     base.stabilityDiscount,
+    base.coDefenders,
   );
 };
 
@@ -3832,23 +4107,26 @@ const resolveMinorAid = (
     base.objectives,
     base.cp,
     base.stabilityDiscount,
+    state.coDefenders,
   );
 };
 
 /** Optional clauses of a home-card declaration (rules 14.1 / Bismarck / Aux Armes). */
 export interface DeclareWarOptions {
   /**
-   * Rule 14.1: the second player power named by the same declaration.  Only a
-   * card whose policy prints the two-power clause may pass it, and only for
-   * the aim that clause names.
+   * Rule 14.1: the second power named by the same declaration.  Only a card
+   * whose policy prints the two-power clause may pass it, and only for the aim
+   * that clause names.  A non-player power is a legal second target too, so a
+   * declaration may be "minor + power" or "minor + minor".
    */
-  secondTarget?: Power;
+  secondTarget?: WarTarget;
   /**
    * Rule 14.1: "the defending players determine, between the two of them, who
    * the primary defender is, and, if they cannot agree, the attacker decides."
-   * The move records the resulting choice; it must be one of the two targets.
+   * The move records the resulting choice; it must be one of the two targets
+   * and, like `secondTarget`, may name a non-player power.
    */
-  primary?: Power;
+  primary?: WarTarget;
   /**
    * Bismarck: "After declaring war you may choose to forbid other players
    * from joining the war."  Minor allies still join under 14.0.
@@ -3888,22 +4166,29 @@ export const declareWar = (
     if (cp !== entitlement.cp) return INVALID_MOVE;
   }
 
-  // Rule 14.1: a card's two-power clause.  The printed wording names player
-  // powers; a non-player target keeps the ordinary single-target 13.4 flow,
-  // which suspends on the 13.4.1/13.4.2 ally decisions.
+  // Rule 14.1: a card's two-power clause.  The printed wording counts "two
+  // different powers", and the panel offers a non-player power beside another
+  // one, so any `WarTarget` is a legal second target here.
   const secondTarget = options.secondTarget;
   if (secondTarget !== undefined) {
     if (entitlement === null || policy === null) return INVALID_MOVE;
     if (!warDeclarationAllowsTwoPowers(entitlement.card, aim)) return INVALID_MOVE;
-    if (!isPower(secondTarget) || secondTarget === power) return INVALID_MOVE;
-    if (isMinorWarTargetArg(target)) return INVALID_MOVE;
-    if (secondTarget === target) return INVALID_MOVE;
-    if (hasTruce(G, power, secondTarget)) return INVALID_MOVE;
-    if (!warDeclarationTargetLegal(G, entitlement, secondTarget)) return INVALID_MOVE;
-    if (options.primary !== undefined && options.primary !== target && options.primary !== secondTarget) {
+    if (warTargetKey(secondTarget) === warTargetKey(target)) return INVALID_MOVE;
+    if (isPower(secondTarget)) {
+      if (secondTarget === power) return INVALID_MOVE;
+      // Rule 13.5: players cannot break truces.
+      if (hasTruce(G, power, secondTarget)) return INVALID_MOVE;
+      if (!warDeclarationTargetLegal(G, entitlement, secondTarget)) return INVALID_MOVE;
+    } else {
+      const info = minorWarInfo(G, power, secondTarget.minor);
+      if (!info.ok) return INVALID_MOVE;
+      if (info.ally === power) return INVALID_MOVE;
+      if (!warDeclarationTargetLegal(G, entitlement, minorWarDefender(info))) return INVALID_MOVE;
+    }
+    if (options.primary !== undefined && !warTargetKeyIn(options.primary, [target, secondTarget])) {
       return INVALID_MOVE;
     }
-  } else if (options.primary !== undefined && options.primary !== target) {
+  } else if (options.primary !== undefined && warTargetKey(options.primary) !== warTargetKey(target)) {
     // A single-target declaration's primary is the target itself.
     return INVALID_MOVE;
   }
@@ -3944,14 +4229,26 @@ export const declareWar = (
   // Russian minor ally is correctly a declaration on Russia.  A two-power
   // clause checks the second power through the same lens.
   if (!warDeclarationTargetLegal(G, entitlement, defenderForAim)) return INVALID_MOVE;
-  if (secondTarget !== undefined && !warDeclarationTargetLegal(G, entitlement, secondTarget)) {
+  const secondInfo: MinorWarInfo | null =
+    secondTarget !== undefined && isMinorWarTargetArg(secondTarget)
+      ? minorWarInfo(G, power, secondTarget.minor)
+      : null;
+  const secondDefenderForAim: PowerOrMinor | null = secondTarget === undefined
+    ? null
+    : secondInfo !== null
+      ? minorWarDefender(secondInfo)
+      : isPower(secondTarget)
+        ? secondTarget
+        : null;
+  if (secondDefenderForAim !== null && !warDeclarationTargetLegal(G, entitlement, secondDefenderForAim)) {
     return INVALID_MOVE;
   }
   // Rule 13.0: validate the aim (and every objective's control) before the CP
-  // is spent, so an illegal declaration never mutates the state.  A two-power
+  // is spent, so an illegal declaration never mutates the state.  A two-target
   // declaration may target objectives controlled by either defender.
-  const declaredDefenders: PowerOrMinor[] | undefined =
-    secondTarget !== undefined ? [defenderForAim, secondTarget] : undefined;
+  const declaredDefenders: PowerOrMinor[] | undefined = secondDefenderForAim !== null
+    ? [defenderForAim, secondDefenderForAim]
+    : undefined;
   const validation = validateWarAim(G, power, defenderForAim, aim, objectives, {
     ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
     conquestKeyLimit: policy?.conquestKeyLimit,
@@ -3964,10 +4261,13 @@ export const declareWar = (
     // so `finalizeWarDeclaration` can stamp `war.declarationCard` (Balance of
     // Power "cannot be played in response to Otto von Bismarck").
     G.flags.declarationCard = entitlement.card;
-    // The optional clauses cross the Napoleon's Legacy decision the same way.
+    // The optional clauses cross the Napoleon's Legacy decision the same way;
+    // a target key is a string, so a non-player target crosses beside a player.
     if (secondTarget !== undefined) {
-      G.flags.declarationSecond = secondTarget;
-      G.flags.declarationPrimary = options.primary ?? defenderForAim;
+      const primaryTarget: WarTarget = options.primary
+        ?? (isPower(defenderForAim) ? defenderForAim : target);
+      G.flags.declarationSecond = warTargetKey(secondTarget);
+      G.flags.declarationPrimary = warTargetKey(primaryTarget);
     }
     if (options.forbidPlayers === true && warDeclarationMayForbidJoins(entitlement.card)) {
       G.flags.declarationForbid = true;
@@ -4001,16 +4301,33 @@ export const declareWar = (
           option("reveal", "Reveal Napoleon's Legacy (-2 stability loss)", undefined, false, "公开拿破仑的遗产（少受 2 点稳定度损失）"),
           option("decline", "Keep it secret (full stability loss)", undefined, false, "保守秘密（承受全部稳定度损失）"),
         ],
-        {target: minor === null ? playerDefender : defenderForAim, minor: minor?.minor, aim, objectives: [...objectives], cp},
+        {
+          target: minor === null ? playerDefender : defenderForAim,
+          minor: minor?.minor,
+          aim,
+          objectives: [...objectives],
+          cp,
+          // Rule 14.1's second target travels on the flags above, so the
+          // decision does not need to repeat it.
+        },
       ),
     );
     return undefined;
   }
+  // Rule 14.1: the rest of a two-target declaration, resolved to what the war
+  // records.  Both targets go through the 13.4 chain that follows, so a
+  // non-player target can still find an ally (or defend alone).
+  const coDefenders: WarTarget[] = secondTarget === undefined ? [] : [secondTarget];
   if (minor !== null) {
-    return beginMinorWarDeclaration(G, ctx, power, minor, aim, objectives, cp, legacy.discount);
+    return beginMinorWarDeclaration(
+      G, ctx, power, minor, aim, objectives, cp, legacy.discount,
+      coDefenders,
+    );
   }
   if (playerDefender === null) return INVALID_MOVE;
-  return finalizeWarDeclaration(G, ctx, power, playerDefender, aim, objectives, cp, legacy.discount);
+  return finalizeWarDeclaration(
+    G, ctx, power, playerDefender, aim, objectives, cp, legacy.discount, null, coDefenders,
+  );
 };
 
 /**
@@ -4375,12 +4692,18 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
   if (chained) {
     // A chain insertion is one impulse; resume the next player once its
     // mandatory event has finished (unless the event itself granted CP).
-    if (G.cpRemaining <= 0) finishImpulse(G, ctx);
+    if (G.cpRemaining <= 0 && !hasUnspentGrant(G, G.activePower)) finishImpulse(G, ctx);
   } else if (
     !(gwCard && hasLiveGwImpulse(G)) &&
     !mandatory &&
     !response &&
     G.cpRemaining <= 0 &&
+    // A088 / UK-3 hand their printed CP to the seat as a restricted pool
+    // (colonial, operation or Indian).  That pool belongs to the impulse the
+    // card opened, so it keeps the impulse open exactly like banked CP — this is
+    // the path UK-3 takes: its event opens a required choice, and the grant only
+    // arrives when the seat answers it.
+    !hasUnspentGrant(G, G.activePower) &&
     // A home-card war declaration (Bismarck, Aux Armes, Russo-Turkish Wars,
     // Jihad) belongs to this impulse even when its event paused on a printed
     // choice: the seat declares the war now or hands the impulse over.
@@ -5902,10 +6225,12 @@ const resolveNapoleonsLegacy = (
     ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
     conquestKeyLimit: policy?.conquestKeyLimit,
   };
-  // 14.1: the second power of a home-card declaration also crossed the
-  // decision on the public flags.
-  const secondTarget = isPower(G.flags.declarationSecond) ? G.flags.declarationSecond : null;
-  if (secondTarget !== null && minorName !== null) return INVALID_MOVE;
+  // 14.1: the second target of a home-card declaration also crossed the
+  // decision on the public flags; it may be a non-player power.
+  const secondTarget = typeof G.flags.declarationSecond === "string"
+    ? warTargetFromKey(G.flags.declarationSecond)
+    : null;
+  const coTargets: WarTarget[] = secondTarget === null ? [] : [secondTarget];
   let discount = 0;
   if (optionId === "reveal") {
     markGoalRevealed(G, NAPOLEONS_LEGACY_GOAL);
@@ -5921,23 +6246,38 @@ const resolveNapoleonsLegacy = (
     G.pending = null;
     // 13.4.1 / 13.4.2: the ally's abandonment choice or the aid search runs
     // next, exactly as it does for a non-card declaration.
-    return beginMinorWarDeclaration(G, ctx, "FR", minor, aim, objectives, cp, discount);
+    return beginMinorWarDeclaration(G, ctx, "FR", minor, aim, objectives, cp, discount, coTargets);
   }
   if (!isPower(target)) return INVALID_MOVE;
+  let secondDefenderForAim: PowerOrMinor | null = null;
   if (secondTarget !== null) {
-    if (secondTarget === target || hasTruce(G, "FR", secondTarget)) return INVALID_MOVE;
-    if (!warDeclarationTargetLegal(
-      G,
-      declarationCard === null ? null : {card: declarationCard, cp, aim: null},
-      secondTarget,
-    )) return INVALID_MOVE;
+    if (warTargetKey(secondTarget) === target || isPower(secondTarget) && hasTruce(G, "FR", secondTarget)) {
+      return INVALID_MOVE;
+    }
+    if (isPower(secondTarget)) {
+      if (!warDeclarationTargetLegal(
+        G,
+        declarationCard === null ? null : {card: declarationCard, cp, aim: null},
+        secondTarget,
+      )) return INVALID_MOVE;
+      secondDefenderForAim = secondTarget;
+    } else {
+      const info = minorWarInfo(G, "FR", secondTarget.minor);
+      if (!info.ok) return INVALID_MOVE;
+      secondDefenderForAim = minorWarDefender(info);
+      if (!warDeclarationTargetLegal(
+        G,
+        declarationCard === null ? null : {card: declarationCard, cp, aim: null},
+        secondDefenderForAim,
+      )) return INVALID_MOVE;
+    }
   }
   if (!validateWarAim(G, "FR", target, aim, objectives, {
     ...aimRules,
-    ...(secondTarget !== null ? {defenders: [target, secondTarget]} : {}),
+    ...(secondDefenderForAim !== null ? {defenders: [target, secondDefenderForAim]} : {}),
   }).ok) return INVALID_MOVE;
   G.pending = null;
-  return finalizeWarDeclaration(G, ctx, "FR", target, aim, objectives, cp, discount);
+  return finalizeWarDeclaration(G, ctx, "FR", target, aim, objectives, cp, discount, null, coTargets);
 };
 
 /**

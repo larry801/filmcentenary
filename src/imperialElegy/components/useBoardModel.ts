@@ -12,10 +12,11 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
 import {SPACES, TSRR_ROUTE, isNavalBox, neighboursOf, portBoxes, spaceLabel} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
-import {cpBudgetFor, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, legalLandBattleTarget, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement} from "../engine/rules";
+import {cpBudgetFor, freeGrantCp, friendlySpace, gwAllyImpulseFor, hasLoc, hostileOwner, isArmyKind, isHomeSpace, landStackingLimit, landUnitsIn, legalLandBattleTarget, minorAlliesOf, minorController, navalUnitsIn, ownsKey, warDeclarationEntitlement} from "../engine/rules";
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
+import {negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
 import {GOALS_BY_ID} from "../constant/goals";
 import {ieT} from "./i18n";
 import {cardDisplayName} from "./cardDisplay";
@@ -54,6 +55,7 @@ import {
 } from "./moveFeedback";
 import {pendingOptionSafety} from "./pendingSafety";
 import {pendingDeclinesItself} from "./PendingPanel";
+import {engineReasonText} from "./reasonText";
 import {ARM_MS} from "./ConfirmButton";
 import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
@@ -63,12 +65,30 @@ import {botPowersOf} from "../configuration";
 
 const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
 
+/**
+ * Decisions whose printed benefit is mandatory ("gains", "set manpower", a tied
+ * alliance direction, returning an NG).  The panel's generic 拒绝 is only a
+ * convenience for optional windows; offering it here would let a player decline
+ * a benefit the rules grant, so these kinds answer only through their printed
+ * options.  The engine's `declinePending` stays available as the unattended
+ * fallback for bots and stale clients.
+ */
+const MANDATORY_PENDING_KINDS: ReadonlySet<string> = new Set([
+  "metternich",
+  "militarism",
+  "manpowerExcess",
+  "allianceTie",
+  "goalChoice",
+]);
+
 export interface BoardModelProps {
   G: ImperialElegyState;
   ctx: Ctx;
   moves: Record<string, (...args: any[]) => void>;
   playerID: string | null;
   hotseat?: boolean;
+  /** Rule 34 seat hand-over is offered; the solo page sets this false. */
+  allowSeatHandover?: boolean;
   /**
    * Force the hand tray open (or shut) instead of the viewport default.  The
    * board itself never passes this; it exists for embeds and for the rules
@@ -118,8 +138,8 @@ export const useIsPhone = (): boolean => {
 };
 
 export const useBoardModel = ({
-  G, ctx, moves, playerID, hotseat = false, handOpen, expandHand = false,
-  _stateID, isConnected = true, injectedUi,
+  G, ctx, moves, playerID, hotseat = false, allowSeatHandover = true,
+  handOpen, expandHand = false, _stateID, isConnected = true, injectedUi,
 }: BoardModelProps) => {
   i18n.use();
   const t = injectedUi?.i18n ?? ieT();
@@ -302,6 +322,22 @@ export const useBoardModel = ({
     warWasActive.current = hasWar;
   }, [war, gw, isPhone]);
 
+  // A finished bot war leaves the War body in front; the next human impulse
+  // then has no visible Orders tab (action/space/influence/naval), so the seat
+  // that just took the impulse sees no way to act.  Bring Orders back on the
+  // false→true edge of "this viewer holds the action impulse", exactly once, so
+  // a player who deliberately opened War during their own turn stays there.
+  const viewerHoldsImpulse = viewer !== null && G.activePower === viewer
+    && (G.phase === "action" || G.phase === "wartime");
+  const viewerHeldImpulse = React.useRef(false);
+  React.useEffect(() => {
+    if (viewerHoldsImpulse && !viewerHeldImpulse.current) {
+      setRailTab("action");
+      setMobileTab("orders");
+    }
+    viewerHeldImpulse.current = viewerHoldsImpulse;
+  }, [viewerHoldsImpulse]);
+
   // A decision arriving on a phone brings the one bottom sheet up to half
   // height on the Orders tab.  It fires on the false→true edge only, so a
   // player who collapses the sheet while answering keeps it collapsed; when the
@@ -351,22 +387,39 @@ export const useBoardModel = ({
   // negotiation segment.  Whether it is still outstanding is the same test
   // `HandChoices` uses, so the dock button and the dialog can never disagree.
   const homeCardChoicePending = phase === "diplomacy" && me !== null &&
-    me.homeCards.length > 0 && me.selectedHomeCard === null;
+    me.homeCards.length > 0 && me.selectedHomeCard === null && me.flags.homeChosen !== true;
+  // 9.1: the negotiation segment runs before the home-card step.  The home card
+  // stays unavailable until every surviving seat has ended its negotiation,
+  // and the seat's own "finish negotiating" button is offered to every seat,
+  // not only the one whose diplomacy turn it is.
+  const negotiationConcludedNow = negotiationConcluded(G);
+  const negotiationsOwed = viewer !== null && !negotiationDoneFor(G, viewer);
+  const canFinishNegotiation = phase === "diplomacy" && viewer !== null && !eliminated && !isBotViewer &&
+    negotiationsOwed && pending === null && battle === null && G.result === null;
   // Buttons that end or continue the current phase step.  They belong in the
   // pinned dock with the pending decisions: both answer "what may I do now",
   // and neither may be pushed below the fold by a tall map or a long hand.
-  const phaseActions: PhaseAction[] = hasPhaseButtons ? [
+  const phaseActions: PhaseAction[] = [
+    ...(canFinishNegotiation
+      ? [{
+          key: "finishNegotiation",
+          label: bi(actualLocale, "Finish negotiating", "结束谈判"),
+          testId: "ie-finish-negotiation",
+          onClick: () => doAction(() => moves.finishNegotiation(), {label: bi(actualLocale, "Finish negotiating", "结束谈判")}),
+        }]
+      : []),
+    ...(hasPhaseButtons ? [
     ...(phase === "prep" && canPhaseAct && !me?.flags.prepDone
       ? [{key: "finishPrep", label: t.finishPrep, testId: "ie-finish-prep", onClick: () => doAction(() => moves.finishPrep(), {label: t.finishPrep})}]
       : []),
-    ...(phase === "diplomacy" && canPhaseAct && homeCardChoicePending && pending === null && battle === null && G.result === null
+    ...(phase === "diplomacy" && canPhaseAct && homeCardChoicePending && negotiationConcludedNow && pending === null && battle === null && G.result === null
       // 9.1/11.0: the negotiation segment runs before the home card, so the
       // choice is opened by the player, never raised over the table.  A decision
       // or battle already owns the board; the choice waits for it rather than
       // fighting it for focus.
       ? [{key: "chooseHomeCard", label: t.chooseHome, testId: "ie-open-home-card", onClick: () => setHomeCardDialogOpen(true)}]
       : []),
-    ...(phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard
+    ...(phase === "diplomacy" && canPhaseAct && me?.selectedHomeCard && negotiationConcludedNow
       // 6.0: once diplomacy ends there is no way back, so it confirms.
       ? [{key: "endDiplomacy", label: t.endDiplomacy, testId: "ie-end-diplomacy", confirm: true, onClick: () => doAction(() => moves.endDiplomacy(), {label: t.endDiplomacy})}]
       : []),
@@ -388,7 +441,8 @@ export const useBoardModel = ({
     ...(phase === "end" && canPhaseAct
       ? [{key: "endPhaseTurn", label: t.continue, testId: "ie-end-phase-turn", confirm: true, onClick: () => doAction(() => moves.endPhaseTurn(), {label: t.continue})}]
       : []),
-  ] : [];
+    ] : []),
+  ];
 
   // ------------------------------------------------------------- 33.x national actions
   const nationalActionPhase = viewer !== null && !eliminated && isActive && phase === "action" && pending === null;
@@ -408,6 +462,10 @@ export const useBoardModel = ({
   const auCitizenDecision = auCitizenValue !== ""
     ? canGrantCitizenship(G, "AU", auCitizenValue, {sacrificeStability: auSacrifice})
     : null;
+  // 33.4: only an allied minor that already has a nationality with full AU
+  // citizenship can be incorporated.  The picker must not offer the others
+  // (the reported bug listed the Netherlands and Hanover while the button was
+  // disabled); it should list only legal targets.
   const auIncorporateCandidates = nationalActionPhase && viewer === "AU"
     ? Object.values(SPACES)
         .filter((space) => {
@@ -415,6 +473,7 @@ export const useBoardModel = ({
           return typeof control === "string" && !isPowerKey(control) && G.spaces[space.id]?.ally === "AU";
         })
         .map((space) => space.id)
+        .filter((space) => auIncorporateDecision(G, space).allowed)
     : [];
   const auIncorporateEligible = auIncorporateCandidates.filter((space) => auIncorporateDecision(G, space).allowed);
   const auIncorporateValue = nationalActionPhase && viewer === "AU"
@@ -447,26 +506,26 @@ export const useBoardModel = ({
   const auReformReason = auReformDecision === null
     ? undefined
     : auReformDecision.allowed !== true
-      ? auReformDecision.reasons.join(" | ")
+      ? engineReasonText(actualLocale, auReformDecision.reasons.join(" · "))
       : cpBudget() < 3 ? needsCp(3) : undefined;
   const auCitizenReason = auCitizenDecision === null
     ? undefined
     : auCitizenDecision.allowed !== true
-      ? auCitizenDecision.reasons.join(" | ")
+      ? engineReasonText(actualLocale, auCitizenDecision.reasons.join(" · "))
       : cpBudget() < 3 ? needsCp(3) : undefined;
   const auIncorporateReason = auIncorporate === null
     ? bi(actualLocale, "No allied minor power is eligible.", "没有符合条件的盟国小国。")
     : auIncorporate.allowed !== true
-      ? auIncorporate.reasons.join(" | ")
+      ? engineReasonText(actualLocale, auIncorporate.reasons.join(" · "))
       : cpBudget() < 3 ? needsCp(3) : undefined;
   const tsrrReason = tsrrArmies.length === 0
     ? bi(actualLocale, "No army is on the Trans-Siberian Railroad.", "西伯利亚铁路上没有军团。")
     : tsrrDecision !== null && tsrrDecision.allowed !== true
-      ? tsrrDecision.reasons.join(" | ")
+      ? engineReasonText(actualLocale, tsrrDecision.reasons.join(" · "))
       : undefined;
   const jihadDecision = battle !== null ? jihadUse(G, "OT", battle) : null;
   const jihadReason = jihadDecision !== null && jihadDecision.allowed !== true
-    ? jihadDecision.reasons.join(" | ")
+    ? engineReasonText(actualLocale, jihadDecision.reasons.join(" · "))
     : undefined;
   const polishOwner = viewer === null ? null : polishController(G);
   const polishArmyDecision = viewer !== null && selected !== null && phase === "action" && polishOwner === viewer
@@ -668,10 +727,19 @@ export const useBoardModel = ({
     //   • It is this power's normal turn to act (action / wartime / prep /
     //     diplomacy / gwManeuver all use isActive; end / gwPlanning / gwWinter
     //     ask all powers to take their turn sequentially so canPhaseAct is true).
+    // 9.1: during the negotiation segment every seat may close its own
+    // segment (and answer an offer addressed to it) out of turn, so a bot must
+    // not wait for `isActive` — the active seat is Germany until the home-card
+    // step, which stays blocked until every bot has also finished talking.
+    const negotiatingBot = phase === "diplomacy" && (
+      !negotiationDoneFor(G, viewer) ||
+      (G.negotiation?.offers ?? []).some((offer) => offer.status === "proposed" && offer.to === viewer)
+    );
     const needsAct =
       (pending !== null && pending.power === viewer) ||
       (pending === null && (
         isActive ||
+        negotiatingBot ||
         phase === "end" ||
         phase === "gwPlanning" ||
         phase === "gwWinter"
@@ -880,15 +948,16 @@ export const useBoardModel = ({
   // through the engine's own gates, and handing a seat over mid-question would
   // leave the question with a controller that cannot see it.
   const handoverBlocked = pending !== null || battle !== null;
-  const canHandOverSeat = viewer !== null && !handoverBlocked && typeof moves.setSeatBot === "function";
+  const canHandOverSeat = allowSeatHandover && viewer !== null && !handoverBlocked &&
+    typeof moves.setSeatBot === "function";
   const setSeatBot = React.useCallback((bot: boolean) => {
-    if (viewer === null || handoverBlocked || typeof moves.setSeatBot !== "function") return;
+    if (!allowSeatHandover || viewer === null || handoverBlocked || typeof moves.setSeatBot !== "function") return;
     doAction(
       () => moves.setSeatBot(bot),
       {label: bi(actualLocale, bot ? "Hand this seat to the bot" : "Take this seat back", bot ? "交给机器人托管" : "收回席位")},
     );
     botContext?.setSeatBot?.(viewer, bot);
-  }, [botContext, viewer, handoverBlocked, moves, doAction, actualLocale]);
+  }, [allowSeatHandover, botContext, viewer, handoverBlocked, moves, doAction, actualLocale]);
 
     const beginTargeting = React.useRef<(intent: Parameters<typeof interactionPrompt>[0], from: SpaceId, targets: SpaceId[], sources?: string[]) => void>(() => {});
   beginTargeting.current = (intent, from, targets, sources = []) => {
@@ -1241,7 +1310,7 @@ export const useBoardModel = ({
   // A decision that prints its own "decline" option (13.4.2's aid search, most
   // pending windows) must not also get the generic one: the panel would show
   // two identical 拒绝 buttons whose only difference is the option id.
-  const canDecline = canDecide && pending !== null && !pendingDeclinesItself(pending) && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
+  const canDecline = canDecide && pending !== null && !pendingDeclinesItself(pending) && !MANDATORY_PENDING_KINDS.has(pending.kind) && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
 
   // Only the rungs `WarState.status` actually holds; `shift`, `initiative` and
   // `demobilization` are printed steps the engine resolves inside the alliance
@@ -1373,7 +1442,7 @@ export const useBoardModel = ({
   );
   const deployLimit = viewer !== null ? deployReserveLimit(G, viewer, war) : 0;
   const deployRoom = selected !== null
-    ? Math.max(0, (SPACES[selected]?.home === "OT" ? 2 : SPACES[selected]?.region === "europe" ? 3 : 2) - (selectedState ? landUnitsIn(G, selected).filter((u) => isArmyKind(u.kind)).length : 0))
+    ? Math.max(0, landStackingLimit(selected) - (selectedState ? landUnitsIn(G, selected).filter((u) => isArmyKind(u.kind)).length : 0))
     : 0;
   const canDeployHere = Boolean(
     viewer !== null && me !== null && selected !== null && selectedState &&
@@ -1467,6 +1536,10 @@ export const useBoardModel = ({
   // cannot hide them. HandPanel only shows a pointer.
   const choicesProps = {
     viewer, me, locale: actualLocale, t, phase, canPhaseAct, hand, ngChoices,
+    // 9.1: the home-card faces are not offered while the table is still
+    // negotiating, so the inline fallback (a decision owns the board) cannot
+    // become a second, premature home-card entry.
+    homeReady: negotiationConcludedNow,
     doAction, moves,
   };
   const choiceKinds = handChoiceAvailability(choicesProps);
@@ -1478,7 +1551,7 @@ export const useBoardModel = ({
   // summary and the hand tray's pointer stay truthful.  Only the seat whose
   // diplomacy turn it is may choose (the printed order advances after each
   // pick), so the dock reports it only there.
-  const homeChoice = phase === "diplomacy" && choiceKinds.required && canPhaseAct;
+  const homeChoice = phase === "diplomacy" && choiceKinds.required && canPhaseAct && negotiationConcludedNow;
   const goalChoice = phase === "end" && choiceKinds.required;
   // Choosing the card (or leaving the phase) closes the dialog; the state only
   // ever means "the reader asked to see the choice".
@@ -1489,6 +1562,12 @@ export const useBoardModel = ({
   // there is something to press — not only when a decision is pending.
   const dockVisible = pending !== null || battle !== null || G.result !== null ||
     targetingHint !== null || dockChoices || phaseActions.length > 0;
+  // A088 / UK-3: a printed free-CP grant is still this impulse's budget even
+  // though the wallet (`cpBudgetFor`) reads 0.  The dock says so, and the
+  // impulse stays open until the seat spends the grant or hands it over.
+  const freeGrantTotal = viewer === null
+    ? 0
+    : freeGrantCp(G, viewer, "freeColonialCp") + freeGrantCp(G, viewer, "freeOperationCp") + freeGrantCp(G, viewer, "freeIndianCp");
   const dockSummary = pending !== null
     ? `${t.pendingFor}: ${t.seats[pending.power]}`
     : battle !== null
@@ -1502,23 +1581,35 @@ export const useBoardModel = ({
             // this reads as the step still owed, not as a dialog covering the
             // table.
             ? bi(actualLocale, "Home card not chosen yet", "尚未选择本土牌")
-            : choiceKinds.required && goalChoice
-              ? bi(actualLocale, "Required card choice", "需要选择卡牌")
-              : choiceKinds.optional
-                // An optional action must not read as a blocker.
-                ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
-                : canAct
-                  ? bi(actualLocale, "Your impulse", "你的行动轮")
-                  : bi(actualLocale, "Waiting", "等待");
-  const handChoicesHint = homeChoice
+            : phase === "diplomacy" && homeCardChoicePending && !negotiationConcludedNow
+              // 9.1: the home card is not refused to the seat, it is simply
+              // not its step yet — the whole table is still negotiating.
+              ? bi(actualLocale, "Negotiations in progress", "谈判进行中")
+              : choiceKinds.required && goalChoice
+                ? bi(actualLocale, "Required card choice", "需要选择卡牌")
+                : choiceKinds.optional
+                  // An optional action must not read as a blocker.
+                  ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
+                  : canAct
+                    ? freeGrantTotal > 0
+                      ? bi(actualLocale,
+                        `Your impulse — ${freeGrantTotal} event CP still to spend`,
+                        `你的行动轮——还有 ${freeGrantTotal} 点事件赠予 CP 可花`)
+                      : bi(actualLocale, "Your impulse", "你的行动轮")
+                    : bi(actualLocale, "Waiting", "等待");
+  const handChoicesHint = phase === "diplomacy" && homeCardChoicePending && !negotiationConcludedNow
     ? bi(actualLocale,
-      "Negotiate first (11.0/11.1), then open the home-card choice from the Orders dock.",
-      "先进行谈判（11.0/11.1），完成后从指令区的按钮打开本土牌选择。")
-    : goalChoice
-      ? bi(actualLocale, "The National Goal choice is in the dialog over the board.", "国家目标选择在覆盖面板的对话框中。")
-      : choiceKinds.optional
-        ? bi(actualLocale, "An optional random discard for +1 stability is at the top of the Orders actions.", "可选随机弃牌换 +1 稳定位于指令面板行动页顶部。")
-        : null;
+      "Finish negotiating first: every seat must press \"Finish negotiating\", then the home-card choice opens.",
+      "先结束谈判：所有席位都点击“结束谈判”后，才会开放本土牌选择。")
+    : homeChoice
+      ? bi(actualLocale,
+        "Negotiations are over — open the home-card choice from the Orders dock or the Deals page.",
+        "谈判已结束——从指令区按钮或谈判桌打开本土牌选择。")
+      : goalChoice
+        ? bi(actualLocale, "The National Goal choice is in the dialog over the board.", "国家目标选择在覆盖面板的对话框中。")
+        : choiceKinds.optional
+          ? bi(actualLocale, "An optional random discard for +1 stability is at the top of the Orders actions.", "可选随机弃牌换 +1 稳定位于指令面板行动页顶部。")
+          : null;
   const mapHint = pendingSpaceTargets.length > 0
     ? bi(actualLocale, "Click a highlighted space to answer the pending decision.", "点击高亮空间以完成待决事项。")
     : battleFrom !== null

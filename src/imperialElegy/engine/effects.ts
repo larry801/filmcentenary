@@ -45,7 +45,9 @@ import {
   minorHasLoc,
   minorAlliesOf,
   minorUpkeepPower,
+  navalUnitsIn,
   PAPAL_STATES_SPACE,
+  PORT_NAVAL_LIMIT,
   SETUP_PLACEMENT_FLAG,
   efDestinationAllowed,
   isArmyKind,
@@ -57,6 +59,7 @@ import {
   recomputeTracks,
   refreshPowerProjection,
   setSpaceControl,
+  spendCpFor,
   unitById,
   unitsOfPower,
   BISMARCK_HOME_CARD,
@@ -2749,6 +2752,75 @@ const resolveCardChain = (
   }
 };
 
+/** The two ship types UK-3 Sun Never Sets may build for free. */
+type SunNeverSetsFleet = "squadron" | "dreadnought";
+
+/**
+ * UK-3 Sun Never Sets: the printed free fleet must satisfy 12.4's placement
+ * rules.  Prefer London, then the first other legal controlled territorial
+ * home key on the main map with a free port slot.
+ */
+const sunNeverSetsPort = (G: ImperialElegyState, power: Power): SpaceId | null => {
+  const candidates = Object.keys(SPACES).filter((id) => {
+    const def = SPACES[id];
+    const state = G.spaces[id];
+    if (!state || def.submap !== "main") return false;
+    if (!isHomeSpace(G, id, power) || !ownsKey(G, id, power)) return false;
+    if (effectiveKeyType(G, id) !== "territorial") return false;
+    if ((def.ports?.length ?? 0) === 0) return false;
+    return navalUnitsIn(G, id).length < PORT_NAVAL_LIMIT;
+  });
+  if (candidates.includes("london")) return "london";
+  candidates.sort();
+  return candidates[0] ?? null;
+};
+
+/** The ship types the UK can actually add with this card right now. */
+const sunNeverSetsFleetKinds = (G: ImperialElegyState, power: Power): SunNeverSetsFleet[] => {
+  if (sunNeverSetsPort(G, power) === null) return [];
+  const out: SunNeverSetsFleet[] = [];
+  if (hasCounterFor(G, power, "squadron")) out.push("squadron");
+  const dreadnoughtUnlocked = G.persistent.dreadnoughts === true || G.powers[power].flags.navalLimit;
+  if (dreadnoughtUnlocked && hasCounterFor(G, power, "dreadnought")) out.push("dreadnought");
+  return out;
+};
+
+/** Place the free UK-3 ship and log it like a constructed fleet. */
+const placeSunNeverSetsFleet = (
+  G: ImperialElegyState,
+  power: Power,
+  kind: SunNeverSetsFleet,
+): boolean => {
+  const port = sunNeverSetsPort(G, power);
+  if (port === null || !hasCounterFor(G, power, kind)) return false;
+  placeUnit(G, power, kind, port, 2);
+  refreshPowerProjection(G);
+  log(G, power, "fleetBuilt", {space: port, kind});
+  return true;
+};
+
+/** UK-3 India option: stable marker, Indian Fort, and the 2 CP Indian grant. */
+const applySunNeverSetsIndia = (G: ImperialElegyState): void => {
+  G.powers.UK.indiaStable = G.powers.UK.indiaIndependent === true ? false : true;
+  placeIndianFort(G, "india");
+  G.powers.UK.flags.freeIndianCp = 2;
+};
+
+/**
+ * H-FR-5 The City of Light: roll the die, apply the purchased `-drm`, and grant
+ * the point when the modified result is less than or equal to the current turn
+ * ("if the result is less than or equal to the current turn").  The roll is
+ * clamped to 1 so a fully discounted die cannot score below the printed scale.
+ */
+const rollCityOfLight = (G: ImperialElegyState, ctx: Ctx, drm: number): boolean => {
+  const raw = die(ctx, 6);
+  const total = Math.max(1, Math.min(6, raw - drm));
+  const gained = total <= G.turn;
+  if (gained) G.powers.FR.cityOfLight = Math.min(6, (G.powers.FR.cityOfLight ?? 0) + 1);
+  log(G, "FR", "cityOfLightRoll", {roll: raw, drm, total, gained, points: G.powers.FR.cityOfLight ?? 0});
+  return gained;
+};
+
 const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: string, args: Record<string, unknown> = {}, resume: Effect[]): boolean => {
   switch (handler) {
     case "colonialConflict": {
@@ -3791,17 +3863,49 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     case "sunNeverSets": {
       // The +1 stability is the card's declared `stability` effect already
       // applied by `resolveEffects`; repeating it here granted +2.
-      // 33.2.2: once India is independent the marker can no longer be flipped;
-      // force the unstable side rather than trusting the stored value.
-      G.powers.UK.indiaStable = G.powers.UK.indiaIndependent === true ? false : true;
-      placeUnit(G, "UK", "squadron", "london", 2);
-      G.powers.UK.flags.freeColonialCp = 2;
-      // 33.2.3: the card's second option places the Indian Fort in India (a
-      // level-1 marker, or an upgrade to level 2).  The chosen-option split is
-      // still the existing simplification; the fort counter itself is created
-      // here so 20.2's exemption has a live create path.
-      placeIndianFort(G, "india");
-      return true;
+      //
+      // The printed card is a choice between its two halves:
+      //   naval — build 1 squadron or dreadnought, then 2 CP on EF,
+      //           pacification and/or naval movement;
+      //   india — flip the Indian Stability marker, spend up to 2 CP on Indian
+      //           army steps or an EF in India/Bengal, and place/upgrade the
+      //           Indian Fort.
+      // The old handler resolved *both* halves at once (and always placed a
+      // London squadron), so the UK never got to choose.
+      const kinds = sunNeverSetsFleetKinds(G, "UK");
+      const options: PendingOption[] = [];
+      if (kinds.length > 0) {
+        options.push(option(
+          "naval",
+          "Build 1 naval squadron or dreadnought and spend 2 CP on expeditionary force, pacification and/or naval movement",
+          undefined,
+          false,
+          "建造 1 个分舰队/无畏舰，并花 2 CP 于远征军、绥靖或海军移动",
+        ));
+      }
+      options.push(option(
+        "india",
+        "Flip the Indian Stability marker, spend up to 2 CP on Indian army steps or an EF in India/Bengal, and place/upgrade the Indian Fort",
+        undefined,
+        false,
+        "将印度稳定翻到稳定面，花至多 2 CP 在印度/孟加拉建造印度军团或远征军，并放置/升级印度要塞",
+      ));
+      if (options.length === 1) {
+        // No legal free fleet (no port slot or counter): the India half is the
+        // only resolvable printed option, so do not make the seat click once.
+        applySunNeverSetsIndia(G);
+        return true;
+      }
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        actor,
+        "Sun Never Sets: choose the naval build or the India option",
+        options,
+        {resume, special: handler, stage: "mode", required: true},
+        undefined,
+        "日不落：选择海军建造或印度选项",
+      ));
+      return false;
     }
     case "balanceOfPower": {
       // Option B of the card: "Playable as an event to gain 1 stability.  Draw
@@ -3817,8 +3921,40 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // The +1 stability is the card's declared `stability` effect already
       // applied by `resolveEffects`; repeating it here granted +2.
       G.cpRemaining += 3;
-      if (die(ctx, 6) <= G.turn) G.powers.FR.cityOfLight = Math.min(6, (G.powers.FR.cityOfLight ?? 0) + 1);
-      return true;
+      // "…and 3 CP to spend.  Roll a die; if the result is less than or equal
+      // to the current turn gain 1 City of Light point.  Before rolling you may
+      // forgo X CP to apply a -X DRM to the die roll."  The CP arrive first and
+      // the printed pre-roll offer must be put to the seat: rolling straight
+      // away silently denied the DRM.  X is the card's own 3 CP (and never more
+      // than the wallet holds); a lower roll is the better result here, so the
+      // DRM is a real purchase.
+      const spendable = Math.max(0, Math.min(3, G.cpRemaining));
+      if (spendable === 0) {
+        rollCityOfLight(G, ctx, 0);
+        return true;
+      }
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        actor,
+        "The City of Light: forgo CP before rolling?",
+        [
+          option("x0", "Roll with no DRM", undefined, false, "无修正掷骰"),
+          ...Array.from({length: spendable}, (_, index) => {
+            const amount = index + 1;
+            return option(
+              `x${amount}`,
+              `Spend ${amount} CP: -${amount} DRM`,
+              undefined,
+              false,
+              `耗用 ${amount} CP：掷骰 -${amount}`,
+            );
+          }),
+        ],
+        {special: "cityOfLightHome", stage: "drm", resume},
+        undefined,
+        "光之城：掷骰前是否放弃 CP 换取掷骰修正？",
+      ));
+      return false;
     }
     case "auxArmes": {
       addReserve(G, "FR", 2);
@@ -4536,6 +4672,20 @@ export const resolveCardDecision = (
     return;
   }
   const data: EffectContext = {...context, choice: optionId, targetSpace: optData.space as SpaceId | undefined, targetPower: optData.power as Power | undefined};
+  if (special === "cityOfLightHome" && context.stage === "drm") {
+    // H-FR-5: the seat's pre-roll purchase.  `xN` spends N of the card's CP for
+    // a -N DRM; `x0` rolls plainly.  The CP belong to this impulse's wallet, so
+    // they are charged through the normal spend path rather than by decrementing
+    // the raw counter.
+    const amount = optionId === "x0" ? 0 : Math.max(0, Number(optionId.slice(1)) || 0);
+    // The DRM is only bought when the CP are actually paid; a short wallet rolls
+    // plainly rather than granting the discount for free.
+    const paid = amount > 0 && spendCpFor(G, actor, amount) ? amount : 0;
+    rollCityOfLight(G, ctx, paid);
+    closeDecision(G, ctx);
+    resumeEffects(G, ctx, pending, data);
+    return;
+  }
   if (special === "auxArmes" && context.stage === "retrieve") {
     const separator = optionId.indexOf(":");
     const cardId = (optData.card as CardId | undefined) ??
@@ -4551,6 +4701,48 @@ export const resolveCardDecision = (
     closeDecision(G, ctx);
     resumeEffects(G, ctx, pending, data);
     return;
+  }
+  if (special === "sunNeverSets") {
+    const stage = String(context.stage ?? "mode");
+    if (stage === "mode" && optionId === "naval") {
+      const kinds = sunNeverSetsFleetKinds(G, actor);
+      if (kinds.length > 1) {
+        // "Build 1 naval squadron or Dreadnought": both counters and a legal
+        // port are available, so the printed ship type is the player's choice.
+        openDecision(G, ctx, decision(
+          "eventChoice",
+          actor,
+          "Sun Never Sets: build a squadron or a dreadnought",
+          [
+            option("squadron", "Build a squadron", undefined, false, "建造 1 个分舰队"),
+            option("dreadnought", "Build a dreadnought", undefined, false, "建造 1 艘无畏舰"),
+          ],
+          {resume: context.resume, special, stage: "fleet", required: true},
+          undefined,
+          "日不落：建造分舰队还是无畏舰",
+        ));
+        return;
+      }
+      if (kinds.length === 1) placeSunNeverSetsFleet(G, actor, kinds[0]);
+      G.powers[actor].flags.freeOperationCp = 2;
+      closeDecision(G, ctx);
+      resumeEffects(G, ctx, pending, data);
+      return;
+    }
+    if (stage === "mode" && optionId === "india") {
+      applySunNeverSetsIndia(G);
+      closeDecision(G, ctx);
+      resumeEffects(G, ctx, pending, data);
+      return;
+    }
+    if (stage === "fleet" && (optionId === "squadron" || optionId === "dreadnought")) {
+      const kind = optionId as SunNeverSetsFleet;
+      if (sunNeverSetsFleetKinds(G, actor).includes(kind)) placeSunNeverSetsFleet(G, actor, kind);
+      G.powers[actor].flags.freeOperationCp = 2;
+      closeDecision(G, ctx);
+      resumeEffects(G, ctx, pending, data);
+      return;
+    }
   }
   if (special === "germanGeneralStaff") {
     const stage = String(context.stage ?? "mode");

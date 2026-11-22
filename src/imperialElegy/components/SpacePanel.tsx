@@ -310,7 +310,7 @@ const ActionsHeading = ({G, selected, locale, t, testIdPrefix = "ie-"}: Pick<Spa
 
 export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
   const {
-    G, selected, viewer, locale, t, canAct, onOpenReference,
+    G, selected, viewer, me, locale, t, canAct, onOpenReference,
     rows: allRows, cpRemaining,
     polishReserve, setPolishReserve, selectedUnitDef, setSelectedUnit,
     battleFrom, setBattleFrom, navalFrom, setNavalFrom,
@@ -318,6 +318,12 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
     showUnavailable: liveShowUnavailable, setShowUnavailable: setLiveShowUnavailable,
   } = props;
   const rows = rowFilter === undefined ? allRows : allRows.filter(rowFilter);
+  // A088 / UK-3: these free-CP grants are part of this impulse's budget without
+  // appearing in `cpRemaining`, so the foot says so — otherwise a seat that just
+  // played Sun Never Sets reads "CP left: 0" while its printed rows are enabled.
+  const freeGrants = me === null
+    ? 0
+    : Number(me.flags.freeColonialCp ?? 0) + Number(me.flags.freeOperationCp ?? 0) + Number(me.flags.freeIndianCp ?? 0);
 
   /**
    * The fold state is remembered per browser (`ie_show_unavailable`): a reader
@@ -511,7 +517,14 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
           grouped heads are gone. */}
       {canAct && (selectedUnitDef !== undefined || enabledRows.length > 0) && (
         <div className="ie-action-foot" data-testid={`${testIdPrefix}action-foot`}>
-          <span className="ie-action-cp-note">{bi(locale, `CP left this impulse: ${cpRemaining}`, `本行动轮剩余 CP：${cpRemaining}`)}</span>
+          <span className="ie-action-cp-note">
+            {bi(locale, `CP left this impulse: ${cpRemaining}`, `本行动轮剩余 CP：${cpRemaining}`)}
+            {freeGrants > 0
+              ? bi(locale,
+                ` · plus ${freeGrants} event CP for its printed actions`,
+                ` · 另有 ${freeGrants} 点事件赠予 CP（仅限对应行动）`)
+              : null}
+          </span>
           {selectedUnitDef !== undefined && selectedUnitDef.space === selected && (
             <span className="ie-action-selected" data-testid={`${testIdPrefix}action-selected`}>
               <span>{bi(locale, "Selected:", "已选：")}</span>

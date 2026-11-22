@@ -13,10 +13,12 @@
  * the engine would refuse.
  */
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
+// Engine refusal reasons are English state; this is the shared display table.
+import {engineReasonText} from "./reasonText";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
-  effectiveKeyType, efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower,
-  landUnitsIn, ownsKey,
+  efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower,
+  isTerritorialKeyForPower, landUnitsIn, ownsKey,
 } from "../engine/rules";
 import {
   diplomacyPlacementProblem,
@@ -38,6 +40,7 @@ import {
   canRecruitIn,
   isCwArmySpace,
   minorBuildDecision,
+  ottomanArmyTypeFor,
   pacificationCost,
 } from "../engine/characteristics";
 import {hasCounterFor} from "../engine/counters";
@@ -372,6 +375,7 @@ export interface SpaceActionsInput {
 
 const bi = (locale: "en" | "zh_CN", en: string, zh: string): string => (locale === "zh_CN" ? zh : en);
 
+
 /** Short reason builders, shared with the tests. */
 export const REASON = {
   cp: (locale: "en" | "zh_CN", n: number) => bi(locale, `Needs ${n} CP in this impulse.`, `本行动轮需要 ${n} CP。`),
@@ -385,19 +389,10 @@ const recruitReason = (locale: "en" | "zh_CN", decision: RecruitDecision): strin
     ? bi(locale, "Not allowed here.", "此处不允许。")
     : decision.reasons.join(" · ");
 
-const recruitReasonText = (locale: "en" | "zh_CN", reason: string): string => {
-  // The engine speaks English; the UI only translates its own best reason.
-  if (locale !== "zh_CN") return reason;
-  const table: Record<string, string> = {
-    "Not a home space": "不是本国核心领土",
-    "Does not own the key": "未控制此空间的关键区",
-    "Stacking limit reached": "已达堆叠上限",
-    "Reserve limit 0 reached": "预备军已满",
-    "Armies may not be built this impulse": "本轮不能建造军团",
-    "An elite corps needs a friendly army to attach to": "精锐军团需有友方军团可编入",
-  };
-  return reason.split(" · ").map((part) => table[part] ?? part).join(" · ");
-};
+const recruitReasonText = (locale: "en" | "zh_CN", reason: string): string =>
+  // The engine speaks English; `reasonText.ts` is the shared translation table
+  // (manpower ceilings, AU nationalities, the stacking gates, …).
+  engineReasonText(locale, reason);
 
 /**
  * Every action row for the selected space, grouped.  Rows that are structurally
@@ -418,12 +413,25 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   const commandOwner = gwAllyImpulseFor(G, viewer) ?? viewer;
   const canSpend = (cost: number): boolean => canAct && input.cp >= cost;
   const spendReason = (cost: number): string => !canAct ? REASON.notYourTurn(locale) : REASON.cp(locale, cost);
-  // A088/UK-3: the free colonial grant pays for naval movement, fleet builds,
-  // expeditionary forces and pacification before the ordinary CP wallet, so a
-  // row that spends it must not be disabled for want of ordinary CP.
+  // A088/UK-3: the free CP grants pay for their printed actions before the
+  // ordinary wallet, so a row that spends one must not be disabled for want of
+  // ordinary CP.  The three grants have different scopes:
+  //   freeColonialCp — naval movement, construct fleet, EF, pacification (A088)
+  //   freeOperationCp — EF, pacification, naval movement (UK-3 naval option)
+  //   freeIndianCp — Indian army steps or an EF in India/Bengal (UK-3 India)
   const freeColonial = Number(me.flags.freeColonialCp ?? 0);
+  const freeOperation = Number(me.flags.freeOperationCp ?? 0);
+  const freeIndian = Number(me.flags.freeIndianCp ?? 0);
+  const indianSpace = space === "india" || space === "bengal";
+  const operationBudget = freeColonial + freeOperation;
   const canSpendColonial = (cost: number): boolean =>
+    canAct && operationBudget + (indianSpace ? freeIndian : 0) + input.cp >= cost;
+  const canSpendOperation = (cost: number): boolean =>
+    canAct && operationBudget + input.cp >= cost;
+  const canSpendFleet = (cost: number): boolean =>
     canAct && freeColonial + input.cp >= cost;
+  const canSpendIndianArmy = (cost: number): boolean =>
+    canAct && freeIndian + input.cp >= cost;
   const colonialSpendReason = (cost: number): string =>
     !canAct ? REASON.notYourTurn(locale) : spendReason(cost);
   const selected = selectedUnit ? G.units[selectedUnit] : undefined;
@@ -436,9 +444,9 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   const spaceDef = SPACES[space];
   const gwAllowed = (kind: GwActionKind): {ok: boolean; reason?: string} => gwActionAllowance(G, viewer, kind);
 
-  const push = (row: Omit<SpaceAction, "label" | "cost"> & {cost?: number}): void => {
+  const push = (row: Omit<SpaceAction, "label" | "cost"> & {cost?: number; label?: string}): void => {
     const cost = row.cost ?? ACTION_COSTS[row.id];
-    const label = actionCostLabel(row.id, locale);
+    const label = row.label ?? actionCostLabel(row.id, locale);
     rows.push({
       ...row,
       cost,
@@ -453,13 +461,23 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   // The Great War ladder has its own actions; the campaign's recruitment stays
   // available (27.5's draft is what replaces it only where the GW prints it).
   {
-    const army = canRecruitIn(G, viewer, space, "army");
+    // 33.6: the build is Turkish or Arab by the key it happens in, and the two
+    // pools have separate ceilings.  `moves.recruit` infers the same type from
+    // the space, so the panel must ask `canRecruitIn` the same question or it
+    // reports the Turkish rule in an Arab key and hides a legal Arab build.
+    const ottoman = viewer === "OT" ? ottomanArmyTypeFor(space) : undefined;
+    const army = canRecruitIn(G, viewer, space, "army", {ottoman});
     const armyCost = ACTION_COSTS.recruitArmy;
-    const armyEnabled = army.allowed && canSpend(armyCost);
+    // 33.2: a UK army built in India/Bengal is an Indian army, so the Sun
+    // Never Sets India grant can pay for that step.
+    const armyEnabled = army.allowed && (viewer === "UK" && indianSpace
+      ? canSpendIndianArmy(armyCost)
+      : canSpend(armyCost));
     push({
       id: "recruitArmy", group: "recruit", enabled: armyEnabled,
+      label: ottoman === "arab" ? bi(locale, "Recruit Arab army", "征募阿拉伯军团") : bi(locale, "Recruit army", "征募军团"),
       reason: armyEnabled ? undefined : !army.allowed ? recruitReasonText(locale, recruitReason(locale, army)) : spendReason(armyCost),
-      run: () => doAction(() => moves.recruit(space, "army", 1)),
+      run: () => doAction(() => moves.recruit(space, "army", 1, ottoman === undefined ? {} : {ottoman})),
     });
     if (viewer === "UK") {
       const cw = canRecruitIn(G, viewer, space, "army", {cw: true});
@@ -563,18 +581,18 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // 12.4: "Newly built fleets must be placed in a controlled, territorial
     // home key on the main map with a port."  A colonial home key on a submap
     // (Canada, India, South Africa, Australia) has a port but is not eligible.
-    const fleetHomeReason = homeReason ?? (SPACES[space]?.submap !== "main" || effectiveKeyType(G, space) !== "territorial"
+    const fleetHomeReason = homeReason ?? (SPACES[space]?.submap !== "main" || !isTerritorialKeyForPower(G, space, viewer)
       ? bi(locale, "New fleets need a territorial home key on the main map.", "新建舰队需位于主地图的本国领土关键区。")
       : null);
     if (hasPort) {
-      const sqEnabled = fleetHomeReason === null && canSpendColonial(ACTION_COSTS.buildSquadron);
+      const sqEnabled = fleetHomeReason === null && canSpendFleet(ACTION_COSTS.buildSquadron);
       push({
         id: "buildSquadron", group: "build", enabled: sqEnabled,
         reason: sqEnabled ? undefined : fleetHomeReason ?? colonialSpendReason(ACTION_COSTS.buildSquadron),
         run: () => doAction(() => moves.constructFleet(space, "squadron", false)),
       });
       const dreadnoughtLocked = G.persistent.dreadnoughts !== true && !me.flags.navalLimit;
-      const dnEnabled = fleetHomeReason === null && !dreadnoughtLocked && canSpendColonial(ACTION_COSTS.buildDreadnought);
+      const dnEnabled = fleetHomeReason === null && !dreadnoughtLocked && canSpendFleet(ACTION_COSTS.buildDreadnought);
       push({
         id: "buildDreadnought", group: "build", enabled: dnEnabled,
         reason: dnEnabled ? undefined
@@ -586,7 +604,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     void homeKey;
     // 12.1's fort action: 1–2 CP for a new fort (its level is the CP spent), a
     // 1 CP upgrade of your own fort (never to level 3), and the printed
-    // placement — a European space you control or occupy with a land unit.
+    // placement — a main-map space you control or occupy with a land unit.
     // Every row reads the same gate `buildFort` enforces.
     const existingFort = G.spaces[space]?.fort ?? null;
     const fortMobile = landUnitsIn(G, space).some((unit) => unit.owner === viewer);
@@ -594,7 +612,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // A space id the map does not know has no region: treat it as a plain
     // refusal rather than crashing the whole Orders list.
     const fortPlaceReason = spaceDef === undefined ? bi(locale, "Fortresses can only be built on the map.", "只能在地图上的空间建造要塞。")
-      : spaceDef.region !== "europe" ? bi(locale, "Forts can only be built in Europe.", "要塞只能在欧洲建造。")
+      : spaceDef.submap !== "main" ? bi(locale, "Forts can only be built on the main map.", "要塞只能在主地图建造。")
         : !fortPlaceable ? bi(locale, "A new fort needs a space you control or occupy with a land unit.", "新建要塞需位于你控制、或驻有你陆军单位的空间。")
           : null;
     const fortOwn = existingFort !== null && existingFort.power === viewer;
@@ -602,7 +620,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     // printed counter and is upgraded by its home card ("place/upgrade the
     // Indian fort"), so it must not offer an action `buildFort` would refuse.
     const indianFortHere = existingFort?.indian === true;
-    const fortActionOnMap = spaceDef !== undefined && spaceDef.region === "europe" && !indianFortHere;
+    const fortActionOnMap = spaceDef !== undefined && spaceDef.submap === "main" && !indianFortHere;
     const fortUpgradable = fortOwn && existingFort.level < 2 && fortActionOnMap;
     const fortBuildReason = fortPlaceReason
       ?? (existingFort !== null
@@ -637,7 +655,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
           : indianFortHere
             ? bi(locale, "The Indian Fort is upgraded by its home-card event, not by this action.", "印度要塞由其本土牌事件升级，不走建造要塞行动。")
             : !fortActionOnMap
-              ? bi(locale, "Forts can only be built in Europe.", "要塞只能在欧洲建造。")
+              ? bi(locale, "Forts can only be built on the main map.", "要塞只能在主地图建造。")
               : fortUpgradable
                 ? spendReason(ACTION_COSTS.upgradeFort)
                 : bi(locale, "A fort cannot be upgraded past level 2.", "要塞最高只能到 2 级。"),
@@ -656,7 +674,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       run: () => doAction(() => moves.buildEf(space)),
     });
     if (selectedUnit !== null && selected?.kind === "expeditionary" && selected.owner === viewer && selected.space !== space) {
-      const moveEnabled = efReason === null && canSpend(ACTION_COSTS.moveEf);
+      const moveEnabled = efReason === null && canSpendOperation(ACTION_COSTS.moveEf);
       push({
         id: "moveEf", group: "build", enabled: moveEnabled,
         reason: moveEnabled ? undefined : efReason ?? spendReason(ACTION_COSTS.moveEf),
@@ -733,7 +751,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     const pacifyReason = pacifyProblem === null ? null : pacificationText(pacifyProblem, locale);
     const pacifyEnabled = pacifyReason === null
       && phaseActionProblem(G, "pacify") === null
-      && canSpendColonial(pacifyCost);
+      && canSpendOperation(pacifyCost);
     push({
       // 12.1's pacification cost is not flat: GE pays 2 CP until it unifies and
       // AU always pays 2 CP, so the row quotes the same figure the move charges.

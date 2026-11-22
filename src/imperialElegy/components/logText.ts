@@ -619,6 +619,29 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `failed to grant ${nationality} citizenship (rolled ${roll}).`, `未能授予${nationality}完整公民权（掷出 ${roll}）。`);
   },
 
+  cityOfLightRoll: (entry, locale) => {
+    const roll = num(entry.args?.roll);
+    const drm = num(entry.args?.drm);
+    const total = num(entry.args?.total);
+    const points = num(entry.args?.points);
+    const modifierEn = drm > 0 ? ` -${drm} DRM = ${total}` : "";
+    const modifierZh = drm > 0 ? `，-${drm} 修正后 ${total}` : "";
+    if (bool(entry.args?.gained)) {
+      return withActor(
+        entry,
+        locale,
+        `rolled ${roll}${modifierEn} for The City of Light and gained a point (${points} points).`,
+        `为“光之城”掷出 ${roll}${modifierZh}，获得 1 点（共 ${points} 点）。`,
+      );
+    }
+    return withActor(
+      entry,
+      locale,
+      `rolled ${roll}${modifierEn} for The City of Light and gained no point.`,
+      `为“光之城”掷出 ${roll}${modifierZh}，未获得点数。`,
+    );
+  },
+
   polishRevoltRebels: (entry, locale) => {
     const spaces = str(entry.args?.spaces);
     return withActor(
@@ -1353,6 +1376,16 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `chose home card ${card}.`, `选择了本土牌 ${card}。`);
   },
 
+  homeCardRevealed: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    return withActor(
+      entry,
+      locale,
+      `revealed home card ${card} from its pile (34.2).`,
+      `从牌堆顶揭示了本土牌 ${card}（34.2）。`,
+    );
+  },
+
   metternichAlliance: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     return text(
@@ -1376,6 +1409,10 @@ const FORMATTERS: Record<string, Formatter> = {
 
   cardHidden: (entry, locale) =>
     withActor(entry, locale, `took a card back face down.`, `将一张手牌收回背面。`),
+
+  /** 9.1: the seat is done talking; the home-card step waits for the table. */
+  negotiationFinished: (entry, locale) =>
+    withActor(entry, locale, `finished negotiating.`, `结束了谈判。`),
 
   dealProposed: (entry, locale) => {
     const target = powerLabel(entry.args?.to, locale);

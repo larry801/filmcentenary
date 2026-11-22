@@ -61,6 +61,7 @@ const html = (
       setDealTake={() => undefined}
       dealPromises=""
       setDealPromises={() => undefined}
+      handCounts={{}}
       {...overrides}
     />,
   );
@@ -71,16 +72,46 @@ const formOf = (markup: string): string =>
   markup.slice(markup.indexOf('data-testid="ie-deals-form"'), markup.indexOf('data-testid="ie-deals-inbox"'));
 
 describe("11.1 the offer form", () => {
-  test("the counts are the reader's own give and receive", () => {
+  test("the form offers one direction at a time and a count", () => {
     const markup = html(diplomacy());
     expect(markup).toContain('data-testid="ie-deals-form"');
     expect(markup).toContain('data-testid="ie-deals-target"');
-    expect(markup).toContain('data-testid="ie-deals-give"');
-    expect(markup).toContain('data-testid="ie-deals-take"');
+    // A give/take switch, then a quantity dropdown — not two number fields.
+    expect(markup).toContain('data-testid="ie-deals-direction"');
+    expect(markup).toContain('data-testid="ie-deals-direction-give"');
+    expect(markup).toContain('data-testid="ie-deals-direction-take"');
+    expect(markup).toContain('data-testid="ie-deals-count"');
+    expect(markup).not.toContain('data-testid="ie-deals-give"');
+    expect(markup).not.toContain('data-testid="ie-deals-take"');
     expect(markup).toContain('data-testid="ie-deals-promises"');
-    // A count the reader cannot pay is refused with the engine's own reason.
-    expect(markup).toContain('data-testid="ie-deals-target"');
     expect(markup).not.toContain('data-testid="ie-deals-problem"');
+  });
+
+  test("the default deal gives cards, and the terms name one direction only", () => {
+    const markup = html(diplomacy());
+    expect(markup).toContain('data-testid="ie-deals-count"');
+    expect(markup).toContain('aria-pressed="true"');
+    const terms = markup.slice(markup.indexOf('data-testid="ie-deals-terms"'));
+    // GE gives one card to FR; the reverse direction is not printed.
+    expect(terms).toContain("德国向法国随机转交 1 张牌");
+    expect(terms).not.toContain("法国向德国随机转交");
+  });
+
+  test("choosing take flips the direction and the count is a dropdown of what the target holds", () => {
+    const G = diplomacy();
+    // In a real player view the opponent's hand is hidden, so the form reads
+    // the public count.  FR holds two dealable cards; the form is receiving.
+    G.powers.FR.hand = [];
+    const markup = html(G, {dealGive: 0, dealTake: 2, handCounts: {FR: 2}});
+    const form = formOf(markup);
+    expect(form).toContain('data-testid="ie-deals-direction-take"');
+    // Two options (1, 2), with the current count selected.
+    expect(form).toContain('data-testid="ie-deals-count"');
+    expect(form.match(/<option value="1"/g)).toHaveLength(1);
+    expect(form.match(/<option value="2"/g)).toHaveLength(1);
+    expect(form).toContain('<option value="2" selected=""');
+    expect(form).toContain("法国向德国随机转交 2 张牌");
+    expect(form).not.toContain("德国向法国随机转交");
   });
 
   test("the terms state plainly that every card is drawn at random", () => {
@@ -94,14 +125,21 @@ describe("11.1 the offer form", () => {
     expect(terms).toContain("本土牌不参与");
   });
 
-  test("the counts are clamped to what each side actually holds", () => {
+  test("the count dropdown never offers more than the giving side holds", () => {
     const G = diplomacy();
-    G.powers.FR.hand = [];
-    // Both inputs clamp to the live hand, so the form can never ask for more
-    // than the settlement could pay.  The reader's own hand still allows a give.
+    G.powers.GE.hand = ["IE-A018"];
     const markup = html(G);
-    expect(markup).toContain('data-testid="ie-deals-take" type="number" min="0" max="0"');
-    expect(markup).not.toContain('data-testid="ie-deals-problem"');
+    // GE can only give its one dealable card, so the dropdown has one entry.
+    const form = formOf(markup);
+    expect(form.match(/<option value="1"/g)).toHaveLength(1);
+    expect(form).not.toContain('<option value="2"');
+    expect(form).not.toContain('data-testid="ie-deals-problem"');
+
+    // With no cards to take, a stale take request falls back to a give rather
+    // than leaving the form on an empty count.
+    G.powers.FR.hand = [];
+    const fallback = html(G, {dealGive: 0, dealTake: 1});
+    expect(fallback).toContain("德国向法国随机转交 1 张牌");
   });
 
   test("outside the diplomacy phase the send button is disabled", () => {
@@ -240,5 +278,44 @@ describe("6.0/9.1 the home-card step follows the table", () => {
       .not.toContain('data-testid="ie-deals-home-step"');
     expect(html(diplomacy(), {homeChoice: true}))
       .not.toContain('data-testid="ie-deals-home-step"');
+  });
+});
+
+describe("9.1 negotiation finishes before any home card is chosen", () => {
+  const negotiating = (): ImperialElegyState => {
+    const G = diplomacy();
+    for (const power of ["GE", "UK", "FR", "AU", "RU", "OT"] as const) {
+      G.powers[power].flags.negotiationDone = false;
+    }
+    return G;
+  };
+
+  test("while the table is negotiating the finish step replaces the home step", () => {
+    const G = negotiating();
+    const markup = html(G, {homeChoice: false, onOpenHomeChoice: () => undefined});
+    expect(markup).toContain('data-testid="ie-deals-negotiation-step"');
+    expect(markup).toContain('data-testid="ie-finish-negotiation-from-deals"');
+    expect(markup).toContain('data-testid="ie-deals-still-negotiating"');
+    expect(markup).not.toContain('data-testid="ie-deals-home-step"');
+  });
+
+  test("a seat that has finished waits for the rest of the table", () => {
+    const G = negotiating();
+    G.powers.GE.flags.negotiationDone = true;
+    const markup = html(G, {homeChoice: true, onOpenHomeChoice: () => undefined});
+    expect(markup).toContain('data-testid="ie-deals-negotiation-waiting"');
+    expect(markup).not.toContain('data-testid="ie-finish-negotiation-from-deals"');
+    expect(markup).toContain("英国");
+    expect(markup).not.toContain('data-testid="ie-deals-home-step"');
+  });
+
+  test("once every seat is done the home step replaces the finish step", () => {
+    const G = negotiating();
+    for (const power of ["GE", "UK", "FR", "AU", "RU", "OT"] as const) {
+      G.powers[power].flags.negotiationDone = true;
+    }
+    const markup = html(G, {homeChoice: true, onOpenHomeChoice: () => undefined});
+    expect(markup).toContain('data-testid="ie-deals-home-step"');
+    expect(markup).not.toContain('data-testid="ie-deals-negotiation-step"');
   });
 });

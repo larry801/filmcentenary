@@ -115,6 +115,15 @@ const autoplay = async (id: ScenarioId, stepBudget: number) => {
       continue;
     }
     if (G.phase === "diplomacy") {
+      // 9.1: every seat closes its negotiation segment before any home card is
+      // chosen; the home-card step waits for the whole table.
+      const negotiating = POWERS.find((candidate) => (
+        stateOf(candidate).powers[candidate].flags.negotiationDone === false
+      ));
+      if (negotiating !== undefined) {
+        await act(() => clients[POWERS.indexOf(negotiating)].moves.finishNegotiation());
+        continue;
+      }
       // The diplomacy phase walks `G.activePower`, which the scenario setup may
       // have moved past a seat whose home card it skips (1870), so read the
       // engine's cursor rather than the framework's `ctx.currentPlayer`.

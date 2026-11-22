@@ -607,6 +607,15 @@ test("a scenario match with no bot seats keeps the field empty and the difficult
   expect(G.botDifficulty).toBeUndefined();
 });
 
+test("a local match can carry a difficulty without a setupData bot list", () => {
+  // The solo/hotseat shell keeps its bot seats on the client, so it names only
+  // the difficulty; Rule 34.1's level must still reach the state (34.4.5's free
+  // redeployment reads it).
+  const G = setupImperialElegy(ctxOf(), {scenario: "campaign", botDifficulty: "hard"});
+  expect(G.bots).toEqual([]);
+  expect(G.botDifficulty).toBe("hard");
+});
+
 test("an unknown scenario token does not block an online match", () => {
   // A stale client or a hand-written fixture must still be able to open a match:
   // the unknown id reads as the campaign, exactly like an absent one.

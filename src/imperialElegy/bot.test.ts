@@ -42,10 +42,22 @@ test("11.1 the bot refuses an offer addressed to it instead of haggling", () => 
     nextId: 3,
   };
   expect(botDecision(G, ctx, "FR")).toEqual({move: "respondDeal", args: ["deal-1", false]});
-  // The proposing seat has nothing to answer and proceeds with diplomacy.
-  expect(botDecision(G, ctx, "GE").move).toBe("chooseHomeCard");
+  // The proposing seat has nothing to answer and proceeds with diplomacy; 34.2
+  // has a bot add a hidden home card to its pile rather than choose one.
+  expect(botDecision(G, ctx, "GE").move).toBe("pileHomeCard");
   // An unrelated seat never touches the table.
-  expect(botDecision(G, ctx, "RU").move).toBe("chooseHomeCard");
+  expect(botDecision(G, ctx, "RU").move).toBe("pileHomeCard");
+});
+
+test("9.1 a bot closes its negotiation segment before choosing a home card", () => {
+  const G = setupImperialElegy(ctx);
+  G.phase = "diplomacy";
+  G.activePower = "GE";
+  G.powers.GE.flags.negotiationDone = false;
+  expect(botDecision(G, ctx, "GE")).toEqual({move: "finishNegotiation"});
+  // Once the seat has finished talking, its home card is the next step.
+  G.powers.GE.flags.negotiationDone = true;
+  expect(botDecision(G, ctx, "GE").move).toBe("pileHomeCard");
 });
 
 test("botDecision does not throw in action phase", () => {

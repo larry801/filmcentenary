@@ -509,24 +509,53 @@ is, and, if they cannot agree, the attacker decides.”*
 - Aux Armes 在“两个关键区或两个国家”时置 `WarState.allowNeutralJoin`；
   新增 `joinWarAsNeutral` move 让中立国玩家自行为防守方参战（打出一张
   event 牌作战争预算，并按 8.2 远离进攻方，仍受 8.4 三人上限约束）。
-- UI：宣战块新增第二国选择、主要防守方选择与“禁止玩家盟友参战”复选框；
-  战争面板显示两项参战限制，并在 `allowNeutralJoin` 时为中立座位提供参战按钮。
+- UI：宣战块把第二目标放在第一目标旁边（玩家或小国皆可）、主要防守方选择与
+  “禁止玩家盟友参战”复选框；战争面板显示两项参战限制，并在
+  `allowNeutralJoin` 时为中立座位提供参战按钮。
 
 回归：`bismarckWar.test.ts`（13 个断言：双目标、主要防守方、禁止参战、
 禁止参战压制 13.4.2 求援、既有小国盟友仍可参战、第二目标校验等）、
 `homeWarDeclarations.test.ts`（19 个断言：Aux Armes 双目标、双关键区、
 中立国参战与无条款时拒绝）与
-`components/bismarckDeclarePanel.test.tsx`（6 个断言）。
+`components/warDeclarationPanel.test.tsx`（6 个断言）。
+
+**Fix (2026-11-22)：第二目标可以是非玩家国家。** 玩家复报“俾斯麦应该是可以
+选择 2 个 power 做目标”，且要求“标明 non player power 可能触发的盟友”。上一轮
+只允许“玩家 + 玩家”，第一目标是小国时 `declareWar` 直接拒绝第二目标：
+
+- `DeclareWarOptions.secondTarget` / `primary` 改为 `WarTarget`。第二目标可以是
+  玩家国家、非玩家国家，或两个非玩家国家；“小国 + 玩家”“小国 + 小国”都能
+  按 14.1 一次宣战。
+- 13.4 的顺序不变：先解决第一目标（13.4.1 盟友放弃/参战，或 13.4.2 求援），
+  其余目标作为 `WarState.coDefenderMinors` 随战争一起建立；只有玩家能当
+  `primary`（14.1 只把 primary 用于“占领首都即终战”），两个小国时省略该条款。
+- `warTargetKey` / `warTargetFromKey` 把目标编码成字符串，因此第二目标可以像
+  第二玩家一样跨过拿破仑遗产与 13.4.1/13.4.2 决策。
+- UI：`ie-war-second-power` 移到第一目标旁边，选项来自
+  `declarationSecondTargets`（同一套 13.5/13.4/卡面限制，并过滤掉“配对后没有
+  任何合法目标空间”的死选项）；`declarationObjectives` /
+  `declarationSecondObjectives` 接受第二目标，目标空间列表是二者合法空间的
+  并集（13.0 的“至多两个空间”），因此“A 国一个空间 + B 国一个空间”的配对
+  可以真正发出。
+- 新增 `ie-war-nonplayer-aid`：选择无盟友小国时列出 13.4.2 会依次询问的
+  玩家（外交标记持有者 → 13.4.3 表的第 1/2/3 选择，`(*)` 为掷骰比大小），
+  与 `beginSeekingAid` 读同一个 `seekingAidSlots`；俾斯麦禁止参战时改显示
+  “独自防守（15.4.2）”，已有玩家盟友的小国则标出该盟友（13.4.1）。
+
+回归：`declarationTargets.test.ts` 新增 6 项、`components/warDeclarationPanel.test.tsx`
+新增 4 项、`e2e/imperial-elegy-controls.spec.ts` 新增“小国 + 玩家”端到端用例。
 
 **建模边界（仍记录为近似）：**
 
-- 双目标声明目前只支持“第一目标为玩家”的路径；第一目标是 13.4 小国时仍走
-  原有的放弃/求援流程，不能同时再指定第二国。
+- 一次宣战最多两个目标（14.1 只允许第二国）；第二目标之外的 `coDefenders`
+  字段保留为单元素数组。
 - 规则书把主要防守方的首要决定权给两名防守玩家；本实现把最终结果作为
   `declareWar` 的 `primary` 参数记录（默认第一目标）。UI 的选择器由进攻方
   操作，等价于 14.1“协商不成由进攻方决定”的回退，未另开防守方协商对话。
 - 第二防守方作为 `defenderAllies` 参与战斗与条约分配，但其首都失守按 15.6
   的盟友击倒处理，而不是“主要防守方首都”立即终战。
+- 非玩家第二目标同样会触发 13.4.2 求援（13.4 适用于每一个被攻击的小国），
+  但求援对话按目标依次进行，因此在宣战界面只作提示，不逐个预演。
 
 ### 3.15 RU-9 的巴尔干结盟与三张牌的获胜稳定度 / RU-9 alliance and win stability
 
@@ -560,6 +589,31 @@ is, and, if they cannot agree, the attacker decides.”*
 结盟、不可结盟时跳过、多候选选择并保持行动轮、三张牌各 +1、白和不加、
 普通 CP 宣战只拿重大胜利的 +1）与 `components/logText.test.ts`
 （`warWinStability` 的中英文句子）。
+
+---
+
+### 3.16 H-FR-5 光之城缺少“放弃 X CP 换 -X DRM”的选择 / `IE-H-FR-5` never offered the pre-roll CP purchase
+
+卡面：*“Gain 1 stability and 3 CP to spend. Roll a die; if the result is less
+than or equal to the current turn gain 1 City of Light point. **Before rolling
+you may forgo X CP to apply a -X DRM to the die roll.**”*
+
+`cityOfLightHome` 处理器在同一句里既给了 3 CP 又立刻 `die(ctx, 6)` 掷骰，
+所以印刷的“掷前放弃 X CP”从未出现在桌面上：玩家无法用 CP 换取更好的结果。
+
+**Fix.** `effects.ts` 的 `cityOfLightHome` 先存入 3 CP，然后打开
+`eventChoice`（`special: "cityOfLightHome"`, `stage: "drm"`）：
+
+- 选项 `x0` = 不放弃 CP，按原样掷骰；
+- 选项 `x1…xN` = 放弃 N CP（N 上限为牌面 3，且不超过当前钱包），掷骰 -N；
+- 回答时经 `spendCpFor` 真实扣除钱包中的 CP（CP 链的“一动作”限制因此同样
+  生效），再由 `rollCityOfLight` 掷骰。修正后的结果被夹到 1–6，仍按
+  “≤ 当前回合数”判定是否 +1，点数上限 6 不变。
+- 新日志 `cityOfLightRoll`（中英文）记录原始骰、DRM、修正后点数与当前点数。
+
+回归：`frCityOfLightDrm.test.ts`（选项清单、CP 扣除、-X DRM 生效、无修正
+掷骰、点数上限 6、放弃决策走默认首项）；`components/logText.test.ts` 增加
+`cityOfLightRoll` 的双语样例。
 
 ---
 
@@ -775,9 +829,9 @@ H-RU-9 也补上了直接测试，因此不再有零信号牌。
 | --- | --- | --- | --- | --- | --- | --- |
 | `IE-H-GE-1` | Otto von Bismarck | event | 3 | `stability` + `bismarckWar`→`declareWar` | choice | yes |
 | `IE-H-GE-2` | German General Staff | event | 3 | `germanGeneralStaff` | choice | yes |
-| `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` | auto | yes |
+| `IE-H-UK-3` | Sun Never Sets | event | 3 | `stability` + `sunNeverSets` (naval/India choice) | choice | yes |
 | `IE-H-UK-4` | Balance of Power | event | 3 | `balanceOfPower` | auto | handler |
-| `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | auto | yes |
+| `IE-H-FR-5` | The City of Light | event | 3 | `stability` + `cityOfLightHome` | choice | yes |
 | `IE-H-FR-6` | Aux Armes, Citoyens! | event | 3 | `auxArmes` | choice | yes |
 | `IE-H-AU-7` | Habsburg Dynasty | event | 3 | `habsburgDynasty` | choice | yes |
 | `IE-H-AU-8` | Kaiserreich | event | 3 | `kaiserreich` | auto | yes |

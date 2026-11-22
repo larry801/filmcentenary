@@ -12,6 +12,7 @@ import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {constructFleet} from "./moves";
+import {hasOtAutonomyLandLoc} from "./engine/rules";
 
 const makeCtx = (power: Power, cp = 20): Ctx => ({
   playerID: String(POWERS.indexOf(power)),
@@ -45,6 +46,23 @@ describe("12.4 fleet construction is main-map territorial home keys only", () =>
       expect(constructFleet(G, makeCtx("UK"), space, "squadron")).toBe(INVALID_MOVE);
       expect(G.cpRemaining).toBe(20);
     }
+  });
+
+  test("Tripoli needs Local Autonomy's land LoC before it counts as a territorial home key", () => {
+    const G = game("OT", 20);
+    // At campaign setup Egypt is an independent minor, so Tripoli/Tunisia only
+    // connect to each other and neither counts as a key yet (33.6).
+    expect(hasOtAutonomyLandLoc(G, "tripoli")).toBe(false);
+    expect(constructFleet(G, makeCtx("OT"), "tripoli", "squadron")).toBe(INVALID_MOVE);
+    // A land route to another Ottoman key makes them territorial keys, and the
+    // printed fleet action then applies.
+    G.spaces.egypt.control = "OT";
+    // Benghazi-Egypt is a sea edge; the overland route crosses the Great Sand
+    // Sea, which must therefore be Ottoman-controlled too.
+    G.spaces["great-sand-sea"].control = "OT";
+    expect(hasOtAutonomyLandLoc(G, "tripoli")).toBe(true);
+    expect(constructFleet(G, makeCtx("OT"), "tripoli", "squadron")).toBeUndefined();
+    expect(G.cpRemaining).toBe(18);
   });
 
   test("a non-port home key is still refused", () => {

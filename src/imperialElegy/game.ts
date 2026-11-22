@@ -19,6 +19,8 @@ import {
   chooseAllianceShift,
   chooseGoal,
   chooseHomeCard,
+  pileHomeCard,
+  revealHomeCard,
   chooseLossMove,
   chooseSupportMove,
   chooseWarAim,
@@ -35,6 +37,7 @@ import {
   endGwPlanningMove,
   endPhaseTurn,
   endTurn,
+  finishNegotiation,
   finishPrep,
   gwDeploy,
   gwDraft,
@@ -111,7 +114,10 @@ const ALL_MOVES = {
   playResponseCard,
   pass,
   finishPrep,
+  finishNegotiation,
   chooseHomeCard,
+  pileHomeCard,
+  revealHomeCard,
   endDiplomacy,
   showCard,
   hideCard,
@@ -262,7 +268,12 @@ const prepBegin = (G: ImperialElegyState, ctx: Ctx): void => {
 const diplomacyBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   G.phase = "diplomacy";
   G.activePower = "GE";
-  for (const p of POWERS) G.powers[p].flags.homeChosen = false;
+  for (const p of POWERS) {
+    G.powers[p].flags.homeChosen = false;
+    // 9.1: negotiation is the first segment of the phase, and the home-card
+    // step opens only after every surviving seat has finished talking.
+    G.powers[p].flags.negotiationDone = false;
+  }
   // 11.0/11.1: a shown card lasts only for the diplomacy phase that showed it,
   // and an unconfirmed offer never survives a turn.  The close already does
   // this; the open repeats it so a resumed save is clean too.

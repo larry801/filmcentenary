@@ -18,7 +18,7 @@ import {
   SpaceId,
 } from "../types";
 import {cardById} from "./deck";
-import {dealsOf} from "./negotiation";
+import {dealsOf, negotiationDoneFor} from "./negotiation";
 import {powerOfSeat, seatOf} from "./pending";
 import {cpPlayability, eventPlayability, type PlayBlockReason} from "./playability";
 import {SPACES, isKey, isNavalBox, neighboursOf} from "../constant/spaces";
@@ -39,7 +39,7 @@ import {
 } from "./rules";
 import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs";
 import {impulseAlreadyUsed, recruit as recruitMove} from "../moves";
-import {passRestriction} from "./characteristics";
+import {ottomanArmyTypeFor, passRestriction} from "./characteristics";
 import {beginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
 import {gwDraftSpaces, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
@@ -196,7 +196,10 @@ const botHomeRecruit = (G: ImperialElegyState, power: Power): SpaceId | null => 
 const botRecruitSpace = (G: ImperialElegyState, power: Power): SpaceId | null => {
   for (const [id, def] of Object.entries(SPACES)) {
     if (def.home !== power) continue;
-    const decision = canRecruitIn(G, power, id, "army", {});
+    // 33.6: an Arab key builds an Arab army from the separate Arab pool, so
+    // the Turkish default would hide every legal Arab build from the bot.
+    const ottoman = power === "OT" ? ottomanArmyTypeFor(id) : undefined;
+    const decision = canRecruitIn(G, power, id, "army", {ottoman});
     if (!decision.allowed) continue;
     // 4.2: the printed counter pool is a real limit, and `recruit` enforces it
     // after `canRecruitIn` has said "legal".  A reduced army of the same kind is
@@ -567,11 +570,18 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
   if (homeCard !== null && !impulseAlreadyUsed(G, power)) {
     const def = cardById(homeCard);
     const skipEvent = p.stability >= 6 && def.cp < 3;
-    if (!skipEvent) {
+    // The revealed card may be one the engine refuses right now (AU-8
+    // Kaiserreich needs The Dual Monarchy; a war-declaration home card needs a
+    // legal target).  Naming it anyway stalled the self-play run on a refused
+    // move, so the printed event gate and the CP gate decide the mode.  When
+    // neither is legal the card stays in hand and the lower priorities run.
+    if (!skipEvent && eventPlayability(G, power, homeCard).ok) {
       return {move: "playCard", args: [homeCard, "event"]};
     }
-    // Play for CP instead.
-    return {move: "playCard", args: [homeCard, "cp"]};
+    if (cpPlayProblem(G, power, homeCard) === undefined) {
+      // Play for CP instead.
+      return {move: "playCard", args: [homeCard, "cp"]};
+    }
   }
 
   // 2. Attack rebels.
@@ -859,8 +869,10 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
   const enemyPowers = [...war.attackerAllies, war.attacker, ...war.defenderAllies, war.defender]
     .filter((p) => p !== power);
   for (const enemy of enemyPowers) {
+    // War allies can name a minor power; only the six great powers have a
+    // `G.powers` entry (and a capital to attack).
     const def = G.powers[enemy];
-    if (def.eliminated) continue;
+    if (!def || def.eliminated) continue;
     // Find enemy capital.
     for (const [id, spaceDef] of Object.entries(SPACES)) {
       if (spaceDef.home !== enemy && spaceDef.type !== "capital") continue;
@@ -1089,12 +1101,20 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
     if (openOffer !== undefined) {
       return {move: "respondDeal", args: [openOffer.id, false]};
     }
-    // B1: "do not choose a home card for bots, instead each bot adds a
-    // random home card to their pile".  Add first available home card.
-    // `chooseHomeCard` is diplomacy-only and only accepts a card that has not
-    // been chosen yet (moves.ts), so this branch must never run later.
-    if (!p.flags.homeChosen && p.homeCards.length > 0) {
-      return {move: "chooseHomeCard", args: [p.homeCards[0]]};
+    // 9.1: every seat closes its negotiation segment before the home-card
+    // step.  A bot has nothing else to say, so it declares done first; the
+    // engine then refuses its home card until every human seat has done the
+    // same (the driver parks a waiting bot instead of spinning on a refusal).
+    if (!negotiationDoneFor(G, power)) {
+      return {move: "finishNegotiation"};
+    }
+    // 34.2: "Do not choose a home card for bots, instead each bot adds a random
+    // home card to their pile."  `pileHomeCard` adds it hidden; the card is
+    // revealed at the bot's action impulse (`revealHomeCard`).  The move is
+    // diplomacy-only and refuses a seat that already chose, so this branch must
+    // never run later.
+    if (!p.flags.homeChosen) {
+      return {move: "pileHomeCard"};
     }
     return {move: "endDiplomacy"};
   }
@@ -1106,6 +1126,15 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
       // refuses a non-active seat, exactly as the old `endImpulse` did, so this
       // stays a no-op the driver's repeat guard catches rather than a spin.
       return {move: "pass"};
+    }
+
+    // 34.2 Action Phase: "On a bot's impulse reveal the top card of their pile".
+    // The reveal is public and precedes the priority rows, so every client sees
+    // the home card before the bot plays it (or passes it over for a CP card).
+    if (p.flags.homeCardRevealedTurn !== G.turn) {
+      if (p.selectedHomeCard !== null && p.hand.includes(p.selectedHomeCard)) {
+        return {move: "revealHomeCard"};
+      }
     }
 
     // A mandatory card in hand forbids passing (12.0), so play it first.  Its

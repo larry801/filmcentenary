@@ -1,12 +1,14 @@
 import React from "react";
-import {Link, useNavigate} from "react-router-dom";
+import {useNavigate} from "react-router-dom";
 import {IESurface} from "./theme";
 import {ieT} from "./i18n";
 import i18n from "../../constant/i18n";
 import {POWERS, Power} from "../types";
-import {IE_NO_GW_LABEL, IE_SCENARIOS} from "../configuration";
+import {BotDifficulty, IE_NO_GW_LABEL, IE_SCENARIOS} from "../configuration";
 import {ScenarioId} from "../constant/scenarios";
 import {
+  botDifficultyLabel,
+  loadBotDifficulty,
   loadNoGw,
   loadScenario,
   loadSoloPower,
@@ -16,16 +18,17 @@ import {
   soloBotSeats,
   soloMatchPath,
 } from "./localSetup";
+import {auFormedForScenario, seatPowerName} from "./seatNames";
 
 /**
  * The solo entrance: a page of its own where the player picks the one great
  * power they command.
  *
- * A solo match is the hotseat shell with five bot seats, so the page does not
- * own a game client.  It collects the one choice the hotseat board cannot ask
- * for (which power the player takes), writes the resulting seat setup and hands
- * over to `/localIE?fresh=…`, which deals a fresh match on the chosen seat.  The
- * five remaining powers are always the bots.
+ * A solo match has its own page (`/localIE/solo/play`) and its own client: it
+ * does not reuse the six-board hotseat shell.  This setup page only collects
+ * the power the player commands (plus the printed scenario), writes the solo
+ * setup and hands over to that page.  The five remaining powers are always the
+ * bots, and the match page never exposes their boards or a seat switcher.
  */
 const LocalImperialElegySolo = () => {
   i18n.use();
@@ -37,6 +40,8 @@ const LocalImperialElegySolo = () => {
   const [power, setPower] = React.useState<Power>(() => loadSoloPower() ?? POWERS[0]);
   const [scenario, setScenario] = React.useState<ScenarioId>(loadScenario);
   const [noGw, setNoGw] = React.useState<boolean>(loadNoGw);
+  // 34.1: one difficulty level for every bot seat.
+  const [difficulty, setDifficulty] = React.useState<BotDifficulty>(loadBotDifficulty);
 
   // Language switches must re-render: the i18n object is mutable state that
   // React cannot observe.
@@ -80,13 +85,41 @@ const LocalImperialElegySolo = () => {
               />
               <span className={`ie-power-pip ie-power-pip-${p.toLowerCase()}`} aria-hidden="true"/>
               <span className="ie-solo-power-seat">P{index + 1}</span>
-              <span className="ie-solo-power-name">{t.seats[p]}</span>
+              <span className="ie-solo-power-name">{seatPowerName(t, p, locale, auFormedForScenario(scenario))}</span>
             </label>
           ))}
         </div>
         <p className="ie-muted" data-testid="ie-solo-summary">
-          {`${t.soloYouPlay} ${t.seats[power]} · ${t.soloBotsRest} ${bots.size}`}
+          {`${t.soloYouPlay} ${seatPowerName(t, power, locale, auFormedForScenario(scenario))} · ${t.soloBotsRest} ${bots.size}`}
         </p>
+
+        <h2 className="ie-local-subtitle">{t.soloDifficultyTitle}</h2>
+        <p className="ie-muted">{t.soloDifficultyIntro}</p>
+        <div
+          className="ie-solo-difficulty"
+          role="radiogroup"
+          aria-label={t.soloDifficultyTitle}
+          data-testid="ie-solo-difficulty"
+        >
+          {(["easy", "normal", "hard"] as BotDifficulty[]).map((level) => (
+            <label
+              key={level}
+              className="ie-solo-difficulty-level"
+              data-level={level}
+              data-selected={difficulty === level ? "true" : "false"}
+            >
+              <input
+                type="radio"
+                name="ie-solo-difficulty"
+                value={level}
+                data-testid={`ie-solo-difficulty-${level}`}
+                checked={difficulty === level}
+                onChange={() => setDifficulty(level)}
+              />
+              <span>{botDifficultyLabel(level, locale)}</span>
+            </label>
+          ))}
+        </div>
 
         <h2 className="ie-local-subtitle">{t.scenarioTitle}</h2>
         <p className="ie-muted">{t.scenarioIntro}</p>
@@ -126,17 +159,14 @@ const LocalImperialElegySolo = () => {
             className="ie-btn primary ie-local-start"
             data-testid="ie-solo-start"
             onClick={() => {
-              // Persist the single choice and hand over to the hotseat shell,
-              // which deals a new match on the picked seat (`?fresh=…`).
-              saveSoloSetup(power, scenario, noGw);
+              // Persist the single choice and hand over to the dedicated solo
+              // match page, which deals a fresh match on the picked seat.
+              saveSoloSetup(power, scenario, noGw, difficulty);
               navigate(soloMatchPath());
             }}
           >
             {t.soloStart}
           </button>
-          <Link className="ie-link ie-solo-hotseat" to="/localIE?solo=1" data-testid="ie-solo-hotseat">
-            {t.soloHotseatLink}
-          </Link>
         </div>
       </div>
     </IESurface>

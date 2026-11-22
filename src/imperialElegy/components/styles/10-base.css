@@ -217,7 +217,25 @@
   margin-top: var(--ie-space-3);
 }
 
-.ie-solo-hotseat { font-size: var(--ie-font-xs); }
+.ie-solo-match-top .ie-solo-match-power { white-space: nowrap; }
+
+.ie-solo-match-top .ie-solo-match-scenario {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ie-solo-match-top > .ie-btn { margin-left: auto; }
+
+/* Confirm/cancel row shared by the local shell's and the solo page's dialogs. */
+.ie-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ie-space-2);
+  margin-top: var(--ie-space-3);
+}
 
 .ie-board :is(.ie-select, .ie-input) { padding: 6px; }
 
@@ -268,4 +286,33 @@
   .ie-btn, .ie-seat-tab, .ie-turn-tab, .ie-mobile-tab {
     border: 1px solid ButtonText;
   }
+}
+
+/* 34.1: the solo page's one level for every bot seat (a compact horizontal
+   radio row, distinct from the power cards above). */
+.ie-solo-difficulty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ie-space-2);
+  margin: var(--ie-space-2) 0 var(--ie-space-3);
+}
+
+.ie-solo-difficulty-level {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-2);
+  color: var(--ie-on-dark);
+  font-size: var(--ie-font-sm);
+  cursor: pointer;
+}
+
+.ie-solo-difficulty-level input { accent-color: var(--ie-brass); width: 16px; height: 16px; }
+
+.ie-solo-difficulty-level[data-selected="true"] {
+  border-color: var(--ie-brass-soft);
+  background: var(--ie-panel-3);
 }

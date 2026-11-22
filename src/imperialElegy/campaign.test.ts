@@ -73,6 +73,13 @@ test("campaign auto-play reaches a result", async () => {
       continue;
     }
     if (G.phase === "diplomacy") {
+      // 9.1: close every seat's negotiation segment first; the home-card step
+      // waits for the whole table, so this loop walks all six before choosing.
+      const negotiating = POWERS.find((x) => seatState(x).powers[x].flags.negotiationDone !== true);
+      if (negotiating !== undefined) {
+        await act(() => cs[POWERS.indexOf(negotiating)].moves.finishNegotiation());
+        continue;
+      }
       const i = Number(cs[0].getState()!.ctx.currentPlayer);
       const p = POWERS[i]; const own = seatState(p); const h = own.powers[p].homeCards[0];
       if (!h) { throw new Error("no home card"); }
