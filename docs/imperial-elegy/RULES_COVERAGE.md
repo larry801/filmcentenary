@@ -115,6 +115,18 @@ blockers.
   planning step (`greatWarFlow.ts#beginGwTurn`); 25.2 keeps the US off the GW
   track while the ACW runs / after the CSA wins; 25.4 gives a player entering
   the GW at 0 stability +1.  Pinned by `greatWarFlow.test.ts`.
+- **§24–32 follow-up (same day):** **15.2.3's multi-army GW deploy** —
+  `performGwManeuver`'s deploy case now places up to the printed half-industry
+  allowance (min 1, max 3) in one 1-CP action, validating the batch against the
+  reserve box, the allowance and the stacking cap (`gwDeploy` passes `unitIds`
+  and defaults to the whole allowance); **28.1.5's trench-battle port** — a
+  port holding a trench battle marker may be entered and left by naval
+  movement without an amphibious assault (`planNavalMove`'s
+  `allowTrenchPort`, `planNavalTransport`'s hostile-port exception); **26.2's
+  US planning transfer** — `transferGwMajorBudget` / `gwUsTransferBudget`
+  debit `gw.usBudget` once per planning step, requiring an ally and a
+  transatlantic LoC to the recipient's capital.  Pinned by
+  `greatWarFlow.test.ts` (25) and `trenchBattleSpace.test.ts` (12).
 
 **Still open (the exact reasons these sections stay Partial):**
 
@@ -128,9 +140,10 @@ blockers.
   15.2.2 limited-war joint naval operations; 15.5 capital capture ending the
   maneuver; 16.1.3(2) blockade victory; 16.1.4/16.1.5 negotiated/white peace
   agreements; 16.2 errata treaty targeting; 17.0 errata displacement.
-- **§24–32:** 15.2.3 multi-army GW deploy; 26.2 US budget transfer; 25.7
-  alliance-set secret impulse order; 25.5/25.6/25.6.1 top-up/boost/EC
-  fallbacks; 28.1.5 naval movement into a trench-battle port.
+- **§24–32:** 25.7's alliance-set secret impulse order and the
+  25.5/25.6/25.6.1 top-up/boost/EC fallbacks.  The 26.2 US transfer is live as
+  an engine move (`gwUsTransferBudget`); the planning panel still exposes only
+  the player-to-player transfer control.
 - **§34:** the bot's printed Priority-2 auto-pacification, unit/fort/naval
   placement order, home-card pile order, war-aim/declaration guards, EC
   differential rule and treaty/response-card rules are still approximated or
@@ -1126,10 +1139,13 @@ blockers.
   closed: **26.0** reshuffles the GW discard pile into the GW deck at every
   planning step (`greatWarFlow.ts#beginGwTurn`); **25.2** removes the US chit
   from the GW track while the ACW runs or after the CSA wins; **25.4** gives a
-  player entering the GW at 0 stability +1.  `greatWarFlow.test.ts` pins all
-  three.  Still open: 15.2.3's multi-army GW deploy, 26.2's US CP transfer,
-  25.7's alliance-set secret impulse order, 25.5/25.6/25.6.1's top-up/boost/EC
-  fallbacks and 28.1.5's naval movement into/out of a trench-battle port.
+  player entering the GW at 0 stability +1.  Follow-up closures: **15.2.3's
+  multi-army GW deploy**, **28.1.5's trench-battle port naval movement** and
+  **26.2's US planning transfer** (`transferGwMajorBudget` /
+  `gwUsTransferBudget`; the panel control for the US side is still pending).
+  `greatWarFlow.test.ts` and `trenchBattleSpace.test.ts` pin the closures.
+  Still open: 25.7's alliance-set secret impulse order and the
+  25.5/25.6/25.6.1 top-up/boost/EC fallbacks.
 
 ## 33 National characteristics
 
