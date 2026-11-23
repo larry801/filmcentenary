@@ -396,11 +396,12 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   }
   log(G, undefined, "seatOrder", {order: POWERS.join(", ")});
   G.phase = "prep";
-  // The printed display markers are authoritative at setup: the campaign
-  // prints Power Projection UK 8 / FR 3 / RU 3, and the derived port formula
-  // disagrees by one for FR and RU (a known modelling gap).  Recomputing here
-  // would silently replace the printed markers, so the tracks stay as printed
-  // and are derived from the board by the first end phase (20.6).
+  // Power Projection is derived from the board (3.3.1), never a printed
+  // marker: the campaign setup prints UK 8 / FR 3 / RU 3, and the corrected
+  // map data (the printed naval-base station at Algeria) makes the derived
+  // formula agree.
+  // Keeping the scenario value equal to the formula means the track the player
+  // sees at setup and the one 20.6 derives at the first end phase are the same.
   // Rounds 1–6 added typed records that this function does not have to spell
   // out one by one: the migration is the single list of documented defaults
   // (build box, Italy MPIT, revealed goals, GW lifecycle, …), so a fresh game

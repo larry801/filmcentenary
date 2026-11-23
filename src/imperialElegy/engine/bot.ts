@@ -47,6 +47,7 @@ import {currentGwImpulse, gwActionAllowance, gwCardProblem, gwFinishImpulseProbl
 import {declarationTargetCandidates} from "./declarationTargets";
 import {warDeclarationEntitlement} from "./rules";
 import {reserveRemaining} from "./economy";
+import {ctxWithBotRandom} from "./botRandom";
 import {hasCounterFor} from "./counters";
 import {holdsWarImpulse} from "./limitedWar";
 
@@ -132,6 +133,41 @@ export const neutralBmpitTarget = (
   // it steers its split towards whichever field is lowest on that power.
   const track: MpitTrack = mpit.te > mpit.ta ? "ta" : mpit.te >= 3 ? "neutral" : "te";
   return {power: best, track};
+};
+
+/**
+ * 34.3 BMPIT: an allied bot spends all of its excess CP on one power, chosen
+ * by the printed two-die table.  The commitment is kept for the turn so later
+ * impulses keep pouring CP into the same column; the PAC's neutral exception
+ * still uses the documented split walk.
+ */
+const alliedBmpitTarget = (
+  G: ImperialElegyState,
+  power: Power,
+  ctx: Ctx,
+): {power: Power; track: MpitTrack} => {
+  // A caller without a random plugin (the fixed-seed harness, a pure
+  // inspection) keeps the documented deterministic walk, so the seeded
+  // regression games do not change script merely because the UI path now
+  // rolls the BMPIT dice.
+  if (typeof (ctx?.random as {Die?: unknown} | undefined)?.Die !== "function") {
+    const next = POWERS[(POWERS.indexOf(power) + 1) % POWERS.length];
+    const track: MpitTrack = G.powers[next].mpit.te >= 3 ? "neutral" : "te";
+    return {power: next, track};
+  }
+  const p = G.powers[power];
+  const stored = p.flags.bmpitTarget;
+  const storedTrack = p.flags.bmpitTrack;
+  if (typeof stored === "string" && POWERS.includes(stored as Power)
+    && (storedTrack === "ta" || storedTrack === "neutral" || storedTrack === "te")
+    && Number(p.flags.bmpitTurn ?? -1) === G.turn) {
+    return {power: stored as Power, track: storedTrack};
+  }
+  const rolled = bmpitTarget(roll2d6(ctx), roll2d6(ctx));
+  p.flags.bmpitTarget = rolled.power;
+  p.flags.bmpitTrack = rolled.track;
+  p.flags.bmpitTurn = G.turn;
+  return rolled;
 };
 
 // ---------------------------------------------------------------------------
@@ -362,7 +398,7 @@ const findRebelTarget = (G: ImperialElegyState, power: Power): {space: SpaceId; 
  * `ctx` is optional so a caller without a boardgame.io context (a pure
  * inspection) still gets a stable index instead of an exception.
  */
-const botChoiceIndex = (ctx: Ctx | undefined, count: number): number => {
+export const botChoiceIndex = (ctx: Ctx | undefined, count: number): number => {
   if (count <= 1) return 0;
   const random = ctx?.random as {Die?: (sides: number) => number} | undefined;
   if (typeof random?.Die === "function") return (random.Die(count) - 1) % count;
@@ -371,8 +407,8 @@ const botChoiceIndex = (ctx: Ctx | undefined, count: number): number => {
 
 /**
  * When a pending decision is open and it belongs to this bot, return the
- * move that answers it.  Bots pick the first legal option (the printed rule
- * says to roll a die for undocumented cases; here we default to first option).
+ * move that answers it.  Where the Bot PAC prints an answer, this follows it;
+ * everywhere else 34.3 says to roll a die.
  */
 export const botPendingMove = (
   G: ImperialElegyState,
@@ -414,12 +450,12 @@ export const botPendingMove = (
       return {move: "declinePending"};
 
     case "combatSupport":
-      // Bot always supports its own battles.
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      // The PAC leaves the support choice open; 34.3 rolls.
+      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
     case "navalInterception":
-      // Bot always attempts interception.
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      // The PAC leaves interception open; 34.3 rolls.
+      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
     case "impulseLoss":
     case "combatLosses":
@@ -434,22 +470,22 @@ export const botPendingMove = (
     case "combatDiscard":
     case "combatElite":
     case "hydraulicRecoil":
-      // Combat decisions: pick first option (take the loss / retreat / advance).
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      // Combat choices the PAC leaves open: roll per 34.3.
+      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
     case "warAllyConsent":
       // Bots always call allies (B2: "Bots will always call allies").
       return {move: "resolvePending", args: [pending.options[0].id]};
 
     case "balanceOfPower":
-      // Bot accepts Balance of Power (UK bot special: always play Sun Never Sets;
-      // but as the *target* of BoP the bot accepts to get the card draw).
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      // Balance of Power has no PAC row; 34.3 rolls (the bot still gets the
+      // card draw when it accepts).
+      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
     case "treatyOption":
     case "treatySpace":
     case "whitePeaceOrder":
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
     case "goalChoice":
     case "industryCard":
@@ -459,7 +495,7 @@ export const botPendingMove = (
     case "gwCard":
     case "gwWinter":
     case "scoringChoice":
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
     case "militarism":
       // End phase 20.1: bot always builds army step (B1: "bots will always
@@ -471,8 +507,8 @@ export const botPendingMove = (
       }
 
     case "manpowerExcess":
-      // 20.5: discard first over-limit army.
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      // 20.5: which over-limit army to discard is not on the PAC; roll.
+      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
     case "allianceTie":
     case "gwNonPlayerJoin":
@@ -507,7 +543,7 @@ export const botPendingMove = (
     case "crisisAlliance":
     case "crisis":
     case "italianInternalWar":
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
     case "francoPrussianConcession":
     case "scenarioGoalChoice":
@@ -521,7 +557,13 @@ export const botPendingMove = (
       };
 
     default:
-      return {move: "resolvePending", args: [pending.options[0].id]};
+      // 34.3: "if a bot ever has to make a decision that isn't explicitly laid
+      // out on the bot PAC, roll a die to determine the result."  This is the
+      // generic path, so it must not default to option 0.
+      return {
+        move: "resolvePending",
+        args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id],
+      };
   }
 };
 
@@ -792,7 +834,7 @@ const priorityTwo = (
  * When the bot still has CP after all priority actions (B1):
  * First build armies, then spend on BMPIT influence.
  */
-const excessCp = (G: ImperialElegyState, power: Power): BotMove | null => {
+const excessCp = (G: ImperialElegyState, power: Power, ctx: Ctx): BotMove | null => {
   if (G.cpRemaining <= 0) return null;
 
   // Build armies first.
@@ -811,10 +853,8 @@ const excessCp = (G: ImperialElegyState, power: Power): BotMove | null => {
   // deterministic BMPIT walk below, so the choice stays reproducible.
   const target = G.powers[power]?.alliance === "neutral"
     ? neutralBmpitTarget(G, power)
-    : {power: POWERS[(POWERS.indexOf(power) + 1) % POWERS.length],
-      track: undefined as MpitTrack | undefined};
-  const track = target.track ?? (G.powers[target.power].mpit.te >= 3 ? "neutral" : "te");
-  return {move: "placeMpit", args: [target.power, track]};
+    : alliedBmpitTarget(G, power, ctx);
+  return {move: "placeMpit", args: [target.power, target.track]};
 };
 
 /**
@@ -941,8 +981,20 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
 // GW Planning and Maneuver
 // ---------------------------------------------------------------------------
 
+/** Probe a GW request through the engine, like `gwRequiredAction` does. */
+const gwRequestAccepted = (G: ImperialElegyState, ctx: Ctx, request: GwManeuverRequest): boolean => {
+  // Test fixtures and legacy saves can carry a partial `gw`, and the fixed-seed
+  // harness calls `botDecision` outside a move (no `ctx.random`).  Without a
+  // live probe context there is nothing reliable to test, so keep the historic
+  // answer rather than turning a draft into a refused pass.
+  if (typeof (ctx?.random as {Die?: unknown} | undefined)?.Die !== "function") return true;
+  if (!Array.isArray(G.gw?.order) || G.gw?.impulse === undefined) return true;
+  const probe = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
+  return performGwManeuver(probe, {...ctx, random: {Die: () => 3}, events: undefined} as Ctx, request).ok;
+};
+
 /** GW Priority 2 (B2) — roll 1–6. */
-const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMove | null => {
+const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number, ctx: Ctx): BotMove | null => {
   const budget = cpBudgetFor(G, power);
   if (budget <= 0) return null;
 
@@ -958,6 +1010,11 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
     // probed through the engine's own gate (trenches need a full-strength army
     // in the attack force, a trench-marker space is attacked from inside it, …)
     // so the bot never names a fight the move will refuse.
+    //
+    // 34.3: the PAC does not print which equally-close target to take, so roll
+    // a die among every legal land battle rather than always walking the map in
+    // iteration order (that made every bot attack the same first space).
+    const battleCandidates: {from: SpaceId; to: SpaceId}[] = [];
     for (const [id] of Object.entries(G.spaces)) {
       // A naval box holds ships: it is never a land-battle origin, and naming
       // one makes `performGwManeuver` refuse with "Land battles need land
@@ -970,16 +1027,22 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
         const enemies = landUnitsIn(G, to).filter((u) => hostileOwner(G, power, u.owner));
         if (enemies.length === 0) continue;
         if (!gwActionAllowance(G, power, "landBattle").ok || !legalLandBattle(G, power, id, to)) continue;
-        // `landBattle` takes (from, to): the whole force in `from` attacks.
-        return {move: "landBattle", args: [id, to]};
+        if (!gwRequestAccepted(G, ctx, {kind: "landBattle", power, from: id, to})) continue;
+        battleCandidates.push({from: id, to});
       }
+    }
+    if (battleCandidates.length > 0) {
+      // `landBattle` takes (from, to): the whole force in `from` attacks.
+      const pick = battleCandidates[botChoiceIndex(ctx, battleCandidates.length)];
+      return {move: "landBattle", args: [pick.from, pick.to]};
     }
   }
 
   if (roll >= 4 && roll <= 5) {
     // Refit (convert to 6 if all armies full strength).
     const reduced = Object.values(G.units).filter((u) => u.owner === power && !u.naval && isArmyKind(u.kind) && u.steps === 1 && u.space && hasLoc(G, power, u.space));
-    if (reduced.length > 0 && gwActionAllowance(G, power, "refit").ok) {
+    if (reduced.length > 0 && gwActionAllowance(G, power, "refit").ok
+      && gwRequestAccepted(G, ctx, {kind: "refit", power, unitId: reduced[0].id})) {
       return {move: "gwRefit", args: [reduced[0].id]};
     }
   }
@@ -988,7 +1051,8 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number): BotMo
     // Draft into a legal home key; the engine decides the second placement.
     if (G.powers[power].manpower > 0) {
       const space = botDraftSpace(G, power);
-      if (space !== null && hasCounterFor(G, power, "army") && gwActionAllowance(G, power, "draft").ok) {
+      if (space !== null && hasCounterFor(G, power, "army") && gwActionAllowance(G, power, "draft").ok
+        && gwRequestAccepted(G, ctx, {kind: "draft", power, space})) {
         return {move: "gwDraft", args: [space]};
       }
     }
@@ -1206,7 +1270,7 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
       if (p2 !== null) return p2;
 
       // Excess CP: build armies, then BMPIT.
-      const excess = excessCp(G, power);
+      const excess = excessCp(G, power, ctx);
       if (excess !== null) return excess;
     }
 
@@ -1256,7 +1320,7 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
     }
     // Same B1 die as the action phase: a constant collapsed the GW maneuver
     // table onto its attack branch.
-    const p2 = gwPriorityTwo(G, power, roll2d6(ctx));
+    const p2 = gwPriorityTwo(G, power, roll2d6(ctx), ctx);
     if (p2 !== null) return p2;
     // 27.3: GW-10 Exhaustion forbids passing, and as a GW card it is not in
     // `hand` — `passRestriction` has to be asked about this turn's GW card, or
@@ -1296,7 +1360,7 @@ export const enumerateBot = (
 ): BotMove[] => {
   const power = powerFromPlayerID(playerID);
   if (power === undefined) return [];
-  const move = botDecision(G, ctx, power);
+  const move = botDecision(G, ctxWithBotRandom(G, ctx, power), power);
   return [move];
 };
 
@@ -1319,4 +1383,4 @@ export const isBotSeat = (G: ImperialElegyState, power: Power): boolean =>
  * timer (non-MCTS path, used in hotseat mode when a seat is set to bot).
  */
 export const botMoveFor = (G: ImperialElegyState, ctx: Ctx, power: Power): BotMove =>
-  botDecision(G, ctx, power);
+  botDecision(G, ctxWithBotRandom(G, ctx, power), power);

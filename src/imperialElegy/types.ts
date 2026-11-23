@@ -106,6 +106,12 @@ export interface SpaceDef {
   submap: Submap;
   /** Ports list the naval boxes this space touches. */
   ports?: string[];
+  /**
+   * A printed naval-base station inside an ordinary port space (3.3.1): the
+   * format is a circle/triangle combined space rather than a separate triangle
+   * space.  Used by `computePowerProjection` for the port+base pairing.
+   */
+  navalBase?: boolean;
   /** Minor power or player power that considers the space home. */
   home?: Power | null;
   minorHome?: string | null;

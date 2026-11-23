@@ -373,6 +373,7 @@ import {
   type WarSideName,
   type WarTarget,
 } from "./engine/limitedWar";
+import {applyItalyWarStartRules} from "./engine/italyMilitary";
 import {
   applyTreatyChoice,
   buildTreatyPending,
@@ -9159,6 +9160,9 @@ export const startWarManeuver = (G: ImperialElegyState, ctx: Ctx): string | void
   if (G.war.status !== "warAim" && G.war.status !== "alliance") return INVALID_MOVE;
   const rapid = rapidMobilizationBelligerent(G, G.war);
   G.war.status = "maneuver";
+  // 22.4: a unified Italy's lone-defender displacement and its reserve-army
+  // impulse happen at the start of the war/maneuver, before initiative.
+  applyItalyWarStartRules(G, G.war);
   // 5.6.3: a war may open paths and close others at once (allies stop supplying
   // enemies and start supplying each other), so the first maneuver impulse's
   // supply is repaired before the upkeep below reads it.

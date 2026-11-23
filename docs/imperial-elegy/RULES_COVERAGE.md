@@ -845,17 +845,12 @@ surrender clause is not inert.
     the 20.3 rebuild, so the two paths cannot drift. Counter ceilings:
     `ITALIAN_ARMY_COUNTER_MAX` = 5, `ITALIAN_EXTRA_NAVAL_MAX` = 2, and the 4.2
     `IT` rows.
-  - **Residual 22.4 clauses** (printed, still simplified): “Italy defending
-    alone” does not displace its non-Rome standing armies onto the war-goal
-    spaces at war start, and its “always deploy a reserve army to defend/support
-    the goal space(s)” impulse is not scripted; “Italy is controlled by the
-    allied player earliest in the wartime initiative order” is modelled only
-    for the GW `IT` impulse slot rather than every war; “treat Italy as 1
-    industry” for rail movement and deploy reserves is not applied, so the
-    generic minor/industry paths answer instead; `italianRedeployPlan`’s naval
-    fallback order is Naples → Piedmont only.
-  - Tests: `italianInternalWar`, `gwRuleGaps`, `italianRebuild`,
-    `greatWarIntegration` and `italyRandomShift`.
+  - **22.4's lone-defender clauses are live** through `engine/italyMilitary.ts`,
+    called from `moves.ts#startWarManeuver`:
+    `displaceItalyForLoneDefense` moves every non-Rome standing army onto the declared war goals (one per goal, stacking-respecting) when Italy defends alone; `deployItalianReserveForGoal` deploys the Italian reserve army to the threatened goal first (defend), else the first goal with room (support); `italyWartimeCommander` returns the allied player earliest in the war's initiative order (falling back to Italy's sovereign `IT`), and `greatWarFlow.ts#italyCommander` uses the same helper outside the GW. **“Treat Italy as 1 industry”** is applied to deploy reserves (`limitedWar.ts#deployReserveLimit`) and rail (`wartimeMovement.ts#railAllowance`/`planRail`). `italianRedeployPlan`'s naval order is exactly the printed one: Naples when Italian, otherwise Piedmont — there is no third port in the printed rule.
+  - Tests: `italianMilitary` (5), plus `italianInternalWar`, `gwRuleGaps`,
+    `italianRebuild`, `greatWarIntegration`, `italyRandomShift` and
+    `italyRomeRedeploy`.
 - Poland (22.5): the printed special rules are a live model in
   `engine/poland.ts` — `POLISH_STANDING_COUNTERS` = 3 and
   `POLISH_RESERVE_ARMY_COUNT` = 2, `polishArmyCap` (controlled Polish spaces
@@ -1083,7 +1078,7 @@ Summary:
 
 ## Deliberately deferred
 
-- Bots (rule 34) **partially implemented**: `engine/bot.ts` provides Priority 1/2 action tables, BDIT targeting, BMPIT influence, wartime/GW priorities and pending-decision auto-answers; wired into `ImperialElegyGameDef` as `ai.enumerate`; hotseat local mode has a per-seat bot toggle. The printed BOT BOX (9.2/34.3.4) is transcribed for every action card that prints one and drives B1 Priority 1 step 3. Random PAC dice and power-specific home-card edge cases use deterministic defaults.
+- Bots (rule 34) **implemented**: `engine/bot.ts` provides Priority 1/2 action tables, BDIT targeting, BMPIT influence, wartime/GW priorities and pending-decision auto-answers; wired into `ImperialElegyGameDef` as `ai.enumerate`; hotseat local mode has a per-seat bot toggle. The printed BOT BOX (9.2/34.3.4) is transcribed for every action card that prints one and drives B1 Priority 1 step 3. **PAC dice are rolled**, not fixed: `engine/botRandom.ts` supplies a state-keyed random plugin when the board/server ctx has none (so hotseat and solo bots do not collapse onto the 3-4 row), unlisted pending decisions roll per 34.3 (`botPendingMove`), and GW maneuver land battles are chosen by die among every legal target (`gwPriorityTwo`). The power-specific home-card pile order (GE/OT on top, UK on the bottom, FR/AU/RU shuffled) follows 34.2 and the PAC.
 - ~~Alternate scenarios (1870, 1880, No GW, alternate GW) and the 1850 tutorial.~~
   **Implemented** — every printed scenario in `IE_playbook.pdf` pp. 3-10 is
   playable: `constant/scenarios/` holds the transcribed data and
@@ -1094,9 +1089,9 @@ Summary:
 
 These are the campaign release’s deliberate exclusions. They are not the only
 gaps: the partial/fallback items above are live-code approximations, not
-deferred content. Excluding P1–P3, the tutorial script and the bot’s
-deterministic defaults, **every printed rule now has a live path** — the
-2026-11-23 audit found no unimplemented printed rule after 19.11 landed.
+deferred content. Excluding P1–P3 and the tutorial script, **every printed
+rule now has a live path** — the 2026-11-23 audit found no unimplemented
+printed rule after 19.11 landed.
 
 ## Inventory and test evidence
 

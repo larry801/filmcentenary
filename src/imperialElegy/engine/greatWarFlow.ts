@@ -163,6 +163,7 @@ import {
   type ItalyOutbreakPlan,
   type ItalySide,
 } from "./italyEntry";
+import {italyWartimeCommander} from "./italyMilitary";
 
 // The facedown GW combat-card lifecycle is shared with `combat.ts` (which
 // queues the card after the battle) but lives with the card data helpers to
@@ -4072,10 +4073,15 @@ export const isIndependentItaly = (G: ImperialElegyState): boolean =>
 
 /** Who commands Italy's units: its own sovereign name, or the led side's player. */
 export const italyCommander = (G: ImperialElegyState): "IT" | Power | null => {
-  if (G.gw?.italyIn !== true) return null;
-  if (isIndependentItaly(G)) return "IT";
-  const side = gwMajorSide(G, "IT");
-  return side === null ? null : pickSidePower(G, side);
+  if (G.gw?.italyIn === true) {
+    if (isIndependentItaly(G)) return "IT";
+    const side = gwMajorSide(G, "IT");
+    return side === null ? null : pickSidePower(G, side);
+  }
+  // 22.4 also applies outside the GW: in a limited war Italy is controlled by
+  // the allied player earliest in that war's initiative order.
+  if (G.war !== null) return italyWartimeCommander(G, G.war);
+  return null;
 };
 
 const ITALY_ARMY_KIND: Unit["kind"] = "italianArmy";
