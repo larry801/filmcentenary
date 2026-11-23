@@ -15,7 +15,6 @@ import {CardDef,
     POWER_INDEX,
     POWER_INFO,
     NAVAL_LIMITS,
-    OTTOMAN_CAVALRY_LIMIT,
     REGULAR_LIMITS,
     POWERS,
     Power,
@@ -37,7 +36,7 @@ import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
 import {canYieldSpace} from "./negotiation";
 import {formationIssue, landMoveIssue, transportMoveIssue} from "./movement";
-import {activateMajor, catholicLeagueDealsBlocked, checkCircumnavigation, die, discardTreasure, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController, springSeaCrossingBlocked} from "./util";
+import {activateMajor, catholicLeagueDealsBlocked, checkCircumnavigation, die, discardTreasure, navigationCheck, resolveMajorDiplomacy, landForceCountController, springSeaCrossingBlocked} from "./util";
 import {canPlayBattleCard, playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {canPlayHolyLeague, holyLeagueTracks} from "./holyLeague";
@@ -146,11 +145,8 @@ import {
     removeCardFromGame,
     reliefBattle,
     retreatLand,
-    cavalryCount,
     landForceCount,
-    navalForceCount,
-    navalLostCount,
-    regularCount,
+    navalPoolUsed,
     removeLandLosses,
     removePortNavalLosses,
     removeSeaNavalLosses,
@@ -4657,9 +4653,6 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     if (args.kind === "cav" && p !== "ottoman") {
         return INVALID_MOVE;
     }
-    if (args.kind === "cav" && cavalryCount(G, p) >= OTTOMAN_CAVALRY_LIMIT) {
-        return INVALID_MOVE;
-    }
     if (args.kind === "merc" && p === "ottoman") {
         return INVALID_MOVE;
     }
@@ -4670,6 +4663,8 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     // Netherlands Religious Struggle area are Walloons" — three regular
     // counters, and no mercenaries or cavalry at all.
     if (!canBuildInNetherlands(G, p, def, args.kind)) return INVALID_MOVE;
+    // Rule 17.1: regulars, mercenaries and Ottoman cavalry share one pool,
+    // including units on foreign wars and the Spanish Armada.
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return INVALID_MOVE;
     const recruitCost = args.kind === "regular" ? 2 : 1;
     const action = "recruit" + args.kind[0].toUpperCase() + args.kind.slice(1);
@@ -4697,10 +4692,10 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     // Rule 16.7: no naval unit may ever enter Antwerp or Rotterdam.
     if (isInlandPort(port)) return INVALID_MOVE;
     const homesBn = spaceHomes(def);
-    const isMinorPort = homesBn.some((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never));
+    const minorBn = homesBn.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never));
+    const isMinorPort = minorBn !== undefined;
     if (isMinorPort) {
-        const minor = homesBn.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never))!;
-        if (s.control !== minor || s.unrest || spaceHasEnemyLand(G, p, port)) return INVALID_MOVE;
+        if (s.control !== minorBn || s.unrest || spaceHasEnemyLand(G, p, port)) return INVALID_MOVE;
         // continue to kind/limit checks below with minor-owner
     } else if (s.control !== p || s.unrest || spaceHasEnemyLand(G, p, port)) {
         return INVALID_MOVE;
@@ -4736,7 +4731,10 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
         G.dutchSpanishHome !== true) {
         return INVALID_MOVE;
     }
-    if (!isMinorPort && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) {
+    // Rule 17.1/17.3: every ship type and the rebuild delay share one pool.
+    if (isMinorPort) {
+        if (navalPoolUsed(G, minorBn!) >= (MINOR_NAVAL_LIMITS[minorBn!] ?? 4)) return INVALID_MOVE;
+    } else if (navalPoolUsed(G, p) >= NAVAL_LIMITS[p]) {
         return INVALID_MOVE;
     }
     if (kind === "galleon" && !portZones(port).some((z) => z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {
@@ -4754,11 +4752,7 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     const placedKind = kind === "galleon" && p === "england" && port === "london" && G.year >= 3 &&
         hawkinsInLondon ? "racebuilt" : kind;
     if (isMinorPort) {
-        const minorBn = homesBn.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never))!;
-        const {MINOR_NAVAL_LIMITS} = require("./constant/general");
-        const {navalForceCountController, navalLostCountController} = require("./util");
-        if (navalForceCountController(G, minorBn) + navalLostCountController(G, minorBn) >= (MINOR_NAVAL_LIMITS[minorBn] ?? 4)) return INVALID_MOVE;
-        addNaval(G, port, minorBn, placedKind, 1);
+        addNaval(G, port, minorBn!, placedKind, 1);
     } else {
         addNaval(G, port, p, placedKind, 1);
     }
