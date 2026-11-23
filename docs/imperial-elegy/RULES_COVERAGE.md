@@ -87,7 +87,7 @@ surrender clause is not inert.
 The remaining **Partial** sections — §8, §9–12, §13–17, §20, §24–32 and §34 —
 were audited against the printed book and its March 2026 errata.  This pass
 closed what the printed text actually owes and recorded the rest per section.
-**§8, §20 and §24–32 are now Implemented**; §9–12, §13–17 and §34 stay Partial
+**§8, §9–12, §20 and §24–32 are now Implemented**; §13–17 and §34 stay Partial
 with named blockers.
 
 **Closed by live code in this pass:**
@@ -139,6 +139,19 @@ with named blockers.
   the whole `impulseCardCp` and nothing may have been spent from it yet, with
   the War panel locking the declaration to that value.  Pinned by
   `cardsPartialFixes.test.ts` (7).
+- **§9–12 final items:** **9.1.4's discarded-mandatory trigger** is live — a
+  mandatory/mandatory-response card discarded by a random-discard effect is
+  queued and resolved by its discarder in 4.3 seat order (`effects.ts`'s
+  `discardRandomHandCardTriggering` / `queueMandatoryDiscardTrigger` /
+  `drainMandatoryDiscardQueue`, used by A073 Economic Panic and A109
+  Revolution of 1905).  **12.8's generic minor EC** builds through
+  `minorBuildDecision`/`buildForMinor` (2 CP, MP-marked, one per minor, with the
+  controller's or the minor's army that has a LoC, Orders-panel row).
+  **12.15 Special Redeployment** lets an EC / elite colonial EF / Zouave trace a
+  naval-box route to a port holding a friendly army (`specialRedeployPath`,
+  shared by the move and the map rings).  Pinned by `cardsPartialFixes.test.ts`
+  (10).  §9–12 is promoted to Implemented; its 9.1.3 response-window timing and
+  12.14 chain-action granularity remain documented interpretation notes.
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -152,9 +165,6 @@ with named blockers.
 
 **Still open (the exact reasons these sections stay Partial):**
 
-- **§9–12:** 9.1.4's mandatory-event-discard trigger; 12.8's allied-minor EC
-  build; 12.15's special redeployment through naval boxes; 9.1.3
-  response-window timing approximations; 12.14's chain-action granularity.
 - **§13–17:** 13.2.1 Italian unification wars; 13.4.4/13.4.5 remaining errata
   cells; 14.0/15.4.1/15.6 unified Italy in a limited war; 15.0 pass budget ≤2;
   15.2.2 limited-war joint naval operations; 15.5 capital capture ending the
@@ -366,7 +376,7 @@ with named blockers.
   interactive ledger and explicit settlement use the same idempotent resolver
   (`harshTerms.test.ts`), with bilingual public logs.
 
-## 9–12 Cards and the action phase
+## 9–12 Cards and the action phase — **Implemented**
 
 - **Data:** 100 action cards 13–112, 12 home cards, 10 Great War cards, 49
   National Goals (48 in the campaign). Action types: 57 event, 23 mandatory,
@@ -660,9 +670,11 @@ with named blockers.
   landing to end in a **controlled** port.  Pinned by `auditFixes.test.ts` (8).
   Follow-up closures: **10.3's marker expiry**, **10.4's UK India flip**,
   **12.2's EC LoC**, **12.6's influence-only bar** and **12.17's all-card CP**
-  (`cardsPartialFixes.test.ts`, 7).  Still open: 9.1.4's mandatory-discard
-  trigger, 12.8's allied-minor EC build, 12.15's special redeployment and the
-  9.1.3/12.14 timing approximations.
+  (`cardsPartialFixes.test.ts`, 7).  Final follow-up closures: **9.1.4's
+  discarded-mandatory trigger**, **12.8's generic minor EC** and **12.15's
+  Special Redeployment** (`cardsPartialFixes.test.ts`, 10 total).  The section
+  is Implemented; the only remaining notes are the 9.1.3 response-window timing
+  and 12.14 chain-action granularity interpretations, not unwired rules.
 
 ## Information security (playerView)
 

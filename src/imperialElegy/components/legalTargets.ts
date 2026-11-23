@@ -21,7 +21,7 @@ import {SPACES, isNavalBox} from "../constant/spaces";
 import {
   friendlySpace, isArmyKind, maneuverDestinationProblem, movementEndProblem, redeployLandPath,
 } from "../engine/rules";
-import {planNavalMove} from "../engine/navalMovement";
+import {planNavalMove, specialRedeployPath} from "../engine/navalMovement";
 import {planWartimeLandMove} from "../engine/wartimeMovement";
 import {gwLandMoveProblem} from "../engine/greatWarFlow";
 
@@ -52,8 +52,10 @@ const landTargets = (input: LegalTargetsInput, kind: LandMoveKind): SpaceId[] =>
       // 12.15 route.  The planner already covers an unlimited rail path.
       if (G.phase === "wartime" && G.war !== null) return planWartimeLandMove(G, power, unit.id, to).ok;
       // 12.15: a land/rail path through owned or influenced spaces, ending in
-      // one; the stacking rules still apply at the destination.
-      if (!redeployLandPath(G, power, from, to)) return false;
+      // one; the stacking rules still apply at the destination.  Special
+      // Redeployment (ECs / elite colonial EFs / Zouaves) may instead trace a
+      // naval-box route if it ends stacked with a friendly army.
+      if (!redeployLandPath(G, power, from, to) && !specialRedeployPath(G, power, unit, to)) return false;
       return movementEndProblem(G, to, [unit]) === null &&
         maneuverDestinationProblem(G, power, {kind: "redeploy", unitId: unit.id, to}) === null;
     }

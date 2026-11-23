@@ -35,7 +35,9 @@ import {
   gwMajorSide,
   isArmyKind,
   isPower,
+  landUnitsIn,
   log,
+  ownerFriendlyTo,
   movementEndProblem,
   spaceHostileTo,
   trenchExitBlocked,
@@ -512,6 +514,30 @@ export const planNavalTransport = (
   if (capacity === "portCapacity") return fail("port-capacity", from);
   if (trenchExitBlocked(G, power, from, to)) return fail("trench-exit", from);
   return {ok: true, reason: "ok", from, path: plan.path};
+};
+
+/**
+ * 12.15 Special Redeployment: "ECs, Elite colonial EFs, and the Zouaves may
+ * move an unlimited distance through naval boxes during redeployment actions
+ * if they end their move stacked with a friendly army."  The unit leaves a
+ * port/naval box along a legal 12.3 NMP route and lands in a port holding a
+ * friendly army; the caller has already checked the destination is friendly and
+ * not overstacked.
+ */
+export const specialRedeployPath = (
+  G: ImperialElegyState,
+  power: Power,
+  unit: Unit | undefined,
+  to: SpaceId,
+): boolean => {
+  if (!unit || unit.naval === true) return false;
+  if (unit.kind !== "eliteCorps" && unit.kind !== "eliteColonialEf" && unit.kind !== "zouave") return false;
+  const from = unit.space ?? null;
+  if (from === null || from === to) return false;
+  if (!landUnitsIn(G, to).some((host) => isArmyKind(host.kind) && ownerFriendlyTo(G, power, host.owner))) {
+    return false;
+  }
+  return planNavalMove(G, power, from, to).ok;
 };
 
 // ---------------------------------------------------------------------------

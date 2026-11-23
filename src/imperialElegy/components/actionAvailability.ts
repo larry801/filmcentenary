@@ -56,7 +56,7 @@ import type {RecruitDecision} from "../engine/characteristics";
 
 export type ActionId =
   | "recruitArmy" | "recruitCw" | "recruitReserve" | "recruitEc" | "polishArmy" | "polishReserve"
-  | "minorArmy" | "minorSquadron" | "minorDreadnought"
+  | "minorArmy" | "minorSquadron" | "minorDreadnought" | "minorEliteCorps"
   | "buildSquadron" | "buildDreadnought" | "refitFleet" | "buildFort" | "buildFort2" | "upgradeFort"
   | "buildEf" | "moveEf"
   | "influence" | "diplomacy" | "minorAlliance" | "removeInfluence" | "breakAlliance" | "pacify"
@@ -78,6 +78,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   minorArmy: 1,
   minorSquadron: 2,
   minorDreadnought: 3,
+  minorEliteCorps: 2,
   buildSquadron: 2,
   buildDreadnought: 3,
   refitFleet: 1,
@@ -113,7 +114,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
 /** Every fixed-cost action, in the player aid's order. */
 export const ACTION_COST_ORDER: readonly ActionId[] = [
   "recruitArmy", "recruitReserve", "recruitEc", "recruitCw", "polishArmy", "polishReserve",
-  "minorArmy", "minorSquadron", "minorDreadnought",
+  "minorArmy", "minorSquadron", "minorDreadnought", "minorEliteCorps",
   "buildSquadron", "buildDreadnought", "refitFleet", "buildFort", "buildFort2", "upgradeFort", "buildEf", "moveEf",
   "influence", "diplomacy", "pacify", "removeInfluence", "minorAlliance", "breakAlliance",
   "move", "deployReserves", "landBattle", "navalBattle", "gwDraft", "gwDeploy", "gwElite",
@@ -130,6 +131,7 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   minorArmy: {en: "Allied minor army", zh: "盟国小国军团"},
   minorSquadron: {en: "Allied minor squadron", zh: "盟国小国分舰队"},
   minorDreadnought: {en: "Allied minor dreadnought", zh: "盟国小国无畏舰"},
+  minorEliteCorps: {en: "Allied minor elite corps", zh: "盟国小国精锐军"},
   buildSquadron: {en: "Build squadron", zh: "建造分舰队"},
   buildDreadnought: {en: "Build dreadnought", zh: "建造无畏舰"},
   refitFleet: {en: "Refit fleet", zh: "整补舰队"},
@@ -269,6 +271,7 @@ const ACTION_PHASE_FAMILY: Partial<Record<ActionId, ActionFamily>> = {
   minorArmy: "minorAlliance",
   minorSquadron: "minorAlliance",
   minorDreadnought: "minorAlliance",
+  minorEliteCorps: "minorAlliance",
   buildSquadron: "constructFleet",
   buildDreadnought: "constructFleet",
   refitFleet: "refitFleet",
@@ -547,6 +550,15 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
           : !minorArmy.allowed ? recruitReasonText(locale, minorArmy.reasons.join(" · "))
             : spendReason(ACTION_COSTS.minorArmy),
         run: () => doAction(() => moves.buildForMinor(homeMinor, "army", space, 1)),
+      });
+      const minorEc = minorBuildDecision(G, viewer, homeMinor, "eliteCorps", space, 2);
+      const ecEnabled = minorEc.allowed && canSpend(2);
+      push({
+        id: "minorEliteCorps", group: "recruit", cost: 2, enabled: ecEnabled,
+        reason: ecEnabled ? undefined
+          : !minorEc.allowed ? recruitReasonText(locale, minorEc.reasons.join(" · "))
+            : spendReason(2),
+        run: () => doAction(() => moves.buildForMinor(homeMinor, "eliteCorps", space, 2)),
       });
       if ((spaceDef.ports?.length ?? 0) > 0) {
         const squadron = minorBuildDecision(G, viewer, homeMinor, "squadron", space);

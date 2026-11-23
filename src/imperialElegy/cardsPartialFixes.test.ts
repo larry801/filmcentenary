@@ -19,7 +19,7 @@ import {placeUnit, removeUnit} from "./engine/effects";
 import {canRecruitIn} from "./engine/characteristics";
 import {cardsToDraw} from "./engine/rules";
 import {ImperialElegyGameDef} from "./game";
-import {declareWar, discardForIndianStability, playCard, removeInfluence} from "./moves";
+import {buildForMinor, declareWar, discardForIndianStability, playCard, redeploy, removeInfluence, resolvePending} from "./moves";
 import {CARDS} from "./constant/cards.data";
 
 type PhaseHooks = Record<string, {onBegin?: (G: ImperialElegyState, ctx: Ctx) => void}>;
@@ -165,5 +165,77 @@ describe("12.17 errata: the whole card pays for the war", () => {
     expect(declare(G, 4)).toBeUndefined();
     expect(G.war?.attacker).toBe("GE");
     expect(G.cpRemaining).toBe(0);
+  });
+});
+
+describe("12.8 generic minor EC build", () => {
+  test("an allied minor builds one MP-marked EC and no more", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "GE";
+    G.cpRemaining = 6;
+    G.pending = null;
+    G.spaces.bavaria.control = "Bavaria";
+    G.spaces.bavaria.ally = "GE";
+    placeUnit(G, "Bavaria", "minorArmy", "bavaria", 2);
+    expect(buildForMinor(G, makeCtx([], seat("GE")), "Bavaria", "eliteCorps", "bavaria", 2)).toBeUndefined();
+    const ec = Object.values(G.units).find((unit) => unit.owner === "Bavaria" && unit.kind === "eliteCorps");
+    expect(ec).toBeDefined();
+    expect(ec?.flags?.mp).toBe(true);
+    expect(G.cpRemaining).toBe(4);
+    // 12.8: minor powers can only have 1 EC.
+    expect(buildForMinor(G, makeCtx([], seat("GE")), "Bavaria", "eliteCorps", "bavaria", 2)).toBe(INVALID_MOVE);
+  });
+});
+
+describe("12.15 Special Redeployment through naval boxes", () => {
+  test("an EC reaches a friendly army by sea; a port without one is refused", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "GE";
+    G.cpRemaining = 4;
+    G.pending = null;
+    const ec = placeUnit(G, "GE", "eliteCorps", "north-atlantic", 1);
+    G.spaces.brittany.control = "GE";
+    G.spaces.brittany.occupiedBy = null;
+    for (const id of [...G.spaces.brittany.units]) removeUnit(G, id);
+    const hostless = placeUnit(G, "GE", "eliteCorps", "north-atlantic", 1);
+    G.spaces.aquitaine.control = "GE";
+    G.spaces.aquitaine.occupiedBy = null;
+    for (const id of [...G.spaces.aquitaine.units]) removeUnit(G, id);
+    // Aquitaine is a friendly port with no army: refused.
+    expect(redeploy(G, makeCtx([], seat("GE")), hostless.id, "aquitaine")).toBe(INVALID_MOVE);
+    // Brittany holds a friendly army: the naval-box route is legal.
+    placeUnit(G, "GE", "army", "brittany", 2);
+    expect(redeploy(G, makeCtx([], seat("GE")), ec.id, "brittany")).toBeUndefined();
+    expect(G.units[ec.id].space).toBe("brittany");
+    expect(G.cpRemaining).toBe(3);
+  });
+});
+
+describe("9.1.4 a discarded mandatory event still triggers", () => {
+  test("A073's random discard resolves the discarded mandatory event", () => {
+    const G = fresh();
+    G.phase = "action";
+    G.activePower = "GE";
+    G.cpRemaining = 0;
+    G.pending = null;
+    G.turn = 4;
+    // A094 The Boxer Rebellion is a mandatory event; it is the only card FR
+    // can discard, and its handler places Boxer rebels in Qing China.
+    G.spaces.shanghai.control = "GE";
+    for (const power of POWERS) G.powers[power].hand = [];
+    G.powers.FR.hand = ["IE-A094"];
+    G.powers.GE.hand = ["IE-A073"];
+    expect(playCard(G, makeCtx([], seat("GE")), "IE-A073", "event")).toBeUndefined();
+    // Only FR has a card, so it is the only asked player.
+    expect(G.pending?.kind).toBe("eventChoice");
+    expect(G.pending?.power).toBe("FR");
+    expect(resolvePending(G, makeCtx([], seat("FR")), "discard")).toBeUndefined();
+    expect(G.pending).toBeNull();
+    // The discarded mandatory event resolved: the Boxers are on the map.
+    expect(G.spaces.shanghai.rebellion).not.toBeNull();
+    expect(G.discard).toContain("IE-A094");
+    expect(G.resolvingCard).toBeNull();
   });
 });

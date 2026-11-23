@@ -58,6 +58,7 @@ import {
   firstDardanellesPermissionCrossing,
   planNavalMove,
   planNavalTransport,
+  specialRedeployPath,
   requestDardanellesPassage,
   type NavalTransportReason,
 } from "./engine/navalMovement";
@@ -1712,7 +1713,7 @@ export const buildForMinor = (
   G: ImperialElegyState,
   ctx: Ctx,
   minor: string,
-  kind: "army" | "squadron" | "dreadnought",
+  kind: "army" | "squadron" | "dreadnought" | "eliteCorps",
   space: SpaceId,
   steps: 1 | 2 = 1,
 ): string | void => {
@@ -1736,6 +1737,13 @@ export const buildForMinor = (
       placeNonPlayerCounter(G, minor, "minorArmy", space, steps === 2 ? 2 : 1);
     }
     log(G, power, "minorBuilt", {minor, kind, space, steps, cost: decision.cost});
+    return undefined;
+  }
+  if (kind === "eliteCorps") {
+    // 12.8 / 12.2: a generic minor EC marked MP, one per minor, placed with a
+    // friendly army that has a LoC (the decision checked both).
+    placeUnit(G, minor, "eliteCorps", space, 2, {flags: {mp: true}});
+    log(G, power, "minorBuilt", {minor, kind, space, steps: 2, cost: decision.cost});
     return undefined;
   }
   placeNonPlayerCounter(G, minor, kind, space, 2);
@@ -3074,7 +3082,14 @@ const moveOneLandUnit = (
   // 12.15: peacetime redeployment still needs a land route through
   // controlled/influence spaces; it is not a teleport.  Wartime land movement
   // is the 15.2 march/rail flow and keeps its own checks.
-  if (G.war === null && !G.gw?.active && !redeployLandPath(G, power, from, to)) return INVALID_MOVE;
+  // 12.15 Special Redeployment lets an EC / elite colonial EF / Zouave take a
+  // naval-box route instead of a land route, provided it ends stacked with a
+  // friendly army.
+  if (
+    G.war === null && !G.gw?.active &&
+    !redeployLandPath(G, power, from, to) &&
+    !specialRedeployPath(G, power, unit, to)
+  ) return INVALID_MOVE;
   G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unitId);
   G.spaces[to].units.push(unitId);
   unit.space = to;

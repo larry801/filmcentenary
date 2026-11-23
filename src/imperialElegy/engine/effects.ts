@@ -739,6 +739,8 @@ export const resumeEffects = (G: ImperialElegyState, ctx: Ctx, pending: PendingD
     return;
   }
   G.resolvingCard = null;
+  // 9.1.4: a mandatory event discarded while this chain ran now fires.
+  drainMandatoryDiscardQueue(G, ctx);
 };
 
 const openTargetSpace = (
@@ -1020,6 +1022,71 @@ const chainQueue = (G: ImperialElegyState, powers: readonly Power[]): Power[] =>
   powers.filter((p) => !G.powers[p].eliminated);
 
 /** Close a completed chain and continue the card's remaining effects. */
+/** 9.1.4: mandatory events discarded this way still trigger, in seat order. */
+const MANDATORY_DISCARD_QUEUE = "mandatoryDiscardQueue";
+
+const readMandatoryDiscardQueue = (G: ImperialElegyState): {power: Power; card: CardId}[] => {
+  const raw = G.flags[MANDATORY_DISCARD_QUEUE];
+  if (typeof raw !== "string" || raw.length === 0) return [];
+  return raw.split(",").map((entry) => {
+    const index = entry.indexOf(":");
+    return {power: entry.slice(0, index) as Power, card: entry.slice(index + 1) as CardId};
+  }).filter((entry) => entry.power.length > 0 && entry.card.length > 0);
+};
+
+const writeMandatoryDiscardQueue = (G: ImperialElegyState, queue: {power: Power; card: CardId}[]): void => {
+  if (queue.length === 0) delete G.flags[MANDATORY_DISCARD_QUEUE];
+  else G.flags[MANDATORY_DISCARD_QUEUE] = queue.map((entry) => `${entry.power}:${entry.card}`).join(",");
+};
+
+/** 9.1.4: a discarded mandatory event is resolved by the player that discarded it. */
+export const queueMandatoryDiscardTrigger = (
+  G: ImperialElegyState,
+  power: Power,
+  cardId: CardId,
+): void => {
+  const card = cardById(cardId);
+  if (card.type !== "mandatory" && card.type !== "mandatoryResponse") return;
+  writeMandatoryDiscardQueue(G, [...readMandatoryDiscardQueue(G), {power, card: cardId}]);
+};
+
+/**
+ * Resolve queued mandatory-discard triggers in 4.3 seat order.  Called when a
+ * chain finishes and no decision/battle is open; a triggered event that opens a
+ * decision leaves the rest queued, and its own resume drains them later.
+ */
+export const drainMandatoryDiscardQueue = (G: ImperialElegyState, ctx: Ctx): void => {
+  for (;;) {
+    if (G.pending !== null || G.battle !== null) return;
+    const queue = readMandatoryDiscardQueue(G);
+    if (queue.length === 0) {
+      G.resolvingCard = null;
+      return;
+    }
+    queue.sort((a, b) => POWERS.indexOf(a.power) - POWERS.indexOf(b.power));
+    const [next, ...rest] = queue;
+    writeMandatoryDiscardQueue(G, rest);
+    G.resolvingCard = next.card;
+    const done = resolveCard(G, ctx, next.power, cardById(next.card));
+    if (!done) return;
+  }
+};
+
+/** 9.1.4: discard a random hand card, queueing a mandatory event's trigger. */
+export const discardRandomHandCardTriggering = (
+  G: ImperialElegyState,
+  power: Power,
+  reason: string,
+  ctx: Ctx,
+): CardId | null => {
+  const hand = G.powers[power].hand;
+  if (hand.length === 0) return null;
+  const cardId = hand[randomIndex(ctx, hand.length)];
+  discardCard(G, power, cardId, reason);
+  queueMandatoryDiscardTrigger(G, power, cardId);
+  return cardId;
+};
+
 const finishCardChain = (G: ImperialElegyState, ctx: Ctx, pending: PendingDecision): void => {
   closeDecision(G, ctx);
   resumeEffects(G, ctx, pending, {});
@@ -2401,7 +2468,7 @@ const resolveCardChain = (
       // Russia answered the shared stability-or-card choice.
       if (optionId === "discard") {
         const hand = G.powers.RU.hand;
-        if (hand.length > 0) discardCard(G, "RU", hand[randomIndex(ctx, hand.length)], "revolution1905");
+        if (hand.length > 0) discardRandomHandCardTriggering(G, "RU", "revolution1905", ctx);
         else changeStability(G, "RU", -1, ctx);
       } else {
         changeStability(G, "RU", -1, ctx);
@@ -2417,7 +2484,7 @@ const resolveCardChain = (
       if (optionId === "discard") {
         const hand = G.powers[power].hand;
         if (hand.length > 0) {
-          discardCard(G, power, hand[randomIndex(ctx, hand.length)], "economicPanic");
+          discardRandomHandCardTriggering(G, power, "economicPanic", ctx);
         } else {
           // "If a player chooses to discard a card but cannot do so they
           // receive a -1 card marker."
