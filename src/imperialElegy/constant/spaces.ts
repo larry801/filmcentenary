@@ -97,7 +97,10 @@ const ROWS: Row[] = [
   // ---------------------------------------------------------------- Low Countries & Germany
   {id: "belgium", name: "Belgium", nameZh: "比利时", type: "key", region: "europe", submap: "main", control: "Belgium", minorHome: "Belgium", ports: ["north-atlantic"], flashpoints: ["lowCountries"], x: 1778, y: 1730},
   {id: "netherlands", name: "Netherlands", nameZh: "荷兰", type: "key", region: "europe", submap: "main", control: "Netherlands", minorHome: "Netherlands", ports: ["north-atlantic"], flashpoints: ["lowCountries"], x: 1972, y: 1552},
-  {id: "hanover", name: "Hanover", nameZh: "汉诺威", type: "key", region: "europe", submap: "main", control: "Hanover", minorHome: "Hanover", flashpoints: ["germany"], nationalities: ["Germans"], x: 2214, y: 1550},
+  // 3.2.7: ports are the printed anchors.  Hanover prints a North Sea anchor
+  // just north-west of its counter (the printed GW tutorial places the German
+  // fleet there: "Hanover: 3 dreadnoughts, 1 squadron"), so it is a port.
+  {id: "hanover", name: "Hanover", nameZh: "汉诺威", type: "key", region: "europe", submap: "main", control: "Hanover", minorHome: "Hanover", ports: ["north-atlantic"], flashpoints: ["germany"], nationalities: ["Germans"], x: 2214, y: 1550},
   {id: "saxony", name: "Saxony", nameZh: "萨克森", type: "key", region: "europe", submap: "main", control: "Saxony", minorHome: "Saxony", flashpoints: ["germany"], nationalities: ["Germans"], x: 2488, y: 1716},
   {id: "westphalia", name: "Westphalia", nameZh: "威斯特法伦", type: "key", region: "europe", submap: "main", control: "GE", home: "GE", keyType: "territorial", nationalities: ["Germans"], x: 2163, y: 1764},
   {id: "berlin", name: "Berlin", nameZh: "柏林", type: "capital", region: "europe", submap: "main", control: "GE", home: "GE", keyType: "territorial", nationalities: ["Germans"], x: 2578, y: 1515},
@@ -622,6 +625,7 @@ const CONNECTION_ROWS: [SpaceId, SpaceId, ConnectionType?][] = [
   ["wales", "north-atlantic", "sea"],
   ["belgium", "north-atlantic", "sea"],
   ["netherlands", "north-atlantic", "sea"],
+  ["hanover", "north-atlantic", "sea"],
   ["sinai", "indian-ocean", "sea"],
   ["cameroon", "south-atlantic", "sea"],
 ];

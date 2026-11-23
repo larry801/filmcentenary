@@ -260,6 +260,7 @@ import {
   applyFrancoPrussianConcession,
   francoPrussianPrepRule,
   hasFrancoPrussianWar,
+  openGwBuildPointDecision,
   pendingGoalChoice,
   resolveGoalChoice,
   resolveStartingGoal,
@@ -295,6 +296,7 @@ import {
   activateGwExhaustion,
   advanceGwImpulse,
   beginGwNeutralImpulses,
+  beginGwTurn,
   resolveGwBonusImpulse,
   enterGwAlly,
   faceupCombatCards,
@@ -6208,31 +6210,30 @@ export const openSetupDecisions = (G: ImperialElegyState, ctx: Ctx): boolean => 
     return true;
   }
   // ----------------------------------------------------- alternate GW build points
-  for (const power of POWERS) {
-    if (buildPointsRemaining(G, power) <= 0) continue;
-    openDecision(G, setupCtx(ctx), decision(
-      "gwBuildPoint",
-      power,
-      `Spend a build point (${buildPointsRemaining(G, power)} left) on stability or industry`,
-      [
-        option("stability", "Increase stability by 1", undefined, false, "稳定度 +1"),
-        option("industry", "Increase industry by 1", undefined, false, "工业 +1"),
-      ],
-      undefined,
-      undefined,
-      `花费 1 个建设点（剩余 ${buildPointsRemaining(G, power)}）提升稳定或工业`,
-    ));
-    return true;
-  }
+  if (openGwBuildPointDecision(G, setupCtx(ctx))) return true;
   return false;
 };
 
 /** Setup decisions run from the prep phase, where `setActivePlayers` is legal. */
 const setupCtx = (ctx: Ctx): Ctx => ctx;
 
-/** Resume the opening decision sequence, then fall through to the prep phase. */
+/**
+ * Resume the opening decision sequence, then fall through to the phase that
+ * follows it.
+ *
+ * A campaign/short scenario falls through to the prep phase that its seat moves
+ * drive.  An alternate-GW scenario opens in `gwPlanning` with no prep phase at
+ * all: once its last build point has been spent, begin the Great War turn (the
+ * phase `onBegin` hook deliberately leaves the turn un-begun while a setup
+ * decision is open, so budgets are not calculated before the boosts).
+ */
 const continueSetupDecisions = (G: ImperialElegyState, ctx: Ctx): void => {
   if (openSetupDecisions(G, ctx)) return;
+  if (G.flags.gwSetupPending === true) {
+    delete G.flags.gwSetupPending;
+    G.flags.setupDecisionsDone = true;
+    if (G.phase === "gwPlanning") beginGwTurn(G, ctx);
+  }
 };
 
 /**

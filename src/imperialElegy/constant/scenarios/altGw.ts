@@ -114,6 +114,10 @@ const ALT_GW_1: ScenarioDef = altScenario({
   diplomacy: [],
   influence: [],
   pacification: [],
+  // "AU: … Alliance with Papal States."  A printed ally marker is applied by
+  // the shared setup path (4.8 / 12.5.3); `special.altGw.minorAlliances` keeps
+  // the printed line beside it.
+  allyMarkers: [{power: "AU", minor: "Papal States", space: "rome"}],
   controlOverrides: [
     // "GE: Control all home spaces plus: Schleswig-Holstein, Hanover, and
     // Saxony."  Bavaria is deliberately NOT named and prints a Bavarian army of
@@ -266,7 +270,8 @@ const ALT_GW_1: ScenarioDef = altScenario({
     "OT: Control all home spaces except Serbia, Bosnia, Van and the three Egyptian spaces; plus Somalia and Kuwait.  Serbia controls Serbia and Bosnia.",
     "Suez Canal is complete.  Great Sand Sea and Sinai carry Egypt's IMP markers.",
     "Minor powers: Belgium 1 army; Netherlands 1 army; Denmark 1 army; Serbia 1 army in Serbia; Bavaria 1 army; Piedmont-Sardinia 1 army; Naples 1 reduced army; Egypt 1 army; Greece 1 army; Persia 1 army; Romania 1 army; Ethiopia 1 army (these count as Rebels); Mexico under US control; Japan 1 army and 2 squadrons.",
-    "A player's printed unit inventory is in `special.altGw.units`; the printed step 5 makes its positions a secret player choice, so `units` holds no player rows and `engine/scenario.ts#placeAltGwInventory` places them deterministically at the capital and the power's controlled home keys, at most two armies per space (the printed setup stack limit).",
+    "A player's printed unit inventory is in `special.altGw.units`; the printed step 5 makes its positions a secret player choice, so `units` holds no player rows and `engine/scenario.ts#placeAltGwInventory` places them deterministically at the capital and the power's controlled home keys, at most two armies per space and within the normal stacking/port limits (the printed setup stack limit).",
+    "Printed step 3 (taking the listed uncontrolled keys in turn order, UK two per placement, LoC required) is applied by `engine/scenario.ts#applyAltGwUncontrolledSpaces` as the deterministic legal default; printed step 4 then derives manpower from the final control markers.  Step 2's build points are real decisions: they are offered from the opening Great War planning step and each one raises stability or industry by one.",
     "The inventories count counter types this per-kind field cannot split: the UK row is \"1 British, 3 Indian, 3 EFs, 5 squadrons and 4 dreadnoughts\" (the 3 Indian armies are recorded as plain armies), FR's \"3 EFs (including the Zouaves)\" is 3 expeditionary rows with no Zouave marker, and OT's \"3 Turkish armies, 1 Arab army\" is two army rows with no Arab marker.",
     "Minor powers' control markers that no player list names (Serbia, Bosnia, the three Egyptian spaces, Mexico) are in `controlOverrides` and mirrored in `special.altGw.minorControl`.",
     "Power Projection is not printed for the alternate setups; the engine derives it from port control and naval units at the first end phase.",
@@ -312,7 +317,9 @@ const ALT_GW_2: ScenarioDef = altScenario({
     {owner: "Poland", kind: "army", space: "poland", steps: 2},
     {owner: "Poland", kind: "army", space: "poland", steps: 2},
     {owner: "Poland", kind: "army", space: "west-ukraine", steps: 2},
-    {owner: "Poland", kind: "reserveArmy", space: null, steps: 2},
+    // 22.5(1): the Polish reserve counter waits in the Polish reserve armies
+    // holding box at its printed reduced strength.
+    {owner: "Poland", kind: "reserveArmy", space: null, steps: 1},
     // "Japan: 1 army, 2 squadrons, control marker in Korea"
     minorArmy("Japan", "japan"),
     {owner: "Japan", kind: "squadron", space: "japan", steps: 2},
@@ -322,6 +329,9 @@ const ALT_GW_2: ScenarioDef = altScenario({
   diplomacy: [],
   influence: [],
   pacification: [],
+  // "Independent Poland … Poland begins the scenario at war and allied with
+  // AU."  The alliance is a printed ally marker in Poland's space.
+  allyMarkers: [{power: "AU", minor: "Poland", space: "poland"}],
   controlOverrides: [
     // "GE: Control all home German Unification Spaces."  Those are the map's
     // Germany-flashpoint spaces: Hanover, Saxony, Bavaria, Silesia and
@@ -506,7 +516,7 @@ const ALT_GW_2: ScenarioDef = altScenario({
     "Italy: Unified.  Control all Italian Unification spaces plus Libya, Benghazi and Cyprus; 3 armies, 2 reserve armies, 1 EF, 3 squadrons and 1 dreadnought.",
     "Minor powers: Netherlands 1 army; Denmark 1 army; Serbia 1 army; Bulgaria 1 army; Greece 1 army; Persia 1 army; Romania 1 army; Poland 2 armies in Poland, 1 in Western Ukraine and 1 reserve army; Japan 1 army, 2 squadrons and a control marker in Korea.",
     "A player's printed unit inventory is in `special.altGw.units`; the printed step 5 makes its positions a secret player choice, so `units` holds no player rows and `engine/scenario.ts#placeAltGwInventory` places them deterministically at the capital and the power's controlled home keys, at most two armies per space.",
-    "Italy (a non-player power) prints its own inventory, carried under the `Italy` key of `special.altGw.units`.  `engine/setup.ts` only places inventories for the six player powers (`POWERS`), so Italy's printed units are data only and are not placed on the board by the current engine.",
+    "Italy (a non-player power) prints its own inventory, carried under the `Italy` key of `special.altGw.units`.  `engine/setup.ts` places it through the 22.4 Italian deployment order (Rome/frontier armies, Naples or Piedmont fleet) and marks Italy `italyUnified` at runtime.",
     "`startingWars` records Poland at war: the page does not name the attacker, so RU (the Triple Alliance neighbour that gives up Poland, Western Ukraine and Belorussia) is recorded, with Poland's printed AU ally.",
     "The inventories count counter types this per-kind field cannot split: the UK's \"1 British, 3 Indian\" and OT's \"3 Turkish armies, 1 Arab army\" are recorded as plain army rows, and FR's \"3 EFs (including the Zouaves)\" as 3 expeditionary rows.",
     "There is no \"Bavaria\" or \"Hanover\"/\"Saxony\" minor army in this setup: those spaces are German unification spaces under GE control.",
@@ -713,7 +723,7 @@ const ALT_GW_3: ScenarioDef = altScenario({
     "Italy: Unified.  Control all Italian Unification spaces except Lombardy (which is Austrian); 3 armies, 2 reserve armies, 1 EF, 3 squadrons and 1 dreadnought.",
     "Minor powers: Netherlands 1 army; Belgium 1 army; Denmark 1 army; Serbia 2 armies controlling Serbia and Bosnia; Bulgaria 2 armies controlling Bulgaria and Macedonia; Greece 1 army; Persia 1 army; Romania 1 army; Japan 1 army and 2 squadrons.",
     "A player's printed unit inventory is in `special.altGw.units` (Italy's included, under the \"Italy\" key); the printed step 5 makes its positions a secret player choice, so `units` holds no player rows and `engine/scenario.ts#placeAltGwInventory` places them deterministically at the capital and the power's controlled home keys, at most two armies per space.",
-    "Italy (a non-player power) prints its own inventory under the `Italy` key of `special.altGw.units`; `engine/setup.ts` only places inventories for the six player powers (`POWERS`), so Italy's printed units are data only and are not placed on the board by the current engine.",
+    "Italy (a non-player power) prints its own inventory under the `Italy` key of `special.altGw.units`; `engine/setup.ts` places it through the 22.4 Italian deployment order and marks Italy `italyUnified` at runtime.",
     "The inventories count counter types this per-kind field cannot split: the UK's \"1 British, 4 Indian\" and OT's \"3 Turkish armies, 1 Arab army\" are recorded as plain army rows, and FR's \"3 EFs (including the Zouaves)\" as 3 expeditionary rows.",
     "This setup prints no IMP markers, so no minor power is independent at the start (the three Egyptian spaces are British).",
     "Power Projection is not printed for the alternate setups; the engine derives it from the board.",

@@ -24,6 +24,8 @@ import {GOALS_BY_ID, goalsForPower} from "../constant/goals";
 import {log, recomputeTracks, setSpaceControl} from "./rules";
 import {shuffle, drawCards} from "./deck";
 import {displaceUnitToFriendlyLoc, placeUnit, removeUnit} from "./effects";
+import {decision, openDecision, option} from "./pending";
+import {buildPointsRemaining} from "./scenario";
 
 /** The scenario's printed goal-deck edits, applied while the decks are built. */
 export const applyGoalDeckEdits = (G: ImperialElegyState, def: ScenarioDef, ctx: Ctx): void => {
@@ -316,6 +318,37 @@ export const spendBuildPoint = (
   else G.powers[power].industry += 1;
   log(G, power, "gwBuildPointSpent", {field, remaining: remaining - 1});
   return true;
+};
+
+/**
+ * Open the next alternate-GW build-point decision, if any power has points left.
+ *
+ * Playbook p. 8 setup step 2: "Players can spend build points to increase their
+ * industry and stability, each build point increases either industry and
+ * stability by one."  A scenario that opens directly in the Great War has no
+ * prep phase to carry the setup decisions, so `engine/setup.ts` opens the first
+ * one while the state is being built and each answer opens the next; the
+ * planning step begins only once every point has been spent.
+ */
+export const openGwBuildPointDecision = (G: ImperialElegyState, ctx?: Ctx): boolean => {
+  for (const power of POWERS) {
+    const remaining = buildPointsRemaining(G, power);
+    if (remaining <= 0) continue;
+    openDecision(G, ctx, decision(
+      "gwBuildPoint",
+      power,
+      `Spend a build point (${remaining} left) on stability or industry`,
+      [
+        option("stability", "Increase stability by 1", undefined, false, "稳定度 +1"),
+        option("industry", "Increase industry by 1", undefined, false, "工业 +1"),
+      ],
+      undefined,
+      undefined,
+      `花费 1 个建设点（剩余 ${remaining}）提升稳定或工业`,
+    ));
+    return true;
+  }
+  return false;
 };
 
 /** The spaces a scenario hands to a minor power's control (IMP markers). */
