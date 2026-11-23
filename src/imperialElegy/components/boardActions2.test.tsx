@@ -196,7 +196,9 @@ describe("19.10 amphibious assault control", () => {
     clearArmies(G, "UK");
     // Earlier North Atlantic ports are friendly, so Brittany is the default
     // enemy target for the selector.
-    for (const id of ["the-south", "mexico", "belgium", "netherlands"]) G.spaces[id].control = "UK";
+    // Hanover prints a North Sea anchor, so it is a port too; hold it friendly
+    // so Brittany stays the first enemy target for the selector.
+    for (const id of ["the-south", "mexico", "belgium", "netherlands", "hanover"]) G.spaces[id].control = "UK";
     return G;
   };
 

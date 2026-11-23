@@ -224,6 +224,33 @@ players lose." 由既有的 `endGreatWar` 处理。
 
 ---
 
+## 3.7 Great War 剧本核查修复 / Great-War scenario audit fixes (2026-11-23)
+
+对 `IE_playbook.pdf` pp. 7–10 与 `IE_rule.pdf` 24.0–32.6 逐条复核后修复：
+
+| 问题 | 印刷依据 | 修复 |
+| --- | --- | --- |
+| GW 剧本在真实对局中从未进入大战：boardgame.io 固定从 `prep` 开始，`prepBegin` 又把 `G.phase` 写回 `prep`，GW 规划步骤从未执行（预算是 0、没有 GW 手牌） | p. 7 "Start this scenario with the Maneuver Step of GW turn 0" | `game.ts#prepBegin` 检测到 GW 剧本后直接交给 `gwPlanning`（`beginGwTurn` 只在开局 build-point 决策全部答完后执行） |
+| `Hanover` 不是港口，印刷的 "3 dreadnoughts, 1 squadron" 无法出港 | 3.2.7 锚标；p. 7 Hanover 舰队 | `spaces.ts` 给 Hanover `ports: ["north-atlantic"]` 与海路连接 |
+| 历史大战的 Alsace-Lorraine 是法国控制，却放了 GE 军和 2 级要塞 | p. 7 GE "Alsace Lorraine: 1 army, level 2 fort"，FR 列表不含该地 | `gwTutorial.ts` 增加 GE 控制标记 |
+| 架空大战 3（GE 中立）先手顺序错成 FR 的同盟 | 25.7 "If the GE player is neutral the alliance with the UK always goes first" | `greatWar.ts#beginScenarioGw` 按 25.7 选先手同盟，并按 25.7.1 放置 bonus 槽 |
+| 架空大战 build point 决策永远不会出现（只挂在 `finishPrep` 上，而 GW 剧本没有 prep 阶段） | p. 8 步骤 2 | 开局即开 `gwBuildPoint` 决策，逐点打开，最后一点答完后才开始 `beginGwTurn`（预算按提升后的工业计算） |
+| 步骤 3 "取得无人关键区"、步骤 4 "按关键区设置人力" 未实现 | p. 8 步骤 3–4 | `scenario.ts#applyAltGwUncontrolledSpaces` 按 GW 顺序/英国每次 2 个/LoC 作出确定性合法默认；随后 `recomputeTracks` 从最终棋盘导出人力与关键区 |
+| 架空大战 2/3 的意大利单位被丢到 Aden/Afghanistan 等无人区（`placeAltGwInventory` 以 `power=null` 调用时把所有 `home===null` 的无人区当成"本土"） | p. 9–10 "Italy: Unified … Units: …" | 意大利按 22.4 部署顺序落位（罗马/边境陆军、那不勒斯或皮埃蒙特舰队），并在运行时写入 `italyUnified` |
+| 海军/陆军落位违反 4 条印刷上限：港口容量 4、每空间 2 个 setup 陆军、每玩家每 submap 最多 2 个海军 | p. 8 步骤 5 | `placeAltGwInventory` 重新实现：资本/本土关键区有序填充、遵守 `landStackingLimit`/`PORT_NAVAL_LIMIT`/每 submap 2 舰 |
+| 印刷的小国同盟（AU–Papal States、AU–Poland）与波黑/波兰战争状态未生效 | p. 8 "Alliance with Papal States"；p. 9 "Poland begins the scenario at war and allied with AU" | 数据改为 `allyMarkers`（既有 setup 路径），并记录 `startingWar:RU:Poland` |
+| 波兰 reserve army 成了无主计数器，不在 22.5(1) 的波兰预备军框 | p. 9 "1 reserve army"；22.5(1) | `setup.ts` 把它登记进 `G.nonPlayerBuildBox.poland.reserveArmies`，强度为 reduced |
+| 历史大战的 UK Rapid Deployment 被重复发放 | p. 7 "The setup takes into account … the UK Rapid Deployment national characteristic" | 该剧本发放后立即标记 `spent`；架空剧本页未提及，UK 保留免费行动 |
+| 架空剧本的胜利条件被 31.0 的中立 VP 比较覆盖 | p. 8 "the team that wins the GW wins the game, all other players lose" | `scenario.ts#altGwVictoryOnly`；`endGreatWar` 在该类剧本中不再让中立玩家抢走胜利 |
+| 25.6 的 EC 生成后不在任何 reserve 框（不可见、不可部署）；25.6.2 未清 pacification 标记 | 25.6 / 25.6.1 / 25.6.2 | EC 进入 reserve 列表（UK 依 25.6.1 attach 到地图上的一支陆军）；outbreak 的 National Will Step 结束时清空 pacification 与 GoE/Boers 标记 |
+
+**仍然存在（已记录，非本次修复）**
+
+1. GW 中没有两栖登陆：`amphibiousAssaultCheck` 只接受 action/wartime，GW 的陆战也要求陆地→陆地，因此 p. 7 的英国两栖限制规则无法触发。这是 15.2.1/19.10 在 GW 下的整体缺口。
+2. 25.5 的 NG 补抽仍是确定性选择（保留最高印刷 VP），25.6 的 track boost 仍是固定顺序——两者都需要可中断的 Outbreak 决策。
+3. 25.7 的"同盟自行决定顺序"仍未提供选择界面；剧本先手按印刷顺序/25.7 默认值。
+4. 2.2.2 的"赢得 GW 的同盟获得 4 − GW 回合数的奖励 VP"未计入战役 GW 的最终比分。
+
 ## 4. 已知边界 / Known boundaries
 
 这些是**记录在案的印刷边界**，不是未实现的机制：

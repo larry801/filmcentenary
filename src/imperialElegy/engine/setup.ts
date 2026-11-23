@@ -21,6 +21,7 @@ import {
   log,
   cardsToDraw,
   isAloneSensitiveKind,
+  recomputeTracks,
   SETUP_PLACEMENT_FLAG,
 } from "./rules";
 import {ensureStateDefaults} from "./migrations";
@@ -34,11 +35,12 @@ import {
 } from "../configuration";
 import {initialNonPlayerBuildBox} from "./endPhase";
 import {
+  applyAltGwUncontrolledSpaces,
   buildPointsFor,
   initialBuildPoints,
   placeAltGwInventory,
 } from "./scenario";
-import {applyGoalDeckEdits, applyIndependentMinorMarkers} from "./scenarioSetup";
+import {applyGoalDeckEdits, applyIndependentMinorMarkers, openGwBuildPointDecision} from "./scenarioSetup";
 
 const newUnit = (
   G: ImperialElegyState,
@@ -232,6 +234,17 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   // ---------------------------------------------------------------- build box
   G.nonPlayerBuildBox = initialNonPlayerBuildBox();
   G.nonPlayerBuildBox.minors = [...def.buildBox];
+  // 22.5(1): an independent Poland's 4th/5th armies are *reserve* army counters
+  // and belong in the Polish reserve armies holding box (3.8).  A scenario that
+  // prints one (Independent Poland, playbook p. 9: "1 reserve army") registers
+  // it here; a space-less reserve counter owned by a non-player power has no
+  // player reserve box to go to.
+  for (const unit of Object.values(G.units)) {
+    if (unit.space !== null && unit.space !== undefined) continue;
+    if (unit.owner !== "Poland" || unit.kind !== "reserveArmy") continue;
+    const polish = (G.nonPlayerBuildBox.poland ??= {reserveArmies: []});
+    if (!polish.reserveArmies.includes(unit.id)) polish.reserveArmies.push(unit.id);
+  }
 
   // ---------------------------------------------------------------- decks
   for (const card of CARDS.home) {
@@ -333,13 +346,41 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
     // inventory is placed through the same helper with the "IT" owner.
     const italianInventory = def.special.altGw.units?.Italy;
     if (italianInventory !== undefined && def.italy?.unified === true) {
-      const placed = placeAltGwInventory(G, "IT", italianInventory, null);
+      const placed = placeAltGwInventory(G, "IT", italianInventory);
       log(G, undefined, "altGwUnitsPlaced", {count: placed.length, power: "IT"});
+    }
+    // Step 3 of the printed procedure: "Taking Control of Uncontrolled
+    // Spaces" (in turn order, UK 2 per placement, LoC required).  The printed
+    // spaces are a player choice, so the deterministic legal default is
+    // applied here before step 4 sets manpower.
+    const claimed = applyAltGwUncontrolledSpaces(G, def);
+    if (claimed > 0) log(G, undefined, "altGwUncontrolledKeys", {count: claimed});
+    // Step 4: "Set manpower for each player based on how many keys they
+    // control."  The track recomputation is the single board-reading step, so
+    // the printed setup's control markers decide the starting manpower.
+    recomputeTracks(G);
+    // "Poland begins the scenario at war and allied with AU."  The alliance is
+    // the printed ally marker in the scenario data; during the Great War being
+    // on AU's side against RU already makes Poland a belligerent, so the
+    // printed war is recorded on the ledger rather than as a separate limited
+    // war (the GW supersedes limited wars for alliance purposes).
+    for (const war of def.special.altGw.startingWars ?? []) {
+      G.persistent[`startingWar:${war.attacker}:${war.defender}`] = true;
+      log(G, undefined, "scenarioStartingWar", {
+        attacker: war.attacker,
+        defender: war.defender,
+        minor: war.minorTarget?.minor ?? "",
+        ally: war.minorTarget?.ally ?? "",
+      });
     }
     for (const power of POWERS) {
       const points = buildPointsFor(def, power);
       if (points > 0) log(G, power, "buildPointsGranted", {points});
     }
+    // Step 2's spend choice: a Great-War scenario has no prep phase, so the
+    // first decision is opened here (the deciding seat answers it from the
+    // opening planning step) and each answer opens the next one.
+    if (openGwBuildPointDecision(G)) G.flags.gwSetupPending = true;
   }
 
   G.log.push({id: G.nextLogId++, turn: G.turn, phase: "prep", key: "campaignStarted", args: {}});

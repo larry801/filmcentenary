@@ -34,6 +34,7 @@ import {scoreGame, scoreGoals} from "./victory";
 import {drawBotGoals} from "./botGoals";
 import {grantRapidDeployment, placeNonPlayerCounter, placeUnit, removeUnit} from "./effects";
 import {resolveGwNeutralOption, resolveGwWinter, resolveItalyAtOutbreak, redeployItaly} from "./greatWarFlow";
+import {altGwVictoryOnly} from "./scenario";
 import {usNorthAtlanticCheck} from "./gwMajors";
 import {recordWarKnockoutCapture} from "./limitedWar";
 import {addItalyMpit, italyAllianceBox, italyAllianceSide, italyMpitOf, setItalyAllianceBox, shiftItalyToward} from "./italyEntry";
@@ -1024,7 +1025,24 @@ export const outbreakGreatWar = (
   let ukOutbreakArmies = 0;
   for (const p of POWERS) {
     const vp = G.powers[p].vp;
-    if (vp >= 3) placeUnit(G, p, "eliteCorps", null, 1);
+    if (vp >= 3) {
+      // 25.6: "ECs gained during this step are attached to (and likewise
+      // deployed with) reserve armies in players' reserve armies holding box."
+      // 25.6.1: "A UK EC gained during the national will step is attached to an
+      // on-map army of their choice."  A space-less counter is invisible and
+      // undeployable, so the EC joins the reserve list (or, for the UK, the
+      // first on-map army).
+      const army = p === "UK"
+        ? Object.values(G.units).find(
+          (unit) => unit.owner === "UK" && isArmyKind(unit.kind) && unit.space !== null && unit.space !== undefined,
+        )
+        : undefined;
+      const ec = army !== undefined && army.space !== null && army.space !== undefined
+        ? placeUnit(G, p, "eliteCorps", army.space, 1, {attachedTo: army.id})
+        : placeUnit(G, p, "eliteCorps", null, 1);
+      if (ec.space === null || ec.space === undefined) G.powers[p].reserves.push(ec.id);
+      log(G, p, "nationalWillEc", {space: ec.space ?? null});
+    }
     if (vp >= 5) ukOutbreakArmies += boostTrack(G, p, 1, ctx);
     if (vp >= 7) ukOutbreakArmies += boostTrack(G, p, 1, ctx);
     if (vp >= 9) ukOutbreakArmies += boostTrack(G, p, 1, ctx);
@@ -1047,6 +1065,16 @@ export const outbreakGreatWar = (
   // 25.3: Italy enters at the outbreak before 25.4 — a major that enters at 0
   // stability gains 1.
   if (G.gw.italyIn && G.gw.italyStability <= 0) G.gw.italyStability = 1;
+  // 25.6.2: "At the end of the National Will Step players remove all
+  // pacification markers from the board.  They will no longer be needed for the
+  // rest of the game."
+  for (const space of Object.values(G.spaces)) {
+    space.pacification = 0;
+    space.pacificationMarker = false;
+  }
+  delete G.persistent.goe;
+  delete G.persistent.boers;
+  log(G, undefined, "pacificationRemoved", {});
   // 25.7: GE's alliance first; if neutral, use UK, FR, AU, then RU.
   const geSide = POWERS.map((power) => sideOf(G, power)).find((side) => side !== null) ?? "ta";
   const first = geSide === "te" ? te : ta;
@@ -1929,6 +1957,14 @@ export const beginScenarioGw = (G: ImperialElegyState, def: ScenarioDef): void =
     else if (ta.includes(power)) G.powers[power].alliance = "taCommitted";
     else G.powers[power].alliance = "neutral";
   }
+  // 22.2 / 30.2 / 32.2: a scenario that prints "Italy: Unified" has the
+  // Kingdom of Italy on the map with its own units and display tracks.  Only the
+  // campaign's `unifyItaly` wrote the runtime flag, so a scenario setup left
+  // Italy looking un-unified to every reader (panel hidden, no surrender rules).
+  if (def.italy?.unified === true) {
+    G.persistent.italyUnified = true;
+    G.flags.italyUnified = true;
+  }
   const italyChit = italyAllianceBox(G);
   G.gw = {
     active: true,
@@ -1988,24 +2024,46 @@ export const beginScenarioGw = (G: ImperialElegyState, def: ScenarioDef): void =
   G.flags.gwOutbreakItalyResolved = true;
   // 33.6 Jihad: the Ottomans gain 3 Jihad markers at the start of the GW.
   G.powers.OT.jihad = (G.powers.OT.jihad ?? 0) + 3;
-  // 25.7: an alternate setup prints no order; use the printed rule (GE's
-  // alliance first, alternating) so the scenario is playable.
+  // 25.7: an alternate setup prints no order; build one with the printed rule.
+  // "the alliance with the GE player always goes first"; "If the GE player is
+  // neutral the alliance with the UK always goes first, then the alliance with
+  // FR, then AU, and then RU."  The alliances then alternate impulses, and
+  // 25.7.1 puts the outnumbered alliance's bonus chit in the slot before the
+  // larger alliance's last entry (the printed example:
+  // "Triple Alliance player 1, Entente player 1, Triple Alliance player 2,
+  //  Entente player 2, Triple Alliance bonus impulse, Entente player 3").
   if (G.gw.order.length === 0) {
-    const geSide = ta.includes("GE") ? "ta" : te.includes("GE") ? "te" : null;
-    const first = geSide === "ta" ? ta : te;
-    const second = geSide === "ta" ? te : ta;
+    const sideOf = (power: Power): "te" | "ta" | null =>
+      te.includes(power) ? "te" : ta.includes(power) ? "ta" : null;
+    const firstSide = sideOf("GE") ?? sideOf("UK") ?? sideOf("FR") ?? sideOf("AU") ?? sideOf("RU") ?? "te";
+    const first = firstSide === "te" ? te : ta;
+    const second = firstSide === "te" ? ta : te;
     const order: (Power | "bonus")[] = [];
     const max = Math.max(first.length, second.length);
+    const bonusSide: "te" | "ta" | null =
+      first.length === second.length ? null : first.length < second.length ? firstSide : (firstSide === "te" ? "ta" : "te");
     for (let i = 0; i < max; i += 1) {
-      order.push(first[i] ?? "bonus");
-      order.push(second[i] ?? "bonus");
+      // Only the longer alliance still has an entry in the last slot; the
+      // outnumbered alliance's bonus chit goes just before it.
+      if (i === max - 1 && bonusSide !== null) order.push("bonus");
+      if (first[i] !== undefined) order.push(first[i]);
+      if (second[i] !== undefined) order.push(second[i]);
     }
     G.gw.order = order;
-    G.gw.bonusImpulseSide =
-      first.length === second.length ? null : first.length < second.length ? geSide : geSide === "te" ? "ta" : "te";
+    G.gw.bonusImpulseSide = bonusSide;
   }
-  // 33.2 Rapid Deployment: the UK entered the GW as a belligerent.
-  if (G.gw.belligerents.includes("UK")) grantRapidDeployment(G, "gw");
+  // 33.2 Rapid Deployment: the UK entered the GW as a belligerent.  The
+  // historical tutorial's print says its setup already "takes into account …
+  // the UK Rapid Deployment national characteristic", so that grant is recorded
+  // as spent instead of handing the UK a second free move; the alternate pages
+  // are silent, so their UK keeps the printed free action.
+  if (G.gw.belligerents.includes("UK")) {
+    grantRapidDeployment(G, "gw");
+    const grant = G.powers.UK.rapidDeployment;
+    if (tutorial !== undefined && grant !== null && grant !== undefined) {
+      G.powers.UK.rapidDeployment = {...grant, spent: true};
+    }
+  }
   log(G, undefined, "greatWarOutbreak", {
     incident: def.name,
     te: te.join(","),
@@ -2072,7 +2130,11 @@ export const endGreatWar = (
     // If there are neutral players compare the best victor with the best neutral.
     const neutrals = G.gw.neutrals.filter((p) => !G.powers[p].eliminated);
     let finalWinners = winners;
-    if (neutrals.length > 0) {
+    // The alternate GW pages print "the team that wins the GW wins the game,
+    // all other players lose", so their neutral players never take the game
+    // from the winning alliance (2.2.2's/31.0's neutral comparison is the
+    // campaign rule).
+    if (neutrals.length > 0 && !altGwVictoryOnly(G)) {
       const bestVictor = Math.max(...winners.map((p) => scores[p] ?? 0));
       const bestNeutral = Math.max(...neutrals.map((p) => scores[p] ?? 0));
       if (bestNeutral > bestVictor) finalWinners = neutrals.filter((p) => scores[p] === bestNeutral);

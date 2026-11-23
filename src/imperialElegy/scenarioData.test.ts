@@ -655,6 +655,14 @@ test("the unified Italy's alternate-GW inventory is placed", () => {
     expect(italian.length).toBeGreaterThanOrEqual(printed);
     // Italy's own armies are the Italian counter, not a generic army.
     expect(italian.filter((unit) => unit.kind === "italianArmy").length).toBe(3);
+    // The counters stand on Italian soil (22.4: Rome/frontier armies, the
+    // fleet in Naples/Piedmont), never in an uncontrolled foreign space.
+    const italianSpaces = new Set(["rome", "piedmont", "lombardy", "tuscany", "naples"]);
+    for (const unit of italian) {
+      if (unit.space === null || unit.space === undefined) continue;
+      expect(italianSpaces.has(unit.space)).toBe(true);
+    }
+    expect(G.persistent.italyUnified).toBe(true);
   }
 });
 

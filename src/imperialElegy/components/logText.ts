@@ -3318,6 +3318,61 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `receives ${points} build points.`, `获得 ${points} 点建设点。`);
   },
 
+  altGwUncontrolledKeys: (entry, locale) => {
+    const count = num(entry.args?.count);
+    return text(
+      locale,
+      `Alternate setup: ${count} printed uncontrolled keys were claimed.`,
+      `架空剧本开局：取得了 ${count} 个印刷的无人关键区。`,
+    );
+  },
+
+  gwSetupControl: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `took control of ${space} during setup.`, `开局时取得 ${space} 的控制权。`);
+  },
+
+  gwSetupControlShortfall: (entry, locale) => {
+    const region = str(entry.args?.region);
+    const missing = num(entry.args?.missing);
+    const label = region === "africa" ? text(locale, "Africa", "非洲") : text(locale, "Asia", "亚洲");
+    return withActor(
+      entry,
+      locale,
+      `could not trace a LoC to ${missing} more key(s) in ${label}.`,
+      `在${label}还有 ${missing} 个关键区无法建立补给线。`,
+    );
+  },
+
+  scenarioStartingWar: (entry, locale) => {
+    const attacker = powerLabel(entry.args?.attacker, locale);
+    const defender = powerLabel(entry.args?.defender, locale);
+    const ally = str(entry.args?.ally);
+    if (ally === "") {
+      return text(locale, `${attacker} starts at war with ${defender}.`, `${attacker}开局即与${defender}交战。`);
+    }
+    const allyName = powerLabel(ally, locale);
+    return text(
+      locale,
+      `${attacker} starts at war with ${defender} (allied to ${allyName}).`,
+      `${attacker}开局即与${defender}交战（后者与${allyName}结盟）。`,
+    );
+  },
+
+  nationalWillEc: (entry, locale) => {
+    const space = str(entry.args?.space);
+    if (space === "") return withActor(entry, locale, `gained an Elite Corps from the National Will Step.`, `在全国意志阶段获得 1 个精锐军。`);
+    return withActor(
+      entry,
+      locale,
+      `gained an Elite Corps attached to ${spaceName(space, locale)}.`,
+      `获得 1 个精锐军，附着于 ${spaceName(space, locale)}。`,
+    );
+  },
+
+  pacificationRemoved: (_entry, locale) =>
+    text(locale, "The National Will Step removes all pacification markers.", "全国意志阶段结束：移除全部镇压标记。"),
+
   goalDrawn: (entry, locale) => {
     const count = num(entry.args?.count);
     const kept = str(entry.args?.kept);

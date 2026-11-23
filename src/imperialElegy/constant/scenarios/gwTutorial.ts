@@ -308,6 +308,12 @@ export const GW_TUTORIAL_SCENARIO: ScenarioDef = {
     {space: "saxony", control: "GE"},
     {space: "bavaria", control: "GE"},
     {space: "schleswig-holstein", control: "GE"},
+    // "Alsace Lorraine: 1 army, level 2 fort" — the German-held province in
+    // 1914.  The FR list names only Champagne, Burgundy, Paris, Provence,
+    // Algeria, West Congo and West Africa, and prints no Alsace-Lorraine
+    // marker, so the space carries the German control marker (it is a FR home
+    // space on the map, which is why the override is required).
+    {space: "alsace-lorraine", control: "GE"},
     {space: "caroline-islands", control: "GE"},
     {space: "new-guinea", control: "GE"},
     // "Cameroon: 1 EF, control marker" / "East Africa: … control marker" /
@@ -446,7 +452,8 @@ export const GW_TUTORIAL_SCENARIO: ScenarioDef = {
     "The page prints no territorial/colonial key totals for any power (it prints stability, industry and manpower only), so `powers[]` omits the key tracks; `recomputeTracks` derives them from the control markers.",
     "printed space not on the map: Fiji — the UK list prints \"Other control markers: Cyprus, Fiji, Balochistan, Oman, Aden, Kuwait, Great Sand Sea, Sinai, Shanghai, Shandong Peninsula\", and this map has no Fiji space.  The other nine markers are in `controlOverrides`.",
     "printed space not on the map: \"Mediterranean\" — the UK line \"Mediterranean: 1 dreadnought, 1 squadron\" names no box on this map (there is a Western and an Eastern Mediterranean Box).  The Western Mediterranean Box is used: it is Malta's box, where the campaign setup already puts the UK squadron.",
-    "Hanover is printed with \"3 dreadnoughts, 1 squadron\" but Hanover is a land key with no port in `constant/spaces.ts`; the naval units are transcribed where the page places them.",
+    "Hanover prints a North Sea anchor on the map (3.2.7), so it is a port in `constant/spaces.ts`; the printed \"3 dreadnoughts, 1 squadron\" are placed there and the fleet can sortie.",
+    "Alsace-Lorraine is German in this 1914 setup: the page prints a GE army and a level 2 fort there while FR's own list omits the space, so it carries the GE control marker (it remains a FR home space on the map).",
     "The printed \"Belgium: 1 army, control marker in Congo\" is read as: 1 Belgian army in Belgium (its home key) and the Belgian control marker in the Congo.  The map has two Congo spaces; Central Congo is the Belgian one on this map, so the marker is placed there and the army stays in Belgium.",
     "Serbia, Bulgaria and Romania print as minor powers with their own armies (\"Serbia: 2 armies\", \"Bulgaria: 2 armies\", \"Romania: 2 armies\"), so their control markers are overridden from the map's Ottoman defaults to the minors themselves.  \"Macedonia: Greek control\" is transcribed to Greece.",
     "The German unification spaces (Hanover, Saxony, Bavaria) and Schleswig-Holstein are German in this setup and are listed as GE control markers even though the map's defaults are the German minors and Denmark; Germany is therefore unified (`powers.GE.unified: true`), which its printed 4+ dreadnoughts also require (rule 4.2's pre-unification 2/2 naval limit).",

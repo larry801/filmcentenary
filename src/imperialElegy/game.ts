@@ -230,6 +230,21 @@ const prepBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   // A save resumed mid-match never runs `setup`, so the earliest live hook is
   // also the first point where an old save (or a partial fixture) is migrated.
   ensureStateDefaults(G);
+  // boardgame.io always starts the static `start: true` phase (`prep`), so a
+  // scenario that opens with the Great War already in progress ("start this
+  // scenario with the Maneuver Step of GW turn 0") hands over to the GW
+  // planning step from here.  `setup.ts` already built `G.gw`; the scene's
+  // opening build-point decisions run before `beginGwTurn`, so the planning
+  // step begins only once they are answered (moves.ts#continueSetupDecisions).
+  if (startingGwTurn(G) !== null) {
+    G.phase = "gwPlanning";
+    if (G.pending === null && G.flags.gwSetupPending !== true) {
+      const res = beginGwTurn(G, {...ctx, events: undefined} as Ctx);
+      if (!res.ok) G.phase = "gwPlanning";
+    }
+    ctx.events?.setPhase?.("gwPlanning");
+    return;
+  }
   G.phase = "prep";
   G.activePower = "GE";
   G.passed = [];
@@ -336,6 +351,14 @@ const wartimeBegin = (G: ImperialElegyState, ctx: Ctx): void => {
 };
 
 const gwPlanningBegin = (G: ImperialElegyState, ctx: Ctx): void => {
+  // An alternate-GW scenario's opening build-point decisions are answered from
+  // this phase.  Budgets are industry-derived, so the turn must not be begun
+  // before those boosts are in place; the last answer starts it
+  // (moves.ts#continueSetupDecisions).
+  if (G.flags.gwSetupPending === true) {
+    G.phase = "gwPlanning";
+    return;
+  }
   // beginGwTurn is safe to re-run: held cards are kept, missing cards dealt and
   // budgets/flags are recalculated.  Re-entering the phase is therefore
   // idempotent.

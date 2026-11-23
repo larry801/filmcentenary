@@ -851,6 +851,36 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
     white-peace order are live; arbitrary neutral-minor beneficiaries remain a
     gap.
 
+### 2026-11-23 scenario-start audit
+
+- **GW scenarios now actually start in the Great War.** boardgame.io always
+  enters the static `prep` phase, and `prepBegin` used to write `G.phase = "prep"`
+  over the scenario's `gwPlanning`, so a live match never dealt GW cards, never
+  set budgets and could be driven through the campaign phases.  `prepBegin` now
+  hands a scenario that opens at GW turn 0 to `gwPlanning`, and `beginGwTurn`
+  runs once the scenario's opening setup decisions are answered.
+- **Alternate-GW step 2 build points are live decisions** (`gwBuildPoint`),
+  opened from the opening planning step instead of the unreachable `finishPrep`,
+  and budgets are computed after the boosts.
+- **Alternate-GW steps 3–4 are implemented**: `scenario.ts#applyAltGwUncontrolledSpaces`
+  takes the printed uncontrolled keys in GW turn order (UK two per placement)
+  with a LoC trace as the deterministic legal default, then `recomputeTracks`
+  derives manpower and the key tracks.
+- **Step 5 placement is legal**: `placeAltGwInventory` respects port capacity 4,
+  the normal stacking limit, the printed "2 armies per space" setup cap, "2
+  naval units per submap", and places a unified Italy via the 22.4 order.
+- **25.7 alternate order**: GE's alliance first, else the UK's (then FR/AU/RU),
+  with 25.7.1's bonus chit before the larger alliance's last slot; alt GW 3 now
+  starts `UK, FR, OT, RU`.
+- **25.6/25.6.1/25.6.2**: a National Will EC enters the reserve list (UK: attached
+  to an on-map army) instead of becoming an invisible space-less counter, and the
+  pacification markers are cleared at the end of the step.
+- **Scenario printed status is live**: a scenario with `italy.unified` writes
+  `persistent.italyUnified`; printed minor allies are `allyMarkers`; Poland's
+  reserve army is in its 22.5(1) box; the historical tutorial's Rapid Deployment
+  is recorded as already accounted for; the alternate pages' "the team that wins
+  the GW wins the game" is enforced by `altGwVictoryOnly`.
+
 ## 33 National characteristics
 
 All six displays’ characteristics are transcribed and shown. The

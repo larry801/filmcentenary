@@ -49,7 +49,7 @@ const findDef = (id: string) => CARD_DEFS.find((card) => card.id === id);
  * `stepBudget` is generous because the four-turn scenarios still take hundreds
  * of impulses (six seats, several phases and a war or Great War each).
  */
-const autoplay = async (id: ScenarioId, stepBudget: number) => {
+const autoplay = async (id: ScenarioId, stepBudget: number, stop?: (G: ImperialElegyState) => boolean) => {
   const def = SCENARIOS[id];
   // `Local()` creates the match on demand with `setupData: undefined`, so the
   // scenario travels in the game definition's own `setup` — the same technique
@@ -68,23 +68,28 @@ const autoplay = async (id: ScenarioId, stepBudget: number) => {
   }
 
   /** Send one move from a seat and wait for the master to apply it. */
-  const act = async (move: () => void) => {
+  const act = async (move: () => void): Promise<boolean> => {
     const before = stateIdOf(clients[0]);
     move();
     await settle(clients[0], before);
+    return stateIdOf(clients[0]) !== before;
   };
   const stateOf = (power: string): ImperialElegyState =>
     (clients[POWERS.indexOf(power as never)].getState()!.G as ImperialElegyState);
   const current = (): ImperialElegyState => clients[0].getState()!.G as ImperialElegyState;
 
   const phases: string[] = [];
+  const rounds = {maneuvers: 0, winters: 0};
   let lastPhase = "";
 
   for (let step = 0; step < stepBudget; step += 1) {
     const G = current();
     if (G.result) break;
+    if (stop !== undefined && stop(G)) break;
     if (G.phase !== lastPhase) {
       phases.push(`${G.turn}:${G.phase}`);
+      if (G.phase === "gwManeuver" || G.phase === "gwImpulse") rounds.maneuvers += 1;
+      if (G.phase === "gwWinter") rounds.winters += 1;
       lastPhase = G.phase;
     }
     // Every phase can suspend on a pending decision; answer it first, or the
@@ -190,6 +195,31 @@ const autoplay = async (id: ScenarioId, stepBudget: number) => {
       await act(() => clients[index].moves.passWarMove());
       continue;
     }
+    if (G.phase === "gwManeuver") {
+      // A scenario that opens inside the Great War reaches this phase on its
+      // first move, so the driver needs the maneuver step.  Drive it with the
+      // Rule 34 bot exactly as `campaign.test.ts` does: the scenario data's
+      // opening Great War is a full war, not a phase to skip.
+      const power = G.activePower;
+      const index = POWERS.indexOf(power);
+      const own = stateOf(power);
+      const seatCtx = clients[index].getState()!.ctx;
+      const {botMoveFor} = await import("./engine/bot");
+      const decision = botMoveFor(own, seatCtx, power);
+      const send = (clients[index].moves as unknown as Record<string, (...args: unknown[]) => void>)[decision.move];
+      let applied = await act(() => send(...(decision.args ?? [])));
+      // A bot priority that no longer fits the live position can be refused
+      // (for example a GW card event that is only playable in a battle).  The
+      // scenario driver only needs to prove the scenario is playable, so fall
+      // back to the printed "pass, or play the GW card for CP" options before
+      // reporting a stuck position.
+      if (!applied) applied = await act(() => clients[index].moves.gwPass());
+      if (!applied) applied = await act(() => clients[index].moves.playGwCardMove("cp"));
+      if (!applied) {
+        throw new Error(`${id}: no GW maneuver move was accepted (bot tried ${decision.move} ${JSON.stringify(decision.args)}) at GW turn ${G.gw?.turn} index ${G.turnIndex}`);
+      }
+      continue;
+    }
     if (G.phase === "gwPlanning") {
       await act(() => clients[0].moves.endGwPlanningMove());
       continue;
@@ -207,11 +237,19 @@ const autoplay = async (id: ScenarioId, stepBudget: number) => {
   }
 
   const finished = current();
-  return {G: finished, phases, lastTurn: def.lastTurn, firstTurn: def.firstTurn, steps: phases.length};
+  return {G: finished, phases, rounds, lastTurn: def.lastTurn, firstTurn: def.firstTurn, steps: phases.length};
 };
 
-/** Every scenario reaches a decisive result inside its own printed window. */
-describe.each(SCENARIO_IDS)("scenario autoplay — %s", (id) => {
+/**
+ * Every pre-war scenario reaches a decisive result inside its own printed
+ * window.  The Great-War scenarios open at GW turn 0 and finish only after a
+ * full six-turn war, which is covered by `campaign.test.ts`'s pinned full game;
+ * their own suite below proves the scenario starts, fights and survives its
+ * first winter.
+ */
+const PRE_WAR_SCENARIOS = SCENARIO_IDS.filter((id) => !id.startsWith("gwTutorial") && !id.startsWith("altGw"));
+
+describe.each(PRE_WAR_SCENARIOS)("scenario autoplay — %s", (id) => {
   const def = SCENARIOS[id];
   test("plays to a decisive result", async () => {
     const {G, phases} = await autoplay(id, 1_200);
@@ -234,5 +272,34 @@ describe.each(SCENARIO_IDS)("scenario autoplay — %s", (id) => {
     // A competitive scenario names winners; the tutorial deliberately names none.
     if (def.special.countVp) expect(G.result!.winners.length).toBeGreaterThan(0);
     else expect(G.result!.winners).toEqual([]);
+  });
+});
+
+/**
+ * A scenario that opens inside the Great War must actually enter the war's own
+ * sequence of play (boardgame.io otherwise starts the campaign `prep` phase
+ * and the war never begins), and it must survive a full GW turn: planning,
+ * maneuver with real battles, and the winter step.
+ */
+const GW_SCENARIOS = SCENARIO_IDS.filter((id) => id.startsWith("gwTutorial") || id.startsWith("altGw"));
+
+describe.each(GW_SCENARIOS)("GW scenario autoplay — %s", (id) => {
+  test("starts in the Great War and plays its first GW turn", async () => {
+    const {G, phases, rounds} = await autoplay(
+      id,
+      900,
+      (state) => state.gw?.active === true && state.gw.turn >= 1,
+    );
+    expect(phases[0]).toContain("gwPlanning");
+    // The opening planning step really began the war: the GW turn-0 budgets
+    // were set, the GW cards dealt and the printed order is standing.
+    expect(G.gw?.active).toBe(true);
+    expect(G.gw?.outbreakDone).toBe(true);
+    expect(G.gw?.nationalWillDone).toBe(true);
+    expect(G.gw?.order.length ?? 0).toBeGreaterThan(0);
+    expect(G.gw?.turn ?? 0).toBeGreaterThanOrEqual(1);
+    // At least one maneuver step and one winter step were visited.
+    expect(rounds.maneuvers).toBeGreaterThan(0);
+    expect(rounds.winters).toBeGreaterThan(0);
   });
 });
