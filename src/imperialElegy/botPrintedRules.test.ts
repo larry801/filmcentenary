@@ -8,6 +8,9 @@ import type {BattleState, ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
+import {pileHomeCard} from "./moves";
+import {createWarState} from "./engine/limitedWar";
+import {CARDS} from "./constant/cards.data";
 import {decision, openDecision, option} from "./engine/pending";
 import {botDecision, botPendingMove, withinDeclarationStrength} from "./engine/bot";
 
@@ -204,5 +207,63 @@ describe("34.4.4 ally calls and joins", () => {
       [option("aid", "Aid"), option("decline", "Decline")],
     ));
     expect(botPendingMove(G, "GE", makeCtx([1]))).toEqual({move: "resolvePending", args: ["aid"]});
+  });
+});
+
+describe("34.2 bot home-card pile", () => {
+  const diplomatic = (power: Power): ImperialElegyState => {
+    const G = fresh();
+    G.phase = "diplomacy";
+    G.activePower = power;
+    G.pending = null;
+    for (const p of POWERS) G.powers[p].flags.negotiationDone = true;
+    G.powers[power].hand = [];
+    G.powers[power].selectedHomeCard = null;
+    G.powers[power].flags.homeChosen = false;
+    return G;
+  };
+
+  test("every bot adds a random home card", () => {
+    const first = diplomatic("FR");
+    pileHomeCard(first, makeCtx([1], seat("FR")));
+    const second = diplomatic("FR");
+    pileHomeCard(second, makeCtx([2], seat("FR")));
+    expect(first.powers.FR.selectedHomeCard).not.toBe(second.powers.FR.selectedHomeCard);
+  });
+
+  test("GE/OT put it on top, UK on the bottom, FR/AU/RU shuffle it in", () => {
+    const ge = diplomatic("GE");
+    pileHomeCard(ge, makeCtx([1], seat("GE")));
+    expect(ge.powers.GE.hand[0]).toBe(ge.powers.GE.selectedHomeCard);
+
+    const ot = diplomatic("OT");
+    pileHomeCard(ot, makeCtx([1], seat("OT")));
+    expect(ot.powers.OT.hand[0]).toBe(ot.powers.OT.selectedHomeCard);
+
+    const uk = diplomatic("UK");
+    pileHomeCard(uk, makeCtx([1], seat("UK")));
+    expect(uk.powers.UK.hand[uk.powers.UK.hand.length - 1]).toBe(uk.powers.UK.selectedHomeCard);
+
+    const fr = diplomatic("FR");
+    pileHomeCard(fr, makeCtx([1], seat("FR")));
+    expect(fr.powers.FR.hand).toContain(fr.powers.FR.selectedHomeCard);
+  });
+});
+
+describe("34.4.3 bot war-budget card", () => {
+  test("the defender plays its top non-home, non-mandatory card for the budget", () => {
+    const G = fresh();
+    G.phase = "wartime";
+    G.activePower = "GE";
+    G.pending = null;
+    G.cpRemaining = 0;
+    G.wtt = 1;
+    G.war = createWarState(G, "GE", "FR", "conquest", ["alsace-lorraine"], 2);
+    G.war.status = "warAim";
+    const homeCard = G.powers.FR.homeCards[0];
+    const eventCard = CARDS.actions.find((card) => card.kind === "action" && card.type === "event")!.id;
+    G.powers.FR.hand = [homeCard, "IE-A072", eventCard];
+    const move = botDecision(G, makeCtx([1], seat("FR")), "FR");
+    expect(move).toEqual({move: "playWarBudgetCard", args: [eventCard]});
   });
 });
