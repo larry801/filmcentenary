@@ -152,6 +152,13 @@ with named blockers.
   shared by the move and the map rings).  Pinned by `cardsPartialFixes.test.ts`
   (10).  §9–12 is promoted to Implemented; its 9.1.3 response-window timing and
   12.14 chain-action granularity remain documented interpretation notes.
+- **§34 / §17.0 follow-up:** five printed bot decisions are closed —
+  **34.3.2** Priority-2 auto-pacification on rolls 1–4, **34.4.1**'s no-declare
+  guard at ≥4 more army steps, **34.4.7**'s −2…+2 EC differential, **34.4.8**'s
+  self-only treaty options and **34.5**'s Impulsive-Ruler CP play
+  (`botPrintedRules.test.ts`, 5).  **17.0's errata displacement** now displaces
+  every belligerent unit outside its own controlled home space, including units
+  in ally-controlled/occupied spaces (`demobErrta.test.ts`, 1).
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -169,7 +176,7 @@ with named blockers.
   cells; 14.0/15.4.1/15.6 unified Italy in a limited war; 15.0 pass budget ≤2;
   15.2.2 limited-war joint naval operations; 15.5 capital capture ending the
   maneuver; 16.1.3(2) blockade victory; 16.1.4/16.1.5 negotiated/white peace
-  agreements; 16.2 errata treaty targeting; 17.0 errata displacement.
+  agreements; 16.2 errata treaty targeting.
 - **§34:** the bot's printed Priority-2 auto-pacification, unit/fort/naval
   placement order, home-card pile order, war-aim/declaration guards, EC
   differential rule and treaty/response-card rules are still approximated or
@@ -810,12 +817,12 @@ with named blockers.
 - **Audited 2026-11-23 (second pass, still Partial).**  The 13.4.3 errata cell
   (Denmark's 3rd Choice is Austria) and 13.4.4's “place the Qing army in the
   **targeted key**” are applied; `seekingAid.test.ts` and
-  `rulesCompletion.test.ts` pin them.  Still open: 13.2.1 Italian unification
-  wars, 13.4.5's co-defender/Bismarck errata, unified Italy in a limited war
+  `rulesCompletion.test.ts` pin them; **17.0's errata displacement** is live
+  (`demobErrta.test.ts`).  Still open: 13.2.1 Italian unification wars,
+  13.4.5's co-defender/Bismarck errata, unified Italy in a limited war
   (14.0/15.4.1/15.6), 15.0's pass-at-budget-≤2, 15.2.2 limited-war joint naval
   operations, 15.5's capital-capture end, 16.1.3(2)'s blockade-victory trigger,
-  16.1.4/16.1.5 negotiated/agreed white peace, 16.2's errata targeting and
-  17.0's errata displacement.
+  16.1.4/16.1.5 negotiated/agreed white peace and 16.2's errata targeting.
 
 ## 18–19 Combat
 
@@ -1236,14 +1243,13 @@ Summary:
 - **Audited 2026-11-23 (second pass, still Partial — bots only).**  The
   **scenario sub-scope is complete** (all eight printed setups plus Scenario 4's
   No-GW modifier; see `SCENARIOS.md` and `scenarioPlaythrough.test.ts`).  The
-  bot sub-scope still approximates printed answers: 34.3.2's Priority-2
-  auto-pacification is absent; 34.3.1's capital → adjacent-to-player →
-  avoid-allies placement order is not implemented; 34.2's random home-card pile
-  order is deterministic; 34.4.1's ≥4-army-step declaration guard, 34.4.2's
-  closest/two-space war aims, 34.4.3's top-card war budget, 34.4.4's ally
-  calls/joins, 34.4.7's −2…+2 EC rule and 34.4.8's self-only treaty options
-  are missing or rolled where the print names the answer; 34.5's Impulsive
-  Ruler / non-GE A41 event rules need the same audit.  The printed bot PAC is
+  bot sub-scope still approximates printed answers: **closed 2026-11-23** —
+  34.3.2's Priority-2 auto-pacification, 34.4.1's ≥4-army-step declaration
+  guard, 34.4.7's −2…+2 EC rule, 34.4.8's self-only treaty options and 34.5's
+  Impulsive-Ruler CP play (`botPrintedRules.test.ts`, 5).  Still open: 34.3.1's
+  capital → adjacent-to-player → avoid-allies placement order; 34.2's random
+  home-card pile order; 34.4.2's closest/two-space war aims; 34.4.3's top-card
+  war budget; 34.4.4's ally calls/joins.  The printed bot PAC is
   not published in this repository (`ASSETS.md`), so the B1/B2 transcription
   itself cannot be re-checked against the chart.
 

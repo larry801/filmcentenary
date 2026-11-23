@@ -14,6 +14,7 @@ import {
   CardId,
   ImperialElegyState,
   Power,
+  PowerOrMinor,
   POWERS,
   SpaceId,
 } from "../types";
@@ -29,18 +30,20 @@ import {
   friendlySpace,
   hasLoc,
   isArmyKind,
+  isPower,
   isHomeSpace,
   hostileOwner,
   landUnitsIn,
   maneuverDestinationProblem,
   navalUnitsIn,
   ownsKey,
+  commandsAlliedMinor,
   unitsOfPower,
 } from "./rules";
 import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs";
 import {impulseAlreadyUsed, recruit as recruitMove} from "../moves";
 import {ottomanArmyTypeFor, passRestriction} from "./characteristics";
-import {beginLandBattle} from "./combat";
+import {battleDrmTotals, beginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
 import {gwDraftSpaces, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
 import {currentGwImpulse, gwActionAllowance, gwCardProblem, gwFinishImpulseProblem} from "./gwImpulse";
@@ -50,6 +53,7 @@ import {reserveRemaining} from "./economy";
 import {ctxWithBotRandom} from "./botRandom";
 import {hasCounterFor} from "./counters";
 import {holdsWarImpulse} from "./limitedWar";
+import {pacificationProblem} from "./pacification";
 
 // ---------------------------------------------------------------------------
 // BDIT — Bot Diplomatic Interest Table (B2)
@@ -457,6 +461,20 @@ export const botPendingMove = (
       // The PAC leaves interception open; 34.3 rolls.
       return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
+    case "combatElite": {
+      // 34.4.7: "Bots will use their EC if the differential after support is
+      // between -2 and +2 in their favor."
+      const side = (pending.context?.eliteSide as "attacker" | "defender" | undefined) ?? "attacker";
+      const battle = G.battle;
+      if (battle === null || battle === undefined) {
+        return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
+      }
+      const totals = battleDrmTotals(G, battle);
+      const favour = side === "attacker" ? totals.attacker - totals.defender : totals.defender - totals.attacker;
+      const commit = favour >= -2 && favour <= 2;
+      return {move: "resolvePending", args: [commit ? "commit" : "decline"]};
+    }
+
     case "impulseLoss":
     case "combatLosses":
     case "combatRetreat":
@@ -468,7 +486,6 @@ export const botPendingMove = (
     case "navalPortBox":
     case "combatCard":
     case "combatDiscard":
-    case "combatElite":
     case "hydraulicRecoil":
       // Combat choices the PAC leaves open: roll per 34.3.
       return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
@@ -482,7 +499,21 @@ export const botPendingMove = (
       // card draw when it accepts).
       return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
-    case "treatyOption":
+    case "treatyOption": {
+      // 34.4.8: "Bots will never give land or +1 card markers to other players,
+      // they will always give treaty options to themselves."  Options that
+      // allocate to another beneficiary are skipped; the finish option stays
+      // available when nothing can go to the bot.
+      const meta = (pending.context?.options as {id?: string; beneficiary?: string}[] | undefined) ?? [];
+      const toSelf = pending.options.filter((entry) => {
+        const optionMeta = meta.find((candidate) => candidate.id === entry.id);
+        if (optionMeta === undefined) return true;
+        return optionMeta.beneficiary === undefined || optionMeta.beneficiary === pending.power;
+      });
+      const pick = toSelf[0] ?? pending.options[pending.options.length - 1];
+      return {move: "resolvePending", args: [pick.id]};
+    }
+
     case "treatySpace":
     case "whitePeaceOrder":
       return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
@@ -585,11 +616,36 @@ export const botPendingMove = (
  * card (RU-9: the Ottomans; Jihad: RU or an Ottoman-home controller) therefore
  * always finds exactly the printed defender.
  */
+/** Army steps a power has on the map, including its controlled minor allies. */
+const botArmySteps = (G: ImperialElegyState, owner: Power): number =>
+  Object.values(G.units).reduce((sum, unit) => {
+    if (!isArmyKind(unit.kind)) return sum;
+    if (unit.owner === owner) return sum + unit.steps;
+    if (typeof unit.owner === "string" && commandsAlliedMinor(G, owner, unit.owner)) return sum + unit.steps;
+    return sum;
+  }, 0);
+
+/** Army steps on a declaration target's side (the defender plus its minor allies). */
+const declarationTargetArmySteps = (G: ImperialElegyState, defender: PowerOrMinor): number =>
+  Object.values(G.units).reduce((sum, unit) => {
+    if (!isArmyKind(unit.kind)) return sum;
+    if (unit.owner === defender) return sum + unit.steps;
+    if (typeof unit.owner === "string" && isPower(defender) && commandsAlliedMinor(G, defender, unit.owner)) {
+      return sum + unit.steps;
+    }
+    return sum;
+  }, 0);
+
+/** 34.4.1: "Bots will not declare war on a power that has ≥4 more army steps than them (including minor power allies)." */
+export const withinDeclarationStrength = (G: ImperialElegyState, power: Power, defender: PowerOrMinor): boolean =>
+  declarationTargetArmySteps(G, defender) - botArmySteps(G, power) < 4;
+
 const homeDeclarationMove = (G: ImperialElegyState, power: Power): BotMove | null => {
   if (G.phase !== "action") return null;
   const entitlement = warDeclarationEntitlement(G, power);
   if (entitlement === null || G.war !== null) return null;
-  const candidates = declarationTargetCandidates(G, power, entitlement);
+  const candidates = declarationTargetCandidates(G, power, entitlement)
+    .filter((candidate) => withinDeclarationStrength(G, power, candidate.defender));
   if (candidates.length === 0) return null;
   // Prefer the most rewarding aim the card allows: a liberation or conquest
   // declaration is what its printed text is written around, and `ALL_WAR_AIMS`
@@ -739,6 +795,23 @@ const priorityTwo = (
 ): BotMove | null => {
   const p = G.powers[power];
   const region = BDIT[power][bdtDie] ?? "africa";
+
+  // 34.3.2: "When performing a priority 2 action, unless a 5 or 6 is rolled, a
+  // bot will automatically spend 1 CP to pacify a space if able. In this case
+  // 'if able' means if they currently have a land unit in a space with a
+  // pacification marker."  The engine's own pacification gate decides what is
+  // pacifiable, so a refused move is never named.
+  if (roll >= 1 && roll <= 4 && G.cpRemaining >= 1) {
+    for (const [id, state] of Object.entries(G.spaces)) {
+      if (!state.pacificationMarker && (state.pacification ?? 0) <= 0) continue;
+      const hasLandUnit = landUnitsIn(G, id).some(
+        (unit) => unit.owner === power || commandsAlliedMinor(G, power, unit.owner),
+      );
+      if (!hasLandUnit) continue;
+      if (pacificationProblem(G, power, id) !== null) continue;
+      return {move: "pacify", args: [id]};
+    }
+  }
 
   if (roll === 1) {
     // Step 1: place influence in Asia/Africa based on BDIT.
@@ -1234,6 +1307,12 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
     // while CP remain is refused), and reaches this branch again next impulse.
     const mandatory = mandatoryInHand(G, power);
     if (mandatory !== null && !impulseAlreadyUsed(G, power)) {
+      // 34.5: "bots will never play the Impulsive Ruler card for its event."
+      // Its printed CP mode resolves no event, so use that when the hand-size
+      // clause allows it; the event path is only the lock-avoiding fallback.
+      if (mandatory === "IE-A105" && cpPlayProblem(G, power, mandatory) === undefined) {
+        return {move: "playCard", args: [mandatory, "cp"]};
+      }
       return {move: "playCard", args: [mandatory, "event"]};
     }
 
