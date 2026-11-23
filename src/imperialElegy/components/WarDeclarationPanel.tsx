@@ -210,8 +210,11 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   const forbidPlayersAllowed = entitlement !== null && warDeclarationMayForbidJoins(entitlement.card);
   // The card funds the declaration with its printed CP; an ordinary one picks
   // 1–4 and pays it out of the impulse (13.0).
-  const cp = entitlement !== null ? entitlement.cp : chosenCp;
-  const enoughCp = cpRemaining >= cp;
+  // Errata 12.17: an ordinary declaration spends the whole card played this
+  // impulse, so the panel locks the CP value to that card's printed CP.
+  const impulseCp = G.impulseCardCp ?? null;
+  const cp = entitlement !== null ? entitlement.cp : impulseCp ?? chosenCp;
+  const enoughCp = impulseCp !== null ? cpRemaining === impulseCp : cpRemaining >= cp;
   const canDeclare = canActionCard && objective !== "" && (entitlement !== null || enoughCp);
 
   const declaration: WarDeclaration | null = entry === undefined || objective === ""
@@ -261,7 +264,9 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
       ? bi(locale, "World Tension is 3+; a new war cannot be declared.", "世界紧张达到 3+，无法发动新的战争。")
       : objective === ""
         ? bi(locale, "No legal objective for this defender and aim.", "该防守方与战争目标下没有合法目标空间。")
-        : bi(locale, `Needs ${cp} CP in this impulse.`, `本行动轮需要 ${cp} CP。`);
+        : impulseCp !== null && cpRemaining !== impulseCp
+          ? bi(locale, `Errata 12.17: the whole ${impulseCp} CP card must pay for the war; ${cpRemaining} CP remain.`, `勘误 12.17：必须用整张 ${impulseCp} CP 的牌支付战争；当前剩余 ${cpRemaining} CP。`)
+          : bi(locale, `Needs ${cp} CP in this impulse.`, `本行动轮需要 ${cp} CP。`);
 
   const title = entitlement !== null
     ? bi(locale, `Declare war — ${homeCardTitle(entitlement.card)}`, `宣战 — ${homeCardTitle(entitlement.card)}`)
@@ -295,7 +300,7 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
               ))
             )}
           </span>
-          {entitlement !== null ? (
+          {entitlement !== null || impulseCp !== null ? (
             <span className="ie-chip" data-testid="ie-war-declare-cp-locked">{cp} CP</span>
           ) : (
             <label className="ie-inline">

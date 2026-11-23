@@ -564,6 +564,7 @@ const finishImpulse = (G: ImperialElegyState, ctx: Ctx): void => {
     G.flags.enemyLandDrm = 0;
     G.flags.warLandDrm = G.flags.warLandDrm ?? 0;
     G.impulseCard = null;
+  G.impulseCardCp = null;
     G.cpRemaining = 0;
     checkGermanUnification(G, ctx);
     checkItalianUnification(G, ctx);
@@ -693,10 +694,13 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   addLog(G, power, "cardPlayed", {card: cardId, mode: resolvesEvent ? "event" : mode});
   if (!resolvesEvent) {
     G.cpRemaining = card.cp;
+    G.impulseCardCp = card.cp;
     // A70: "Remove from the game if played for CP and Italy is unified."
     // A79: "Remove from the game if Tunisia and Libya are no longer Ottoman
     // controlled." — the CP play removes it instead of discarding it.
     const looseGripRemoved = cardId === LOOSE_GRIP_CARD && looseGripRemovalDue(G);
+    // The physical card leaves the hand, but `impulseCardCp` keeps its printed
+    // CP for errata 12.17: a declaration this impulse must commit all of it.
     if (removesAfterPlay(G, cardId) || removeAfterCpPlay(G, cardId) || looseGripRemoved) {
       if (!G.removed.includes(cardId)) G.removed.push(cardId);
       if (looseGripRemoved) log(G, undefined, "looseGripRemoved", {reason: "cp"});
@@ -710,7 +714,12 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     return;
   }
   // Event; mandatory cards also grant their CP.
-  if (mandatory) G.cpRemaining = card.cp;
+  if (mandatory) {
+    G.cpRemaining = card.cp;
+    G.impulseCardCp = card.cp;
+  } else {
+    G.impulseCardCp = null;
+  }
   if (cardId === "IE-A067" && mode === "event") {
     // International Conference's printed normal-event mode is only the WTT
     // decrease; its +2 DRM belongs to the open crisis decision (above).  Do not
@@ -721,6 +730,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     pruneRemovedFromDiscard(G);
     G.resolvingCard = null;
     G.impulseCard = null;
+  G.impulseCardCp = null;
     if (
       G.cpRemaining <= 0 &&
       !hasUnspentGrant(G, power) &&
@@ -747,8 +757,10 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     pruneRemovedFromDiscard(G);
     G.resolvingCard = null;
     G.impulseCard = null;
+  G.impulseCardCp = null;
     if (card.type !== "mandatory") {
       G.impulseCard = null;
+  G.impulseCardCp = null;
       // Event play ends the impulse unless the card grants CP — including the
       // colonial pool of A088 Our Place in the Sun and UK-3 Sun Never Sets —
       // or the event itself opened a home-card war declaration (Bismarck).
@@ -872,6 +884,29 @@ export const discardForStability = (G: ImperialElegyState, ctx: Ctx): string | v
   discardCard(G, power, cardId, "prepStabilityDiscard");
   changeStability(G, power, 1, ctx);
   p.flags.prepStability = true;
+  return undefined;
+};
+
+/**
+ * 10.4: "The UK player may also, at this time, choose to discard a random card
+ * to flip the Indian Stability counter to its stable side [33.2.2]."  This is
+ * a separate optional prep action from the +1 stability discard (its own
+ * once-per-prep guard; the card is drawn at random and mandatory events/home
+ * cards stay in hand).
+ */
+export const discardForIndianStability = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power !== "UK" || G.phase !== "prep") return INVALID_MOVE;
+  const p = G.powers.UK;
+  if (p.indiaStable !== false) return INVALID_MOVE;
+  if (p.flags.prepIndiaStability) return INVALID_MOVE;
+  const eligible = handWithoutSpecials(G, "UK");
+  if (eligible.length === 0) return INVALID_MOVE;
+  const cardId = eligible[randomIndex(ctx, eligible.length)];
+  discardCard(G, "UK", cardId, "prepIndiaStabilityDiscard");
+  p.indiaStable = true;
+  p.flags.prepIndiaStability = true;
   return undefined;
 };
 
@@ -1009,6 +1044,7 @@ const enterActionPhase = (G: ImperialElegyState, ctx: Ctx): string | void => {
   G.activePower = "GE";
   G.cpRemaining = 0;
   G.impulseCard = null;
+  G.impulseCardCp = null;
   G.passed = [];
   clearActionImpulseSpend(G);
   ctx.events?.setPhase?.("action");
@@ -2277,14 +2313,17 @@ export const removeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId)
   if (requireActionFamily(G, "removeInfluence") === INVALID_MOVE) return INVALID_MOVE;
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (G.powers[power].flags.alreadyRemovedInfluence) return INVALID_MOVE;
+  // 12.6: the once-per-impulse bar is printed for influence removal; removing
+  // a diplomacy marker is a separate 12.6 action.
+  const removingInfluence = G.spaces[space]?.influence === power;
+  if (removingInfluence && G.powers[power].flags.alreadyRemovedInfluence) return INVALID_MOVE;
   // 12.6: own markers only; the Africa exception and the foreign-unit bar are
   // printed against influence and live in the shared gate.
   if (removeMarkerProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
   if (state.influence === power) state.influence = null;
   if (state.diplomacy === power) state.diplomacy = null;
-  G.powers[power].flags.alreadyRemovedInfluence = true;
+  if (removingInfluence) G.powers[power].flags.alreadyRemovedInfluence = true;
   return undefined;
 };
 
@@ -4344,8 +4383,18 @@ export const declareWar = (
       G.flags.declarationNeutralJoin = true;
     }
     clearWarDeclarationEntitlement(G, power);
-  } else if (!spend(G, cp)) {
-    return INVALID_MOVE;
+  } else {
+    // Errata 12.17: "A war can be declared for any number of CP, and all the
+    // CP spent from a given card must be spent to declare war."  Once an
+    // ordinary impulse card is on the table, the declaration must commit that
+    // card's whole value and nothing may have been spent from it yet.  (A
+    // direct caller and the card-entitlement path have no impulse card.)
+    const impulseCp = G.impulseCardCp ?? null;
+    if (impulseCp !== null) {
+      if (cp !== impulseCp) return INVALID_MOVE;
+      if (G.cpRemaining !== impulseCp) return INVALID_MOVE;
+    }
+    if (!spend(G, cp)) return INVALID_MOVE;
   }
   G.powers[power].flags.actionCpSpentThisImpulse = true;
   // 33.3 Napoleon's Legacy: FR may reveal the goal as it launches a war of
@@ -4757,6 +4806,7 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
   pruneRemovedFromDiscard(G);
   G.resolvingCard = null;
   G.impulseCard = null;
+  G.impulseCardCp = null;
   if (chained) {
     // A chain insertion is one impulse; resume the next player once its
     // mandatory event has finished (unless the event itself granted CP).
@@ -9105,6 +9155,7 @@ export const playResponseCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId
   pruneRemovedFromDiscard(G);
   G.resolvingCard = null;
   G.impulseCard = null;
+  G.impulseCardCp = null;
   return;
 };
 

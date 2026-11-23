@@ -33,6 +33,7 @@ import {
   playWarBudgetCard,
   deployReserves,
   discardForStability,
+  discardForIndianStability,
   endDiplomacy,
   endGwPlanningMove,
   endPhaseTurn,
@@ -129,6 +130,7 @@ const ALL_MOVES = {
   counterDeal,
   withdrawDeal,
   discardForStability,
+  discardForIndianStability,
   recruit,
   refitNavalUnit,
   polishRecruit,
@@ -254,10 +256,12 @@ const prepBegin = (G: ImperialElegyState, ctx: Ctx): void => {
   G.passed = [];
   G.cpRemaining = 0;
   G.impulseCard = null;
+  G.impulseCardCp = null;
   G.resolvingCard = null;
   for (const p of POWERS) {
     G.powers[p].flags.prepDone = false;
     G.powers[p].flags.prepStability = false;
+    G.powers[p].flags.prepIndiaStability = false;
     G.powers[p].flags.homeChosen = false;
     G.powers[p].flags.endDone = false;
     G.powers[p].flags.alreadyInfluenced = false;
@@ -283,6 +287,10 @@ const prepBegin = (G: ImperialElegyState, ctx: Ctx): void => {
       const count = Math.max(0, cardsToDrawCount(G, p) + extraPrepCards(G, p) + franco.drawDelta);
       drawCards(G, ctx, p, count);
     }
+    // 10.3: "All plus and minus card markers are discarded after all the cards
+    // for the turn have been dealt out."  A094's persistent marker lives in
+    // `persistentCardMarkers` and is deliberately kept.
+    for (const p of POWERS) G.powers[p].cardMarkers = 0;
   }
 };
 

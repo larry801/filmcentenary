@@ -352,8 +352,15 @@ export interface PowerState {
    * hand-written test states fall back to the printed maximum.
    */
   maxIndustry?: number;
-  /** Bonus card markers (+1 / -1). */
+  /** Bonus card markers (+1 / -1).  These are discarded after the deal (10.3). */
   cardMarkers: number;
+  /**
+   * 10.3's exception: A094 The Boxer Rebellion's -1 card marker "until all the
+   * rebels are destroyed".  Added to the transient `cardMarkers` when the deal
+   * is drawn and never cleared by the end-of-deal discard.  Optional so older
+   * saves and fixtures read it as 0.
+   */
+  persistentCardMarkers?: number;
 }
 
 /**
@@ -1408,6 +1415,12 @@ export interface ImperialElegyState {
   /** Cards played / CP remaining in the current impulse. */
   cpRemaining: number;
   impulseCard: CardId | null;
+  /**
+   * Errata 12.17: the printed CP value of the card currently paying for this
+   * action impulse.  A war declaration must commit all of it.  Optional so
+   * older saves and hand-written fixtures read it as "no card restriction".
+   */
+  impulseCardCp?: number | null;
   /** The card event currently being resolved. */
   resolvingCard: CardId | null;
   /** A limited war in progress. */
