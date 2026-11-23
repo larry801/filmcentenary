@@ -134,6 +134,7 @@ const EXACT_ZH: Readonly<Record<string, string>> = {
     "俄国压路机：预备军上限取人力与工业中的较低者，再 +1",
   "Stacking limit reached": "已达堆叠上限",
   "That is not a land space on the map": "地图上该处不是陆地空间",
+  "That army has no line of communication": "该军团没有交通线",
   "The army is not on the map": "该军团不在地图上",
   "The army must move to a different railroad space": "军团必须移动到另一个铁路空间",
   "The compromise window is the turn-2 prep phase": "妥协窗口是第 2 回合的准备阶段",
