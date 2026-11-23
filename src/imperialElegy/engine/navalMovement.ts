@@ -122,6 +122,14 @@ export interface NavalMoveOptions {
    * legality check always applies the gate.
    */
   ignoreDardanellesGate?: boolean;
+  /**
+   * 28.1.5: "If a port space contains a trench battle marker, players can use
+   * naval movement actions to move a land unit directly into or out of the
+   * space, they do not need to conduct an amphibious assault."  An enemy port
+   * that is a live trench-battle space is therefore a legal destination even
+   * with no enemy fleet there.
+   */
+  allowTrenchPort?: boolean;
 }
 
 const isNavalOrPort = (space: SpaceId): boolean =>
@@ -342,7 +350,8 @@ export const planNavalMove = (
   if (!G.spaces[from] || !G.spaces[to]) return {ok: false, cost: 0, path: [], reason: "unknownSpace"};
   if (!isNavalOrPort(from) || !isNavalOrPort(to)) return {ok: false, cost: 0, path: [], reason: "notNavalSpace"};
   if (from === to) return {ok: true, cost: 0, path: [from], reason: "ok"};
-  if (portBoxes(to).length > 0) {
+  const trenchPort = G.spaces[to]?.trench != null;
+  if (portBoxes(to).length > 0 && !(trenchPort && options.allowTrenchPort === true)) {
     const control = G.spaces[to].control;
     const enemyControl = isPower(control) && atWar(G, power, control);
     const enemyShips = hasEnemyUnits(G, power, to);
@@ -472,15 +481,22 @@ export const planNavalTransport = (
   if (!isNavalBox(from) && portBoxes(from).length === 0) return fail("origin-not-port", from);
   if (naval.some((unit) => !unit || unit.naval !== true)) return fail("naval-unit", from);
   if (naval.some((unit) => unit!.space !== from)) return fail("different-origin", from);
+  // 28.1.5: a port space holding a trench battle marker may be entered and
+  // left by naval movement without an amphibious assault.  The battle station
+  // is the printed exception to 19.10's hostile-port rule in both directions.
+  const trenchPort = (space: SpaceId): boolean =>
+    G.spaces[space]?.trench != null || G.gw?.trenches?.[space] != null;
   // A port is the loading point; no enemy port may load transports.
-  if (!isNavalBox(from) && spaceHostileTo(G, power, from)) return fail("origin-hostile", from);
+  if (!isNavalBox(from) && spaceHostileTo(G, power, from) && !trenchPort(from)) {
+    return fail("origin-hostile", from);
+  }
 
   const target = G.spaces[to];
   if (!target || isNavalBox(to) || portBoxes(to).length === 0) return fail("target-not-port", from);
   if (to === from) return fail("same-space", from);
   // 19.10: "Land units cannot move into enemy controlled (or occupied) ports
   // using naval movement."  An amphibious assault is the separate action.
-  if (spaceHostileTo(G, power, to)) return fail("target-hostile", from);
+  if (spaceHostileTo(G, power, to) && !trenchPort(to)) return fail("target-hostile", from);
   // 12.3 (errata): "Land units using naval movement during peacetime must end
   // the impulse in a port they control."  Wartime and the GW keep 15.2.1 /
   // 27.5's naval rule instead.
@@ -488,7 +504,7 @@ export const planNavalTransport = (
     return fail("target-not-controlled", from);
   }
 
-  const plan = planNavalMove(G, power, from, to);
+  const plan = planNavalMove(G, power, from, to, {allowTrenchPort: trenchPort(to)});
   if (!plan.ok) return fail("path", from);
   const arriving: Unit[] = [land, ...naval.filter((unit): unit is Unit => unit !== undefined)];
   const capacity = movementEndProblem(G, to, arriving);

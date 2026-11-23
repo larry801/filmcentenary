@@ -314,6 +314,7 @@ import {
   giftGwCombatCard,
   startGwManeuver,
   transferGwBudget,
+  transferGwMajorBudget,
 } from "./engine/greatWarFlow";
 import {
   currentGwImpulse, gwActionAllowance, gwCanEndTurn, gwCardProblem,
@@ -8585,14 +8586,22 @@ export const gwEliteCorps = (G: ImperialElegyState, ctx: Ctx, unitId: string): s
   return res.ok ? undefined : INVALID_MOVE;
 };
 
-export const gwDeploy = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, unitId?: string): string | void => {
+export const gwDeploy = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  space: SpaceId,
+  unitId?: string,
+  unitIds?: string[],
+): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (G.phase !== "gwManeuver" || !G.gw || power === null) return INVALID_MOVE;
   // The shared allowance keeps the free staff action outside both the normal
   // budget action and the card bonus; no provisional charge/refund is needed.
   markSuperiorStaffWorkGwImpulse(G);
-  const res = performGwManeuver(G, ctx, {kind: "deploy", power, space, unitId});
+  // 15.2.3 / 27.5: one deploy places up to the half-industry allowance
+  // (1–3).  A caller that names no unit gets the whole allowance.
+  const res = performGwManeuver(G, ctx, {kind: "deploy", power, space, unitId, unitIds});
   if (!res.ok) return INVALID_MOVE;
   return undefined;
 };
@@ -8639,6 +8648,22 @@ export const gwTransferBudget = (G: ImperialElegyState, ctx: Ctx, to: Power, amo
   const from = actor(G, playerID);
   if (G.phase !== "gwPlanning" || !G.gw || from === null) return INVALID_MOVE;
   const res = transferGwBudget(G, ctx, from, to, amount);
+  return res.ok ? undefined : INVALID_MOVE;
+};
+
+/**
+ * 26.2: the US's own one-CP planning transfer.  The US has no seat, so a
+ * player on its side performs the move; `transferGwMajorBudget` owns the
+ * alliance, LoC and once-per-turn checks and debits `G.gw.usBudget`.
+ */
+export const gwUsTransferBudget = (G: ImperialElegyState, ctx: Ctx, to: Power, amount = 1): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "gwPlanning" || !G.gw || !G.gw.usIn || G.pending !== null) return INVALID_MOVE;
+  const usSide = G.flags.usSide === "te" || G.flags.usSide === "ta" ? G.flags.usSide : null;
+  const playerSide = G.gw.te.includes(power) ? "te" : G.gw.ta.includes(power) ? "ta" : null;
+  if (usSide === null || playerSide !== usSide) return INVALID_MOVE;
+  const res = transferGwMajorBudget(G, ctx, to, amount);
   return res.ok ? undefined : INVALID_MOVE;
 };
 

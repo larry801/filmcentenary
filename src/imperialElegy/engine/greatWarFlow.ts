@@ -92,6 +92,7 @@ import {
   minorHasLoc,
   italianHasLoc,
   ownerFriendlyTo,
+  landStackingLimit,
   landUnitsIn,
   log,
   maneuverDestinationProblem,
@@ -108,6 +109,7 @@ import {
 } from "./rules";
 import {applyAuSerbiaClause, applyOttomanWinterJoin} from "./scenario";
 import {beginGwImpulse, gwActionAllowance, gwMilitaryFinished, recordGwAction} from "./gwImpulse";
+import {deployReserveLimit} from "./limitedWar";
 import {blockadedAt, tsrrConnectionUsable} from "./blockade";
 
 // 17.1 / 29.1: keep the historical greatWarFlow exports working for callers
@@ -383,7 +385,7 @@ export interface GwManeuverSuccess {
 export type GwManeuverResult = GwManeuverSuccess | GwFailure;
 
 export type GwManeuverRequest =
-  | {kind: "deploy"; power: Power; space: SpaceId; unitId?: string}
+  | {kind: "deploy"; power: Power; space: SpaceId; unitId?: string; unitIds?: string[]}
   | {kind: "draft"; power: Power; space: SpaceId}
   | {kind: "refit"; power: Power; unitId: string}
   | {kind: "refitFleet"; power: Power; unitId: string}
@@ -458,7 +460,8 @@ export type GwWinterResult = GwWinterSuccess | GwFailure;
 
 export interface GwTransferSuccess {
   ok: true;
-  from: Power;
+  /** A player power, or "US" for 26.2's non-player major transfer. */
+  from: Power | "US";
   to: Power;
   amount: number;
   fromBefore: number;
@@ -1212,6 +1215,8 @@ export const beginGwTurn = (G: ImperialElegyState, ctx: Ctx): GwBeginResult => {
   if (firstBudgetPass) {
     gw.bonusCp = {};
     gw.budgetTurn = turn;
+    // 26.2: the US may make its own one-CP planning transfer each turn.
+    delete G.flags.usCpTransferDone;
   }
 
   // 28.1: "At the start of GW turn 1 all keys automatically contain trenches."
@@ -1448,6 +1453,102 @@ export const transferGwBudget = (
     amount,
     fromBefore,
     fromAfter: p.gwBudget,
+    toBefore,
+    toAfter: G.powers[to].gwBudget,
+  };
+};
+
+/**
+ * 26.2's US LoC: the US entry force sits in The South and traces through its
+ * own and its allies' spaces (ports and sea boxes) to the recipient's capital.
+ * The US has no controller-style minor home outside The South, so the shared
+ * `minorHasLoc` path cannot be used directly; this is the same 5.6 sea/land
+ * trace read from the major's entry base.
+ */
+const usTransferLoc = (G: ImperialElegyState, target: SpaceId): boolean => {
+  if (!G.gw) return false;
+  const usSide = allySide(G, "US");
+  if (usSide === null) return false;
+  const sidePowers = usSide === "te" ? G.gw.te : G.gw.ta;
+  const representative = sidePowers[0];
+  if (representative === undefined) return false;
+  const start: SpaceId | null = G.spaces["the-south"] !== undefined ? "the-south" : null;
+  if (start === null || G.spaces[start].control !== "United States") return false;
+  const friendlyLand = (space: SpaceId): boolean => {
+    const state = G.spaces[space];
+    if (!state) return false;
+    if (state.control === "United States" || state.occupiedBy === "United States") return true;
+    for (const owner of [state.control, state.occupiedBy]) {
+      if (isPower(owner) && (owner === representative || sidePowers.includes(owner))) return true;
+    }
+    return false;
+  };
+  const enemyShips = (box: SpaceId): boolean =>
+    (G.spaces[box]?.units ?? []).some((id) => {
+      const unit = G.units[id];
+      return Boolean(unit) && unit!.naval === true && !ownerFriendlyTo(G, representative, unit!.owner);
+    });
+  const visited = new Set<SpaceId>([start]);
+  const queue: SpaceId[] = [start];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    for (const next of neighboursOf(current)) {
+      if (visited.has(next)) continue;
+      const def = SPACES[next];
+      if (!def) continue;
+      if (next === target) return true;
+      if (def.type === "navalBox") {
+        if (enemyShips(next)) continue;
+      } else if (!friendlyLand(next)) {
+        continue;
+      }
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+  return false;
+};
+
+/**
+ * 26.2: "All belligerent players, and the US if it's in the war, can also
+ * transfer 1 CP to an ally, but they must be able to trace a LoC to that
+ * power."  The US has no seat, so the player running its side performs the
+ * major's transfer; the donor budget is `G.gw.usBudget` and the once-per-turn
+ * guard is `G.flags.usCpTransferDone` (reset in `beginGwTurn`).
+ */
+export const transferGwMajorBudget = (
+  G: ImperialElegyState,
+  _ctx: Ctx,
+  to: Power,
+  amount = 1,
+): GwTransferResult => {
+  if (!G.gw?.active) return fail("noGreatWar", "The Great War is not active");
+  if (G.phase !== "gwPlanning") return fail("wrongPhase", "CP can only be transferred in planning");
+  if (amount !== 1) return fail("invalidTarget", "26.2 permits transferring exactly one CP");
+  if (!G.gw.usIn) return fail("notBelligerent", "The US is not in the Great War");
+  if (!G.powers[to] || G.powers[to].eliminated) return fail("invalidTarget", "Unknown or eliminated recipient");
+  const usSide: GwSide | null = allySide(G, "US");
+  if (usSide === null || sideOf(G, to) !== usSide) {
+    return fail("notAllied", "The US can only transfer CP to an ally");
+  }
+  if (!usTransferLoc(G, capitalOf(G, to))) {
+    return fail("invalidTarget", "26.2 requires a line of communication to the recipient");
+  }
+  if (G.flags.usCpTransferDone === true) return fail("alreadyUsed", "The US already transferred CP this turn");
+  const fromBefore = G.gw.usBudget ?? 0;
+  if (fromBefore < amount) return fail("insufficientBudget", "Not enough US budget to transfer");
+  const toBefore = G.powers[to].gwBudget ?? 0;
+  G.gw.usBudget = fromBefore - amount;
+  G.powers[to].gwBudget = toBefore + amount;
+  G.flags.usCpTransferDone = true;
+  log(G, undefined, "gwCpTransfer", {to, amount, major: "US"});
+  return {
+    ok: true,
+    from: "US",
+    to,
+    amount,
+    fromBefore,
+    fromAfter: G.gw.usBudget,
     toBefore,
     toAfter: G.powers[to].gwBudget,
   };
@@ -1791,23 +1892,56 @@ export const performGwManeuver = (
       if (!isHomeSpace(G, request.space, power) && !ownsKey(G, request.space, power)) {
         return fail("invalidTarget", "Deploy reserves must be in a home space or key you control");
       }
-      const unitId = request.unitId ?? p.reserves[0];
-      if (!unitId) return fail("noReserve", "No reserve army is available");
-      const unit = G.units[unitId];
-      if (!unit || unit.owner !== power || !p.reserves.includes(unitId)) {
-        return fail("noReserve", "That unit is not in this power's reserve box");
+      // 15.2.3: "deploy reserve armies equal to half their industry (with a
+      // minimum of 1 and a maximum of 3)".  27.5 lists the 15.2.3 action
+      // unchanged for the GW, so one GW deploy may place the whole allowance.
+      const limit = deployReserveLimit(G, power);
+      const available = p.reserves.filter((id) => {
+        const unit = G.units[id];
+        return Boolean(unit) && unit!.owner === power && unit!.kind === "reserveArmy";
+      });
+      const room = Math.max(
+        0,
+        landStackingLimit(request.space) - landUnitsIn(G, request.space).filter((unit) => isArmyKind(unit.kind)).length,
+      );
+      let chosen: string[];
+      if (request.unitIds !== undefined) {
+        if (!Array.isArray(request.unitIds) || request.unitIds.length === 0) {
+          return fail("noReserve", "No reserve army was named");
+        }
+        chosen = [...request.unitIds];
+        if (new Set(chosen).size !== chosen.length) return fail("invalidTarget", "A reserve army was named twice");
+      } else if (request.unitId !== undefined) {
+        // Legacy single-unit caller (board control, older tests).
+        chosen = [request.unitId];
+      } else {
+        // Auto: the whole allowance, clamped by the space's remaining room.
+        chosen = available.slice(0, Math.min(limit, room));
+      }
+      if (chosen.length === 0) return fail("noReserve", "No reserve army is available");
+      if (chosen.length > limit) {
+        return fail("invalidTarget", `15.2.3 permits at most ${limit} reserve armies in one deploy`);
+      }
+      for (const unitId of chosen) {
+        const unit = G.units[unitId];
+        if (!unit || unit.owner !== power || !p.reserves.includes(unitId)) {
+          return fail("noReserve", "That unit is not in this power's reserve box");
+        }
       }
       // 5.5.3: a deploy still cannot end overstacked.
-      if (movementEndProblem(G, request.space, [unit]) !== null) {
+      if (chosen.length > room || movementEndProblem(G, request.space, chosen.map((id) => G.units[id])) !== null) {
         return fail("invalidTarget", "That deploy would end overstacked (5.5.3)");
       }
-      p.reserves = p.reserves.filter((id) => id !== unitId);
-      unit.space = request.space;
-      // 15.2.3: "An army that was placed using the deploy reserves action
-      // cannot attack, support, or move during the impulse it was placed."
-      unit.flags = {...(unit.flags ?? {}), deployedThisImpulse: true};
-      G.spaces[request.space].units.push(unitId);
-      return finish({to: request.space, unitIds: [unitId]});
+      for (const unitId of chosen) {
+        p.reserves = p.reserves.filter((id) => id !== unitId);
+        const unit = G.units[unitId];
+        unit.space = request.space;
+        // 15.2.3: "An army that was placed using the deploy reserves action
+        // cannot attack, support, or move during the impulse it was placed."
+        unit.flags = {...(unit.flags ?? {}), deployedThisImpulse: true};
+        G.spaces[request.space].units.push(unitId);
+      }
+      return finish({to: request.space, unitIds: chosen});
     }
     case "draft": {
       // 27.5.2: drafted reduced armies "must be placed in controlled home
