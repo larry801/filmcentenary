@@ -632,8 +632,15 @@ const gwSideOfPower = (G: ImperialElegyState, power: Power): GwSide | null =>
  * Whether a unit owned by `owner` is an enemy of `power` for battle purposes.
  * Player units follow `atWar`.  US/Italian units that have entered the Great
  * War are enemies only of the other alliance (and never of a neutral player).
- * Every other non-player owner (minors, rebels) keeps the historic "always
- * hostile" treatment used by the combat helpers.
+ *
+ * 15.4: an allied minor power's units fight for their controlling player, so
+ * they are friendly to that player and to its allies.  Resolving the minor's
+ * controller before `atWar` is what keeps a Great War battle from being opened
+ * against the attacker's own minor ally: the historic "every non-player owner
+ * is hostile" shortcut let any stack containing a minor counter be attacked by
+ * anyone, including its controller (a seeded full game had FR attack the
+ * AU-allied Netherlands).  A minor with no controller (and every rebel) stays
+ * hostile, matching the pre-GW permissive paths.
  */
 export const hostileOwner = (G: ImperialElegyState, power: Power, owner: PowerOrMinor): boolean => {
   if (isPower(owner)) return atWar(G, power, owner);
@@ -643,6 +650,10 @@ export const hostileOwner = (G: ImperialElegyState, power: Power, owner: PowerOr
       const mine = gwSideOfPower(G, power);
       return mine !== null && mine !== side;
     }
+  }
+  if (isMinorPowerOwner(owner)) {
+    const controller = minorController(G, owner);
+    if (controller !== null) return atWar(G, power, controller);
   }
   return true;
 };

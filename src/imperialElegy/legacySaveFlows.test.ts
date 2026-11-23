@@ -275,7 +275,8 @@ describe("Great War flows on a migrated old state", () => {
     expect(G.gw!.combatCardsInFront).toEqual([]);
     expect(G.gw!.discard).toEqual([]);
     expect(G.gw!.exhaustionPending).toBeNull();
-    expect(G.gw!.trenches.berlin).toBe("deadlock");
+    expect(G.spaces.berlin.trenchLine).toBe(true);
+    expect(G.gw!.trenches.berlin).toBeUndefined();
   });
 
   test("startGwManeuver then resolveGwWinter on a migrated save", () => {
