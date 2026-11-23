@@ -87,8 +87,8 @@ surrender clause is not inert.
 The remaining **Partial** sections — §8, §9–12, §13–17, §20, §24–32 and §34 —
 were audited against the printed book and its March 2026 errata.  This pass
 closed what the printed text actually owes and recorded the rest per section.
-**§8, §9–12, §20 and §24–32 are now Implemented**; §13–17 and §34 stay Partial
-with named blockers.
+**§8, §9–12, §20, §24–32 and §34 are now Implemented**; only §13–17 stays
+Partial with named blockers.
 
 **Closed by live code in this pass:**
 
@@ -170,6 +170,14 @@ with named blockers.
   join), join Balance of Power on 3+, and always aid an attacked minor power.
   Pinned by `botPrintedRules.test.ts` (9).  Still open: 34.2's random home-card
   pile order and 34.4.3's top-card war-budget draw.
+- **§34 final follow-up:** **34.2's home-card pile** is modelled by the bot's
+  hand order (the dealt action cards are already in shuffled deck order): every
+  bot now adds a `randomIndex` home card, GE/OT put it on top, the UK on the
+  bottom and FR/AU/RU shuffle it in.  **34.4.3's war budget** has the defending
+  bot play its top non-home, non-mandatory card for the 13.7 budget.  Pinned by
+  `botPrintedRules.test.ts` (12).  §34 is promoted to Implemented; the shipped
+  bot PAC is not in this repository, so the B1/B2 transcription cannot be
+  re-checked against the printed chart.
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -1261,8 +1269,11 @@ Summary:
   player with allied borders last, same for forts, random controlled port for
   naval), **34.4.2** closest/two-space war aims and **34.4.4** ally calls,
   3+/committed joins, Balance-of-Power joins and always-aid (`botPrintedRules`
-  now 9).  Still open: 34.2's random home-card pile order and 34.4.3's
-  top-card war-budget draw.  The printed bot PAC is
+  now 9).  Final follow-up closures: **34.2**'s random home card with the printed
+  GE/OT-top, UK-bottom, FR/AU/RU-shuffled pile order (the bot's dealt hand is
+  the pile) and **34.4.3**'s top-card war-budget play (`botPrintedRules`, now
+  12).  The section is Implemented; the shipped bot PAC is not in this
+  repository, so B1/B2 cannot be re-checked against the printed chart.  The printed bot PAC is
   not published in this repository (`ASSETS.md`), so the B1/B2 transcription
   itself cannot be re-checked against the chart.
 

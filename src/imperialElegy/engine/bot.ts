@@ -1106,6 +1106,21 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
   // `warAim`, the engine refused it, and the seat had no other move to make.
   // The defender cannot advance the war past those steps, so it waits.
   if (war.status === "warAim" || war.status === "alliance") {
+    // 34.4.3: "Bots will always play their top card, unless it's their home
+    // card, for their war budget... If a mandatory event is drawn, draw another
+    // card and use that one instead.  Then return the unplayed card to the
+    // bot's card pile."  The hand order is the pile: the first non-home,
+    // non-mandatory card is the top usable card; skipped mandatory/home cards
+    // stay in hand (returned to the pile).
+    const defending = power === war.defender || war.defenderAllies.includes(power);
+    const alreadyPlayed = (war.defenderBudgetCards ?? []).some((entry) => entry.power === power);
+    if (defending && !alreadyPlayed) {
+      const top = G.powers[power].hand.find((cardId) => {
+        const def = cardById(cardId);
+        return def.kind !== "home" && def.type !== "mandatory" && def.type !== "mandatoryResponse";
+      });
+      if (top !== undefined) return {move: "playWarBudgetCard", args: [top]};
+    }
     // 14.0 / 34.4.4: "Bots will always call allies."  A primary belligerent
     // calls every eligible ally (an ordinary declaration, no Status Quo) before
     // the maneuver step; a called ally's consent is the 34.4.4 pending answer.
@@ -1503,8 +1518,16 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
 
   if (phase === "gwManeuver") {
     if (G.gw?.neutralImpulses) {
-      return gwCardProblem(G, power, "event") === null
-        ? {move: "playGwCardMove", args: ["event"]} : {move: "gwPass"};
+      // 27.4: only the neutral player whose event impulse is open acts here;
+      // a belligerent seat asked out of turn must pass rather than name a GW
+      // event the engine refuses (a view captured mid-transition can arrive
+      // with `activePower` still showing the previous belligerent).
+      const neutral = G.gw.neutralImpulses;
+      const expected = neutral.order[neutral.index];
+      if (power === expected && gwCardProblem(G, power, "event") === null) {
+        return {move: "playGwCardMove", args: ["event"]};
+      }
+      return {move: "gwPass"};
     }
     const impulse = currentGwImpulse(G, power);
     if (impulse.bonusPending) return gwRequiredAction(G, ctx, power) ?? {move: "gwPass"};

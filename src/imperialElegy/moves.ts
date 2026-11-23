@@ -1154,15 +1154,23 @@ export const pileHomeCard = (G: ImperialElegyState, ctx: Ctx): string | void => 
   if (G.pending !== null) return INVALID_MOVE;
   const p = G.powers[power];
   if (p.flags.homeChosen) return INVALID_MOVE;
+  // 34.2: "Do not choose a home card for bots, instead each bot adds a random
+  // home card to their pile.  Add home cards to the piles as follows: GE and OT
+  // on top of their pile; FR, AU and RU shuffled in; UK on bottom."  The bot's
+  // hand *is* its pile (the dealt action cards arrive in shuffled deck order),
+  // so the home card's insertion position is the printed pile order.
   const candidates = p.homeCards.filter((id) => !p.hand.includes(id) && id !== p.selectedHomeCard);
   if (candidates.length > 0) {
-    const cardId = power === "GE" || power === "OT"
-      ? candidates[0]
-      : power === "UK"
-        ? candidates[candidates.length - 1]
-        : candidates[randomIndex(ctx, candidates.length)];
+    const cardId = candidates[randomIndex(ctx, candidates.length)];
     p.selectedHomeCard = cardId;
-    p.hand.push(cardId);
+    if (power === "GE" || power === "OT") {
+      p.hand.unshift(cardId);
+    } else if (power === "UK") {
+      p.hand.push(cardId);
+    } else {
+      const index = randomIndex(ctx, p.hand.length + 1);
+      p.hand.splice(index, 0, cardId);
+    }
   }
   p.flags.homeChosen = true;
   return finishHomeCardSelection(G, ctx);

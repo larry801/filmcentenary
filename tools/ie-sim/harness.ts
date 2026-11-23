@@ -651,7 +651,11 @@ export function runSeededGame(opts: SimOptions): SimResult {
   /** Recruit attempts the engine refused (4.2 ceilings) — never re-proposed. */
   const refusedRecruit = new Set<string>();
   /** A GW card the engine refused this game — the seat falls back to its exit. */
-  let refusedGwCard = false;
+  // A GW card move the engine refused is not retried for that power/card/mode,
+  // but the marker must not leak to other seats: a refused GE event play used
+  // to turn every later UK GW action into `gwPass`, deadlocking a UK holding
+  // the mandatory Exhaustion card.
+  const refusedGwCards = new Set<string>();
 
   for (; steps < maxSteps; steps += 1) {
     const G = state.G as ImperialElegyState;
@@ -739,10 +743,14 @@ export function runSeededGame(opts: SimOptions): SimResult {
     const liveG = state.G as ImperialElegyState;
     // A move the engine already refused is never named again: the sweep's job
     // is to explore legal states, and repeating a refusal only re-stalls it.
-    if (decision.move === "playGwCardMove" && refusedGwCard) {
-      const exit = phaseExitMove(liveG);
-      decision.move = exit.move;
-      decision.args = exit.args ?? [];
+    if (decision.move === "playGwCardMove") {
+      const card = liveG.powers[power as Power]?.gwCard ?? "";
+      const mode = String((decision.args ?? [])[0] ?? "");
+      if (refusedGwCards.has(`${power}:${card}:${mode}`)) {
+        const exit = phaseExitMove(liveG);
+        decision.move = exit.move;
+        decision.args = exit.args ?? [];
+      }
     }
     if (decision.move === "recruit") {
       const [space, kind] = (decision.args ?? []) as [string, string];
@@ -893,8 +901,10 @@ export function runSeededGame(opts: SimOptions): SimResult {
       }
       if (decision.move === "playGwCardMove") {
         // A GW card the engine refuses (its timing window closed on this seat)
-        // is not proposed again: the bot's next legal choice is the exit.
-        refusedGwCard = true;
+        // is not proposed again for the same power/card/mode.
+        const card = before.powers[power as Power]?.gwCard ?? "";
+        const mode = String((decision.args ?? [])[0] ?? "");
+        refusedGwCards.add(`${power}:${card}:${mode}`);
       }
       if (decision.move === "recruit") {
         // 4.2's British/Indian counter and manpower ceilings refuse this build;
