@@ -160,6 +160,16 @@ with named blockers.
   every belligerent **land** unit outside its own controlled home space,
   including units in ally-controlled/occupied spaces (`demobErrta.test.ts`, 1);
   naval units keep their 20.4/free-naval-move return.
+- **§34 placement/war-aim follow-up:** **34.3.1** now orders bot builds
+  capital-first, then home keys bordering another player (avoiding allied
+  borders while a non-allied target exists), with the same order for forts and
+  a random controlled port for naval units; **34.4.2** picks the closest
+  objectives and targets two spaces when the closest target controls two legal
+  ones (one at 0 industry); **34.4.4** has the bot always call eligible allies
+  in the alliance step, join a call on 3+ when aligned (committed allies always
+  join), join Balance of Power on 3+, and always aid an attacked minor power.
+  Pinned by `botPrintedRules.test.ts` (9).  Still open: 34.2's random home-card
+  pile order and 34.4.3's top-card war-budget draw.
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -1247,10 +1257,12 @@ Summary:
   bot sub-scope still approximates printed answers: **closed 2026-11-23** —
   34.3.2's Priority-2 auto-pacification, 34.4.1's ≥4-army-step declaration
   guard, 34.4.7's −2…+2 EC rule, 34.4.8's self-only treaty options and 34.5's
-  Impulsive-Ruler CP play (`botPrintedRules.test.ts`, 5).  Still open: 34.3.1's
-  capital → adjacent-to-player → avoid-allies placement order; 34.2's random
-  home-card pile order; 34.4.2's closest/two-space war aims; 34.4.3's top-card
-  war budget; 34.4.4's ally calls/joins.  The printed bot PAC is
+  Impulsive-Ruler CP play (`botPrintedRules.test.ts`, 5).  Follow-up closures: **34.3.1** placement order (capital → bordering another
+  player with allied borders last, same for forts, random controlled port for
+  naval), **34.4.2** closest/two-space war aims and **34.4.4** ally calls,
+  3+/committed joins, Balance-of-Power joins and always-aid (`botPrintedRules`
+  now 9).  Still open: 34.2's random home-card pile order and 34.4.3's
+  top-card war-budget draw.  The printed bot PAC is
   not published in this repository (`ASSETS.md`), so the B1/B2 transcription
   itself cannot be re-checked against the chart.
 
