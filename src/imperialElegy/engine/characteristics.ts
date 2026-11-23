@@ -937,14 +937,18 @@ export const canRecruitIn = (
         isArmyKind(u.kind) &&
         (u.owner === power || G.spaces[space].ally === power),
     );
+    // 12.2: "Newly built ECs are placed with an army that has LoC."
+    const supply = army !== undefined && hasLoc(G, power, space);
     return {
       power,
       space,
       kind,
-      allowed: Boolean(army),
+      allowed: Boolean(army) && supply,
       reasons: army === undefined
         ? ["An elite corps needs a friendly army to attach to"]
-        : ["Elite corps can attach to a friendly army"],
+        : supply
+          ? ["Elite corps can attach to a friendly army with a LoC"]
+          : ["That army has no line of communication"],
     };
   }
 

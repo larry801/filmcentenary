@@ -60,7 +60,10 @@ export const handChoiceAvailability = ({
   // choice with an empty body.
   const discard = phase === "prep" && canPhaseAct && !me.flags.prepStability &&
     hand.some((id) => isDiscardableForStability(id));
-  return {required: home || goals, optional: discard};
+  // 10.4's separate UK action: discard a random card to flip India stable.
+  const india = phase === "prep" && canPhaseAct && viewer === "UK" && me.indiaStable === false &&
+    !me.flags.prepIndiaStability && hand.some((id) => isDiscardableForStability(id));
+  return {required: home || goals, optional: discard || india};
 };
 
 /** Cards the prep stability discard may spend (not mandatory, not a home card). */
@@ -88,7 +91,9 @@ export const HandChoices = (props: HandChoicesProps) => {
   const showGoals = phase === "end" && ngChoices.length > 0;
   const showDiscard = phase === "prep" && canPhaseAct && !me.flags.prepStability &&
     hand.some((id) => isDiscardableForStability(id));
-  if (!showHome && !showGoals && !showDiscard) return null;
+  const showIndia = phase === "prep" && canPhaseAct && viewer === "UK" && me.indiaStable === false &&
+    !me.flags.prepIndiaStability && hand.some((id) => isDiscardableForStability(id));
+  if (!showHome && !showGoals && !showDiscard && !showIndia) return null;
 
   const chooseLabel = bi(locale, "Choose", "选择");
   // Only the prep discard may be skipped; the home card and the National Goal
@@ -178,6 +183,32 @@ export const HandChoices = (props: HandChoicesProps) => {
             {bi(locale,
               "Optional: the card is drawn at random from your hand (mandatory events and home cards stay). You may skip this and keep every card — press Ready (准备完毕) to continue.",
               "可选：从手牌中随机弃 1 张（强制事件与本土牌不会被弃）。也可跳过并保留全部手牌——直接点“准备完毕”继续即可。")}
+          </div>
+        </div>
+      )}
+
+      {showIndia && (
+        <div className="ie-dock-choice ie-dock-choice-optional" data-testid="ie-india-stability-discard">
+          <div className="ie-section-title">
+            {t.discardForIndiaStability}
+            <span className="ie-choice-tag" data-testid="ie-india-stability-discard-optional">{optionalTag}</span>
+          </div>
+          <div className="ie-choice-grid">
+            <button
+              className="ie-btn"
+              data-testid="ie-india-discard-random"
+              onClick={() => doAction(
+                () => moves.discardForIndianStability(),
+                {label: bi(locale, "Discard a random card to stabilise India", "随机弃 1 张牌使印度恢复稳定")},
+              )}
+            >
+              {bi(locale, "Discard a random card", "随机弃 1 张牌")}
+            </button>
+          </div>
+          <div className="ie-hint">
+            {bi(locale,
+              "Optional (10.4): flips the Indian Stability marker to its stable side. The card is drawn at random; mandatory events and home cards stay.",
+              "可选（10.4）：把印度稳定标记翻到稳定面。随机弃 1 张牌；强制事件与本土牌不会被弃。")}
           </div>
         </div>
       )}

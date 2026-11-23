@@ -425,6 +425,7 @@ const FORMATTERS: Record<string, Formatter> = {
   uprisingInIreland: discardText(" to Uprising in Ireland", "（因爱尔兰起义）"),
   eventDiscard: discardText(" to a card event", "（因卡牌事件）"),
   prepStabilityDiscard: discardText(" for +1 stability", "（换取 +1 稳定）"),
+  prepIndiaStabilityDiscard: discardText(" to stabilise India (10.4)", "（稳定印度，10.4）"),
 
   // A17/A18/A56: the victim chooses stability -1 or a random discard.
   stabilityOrCard: (entry, locale) => {

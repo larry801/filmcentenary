@@ -127,6 +127,18 @@ with named blockers.
   debit `gw.usBudget` once per planning step, requiring an ally and a
   transatlantic LoC to the recipient's capital.  Pinned by
   `greatWarFlow.test.ts` (25) and `trenchBattleSpace.test.ts` (12).
+- **§9–12 follow-up:** five printed clauses are closed.  **10.3's card-marker
+  expiry** — transient `cardMarkers` are discarded after the turn's deal, while
+  A094's Boxer marker lives in `persistentCardMarkers` until the last Boxer army
+  is eliminated.  **10.4's UK India flip** — a new
+  `discardForIndianStability` prep move (random card, own once-per-prep guard,
+  board control) flips the Indian Stability marker stable.  **12.2's EC LoC** —
+  `canRecruitIn`'s elite-corps branch now requires the army to have a LoC.
+  **12.6's bar** — the once-per-impulse removal limit applies only to influence,
+  not diplomacy markers.  **12.17 errata** — an ordinary declaration must spend
+  the whole `impulseCardCp` and nothing may have been spent from it yet, with
+  the War panel locking the declaration to that value.  Pinned by
+  `cardsPartialFixes.test.ts` (7).
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -140,11 +152,9 @@ with named blockers.
 
 **Still open (the exact reasons these sections stay Partial):**
 
-- **§9–12:** 9.1.4/10.3 mandatory-discard trigger and card-marker expiry;
-  10.4 UK pre-deal India flip; 12.2 newly built EC LoC; 12.8 allied-minor EC
-  build; 12.15 special redeployment through naval boxes; 12.17 errata
-  “all the CP from one card” (ordinary declarations can still split a card);
-  9.1.3 response-window timing approximations.
+- **§9–12:** 9.1.4's mandatory-event-discard trigger; 12.8's allied-minor EC
+  build; 12.15's special redeployment through naval boxes; 9.1.3
+  response-window timing approximations; 12.14's chain-action granularity.
 - **§13–17:** 13.2.1 Italian unification wars; 13.4.4/13.4.5 remaining errata
   cells; 14.0/15.4.1/15.6 unified Italy in a limited war; 15.0 pass budget ≤2;
   15.2.2 limited-war joint naval operations; 15.5 capital capture ending the
@@ -648,11 +658,11 @@ with named blockers.
   legal; 12.17.1's “never declare war on the US or the CSA” is enforced in
   both the panel list and `declareWar`; 12.3's errata requires a peacetime
   landing to end in a **controlled** port.  Pinned by `auditFixes.test.ts` (8).
-  Still open: 9.1.4/10.3 mandatory-discard trigger, 10.3 card-marker expiry,
-  10.4's UK pre-deal India flip, 12.2's newly-built-EC LoC, 12.8's allied-minor
-  EC build, 12.15's special redeployment through naval boxes, and 12.17's
-  errata “all the CP from one card” (an ordinary declaration may still spend
-  part of its card).
+  Follow-up closures: **10.3's marker expiry**, **10.4's UK India flip**,
+  **12.2's EC LoC**, **12.6's influence-only bar** and **12.17's all-card CP**
+  (`cardsPartialFixes.test.ts`, 7).  Still open: 9.1.4's mandatory-discard
+  trigger, 12.8's allied-minor EC build, 12.15's special redeployment and the
+  9.1.3/12.14 timing approximations.
 
 ## Information security (playerView)
 

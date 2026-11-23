@@ -227,6 +227,20 @@ export const removeUnit = (G: ImperialElegyState, unitId: string): void => {
     }
   }
   delete G.units[unitId];
+  // 10.3 / A094: the Boxers' -1 card marker lasts "until all the rebels are
+  // destroyed"; the last Boxer elimination removes it from every marked power.
+  if (unit.owner === "REBEL:Boxer" && unit.kind === "rebelArmy") {
+    const boxersLeft = Object.values(G.units).some(
+      (other) => other.owner === "REBEL:Boxer" && other.kind === "rebelArmy",
+    );
+    if (!boxersLeft) {
+      for (const power of POWERS) {
+        if (G.persistent[`boxerCardMarker_${power}`] !== 1) continue;
+        delete G.persistent[`boxerCardMarker_${power}`];
+        G.powers[power].persistentCardMarkers = (G.powers[power].persistentCardMarkers ?? 0) + 1;
+      }
+    }
+  }
 };
 
 /**
@@ -3087,6 +3101,19 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
           const rebel = placeNonPlayerCounter(G, "REBEL:Boxer", "rebelArmy", id, 2);
           if (rebel) G.spaces[id].rebellion.rebels.push(rebel.id);
         }
+      }
+      // "All players with control markers in Qing China gain a -1 card marker
+      // until all the rebels are destroyed.  Special: players do not lose this
+      // -1 card marker until all the Boxers are eliminated."  The marker is
+      // therefore persistent rather than a one-deal `cardMarkers` entry.
+      const marked = new Set<Power>();
+      for (const [spaceId, state] of Object.entries(G.spaces)) {
+        if (SPACES[spaceId]?.minorHome !== "Qing China") continue;
+        if (isPower(state.control)) marked.add(state.control);
+      }
+      for (const power of marked) {
+        G.powers[power].persistentCardMarkers = (G.powers[power].persistentCardMarkers ?? 0) - 1;
+        G.persistent[`boxerCardMarker_${power}`] = 1;
       }
       return true;
     }

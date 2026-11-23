@@ -2368,7 +2368,7 @@ export const cardsToDraw = (G: ImperialElegyState, power: Power): number => {
   if (power === "AU" && p.flags.plusCards) count += Number(p.flags.plusCards);
   if (power === "RU" && p.flags.plusCards) count += Number(p.flags.plusCards);
   if (power === "OT" && p.flags.plusCards) count += Number(p.flags.plusCards);
-  count += p.cardMarkers;
+  count += p.cardMarkers + (p.persistentCardMarkers ?? 0);
   return Math.max(3, count);
 };
 

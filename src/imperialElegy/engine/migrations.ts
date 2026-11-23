@@ -171,6 +171,7 @@ const ensurePowers = (G: ImperialElegyState): void => {
     p.alliance ??= "neutral";
     p.mpit ??= {te: 0, ta: 0, neutral: 1};
     p.cardMarkers ??= 0;
+    p.persistentCardMarkers ??= 0;
     p.vp ??= 0;
     p.warBudget ??= 0;
     p.gwBudget ??= 0;

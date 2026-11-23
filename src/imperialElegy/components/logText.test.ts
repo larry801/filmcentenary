@@ -51,6 +51,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   revolution1905: {key: "revolution1905", power: "RU", args: {card: CARD_ID}},
   eventDiscard: {key: "eventDiscard", power: "GE", args: {card: CARD_ID}},
   prepStabilityDiscard: {key: "prepStabilityDiscard", power: "GE", args: {card: CARD_ID}},
+prepIndiaStabilityDiscard: {key: "prepIndiaStabilityDiscard", power: "GE", args: {card: CARD_ID}},
   atAnyCostDiscard: {key: "atAnyCostDiscard", power: "GE", args: {card: CARD_ID}},
   cardPlayed: {key: "cardPlayed", power: "GE", args: {card: CARD_ID, mode: "cp"}},
   passed: {key: "passed", power: "GE", args: {}},
