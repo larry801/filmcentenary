@@ -85,7 +85,7 @@ src/imperialElegy/engine/
 ### 3.1 Scenario 1 — Campaign（`campaign`）
 
 印刷：p. 3，7 回合，1850s–1910s。所有玩家从中立框开始；WTT 0；电厂投射
-UK 8 / FR 3 / RU 3；结束阶段建造框 = Tuscany、Serbia、Bosnia、Bulgaria、
+UK 8 / FR 2 / RU 3（FR 印刷值为 3，但按 3.3.1 港口公式为 2）；结束阶段建造框 = Tuscany、Serbia、Bosnia、Bulgaria、
 Romania。
 
 代码：`SCENARIOS.campaign`。`data.test.ts` / `mapValidation.test.ts` /

@@ -104,7 +104,7 @@ export const CAMPAIGN_SCENARIO: ScenarioDef = {
     {space: "sinai", control: "Egypt"},
     {space: "great-sand-sea", control: "Egypt"},
   ],
-  powerProjection: {GE: 0, UK: 8, FR: 3, AU: 0, RU: 3, OT: 0},
+  powerProjection: {GE: 0, UK: 8, FR: 2, AU: 0, RU: 3, OT: 0},
   removedCards: [],
   buildBox: ["Tuscany", "Serbia", "Bosnia", "Bulgaria", "Romania"],
   // Egypt's independence is expressed the campaign's way: the three spaces are

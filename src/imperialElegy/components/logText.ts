@@ -1082,6 +1082,14 @@ const FORMATTERS: Record<string, Formatter> = {
     text(locale, "Italy's imperial dream fades; no effect.", "意大利的帝国梦想破灭；本次无效。"),
 
   italyUnified: (_entry, locale) => text(locale, "Italy is unified.", "意大利完成统一。"),
+  italyLoneDisplacement: (entry, locale) => {
+    const spaces = str(entry.args?.spaces).split(",").filter(Boolean).map((id) => spaceLabel(id, locale)).join(", ");
+    return text(locale, "Italy defending alone displaces its standing armies to " + spaces + ".", "意大利独自防守，常备军转移至" + spaces + "。");
+  },
+  italyReserveDeployed: (entry, locale) => {
+    const space = spaceLabel(str(entry.args?.space), locale);
+    return text(locale, "Italy deploys a reserve army to " + space + ".", "意大利向" + space + "部署一支预备军。");
+  },
 
   // 25.3: what the Alliance Track chit of a unified Italy does at the outbreak.
   gwItalyOutbreak: (entry, locale) => {

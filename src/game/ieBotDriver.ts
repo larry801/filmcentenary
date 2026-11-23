@@ -24,6 +24,8 @@ import {Master} from "boardgame.io/master";
 import {ImperialElegyState, Power, POWERS} from "../imperialElegy/types";
 import {botDecision} from "../imperialElegy/engine/bot";
 import {powerOfSeat} from "../imperialElegy/engine/pending";
+import {botRandom} from "../imperialElegy/engine/botRandom";
+export {botRandom};
 import {dealsOf, negotiationConcluded, negotiationDoneFor} from "../imperialElegy/engine/negotiation";
 import {botPowersOf, powerSeat} from "../imperialElegy/configuration";
 
@@ -149,46 +151,6 @@ export const botStateKey = (G: ImperialElegyState, ctx: Pick<Ctx, "currentPlayer
     G.log.length,
     String(ctx.currentPlayer ?? "-"),
   ].join("|");
-
-/**
- * Deterministic stand-in for `ctx.random` outside the reducer.
- *
- * A stored `ctx` carries no plugin APIs (they are attached while a move runs),
- * and consuming the real seeded PRNG here would desync it from the moves.  The
- * Rule 34 tables only use a die to pick a priority row, so a small hash of the
- * state keeps the bot from collapsing onto one branch while staying stable
- * across a retry — a roll that changed every attempt would defeat the refusal
- * counter above.
- */
-export const botRandom = (G: ImperialElegyState, power: Power): Ctx["random"] => {
-  const seedText = `${G.seed}|${G.turn}|${G.phase}|${G.activePower}|${power}|${G.decisionSeq}|${G.log.length}`;
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < seedText.length; i += 1) {
-    h ^= seedText.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  const next = (): number => {
-    h ^= h << 13;
-    h >>>= 0;
-    h ^= h >>> 17;
-    h ^= h << 5;
-    h >>>= 0;
-    return h / 4294967296;
-  };
-  const Die = (spotvalue = 6, diceCount?: number): number | number[] => {
-    const roll = (): number => Math.floor(next() * spotvalue) + 1;
-    return diceCount === undefined ? roll() : Array.from({length: diceCount}, roll);
-  };
-  const Shuffle = <T,>(deck: T[]): T[] => {
-    const clone = [...deck];
-    for (let i = clone.length - 1; i > 0; i -= 1) {
-      const j = Math.floor(next() * (i + 1));
-      [clone[i], clone[j]] = [clone[j], clone[i]];
-    }
-    return clone;
-  };
-  return {Die, Number: next, Shuffle} as unknown as Ctx["random"];
-};
 
 /** The move the bot plays for `power` in this state. */
 export const botMoveForSeat = (G: ImperialElegyState, ctx: Ctx, power: Power): BotMove => {

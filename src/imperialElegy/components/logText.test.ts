@@ -129,6 +129,8 @@ const SAMPLES: Record<string, LogTextEntry> = {
   italyNavalBase: {key: "italyNavalBase", power: "GE", args: {space: "malta"}},
   italyLostDream: {key: "italyLostDream", power: "FR", args: {}},
   italyUnified: {key: "italyUnified", power: "FR", args: {}},
+  italyLoneDisplacement: {key: "italyLoneDisplacement", args: {spaces: "piedmont,lombardy", count: 2}},
+  italyReserveDeployed: {key: "italyReserveDeployed", args: {space: "lombardy", defend: true}},
   greatWarOutbreak: {key: "greatWarOutbreak", args: {incident: CARD_ID, te: "GE,AU", ta: "FR,UK,RU", neutrals: "OT"}},
   crisisRoll: {key: "crisisRoll", power: "GE", args: {roll: 3, inciting: CARD_ID}},
   internationalConference: {key: "internationalConference", power: "GE", args: {}},

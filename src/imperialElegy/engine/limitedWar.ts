@@ -47,6 +47,7 @@ import {
   warDeclarationGrantsWinStability,
 } from "./rules";
 import {AU_NATIONALITIES, governmentBenefits} from "./characteristics";
+import {ITALY_WARTIME_INDUSTRY} from "./italyMilitary";
 import {blockadedAt} from "./blockade";
 import {displaceUnitToFriendlyLoc, displaceUnitsNotFriendlyTo, registerPolishIndependence} from "./effects";
 import {liberatedPowerFor, liberationNationalities} from "./nationality";
@@ -1644,17 +1645,18 @@ export const warDeclaredDefenders = (war: WarState | null): PowerOrMinor[] => {
  */
 export const deployReserveLimit = (
   G: ImperialElegyState,
-  power: Power,
+  power: Power | "IT",
   war: WarState | null = G.war,
 ): number => {
-  const p = G.powers[power];
-  if (!p) return 0;
-  const base = Math.min(3, Math.max(1, Math.ceil(p.industry / 2)));
+  // 22.4: Italy is treated as though it has 1 industry for deploy reserves.
+  const industry = power === "IT" ? ITALY_WARTIME_INDUSTRY : (G.powers[power]?.industry ?? 0);
+  const base = Math.min(3, Math.max(1, Math.ceil(industry / 2)));
   const rapid = Boolean(
+    power !== "IT" &&
     war &&
     war.status === "maneuver" &&
     !G.gw?.active &&
-    p.flags.rapidMobilization === true,
+    G.powers[power]?.flags.rapidMobilization === true,
   );
   return rapid ? Math.min(3, base + 1) : base;
 };
