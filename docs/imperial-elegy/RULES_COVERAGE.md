@@ -789,6 +789,15 @@ Five printed/errata clauses that earlier refreshes listed as open are live:
     Major initiative slots now recur each cycle and keep their budget, pass
     history, commanded units and upkeep separate from the player's. Controlled
     minor armies/fleets can move through the controller's march/naval paths.
+  - 32.4 GW non-player declarations are live (`engine/gwNonPlayerWar.ts`):
+    a belligerent may declare on a neutral non-player during its impulse, the
+    opposing alliance immediately places its ally marker (agreed member or the
+    printed die-roll fallback), and a neutral player holding an ally/diplomacy
+    marker in the space is asked whether to join the opposing alliance
+    (`gwNonPlayerJoin`).  `G.gw.nonPlayerBelligerents` is the public ledger read
+    by `hostileOwner`/`legalLandBattleTarget`; 30.2's effective elimination of a
+    minor (no troops, home space(s) occupied) marks the row and inherits its
+    marker to a surviving alliance member.
   - 30.2 / 32.1 / 32.2 / 29.1.1 US and Italian stability and surrender are
     live (`engine/gwMajors.ts`): US army loss, decisive defeats of a
     US-/Italian-led force, the US North Atlantic winter check, Italian home-key

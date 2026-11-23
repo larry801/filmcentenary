@@ -466,6 +466,7 @@ export const WarRegion = (props: WarSlice & {
           gwTransferAmountValue={gwTransferAmountValue} setGwTransferAmount={setGwTransferAmount}
           canGwTransfer={canGwTransfer} gwSideAllies={gwSideAllies} canGwReveal={canGwReveal}
           canGwDraft={canGwDraft} canGwDeployHere={canGwDeployHere} forcedGwCard={forcedGwCard}
+          confirmActions={confirmActions}
           doAction={doAction} moves={moves} onOpenReference={onOpenReference}
         />
       )}

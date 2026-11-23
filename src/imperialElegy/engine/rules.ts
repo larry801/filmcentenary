@@ -38,6 +38,7 @@ import {cardById, discardCard, isCardId} from "./deck";
 import {removeUnit} from "./effects";
 import {closeDecision, decision, openDecision, option} from "./pending";
 import {unitKindLabel} from "./unitKind";
+import {gwNonPlayerSide, reconcileGwNonPlayerControllers} from "./gwNonPlayer";
 
 export const die = (ctx: Ctx, sides: number): number => ctx.random!.Die(sides);
 
@@ -645,6 +646,13 @@ const gwSideOfPower = (G: ImperialElegyState, power: Power): GwSide | null =>
 export const hostileOwner = (G: ImperialElegyState, power: Power, owner: PowerOrMinor): boolean => {
   if (isPower(owner)) return atWar(G, power, owner);
   if (owner === "US" || owner === "IT") {
+    // 32.4: a declared non-player major is an enemy of the opposing alliance
+    // even before its own entry flag is read (the declaration sets both).
+    const declared = gwNonPlayerSide(G, owner);
+    if (declared !== null) {
+      const mine = gwSideOfPower(G, power);
+      return mine !== null && mine !== declared;
+    }
     const side = gwMajorSide(G, owner);
     if (side !== null) {
       const mine = gwSideOfPower(G, power);
@@ -652,8 +660,19 @@ export const hostileOwner = (G: ImperialElegyState, power: Power, owner: PowerOr
     }
   }
   if (isMinorPowerOwner(owner)) {
+    // 32.4: a declared non-player fights for the alliance whose marker was
+    // placed in its home.
+    const declared = gwNonPlayerSide(G, owner);
+    if (declared !== null) {
+      const mine = gwSideOfPower(G, power);
+      return mine !== null && mine !== declared;
+    }
     const controller = minorController(G, owner);
     if (controller !== null) return atWar(G, power, controller);
+    // 32.3: during the Great War a neutral non-player is not a legal target.
+    // Before the war the permissive behaviour is kept for the limited-war
+    // paths that resolve the declaration first.
+    if (G.gw?.active === true) return false;
   }
   return true;
 };
@@ -680,9 +699,13 @@ export const legalLandBattleTarget = (
   if (typeof owner !== "string") return false;
   if (owner.startsWith("REBEL:")) return true;
   if (owner === "US" || owner === "IT") return hostileOwner(G, power, owner);
-  // The Great War tracks belligerency on `G.gw`, not on `G.war`.  Once the war
-  // has broken out, keep its existing (already gated) paths permissive: a state
-  // assembled directly by a rule test may carry `G.gw` without `active`.
+  // The Great War tracks belligerency on `G.gw`, not on `G.war`.  32.3/32.4:
+  // neutral non-players are not legal targets; a declared power is handled by
+  // `hostileOwner` through the 32.4 ledger, and a player-controlled minor
+  // through its controller.  A state assembled directly by a rule test may
+  // carry `G.gw` without `active`, so inactive GW states keep the old
+  // permissive path.
+  if (G.gw?.active === true) return hostileOwner(G, power, owner);
   if (G.gw !== null) return true;
   const war = G.war;
   if (war === null) return false;
@@ -2670,6 +2693,8 @@ export const removeGwSurrenderMarkers = (
   }
   syncEliminationBonusImpulse(G, leaving, side);
   reassignMinorAllyMarkers(G, leaving, side, ctx);
+  // 30.1/30.2: refresh the 32.4 ledger's marker owner after the reassignment.
+  reconcileGwNonPlayerControllers(G, leaving);
 };
 
 /**

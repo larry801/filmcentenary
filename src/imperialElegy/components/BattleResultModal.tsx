@@ -62,7 +62,10 @@ const BattleSide = ({side, report, locale, t}: {
   locale: "en" | "zh_CN";
   t: ReturnType<typeof ieT>;
 }) => {
-  const power = side === "attacker" ? report.attacker : report.defender;
+  const power = side === "attacker"
+    ? report.attacker
+    : report.defenderNonPlayer ?? report.defender;
+  const powerLabel = (t.seats as Record<string, string>)[power] ?? String(power);
   const losses = side === "attacker" ? report.attackerLosses : report.defenderLosses;
   const units = side === "attacker" ? report.attackerUnits : report.defenderUnits;
   const dreadnoughts = units.filter((unit) => unit.kind === "dreadnought").length;
@@ -75,7 +78,7 @@ const BattleSide = ({side, report, locale, t}: {
       <div className="ie-battle-result-role">
         {side === "attacker" ? bi(locale, "Attacker", "进攻方") : bi(locale, "Defender", "防守方")}
       </div>
-      <div className="ie-battle-result-power">{t.seats[power]}</div>
+      <div className="ie-battle-result-power">{powerLabel}</div>
       <div className="ie-battle-result-number" data-testid={`ie-battle-result-${side}-losses`}>{losses}</div>
       <div className="ie-battle-result-unit">{bi(locale, "step losses", "步骤损失")}</div>
       <div className="ie-battle-result-casualties" data-testid={`ie-battle-result-${side}-units`}>
@@ -99,7 +102,10 @@ const BattleResultBody = ({report, locale, t}: {
   const kind = report.kind === "naval"
     ? bi(locale, "Naval battle", "海战")
     : bi(locale, "Land battle", "陆战");
-  const winner = report.winner === "attacker" ? report.attacker : report.defender;
+  const winner = report.winner === "attacker"
+    ? report.attacker
+    : report.defenderNonPlayer ?? report.defender;
+  const winnerLabel = (t.seats as Record<string, string>)[winner] ?? String(winner);
   const hasDice = report.attackerRoll !== undefined || report.defenderRoll !== undefined;
   const notes: string[] = [];
   if (report.mines > 0) notes.push(`${bi(locale, "Mine hits", "水雷命中")}: ${report.mines}`);
@@ -113,10 +119,10 @@ const BattleResultBody = ({report, locale, t}: {
           {kind} · {spaceLabel(report.from, locale)} → {spaceLabel(report.to, locale)}
         </div>
         <div className="ie-battle-result-matchup">
-          {t.seats[report.attacker]} vs {t.seats[report.defender]}
+          {t.seats[report.attacker]} vs {(t.seats as Record<string, string>)[report.defenderNonPlayer ?? report.defender] ?? String(report.defenderNonPlayer ?? report.defender)}
         </div>
         <div className="ie-battle-result-winner" data-testid="ie-battle-result-winner">
-          {bi(locale, "Winner", "胜方")}: {t.seats[winner]}
+          {bi(locale, "Winner", "胜方")}: {winnerLabel}
           {report.decisive ? ` · ${bi(locale, "decisive", "决定性胜利")}` : ""}
         </div>
       </header>

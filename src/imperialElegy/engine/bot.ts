@@ -475,6 +475,7 @@ export const botPendingMove = (
       return {move: "resolvePending", args: [pending.options[0].id]};
 
     case "allianceTie":
+    case "gwNonPlayerJoin":
     case "gwNeutralEntry":
     case "gwNeutralAction":
     case "gwNeutralUnit":

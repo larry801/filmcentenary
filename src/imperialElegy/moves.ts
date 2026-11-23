@@ -280,13 +280,25 @@ import {
   resolveItalyNavalBase,
   resolveItalyOttomanTerritoryChoice,
 } from "./engine/greatWar";
-import {addItalyMpit} from "./engine/italyEntry";
+import {addItalyMpit, setItalyAllianceBox} from "./engine/italyEntry";
+import {
+  checkGwNonPlayerDeclaration,
+  chooseOpposingMarkerOwner,
+  declareGwWarOnMinor,
+  gwNonPlayerJoinCandidates,
+  openGwNonPlayerJoinDecision,
+  opposingSide,
+  recordGwNonPlayerBelligerent,
+  resolveGwNonPlayerEliminations,
+} from "./engine/gwNonPlayerWar";
 import {
   activateGwExhaustion,
   advanceGwImpulse,
   beginGwNeutralImpulses,
   resolveGwBonusImpulse,
+  enterGwAlly,
   faceupCombatCards,
+  joinNeutralAlliance,
   majorEntryOptions,
   maxIndustryOf,
   performGwManeuver,
@@ -3014,7 +3026,12 @@ export const landBattle = (G: ImperialElegyState, ctx: Ctx, from: SpaceId, to: S
     // the first GW action of the turn.
     markSuperiorStaffWorkGwImpulse(G);
     const res = performGwManeuver(G, ctx, {kind: "landBattle", power: gwPower, from, to});
-    if (res.ok) settleCulturalSymbolLoss(G);
+    if (res.ok) {
+      settleCulturalSymbolLoss(G);
+      // 30.2: a battle can be the last act that removes a declared minor's
+      // troops while its home is already occupied.
+      resolveGwNonPlayerEliminations(G, ctx);
+    }
     return res.ok ? undefined : INVALID_MOVE;
   }
   const power = requireCp(G, ctx, playerID, 1);
@@ -6438,6 +6455,9 @@ export const resolvePending = (G: ImperialElegyState, ctx: Ctx, optionId: string
   const result = resolvePendingDecision(G, ctx, optionId);
   if (result === undefined) {
     settleBattleCharacteristics(G);
+    // 30.2: a decision may be the tail of a battle that eliminated the last
+    // troops of a declared non-player power.
+    if (G.gw?.active) resolveGwNonPlayerEliminations(G, ctx);
     repairPeacetimeSupply(G);
     // 15.1: a start-of-maneuver battle queue parked behind an upkeep decision
     // resumes as soon as that decision closes.
@@ -6711,6 +6731,29 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     // and bonus-CP choices.
     return resolveGwColonialChoice(G, ctx, pending, optionId) ? undefined : INVALID_MOVE;
   }
+  if (pending.kind === "gwNonPlayerJoin") {
+    // 32.4: a neutral player may join the opposing alliance (or stay out).
+    const context = pending.context ?? {};
+    const target = typeof context.target === "string" ? context.target : "";
+    const side = context.side === "te" || context.side === "ta" ? context.side : null;
+    if (side === null || (optionId !== "join" && optionId !== "stay")) return INVALID_MOVE;
+    const queue = Array.isArray(context.queue)
+      ? (context.queue as unknown[]).filter((entry): entry is Power => typeof entry === "string")
+      : [];
+    G.pending = null;
+    if (optionId === "join") {
+      const joined = joinNeutralAlliance(G, ctx, pending.power, side);
+      if (joined) {
+        log(G, pending.power, "gwNonPlayerJoin", {target, side});
+      } else {
+        log(G, pending.power, "gwNonPlayerJoinBlocked", {target, side, reason: "illegalAlliance"});
+      }
+    } else {
+      log(G, pending.power, "gwNonPlayerStayOut", {target, side});
+    }
+    if (queue.length > 0) openGwNonPlayerJoinDecision(G, ctx, target, side, queue);
+    return undefined;
+  }
   // Card decisions.
   G.pending = null;
   resolveCardDecision(G, ctx, pending, optionId, opt.data ?? {});
@@ -6750,6 +6793,8 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   // These decisions have an explicit "done"/cost choice; never auto-pick one.
   if (pending.kind === "combatDiscard") return INVALID_MOVE;
   if (pending.kind === "impulseLoss") return INVALID_MOVE;
+  // 32.4's neutral-player option is genuinely optional; declining stays out.
+  if (pending.kind === "gwNonPlayerJoin") return resolvePending(G, ctx, "stay");
   // 19.2 always offers "fight", so declining an avoid decision cannot deadlock.
   if (pending.kind === "navalAvoid") return resolveNavalAvoid(G, ctx, pending, "fight");
   // 33.1 Blood and Iron!: declining searches nothing and draws NGs normally.
@@ -8338,6 +8383,57 @@ export const callWarMinor = (G: ImperialElegyState, ctx: Ctx, minor: string): st
 };
 
 // ------------------------------------------------------------------ Great War
+/**
+ * Rule 32.4 — declare war on a neutral non-player power during the Great War.
+ *
+ * The declaration is free and may be made at any point in the declaring
+ * player's impulse (27.1 lists no CP cost for it; the ensuing land battle is
+ * the ordinary 1-CP action).  It immediately places the opposing alliance's
+ * marker in the power's home and records it in `G.gw.nonPlayerBelligerents`,
+ * which is what makes its units legal targets.  A neutral player holding an
+ * ally or diplomacy marker there is then asked whether to join that opposing
+ * alliance (`gwNonPlayerJoin`).
+ *
+ * A unified Italy is a non-player *major*: it needs the 32.2 entry (stability,
+ * budget, units and order slot) before the 30.2 surrender rules apply, so the
+ * move uses `enterGwAlly` and records the same 32.4 ledger row.  The US is
+ * excluded by 32.1 ("only the US can have units in the South space, thus the US
+ * can never be invaded").
+ */
+export const gwDeclareWarOnNonPlayer = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  target: string,
+  preferredAlly?: Power | null,
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null) return INVALID_MOVE;
+  const check = checkGwNonPlayerDeclaration(G, power, target);
+  if (!check.ok || check.info === undefined) return INVALID_MOVE;
+  const side = opposingSide(G, power);
+  if (side === null) return INVALID_MOVE;
+  let joinQueue: Power[] = [];
+  if (check.info.kind === "major") {
+    // 32.1 keeps the US out; the only non-player major 32.4 can reach is a
+    // unified, neutral Italy.
+    const entry = enterGwAlly(G, ctx, "IT", side, {independent: true});
+    if (!entry.ok) return INVALID_MOVE;
+    setItalyAllianceBox(G, side === "te" ? "teCommitted" : "taCommitted");
+    const ally = chooseOpposingMarkerOwner(G, side, preferredAlly, ctx);
+    recordGwNonPlayerBelligerent(G, power, "IT", side, ally, check.info.spaces);
+  } else {
+    const declared = declareGwWarOnMinor(G, ctx, power, target, preferredAlly);
+    if (!declared.ok) return INVALID_MOVE;
+    joinQueue = declared.joinQueue ?? [];
+  }
+  if (joinQueue.length === 0) joinQueue = gwNonPlayerJoinCandidates(G, target);
+  if (joinQueue.length > 0) {
+    openGwNonPlayerJoinDecision(G, ctx, target, side, joinQueue);
+  }
+  return undefined;
+};
+
 export const endGwPlanningMove = (G: ImperialElegyState, ctx: Ctx): string | void => {
   if (G.phase !== "gwPlanning" || !G.gw) return INVALID_MOVE;
   const res = startGwManeuver(G, ctx);
@@ -8541,12 +8637,14 @@ export const gwEndTurn = (G: ImperialElegyState, ctx: Ctx): string | void => {
     // guard still applies, so a player cannot skip another's remaining budget.
     if (power === null || !gwCanEndTurn(G, power)) return INVALID_MOVE;
     activateGwExhaustion(G);
+    resolveGwNonPlayerEliminations(G, ctx);
     G.phase = "gwWinter";
     ctx.events?.setPhase?.("gwWinter");
     return undefined;
   }
   if (power === null || !gwCanEndTurn(G, power)) return INVALID_MOVE;
   activateGwExhaustion(G);
+  resolveGwNonPlayerEliminations(G, ctx);
   const next = beginGwNeutralImpulses(G, ctx);
   if (next.kind === "end") {
     G.phase = "gwWinter";
@@ -8569,6 +8667,7 @@ export const gwResolveWinter = (G: ImperialElegyState, ctx: Ctx): string | void 
   if (G.pending !== null) return INVALID_MOVE;
   const res = resolveGwWinter(G, ctx);
   if (!res.ok) return INVALID_MOVE;
+  resolveGwNonPlayerEliminations(G, ctx);
   // resolveGwWinter mutates G.phase out of the winter; widen it so TS does not
   // keep the narrowed "gwWinter" type from the guard above.
   const phaseAfter = G.phase as GamePhase;

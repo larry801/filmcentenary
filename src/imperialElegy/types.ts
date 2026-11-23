@@ -687,6 +687,36 @@ export interface GwCombatCardInFront {
   faceup: boolean;
 }
 
+/**
+ * Rule 32.4 — a non-player power brought into the Great War by a player's
+ * declaration.
+ *
+ * `side` is the alliance that receives the power (the opposing alliance in
+ * 32.4), `ally` the player from that alliance whose marker sits in the
+ * power's home space.  A minor power stays in this ledger after 30.2 makes it
+ * "effectively eliminated from the war" (`eliminated: true`) so the history,
+ * the inherited marker and the log stay auditable; it is no longer a legal
+ * target and no longer hostile.
+ */
+export interface GwNonPlayerBelligerent {
+  /** The non-player power: a minor power name or the unified Italy (`"IT"`). */
+  power: string;
+  /** The alliance it fights for. */
+  side: GwSide;
+  /** The player from that alliance controlling it (its ally marker owner). */
+  ally: Power | null;
+  /** The player whose declaration brought it in. */
+  declaredBy: Power;
+  /** GW turn of the declaration. */
+  turn: number;
+  /** Its home spaces (32.4 places the alliance marker there). */
+  spaces: SpaceId[];
+  /** 30.2: all troops gone and every home space occupied — out of the war. */
+  eliminated?: boolean;
+  /** GW turn in which 30.2 eliminated it. */
+  eliminatedTurn?: number;
+}
+
 export interface GreatWarState {
   active: boolean;
   /** GW turn 0..5. */
@@ -735,6 +765,13 @@ export interface GreatWarState {
   italyStability: number;
   italyManpower: number;
   italyBudget: number;
+  /**
+   * Rule 32.4: non-player powers that player declarations have brought into
+   * the war, with the opposing alliance that received them and the player whose
+   * marker controls them.  Optional so older saves and hand-built test states
+   * remain valid (`gwNonPlayerBelligerents` reads a missing list as empty).
+   */
+  nonPlayerBelligerents?: GwNonPlayerBelligerent[];
   /**
    * 30.2: a major that surrendered is out of the war for good (its units are
    * removed and it cannot re-enter).  Optional for older saves/test states.
@@ -1021,6 +1058,8 @@ export const PENDING_KINDS = [
   "manpowerExcess",
   /** 8.6 / 20.9: the player chooses the direction of a tied alliance roll. */
   "allianceTie",
+  /** 32.4: a neutral player with a marker in the attacked non-player's space. */
+  "gwNonPlayerJoin",
   /** 29.3: a neutral player chooses whether to join an alliance or stay out. */
   "gwNeutralEntry",
   /** 29.3: a neutral player's free redeployment / deploy reserves / bonus CP. */
@@ -1517,6 +1556,15 @@ export interface BattleState {
   kind: "land" | "naval";
   attacker: Power;
   defender: Power;
+  /**
+   * 15.4.2 / 32.4: when no player commands the defence (a lone non-player
+   * minor, or a declared non-player whose marker has not yet been inherited),
+   * the non-player that actually holds the space.  `defender` still carries the
+   * attacker as a legacy bookkeeping fallback for the loss/retreat helpers, so
+   * the log/report read this field instead of presenting the attack as a civil
+   * war.  Optional for older saves and test states.
+   */
+  defenderNonPlayer?: PowerOrMinor;
   from: SpaceId;
   to: SpaceId;
   mainAttack: string[];
@@ -1689,6 +1737,8 @@ export interface BattleReport {
   to: SpaceId;
   attacker: Power;
   defender: Power;
+  /** 15.4.2 / 32.4: the non-player that actually defended (see BattleState). */
+  defenderNonPlayer?: PowerOrMinor;
   winner: "attacker" | "defender";
   decisive: boolean;
   attackerRoll?: number;

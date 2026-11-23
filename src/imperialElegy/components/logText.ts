@@ -1915,13 +1915,15 @@ const FORMATTERS: Record<string, Formatter> = {
         return withActor(entry, locale, `refit a land unit (${cost} CP).`, `整补一个陆军单位（${cost} CP）。`);
       case "refitFleet":
         return withActor(entry, locale, `refit a fleet (${cost} CP).`, `整补一支舰队（${cost} CP）。`);
-      case "landBattle":
+      case "landBattle": {
+        const defender = powerLabel(entry.args?.defender, locale);
         return withActor(
           entry,
           locale,
-          `attacked from ${from} to ${to} (${cost} CP).`,
-          `从${from}向${to}发动进攻（${cost} CP）。`,
+          `attacked from ${from} to ${to} against ${defender} (${cost} CP).`,
+          `从${from}向${to}的${defender}发动进攻（${cost} CP）。`,
         );
+      }
       case "rail":
         return withActor(
           entry,
@@ -3645,6 +3647,87 @@ const FORMATTERS: Record<string, Formatter> = {
       locale,
       `${nameEn} auction resolved: the face-down cards were ${joined}.`,
       `${nameZh}拍卖结算：暗置打出的牌为${joined}。`,
+    );
+  },
+
+  gwNonPlayerWarDeclared: (entry, locale) => {
+    const target = powerLabel(entry.args?.target, locale);
+    const side = str(entry.args?.side) === "te"
+      ? text(locale, "the Triple Entente", "协约国")
+      : text(locale, "the Triple Alliance", "同盟国");
+    const ally = powerLabel(entry.args?.ally, locale);
+    return withActor(
+      entry,
+      locale,
+      `declared war on ${target} (32.4); ${ally} places an alliance marker for ${side}.`,
+      `向${target}宣战（32.4）；${ally}为${side}放置盟友标记。`,
+    );
+  },
+
+  gwNonPlayerJoinAsked: (entry, locale) => {
+    const neutral = powerLabel(entry.args?.neutral, locale);
+    const target = powerLabel(entry.args?.target, locale);
+    return text(
+      locale,
+      `${neutral} may join the war against ${target} (32.4).`,
+      `${neutral}可以选择加入对${target}的战争（32.4）。`,
+    );
+  },
+
+  gwNonPlayerJoin: (entry, locale) => {
+    const target = powerLabel(entry.args?.target, locale);
+    const side = str(entry.args?.side) === "te"
+      ? text(locale, "the Triple Entente", "协约国")
+      : text(locale, "the Triple Alliance", "同盟国");
+    return withActor(
+      entry,
+      locale,
+      `joined ${side} against ${target} (32.4).`,
+      `加入${side}，对抗${target}（32.4）。`,
+    );
+  },
+
+  gwNonPlayerJoinBlocked: (entry, locale) => {
+    const target = powerLabel(entry.args?.target, locale);
+    return withActor(
+      entry,
+      locale,
+      `could not join the war against ${target} (alliance limit).`,
+      `无法加入对${target}的战争（同盟人数限制）。`,
+    );
+  },
+
+  gwNonPlayerStayOut: (entry, locale) => {
+    const target = powerLabel(entry.args?.target, locale);
+    return withActor(
+      entry,
+      locale,
+      `stayed neutral instead of joining the war against ${target} (32.4).`,
+      `选择保持中立，没有加入对${target}的战争（32.4）。`,
+    );
+  },
+
+  gwNonPlayerEliminated: (entry, locale) => {
+    const target = powerLabel(entry.args?.target, locale);
+    const surrender = str(entry.args?.reason) === "30.2-surrender";
+    return text(
+      locale,
+      surrender
+        ? `${target} surrendered and leaves the Great War (30.2).`
+        : `${target} lost all its troops and its home space(s); it is effectively eliminated from the war (30.2).`,
+      surrender
+        ? `${target}投降，退出大战（30.2）。`
+        : `${target}损失全部部队且本土空间被占领，实际上已退出大战（30.2）。`,
+    );
+  },
+
+  gwNonPlayerAllyInherited: (entry, locale) => {
+    const target = powerLabel(entry.args?.target, locale);
+    return withActor(
+      entry,
+      locale,
+      `inherited the alliance marker of ${target} (30.1/30.2).`,
+      `继承了${target}的盟友标记（30.1/30.2）。`,
     );
   },
 
