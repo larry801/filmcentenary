@@ -54,7 +54,7 @@ import {warDeclarationEntitlement, warDeclarationPolicy} from "./rules";
 import {reserveRemaining} from "./economy";
 import {ctxWithBotRandom} from "./botRandom";
 import {hasCounterFor} from "./counters";
-import {allyCallEligibility, holdsWarImpulse, truceRivals, validateWarAim, warTargetKey} from "./limitedWar";
+import {allyCallEligibility, holdsWarImpulse, truceRivals, validateWarAim, warCapitalFallen, warTargetKey} from "./limitedWar";
 import {pacificationProblem} from "./pacification";
 
 // ---------------------------------------------------------------------------
@@ -1136,6 +1136,8 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
   // A war recorded as won (15.5 surrender, or the 16.2 chooser still running)
   // is finished by the settlement move; passing is not an option there.
   if (war.status === "victory") return {move: "resolveWar"};
+  // 15.5: a fallen primary capital ends the maneuver step at once.
+  if (war.status === "maneuver" && warCapitalFallen(G, war)) return {move: "resolveWar"};
   // 4.4: only the impulse holder acts; every other belligerent waits for its
   // turn instead of sending a move the engine now refuses.
   if (!holdsWarImpulse(G, power)) return null;

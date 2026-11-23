@@ -376,7 +376,9 @@ import {
   type WarAim as WarAimType,
   type WarSideName,
   type WarTarget,
+  warCapitalFallen,
 } from "./engine/limitedWar";
+import {blockadedAt} from "./engine/blockade";
 import {applyItalyWarStartRules} from "./engine/italyMilitary";
 import {
   applyTreatyChoice,
@@ -8136,7 +8138,10 @@ export const resolveWar = (
   // `passWarMove` calls this itself as the last seat passes.  Any seat pressing
   // it earlier would end a war its owner is still fighting, so the shortcut is
   // refused instead of being an unprinted second exit.
-  if (war.status === "maneuver" && !belligerentsOf(war).every((p) => war.passed.includes(p))) {
+  // Rule 15.5: a fallen primary capital ends the maneuver step immediately, so
+  // the normal all-passed boundary does not apply to that settlement.
+  const capitalFallen = warCapitalFallen(G, war);
+  if (war.status === "maneuver" && !capitalFallen && !belligerentsOf(war).every((p) => war.passed.includes(p))) {
     const actorPower = actor(G, ctx.playerID ?? null);
     log(G, actorPower ?? undefined, "warResolveRefused", {reason: "not-all-passed"});
     return INVALID_MOVE;
@@ -8156,11 +8161,15 @@ export const resolveWar = (
   // 15.6: settle any capital that was occupied without a capture hook before
   // classification, so the knockout is historical rather than re-derived.
   recordWarKnockouts(G);
+  // 16.1.3(2): the defending side wins a defensive victory when the attacker is
+  // blockaded at the war's end [17.1].  The old writer only read a flag, so the
+  // printed condition never fired; compute the live blockade too.
+  const defenderBlockading = trueFlag(G.flags.defenderBlockading) || blockadedAt(G, war.attacker);
   const victory = classifyVictory(G, war, {
     attackerControlledAtStart,
     negotiatedPeace,
     whitePeace: trueFlag(G.flags.whitePeace),
-    defenderBlockading: trueFlag(G.flags.defenderBlockading),
+    defenderBlockading,
   });
 
   if (treatyChoices !== undefined) {
