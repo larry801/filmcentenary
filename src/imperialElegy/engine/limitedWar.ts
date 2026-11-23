@@ -39,6 +39,7 @@ import {
   displaceAlliedUnitsInTerritory,
   hasLoc,
   isPower,
+  isHomeSpace,
   isKeySpace,
   log,
   minorAlliesOf,
@@ -3002,19 +3003,30 @@ export const demobilizeWar = (
     const controller = minorController(G, unit.owner);
     return controller === null ? null : sideOf(war, controller);
   };
-  for (const [space, state] of Object.entries(G.spaces)) {
-    const rawController = state.control;
-    if (rawController === null || rawController === undefined) continue;
-    const controller = isPower(rawController) ? rawController : minorController(G, rawController);
-    if (controller === null || !belligerents.has(controller)) continue;
-    const controllerSide = sideOf(war, controller);
-    if (controllerSide === null) continue;
-    const enemySide: WarSideName = controllerSide === "attacker" ? "defender" : "attacker";
-    for (const id of [...state.units]) {
-      const unit = G.units[id];
-      if (!unit || sideOfUnit(unit) !== enemySide) continue;
-      displaceUnitToFriendlyLoc(G, id);
-    }
+  // Rule 17.0 (errata): "Displace any units that are not in friendly controlled
+  // home spaces [5.7].  For the purposes of this rule, also displace units in
+  // ally controlled or occupied spaces."  The earlier code displaced only from
+  // enemy territory, which left allied and own non-home spaces exempt; the
+  // errata makes the unit's own **controlled home space** the only place it may
+  // stay at the war's end.
+  for (const [id, unit] of Object.entries(G.units)) {
+    // Naval units are not "in" a home space; their return to port is 20.4's
+    // step (and the free naval movement action), so 17.0's territory
+    // displacement is read as the land-unit clause it replaces.
+    if (unit.naval === true) continue;
+    if (sideOfUnit(unit) === null) continue;
+    const space = unit.space ?? null;
+    if (space === null) continue;
+    const state = G.spaces[space];
+    if (!state) continue;
+    const ownerPower = isPower(unit.owner) ? unit.owner : minorController(G, unit.owner);
+    if (ownerPower === null) continue;
+    const homes = [ownerPower, ...(typeof unit.owner === "string" && !isPower(unit.owner) ? [unit.owner] : [])];
+    const stays = homes.some((home) => isPower(home)
+      ? isHomeSpace(G, space, home) && state.control === home
+      : isHomeSpace(G, space, ownerPower) && state.control === home);
+    if (stays) continue;
+    displaceUnitToFriendlyLoc(G, id);
   }
   war.status = "done";
   // 15.3: occupation is a wartime status.  Once the war is settled every

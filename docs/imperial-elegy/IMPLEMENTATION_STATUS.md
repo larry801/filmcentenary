@@ -65,6 +65,37 @@ named blockers.
   order, 34.4.1/34.4.2/34.4.3/34.4.4/34.4.7/34.4.8 printed answers; the
   scenario sub-scope is complete.
 
+## Verified: §34 bot decisions and §13–17's 17.0 errata (2026-11-23)
+
+Round 6 closed five printed bot decisions and the 17.0 demobilisation errata.
+
+- **34.3.2 automatic pacification.**  A Priority-2 roll of 1–4 spends 1 CP to
+  pacify a space where the bot has a land unit and the engine's
+  `pacificationProblem` accepts the action, before any other Priority-2 row.
+- **34.4.1 declaration-strength guard.**  `withinDeclarationStrength` excludes
+  any declaration target with at least four more army steps (the target plus
+  its minor allies), applied to the bot's home-card declaration candidates.
+- **34.4.7 EC differential.**  The bot commits its elite corps only when the
+  differential after support is −2…+2 in its favour (`battleDrmTotals`).
+- **34.4.8 treaty options.**  The bot skips treaty options whose beneficiary is
+  another player and keeps the option for itself (or finishes).
+- **34.5 Impulsive Ruler.**  A bot plays A105 for CP (its printed mode, which
+  resolves no event) whenever the hand-size clause allows it, never for its
+  event.
+- **§17.0 errata displacement.**  Demobilisation now displaces every
+  belligerent **land** unit that is not in its own **controlled home space**,
+  including units sitting in ally-controlled or occupied spaces — the earlier
+  code used the superseded "enemy controlled territory" wording.  Naval units
+  are left to their own return steps (20.4 and the 17.0 free naval move).
+
+Coverage: `botPrintedRules.test.ts` (5) and `demobErrta.test.ts` (1); the full
+GW/limited-war regression batches and the fixed-seed full game stay green.
+
+Still Partial: §13–17 for the remaining war-engine blockers (13.2.1, Italy in a
+limited war, 15.0 pass cap, 15.2.2 joint naval, 15.5 capital end, 16.1.3(2),
+16.1.4/16.1.5, 16.2 errata targeting, 13.4.5) and §34 for 34.3.1 placement,
+34.2 pile order, 34.4.2 war aims, 34.4.3 war budget and 34.4.4 ally calls.
+
 ## Verified: §9–12 final round — three blockers closed, section promoted (2026-11-23)
 
 Round 5 finished the §9–12 blockers and promoted the section.
@@ -2306,13 +2337,13 @@ This table tracks the current audit until every Partial row is reconciled.
 | 6–7 | Key/colonial/Arab track derivation and power-projection baseline audit. | Existing display/track suites; **2026-11-23: the display-only claim is gone** — `characteristicsCoverage.ts` registers 39 `live` bullets and zero `display-only`, pinned by `characteristicsCoverage`; the campaign setup now stores FR 3, matching the 3.3.1 port formula (Algeria’s printed naval-base station is the second Western Mediterranean point) and the derived track. |
 | 8 | **Closed 2026-11-23.** Full section audited; 8.1.2's alliance-member declaration gate and 8.4's A92 cap bypass were the two real holes and are now fixed (`allianceDeclarationGate.test.ts`, 6); everything else is a live helper + suite. | A015/A111 + d6 resolution: [0184ee01 CI](https://github.com/larry801/filmcentenary/actions/runs/43683138802); harsh terms: [ef8b259c CI](https://github.com/larry801/filmcentenary/actions/runs/43687623222); new gate tests. |
 | 9–12 | **Closed 2026-11-23.** All ten audit blockers are live: recruit phase gate, same-space rebel battles, US/CSA war immunity, 12.3 controlled-port landing, 10.3 marker expiry (+A094 persistence), 10.4 UK India flip, 12.2 EC LoC, 12.6 influence-only bar, 12.17 all-card CP, 9.1.4 discarded-mandatory trigger, 12.8 generic minor EC and 12.15 Special Redeployment. Only the 9.1.3/12.14 interpretation notes remain; section promoted to Implemented. | `auditFixes.test.ts` (8), `cardsPartialFixes.test.ts` (10), and the existing card/response/turn-flag suites. |
-| 13–17 | **Still open.** Closed 2026-11-23: errata 13.4.3 (Denmark→Austria) and 13.4.4 (Qing army in the targeted key). Remaining blockers: 13.2.1 Italian unification wars, 13.4.5 co-defender/Bismarck errata, unified Italy in a limited war (14.0/15.4.1/15.6), 15.0 pass at budget ≤2, 15.2.2 limited-war joint naval, 15.5 capital-capture end, 16.1.3(2) blockade victory, 16.1.4/16.1.5 negotiated/agreed white peace, 16.2 errata targeting, 17.0 errata displacement. | Treaty territory/continuation: [ca46b63b CI](https://github.com/larry801/filmcentenary/actions/runs/43690347798), after correcting the stale surrender assertion and random-card browser fixture. |
+| 13–17 | **Still open.** Closed 2026-11-23: errata 13.4.3 (Denmark→Austria), 13.4.4 (Qing army in the targeted key) and 17.0’s errata displacement (`demobErrta.test.ts`). Remaining blockers: 13.2.1 Italian unification wars, 13.4.5 co-defender/Bismarck errata, unified Italy in a limited war (14.0/15.4.1/15.6), 15.0 pass at budget ≤2, 15.2.2 limited-war joint naval, 15.5 capital-capture end, 16.1.3(2) blockade victory, 16.1.4/16.1.5 negotiated/agreed white peace, 16.2 errata targeting. | Treaty territory/continuation: [ca46b63b CI](https://github.com/larry801/filmcentenary/actions/runs/43690347798), after correcting the stale surrender assertion and random-card browser fixture. |
 | 18–19 | Audit the remaining combat/naval fallback claims against current code and rules. | **Closed 2026-11-23** against the printed pages 37–41: 19.11 displaced naval units implemented (`combat.ts#queuePortNavalDisplacements` → `resolveDeferredNavalWork`, pinned by `displacedNavalUnits.test.ts`, 17) and the naval-combat bullet relabelled after re-reading the code; the remaining items are interpretation notes, not unwired rules. |
 | 20 | **Closed 2026-11-23.** The twelve steps were re-read against printed pp. 41–42 + the 12.12/20.2 errata; every printed clause has a live path and suite, and the remaining items are printed-unspecified interpretations (own-fort protection, full-port ships stay at sea, first-drawn NG default). Section promoted to Implemented. | `endPhaseSteps`, `endPhaseResiduals`, `navalEndReturn`, `manpowerTrackChoice`, `ngDrawShuffle`, `ngLimit`, `italianRebuild`, `minorBuildIndependence`, `industryCeilings`, `polishLimits` (175 tests / 16 suites). |
 | 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | **Closed 2026-11-23** against printed pp. 42–44: every 22.1/22.2/22.3.1 row, 22.4's plan helpers and the 22.5 Poland model are named in `RULES_COVERAGE.md` with their suites; the 22.4 lone-defender sub-clauses are now implemented (`engine/italyMilitary.ts`). The A100 double-WTT clause remains a recorded note. |
 | 24–32 | **Closed 2026-11-23.** 26.0 GW discard reshuffle, 25.2 US chit gate, 25.4 entrant at 0 stability, 15.2.3 multi-army GW deploy, 28.1.5 trench-battle port naval movement, 26.2 US planning transfer and 25.7 alliance-set GW order are live; 25.5/25.6/25.6.1 remain documented deterministic fallbacks. Section promoted to Implemented. | `greatWarFlow.test.ts` (25), `trenchBattleSpace.test.ts` (12), `gwOrderChoice.test.ts` (4); focused GW/naval/bot regressions and the fixed-seed full game passed locally. |
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | **Closed 2026-11-23** against the printed pp. 53–56 characteristic cards: 39 `live`, zero `display-only`, and the per-bullet sub-clauses are listed in the enforced-vs-sub-clause table. The printed FR 3 discrepancy is reconciled to the rule formula (2) in the scenario data, so the setup display and the first end-phase recompute agree. |
-| 34 | **Still open (bots only; scenarios complete).** Remaining blockers: 34.3.2 Priority-2 auto-pacification, 34.3.1 placement order, 34.2 random home-card pile order, 34.4.1 declaration guard, 34.4.2 closest/two-space war aims, 34.4.3 top-card war budget, 34.4.4 ally calls/joins, 34.4.7 EC differential, 34.4.8 self-only treaty options, 34.5 Impulsive Ruler/non-GE A41. The printed bot PAC is not in the repo, so B1/B2 cannot be re-checked against the chart. | B1 die fix and the printed BOT BOX (9.2/34.3.4) are live; online matches now run the same bot for the seats no human takes (2–6 humans, `src/game/ieBotDriver.ts`); `scenarioPlaythrough.test.ts` covers all eight printed scenarios. |
+| 34 | **Still open (bots only; scenarios complete).** Closed 2026-11-23: 34.3.2 auto-pacification, 34.4.1 declaration-strength guard, 34.4.7 EC differential, 34.4.8 self-only treaty options and 34.5 Impulsive Ruler (`botPrintedRules.test.ts`, 5). Remaining blockers: 34.3.1 placement order, 34.2 random home-card pile order, 34.4.2 closest/two-space war aims, 34.4.3 top-card war budget and 34.4.4 ally calls/joins. The printed bot PAC is not in the repo, so B1/B2 cannot be re-checked against the chart. | B1 die fix and the printed BOT BOX (9.2/34.3.4) are live; online matches now run the same bot for the seats no human takes (2–6 humans, `src/game/ieBotDriver.ts`); `scenarioPlaythrough.test.ts` covers all eight printed scenarios. |
 
 Latest fully verified baseline: **2591c8f1284fd31cb6239695a90b4c55ed004d9c**,
 449 suites / 4288 tests, frontend + server builds, 37 general browser tests and
