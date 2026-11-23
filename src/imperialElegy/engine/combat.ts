@@ -48,7 +48,7 @@ import {
   planNavalMove,
 } from "./navalMovement";
 import {CARD_BY_ID, cardById, discardCard, drawCards} from "./deck";
-import {damageUnit, removeUnit} from "./effects";
+import {damageUnit, navalDisplacementTarget, removeUnit} from "./effects";
 import {removesAfterPlay} from "./playability";
 import {
   ELITE_COMBAT_BONUS,
@@ -3583,6 +3583,9 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       // 30.0: GW key loss (−1, RU Scorched Earth absorbs the first) and
       // recapture (+1).  Inert outside the Great War.
       applyGwKeyCapture(G, battle.to, previousHolder, battle.attacker, ctx);
+      // 19.11: an advance into a port holding enemy ships displaces them at
+      // once; the resulting battles are deferred to the action's end.
+      queuePortNavalDisplacements(G, battle.attacker, battle.to);
       advancedUnitIds = [attackerUnit.id];
     }
     if (battle.decisive) {
@@ -3764,11 +3767,14 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
   // card/loss decision.
   if (!G.result) maybeOpenDecisiveFollowUp(G, ctx);
   // 15.1: after a start-of-maneuver battle (or an avoided one) the next
-  // contested naval box fights.  Runs last so a battle that opens its own
-  // 19.8 port/continuation decision or 18.8 follow-up defers the queue to the
-  // move that closes that decision (both re-enter this tail).
-  if (battle.kind === "naval" && !G.result && G.pending === null) {
-    resolveNextNavalStartContact(G, ctx);
+  // contested naval box fights.  19.11's deferred displacement battles drain
+  // first: they belong to the action that just finished (a land advance into an
+  // enemy port can queue them too, hence the flag check).  Runs last so a
+  // battle that opens its own 19.8 port/continuation decision or 18.8
+  // follow-up defers the queue to the move that closes that decision (both
+  // re-enter this tail).
+  if (!G.result && G.pending === null && (battle.kind === "naval" || portDisplacementQueuePending(G))) {
+    resolveDeferredNavalWork(G, ctx);
   }
 };
 
@@ -3921,6 +3927,7 @@ export const attemptInterception = (
   interceptor: Power,
   port: SpaceId,
   box: SpaceId,
+  options: {displaced?: boolean} = {},
 ): InterceptionResult => {
   const {drm, notes} = interceptionModifiers(G, mover, interceptor, box);
   const roll = die(ctx, 6);
@@ -3938,9 +3945,11 @@ export const attemptInterception = (
   // 19.1: the reactive `navalIntercept` move is a separate entry point, so
   // record the interrupted movement before the battle (which may auto-resolve)
   // so the mover can finish it after winning.  The live contact window already
-  // recorded the richer state (origin + joint ally).
+  // recorded the richer state (origin + joint ally).  19.11's displaced fleet
+  // made no naval move, so nothing can be continued and no continuation is
+  // recorded.
   const priorContinuation = G.navalContinuation;
-  if (priorContinuation === null || priorContinuation === undefined) {
+  if (options.displaced !== true && (priorContinuation === null || priorContinuation === undefined)) {
     G.navalContinuation = {
       power: mover,
       from: box,
@@ -4052,7 +4061,23 @@ function resumeInterruptedNavalMove(
   from: SpaceId,
   to: SpaceId,
   attackerUnits: readonly string[],
+  options: {displaced?: boolean; port?: SpaceId} = {},
 ): boolean {
+  // 19.11: a displaced fleet is not making a naval move, so a declined or
+  // failed interception window simply falls through to the displacement's
+  // battle check — there is no transit to advance and no 19.2 avoidance step
+  // to open.
+  if (options.displaced === true) {
+    G.navalContinuation = null;
+    const contact: PortNavalDisplacement = {
+      port: options.port ?? to,
+      box: to,
+      seat: attacker,
+      unitIds: [...attackerUnits],
+    };
+    resolveDisplacedContact(G, ctx, contact, attackerUnits);
+    return true;
+  }
   const transit = G.navalTransit;
   if (transit !== null && transit !== undefined && transit.power === attacker && transit.path[transit.index] === to) {
     G.navalContinuation = null;
@@ -4181,6 +4206,7 @@ const openNavalInterceptionWindow = (
   to: SpaceId,
   attackerUnits: readonly string[],
   candidates: readonly NavalInterceptCandidate[],
+  options: {displaced?: boolean; port?: SpaceId} = {},
 ): boolean => {
   const live = candidates.filter((candidate) =>
     navalInterceptCandidates(G, attacker, to).some(
@@ -4188,10 +4214,10 @@ const openNavalInterceptionWindow = (
     ),
   );
   if (live.length === 0) {
-    return resumeInterruptedNavalMove(G, ctx, attacker, from, to, attackerUnits);
+    return resumeInterruptedNavalMove(G, ctx, attacker, from, to, attackerUnits, options);
   }
   const power = live[0].power;
-  const options = live
+  const optionsList = live
     .filter((candidate) => candidate.power === power)
     .map((candidate) =>
       option(
@@ -4203,18 +4229,21 @@ const openNavalInterceptionWindow = (
       ),
     );
   // Declining is always available, so the window can never deadlock.
-  options.push(option("skip", "Do not intercept"));
+  optionsList.push(option("skip", "Do not intercept"));
   openDecision(G, ctx, decision(
     "navalInterception",
     power,
-    "Naval interception: a port may attempt to intercept the move before the defender decides whether to avoid battle",
-    options,
+    options.displaced === true
+      ? "19.11 displaced naval units: an adjacent port may attempt to intercept the displaced fleet"
+      : "Naval interception: a port may attempt to intercept the move before the defender decides whether to avoid battle",
+    optionsList,
     {
       attacker,
       from,
       to,
       attackerUnits: [...attackerUnits],
       candidates: live.map(encodeInterceptCandidate),
+      ...(options.displaced === true ? {displaced: true, port: options.port ?? to} : {}),
     },
   ));
   return true;
@@ -4242,11 +4271,16 @@ export const resolveNavalInterception = (
   const candidates = decodeInterceptCandidates(context.candidates);
   if (attacker === null || from === "" || to === "") return false;
   if (!pending.options.some((entry) => entry.id === optionId)) return false;
+  const displaced = context.displaced === true;
+  const displacedPort = typeof context.port === "string" ? context.port : to;
   G.pending = null;
+  const windowOptions: {displaced?: boolean; port?: SpaceId} = displaced
+    ? {displaced: true, port: displacedPort}
+    : {};
   const continueWindow = (remaining: NavalInterceptCandidate[]): boolean =>
     remaining.length === 0
-      ? resumeInterruptedNavalMove(G, ctx, attacker, from, to, attackerUnits)
-      : openNavalInterceptionWindow(G, ctx, attacker, from, to, attackerUnits, remaining);
+      ? resumeInterruptedNavalMove(G, ctx, attacker, from, to, attackerUnits, windowOptions)
+      : openNavalInterceptionWindow(G, ctx, attacker, from, to, attackerUnits, remaining, windowOptions);
   if (optionId === "skip") {
     // Commit the decline even if nothing further opens (the roll/decision must
     // not be rolled back by an INVALID_MOVE return).
@@ -4258,7 +4292,7 @@ export const resolveNavalInterception = (
   if (!candidates.some((candidate) => candidate.power === pending.power && candidate.port === port)) {
     return false;
   }
-  const result = attemptInterception(G, ctx, attacker, pending.power, port, to);
+  const result = attemptInterception(G, ctx, attacker, pending.power, port, to, windowOptions);
   const remaining = candidates.filter(
     (candidate) => !(candidate.power === pending.power && candidate.port === port),
   );
@@ -4330,6 +4364,215 @@ export const openNavalContactDecision = (
     }
   }
   return openNavalAvoidOrBattle(G, ctx, attacker, from, to, attackerUnits);
+};
+
+// ---------------------------------------------------------------------------
+// 19.11 Displaced naval units during wartime
+// ---------------------------------------------------------------------------
+
+/**
+ * 19.11: "If a player moves land units into an enemy port containing enemy
+ * naval units, those naval units are immediately displaced to an adjacent naval
+ * box.  This displacement may result in a naval battle, if it does the displaced
+ * units are considered the attackers.  This displacement can be intercepted,
+ * and displacing naval units cannot attempt to avoid battle if moving into a
+ * naval box containing enemy naval units.  Finish the active player's action
+ * before resolving any naval interception attempts and/or naval battles that
+ * result from such a displacement."
+ *
+ * So the *movement* is immediate (the ships leave the port at once, unblocking
+ * the land move and any following 15.3 occupation) while the battles and
+ * interception attempts are deferred to the end of the active player's action.
+ * A queue on `G.flags` keeps the deferred work resumable across decisions.
+ */
+export const PORT_DISPLACEMENT_QUEUE_FLAG = "portDisplacementQueue";
+
+/** One displaced fleet: the box it went to and the ships that must fight. */
+export interface PortNavalDisplacement {
+  port: SpaceId;
+  /** The naval box the ships displaced into. */
+  box: SpaceId;
+  /** The player seat that answers for the displaced ships. */
+  seat: Power;
+  unitIds: string[];
+}
+
+const parsePortDisplacementQueue = (G: ImperialElegyState): PortNavalDisplacement[] => {
+  const raw = G.flags[PORT_DISPLACEMENT_QUEUE_FLAG];
+  if (typeof raw !== "string" || raw.length === 0) return [];
+  const out: PortNavalDisplacement[] = [];
+  for (const entry of raw.split(";")) {
+    const [port, box, seat, ids] = entry.split("|");
+    if (!port || !box || !isPower(seat)) continue;
+    const unitIds = (ids ?? "").split(",").filter((id) => id.length > 0);
+    if (unitIds.length === 0) continue;
+    out.push({port, box, seat, unitIds});
+  }
+  return out;
+};
+
+const setPortDisplacementQueue = (
+  G: ImperialElegyState,
+  entries: readonly PortNavalDisplacement[],
+): void => {
+  G.flags[PORT_DISPLACEMENT_QUEUE_FLAG] = entries
+    .map((entry) => `${entry.port}|${entry.box}|${entry.seat}|${entry.unitIds.join(",")}`)
+    .join(";");
+};
+
+/** True while a 19.11 displacement still owes a battle or interception window. */
+export const portDisplacementQueuePending = (G: ImperialElegyState): boolean =>
+  parsePortDisplacementQueue(G).length > 0;
+
+/**
+ * The player seat that answers for a displaced fleet: a player-owned ship, else
+ * a controlled minor's controller (the minor's counters fight for its ally).
+ * An independent minor with no player seat has nobody to open a battle
+ * decision, so its displacement simply happens.
+ */
+const displacedFleetSeat = (
+  G: ImperialElegyState,
+  port: SpaceId,
+  owner: PowerOrMinor,
+): Power | null => {
+  if (isPower(owner)) return owner;
+  if (owner === "US" || owner === "IT") return null;
+  const controller = minorController(G, owner);
+  if (controller !== null) return controller;
+  const ally = G.spaces[port]?.ally;
+  return isPower(ally) ? ally : null;
+};
+
+/**
+ * 19.11: move every enemy ship out of the port the land units just entered.
+ * Ships of each owner are displaced together into one adjacent box (the printed
+ * "an adjacent naval box"), deterministically the first box that is not
+ * hostile — 5.7's naval displacement tie-break.  Returns the queued fleets.
+ */
+export const queuePortNavalDisplacements = (
+  G: ImperialElegyState,
+  entering: Power,
+  port: SpaceId,
+): PortNavalDisplacement[] => {
+  if (portBoxes(port).length === 0) return [];
+  const hostiles = navalUnitsIn(G, port).filter(
+    (unit) => unit.steps > 0 && hostileOwner(G, entering, unit.owner),
+  );
+  if (hostiles.length === 0) return [];
+  const byOwner = new Map<PowerOrMinor, string[]>();
+  for (const unit of hostiles) {
+    const ids = byOwner.get(unit.owner) ?? [];
+    ids.push(unit.id);
+    byOwner.set(unit.owner, ids);
+  }
+  const queued: PortNavalDisplacement[] = [];
+  for (const [owner, ids] of byOwner) {
+    const seat = displacedFleetSeat(G, port, owner);
+    const box = navalDisplacementTarget(G, owner, port);
+    if (box === null) {
+      // 5.7: nowhere to displace to — the ships are eliminated, no battle.
+      for (const id of ids) removeUnit(G, id);
+      log(G, seat ?? undefined, "portNavalDisplacement", {
+        port, owner, box: null, ships: ids.join(","), eliminated: true,
+      });
+      continue;
+    }
+    const moved: string[] = [];
+    for (const id of ids) {
+      const unit = G.units[id];
+      if (!unit) continue;
+      moveUnitTo(G, unit, box);
+      moved.push(id);
+    }
+    if (moved.length === 0) continue;
+    log(G, seat ?? undefined, "portNavalDisplacement", {
+      port, owner, box, ships: moved.join(","), eliminated: false,
+    });
+    if (seat === null) continue;
+    queued.push({port, box, seat, unitIds: moved});
+  }
+  if (queued.length > 0) setPortDisplacementQueue(G, [...parsePortDisplacementQueue(G), ...queued]);
+  return queued;
+};
+
+/**
+ * 19.11's contact once the interception window is closed: "This displacement
+ * may result in a naval battle, if it does the displaced units are considered
+ * the attackers."  The displaced fleet made no naval move and "cannot attempt
+ * to avoid battle", so the battle opens directly with them in `mainAttack` —
+ * no 19.2 step.  A box with no hostile ships has nothing to fight.
+ * Returns the box it resolved in, or null when it only drained the queue.
+ */
+const resolveDisplacedContact = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  contact: PortNavalDisplacement,
+  liveIds: readonly string[],
+): SpaceId | null => {
+  if (G.pending !== null || G.battle !== null) return null;
+  const {box} = contact;
+  const defendersPresent = navalUnitsIn(G, box).some(
+    (unit) => liveIds.includes(unit.id) === false && hostileOwner(G, contact.seat, unit.owner),
+  );
+  if (defendersPresent && liveIds.length > 0) {
+    log(G, contact.seat, "portNavalBattle", {port: contact.port, box, ships: liveIds.join(",")});
+    beginNavalBattle(G, ctx, contact.seat, box, box, {attackerUnits: [...liveIds]});
+    return box;
+  }
+  resolveNextPortDisplacement(G, ctx);
+  return null;
+};
+
+/**
+ * 19.11's deferred tail: resolve one displaced fleet.  The displacement itself
+ * already happened during the land move; here the printed order is applied —
+ * "This displacement can be intercepted" first (19.1's adjacent-port window),
+ * then the battle with the displaced ships as attackers.
+ */
+export const resolveNextPortDisplacement = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+): SpaceId | null => {
+  if (G.pending !== null || G.battle !== null) return null;
+  const [contact, ...rest] = parsePortDisplacementQueue(G);
+  setPortDisplacementQueue(G, rest);
+  if (contact === undefined) return null;
+  const liveIds = contact.unitIds
+    .map((id) => unitById(G, id))
+    .filter((unit): unit is Unit => Boolean(unit) && unit!.space === contact.box && unit!.steps > 0)
+    .map((unit) => unit.id);
+  if (liveIds.length === 0) return resolveNextPortDisplacement(G, ctx);
+  const candidates = navalInterceptCandidates(G, contact.seat, contact.box);
+  if (candidates.length === 0) return resolveDisplacedContact(G, ctx, contact, liveIds);
+  log(G, contact.seat, "portNavalInterceptionWindow", {
+    port: contact.port, box: contact.box, ships: liveIds.join(","),
+  });
+  // The window's tail (`resumeInterruptedNavalMove` with `displaced`) runs the
+  // battle check above once every port has declined or failed.
+  return openNavalInterceptionWindow(
+    G,
+    ctx,
+    contact.seat,
+    contact.box,
+    contact.box,
+    liveIds,
+    candidates,
+    {displaced: true, port: contact.port},
+  )
+    ? contact.box
+    : resolveNextPortDisplacement(G, ctx);
+};
+
+/**
+ * Drain the deferred 19.11 work, then the 15.1 start-of-maneuver queue.  The
+ * displacement queue goes first: it was produced by the action that just
+ * finished, while the 15.1 queue belongs to the start of the maneuver step.
+ */
+export const resolveDeferredNavalWork = (G: ImperialElegyState, ctx: Ctx): boolean => {
+  if (G.pending !== null || G.battle !== null) return false;
+  if (portDisplacementQueuePending(G)) return resolveNextPortDisplacement(G, ctx) !== null;
+  if (navalStartQueuePending(G)) return resolveNextNavalStartContact(G, ctx) !== null;
+  return false;
 };
 
 /** 19.5: the port-count battle DRMs for each side, in one place. */
