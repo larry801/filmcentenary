@@ -114,7 +114,7 @@ describe("deriveSeatStatuses", () => {
 
     const theirs = deriveSeatStatuses(input({pendingPower: "GE", viewer: "UK"}));
     expect(stateOf(theirs, "GE")).toBe("pending");
-    expect(theirs.find((s) => s.power === "GE")!.label).toBe("Decision waiting");
+    expect(theirs.find((s) => s.power === "GE")!.label).toBe("Deciding");
     // `current` still tracks the view, not the pending seat.
     expect(theirs.find((s) => s.power === "GE")!.current).toBe(false);
     expect(theirs.find((s) => s.power === "UK")!.current).toBe(true);
@@ -152,7 +152,7 @@ describe("deriveSeatStatuses", () => {
     );
     const zhLabels = Object.fromEntries(zh.map((s) => [s.power, s.label]));
     expect(zhLabels).toEqual({
-      GE: "待决",
+      GE: "决策中",
       UK: "等待",
       FR: "机器人",
       AU: "行动中",
@@ -330,7 +330,7 @@ describe("SeatAlert", () => {
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
     expect(html).toContain('data-testid="ie-seat-alert"');
-    expect(html).toContain("Germany needs a decision: Peace deal");
+    expect(html).toContain("Germany is deciding: Peace deal");
     expect(html).toContain('data-testid="ie-seat-alert-go"');
     expect(html).toContain("Go to seat");
   });
@@ -339,7 +339,15 @@ describe("SeatAlert", () => {
     const html = render(
       <SeatAlert pendingPower="OT" pendingKind={null} locale="zh_CN" onGo={() => undefined} />,
     );
-    expect(html).toContain("奥斯曼帝国 需要决策：待决事项");
+    expect(html).toContain("奥斯曼帝国决策中");
     expect(html).toContain("前往");
+  });
+
+  test("an online reader gets the deciding seat without a seat-switch button", () => {
+    const html = render(
+      <SeatAlert pendingPower="FR" locale="zh_CN" />,
+    );
+    expect(html).toContain("法国决策中");
+    expect(html).not.toContain('data-testid="ie-seat-alert-go"');
   });
 });

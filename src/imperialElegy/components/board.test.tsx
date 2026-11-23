@@ -515,6 +515,11 @@ describe("Imperial Elegy board controls", () => {
     expect(markup).not.toContain("data-testid=\"ie-decision-modal\"");
     expect(markup).toContain("data-testid=\"ie-pending\"");
     expect(markup).toContain("等待");
+    // The reader is told who is deciding, not just that someone is.  An online
+    // table cannot switch to that seat, so the notice has no "go" button.
+    expect(markup).toContain("法国决策中");
+    expect(markup).toContain('data-testid="ie-seat-alert"');
+    expect(markup).not.toContain('data-testid="ie-seat-alert-go"');
   });
 
   test("the dock is the control bar for the active seat and is absent for a spectator", () => {

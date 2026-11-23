@@ -119,6 +119,21 @@ test("a decision owed while closed shows the peek line and stays on orders", () 
   expect(markup({decision: true})).toContain("A decision is waiting");
 });
 
+test("a decision label names the deciding seat when another player owes it", () => {
+  const html = markup({decision: true, locale: "zh_CN", decisionLabel: "法国决策中"});
+  expect(openTag(html, "ie-mobile-decision-peek")).toContain('role="status"');
+  expect(html).toContain("法国决策中");
+  expect(html).not.toContain("有决策待处理");
+
+  const open = markup({decision: true, open: true, locale: "zh_CN", decisionLabel: "法国决策中"});
+  expect(open).toContain("ie-mobile-decision-live");
+  expect(open).toContain("法国决策中");
+
+  // Without a label the generic line is unchanged, so a battle or the final
+  // score (no seat to name) keeps its old wording.
+  expect(markup({decision: true, locale: "zh_CN"})).toContain("有决策待处理");
+});
+
 test("an open dock drops the peek line while still reporting the decision", () => {
   const html = markup({decision: true, open: true, locale: "zh_CN"});
 

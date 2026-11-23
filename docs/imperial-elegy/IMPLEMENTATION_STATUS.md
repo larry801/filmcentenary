@@ -3585,3 +3585,38 @@ Coverage: `CardInspector.test.tsx` (rewritten for the single-language body and
 the toggle wiring) and `e2e/imperial-elegy-controls.spec.ts` (the inspector test
 now toggles the scan, asserts the face is replaced rather than stacked, and that
 the ✕ stays in the viewport).
+
+## Another player's decision reads "xx决策中" (2026-11-23)
+
+Reported as "帝国挽歌 其他玩家需要决策时 应该显示 xx决策中".
+
+Every surface that reported a decision belonging to another seat used a generic
+wait ("等待: 法国", "待决", "等待其他玩家决策", "有决策待处理"), so an online
+reader could not tell who had to act and a hotseat reader saw the same wording
+for their own decision and someone else's.
+
+- **One phrase, `decidingText`** (`components/i18n.ts`): `法国决策中` /
+  "France is deciding". The seat name is the printed power (A047's Austria
+  still prints as the Austrian Empire where the rest of the UI does).
+- **Seat strip.** The pending state of a seat other than the viewer is now
+  `决策中` / "Deciding" instead of `待决` / "Decision waiting"; the tab still
+  carries the power's name, so it reads `P3 · FR 法国 ○ 决策中`.
+- **Notice.** `SeatAlert` now says `<power>决策中：<kind>` (English
+  `<power> is deciding: <kind>`). A hotseat keeps the `前往` / "Go to seat"
+  button; an online client renders the same notice **without** it
+  (`onGo` is optional), because `resolvePending` is only exposed to the deciding
+  player and seat switching does not exist online.
+- **Panel, dock and badge.** The pending panel's heading, the dock summary
+  (`ie-dock-summary`) and the status badge use the phrase too; the panel keeps
+  the kind and prompt below it, and `t.waitingOther` still explains that the
+  reader must wait.
+- **Phone and hand peek.** `MobileDock` and `HandTray` take an optional
+  `decisionLabel` / `decisionPeekLabel`; while another seat's decision is open
+  the peek reads `法国决策中` instead of telling the reader to answer it in the
+  panel. A battle or the final score (no seat to name) keeps the generic line.
+
+Coverage: `components/SeatStrip.test.tsx` (labels and the no-`onGo` notice),
+`components/board.test.tsx` (the online read-only other-seat decision names
+France and has no jump button), `components/mobileDock.test.tsx` (labelled
+peek, generic fallback) and `components/mobileDecision.test.tsx` (the hand
+peek's labelled line).

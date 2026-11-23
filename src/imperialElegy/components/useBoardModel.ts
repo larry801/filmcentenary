@@ -18,7 +18,7 @@ import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
 import {negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
 import {GOALS_BY_ID} from "../constant/goals";
-import {ieT} from "./i18n";
+import {decidingText, ieT} from "./i18n";
 import {cardDisplayName} from "./cardDisplay";
 import i18n from "../../constant/i18n";
 import {amphibiousAssaultCheck, canPassNow, hasActedThisImpulse, navalInterceptCheck, navalTransportCheck, responseCardEligibility} from "../moves";
@@ -1586,7 +1586,9 @@ export const useBoardModel = ({
     ? 0
     : freeGrantCp(G, viewer, "freeColonialCp") + freeGrantCp(G, viewer, "freeOperationCp") + freeGrantCp(G, viewer, "freeIndianCp");
   const dockSummary = pending !== null
-    ? `${t.pendingFor}: ${t.seats[pending.power]}`
+    ? canDecide
+      ? t.yourDecision
+      : decidingText(t.seats[pending.power], actualLocale)
     : battle !== null
       ? bi(actualLocale, battle.kind === "naval" ? "Naval battle" : "Land battle", battle.kind === "naval" ? "海战" : "陆战")
       : G.result !== null

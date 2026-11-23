@@ -150,3 +150,12 @@ test("decisionPeek folds the tray to a one-line peek even when the reader had it
   expect(plain).toContain('class="ie-tray-body"');
   expect(plain).not.toContain('data-testid="ie-tray-decision-peek"');
 });
+
+test("a decisionPeekLabel names another player's decision instead of asking the reader to answer", () => {
+  const html = renderToStaticMarkup(
+    <HandTray {...trayProps(game(), true)} decisionPeek decisionPeekLabel="法国决策中"/>,
+  );
+  expect(html).toContain('data-testid="ie-tray-decision-peek"');
+  expect(html).toContain("法国决策中");
+  expect(html).not.toContain("请在面板中作答");
+});
