@@ -83,9 +83,10 @@ Round 6 closed five printed bot decisions and the 17.0 demobilisation errata.
   resolves no event) whenever the hand-size clause allows it, never for its
   event.
 - **§17.0 errata displacement.**  Demobilisation now displaces every
-  belligerent unit that is not in its own **controlled home space**, including
-  units sitting in ally-controlled or occupied spaces — the earlier code used
-  the superseded "enemy controlled territory" wording.
+  belligerent **land** unit that is not in its own **controlled home space**,
+  including units sitting in ally-controlled or occupied spaces — the earlier
+  code used the superseded "enemy controlled territory" wording.  Naval units
+  are left to their own return steps (20.4 and the 17.0 free naval move).
 
 Coverage: `botPrintedRules.test.ts` (5) and `demobErrta.test.ts` (1); the full
 GW/limited-war regression batches and the fixed-seed full game stay green.

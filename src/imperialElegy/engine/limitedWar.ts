@@ -3010,6 +3010,10 @@ export const demobilizeWar = (
   // errata makes the unit's own **controlled home space** the only place it may
   // stay at the war's end.
   for (const [id, unit] of Object.entries(G.units)) {
+    // Naval units are not "in" a home space; their return to port is 20.4's
+    // step (and the free naval movement action), so 17.0's territory
+    // displacement is read as the land-unit clause it replaces.
+    if (unit.naval === true) continue;
     if (sideOfUnit(unit) === null) continue;
     const space = unit.space ?? null;
     if (space === null) continue;

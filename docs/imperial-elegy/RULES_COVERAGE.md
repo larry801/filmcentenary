@@ -157,8 +157,9 @@ with named blockers.
   guard at ≥4 more army steps, **34.4.7**'s −2…+2 EC differential, **34.4.8**'s
   self-only treaty options and **34.5**'s Impulsive-Ruler CP play
   (`botPrintedRules.test.ts`, 5).  **17.0's errata displacement** now displaces
-  every belligerent unit outside its own controlled home space, including units
-  in ally-controlled/occupied spaces (`demobErrta.test.ts`, 1).
+  every belligerent **land** unit outside its own controlled home space,
+  including units in ally-controlled/occupied spaces (`demobErrta.test.ts`, 1);
+  naval units keep their 20.4/free-naval-move return.
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
