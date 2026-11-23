@@ -730,6 +730,13 @@ export interface GreatWarState {
   /** Turn order, including bonus impulses (null slot). */
   order: (Power | "bonus" | "IT" | "US" | null)[];
   /**
+   * 25.7: the alliance-set GW impulse orders chosen during GW turn 0
+   * planning.  Each list is the chosen order of that alliance's members;
+   * `null` means "keep the seat order" (the deterministic default used when
+   * the alliance never submits one).  Optional for older saves.
+   */
+  orderChoice?: {te: Power[] | null; ta: Power[] | null};
+  /**
    * Rule 30.1: the one alliance that owns bonus-impulse markers on the
    * wartime initiative track, if any. Each bonus slot stays the generic
    * `"bonus"` order entry (old code and saves keep working); this field only

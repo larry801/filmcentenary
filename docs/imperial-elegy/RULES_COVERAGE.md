@@ -87,8 +87,8 @@ surrender clause is not inert.
 The remaining **Partial** sections — §8, §9–12, §13–17, §20, §24–32 and §34 —
 were audited against the printed book and its March 2026 errata.  This pass
 closed what the printed text actually owes and recorded the rest per section.
-§8 and **§20 are now Implemented**; the other four stay Partial with named
-blockers.
+**§8, §20 and §24–32 are now Implemented**; §9–12, §13–17 and §34 stay Partial
+with named blockers.
 
 **Closed by live code in this pass:**
 
@@ -127,6 +127,16 @@ blockers.
   debit `gw.usBudget` once per planning step, requiring an ally and a
   transatlantic LoC to the recipient's capital.  Pinned by
   `greatWarFlow.test.ts` (25) and `trenchBattleSpace.test.ts` (12).
+- **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
+  `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
+  alliance submit a permutation of its members during GW turn 0 planning; the
+  alternating track is rebuilt with GE's alliance still first (the submitted
+  order decides which member gets the first impulse), the 25.7.1 bonus slots
+  are preserved, and an alliance that never submits keeps its 4.3 seat order
+  (`startGwManeuver` reveals the result).  The `chooseGwOrder` move is
+  registered; the planning panel selector is still pending.  Pinned by
+  `gwOrderChoice.test.ts` (4).  25.5's NG top-up, 25.6's track boosts and
+  25.6.1's UK EC placement remain documented deterministic fallbacks.
 
 **Still open (the exact reasons these sections stay Partial):**
 
@@ -140,10 +150,6 @@ blockers.
   15.2.2 limited-war joint naval operations; 15.5 capital capture ending the
   maneuver; 16.1.3(2) blockade victory; 16.1.4/16.1.5 negotiated/white peace
   agreements; 16.2 errata treaty targeting; 17.0 errata displacement.
-- **§24–32:** 25.7's alliance-set secret impulse order and the
-  25.5/25.6/25.6.1 top-up/boost/EC fallbacks.  The 26.2 US transfer is live as
-  an engine move (`gwUsTransferBudget`); the planning panel still exposes only
-  the player-to-player transfer control.
 - **§34:** the bot's printed Priority-2 auto-pacification, unit/fort/naval
   placement order, home-card pile order, war-aim/declaration guards, EC
   differential rule and treaty/response-card rules are still approximated or
@@ -986,7 +992,7 @@ blockers.
   Powder Keg/Balkan Wars apply their whole handler before the crisis opens; some
   rows are reachable only when the inciting card actually raises the WTT.
 
-## 24–32 The Great War
+## 24–32 The Great War — **Implemented**
 
 - Outbreak via crisis roll; discard action/home cards; form alliances; score
   National Goals; national will; build the alternating order with a bonus slot;
@@ -1144,8 +1150,12 @@ blockers.
   **26.2's US planning transfer** (`transferGwMajorBudget` /
   `gwUsTransferBudget`; the panel control for the US side is still pending).
   `greatWarFlow.test.ts` and `trenchBattleSpace.test.ts` pin the closures.
-  Still open: 25.7's alliance-set secret impulse order and the
-  25.5/25.6/25.6.1 top-up/boost/EC fallbacks.
+  **25.7 is live** as a GW-turn-0 planning choice (`chooseGwOrder` /
+  `setGwOrderChoice` / `rebuildGwOrder`, `gwOrderChoice.test.ts`); an alliance
+  that never submits keeps seat order.  Remaining deterministic fallbacks:
+  25.5's NG top-up, 25.6's track boosts and 25.6.1's UK EC placement; the 25.7
+  order selector and 26.2 US transfer control are not yet in the planning
+  panel (engine moves only).
 
 ## 33 National characteristics
 

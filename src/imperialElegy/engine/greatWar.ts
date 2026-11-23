@@ -977,7 +977,6 @@ export const outbreakGreatWar = (
   if (displacedFromRebels > 0) log(G, undefined, "rebelDisplacement", {count: displacedFromRebels});
   G.persistent.italyAlliance = G.gw.italyAlliance ?? "neutral";
   G.flags.gwOutbreakItalyResolved = true;
-  const italySlot: "IT"[] = G.gw.italyIn ? ["IT"] : [];
   // 33.5 The Second Rome: "Controlling Istanbul at the end of the game and/or
   // the start of the GW gives Russia 2 VPs."  The end-of-game half is scored by
   // `victory.scoreGame`; this is the separate start-of-GW checkpoint, awarded
@@ -1075,24 +1074,11 @@ export const outbreakGreatWar = (
   delete G.persistent.goe;
   delete G.persistent.boers;
   log(G, undefined, "pacificationRemoved", {});
-  // 25.7: GE's alliance first; if neutral, use UK, FR, AU, then RU.
-  const geSide = POWERS.map((power) => sideOf(G, power)).find((side) => side !== null) ?? "ta";
-  const first = geSide === "te" ? te : ta;
-  const second = geSide === "te" ? ta : te;
-  const order: (Power | "bonus" | "IT")[] = [];
-  const max = Math.max(first.length, second.length);
-  for (let i = 0; i < max; i += 1) {
-    // 25.7.1: fill the missing alliance's alternating slot, rather than
-    // appending a bonus after successive impulses of the larger alliance.
-    order.push(first[i] ?? "bonus");
-    order.push(second[i] ?? "bonus");
-  }
-  // 26.3: Italy's impulse comes at the end of the order.
-  order.push(...italySlot);
-  G.gw.order = order;
-  // 25.7.1: bonus markers belong to the outnumbered alliance.
-  G.gw.bonusImpulseSide =
-    first.length === second.length ? null : first.length < second.length ? geSide : geSide === "te" ? "ta" : "te";
+  // 25.7: GE's alliance goes first, but each alliance has until the maneuver
+  // step to set its own impulse order secretly; the default is 4.3 seat order.
+  // Italy's own impulse slot is folded into the rebuild through `G.gw.italyIn`.
+  G.gw.orderChoice = {te: null, ta: null};
+  rebuildGwOrder(G);
   G.gw.outbreakDone = true;
   G.gw.nationalWillDone = true;
   G.phase = "gwPlanning";
@@ -1107,6 +1093,85 @@ export const outbreakGreatWar = (
     blameMinor: crisis?.blameMinor ?? "",
   });
   ctx.events?.setPhase?.("gwPlanning");
+};
+
+/** 4.3 seat order within one alliance. */
+const seatOrderOf = (powers: readonly Power[]): Power[] =>
+  [...powers].sort((a, b) => POWERS.indexOf(a) - POWERS.indexOf(b));
+
+/** The alliance GE belongs to (25.7: "the alliance with the GE player always goes first"). */
+const geSideOf = (G: ImperialElegyState): "te" | "ta" => {
+  for (const power of POWERS) {
+    const side = sideOf(G, power);
+    if (side !== null) return side;
+  }
+  return "ta";
+};
+
+/**
+ * 25.7: rebuild the alternating GW turn order from the chosen alliance orders.
+ * GE's alliance is always first, but the chosen order decides which of its
+ * members receives the first impulse ("GE does not have to get the first
+ * impulse").  An alliance that has not chosen keeps its 4.3 seat order.  The
+ * bonus slot(s) are filled exactly as at the outbreak, and the US/Italy major
+ * slots stay after the player powers (26.3: the US, then Italy).
+ */
+export const rebuildGwOrder = (G: ImperialElegyState): void => {
+  if (!G.gw) return;
+  const firstSide = geSideOf(G);
+  const secondSide = firstSide === "te" ? "ta" : "te";
+  const firstPowers = firstSide === "te" ? G.gw.te : G.gw.ta;
+  const secondPowers = secondSide === "te" ? G.gw.te : G.gw.ta;
+  const chosen = (side: "te" | "ta", members: readonly Power[]): Power[] | null => {
+    const candidate = G.gw?.orderChoice?.[side] ?? null;
+    if (candidate === null || candidate.length !== members.length) return null;
+    if (new Set(candidate).size !== members.length || !members.every((power) => candidate.includes(power))) {
+      return null;
+    }
+    return [...candidate];
+  };
+  const first = chosen(firstSide, firstPowers) ?? seatOrderOf(firstPowers);
+  const second = chosen(secondSide, secondPowers) ?? seatOrderOf(secondPowers);
+  const order: (Power | "bonus" | "IT" | "US")[] = [];
+  const max = Math.max(first.length, second.length);
+  for (let i = 0; i < max; i += 1) {
+    // 25.7.1: fill the missing alliance's alternating slot with a bonus
+    // marker instead of appending it after the larger alliance's impulses.
+    order.push(first[i] ?? "bonus");
+    order.push(second[i] ?? "bonus");
+  }
+  if (G.gw.usIn) order.push("US");
+  if (G.gw.italyIn) order.push("IT");
+  G.gw.order = order;
+  G.gw.bonusImpulseSide =
+    firstPowers.length === secondPowers.length
+      ? null
+      : firstPowers.length < secondPowers.length
+        ? firstSide
+        : secondSide;
+};
+
+/**
+ * 25.7: record one alliance's chosen impulse order during GW turn 0 planning.
+ * Only a member of that alliance may submit it, only once per alliance, and the
+ * list must be a permutation of the alliance's living players.  The order is
+ * rebuilt immediately so a later submission/beginManuever sees it.
+ */
+export const setGwOrderChoice = (
+  G: ImperialElegyState,
+  side: "te" | "ta",
+  order: readonly Power[],
+): boolean => {
+  if (!G.gw?.active) return false;
+  const members = side === "te" ? G.gw.te : G.gw.ta;
+  if (members.length < 2) return false;
+  if (order.length !== members.length || new Set(order).size !== members.length) return false;
+  if (![...order].every((power) => members.includes(power))) return false;
+  G.gw.orderChoice ??= {te: null, ta: null};
+  if (G.gw.orderChoice[side] !== null) return false;
+  G.gw.orderChoice[side] = [...order];
+  rebuildGwOrder(G);
+  return true;
 };
 
 /**

@@ -1178,6 +1178,17 @@ const FORMATTERS: Record<string, Formatter> = {
     return text(locale, `Great War planning begins for turn ${turn}.`, `大战第 ${turn} 回合计划阶段开始。`);
   },
 
+  gwOrderChosen: (entry, locale) => {
+    const side = str(entry.args?.side) === "te" ? "Triple Entente" : "Triple Alliance";
+    const order = str(entry.args?.order).split(",").filter(Boolean).join(" → ");
+    return withActor(
+      entry,
+      locale,
+      `set the ${side} GW impulse order: ${order}.`,
+      `设定了${side === "Triple Entente" ? "协约国" : "同盟国"}的大战行动顺序：${order}。`,
+    );
+  },
+
   gwManeuver: (entry, locale) => {
     const turn = num(entry.args?.turn);
     return text(locale, `Great War maneuver begins for turn ${turn}.`, `大战第 ${turn} 回合机动阶段开始。`);

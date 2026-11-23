@@ -282,6 +282,7 @@ import {
   resolveItalianNationalistWaveChoice,
   resolveItalyNavalBase,
   resolveItalyOttomanTerritoryChoice,
+  setGwOrderChoice,
 } from "./engine/greatWar";
 import {addItalyMpit, setItalyAllianceBox} from "./engine/italyEntry";
 import {
@@ -8481,6 +8482,30 @@ export const endGwPlanningMove = (G: ImperialElegyState, ctx: Ctx): string | voi
   const res = startGwManeuver(G, ctx);
   if (!res.ok) return INVALID_MOVE;
   ctx.events?.setPhase?.("gwManeuver");
+  return undefined;
+};
+
+/**
+ * 25.7: an alliance sets its own GW impulse order during GW turn 0 planning.
+ * The printed step is secret and simultaneous; the engine lets one member of
+ * each alliance submit its permutation privately, applies the submitted order
+ * to the alternating track immediately, and keeps 4.3 seat order for an
+ * alliance that never submits one.  The maneuver step reveals the result.
+ */
+export const chooseGwOrder = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  side: "te" | "ta",
+  order: readonly Power[],
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "gwPlanning" || !G.gw || G.pending !== null) return INVALID_MOVE;
+  if (G.gw.turn !== 0) return INVALID_MOVE;
+  const members = side === "te" ? G.gw.te : G.gw.ta;
+  if (!members.includes(power)) return INVALID_MOVE;
+  if (!setGwOrderChoice(G, side, order)) return INVALID_MOVE;
+  log(G, power, "gwOrderChosen", {side, order: order.join(",")});
   return undefined;
 };
 

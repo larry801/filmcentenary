@@ -136,6 +136,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   internationalConference: {key: "internationalConference", power: "GE", args: {}},
   gwPlanning: {key: "gwPlanning", args: {turn: 2}},
   gwManeuver: {key: "gwManeuver", args: {turn: 2}},
+  gwOrderChosen: {key: "gwOrderChosen", power: "GE", args: {side: "ta", order: "AU,GE,RU"}},
   gwImpulse: {key: "gwImpulse", power: "GE", args: {kind: "power", index: 1, slot: "GE", bonus: false}},
   gwCpTransfer: {key: "gwCpTransfer", power: "GE", args: {to: "AU", amount: 2}},
   rebelDisplacement: {key: "rebelDisplacement", args: {count: 2}},

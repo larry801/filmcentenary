@@ -139,7 +139,7 @@ import {
   placeGwCombatCardFaceDown,
   removeGwCombatCardInFront,
 } from "./combatCards";
-import {applyGwKeyCapture, checkGwVictory, endGreatWar} from "./greatWar";
+import {applyGwKeyCapture, checkGwVictory, endGreatWar, rebuildGwOrder} from "./greatWar";
 import {grantRapidDeployment, placeNonPlayerCounter, placeUnit, removeUnit} from "./effects";
 import {EXHAUSTION_CARD, markSuperiorStaffWorkGwImpulse} from "./characteristics";
 import {gwExhaustionTurnZero} from "./playability";
@@ -1372,6 +1372,12 @@ export const startGwManeuver = (G: ImperialElegyState, ctx: Ctx): GwManeuverBegi
   if (!G.gw?.active) return fail("noGreatWar", "The Great War is not active");
   if (G.phase !== "gwPlanning") return fail("wrongPhase", "Not in the GW planning step");
   if (G.pending !== null) return fail("pending", "A pending decision blocks the maneuver step");
+  // 25.7: the alliance orders chosen during GW turn 0 planning are revealed
+  // when the maneuver begins.  An alliance that did not submit one keeps 4.3
+  // seat order; later GW years never rebuild (30.1 owns the order then).
+  if (G.gw.turn === 0 && G.gw.orderChoice && (G.gw.orderChoice.te !== null || G.gw.orderChoice.ta !== null)) {
+    rebuildGwOrder(G);
+  }
   const index = firstLivingOrderIndex(G);
   const power = index >= 0 ? (G.gw.order[index] as Power) : null;
   if (!power) return fail("invalidOrder", "The GW order has no living power");
