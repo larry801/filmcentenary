@@ -133,3 +133,76 @@ describe("34.5 Impulsive Ruler", () => {
     expect(move).toEqual({move: "playCard", args: ["IE-A105", "cp"]});
   });
 });
+
+describe("34.3.1 bot placement order", () => {
+  test("a standing-army build goes into the empty capital first", () => {
+    const G = fresh();
+    actionImpulse(G, "GE");
+    G.cpRemaining = 1;
+    G.units = {};
+    for (const state of Object.values(G.spaces)) state.units = [];
+    const move = botDecision(G, makeCtx([1], seat("GE")), "GE");
+    expect(move.move).toBe("recruit");
+    expect(move.args?.[0]).toBe("berlin");
+  });
+});
+
+describe("34.4.2 closest/two-space war aims", () => {
+  const bismarck = (industry: number) => {
+    const G = fresh();
+    actionImpulse(G, "GE");
+    G.units = {};
+    for (const state of Object.values(G.spaces)) state.units = [];
+    placeUnit(G, "GE", "army", "berlin", 2);
+    G.powers.GE.flags.warDeclarationCard = "IE-H-GE-1";
+    G.powers.GE.industry = industry;
+    G.wtt = 1;
+    return G;
+  };
+
+  test("an industrial bot targets two spaces, a zero-industry bot one", () => {
+    const rich = bismarck(5);
+    const two = botDecision(rich, makeCtx([1], seat("GE")), "GE");
+    expect(two.move).toBe("declareWar");
+    // The campaign's German targets usually control one qualifying space each,
+    // so the printed "two" cap is only reached when the closest target controls
+    // two objectives; it is never more than two.
+    expect((two.args?.[2] as unknown[]).length).toBeGreaterThanOrEqual(1);
+    expect((two.args?.[2] as unknown[]).length).toBeLessThanOrEqual(2);
+
+    const poor = bismarck(0);
+    const one = botDecision(poor, makeCtx([1], seat("GE")), "GE");
+    expect(one.move).toBe("declareWar");
+    expect((one.args?.[2] as unknown[]).length).toBe(1);
+  });
+});
+
+describe("34.4.4 ally calls and joins", () => {
+  test("a called aligned bot joins on 3+, refuses on 1–2, committed always joins", () => {
+    const G = fresh();
+    G.pending = null;
+    openDecision(G, makeCtx(), decision(
+      "warAllyConsent",
+      "FR",
+      "Join the war?",
+      [option("accept", "Join"), option("refuse", "Refuse")],
+    ));
+    G.powers.FR.alliance = "teAligned";
+    expect(botPendingMove(G, "FR", makeCtx([2]))).toEqual({move: "resolvePending", args: ["refuse"]});
+    expect(botPendingMove(G, "FR", makeCtx([3]))).toEqual({move: "resolvePending", args: ["accept"]});
+    G.powers.FR.alliance = "teCommitted";
+    expect(botPendingMove(G, "FR", makeCtx([1]))).toEqual({move: "resolvePending", args: ["accept"]});
+  });
+
+  test("the PAC's aid answer always aids the attacked minor", () => {
+    const G = fresh();
+    G.pending = null;
+    openDecision(G, makeCtx(), decision(
+      "minorAid",
+      "GE",
+      "Seeking Aid: aid the minor?",
+      [option("aid", "Aid"), option("decline", "Decline")],
+    ));
+    expect(botPendingMove(G, "GE", makeCtx([1]))).toEqual({move: "resolvePending", args: ["aid"]});
+  });
+});

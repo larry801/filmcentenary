@@ -29,6 +29,8 @@ import {
   gwAllyImpulseFor,
   friendlySpace,
   hasLoc,
+  allied,
+  capitalOf,
   isArmyKind,
   isPower,
   isHomeSpace,
@@ -48,11 +50,11 @@ import {canRecruitIn} from "./characteristics";
 import {gwDraftSpaces, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
 import {currentGwImpulse, gwActionAllowance, gwCardProblem, gwFinishImpulseProblem} from "./gwImpulse";
 import {declarationTargetCandidates} from "./declarationTargets";
-import {warDeclarationEntitlement} from "./rules";
+import {warDeclarationEntitlement, warDeclarationPolicy} from "./rules";
 import {reserveRemaining} from "./economy";
 import {ctxWithBotRandom} from "./botRandom";
 import {hasCounterFor} from "./counters";
-import {holdsWarImpulse} from "./limitedWar";
+import {allyCallEligibility, holdsWarImpulse, truceRivals, validateWarAim, warTargetKey} from "./limitedWar";
 import {pacificationProblem} from "./pacification";
 
 // ---------------------------------------------------------------------------
@@ -233,9 +235,47 @@ const botHomeRecruit = (G: ImperialElegyState, power: Power): SpaceId | null => 
  * Professional Army rule are enforced by `canRecruitIn`, and a recruit move
  * built on the looser check would be refused (and would stall the bot).
  */
+/** 34.3.1: capital first, then home keys touching another player, allied borders last. */
+const orderedHomeSpaces = (G: ImperialElegyState, power: Power): SpaceId[] => {
+  const homes = Object.entries(SPACES).filter(([, def]) => def.home === power).map(([id]) => id as SpaceId);
+  const otherPlayerSpace = (space: SpaceId): Power | null => {
+    const state = G.spaces[space];
+    if (!state) return null;
+    for (const owner of [state.occupiedBy, state.control]) {
+      if (isPower(owner) && owner !== power) return owner;
+    }
+    return null;
+  };
+  const borders = (space: SpaceId): {other: boolean; allied: boolean} => {
+    let other = false;
+    let alliedBorder = false;
+    for (const neighbour of neighboursOf(space)) {
+      const owner = otherPlayerSpace(neighbour);
+      if (owner === null) continue;
+      other = true;
+      if (allied(G, power, owner)) alliedBorder = true;
+    }
+    return {other, allied: alliedBorder};
+  };
+  const capital = capitalOf(G, power);
+  const ranked = homes
+    .filter((id) => id !== capital)
+    .map((id) => ({id, ...borders(id)}))
+    .sort((a, b) => {
+      // Spaces bordering another player come first; among those, avoid an
+      // allied player's border while a non-allied target exists.
+      const rankA = a.other ? (a.allied ? 1 : 0) : 2;
+      const rankB = b.other ? (b.allied ? 1 : 0) : 2;
+      return rankA - rankB || a.id.localeCompare(b.id);
+    })
+    .map((entry) => entry.id);
+  return [capital, ...ranked].filter((id) => id !== null);
+};
+
 const botRecruitSpace = (G: ImperialElegyState, power: Power): SpaceId | null => {
-  for (const [id, def] of Object.entries(SPACES)) {
-    if (def.home !== power) continue;
+  for (const id of orderedHomeSpaces(G, power)) {
+    const def = SPACES[id];
+    if (!def || def.home !== power) continue;
     // 33.6: an Arab key builds an Arab army from the separate Arab pool, so
     // the Turkish default would hide every legal Arab build from the bot.
     const ottoman = power === "OT" ? ottomanArmyTypeFor(id) : undefined;
@@ -490,14 +530,28 @@ export const botPendingMove = (
       // Combat choices the PAC leaves open: roll per 34.3.
       return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
-    case "warAllyConsent":
-      // Bots always call allies (B2: "Bots will always call allies").
-      return {move: "resolvePending", args: [pending.options[0].id]};
+    case "warAllyConsent": {
+      // 34.4.4: "Bots will always call allies.  Aligned bots will join a war on
+      // a roll of 3+; committed bots always join."  The pending is the called
+      // ally's answer, so the roll is the ally's.
+      const committed = G.powers[pending.power]?.alliance?.endsWith("Committed") === true;
+      const accept = pending.options.find((entry) => entry.id === "accept")
+        ?? pending.options.find((entry) => entry.id === "join")
+        ?? pending.options[0];
+      const refuse = pending.options.find((entry) => entry.id === "refuse") ?? pending.options[0];
+      if (committed) return {move: "resolvePending", args: [accept.id]};
+      return {move: "resolvePending", args: [(botChoiceIndex(ctx, 6) + 1) >= 3 ? accept.id : refuse.id]};
+    }
 
-    case "balanceOfPower":
-      // Balance of Power has no PAC row; 34.3 rolls (the bot still gets the
-      // card draw when it accepts).
-      return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
+    case "balanceOfPower": {
+      // 34.4.4: a bot invited by Balance of Power joins on 3+ (34.3's die for
+      // decisions the PAC does not otherwise print), and a committed ally joins.
+      const committed = G.powers[pending.power]?.alliance?.endsWith("Committed") === true;
+      const join = pending.options.find((entry) => entry.id === "accept" || entry.id === "join") ?? pending.options[0];
+      const decline = pending.options.find((entry) => entry.id === "decline" || entry.id === "refuse") ?? pending.options[0];
+      if (committed) return {move: "resolvePending", args: [join.id]};
+      return {move: "resolvePending", args: [(botChoiceIndex(ctx, 6) + 1) >= 3 ? join.id : decline.id]};
+    }
 
     case "treatyOption": {
       // 34.4.8: "Bots will never give land or +1 card markers to other players,
@@ -557,8 +611,13 @@ export const botPendingMove = (
     case "napoleonsLegacy":
     case "metternich":
     case "dardanellesPassage":
+    case "minorAid": {
+      // 34.4.4: the PAC tells the bot to aid the attacked minor power.
+      const aid = pending.options.find((entry) => entry.id === "aid") ?? pending.options[0];
+      return {move: "resolvePending", args: [aid.id]};
+    }
+
     case "minorAbandon":
-    case "minorAid":
     case "demobilizationFreeAction":
     case "eventTargetSpace":
     case "eventTargetPower":
@@ -636,6 +695,28 @@ const declarationTargetArmySteps = (G: ImperialElegyState, defender: PowerOrMino
     return sum;
   }, 0);
 
+/** Land-hop distance from the bot's nearest army space to every space. */
+const objectiveDistances = (G: ImperialElegyState, power: Power): Map<SpaceId, number> => {
+  const distances = new Map<SpaceId, number>();
+  const sources = new Set<SpaceId>(
+    Object.values(G.units)
+      .filter((unit) => unit.owner === power && !unit.naval && unit.space)
+      .map((unit) => unit.space as SpaceId),
+  );
+  const queue: SpaceId[] = [...sources];
+  for (const source of sources) distances.set(source, 0);
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    const nextDistance = (distances.get(current) ?? 0) + 1;
+    for (const next of neighboursOf(current)) {
+      if (distances.has(next)) continue;
+      distances.set(next, nextDistance);
+      queue.push(next);
+    }
+  }
+  return distances;
+};
+
 /** 34.4.1: "Bots will not declare war on a power that has ≥4 more army steps than them (including minor power allies)." */
 export const withinDeclarationStrength = (G: ImperialElegyState, power: Power, defender: PowerOrMinor): boolean =>
   declarationTargetArmySteps(G, defender) - botArmySteps(G, power) < 4;
@@ -653,9 +734,33 @@ const homeDeclarationMove = (G: ImperialElegyState, power: Power): BotMove | nul
   const preferred = candidates.find((candidate) => candidate.aim === "liberation")
     ?? candidates.find((candidate) => candidate.aim === "conquest")
     ?? candidates[0];
+  // 34.4.2: "Bots will always target the closest spaces.  If a bot has 0
+  // industry they will only target a single space, otherwise they will target
+  // two spaces."  Distance is the land-hop distance from the bot's nearest army
+  // to the objective.
+  const distances = objectiveDistances(G, power);
+  const group = candidates
+    .filter((candidate) => candidate.aim === preferred.aim
+      && warTargetKey(candidate.target) === warTargetKey(preferred.target))
+    .sort((a, b) => (distances.get(a.objective) ?? Infinity) - (distances.get(b.objective) ?? Infinity)
+      || a.objective.localeCompare(b.objective));
+  const maxObjectives = G.powers[power].industry === 0 ? 1 : 2;
+  const policy = warDeclarationPolicy(entitlement.card);
+  const aimRules = {
+    ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
+    conquestKeyLimit: policy?.conquestKeyLimit,
+  };
+  const objectives: SpaceId[] = [group[0].objective];
+  for (const candidate of group.slice(1)) {
+    if (objectives.length >= maxObjectives) break;
+    const trial = [...objectives, candidate.objective];
+    if (validateWarAim(G, power, preferred.defender, preferred.aim, trial, aimRules).ok) {
+      objectives.push(candidate.objective);
+    }
+  }
   return {
     move: "declareWar",
-    args: [preferred.target, preferred.aim, [preferred.objective], entitlement.cp],
+    args: [preferred.target, preferred.aim, objectives, entitlement.cp],
   };
 };
 
@@ -675,7 +780,7 @@ const homeDeclarationMove = (G: ImperialElegyState, power: Power): BotMove | nul
  * 6. UK: build dreadnoughts if able
  * 7. All: build armies if WTT ≥ 3
  */
-const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
+const priorityOne = (G: ImperialElegyState, power: Power, ctx: Ctx): BotMove | null => {
   const p = G.powers[power];
 
   // 1. Play home card for its event (if stability > 0 or card gives < 3 CP)
@@ -752,12 +857,15 @@ const priorityOne = (G: ImperialElegyState, power: Power): BotMove | null => {
   if (power === "UK" && G.cpRemaining >= 3) {
     const unlocked = G.persistent.dreadnoughts === true || Boolean(p.flags.navalLimit);
     if (unlocked) {
-      for (const [id, def] of Object.entries(SPACES)) {
-        if (def.home !== "UK") continue;
-        if (!ownsKey(G, id, "UK")) continue;
-        if (def.ports && def.ports.length > 0 && navalUnitsIn(G, id).length < 4) {
-          return {move: "constructFleet", args: [id, "dreadnought"]};
-        }
+      const ports = Object.values(SPACES)
+        .filter((def) => def.home === "UK" && (def.ports?.length ?? 0) > 0 && ownsKey(G, def.id, "UK"))
+        .filter((def) => navalUnitsIn(G, def.id).length < 4)
+        .map((def) => def.id)
+        .sort();
+      // 34.3.1: "Bot naval units will be placed in a random port they control
+      // until that port has reached its stacking limit."
+      if (ports.length > 0) {
+        return {move: "constructFleet", args: [ports[botChoiceIndex(ctx, ports.length)], "dreadnought"]};
       }
     }
   }
@@ -937,9 +1045,11 @@ const excessCp = (G: ImperialElegyState, power: Power, ctx: Ctx): BotMove | null
 const botFortSpace = (G: ImperialElegyState, power: Power): SpaceId | null => {
   const forts = Object.values(G.spaces).filter((s) => s.fort?.power === power).length;
   if (forts >= 3) return null;
-  for (const [id, def] of Object.entries(SPACES)) {
-    if (def.home !== power) continue;
-    if (def.region !== "europe") continue;
+  for (const id of orderedHomeSpaces(G, power)) {
+    const def = SPACES[id];
+    if (!def || def.home !== power) continue;
+    // 12.12/errata: forts are built on the main map (the bot's home keys are).
+    if (def.submap !== "main") continue;
     if (!ownsKey(G, id, power)) continue;
     if (G.spaces[id]?.fort) continue;
     if (G.powers[power].flags[`fort_${id}`]) continue;
@@ -996,6 +1106,16 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
   // `warAim`, the engine refused it, and the seat had no other move to make.
   // The defender cannot advance the war past those steps, so it waits.
   if (war.status === "warAim" || war.status === "alliance") {
+    // 14.0 / 34.4.4: "Bots will always call allies."  A primary belligerent
+    // calls every eligible ally (an ordinary declaration, no Status Quo) before
+    // the maneuver step; a called ally's consent is the 34.4.4 pending answer.
+    if (war.status === "alliance" && (power === war.attacker || power === war.defender)) {
+      for (const ally of POWERS) {
+        if (ally === power || (war.refusedAllies ?? []).includes(ally)) continue;
+        const call = allyCallEligibility(G, war, power, ally, {truceWith: truceRivals(G, ally)});
+        if (call.ok) return {move: "callWarAlly", args: [ally]};
+      }
+    }
     return power === war.attacker ? {move: "startWarManeuver"} : null;
   }
   // A war recorded as won (15.5 surrender, or the 16.2 chooser still running)
@@ -1327,7 +1447,7 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
     }
 
     // Priority 1.
-    const p1 = priorityOne(G, power);
+    const p1 = priorityOne(G, power, ctx);
     if (p1 !== null) return p1;
 
     // Start a fresh impulse by playing a card for CP.

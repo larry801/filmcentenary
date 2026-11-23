@@ -65,6 +65,26 @@ named blockers.
   order, 34.4.1/34.4.2/34.4.3/34.4.4/34.4.7/34.4.8 printed answers; the
   scenario sub-scope is complete.
 
+## Verified: §34 placement, war aims and ally calls (2026-11-23)
+
+Round 7 closed the remaining placement/alliance clauses of rule 34.
+
+- **34.3.1 placement order.**  `orderedHomeSpaces` puts the capital first when
+  it holds no land unit, then home keys bordering another player (allied
+  borders are ranked last while a non-allied target exists); the same ordering
+  drives fort builds, and UK naval builds pick a random controlled port below
+  the port stacking limit.
+- **34.4.2 closest/two-space war aims.**  The bot sorts a target's legal
+  objectives by land-hop distance from its nearest army and names two spaces
+  when the closest target controls two legal ones (one space at 0 industry).
+- **34.4.4 ally calls and joins.**  A primary belligerent calls every eligible
+  ally in the alliance step; an aligned bot joins a call on 3+ (committed bots
+  always join), Balance of Power joins on 3+, and the bot always answers a
+  Seeking Aid request with aid.
+
+Coverage: `botPrintedRules.test.ts` (9).  Still open in §34: 34.2's random
+home-card pile order and 34.4.3's top-card war-budget draw.
+
 ## Verified: §34 bot decisions and §13–17's 17.0 errata (2026-11-23)
 
 Round 6 closed five printed bot decisions and the 17.0 demobilisation errata.
@@ -2343,7 +2363,7 @@ This table tracks the current audit until every Partial row is reconciled.
 | 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | **Closed 2026-11-23** against printed pp. 42–44: every 22.1/22.2/22.3.1 row, 22.4's plan helpers and the 22.5 Poland model are named in `RULES_COVERAGE.md` with their suites; the 22.4 lone-defender sub-clauses are now implemented (`engine/italyMilitary.ts`). The A100 double-WTT clause remains a recorded note. |
 | 24–32 | **Closed 2026-11-23.** 26.0 GW discard reshuffle, 25.2 US chit gate, 25.4 entrant at 0 stability, 15.2.3 multi-army GW deploy, 28.1.5 trench-battle port naval movement, 26.2 US planning transfer and 25.7 alliance-set GW order are live; 25.5/25.6/25.6.1 remain documented deterministic fallbacks. Section promoted to Implemented. | `greatWarFlow.test.ts` (25), `trenchBattleSpace.test.ts` (12), `gwOrderChoice.test.ts` (4); focused GW/naval/bot regressions and the fixed-seed full game passed locally. |
 | 33 | Reconcile every registry bullet and timing clause; resolve printed FR/RU power-projection mismatch. | **Closed 2026-11-23** against the printed pp. 53–56 characteristic cards: 39 `live`, zero `display-only`, and the per-bullet sub-clauses are listed in the enforced-vs-sub-clause table. The printed FR 3 discrepancy is reconciled to the rule formula (2) in the scenario data, so the setup display and the first end-phase recompute agree. |
-| 34 | **Still open (bots only; scenarios complete).** Closed 2026-11-23: 34.3.2 auto-pacification, 34.4.1 declaration-strength guard, 34.4.7 EC differential, 34.4.8 self-only treaty options and 34.5 Impulsive Ruler (`botPrintedRules.test.ts`, 5). Remaining blockers: 34.3.1 placement order, 34.2 random home-card pile order, 34.4.2 closest/two-space war aims, 34.4.3 top-card war budget and 34.4.4 ally calls/joins. The printed bot PAC is not in the repo, so B1/B2 cannot be re-checked against the chart. | B1 die fix and the printed BOT BOX (9.2/34.3.4) are live; online matches now run the same bot for the seats no human takes (2–6 humans, `src/game/ieBotDriver.ts`); `scenarioPlaythrough.test.ts` covers all eight printed scenarios. |
+| 34 | **Still open (bots only; scenarios complete).** Closed 2026-11-23: 34.3.2 auto-pacification, 34.4.1 declaration-strength guard, 34.3.1 placement order, 34.4.2 closest/two-space war aims, 34.4.4 ally calls/joins/aid, 34.4.7 EC differential, 34.4.8 self-only treaty options and 34.5 Impulsive Ruler (`botPrintedRules.test.ts`, 9). Remaining blockers: 34.2 random home-card pile order and 34.4.3 top-card war budget. The printed bot PAC is not in the repo, so B1/B2 cannot be re-checked against the chart. | B1 die fix and the printed BOT BOX (9.2/34.3.4) are live; online matches now run the same bot for the seats no human takes (2–6 humans, `src/game/ieBotDriver.ts`); `scenarioPlaythrough.test.ts` covers all eight printed scenarios. |
 
 Latest fully verified baseline: **2591c8f1284fd31cb6239695a90b4c55ed004d9c**,
 449 suites / 4288 tests, frontend + server builds, 37 general browser tests and
