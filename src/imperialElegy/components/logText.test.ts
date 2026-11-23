@@ -386,6 +386,8 @@ const engineLogKeys = (): string[] => {
     for (const match of source.matchAll(/\b(?:log|addLog)\(G,\s*[^,\n]+,\s*"([A-Za-z][A-Za-z0-9]*)"/g)) keys.add(match[1]);
     // `discardCard` passes its reason in the key slot.
     for (const match of source.matchAll(/discardCard\([^;\n]*?,\s*"([A-Za-z][A-Za-z0-9]*)"\s*\)/g)) keys.add(match[1]);
+    // `discardRandomHandCardTriggering` carries the same discard reason.
+    for (const match of source.matchAll(/discardRandomHandCardTriggering\([^,\n]*,\s*[^,\n]*,\s*"([A-Za-z][A-Za-z0-9]*)"/g)) keys.add(match[1]);
     for (const match of source.matchAll(/G\.log\.push\([^;\n]*?\bkey:\s*"([A-Za-z][A-Za-z0-9]*)"/g)) keys.add(match[1]);
   }
   return [...keys].sort();
