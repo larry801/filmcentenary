@@ -346,6 +346,9 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 phaseBegin(G, ctx);
                 G.turnsCompleted = 0;
                 G.consecutivePasses = 0;
+                // Rule 17.3/8.1: naval counters eliminated in a previous turn
+                // return to the force pool during the Card Draw Phase.
+                G.navalLost = {};
                 if (G.dealtYear !== G.year) {
                     dealYear(G, ctx);
                 }
@@ -389,7 +392,6 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 phaseBegin(G, ctx);
                 G.turnsCompleted = 0;
                 G.springDone = [];
-                G.navalLost = {};
                 resolvePendingCatholicLeague(G);
                 resolvePendingHreReplacement(G);
                 // A skipped Card Draw choice keeps the automatic winter losses
