@@ -10,7 +10,7 @@
  */
 import React from "react";
 import {POWERS, type Power} from "../types";
-import {ieStringsFor, type IELocale} from "./i18n";
+import {decidingText, ieStringsFor, type IELocale} from "./i18n";
 import {Icon} from "./Icon";
 import {useRovingTabs} from "./useRovingTabs";
 import {seatPowerName} from "./seatNames";
@@ -29,7 +29,7 @@ export interface SeatStatus {
 /** Short bilingual state labels — the strip is only 40px tall. */
 const LABELS: Record<SeatState, Record<IELocale, string>> = {
   decide: {en: "Your decision", zh_CN: "待你决策"},
-  pending: {en: "Decision waiting", zh_CN: "待决"},
+  pending: {en: "Deciding", zh_CN: "决策中"},
   active: {en: "Acting", zh_CN: "行动中"},
   bot: {en: "Bot", zh_CN: "机器人"},
   eliminated: {en: "Eliminated", zh_CN: "已淘汰"},
@@ -153,24 +153,35 @@ export interface SeatAlertProps {
   pendingPower: Power;
   pendingKind?: string | null;
   locale: IELocale;
-  onGo: () => void;
+  /** Omitted when the reader cannot switch to that seat (an online table). */
+  onGo?: () => void;
 }
 
 /**
  * Banner for a decision waiting on a seat that is not the one shown.  It names
- * the seat and the kind of decision and offers a jump to that seat.
+ * the deciding seat ("France is deciding: Choose a space") so a reader never
+ * mistakes someone else's decision for their own, and offers a jump when the
+ * host can switch seats (hotseat).
  */
 export const SeatAlert: React.FC<SeatAlertProps> = ({pendingPower, pendingKind, locale, onGo}) => {
   const t = ieStringsFor(locale);
   const seat = t.seats[pendingPower];
-  const kind = pendingKind ?? (locale === "en" ? "pending decision" : "待决事项");
-  const text = locale === "en" ? `${seat} needs a decision: ${kind}` : `${seat} 需要决策：${kind}`;
+  const head = decidingText(seat, locale);
+  const kind = pendingKind ?? null;
+  const text = kind === null || kind === ""
+    ? head
+    : `${head}${locale === "en" ? ": " : "："}${kind}`;
   return (
     <div className="ie-seat-alert" role="status" aria-live="polite" data-testid="ie-seat-alert">
-      <span className="ie-seat-alert-text">{text}</span>{" "}
-      <button type="button" data-testid="ie-seat-alert-go" onClick={onGo}>
-        {locale === "en" ? "Go to seat" : "前往"}
-      </button>
+      <span className="ie-seat-alert-text">{text}</span>
+      {onGo !== undefined && (
+        <>
+          {" "}
+          <button type="button" data-testid="ie-seat-alert-go" onClick={onGo}>
+            {locale === "en" ? "Go to seat" : "前往"}
+          </button>
+        </>
+      )}
     </div>
   );
 };

@@ -47,6 +47,7 @@ import {WarDeclarationPanel} from "./WarDeclarationPanel";
 import {MoveConsole} from "./MoveConsole";
 import {GreatWarPanel} from "./GreatWarPanel";
 import {SeatAlert} from "./SeatStrip";
+import {decidingText} from "./i18n";
 import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
 import {MpitPanel} from "./MpitPanel";
@@ -514,7 +515,7 @@ export const ReferenceRegion = (props: ReferenceSlice) => {
  * string in the tray (the CP-chain button, the give-card hint, the filter
  * labels) silently fell back to English.
  */
-export const HandRegion = (props: HandSlice & {locale: "en" | "zh_CN"; t: T; decisionPeek?: boolean}) => <HandTray {...props}/>;
+export const HandRegion = (props: HandSlice & {locale: "en" | "zh_CN"; t: T; decisionPeek?: boolean; decisionPeekLabel?: string}) => <HandTray {...props}/>;
 
 // ---------------------------------------------------------------------------
 // Shell
@@ -532,7 +533,7 @@ interface ShellProps {
 const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellProps) => {
   const {
     G, t, locale, viewer, phase, active, botSeats, pending, battle, phaseActions,
-    canHandOverSeat, setSeatBot,
+    canHandOverSeat, setSeatBot, hotseat,
     otherSeatPending, seatUi, pendingPrompt, pendingKind, responseWindow, cardFaceMode,
     setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
     homeChoice, goalChoice, homeCardDialogOpen, setHomeCardDialogOpen,
@@ -546,6 +547,13 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
   // it for its label and badges, the phone layout to show only the decision
   // body, and the hand sheet to fold itself out of the map's way.
   const decisionOwed = Boolean(pending || battle || G.result);
+  // A decision on another seat is read-only here (online, or a hotseat board
+  // whose seat is not the one looking).  It is named rather than reported as
+  // "waiting": the reader sees who is deciding and what is being decided.
+  const pendingElsewhere = pending !== null && pending.power !== viewer;
+  const decidingLabel = pendingElsewhere && pending !== null
+    ? decidingText(t.seats[pending.power], locale)
+    : undefined;
 
   /**
    * The required card choices are dialogs.
@@ -695,7 +703,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       <IEBadge tone={G.wtt >= 4 ? "warn" : "default"}>{t.wtt}: {G.wtt}/5</IEBadge>
       {G.gw?.active && <IEBadge tone="warn">GW {G.gw.turn}</IEBadge>}
       {battle && <IEBadge tone="warn">{bi(locale, battle.kind === "naval" ? "Naval battle" : "Land battle", battle.kind === "naval" ? "海战" : "陆战")}</IEBadge>}
-      {pending && <IEBadge tone="warn">{t.pending}: {t.seats[pending.power]}</IEBadge>}
+      {pending && <IEBadge tone="warn">{canDecide ? t.yourDecision : decidingText(t.seats[pending.power], locale)}</IEBadge>}
       {responseWindow && <IEBadge tone="warn">{t.responseWindow}</IEBadge>}
       {viewer && <IEBadge tone={viewer.toLowerCase()}>{t.seats[viewer]}</IEBadge>}
       {!viewer && <IEBadge>{t.spectators}</IEBadge>}
@@ -758,12 +766,12 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
         menu={commandMenu}
         status={commandStatus}
         onOpenReference={(anchor) => setRefAnchor(anchor)}
-        notice={otherSeatPending && pending !== null && seatUi.onSwitchSeat ? (
+        notice={pending !== null && pendingElsewhere && (!hotseat || otherSeatPending) ? (
           <SeatAlert
             pendingPower={pending.power}
             pendingKind={pendingPrompt !== "" ? pendingPrompt : pendingKind ?? ""}
             locale={locale}
-            onGo={() => seatUi.onSwitchSeat!(pending.power)}
+            onGo={otherSeatPending && seatUi.onSwitchSeat ? () => seatUi.onSwitchSeat!(pending.power) : undefined}
           />
         ) : undefined}
       />
@@ -795,6 +803,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
           tab={activeMobileTab}
           tabs={mobileTabs}
           decision={decisionOwed}
+          decisionLabel={decidingLabel}
           locale={locale}
           onTab={(key) => setMobileTab(key)}
           onToggleOpen={() => {
@@ -922,6 +931,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             open={isPhone ? true : hand.open}
             expanded={isPhone ? false : hand.expanded}
             decisionPeek={isPhone ? false : decisionOwed}
+            decisionPeekLabel={decidingLabel}
             confirmActions={confirmActions}
           />
         </MobileDock>

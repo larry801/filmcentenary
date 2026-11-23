@@ -45,12 +45,18 @@ export interface MobileDockProps {
   onToggleExpanded: () => void;
   /** A decision or battle is owed: the sheet may open to half, never higher. */
   decision: boolean;
+  /**
+   * What the decision line says.  The board names the deciding seat while
+   * another player's decision is open ("France is deciding"); the default
+   * reports a decision without a seat (a battle or the final score).
+   */
+  decisionLabel?: string;
   locale: "en" | "zh_CN";
   children: React.ReactNode;
 }
 
 export const MobileDock = ({
-  open, expanded, tab, tabs, onTab, onToggleOpen, onToggleExpanded, decision, locale, children,
+  open, expanded, tab, tabs, onTab, onToggleOpen, onToggleExpanded, decision, decisionLabel, locale, children,
 }: MobileDockProps) => {
   const chevron = open ? <Icon name="chevron-down" size={16}/> : <Icon name="chevron-right" size={16}/>;
   const choose = (key: MobileTab) => {
@@ -128,12 +134,12 @@ export const MobileDock = ({
 
         {decision && !open && (
           <span className="ie-mobile-decision-peek" data-testid="ie-mobile-decision-peek" role="status">
-            {bi(locale, "A decision is waiting", "有决策待处理")}
+            {decisionLabel ?? bi(locale, "A decision is waiting", "有决策待处理")}
           </span>
         )}
         {decision && open && (
           <span className="ie-mobile-decision-live" role="status">
-            {bi(locale, "A decision is waiting", "有决策待处理")}
+            {decisionLabel ?? bi(locale, "A decision is waiting", "有决策待处理")}
           </span>
         )}
       </header>

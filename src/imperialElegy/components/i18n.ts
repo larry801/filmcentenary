@@ -749,6 +749,14 @@ const S = {
   },
 };
 
+/**
+ * "France is deciding" / "法国决策中" — a decision belongs to another seat and
+ * the reader can only watch.  One helper keeps the seat strip, the notice, the
+ * pending panel and the dock naming that seat the same way.
+ */
+export const decidingText = (seat: string, locale: IELocale): string =>
+  locale === "en" ? `${seat} is deciding` : `${seat}决策中`;
+
 /** The English dictionary defines the shape both locales must share. */
 export type IEStrings = typeof S.en;
 export const ieStringsFor = (locale: IELocale): IEStrings => S[locale];

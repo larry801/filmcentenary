@@ -286,6 +286,15 @@ decision, an open battle and the final score stay in the Orders body — they ar
 reports, not this seat's choice — and the Orders body behind the dialog stays
 mounted, so a tab switch and the space's actions survive the answer.
 
+Another seat's decision is **named**, not reported as a bare wait.  The same
+phrase — `法国决策中` / "France is deciding" (`decidingText` in
+`components/i18n.ts`) — appears in the seat strip's pending label, the panel
+heading, the dock summary, the status badge and the track-strip notice
+(`ie-seat-alert`), which adds the decision's kind.  Only the hotseat's notice
+carries the `前往` / "Go to seat" button; an online reader cannot switch seats,
+so the notice names the deciding player without offering a control that cannot
+work.
+
 The hand row pins home cards to the front (`pinHomeCards` in
 `components/cardDisplay.ts`): the card the diplomacy step requires is the one
 card a long hand must never push off the right edge.
@@ -503,7 +512,8 @@ While a decision, battle or result is owed the dock reports
 `data-decision="true"`. A decision arriving on a mounted board opens the dock to
 **half** on the **Orders** tab so the decision is in front; collapsing it then
 gives the 56 px peek: the one-line `ie-mobile-decision-peek` (`有决策待处理` /
-"A decision is waiting") takes the place of the 44 px bar, and it exists only
+"A decision is waiting", or `法国决策中` / "France is deciding" while another
+seat owes it) takes the place of the 44 px bar, and it exists only
 while the decision is owed **and** the dock is closed. The open dock is capped
 at **50 dvh** while the decision is owed and `ie-mobile-expand` is inert then,
 so the sheet stays at its 40 dvh half rather than covering the map target the

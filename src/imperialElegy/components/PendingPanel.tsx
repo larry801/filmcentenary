@@ -2,7 +2,7 @@ import React from "react";
 import {ImperialElegyState, PendingOption, Power, SpaceId} from "../types";
 import {spaceLabel} from "../constant/spaces";
 import {IEBadge, IEPanel} from "./theme";
-import {ieT} from "./i18n";
+import {decidingText, ieT} from "./i18n";
 import {BATTLE_STAGE, bi} from "./boardHelpers";
 import {CardChoice, CardChoiceFace} from "./CardChoice";
 import {ConfirmButton} from "./ConfirmButton";
@@ -118,7 +118,7 @@ export const DecisionBody = ({
     <>
       {!pending ? <div className="ie-muted">{t.noPending}</div> : (
         <div className={`ie-pending${canDecide ? " urgent" : ""}`} data-testid="ie-pending">
-          <h4>{canDecide ? t.yourDecision : `${t.waitingFor}: ${t.seats[pending.power]}`}</h4>
+          <h4>{canDecide ? t.yourDecision : decidingText(t.seats[pending.power], locale)}</h4>
           <div className="ie-pending-kind" data-testid="ie-pending-kind">{pendingKind} · {t.pendingFor}: {t.seats[pending.power]}</div>
           <div className="ie-pending-prompt">{pendingPrompt}</div>
           {canDecide ? (

@@ -73,6 +73,11 @@ export interface HandTrayProps {
    */
   decisionPeek?: boolean;
   /**
+   * The peek line's text.  The board names the deciding seat while another
+   * player's decision is open; the default asks the reader to answer it.
+   */
+  decisionPeekLabel?: string;
+  /**
    * Draw every card's operations inline.  The board never sets this: a tap on
    * a row opens the CardInspector, which is the one place the operations live.
    * It exists for embeds and for the rules-level suites, which assert on a
@@ -104,6 +109,7 @@ export const HandTray = (props: HandTrayProps) => {
     responseInHand, responseWindow, chainNonEmpty, chainSpendable, chainCap,
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
     cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded, decisionPeek = false,
+    decisionPeekLabel,
     onOpenReference, expandAll = false, isPhone = false, isBotViewer = false,
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
@@ -383,7 +389,7 @@ export const HandTray = (props: HandTrayProps) => {
         </div>
         {decisionPeek && (
           <span className="ie-tray-decision-line" data-testid="ie-tray-decision-peek" role="status">
-            {bi(locale, "A decision is waiting — answer it in the panel", "有决策待处理——请在面板中作答")}
+            {decisionPeekLabel ?? bi(locale, "A decision is waiting — answer it in the panel", "有决策待处理——请在面板中作答")}
           </span>
         )}
         {handChoicesHint !== null && (
