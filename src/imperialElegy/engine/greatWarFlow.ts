@@ -1253,6 +1253,16 @@ export const beginGwTurn = (G: ImperialElegyState, ctx: Ctx): GwBeginResult => {
     gw.discard = [...new Set([...(gw.discard ?? []), ...strayGw])];
     G.discard = G.discard.filter((id) => !greatWarIds.has(id));
   }
+  // 26.0: "At the start of the planning step reshuffle the GW discard pile
+  // into the GW card deck, then deal all players ... one GW card."  The
+  // recycled cards rejoin the pool below; cards in front of a player (26.1)
+  // and cards still held stay out.  Run once per planning step so a re-entrant
+  // phase hook cannot hand out a second card.
+  if (firstBudgetPass && (gw.discard?.length ?? 0) > 0) {
+    const reshuffled = [...new Set(gw.discard)];
+    gw.discard = [];
+    log(G, undefined, "deckReshuffled", {deck: reshuffled.length});
+  }
   // The card pool is the printed GW deck minus removed cards and cards still
   // held by a power.  A card held over from last turn is kept (not redrawn).
   const held = new Set<CardId>();
@@ -3128,6 +3138,10 @@ export const joinNeutralAlliance = (
   else G.gw.ta.push(power);
   G.gw.belligerents.push(power);
   G.gw.neutrals = G.gw.neutrals.filter((p) => p !== power);
+  // 25.4: "If a player enters the GW at 0 stability that player immediately
+  // gains 1 stability."  Applied after the entry is recorded so 30.0's first
+  // elimination check sees a live entrant, not a dead one.
+  if (G.powers[power].stability <= 0) changeStability(G, power, 1, ctx);
   const slot = insertNeutralOrderSlot(G, power);
   rebalanceBonusImpulse(G);
   log(G, power, "gwNeutralEntry", {side, slot: slot + 1});
@@ -4424,7 +4438,11 @@ export function majorEntryCandidates(G: ImperialElegyState, power: Power, mode: 
   const italyOfferOpen = mode === "resolve" || turn > 0 || !gwCardPlayedThisOutbreak(G);
   if (italyAvailable && italyOfferOpen) out.push("IT");
   // "Cannot be played on GW turn 0": the US offer starts on GW turn 1.
-  if (turn > 0 && !G.gw.usIn && !hasSurrendered(G, "US") && G.gw.usStability > 0) out.push("US");
+  // 25.2: "do not place the US alliance chit if the CSA won the American Civil
+  // War. Likewise, if the American Civil War is currently ongoing, do not
+  // place the US alliance chit" — no chit on the track means no GW entry.
+  const usOnTrack = G.persistent.acw !== true && G.persistent.csaIndependent !== true;
+  if (turn > 0 && usOnTrack && !G.gw.usIn && !hasSurrendered(G, "US") && G.gw.usStability > 0) out.push("US");
   return out;
 }
 

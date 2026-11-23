@@ -786,7 +786,8 @@ export const NON_PLAYER_ALLIANCE_TABLE: readonly NonPlayerAllianceRow[] = [
     choices: [
       {candidates: ["UK", "FR"], rollOff: true},
       {candidates: ["GE", "RU"], rollOff: true},
-      null,
+      // Errata (March 2026): "Denmark's 3rd choice is Austria."
+      {candidates: ["AU"], rollOff: false},
     ],
   },
   {
@@ -880,6 +881,16 @@ export const NON_PLAYER_ALLIANCE_TABLE: readonly NonPlayerAllianceRow[] = [
     ],
   },
 ];
+
+/**
+ * Rule 12.17.1: "Players can never declare war on the US or the CSA."  The US
+ * is a non-player major, not a minor power; it appears in the minor-home map
+ * only because it owns The South.  The CSA is not a minor-power row while it
+ * is a permanent UK/FR ally.
+ */
+export const WAR_IMMUNE_NON_PLAYERS: readonly string[] = ["United States", "CSA"];
+
+export const isWarImmuneNonPlayer = (minor: string): boolean => WAR_IMMUNE_NON_PLAYERS.includes(minor);
 
 /** The 13.4.3 table row for a non-player power, or null when it has none. */
 export const nonPlayerAllianceRow = (minor: string): NonPlayerAllianceRow | null =>

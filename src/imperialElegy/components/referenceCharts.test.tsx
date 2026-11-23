@@ -202,13 +202,10 @@ describe("the transcriptions agree with the engine", () => {
     expect(rows).toHaveLength(NON_PLAYER_ALLIANCE_TABLE.length);
     // The printed sheet names one row "Italy/Italian Minor" and marks the two
     // late-independent nations with `**`; normalise those before matching.
-    // The printed sheet prints Denmark's 2nd Choice as `GE/RU*` and a third
-    // column of "Germany".  `engine/limitedWar.ts` records the same first two
-    // choices with no third one, so the engine's list is checked as a *prefix*
-    // of the printed row: the transcription documents the sheet as printed and
-    // never drops a printed column, while the engine keeps its own table until
-    // 13.4.3 is re-checked against the rulebook (see the note in
-    // `docs/imperial-elegy/IMPLEMENTATION_STATUS.md`).
+    // The printed sheet prints a third column of "Germany" for Denmark, which
+    // the March 2026 errata corrects to Austria.  The chart shows the errata
+    // cell (AU), matching `engine/limitedWar.ts`; the errata note is still
+    // rendered so the printed misprint remains documented.
     const CELL_CODE: Record<string, string> = {
       France: "FR", Russia: "RU", Ottomans: "OT", Germany: "GE", UK: "UK", AU: "AU",
     };
@@ -243,11 +240,10 @@ describe("the transcriptions agree with the engine", () => {
       const extra = printedChoices.slice(lastEngineChoice + 1).filter((cell) => cell !== "-");
       if (extra.length > 0) printedOnly.set(row.nation, extra);
     }
-    // The one printed column the engine has no choice for.  The rulebook's own
-    // 13.4.3 table prints a "-" in that cell and the Mar. 2026 errata corrects
-    // the player aid to "Austria"; the engine follows the rulebook and the
-    // transcription carries the printed cell plus the errata note.
-    expect([...printedOnly.entries()]).toEqual([["Denmark", ["Germany"]]]);
+    // Every engine choice now has a printed cell: the March 2026 errata's
+    // Austria cell is the chart's Denmark 3rd Choice, so nothing is
+    // printed-only.  The errata note still names the sheet's "Germany" misprint.
+    expect([...printedOnly.entries()]).toEqual([]);
     const errata = stringsOf(chartTextById("war-aims-minors")!)
       .find((entry) => entry.en.includes("Denmark's 3rd choice"));
     expect(errata).toBeDefined();

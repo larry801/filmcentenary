@@ -134,10 +134,11 @@ describe("13.4.3 Non-Player Alliance Table data", () => {
       {candidates: ["FR"], rollOff: false},
       null,
     ]);
+    // The March 2026 errata adds Austria as Denmark's 3rd choice.
     expect(choices("Denmark")).toEqual([
       {candidates: ["UK", "FR"], rollOff: true},
       {candidates: ["GE", "RU"], rollOff: true},
-      null,
+      {candidates: ["AU"], rollOff: false},
     ]);
     expect(choices("Bavaria")).toEqual([
       {candidates: ["AU", "GE"], rollOff: true},
@@ -221,8 +222,9 @@ describe("13.4.2 aid eligibility", () => {
   test("no eligible candidate means no slots at all", () => {
     const G = fresh();
     // Put every table power of Denmark's row into the attacker's alliance.
+    // The March 2026 errata adds Austria as the 3rd Choice.
     G.powers.GE.alliance = "taAligned";
-    for (const power of ["UK", "FR", "RU"] as const) G.powers[power].alliance = "taAligned";
+    for (const power of ["UK", "FR", "RU", "AU"] as const) G.powers[power].alliance = "taAligned";
     expect(seekingAidSlots(G, "GE", "Denmark")).toEqual([]);
   });
 
@@ -379,7 +381,8 @@ describe("13.4.2 live Seeking Aid", () => {
   test("no candidate at all creates the lone war immediately", () => {
     const G = fresh();
     G.powers.GE.alliance = "taAligned";
-    for (const power of ["UK", "FR", "RU"] as const) G.powers[power].alliance = "taAligned";
+    // Austria is the errata's 3rd Choice for Denmark, so it must be blocked too.
+    for (const power of ["UK", "FR", "RU", "AU"] as const) G.powers[power].alliance = "taAligned";
     expect(declareOn(G, "Denmark", ["denmark"])).toBeUndefined();
     expect(G.pending).toBeNull();
     expect(G.minorDeclarations).toHaveLength(1);

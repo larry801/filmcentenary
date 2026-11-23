@@ -1,5 +1,5 @@
 import {Ctx} from "boardgame.io";
-import {GreatWarState, ImperialElegyState, Power} from "../types";
+import {CardId, GreatWarState, ImperialElegyState, Power} from "../types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
 import {resolvePending} from "./moves";
@@ -9,6 +9,8 @@ import {
   beginGwTurn,
   enterGwAlly,
   faceupCombatCards,
+  joinNeutralAlliance,
+  majorEntryCandidates,
   giftGwCombatCard,
   performGwManeuver,
   resolveGwWinter,
@@ -100,6 +102,26 @@ describe("Great War planning", () => {
     expect(G.powers.GE.warBudget).toBe(0);
     expect(G.powers.GE.flags.gwCpTransferDone).toBe(false);
     expect(G.turnIndex).toBe(0);
+  });
+
+  test("26.0 reshuffles the GW discard pile into the GW deck at planning", () => {
+    const G = baseGw();
+    // Five powers hold a card; OT is dealt from the pool.  GW-07/GW-08 sit in
+    // the discard pile from last turn, so the reshuffle must make them
+    // dealable again (the printed pool order then deals GW-08 to OT).
+    const held: CardId[] = ["IE-GW-01", "IE-GW-02", "IE-GW-03", "IE-GW-04", "IE-GW-05"];
+    (["GE", "UK", "FR", "AU", "RU"] as Power[]).forEach((power, index) => {
+      G.powers[power].gwCard = held[index];
+    });
+    G.powers.OT.gwCard = null;
+    G.gw!.discard = ["IE-GW-07", "IE-GW-08"];
+
+    const res = beginGwTurn(G, makeCtx(3));
+    expect(res.ok).toBe(true);
+    expect(G.gw!.discard).toEqual([]);
+    expect(G.powers.OT.gwCard).toBe("IE-GW-08");
+    // The held cards are kept, not redrawn.
+    expect(G.powers.GE.gwCard).toBe("IE-GW-01");
   });
 
   test("CP transfer only works within an alliance and only once per planning", () => {
@@ -656,5 +678,31 @@ describe("Great War winter", () => {
     expect(res.ok).toBe(false);
     if (res.ok) throw new Error("expected a failure");
     expect(res.error).toBe("wrongPhase");
+  });
+});
+
+describe("25.2 / 25.4 printed entry rules", () => {
+  test("25.2: no US chit while the ACW runs or after the CSA wins", () => {
+    const G = baseGw({turn: 1});
+    expect(majorEntryCandidates(G, "FR")).toContain("US");
+    G.persistent.acw = true;
+    expect(majorEntryCandidates(G, "FR")).not.toContain("US");
+    delete G.persistent.acw;
+    G.persistent.csaIndependent = true;
+    expect(majorEntryCandidates(G, "FR")).not.toContain("US");
+  });
+
+  test("25.4: a player entering the GW at 0 stability gains 1", () => {
+    const G = baseGw({
+      te: ["FR"],
+      ta: ["GE"],
+      neutrals: ["UK", "AU", "RU", "OT"],
+      belligerents: ["GE", "FR"],
+      order: ["GE", "FR", "UK", "AU", "RU", "OT"],
+    });
+    G.powers.UK.stability = 0;
+    expect(joinNeutralAlliance(G, makeCtx(), "UK", "te")).toBe(true);
+    expect(G.powers.UK.stability).toBe(1);
+    expect(G.gw!.belligerents).toContain("UK");
   });
 });

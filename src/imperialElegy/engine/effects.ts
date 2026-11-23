@@ -2127,10 +2127,25 @@ const sharedNavalBox = (G: ImperialElegyState, a: Power, b: Power): boolean => {
   return navalBoxesOf(G, b).some((box) => boxes.has(box));
 };
 
-const shiftAllianceOnce = (G: ImperialElegyState, power: Power, direction: number): void => {
-  const p = G.powers[power];
-  const index = ALLIANCE_TRACK.indexOf(p.alliance);
-  p.alliance = ALLIANCE_TRACK[Math.max(0, Math.min(ALLIANCE_TRACK.length - 1, index + direction))];
+/**
+ * One card-driven alliance step.  Rule 8.4's cap is absolute ("Only three
+ * player powers can ever be in an alliance"), so every event shift goes
+ * through the shared `shiftAlliance` helper rather than writing the chit
+ * directly; a blocked step is logged with the same suffix as 20.9's.
+ */
+const shiftAllianceOnce = (
+  G: ImperialElegyState,
+  power: Power,
+  direction: "te" | "ta",
+): AllianceShiftResult => {
+  const result = shiftAlliance(G, power, direction, 1);
+  log(G, power, "allianceShifted", {
+    from: result.from,
+    to: result.to,
+    steps: result.steps,
+    blocked: result.blocked,
+  });
+  return result;
 };
 
 /**
@@ -2143,12 +2158,12 @@ const shiftAllianceAway = (G: ImperialElegyState, ctx: Ctx, a: Power, b: Power):
   if (indexA === indexB) {
     // Both neutral (allied powers are never legal targets): one goes each way.
     const roll = die(ctx, 2);
-    shiftAllianceOnce(G, a, roll === 1 ? 1 : -1);
-    shiftAllianceOnce(G, b, roll === 1 ? -1 : 1);
+    shiftAllianceOnce(G, a, roll === 1 ? "te" : "ta");
+    shiftAllianceOnce(G, b, roll === 1 ? "ta" : "te");
     return;
   }
-  shiftAllianceOnce(G, a, Math.sign(indexA - indexB));
-  shiftAllianceOnce(G, b, Math.sign(indexB - indexA));
+  shiftAllianceOnce(G, a, indexA < indexB ? "ta" : "te");
+  shiftAllianceOnce(G, b, indexB < indexA ? "te" : "ta");
 };
 
 const applyNavalArmsRace = (G: ImperialElegyState, ctx: Ctx, actor: Power, target: Power): void => {

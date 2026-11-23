@@ -993,23 +993,31 @@ band. The campaign turn labels are turn 1 = 1850s through turn 7 = 1910s; the
 
 ## Known implementation boundaries
 
-- Bots, alternate scenarios and promotional cards are not implemented, as
-  requested.
-- The live naval path is a one-box move plus a naval battle with 19.7–19.9
-  retreat, occupation and port-fort handling. Interception, avoidance and
-  amphibious assault are **not** exposed.
-- Treaties are interactive for the primary winner and the realignment minor
-  chooser is live, but multi-ally allocation and demobilisation free actions
-  remain fallbacks.
-- A063’s first-impulse priority, free deploy and extra reserve army are live.
-  Combat now allocates later losses to supporting armies (18.6), implements
-  naval retreat/occupation and port-fort elimination (19.7–19.9), lets GW-06
-  stop a naval retreat and be marked face up, and grants the 18.8 decisive-battle
-  follow-up (another land battle or one free space of movement, once per
-  impulse).
-- Crisis results are collapsed to conference-or-outbreak; card target choices
-  are explicit for several events but auto-picked for others. See
-  `IMPLEMENTATION_STATUS.md` for the exact lists.
+This section is a summary only; the authoritative, per-rule record is
+[`RULES_COVERAGE.md`](RULES_COVERAGE.md) and
+[`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
+
+- **Bots, alternate scenarios and the printed scenarios are implemented.**
+  Rule 34's bot engine and the 2–6-human online bot driver are live, and every
+  printed scenario in `IE_playbook.pdf` pp. 3–10 is playable (see
+  [`SCENARIOS.md`](SCENARIOS.md)).  **Promotional cards P1–P3 and the printed
+  Quick Start script remain deliberately out of scope.**  The rule-34 bot's
+  remaining printed-decision approximations are listed in
+  `IMPLEMENTATION_STATUS.md`; the published bot PAC is not in this repository.
+- **Naval path:** the live rules include interception, avoidance, amphibious
+  assault, joint naval operations, mines, port forts and 19.11 displaced naval
+  units.  The remaining limits are the ones recorded in the coverage map
+  (e.g. a GW joint naval operation's contingents must start in the same box,
+  and a limited-war joint naval move is still unexposed).
+- **Treaties:** multi-ally allocation, ally-knockout and independent-minor
+  beneficiaries and the demobilisation free actions are live; the remaining
+  boundary is arbitrary neutral-minor beneficiaries, which the printed 16.2
+  does not allow anyway.
+- **Crisis results and card targets:** the printed 23.0–23.5 crisis table is
+  live, and every card event's printed choice is tracked in
+  [`CARD_EVENTS.md`](CARD_EVENTS.md); the remaining approximations are named in
+  `IMPLEMENTATION_STATUS.md` (mandatory-discard triggers, some response-window
+  timing, a few older specials).
 - A rare pending decision that belongs to a non-active seat is surfaced on that
   seat's board; the local hotseat tells the device user which seat to open, and
   online clients only expose `resolvePending` to the deciding player.

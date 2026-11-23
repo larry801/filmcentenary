@@ -346,6 +346,7 @@ export const transportReasonText = (
     case "army-stacking": return bi(locale, "The destination would exceed the army stacking limit (5.5.3).", "目的地将超过陆军堆叠上限（5.5.3）。");
     case "port-capacity": return bi(locale, "The destination port would hold more than four naval units (5.5.4).", "目的地港口将超过 4 个海军单位上限（5.5.4）。");
     case "trench-exit": return bi(locale, "A unit leaving a trench battle space must first enter a friendly or trench space (28.1.5).", "离开战壕战空间的单位必须先进入友好或战壕空间（28.1.5）。");
+    case "target-not-controlled": return bi(locale, "A peacetime landing must end in a port you control (12.3).", "和平时期登陆必须停在你控制的港口（12.3）。");
     case "us-north-america": return bi(locale, "32.1: US armies cannot leave North America until the enemy-held Mexico/Canada gate is occupied.", "32.1：在占领敌方控制的墨西哥/加拿大之前，美军不能离开北美。");
     case "no-seat": return bi(locale, "Only a seated player may transport.", "仅入座玩家可以进行海上运输。");
     default: return bi(locale, "The naval transport is not legal.", "海上运输不合法。");

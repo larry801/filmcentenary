@@ -887,7 +887,7 @@ describe("A059/A062 availability guards", () => {
 });
 
 describe("GW discard and face-up resync", () => {
-  test("GW-05/06 go to the GW discard, never the action discard, and are not redealt", () => {
+  test("GW-05/06 go to the GW discard, never the action discard, and reshuffle at planning", () => {
     const G = fresh();
     G.phase = "gwManeuver";
     G.gw = gwState(2);
@@ -900,12 +900,16 @@ describe("GW discard and face-up resync", () => {
     expect(G.discard).not.toContain("IE-GW-05");
     expect(G.gw?.discard).toContain("IE-GW-05");
 
-    // Planning must keep every card still in the GW discard out of the deal.
+    // 26.0: "At the start of the planning step reshuffle the GW discard pile
+    // into the GW card deck."  The played GW-05 leaves the discard and rejoins
+    // the dealable pool; it must never leak into the action discard.
     for (const power of POWERS) G.powers[power].gwCard = null;
-    const before = [...(G.gw?.discard ?? [])];
     beginGwTurn(G, makeCtx([2]));
-    for (const power of POWERS) expect(G.powers[power].gwCard).not.toBe("IE-GW-05");
-    expect(G.gw?.discard).toEqual(before);
+    expect(G.gw?.discard).toEqual([]);
+    expect(G.discard).not.toContain("IE-GW-05");
+    // The reshuffle is logged and the card is dealable again (it may or may
+    // not be the card the deterministic die hands out this planning step).
+    expect(G.log.some((entry) => entry.key === "deckReshuffled")).toBe(true);
   });
 
   test("faceupCombatCards reflects both in-front cards held by one power immediately", () => {

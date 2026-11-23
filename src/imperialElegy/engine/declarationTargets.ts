@@ -43,6 +43,7 @@ import {MINOR_POWER_HOMES} from "../constant/setup";
 import {
   WarDeclarationAim,
   WarDeclarationEntitlement,
+  allied,
   controlledBy,
   isPower,
   warDeclarationAims,
@@ -53,6 +54,7 @@ import {
   MinorWarInfo,
   WarTarget,
   hasTruce,
+  isWarImmuneNonPlayer,
   minorWarDefender,
   minorWarInfo,
   nonPlayerControlId,
@@ -151,6 +153,10 @@ export const declarationDefenders = (
   for (const defender of POWERS) {
     if (defender === power) continue;
     if (G.powers[defender].eliminated) continue;
+    // Rule 8.1.2: "Players in an alliance box: cannot declare war on members
+    // of their alliance."  The same gate is enforced by `declareWar`, so the
+    // panel can never offer a target the engine would refuse.
+    if (allied(G, power, defender)) continue;
     if (hasTruce(G, power, defender)) continue;
     if (!warDeclarationTargetLegal(G, entitlement, defender)) continue;
     out.push({target: defender, defender});
@@ -160,6 +166,8 @@ export const declarationDefenders = (
   // defended by that player, so it is reached through the player row above.
   const minors = Object.keys(MINOR_POWER_HOMES).sort();
   for (const minor of minors) {
+    // 12.17.1: the US and the CSA can never be a war target.
+    if (isWarImmuneNonPlayer(minor)) continue;
     const info: MinorWarInfo = minorWarInfo(G, power, minor);
     if (!info.ok) continue;
     if (info.ally !== null) continue;
