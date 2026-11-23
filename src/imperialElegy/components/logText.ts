@@ -7,6 +7,7 @@ import {ieStringsFor} from "./i18n";
 import {cardDisplayName} from "./cardDisplay";
 import type {PlayBlockReason} from "../engine/playability";
 import {nationalityLabel} from "../engine/nationality";
+import {engineReasonText} from "./reasonText";
 
 /**
  * Bilingual, key-driven rendering for the Imperial Elegy engine log.
@@ -41,6 +42,29 @@ type Formatter = (entry: LogTextEntry, locale: LogLocale) => string;
 const text = (locale: LogLocale, en: string, zh: string): string => (locale === "zh_CN" ? zh : en);
 
 const str = (value: unknown): string => (value === undefined || value === null ? "" : String(value));
+
+/**
+ * An engine reason list as the log prints it.
+ *
+ * The engine stores refusal reasons as English text and joins several of them
+ * with " | "; a Chinese log has to translate each part, so the log and the
+ * action rows share one table (`reasonText.ts`) instead of drifting apart.
+ */
+const reasonList = (value: unknown, locale: LogLocale): string => engineReasonText(locale, str(value));
+
+/** The AU special-action codes a rejection names, in both UI languages. */
+const AU_ACTION_LABELS: Readonly<Record<string, {en: string; zh: string}>> = {
+  reforms: {en: "reforms", zh: "改革"},
+  expandCitizenship: {en: "citizenship", zh: "扩大公民权"},
+  incorporate: {en: "incorporate", zh: "吞并"},
+};
+
+/** An AU action code as the log prints it; an unknown code prints as stored. */
+const auActionLabel = (action: string, locale: LogLocale): string => {
+  const entry = AU_ACTION_LABELS[action];
+  if (entry === undefined) return action;
+  return locale === "zh_CN" ? entry.zh : entry.en;
+};
 
 const num = (value: unknown): number => {
   const parsed = typeof value === "number" ? value : Number(value);
@@ -1498,7 +1522,7 @@ const FORMATTERS: Record<string, Formatter> = {
 
   minorBuildRejected: (entry, locale) => {
     const minor = str(entry.args?.minor);
-    const reasons = str(entry.args?.reasons);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(
       entry,
       locale,
@@ -2153,7 +2177,7 @@ const FORMATTERS: Record<string, Formatter> = {
 
   gwColonialStability: (entry, locale) => {
     const delta = num(entry.args?.delta);
-    const reason = str(entry.args?.reason);
+    const reason = reasonList(entry.args?.reason, locale);
     return withActor(
       entry,
       locale,
@@ -2805,7 +2829,7 @@ const FORMATTERS: Record<string, Formatter> = {
     const kind = unitKind(entry.args?.kind, locale);
     const raw = str(entry.args?.space);
     const where = raw === "" ? "" : ` in ${spaceName(raw, locale)}`;
-    const reasons = str(entry.args?.reasons);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(
       entry,
       locale,
@@ -2816,7 +2840,7 @@ const FORMATTERS: Record<string, Formatter> = {
 
   industrializeRejected: (entry, locale) => {
     const card = cardLabel(entry.args?.card, locale);
-    const reasons = str(entry.args?.reasons);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(
       entry,
       locale,
@@ -2850,8 +2874,8 @@ const FORMATTERS: Record<string, Formatter> = {
   },
 
   auActionRejected: (entry, locale) => {
-    const action = str(entry.args?.action);
-    const reasons = str(entry.args?.reasons);
+    const action = auActionLabel(str(entry.args?.action), locale);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(
       entry,
       locale,
@@ -2918,7 +2942,7 @@ const FORMATTERS: Record<string, Formatter> = {
   },
 
   zouaveRebuildRejected: (entry, locale) => {
-    const reasons = str(entry.args?.reasons);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(entry, locale, `could not rebuild the Zouaves: ${reasons}.`, `无法重建祖阿夫：${reasons}。`);
   },
 
@@ -2934,7 +2958,7 @@ const FORMATTERS: Record<string, Formatter> = {
   },
 
   tsrrRailRejected: (entry, locale) => {
-    const reasons = str(entry.args?.reasons);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(
       entry,
       locale,
@@ -2955,7 +2979,7 @@ const FORMATTERS: Record<string, Formatter> = {
   },
 
   jihadRejected: (entry, locale) => {
-    const reasons = str(entry.args?.reasons);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(entry, locale, `could not use a Jihad marker: ${reasons}.`, `无法使用圣战标记：${reasons}。`);
   },
 
@@ -3213,7 +3237,7 @@ const FORMATTERS: Record<string, Formatter> = {
     ),
 
   homeCardRejected: (entry, locale) => {
-    const reasons = str(entry.args?.reasons);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(
       entry,
       locale,
@@ -3367,7 +3391,7 @@ const FORMATTERS: Record<string, Formatter> = {
   },
 
   polishRecruitRejected: (entry, locale) => {
-    const reasons = str(entry.args?.reasons);
+    const reasons = reasonList(entry.args?.reasons, locale);
     return withActor(
       entry,
       locale,

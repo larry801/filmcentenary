@@ -1,3 +1,43 @@
+## Fixed: no engine-built English left in the zh_CN UI (2026-11-23)
+
+Reported as "查找帝国挽歌未本地化文本并修正".  A second audit pass — this one
+following the text the *engine* builds rather than the panels' own markup (that
+half was covered on 2026-11-20) — found three independent leaks; each is fixed
+and pinned by `components/i18nCoverage.test.ts`.
+
+- **Eight fixed decision prompts had no Chinese.**  `Divide and Conquer: …`,
+  `German General Staff: …` (twice), `Aux Armes: …`, `Divide and Conquer: place
+  or move an EF …`, `Return one National Goal to your NG deck` (used in two code
+  paths) and the two scenario deck-edit questions were built by `decision(...)`
+  without `promptZh` and were absent from `PROMPT_ZH`, so a zh_CN player read the
+  English prompt.  All of them are in `PROMPT_ZH` now, and the stale key left
+  over from an earlier wording ("Remove one of these National Goals from the
+  deck?") — which no longer matched any engine prompt — is gone.
+- **Engine refusal reasons stayed English in the log and in the Polish rows.**
+  `logText` interpolated `Decision.reasons` verbatim (the engine joins them with
+  " | ", not the board's " · "), and `spaceActions` translated every recruit row
+  except `polishArmy` / `polishReserve`.  The log now runs the reasons through
+  `engineReasonText` (`reasonText.ts`), which splits on both separators and puts
+  the original one back; the two Polish rows go through the same helper.
+  `auActionRejected` also names the special action in the UI language (`改革` /
+  `扩大公民权` / `吞并`) instead of printing its code.
+- **The reason table itself covered only a fraction of the engine.**  It had 23
+  exact entries and 8 patterns against the ~190 sentences the engine can store,
+  so the national-characteristic refusals printed English (`Agrarian: needs a 6
+  after DRMs`, `Local Autonomy: …`, `Poland is not independent`, `The
+  Trans-Siberian Railroad is not complete`, the Jihad refusals, …).  The table
+  now carries 116 exact entries and 13 patterns; the parameterised ones name the
+  nationality, the non-player power and its counter kind, the manpower ceiling,
+  the power in the reserve-army refusal, or the colonial-war stability cause.
+
+Coverage: new `components/i18nCoverage.test.ts` (2 — every fixed `decision(...)`
+prompt is in `PROMPT_ZH` or passes `promptZh`; every English refusal sentence in
+`engine/` + `moves.ts` is translated by `engineReasonText`), `reasonText.test.ts`
+(+5 — the " | " list, the minor/counter patterns, the reserve-army power name,
+the colonial-war cause, a plural list) and `logText.test.ts` (+4 — a recruit
+refusal's reason list, the Polish refusal, the colonial-war cause, the AU action
+name).
+
 ## Fixed: the printed stability card markers and the Russian key ladder (2026-11-23)
 
 Found by playing a solo Russia campaign straight off the published player
