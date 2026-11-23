@@ -563,8 +563,10 @@ test.describe("Imperial Elegy new controls", () => {
 
         await declare.locator('[data-testid="ie-war-declare-defender"]').selectOption("AU");
         await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("bohemia");
-        // Use the smallest budget so the declaration is legal with any CP card.
-        await declare.locator('[data-testid="ie-war-declare-cp"]').selectOption("1");
+        // Errata 12.17: the declaration must spend the whole card played for
+        // CP, so the panel locks the value instead of offering a picker.
+        const cardCp = await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining);
+        await expect(declare.locator('[data-testid="ie-war-declare-cp-locked"]')).toContainText(`${cardCp} CP`);
 
         // Declaring a war is irreversible: the first click arms the button,
         // the second one declares.  Addressed by test id across both clicks
@@ -606,7 +608,9 @@ test.describe("Imperial Elegy new controls", () => {
         await expect(declare).toBeVisible();
         await declare.locator('[data-testid="ie-war-declare-defender"]').selectOption("AU");
         await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("bohemia");
-        await declare.locator('[data-testid="ie-war-declare-cp"]').selectOption("1");
+        // Errata 12.17: the whole card played for CP pays for the declaration.
+        const cardCp = await page.evaluate(() => (window as any).__IE_STATE__.cpRemaining);
+        await expect(declare.locator('[data-testid="ie-war-declare-cp-locked"]')).toContainText(`${cardCp} CP`);
         const warButton = declare.locator('[data-testid="ie-declare-war"]');
         await expect(warButton).toBeEnabled({timeout: 15_000});
         await warButton.click();
