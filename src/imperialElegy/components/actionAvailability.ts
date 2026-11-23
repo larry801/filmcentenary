@@ -517,7 +517,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       const enabled = polishArmyDecision.allowed === true && canSpend(cost);
       push({
         id: "polishArmy", group: "recruit", cost, enabled,
-        reason: enabled ? undefined : polishArmyDecision.allowed ? spendReason(cost) : polishArmyDecision.reasons.join(" · "),
+        reason: enabled ? undefined : polishArmyDecision.allowed ? spendReason(cost) : recruitReasonText(locale, polishArmyDecision.reasons.join(" · ")),
         run: () => doAction(() => moves.polishRecruit("army", space, 2)),
       });
     }
@@ -526,7 +526,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       const enabled = polishReserveDecision.allowed === true && canSpend(cost);
       push({
         id: "polishReserve", group: "recruit", cost, enabled,
-        reason: enabled ? undefined : polishReserveDecision.allowed ? spendReason(cost) : polishReserveDecision.reasons.join(" · "),
+        reason: enabled ? undefined : polishReserveDecision.allowed ? spendReason(cost) : recruitReasonText(locale, polishReserveDecision.reasons.join(" · ")),
         run: () => doAction(() => moves.polishRecruit("reserveArmy", null, 2)),
       });
     }

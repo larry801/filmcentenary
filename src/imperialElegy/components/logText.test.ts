@@ -495,3 +495,42 @@ describe("Imperial Elegy engine log localization", () => {
     expect(Object.values(zh.pendingKind).every((value) => value.length > 0)).toBe(true);
   });
 });
+
+describe("engine refusal reasons in the log", () => {
+  it("translates a recruit refusal's reason list, not just the sentence around it", () => {
+    const entry: LogTextEntry = {
+      key: "recruitRejected",
+      power: "GE",
+      args: {kind: "army", space: "berlin", reasons: "Stacking limit reached | Not a home space"},
+    };
+    expect(logText(entry, "zh_CN")).toContain("已达堆叠上限 | 不是本国核心领土");
+    expect(logText(entry, "zh_CN")).not.toContain("Stacking limit");
+    expect(logText(entry, "en")).toContain("Stacking limit reached | Not a home space");
+  });
+
+  it("translates a Polish build refusal", () => {
+    const entry: LogTextEntry = {
+      key: "polishRecruitRejected",
+      power: "RU",
+      args: {kind: "army", space: null, reasons: "Poland is not independent"},
+    };
+    expect(logText(entry, "zh_CN")).toContain("波兰尚未独立");
+  });
+
+  it("translates the colonial-war stability cause", () => {
+    const entry: LogTextEntry = {key: "gwColonialStability", power: "UK", args: {delta: -1, reason: "lost the africa colonial war"}};
+    expect(logText(entry, "zh_CN")).toContain("输掉了非洲殖民战争");
+    expect(logText(entry, "en")).toContain("lost the africa colonial war");
+  });
+
+  it("names the AU special action in Chinese", () => {
+    const entry: LogTextEntry = {
+      key: "auActionRejected",
+      power: "AU",
+      args: {action: "expandCitizenship", nationality: "Italians", reasons: "Italians already has full citizenship"},
+    };
+    expect(logText(entry, "zh_CN")).toContain("扩大公民权");
+    expect(logText(entry, "zh_CN")).toContain("已获得完整公民权");
+    expect(logText(entry, "en")).toContain("citizenship");
+  });
+});
