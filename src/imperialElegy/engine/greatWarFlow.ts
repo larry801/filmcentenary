@@ -121,6 +121,8 @@ import {
   openNavalContactDecision,
   openNavalTransitInterception,
   pruneTrenchBattle,
+  queuePortNavalDisplacements,
+  resolveDeferredNavalWork,
 } from "./combat";
 import {planNavalMove, requestDardanellesPassage} from "./navalMovement";
 import {botFreeRedeployment, gwBotPowers} from "./botRedeployment";
@@ -1757,6 +1759,9 @@ export const performGwManeuver = (
     // scripted occupation also passes here) surrenders its owner at once.
     resolveCapitalSurrenders(G, ctx);
     log(G, power, "gwManeuverAction", {kind: request.kind, ...payload, cost: allowance.cost});
+    // 19.11: a land maneuver that displaced enemy ships has finished, so its
+    // deferred interception windows and naval battles open now.
+    resolveDeferredNavalWork(G, ctx);
     return {
       ok: true,
       kind: request.kind,
@@ -1966,6 +1971,10 @@ export const performGwManeuver = (
       // space; the opposing side keeps control/occupation.
       pruneTrenchBattle(G, from);
       pruneTrenchBattle(G, request.to);
+      // 19.11: entering an enemy port with enemy ships displaces them at once.
+      // The resulting battles/interception attempts wait for the action's end
+      // (the `gwMarch`/`gwRail`/`redeploy` wrappers drain the queue).
+      queuePortNavalDisplacements(G, power, request.to);
       return finish({from, to: request.to, unitIds: [unit.id]});
     }
     case "naval": {

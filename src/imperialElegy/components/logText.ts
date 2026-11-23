@@ -3426,6 +3426,50 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  portNavalDisplacement: (entry, locale) => {
+    const port = spaceName(entry.args?.port, locale);
+    const box = spaceName(entry.args?.box, locale);
+    const ships = list(entry.args?.ships).length;
+    if (bool(entry.args?.eliminated)) {
+      return withActor(
+        entry,
+        locale,
+        `eliminated ${ships} naval units displaced out of ${port}: no adjacent naval box was reachable (5.7 / 19.11).`,
+        `消灭了从${port}被转移的 ${ships} 个海军单位：没有可用的相邻海域（5.7 / 19.11）。`,
+      );
+    }
+    return withActor(
+      entry,
+      locale,
+      `displaced ${ships} naval units out of the captured port ${port} into ${box} (19.11).`,
+      `将 ${ships} 个海军单位从被占领的港口${port}转移至${box}（19.11）。`,
+    );
+  },
+
+  portNavalBattle: (entry, locale) => {
+    const port = spaceName(entry.args?.port, locale);
+    const box = spaceName(entry.args?.box, locale);
+    const ships = list(entry.args?.ships).length;
+    return withActor(
+      entry,
+      locale,
+      `attacked with the ${ships} naval units displaced from ${port} into ${box} (19.11).`,
+      `以从${port}转移至${box}的 ${ships} 个海军单位发起攻击（19.11）。`,
+    );
+  },
+
+  portNavalInterceptionWindow: (entry, locale) => {
+    const port = spaceName(entry.args?.port, locale);
+    const box = spaceName(entry.args?.box, locale);
+    const ships = list(entry.args?.ships).length;
+    return withActor(
+      entry,
+      locale,
+      `gave the ports adjacent to ${box} a chance to intercept the ${ships} ships displaced from ${port} (19.11).`,
+      `让相邻于${box}的港口有机会拦截从${port}转移的 ${ships} 艘舰船（19.11）。`,
+    );
+  },
+
   navalInterception: (entry, locale) => {
     const port = spaceName(entry.args?.port, locale);
     const box = spaceName(entry.args?.box, locale);

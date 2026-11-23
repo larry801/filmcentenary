@@ -196,6 +196,8 @@ import {
   resolveNavalPortContinuation,
   resolveNextNavalStartContact,
   navalStartQueuePending,
+  queuePortNavalDisplacements,
+  resolveDeferredNavalWork,
   refreshBattleDrmSnapshot,
 } from "./engine/combat";
 import {recordBattleDrm} from "./engine/battleDrm";
@@ -2933,7 +2935,13 @@ export const redeploy = (
     if (result === undefined) moved += 1;
     else lastError = result;
   }
-  return moved > 0 ? undefined : lastError ?? INVALID_MOVE;
+  if (moved === 0) return lastError ?? INVALID_MOVE;
+  // 19.11: "Finish the active player's action before resolving any naval
+  // interception attempts and/or naval battles that result from such a
+  // displacement."  The land move above is one action instance, so its
+  // deferred battles and interception windows open now.
+  resolveDeferredNavalWork(G, ctx);
+  return undefined;
 };
 
 /**
@@ -2977,6 +2985,11 @@ const moveOneWartimeLandUnit = (
   } else {
     log(G, power, "wartimeMarch", {unit: unitId, from, to, path: plan.path.join(",")});
   }
+  // 19.11: "If a player moves land units into an enemy port containing enemy
+  // naval units, those naval units are immediately displaced to an adjacent
+  // naval box."  The displacement is immediate; its battles/interception
+  // attempts wait for the end of the action (`redeploy` drains the queue).
+  queuePortNavalDisplacements(G, power, to);
   // 15.3: the last player to solely be in a space occupies it.
   recordOccupation(G, to);
   return undefined;
@@ -6460,10 +6473,9 @@ export const resolvePending = (G: ImperialElegyState, ctx: Ctx, optionId: string
     if (G.gw?.active) resolveGwNonPlayerEliminations(G, ctx);
     repairPeacetimeSupply(G);
     // 15.1: a start-of-maneuver battle queue parked behind an upkeep decision
-    // resumes as soon as that decision closes.
-    if (G.pending === null && G.battle === null && navalStartQueuePending(G)) {
-      resolveNextNavalStartContact(G, ctx);
-    }
+    // resumes as soon as that decision closes.  19.11's deferred displacement
+    // battles drain first.
+    if (G.pending === null && G.battle === null) resolveDeferredNavalWork(G, ctx);
   }
   return result;
 };
@@ -6766,10 +6778,9 @@ export const declinePending = (G: ImperialElegyState, ctx: Ctx): string | void =
   if (result === undefined) {
     settleBattleCharacteristics(G);
     // 15.1: an upkeep decision declined at the start of the maneuver step must
-    // also let the queued start-of-maneuver battles continue.
-    if (G.pending === null && G.battle === null && navalStartQueuePending(G)) {
-      resolveNextNavalStartContact(G, ctx);
-    }
+    // also let the queued start-of-maneuver battles continue.  19.11's deferred
+    // displacement battles drain first.
+    if (G.pending === null && G.battle === null) resolveDeferredNavalWork(G, ctx);
   }
   return result;
 };
