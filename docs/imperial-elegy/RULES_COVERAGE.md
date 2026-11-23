@@ -178,6 +178,11 @@ Partial with named blockers.
   `botPrintedRules.test.ts` (12).  §34 is promoted to Implemented; the shipped
   bot PAC is not in this repository, so the B1/B2 transcription cannot be
   re-checked against the printed chart.
+- **§13–17 war-ending follow-up:** **15.5** now ends the maneuver step at once
+  when a primary capital falls (the bot settles immediately; `resolveWar`
+  accepts that boundary) and **16.1.3(2)** computes the live 17.1 blockade at
+  settlement, so a blockaded attacker that missed its aims gives the defender a
+  defensive victory.  Pinned by `warEndingRules.test.ts` (3).
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -840,8 +845,9 @@ Partial with named blockers.
   (`demobErrta.test.ts`).  Still open: 13.2.1 Italian unification wars,
   13.4.5's co-defender/Bismarck errata, unified Italy in a limited war
   (14.0/15.4.1/15.6), 15.0's pass-at-budget-≤2, 15.2.2 limited-war joint naval
-  operations, 15.5's capital-capture end, 16.1.3(2)'s blockade-victory trigger,
-  16.1.4/16.1.5 negotiated/agreed white peace and 16.2's errata targeting.
+  operations, 16.1.4/16.1.5 negotiated/agreed white peace and 16.2's errata
+  targeting.  **15.5's capital-capture end** and **16.1.3(2)'s blockade
+  defensive victory** are now live (`warEndingRules.test.ts`, 3).
 
 ## 18–19 Combat
 

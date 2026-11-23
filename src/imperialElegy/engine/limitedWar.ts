@@ -2100,6 +2100,17 @@ const knockoutsFor = (G: ImperialElegyState, war: WarState): AllyKnockout[] => {
  * separately and also become the classification when the primary is a white
  * peace.
  */
+/**
+ * Rule 15.5: the maneuver step ends when "a primary belligerent's capital is
+ * occupied by enemy units, which triggers a major victory" [16.1.1].  A lone
+ * non-player defender has no capital, so only the attacker's capital can fall
+ * in such a war (the defensive result classifyVictory assigns there).
+ */
+export const warCapitalFallen = (G: ImperialElegyState, war: WarState): boolean => {
+  if (capitalHeldBySide(G, war, war.attacker, "defender")) return true;
+  return !isLoneMinorWar(war) && capitalHeldBySide(G, war, war.defender, "attacker");
+};
+
 export const classifyVictory = (
   G: ImperialElegyState,
   war: WarState,
