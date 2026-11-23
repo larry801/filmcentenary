@@ -41,6 +41,7 @@ import {
   ImperialElegyState,
   PendingDecision,
   Power,
+  PowerOrMinor,
   POWERS,
   SpaceId,
   Unit,
@@ -356,7 +357,8 @@ export type GwManeuverKind = GwActionKind;
 export interface GwBattleSummary {
   kind: "land" | "naval";
   attacker: Power;
-  defender: Power;
+  /** 15.4.2/32.4: the non-player defender when no player owns the defence. */
+  defender: PowerOrMinor;
   from: SpaceId;
   to: SpaceId;
 }
@@ -1927,7 +1929,9 @@ export const performGwManeuver = (
         battle: {
           kind: "land",
           attacker: battle.attacker,
-          defender: battle.defender,
+          // 15.4.2/32.4: the log names the non-player that actually defends,
+          // never the attacker fallback (`battle.defender`).
+          defender: battle.defenderNonPlayer ?? battle.defender,
           from: battle.from,
           to: battle.to,
         },

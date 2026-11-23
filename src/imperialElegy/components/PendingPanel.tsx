@@ -210,7 +210,7 @@ export const DecisionBody = ({
       {G.battle && (
         <div className="ie-battle" data-testid="ie-battle">
           <h4>{bi(locale, G.battle.kind === "naval" ? "Naval battle" : "Land battle", G.battle.kind === "naval" ? "海战" : "陆战")} · {spaceLabel(G.battle.from, locale)} → {spaceLabel(G.battle.to, locale)}</h4>
-          <div>{t.seats[G.battle.attacker]} → {t.seats[G.battle.defender]} · {bi(locale, "Step", "阶段")}: {BATTLE_STAGE[G.battle.stage] ? bi(locale, BATTLE_STAGE[G.battle.stage].en, BATTLE_STAGE[G.battle.stage].zh) : G.battle.stage}</div>
+          <div>{t.seats[G.battle.attacker]} → {(t.seats as Record<string, string>)[G.battle.defenderNonPlayer ?? G.battle.defender] ?? String(G.battle.defenderNonPlayer ?? G.battle.defender)} · {bi(locale, "Step", "阶段")}: {BATTLE_STAGE[G.battle.stage] ? bi(locale, BATTLE_STAGE[G.battle.stage].en, BATTLE_STAGE[G.battle.stage].zh) : G.battle.stage}</div>
           {(G.battle.attackerRoll !== undefined || G.battle.defenderRoll !== undefined) && <div>{bi(locale, "Rolls", "掷骰")}: {G.battle.attackerRoll ?? "—"} / {G.battle.defenderRoll ?? "—"} · {bi(locale, "Diff", "差")} {G.battle.diff ?? "—"}</div>}
           <div>{bi(locale, "Losses", "损失")}: {G.battle.attackerLosses} / {G.battle.defenderLosses}</div>
           {/* The two totals alone hid which printed clause produced them, so the

@@ -583,7 +583,14 @@ export const beginLandBattle = (
     notes: [],
     drmSources: {attacker: [], defender: []},
   };
-  if (defenderMinor) battle.notes.push("minorDefender");
+  if (defenderMinor) {
+    battle.notes.push("minorDefender");
+    // 15.4.2/32.4: keep the real non-player defender in the battle record.
+    // `battle.defender` stays the attacker fallback the loss/retreat helpers
+    // need, but logs, the result dialog and the report read this field.
+    const nonPlayer = defenceCandidates.find((unit) => !isPower(unit.owner))?.owner;
+    if (nonPlayer !== undefined) battle.defenderNonPlayer = nonPlayer;
+  }
   if (overstackedDefence) battle.notes.push("overstackedDefence");
   // GW-08/09 Political Pressure: record that this power made a land attack in
   // the current GW turn (the end-of-turn check reads `landAttackTurn`).
@@ -3232,6 +3239,7 @@ const buildBattleReport = (
   to: battle.to,
   attacker: battle.attacker,
   defender: battle.defender,
+  defenderNonPlayer: battle.defenderNonPlayer,
   winner,
   decisive: battle.decisive,
   attackerRoll: battle.attackerRoll,

@@ -44,6 +44,7 @@ const DESTRUCTIVE_KINDS: readonly string[] = [
   "whitePeaceOrder",
   "scoringChoice",
   "gwNeutralEntry",
+  "gwNonPlayerJoin",
   "crisis",
   "crisisIncident",
   "italianInternalWar",

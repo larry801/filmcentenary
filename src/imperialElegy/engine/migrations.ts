@@ -290,6 +290,8 @@ const ensureGreatWar = (G: ImperialElegyState, gw: GreatWarState): void => {
   // 29.1: blockade sets for the current / previous GW turn.
   gw.blockaded ??= [];
   gw.blockadedLastTurn ??= [];
+  // 32.4: the non-player war ledger (absent = no declarations yet).
+  gw.nonPlayerBelligerents ??= [];
   // 30.2: a surrendered major is out for good.
   gw.usSurrendered ??= false;
   gw.italySurrendered ??= false;

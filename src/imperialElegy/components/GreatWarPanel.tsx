@@ -1,6 +1,7 @@
 import React from "react";
 import {ImperialElegyState, Power, SpaceId} from "../types";
 import {spaceLabel} from "../constant/spaces";
+import {MINOR_POWER_HOMES} from "../constant/setup";
 import {POWERS} from "../types";
 import {cardById} from "../engine/deck";
 import {IEBadge, IEPanel} from "./theme";
@@ -10,6 +11,8 @@ import {cardDisplayName} from "./cardDisplay";
 import {currentGwImpulse, gwCanEndTurn, gwFinishImpulseProblem} from "../engine/gwImpulse";
 import {gwImpulseReasonText} from "./boardHelpers";
 import {RuleLink} from "./RuleRef";
+import {ConfirmButton} from "./ConfirmButton";
+import {gwNonPlayerWarTargets, type GwNonPlayerTargetInfo} from "../engine/gwNonPlayerWar";
 
 export interface GreatWarPanelProps {
   gw: NonNullable<ImperialElegyState["gw"]>;
@@ -40,6 +43,8 @@ export interface GreatWarPanelProps {
   canGwDraft: boolean;
   canGwDeployHere: boolean;
   forcedGwCard: boolean;
+  /** Whether irreversible controls arm before firing (preferences). */
+  confirmActions: boolean;
   doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
   onOpenReference?: (anchor: string) => void;
@@ -53,13 +58,14 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
     italyShowing, italyBox, italyBoxLabel, italyHow,
     gwTransferToValue, setGwTransferTo, gwTransferAmountValue, setGwTransferAmount,
     canGwTransfer, gwSideAllies, canGwReveal, canGwDraft, canGwDeployHere, forcedGwCard,
-    doAction, moves, onOpenReference,
+    confirmActions, doAction, moves, onOpenReference,
   } = props;
   // 26.1: "After GW combat cards are flipped faceup, players may give their GW
   // combat card(s) to another player(s) in their alliance."  The panel offers
   // one gift at a time; the engine owns the legality.
   const [giftCard, setGiftCard] = React.useState("");
   const [giftTo, setGiftTo] = React.useState("");
+  const [gwWarTarget, setGwWarTarget] = React.useState("");
   const myFaceupCombat = (gw.combatCardsInFront ?? [])
     .filter((entry) => entry.holder === viewer && entry.faceup)
     .map((entry) => entry.cardId);
@@ -69,6 +75,20 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
   );
   const giftCardValue = myFaceupCombat.includes(giftCard as never) ? giftCard : myFaceupCombat[0] ?? "";
   const giftToValue = gwSideAllies.includes(giftTo as Power) ? giftTo : gwSideAllies[0] ?? "";
+  // 32.4: the declaration list is derived from the engine's own gate, so the
+  // dropdown can never offer a target the move refuses.
+  const gwTargets = viewer !== null && phase === "gwManeuver" && isActive && !eliminated && pending === null
+    ? gwNonPlayerWarTargets(G, viewer)
+    : [];
+  const gwWarTargetValue = gwTargets.some((target) => target.power === gwWarTarget)
+    ? gwWarTarget
+    : gwTargets[0]?.power ?? "";
+  const selectedGwTarget = gwTargets.find((target) => target.power === gwWarTargetValue) ?? gwTargets[0];
+  const gwTargetLabel = (target: GwNonPlayerTargetInfo): string => {
+    if (target.power === "IT") return bi(locale, "Italy", "意大利");
+    const home = MINOR_POWER_HOMES[target.power];
+    return home !== undefined ? spaceLabel(home, locale) : target.power;
+  };
 
   return (
     <IEPanel title={`${t.greatWarMap} · GW ${gw.turn}`} actions={<IEBadge tone="warn">{PHASE_LABEL(t, phase)}</IEBadge>}>
@@ -180,6 +200,28 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
             {canGwReveal && (
               <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat(), {label: t.gwReveal})}>{t.gwReveal}</button>
             )}
+          </div>
+        )}
+        {phase === "gwManeuver" && isActive && !eliminated && pending === null && gwTargets.length > 0 && (
+          <div className="ie-inline" data-testid="ie-gw-declare-nonplayer">
+            <span className="ie-muted">{bi(locale, "Rule 32.4: declare war on a neutral non-player power", "规则 32.4：向中立非玩家势力宣战")}</span>
+            <select className="ie-select" data-testid="ie-gw-declare-nonplayer-target"
+              value={gwWarTargetValue} onChange={(e) => setGwWarTarget(e.target.value)}>
+              {gwTargets.map((target) => <option key={target.power} value={target.power}>{gwTargetLabel(target)}</option>)}
+            </select>
+            <ConfirmButton className="ie-btn" data-testid="ie-gw-declare-nonplayer-submit"
+              confirm={confirmActions}
+              confirmLabel={bi(locale, "Confirm: declare war (32.4)", "确认：宣战（32.4）")}
+              disabled={gwWarTargetValue === ""}
+              onConfirm={() => {
+                if (gwWarTargetValue === "") return;
+                doAction(() => moves.gwDeclareWarOnNonPlayer(gwWarTargetValue),
+                  {label: bi(locale,
+                    `Declare war on ${selectedGwTarget !== undefined ? gwTargetLabel(selectedGwTarget) : gwWarTargetValue}`,
+                    `向${selectedGwTarget !== undefined ? gwTargetLabel(selectedGwTarget) : gwWarTargetValue}宣战`)});
+              }}>
+              {t.declareWar}
+            </ConfirmButton>
           </div>
         )}
         {phase === "gwManeuver" && isActive && !eliminated && pending === null && (
