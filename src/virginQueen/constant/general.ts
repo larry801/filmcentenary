@@ -39,19 +39,12 @@ export const powerAt = (playerID: string | null | undefined): Power => {
 export const isPower = (value: string): value is Power =>
     (POWERS as readonly string[]).includes(value);
 
-/** Physical regular-counter limits (points) for each major power. */
-export const OTTOMAN_CAVALRY_LIMIT = 39;
-
-/** Physical naval counters per major power (two-sided galleys/galleons). */
-export const NAVAL_LIMITS: Record<Power, number> = {
-    ottoman: 9,
-    spain: 7,
-    england: 6,
-    france: 4,
-    hre: 1,
-    protestant: 4,
-};
-
+/**
+ * Physical land-counter limits (points) for each major power.  Regulars,
+ * mercenaries and Ottoman cavalry describe the two sides of the same
+ * counters (rule 5.3), so `landForceCount` sums all three against this one
+ * pool instead of tracking a separate mercenary or cavalry allowance.
+ */
 export const REGULAR_LIMITS: Record<Power, number> = {
     ottoman: 39,
     spain: 42,
@@ -61,9 +54,19 @@ export const REGULAR_LIMITS: Record<Power, number> = {
     protestant: 48,
 };
 
-/** Per-power mercenary force-pool limits (counter mix). Ottomans cannot recruit mercs. */
-export const MERC_LIMITS: Record<Power, number> = {
-    ottoman: 0, spain: 15, england: 10, france: 15, hre: 20, protestant: 15,
+/**
+ * Physical naval counters per major power (rule 5.4).  Most powers' ships are
+ * two-sided — galley/corsair for the Ottoman, galley/galleon for Spain and
+ * France, galleon/race-built for England — so every ship type draws from the
+ * same pool of `NAVAL_LIMITS` counters.
+ */
+export const NAVAL_LIMITS: Record<Power, number> = {
+    ottoman: 9,
+    spain: 7,
+    england: 6,
+    france: 4,
+    hre: 1,
+    protestant: 4,
 };
 
 /**
@@ -78,19 +81,6 @@ export const MERC_LIMITS: Record<Power, number> = {
  * new unit type.
  */
 export const WALLOON_LIMIT = 3;
-
-/** Per-power per-ship-type naval force-pool limits (counter mix). */
-export const GALLEY_LIMITS: Record<Power, number> = {
-    ottoman: 20, spain: 10, england: 0, france: 5, hre: 0, protestant: 0,
-};
-
-export const GALLEON_LIMITS: Record<Power, number> = {
-    ottoman: 0, spain: 10, england: 10, france: 5, hre: 0, protestant: 5,
-};
-
-export const CORSAIR_LIMITS: Record<Power, number> = {
-    ottoman: 10, spain: 0, england: 0, france: 0, hre: 0, protestant: 0,
-};
 
 /** Minor-power force-pool caps (Rule 24.3 — proxies until printed counters are digitised). */
 export const MINOR_REGULAR_LIMITS: Record<string, number> = {
@@ -1102,8 +1092,13 @@ export interface VQGame {
     elizabethExcommunicated?: boolean;
     cyprusTarget?: string;
     cyprusAwarded?: boolean;
-    /** Naval counters lost this year; they return to the pool at Spring. */
-    navalLost?: Partial<Record<Power, NavalStack>>;
+    /**
+     * Rule 17.3: naval counters eliminated in combat or assault wait on the
+     * next turn of the Turn Track and return to the force pool during that
+     * turn's Card Draw.  Keyed by controller so allied-minor counters obey the
+     * same rebuild delay.  Dry Dock losses are not recorded.
+     */
+    navalLost?: Partial<Record<Controller, NavalStack>>;
     /**
      * Naval leaders returning from the pool whose home port has not been
      * chosen yet. The leader stays in the pool until the owning player picks

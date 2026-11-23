@@ -15,13 +15,8 @@ import {
     MINOR_NAMES,
     MINOR_POWERS,
     MINOR_REGULAR_LIMITS,
-    MERC_LIMITS,
     WALLOON_LIMIT,
     NAVAL_LIMITS,
-    GALLEY_LIMITS,
-    GALLEON_LIMITS,
-    CORSAIR_LIMITS,
-    OTTOMAN_CAVALRY_LIMIT,
     REGULAR_LIMITS,
     NavalStack,
     navalCount,
@@ -1858,20 +1853,26 @@ export const friendlyControlled = (G: VQGame, p: Power, space: string): boolean 
         (!isPower(s.control) && s.control !== "independent" && G.powers[p].alliedMinors.includes(s.control));
 };
 
-/** Land counters (regular/mercenary are two sides of the same physical counter). */
+/**
+ * Rule 17.3: a naval counter eliminated in combat or assault cannot be rebuilt
+ * on the turn it was lost.  It waits on the next turn of the Turn Track and
+ * returns to the force pool during that turn's Card Draw, so it keeps counting
+ * against the unified pool until then.  Allied-minor counters follow the same
+ * delay; the Dry Dock science bonus only returns a major power's own losses.
+ */
 export const recordNavalLoss = (G: VQGame, owner: Controller, kind: keyof NavalStack, count = 1): void => {
-    if (!isPower(owner)) return;
-    // Rule 17.3 / Dry Dock science bonus: "Those units immediately return to
-    // the power's force pool when eliminated", so they must not be counted as
-    // pending rebuilds against the counter limit.
-    if (G.powers[owner].scienceBonuses.includes("dryDock")) return;
+    if (owner === "independent") return;
+    // Dry Dock science bonus: "Those units immediately return to the power's
+    // force pool when eliminated", so they must not be counted as pending
+    // rebuilds against the counter limit.
+    if (isPower(owner) && G.powers[owner].scienceBonuses.includes("dryDock")) return;
     G.navalLost ??= {};
     const stack = G.navalLost[owner] ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
     stack[kind] += count;
     G.navalLost[owner] = stack;
 };
 
-export const navalLostCount = (G: VQGame, p: Power): number => navalCount(G.navalLost?.[p]);
+export const navalLostCount = (G: VQGame, c: Controller): number => navalCount(G.navalLost?.[c]);
 
 /**
  * Rule 16.2 step 8: "If both sides are eliminated, the side that rolled more
@@ -1880,19 +1881,12 @@ export const navalLostCount = (G: VQGame, p: Power): number => navalCount(G.nava
  * rule says "1 unit", not "1 galley" — so the caller reports the type to keep.
  */
 export const restoreRetainedNavalUnit = (G: VQGame, owner: Controller, kind: keyof NavalStack): void => {
-    const lost = G.navalLost?.[owner as Power];
+    const lost = G.navalLost?.[owner];
     if (lost !== undefined) {
         // The retained counter is not a rebuild: undo its pending-loss
         // bookkeeping so it does not also block construction this year.
         lost[kind] = Math.max(0, lost[kind] - 1);
     }
-};
-
-export const navalForceCount = (G: VQGame, p: Power): number => {
-    let total = 0;
-    for (const zone of Object.values(G.seaZones)) total += navalCount(zone.naval[p]);
-    for (const space of Object.values(G.spaces)) total += navalCount(space.naval[p]);
-    return total;
 };
 
 export const navalForceCountController = (G: VQGame, c: Controller): number => {
@@ -1902,44 +1896,39 @@ export const navalForceCountController = (G: VQGame, c: Controller): number => {
     return total;
 };
 
-export const navalLostCountController = (G: VQGame, c: Controller): number => navalCount(G.navalLost?.[c as Power]);
+export const navalForceCount = (G: VQGame, p: Power): number => navalForceCountController(G, p);
 
-export const cavalryCount = (G: VQGame, p: Power): number =>
-    Object.values(G.spaces).reduce((total, space) => total + (space.land[p]?.cav ?? 0), 0);
+/**
+ * Unified naval force pool: counters on the map plus counters serving their
+ * rule 17.3 rebuild delay.  Both block new construction until Card Draw.
+ */
+export const navalPoolUsed = (G: VQGame, c: Controller): number =>
+    navalForceCountController(G, c) + navalLostCount(G, c);
 
-/** Total mercs for a major power (map + foreign wars + armada). */
-export const mercCount = (G: VQGame, p: Power): number => {
+/**
+ * Unified land force pool (points).  Regulars are the same physical counters
+ * as mercenaries for every power except the Ottoman, whose regulars back onto
+ * cavalry (rule 5.3).  Units deployed to a foreign war or loaded on the
+ * Spanish Armada still consume their owner's counters.
+ */
+export const landForceCountController = (G: VQGame, c: Controller): number => {
     let total = 0;
-    for (const space of Object.values(G.spaces)) total += space.land[p]?.merc ?? 0;
-    total += G.foreignWars[p]?.units.merc ?? 0;
-    if (p === "spain" && G.armada?.land !== undefined) total += G.armada.land.merc;
+    for (const space of Object.values(G.spaces)) total += landCount(space.land[c]);
+    if (isPower(c)) {
+        const war = G.foreignWars[c]?.units;
+        if (war !== undefined) total += landCount(war);
+        if (c === "spain" && G.armada?.land !== undefined) total += landCount(G.armada.land);
+    }
     return total;
 };
 
-/** Total naval units on the map of a given type for a major power. */
-export const navalForceCountByKind = (G: VQGame, p: Power, kind: keyof NavalStack): number => {
-    let total = 0;
-    for (const zone of Object.values(G.seaZones)) total += zone.naval[p]?.[kind] ?? 0;
-    for (const space of Object.values(G.spaces)) total += space.naval[p]?.[kind] ?? 0;
-    return total;
-};
+export const landForceCount = (G: VQGame, p: Power): number => landForceCountController(G, p);
 
-/** Naval units sunk but still counted against the force-pool limit, by type. */
-export const navalLostCountByKind = (G: VQGame, p: Power, kind: keyof NavalStack): number =>
-    G.navalLost?.[p]?.[kind] ?? 0;
-
-export const landForceCount = (G: VQGame, p: Power): number =>
-    Object.values(G.spaces).reduce((total, space) => {
-        const stack = space.land[p];
-        return total + (stack === undefined ? 0 : stack.regular + stack.merc);
-    }, 0);
-
-export const landForceCountController = (G: VQGame, c: Controller): number =>
-    Object.values(G.spaces).reduce((total, space) => {
-        const stack = space.land[c];
-        return total + (stack === undefined ? 0 : stack.regular + stack.merc);
-    }, 0);
-
+/**
+ * Regulars only (map + foreign wars + armada).  Informational — the physical
+ * force pool is the unified `landForceCount`, since regulars/mercenaries and
+ * Ottoman regulars/cavalry share the counters.
+ */
 export const regularCount = (G: VQGame, p: Power): number => {
     let total = 0;
     for (const space of Object.values(G.spaces)) total += space.land[p]?.regular ?? 0;
@@ -6390,12 +6379,13 @@ const canRecruitAt = (G: VQGame, p: Power, id: string, kind: "regular" | "merc" 
     if (s.control !== p || s.unrest || spaceHasEnemyLand(G, p, id)) return false;
     const spanishDutchHome = G.dutchSpanishHome === true && p === "spain" && def.area === "netherlands";
     if (!homes.includes(p) && !spanishDutchHome) return false;
-    if (kind === "cav" && (p !== "ottoman" || cavalryCount(G, p) >= OTTOMAN_CAVALRY_LIMIT)) return false;
-    if (kind === "merc" && mercCount(G, p) >= MERC_LIMITS[p]) return false;
+    if (kind === "cav" && p !== "ottoman") return false;
+    if (kind === "merc" && p === "ottoman") return false;
     if (p === "ottoman" && (id === "algiers" || id === "tripoli")) return false;
     if (p === "spain" && (id === "oran" || id === "malta")) return false;
     // Rule 17.2(c): Spain may only build Walloon regulars in the Netherlands.
     if (!canBuildInNetherlands(G, p, def, kind)) return false;
+    // Rule 17.1: regulars, mercenaries and Ottoman cavalry share one pool.
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return false;
     return true;
 };
@@ -6426,25 +6416,13 @@ const canBuildNavalAt = (G: VQGame, p: Power, port: string, kind: keyof NavalSta
     // Dutch two-color spaces as Spanish home spaces, which lifts this.
     if (p === "spain" && (kind === "galley" || kind === "galleon") && def.area === "netherlands" &&
         G.dutchSpanishHome !== true) return false;
-    if (minorHome === undefined && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) return false;
-    // Per-ship-type force-pool limits (counter mix).
-    if (minorHome === undefined) {
-        const PER_TYPE: Partial<Record<keyof NavalStack, Record<Power, number>>> = {
-            galley: GALLEY_LIMITS, galleon: GALLEON_LIMITS, corsair: CORSAIR_LIMITS,
-        };
-        const typeCap = PER_TYPE[kind];
-        if (typeCap !== undefined) {
-            const onMap = navalForceCountByKind(G, p, kind);
-            const lost = navalLostCountByKind(G, p, kind);
-            if (onMap + lost >= typeCap[p]) return false;
-        }
-    }
+    // Rule 17.1/17.3: every ship type and the rebuild delay share one pool.
+    if (minorHome === undefined && navalPoolUsed(G, p) >= NAVAL_LIMITS[p]) return false;
     if (kind === "galleon" && !portZones(port).some((z) =>
         z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {
         return false;
     }
-    if (minorHome !== undefined &&
-        navalForceCountController(G, minorHome) + navalLostCountController(G, minorHome) >= (MINOR_NAVAL_LIMITS[minorHome] ?? 4)) {
+    if (minorHome !== undefined && navalPoolUsed(G, minorHome) >= (MINOR_NAVAL_LIMITS[minorHome] ?? 4)) {
         return false;
     }
     return true;
