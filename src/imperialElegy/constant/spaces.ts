@@ -228,7 +228,7 @@ const ROWS: Row[] = [
 
   // ---------------------------------------------------------------- Africa submap
   {id: "morocco", name: "Morocco", nameZh: "摩洛哥", type: "key", region: "africa", submap: "africa", control: "Morocco", minorHome: "Morocco", ports: ["western-mediterranean", "south-atlantic"], flashpoints: ["africa"], x: 700, y: 3360},
-  {id: "algeria", name: "Algeria", nameZh: "阿尔及利亚", type: "territory", region: "africa", submap: "main", control: "FR", home: "FR", ports: ["western-mediterranean"], flashpoints: ["africa"], x: 1458, y: 3324},
+  {id: "algeria", name: "Algeria", nameZh: "阿尔及利亚", type: "territory", region: "africa", submap: "main", control: "FR", home: "FR", ports: ["western-mediterranean", "south-atlantic"], flashpoints: ["africa"], x: 1458, y: 3324},
   {id: "west-africa", name: "West Africa", nameZh: "西非", type: "territory", region: "africa", submap: "main", control: null, influence: "FR", ports: ["south-atlantic"], flashpoints: ["africa"], x: 717, y: 3848},
   {id: "nigeria", name: "Nigeria", nameZh: "尼日利亚", type: "key", region: "africa", submap: "africa", control: null, ports: ["south-atlantic"], flashpoints: ["africa"], x: 760, y: 4060},
   {id: "cameroon", name: "Cameroon", nameZh: "喀麦隆", type: "key", region: "africa", submap: "africa", control: null, ports: ["south-atlantic"], flashpoints: ["africa"], x: 950, y: 4140},
@@ -437,6 +437,7 @@ const CONNECTION_ROWS: [SpaceId, SpaceId, ConnectionType?][] = [
   ["tunisia", "western-mediterranean", "sea"],
   ["algeria", "morocco"],
   ["algeria", "western-mediterranean", "sea"],
+  ["algeria", "south-atlantic", "sea"],
   ["morocco", "western-mediterranean", "sea"],
   ["morocco", "south-atlantic", "sea"],
   ["arabia", "mecca"],

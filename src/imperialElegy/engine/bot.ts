@@ -972,6 +972,16 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
 // GW Planning and Maneuver
 // ---------------------------------------------------------------------------
 
+/** Probe a GW request through the engine, like `gwRequiredAction` does. */
+const gwRequestAccepted = (G: ImperialElegyState, ctx: Ctx, request: GwManeuverRequest): boolean => {
+  // Test fixtures and legacy saves can carry a partial `gw`; without the live
+  // impulse ledger there is nothing reliable to probe, so keep the historic
+  // answer rather than turning a draft into a refused pass.
+  if (!Array.isArray(G.gw?.order) || G.gw?.impulse === undefined) return true;
+  const probe = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
+  return performGwManeuver(probe, {...ctx, random: {Die: () => 3}, events: undefined} as Ctx, request).ok;
+};
+
 /** GW Priority 2 (B2) — roll 1–6. */
 const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number, ctx: Ctx): BotMove | null => {
   const budget = cpBudgetFor(G, power);
@@ -1006,6 +1016,7 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number, ctx: C
         const enemies = landUnitsIn(G, to).filter((u) => hostileOwner(G, power, u.owner));
         if (enemies.length === 0) continue;
         if (!gwActionAllowance(G, power, "landBattle").ok || !legalLandBattle(G, power, id, to)) continue;
+        if (!gwRequestAccepted(G, ctx, {kind: "landBattle", power, from: id, to})) continue;
         battleCandidates.push({from: id, to});
       }
     }
@@ -1019,7 +1030,8 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number, ctx: C
   if (roll >= 4 && roll <= 5) {
     // Refit (convert to 6 if all armies full strength).
     const reduced = Object.values(G.units).filter((u) => u.owner === power && !u.naval && isArmyKind(u.kind) && u.steps === 1 && u.space && hasLoc(G, power, u.space));
-    if (reduced.length > 0 && gwActionAllowance(G, power, "refit").ok) {
+    if (reduced.length > 0 && gwActionAllowance(G, power, "refit").ok
+      && gwRequestAccepted(G, ctx, {kind: "refit", power, unitId: reduced[0].id})) {
       return {move: "gwRefit", args: [reduced[0].id]};
     }
   }
@@ -1028,7 +1040,8 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number, ctx: C
     // Draft into a legal home key; the engine decides the second placement.
     if (G.powers[power].manpower > 0) {
       const space = botDraftSpace(G, power);
-      if (space !== null && hasCounterFor(G, power, "army") && gwActionAllowance(G, power, "draft").ok) {
+      if (space !== null && hasCounterFor(G, power, "army") && gwActionAllowance(G, power, "draft").ok
+        && gwRequestAccepted(G, ctx, {kind: "draft", power, space})) {
         return {move: "gwDraft", args: [space]};
       }
     }

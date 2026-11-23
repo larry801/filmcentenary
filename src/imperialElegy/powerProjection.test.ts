@@ -55,11 +55,11 @@ describe("3.3.1 power projection is a derived, cached track", () => {
     const G = fresh();
     expect(Object.fromEntries(POWERS.map((power) => [power, computePowerProjection(G, power)])))
       .toEqual(CAMPAIGN_SETUP.powerProjection);
-    // v1.1 Playbook p.3 prints FR 3, but France owns ordinary ports in only
-    // North Atlantic and Western Mediterranean, with no base; rule 3.3.1 yields
-    // 2.  The scenario data follows the rule so the setup display and the
-    // first end-phase recompute cannot disagree.
-    expect(CAMPAIGN_SETUP.powerProjection.FR).toBe(2);
+    // France's three points are North Atlantic, Western Mediterranean and the
+    // South Atlantic anchor on Algeria; the printed FR 3 and the rule formula
+    // agree, so the setup display and the first end-phase recompute cannot
+    // disagree (and RU stays level with FR instead of dominating alone).
+    expect(CAMPAIGN_SETUP.powerProjection.FR).toBe(3);
     expect(SPACES["hong-kong"].type).toBe("navalBase");
   });
   test("refreshPowerProjection overwrites the flag with the computed value", () => {
