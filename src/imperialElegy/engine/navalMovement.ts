@@ -436,6 +436,7 @@ export type NavalTransportReason =
   | "same-space"
   | "target-not-port"
   | "target-hostile"
+  | "target-not-controlled"
   | "path"
   | "army-stacking"
   | "port-capacity"
@@ -480,6 +481,12 @@ export const planNavalTransport = (
   // 19.10: "Land units cannot move into enemy controlled (or occupied) ports
   // using naval movement."  An amphibious assault is the separate action.
   if (spaceHostileTo(G, power, to)) return fail("target-hostile", from);
+  // 12.3 (errata): "Land units using naval movement during peacetime must end
+  // the impulse in a port they control."  Wartime and the GW keep 15.2.1 /
+  // 27.5's naval rule instead.
+  if (G.phase === "action" && G.war === null && !G.gw?.active && G.spaces[to].control !== power) {
+    return fail("target-not-controlled", from);
+  }
 
   const plan = planNavalMove(G, power, from, to);
   if (!plan.ok) return fail("path", from);

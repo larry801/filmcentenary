@@ -342,6 +342,7 @@ import {
   initiativeRollOff,
   isItalianUnificationWar,
   isMinorWarTargetArg,
+  isWarImmuneNonPlayer,
   holdsWarImpulse,
   minorWarDefender,
   minorWarInfo,
@@ -1445,6 +1446,15 @@ export const recruit = (
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  // 15.2 / 27.5: "players cannot perform recruitment or refit actions in
+  // wartime"; the shared phase gate owns that answer for every other 12.1
+  // action, and recruitment now reads it too.  33.2.1 prints one exception:
+  // the UK's Commonwealth army "can only be built during the GW", so its build
+  // stays legal in the GW maneuver (the other GW builds use 27.5.2's draft).
+  if (requireActionFamily(G, "recruit") === INVALID_MOVE) {
+    const cwGwBuild = power === "UK" && options.cw === true && G.phase === "gwManeuver";
+    if (!cwGwBuild) return INVALID_MOVE;
+  }
   const p = G.powers[power];
 
   // A83 Liberal Reforms ("no armies may be built this impulse") is one of the
@@ -3544,7 +3554,10 @@ const finalizeWarDeclaration = (
   // Qing army at full strength in the targeted key."  The Qing counter row has
   // exactly one army, so this is idempotent even if a later path repeats it.
   if (minor !== null && minor.minor === "Qing China" && aim === "conquest") {
-    const key = objectives[0];
+    // Errata 13.4.4: "place the Qing army at full strength in the targeted
+    // key."  A conquest may name two spaces with only one key, so prefer the
+    // objective that is actually a key over the printed first space.
+    const key = objectives.find((id) => effectiveKeyType(G, id) !== undefined) ?? objectives[0];
     if (key !== undefined && G.spaces[key]) {
       // The chart prints one Qing army.  If a card already put it on the map,
       // the rule still moves it into the targeted key at full strength.
@@ -4210,13 +4223,20 @@ export const declareWar = (
     if (warTargetKey(secondTarget) === warTargetKey(target)) return INVALID_MOVE;
     if (isPower(secondTarget)) {
       if (secondTarget === power) return INVALID_MOVE;
+      // Rule 8.1.2: a member of the attacker's alliance is not a legal target.
+      if (allied(G, power, secondTarget)) return INVALID_MOVE;
       // Rule 13.5: players cannot break truces.
       if (hasTruce(G, power, secondTarget)) return INVALID_MOVE;
       if (!warDeclarationTargetLegal(G, entitlement, secondTarget)) return INVALID_MOVE;
     } else {
+      // 12.17.1: the US and the CSA can never be a war target.
+      if (isWarImmuneNonPlayer(secondTarget.minor)) return INVALID_MOVE;
       const info = minorWarInfo(G, power, secondTarget.minor);
       if (!info.ok) return INVALID_MOVE;
       if (info.ally === power) return INVALID_MOVE;
+      // Rule 8.1.2: a minor defended by a member of the attacker's alliance is
+      // the same prohibited target as that player.
+      if (info.ally !== null && allied(G, power, info.ally)) return INVALID_MOVE;
       if (!warDeclarationTargetLegal(G, entitlement, minorWarDefender(info))) return INVALID_MOVE;
     }
     if (options.primary !== undefined && !warTargetKeyIn(options.primary, [target, secondTarget])) {
@@ -4231,6 +4251,7 @@ export const declareWar = (
   }
 
   // Rule 13.4/13.5: resolve the player side of a non-player declaration.
+  if (isMinorWarTargetArg(target) && isWarImmuneNonPlayer(target.minor)) return INVALID_MOVE;
   const minor: MinorWarInfo | null = isMinorWarTargetArg(target)
     ? minorWarInfo(G, power, target.minor)
     : null;
@@ -4252,11 +4273,18 @@ export const declareWar = (
   } else {
     if (!isPower(target)) return INVALID_MOVE;
     if (power === target) return INVALID_MOVE;
+    // Rule 8.1.2: "Players in an alliance box: cannot declare war on members
+    // of their alliance."  This is the engine's authoritative gate; the War
+    // panel's `declarationDefenders` list applies the same filter.
+    if (allied(G, power, target)) return INVALID_MOVE;
     // Rule 13.5: players cannot break truces.
     if (hasTruce(G, power, target)) return INVALID_MOVE;
     playerDefender = target;
     defenderForAim = target;
   }
+  // Rule 8.1.2 also protects a non-player power defended by one of the
+  // attacker's alliance members (13.4 resolves that declaration to the ally).
+  if (playerDefender !== null && allied(G, power, playerDefender)) return INVALID_MOVE;
   // A card-driven declaration only names the defenders its printed target list
   // allows (Russo-Turkish Wars: OT; Jihad: RU or an Ottoman-home controller).
   // 13.4 resolves a non-player target to its player ally first, so Jihad on a

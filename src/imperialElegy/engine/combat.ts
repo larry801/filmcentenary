@@ -527,7 +527,13 @@ export const beginLandBattle = (
   // same-space battle is only legal while the marker is present.
   const trenchMarker = Boolean(G.spaces[to].trench);
   if (trenchMarker && from !== to) return null;
-  if (from === to && !trenchMarker) return null;
+  // 12.16: "rebel armies and non-rebel units can occupy the same space,
+  // meaning that battles against rebel armies can be conducted from adjacent
+  // spaces or from the same space."  A same-space battle is otherwise 28.1.2's
+  // trench-battle form only.
+  const rebelOnlyDefence =
+    defendUnits.length > 0 && defendUnits.every((u) => String(u.owner).startsWith("REBEL:"));
+  if (from === to && !trenchMarker && !rebelOnlyDefence) return null;
   // 28.1: trenches exist in every key from GW turn 1.  Only a force with a
   // full-strength army in its main attack force may attack a trench space.
   const trenchTerrain =
