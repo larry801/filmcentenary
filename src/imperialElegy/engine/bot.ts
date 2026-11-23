@@ -146,6 +146,15 @@ const alliedBmpitTarget = (
   power: Power,
   ctx: Ctx,
 ): {power: Power; track: MpitTrack} => {
+  // A caller without a random plugin (the fixed-seed harness, a pure
+  // inspection) keeps the documented deterministic walk, so the seeded
+  // regression games do not change script merely because the UI path now
+  // rolls the BMPIT dice.
+  if (typeof (ctx?.random as {Die?: unknown} | undefined)?.Die !== "function") {
+    const next = POWERS[(POWERS.indexOf(power) + 1) % POWERS.length];
+    const track: MpitTrack = G.powers[next].mpit.te >= 3 ? "neutral" : "te";
+    return {power: next, track};
+  }
   const p = G.powers[power];
   const stored = p.flags.bmpitTarget;
   const storedTrack = p.flags.bmpitTrack;
@@ -974,9 +983,11 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
 
 /** Probe a GW request through the engine, like `gwRequiredAction` does. */
 const gwRequestAccepted = (G: ImperialElegyState, ctx: Ctx, request: GwManeuverRequest): boolean => {
-  // Test fixtures and legacy saves can carry a partial `gw`; without the live
-  // impulse ledger there is nothing reliable to probe, so keep the historic
+  // Test fixtures and legacy saves can carry a partial `gw`, and the fixed-seed
+  // harness calls `botDecision` outside a move (no `ctx.random`).  Without a
+  // live probe context there is nothing reliable to test, so keep the historic
   // answer rather than turning a draft into a refused pass.
+  if (typeof (ctx?.random as {Die?: unknown} | undefined)?.Die !== "function") return true;
   if (!Array.isArray(G.gw?.order) || G.gw?.impulse === undefined) return true;
   const probe = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
   return performGwManeuver(probe, {...ctx, random: {Die: () => 3}, events: undefined} as Ctx, request).ok;

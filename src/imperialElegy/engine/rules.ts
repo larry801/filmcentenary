@@ -2240,7 +2240,7 @@ export const computePowerProjection = (G: ImperialElegyState, power: Power): num
     for (const box of def.ports) {
       if (def.id === "egypt" && box === "indian-ocean" && G.persistent.suezCanal !== true) continue;
       const present = byBox.get(box) ?? {port: false, base: false};
-      if (def.type === "navalBase") present.base = true;
+      if (def.type === "navalBase" || def.navalBase === true) present.base = true;
       else present.port = true;
       byBox.set(box, present);
     }

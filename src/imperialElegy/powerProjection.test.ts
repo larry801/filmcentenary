@@ -55,10 +55,11 @@ describe("3.3.1 power projection is a derived, cached track", () => {
     const G = fresh();
     expect(Object.fromEntries(POWERS.map((power) => [power, computePowerProjection(G, power)])))
       .toEqual(CAMPAIGN_SETUP.powerProjection);
-    // France's three points are North Atlantic, Western Mediterranean and the
-    // South Atlantic anchor on Algeria; the printed FR 3 and the rule formula
-    // agree, so the setup display and the first end-phase recompute cannot
-    // disagree (and RU stays level with FR instead of dominating alone).
+    // France's three points are North Atlantic, the Western Mediterranean port
+    // at Provence and the printed naval-base station at Algeria (3.3.1's
+    // port+base pairing); the printed FR 3 and the rule formula agree, so the
+    // setup display and the first end-phase recompute cannot disagree (and RU
+    // stays level with FR instead of dominating alone).
     expect(CAMPAIGN_SETUP.powerProjection.FR).toBe(3);
     expect(SPACES["hong-kong"].type).toBe("navalBase");
   });
