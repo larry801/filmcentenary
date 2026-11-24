@@ -82,7 +82,9 @@ const HiddenSeat = (props: IEBoardProps) => {
  * strip and therefore no `currentSeat`, so they always render in full.
  */
 export const ImperialElegyBoard = (props: IEBoardProps) => {
-  const currentSeat = React.useContext(SeatUiContext).currentSeat;
+  // A test renderer may mock `useContext` without the provider's default value;
+  // the shared default (`currentSeat: null`) is what a missing value means.
+  const currentSeat = React.useContext(SeatUiContext)?.currentSeat ?? null;
   const seat = powerForPlayer(props.playerID);
   const hidden = props.hotseat === true && currentSeat !== null && seat !== currentSeat;
   return hidden ? <HiddenSeat {...props}/> : <VisibleSeat {...props}/>;
