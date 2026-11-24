@@ -180,6 +180,33 @@ describe("two-target declarations", () => {
     expect(secondOfDenmark).not.toContain("minor:Denmark");
   });
 
+  test("errata 13.4.5: an allied minor is offered beside an unaligned one", () => {
+    const G = bismarck();
+    // Hanover is allied to AU; Denmark has no ally.
+    G.spaces.hanover.ally = "AU";
+    G.spaces.hanover.diplomacy = null;
+    const {entitlement, denmark} = entriesFor(G);
+    const seconds = declarationSecondTargets(G, "GE", entitlement, denmark, "unification");
+    const hanover = seconds.find((entry) => warTargetKey(entry.target) === "minor:Hanover");
+    expect(hanover).toBeDefined();
+    // The option is labelled with the player the minor resolves to.
+    expect(hanover!.defender).toBe("AU");
+    // The pair may take one space from each named minor.
+    const objectives = declarationObjectives(G, "GE", entitlement, denmark, "unification", hanover);
+    expect(objectives).toEqual(expect.arrayContaining(["schleswig-holstein", "hanover"]));
+    // The exact printed declaration is one the engine accepts, and it resolves
+    // to Austria with Denmark as its new ally.
+    const play = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
+    expect(declareWar(play, makeCtx([], seat("GE")), denmark.target, "unification",
+      ["schleswig-holstein", "hanover"], 3, {
+        secondTarget: {minor: "Hanover"},
+        forbidPlayers: true,
+      })).toBeUndefined();
+    expect(play.pending).toBeNull();
+    expect(play.war?.defender).toBe("AU");
+    expect(play.spaces.denmark.ally).toBe("AU");
+  });
+
   test("a card without the clause offers no second target", () => {
     const G = homeImpulse("RU", RUSSO_TURKISH_WARS_HOME_CARD);
     settlePending(G, "RU");

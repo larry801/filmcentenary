@@ -16,7 +16,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {BISMARCK_HOME_CARD, warDeclarationEntitlement} from "./engine/rules";
+import {BISMARCK_HOME_CARD, minorAlliesOf, warDeclarationEntitlement} from "./engine/rules";
 import {allyCallEligibility, warBudgetFor, warCardCp} from "./engine/limitedWar";
 import {BISMARCK_CARD, declareWar, declinePending, pass, passWarMove, playCard, resolvePending, startWarManeuver} from "./moves";
 
@@ -176,23 +176,101 @@ describe("Otto von Bismarck's war of unification", () => {
     expect(call.reason).toBe("forbid-join");
   });
 
-  test("errata 13.4.5: an unaligned minor auto-allies the player of the other targeted minor", () => {
+  test("errata 13.4.5: the printed example — Denmark and Hanover, joins forbidden", () => {
     const G = bismarckImpulse();
     playBismarck(G);
     // Hanover is allied to AU; Denmark is unaligned.
     G.spaces.hanover.ally = "AU";
     G.spaces.hanover.diplomacy = null;
-    expect(declareWar(G, makeCtx([], seat("GE")), {minor: "Hanover"}, "unification", ["hanover"], 3, {
-      secondTarget: {minor: "Denmark"},
-      primary: {minor: "Hanover"},
-    })).toBeUndefined();
-    // 13.4.1's abandon-minor choice comes first; the errata's auto-alliance is
-    // applied when the declaration finalizes.
-    if (G.pending?.kind === "minorAbandon") {
-      const join = G.pending.options.find((option) => option.id === "join") ?? G.pending.options[0];
-      expect(resolvePending(G, makeCtx([], seat("AU")), join.id)).toBeUndefined();
-    }
+    // "Germany attacks Denmark and Hanover.  Hanover is allied to Austria, so
+    // that attack counts as one on Austria; Denmark has no ally, so it does not
+    // use the alliance table — it immediately allies Austria."
+    expect(declareWar(G, makeCtx([], seat("GE")), {minor: "Denmark"}, "unification",
+      ["schleswig-holstein", "hanover"], 3, {
+        secondTarget: {minor: "Hanover"},
+        forbidPlayers: true,
+      })).toBeUndefined();
+    // The errata's alliance is immediate: no 13.4.2 aid search and no 13.4.1
+    // fight-or-abandon choice for the minor it just allied.
+    expect(G.pending).toBeNull();
     expect(G.spaces.denmark.ally).toBe("AU");
+    // The alliance belongs to the minor power, so every Danish space carries
+    // the marker (the 13.4.2 aid path writes it the same way).
+    expect(G.spaces["schleswig-holstein"].ally).toBe("AU");
+    expect(G.war).not.toBeNull();
+    expect(G.war!.defender).toBe("AU");
+    expect(G.war!.forbidPlayerJoins).toBe(true);
+    expect(G.war!.objectives).toEqual(["schleswig-holstein", "hanover"]);
+    expect(G.war!.coDefenderMinors).toEqual(expect.arrayContaining(["Denmark", "Hanover"]));
+    expect(G.war!.declarationCard).toBe(BISMARCK_CARD);
+  });
+
+  test("errata 13.4.5 does not depend on which target is named first", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    G.spaces.hanover.ally = "AU";
+    G.spaces.hanover.diplomacy = null;
+    // The allied minor first, the unaligned one second: the same pair.
+    expect(declareWar(G, makeCtx([], seat("GE")), {minor: "Hanover"}, "unification",
+      ["hanover", "schleswig-holstein"], 3, {
+        secondTarget: {minor: "Denmark"},
+        forbidPlayers: true,
+      })).toBeUndefined();
+    expect(G.pending).toBeNull();
+    expect(G.spaces.denmark.ally).toBe("AU");
+    expect(G.spaces["schleswig-holstein"].ally).toBe("AU");
+    expect(G.war!.defender).toBe("AU");
+    expect(G.war!.coDefenderMinors).toEqual(expect.arrayContaining(["Denmark", "Hanover"]));
+  });
+
+  test("errata 13.4.5 allies the unaligned minor over the five-ally cap", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    // AU already holds the printed maximum of five minor power allies,
+    // Hanover among them.
+    for (const key of ["hanover", "bavaria", "saxony", "netherlands", "belgium"]) {
+      G.spaces[key].ally = "AU";
+      G.spaces[key].diplomacy = null;
+    }
+    expect(minorAlliesOf(G, "AU")).toHaveLength(5);
+    expect(declareWar(G, makeCtx([], seat("GE")), {minor: "Denmark"}, "unification",
+      ["schleswig-holstein", "hanover"], 3, {
+        secondTarget: {minor: "Hanover"},
+      })).toBeUndefined();
+    // "This occurs even if that player already has five minor power allies."
+    expect(minorAlliesOf(G, "AU")).toHaveLength(6);
+    expect(minorAlliesOf(G, "AU")).toContain("Denmark");
+    expect(G.war!.defender).toBe("AU");
+  });
+
+  test("errata 13.4.5 needs a named allied minor, not merely a player ally", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    G.spaces.hanover.ally = "AU";
+    G.spaces.hanover.diplomacy = null;
+    // France is named directly; no minor power is the second target, so the
+    // errata does not hand Denmark to Austria — it runs the 13.4.2 search.
+    expect(declareWar(G, makeCtx([2, 1], seat("GE")), {minor: "Denmark"}, "unification",
+      ["schleswig-holstein"], 3, {
+        secondTarget: "FR",
+      })).toBeUndefined();
+    expect(G.spaces.denmark.ally).toBeNull();
+    expect(G.pending?.kind).toBe("minorAid");
+  });
+
+  test("a refused 13.4.5 declaration leaves no alliance behind", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    G.spaces.hanover.ally = "AU";
+    G.spaces.hanover.diplomacy = null;
+    // Paris is not a German space and belongs to neither named defender, so
+    // the aim validation refuses the declaration after the pair was recognized.
+    expect(declareWar(G, makeCtx([], seat("GE")), {minor: "Denmark"}, "unification",
+      ["paris"], 3, {
+        secondTarget: {minor: "Hanover"},
+      })).toBe(INVALID_MOVE);
+    expect(G.spaces.denmark.ally).toBeNull();
+    expect(G.war).toBeNull();
   });
 
   test("the join ban also stops the 13.4.2 aid search on a minor", () => {

@@ -32,6 +32,7 @@ import {
   BISMARCK_HOME_CARD,
   JIHAD_HOME_CARD,
   RUSSO_TURKISH_WARS_HOME_CARD,
+  isPower,
   warDeclarationAllowsTwoPowers,
   warDeclarationEntitlement,
   warDeclarationMayForbidJoins,
@@ -46,7 +47,7 @@ import {
   warTargetKey,
   type WarDeclarationDefender,
 } from "../engine/declarationTargets";
-import {warTargetFromKey, seekingAidSlots, type WarTarget} from "../engine/limitedWar";
+import {minorWarInfo, warTargetFromKey, seekingAidSlots, type WarTarget} from "../engine/limitedWar";
 import {ConfirmButton} from "./ConfirmButton";
 import {IEPanel} from "./theme";
 import {bi} from "./boardHelpers";
@@ -92,10 +93,17 @@ const minorLabel = (minor: string, locale: "en" | "zh_CN"): string => {
 
 const defenderLabel = (
   entry: WarDeclarationDefender, locale: "en" | "zh_CN", t: ReturnType<typeof ieT>,
-): string =>
-  typeof entry.target === "string"
+): string => {
+  const base = typeof entry.target === "string"
     ? t.seats[entry.target]
     : minorLabel(entry.target.minor, locale);
+  // 13.4: a named minor is defended by its player ally, so name the player the
+  // declaration is really aimed at (13.4.5's allied-minor rows rely on this).
+  const ally = isPower(entry.defender) && entry.defender !== entry.target
+    ? t.seats[entry.defender]
+    : null;
+  return ally === null ? base : `${base} (${ally})`;
+};
 
 export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   const {
@@ -247,14 +255,26 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   // move would never ask (Bismarck's join ban suppresses it entirely).
   const aidHint = React.useMemo(() => {
     // Only the first target runs the 13.4 chain; a second non-player target is
-    // recorded as a co-defender minor with the war.
+    // recorded as a co-defender minor with the war.  Errata 13.4.5 is the
+    // exception: an unaligned first target beside a minor with a player ally
+    // immediately allies that player and never runs the 13.4.2 aid search —
+    // even over the five-ally cap and even when joins are forbidden.
     const minor = entry === undefined || typeof entry.target === "string" ? null : entry.target.minor;
     if (minor === null) return null;
+    const firstInfo = minorWarInfo(G, viewer, minor);
+    const secondInfo = secondEntry !== undefined && typeof secondEntry.target !== "string"
+      ? minorWarInfo(G, viewer, secondEntry.target.minor)
+      : null;
+    const pairAlly = secondInfo !== null && secondInfo.ok && secondInfo.ally !== null
+      && firstInfo.ok && firstInfo.ally === null
+      ? secondInfo.ally
+      : null;
+    if (pairAlly !== null) return {minor, forbidden: false, slots: [], pairAlly};
     const forbidden = forbidPlayersAllowed && forbidPlayers;
     const slots = forbidden ? [] : seekingAidSlots(G, viewer, minor);
-    return {minor, forbidden, slots};
+    return {minor, forbidden, slots, pairAlly: null};
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [G, viewer, entry, forbidPlayersAllowed, forbidPlayers]);
+  }, [G, viewer, entry, secondEntry, forbidPlayersAllowed, forbidPlayers]);
 
   const reason = canDeclare
     ? undefined
@@ -485,7 +505,11 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
             )}
             {aidHint !== null && (
               <div className="ie-hint" data-testid="ie-war-nonplayer-aid">
-                {aidHint.forbidden
+                {aidHint.pairAlly !== null
+                  ? bi(locale,
+                    `Errata 13.4.5: ${minorLabel(aidHint.minor, locale)} immediately allies ${t.seats[aidHint.pairAlly]} (the ally of the other named minor); it does not run the aid search, even if you forbid joins.`,
+                    `勘误 13.4.5：${minorLabel(aidHint.minor, locale)}立即与${t.seats[aidHint.pairAlly]}（另一目标小国的盟友）结盟，不进行求援；即使你禁止其他玩家参战也照样发生。`)
+                  : aidHint.forbidden
                   ? bi(locale,
                     "You forbid other players from joining: the non-player power defends alone (13.4.2 / 15.4.2).",
                     "你已禁止其他玩家参战：该非玩家势力将独自防守（13.4.2 / 15.4.2）。")

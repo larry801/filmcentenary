@@ -41,6 +41,7 @@ import {
 import {SPACES} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {
+  BISMARCK_HOME_CARD,
   WarDeclarationAim,
   WarDeclarationEntitlement,
   allied,
@@ -186,6 +187,34 @@ export const declarationDefenders = (
 };
 
 /**
+ * Errata 13.4.5: the allied non-player powers offered beside an unaligned one.
+ *
+ * The ordinary defender list reaches a minor with a player ally through that
+ * player's row (13.4 makes the declaration a war on the player).  Bismarck's
+ * two-minor errata keys on the *minor* being named, though: "if Germany attacks
+ * a minor power with a player ally and a minor power without a player ally,
+ * the player allied … immediately allies with the unaligned minor power."  So
+ * when the first target is an unaligned minor, a Bismarck declaration also
+ * offers the allied minors as second targets, labelled with the ally they
+ * resolve to.
+ */
+const alliedMinorTargets = (
+  G: ImperialElegyState,
+  power: Power,
+  entitlement: WarDeclarationEntitlement,
+): WarDeclarationDefender[] => {
+  const out: WarDeclarationDefender[] = [];
+  for (const minor of Object.keys(MINOR_POWER_HOMES).sort()) {
+    if (isWarImmuneNonPlayer(minor)) continue;
+    const info: MinorWarInfo = minorWarInfo(G, power, minor);
+    if (!info.ok || info.ally === null || info.ally === power) continue;
+    if (!warDeclarationTargetLegal(G, entitlement, info.ally)) continue;
+    out.push({target: {minor}, defender: info.ally});
+  }
+  return out;
+};
+
+/**
  * Every second target a two-target declaration may name beside `entry`.
  *
  * Rule 14.1: "through the play of one of their home cards … GE or FR [may]
@@ -196,6 +225,10 @@ export const declarationDefenders = (
  * allowed by the card's printed target list — plus the pair rule: a second
  * target whose only spaces the shared aim refuses would be a dead row, because
  * 13.0 requires at least one objective.
+ *
+ * Bismarck's errata 13.4.5 adds one row the ordinary list cannot express: an
+ * allied minor beside an unaligned minor.  Without it the panel can only name
+ * the ally as a player, which loses the minor the printed rule keys on.
  */
 export const declarationSecondTargets = (
   G: ImperialElegyState,
@@ -208,12 +241,26 @@ export const declarationSecondTargets = (
   const policy = warDeclarationPolicy(entitlement.card);
   if (policy === null || policy.maxPowers < 2 || !policy.twoPowerAims.includes(aim)) return [];
 
-  return declarationDefenders(G, power, entitlement)
+  const firstInfo = typeof entry.target === "string"
+    ? null
+    : minorWarInfo(G, power, entry.target.minor);
+  const firstIsUnalignedMinor = firstInfo !== null && firstInfo.ok && firstInfo.ally === null;
+  const extras = entitlement.card === BISMARCK_HOME_CARD && firstIsUnalignedMinor
+    ? alliedMinorTargets(G, power, entitlement)
+    : [];
+  const seen = new Set<string>();
+  return [...declarationDefenders(G, power, entitlement), ...extras]
     .filter((candidate) => warTargetKey(candidate.target) !== warTargetKey(entry.target))
     // A pair with no space in common is a dead row: the panel would show no
     // objective, and `declareWar` needs at least one.
     .filter((candidate) =>
-      declarationObjectives(G, power, entitlement, entry, aim, candidate).length > 0);
+      declarationObjectives(G, power, entitlement, entry, aim, candidate).length > 0)
+    .filter((candidate) => {
+      const key = warTargetKey(candidate.target);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 };
 
 /**

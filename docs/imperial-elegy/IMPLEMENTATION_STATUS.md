@@ -1,3 +1,35 @@
+## Fixed: 13.4.5's printed example — the two-minor alliance and its UI (2026-11-24)
+
+The 2026-11-23 entry overstated 13.4.5.  The alliance marker was written before
+the aim was validated (a refused declaration left it behind), only on the
+minor's home space, and the unaligned-first order still finalized against the
+minor — or ran the 13.4.2 aid search — instead of the allied player.  The
+printed text and example now resolve in one step:
+
+> “If Germany attacks a minor power with a player ally and a minor power without
+> a player ally, the player allied … immediately allies with the unaligned minor
+> power.  This occurs even if that player already has five minor power allies.”
+> Example: Germany attacks Denmark and Hanover; Hanover is allied to Austria, so
+> the attack counts as one on Austria, which becomes the primary belligerent.
+> Germany forbids other players from joining.  Denmark has no ally, so it does
+> not use the alliance table — it immediately allies Austria.
+
+- The ally's marker goes on **every space** the unaligned minor controls (the
+  same `applyMinorAidAlliance` path as 13.4.2), over the five-ally cap, and only
+  after target/aim validation; a refused declaration leaves no marker.
+- The pair opens **no** 13.4.1 fight-or-abandon choice and **no** 13.4.2 aid
+  search, even when Bismarck forbids joins.  The allied player is the defending
+  primary in either target order, with both minors on the defending side.
+- The War panel offers an allied minor as the second target beside an unaligned
+  first target (normally reached through the player row) and shows the 13.4.5
+  immediate-alliance hint instead of the aid list.
+
+Coverage: `bismarckWar.test.ts` (5 new cases: printed example, order,
+five-ally cap, non-minor second target, refused declaration),
+`declarationTargets.test.ts` and `components/warDeclarationPanel.test.tsx` (1
+each).  §13–17 stays Partial for 13.2.1, unified Italy in a limited war, 15.0,
+15.2.2 and 16.1.4/16.1.5.
+
 ## Verified: the Partial-section audit round 1 — §8 and §20 promoted (2026-11-23)
 
 The six sections still labelled **Partial** (§8, §9–12, §13–17, §20, §24–32,
@@ -67,10 +99,11 @@ named blockers.
 
 ## Verified: §13–17's 13.4.5 and 16.2 errata (2026-11-23)
 
-- **13.4.5 Bismarck auto-alliance.**  When a Bismarck declaration names a minor
-  with a player ally and an unaligned minor, the allied player immediately
-  allies the unaligned minor — before the 13.4.2 aid search, over the five-ally
-  cap — and the declaration then resolves as an attack on that player.
+- **13.4.5 Bismarck auto-alliance (first pass; completed 2026-11-24 above).**
+  When a Bismarck declaration names a minor with a player ally and an unaligned
+  minor, the allied player immediately allies the unaligned minor — before the
+  13.4.2 aid search, over the five-ally cap — and the declaration then resolves
+  as an attack on that player.
 - **16.2 one option per non-primary player.**  The treaty cap is enforced from a
   recorded allocation history (`WarState.treatyTargets`): a second option
   imposed on a player who is not a primary belligerent is rejected with
