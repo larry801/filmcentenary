@@ -302,14 +302,12 @@ export const MapPanel = ({
           )}
         </div>
 
+        {/* The key, and nothing else: the map draws its own colour legend —
+            the same six powers plus the neutral dot, with the one-line gesture
+            help above them — inside `.ie-map-wrap`.  Repeating it here printed
+            the identical key a second time right under it (and cost a phone
+            29 px of map height). */}
         <MapLegend locale={locale} counts={counts}/>
-
-        <div className="ie-map-legend">
-          {(["GE", "UK", "FR", "AU", "RU", "OT"] as const).map((power) => (
-            <span key={power}><i className={`ie-map-legend-dot ie-map-legend-dot-${power.toLowerCase()}`}/>{t.seats[power]}</span>
-          ))}
-          <span><i className="ie-map-legend-dot ie-map-legend-dot-neutral"/>{t.neutral}</span>
-        </div>
       </footer>
     </section>
   );

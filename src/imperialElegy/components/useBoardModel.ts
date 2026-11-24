@@ -240,7 +240,10 @@ export const useBoardModel = ({
   // covered the negotiation table (11.0/11.1) before anyone could talk; the
   // seat now negotiates first and opens the choice when it is done.  A closed
   // dialog keeps the choice outstanding, so the dock's button brings it back.
-  const [homeCardDialogOpen, setHomeCardDialogOpen] = React.useState(false);
+  // The home-card chooser is a dialog the reader opens; the shell keeps the
+  // flag for a hotseat, because a seat's board is built only while it is in
+  // front and would otherwise forget that it had opened the chooser.
+  const [localHomeCardDialogOpen, setLocalHomeCardDialogOpen] = React.useState(false);
   // The phone shell is one bottom sheet; `mobileTab` picks the body it shows.
   const isPhone = useIsPhone();
   const [mobileTab, setMobileTab] = React.useState<MobileTab>("orders");
@@ -261,6 +264,14 @@ export const useBoardModel = ({
   // A test/SSR renderer may mock useContext without a provider; the default
   // context value is equivalent to this fallback.
   const seatUi = React.useContext(SeatUiContext) ?? injectedUi?.seatUi ?? {currentSeat: null};
+  const shellChoiceOpen = viewer !== null && seatUi.choiceOpen !== undefined
+    ? seatUi.choiceOpen[viewer] === true
+    : undefined;
+  const homeCardDialogOpen = shellChoiceOpen ?? localHomeCardDialogOpen;
+  const setHomeCardDialogOpen = React.useCallback((open: boolean) => {
+    if (viewer !== null && seatUi.setChoiceOpen !== undefined) seatUi.setChoiceOpen(viewer, open);
+    else setLocalHomeCardDialogOpen(open);
+  }, [viewer, seatUi.setChoiceOpen]);
 
   React.useEffect(() => {
     // Only the visible seat reports to the shared strip.  Hidden boards keep

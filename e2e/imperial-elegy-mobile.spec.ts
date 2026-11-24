@@ -35,7 +35,8 @@ test.describe("Imperial Elegy phone layout", () => {
         // zoom 1, and a capital framing lands near the 3.2 maximum.
         await expect.poll(async () => Number(await map.getAttribute("data-k"))).toBeGreaterThan(2.5);
 
-        const layout = (await board.locator(".ie-layout").boundingBox())!;
+        // The play area is `.ie-table`; the shell has no `.ie-layout` any more.
+        const layout = (await board.locator(".ie-table").boundingBox())!;
         const stage = (await board.locator(".ie-map-stage").boundingBox())!;
         // The map is the game: it must take the majority of the play area.
         expect(stage.height).toBeGreaterThan(layout.height * 0.55);
@@ -44,8 +45,10 @@ test.describe("Imperial Elegy phone layout", () => {
 
     test("the legend and the key are both visible and do not overlap", async ({page}) => {
         const board = await openSeat(page);
+        // One legend only: the map draws it, and the footer prints the key.
         const legend = board.locator(".ie-map-legend");
         const key = board.locator(".ie-map-key");
+        await expect(legend).toHaveCount(1);
         await expect(legend).toBeVisible();
         await expect(key).toBeVisible();
 
@@ -94,43 +97,51 @@ test.describe("Imperial Elegy phone layout", () => {
         await expect.poll(async () => await map.getAttribute("data-detail")).toBe("full");
     });
 
-    test("the context rail is a strip that opens to a 46dvh sheet without moving the map", async ({page}) => {
+    test("the dock is one strip that opens to a 40 dvh sheet without moving the map's top", async ({page}) => {
         const board = await openSeat(page);
-        const rail = board.locator('[data-testid="ie-rail"]');
-        await expect(rail).toHaveAttribute("data-open", "false");
-        expect((await rail.boundingBox())!.height).toBeLessThanOrEqual(44);
+        const dock = board.locator('[data-testid="ie-mobile-dock"]');
+        await expect(dock).toHaveAttribute("data-open", "false");
+        expect((await dock.boundingBox())!.height).toBeLessThanOrEqual(44);
 
         const before = (await board.locator(".ie-map-stage").boundingBox())!;
-        const scrollBefore = await page.evaluate(() => document.querySelector(".ie-board")!.scrollTop);
 
-        await board.locator('[data-testid="ie-rail-tab-action"]').click();
-        await expect(rail).toHaveAttribute("data-open", "true");
-        await expect(board.locator('[data-testid="ie-rail-panel-action"]')).toBeVisible();
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-open", "true");
+        await expect(board.locator('[data-testid="ie-mobile-body"]')).toBeVisible();
 
-        // The sheet is 46% of the viewport tall, as chosen for this layout.
-        const sheet = (await rail.boundingBox())!;
-        expect(sheet.height).toBeGreaterThan(VIEWPORT.height * 0.42);
-        expect(sheet.height).toBeLessThan(VIEWPORT.height * 0.5);
-
-        // Opening a panel must not resize (and therefore scroll) the board away:
-        // the sheet leaves the flow, so the map keeps its top edge and never
-        // shrinks — it actually gains the strip's 38 px.
-        expect(await page.evaluate(() => document.querySelector(".ie-board")!.scrollTop)).toBe(scrollBefore);
+        // The sheet is 40 dvh at this height, and the map keeps its top edge.
+        const sheet = (await dock.boundingBox())!;
+        expect(sheet.height).toBeGreaterThan(VIEWPORT.height * 0.38);
+        expect(sheet.height).toBeLessThan(VIEWPORT.height * 0.42);
         const after = (await board.locator(".ie-map-stage").boundingBox())!;
         expect(after.y).toBe(before.y);
-        expect(after.height).toBeGreaterThanOrEqual(before.height);
 
-        await board.locator('[data-testid="ie-rail-tab-action"]').click();
-        await expect(rail).toHaveAttribute("data-open", "false");
+        // Four tabs reach every body; the strip never moves off screen.
+        for (const tab of ["orders", "hand", "mat", "log"] as const) {
+            await board.locator(`[data-testid="ie-mobile-tab-${tab}"]`).click();
+            await expect(dock).toHaveAttribute("data-tab", tab);
+        }
+        await expect(dock).toHaveAttribute("data-tab", "log");
+
+        // Full height is the shell's own cap, not the viewport's.
+        await board.locator('[data-testid="ie-mobile-tab-orders"]').click();
+        await board.locator('[data-testid="ie-mobile-expand"]').click();
+        await expect(dock).toHaveAttribute("data-expanded", "true");
+        expect((await dock.boundingBox())!.height).toBeGreaterThan(VIEWPORT.height * 0.6);
     });
 
-    test("Escape folds the context rail", async ({page}) => {
+    test("the dock closes from its bar and reopens at half height", async ({page}) => {
         const board = await openSeat(page);
-        const rail = board.locator('[data-testid="ie-rail"]');
-        await board.locator('[data-testid="ie-rail-tab-reference"]').click();
-        await expect(rail).toHaveAttribute("data-open", "true");
-        await page.keyboard.press("Escape");
-        await expect(rail).toHaveAttribute("data-open", "false");
+        const dock = board.locator('[data-testid="ie-mobile-dock"]');
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await board.locator('[data-testid="ie-mobile-expand"]').click();
+        await expect(dock).toHaveAttribute("data-expanded", "true");
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-open", "false");
+        // A collapse never reopens to full: the reopen starts at half height.
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-open", "true");
+        await expect(dock).toHaveAttribute("data-expanded", "false");
     });
 
     test("tapping two overlapping counters asks which one was meant", async ({page}) => {
@@ -150,24 +161,24 @@ test.describe("Imperial Elegy phone layout", () => {
         }
     });
 
-    test("the shell still fits one viewport and the hand opens on demand", async ({page}) => {
+    test("the shell still fits one viewport and the hand opens from the dock", async ({page}) => {
         const board = await openSeat(page);
         expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(VIEWPORT.height * 1.02);
 
-        const tray = board.locator('[data-testid="ie-hand-tray"]');
-        await expect(tray).toHaveAttribute("data-open", "false");
-        // The folded bar still carries the counts, so the hand is not a mystery.
-        await expect(tray).toContainText("手牌");
+        // The hand is a body of the dock at this width: its tab is the way in,
+        // and its count is only on screen while that body is.
+        const tabs = board.locator('[data-testid="ie-mobile-tab-hand"]');
+        await expect(tabs).toBeVisible();
+        await tabs.click();
+        await expect(board.locator('[data-testid="ie-mobile-dock"]')).toHaveAttribute("data-tab", "hand");
+        await expect(board.locator('[data-testid="ie-hand-tray"]')).toHaveAttribute("data-open", "true");
         await expect(board.locator('[data-testid="ie-hand-count"]')).toBeVisible();
-
-        await board.locator('[data-testid="ie-tray-toggle"]').click();
-        await expect(tray).toHaveAttribute("data-open", "true");
         await expect(board.locator(".ie-hand .ie-card").first()).toBeVisible();
     });
 
     test("the hand lists one row per card and one tap opens the inspector", async ({page}) => {
         const board = await openSeat(page);
-        await board.locator('[data-testid="ie-tray-toggle"]').click();
+        await board.locator('[data-testid="ie-mobile-tab-hand"]').click();
         await expect(board.locator('[data-testid="ie-hand-tray"]')).toHaveAttribute("data-open", "true");
 
         const rows = board.locator(".ie-hand .ie-card");
@@ -236,6 +247,7 @@ test.describe("Imperial Elegy phone layout", () => {
     });
 
     test("all six seats are on screen without a horizontal scroll", async ({page}) => {
+        await openSeat(page);
         const strip = page.locator(".ie-seat-strip");
         await expect(strip).toBeVisible();
         // 445 px of tabs in a 148 px window left four seats off screen.

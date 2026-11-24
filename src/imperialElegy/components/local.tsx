@@ -206,7 +206,17 @@ const LocalImperialElegy = () => {
 
   const botContext = React.useMemo(() => ({seats: botSeats, setSeatBot}), [botSeats, setSeatBot]);
 
-  const seatUi = React.useMemo(() => ({currentSeat, onSwitchSeat: switchSeat, onGameState}), [currentSeat, switchSeat, onGameState]);
+  // Which seats have the home-card chooser open.  The seat boards are built on
+  // demand, so this has to live above them for the dialog to survive a switch.
+  const [choiceOpen, setChoiceOpen] = React.useState<Partial<Record<Power, boolean>>>({});
+  const markChoiceOpen = React.useCallback((power: Power, open: boolean) => {
+    setChoiceOpen((prev) => (prev[power] === open ? prev : {...prev, [power]: open}));
+  }, []);
+
+  const seatUi = React.useMemo(
+    () => ({currentSeat, onSwitchSeat: switchSeat, onGameState, choiceOpen, setChoiceOpen: markChoiceOpen}),
+    [currentSeat, switchSeat, onGameState, choiceOpen, markChoiceOpen],
+  );
   if (showSetup) {
     return (
       <IESurface className="ie-local ie-local-setup">
