@@ -4834,6 +4834,23 @@ const recordWarPass = (G: ImperialElegyState, ctx: Ctx, power: Power): string | 
     log(G, power, "warPassRefused", {reason: "not-active", active: G.activePower});
     return INVALID_MOVE;
   }
+  // 15.0: "Players can only pass if their war budget is ≤ 2."  A power still
+  // holding more budget must spend it on a wartime action; the only escape is
+  // having no force left that could act (otherwise a force-less seat would
+  // deadlock the war at the all-passed boundary).
+  const budget = cpBudgetFor(G, power);
+  const canStillAct = G.powers[power].reserves.length > 0
+    || Object.values(G.units).some((unit) => unit.owner === power && !unit.naval && unit.steps > 0);
+  // A seat that already spent CP on a wartime action is handing the impulse
+  // over, not declining to act (15.0's "can only pass if … ≤ 2" is about the
+  // choice between acting and passing at the start of the impulse).  Without
+  // this the engine's single-move impulse model would deadlock every seat that
+  // still holds budget after acting.
+  const actedThisImpulse = G.powers[power].flags.warCpSpentThisImpulse === true;
+  if (budget > 2 && !actedThisImpulse && canStillAct) {
+    log(G, power, "warPassRefused", {reason: "budget", budget});
+    return INVALID_MOVE;
+  }
   // 33.1 Superior Staff Work: GE's free deploy reserves action is only
   // available during its first impulse; passing forfeits it (once per war).
   if (power === "GE" && superiorStaffWorkFreeDeploy(G, power, war)) {
