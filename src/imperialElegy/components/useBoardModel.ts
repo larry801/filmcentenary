@@ -16,7 +16,6 @@ import {cpBudgetFor, freeGrantCp, friendlySpace, gwAllyImpulseFor, hasLoc, hosti
 import {CARD_BY_ID, cardById, decadeLabel} from "../engine/deck";
 import {Decade} from "../constant/cards";
 import {cpChainResolution} from "../engine/economy";
-import {negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
 import {GOALS_BY_ID} from "../constant/goals";
 import {decidingText, ieT} from "./i18n";
 import {cardDisplayName} from "./cardDisplay";
@@ -34,6 +33,8 @@ import {handChoiceAvailability} from "./HandChoices";
 import {CardChoiceFace} from "./CardChoice";
 import {PhaseAction} from "./PhaseActions";
 import {BotSeatsContext} from "./botContext";
+import {negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
+import {useBotAutoSubmit} from "./botDriver";
 import {SeatUiContext} from "./seatUiContext";
 import {useInteraction, interactionPrompt} from "./useInteraction";
 import {useCardFaceMode, useConfirmActions} from "./preferences";
@@ -60,7 +61,6 @@ import {ARM_MS} from "./ConfirmButton";
 import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
 import {BoardLayout} from "./BoardLayout";
-import {botMoveFor} from "../engine/bot";
 import {botPowersOf} from "../configuration";
 
 const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
@@ -722,100 +722,23 @@ export const useBoardModel = ({
   React.useEffect(() => { dispatch({type: "reset"}); }, [phase]);
 
   // ------------------------------------------------------------------ bot auto-submit (Rule 34)
-  // When this board instance belongs to a bot seat in hotseat mode, automatically
-  // dispatch the bot's decided move after a short delay so the human player can
-  // see what happened before the state advances.
+  // This board's own seat, when it is a bot and the person in front of it may
+  // only watch.  The hotseat seats that are not in front render no interface at
+  // all (see `board.tsx`); they are driven by the same hook from there, so the
+  // rule, the timing and the refusal fallback exist once, in `botDriver.ts`.
   //
   // An online match lists its bot seats in `G.bots` and the server drives them
   // (`src/game/ieBotDriver.ts`); a client must never send those moves too, so
   // this driver is gated on `hotseat` alone even though `botSeats` also carries
   // the online list (the badge and the read-only flags use it either way).
-  const botTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  // boardgame.io re-syncs the view even when a move is rejected, so an illegal
-  // decision used to be re-sent every 500 ms forever (console flood + a frozen
-  // match).  Track whether the state actually moved under the same decision.
-  const botFailureRef = React.useRef<{key: string; state: string; count: number} | null>(null);
-  React.useEffect(() => {
-    // Only active in hotseat mode and when this seat is flagged as a bot.
-    if (!hotseat || viewer === null || !botSeats.has(viewer) || eliminated) return;
+  useBotAutoSubmit({
+    G,
+    ctx,
+    moves,
+    viewer,
+    enabled: hotseat && viewer !== null && botSeats.has(viewer) && !eliminated,
+  });
 
-    // The bot needs to act when:
-    //   • There is an open pending decision addressed to this power, OR
-    //   • It is this power's normal turn to act (action / wartime / prep /
-    //     diplomacy / gwManeuver all use isActive; end / gwPlanning / gwWinter
-    //     ask all powers to take their turn sequentially so canPhaseAct is true).
-    // 9.1: during the negotiation segment every seat may close its own
-    // segment (and answer an offer addressed to it) out of turn, so a bot must
-    // not wait for `isActive` — the active seat is Germany until the home-card
-    // step, which stays blocked until every bot has also finished talking.
-    const negotiatingBot = phase === "diplomacy" && (
-      !negotiationDoneFor(G, viewer) ||
-      (G.negotiation?.offers ?? []).some((offer) => offer.status === "proposed" && offer.to === viewer)
-    );
-    const needsAct =
-      (pending !== null && pending.power === viewer) ||
-      (pending === null && (
-        isActive ||
-        negotiatingBot ||
-        phase === "end" ||
-        phase === "gwPlanning" ||
-        phase === "gwWinter"
-      ));
-
-    if (!needsAct) return;
-
-    // Clear any previously scheduled timer before scheduling a new one.
-    if (botTimerRef.current !== null) clearTimeout(botTimerRef.current);
-    botTimerRef.current = setTimeout(() => {
-      botTimerRef.current = null;
-      try {
-        const decision = botMoveFor(G, ctx, viewer);
-        const key = `${decision.move}|${JSON.stringify(decision.args ?? [])}`;
-        // A rejected move leaves the state untouched, so "same decision on an
-        // unchanged state" is the reliable failure signal.
-        const stateKey = `${G.turn}|${phase}|${active}|${G.cpRemaining}|${G.log.length}|${pending?.id ?? "-"}`;
-        const previous = botFailureRef.current;
-        const count = previous !== null && previous.key === key && previous.state === stateKey
-          ? previous.count + 1
-          : 0;
-        if (count >= 3) {
-          // The engine keeps refusing this decision.  Take a legal escape move
-          // so the match can continue instead of spinning forever.
-          botFailureRef.current = {key, state: stateKey, count};
-          const escape: Record<string, string> = {
-            action: "pass",
-            wartime: "passWarMove",
-            prep: "finishPrep",
-            diplomacy: "endDiplomacy",
-            end: "endPhaseTurn",
-            gwPlanning: "endGwPlanningMove",
-            gwManeuver: "gwPass",
-            gwWinter: "gwResolveWinter",
-          };
-          const fallback = escape[phase];
-          console.warn("[IE bot] repeated invalid decision", key, "→ falling back to", fallback);
-          const fn = fallback === undefined ? undefined : (moves as Record<string, () => void>)[fallback];
-          if (typeof fn === "function") fn();
-          return;
-        }
-        botFailureRef.current = {key, state: stateKey, count};
-        const fn = (moves as Record<string, (...args: unknown[]) => void>)[decision.move];
-        if (typeof fn === "function") fn(...(decision.args ?? []));
-      } catch (err) {
-        console.warn("[IE bot] auto-submit error", err);
-      }
-    }, 500);
-
-    return () => {
-      if (botTimerRef.current !== null) {
-        clearTimeout(botTimerRef.current);
-        botTimerRef.current = null;
-      }
-    };
-  // G and ctx change on every game-state update — that is the correct trigger.
-  // moves is a stable boardgame.io object; eslint-disable keeps the hook clean.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [G, ctx, viewer, hotseat, botSeats, eliminated, pending, isActive, phase]);
 
   const selectedState = selected ? G.spaces[selected] : null;
   const selectedUnitDef = selectedUnit ? G.units[selectedUnit] : undefined;
@@ -1845,8 +1768,6 @@ export const useBoardModel = ({
     interceptCheck,
     interceptReason,
     interceptVisible,
-    botTimerRef,
-    botFailureRef,
     selectedState,
     selectedUnitDef,
     commandedOwner,
