@@ -1,3 +1,27 @@
+## Fixed: a war the attacker won no longer returns the action phase to the attacker (2026-11-24)
+
+Follow-up to the white-peace hand-over, reported as "帝国挽歌 事件俾斯麦之后不应该还
+能在同一行动轮还能打出其他牌": the same reasoning only covered a white peace, so a
+war the attacker **won** still handed the action phase back to the declarer —
+Bismarck's unification war ended, GE won, and GE opened a second card in the
+action phase it had already acted in.  The declaration is paid for by the
+attacker's own action-phase impulse (a card for CP, or a home card's printed
+event), so 4.3's impulse order continues after it.
+
+- `engine/limitedWar.ts#postWarActionPower` is now the single decision: a
+  **defending** winner opens the resumed action phase (it never spent an
+  impulse on the declaration), while an attacker victory and a white peace both
+  resume with the next seat that still has a card.  `demobilizeWar` and the
+  three `postWarWinner` seeds in `moves.ts` all read it, so `actionBegin` cannot
+  put the attacker back in front of the phase.
+- 17.0's free redeploy/naval actions are untouched: they belong to the winning
+  side in winner-then-loser order regardless of whose impulse comes next.
+
+**Coverage:** `bismarckWar.test.ts` (a Bismarck war won by GE asserts
+`activePower === "UK"` and that GE's second card is refused) plus the updated
+attacker-victory expectations in `campaignWar.test.ts` (2), `limitedWar.test.ts`,
+`limitedWarIntegration.test.ts` and `demobilization.test.ts` (2).
+
 ## Fixed: Bismarck's impulse refuses a second card in the industry slot or the CP chain (2026-11-24)
 
 Reported as "帝国挽歌 事件俾斯麦之后不应该还能在同一行动轮打出其他牌".  Bismarck's
@@ -740,8 +764,8 @@ Rule 16.1.5: a white peace has **no winning side**.  `demobilizeWar` nevertheles
 fell back to `war.victor ?? "attacker"` and set `G.activePower` to the attacker,
 so the action phase restarted with the very seat whose impulse the declaration
 had already spent.  A white peace now resumes at the next seat in printed turn
-order after the attacker (4.3); a real winner still receives the first impulse
-as before.
+order after the attacker (4.3).  (Superseded 2026-11-24 for a war the attacker
+itself won: see "a war the attacker won no longer returns the action phase".)
 
 **Coverage:** `bismarckWar.test.ts` (a full Bismarck → white peace → demobilise
 run asserts `activePower === "UK"`) and the white-peace case in

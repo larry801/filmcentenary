@@ -3208,10 +3208,10 @@ export const returnReserveArmies = (G: ImperialElegyState): {power: PowerOrMinor
 /**
  * The next seat in printed turn order after `power` that can still act.
  *
- * Used when a white peace ends a war: the attacker's impulse is already spent
- * on the declaration, so the action phase resumes with the next seat (4.3)
- * rather than replaying the attacker.  A seat with no card left is still
- * returned when it is the only candidate so its pass can close the phase.
+ * Used when a war ends without a defending winner: the attacker's impulse is
+ * already spent on the declaration, so the action phase resumes with the next
+ * seat (4.3) rather than replaying the attacker.  A seat with no card left is
+ * still returned when it is the only candidate so its pass can close the phase.
  */
 const nextActionPowerAfter = (G: ImperialElegyState, power: Power): Power => {
   const start = POWERS.indexOf(power);
@@ -3222,6 +3222,26 @@ const nextActionPowerAfter = (G: ImperialElegyState, power: Power): Power => {
     if (G.powers[candidate].hand.length > 0) return candidate;
   }
   return power;
+};
+
+/**
+ * Rule 17.0 / 4.3: the seat that takes the action phase once the war is over.
+ *
+ * The declaration was paid for by the attacker's own action-phase impulse (a
+ * card for CP, or a home card's printed event such as Bismarck's), so a war the
+ * attacker wins, and a white peace with no winning side at all, both resume
+ * with the next seat in impulse order: the attacker may not open a second card
+ * in the action phase it already acted in.  A defending winner never spent an
+ * impulse on the declaration, so it opens the resumed action phase as before.
+ */
+export const postWarActionPower = (
+  G: ImperialElegyState,
+  war: WarState,
+  victor: WarSideName | null,
+): Power => {
+  const winner = victor === "attacker" ? war.attacker : victor === "defender" ? war.defender : null;
+  if (winner !== null && isPower(winner) && winner !== war.attacker) return winner;
+  return nextActionPowerAfter(G, war.attacker);
 };
 
 /**
@@ -3359,14 +3379,13 @@ export const demobilizeWar = (
   // impulse; the attacker remains the active player for the rule 17.0 free
   // actions (the non-player has none).
   //
-  // A white peace has no winning side (16.1.5), so there is nobody to hand the
-  // action phase to.  The war interrupted the attacker's impulse; play must
-  // resume in normal turn order with the next seat, not restart with the
-  // attacker (which handed the German bot a second card after Bismarck's
-  // unification war ended in a white peace).
-  const actingWinner: Power = war.victor === null
-    ? nextActionPowerAfter(G, war.attacker)
-    : isPower(winner) ? winner : war.attacker;
+  // The attacker's action-phase impulse is already spent on the declaration, so
+  // a war it wins — and a white peace, which has no winning side at all
+  // (16.1.5) — resumes with the next seat in impulse order (4.3) instead of
+  // replaying the attacker.  Handing the attacker the action phase back is what
+  // let the German bot play a second card after Bismarck's war ended, in a
+  // white peace and, before this, in a won war too.
+  const actingWinner: Power = postWarActionPower(G, war, war.victor);
   G.phase = "action";
   G.activePower = actingWinner;
   G.passed = [];

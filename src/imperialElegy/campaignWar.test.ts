@@ -231,8 +231,11 @@ describe("campaign limited war", () => {
     expect(G.wars[0].objectives).toEqual(OBJECTIVES);
     expect(G.phase).toBe("action");
     expect(G.cpRemaining).toBe(0);
-    expect(G.activePower).toBe("GE");
-    expect(G.flags.postWarWinner).toBe("GE");
+    // 17.0 / 4.3: the declaration was paid for by GE's own impulse, so a war GE
+    // won resumes the action phase with the next seat (UK) — the attacker does
+    // not open a second impulse in the action phase it already acted in.
+    expect(G.activePower).toBe("UK");
+    expect(G.flags.postWarWinner).toBe("UK");
     expect(G.flags.limitedWarAttackerStart).toBeUndefined();
 
     // The reserve army is back in its box and off the map.
@@ -240,10 +243,10 @@ describe("campaign limited war", () => {
     expect(G.powers.GE.reserves).toContain(reserveId);
     expect(G.spaces.berlin.units).not.toContain(reserveId);
 
-    // boardgame.io runs actionBegin after the move; the winner must survive.
+    // boardgame.io runs actionBegin after the move; the resume seat must survive.
     actionBegin()(G, ctx);
     expect(G.phase).toBe("action");
-    expect(G.activePower).toBe("GE");
+    expect(G.activePower).toBe("UK");
     expect(G.flags.postWarWinner).toBeUndefined();
   });
 
@@ -288,8 +291,10 @@ describe("campaign limited war", () => {
     expect(G.spaces.algeria.control).toBe("GE");
     expect(G.spaces.algeria.occupiedBy).toBeNull();
     expect(G.phase).toBe("action");
-    expect(G.activePower).toBe("GE");
-    expect(G.flags.postWarWinner).toBe("GE");
+    // Same 17.0 / 4.3 reading: an attacker victory hands the action phase to
+    // the next seat, not back to the attacker's spent impulse.
+    expect(G.activePower).toBe("UK");
+    expect(G.flags.postWarWinner).toBe("UK");
   });
 
   // -------------------------------------------------------------------------

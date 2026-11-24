@@ -18,7 +18,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {BISMARCK_HOME_CARD, minorAlliesOf, warDeclarationEntitlement} from "./engine/rules";
 import {allyCallEligibility, warBudgetFor, warCardCp} from "./engine/limitedWar";
-import {BISMARCK_CARD, declareWar, declinePending, pass, passWarMove, playCard, resolvePending, startWarManeuver} from "./moves";
+import {BISMARCK_CARD, declareWar, declinePending, pass, passWarMove, playCard, resolvePending, startWarManeuver, surrender} from "./moves";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -50,6 +50,8 @@ const bismarckImpulse = (): ImperialElegyState => {
   G.powers.GE.selectedHomeCard = BISMARCK_HOME_CARD;
   return G;
 };
+
+const OTHER_CARD = "IE-A029";
 
 const playBismarck = (G: ImperialElegyState): void => {
   playCard(G, makeCtx([], seat("GE")), BISMARCK_HOME_CARD, "event");
@@ -336,6 +338,41 @@ describe("Otto von Bismarck's war of unification", () => {
     expect(G.powers.GE.flags.warDeclaration).toBeUndefined();
     expect(warDeclarationEntitlement(G, "GE")).toBeNull();
     expect(G.activePower).not.toBe("GE");
+  });
+
+  test("a unification war GE won resumes the action phase with the next seat, not GE", () => {
+    // Reported as "帝国挽歌 事件俾斯麦之后不应该还能在同一行动轮还能打出其他牌".
+    // Bismarck's impulse funded the declaration, so a war GE wins must not hand
+    // the action phase back to GE: 4.3 continues with the next seat, and GE's
+    // next card waits for the next action phase.
+    const G = bismarckImpulse();
+    G.powers.GE.hand = [BISMARCK_HOME_CARD, OTHER_CARD];
+    playBismarck(G);
+    expect(declareWar(G, makeCtx([], seat("GE")), "FR", "unification", ["alsace-lorraine"], 3)).toBeUndefined();
+    expect(startWarManeuver(G, makeCtx([], seat("GE")))).toBeUndefined();
+    // 16.1.1: the defender concedes, so the attacker wins the war.
+    expect(surrender(G, makeCtx([], seat("FR")))).toBeUndefined();
+    let guard = 0;
+    while ((G.war !== null || G.pending !== null) && guard++ < 20) {
+      if (G.pending !== null) {
+        // The treaty chooser and the 17.0 free actions are all declined.
+        expect(resolvePending(G, makeCtx([], seat(G.pending.power)), "done")).toBeUndefined();
+        continue;
+      }
+      const power = G.activePower;
+      // 15.0: a wartime pass needs a budget of 2 or less.
+      G.war!.budgets[power] = Math.min(G.war!.budgets[power] ?? 0, 2);
+      expect(passWarMove(G, makeCtx([], seat(power)))).toBeUndefined();
+    }
+    expect(G.pending).toBeNull();
+    expect(G.war).toBeNull();
+    expect(G.wars[0]?.victor).toBe("attacker");
+    expect(G.phase).toBe("action");
+    expect(G.activePower).toBe("UK");
+    expect(G.flags.postWarWinner).toBe("UK");
+    // The second card is still in hand and cannot be opened now.
+    expect(G.powers.GE.hand).toContain(OTHER_CARD);
+    expect(playCard(G, makeCtx([], seat("GE")), OTHER_CARD, "cp")).toBe(INVALID_MOVE);
   });
 
   test("a white peace after Bismarck resumed the action phase with the next seat, not GE", () => {

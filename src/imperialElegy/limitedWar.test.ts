@@ -502,7 +502,9 @@ test("full limited war: declaration, major victory, treaty and demobilization", 
   expect(G.powers.GE.stability).toBe(4);
   expect(G.powers.AU.stability).toBe(2);
   expect(G.phase).toBe("action");
-  expect(G.activePower).toBe("GE");
+  // 17.0 / 4.3: the declaration spent the attacker's impulse, so a war it won
+  // resumes the action phase with the next seat in impulse order.
+  expect(G.activePower).toBe("UK");
   expect(G.units[reserveId].space).toBeNull();
   expect(G.powers.GE.reserves).toContain(reserveId);
   expect(POWERS).toContain(G.wars[0].attacker);

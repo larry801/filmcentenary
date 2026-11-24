@@ -165,11 +165,14 @@ describe("17.0 free demobilization actions", () => {
     });
     expect(G.pending?.kind).toBe("demobilizationFreeAction");
 
-    // Done/decline finishes the chain and resumes the action phase.
+    // Done/decline finishes the chain and resumes the action phase.  17.0 /
+    // 4.3: the winner's free actions come first, but the action phase itself
+    // resumes with the next seat after the attacker, whose impulse the
+    // declaration already spent.
     expect(declinePending(G, ctx)).toBeUndefined();
     expect(G.pending).toBeNull();
     expect(G.phase).toBe("action");
-    expect(G.activePower).toBe("GE");
+    expect(G.activePower).toBe("UK");
   });
 
   test("the losing side follows the winner, and done advances the chain", () => {
@@ -189,7 +192,8 @@ describe("17.0 free demobilization actions", () => {
     expect(resolvePending(G, makeCtx("3"), "done")).toBeUndefined();
     expect(G.pending).toBeNull();
     expect(G.phase).toBe("action");
-    expect(G.activePower).toBe("GE");
+    // 17.0 / 4.3: still the next seat after the attacker, never the attacker.
+    expect(G.activePower).toBe("UK");
   });
 
   test("a free naval move is offered and executed for a naval winner", () => {
