@@ -1079,6 +1079,44 @@ const FORMATTERS: Record<string, Formatter> = {
       "在征服战争中援助清廷，获得 +1 抽牌标记。",
     ),
 
+  italyPetitionMarkerGained: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "won the Italian war of unification and takes the +1 card marker from the Italian unification box.",
+      "赢得意大利统一战争，取得意大利统一格中的 +1 抽牌标记。",
+    ),
+
+  warPeaceProposed: (entry, locale) => {
+    const kind = str(entry.args?.kind);
+    const label = kind === "white"
+      ? text(locale, "a white peace", "白和")
+      : text(locale, "a negotiated peace (one side concedes one treaty option)", "协商和平（一方让出一项条约选项）");
+    return withActor(entry, locale, `proposed ${label}.`, `提议${label}。`);
+  },
+
+  warPeaceAccepted: (entry, locale) => {
+    const kind = str(entry.args?.kind);
+    return withActor(
+      entry,
+      locale,
+      kind === "white"
+        ? "accepted the white peace; the war ends with no treaty options."
+        : "accepted the negotiated peace; the war ends with one treaty option.",
+      kind === "white"
+        ? "接受白和；战争结束，双方不获得条约选项。"
+        : "接受协商和平；战争结束，胜方获得一项条约选项。",
+    );
+  },
+
+  warPeaceRefused: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "refused the peace proposal; the war continues.",
+      "拒绝和平提议；战争继续。",
+    ),
+
   italyLostDream: (_entry, locale) =>
     text(locale, "Italy's imperial dream fades; no effect.", "意大利的帝国梦想破灭；本次无效。"),
 

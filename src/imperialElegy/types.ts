@@ -658,6 +658,18 @@ export interface WarSide {
    * shape; the 16.2.1 mandatory cession reads it to route the ceded spaces.
    */
   italianBeneficiary?: string;
+  /**
+   * Rules 16.1.4 / 16.1.5: the primaries' agreed peace.  `kind` is the printed
+   * choice, `conceding` names the side that gives up one treaty option (so the
+   * other side is the victor), and `treaty` is the specific option the players
+   * agreed on, which is binding when present.  Optional: an ordinary
+   * classification by the board's state is unaffected.
+   */
+  peace?: {
+    kind: "negotiated" | "white";
+    conceding?: "attacker" | "defender";
+    treaty?: {option: string; spaces?: SpaceId[]; target?: PowerOrMinor};
+  };
 }
 
 /**
@@ -1057,6 +1069,8 @@ export const PENDING_KINDS = [
   "treatySpace",
   /** 16.1.6: a two-sided white-peace knockout has no printed chooser order. */
   "whitePeaceOrder",
+  /** 16.1.4/16.1.5: the other primary belligerent answers a peace proposal. */
+  "warPeace",
   "demobilizationFreeAction",
   "goalChoice",
   "industryCard",

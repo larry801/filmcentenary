@@ -391,6 +391,8 @@ import {
   treatyOptionsFor,
   treatyPickCounts,
   treatySpaceOptions,
+  TREATY_OPTION_ORDER,
+  TREATY_OPTION_LABELS,
   type TreatyChooserGroup,
   type TreatyOptionEntry,
   type TreatyPickAvailability,
@@ -4862,6 +4864,142 @@ const resolveAttackerSurrender = (G: ImperialElegyState, ctx: Ctx, pending: Pend
 };
 
 /**
+ * Rule 16.1.4/16.1.5 — an agreed end to the fighting.
+ *
+ * Both primary belligerents must agree.  A **negotiated peace** names the side
+ * conceding one treaty option, so the other side is the victor and chooses that
+ * one option; if the proposal names the option, the agreement is binding.  A
+ * **white peace** awards no treaty option.  Either agreement ends the maneuver
+ * step at once (15.5), so `resolveWar`'s all-passed boundary is bypassed.
+ *
+ * A specific option is accepted only where the settlement can honour it without
+ * hiding another pick: the war must have no 16.1.6 ally knockout (whose
+ * mandatory option still has to be imposed) and an Italian unification war may
+ * only agree to the 16.2.1 mandatory cession.  Otherwise the primaries can
+ * still agree on a plain negotiated/white peace and let the ordinary victor
+ * chooser take the option, which keeps 16.1.6 intact.
+ */
+const isTreatyOptionId = (value: unknown): value is (typeof TREATY_OPTION_ORDER)[number] =>
+  typeof value === "string" && (TREATY_OPTION_ORDER as readonly string[]).includes(value);
+
+export const proposeWarPeace = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  kind: "negotiated" | "white",
+  conceding?: "attacker" | "defender",
+  treatyOption?: string,
+  treatySpaces?: SpaceId[],
+): string | void => {
+  const power = actor(G, ctx.playerID ?? null);
+  if (power === null || G.war === null || G.pending !== null || G.battle !== null) return INVALID_MOVE;
+  if (G.phase !== "wartime" || G.gw?.active) return INVALID_MOVE;
+  const war = G.war;
+  if (war.status !== "maneuver" || war.victor !== null) return INVALID_MOVE;
+  if (power !== war.attacker && power !== war.defender) return INVALID_MOVE;
+  const other = power === war.attacker ? war.defender : war.attacker;
+  // A lone non-player defender has no seat to agree with (15.4.2).
+  if (!isPower(other)) return INVALID_MOVE;
+  if (kind === "negotiated") {
+    if (conceding !== "attacker" && conceding !== "defender") return INVALID_MOVE;
+  } else if (conceding !== undefined) {
+    return INVALID_MOVE;
+  }
+  if (treatyOption !== undefined) {
+    if (kind !== "negotiated" || !isTreatyOptionId(treatyOption)) return INVALID_MOVE;
+    // The two space options need a named space; the ordinary chooser asks for
+    // it, a binding agreement must carry it.
+    if (
+      (treatyOption === "righteousDefense" || treatyOption === "colonialCession") &&
+      (treatySpaces === undefined || treatySpaces.length === 0)
+    ) {
+      return INVALID_MOVE;
+    }
+    if (war.italianBeneficiary !== undefined && treatyOption !== "territorialCession") {
+      // 16.2.1: the victorious attacker in an Italian unification war must take
+      // territorial cession, so no other option can be the agreed one.
+      return INVALID_MOVE;
+    }
+    if ((war.knockedOut?.length ?? 0) > 0) {
+      // 16.1.6 keeps its mandatory knockout options; a binding single option
+      // would suppress them, so the table may agree only on a plain peace.
+      log(G, power, "warPeaceProposed", {kind, conceding, rejected: "knockout-options"});
+      return INVALID_MOVE;
+    }
+  }
+  openDecision(G, ctx, {
+    kind: "warPeace",
+    power: other,
+    prompt: `${POWER_DEFS[power].name} proposes a ${
+      kind === "white" ? "white peace" : "negotiated peace"
+    }${kind === "negotiated" && conceding !== undefined
+      ? ` (${conceding === "attacker" ? war.attacker : war.defender} concedes one treaty option)`
+      : ""}. Accept?`,
+    promptZh: `${POWER_DEFS[power].nameZh}提议${
+      kind === "white" ? "白和" : "协商和平"
+    }${kind === "negotiated" && conceding !== undefined
+      ? `（${conceding === "attacker" ? POWER_DEFS[war.attacker].nameZh : POWER_DEFS[war.defender as Power].nameZh}让出一项条约选项）`
+      : ""}。接受吗？`,
+    options: [
+      option("accept", "Accept — end the war", undefined, false, "接受——结束战争"),
+      option("decline", "Decline — keep fighting", undefined, false, "拒绝——继续作战"),
+    ],
+    context: {
+      proposer: power,
+      kind,
+      ...(conceding !== undefined ? {conceding} : {}),
+      ...(treatyOption !== undefined ? {treatyOption} : {}),
+      ...(treatySpaces !== undefined ? {treatySpaces: [...treatySpaces]} : {}),
+    },
+    blocking: true,
+  });
+  log(G, power, "warPeaceProposed", {kind, conceding, treaty: treatyOption});
+  return undefined;
+};
+
+/** The other primary's answer to a 16.1.4/16.1.5 proposal. */
+const resolveWarPeaceAnswer = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  accept: boolean,
+): string | void => {
+  const war = G.war;
+  if (!war || pending.kind !== "warPeace") return INVALID_MOVE;
+  const proposer = pending.context?.proposer;
+  const kind = pending.context?.kind;
+  if (!isPower(proposer) || (kind !== "negotiated" && kind !== "white")) return INVALID_MOVE;
+  const expected = proposer === war.attacker ? war.defender : war.attacker;
+  if (!isPower(expected) || pending.power !== expected) return INVALID_MOVE;
+  const concedingRaw = pending.context?.conceding;
+  const conceding = concedingRaw === "attacker" || concedingRaw === "defender" ? concedingRaw : undefined;
+  if (kind === "negotiated" && conceding === undefined) return INVALID_MOVE;
+  const treatyRaw = pending.context?.treatyOption;
+  const treatyOption = isTreatyOptionId(treatyRaw) ? treatyRaw : undefined;
+  if (kind === "negotiated" && treatyRaw !== undefined && treatyOption === undefined) return INVALID_MOVE;
+  const spacesRaw = pending.context?.treatySpaces;
+  const treatySpaces = Array.isArray(spacesRaw)
+    ? spacesRaw.filter((space): space is SpaceId => typeof space === "string")
+    : undefined;
+  G.pending = null;
+  if (!accept) {
+    log(G, expected, "warPeaceRefused", {proposer, kind});
+    return undefined;
+  }
+  war.peace = {
+    kind,
+    ...(kind === "negotiated" && conceding !== undefined ? {conceding} : {}),
+    ...(treatyOption !== undefined
+      ? {treaty: {option: treatyOption, ...(treatySpaces !== undefined ? {spaces: treatySpaces} : {})}}
+      : {}),
+  };
+  log(G, expected, "warPeaceAccepted", {proposer, kind, treaty: treatyOption});
+  // 15.5 lists an agreed peace as a maneuver-step ending, so settle now.  The
+  // `war.peace` record both classifies the result and bypasses the all-passed
+  // gate below.
+  return resolveWar(G, ctx);
+};
+
+/**
  * Rule 14.3 pass order.  The initiative recorded when the maneuver started is
  * authoritative; any ally that joined afterwards is appended in side order so
  * it is not silently skipped by the all-passed check.
@@ -6806,6 +6944,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   const opt = pending.options.find((o) => o.id === optionId);
   if (!opt) return INVALID_MOVE;
   const context = pending.context ?? {};
+  if (pending.kind === "warPeace") {
+    if (optionId !== "accept" && optionId !== "decline") return INVALID_MOVE;
+    return resolveWarPeaceAnswer(G, ctx, pending, optionId === "accept");
+  }
   if (pending.kind === "eventTargetPower" && context.special === "balanceOfPowerDraw") {
     return resolvePostWarDrawChoice(G, ctx, pending, optionId);
   }
@@ -7093,6 +7235,8 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   const playerID = ctx.playerID ?? null;
   const pending = G.pending;
   if (!pending || playerID !== seatOf(pending.power)) return INVALID_MOVE;
+  // 16.1.4/16.1.5: declining a peace proposal keeps the war going.
+  if (pending.kind === "warPeace") return resolveWarPeaceAnswer(G, ctx, pending, false);
   if (pending.kind === "gwBonusImpulse") return resolvePending(G, ctx, "skip");
   if (pending.kind === "movementDestination" && pending.context?.special === "endPhaseNavalReturn") {
     const first = pending.options[0];
@@ -8338,7 +8482,12 @@ export const resolveWar = (
   // Rule 15.5: a fallen primary capital ends the maneuver step immediately, so
   // the normal all-passed boundary does not apply to that settlement.
   const capitalFallen = warCapitalFallen(G, war);
-  if (war.status === "maneuver" && !capitalFallen && !belligerentsOf(war).every((p) => war.passed.includes(p))) {
+  if (
+    war.status === "maneuver" &&
+    !capitalFallen &&
+    war.peace === undefined &&
+    !belligerentsOf(war).every((p) => war.passed.includes(p))
+  ) {
     const actorPower = actor(G, ctx.playerID ?? null);
     log(G, actorPower ?? undefined, "warResolveRefused", {reason: "not-all-passed"});
     return INVALID_MOVE;
@@ -8350,10 +8499,12 @@ export const resolveWar = (
     : typeof rawStart === "string" && rawStart.length > 0
       ? rawStart.split(",").filter(Boolean)
       : [];
-  const negotiatedRaw = G.flags.negotiatedPeace;
+  const agreedPeace = war.peace;
+  const negotiatedRaw = agreedPeace?.kind === "negotiated" ? agreedPeace.conceding : G.flags.negotiatedPeace;
   const negotiatedPeace =
     negotiatedRaw === "attacker" || negotiatedRaw === "defender" ? negotiatedRaw : null;
   const trueFlag = (value: unknown): boolean => value === true || value === "true" || value === 1;
+  const agreedWhitePeace = agreedPeace?.kind === "white";
 
   // 15.6: settle any capital that was occupied without a capture hook before
   // classification, so the knockout is historical rather than re-derived.
@@ -8365,12 +8516,30 @@ export const resolveWar = (
   const victory = classifyVictory(G, war, {
     attackerControlledAtStart,
     negotiatedPeace,
-    whitePeace: trueFlag(G.flags.whitePeace),
+    whitePeace: agreedWhitePeace || trueFlag(G.flags.whitePeace),
     defenderBlockading,
   });
 
   if (treatyChoices !== undefined) {
     return settleWarImmediately(G, ctx, victory, treatyChoices);
+  }
+
+  // 16.1.4: "If players agreed on a specific treaty option to end the fighting,
+  // that agreement is binding."  With no 16.1.6 knockout option competing for
+  // the settlement, apply the agreed option directly instead of opening the
+  // victor's chooser.  (A binding option is refused while knockouts exist, so
+  // this branch never suppresses one.)
+  if (
+    agreedPeace?.kind === "negotiated" &&
+    agreedPeace.treaty !== undefined &&
+    victory.allyKnockouts.length === 0 &&
+    isTreatyOptionId(agreedPeace.treaty.option)
+  ) {
+    const agreedChoice: TreatyChoice = {
+      option: agreedPeace.treaty.option,
+      ...(agreedPeace.treaty.spaces !== undefined ? {spaces: [...agreedPeace.treaty.spaces]} : {}),
+    };
+    return settleWarImmediately(G, ctx, victory, [agreedChoice]);
   }
 
   // Rule 16.2: the victor chooses treaty options interactively.  Rule 16.1.6
