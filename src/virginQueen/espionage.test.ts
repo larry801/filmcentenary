@@ -302,13 +302,22 @@ describe("English Catholic Rebellion results and continuation", () => {
         expect(G.espionage!.inspections[0]).toMatchObject({viewer, target});
         expect(G.espionage!.inspections[0].cards).toEqual(G.powers[target].cards);
     });
-    it("loses operatives on a tie or loss, applies −1 draw only at −2, and offers captured Mary's execution", () => {
+    it("loses Spain's English operatives on a tie or loss, applies −1 draw only at −2, and offers captured Mary's execution", () => {
         const G = game(); G.espionage!.mary = "captured";
         G.espionage!.jesuits = ["york"];
-        G.informants = [{owner: "france", target: "england", plantedImpulse: 1, neutralized: false}];
-        // Jesuit adds one attack die; all attack dice miss, two defense dice hit.
-        englishCatholicRebellion(G, context("spain", rolls(0, 2, 7, 5)), {cp: 3});
-        expect(G.espionage!.jesuits).toEqual([]); expect(G.informants[0].neutralized).toBe(true);
+        // "Lose all operatives in England" is Spain's own network there.  A
+        // French spy watching England is not Spain's operative and survives.
+        G.informants = [
+            {owner: "spain", target: "england", plantedImpulse: 1, neutralized: false},
+            {owner: "france", target: "england", plantedImpulse: 1, neutralized: false},
+        ];
+        // Spain's own informant on England also adds two dice: 3 CP + 2 + 1
+        // Jesuit + 3 captured Mary = 9 attack dice.  No hits against England's
+        // two gives the −2 result ("lose all operatives; Spain −1 card").
+        englishCatholicRebellion(G, context("spain", rolls(0, 2, 9, 5)), {cp: 3});
+        expect(G.espionage!.jesuits).toEqual([]);
+        expect(G.informants.find((i) => i.owner === "spain")!.neutralized).toBe(true);
+        expect(G.informants.find((i) => i.owner === "france")!.neutralized).toBe(false);
         expect(G.espionage!.nextDraw.spain).toBe(-1);
         expect(G.pendingEspionage?.step).toBe("mary");
         const vp = G.powers.england.bonusVp;
