@@ -267,6 +267,9 @@ describe("the War panel's declaration form", () => {
 
   test("Bismarck may name a second power and forbid player allies", () => {
     const G = homeImpulse("GE", BISMARCK_HOME_CARD);
+    // A unification war only reaches German-nationality spaces, so Austria is
+    // a second target only while it holds one.
+    G.spaces.bavaria.control = "AU";
     const {tree, declared, props} = renderPanel(G, "GE");
     change(tree, "ie-war-declare-defender", "FR");
     let next = rerender(props);
@@ -361,6 +364,9 @@ describe("the War panel's declaration form", () => {
     change(tree, "ie-war-declare-defender", "minor:Denmark");
     let next = rerender(props);
     expect(optionsOf(next, "ie-war-second-power")).toContain("minor:Hanover");
+    // Before the second target is picked the hint already names the errata, so
+    // the five-ally cap is visible while the pair is being chosen.
+    expect(textOf(byTestId(next, "ie-war-nonplayer-pair-preview"))).toContain("five-ally cap");
     let hanoverOption: React.ReactElement<any> | undefined;
     walk(byTestId(next, "ie-war-second-power"), (element) => {
       if (element.type === "option" && element.props?.value === "minor:Hanover") hanoverOption = element;
@@ -371,6 +377,8 @@ describe("the War panel's declaration form", () => {
     // The hint is the errata, not the 13.4.2 aid search.
     expect(textOf(byTestId(next, "ie-war-nonplayer-aid"))).toContain("13.4.5");
     expect(textOf(byTestId(next, "ie-war-nonplayer-aid"))).toContain("Austria");
+    // "This occurs even if that player already has five minor power allies."
+    expect(textOf(byTestId(next, "ie-war-nonplayer-aid"))).toContain("five minor power allies");
     expect(byTestId(next, "ie-war-nonplayer-aid-candidates")).toBeUndefined();
     change(next, "ie-war-declare-objective", "schleswig-holstein");
     next = rerender(props);

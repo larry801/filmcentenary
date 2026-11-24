@@ -163,6 +163,10 @@ describe("two-target declarations", () => {
 
   test("Bismarck offers a second target of either kind, in both directions", () => {
     const G = bismarck();
+    // A unification war only attacks German-nationality spaces, so a player
+    // power is a second target only while it holds one: give Austria Saxony
+    // (the state the Prussian-led Confederation actually disputed).
+    G.spaces.saxony.control = "AU";
     const {entitlement, fr, denmark} = entriesFor(G);
 
     // 14.1 counts "two different powers", and the reported fix is that a
@@ -178,6 +182,25 @@ describe("two-target declarations", () => {
     expect(secondOfDenmark).toContain("FR");
     expect(secondOfDenmark).toContain("minor:Bavaria");
     expect(secondOfDenmark).not.toContain("minor:Denmark");
+  });
+
+  test("a second target the unification refuses on its own is not offered", () => {
+    const G = bismarck();
+    const {entitlement, fr} = entriesFor(G);
+    // AU holds no German-nationality space, so naming it would only borrow
+    // France's objectives; RU, OT and UK are in the same position.
+    const secondOfFr = declarationSecondTargets(G, "GE", entitlement, fr, "unification");
+    const keys = secondOfFr.map((entry) => warTargetKey(entry.target));
+    expect(keys).not.toContain("AU");
+    expect(keys).not.toContain("RU");
+    expect(keys).not.toContain("OT");
+    expect(keys).not.toContain("UK");
+    // Every row can be attacked under the aim by itself, so the dropdown never
+    // offers a power the declaration does not actually reach.
+    for (const entry of secondOfFr) {
+      expect(declarationObjectives(G, "GE", entitlement, entry, "unification").length)
+        .toBeGreaterThan(0);
+    }
   });
 
   test("errata 13.4.5: an allied minor is offered beside an unaligned one", () => {

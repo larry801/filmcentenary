@@ -291,12 +291,19 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
       && firstInfo.ok && firstInfo.ally === null
       ? secondInfo.ally
       : null;
-    if (pairAlly !== null) return {minor, forbidden: false, slots: [], pairAlly};
+    if (pairAlly !== null) return {minor, forbidden: false, slots: [], pairAlly, alliedSeconds: []};
     const forbidden = forbidPlayersAllowed && forbidPlayers;
     const slots = forbidden ? [] : seekingAidSlots(G, viewer, minor);
-    return {minor, forbidden, slots, pairAlly: null};
+    // The aid search only runs while no allied minor is named beside this
+    // target; picking one turns the declaration into 13.4.5, so the hint says
+    // which rows would trigger it before the player picks.
+    const alliedSeconds = firstInfo.ok && firstInfo.ally === null
+      ? secondTargetOptions.filter((candidate) =>
+        typeof candidate.target !== "string" && isPower(candidate.defender))
+      : [];
+    return {minor, forbidden, slots, pairAlly: null, alliedSeconds};
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [G, viewer, entry, secondEntry, forbidPlayersAllowed, forbidPlayers]);
+  }, [G, viewer, entry, secondEntry, forbidPlayersAllowed, forbidPlayers, secondTargetOptions]);
 
   const reason = canDeclare
     ? undefined
@@ -558,8 +565,8 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
               <div className="ie-hint" data-testid="ie-war-nonplayer-aid">
                 {aidHint.pairAlly !== null
                   ? bi(locale,
-                    `Errata 13.4.5: ${minorLabel(aidHint.minor, locale)} immediately allies ${t.seats[aidHint.pairAlly]} (the ally of the other named minor); it does not run the aid search, even if you forbid joins.`,
-                    `勘误 13.4.5：${minorLabel(aidHint.minor, locale)}立即与${t.seats[aidHint.pairAlly]}（另一目标小国的盟友）结盟，不进行求援；即使你禁止其他玩家参战也照样发生。`)
+                    `Errata 13.4.5: ${minorLabel(aidHint.minor, locale)} immediately allies ${t.seats[aidHint.pairAlly]} (the ally of the other named minor), even when that player already holds five minor power allies; it runs no aid search, even if you forbid joins.`,
+                    `勘误 13.4.5：${minorLabel(aidHint.minor, locale)}立即与${t.seats[aidHint.pairAlly]}（另一目标小国的盟友）结盟，即使该玩家已有五个小国盟友也照样发生；不进行求援，即使你禁止其他玩家参战。`)
                   : aidHint.forbidden
                   ? bi(locale,
                     "You forbid other players from joining: the non-player power defends alone (13.4.2 / 15.4.2).",
@@ -605,6 +612,14 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
                           {bi(locale,
                             `The second target, ${minorLabel(secondEntry.target.minor, locale)}, joins the defending side with the war; only the first target runs the aid search.`,
                             `第二目标${minorLabel(secondEntry.target.minor, locale)}随战争加入防守方；求援只针对第一目标。`)}
+                        </span>
+                      )}
+                      {secondEntry === undefined && aidHint.alliedSeconds.length > 0 && (
+                        <span data-testid="ie-war-nonplayer-pair-preview">
+                          {" "}
+                          {bi(locale,
+                            `Name a minor with a player ally as the second target (${aidHint.alliedSeconds.map((candidate) => defenderLabel(candidate, locale, t)).join(" / ")}) and this one instead allies that player immediately, past the five-ally cap, with no aid search (errata 13.4.5).`,
+                            `若第二目标选择有玩家盟友的小国（${aidHint.alliedSeconds.map((candidate) => defenderLabel(candidate, locale, t)).join(" / ")}），本小国将立即与该玩家结盟（即使对方已有五个小国盟友），不进行求援（勘误 13.4.5）。`)}
                         </span>
                       )}
                     </>

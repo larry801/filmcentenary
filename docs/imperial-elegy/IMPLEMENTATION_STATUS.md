@@ -1,3 +1,37 @@
+## Fixed: Bismarck's second target list only names powers the unification can reach (2026-11-24)
+
+Reported as "俾斯麦宣战的界面 第二目标应该限制在可以按照统一宣战的部分 还要标出如果
+有一个目标没有盟友会立即和另外一个大国盟友结盟无视5个上限".  `declarationSecondTargets`
+filtered a candidate by validating the **union** of both targets' spaces, so the
+first target alone satisfied the check: with France chosen, the second-target
+dropdown listed Britain, Austria, Russia, the Ottomans and nearly every minor
+(Egypt, Japan, Qing China, the Papal States…) although none of them holds a
+German-nationality space.  Those rows were not targets of the unification at
+all, only riders on France's Alsace-Lorraine.
+
+- The filter is now per target: a second target must offer at least one legal
+  objective on its own under the same aim
+  (`declarationObjectives(G, power, entitlement, candidate, aim)`).  Bismarck's
+  dropdown is France plus the German minors that hold German-nationality
+  spaces, and a player power appears only while it holds such a space (or is
+  allied to a minor that does), which is 13.4's "attacking an allied minor is
+  attacking the player".  The 13.4.5 allied-minor rows go through the same
+  filter, so Hanover stays offered beside unaligned Denmark.
+- UI: the errata hint now prints the printed cap — "even when that player
+  already holds five minor power allies" — and
+  `ie-war-nonplayer-pair-preview` states the outcome before the second target
+  is picked, so the immediate alliance (past the five-ally cap, no aid search)
+  is visible while the pair is being chosen.  Option labels keep naming the
+  ally (`Hanover (Austria)`).
+
+**Coverage:** `declarationTargets.test.ts` (France's row no longer lists
+Austria/Russia/the Ottomans/Britain and every listed row stands alone; the
+two-player-power case gives Austria a German space so the pair still exists),
+`components/warDeclarationPanel.test.tsx` (the same setup for the 14.1
+primary-defender case, plus the cap text and the pre-selection preview) and
+`e2e/imperial-elegy-controls.spec.ts` (France as the first target no longer
+offers `AU`).
+
 ## Fixed: a war the attacker won no longer returns the action phase to the attacker (2026-11-24)
 
 Follow-up to the white-peace hand-over, reported as "帝国挽歌 事件俾斯麦之后不应该还
