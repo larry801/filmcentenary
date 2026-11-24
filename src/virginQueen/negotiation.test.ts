@@ -267,6 +267,24 @@ describe("negotiation validation", () => {
         expect(issues(G, [{kind: "cards", from: "france", to: "spain", count: 1}])).toContain("giftReciprocal");
     });
 
+    it("requires room in the receiver's land force pool for mercenary gifts", () => {
+        const G = game();
+        G.spaces.paris.land.france = {regular: 0, merc: 1, cav: 0};
+        for (const space of Object.values(G.spaces)) delete space.land.spain;
+        delete G.foreignWars.spain;
+        delete G.armada;
+        G.spaces.madrid.control = "spain";
+        G.spaces.madrid.unrest = false;
+        G.spaces.madrid.land.spain = {regular: 42, merc: 0, cav: 0};
+
+        expect(issues(G, [{kind: "mercenaries", from: "france", to: "spain", count: 1}]))
+            .toContain("mercReceiverFull");
+
+        G.spaces.madrid.land.spain.regular = 41;
+        expect(issues(G, [{kind: "mercenaries", from: "france", to: "spain", count: 1}]))
+            .not.toContain("mercReceiverFull");
+    });
+
     it("checks the whole direction, not each clause in isolation", () => {
         const G = game();
         G.powers.france.cards = ["vq-020", "vq-050"];

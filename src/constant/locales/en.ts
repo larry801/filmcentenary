@@ -2284,6 +2284,7 @@ const en = {
                 mercGiveRestricted: "The Ottoman may not give mercenaries.",
                 mercReceiveRestricted: "The Ottoman and the Holy Roman Empire may not receive mercenaries.",
                 mercNoCapital: "The receiving power has no eligible capital.",
+                mercReceiverFull: "The receiving power has no room in its land force pool for that many mercenaries.",
                 yieldUnavailable: "That space cannot be yielded under rule 9.1.",
                 leaderUnavailable: "That leader is not a captured army leader who can be returned.",
                 royalUnavailable: "That royal is not available.",

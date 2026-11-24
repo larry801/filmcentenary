@@ -1,9 +1,20 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import {Power, VQGame} from "./constant/general";
+import {recruitmentOptions} from "./cardEvents";
 import {VirginQueenGameDef} from "./game";
 import {buildNaval, recruit} from "./moves";
-import {navalLostCount, navalPoolUsed, recordNavalLoss, setupGame} from "./util";
+import {
+    addForeignWarLandFromPool,
+    addLandFromPool,
+    addNavalFromPool,
+    landPoolRoom,
+    navalLostCount,
+    navalPoolRoom,
+    navalPoolUsed,
+    recordNavalLoss,
+    setupGame,
+} from "./util";
 
 const context = (): Ctx => ({
     currentPlayer: "1",
@@ -174,5 +185,61 @@ describe("land counter limits (17.1)", () => {
 
         expect(recruit(G, context(), {space: "seville", kind: "regular"})).toBeUndefined();
         expect(G.spaces.madrid.land.spain.regular + (G.spaces.seville.land.spain?.regular ?? 0)).toBe(42);
+    });
+});
+
+describe("event and replacement additions respect the physical pool (17.1)", () => {
+    it("places only the land counters still available", () => {
+        const G = game();
+        clearLand(G, "spain");
+        G.spaces.madrid.land.spain = {regular: 41, merc: 0, cav: 0};
+
+        expect(addLandFromPool(G, "seville", "spain", "regular", 2)).toBe(1);
+        expect(G.spaces.seville.land.spain?.regular).toBe(1);
+        expect(landPoolRoom(G, "spain")).toBe(0);
+        expect(addLandFromPool(G, "seville", "spain", "regular", 1)).toBe(0);
+    });
+
+    it("counts foreign-war counters before adding new regulars there", () => {
+        const G = game();
+        clearLand(G, "hre");
+        G.spaces.vienna.land.hre = {regular: 27, merc: 0, cav: 0};
+        G.foreignWars.hre = {power: "hre", cardId: "vq-118", enemy: "Poland", enemyUnits: 3,
+            units: {regular: 1, merc: 0, cav: 0}, winnerVp: false, status: "active"};
+
+        expect(addForeignWarLandFromPool(G, "hre", "regular", 2)).toBe(1);
+        expect(G.foreignWars.hre.units.regular).toBe(2);
+        expect(landPoolRoom(G, "hre")).toBe(0);
+        expect(addForeignWarLandFromPool(G, "hre", "regular", 1)).toBe(0);
+    });
+
+    it("places only the naval counters still available", () => {
+        const G = game();
+        clearNaval(G, "spain");
+        G.spaces.seville.naval.spain = {galley: 0, galleon: 6, racebuilt: 0, corsair: 0};
+
+        expect(addNavalFromPool(G, "seville", "spain", "galleon", 2)).toBe(1);
+        expect(G.spaces.seville.naval.spain.galleon).toBe(7);
+        expect(navalPoolRoom(G, "spain")).toBe(0);
+        expect(addNavalFromPool(G, "seville", "spain", "galleon", 1)).toBe(0);
+    });
+
+    it("removes Grand Vizier recruitment options once both pools are full", () => {
+        const G = game();
+        clearLand(G, "ottoman");
+        clearNaval(G, "ottoman");
+        G.spaces.istanbul.control = "ottoman";
+        G.spaces.istanbul.unrest = false;
+        G.spaces.istanbul.land.ottoman = {regular: 39, merc: 0, cav: 0};
+        G.spaces.istanbul.naval.ottoman = {galley: 9, galleon: 0, racebuilt: 0, corsair: 0};
+
+        expect(recruitmentOptions(G)).toHaveLength(0);
+
+        // Freeing one naval counter restores the galley choices without
+        // reopening the full land pool.
+        G.spaces.istanbul.naval.ottoman.galley = 8;
+        const options = recruitmentOptions(G);
+        expect(options.some((option) => option.id.startsWith("galley:"))).toBe(true);
+        expect(options.some((option) => option.id.startsWith("regular:"))).toBe(false);
     });
 });

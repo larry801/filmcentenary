@@ -12,7 +12,7 @@ import {TUTORIAL_KEYS, tutorialSpaceAllowed} from "./tutorial";
 import {startBattle} from "./combat";
 import {canPlayHolyLeague} from "./holyLeague";
 import {
-    addLand, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, declareOttomanTributeWar, defenderLandCount, discardCard, drawCards, ensureLand, friendlyControlled,
+    addLand, addLandFromPool, atWar, atWarWithMinor, capitalOf, captureLeaders, cleanupLand, cleanupNaval, declareOttomanTributeWar, defenderLandCount, discardCard, drawCards, ensureLand, friendlyControlled,
     friendlyController, hits, isCityRebelsTarget, isPort, minorAlly, moveLeaders, ottomanTributeTargets, ownersWithLand,
     powerVp, pushLog, removeCardFromHand, resolveMajorDiplomacy, resolveMinorDiplomacy,
     ownersWithNaval, roll, setWar, shuffle, totalLand, totalNaval,
@@ -337,7 +337,7 @@ export const beginTutorialEvent = (G: VQGame, ctx: Ctx, power: Power, cardId: st
         }
     }
     if (number === 3) {
-        addLand(G, "milan", "spain", "regular", 1);
+        addLandFromPool(G, "milan", "spain", "regular", 1);
         step = "leader";
     }
     if (number === 5) {
@@ -351,7 +351,7 @@ export const beginTutorialEvent = (G: VQGame, ctx: Ctx, power: Power, cardId: st
         captureLeaders(G, "granada", ownersWithLand(G, "granada"), "ottoman");
         G.spaces.granada.land = {};
         G.spaces.granada.unrest = true;
-        addLand(G, "granada", "ottoman", "regular", 2);
+        addLandFromPool(G, "granada", "ottoman", "regular", 2);
         effects(G).moriscoSpace = "granada";
         step = "unrest";
         remaining = 2;
@@ -411,7 +411,7 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
         return;
     }
     if (pending.step === "rebelRegular") {
-        if (action === "regular") addLand(G, pending.space!, SPACE_BY_ID[pending.space!].home, "regular", 1);
+        if (action === "regular") addLandFromPool(G, pending.space!, SPACE_BY_ID[pending.space!].home, "regular", 1);
         finish(G, ctx);
         return;
     }
@@ -503,13 +503,13 @@ export const chooseTutorialEvent = (G: VQGame, ctx: Ctx, args: {choice: string})
             pending.step = "leader";
         }
     } else if (number === 21) {
-        addLand(G, target, power, "regular", 1);
+        addLandFromPool(G, target, power, "regular", 1);
         pending.remaining -= 1;
     } else if (number === 2) {
         beginTutorialTribute(G, ctx, power, pending.cardId, target as OttomanTributeTarget);
     } else if (number === 13 && power !== "ottoman") {
         const nearHre = neighborsWithin(target, 2).some((id) => spaceHomes(SPACE_BY_ID[id]!).includes("hre"));
-        addLand(G, target, power, "merc", nearHre ? 4 : 2);
+        addLandFromPool(G, target, power, "merc", nearHre ? 4 : 2);
         pending.remaining = 0;
     } else if (number === 13 || number === 23) {
         G.spaces[target].land[other as Controller]!.merc = number === 23 ? 0 : Math.max(0, G.spaces[target].land[other as Controller]!.merc - 1);
