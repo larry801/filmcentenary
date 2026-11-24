@@ -554,10 +554,6 @@ export const recordItalyKnockout = (
   war.italyKnockedOut = {by, captor, capital: "rome", turn: G.turn};
   war.attackerMinors = war.attackerMinors.filter((minor) => minor !== "Italy");
   war.defenderMinors = war.defenderMinors.filter((minor) => minor !== "Italy");
-  if (war.minorTarget?.minor === "Italy" && war.minorTarget.ally === null && war.defender === "IT") {
-    // A lone Italy cannot remain the typed defender; the war is a player war
-    // with no Italian seat afterwards.  (The attacker still settles normally.)
-  }
   log(G, captor, "italyKnockedOut", {capital: "rome", by});
   return true;
 };
