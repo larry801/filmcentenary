@@ -256,8 +256,16 @@ export const S1880_SCENARIO: ScenarioDef = {
     // "Mexico: US control marker".
     {space: "mexico", control: "United States"},
   ],
-  // The print lists no Power Projection for this scenario.
-  powerProjection: {GE: 0, UK: 0, FR: 0, AU: 0, RU: 0, OT: 0},
+  // v1.1 Playbook p.5 prints "Power Projection: UK 8, FR 4, RU 3, OT 0, AU 0,
+  // GE 0" and "UK and FR dominate Power Projection".  The setup stores those
+  // printed markers; France's fourth point is the +1 over the campaign's FR 3
+  // (the printed Indochina control marker adds an Indian Ocean port on top of
+  // North Atlantic 1 and Western Mediterranean 2).
+  // AU is the one printed value the board overrules.  3.3.1 scores Croatia's
+  // port plus AU's starting squadron at 1, so the stored marker is that derived
+  // 1 rather than the printed 0 (a playbook slip), keeping the setup display
+  // and the first end-phase recompute equal.
+  powerProjection: {GE: 0, UK: 8, FR: 4, AU: 1, RU: 3, OT: 0},
   removedCards: [
     "Suez Canal",
     "American Civil War",
@@ -330,7 +338,7 @@ export const S1880_SCENARIO: ScenarioDef = {
     "Berlin Conference: at the start of the scenario, set aside five random action cards plus the Berlin Conference mandatory event, shuffle the six and place them on top of the deck.",
     "The printed RU list gives 'Russian Far East: 1 EF' twice (once before the Central Asia line, once after the ally-marker lines). Both are transcribed as printed; if the repeat is a typographical error the second entry should be dropped.",
     "FR's government is not printed for this scenario, so `government` is left unset; note that `createEmptyPowerState` falls back to 'secondEmpire' for FR.",
-    "Power Projection is not printed in this scenario; the engine recomputes it from the board at the first end phase.",
+    "Power Projection (v1.1 Playbook p.5): UK 8, FR 4, RU 3, OT 0, AU 0, GE 0 - 'UK and FR dominate Power Projection'. The scenario stores those printed markers, except AU: 3.3.1 derives AU 1 from Croatia's port and the starting squadron, so the display keeps that value rather than the printed 0 so the first end-phase recompute cannot change it.",
     "UK India Stability marker starts on its stable side. UK Reserve Armies: N/A.",
     "Minor powers in the End Phase Build Box at the start: Egypt, Bosnia.",
   ],

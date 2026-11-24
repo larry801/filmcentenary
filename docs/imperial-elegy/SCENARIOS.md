@@ -107,6 +107,14 @@ tutorial scenario."）。结束时 `G.result.reason === "tutorialNoVp"`，
 1. **显示值**：`powers` 记录印刷的 Stability/Industry/Manpower/关键区。
    RU 带 `autoIndustry: true`（印刷 "industry autocomplete marker"），
    AU 带 `citizenship: ["Hungarians"]`。
+   **Power Projection** 印在 p. 4 的 Flashpoints 段：
+   `UK 8, FR 4, RU 3, OT 0, AU 0, GE 0`，并注 "UK and FR dominate Power
+   Projection"。`powerProjection` 直接存这组印刷值，所以开局显示就是
+   FR 4 / RU 3；FR 的 4 比战役的 3 多 1 点（Indochina 控制标记带来的印度洋
+   港口：北大西洋 1 + 西地中海 2 + 印度洋 1）。唯一不照抄的是 AU：3.3.1
+   由 Croatia 的港口 + 起始中队推出 1，印刷的 `AU 0` 是笔误，因此显示存
+   推导值 1，保证开局显示与首次结束阶段重算一致（`powerProjection.test.ts`
+   的 "1870/1880 printed power-projection display" 锁定）。
 2. **单位/要塞/标记**：62 个单位、4 个要塞（含 India 的 `indian: true` 要塞）、
    ally markers（GE → Bavaria/Saxony，RU → Romania）、influence、Pac 值。
 3. **移除卡牌**：`removedCards` 按印刷英文名列出，`engine/setup.ts` 把它们
@@ -140,6 +148,9 @@ TA、FR = committed TE；移除 12 张牌；结束阶段建造框 Egypt/Bosnia�
 与 1870 的差异：
 
 - `ngDrawTurns: [4, 6]`（"instead of turns 3 and 5"）；
+- **Power Projection** 同样印在 Flashpoints 段（p. 5）：
+  `UK 8, FR 4, RU 3, OT 0, AU 0, GE 0`（"UK and FR dominate Power
+  Projection"），与 1870 的显示值相同；AU 依旧存 3.3.1 推导的 1 而非印刷的 0。
 - `berlinConference: true`：开局"set aside five random action cards and the
   Berlin Conference mandatory event. Shuffle the six cards and place them on
   the top of the deck."`engine/setup.ts` 从牌堆抽 5 张随机牌，与 A074 洗匀

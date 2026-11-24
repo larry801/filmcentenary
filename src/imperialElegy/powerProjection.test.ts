@@ -15,6 +15,7 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {SPACES} from "./constant/spaces";
 import {CAMPAIGN_SETUP} from "./constant/setup";
+import {SCENARIOS} from "./constant/scenarios";
 import {placeUnit} from "./engine/effects";
 import {cardsToDraw, computePowerProjection, flashpointController, hasOtAutonomyLandLoc, recomputeTracks, refreshPowerProjection} from "./engine/rules";
 import {auAction, constructFleet, playCard} from "./moves";
@@ -263,5 +264,55 @@ describe("live refresh points", () => {
     expect(auAction(G, makeCtx(seat("AU")), "incorporate", "romania")).toBeUndefined();
     expect(G.spaces.romania.control).toBe("AU");
     expect(G.powers.AU.flags.powerProjection).toBe(2);
+  });
+});
+
+/**
+ * The 1870 and 1880 scenarios print their own power-projection line, so the
+ * setup display must show it: the scenarios used to claim the print listed none
+ * and started every power at 0, then jumped to the board's totals at the first
+ * end phase.  France's printed 4 is the "+1" over the campaign's FR 3 that the
+ * display used to miss.
+ */
+describe("1870/1880 printed power-projection display", () => {
+  const setupScenario = (id: "s1870" | "s1880"): ImperialElegyState =>
+    setupImperialElegy(makeCtx(), {scenario: id});
+
+  test.each(["s1870", "s1880"] as const)("%s stores the printed line (FR 4, RU 3, UK 8)", (id) => {
+    const pp = SCENARIOS[id].powerProjection;
+    expect(pp.UK).toBe(8);
+    expect(pp.FR).toBe(4);
+    expect(pp.RU).toBe(3);
+    expect(pp.OT).toBe(0);
+    expect(pp.GE).toBe(0);
+    // The print's own "AU 0" disagrees with its map: Croatia is a port and AU
+    // starts with a squadron there, so 3.3.1 yields 1.  Storing the derived 1
+    // keeps the display equal to the first end-phase recompute.
+    expect(pp.AU).toBe(1);
+    expect(pp.AU).toBe(computePowerProjection(setupScenario(id), "AU"));
+  });
+
+  test.each(["s1870", "s1880"] as const)("%s displays exactly the track the first recompute derives", (id) => {
+    const G = setupScenario(id);
+    for (const power of POWERS) {
+      expect(G.powers[power].flags.powerProjection).toBe(SCENARIOS[id].powerProjection[power]);
+      expect(G.powers[power].flags.powerProjection).toBe(computePowerProjection(G, power));
+    }
+    // Printed domination line: "UK 8, FR 4" means UK and FR dominate (a tie for
+    // second would dominate nobody, so FR's extra point is what earns the slot).
+    expect(flashpointController(G, "powerProjection")).toEqual(["UK", "FR"]);
+    // The same display after a full recompute pass: nothing moves.
+    recomputeTracks(G);
+    for (const power of POWERS) {
+      expect(G.powers[power].flags.powerProjection).toBe(SCENARIOS[id].powerProjection[power]);
+    }
+  });
+
+  test("the campaign keeps its own printed line (FR 3 / RU 3)", () => {
+    const G = fresh();
+    expect(G.powers.FR.flags.powerProjection).toBe(3);
+    expect(G.powers.RU.flags.powerProjection).toBe(3);
+    // UK 8 alone dominates: FR and RU tie for second, so neither does (3.3.1).
+    expect(flashpointController(G, "powerProjection")).toEqual(["UK"]);
   });
 });
