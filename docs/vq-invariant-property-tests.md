@@ -17,6 +17,7 @@
 | 规则不变量目录 | `invariants.ts` | 每一步之后，棋盘是否仍满足规则？ |
 | 生成式属性测试 | `properties.ts` + `property.test.ts` | 在大量 seed/scenario/座位数下是否始终满足？ |
 | 变异测试 | `invariantMutation.test.ts` | 每一条不变量是否真的会在被破坏时报错？ |
+| 待决窗口一致性 | `pendingWindow.test.ts` | `pendingDecider` 列出的窗口是否真的会阻塞操作？ |
 
 ## 2. 不变量的分层与规则出处
 
@@ -157,6 +158,18 @@ runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999})
   苏格兰、荷兰、法国）没有开局摆放，全部留在天主教并不能说明“新教已被消灭”。
   `checkReligion` 只在剧本实际使用的宗教区上做审计。
 
+### `pendingDecider` 必须和 `moveError` 一致
+
+`pendingDecider`（`invariants.ts`）回答“现在轮到哪个势力做决定”，自对弈 harness
+用它推导当前行动势力。它只能列出 `moveError` **真的会阻塞**的窗口：一旦把
+“冬季设置、春季 `onBegin` 才结算”的非阻塞窗口（HRE 冬季补充、天主教联盟）
+也算进去，harness 会把回合派给错误的势力。
+
+2 人局曾因此失败：`pendingHreReplacement` 让 harness 把回合判给 HRE，而引擎的
+`chooseWinterReturn` 读取的是 `activePower`（西班牙），一次合法的冬季返还被拒绝。
+现在 `pendingWindow.test.ts` 在短对局的**每一步**上断言：只要 `pendingDecider`
+给出势力，`moveError` 就必须阻塞（或该窗口由 `ctx.activePlayers` 的 stage 承担）。
+
 ## 6. 本轮发现并修复的问题
 
 1. **`pendingConversion` / `pendingScienceTreasure` 没有出现在自对弈策略里**，
@@ -176,12 +189,22 @@ runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999})
    `winterReturnChoices[0]` / `winterNavalReturnChoices[0]` 报告“阻塞窗口”，
    2 人教学剧本第 2 回合 Card Draw 因此出现“无席位势力待决”的误报。
    现在只把**当前 activePower 的损失确认**算作阻塞窗口。
+4. **非阻塞窗口被误当成待决势力**：`pendingHreReplacement`、`pendingCatholicLeague`
+   在冬季设置、由春季 `onBegin` 自动结算，`moveError` 从不为它们拒绝移动。
+   把它们列进 `pendingDecider` 后，2 人局（`VQ-SIM-3`）的 harness 把回合判给
+   HRE，而 `chooseWinterReturn` 读的是 `activePower`（西班牙），合法返还被拒。
+   `pendingDecider` 现在只列出真正阻塞的窗口；`pendingWindow.test.ts` 逐步
+   断言它与 `moveError` 一致。
 
 ## 7. 运行方式
 
 ```sh
 # 只跑不变量变异测试（约 1.5 分钟）
 npx jest --testPathPatterns "tools/vq-sim/invariantMutation" \
+  --testPathIgnorePatterns "/node_modules/" --runInBand
+
+# 待决窗口与 moveError 的一致性（约 1 分钟）
+npx jest --testPathPatterns "tools/vq-sim/pendingWindow" \
   --testPathIgnorePatterns "/node_modules/" --runInBand
 
 # 属性型模拟：默认 1 个 seed、四种配置（约 8–12 分钟）

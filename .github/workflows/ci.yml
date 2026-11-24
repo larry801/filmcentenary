@@ -104,10 +104,10 @@ jobs:
       # The root tsconfig only includes ./src/*; the harness has its own one.
       - name: Type check the harness
         run: yarn tsc -p tools/vq-sim/tsconfig.json --noEmit
-      - name: Run the invariant mutation suite
+      - name: Run the invariant mutation and pending-window suites
         run: >-
           yarn test --ci --runInBand
-          --testPathPatterns "tools/vq-sim/invariantMutation"
+          --testPathPatterns "tools/vq-sim/(invariantMutation|pendingWindow)"
           --testPathIgnorePatterns "/node_modules/"
       - name: Run the property-based simulation
         env:

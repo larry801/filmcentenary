@@ -129,3 +129,13 @@ more. Each is pinned by a test under `src/virginQueen/`.
    "pending decision for england, which has no controlling seat" in the
    2-player tutorial.  The decider now only names the active power's loss
    confirmations.
+
+8. **A non-blocking window was reported as the deciding power**
+   (`pendingWindow.test.ts`).  `pendingHreReplacement` and
+   `pendingCatholicLeague` are set during the winter and resolved by the Spring
+   phase's `onBegin`; `moveError` never refuses a move for them.  Listing them in
+   `pendingDecider` made the harness hand the turn to the HRE while the active
+   power was Spain, and `chooseWinterReturn` (which reads the active power) then
+   rejected a legal return in the 2-player sweep.  `pendingDecider` now names
+   only windows that actually block play, and the new test asserts that
+   `moveError` and `pendingDecider` agree on every state of a short match.

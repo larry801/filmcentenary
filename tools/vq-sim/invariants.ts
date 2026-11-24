@@ -678,12 +678,7 @@ export const pendingDecider = (G: VQGame): Power | undefined => {
     if (G.gregorianResponse !== undefined) return G.gregorianResponse.responder;
     // Windows the board renders without a boardgame.io stage.
     if (G.pendingConversion !== undefined) return G.pendingConversion.power;
-    if (G.pendingConversionQueue !== undefined && G.pendingConversionQueue.length > 0) {
-        return G.pendingConversionQueue[0].power;
-    }
     if (G.pendingScienceTreasure !== undefined) return G.pendingScienceTreasure.power;
-    if (G.pendingCatholicLeague !== undefined) return "spain";
-    if (G.pendingHreReplacement !== undefined) return "hre";
     // Both Spring windows belong to the power whose national turn it is.  A
     // reduced-player seat owns several powers (the Ottoman seat also plays the
     // Protestant), so `activePower` — not "who owns the flag" — decides whether
