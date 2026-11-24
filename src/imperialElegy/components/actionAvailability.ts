@@ -33,7 +33,7 @@ import {
   type RemoveAllianceProblem,
   type RemoveMarkerProblem,
 } from "../engine/foreignAffairs";
-import {gwActionAllowance} from "../engine/gwImpulse";
+import {gwActionAllowance, type GwActionAllowance} from "../engine/gwImpulse";
 import {reserveRemaining} from "../engine/economy";
 import {
   buildableMinorAllies,
@@ -51,7 +51,7 @@ import {
 } from "../engine/pacification";
 import {polishReserveDeployer} from "../engine/poland";
 import {legalUnitTargets} from "./legalTargets";
-import {unitIsCommanded} from "./boardHelpers";
+import {gwImpulseReasonText, unitIsCommanded} from "./boardHelpers";
 import type {RecruitDecision} from "../engine/characteristics";
 
 export type ActionId =
@@ -447,7 +447,20 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   const unitSelected = selected !== undefined && commandsSelected(selected.id);
   const selectedIsOther = selected !== undefined && !unitSelected;
   const spaceDef = SPACES[space];
-  const gwAllowed = (kind: GwActionKind): {ok: boolean; reason?: string} => gwActionAllowance(G, viewer, kind);
+  const gwAllowed = (kind: GwActionKind): GwActionAllowance => gwActionAllowance(G, viewer, kind);
+  /**
+   * The GW allowance's own refusal, in both languages.
+   *
+   * Every GW row used to print "Only during your Great War impulse" for *any*
+   * refusal, so a seat whose budget action was already spent (or whose card
+   * bonus had used that action) read the greyed row as "the game thinks it is
+   * not my impulse" and could not tell what was still allowed (27.1–27.3).
+   */
+  const gwRefusal = (allowance: GwActionAllowance): string =>
+    allowance.ok
+      ? ""
+      : gwImpulseReasonText(locale, allowance.reason) ??
+        bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。");
 
   const push = (row: Omit<SpaceAction, "label" | "cost"> & {cost?: number; label?: string}): void => {
     const cost = row.cost ?? ACTION_COSTS[row.id];
@@ -821,7 +834,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       const enabled = allowance.ok;
       push({
         id: "gwNaval", group: "move", enabled,
-        reason: enabled ? undefined : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),
+        reason: enabled ? undefined : gwRefusal(allowance),
         run: () => doAction(() => moves.navalMove([selected.id], space)),
       });
       if (selected.owner === viewer) {
@@ -831,7 +844,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
             id: "gwNaval", uid: `gwNaval@${ally}`, group: "move", cost: ACTION_COSTS.gwNaval,
             label: bi(locale, `Joint naval with ${input.G.powers[ally] ? ally : ally}`, `与${ally}联合海军`),
             enabled: joint.ok,
-            reason: joint.ok ? undefined : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),
+            reason: joint.ok ? undefined : gwRefusal(joint),
             run: () => doAction(() => moves.gwJointNaval(ally, [selected.id], gwJointNavalUnitIds(ally), space)),
           });
         }
@@ -840,13 +853,13 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       const march = gwAllowed("march");
       push({
         id: "gwMarch", group: "move", enabled: march.ok,
-        reason: march.ok ? undefined : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),
+        reason: march.ok ? undefined : gwRefusal(march),
         run: () => doAction(() => moves.gwMarch(selected.id, space)),
       });
       const rail = gwAllowed("rail");
       push({
         id: "gwRail", group: "move", enabled: rail.ok,
-        reason: rail.ok ? undefined : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),
+        reason: rail.ok ? undefined : gwRefusal(rail),
         run: () => doAction(() => moves.gwRail(selected.id, space)),
       });
     }
@@ -894,23 +907,27 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   }
   if (ownLandInSelected.length > 0) {
     const cost = ACTION_COSTS.landBattle;
-    const enabled = (gw ? gwAllowed("landBattle").ok : canSpend(cost)) && potentialLandTargets.length > 0;
+    const battle = gw ? gwAllowed("landBattle") : null;
+    const enabled = (battle === null || battle.ok) && potentialLandTargets.length > 0;
     push({
       id: "landBattle", group: "move", enabled,
       reason: enabled ? undefined
-        : potentialLandTargets.length === 0 ? bi(locale, "No enemy army is adjacent, or the adjacent power has not been declared on.", "相邻空间没有敌军，或尚未对相邻势力宣战。")
-          : gw ? bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。") : spendReason(cost),
+        : battle !== null && !battle.ok ? gwRefusal(battle)
+          : potentialLandTargets.length === 0 ? bi(locale, "No enemy army is adjacent, or the adjacent power has not been declared on.", "相邻空间没有敌军，或尚未对相邻势力宣战。")
+            : spendReason(cost),
       run: startBattle,
     });
   }
   if (ownNavalInSelected.length > 0) {
     const cost = ACTION_COSTS.navalBattle;
-    const enabled = (gw ? gwAllowed("naval").ok : canSpend(cost)) && potentialNavalTargets.length > 0;
+    const battle = gw ? gwAllowed("naval") : null;
+    const enabled = (battle === null || battle.ok) && potentialNavalTargets.length > 0;
     push({
       id: "navalBattle", group: "move", enabled,
       reason: enabled ? undefined
-        : potentialNavalTargets.length === 0 ? bi(locale, "No enemy fleet is adjacent.", "相邻海域没有敌方舰队。")
-          : gw ? bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。") : spendReason(cost),
+        : battle !== null && !battle.ok ? gwRefusal(battle)
+          : potentialNavalTargets.length === 0 ? bi(locale, "No enemy fleet is adjacent.", "相邻海域没有敌方舰队。")
+            : spendReason(cost),
       run: startNavalBattle,
     });
   }
@@ -943,14 +960,16 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     const draft = gwAllowed("draft");
     push({
       id: "gwDraft", group: "greatWar", enabled: canGwDraft,
-      reason: canGwDraft ? undefined : draft.ok ? bi(locale, "No manpower or this space cannot draft.", "人力不足或此空间不能征召。") : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),
+      reason: canGwDraft ? undefined
+        : !draft.ok ? gwRefusal(draft)
+          : bi(locale, "No manpower or this space cannot draft.", "人力不足或此空间不能征召。"),
       run: () => doAction(() => moves.gwDraft(space)),
     });
     if (viewer === "UK" && isCwArmySpace(space)) {
       const cw = gwAllowed("draft");
       push({
         id: "recruitCw", group: "greatWar", enabled: cw.ok,
-        reason: cw.ok ? undefined : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),
+        reason: cw.ok ? undefined : gwRefusal(cw),
         run: () => doAction(() => moves.recruit(space, "army", 1, {cw: true})),
       });
     }
@@ -958,15 +977,15 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     push({
       id: "gwDeploy", group: "greatWar", enabled: canGwDeployHere,
       reason: canGwDeployHere ? undefined
-        : deploy.ok ? bi(locale, "Needs one reserve army, room for it, and a friendly home or key without a trench.", "需要预备军、堆叠空间，以及无战壕的友方核心区或关键区。")
-          : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),
+        : !deploy.ok ? gwRefusal(deploy)
+          : bi(locale, "Needs reserve armies, room for them, and a friendly home or key without a trench.", "需要预备军、堆叠空间，以及无战壕的友方核心区或关键区。"),
       run: () => doAction(() => moves.gwDeploy(space)),
     });
     if (selected !== undefined && !selected.naval && isArmyKind(selected.kind)) {
       const elite = gwAllowed("eliteCorps");
       push({
         id: "gwElite", group: "greatWar", enabled: elite.ok,
-        reason: elite.ok ? undefined : bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。"),
+        reason: elite.ok ? undefined : gwRefusal(elite),
         run: () => doAction(() => moves.gwEliteCorps(selected.id)),
       });
     }
