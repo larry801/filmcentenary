@@ -188,6 +188,9 @@ Partial with named blockers.
   over the five-ally cap) and **16.2** rejects a second treaty option imposed on
   a player who is not a primary belligerent.  Coverage: `bismarckWar.test.ts`
   and `treatyAllocation.test.ts`.
+- **§13–17 pass-rule follow-up:** **15.0** refuses a warp-time pass while the
+  seat holds more than 2 budget and has not acted; the bot falls back to a
+  reserve deploy or a legal march/rail (`warPassRule.test.ts`).
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -851,8 +854,12 @@ Partial with named blockers.
   blockade defensive victory** (`warEndingRules.test.ts`, 3), **13.4.5's
   Bismarck auto-alliance errata** and **16.2's one-option-per-non-primary
   player cap** (`bismarckWar.test.ts` / `treatyAllocation.test.ts`) are now
-  live.  Still open: 13.2.1 Italian unification wars, unified Italy in a limited
-  war (14.0/15.4.1/15.6), 15.0's pass-at-budget-≤2, 15.2.2 limited-war joint
+  live, and **15.0's pass rule** now refuses a seat that still has more than
+  2 budget and has not acted this impulse (handing over after acting stays
+  legal, so the engine's single-move impulse model cannot deadlock); the bot
+  spends the budget on a reserve deploy or a legal march/rail instead of
+  passing (`warPassRule.test.ts`).  Still open: 13.2.1 Italian unification wars,
+  unified Italy in a limited war (14.0/15.4.1/15.6), 15.2.2 limited-war joint
   naval operations and 16.1.4/16.1.5 negotiated/agreed white peace.
 
 ## 18–19 Combat

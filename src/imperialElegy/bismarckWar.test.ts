@@ -272,6 +272,8 @@ describe("Otto von Bismarck's war of unification", () => {
     let guard = 0;
     while (G.war !== null && guard++ < 10) {
       const power = G.activePower;
+      // 15.0: pass only at war budget ≤ 2; these passes test the pass chain.
+      G.war.budgets[power] = Math.min(G.war.budgets[power] ?? 0, 2);
       expect(passWarMove(G, makeCtx([], seat(power)))).toBeUndefined();
     }
     expect(G.war).toBeNull();

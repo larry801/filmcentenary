@@ -236,6 +236,7 @@ describe("15.4.2 maneuver and combat", () => {
 
     // A non-belligerent pass is rejected; the attacker's pass settles the war.
     expect(passWar(G, makeCtx([], seat("FR")))).toBe(INVALID_MOVE);
+    G.war!.budgets.GE = 2; // 15.0: pass only at budget ≤ 2
     expect(passWar(G, makeCtx([], seat("GE")))).toBeUndefined();
     // No objectives are held, so the war settles as a white peace.
     expect(G.war).toBeNull();
@@ -387,6 +388,7 @@ describe("15.4.2 / 16.0 victory and settlement", () => {
     expect(startWarManeuver(G, makeCtx([], seat("GE")))).toBeUndefined();
     // The attacker occupies the objective (as a won battle would leave it).
     G.spaces["schleswig-holstein"].occupiedBy = "GE";
+    G.war!.budgets.GE = 2; // 15.0: pass only at budget ≤ 2
 
     expect(passWar(G, makeCtx([], seat("GE")))).toBeUndefined();
     // 16.2: the winner chooses the treaty option.

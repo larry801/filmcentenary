@@ -52,6 +52,7 @@ import {currentGwImpulse, gwActionAllowance, gwCardProblem, gwFinishImpulseProbl
 import {declarationTargetCandidates} from "./declarationTargets";
 import {warDeclarationEntitlement, warDeclarationPolicy} from "./rules";
 import {reserveRemaining} from "./economy";
+import {planWartimeLandMove} from "./wartimeMovement";
 import {ctxWithBotRandom} from "./botRandom";
 import {hasCounterFor} from "./counters";
 import {allyCallEligibility, holdsWarImpulse, truceRivals, validateWarAim, warCapitalFallen, warTargetKey} from "./limitedWar";
@@ -1187,6 +1188,29 @@ const wartimePriorityOne = (G: ImperialElegyState, power: Power): BotMove | null
   return null;
 };
 
+/**
+ * 15.0: a power may only pass at war budget ≤ 2, so a bot that has no Priority
+ * action left must spend the budget.  Deploy reserves first, then the first
+ * legal wartime march/rail; null only when the seat truly cannot act.
+ */
+const wartimeRequiredAction = (G: ImperialElegyState, ctx: Ctx, power: Power): BotMove | null => {
+  if (G.war?.status !== "maneuver" || !holdsWarImpulse(G, power)) return null;
+  if (G.powers[power].flags.warCpSpentThisImpulse === true) return null;
+  if (cpBudgetFor(G, power) <= 2) return null;
+  if (G.powers[power].reserves.length > 0) {
+    const space = botDeploySpace(G, power);
+    if (space !== null) return {move: "deployReserves", args: [space]};
+  }
+  for (const unit of Object.values(G.units)) {
+    if (unit.owner !== power || unit.naval || !unit.space || unit.steps <= 0) continue;
+    for (const to of neighboursOf(unit.space)) {
+      const plan = planWartimeLandMove(G, power, unit.id, to);
+      if (plan.ok) return {move: "redeploy", args: [unit.id, to]};
+    }
+  }
+  return null;
+};
+
 // ---------------------------------------------------------------------------
 // GW Planning and Maneuver
 // ---------------------------------------------------------------------------
@@ -1502,6 +1526,8 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
   if (phase === "wartime") {
     const p1 = wartimePriorityOne(G, power);
     if (p1 !== null) return p1;
+    const required = wartimeRequiredAction(G, ctx, power);
+    if (required !== null) return required;
     return {move: "passWarMove"};
   }
 
