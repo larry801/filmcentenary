@@ -1,6 +1,6 @@
 # Rules coverage map
 
-**Snapshot:** 2026-11-23 refresh, verified against the printed *Imperial Elegy*
+**Snapshot:** 2026-11-24 refresh, verified against the printed *Imperial Elegy*
 rulebook (`IE_rule.pdf`, MD5 `39b2a3e22371366867511f31e3af4e3c`). **Campaign
 scenario only.**
 
@@ -81,6 +81,35 @@ Also corrected from the printed book: the map **does** have a Rome space
 (`constant/spaces.ts` `rome` is the Papal States capital, and
 `engine/gwMajors.ts#ITALIAN_CAPITAL` points at it), so the “Rome taken” Italian
 surrender clause is not inert.
+
+## §13–17 refinements (2026-11-24)
+
+Two gaps left by the section's promotion are now live and pinned.
+
+- **15.6 / 16.1.6's special option is a real chooser for Italy.**  A unified
+  Italy knocked out when Rome falls is no longer settled by an automatic
+  "occupier keeps Rome" cession.  `classifyVictory` exposes
+  `victory.italyKnockout`; `treatyPickCounts`, `treatyChooserGroups` and
+  `treatyOptionsFor` add `"Italy"` as a knockout target, so the captor gets a
+  mandatory `treatyOption` decision (and, when the losing side made the
+  knockout, that side answers after the winner).  The legal set is the ordinary
+  16.2 list restricted to a non-player major: territorial cession of the
+  occupied Italian key/territory (Rome plus any Italian-controlled war
+  objective the winner holds), realignment of Italy's minor allies and, for a
+  defender-made knockout, righteous defense; war reparations and colonial
+  cession are rejected because they target players.  `settleLimitedWar` applies
+  the chosen option exactly once and only then logs `italyKnockoutCession`.
+  Coverage: `italyKnockoutTreaty.test.ts` (6) and `italyLimitedWar.test.ts` (6).
+- **15.2.2 joint naval movement runs the 19.1 transit chain.**  `jointNaval`
+  validates one shared 12.3 route, parks the combined force at the first
+  intermediate box adjacent to an enemy port, records the typed `navalTransit`
+  cursor with every ally, and opens the same interception window a single
+  power's `navalMove` opens.  Declining/failing resumes the whole joint move and
+  still opens the destination 19.1/19.2 contact chain; winning carries every
+  ally into the 19.1 continuation (`NavalTransitState` /
+  `NavalContinuationState.allies`; `navalMoveAllies` keeps the singular `ally`
+  for GW saves).  Coverage: `jointNaval.test.ts` (7, three transit cases) and
+  `jointTransitInterception.test.ts` (GW joint path).
 
 ## Partial-section audit (2026-11-23, second pass)
 
@@ -871,7 +900,9 @@ on 2026-11-24: every named blocker is live and pinned.
   `jointNaval.test.ts`, `warPeaceAgreement.test.ts`).  Closed 2026-11-24:
   unified Italy in a limited war — 14.0's join-at-discretion, 15.4.1's separate
   two-CP Italian impulse and 15.6's Rome knockout (`italyLimitedWar.test.ts`,
-  5; `italyMilitary.test.ts`).  **§13–17 is Implemented.**
+  6; `italyMilitary.test.ts`).  The 2026-11-24 refinements above replace the
+  former automatic Rome cession with the full 16.1.6 chooser and split the
+  joint naval move at 19.1 transit boxes.  **§13–17 is Implemented.**
 
 ## 18–19 Combat
 

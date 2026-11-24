@@ -44,6 +44,7 @@ import {unitKindLabel} from "./unitKind";
 import {
   crossesHostileGibraltar,
   isEuropeanWaterNavalSpace,
+  navalMoveAllies,
   openNavalContinuationDecision,
   planNavalMove,
 } from "./navalMovement";
@@ -4107,12 +4108,15 @@ function beginTransitWindow(G: ImperialElegyState, ctx: Ctx, transit: NavalTrans
   if (hop === undefined || from === undefined) return false;
   const candidates = transitInterceptCandidates(G, transit.power, hop, destination);
   if (candidates.length === 0) return advanceNavalTransit(G, ctx);
+  const allies = navalMoveAllies(transit);
+  const leadAlly = transit.ally ?? allies[0];
   G.navalContinuation = {
     power: transit.power,
     from,
     contact: hop,
     unitIds: [...transit.unitIds],
-    ...(transit.ally === undefined ? {} : {ally: transit.ally}),
+    ...(leadAlly === undefined ? {} : {ally: leadAlly}),
+    ...(allies.length > 1 ? {allies} : {}),
     intercepted: true,
   };
   return openNavalInterceptionWindow(G, ctx, transit.power, from, hop, transit.unitIds, candidates);
@@ -4166,8 +4170,11 @@ export function advanceNavalTransit(G: ImperialElegyState, ctx: Ctx): boolean {
   const interceptAtDestination =
     isNavalBox(to) && navalInterceptCandidates(G, transit.power, to).length > 0;
   if ((defenders.length > 0 || interceptAtDestination) && G.battle === null) {
+    const allies = navalMoveAllies(transit);
+    const leadAlly = transit.ally ?? allies[0];
     openNavalContactDecision(G, ctx, transit.power, from, to, units.map((unit) => unit.id), {
-      ...(transit.ally === undefined ? {} : {ally: transit.ally}),
+      ...(leadAlly === undefined ? {} : {ally: leadAlly}),
+      ...(allies.length > 1 ? {allies} : {}),
     });
   }
   return true;
@@ -4350,7 +4357,7 @@ export const openNavalContactDecision = (
   from: SpaceId,
   to: SpaceId,
   attackerUnits: readonly string[],
-  options: {ally?: Power} = {},
+  options: {ally?: Power; allies?: readonly Power[]} = {},
 ): boolean => {
   if (G.pending !== null || G.battle !== null) return false;
   G.navalContinuation = null;
@@ -4360,12 +4367,15 @@ export const openNavalContactDecision = (
       // 19.1: the interception interrupts the naval movement.  Record the
       // interrupted move now so `finishBattle` can offer the winner the
       // printed right to finish it without spending another action.
+      const allies = navalMoveAllies({ally: options.ally, allies: options.allies});
+      const leadAlly = options.ally ?? allies[0];
       G.navalContinuation = {
         power: attacker,
         from,
         contact: to,
         unitIds: [...attackerUnits],
-        ...(options.ally === undefined ? {} : {ally: options.ally}),
+        ...(leadAlly === undefined ? {} : {ally: leadAlly}),
+        ...(allies.length > 1 ? {allies} : {}),
         intercepted: true,
       };
       return openNavalInterceptionWindow(G, ctx, attacker, from, to, attackerUnits, candidates);

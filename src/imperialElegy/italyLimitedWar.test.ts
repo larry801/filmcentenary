@@ -12,9 +12,9 @@ import type {ImperialElegyState, Power, WarState} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
-import {classifyVictory, createWarState, joinWarAsMinor, recordWarKnockoutCapture, settleLimitedWar} from "./engine/limitedWar";
+import {classifyVictory, createWarState, joinWarAsMinor, recordWarKnockoutCapture} from "./engine/limitedWar";
 import {cpBudgetFor} from "./engine/rules";
-import {passWarMove, redeploy} from "./moves";
+import {passWarMove, redeploy, resolvePending, resolveWar} from "./moves";
 
 const makeCtx = (playerID: string | null = "0"): Ctx =>
   ({
@@ -110,7 +110,7 @@ describe("15.4.1 the Italian wartime impulse", () => {
 });
 
 describe("15.6 Rome knocks Italy out of the war", () => {
-  test("the occupier records the knockout and takes Rome at settlement", () => {
+  test("the occupier records the knockout and the captor chooses the 16.1.6 option", () => {
     const G = italyState();
     const war = warWithItaly(G);
     G.spaces.rome.occupiedBy = "GE";
@@ -121,10 +121,43 @@ describe("15.6 Rome knocks Italy out of the war", () => {
     expect(G.log.some((entry) => entry.key === "italyKnockedOut")).toBe(true);
 
     const victory = classifyVictory(G, war);
-    const settlement = settleLimitedWar(G, victory, []);
-    expect(settlement.ok).toBe(true);
-    // 16.1.6's special option: the captor keeps the occupied key.
+    // 15.6 treats Italy as a knockout target: one 16.1.6 option, chosen by the
+    // power that took Rome (GE, the defender here) — not auto-ceded.
+    expect(victory.italyKnockout).toMatchObject({power: "Italy", by: "defender", captor: "GE"});
+    expect(victory.totalTreatyOptions).toBe(1);
+    expect(G.spaces.rome.control).toBe("IT");
+
+    // All player belligerents have passed, so the war settles through the live
+    // chooser instead of the removed deterministic cession.
+    war.passed = ["UK", "FR", "GE"];
+    const ctx = makeCtx(seat("GE"));
+    expect(resolveWar(G, ctx)).toBeUndefined();
+    expect(G.pending?.kind).toBe("treatyOption");
+    expect(G.pending?.power).toBe("GE");
+    // UK won the primary; Italy was knocked out by the losing side (GE), so
+    // 16.1.6 gives GE its mandatory Italy pick after the winner.
+    expect(G.pending?.context?.stage).toBe("loser");
+    expect((G.pending?.options ?? []).map((option) => option.id)).toContain("territorialCession#Italy");
+    // Nothing is ceded until the captor answers.
+    expect(G.spaces.rome.control).toBe("IT");
+
+    expect(resolvePending(G, ctx, "territorialCession#Italy")).toBeUndefined();
     expect(G.spaces.rome.control).toBe("GE");
     expect(G.log.some((entry) => entry.key === "italyKnockoutCession")).toBe(true);
+  });
+
+  test("a direct settlement can still impose the occupied key as Italy's option", () => {
+    const G = italyState();
+    const war = warWithItaly(G);
+    G.spaces.rome.occupiedBy = "GE";
+    recordWarKnockoutCapture(G, "rome", "GE");
+    const victory = classifyVictory(G, war);
+    // Direct callers/tests name the treaty choice explicitly.
+    const {settleLimitedWar} = require("./engine/limitedWar") as typeof import("./engine/limitedWar");
+    const settlement = settleLimitedWar(G, victory, [
+      {option: "territorialCession", spaces: ["rome"], target: "Italy"},
+    ]);
+    expect(settlement.ok).toBe(true);
+    expect(G.spaces.rome.control).toBe("GE");
   });
 });

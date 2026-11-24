@@ -1083,13 +1083,13 @@ const FORMATTERS: Record<string, Formatter> = {
     withActor(
       entry,
       locale,
-      "occupied Rome and knocked Italy out of the war; the 16.1.6 special option is resolved as the cession of Rome.",
-      "占领罗马并将意大利逐出战争；16.1.6 的特殊条约选项按割让罗马处理。",
+      "occupied Rome and knocked Italy out of the war; the captor gains a 16.1.6 special treaty option against Italy.",
+      "占领罗马并将意大利逐出战争；占领方获得针对意大利的 16.1.6 特殊条约选项。",
     ),
 
   italyKnockoutCession: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
-    return withActor(entry, locale, `took control of ${space} from the knocked-out Italy.`, `从被逐出战争的意大利手中取得${space}的控制权。`);
+    return withActor(entry, locale, `imposed the 16.1.6 treaty option on the knocked-out Italy: ${space}.`, `对被逐出战争的意大利执行 16.1.6 条约选项：${space}。`);
   },
 
   italyImpulseStarted: (entry, locale) =>

@@ -44,6 +44,7 @@ import {
   warRequiresMandatoryCession,
   independentMinorBeneficiaries,
   isTreatyKey,
+  italyKnockoutCessionSpaces,
   sidePowers,
   type WarSideName,
 } from "./limitedWar";
@@ -118,11 +119,11 @@ export interface TreatyOptionEntry {
   /** Power that answers this pick (16.1.6: the knockout's captor). */
   chooser: Power;
   /** Losing power the option is imposed on. */
-  target: Power | null;
+  target: PowerOrMinor | null;
   /** Which kind of pick this entry consumes. */
   pick: "primary" | "knockout" | "loserKnockout";
-  /** Knocked-out allies this option could be imposed on (rule 16.1.6). */
-  knockoutTargets: Power[];
+  /** Knocked-out allies (or Italy) this option could be imposed on (rule 16.1.6). */
+  knockoutTargets: PowerOrMinor[];
   /** Default choice used when the player simply picks the option. */
   choice: TreatyChoice;
   /** Spaces a follow-up `treatySpace` decision may offer. */
@@ -182,14 +183,16 @@ interface EntryMeta {
   beneficiaries: PowerOrMinor[];
   /** Power that answers this pick (16.1.6: the knockout's captor). */
   chooser: Power;
-  /** Target for this allocation (primary loser or a knocked-out ally). */
-  target: Power | null;
+  /** Target for this allocation (primary loser, a knocked-out ally, or Italy). */
+  target: PowerOrMinor | null;
   /** Default target of the war (the primary loser). */
-  primaryTarget: Power | null;
+  primaryTarget: PowerOrMinor | null;
   /** Primary belligerent of the side imposing this option. */
   primaryBeneficiary: Power;
+  /** Side that imposes this option (rule 16.1.6: the captor's side). */
+  imposingSide: WarSideName;
   pick: "primary" | "knockout" | "loserKnockout";
-  knockoutTargets: Power[];
+  knockoutTargets: PowerOrMinor[];
 }
 
 /**
@@ -253,7 +256,12 @@ const entryForTerritorialCession = (
   victory: VictoryClassification,
   meta: EntryMeta,
 ): TreatyOptionEntry | null => {
-  const objectives = [...new Set(war.objectives)].filter((space) => !isIndependentIndia(G, space));
+  // 15.6: a knocked-out Italy's special option takes an occupied Italian key
+  // (Rome and any Italian war objective the winner holds); every other target
+  // keeps the printed war objectives.
+  const objectives = (meta.target === "Italy" && meta.pick !== "primary"
+    ? italyKnockoutCessionSpaces(G, war, meta.imposingSide)
+    : [...new Set(war.objectives)]).filter((space) => !isIndependentIndia(G, space));
   for (const spaces of nonEmptySubsets(objectives)) {
     const validation = canApplyTreaty(G, war, victory, {
       option: "territorialCession",
@@ -406,7 +414,9 @@ const entryForSpaceOption = (
 const entriesForLiberation = (
   G: ImperialElegyState, war: WarState, victory: VictoryClassification, meta: EntryMeta,
 ): TreatyOptionEntry[] => {
-  if (meta.target === null) return [];
+  // Liberation names a surviving minority nationality of a player target;
+  // Italy is a non-player major, so it has no such treaty option.
+  if (meta.target === null || !isPower(meta.target)) return [];
   const entries: TreatyOptionEntry[] = [];
   for (const space of righteousSpaceIds(G)) {
     if (isIndependentIndia(G, space)) continue;
@@ -442,11 +452,11 @@ export interface TreatyPickAvailability {
    */
   loserKnockout?: boolean;
   /** Restrict the first side's knockout entries to these targets. */
-  knockoutTargets?: readonly Power[];
+  knockoutTargets?: readonly PowerOrMinor[];
   /** Restrict the second side's knockout entries to this captor's targets. */
   loserChooser?: Power;
   /** Restrict the second side's knockout entries to these targets. */
-  loserTargets?: readonly Power[];
+  loserTargets?: readonly PowerOrMinor[];
 }
 
 /**
@@ -465,10 +475,12 @@ export const treatyPickCounts = (
   const firstSide = firstTreatySide(victory);
   if (firstSide === null) return {primary: 0, knockout: 0, loserKnockout: 0};
   const secondSide = firstSide === "attacker" ? "defender" : "attacker";
+  const italyFirst = victory.italyKnockout?.by === firstSide ? 1 : 0;
+  const italySecond = victory.italyKnockout?.by === secondSide ? 1 : 0;
   return {
     primary: victory.victor === null ? 0 : victory.treatyOptions,
-    knockout: victory.allyKnockouts.filter((knockout) => knockout.by === firstSide).length,
-    loserKnockout: victory.allyKnockouts.filter((knockout) => knockout.by === secondSide).length,
+    knockout: victory.allyKnockouts.filter((knockout) => knockout.by === firstSide).length + italyFirst,
+    loserKnockout: victory.allyKnockouts.filter((knockout) => knockout.by === secondSide).length + italySecond,
   };
 };
 
@@ -527,28 +539,15 @@ export interface TreatyChooserGroup {
   side: WarSideName;
   /** Primary-outcome picks in this group. */
   primary: number;
-  /** Knocked-out allies this group imposes options on. */
-  targets: Power[];
+  /** Knocked-out allies (or Italy) this group imposes options on. */
+  targets: PowerOrMinor[];
 }
 
-/** Group knockout targets by the power that actually made the knockout. */
-const byCaptor = (knockouts: readonly AllyKnockoutLike[]): {captor: Power; targets: Power[]}[] => {
-  const groups = new Map<Power, Power[]>();
-  for (const knockout of knockouts) {
-    const list = groups.get(knockout.captor) ?? [];
-    list.push(knockout.power);
-    groups.set(knockout.captor, list);
-  }
-  return [...groups.entries()]
-    .sort((a, b) => POWER_ORDER[a[0]] - POWER_ORDER[b[0]])
-    .map(([captor, targets]) => ({captor, targets}));
-};
-
-/** The `AllyKnockout` fields the chooser grouping reads. */
-interface AllyKnockoutLike {
-  power: Power;
-  by: WarSideName;
+/** One knockout target with the power that actually made the knockout. */
+interface KnockoutTargetEntry {
   captor: Power;
+  target: PowerOrMinor;
+  by: WarSideName;
 }
 
 /**
@@ -566,8 +565,29 @@ export const treatyChooserGroups = (war: WarState, victory: VictoryClassificatio
   if (firstSide === null) return [];
   const secondSide: WarSideName = firstSide === "attacker" ? "defender" : "attacker";
   const firstPrimary = firstSide === "attacker" ? war.attacker : war.defender;
-  const firstKnockouts = victory.allyKnockouts.filter((knockout) => knockout.by === firstSide);
-  const secondKnockouts = victory.allyKnockouts.filter((knockout) => knockout.by === secondSide);
+  const knockoutEntries = (side: WarSideName): KnockoutTargetEntry[] => {
+    const out: KnockoutTargetEntry[] = victory.allyKnockouts
+      .filter((knockout) => knockout.by === side)
+      .map((knockout) => ({captor: knockout.captor, target: knockout.power, by: side}));
+    const italy = victory.italyKnockout;
+    if (italy !== undefined && italy !== null && italy.by === side) {
+      out.push({captor: italy.captor, target: "Italy", by: side});
+    }
+    return out.sort((a, b) => POWER_ORDER[a.captor] - POWER_ORDER[b.captor]);
+  };
+  const groupByCaptor = (entries: readonly KnockoutTargetEntry[]): TreatyChooserGroup[] => {
+    const groups = new Map<Power, PowerOrMinor[]>();
+    for (const entry of entries) {
+      const list = groups.get(entry.captor) ?? [];
+      list.push(entry.target);
+      groups.set(entry.captor, list);
+    }
+    return [...groups.entries()]
+      .sort((a, b) => POWER_ORDER[a[0]] - POWER_ORDER[b[0]])
+      .map(([captor, targets]) => ({power: captor, side: entries[0].by, primary: 0, targets}));
+  };
+  const firstKnockouts = knockoutEntries(firstSide);
+  const secondKnockouts = knockoutEntries(secondSide);
 
   const groups: TreatyChooserGroup[] = [];
   if (victory.victor !== null) {
@@ -578,19 +598,15 @@ export const treatyChooserGroups = (war: WarState, victory: VictoryClassificatio
         power: firstPrimary,
         side: firstSide,
         primary: victory.treatyOptions,
-        targets: firstKnockouts.map((knockout) => knockout.power),
+        targets: firstKnockouts.map((entry) => entry.target),
       });
     }
   } else if (firstKnockouts.length > 0) {
     // White peace: no primary pick and no primary chooser, so each knockout is
     // answered by the power that made it.
-    for (const group of byCaptor(firstKnockouts)) {
-      groups.push({power: group.captor, side: firstSide, primary: 0, targets: group.targets});
-    }
+    groups.push(...groupByCaptor(firstKnockouts));
   }
-  for (const group of byCaptor(secondKnockouts)) {
-    groups.push({power: group.captor, side: secondSide, primary: 0, targets: group.targets});
-  }
+  groups.push(...groupByCaptor(secondKnockouts));
   return groups;
 };
 
@@ -626,22 +642,30 @@ export const treatyOptionsFor = (
   const knockoutAllowed = picks.knockout ?? true;
   const loserKnockoutAllowed = picks.loserKnockout ?? true;
   const primaryTarget = victory.loser;
-  const firstTargets = victory.allyKnockouts
-    .filter((knockout) => knockout.by === firstSide)
-    .filter((knockout) => picks.knockoutTargets === undefined || picks.knockoutTargets.includes(knockout.power))
-    .map((knockout) => knockout.power);
-  const secondTargets = victory.allyKnockouts
-    .filter((knockout) => knockout.by === secondSide)
-    .filter((knockout) => picks.loserTargets === undefined || picks.loserTargets.includes(knockout.power))
-    .filter((knockout) => picks.loserChooser === undefined || knockout.captor === picks.loserChooser)
-    .map((knockout) => knockout.power);
+  const knockoutTargetsFor = (side: WarSideName): {target: PowerOrMinor; captor: Power}[] => {
+    const out: {target: PowerOrMinor; captor: Power}[] = victory.allyKnockouts
+      .filter((knockout) => knockout.by === side)
+      .map((knockout) => ({target: knockout.power as PowerOrMinor, captor: knockout.captor}));
+    const italy = victory.italyKnockout;
+    if (italy !== undefined && italy !== null && italy.by === side) {
+      out.push({target: "Italy", captor: italy.captor});
+    }
+    return out;
+  };
+  const firstEntries = knockoutTargetsFor(firstSide)
+    .filter((entry) => picks.knockoutTargets === undefined || picks.knockoutTargets.includes(entry.target));
+  const secondEntries = knockoutTargetsFor(secondSide)
+    .filter((entry) => picks.loserTargets === undefined || picks.loserTargets.includes(entry.target))
+    .filter((entry) => picks.loserChooser === undefined || entry.captor === picks.loserChooser);
+  const firstTargets = firstEntries.map((entry) => entry.target);
+  const secondTargets = secondEntries.map((entry) => entry.target);
 
   interface PickPlan {
-    target: Power | null;
+    target: PowerOrMinor | null;
     pick: "primary" | "knockout" | "loserKnockout";
     imposingSide: WarSideName;
     chooser: Power;
-    knockoutTargets: Power[];
+    knockoutTargets: PowerOrMinor[];
   }
   const pickPlans: PickPlan[] = [];
   if (primaryTarget !== null && primaryEnabled) {
@@ -650,19 +674,16 @@ export const treatyOptionsFor = (
       pick: "primary",
       imposingSide: firstSide,
       chooser: firstPrimary,
-      knockoutTargets: victory.allyKnockouts
-        .filter((knockout) => knockout.by === firstSide)
-        .map((knockout) => knockout.power),
+      knockoutTargets: firstTargets,
     });
   }
   if (knockoutAllowed) {
-    for (const knockout of victory.allyKnockouts.filter((entry) => entry.by === firstSide)) {
-      if (!firstTargets.includes(knockout.power)) continue;
+    for (const knockout of firstEntries) {
       // A classified winner's primary has the final say over its side's
       // knockouts; with no primary victory the captor chooses its own.
       const chooser = victory.victor !== null ? firstPrimary : knockout.captor;
       pickPlans.push({
-        target: knockout.power,
+        target: knockout.target,
         pick: "knockout",
         imposingSide: firstSide,
         chooser,
@@ -671,10 +692,9 @@ export const treatyOptionsFor = (
     }
   }
   if (loserKnockoutAllowed) {
-    for (const knockout of victory.allyKnockouts.filter((entry) => entry.by === secondSide)) {
-      if (!secondTargets.includes(knockout.power)) continue;
+    for (const knockout of secondEntries) {
       pickPlans.push({
-        target: knockout.power,
+        target: knockout.target,
         pick: "loserKnockout",
         imposingSide: secondSide,
         chooser: knockout.captor,
@@ -708,6 +728,7 @@ export const treatyOptionsFor = (
           target: plan.target,
           primaryTarget,
           primaryBeneficiary: planPrimary,
+          imposingSide: plan.imposingSide,
           pick: plan.pick,
           knockoutTargets: plan.knockoutTargets,
         };
@@ -802,9 +823,11 @@ const entryContext = (entry: TreatyOptionEntry): Record<string, unknown> => ({
 const treatyTargetLabel = (target: EntryMeta["target"], locale: "en" | "zh_CN" = "en"): string =>
   target === null
     ? locale === "zh_CN" ? "被击溃的盟友" : "knocked-out ally"
-    : isPower(target)
-      ? beneficiaryLabel(target, locale)
-      : target;
+    : target === "Italy"
+      ? locale === "zh_CN" ? "意大利" : "Italy"
+      : isPower(target)
+        ? beneficiaryLabel(target, locale)
+        : target;
 
 const pendingOptionFor = (entry: TreatyOptionEntry): PendingOption => {
   const label = entry.winnerLabel ? `${entry.label} (${entry.winnerLabel})` : entry.label;
@@ -960,7 +983,7 @@ const choiceFor = (
     const minor = typeof data.minor === "string" ? data.minor : choiceId;
     if (minor.length === 0) return null;
     const beneficiary = asBeneficiary(data.beneficiary) ?? base?.beneficiary;
-    const target = (isPower(data.target) ? data.target : undefined) ?? base?.target;
+    const target = (typeof data.target === "string" ? data.target : undefined) ?? base?.target;
     return {
       option: "realignment",
       minor,
@@ -1128,7 +1151,7 @@ export const treatySpaceOptions = (
             };
       if (!canApplyTreaty(G, war, resolution, choice).ok) continue;
     } else if (kind === "territorialCession") {
-      if (target !== null && !controlledBy(G, space, target)) continue;
+      if (target !== null && !(isPower(target) ? controlledBy(G, space, target) : G.spaces[space]?.control === target)) continue;
     } else if (kind === "colonialCession") {
       if (target !== null && G.spaces[space]?.control !== target) continue;
     }

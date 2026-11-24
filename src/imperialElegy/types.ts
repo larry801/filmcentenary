@@ -662,7 +662,7 @@ export interface WarSide {
    * Rule 15.6: a unified Italy knocked out of the war when Rome was occupied.
    * Italy is a non-player major, so it is not in `knockedOut` (which holds
    * player allies); the occupying captor keeps the 16.1.6 special option,
-   * modelled as the cession of the occupied key at settlement.
+   * chosen like any other knockout treaty pick at settlement.
    */
   italyKnockedOut?: {by: "attacker" | "defender"; captor: Power; capital: SpaceId; turn: number};
   /**
@@ -1266,6 +1266,8 @@ export interface NavalContinuationState {
   unitIds: string[];
   /** A GW joint naval operation's allied power, when one took part. */
   ally?: Power;
+  /** 15.2.2 joint naval operation's allied powers, when more than one took part. */
+  allies?: Power[];
   /** 19.1: the interception window actually opened for this move. */
   intercepted: boolean;
 }
@@ -1281,6 +1283,8 @@ export interface NavalTransitState {
   power: Power;
   /** A GW joint naval operation's allied power, when one takes part. */
   ally?: Power;
+  /** 15.2.2 joint naval operation's allied powers, when more than one takes part. */
+  allies?: Power[];
   /** The mover's units still taking part (a 12.3 transport also carries its land unit). */
   unitIds: string[];
   /** The whole planned 12.3 route: origin first, final destination last. */
