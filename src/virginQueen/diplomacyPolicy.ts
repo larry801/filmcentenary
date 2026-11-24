@@ -1,7 +1,7 @@
 import {Power, VQGame} from "./constant/general";
 import {cardById} from "./constant/cards";
 import {ownerOf, samePlayer} from "./ownership";
-import {allied, atWar, canDeclareWar, warCost} from "./util";
+import {allied, atWar, canDeclareWar, peaceLockedThisTurn, warCost} from "./util";
 
 /**
  * UI-side legality for the three diplomatic state changes offered by the
@@ -18,6 +18,7 @@ export type DiplomacyBlock =
     | "notAtWar"
     | "alreadyAllied"
     | "spainEnglandNeverPeace"
+    | "scenarioWarLock"
     | "spainEnglandAllianceCost"
     | "spainProtestantNeverAlliance"
     | "franceBothAlliances"
@@ -90,6 +91,9 @@ export const diplomacyActionState = (
         if (!atWar(G, p, target)) return blocked("notAtWar");
         // Rule 9.5: England and Spain may never agree to peace.
         if (isSpainEngland(p, target)) return blocked("spainEnglandNeverPeace");
+        // Scenario Book pp. 7/10: the scenario's starting wars are locked
+        // during its first turn's negotiations.
+        if (peaceLockedThisTurn(G, p, target)) return blocked("scenarioWarLock");
         if (leagueBlocksDeals(G, p, target)) return blocked("catholicLeague");
         return OK;
     }
@@ -120,6 +124,7 @@ export const diplomacyBlockText = (
         notAtWar: string;
         alreadyAllied: string;
         spainEnglandNeverPeace: string;
+        scenarioWarLock: string;
         spainEnglandAllianceCost: string;
         spainProtestantNeverAlliance: string;
         franceBothAlliances: string;

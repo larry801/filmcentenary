@@ -64,6 +64,12 @@ export const CAMPAIGN: ScenarioSetup = {
         ["spain", "papacy"],
         ["france", "scotland"],
     ],
+    // Scenario Book p. 7: "Neither of these 2 wars may be ended during Turn 1
+    // negotiations."
+    peaceLock: [
+        ["ottoman", "spain"],
+        ["england", "france"],
+    ],
     influence: commonInfluence,
     spaces: {
         // Ottoman
@@ -257,6 +263,13 @@ export const TOURNAMENT: ScenarioSetup = {
     alliances: [
         ["spain", "papacy"],
         ["spain", "venice"],
+        ["protestant", "scotland"],
+    ],
+    // Scenario Book p. 10 (corrected by the errata): only the Ottoman-Spanish
+    // war is locked during Turn 3 negotiations; France and the Protestant may
+    // end theirs.
+    peaceLock: [
+        ["ottoman", "spain"],
     ],
     influence: commonInfluence,
     spaces: {
@@ -472,8 +485,8 @@ export const TOURNAMENT: ScenarioSetup = {
         "Remove #11 Dragut Falls and #58 Jeanne of Navarre as events already resolved on Turns 1-2.",
         "#4 German Intervention and #37 The Sublime Porte are also removed in the 6-player game.",
         "Morisco Revolt (#28) is already on the board.",
-        "Spain and the Papacy are allied; Spain and Venice are allied; Ottoman-Spain and France-Protestant are at war.",
-        "Neither starting war may be ended during Turn 3 negotiations.",
+        "Spain and the Papacy are allied; Spain and Venice are allied; the Protestant and Scotland are allied; Ottoman-Spain and France-Protestant are at war.",
+        "The Ottoman-Spanish war may not be ended during Turn 3 negotiations; France and the Protestant may end theirs.",
         "Mary Queen of Scots is captured; Walsingham is unused; William of Orange is held off-map.",
         "Protestant Spaces card starts at 30.",
         "VP track: HRE 8, French 10, Protestants 10, English 11, Ottoman 14, Spanish 15.",
@@ -483,8 +496,8 @@ export const TOURNAMENT: ScenarioSetup = {
         "移除 #11 德拉古特之陨与 #58 纳瓦拉的珍妮，作为第 1-2 回合已结算的事件。",
         "六人局同样移除 #4 德意志的介入与 #37 崇高的门。",
         "摩尔人起义（#28）已在场上。",
-        "西班牙与教宗国、西班牙与威尼斯结盟；奥斯曼-西班牙、法国-新教处于战争。",
-        "第 3 回合谈判中不得结束初始战争。",
+        "西班牙与教宗国、西班牙与威尼斯、新教与苏格兰结盟；奥斯曼-西班牙、法国-新教处于战争。",
+        "第 3 回合谈判中不得结束奥斯曼-西班牙战争；法国与新教可以议和。",
         "苏格兰女王玛丽被俘；沃尔辛厄姆未使用；奥兰治的威廉在场外。",
         "新教地区标记从 30 开始。",
         "VP 轨道：神圣罗马帝国 8、法国 10、新教 10、英格兰 11、奥斯曼帝国 14、西班牙 15。",

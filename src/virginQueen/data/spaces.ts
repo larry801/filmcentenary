@@ -152,7 +152,11 @@ export const ADDITIONAL_SPACES: OfficialSpaceDef[] = [
     extra("cognac", "Cognac", -0.33, 45.70, "france", "open", {
         area: "france",
     }),
-    extra("bayonne", "Bayonne", -1.47, 43.49, "france", "fortress", {
+    // Rule 24.7: Bayonne is one of the four independent fortified spaces, and
+    // it starts independent in both the Campaign and the Tournament.  The
+    // Scenario Book only gives the Protestants a garrison there in the
+    // Tournament; the Campaign leaves it empty.
+    extra("bayonne", "Bayonne", -1.47, 43.49, "independent", "fortress", {
         area: "france",
         ports: ["bayOfBiscay"],
     }),

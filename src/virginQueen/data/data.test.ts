@@ -386,7 +386,13 @@ describe("Virgin Queen official data - scenario values", () => {
         expect(TOURNAMENT.alliances).toEqual([
             ["spain", "papacy"],
             ["spain", "venice"],
+            ["protestant", "scotland"],
         ]);
+        expect(CAMPAIGN.peaceLock).toEqual([
+            ["ottoman", "spain"],
+            ["england", "france"],
+        ]);
+        expect(TOURNAMENT.peaceLock).toEqual([["ottoman", "spain"]]);
         for (const scenario of ALL_SCENARIOS) {
             const pairs = new Set<string>();
             for (const [a, b] of scenario.wars) {

@@ -177,6 +177,7 @@ import {
     placeArrivingLeader,
     totalLand,
     totalNaval,
+    peaceLockedThisTurn,
     warCost,
     zonePorts,
     declareOttomanTributeWar,
@@ -1268,6 +1269,9 @@ const resolvePapalBull = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (!G.minorDiplomacyResolved.includes("papacy")) resolveMinorDiplomacy(G, ctx, "papacy");
     // The printed event explicitly allows the Papal ally to choose no effect.
     if (target === "skip") return;
+    // Scenario Book p. 5, Tutorial special rule 5: the first three benefits
+    // are not available; only recovering Holy League (or nothing) is legal.
+    if (G.scenario === "tutorial" && target !== "holyLeague") return;
     const ally = POWERS.find((power) => G.powers[power].alliedMinors.includes("papacy") && ownerOf(G, power) !== undefined);
     if (ally === undefined) return;
     if (target === "excommunicate") {
@@ -4105,6 +4109,11 @@ export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | 
     // p. 13: an inactive major power is only drawn in by a declaration of war).
     if (!isPower(args.target) || ownerOf(G, args.target) === undefined) return INVALID_MOVE;
     if (!atWar(G, p, args.target)) {
+        return INVALID_MOVE;
+    }
+    // Scenario Book pp. 7/10: the first turn's negotiations cannot end the
+    // scenario's starting wars.
+    if (peaceLockedThisTurn(G, p, args.target)) {
         return INVALID_MOVE;
     }
     if (catholicLeagueDealsBlocked(G, p, args.target)) {

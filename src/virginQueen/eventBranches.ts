@@ -165,15 +165,19 @@ export const eventBranchChoice = (G: VQGame, cardId: string, power: Power, numPl
         case "vq-005": {
             const ally = papalAlly(G);
             if (ally !== undefined) {
-                if (!G.elizabethExcommunicated) {
-                    branches.push(branch("excommunicate", text("开除伊丽莎白教籍", "Excommunicate Elizabeth I"), () => "excommunicate"));
-                }
-                branches.push(branch("france", text("法兰西 7 次传播", "7 Catholic attempts in France"), () => "france"));
-                branches.push(branch("netherlands", text("尼德兰 7 次传播", "7 Catholic attempts in the Netherlands"), () => "netherlands"));
-                const patrons = availablePatrons(G, ally);
-                if (patrons.length > 0) {
-                    branches.push(branch("patron", text("赞助意大利/HRE 艺术家或科学家", "Sponsor an Italian/HRE patron"),
-                        (values) => `patron:${values.patron}`, [param("patron", text("赞助人", "Patron"), () => patronOptions(G, patrons))]));
+                // Scenario Book p. 5, Tutorial special rule 5: only the fourth
+                // benefit (recover Holy League) or no benefit is available.
+                if (G.scenario !== "tutorial") {
+                    if (!G.elizabethExcommunicated) {
+                        branches.push(branch("excommunicate", text("开除伊丽莎白教籍", "Excommunicate Elizabeth I"), () => "excommunicate"));
+                    }
+                    branches.push(branch("france", text("法兰西 7 次传播", "7 Catholic attempts in France"), () => "france"));
+                    branches.push(branch("netherlands", text("尼德兰 7 次传播", "7 Catholic attempts in the Netherlands"), () => "netherlands"));
+                    const patrons = availablePatrons(G, ally);
+                    if (patrons.length > 0) {
+                        branches.push(branch("patron", text("赞助意大利/HRE 艺术家或科学家", "Sponsor an Italian/HRE patron"),
+                            (values) => `patron:${values.patron}`, [param("patron", text("赞助人", "Patron"), () => patronOptions(G, patrons))]));
+                    }
                 }
                 if (G.discard.includes("vq-024") && canPlayHolyLeague(G, ally)) {
                     branches.push(branch("holyLeague", text("找回并执行神圣同盟", "Recover and play Holy League"), () => "holyLeague"));
