@@ -29,15 +29,15 @@
 
 | 不变量 id | 规则 | 级别 | 检查内容 |
 | --- | --- | --- | --- |
-| `cards.single-copy` / `cards.known` | 6.2 | A | 同一张实体牌只能在 deck / discard / removed / futureDeck / homeSetAside / 手牌 / 春季暗置区 之一；卡号必须在牌表内 |
+| `cards.single-copy` / `cards.known` / `cards.hand-unique` | 6.2 | A | 同一张实体牌只能在 deck / discard / removed / futureDeck / homeSetAside / 手牌 / 春季暗置区 之一；卡号必须在牌表内 |
 | `cards.home-aside` | 10.5 | A | 春季暗置区只能是本势力的 Home 卡 |
-| `treasures.mix` / `treasures.values` | 6.3 | A | 30 枚宝藏按面值印刷配比；1 VP 宝藏不进弃牌堆；面值必须是 1–5 或特殊标记 |
-| `counters.cp` / `counters.vp` / `counters.ruler` | 5 / 11 / 25.2 | A | CP、VP 加成、统治者修正为整数且非负 |
+| `treasures.mix` / `treasures.values` / `treasures.vp-never-discarded` | 6.3 | A | 30 枚宝藏按面值印刷配比；1 VP 宝藏不进弃牌堆；面值必须是 1–5 或特殊标记 |
+| `counters.cp` / `counters.vp` / `counters.ruler` / `markers.scm` | 5 / 11 / 25.2 / 2.4 | A | CP、VP 加成、统治者修正、SCM 标记为整数且非负 |
 | `influence.cap` | 24.5 | A | 每个小国影响力 0–9 |
 | `units.land` / `units.naval` / `units.naval-lost` | 5.3 / 5.4 / 17.3 | A | 所有陆地/海上/损失计数为非负整数 |
 | `piracy.actions` | 16.4 | A | 每势力每回合海盗行动 ≤ 3 |
 | `zones.space` / `zones.sea` | 2.1 / 2.5 | A | 状态里的地区/海域必须与地图定义一一对应 |
-| `leaders.location` / `leaders.single-place` | 5.1 | A | 将领的 `location` 与棋盘列出的位置一致，且只出现一次 |
+| `leaders.location` / `leaders.single-place` / `leaders.known` | 5.1 | A | 将领的 `location` 与棋盘列出的位置一致，且只出现一次 |
 | `leaders.captured` | 14 | A | 被俘将领必须有合法俘获方 |
 | `leaders.kind` | 5.1 | A | 纯陆军将领不能在海上；纯海军将领不能在内陆 |
 | `naval.port` / `naval.inland-port` | 16.1 / 16.7 | A | 内陆地区/内陆港（Antwerp、Rotterdam）不能有舰队 |
@@ -45,17 +45,18 @@
 | `siege.besieger` / `siege.clock` | 15 / 15.1 | A | 围城方必须是主要势力；围城起始冲动不晚于当前冲动 |
 | `siege.fortified` / `siege.garrison` | 15 | B | 围城只在设防地区；城内 ≤ 4（规则同时允许解围战临时超限） |
 | `diplomacy.wars` / `diplomacy.symmetry` | 9.4 | A | 战争是对称的、不重复、不对自己开战 |
-| `diplomacy.allies` / `diplomacy.symmetry` | 9.2 | A | 同盟对称、不重复、不与战争并存 |
+| `diplomacy.allies` / `diplomacy.symmetry` / `diplomacy.war-and-ally` | 9.2 | A | 同盟对称、不重复、不与战争并存 |
 | `diplomacy.minors` / `diplomacy.activated` | 24.2 / 23 | A | 小国只能被一家结盟；激活的主要势力必须有席位 |
 | `piracy.zone` / `piracy.zone-cap` | 16.4 | A | 每海域每回合最多 2 家海盗；不得重复 |
 | `espionage.informant` / `espionage.assassination` | 19.2 / 19.3 | A | 同一目标只能有一个情报员；刺杀每回合一次 |
 | `patronage.once` | 22 | A | 同一赞助类型本回合只能使用一次；待结算赞助人不重复 |
-| `turn.year` / `turn.impulse` / `turn.passes` | 7 / 11 | A | 年份在剧本区间内；连续过牌不超过座位数 |
+| `turn.year` / `turn.impulse` / `turn.passes` / `turn.counters` | 7 / 11 | A | 年份在剧本区间内；连续过牌不超过座位数；回合计数为非负整数 |
 | `vp.history` / `vp.derivation` | 25.2 / 25.3 | A | VP 记录合法；VP 总分等于各项之和 |
 | `pending.owner` | 7 | A | 任何阻塞待决窗口的势力必须有控制席位（否则棋盘没有按钮可点） |
-| `victory.power` / `victory.seat` / `victory.standard` / `victory.domination` / `victory.time-limit` / `victory.automatic` | 25 | A | `gameover` 与规则 25 的判定一致 |
+| `victory.reason` / `victory.power` / `victory.seat` / `victory.standard` / `victory.domination` / `victory.time-limit` / `victory.automatic` | 25 | A | `gameover` 与规则 25 的判定一致 |
 | `force.regular` / `force.merc` / `force.naval` / `force.naval-kind` / `force.cavalry` / `force.walloons` / `force.minor` | 17.1 / 17.2 / 24.3 | B | 各势力常规/雇佣/海军/船型/瓦隆/小国兵力不超过印刷上限 |
 | `religion.core-presence` | 18.1 | B | 每个宗教区至少保留一个天主教区和一个新教区 |
+| `virgin-queen.cap` | 21.2 | B | 处女女王 VP 奖励不超过规则上限 |
 
 分级原因写在 `invariants.ts` 的模块注释里：B 级中的“兵力上限”在引擎里
 由多张来源（图上、境外战争卡、损失堆、小国控制）汇总，而规则书的上限
