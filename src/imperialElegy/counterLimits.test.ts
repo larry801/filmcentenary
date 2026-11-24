@@ -11,6 +11,8 @@ import {
   navalCounterLimit,
   raiseNavalCounterLimit,
 } from "./engine/counters";
+import {outbreakGreatWar} from "./engine/greatWar";
+import {GOALS_BY_ID} from "./constant/goals";
 import {constructFleet, minorAlliance, recruit} from "./moves";
 import {minorAlliesOf} from "./engine/rules";
 
@@ -149,6 +151,26 @@ describe("4.2 counter pool", () => {
     expect(hasCounterFor(G, "GE", "army")).toBe(false);
     G.powers.GE.manpower = 30;
     expect(recruit(G, ctx, "berlin", "army")).toBe(INVALID_MOVE);
+  });
+
+  test("25.6 grants no Elite Corps beyond the pool", () => {
+    const G = fresh();
+    const pool = counterPool(G, "GE").eliteCorps!;
+    for (let i = countersOwned(G, "GE", "eliteCorps"); i < pool; i += 1) {
+      placeUnit(G, "GE", "eliteCorps", "berlin", 1);
+    }
+    expect(countersOwned(G, "GE", "eliteCorps")).toBe(pool);
+    // The National Will Step only grants at 3+ VP, which the outbreak scores
+    // from the NGs the player is holding.
+    const best = Object.entries(GOALS_BY_ID)
+      .sort(([, a], [, b]) => (b.vp ?? 0) - (a.vp ?? 0))
+      .slice(0, 3)
+      .map(([id]) => id);
+    G.powers.GE.goals = best;
+    G.pending = null;
+    outbreakGreatWar(G, makeCtx(4), "GE", "IE-A001");
+    expect(countersOwned(G, "GE", "eliteCorps")).toBe(pool);
+    expect(G.log.some((entry) => entry.key === "nationalWillEcLimited" && entry.power === "GE")).toBe(true);
   });
 });
 

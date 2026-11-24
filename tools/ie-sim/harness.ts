@@ -23,6 +23,7 @@ import {atWar, controlledBy, maneuverDestinationProblem, friendlySpace, hostileO
 import {performGwManeuver} from "../../src/imperialElegy/engine/greatWarFlow";
 import {hasTruce, validateWarAim} from "../../src/imperialElegy/engine/limitedWar";
 import {outbreakGreatWar} from "../../src/imperialElegy/engine/greatWar";
+import {checkAll, formatViolation, formatViolations, type CheckLevel} from "../../src/imperialElegy/testing/invariants";
 
 export interface SimOptions {
   seed: string | number;
@@ -61,6 +62,12 @@ export interface SimOptions {
   rng?: () => number;
   /** Called on every dispatched action (for tracing). */
   trace?: (step: number, event: SimEvent) => void;
+  /**
+   * Called after every action with the post-state and its event, for probes
+   * that need the state that produced a finding (the invariant census, the
+   * replay tooling).  Never used by a shipped path.
+   */
+  observe?: (step: number, G: ImperialElegyState, event: SimEvent) => void;
 }
 
 export interface SimEvent {
@@ -83,6 +90,8 @@ export interface SimIssue {
   move?: string;
   args?: unknown[];
   detail: string;
+  /** Catalog ids this issue reports (A/B/C group), when it is an invariant break. */
+  codes?: string[];
 }
 
 export interface SimResult {
@@ -95,6 +104,10 @@ export interface SimResult {
   issues: SimIssue[];
   gw: boolean;
   events: SimEvent[];
+  /** How often each catalog id broke, across every check this run performed. */
+  invariantCounts: Record<string, number>;
+  /** The first reported break of each catalog id, for the census report. */
+  invariantSamples: Record<string, string>;
   /** The authoritative end state (for milestone assertions and reports). */
   finalState: ImperialElegyState;
 }
@@ -132,64 +145,20 @@ export function actingSeatFor(G: ImperialElegyState, ctx: Ctx, states: Map<strin
   return String(POWERS.indexOf(G.activePower));
 }
 
-/** Cards that live in a power's `homeCards` list by design. */
-const isHomeCard = (G: ImperialElegyState, card: string): boolean =>
-  POWERS.some((p) => G.powers[p].homeCards.includes(card));
-
-/** Structural invariants that must hold after every action. */
-export function checkInvariants(G: ImperialElegyState): string[] {
-  const problems: string[] = [];
-  // A home card legitimately appears in both `homeCards` and `hand` when it is
-  // selected for the turn; `homeCards` is the permanent pool, not a zone.  Only
-  // track real card zones here.
-  const seenCards = new Map<string, string>();
-  const noteCard = (card: string, where: string) => {
-    if (isHomeCard(G, card)) return;
-    const prev = seenCards.get(card);
-    if (prev !== undefined) problems.push(`card ${card} is in both ${prev} and ${where}`);
-    else seenCards.set(card, where);
-  };
-  G.deck.forEach((c) => noteCard(c, "deck"));
-  G.discard.forEach((c) => noteCard(c, "discard"));
-  G.removed.forEach((c) => noteCard(c, "removed"));
-  for (const p of POWERS) {
-    const ps = G.powers[p];
-    ps.hand.forEach((c) => noteCard(c, `${p} hand`));
-    (ps.cpChain ?? []).forEach((c) => noteCard(c, `${p} cpChain`));
-    if (ps.industryCard) noteCard(ps.industryCard, `${p} industryCard`);
-    if (ps.stability < 0) problems.push(`${p} stability ${ps.stability} < 0`);
-    if (ps.manpower < 0) problems.push(`${p} manpower ${ps.manpower} < 0`);
-    if (ps.industry < 0) problems.push(`${p} industry ${ps.industry} < 0`);
-  }
-  // Unit bookkeeping: a unit lives exactly once, in its space and the units map.
-  const counted = new Set<string>();
-  for (const [spaceId, space] of Object.entries(G.spaces)) {
-    for (const uid of space.units) {
-      if (counted.has(uid)) problems.push(`unit ${uid} listed twice (second in ${spaceId})`);
-      counted.add(uid);
-      const unit = G.units[uid];
-      if (!unit) problems.push(`space ${spaceId} references missing unit ${uid}`);
-      else if (unit.space !== spaceId && !unit.naval) {
-        // Naval boxes: movement bookkeeping may keep space in sync; flag only land.
-        problems.push(`unit ${uid} in ${spaceId}.units but unit.space=${String(unit.space)}`);
-      }
-    }
-  }
-  for (const [uid, unit] of Object.entries(G.units)) {
-    if (unit.space !== null && unit.space !== undefined && !counted.has(uid)) {
-      problems.push(`unit ${uid} has space ${String(unit.space)} but is not in that space's units list`);
-    }
-  }
-  if (G.pending) {
-    if (!G.pending.options || G.pending.options.length === 0) {
-      problems.push(`pending ${G.pending.kind} has no options`);
-    }
-    if (!POWERS.includes(G.pending.power) && !G.pending.power.startsWith("IT") && !G.pending.power.startsWith("US")) {
-      problems.push(`pending ${G.pending.kind} has unknown owner ${String(G.pending.power)}`);
-    }
-  }
-  if (G.cpRemaining < 0) problems.push(`cpRemaining ${G.cpRemaining}`);
-  return problems;
+/**
+ * The structural invariants that must hold after every action.
+ *
+ * The catalog itself lives in `src/imperialElegy/testing/invariants/` so the
+ * property tests and the per-constraint unit tests use exactly the checks the
+ * sweep runs.  This wrapper keeps the harness's historical `string[]` contract
+ * for the card sweeps; `level: "full"` adds the checks that recompute the board
+ * or serialize the whole state, so the loop only asks for it at a phase
+ * boundary and on a step cadence.
+ */
+export function checkInvariants(G: ImperialElegyState, level: CheckLevel = "cheap"): string[] {
+  return checkAll(G, {level})
+    .filter((violation) => violation.severity === "error")
+    .map(formatViolation);
 }
 
 /**
@@ -639,6 +608,10 @@ export function runSeededGame(opts: SimOptions): SimResult {
 
   const events: SimEvent[] = [];
   const issues: SimIssue[] = [];
+  /** Per-catalog-id break counts: the census reads this, not the issue list. */
+  const invariantCounts: Record<string, number> = {};
+  const invariantSamples: Record<string, string> = {};
+  let invariantIssues = 0;
   let steps = 0;
   /** Repeated identical rejected decision detector (mirrors the board's escape). */
   let repeat = {key: "", count: 0};
@@ -988,13 +961,31 @@ export function runSeededGame(opts: SimOptions): SimResult {
     }
     views.clear();
     const after = state.G as ImperialElegyState;
-    const problems = checkInvariants(after);
-    if (problems.length > 0) {
-      issues.push({
-        kind: "invariant", step: steps, turn: after.turn, phase: after.phase, power,
-        move: decision.move, args: decision.args ?? [],
-        detail: problems.slice(0, 8).join("; "),
-      });
+    // Cheap checks run after every action; the full set recomputes the board
+    // (A07) and serializes the whole state (A16), so it is paid for only at a
+    // phase boundary and on a fixed cadence.
+    const invariantLevel: CheckLevel = after.phase !== beforePhase || steps % 25 === 0 ? "full" : "cheap";
+    const violations = checkAll(after, {level: invariantLevel, before});
+    for (const violation of violations) {
+      invariantCounts[violation.code] = (invariantCounts[violation.code] ?? 0) + 1;
+      if (violation.severity === "error" && invariantSamples[violation.code] === undefined) {
+        invariantSamples[violation.code] = violation.path + ": " + violation.msg;
+      }
+    }
+    opts.observe?.(steps, after, event);
+    const errors = violations.filter((violation) => violation.severity === "error");
+    if (errors.length > 0) {
+      // The counts above stay complete; the issue list is capped so a state
+      // that breaks one rule on every step cannot grow the report unboundedly.
+      if (invariantIssues < 50) {
+        invariantIssues += 1;
+        issues.push({
+          kind: "invariant", step: steps, turn: after.turn, phase: after.phase, power,
+          move: decision.move, args: decision.args ?? [],
+          detail: formatViolations(errors, 8),
+          codes: [...new Set(errors.map((violation) => violation.code))],
+        });
+      }
     }
     // A rejected move leaves the state untouched, so an identical decision on
     // an identical state is the board's "bot is stuck" signal.  Report it once
@@ -1062,6 +1053,8 @@ export function runSeededGame(opts: SimOptions): SimResult {
     finished: Boolean(finalG.result) || state.ctx.gameover !== undefined,
     result: finalG.result ?? null,
     issues,
+    invariantCounts,
+    invariantSamples,
     gw: Boolean(finalG.gw?.outbreakDone),
     events,
     finalState: finalG,

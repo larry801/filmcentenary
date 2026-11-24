@@ -73,6 +73,12 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
   power, …), so an effect's arithmetic is checked, not just its text.
 - `cardSweep.ts` — the shared scaffolding those three use (ctx with a
   `sides`-aware die, single-copy card injection, settle loop, reporting).
+- `invariants.test.ts` — the structural (A-group) invariant census: real
+  seeded games across modes, failing on any break that is not recorded in
+  [`../../docs/imperial-elegy/invariants.baseline.json`](../../docs/imperial-elegy/invariants.baseline.json)
+  and on a baseline entry that no longer reproduces.  `IE_SEEDS`, `IE_MODES`
+  and `IE_CENSUS_DUMP` steer it.  The catalog and its per-constraint tests are
+  in [`../../docs/imperial-elegy/INVARIANTS.md`](../../docs/imperial-elegy/INVARIANTS.md).
 - `batch.test.ts` — N seeds × all six modes, aggregated: completion rate per
   mode, result reasons, distinct fatal signatures (each with a reproducing
   seed) and the moves the batch never touched.  Not a pass/fail gate on
@@ -114,7 +120,11 @@ It exits non-zero when the batch has a crash, a stall or an unfinished game.
   state is reported and escaped, mirroring the hotseat board's fallback.
 - **Structural invariants** after every action (`harness.ts#checkInvariants`):
   one physical copy per card, units listed in exactly one space, no negative
-  stability/manpower/industry, non-empty pending options.
+  stability/manpower/industry, non-empty pending options — plus the rest of the
+  A group in `src/imperialElegy/testing/invariants/` (counter pools, key
+  recomputation, stacking, forts, CP chain, alliance caps, JSON round-trip).
+  The cheap checks run after every action, the full set at phase boundaries and
+  every 25th step.
 - **Completion.** The game must reach a result rather than hitting the step cap.
 
 ## Findings

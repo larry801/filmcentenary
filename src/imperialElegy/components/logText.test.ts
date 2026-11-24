@@ -33,6 +33,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   gwSetupControlShortfall: {key: "gwSetupControlShortfall", power: "FR", args: {region: "africa", missing: 2}},
   scenarioStartingWar: {key: "scenarioStartingWar", args: {attacker: "RU", defender: "Poland", minor: "Poland", ally: "AU"}},
   nationalWillEc: {key: "nationalWillEc", power: "UK", args: {space: "london"}},
+  nationalWillEcLimited: {key: "nationalWillEcLimited", power: "GE", args: {}},
   pacificationRemoved: {key: "pacificationRemoved", args: {}},
   seatOrder: {key: "seatOrder", args: {order: "GE, UK, FR, AU, RU, OT"}},
   botSeatChanged: {key: "botSeatChanged", power: "FR", args: {bot: "yes"}},

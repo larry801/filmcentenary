@@ -3484,6 +3484,14 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  nationalWillEcLimited: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "already holds every Elite Corps counter, so the National Will Step grants none.",
+      "已持有全部精锐军棋子，全国意志阶段不再获得。",
+    ),
+
   pacificationRemoved: (_entry, locale) =>
     text(locale, "The National Will Step removes all pacification markers.", "全国意志阶段结束：移除全部镇压标记。"),
 

@@ -83,6 +83,32 @@ jobs:
           --testPathPatterns "tools/ie-sim/fullGame"
           --testPathIgnorePatterns "/node_modules/"
 
+  # The rule-invariant census for Imperial Elegy.  It plays real seeded games
+  # through the real reducer and fails on any structural (A-group) break that is
+  # not recorded in docs/imperial-elegy/invariants.baseline.json — and on a
+  # baseline entry that no longer reproduces, so the list only ever shrinks.
+  # The per-constraint positive/negative cases live in src/ and already run in
+  # the "test" job; this job is the seeded census.  See
+  # docs/imperial-elegy/INVARIANTS.md.
+  ie-sim-invariants:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run the invariant census
+        run: >-
+          yarn test --ci --runInBand
+          --testPathPatterns "tools/ie-sim/invariants"
+          --testPathIgnorePatterns "/node_modules/"
+
   # Rule-invariant and property-based self-play for Virgin Queen.  Both suites
   # live under tools/ and are outside `yarn test`, so they need their own gate.
   # The mutation suite proves each invariant actually fires on a broken board;
