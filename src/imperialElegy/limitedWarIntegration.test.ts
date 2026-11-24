@@ -238,7 +238,9 @@ describe("resolveWar classifies victory and demobilizes", () => {
     expect(G.powers.GE.stability).toBe(3);
     expect(G.powers.AU.stability).toBe(2);
     expect(G.phase).toBe("action");
-    expect(G.activePower).toBe("GE");
+    // 17.0 / 4.3: an attacker victory resumes with the next seat after the
+    // attacker, whose impulse the declaration already spent.
+    expect(G.activePower).toBe("UK");
     expect(G.wars[0].treaties).toEqual([]);
   });
 

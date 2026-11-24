@@ -362,6 +362,7 @@ import {
   mandatoryCessionPending,
   needsWhitePeaceOrderChoice,
   neutralJoinEligibility,
+  postWarActionPower,
   rollOffAidOrder,
   seekingAidSlots,
   settleLimitedWar,
@@ -5955,12 +5956,14 @@ const completeWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void =
 };
 
 /**
- * Rule 17.0: the player who receives the next action phase after the war.  A
- * lone non-player defender cannot take it (15.4.2), so the attacker keeps the
- * impulse; otherwise the winning primary does.
+ * Rule 17.0 / 4.3: the player who receives the next action phase after the war.
+ * A lone non-player defender cannot take it (15.4.2), so the attacker keeps the
+ * impulse; a war the attacker itself won resumes with the next seat in impulse
+ * order instead, because the declaration already spent the attacker's impulse
+ * (`engine/limitedWar.ts#postWarActionPower`).
  */
-const postWarWinnerFor = (war: WarState, victor: "attacker" | "defender" | null): Power =>
-  victor === "defender" && isPower(war.defender) ? war.defender : war.attacker;
+const postWarWinnerFor = (G: ImperialElegyState, war: WarState, victor: "attacker" | "defender" | null): Power =>
+  postWarActionPower(G, war, victor);
 
 /** Apply the primary outcome, clear the war and hand back the action phase. */
 const finishWarSettlement = (G: ImperialElegyState, ctx: Ctx, applied: readonly TreatyChoice[] = []): string | void => {
@@ -5972,7 +5975,7 @@ const finishWarSettlement = (G: ImperialElegyState, ctx: Ctx, applied: readonly 
   // war state is handed to demobilizeWar.
   applyWarEndCharacteristics(G, ctx);
   // actionBegin runs after the move; seed the winner before the phase event.
-  G.flags.postWarWinner = postWarWinnerFor(war, war.victor);
+  G.flags.postWarWinner = postWarWinnerFor(G, war, war.victor);
   // 33.1 German Confederation: after the treaties are applied (so a minor
   // gained through the realignment option is eligible), GE may annex one ally.
   if (war.warAim === "unification" && war.attacker === "GE" && war.victor === "attacker") {
@@ -5998,7 +6001,7 @@ const settleWarImmediately = (
   if (preparePostWarDraws(G, ctx, {mode: "immediate", victory, choices})) return undefined;
   applyWarEndCharacteristics(G, ctx);
   drawPostWarCards(G, ctx, war);
-  G.flags.postWarWinner = postWarWinnerFor(war, victory.victor);
+  G.flags.postWarWinner = postWarWinnerFor(G, war, victory.victor);
   const geWonUnification =
     war.warAim === "unification" && war.attacker === "GE" && victory.victor === "attacker";
   // 33.2.2: an explicit settlement must not cede independent India either.
@@ -8688,7 +8691,7 @@ const beginInteractiveWarSettlement = (
   if (!war) return INVALID_MOVE;
   applyVictoryOutcome(G, war, victory, ctx);
   clearWarSettlementFlags(G);
-  G.flags.postWarWinner = victory.victor === "defender" ? war.defender : war.attacker;
+  G.flags.postWarWinner = postWarActionPower(G, war, victory.victor);
   if (openNextTreatyStage(G, ctx, victory, [])) return undefined;
   return finishWarSettlement(G, ctx);
 };

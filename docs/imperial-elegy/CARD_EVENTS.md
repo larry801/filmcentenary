@@ -448,6 +448,17 @@ effect 写的是 `railTab`，但桌面端 `TurnPanel` 只在手机上传入 `act
 `components/HandTray.test.tsx`（1 个：已用过的行动轮把两个按钮画成禁用并给出
 原因，新一轮恢复可用）。
 
+同一条报告的第二种走法：俾斯麦统一战争**打赢**后，17.0 的「胜利方接手行动
+阶段」会把行动阶段交回宣战者，德国于是在同一行动阶段又开了第二张牌（17.0
+的复员免费行动不受影响，仍按胜方—败方顺序给）。宣战的费用出自宣战者自己的
+行动轮，所以按 4.3 的行动顺序，**进攻方获胜**与白和平一样由下一家接手；
+只有**防守方获胜**才由防守方开启恢复后的行动阶段（它没在宣战上花掉行动轮）。
+判定集中在 `engine/limitedWar.ts#postWarActionPower`，`demobilizeWar` 与
+`moves.ts` 里三处 `postWarWinner` 都读它。回归：`bismarckWar.test.ts`（德国
+赢下统一战争后 `activePower === "UK"`、GE 的第二张牌被拒），以及
+`campaignWar` / `limitedWar` / `limitedWarIntegration` / `demobilization`
+里原先断言「胜方＝进攻方接手」的用例。
+
 
 ### 3.13 其余三张宣战本国牌的授权与目标限制 / the other three declaration home cards
 
