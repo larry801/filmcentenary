@@ -3650,6 +3650,14 @@ sweep alone takes minutes and is run explicitly instead.
   incident/result now drives 25.3 Italy’s forced entry; the old card-id list is
   only a fallback for callers without table context.
 - **A067’s +2 crisis DRM** is live.
+- **4.9.3’s “player actions” half is live:** a 13.3 conquest declaration that
+  takes the WTT to 5 opens the roll from the declaration itself
+  (`moves.ts#finalizeWarDeclaration` → `openCrisisDecision` with no inciting
+  card, so the fallback row answers).  The war is created first, so the
+  declaration is never suspended; 12.17.1 keeps a fresh declaration below 3, so
+  the reachable case is one validated below the gate that finalizes after the
+  tension rose while its 13.4.2/33.3 decision was open
+  (`conquestCrisis.test.ts`).
 - **Remaining gaps:** minor powers drawn into the GW are recorded as ally
   markers (no minor-belligerent list in the GW state); Powder Keg/Balkan Wars
   apply their whole handler text before the crisis opens, so the “rest of the

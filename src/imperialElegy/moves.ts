@@ -279,6 +279,7 @@ import {
   italyTable,
   outbreakGreatWar,
   endGreatWar,
+  openCrisisDecision,
   resolveCrisisPending,
   resolveItalianNationalistWaveChoice,
   italianUnificationRoll,
@@ -3962,6 +3963,14 @@ const finalizeWarDeclaration = (
     forbidPlayerJoins: forbidPlayers || undefined,
     allowNeutralJoin: allowNeutralJoin || undefined,
   });
+  // 4.9.3: "Certain events and player actions will increase the WTT.  When the
+  // WTT reaches 5 a crisis roll [23.0] is made."  A 13.3 conquest declaration is
+  // that player action: it raises the WTT through `changeWtt` rather than a card
+  // effect, so nothing else opens the roll.  The war is already created, so the
+  // decision opens here instead of suspending the declaration.
+  if (G.wtt >= 5 && !G.gw?.active && G.pending === null) {
+    openCrisisDecision(G, ctx, power, [], null);
+  }
   return undefined;
 };
 
