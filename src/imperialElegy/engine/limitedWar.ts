@@ -3097,6 +3097,9 @@ export const demobilizeWar = (
     };
   }
 
+  // 15.2.2: "At the end of a war ... all joint naval operations markers
+  // remaining on the map are removed and the 1 CP is lost."
+  if (war.jointNavalMarkers !== undefined) war.jointNavalMarkers = [];
   const reservesReturned = returnReserveArmies(G);
   // Rule 17.0's first step: "Check for blockade [17.1]."  A blockaded player
   // gains a -1 card marker, except a player on the side that won a major

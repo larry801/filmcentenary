@@ -1995,6 +1995,121 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
   return undefined;
 };
 
+/**
+ * Rule 15.2.2 — Joint Naval Operations (1 CP).
+ *
+ * "Taking this action allows you to take a naval movement action with an ally.
+ * … when a player takes this action they spend a CP, announce what they're
+ * doing, they place their joint naval operations marker on any of their naval
+ * units, and play passes to the next player.  If an allied player takes a joint
+ * naval operation action in a future impulse, any allied players who have also
+ * taken this action may remove their markers and then they can conduct their
+ * naval movement together."
+ *
+ * Called without a destination the action places (or replaces) the caller's
+ * marker; called with a destination the caller's units plus every same-side
+ * marker's units conduct one combined 12.3 naval move.  The participating
+ * markers are removed and their CP is not refunded.  Leaving a marker on the
+ * map at the end of the war likewise just loses the CP.
+ */
+export const jointNaval = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  unitIds: string[],
+  to?: SpaceId,
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = requireActive(G, ctx, playerID);
+  if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (G.phase !== "wartime" || G.war === null || G.gw?.active) return INVALID_MOVE;
+  const war = G.war;
+  if (war.status !== "maneuver" || G.pending !== null || G.battle !== null) return INVALID_MOVE;
+  if (G.activePower !== power) return INVALID_MOVE;
+  if (!Array.isArray(unitIds) || unitIds.length === 0) return INVALID_MOVE;
+  const units = unitIds
+    .map((id) => G.units[id])
+    .filter((unit): unit is Unit => unit !== undefined && commandsUnit(G, power, unit) && unit.naval === true);
+  if (units.length !== unitIds.length) return INVALID_MOVE;
+  const from = units[0].space;
+  if (!from || units.some((unit) => unit.space !== from)) return INVALID_MOVE;
+  const side: WarSideName | null =
+    war.attacker === power || war.attackerAllies.includes(power)
+      ? "attacker"
+      : war.defender === power || war.defenderAllies.includes(power)
+        ? "defender"
+        : null;
+  if (side === null) return INVALID_MOVE;
+  const sameSide = (other: Power): boolean =>
+    side === "attacker"
+      ? other === war.attacker || war.attackerAllies.includes(other)
+      : other === war.defender || war.defenderAllies.includes(other);
+  // A marker whose units have since moved or been eliminated is stale: the
+  // printed marker stays on the map but can no longer conduct the operation.
+  const markers = (war.jointNavalMarkers ?? []).filter((entry) =>
+    entry.unitIds.every((id) => {
+      const unit = G.units[id];
+      return unit !== undefined && unit.naval === true && unit.space === entry.space && entry.space === from;
+    }));
+  const partnerMarkers = markers.filter((entry) => entry.power !== power && sameSide(entry.power));
+
+  if (to === undefined) {
+    // Place (or replace) the caller's marker; the CP is spent and lost if the
+    // marker is never used.
+    if (!spendCpFor(G, power, 1)) return INVALID_MOVE;
+    war.jointNavalMarkers = [
+      ...(war.jointNavalMarkers ?? []).filter((entry) => entry.power !== power),
+      {power, unitIds: [...unitIds], space: from},
+    ];
+    log(G, power, "jointNavalMarkerPlaced", {space: from, count: unitIds.length});
+    return undefined;
+  }
+
+  // Conducting the operation needs at least one allied marker: a lone player
+  // simply takes an ordinary naval movement action instead.
+  if (partnerMarkers.length === 0) return INVALID_MOVE;
+  if (to === from) return INVALID_MOVE;
+  const partnerUnits = partnerMarkers.flatMap((entry) =>
+    entry.unitIds.map((id) => G.units[id]).filter((unit): unit is Unit => unit !== undefined),
+  );
+  const contact = navalUnitsIn(G, to).some((unit) =>
+    hostileOwner(G, power, unit.owner) || partnerMarkers.some((entry) => hostileOwner(G, entry.power, unit.owner)),
+  );
+  for (const participant of [power, ...partnerMarkers.map((entry) => entry.power)]) {
+    const plan = planNavalMove(G, participant, from, to, {allowEnemyDestination: contact});
+    if (!plan.ok) {
+      log(G, power, "jointNavalRejected", {reason: plan.reason, ally: participant});
+      return INVALID_MOVE;
+    }
+  }
+  const allUnits = [...units, ...partnerUnits];
+  if (!isNavalBox(to) && contact && allUnits.length > PORT_NAVAL_LIMIT) return INVALID_MOVE;
+  if (!contact) {
+    const endProblem = movementEndProblem(G, to, allUnits);
+    if (endProblem !== null) return INVALID_MOVE;
+  }
+  if (!spendCpFor(G, power, 1)) return INVALID_MOVE;
+  // Remove every marker that took part (including the caller's, if any).
+  war.jointNavalMarkers = (war.jointNavalMarkers ?? []).filter(
+    (entry) => entry.power !== power && !partnerMarkers.some((partner) => partner.power === entry.power),
+  );
+  for (const unit of allUnits) {
+    G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unit.id);
+    G.spaces[to].units.push(unit.id);
+    unit.space = to;
+  }
+  log(G, power, "jointNavalMove", {
+    from,
+    to,
+    count: allUnits.length,
+    allies: partnerMarkers.map((entry) => entry.power).join(","),
+  });
+  const interceptAtDestination = isNavalBox(to) && navalInterceptCandidates(G, power, to).length > 0;
+  if ((contact || interceptAtDestination) && G.battle === null) {
+    openNavalContactDecision(G, ctx, power, from, to, allUnits.map((unit) => unit.id));
+  }
+  return undefined;
+};
+
 export type NavalTransportBlockReason =
   | NavalTransportReason
   | "no-seat"

@@ -1087,6 +1087,38 @@ const FORMATTERS: Record<string, Formatter> = {
       "赢得意大利统一战争，取得意大利统一格中的 +1 抽牌标记。",
     ),
 
+  jointNavalMarkerPlaced: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const count = Number(entry.args?.count ?? 0);
+    return withActor(
+      entry,
+      locale,
+      `placed a joint naval operations marker on ${count} naval unit(s) in ${space}.`,
+      `在${space}的 ${count} 支海军单位上放置联合海上行动标记。`,
+    );
+  },
+
+  jointNavalMove: (entry, locale) => {
+    const from = spaceName(entry.args?.from, locale);
+    const to = spaceName(entry.args?.to, locale);
+    const count = Number(entry.args?.count ?? 0);
+    const allies = str(entry.args?.allies);
+    return withActor(
+      entry,
+      locale,
+      `conducted a joint naval operation with ${allies || "an ally"}: ${count} naval unit(s) moved from ${from} to ${to}.`,
+      `与${allies || "盟友"}进行联合海上行动：${count} 支海军单位从${from}移动到${to}。`,
+    );
+  },
+
+  jointNavalRejected: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      `could not conduct the joint naval operation (${str(entry.args?.reason) || "illegal route"}).`,
+      `无法进行联合海上行动（${str(entry.args?.reason) || "路线不合法"}）。`,
+    ),
+
   warPeaceProposed: (entry, locale) => {
     const kind = str(entry.args?.kind);
     const label = kind === "white"

@@ -659,6 +659,13 @@ export interface WarSide {
    */
   italianBeneficiary?: string;
   /**
+   * Rule 15.2.2: a joint naval operations marker.  Taking the action spends 1
+   * CP and marks the naval units that will move with an ally in a later
+   * impulse.  All markers are removed when the operation is conducted (or at
+   * the end of the war), and the CP is never refunded.
+   */
+  jointNavalMarkers?: {power: Power; unitIds: string[]; space: SpaceId}[];
+  /**
    * Rules 16.1.4 / 16.1.5: the primaries' agreed peace.  `kind` is the printed
    * choice, `conceding` names the side that gives up one treaty option (so the
    * other side is the victor), and `treaty` is the specific option the players
