@@ -650,6 +650,14 @@ export interface WarSide {
    * may then join the defending side without an invitation.
    */
   allowNeutralJoin?: boolean;
+  /**
+   * Rule 13.2.1: the Italian state the attacker named at declaration time to
+   * receive any conquered land.  Only an Italian war of unification carries it
+   * ("this must be either Sardinia-Piedmont or the Kingdom of the Two
+   * Sicilies").  Optional so every other declaration and older save keeps its
+   * shape; the 16.2.1 mandatory cession reads it to route the ceded spaces.
+   */
+  italianBeneficiary?: string;
 }
 
 /**

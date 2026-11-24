@@ -25,7 +25,7 @@ import {
   WarKnockoutRecord,
   WarState,
 } from "../types";
-import {SPACES, connectionsOf, isNavalBox} from "../constant/spaces";
+import {SPACES, connectionsOf, isNavalBox, neighboursOf} from "../constant/spaces";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {cardById, isCardId} from "./deck";
 import {
@@ -94,6 +94,12 @@ export type WarAimIssueCode =
   | "unification-wrong-power"
   | "unification-not-german"
   | "unification-not-citizenship"
+  | "unification-no-marker"
+  | "unification-after-unified"
+  | "unification-bad-beneficiary"
+  | "unification-beneficiary-allied"
+  | "unification-not-italian"
+  | "unification-not-adjacent"
   | "conquest-capital"
   | "conquest-subcapital"
   | "conquest-too-many-keys";
@@ -121,6 +127,13 @@ export interface WarAimRules {
   nationalitiesOf?: (space: SpaceId) => readonly string[];
   /** Rule 13.1 dual-home exception.  Defaults to `homeOverride` differing. */
   isDualHome?: (G: ImperialElegyState, space: SpaceId) => boolean;
+  /**
+   * Rule 13.2.1: the Italian state the attacker named to receive any land won
+   * in an Italian war of unification.  Presence switches the `unification` aim
+   * from the GE/AU branches to the Italian one; the value must be
+   * `Sardinia-Piedmont` or `Two Sicilies`.
+   */
+  italianBeneficiary?: string;
   /**
    * Rule 13.3's conquest key limit.  Defaults to one; Aux Armes prints "may
    * target up to two keys" and passes 2.
@@ -195,6 +208,29 @@ const defaultDualHome = (G: ImperialElegyState, space: SpaceId): boolean => {
 
 const isWarAim = (value: unknown): value is WarAim =>
   value === "liberation" || value === "unification" || value === "conquest";
+
+/**
+ * Rule 13.2.1: "this must be either Sardinia-Piedmont or the Kingdom of the Two
+ * Sicilies" — the only two states that can receive land won in an Italian war
+ * of unification.
+ */
+export const ITALIAN_UNIFICATION_STATES: readonly string[] = ["Sardinia-Piedmont", "Two Sicilies"];
+
+/** True when `attacker` holds a diplomacy or ally marker with `minor`. */
+export const hasMarkerWithMinor = (G: ImperialElegyState, attacker: Power, minor: string): boolean =>
+  Object.values(SPACES).some((def) => {
+    const state = G.spaces[def.id];
+    if (!state) return false;
+    if (def.minorHome !== minor && state.control !== minor) return false;
+    return state.ally === attacker || state.diplomacy === attacker;
+  });
+
+/** The non-player home(s) of an Italian unification state, in map order. */
+export const italianMinorSpacesOf = (minor: string): SpaceId[] =>
+  Object.values(SPACES)
+    .filter((def) => def.minorHome === minor)
+    .map((def) => def.id);
+
 
 // ---------------------------------------------------------------------------
 // War aim validation (rule 13.0)
@@ -295,7 +331,61 @@ export const validateWarAim = (
       }
     }
   } else if (aim === "unification") {
-    if (attacker !== "GE" && attacker !== "AU") {
+    // Rule 13.2.1: an Italian war of unification is the one that names the
+    // Italian state receiving the conquered land.  Every other unification
+    // stays with the printed GE (German nationality) and AU (citizenship)
+    // branches.
+    if (rules.italianBeneficiary !== undefined) {
+      const italian = rules.italianBeneficiary;
+      if (!ITALIAN_UNIFICATION_STATES.includes(italian)) {
+        add(
+          "unification-bad-beneficiary",
+          `${italian} is not Sardinia-Piedmont or the Kingdom of the Two Sicilies`,
+        );
+      }
+      if (G.persistent.italyUnified === true || G.flags.italyUnified === true) {
+        add("unification-after-unified", "Italy is already unified");
+      }
+      // 13.2.1: "Any player with a diplomacy or ally marker with either
+      // Sardinia-Piedmont or the Kingdom of the Two Sicilies … may declare a
+      // war for Italian unification."
+      if (
+        !hasMarkerWithMinor(G, attacker, "Sardinia-Piedmont") &&
+        !hasMarkerWithMinor(G, attacker, "Two Sicilies")
+      ) {
+        add(
+          "unification-no-marker",
+          `${attacker} has no diplomacy or ally marker with Sardinia-Piedmont or the Two Sicilies`,
+        );
+      }
+      // "then the attacking player gains an alliance with that power if they
+      // do not already have one": taking an already-allied minor from another
+      // player is not printed, so the declaration is refused instead.
+      const existingAlly = minorWarAlly(G, italian);
+      if (existingAlly !== null && existingAlly !== attacker) {
+        add(
+          "unification-beneficiary-allied",
+          `${italian} is already allied to ${existingAlly}`,
+        );
+      }
+      for (const space of objectives) {
+        if (!SPACES[space]) continue;
+        if (!nationalityOf(G, space, rules).includes("Italians")) {
+          add("unification-not-italian", `${space} does not contain Italian nationality`, space);
+        }
+      }
+      // "Players target up to two adjacent spaces that contain Italian
+      // nationality."
+      if (objectives.length === 2 && SPACES[objectives[0]] && SPACES[objectives[1]]) {
+        if (!neighboursOf(objectives[0]).includes(objectives[1])) {
+          add(
+            "unification-not-adjacent",
+            `${objectives[0]} and ${objectives[1]} are not adjacent`,
+            objectives[1],
+          );
+        }
+      }
+    } else if (attacker !== "GE" && attacker !== "AU") {
       add("unification-wrong-power", "only GE or AU may declare a war of unification");
     } else {
       for (const space of objectives) {
@@ -383,6 +473,8 @@ export const createWarState = (
      * `coDefenderMinors`, so every side/validation helper sees them.
      */
     coDefenderMinors?: readonly string[];
+    /** Rule 13.2.1: the Italian state receiving land won in this war. */
+    italianBeneficiary?: string;
   } = {},
 ): WarState => ({
   attacker,
@@ -419,6 +511,9 @@ export const createWarState = (
     : {}),
   ...(options.coDefenderMinors && options.coDefenderMinors.length > 0
     ? {coDefenderMinors: [...options.coDefenderMinors]}
+    : {}),
+  ...(options.italianBeneficiary !== undefined
+    ? {italianBeneficiary: options.italianBeneficiary}
     : {}),
 });
 
@@ -1492,10 +1587,16 @@ export const joinWarAsMinor = (
   if (side === null || (caller !== war.attacker && caller !== war.defender)) {
     return {ok: false, caller, minor, side, reason: "not-primary", applied: false};
   }
-  const home = MINOR_POWER_HOMES[minor];
+  // 14.0: "all minor power allies, and a unified Italy, join the war at the
+  // primary belligerent's discretion."  A unified Italy is a non-player major
+  // with no `MINOR_POWER_HOMES` row, so it is resolved through Rome instead.
+  const isItaly = minor === "Italy";
+  if (isItaly && G.persistent.italyUnified !== true) {
+    return {ok: false, caller, minor, side, reason: "unknown-minor", applied: false};
+  }
+  const home = isItaly ? "rome" : MINOR_POWER_HOMES[minor];
   if (!home) return {ok: false, caller, minor, side, reason: "unknown-minor", applied: false};
-  const allied = G.spaces[home]?.ally === caller ||
-    Object.values(G.spaces).some((state) => state.control === minor && state.ally === caller);
+  const allied = minorWarAlly(G, minor) === caller;
   if (!allied) return {ok: false, caller, minor, side, reason: "not-allied", applied: false};
   if (war.attackerMinors.includes(minor) || war.defenderMinors.includes(minor)) {
     return {ok: false, caller, minor, side, reason: "already-belligerent", applied: false};
@@ -2777,8 +2878,17 @@ export const applyTreaty = (
 
   if (choice.option === "territorialCession") {
     const spaces = choice.spaces ?? war.objectives;
+    // 13.2.1: an Italian unification war's cessions go to the named Italian
+    // state, not to the victorious player.  The state stays allied to the
+    // winning attacker so it remains controllable.
+    const italianRecipient = isItalianUnificationWar(war) ? war.italianBeneficiary : undefined;
     for (const space of spaces) {
       const original = SPACES[space]?.control ?? null;
+      if (italianRecipient !== undefined) {
+        setControl(G, space, italianRecipient, {ally: war.attacker});
+        affectedSpaces.push(space);
+        continue;
+      }
       if (war.warAim === "liberation" && original !== null && !isPower(original) && isPower(beneficiary)) {
         // A liberated minor immediately becomes allied to the liberator (13.1.1).
         setControl(G, space, original, {ally: beneficiary});

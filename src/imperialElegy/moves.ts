@@ -281,6 +281,7 @@ import {
   endGreatWar,
   resolveCrisisPending,
   resolveItalianNationalistWaveChoice,
+  italianUnificationRoll,
   resolveItalyNavalBase,
   resolveItalyOttomanTerritoryChoice,
   setGwOrderChoice,
@@ -344,9 +345,11 @@ import {
   initiativeOrder,
   initiativeRollOff,
   isItalianUnificationWar,
+  ITALIAN_UNIFICATION_STATES,
   isMinorWarTargetArg,
   isWarImmuneNonPlayer,
   holdsWarImpulse,
+  minorWarAlly,
   minorWarDefender,
   minorWarInfo,
   nonPlayerHome,
@@ -3517,10 +3520,18 @@ const finalizeWarDeclaration = (
       list.findIndex((other) => warTargetKey(other) === warTargetKey(entry)) === index);
   const forbidPlayers = G.flags.declarationForbid === true;
   const allowNeutralJoin = G.flags.declarationNeutralJoin === true;
+  // Rule 13.2.1: the Italian beneficiary crossed the 13.4 aid search (and any
+  // 33.3 decision) as a public flag, exactly like the 14.1 second target.
+  const rawItalianBeneficiary = G.flags.declarationItalianBeneficiary;
+  const italianBeneficiary =
+    typeof rawItalianBeneficiary === "string" && ITALIAN_UNIFICATION_STATES.includes(rawItalianBeneficiary)
+      ? rawItalianBeneficiary
+      : undefined;
   delete G.flags.declarationSecond;
   delete G.flags.declarationPrimary;
   delete G.flags.declarationForbid;
   delete G.flags.declarationNeutralJoin;
+  delete G.flags.declarationItalianBeneficiary;
   if (declarationCard === null || !warDeclarationExemptsConquestPenalty(declarationCard)) {
     applyConquestDeclarationPenalty(G, ctx, power, aim, stabilityDiscount);
   }
@@ -3605,6 +3616,7 @@ const finalizeWarDeclaration = (
     {
       ...(minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {}),
       ...(coMinors.length > 0 ? {coDefenderMinors: coMinors} : {}),
+      ...(italianBeneficiary !== undefined ? {italianBeneficiary} : {}),
     },
   );
   // 13.7 is a defending-seat action during the war-aim/alliance steps, while
@@ -3665,6 +3677,26 @@ const finalizeWarDeclaration = (
       }
       log(G, power, "qingArmyPlaced", {space: key});
     }
+  }
+  // Errata 13.4.4: "The player that aids the Qing in the war of conquest gains
+  // a +1 card marker regardless of the war's outcome."  The aider is the
+  // player defending Qing, whether found by 13.4.2's aid search or already
+  // allied to it (13.4 turns the declaration into one on that player); the
+  // marker is granted when the war is created, so its outcome cannot take it
+  // away.
+  if (
+    minor !== null &&
+    minor.minor === "Qing China" &&
+    aim === "conquest" &&
+    isPower(minor.ally) &&
+    minor.ally !== power
+  ) {
+    G.powers[minor.ally].cardMarkers += 1;
+    log(G, minor.ally, "qingAidCardMarker", {
+      minor: minor.minor,
+      cardMarkers: G.powers[minor.ally].cardMarkers,
+      existingAlly: true,
+    });
   }
   if (minor !== null) {
     // Rule 13.4 / 14.2 / 8.2: the aiding player ally shifts away from the
@@ -3883,15 +3915,8 @@ const finalizeMinorAid = (
   // 13.4.2: the *aiding* player answers the call and gains the alliance; the
   // attacker is only the power that declared war on the minor.
   log(G, ally, "minorAidGranted", {minor: state.minor, ally, space: home});
-  // 13.4.4 (as amended): "The player that aids the Qing in the war of conquest
-  // gains a +1 card marker regardless of the war's outcome."
-  if (state.minor === "Qing China" && state.aim === "conquest") {
-    G.powers[ally].cardMarkers += 1;
-    log(G, ally, "qingAidCardMarker", {
-      minor: state.minor,
-      cardMarkers: G.powers[ally].cardMarkers,
-    });
-  }
+  // Errata 13.4.4's aider marker is granted by `finalizeWarDeclaration` for
+  // every path (13.4.2 aid search included), so it is not duplicated here.
   G.pending = null;
   return finalizeWarDeclaration(
     G,
@@ -4270,6 +4295,13 @@ export interface DeclareWarOptions {
    * from joining the war."  Minor allies still join under 14.0.
    */
   forbidPlayers?: boolean;
+  /**
+   * Rule 13.2.1: the Italian state the attacker will give any conquered land
+   * to.  Supplying it declares an Italian war of unification (any player with
+   * a diplomacy/ally marker with Sardinia-Piedmont or the Two Sicilies may);
+   * leaving it out keeps 13.2's GE/AU unification branches.
+   */
+  italianBeneficiary?: string;
 }
 
 export const declareWar = (
@@ -4296,6 +4328,19 @@ export const declareWar = (
   // resolves.  It funds this one declaration with the card's printed CP and
   // carries the card's own aim/target limits, so no ordinary impulse CP is
   // spent (errata 12.17: the card's CP all go into the war).
+  // Rule 13.2.1: the Italian beneficiary is a declaration-time choice of
+  // Sardinia-Piedmont or the Two Sicilies.  Supplying it switches the
+  // unification aim to the Italian branch, which any player with a marker on
+  // either state may use; GE/AU keep their printed German/citizenship wars
+  // when they do not name one.
+  const italianBeneficiary = options.italianBeneficiary;
+  if (italianBeneficiary !== undefined) {
+    if (aim !== "unification") return INVALID_MOVE;
+    if (!ITALIAN_UNIFICATION_STATES.includes(italianBeneficiary)) return INVALID_MOVE;
+  } else if (aim === "unification" && power !== "GE" && power !== "AU") {
+    return INVALID_MOVE;
+  }
+
   const entitlement = warDeclarationEntitlement(G, power);
   const policy = entitlement !== null ? warDeclarationPolicy(entitlement.card) : null;
   if (entitlement !== null) {
@@ -4424,6 +4469,7 @@ export const declareWar = (
     ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
     conquestKeyLimit: policy?.conquestKeyLimit,
     ...(declaredDefenders !== undefined ? {defenders: declaredDefenders} : {}),
+    ...(italianBeneficiary !== undefined ? {italianBeneficiary} : {}),
   });
   if (!validation.ok) return INVALID_MOVE;
   let bismarckAllianceApplied = false;
@@ -4446,6 +4492,19 @@ export const declareWar = (
       defenderForAim = minorWarDefender(minor);
     }
     if (secondInfo !== null) secondDefenderForAim = minorWarDefender(secondInfo);
+  }
+  if (italianBeneficiary !== undefined) {
+    // "then the attacking player gains an alliance with that power if they do
+    // not already have one."  Validation refused a beneficiary already allied
+    // to another player, so this is either a no-op or a fresh alliance.
+    if (minorWarAlly(G, italianBeneficiary) === null) {
+      const home = applyMinorAidAlliance(G, italianBeneficiary, power);
+      if (home === null) return INVALID_MOVE;
+      log(G, power, "minorAlliance", {space: home, italianBeneficiary});
+      recomputeTracks(G);
+    }
+    // The choice crosses every 13.4.1/13.4.2/33.3 decision on the public flag.
+    G.flags.declarationItalianBeneficiary = italianBeneficiary;
   }
   if (entitlement !== null) {
     // The declaration is paid for by the home card, not by impulse CP.  The
@@ -5455,13 +5514,56 @@ const grantItalianUnificationMpitCp = (
   G: ImperialElegyState,
   war: WarState,
   victor: "attacker" | "defender" | null,
+  unified = false,
 ): void => {
-  if (!isItalianUnificationWar(war)) return;
-  const winner = victor === "defender" && isPower(war.defender) ? war.defender : war.attacker;
+  if (!isItalianUnificationWar(war) || victor !== "attacker") return;
+  // 22.2: "Then, if Italy unified immediately after an Italian war of
+  // unification, the primary belligerent that won the Italian war of
+  // unification may spend 2 free CP to influence Italy on the MPIT."  The
+  // concession is conditional on the unification roll, not on merely winning.
+  if (!unified && G.persistent.italyUnified !== true) return;
+  const winner = war.attacker;
   G.flags.italyUnificationMpitCp = 2;
   G.flags.italyUnificationMpitCpTurn = G.turn;
   G.flags.italyUnificationMpitCpPower = winner;
   log(G, winner, "italyUnificationMpitCp", {cp: 2});
+};
+
+/**
+ * Rule 13.2.1: "If the attacking player wins the war they must choose the
+ * territorial cession treaty option.  Additionally, if the attacking player
+ * wins, roll for Italian unification [22.1.5]."  The victory already required
+ * the cession (`warRequiresMandatoryCession`), so this runs after the treaties
+ * are applied and before demobilisation: the ceded spaces count towards the
+ * 22.1.5 DRMs.  22.1.2's unification-box +1 card marker goes to the winner.
+ *
+ * Returns true when the roll (or an already-unified board) leaves Italy
+ * unified, so the 22.2 free MPIT CP are granted only in that case.
+ */
+const resolveItalianWarVictory = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  war: WarState,
+  victor: "attacker" | "defender" | null,
+): boolean => {
+  if (!isItalianUnificationWar(war) || victor !== "attacker") return false;
+  if (G.persistent.italyUnified === true) return true;
+  if (G.flags.italyPetition === true) {
+    // 22.1.2: "After a player wins an Italian war of unification they gain the
+    // +1 card marker."  It was placed in the Italian unification box by the
+    // Petition for Aid result; winning takes it.
+    delete G.flags.italyPetition;
+    G.powers[war.attacker].cardMarkers += 1;
+    log(G, war.attacker, "italyPetitionMarkerGained", {
+      cardMarkers: G.powers[war.attacker].cardMarkers,
+    });
+  }
+  const unified = italianUnificationRoll(G, ctx, war.attacker);
+  // 22.1.3/22.1.4's own roll points stay live; this flag only keeps the action
+  // phase's 3-key auto-check from undoing a failed 13.2.1 roll in the same
+  // turn (the printed procedure rolls once per trigger).
+  if (!unified) G.flags.italianUnificationRolledTurn = G.turn;
+  return unified;
 };
 
 /** Demobilize the settled war and open the rule 17.0 free actions. */
@@ -5469,7 +5571,8 @@ const completeWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void =
   const war = G.war;
   if (!war) return INVALID_MOVE;
   drawPostWarCards(G, ctx, war);
-  grantItalianUnificationMpitCp(G, war, war.victor);
+  const unified = resolveItalianWarVictory(G, ctx, war, war.victor);
+  grantItalianUnificationMpitCp(G, war, war.victor, unified);
 
   // 33.1 German Confederation: every space GE gained by the treaties becomes a
   // permanent home space now, before the demobilization free actions.
@@ -5531,7 +5634,6 @@ const settleWarImmediately = (
   if (preparePostWarDraws(G, ctx, {mode: "immediate", victory, choices})) return undefined;
   applyWarEndCharacteristics(G, ctx);
   drawPostWarCards(G, ctx, war);
-  grantItalianUnificationMpitCp(G, war, victory.victor);
   G.flags.postWarWinner = postWarWinnerFor(war, victory.victor);
   const geWonUnification =
     war.warAim === "unification" && war.attacker === "GE" && victory.victor === "attacker";
@@ -5555,6 +5657,10 @@ const settleWarImmediately = (
     for (const treaty of settlement.treaties) {
       if (treaty.applied) displaceAfterTreaty(G, treaty.affectedSpaces);
     }
+    // 13.2.1: roll for Italian unification after the cession has been applied,
+    // then grant 22.2's 2 free MPIT CP only if Italy actually unified.
+    const unified = resolveItalianWarVictory(G, ctx, war, victory.victor);
+    grantItalianUnificationMpitCp(G, war, victory.victor, unified);
     G.flags.postWarWinner = settlement.demobilization.activePower;
     if (
       geWonUnification &&

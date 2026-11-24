@@ -499,6 +499,12 @@ const beneficiaryCandidates = (
     const owners = Object.values(G.spaces).flatMap((state) => state.independentHome ? [state.independentHome.power] : []);
     return [...new Set([primary, ...allies, ...POWERS, ...Object.keys(MINOR_POWER_HOMES), ...owners])];
   }
+  if (option === "territorialCession" && war.italianBeneficiary !== undefined) {
+    // Rule 13.2.1: "Any land gained in such a war must be given to either
+    // Sardinia-Piedmont or the Kingdom of the Two Sicilies (whichever was
+    // chosen at the start of the war)."  The beneficiary is not allocatable.
+    return [war.italianBeneficiary];
+  }
   if (
     option === "territorialCession" ||
     option === "warReparations" ||
