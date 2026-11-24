@@ -529,6 +529,39 @@ export const createWarState = (
 export const isLoneMinorWar = (war: WarState | null | undefined): boolean =>
   war?.minorTarget !== undefined && war.minorTarget.ally === null;
 
+/** True when unified Italy is a belligerent of `war` (14.0 / 15.4.1). */
+export const italyBelligerentIn = (war: WarState | null | undefined): boolean =>
+  war !== null &&
+  war !== undefined &&
+  (war.minorTarget?.minor === "Italy" ||
+    war.attackerMinors.includes("Italy") ||
+    war.defenderMinors.includes("Italy"));
+
+/**
+ * 15.6: "Italy can be knocked out of a war if Rome is occupied, but minor
+ * powers are never knocked out."  Recorded once; Italy leaves the war's
+ * rosters so it can no longer act, and the captor's 16.1.6 option is settled
+ * as the cession of the occupied key.
+ */
+export const recordItalyKnockout = (
+  G: ImperialElegyState,
+  war: WarState,
+  by: WarSideName,
+  captor: Power,
+): boolean => {
+  if (war.italyKnockedOut !== undefined) return false;
+  if (!italyBelligerentIn(war)) return false;
+  war.italyKnockedOut = {by, captor, capital: "rome", turn: G.turn};
+  war.attackerMinors = war.attackerMinors.filter((minor) => minor !== "Italy");
+  war.defenderMinors = war.defenderMinors.filter((minor) => minor !== "Italy");
+  if (war.minorTarget?.minor === "Italy" && war.minorTarget.ally === null && war.defender === "IT") {
+    // A lone Italy cannot remain the typed defender; the war is a player war
+    // with no Italian seat afterwards.  (The attacker still settles normally.)
+  }
+  log(G, captor, "italyKnockedOut", {capital: "rome", by});
+  return true;
+};
+
 /** Rule 15.4.2: the non-player power defending alone, or null. */
 export const loneMinorDefender = (war: WarState | null | undefined): string | null =>
   war?.minorTarget !== undefined && war.minorTarget.ally === null ? war.minorTarget.minor : null;
@@ -1696,7 +1729,10 @@ export const holdsWarImpulse = (
 ): boolean => {
   if (war === null) return false;
   if (war.status !== "maneuver") return false;
-  if (war.passed.includes(power)) return false;
+  // 15.4.1: the commander takes the last Italian impulse after every player
+  // has passed, so the ordinary "already passed" bar does not apply to it.
+  const italianImpulse = G.flags.italyImpulse === true && G.activePower === power;
+  if (war.passed.includes(power) && !italianImpulse) return false;
   return G.activePower === power;
 };
 
@@ -2079,6 +2115,9 @@ export const recordWarKnockoutCapture = (
   const onDefender = war.defender === captor || war.defenderAllies.includes(captor);
   if (onAttacker === onDefender) return null;
   const by: WarSideName = onAttacker ? "attacker" : "defender";
+  // 15.6: Rome is Italy's capital, and Italy is a non-player major rather than
+  // a player ally, so this is a separate record from `AllyKnockout`.
+  if (space === "rome") recordItalyKnockout(G, war, by, captor);
   const victims = by === "attacker" ? war.defenderAllies : war.attackerAllies;
   const power = victims.find((ally) => capitalOf(G, ally) === space);
   if (power === undefined) return null;
@@ -2096,6 +2135,16 @@ export const recordWarKnockouts = (G: ImperialElegyState): AllyKnockout[] => {
   const war = G.war;
   if (!war || G.gw?.active) return [];
   const out: AllyKnockout[] = [];
+  // 15.6 safety net for Rome: a capture path without the hook still records it.
+  if (italyBelligerentIn(war) && war.italyKnockedOut === undefined) {
+    if (spaceHeldBySide(G, war, "rome", "attacker") && war.defenderMinors.includes("Italy")) {
+      const captor = knockoutCaptorOf(G, war, "attacker", "rome");
+      recordItalyKnockout(G, war, "attacker", captor);
+    } else if (spaceHeldBySide(G, war, "rome", "defender") && war.attackerMinors.includes("Italy")) {
+      const captor = knockoutCaptorOf(G, war, "defender", "rome");
+      recordItalyKnockout(G, war, "defender", captor);
+    }
+  }
   for (const power of [...war.attackerAllies].sort((a, b) => POWER_ORDER[a] - POWER_ORDER[b])) {
     if (!capitalHeldBySide(G, war, power, "defender")) continue;
     const recorded = recordWarKnockout(G, war, power, "defender", capitalOf(G, power));
@@ -3313,6 +3362,16 @@ export const settleLimitedWar = (
   const treaties = orderedChoices.map((choice) => applyTreaty(G, war, victory, choice));
   const invalid = treaties.filter((treaty) => !treaty.applied).map((treaty) => treaty.option);
   outcome.harshTerms = applyHarshTerms(G, war, orderedChoices.filter((_, index) => treaties[index].applied), ctx);
+  // 15.6 / 16.1.6: the captor of occupied Rome holds the special option against
+  // the knocked-out Italy.  It is settled as the cession of that key.
+  if (war.italyKnockedOut !== undefined) {
+    const {captor, capital} = war.italyKnockedOut;
+    if (isPower(captor) && G.spaces[capital] && G.spaces[capital].control !== captor) {
+      setSpaceControl(G, capital, captor);
+      G.spaces[capital].ally = null;
+      log(G, captor, "italyKnockoutCession", {space: capital});
+    }
+  }
   const demobilization = demobilizeWar(G, war, ctx);
   return {
     ok: invalid.length === 0,

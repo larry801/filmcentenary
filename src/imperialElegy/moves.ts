@@ -382,7 +382,7 @@ import {
   warCapitalFallen,
 } from "./engine/limitedWar";
 import {blockadedAt} from "./engine/blockade";
-import {applyItalyWarStartRules} from "./engine/italyMilitary";
+import {applyItalyWarStartRules, italyInvolvedInWar, italyWartimeCommander} from "./engine/italyMilitary";
 import {
   applyTreatyChoice,
   buildTreatyPending,
@@ -1926,7 +1926,12 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
   // A088/UK-3: naval movement is a printed colonial/operation action.
   const power = requireColonialCp(G, ctx, playerID, 1, ["freeColonialCp", "freeOperationCp"]);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  const units = unitIds.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && u.owner === power && u.naval === true);
+  const units = unitIds
+    .map((id) => G.units[id])
+    .filter((u): u is Unit =>
+      u !== undefined &&
+      u.naval === true &&
+      (u.owner === power || (u.owner === "IT" && G.flags.italyImpulse === true && power === G.activePower)));
   if (units.length === 0) return INVALID_MOVE;
   const from = units[0].space;
   if (!from) return INVALID_MOVE;
@@ -3152,7 +3157,11 @@ const moveOneWartimeLandUnit = (
 ): string | void => {
   const unit = G.units[unitId];
   if (!unit) return INVALID_MOVE;
-  const commands = unit.owner === power || commandsAlliedMinor(G, power, unit.owner);
+  // 15.4.1: during the Italian impulse the commander also commands "IT".
+  const commands =
+    unit.owner === power ||
+    (unit.owner === "IT" && G.flags.italyImpulse === true && power === G.activePower) ||
+    commandsAlliedMinor(G, power, unit.owner);
   if (!commands) return INVALID_MOVE;
   // 15.2.3: a reserve army deployed this impulse cannot march, rail or attack.
   if (unit.flags?.deployedThisImpulse === true) return INVALID_MOVE;
@@ -5169,11 +5178,38 @@ const recordWarPass = (G: ImperialElegyState, ctx: Ctx, power: Power): string | 
     G.powers.GE.flags.superiorStaffWorkUsed = true;
     log(G, "GE", "superiorStaffWorkDeclined", {scope: "war"});
   }
+  // 15.4.1: the Italian impulse is always last.  The commander's pass is the
+  // end of that impulse (and then of the maneuver), not a normal player pass.
+  if (G.flags.italyImpulse === true) {
+    delete G.flags.italyImpulse;
+    war.italyBudget = 0;
+    log(G, power, "italyImpulseEnded", {});
+    return resolveWar(G, ctx);
+  }
   if (!war.passed.includes(power)) war.passed.push(power);
   const order = warPassOrder(G, war);
-  // When every belligerent has passed the war is settled through the shared
-  // classifyVictory + settleLimitedWar path.
-  if (order.every((p) => war.passed.includes(p))) return resolveWar(G, ctx);
+  // When every player belligerent has passed, a unified Italy that is in the
+  // war takes its own 2-CP impulse first (15.4.1); without one the war settles
+  // through the shared classifyVictory + settleLimitedWar path.
+  if (order.every((p) => war.passed.includes(p))) {
+    const italyCommander = italyInvolvedInWar(war) ? italyWartimeCommander(G, war) : null;
+    if (
+      italyCommander !== null &&
+      italyCommander !== "IT" &&
+      isPower(italyCommander) &&
+      war.italyImpulseDone !== true
+    ) {
+      war.italyImpulseDone = true;
+      war.italyBudget = 2;
+      G.flags.italyImpulse = true;
+      G.activePower = italyCommander;
+      clearWarImpulseSpend(G);
+      log(G, italyCommander, "italyImpulseStarted", {budget: 2, space: war.minorTarget?.minor === "Italy" ? "defender" : "attacker"});
+      beginImpulseUpkeep(G, ctx, italyCommander);
+      return undefined;
+    }
+    return resolveWar(G, ctx);
+  }
   const next = order.find((p) => !war.passed.includes(p));
   if (next) {
     G.activePower = next;

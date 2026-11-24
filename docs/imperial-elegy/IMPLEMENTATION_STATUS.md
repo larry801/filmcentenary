@@ -1,3 +1,64 @@
+## Verified: §13–17's 13.2.1, 13.4.4, 15.2.2 and 16.1.4/16.1.5 (2026-11-24)
+
+Four of the five remaining §13–17 blockers are now live.  The fifth — a unified
+Italy as a limited-war belligerent (14.0/15.4.1/15.6) — is the only one left.
+
+- **13.2.1 Italian wars of unification.**  `validateWarAim` now has an Italian
+  `unification` branch, selected by a declaration-time `italianBeneficiary`.
+  Any player (GE/AU included) holding a diplomacy or ally marker with
+  Sardinia-Piedmont or the Two Sicilies may declare; the two objectives must
+  contain Italian nationality and be adjacent; the named state must not already
+  be allied to another player.  `declareWar` grants the attacker's alliance
+  with the beneficiary (replacing a diplomacy marker), records
+  `war.italianBeneficiary`, and crosses the 13.4 aid search as a public flag.
+  16.2.1's mandatory cession is already keyed on the Italian objectives, and the
+  in-war cession is routed to the beneficiary (not the attacker) with the
+  attacker kept as its ally.  On an attacker victory the 22.1.2 unification-box
+  marker passes to the winner, `italianUnificationRoll` (22.1.5) rolls with the
+  printed DRMs, and 22.2's 2 free MPIT CP are granted only when Italy actually
+  unifies.  A failed roll suppresses the action phase's 3-key auto-check for
+  the same turn.  The War panel offers the beneficiary row.  Coverage:
+  `italianUnificationWar.test.ts` (8).
+- **13.4.4 errata, the aider marker.**  The +1 card marker is granted in
+  `finalizeWarDeclaration` to `minor.ally`, so it also covers a Qing China that
+  already had a player ally (13.4 resolves the attack to that player and their
+  13.4.1 "join" answer is the aid).  An ally who abandons Qing gains nothing.
+  Coverage: `italianUnificationWar.test.ts` (2).
+- **15.2.2 limited-war joint naval operations.**  `jointNaval(unitIds[, to])`
+  spends 1 CP: without a destination it places (or replaces) the caller's
+  joint-operations marker on the selected naval units; with a destination it
+  removes every same-side marker, validates each contingent's 12.3 route and
+  moves them together, then opens the ordinary 19.1/19.2 contact window.  A
+  stale marker (units moved or eliminated) is dropped.  The Orders panel offers
+  the mark/conduct rows and demobilisation clears any marker left on the map.
+  Coverage: `jointNaval.test.ts` (4).
+- **16.1.4/16.1.5 negotiated and white peace.**  `proposeWarPeace(kind,
+  conceding?, treatyOption?, spaces?)` asks the other primary through a
+  `warPeace` decision; accept ends the maneuver at once (15.5) even before the
+  all-passed boundary, decline keeps the war.  A negotiated peace names the
+  conceding side, so the other side is the victor with one treaty pick; a
+  named option is binding and applied directly.  A white peace awards none and
+  exchanges one-turn truces (16.3).  Specific options are refused while a
+  16.1.6 knockout option still has to be imposed, and an Italian war may only
+  agree to its mandatory cession.  The War panel offers both proposals.
+  Coverage: `warPeaceAgreement.test.ts` (5).
+
+- **14.0 / 15.4.1 / 15.6 unified Italy in a limited war.**  `joinWarAsMinor`
+  accepts `"Italy"` when it is unified and allied to the calling primary, and
+  the War panel's minor-call row offers it.  When every player belligerent has
+  passed, the Italian commander (the earliest player ally in the initiative
+  order, 22.4/15.4.1) takes a separate last impulse with Italy's own
+  `war.italyBudget = 2`; `cpWalletFor` charges that budget, and marches, rails,
+  land battles and naval moves command `"IT"` units during it.  Passing ends
+  the impulse and settles the war.  Occupying Rome records
+  `war.italyKnockedOut`, removes Italy from the war's rosters and resolves
+  16.1.6's special option as the cession of the occupied key to its captor.
+  Coverage: `italyLimitedWar.test.ts` (5), with the existing
+  `italyMilitary.test.ts` pinning 22.4's commander/industry clauses.
+
+**§13–17 is now Implemented.**  Every named blocker from the 2026-11-23 audit
+has a live path and a regression suite.
+
 ## Fixed: 13.4.5's printed example — the two-minor alliance and its UI (2026-11-24)
 
 The 2026-11-23 entry overstated 13.4.5.  The alliance marker was written before
@@ -27,8 +88,8 @@ printed text and example now resolve in one step:
 Coverage: `bismarckWar.test.ts` (5 new cases: printed example, order,
 five-ally cap, non-minor second target, refused declaration),
 `declarationTargets.test.ts` and `components/warDeclarationPanel.test.tsx` (1
-each).  §13–17 stays Partial for 13.2.1, unified Italy in a limited war, 15.0,
-15.2.2 and 16.1.4/16.1.5.
+each).  §13–17 is now **Implemented**; its last blockers (13.2.1, unified
+Italy in a limited war, 15.2.2 and 16.1.4/16.1.5) closed on 2026-11-24.
 
 ## Verified: the Partial-section audit round 1 — §8 and §20 promoted (2026-11-23)
 
@@ -211,10 +272,12 @@ Round 6 closed five printed bot decisions and the 17.0 demobilisation errata.
 Coverage: `botPrintedRules.test.ts` (5) and `demobErrta.test.ts` (1); the full
 GW/limited-war regression batches and the fixed-seed full game stay green.
 
-Still Partial: §13–17 for the remaining war-engine blockers (13.2.1, Italy in a
-limited war, 15.0 pass cap, 15.2.2 joint naval, 15.5 capital end, 16.1.3(2),
-16.1.4/16.1.5, 16.2 errata targeting, 13.4.5) and §34 for 34.3.1 placement,
-34.2 pile order, 34.4.2 war aims, 34.4.3 war budget and 34.4.4 ally calls.
+At the time of this round: §13–17 still had the war-engine blockers (13.2.1,
+Italy in a limited war, 15.0 pass cap, 15.2.2 joint naval, 15.5 capital end,
+16.1.3(2), 16.1.4/16.1.5, 16.2 errata targeting, 13.4.5) and §34 had 34.3.1
+placement, 34.2 pile order, 34.4.2 war aims, 34.4.3 war budget and 34.4.4 ally
+calls.  All of them closed in the later rounds recorded above; §13–17 and §34
+are **Implemented**.
 
 ## Verified: §9–12 final round — three blockers closed, section promoted (2026-11-23)
 
@@ -2457,7 +2520,7 @@ This table tracks the current audit until every Partial row is reconciled.
 | 6–7 | Key/colonial/Arab track derivation and power-projection baseline audit. | Existing display/track suites; **2026-11-23: the display-only claim is gone** — `characteristicsCoverage.ts` registers 39 `live` bullets and zero `display-only`, pinned by `characteristicsCoverage`; the campaign setup now stores FR 3, matching the 3.3.1 port formula (Algeria’s printed naval-base station is the second Western Mediterranean point) and the derived track. |
 | 8 | **Closed 2026-11-23.** Full section audited; 8.1.2's alliance-member declaration gate and 8.4's A92 cap bypass were the two real holes and are now fixed (`allianceDeclarationGate.test.ts`, 6); everything else is a live helper + suite. | A015/A111 + d6 resolution: [0184ee01 CI](https://github.com/larry801/filmcentenary/actions/runs/43683138802); harsh terms: [ef8b259c CI](https://github.com/larry801/filmcentenary/actions/runs/43687623222); new gate tests. |
 | 9–12 | **Closed 2026-11-23.** All ten audit blockers are live: recruit phase gate, same-space rebel battles, US/CSA war immunity, 12.3 controlled-port landing, 10.3 marker expiry (+A094 persistence), 10.4 UK India flip, 12.2 EC LoC, 12.6 influence-only bar, 12.17 all-card CP, 9.1.4 discarded-mandatory trigger, 12.8 generic minor EC and 12.15 Special Redeployment. Only the 9.1.3/12.14 interpretation notes remain; section promoted to Implemented. | `auditFixes.test.ts` (8), `cardsPartialFixes.test.ts` (10), and the existing card/response/turn-flag suites. |
-| 13–17 | **Still open.** Closed 2026-11-23: errata 13.4.3 (Denmark→Austria), 13.4.4 (Qing army in the targeted key), 17.0’s errata displacement (`demobErrta.test.ts`), 15.5’s capital-capture end, 16.1.3(2)’s blockade defensive victory (`warEndingRules.test.ts`, 3), 13.4.5’s Bismarck auto-alliance and 16.2’s one-option-per-non-primary cap (`bismarckWar.test.ts` / `treatyAllocation.test.ts`). Remaining blockers: 13.2.1 Italian unification wars, unified Italy in a limited war (14.0/15.4.1/15.6), 15.2.2 limited-war joint naval and 16.1.4/16.1.5 negotiated/agreed white peace.  Closed 2026-11-23: 15.0’s pass-at-budget-≤2 rule (`warPassRule.test.ts`, 3). | Treaty territory/continuation: [ca46b63b CI](https://github.com/larry801/filmcentenary/actions/runs/43690347798), after correcting the stale surrender assertion and random-card browser fixture. |
+| 13–17 | **Closed 2026-11-24 — Implemented.** Closed 2026-11-23: errata 13.4.3 (Denmark→Austria), 13.4.4 (Qing army in the targeted key), 17.0’s errata displacement (`demobErrta.test.ts`), 15.5’s capital-capture end, 16.1.3(2)’s blockade defensive victory (`warEndingRules.test.ts`, 3), 13.4.5’s Bismarck auto-alliance, 16.2’s one-option-per-non-primary cap (`bismarckWar.test.ts` / `treatyAllocation.test.ts`) and 15.0’s pass-at-budget-≤2 rule (`warPassRule.test.ts`, 3). Closed 2026-11-24: 13.2.1 Italian unification wars and 13.4.4’s aider marker (`italianUnificationWar.test.ts`), 15.2.2 limited-war joint naval (`jointNaval.test.ts`), 16.1.4/16.1.5 negotiated/white peace (`warPeaceAgreement.test.ts`) and 14.0/15.4.1/15.6 unified Italy in a limited war (`italyLimitedWar.test.ts`, 5). | Treaty territory/continuation: [ca46b63b CI](https://github.com/larry801/filmcentenary/actions/runs/43690347798), after correcting the stale surrender assertion and random-card browser fixture. |
 | 18–19 | Audit the remaining combat/naval fallback claims against current code and rules. | **Closed 2026-11-23** against the printed pages 37–41: 19.11 displaced naval units implemented (`combat.ts#queuePortNavalDisplacements` → `resolveDeferredNavalWork`, pinned by `displacedNavalUnits.test.ts`, 17) and the naval-combat bullet relabelled after re-reading the code; the remaining items are interpretation notes, not unwired rules. |
 | 20 | **Closed 2026-11-23.** The twelve steps were re-read against printed pp. 41–42 + the 12.12/20.2 errata; every printed clause has a live path and suite, and the remaining items are printed-unspecified interpretations (own-fort protection, full-port ships stay at sea, first-drawn NG default). Section promoted to Implemented. | `endPhaseSteps`, `endPhaseResiduals`, `navalEndReturn`, `manpowerTrackChoice`, `ngDrawShuffle`, `ngLimit`, `italianRebuild`, `minorBuildIndependence`, `industryCeilings`, `polishLimits` (175 tests / 16 suites). |
 | 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | **Closed 2026-11-23** against printed pp. 42–44: every 22.1/22.2/22.3.1 row, 22.4's plan helpers and the 22.5 Poland model are named in `RULES_COVERAGE.md` with their suites; the 22.4 lone-defender sub-clauses are now implemented (`engine/italyMilitary.ts`). The A100 double-WTT clause remains a recorded note. |

@@ -83,6 +83,9 @@ export const isNeutralLandSpace = (G: ImperialElegyState, power: Power, space: S
 export const commandsLandUnit = (G: ImperialElegyState, power: Power, unit: Unit | undefined): boolean => {
   if (!unit) return false;
   if (unit.owner === power) return true;
+  // 15.4.1: "Italian units move and attack during the Italian wartime impulse,
+  // which is always last", commanded by their allied player.
+  if (unit.owner === "IT" && G.flags.italyImpulse === true && power === G.activePower) return true;
   return commandsAlliedMinor(G, power, unit.owner);
 };
 

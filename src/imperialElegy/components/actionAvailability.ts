@@ -158,6 +158,7 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   deployReserves: {en: "Deploy reserves", zh: "部署预备军"},
   landBattle: {en: "Land battle here", zh: "在此发动陆战"},
   navalBattle: {en: "Naval battle here", zh: "在此发动海战"},
+  jointNaval: {en: "Joint naval operations here", zh: "在此进行联合海上行动"},
   gwDraft: {en: "Draft", zh: "征召"},
   gwDeploy: {en: "Deploy reserve army here", zh: "在此部署预备军"},
   gwElite: {en: "Attach elite corps", zh: "编入精锐军团"},

@@ -1079,6 +1079,30 @@ const FORMATTERS: Record<string, Formatter> = {
       "在征服战争中援助清廷，获得 +1 抽牌标记。",
     ),
 
+  italyKnockedOut: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "occupied Rome and knocked Italy out of the war; the 16.1.6 special option is resolved as the cession of Rome.",
+      "占领罗马并将意大利逐出战争；16.1.6 的特殊条约选项按割让罗马处理。",
+    ),
+
+  italyKnockoutCession: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `took control of ${space} from the knocked-out Italy.`, `从被逐出战争的意大利手中取得${space}的控制权。`);
+  },
+
+  italyImpulseStarted: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "takes the Italian wartime impulse last with Italy's 2 CP budget.",
+      "最后进行意大利战时行动轮，使用意大利的 2 CP 预算。",
+    ),
+
+  italyImpulseEnded: (entry, locale) =>
+    withActor(entry, locale, "ended the Italian wartime impulse.", "结束意大利战时行动轮。"),
+
   italyPetitionMarkerGained: (entry, locale) =>
     withActor(
       entry,

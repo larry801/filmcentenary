@@ -87,8 +87,8 @@ surrender clause is not inert.
 The remaining **Partial** sections — §8, §9–12, §13–17, §20, §24–32 and §34 —
 were audited against the printed book and its March 2026 errata.  This pass
 closed what the printed text actually owes and recorded the rest per section.
-**§8, §9–12, §20, §24–32 and §34 are now Implemented**; only §13–17 stays
-Partial with named blockers.
+**§8, §9–12, §20, §24–32 and §34 are now Implemented**, and §13–17 followed
+on 2026-11-24: every named blocker is live and pinned.
 
 **Closed by live code in this pass:**
 
@@ -212,11 +212,12 @@ Partial with named blockers.
 
 **Still open (the exact reasons these sections stay Partial):**
 
-- **§13–17:** 13.2.1 Italian unification wars; 13.4.4's remaining errata
-  cell; 14.0/15.4.1/15.6 unified Italy in a limited war; 15.2.2 limited-war
-  joint naval operations; 16.1.4/16.1.5 negotiated/white peace agreements.
-  (15.0's pass cap, 15.5's capital ending, 16.1.3(2)'s blockade victory and
-  16.2's non-primary cap are now live; §34 is Implemented.)
+- **None.**  §13–17 is **Implemented** (2026-11-24): 13.2.1 Italian
+  unification wars, 13.4.4's aider marker, 14.0/15.4.1/15.6 unified Italy in a
+  limited war, 15.2.2 limited-war joint naval operations and 16.1.4/16.1.5
+  negotiated/white peace all have live paths and regression suites.  (15.0's
+  pass cap, 15.5's capital ending, 16.1.3(2)'s blockade victory and 16.2's
+  non-primary cap were already live; §34 is Implemented.)
 
 ## 1–4 Key concepts
 
@@ -762,7 +763,7 @@ Partial with named blockers.
   split. A future flag must be added to the allowlist to be visible; secret flags
   and auction bids stay hidden.
 
-## 13–17 Limited war
+## 13–17 Limited war — **Implemented**
 
 - Declaration validation (aim and objectives checked before CP is spent), war
   aim, one or two objectives controlled by the defender, CP war budget (card CP
@@ -864,10 +865,13 @@ Partial with named blockers.
   live, and **15.0's pass rule** now refuses a wartime pass while the seat still
   holds more than 2 budget and has not acted (handing over after acting stays
   legal); the bot spends the budget on a reserve deploy or a legal march/rail
-  (`warPassRule.test.ts`).  Still open: 13.2.1 Italian unification wars,
-  unified Italy in a limited war (14.0/15.4.1/15.6), 15.2.2 limited-war joint
-  naval operations and 16.1.4/16.1.5 negotiated/agreed white peace.
-  naval operations and 16.1.4/16.1.5 negotiated/agreed white peace.
+  (`warPassRule.test.ts`).  Closed 2026-11-24: 13.2.1 Italian unification
+  wars, 13.4.4's aider card marker, 15.2.2 limited-war joint naval operations
+  and 16.1.4/16.1.5 negotiated/white peace (`italianUnificationWar.test.ts`,
+  `jointNaval.test.ts`, `warPeaceAgreement.test.ts`).  Closed 2026-11-24:
+  unified Italy in a limited war — 14.0's join-at-discretion, 15.4.1's separate
+  two-CP Italian impulse and 15.6's Rome knockout (`italyLimitedWar.test.ts`,
+  5; `italyMilitary.test.ts`).  **§13–17 is Implemented.**
 
 ## 18–19 Combat
 
