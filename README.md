@@ -27,13 +27,14 @@ CI 分成两个 workflow：
   跑在 `feature/**`、`fix/**`、`refactor/**`、`test/**`、`perf/**` 分支上，以及指向 `master`
   的 pull request。**`master` 上的 push 不跑这套测试**（合并前后已经验证过）。
   E2E 拆成两组并行 job：`e2e-app` 跑默认套件（Vite dev server，不需要 `build`
-  产物，所以不等构建，push 后立即启动）；`e2e-ie` 按三个 IE 配置各起一个
-  runner（`:5203` 回归、`:5201` 控件、`:5202` 观战），三者端口和服务器本来就
-  互不相干，并行后墙钟从三个套件之和降到最慢的那一个。
+  产物，所以不等构建，push 后立即启动）；`e2e-ie` 按四个 IE 配置各起一个
+  runner（`:5203` 回归、`:5201` 控件、`:5202` 观战、`:5204` 手机版 390×844，
+  含一个粗指针项目），四者端口和服务器本来就互不相干，并行后墙钟从四个套件
+  之和降到最慢的那一个。
 
   E2E 不再在 runner 上装浏览器。`ci.yml` 先由 `playwright-image` job 构建
   （或复用）`Dockerfile.playwright` 定义的测试镜像：Node 22、Chromium
-  headless shell 及其系统依赖、预热的 Yarn 缓存。E2E job（`e2e-ie` 是三个
+  headless shell 及其系统依赖、预热的 Yarn 缓存。E2E job（`e2e-ie` 是四个
   矩阵实例）用 `container:` 直接跑在这个镜像里，工作目录就是 runner 挂载的
   checkout；再用 `yarn install --offline` 从镜像缓存里链接 `node_modules`，
   所以一次运行既不下载浏览器也不访问 npm。镜像 tag 由 `Dockerfile.playwright`

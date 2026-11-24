@@ -236,8 +236,6 @@ export interface ModelValues {
   interceptCheck: unknown;
   interceptReason: string | undefined;
   interceptVisible: boolean;
-  botTimerRef: unknown;
-  botFailureRef: unknown;
   selectedState: ImperialElegyState["spaces"][SpaceId] | null;
   selectedUnitDef: Unit | undefined;
   commandedOwner: Power | null;

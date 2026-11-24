@@ -18,6 +18,12 @@ export interface SpacePickerProps {
   onChoose: (id: SpaceId) => void;
   /** Centre the map on a space without selecting it. */
   onFocus: (id: SpaceId) => void;
+  /**
+   * Open on the search field.  The map's find control mounts the picker to be
+   * used straight away, so a phone does not have to press through a second
+   * disclosure to reach the search box.
+   */
+  defaultOpen?: boolean;
 }
 
 const REGION_LABEL: Record<string, {en: string; zh: string}> = {
@@ -39,9 +45,9 @@ const REGION_LABEL: Record<string, {en: string; zh: string}> = {
  * puts the spaces that are legal right now at the top.
  */
 export const SpacePicker = ({
-  G, locale, t, selected, targets, search, setSearch, onChoose, onFocus,
+  G, locale, t, selected, targets, search, setSearch, onChoose, onFocus, defaultOpen = false,
 }: SpacePickerProps) => {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(defaultOpen);
   const [region, setRegion] = React.useState<typeof PICKER_REGIONS[number]>("all");
   const [onlyTargets, setOnlyTargets] = React.useState(false);
 

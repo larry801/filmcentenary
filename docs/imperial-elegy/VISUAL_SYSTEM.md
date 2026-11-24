@@ -577,6 +577,17 @@ new control lives in an existing row, an overlay, or a drawer.
 ```
 
 - The map is the only flex child above the dock that grows.
+- The strip carries a **step chip** in place of the four-button stepper: the
+  current step name, the acting power's code and its pip, opening that step's
+  reference. It sits in the band the stepper cannot use at this width and is
+  hidden from 768 px up.
+- The **framing bar** is 44 px tall on a phone (the chips keep their 28 px look
+  with a 44 px hit area). Below 460 px the three atlas-sheet chips step aside —
+  their sheets are three options away in the theatre select — so the theatre
+  select is on screen rather than 79 px past the right edge. The find control is
+  an icon chip in that bar, and its picker is an overlay under it.
+- The **seat strip** draws the power code and the state dot only; the P-number,
+  the printed name and the state word stay in the button's accessible name.
 - The dock remains `data-open` / `data-expanded` / `data-tab` /
   `data-decision` driven. Its heights are frozen (D-15).
 - Short phones (≤ 699 px tall) keep their existing 44 dvh / `calc(100dvh-120px)`
@@ -669,7 +680,11 @@ the `--ie-brass-soft` keyline and a 1 px lift, so contrast is stable.
 - Active: brass keyline + dark plate + 2 px bottom rule.
 - State dot 8 px: ok/ink, bot gear, eliminated struck + 55% opacity.
 - Roving tab stop; only the selected seat is `tabIndex=0`.
-- Desktop: six tabs. Phone: hidden or condensed per current behaviour.
+- Desktop: six tabs, `P1 · GE Germany ● Acting`.
+- Phone: six tabs of power code + state dot, all six in the row. The P-number,
+  the name and the state word are visually hidden (`clip-path`, not
+  `display: none`) so the tab's accessible name stays complete. The hit area is
+  the row's own 40 px: a 44 px target would not fit a frozen 40 px row.
 
 ### 10.3 Track strip
 
@@ -681,6 +696,7 @@ the `--ie-brass-soft` keyline and a 1 px lift, so contrast is stable.
   `aria-label` with the numeric value.
 - Alliance boxes: five ruled cells, 12 px labels.
 - Menu and reference buttons: 28 px desktop / 44 px hit phone.
+- Phone replaces the stepper with one step chip (see §9.2); the row never wraps.
 
 ### 10.4 Panel
 
@@ -756,6 +772,12 @@ the `--ie-brass-soft` keyline and a 1 px lift, so contrast is stable.
   corner ticks.
 - Map chrome (framing bar, legend, key, zoom controls) stays dark and inside
   the existing allocated height. Ornament is inset/overlay, never padding.
+- The framing bar is one overlay row; its find control lives there too (as an
+  icon chip on a phone) and its picker drops under the bar as an overlay. A
+  control in the stage's flow is clipped away by the stage — the find control
+  was, at every width, until it moved into the bar.
+- Phone: the bar is 44 px tall, chips are visually 28 px with a 44 px hit area,
+  the native theatre select is 44 px.
 
 ### 10.11 Player mat
 

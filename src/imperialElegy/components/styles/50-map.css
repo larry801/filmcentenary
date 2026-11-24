@@ -43,6 +43,25 @@
 
 /* Three atlas sheets: Europe & America, Asia, Africa.  Kept inside the same
    scrolling framing bar so the chips never cover the map's working area. */
+/* The framing bar's own find control: an icon chip beside the theatre list.
+   It used to be a bare <button> in the stage's flow, which the stage's
+   `overflow: hidden` clipped away at every width — the space picker had no way
+   in. */
+.ie-view-find { display: inline-flex; align-items: center; gap: 5px; }
+
+.ie-view-find .ie-icon { flex: 0 0 auto; }
+
+/* The picker is an overlay under the framing bar, not a flow child of the
+   stage (a flow child was clipped with the find button). */
+.ie-map-picker-slot {
+  position: absolute;
+  top: 56px;
+  left: 8px;
+  right: 8px;
+  z-index: 8;
+  max-width: 420px;
+}
+
 .ie-map-sections { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
 .ie-map-sections::after {
   content: "";

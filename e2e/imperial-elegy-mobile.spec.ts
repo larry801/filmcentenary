@@ -35,7 +35,8 @@ test.describe("Imperial Elegy phone layout", () => {
         // zoom 1, and a capital framing lands near the 3.2 maximum.
         await expect.poll(async () => Number(await map.getAttribute("data-k"))).toBeGreaterThan(2.5);
 
-        const layout = (await board.locator(".ie-layout").boundingBox())!;
+        // The play area is `.ie-table`; the shell has no `.ie-layout` any more.
+        const layout = (await board.locator(".ie-table").boundingBox())!;
         const stage = (await board.locator(".ie-map-stage").boundingBox())!;
         // The map is the game: it must take the majority of the play area.
         expect(stage.height).toBeGreaterThan(layout.height * 0.55);
@@ -44,8 +45,10 @@ test.describe("Imperial Elegy phone layout", () => {
 
     test("the legend and the key are both visible and do not overlap", async ({page}) => {
         const board = await openSeat(page);
+        // One legend only: the map draws it, and the footer prints the key.
         const legend = board.locator(".ie-map-legend");
         const key = board.locator(".ie-map-key");
+        await expect(legend).toHaveCount(1);
         await expect(legend).toBeVisible();
         await expect(key).toBeVisible();
 
@@ -66,8 +69,9 @@ test.describe("Imperial Elegy phone layout", () => {
         const views = board.locator('[data-testid="ie-map-views"]');
         await expect(views).toBeVisible();
 
-        // Framing controls stay on one row: the map cannot afford a wrapped bar.
-        expect((await views.boundingBox())!.height).toBeLessThan(44);
+        // Framing controls stay on one row and that row is the phone's 44 px
+        // touch row: the map cannot afford a wrapped or taller bar.
+        expect((await views.boundingBox())!.height).toBeLessThanOrEqual(44);
 
         await board.locator('[data-testid="ie-map-fit"]').click();
         await expect.poll(async () => Number(await map.getAttribute("data-k"))).toBe(1);
@@ -93,43 +97,51 @@ test.describe("Imperial Elegy phone layout", () => {
         await expect.poll(async () => await map.getAttribute("data-detail")).toBe("full");
     });
 
-    test("the context rail is a strip that opens to a 46dvh sheet without moving the map", async ({page}) => {
+    test("the dock is one strip that opens to a 40 dvh sheet without moving the map's top", async ({page}) => {
         const board = await openSeat(page);
-        const rail = board.locator('[data-testid="ie-rail"]');
-        await expect(rail).toHaveAttribute("data-open", "false");
-        expect((await rail.boundingBox())!.height).toBeLessThanOrEqual(44);
+        const dock = board.locator('[data-testid="ie-mobile-dock"]');
+        await expect(dock).toHaveAttribute("data-open", "false");
+        expect((await dock.boundingBox())!.height).toBeLessThanOrEqual(44);
 
         const before = (await board.locator(".ie-map-stage").boundingBox())!;
-        const scrollBefore = await page.evaluate(() => document.querySelector(".ie-board")!.scrollTop);
 
-        await board.locator('[data-testid="ie-rail-tab-action"]').click();
-        await expect(rail).toHaveAttribute("data-open", "true");
-        await expect(board.locator('[data-testid="ie-rail-panel-action"]')).toBeVisible();
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-open", "true");
+        await expect(board.locator('[data-testid="ie-mobile-body"]')).toBeVisible();
 
-        // The sheet is 46% of the viewport tall, as chosen for this layout.
-        const sheet = (await rail.boundingBox())!;
-        expect(sheet.height).toBeGreaterThan(VIEWPORT.height * 0.42);
-        expect(sheet.height).toBeLessThan(VIEWPORT.height * 0.5);
-
-        // Opening a panel must not resize (and therefore scroll) the board away:
-        // the sheet leaves the flow, so the map keeps its top edge and never
-        // shrinks — it actually gains the strip's 38 px.
-        expect(await page.evaluate(() => document.querySelector(".ie-board")!.scrollTop)).toBe(scrollBefore);
+        // The sheet is 40 dvh at this height, and the map keeps its top edge.
+        const sheet = (await dock.boundingBox())!;
+        expect(sheet.height).toBeGreaterThan(VIEWPORT.height * 0.38);
+        expect(sheet.height).toBeLessThan(VIEWPORT.height * 0.42);
         const after = (await board.locator(".ie-map-stage").boundingBox())!;
         expect(after.y).toBe(before.y);
-        expect(after.height).toBeGreaterThanOrEqual(before.height);
 
-        await board.locator('[data-testid="ie-rail-tab-action"]').click();
-        await expect(rail).toHaveAttribute("data-open", "false");
+        // Four tabs reach every body; the strip never moves off screen.
+        for (const tab of ["orders", "hand", "mat", "log"] as const) {
+            await board.locator(`[data-testid="ie-mobile-tab-${tab}"]`).click();
+            await expect(dock).toHaveAttribute("data-tab", tab);
+        }
+        await expect(dock).toHaveAttribute("data-tab", "log");
+
+        // Full height is the shell's own cap, not the viewport's.
+        await board.locator('[data-testid="ie-mobile-tab-orders"]').click();
+        await board.locator('[data-testid="ie-mobile-expand"]').click();
+        await expect(dock).toHaveAttribute("data-expanded", "true");
+        expect((await dock.boundingBox())!.height).toBeGreaterThan(VIEWPORT.height * 0.6);
     });
 
-    test("Escape folds the context rail", async ({page}) => {
+    test("the dock closes from its bar and reopens at half height", async ({page}) => {
         const board = await openSeat(page);
-        const rail = board.locator('[data-testid="ie-rail"]');
-        await board.locator('[data-testid="ie-rail-tab-reference"]').click();
-        await expect(rail).toHaveAttribute("data-open", "true");
-        await page.keyboard.press("Escape");
-        await expect(rail).toHaveAttribute("data-open", "false");
+        const dock = board.locator('[data-testid="ie-mobile-dock"]');
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await board.locator('[data-testid="ie-mobile-expand"]').click();
+        await expect(dock).toHaveAttribute("data-expanded", "true");
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-open", "false");
+        // A collapse never reopens to full: the reopen starts at half height.
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await expect(dock).toHaveAttribute("data-open", "true");
+        await expect(dock).toHaveAttribute("data-expanded", "false");
     });
 
     test("tapping two overlapping counters asks which one was meant", async ({page}) => {
@@ -149,24 +161,24 @@ test.describe("Imperial Elegy phone layout", () => {
         }
     });
 
-    test("the shell still fits one viewport and the hand opens on demand", async ({page}) => {
+    test("the shell still fits one viewport and the hand opens from the dock", async ({page}) => {
         const board = await openSeat(page);
         expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(VIEWPORT.height * 1.02);
 
-        const tray = board.locator('[data-testid="ie-hand-tray"]');
-        await expect(tray).toHaveAttribute("data-open", "false");
-        // The folded bar still carries the counts, so the hand is not a mystery.
-        await expect(tray).toContainText("手牌");
+        // The hand is a body of the dock at this width: its tab is the way in,
+        // and its count is only on screen while that body is.
+        const tabs = board.locator('[data-testid="ie-mobile-tab-hand"]');
+        await expect(tabs).toBeVisible();
+        await tabs.click();
+        await expect(board.locator('[data-testid="ie-mobile-dock"]')).toHaveAttribute("data-tab", "hand");
+        await expect(board.locator('[data-testid="ie-hand-tray"]')).toHaveAttribute("data-open", "true");
         await expect(board.locator('[data-testid="ie-hand-count"]')).toBeVisible();
-
-        await board.locator('[data-testid="ie-tray-toggle"]').click();
-        await expect(tray).toHaveAttribute("data-open", "true");
         await expect(board.locator(".ie-hand .ie-card").first()).toBeVisible();
     });
 
     test("the hand lists one row per card and one tap opens the inspector", async ({page}) => {
         const board = await openSeat(page);
-        await board.locator('[data-testid="ie-tray-toggle"]').click();
+        await board.locator('[data-testid="ie-mobile-tab-hand"]').click();
         await expect(board.locator('[data-testid="ie-hand-tray"]')).toHaveAttribute("data-open", "true");
 
         const rows = board.locator(".ie-hand .ie-card");
@@ -204,5 +216,102 @@ test.describe("Imperial Elegy phone layout", () => {
         await expect(first).toHaveAttribute("data-expanded", "false");
         await page.keyboard.press("Escape");
         await expect(inspector).toHaveCount(0);
+    });
+
+    test("the framing bar fits the screen and the theatre picker is on it", async ({page}) => {
+        const board = await openSeat(page);
+        const views = board.locator('[data-testid="ie-map-views"]');
+        await expect(views).toBeVisible();
+        // One row, one screen: the row used to hold 429 px of controls in 350,
+        // which put the theatre select 79 px past the right edge.  The atlas
+        // sheets step aside below 460 px, and their frames are three options
+        // away in that select.
+        expect((await views.boundingBox())!.height).toBeLessThanOrEqual(44);
+        expect(await views.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+        const select = (await board.locator('[data-testid="ie-map-theatre"]').boundingBox())!;
+        expect(select.x).toBeGreaterThanOrEqual(0);
+        expect(select.x + select.width).toBeLessThanOrEqual(VIEWPORT.width);
+    });
+
+    test("the folded screen names the step and the acting power", async ({page}) => {
+        const board = await openSeat(page);
+        const step = board.locator('[data-testid="ie-track-step"]');
+        await expect(step).toBeVisible();
+        // The 44 px strip hides the four-button stepper, so this one chip is the
+        // only place a folded sheet says whose turn and which step it is.
+        await expect(step).toContainText("准备");
+        await expect(step).toContainText("GE");
+        // It opens the reference at that step, exactly as a stepper button does.
+        await step.click();
+        await expect(board.locator('[data-testid="ie-reference-drawer"]')).toHaveAttribute("data-open", "true");
+    });
+
+    test("all six seats are on screen without a horizontal scroll", async ({page}) => {
+        await openSeat(page);
+        const strip = page.locator(".ie-seat-strip");
+        await expect(strip).toBeVisible();
+        // 445 px of tabs in a 148 px window left four seats off screen.
+        expect(await strip.evaluate((el) => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(1);
+        for (const power of ["GE", "UK", "FR", "AU", "RU", "OT"] as const) {
+            const box = (await page.locator(`[data-testid="ie-seat-status-${power}"]`).boundingBox())!;
+            expect(box.width).toBeGreaterThanOrEqual(40);
+            expect(box.x + box.width).toBeLessThanOrEqual(VIEWPORT.width);
+        }
+        // The full name is still the tab's accessible name.
+        await expect(page.getByRole("tab", {name: /P3 · FR/})).toHaveCount(1);
+    });
+
+    test("find space opens the picker under the framing bar", async ({page}) => {
+        const board = await openSeat(page);
+        // The control was clipped out of the map stage at every width, so the
+        // 145-space picker could not be opened at all.
+        await board.locator('[data-testid="ie-map-find"]').click();
+        const search = board.locator('[data-testid="ie-picker-search"]');
+        await expect(search).toBeVisible();
+        await expect(search).toBeFocused();
+        await search.fill("维也纳");
+        await board.locator('[data-testid="ie-picker-item-vienna"]').click();
+        await expect(board.locator('[data-testid="ie-space-card"]')).toContainText("维也纳");
+    });
+
+    test("only the seat in front builds a board", async ({page}) => {
+        const board = await openSeat(page);
+        await expect(board.locator('[data-testid="ie-map"]')).toBeVisible();
+        // Six clients, one interface: the five hidden seats are 80 % of the DOM
+        // otherwise, and they re-rendered on every move.
+        const sizes = await page.evaluate(() => [...document.querySelectorAll(".ie-seat")]
+            .map((seat) => seat.querySelectorAll("*").length));
+        expect(sizes.filter((count) => count > 200)).toHaveLength(1);
+        expect(sizes.reduce((sum, count) => sum + count, 0)).toBeLessThan(9000);
+    });
+
+    test("a hidden bot seat still plays its own moves", async ({page}) => {
+        // The five seats that are not in front render no interface; Rule 34
+        // still needs them to submit, so the driver lives outside the board.
+        await page.goto("/localIE?solo=1");
+        await page.locator('[data-testid="ie-start-match"]').click();
+        const board = page.locator('[data-testid="ie-seat-GE"]');
+        await expect(board.locator('[data-testid="ie-map"]')).toBeVisible();
+        await board.locator('[data-testid="ie-mobile-toggle"]').click();
+        await board.locator('[data-testid="ie-finish-prep"]').click();
+        await expect.poll(
+            async () => page.evaluate(() => (window as any).__IE_STATE__.phase),
+            {timeout: 30_000, message: "the bots never finished the prep step"},
+        ).not.toBe("prep");
+    });
+});
+
+test.describe("Imperial Elegy phone touch", () => {
+    test.use({viewport: VIEWPORT, hasTouch: true, isMobile: true});
+
+    test("the map help names the pinch and a fingertip still presses the chips", async ({page}) => {
+        const board = await openSeat(page);
+        // Pinch has worked since the gesture work; the help said "wheel".
+        await expect(board.locator('[data-testid="ie-map-help"]')).toContainText("双指缩放");
+        // The chip's box is 28 px and its hit area is 44: 6 px below the chip is
+        // still the chip.
+        const chip = (await board.locator('[data-testid="ie-map-fit"]').boundingBox())!;
+        await page.touchscreen.tap(chip.x + chip.width / 2, chip.y + chip.height + 6);
+        await expect.poll(async () => Number(await board.locator('[data-testid="ie-map"]').getAttribute("data-k"))).toBe(1);
     });
 });

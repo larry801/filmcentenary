@@ -417,6 +417,42 @@
 
 .ie-stepper-sep { flex: 0 0 auto; color: var(--ie-rule-strong); font-size: var(--ie-font-xs); padding: 0 1px; }
 
+/* Phone only: one chip in place of the four-button stepper (see TrackStrip).
+   It names the current step and the acting power and opens that step's
+   reference; `90-phone.css` turns it on below 768 px. */
+.ie-track-step {
+  display: none;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 132px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-2);
+  color: var(--ie-on-dark);
+  font-size: var(--ie-font-xs);
+  font-weight: 700;
+  line-height: var(--ie-font-xs-line);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ie-track-step:hover { border-color: var(--ie-brass); color: var(--ie-brass-soft); }
+
+.ie-track-step-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+.ie-track-step-power {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ie-on-dark-2);
+  font-weight: 600;
+}
+
 .ie-round-btn {
   width: 44px;
   height: 44px;
