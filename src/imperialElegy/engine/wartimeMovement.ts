@@ -22,6 +22,7 @@
  * `moves.ts` with every other action cost.
  */
 import type {ImperialElegyState, Power, SpaceId, Unit} from "../types";
+import {ITALY_WARTIME_INDUSTRY} from "./italyMilitary";
 import {SPACES, connectionBetween, isNavalBox, neighboursOf} from "../constant/spaces";
 import {allied, atWar, commandsAlliedMinor, friendlySpace, isArmyKind, isPower, minorController} from "./rules";
 
@@ -82,6 +83,9 @@ export const isNeutralLandSpace = (G: ImperialElegyState, power: Power, space: S
 export const commandsLandUnit = (G: ImperialElegyState, power: Power, unit: Unit | undefined): boolean => {
   if (!unit) return false;
   if (unit.owner === power) return true;
+  // 15.4.1: "Italian units move and attack during the Italian wartime impulse,
+  // which is always last", commanded by their allied player.
+  if (unit.owner === "IT" && G.flags.italyImpulse === true && power === G.activePower) return true;
   return commandsAlliedMinor(G, power, unit.owner);
 };
 
@@ -201,8 +205,8 @@ export const planMarch = (
  * less than one.  Italy counts as 1 industry and a controlled minor rails on
  * its controller's allowance (15.4 / 15.2.5).
  */
-export const railAllowance = (G: ImperialElegyState, power: Power): number =>
-  Math.max(1, Math.ceil((G.powers[power]?.industry ?? 1) / 2));
+export const railAllowance = (G: ImperialElegyState, power: Power | "IT"): number =>
+  Math.max(1, Math.ceil((power === "IT" ? ITALY_WARTIME_INDUSTRY : (G.powers[power]?.industry ?? 1)) / 2));
 
 /** Armies already railed this impulse (0 when no rail has run). */
 export const wartimeRailed = (G: ImperialElegyState, power: Power): number =>
@@ -229,7 +233,10 @@ export const planRail = (
   if (from === null || !G.spaces[from]) return fail("no-origin");
   if (from === to) return fail("same-space");
   if (isNavalBox(to) || !SPACES[to]) return fail("no-connection");
-  if (wartimeRailed(G, power) >= railAllowance(G, power)) return fail("rail-allowance");
+  // 22.4: an Italian unit rails on Italy's own 1-industry allowance even when
+  // an allied player commands it; a normal unit uses its controller's.
+  const allowance = unit.owner === "IT" ? railAllowance(G, "IT") : railAllowance(G, power);
+  if (wartimeRailed(G, power) >= allowance) return fail("rail-allowance");
   // The railing power may not rail a unit out of an unfriendly start either:
   // the network is traced from a friendly space.
   if (!friendlySpace(G, from, power)) return fail("no-rail-path");

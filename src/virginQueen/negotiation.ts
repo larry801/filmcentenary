@@ -22,6 +22,7 @@ import {
     die,
     displaceNonFriendlyUnits,
     landAdjacent,
+    landPoolRoom,
     powerLabel,
     pushLog,
     resolveImmediateBetrothals,
@@ -127,6 +128,7 @@ export type NegotiationIssueCode =
     | "mercGiveRestricted"
     | "mercReceiveRestricted"
     | "mercNoCapital"
+    | "mercReceiverFull"
     | "yieldUnavailable"
     | "leaderUnavailable"
     | "royalUnavailable"
@@ -385,6 +387,9 @@ export const validateNegotiation = (
                 if (taker === "ottoman" || taker === "hre") issues.push({code: "mercReceiveRestricted"});
                 if (mercenaryAvailable(G, giver) < total) issues.push({code: "noMercenaries"});
                 if (eligibleCapital(G, taker) === undefined) issues.push({code: "mercNoCapital"});
+                // Rule 17.1: the receiver supplies the physical counter, so
+                // its own land force pool must have room for the gift.
+                if (landPoolRoom(G, taker) < total) issues.push({code: "mercReceiverFull"});
             }
         }
     }

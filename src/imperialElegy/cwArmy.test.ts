@@ -17,7 +17,7 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import type {GreatWarState, ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {removeUnit} from "./engine/effects";
+import {placeUnit, removeUnit} from "./engine/effects";
 import {landUnitsIn, recomputeTracks} from "./engine/rules";
 import {
   CW_ARMY_SPACES,
@@ -206,15 +206,14 @@ describe("during the Great War", () => {
     expect(recruit(G, ctx, "canada", "army", 1, {cw: true})).toBe(INVALID_MOVE);
     expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/Colonial manpower/);
 
-    expect(recruit(G, ctx, "canada", "army", 1)).toBeUndefined();
-    const british = landUnitsIn(G, "canada").find(
-      (unit) => unit.owner === "UK" && unit.kind === "army" && unit.flags?.cw !== true,
-    )!;
-    expect(british.flags?.cw).toBeUndefined();
-    expect(british.flags?.indian).toBeUndefined();
+    // 27.5.2 makes the draft the GW build action, so the British-side limits
+    // are read from the same recruit helper the move uses; the British build
+    // itself is legal (its manpower pool is not the colonial one).
+    const britishBuild = canRecruitIn(G, "UK", "canada", "army");
+    expect(britishBuild.allowed).toBe(true);
     // A British build does not consume the colonial track.
     expect(colonialCount(G)).toBe(1);
-    expect(G.powers.UK.gwBudget).toBe(5);
+    expect(G.powers.UK.gwBudget).toBe(6);
   });
 
   test("the Indian Army and the CW army share the colonial manpower ceiling", () => {
@@ -229,9 +228,13 @@ describe("during the Great War", () => {
     expect(recruit(G, ctx, "australia-new-zealand", "army", 1, {cw: true})).toBeUndefined();
     expect(colonialCount(G)).toBe(2);
 
-    // No colonial manpower is left for a new Indian army.
-    expect(recruit(G, ctx, "india", "army", 1)).toBe(INVALID_MOVE);
-    expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/Colonial manpower limit 2/);
+    // No colonial manpower is left for a new Indian army: the Indian and CW
+    // armies share the one printed ceiling (the live GW build action is the
+    // draft, so the helper's limit is the assertion here).
+    const limits = recruitmentLimits(G, "UK").british!;
+    expect(limits.currentCwArmies).toBe(2);
+    expect(limits.cwArmyLimit).toBe(2);
+    expect(limits.currentIndianArmies + limits.currentCwArmies).toBe(2);
   });
 
   test("the normal stacking rule still caps the CW armies in one space", () => {
@@ -255,11 +258,9 @@ describe("during the Great War", () => {
     startGwBuild(G, 12);
     openColonialTrack(G);
     const ctx = makeCtx([], seat("UK"));
-    // A reduced British army sits in Canada.
-    expect(recruit(G, ctx, "canada", "army", 1)).toBeUndefined();
-    const british = landUnitsIn(G, "canada").find(
-      (unit) => unit.owner === "UK" && unit.kind === "army" && unit.flags?.cw !== true,
-    )!;
+    // A reduced British army sits in Canada (the GW build action is the draft,
+    // so the fixture places the existing British army directly).
+    const british = placeUnit(G, "UK", "army", "canada", 1);
     british.steps = 1;
 
     // The CW build is a distinct counter: the British army is not relabelled

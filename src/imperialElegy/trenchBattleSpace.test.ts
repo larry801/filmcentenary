@@ -16,6 +16,8 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit, removeUnit} from "./engine/effects";
 import {landUnitsIn} from "./engine/rules";
+import {planNavalTransport} from "./engine/navalMovement";
+import {navalTransport} from "./moves";
 import {beginLandBattle, chooseSupport, setTrenchBattleMarker} from "./engine/combat";
 import {beginGwTurn, performGwManeuver} from "./engine/greatWarFlow";
 import {landBattle, resolvePending} from "./moves";
@@ -211,6 +213,39 @@ describe("28.1.1 same-space trench battles", () => {
 // ---------------------------------------------------------------------------
 // 28.1.5 march / rail movement
 // ---------------------------------------------------------------------------
+
+describe("28.1.5 naval movement and trench battle ports", () => {
+  test("a land unit may be transported directly into and out of a trench battle port", () => {
+    const {G, ctx} = maneuverFixture();
+    clearLand(G, "picardy");
+    // A German army and squadron wait in the North Atlantic; Picardy is the
+    // French North Atlantic port and becomes a trench battle space.
+    const army = placeUnit(G, "GE", "army", "north-atlantic", 2);
+    const fleet = placeUnit(G, "GE", "squadron", "north-atlantic", 2);
+
+    // Without the marker this is 19.10's enemy port: no transport.
+    expect(planNavalTransport(G, "GE", army, [fleet], "picardy").reason).toBe("target-hostile");
+
+    setTrenchBattleMarker(G, "picardy", "deadlock", 1);
+    expect(planNavalTransport(G, "GE", army, [fleet], "picardy").ok).toBe(true);
+
+    // The live move lands the stack without an amphibious assault and spends
+    // the one GW budget point.
+    const budget = G.powers.GE.gwBudget;
+    expect(navalTransport(G, ctx, army.id, [fleet.id], "picardy")).toBeUndefined();
+    expect(G.units[army.id].space).toBe("picardy");
+    expect(G.units[fleet.id].space).toBe("picardy");
+    expect(G.powers.GE.gwBudget).toBe(budget - 1);
+
+    // Leaving the same trench battle port by naval movement is equally legal.
+    G.spaces.brittany.control = "GE";
+    G.spaces.brittany.occupiedBy = null;
+    G.spaces.brittany.trench = null;
+    for (const id of [...G.spaces.brittany.units]) removeUnit(G, id);
+    const outbound = planNavalTransport(G, "GE", G.units[army.id], [G.units[fleet.id]], "brittany");
+    expect(outbound.reason).toBe("ok");
+  });
+});
 
 describe("28.1.5 leaving and entering trench battle spaces", () => {
   test("marching out of a marker space into an enemy space is refused", () => {

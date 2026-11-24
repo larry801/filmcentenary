@@ -60,7 +60,7 @@ export const WAR_AIMS_MINORS: ChartText = {
           [t("Nation", "国家"), t("1st Choice", "第 1 选择"), t("2nd Choice", "第 2 选择"), t("3rd Choice", "第 3 选择")],
           [
             [t("Netherlands/Bel.", "荷兰／比利时"), same("UK/GE*"), t("France", "法国"), same("-")],
-            [t("Denmark", "丹麦"), same("UK/FR*"), same("GE/RU*"), t("Germany", "德国")],
+            [t("Denmark", "丹麦"), same("UK/FR*"), same("GE/RU*"), same("AU")],
             [t("German State", "德意志诸邦"), same("AU/GE*"), t("Russia", "俄国"), t("France", "法国")],
             [t("Balkan State", "巴尔干国家"), same("RU/AU*"), t("France", "法国"), t("UK", "英国")],
             [t("Greece", "希腊"), same("UK/RU*"), same("FR/AU*"), same("-")],
@@ -194,8 +194,8 @@ export const WAR_AIMS_MINORS: ChartText = {
       blocks: [
         bullets(
           t(
-            "13.4.3 Non-Player Alliance Table: Denmark's 3rd choice is Austria. The printed sheet shows “Germany” in that cell, which is a misprint.",
-            "13.4.3 非玩家同盟表：丹麦的第 3 选择为奥匈。原表在该格印作“Germany（德国）”，属误印。",
+            "13.4.3 Non-Player Alliance Table: Denmark's 3rd choice is Austria; the printed sheet's “Germany” in that cell is the misprint, so this chart shows the errata's AU.",
+            "13.4.3 非玩家同盟表：丹麦的第 3 选择为奥匈；原表该格印作“Germany（德国）”属误印，本表按勘误显示 AU。",
           ),
           t(
             "16.2.4 Righteous Defense: the defender may also give a home space controlled by the attacker back to its owner (occupied or not), or liberate a minority nationality in a space the defender occupies and immediately ally with the new minor power.",

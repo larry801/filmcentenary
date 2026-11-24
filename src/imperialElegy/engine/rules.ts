@@ -753,6 +753,14 @@ const cpWalletFor = (G: ImperialElegyState, power: Power): CpWallet | null => {
   if (G.phase === "wartime") {
     const war = G.war;
     if (war === null) return null;
+    // 15.4.1: the Italian impulse spends Italy's own budget, which "always
+    // starts at 2", not the commander's player budget.
+    if (G.flags.italyImpulse === true && power === G.activePower && war.italyBudget !== undefined) {
+      return {
+        get: () => war.italyBudget ?? 0,
+        set: (value) => { war.italyBudget = value; },
+      };
+    }
     return {
       get: () => war.budgets[power] ?? 0,
       set: (value) => { war.budgets[power] = value; },
@@ -2240,7 +2248,7 @@ export const computePowerProjection = (G: ImperialElegyState, power: Power): num
     for (const box of def.ports) {
       if (def.id === "egypt" && box === "indian-ocean" && G.persistent.suezCanal !== true) continue;
       const present = byBox.get(box) ?? {port: false, base: false};
-      if (def.type === "navalBase") present.base = true;
+      if (def.type === "navalBase" || def.navalBase === true) present.base = true;
       else present.port = true;
       byBox.set(box, present);
     }
@@ -2368,7 +2376,7 @@ export const cardsToDraw = (G: ImperialElegyState, power: Power): number => {
   if (power === "AU" && p.flags.plusCards) count += Number(p.flags.plusCards);
   if (power === "RU" && p.flags.plusCards) count += Number(p.flags.plusCards);
   if (power === "OT" && p.flags.plusCards) count += Number(p.flags.plusCards);
-  count += p.cardMarkers;
+  count += p.cardMarkers + (p.persistentCardMarkers ?? 0);
   return Math.max(3, count);
 };
 

@@ -106,6 +106,12 @@ export interface SpaceDef {
   submap: Submap;
   /** Ports list the naval boxes this space touches. */
   ports?: string[];
+  /**
+   * A printed naval-base station inside an ordinary port space (3.3.1): the
+   * format is a circle/triangle combined space rather than a separate triangle
+   * space.  Used by `computePowerProjection` for the port+base pairing.
+   */
+  navalBase?: boolean;
   /** Minor power or player power that considers the space home. */
   home?: Power | null;
   minorHome?: string | null;
@@ -346,8 +352,15 @@ export interface PowerState {
    * hand-written test states fall back to the printed maximum.
    */
   maxIndustry?: number;
-  /** Bonus card markers (+1 / -1). */
+  /** Bonus card markers (+1 / -1).  These are discarded after the deal (10.3). */
   cardMarkers: number;
+  /**
+   * 10.3's exception: A094 The Boxer Rebellion's -1 card marker "until all the
+   * rebels are destroyed".  Added to the transient `cardMarkers` when the deal
+   * is drawn and never cleared by the end-of-deal discard.  Optional so older
+   * saves and fixtures read it as 0.
+   */
+  persistentCardMarkers?: number;
 }
 
 /**
@@ -577,6 +590,13 @@ export interface WarSide {
   knockedOut?: WarKnockoutRecord[];
   /** Treaties chosen by the victor. */
   treaties: string[];
+  /**
+   * 16.2: each applied treaty option with the player/minor it was imposed on.
+   * The rule allows at most one option on a player who is not a primary
+   * belligerent, so the cap needs the allocation history, not just the option
+   * names in `treaties`.
+   */
+  treatyTargets?: {option: string; target: PowerOrMinor | null}[];
   /** 8.3 / 16.2: the two-primary harsh-terms shift has already resolved. */
   harshTermsApplied?: boolean;
   /** Who won (null if white peace). */
@@ -630,6 +650,47 @@ export interface WarSide {
    * may then join the defending side without an invitation.
    */
   allowNeutralJoin?: boolean;
+  /**
+   * Rule 13.2.1: the Italian state the attacker named at declaration time to
+   * receive any conquered land.  Only an Italian war of unification carries it
+   * ("this must be either Sardinia-Piedmont or the Kingdom of the Two
+   * Sicilies").  Optional so every other declaration and older save keeps its
+   * shape; the 16.2.1 mandatory cession reads it to route the ceded spaces.
+   */
+  italianBeneficiary?: string;
+  /**
+   * Rule 15.6: a unified Italy knocked out of the war when Rome was occupied.
+   * Italy is a non-player major, so it is not in `knockedOut` (which holds
+   * player allies); the occupying captor keeps the 16.1.6 special option,
+   * modelled as the cession of the occupied key at settlement.
+   */
+  italyKnockedOut?: {by: "attacker" | "defender"; captor: Power; capital: SpaceId; turn: number};
+  /**
+   * Rule 15.4.1: Italy's own war budget, which "always starts at 2" and is
+   * spent during the Italian impulse (always last).
+   */
+  italyBudget?: number;
+  /** True once Italy has taken its last impulse in this war. */
+  italyImpulseDone?: boolean;
+  /**
+   * Rule 15.2.2: a joint naval operations marker.  Taking the action spends 1
+   * CP and marks the naval units that will move with an ally in a later
+   * impulse.  All markers are removed when the operation is conducted (or at
+   * the end of the war), and the CP is never refunded.
+   */
+  jointNavalMarkers?: {power: Power; unitIds: string[]; space: SpaceId}[];
+  /**
+   * Rules 16.1.4 / 16.1.5: the primaries' agreed peace.  `kind` is the printed
+   * choice, `conceding` names the side that gives up one treaty option (so the
+   * other side is the victor), and `treaty` is the specific option the players
+   * agreed on, which is binding when present.  Optional: an ordinary
+   * classification by the board's state is unaffected.
+   */
+  peace?: {
+    kind: "negotiated" | "white";
+    conceding?: "attacker" | "defender";
+    treaty?: {option: string; spaces?: SpaceId[]; target?: PowerOrMinor};
+  };
 }
 
 /**
@@ -723,6 +784,13 @@ export interface GreatWarState {
   turn: number;
   /** Turn order, including bonus impulses (null slot). */
   order: (Power | "bonus" | "IT" | "US" | null)[];
+  /**
+   * 25.7: the alliance-set GW impulse orders chosen during GW turn 0
+   * planning.  Each list is the chosen order of that alliance's members;
+   * `null` means "keep the seat order" (the deterministic default used when
+   * the alliance never submits one).  Optional for older saves.
+   */
+  orderChoice?: {te: Power[] | null; ta: Power[] | null};
   /**
    * Rule 30.1: the one alliance that owns bonus-impulse markers on the
    * wartime initiative track, if any. Each bonus slot stays the generic
@@ -1022,6 +1090,8 @@ export const PENDING_KINDS = [
   "treatySpace",
   /** 16.1.6: a two-sided white-peace knockout has no printed chooser order. */
   "whitePeaceOrder",
+  /** 16.1.4/16.1.5: the other primary belligerent answers a peace proposal. */
+  "warPeace",
   "demobilizationFreeAction",
   "goalChoice",
   "industryCard",
@@ -1395,6 +1465,12 @@ export interface ImperialElegyState {
   /** Cards played / CP remaining in the current impulse. */
   cpRemaining: number;
   impulseCard: CardId | null;
+  /**
+   * Errata 12.17: the printed CP value of the card currently paying for this
+   * action impulse.  A war declaration must commit all of it.  Optional so
+   * older saves and hand-written fixtures read it as "no card restriction".
+   */
+  impulseCardCp?: number | null;
   /** The card event currently being resolved. */
   resolvingCard: CardId | null;
   /** A limited war in progress. */

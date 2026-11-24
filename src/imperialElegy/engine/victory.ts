@@ -371,6 +371,10 @@ export const checkGermanUnification = (G: ImperialElegyState, ctx?: Ctx): boolea
 
 export const checkItalianUnification = (G: ImperialElegyState, ctx?: Ctx): boolean => {
   if (G.persistent.italyUnified) return false;
+  // Rule 13.2.1 rolled for unification at the war's victory step; a failed
+  // roll is not re-rolled by the action phase's 3-key shortcut in the same
+  // turn.  (The printed 22.1.3/22.1.4 triggers each roll once.)
+  if (G.flags.italianUnificationRolledTurn === G.turn) return false;
   const italian = Object.values(SPACES).filter((s) => s.flashpoints?.includes("italy"));
   const controlledByMinor = italian.filter((s) => {
     const c = G.spaces[s.id].control;

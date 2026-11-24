@@ -58,6 +58,7 @@ import {
   firstDardanellesPermissionCrossing,
   planNavalMove,
   planNavalTransport,
+  specialRedeployPath,
   requestDardanellesPassage,
   type NavalTransportReason,
 } from "./engine/navalMovement";
@@ -280,8 +281,10 @@ import {
   endGreatWar,
   resolveCrisisPending,
   resolveItalianNationalistWaveChoice,
+  italianUnificationRoll,
   resolveItalyNavalBase,
   resolveItalyOttomanTerritoryChoice,
+  setGwOrderChoice,
 } from "./engine/greatWar";
 import {addItalyMpit, setItalyAllianceBox} from "./engine/italyEntry";
 import {
@@ -314,6 +317,7 @@ import {
   giftGwCombatCard,
   startGwManeuver,
   transferGwBudget,
+  transferGwMajorBudget,
 } from "./engine/greatWarFlow";
 import {
   currentGwImpulse, gwActionAllowance, gwCanEndTurn, gwCardProblem,
@@ -341,8 +345,11 @@ import {
   initiativeOrder,
   initiativeRollOff,
   isItalianUnificationWar,
+  ITALIAN_UNIFICATION_STATES,
   isMinorWarTargetArg,
+  isWarImmuneNonPlayer,
   holdsWarImpulse,
+  minorWarAlly,
   minorWarDefender,
   minorWarInfo,
   nonPlayerHome,
@@ -372,7 +379,10 @@ import {
   type WarAim as WarAimType,
   type WarSideName,
   type WarTarget,
+  warCapitalFallen,
 } from "./engine/limitedWar";
+import {blockadedAt} from "./engine/blockade";
+import {applyItalyWarStartRules, italyInvolvedInWar, italyWartimeCommander} from "./engine/italyMilitary";
 import {
   applyTreatyChoice,
   buildTreatyPending,
@@ -381,6 +391,8 @@ import {
   treatyOptionsFor,
   treatyPickCounts,
   treatySpaceOptions,
+  TREATY_OPTION_ORDER,
+  TREATY_OPTION_LABELS,
   type TreatyChooserGroup,
   type TreatyOptionEntry,
   type TreatyPickAvailability,
@@ -560,6 +572,7 @@ const finishImpulse = (G: ImperialElegyState, ctx: Ctx): void => {
     G.flags.enemyLandDrm = 0;
     G.flags.warLandDrm = G.flags.warLandDrm ?? 0;
     G.impulseCard = null;
+  G.impulseCardCp = null;
     G.cpRemaining = 0;
     checkGermanUnification(G, ctx);
     checkItalianUnification(G, ctx);
@@ -689,10 +702,13 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
   addLog(G, power, "cardPlayed", {card: cardId, mode: resolvesEvent ? "event" : mode});
   if (!resolvesEvent) {
     G.cpRemaining = card.cp;
+    G.impulseCardCp = card.cp;
     // A70: "Remove from the game if played for CP and Italy is unified."
     // A79: "Remove from the game if Tunisia and Libya are no longer Ottoman
     // controlled." — the CP play removes it instead of discarding it.
     const looseGripRemoved = cardId === LOOSE_GRIP_CARD && looseGripRemovalDue(G);
+    // The physical card leaves the hand, but `impulseCardCp` keeps its printed
+    // CP for errata 12.17: a declaration this impulse must commit all of it.
     if (removesAfterPlay(G, cardId) || removeAfterCpPlay(G, cardId) || looseGripRemoved) {
       if (!G.removed.includes(cardId)) G.removed.push(cardId);
       if (looseGripRemoved) log(G, undefined, "looseGripRemoved", {reason: "cp"});
@@ -706,7 +722,12 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     return;
   }
   // Event; mandatory cards also grant their CP.
-  if (mandatory) G.cpRemaining = card.cp;
+  if (mandatory) {
+    G.cpRemaining = card.cp;
+    G.impulseCardCp = card.cp;
+  } else {
+    G.impulseCardCp = null;
+  }
   if (cardId === "IE-A067" && mode === "event") {
     // International Conference's printed normal-event mode is only the WTT
     // decrease; its +2 DRM belongs to the open crisis decision (above).  Do not
@@ -717,6 +738,7 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     pruneRemovedFromDiscard(G);
     G.resolvingCard = null;
     G.impulseCard = null;
+  G.impulseCardCp = null;
     if (
       G.cpRemaining <= 0 &&
       !hasUnspentGrant(G, power) &&
@@ -743,8 +765,10 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     pruneRemovedFromDiscard(G);
     G.resolvingCard = null;
     G.impulseCard = null;
+  G.impulseCardCp = null;
     if (card.type !== "mandatory") {
       G.impulseCard = null;
+  G.impulseCardCp = null;
       // Event play ends the impulse unless the card grants CP — including the
       // colonial pool of A088 Our Place in the Sun and UK-3 Sun Never Sets —
       // or the event itself opened a home-card war declaration (Bismarck).
@@ -868,6 +892,29 @@ export const discardForStability = (G: ImperialElegyState, ctx: Ctx): string | v
   discardCard(G, power, cardId, "prepStabilityDiscard");
   changeStability(G, power, 1, ctx);
   p.flags.prepStability = true;
+  return undefined;
+};
+
+/**
+ * 10.4: "The UK player may also, at this time, choose to discard a random card
+ * to flip the Indian Stability counter to its stable side [33.2.2]."  This is
+ * a separate optional prep action from the +1 stability discard (its own
+ * once-per-prep guard; the card is drawn at random and mandatory events/home
+ * cards stay in hand).
+ */
+export const discardForIndianStability = (G: ImperialElegyState, ctx: Ctx): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power !== "UK" || G.phase !== "prep") return INVALID_MOVE;
+  const p = G.powers.UK;
+  if (p.indiaStable !== false) return INVALID_MOVE;
+  if (p.flags.prepIndiaStability) return INVALID_MOVE;
+  const eligible = handWithoutSpecials(G, "UK");
+  if (eligible.length === 0) return INVALID_MOVE;
+  const cardId = eligible[randomIndex(ctx, eligible.length)];
+  discardCard(G, "UK", cardId, "prepIndiaStabilityDiscard");
+  p.indiaStable = true;
+  p.flags.prepIndiaStability = true;
   return undefined;
 };
 
@@ -1005,6 +1052,7 @@ const enterActionPhase = (G: ImperialElegyState, ctx: Ctx): string | void => {
   G.activePower = "GE";
   G.cpRemaining = 0;
   G.impulseCard = null;
+  G.impulseCardCp = null;
   G.passed = [];
   clearActionImpulseSpend(G);
   ctx.events?.setPhase?.("action");
@@ -1113,15 +1161,23 @@ export const pileHomeCard = (G: ImperialElegyState, ctx: Ctx): string | void => 
   if (G.pending !== null) return INVALID_MOVE;
   const p = G.powers[power];
   if (p.flags.homeChosen) return INVALID_MOVE;
+  // 34.2: "Do not choose a home card for bots, instead each bot adds a random
+  // home card to their pile.  Add home cards to the piles as follows: GE and OT
+  // on top of their pile; FR, AU and RU shuffled in; UK on bottom."  The bot's
+  // hand *is* its pile (the dealt action cards arrive in shuffled deck order),
+  // so the home card's insertion position is the printed pile order.
   const candidates = p.homeCards.filter((id) => !p.hand.includes(id) && id !== p.selectedHomeCard);
   if (candidates.length > 0) {
-    const cardId = power === "GE" || power === "OT"
-      ? candidates[0]
-      : power === "UK"
-        ? candidates[candidates.length - 1]
-        : candidates[randomIndex(ctx, candidates.length)];
+    const cardId = candidates[randomIndex(ctx, candidates.length)];
     p.selectedHomeCard = cardId;
-    p.hand.push(cardId);
+    if (power === "GE" || power === "OT") {
+      p.hand.unshift(cardId);
+    } else if (power === "UK") {
+      p.hand.push(cardId);
+    } else {
+      const index = randomIndex(ctx, p.hand.length + 1);
+      p.hand.splice(index, 0, cardId);
+    }
   }
   p.flags.homeChosen = true;
   return finishHomeCardSelection(G, ctx);
@@ -1444,6 +1500,15 @@ export const recruit = (
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
   if (power === INVALID_MOVE) return INVALID_MOVE;
+  // 15.2 / 27.5: "players cannot perform recruitment or refit actions in
+  // wartime"; the shared phase gate owns that answer for every other 12.1
+  // action, and recruitment now reads it too.  33.2.1 prints one exception:
+  // the UK's Commonwealth army "can only be built during the GW", so its build
+  // stays legal in the GW maneuver (the other GW builds use 27.5.2's draft).
+  if (requireActionFamily(G, "recruit") === INVALID_MOVE) {
+    const cwGwBuild = power === "UK" && options.cw === true && G.phase === "gwManeuver";
+    if (!cwGwBuild) return INVALID_MOVE;
+  }
   const p = G.powers[power];
 
   // A83 Liberal Reforms ("no armies may be built this impulse") is one of the
@@ -1663,7 +1728,7 @@ export const buildForMinor = (
   G: ImperialElegyState,
   ctx: Ctx,
   minor: string,
-  kind: "army" | "squadron" | "dreadnought",
+  kind: "army" | "squadron" | "dreadnought" | "eliteCorps",
   space: SpaceId,
   steps: 1 | 2 = 1,
 ): string | void => {
@@ -1687,6 +1752,13 @@ export const buildForMinor = (
       placeNonPlayerCounter(G, minor, "minorArmy", space, steps === 2 ? 2 : 1);
     }
     log(G, power, "minorBuilt", {minor, kind, space, steps, cost: decision.cost});
+    return undefined;
+  }
+  if (kind === "eliteCorps") {
+    // 12.8 / 12.2: a generic minor EC marked MP, one per minor, placed with a
+    // friendly army that has a LoC (the decision checked both).
+    placeUnit(G, minor, "eliteCorps", space, 2, {flags: {mp: true}});
+    log(G, power, "minorBuilt", {minor, kind, space, steps: 2, cost: decision.cost});
     return undefined;
   }
   placeNonPlayerCounter(G, minor, kind, space, 2);
@@ -1854,7 +1926,12 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
   // A088/UK-3: naval movement is a printed colonial/operation action.
   const power = requireColonialCp(G, ctx, playerID, 1, ["freeColonialCp", "freeOperationCp"]);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  const units = unitIds.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && u.owner === power && u.naval === true);
+  const units = unitIds
+    .map((id) => G.units[id])
+    .filter((u): u is Unit =>
+      u !== undefined &&
+      u.naval === true &&
+      (u.owner === power || (u.owner === "IT" && G.flags.italyImpulse === true && power === G.activePower)));
   if (units.length === 0) return INVALID_MOVE;
   const from = units[0].space;
   if (!from) return INVALID_MOVE;
@@ -1919,6 +1996,121 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
   const interceptAtDestination = isNavalBox(to) && navalInterceptCandidates(G, power, to).length > 0;
   if ((defenders.length > 0 || interceptAtDestination) && G.battle === null) {
     openNavalContactDecision(G, ctx, power, from, to, unitIds);
+  }
+  return undefined;
+};
+
+/**
+ * Rule 15.2.2 — Joint Naval Operations (1 CP).
+ *
+ * "Taking this action allows you to take a naval movement action with an ally.
+ * … when a player takes this action they spend a CP, announce what they're
+ * doing, they place their joint naval operations marker on any of their naval
+ * units, and play passes to the next player.  If an allied player takes a joint
+ * naval operation action in a future impulse, any allied players who have also
+ * taken this action may remove their markers and then they can conduct their
+ * naval movement together."
+ *
+ * Called without a destination the action places (or replaces) the caller's
+ * marker; called with a destination the caller's units plus every same-side
+ * marker's units conduct one combined 12.3 naval move.  The participating
+ * markers are removed and their CP is not refunded.  Leaving a marker on the
+ * map at the end of the war likewise just loses the CP.
+ */
+export const jointNaval = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  unitIds: string[],
+  to?: SpaceId,
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = requireActive(G, ctx, playerID);
+  if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (G.phase !== "wartime" || G.war === null || G.gw?.active) return INVALID_MOVE;
+  const war = G.war;
+  if (war.status !== "maneuver" || G.pending !== null || G.battle !== null) return INVALID_MOVE;
+  if (G.activePower !== power) return INVALID_MOVE;
+  if (!Array.isArray(unitIds) || unitIds.length === 0) return INVALID_MOVE;
+  const units = unitIds
+    .map((id) => G.units[id])
+    .filter((unit): unit is Unit => unit !== undefined && commandsUnit(G, power, unit) && unit.naval === true);
+  if (units.length !== unitIds.length) return INVALID_MOVE;
+  const from = units[0].space;
+  if (!from || units.some((unit) => unit.space !== from)) return INVALID_MOVE;
+  const side: WarSideName | null =
+    war.attacker === power || war.attackerAllies.includes(power)
+      ? "attacker"
+      : war.defender === power || war.defenderAllies.includes(power)
+        ? "defender"
+        : null;
+  if (side === null) return INVALID_MOVE;
+  const sameSide = (other: Power): boolean =>
+    side === "attacker"
+      ? other === war.attacker || war.attackerAllies.includes(other)
+      : other === war.defender || war.defenderAllies.includes(other);
+  // A marker whose units have since moved or been eliminated is stale: the
+  // printed marker stays on the map but can no longer conduct the operation.
+  const markers = (war.jointNavalMarkers ?? []).filter((entry) =>
+    entry.unitIds.every((id) => {
+      const unit = G.units[id];
+      return unit !== undefined && unit.naval === true && unit.space === entry.space && entry.space === from;
+    }));
+  const partnerMarkers = markers.filter((entry) => entry.power !== power && sameSide(entry.power));
+
+  if (to === undefined) {
+    // Place (or replace) the caller's marker; the CP is spent and lost if the
+    // marker is never used.
+    if (!spendCpFor(G, power, 1)) return INVALID_MOVE;
+    war.jointNavalMarkers = [
+      ...(war.jointNavalMarkers ?? []).filter((entry) => entry.power !== power),
+      {power, unitIds: [...unitIds], space: from},
+    ];
+    log(G, power, "jointNavalMarkerPlaced", {space: from, count: unitIds.length});
+    return undefined;
+  }
+
+  // Conducting the operation needs at least one allied marker: a lone player
+  // simply takes an ordinary naval movement action instead.
+  if (partnerMarkers.length === 0) return INVALID_MOVE;
+  if (to === from) return INVALID_MOVE;
+  const partnerUnits = partnerMarkers.flatMap((entry) =>
+    entry.unitIds.map((id) => G.units[id]).filter((unit): unit is Unit => unit !== undefined),
+  );
+  const contact = navalUnitsIn(G, to).some((unit) =>
+    hostileOwner(G, power, unit.owner) || partnerMarkers.some((entry) => hostileOwner(G, entry.power, unit.owner)),
+  );
+  for (const participant of [power, ...partnerMarkers.map((entry) => entry.power)]) {
+    const plan = planNavalMove(G, participant, from, to, {allowEnemyDestination: contact});
+    if (!plan.ok) {
+      log(G, power, "jointNavalRejected", {reason: plan.reason, ally: participant});
+      return INVALID_MOVE;
+    }
+  }
+  const allUnits = [...units, ...partnerUnits];
+  if (!isNavalBox(to) && contact && allUnits.length > PORT_NAVAL_LIMIT) return INVALID_MOVE;
+  if (!contact) {
+    const endProblem = movementEndProblem(G, to, allUnits);
+    if (endProblem !== null) return INVALID_MOVE;
+  }
+  if (!spendCpFor(G, power, 1)) return INVALID_MOVE;
+  // Remove every marker that took part (including the caller's, if any).
+  war.jointNavalMarkers = (war.jointNavalMarkers ?? []).filter(
+    (entry) => entry.power !== power && !partnerMarkers.some((partner) => partner.power === entry.power),
+  );
+  for (const unit of allUnits) {
+    G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unit.id);
+    G.spaces[to].units.push(unit.id);
+    unit.space = to;
+  }
+  log(G, power, "jointNavalMove", {
+    from,
+    to,
+    count: allUnits.length,
+    allies: partnerMarkers.map((entry) => entry.power).join(","),
+  });
+  const interceptAtDestination = isNavalBox(to) && navalInterceptCandidates(G, power, to).length > 0;
+  if ((contact || interceptAtDestination) && G.battle === null) {
+    openNavalContactDecision(G, ctx, power, from, to, allUnits.map((unit) => unit.id));
   }
   return undefined;
 };
@@ -2264,14 +2456,17 @@ export const removeInfluence = (G: ImperialElegyState, ctx: Ctx, space: SpaceId)
   if (requireActionFamily(G, "removeInfluence") === INVALID_MOVE) return INVALID_MOVE;
   const power = requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  if (G.powers[power].flags.alreadyRemovedInfluence) return INVALID_MOVE;
+  // 12.6: the once-per-impulse bar is printed for influence removal; removing
+  // a diplomacy marker is a separate 12.6 action.
+  const removingInfluence = G.spaces[space]?.influence === power;
+  if (removingInfluence && G.powers[power].flags.alreadyRemovedInfluence) return INVALID_MOVE;
   // 12.6: own markers only; the Africa exception and the foreign-unit bar are
   // printed against influence and live in the shared gate.
   if (removeMarkerProblem(G, power, space) !== null) return INVALID_MOVE;
   const state = G.spaces[space];
   if (state.influence === power) state.influence = null;
   if (state.diplomacy === power) state.diplomacy = null;
-  G.powers[power].flags.alreadyRemovedInfluence = true;
+  if (removingInfluence) G.powers[power].flags.alreadyRemovedInfluence = true;
   return undefined;
 };
 
@@ -2962,7 +3157,11 @@ const moveOneWartimeLandUnit = (
 ): string | void => {
   const unit = G.units[unitId];
   if (!unit) return INVALID_MOVE;
-  const commands = unit.owner === power || commandsAlliedMinor(G, power, unit.owner);
+  // 15.4.1: during the Italian impulse the commander also commands "IT".
+  const commands =
+    unit.owner === power ||
+    (unit.owner === "IT" && G.flags.italyImpulse === true && power === G.activePower) ||
+    commandsAlliedMinor(G, power, unit.owner);
   if (!commands) return INVALID_MOVE;
   // 15.2.3: a reserve army deployed this impulse cannot march, rail or attack.
   if (unit.flags?.deployedThisImpulse === true) return INVALID_MOVE;
@@ -3022,7 +3221,14 @@ const moveOneLandUnit = (
   // 12.15: peacetime redeployment still needs a land route through
   // controlled/influence spaces; it is not a teleport.  Wartime land movement
   // is the 15.2 march/rail flow and keeps its own checks.
-  if (G.war === null && !G.gw?.active && !redeployLandPath(G, power, from, to)) return INVALID_MOVE;
+  // 12.15 Special Redeployment lets an EC / elite colonial EF / Zouave take a
+  // naval-box route instead of a land route, provided it ends stacked with a
+  // friendly army.
+  if (
+    G.war === null && !G.gw?.active &&
+    !redeployLandPath(G, power, from, to) &&
+    !specialRedeployPath(G, power, unit, to)
+  ) return INVALID_MOVE;
   G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unitId);
   G.spaces[to].units.push(unitId);
   unit.space = to;
@@ -3440,10 +3646,18 @@ const finalizeWarDeclaration = (
       list.findIndex((other) => warTargetKey(other) === warTargetKey(entry)) === index);
   const forbidPlayers = G.flags.declarationForbid === true;
   const allowNeutralJoin = G.flags.declarationNeutralJoin === true;
+  // Rule 13.2.1: the Italian beneficiary crossed the 13.4 aid search (and any
+  // 33.3 decision) as a public flag, exactly like the 14.1 second target.
+  const rawItalianBeneficiary = G.flags.declarationItalianBeneficiary;
+  const italianBeneficiary =
+    typeof rawItalianBeneficiary === "string" && ITALIAN_UNIFICATION_STATES.includes(rawItalianBeneficiary)
+      ? rawItalianBeneficiary
+      : undefined;
   delete G.flags.declarationSecond;
   delete G.flags.declarationPrimary;
   delete G.flags.declarationForbid;
   delete G.flags.declarationNeutralJoin;
+  delete G.flags.declarationItalianBeneficiary;
   if (declarationCard === null || !warDeclarationExemptsConquestPenalty(declarationCard)) {
     applyConquestDeclarationPenalty(G, ctx, power, aim, stabilityDiscount);
   }
@@ -3474,6 +3688,31 @@ const finalizeWarDeclaration = (
   addNamed(minor !== null ? {minor: minor.minor} : isPower(target) ? target : null);
   addNamed(flagSecond);
   for (const other of coDefenderTargets) addNamed(other);
+  // Errata 13.4.5 (Bismarck) fallback: a declaration that crossed a pending
+  // decision (or an older saved game) may still reach here with one allied and
+  // one unaligned named minor.  `declareWar` applies the live alliance and
+  // resolves the pair without a decision; this keeps every other finalizer
+  // consistent.  As on the live path, the marker covers every space the minor
+  // controls and the five-ally cap is deliberately not consulted.
+  if (declarationCard === BISMARCK_HOME_CARD) {
+    const declaredMinors = named
+      .filter((entry): entry is {minor: string} => !isPower(entry) && typeof entry === "object")
+      .map((entry) => entry.minor);
+    const infos = [...new Set(declaredMinors)]
+      .map((id) => minorWarInfo(G, power, id))
+      .filter((info) => info.ok);
+    const alliedMinor = infos.find((info) => info.ally !== null);
+    const unaligned = infos.find((info) => info.ally === null);
+    if (alliedMinor !== undefined && unaligned !== undefined
+      && alliedMinor.ally !== null && alliedMinor.ally !== power) {
+      const newAlly = alliedMinor.ally;
+      const home = applyMinorAidAlliance(G, unaligned.minor, newAlly);
+      if (home !== null) {
+        log(G, newAlly, "minorAlliance", {space: home});
+        recomputeTracks(G);
+      }
+    }
+  }
   const playerCandidates: Power[] = named.filter(isPower);
   const requested = flagPrimary !== null && isPower(flagPrimary) ? flagPrimary : null;
   const primary: PowerOrMinor =
@@ -3503,6 +3742,7 @@ const finalizeWarDeclaration = (
     {
       ...(minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {}),
       ...(coMinors.length > 0 ? {coDefenderMinors: coMinors} : {}),
+      ...(italianBeneficiary !== undefined ? {italianBeneficiary} : {}),
     },
   );
   // 13.7 is a defending-seat action during the war-aim/alliance steps, while
@@ -3543,7 +3783,10 @@ const finalizeWarDeclaration = (
   // Qing army at full strength in the targeted key."  The Qing counter row has
   // exactly one army, so this is idempotent even if a later path repeats it.
   if (minor !== null && minor.minor === "Qing China" && aim === "conquest") {
-    const key = objectives[0];
+    // Errata 13.4.4: "place the Qing army at full strength in the targeted
+    // key."  A conquest may name two spaces with only one key, so prefer the
+    // objective that is actually a key over the printed first space.
+    const key = objectives.find((id) => effectiveKeyType(G, id) !== undefined) ?? objectives[0];
     if (key !== undefined && G.spaces[key]) {
       // The chart prints one Qing army.  If a card already put it on the map,
       // the rule still moves it into the targeted key at full strength.
@@ -3560,6 +3803,26 @@ const finalizeWarDeclaration = (
       }
       log(G, power, "qingArmyPlaced", {space: key});
     }
+  }
+  // Errata 13.4.4: "The player that aids the Qing in the war of conquest gains
+  // a +1 card marker regardless of the war's outcome."  The aider is the
+  // player defending Qing, whether found by 13.4.2's aid search or already
+  // allied to it (13.4 turns the declaration into one on that player); the
+  // marker is granted when the war is created, so its outcome cannot take it
+  // away.
+  if (
+    minor !== null &&
+    minor.minor === "Qing China" &&
+    aim === "conquest" &&
+    isPower(minor.ally) &&
+    minor.ally !== power
+  ) {
+    G.powers[minor.ally].cardMarkers += 1;
+    log(G, minor.ally, "qingAidCardMarker", {
+      minor: minor.minor,
+      cardMarkers: G.powers[minor.ally].cardMarkers,
+      existingAlly: true,
+    });
   }
   if (minor !== null) {
     // Rule 13.4 / 14.2 / 8.2: the aiding player ally shifts away from the
@@ -3778,15 +4041,8 @@ const finalizeMinorAid = (
   // 13.4.2: the *aiding* player answers the call and gains the alliance; the
   // attacker is only the power that declared war on the minor.
   log(G, ally, "minorAidGranted", {minor: state.minor, ally, space: home});
-  // 13.4.4 (as amended): "The player that aids the Qing in the war of conquest
-  // gains a +1 card marker regardless of the war's outcome."
-  if (state.minor === "Qing China" && state.aim === "conquest") {
-    G.powers[ally].cardMarkers += 1;
-    log(G, ally, "qingAidCardMarker", {
-      minor: state.minor,
-      cardMarkers: G.powers[ally].cardMarkers,
-    });
-  }
+  // Errata 13.4.4's aider marker is granted by `finalizeWarDeclaration` for
+  // every path (13.4.2 aid search included), so it is not duplicated here.
   G.pending = null;
   return finalizeWarDeclaration(
     G,
@@ -4165,6 +4421,13 @@ export interface DeclareWarOptions {
    * from joining the war."  Minor allies still join under 14.0.
    */
   forbidPlayers?: boolean;
+  /**
+   * Rule 13.2.1: the Italian state the attacker will give any conquered land
+   * to.  Supplying it declares an Italian war of unification (any player with
+   * a diplomacy/ally marker with Sardinia-Piedmont or the Two Sicilies may);
+   * leaving it out keeps 13.2's GE/AU unification branches.
+   */
+  italianBeneficiary?: string;
 }
 
 export const declareWar = (
@@ -4191,6 +4454,19 @@ export const declareWar = (
   // resolves.  It funds this one declaration with the card's printed CP and
   // carries the card's own aim/target limits, so no ordinary impulse CP is
   // spent (errata 12.17: the card's CP all go into the war).
+  // Rule 13.2.1: the Italian beneficiary is a declaration-time choice of
+  // Sardinia-Piedmont or the Two Sicilies.  Supplying it switches the
+  // unification aim to the Italian branch, which any player with a marker on
+  // either state may use; GE/AU keep their printed German/citizenship wars
+  // when they do not name one.
+  const italianBeneficiary = options.italianBeneficiary;
+  if (italianBeneficiary !== undefined) {
+    if (aim !== "unification") return INVALID_MOVE;
+    if (!ITALIAN_UNIFICATION_STATES.includes(italianBeneficiary)) return INVALID_MOVE;
+  } else if (aim === "unification" && power !== "GE" && power !== "AU") {
+    return INVALID_MOVE;
+  }
+
   const entitlement = warDeclarationEntitlement(G, power);
   const policy = entitlement !== null ? warDeclarationPolicy(entitlement.card) : null;
   if (entitlement !== null) {
@@ -4209,13 +4485,20 @@ export const declareWar = (
     if (warTargetKey(secondTarget) === warTargetKey(target)) return INVALID_MOVE;
     if (isPower(secondTarget)) {
       if (secondTarget === power) return INVALID_MOVE;
+      // Rule 8.1.2: a member of the attacker's alliance is not a legal target.
+      if (allied(G, power, secondTarget)) return INVALID_MOVE;
       // Rule 13.5: players cannot break truces.
       if (hasTruce(G, power, secondTarget)) return INVALID_MOVE;
       if (!warDeclarationTargetLegal(G, entitlement, secondTarget)) return INVALID_MOVE;
     } else {
+      // 12.17.1: the US and the CSA can never be a war target.
+      if (isWarImmuneNonPlayer(secondTarget.minor)) return INVALID_MOVE;
       const info = minorWarInfo(G, power, secondTarget.minor);
       if (!info.ok) return INVALID_MOVE;
       if (info.ally === power) return INVALID_MOVE;
+      // Rule 8.1.2: a minor defended by a member of the attacker's alliance is
+      // the same prohibited target as that player.
+      if (info.ally !== null && allied(G, power, info.ally)) return INVALID_MOVE;
       if (!warDeclarationTargetLegal(G, entitlement, minorWarDefender(info))) return INVALID_MOVE;
     }
     if (options.primary !== undefined && !warTargetKeyIn(options.primary, [target, secondTarget])) {
@@ -4230,7 +4513,8 @@ export const declareWar = (
   }
 
   // Rule 13.4/13.5: resolve the player side of a non-player declaration.
-  const minor: MinorWarInfo | null = isMinorWarTargetArg(target)
+  if (isMinorWarTargetArg(target) && isWarImmuneNonPlayer(target.minor)) return INVALID_MOVE;
+  let minor: MinorWarInfo | null = isMinorWarTargetArg(target)
     ? minorWarInfo(G, power, target.minor)
     : null;
   if (isMinorWarTargetArg(target) && (minor === null || !minor.ok)) return INVALID_MOVE;
@@ -4251,22 +4535,29 @@ export const declareWar = (
   } else {
     if (!isPower(target)) return INVALID_MOVE;
     if (power === target) return INVALID_MOVE;
+    // Rule 8.1.2: "Players in an alliance box: cannot declare war on members
+    // of their alliance."  This is the engine's authoritative gate; the War
+    // panel's `declarationDefenders` list applies the same filter.
+    if (allied(G, power, target)) return INVALID_MOVE;
     // Rule 13.5: players cannot break truces.
     if (hasTruce(G, power, target)) return INVALID_MOVE;
     playerDefender = target;
     defenderForAim = target;
   }
+  // Rule 8.1.2 also protects a non-player power defended by one of the
+  // attacker's alliance members (13.4 resolves that declaration to the ally).
+  if (playerDefender !== null && allied(G, power, playerDefender)) return INVALID_MOVE;
   // A card-driven declaration only names the defenders its printed target list
   // allows (Russo-Turkish Wars: OT; Jihad: RU or an Ottoman-home controller).
   // 13.4 resolves a non-player target to its player ally first, so Jihad on a
   // Russian minor ally is correctly a declaration on Russia.  A two-power
   // clause checks the second power through the same lens.
   if (!warDeclarationTargetLegal(G, entitlement, defenderForAim)) return INVALID_MOVE;
-  const secondInfo: MinorWarInfo | null =
+  let secondInfo: MinorWarInfo | null =
     secondTarget !== undefined && isMinorWarTargetArg(secondTarget)
       ? minorWarInfo(G, power, secondTarget.minor)
       : null;
-  const secondDefenderForAim: PowerOrMinor | null = secondTarget === undefined
+  let secondDefenderForAim: PowerOrMinor | null = secondTarget === undefined
     ? null
     : secondInfo !== null
       ? minorWarDefender(secondInfo)
@@ -4276,9 +4567,27 @@ export const declareWar = (
   if (secondDefenderForAim !== null && !warDeclarationTargetLegal(G, entitlement, secondDefenderForAim)) {
     return INVALID_MOVE;
   }
+  // Errata 13.4.5 (Bismarck): when the declaration names one minor with a
+  // player ally and one unaligned minor, "the player allied to the minor power
+  // immediately allies with the unaligned minor power.  This occurs even if
+  // that player already has five minor power allies."  Detection happens here
+  // so a later target re-read can tell the two apart; the alliance itself is
+  // applied only after every check passes, so a refused declaration leaves the
+  // board untouched.
+  const bismarckAutoAlly: {ally: Power; unaligned: MinorWarInfo} | null =
+    entitlement?.card === BISMARCK_HOME_CARD
+      && minor !== null && secondInfo !== null
+      && (minor.ally !== null) !== (secondInfo.ally !== null)
+      ? {
+          ally: (minor.ally ?? secondInfo.ally) as Power,
+          unaligned: minor.ally === null ? minor : secondInfo,
+        }
+      : null;
   // Rule 13.0: validate the aim (and every objective's control) before the CP
   // is spent, so an illegal declaration never mutates the state.  A two-target
-  // declaration may target objectives controlled by either defender.
+  // declaration may target objectives controlled by either defender; for the
+  // 13.4.5 pair that is the unaligned minor and the ally, which together cover
+  // both the minor's own spaces and the ally's.
   const declaredDefenders: PowerOrMinor[] | undefined = secondDefenderForAim !== null
     ? [defenderForAim, secondDefenderForAim]
     : undefined;
@@ -4286,8 +4595,43 @@ export const declareWar = (
     ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
     conquestKeyLimit: policy?.conquestKeyLimit,
     ...(declaredDefenders !== undefined ? {defenders: declaredDefenders} : {}),
+    ...(italianBeneficiary !== undefined ? {italianBeneficiary} : {}),
   });
   if (!validation.ok) return INVALID_MOVE;
+  let bismarckAllianceApplied = false;
+  if (bismarckAutoAlly !== null) {
+    // The alliance marker goes on every space the minor controls, exactly like
+    // a 13.4.2 aid alliance, and deliberately skips the five-ally cap.
+    const home = applyMinorAidAlliance(G, bismarckAutoAlly.unaligned.minor, bismarckAutoAlly.ally);
+    bismarckAllianceApplied = home !== null;
+    if (home !== null) {
+      log(G, bismarckAutoAlly.ally, "minorAlliance", {space: home});
+      recomputeTracks(G);
+    }
+    // Re-read both named minors: the unaligned one now resolves to the ally,
+    // so the declaration is one attack on that player (14.1 / 13.4).  The aim
+    // above already validated against the pair as it was named.
+    minor = minor === null ? null : minorWarInfo(G, power, minor.minor);
+    secondInfo = secondInfo === null ? null : minorWarInfo(G, power, secondInfo.minor);
+    if (minor !== null) {
+      playerDefender = minor.ally;
+      defenderForAim = minorWarDefender(minor);
+    }
+    if (secondInfo !== null) secondDefenderForAim = minorWarDefender(secondInfo);
+  }
+  if (italianBeneficiary !== undefined) {
+    // "then the attacking player gains an alliance with that power if they do
+    // not already have one."  Validation refused a beneficiary already allied
+    // to another player, so this is either a no-op or a fresh alliance.
+    if (minorWarAlly(G, italianBeneficiary) === null) {
+      const home = applyMinorAidAlliance(G, italianBeneficiary, power);
+      if (home === null) return INVALID_MOVE;
+      log(G, power, "minorAlliance", {space: home, italianBeneficiary});
+      recomputeTracks(G);
+    }
+    // The choice crosses every 13.4.1/13.4.2/33.3 decision on the public flag.
+    G.flags.declarationItalianBeneficiary = italianBeneficiary;
+  }
   if (entitlement !== null) {
     // The declaration is paid for by the home card, not by impulse CP.  The
     // card id crosses the (possibly pending) aid search as a public game flag
@@ -4313,8 +4657,18 @@ export const declareWar = (
       G.flags.declarationNeutralJoin = true;
     }
     clearWarDeclarationEntitlement(G, power);
-  } else if (!spend(G, cp)) {
-    return INVALID_MOVE;
+  } else {
+    // Errata 12.17: "A war can be declared for any number of CP, and all the
+    // CP spent from a given card must be spent to declare war."  Once an
+    // ordinary impulse card is on the table, the declaration must commit that
+    // card's whole value and nothing may have been spent from it yet.  (A
+    // direct caller and the card-entitlement path have no impulse card.)
+    const impulseCp = G.impulseCardCp ?? null;
+    if (impulseCp !== null) {
+      if (cp !== impulseCp) return INVALID_MOVE;
+      if (G.cpRemaining !== impulseCp) return INVALID_MOVE;
+    }
+    if (!spend(G, cp)) return INVALID_MOVE;
   }
   G.powers[power].flags.actionCpSpentThisImpulse = true;
   // 33.3 Napoleon's Legacy: FR may reveal the goal as it launches a war of
@@ -4351,6 +4705,16 @@ export const declareWar = (
   // records.  Both targets go through the 13.4 chain that follows, so a
   // non-player target can still find an ally (or defend alone).
   const coDefenders: WarTarget[] = secondTarget === undefined ? [] : [secondTarget];
+  if (bismarckAllianceApplied && bismarckAutoAlly !== null && minor !== null) {
+    // 13.4.5 resolves the pair in one step: the errata's alliance is immediate,
+    // so the allied player is the defending primary and neither minor runs a
+    // 13.4.1 fight-or-abandon choice or a 13.4.2 aid search — including when
+    // the attacker forbade other players from joining.
+    return finalizeWarDeclaration(
+      G, ctx, power, bismarckAutoAlly.ally, aim, objectives, cp, legacy.discount,
+      minor, coDefenders,
+    );
+  }
   if (minor !== null) {
     return beginMinorWarDeclaration(
       G, ctx, power, minor, aim, objectives, cp, legacy.discount,
@@ -4624,6 +4988,142 @@ const resolveAttackerSurrender = (G: ImperialElegyState, ctx: Ctx, pending: Pend
 };
 
 /**
+ * Rule 16.1.4/16.1.5 — an agreed end to the fighting.
+ *
+ * Both primary belligerents must agree.  A **negotiated peace** names the side
+ * conceding one treaty option, so the other side is the victor and chooses that
+ * one option; if the proposal names the option, the agreement is binding.  A
+ * **white peace** awards no treaty option.  Either agreement ends the maneuver
+ * step at once (15.5), so `resolveWar`'s all-passed boundary is bypassed.
+ *
+ * A specific option is accepted only where the settlement can honour it without
+ * hiding another pick: the war must have no 16.1.6 ally knockout (whose
+ * mandatory option still has to be imposed) and an Italian unification war may
+ * only agree to the 16.2.1 mandatory cession.  Otherwise the primaries can
+ * still agree on a plain negotiated/white peace and let the ordinary victor
+ * chooser take the option, which keeps 16.1.6 intact.
+ */
+const isTreatyOptionId = (value: unknown): value is (typeof TREATY_OPTION_ORDER)[number] =>
+  typeof value === "string" && (TREATY_OPTION_ORDER as readonly string[]).includes(value);
+
+export const proposeWarPeace = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  kind: "negotiated" | "white",
+  conceding?: "attacker" | "defender",
+  treatyOption?: string,
+  treatySpaces?: SpaceId[],
+): string | void => {
+  const power = actor(G, ctx.playerID ?? null);
+  if (power === null || G.war === null || G.pending !== null || G.battle !== null) return INVALID_MOVE;
+  if (G.phase !== "wartime" || G.gw?.active) return INVALID_MOVE;
+  const war = G.war;
+  if (war.status !== "maneuver" || war.victor !== null) return INVALID_MOVE;
+  if (power !== war.attacker && power !== war.defender) return INVALID_MOVE;
+  const other = power === war.attacker ? war.defender : war.attacker;
+  // A lone non-player defender has no seat to agree with (15.4.2).
+  if (!isPower(other)) return INVALID_MOVE;
+  if (kind === "negotiated") {
+    if (conceding !== "attacker" && conceding !== "defender") return INVALID_MOVE;
+  } else if (conceding !== undefined) {
+    return INVALID_MOVE;
+  }
+  if (treatyOption !== undefined) {
+    if (kind !== "negotiated" || !isTreatyOptionId(treatyOption)) return INVALID_MOVE;
+    // The two space options need a named space; the ordinary chooser asks for
+    // it, a binding agreement must carry it.
+    if (
+      (treatyOption === "righteousDefense" || treatyOption === "colonialCession") &&
+      (treatySpaces === undefined || treatySpaces.length === 0)
+    ) {
+      return INVALID_MOVE;
+    }
+    if (war.italianBeneficiary !== undefined && treatyOption !== "territorialCession") {
+      // 16.2.1: the victorious attacker in an Italian unification war must take
+      // territorial cession, so no other option can be the agreed one.
+      return INVALID_MOVE;
+    }
+    if ((war.knockedOut?.length ?? 0) > 0) {
+      // 16.1.6 keeps its mandatory knockout options; a binding single option
+      // would suppress them, so the table may agree only on a plain peace.
+      log(G, power, "warPeaceProposed", {kind, conceding, rejected: "knockout-options"});
+      return INVALID_MOVE;
+    }
+  }
+  openDecision(G, ctx, {
+    kind: "warPeace",
+    power: other,
+    prompt: `${POWER_DEFS[power].name} proposes a ${
+      kind === "white" ? "white peace" : "negotiated peace"
+    }${kind === "negotiated" && conceding !== undefined
+      ? ` (${conceding === "attacker" ? war.attacker : war.defender} concedes one treaty option)`
+      : ""}. Accept?`,
+    promptZh: `${POWER_DEFS[power].nameZh}提议${
+      kind === "white" ? "白和" : "协商和平"
+    }${kind === "negotiated" && conceding !== undefined
+      ? `（${conceding === "attacker" ? POWER_DEFS[war.attacker].nameZh : POWER_DEFS[war.defender as Power].nameZh}让出一项条约选项）`
+      : ""}。接受吗？`,
+    options: [
+      option("accept", "Accept — end the war", undefined, false, "接受——结束战争"),
+      option("decline", "Decline — keep fighting", undefined, false, "拒绝——继续作战"),
+    ],
+    context: {
+      proposer: power,
+      kind,
+      ...(conceding !== undefined ? {conceding} : {}),
+      ...(treatyOption !== undefined ? {treatyOption} : {}),
+      ...(treatySpaces !== undefined ? {treatySpaces: [...treatySpaces]} : {}),
+    },
+    blocking: true,
+  });
+  log(G, power, "warPeaceProposed", {kind, conceding, treaty: treatyOption});
+  return undefined;
+};
+
+/** The other primary's answer to a 16.1.4/16.1.5 proposal. */
+const resolveWarPeaceAnswer = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  accept: boolean,
+): string | void => {
+  const war = G.war;
+  if (!war || pending.kind !== "warPeace") return INVALID_MOVE;
+  const proposer = pending.context?.proposer;
+  const kind = pending.context?.kind;
+  if (!isPower(proposer) || (kind !== "negotiated" && kind !== "white")) return INVALID_MOVE;
+  const expected = proposer === war.attacker ? war.defender : war.attacker;
+  if (!isPower(expected) || pending.power !== expected) return INVALID_MOVE;
+  const concedingRaw = pending.context?.conceding;
+  const conceding = concedingRaw === "attacker" || concedingRaw === "defender" ? concedingRaw : undefined;
+  if (kind === "negotiated" && conceding === undefined) return INVALID_MOVE;
+  const treatyRaw = pending.context?.treatyOption;
+  const treatyOption = isTreatyOptionId(treatyRaw) ? treatyRaw : undefined;
+  if (kind === "negotiated" && treatyRaw !== undefined && treatyOption === undefined) return INVALID_MOVE;
+  const spacesRaw = pending.context?.treatySpaces;
+  const treatySpaces = Array.isArray(spacesRaw)
+    ? spacesRaw.filter((space): space is SpaceId => typeof space === "string")
+    : undefined;
+  G.pending = null;
+  if (!accept) {
+    log(G, expected, "warPeaceRefused", {proposer, kind});
+    return undefined;
+  }
+  war.peace = {
+    kind,
+    ...(kind === "negotiated" && conceding !== undefined ? {conceding} : {}),
+    ...(treatyOption !== undefined
+      ? {treaty: {option: treatyOption, ...(treatySpaces !== undefined ? {spaces: treatySpaces} : {})}}
+      : {}),
+  };
+  log(G, expected, "warPeaceAccepted", {proposer, kind, treaty: treatyOption});
+  // 15.5 lists an agreed peace as a maneuver-step ending, so settle now.  The
+  // `war.peace` record both classifies the result and bypasses the all-passed
+  // gate below.
+  return resolveWar(G, ctx);
+};
+
+/**
  * Rule 14.3 pass order.  The initiative recorded when the maneuver started is
  * authoritative; any ally that joined afterwards is appended in side order so
  * it is not silently skipped by the all-passed check.
@@ -4655,17 +5155,63 @@ const recordWarPass = (G: ImperialElegyState, ctx: Ctx, power: Power): string | 
     log(G, power, "warPassRefused", {reason: "not-active", active: G.activePower});
     return INVALID_MOVE;
   }
+  // 15.0: "Players can only pass if their war budget is ≤ 2."  A power still
+  // holding more budget must spend it on a wartime action; the only escape is
+  // having no force left that could act (otherwise a force-less seat would
+  // deadlock the war at the all-passed boundary).
+  const budget = cpBudgetFor(G, power);
+  const canStillAct = G.powers[power].reserves.length > 0
+    || Object.values(G.units).some((unit) => unit.owner === power && !unit.naval && unit.steps > 0);
+  // A seat that already spent CP on a wartime action is handing the impulse
+  // over, not declining to act (15.0's "can only pass if … ≤ 2" is about the
+  // choice between acting and passing at the start of the impulse).  Without
+  // this the engine's single-move impulse model would deadlock every seat that
+  // still holds budget after acting.
+  const actedThisImpulse = G.powers[power].flags.warCpSpentThisImpulse === true;
+  if (budget > 2 && !actedThisImpulse && canStillAct) {
+    log(G, power, "warPassRefused", {reason: "budget", budget});
+    return INVALID_MOVE;
+  }
   // 33.1 Superior Staff Work: GE's free deploy reserves action is only
   // available during its first impulse; passing forfeits it (once per war).
   if (power === "GE" && superiorStaffWorkFreeDeploy(G, power, war)) {
     G.powers.GE.flags.superiorStaffWorkUsed = true;
     log(G, "GE", "superiorStaffWorkDeclined", {scope: "war"});
   }
+  // 15.4.1: the Italian impulse is always last.  The commander's pass is the
+  // end of that impulse (and then of the maneuver), not a normal player pass.
+  if (G.flags.italyImpulse === true) {
+    delete G.flags.italyImpulse;
+    war.italyBudget = 0;
+    log(G, power, "italyImpulseEnded", {});
+    return resolveWar(G, ctx);
+  }
   if (!war.passed.includes(power)) war.passed.push(power);
   const order = warPassOrder(G, war);
-  // When every belligerent has passed the war is settled through the shared
-  // classifyVictory + settleLimitedWar path.
-  if (order.every((p) => war.passed.includes(p))) return resolveWar(G, ctx);
+  // When every player belligerent has passed, a unified Italy that is in the
+  // war takes its own 2-CP impulse first (15.4.1); without one the war settles
+  // through the shared classifyVictory + settleLimitedWar path.
+  if (order.every((p) => war.passed.includes(p))) {
+    const italyCommander = italyInvolvedInWar(war) ? italyWartimeCommander(G, war) : null;
+    if (
+      italyCommander !== null &&
+      italyCommander !== "IT" &&
+      isPower(italyCommander) &&
+      war.italyImpulseDone !== true &&
+      // 15.6: a knocked-out Italy is out of the war and takes no impulse.
+      war.italyKnockedOut === undefined
+    ) {
+      war.italyImpulseDone = true;
+      war.italyBudget = 2;
+      G.flags.italyImpulse = true;
+      G.activePower = italyCommander;
+      clearWarImpulseSpend(G);
+      log(G, italyCommander, "italyImpulseStarted", {budget: 2, space: war.minorTarget?.minor === "Italy" ? "defender" : "attacker"});
+      beginImpulseUpkeep(G, ctx, italyCommander);
+      return undefined;
+    }
+    return resolveWar(G, ctx);
+  }
   const next = order.find((p) => !war.passed.includes(p));
   if (next) {
     G.activePower = next;
@@ -4726,6 +5272,7 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
   pruneRemovedFromDiscard(G);
   G.resolvingCard = null;
   G.impulseCard = null;
+  G.impulseCardCp = null;
   if (chained) {
     // A chain insertion is one impulse; resume the next player once its
     // mandatory event has finished (unless the event itself granted CP).
@@ -5258,13 +5805,56 @@ const grantItalianUnificationMpitCp = (
   G: ImperialElegyState,
   war: WarState,
   victor: "attacker" | "defender" | null,
+  unified = false,
 ): void => {
-  if (!isItalianUnificationWar(war)) return;
-  const winner = victor === "defender" && isPower(war.defender) ? war.defender : war.attacker;
+  if (!isItalianUnificationWar(war) || victor !== "attacker") return;
+  // 22.2: "Then, if Italy unified immediately after an Italian war of
+  // unification, the primary belligerent that won the Italian war of
+  // unification may spend 2 free CP to influence Italy on the MPIT."  The
+  // concession is conditional on the unification roll, not on merely winning.
+  if (!unified && G.persistent.italyUnified !== true) return;
+  const winner = war.attacker;
   G.flags.italyUnificationMpitCp = 2;
   G.flags.italyUnificationMpitCpTurn = G.turn;
   G.flags.italyUnificationMpitCpPower = winner;
   log(G, winner, "italyUnificationMpitCp", {cp: 2});
+};
+
+/**
+ * Rule 13.2.1: "If the attacking player wins the war they must choose the
+ * territorial cession treaty option.  Additionally, if the attacking player
+ * wins, roll for Italian unification [22.1.5]."  The victory already required
+ * the cession (`warRequiresMandatoryCession`), so this runs after the treaties
+ * are applied and before demobilisation: the ceded spaces count towards the
+ * 22.1.5 DRMs.  22.1.2's unification-box +1 card marker goes to the winner.
+ *
+ * Returns true when the roll (or an already-unified board) leaves Italy
+ * unified, so the 22.2 free MPIT CP are granted only in that case.
+ */
+const resolveItalianWarVictory = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  war: WarState,
+  victor: "attacker" | "defender" | null,
+): boolean => {
+  if (!isItalianUnificationWar(war) || victor !== "attacker") return false;
+  if (G.persistent.italyUnified === true) return true;
+  if (G.flags.italyPetition === true) {
+    // 22.1.2: "After a player wins an Italian war of unification they gain the
+    // +1 card marker."  It was placed in the Italian unification box by the
+    // Petition for Aid result; winning takes it.
+    delete G.flags.italyPetition;
+    G.powers[war.attacker].cardMarkers += 1;
+    log(G, war.attacker, "italyPetitionMarkerGained", {
+      cardMarkers: G.powers[war.attacker].cardMarkers,
+    });
+  }
+  const unified = italianUnificationRoll(G, ctx, war.attacker);
+  // 22.1.3/22.1.4's own roll points stay live; this flag only keeps the action
+  // phase's 3-key auto-check from undoing a failed 13.2.1 roll in the same
+  // turn (the printed procedure rolls once per trigger).
+  if (!unified) G.flags.italianUnificationRolledTurn = G.turn;
+  return unified;
 };
 
 /** Demobilize the settled war and open the rule 17.0 free actions. */
@@ -5272,7 +5862,8 @@ const completeWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void =
   const war = G.war;
   if (!war) return INVALID_MOVE;
   drawPostWarCards(G, ctx, war);
-  grantItalianUnificationMpitCp(G, war, war.victor);
+  const unified = resolveItalianWarVictory(G, ctx, war, war.victor);
+  grantItalianUnificationMpitCp(G, war, war.victor, unified);
 
   // 33.1 German Confederation: every space GE gained by the treaties becomes a
   // permanent home space now, before the demobilization free actions.
@@ -5334,7 +5925,6 @@ const settleWarImmediately = (
   if (preparePostWarDraws(G, ctx, {mode: "immediate", victory, choices})) return undefined;
   applyWarEndCharacteristics(G, ctx);
   drawPostWarCards(G, ctx, war);
-  grantItalianUnificationMpitCp(G, war, victory.victor);
   G.flags.postWarWinner = postWarWinnerFor(war, victory.victor);
   const geWonUnification =
     war.warAim === "unification" && war.attacker === "GE" && victory.victor === "attacker";
@@ -5358,6 +5948,10 @@ const settleWarImmediately = (
     for (const treaty of settlement.treaties) {
       if (treaty.applied) displaceAfterTreaty(G, treaty.affectedSpaces);
     }
+    // 13.2.1: roll for Italian unification after the cession has been applied,
+    // then grant 22.2's 2 free MPIT CP only if Italy actually unified.
+    const unified = resolveItalianWarVictory(G, ctx, war, victory.victor);
+    grantItalianUnificationMpitCp(G, war, victory.victor, unified);
     G.flags.postWarWinner = settlement.demobilization.activePower;
     if (
       geWonUnification &&
@@ -6503,6 +7097,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   const opt = pending.options.find((o) => o.id === optionId);
   if (!opt) return INVALID_MOVE;
   const context = pending.context ?? {};
+  if (pending.kind === "warPeace") {
+    if (optionId !== "accept" && optionId !== "decline") return INVALID_MOVE;
+    return resolveWarPeaceAnswer(G, ctx, pending, optionId === "accept");
+  }
   if (pending.kind === "eventTargetPower" && context.special === "balanceOfPowerDraw") {
     return resolvePostWarDrawChoice(G, ctx, pending, optionId);
   }
@@ -6790,6 +7388,8 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   const playerID = ctx.playerID ?? null;
   const pending = G.pending;
   if (!pending || playerID !== seatOf(pending.power)) return INVALID_MOVE;
+  // 16.1.4/16.1.5: declining a peace proposal keeps the war going.
+  if (pending.kind === "warPeace") return resolveWarPeaceAnswer(G, ctx, pending, false);
   if (pending.kind === "gwBonusImpulse") return resolvePending(G, ctx, "skip");
   if (pending.kind === "movementDestination" && pending.context?.special === "endPhaseNavalReturn") {
     const first = pending.options[0];
@@ -8032,7 +8632,15 @@ export const resolveWar = (
   // `passWarMove` calls this itself as the last seat passes.  Any seat pressing
   // it earlier would end a war its owner is still fighting, so the shortcut is
   // refused instead of being an unprinted second exit.
-  if (war.status === "maneuver" && !belligerentsOf(war).every((p) => war.passed.includes(p))) {
+  // Rule 15.5: a fallen primary capital ends the maneuver step immediately, so
+  // the normal all-passed boundary does not apply to that settlement.
+  const capitalFallen = warCapitalFallen(G, war);
+  if (
+    war.status === "maneuver" &&
+    !capitalFallen &&
+    war.peace === undefined &&
+    !belligerentsOf(war).every((p) => war.passed.includes(p))
+  ) {
     const actorPower = actor(G, ctx.playerID ?? null);
     log(G, actorPower ?? undefined, "warResolveRefused", {reason: "not-all-passed"});
     return INVALID_MOVE;
@@ -8044,23 +8652,47 @@ export const resolveWar = (
     : typeof rawStart === "string" && rawStart.length > 0
       ? rawStart.split(",").filter(Boolean)
       : [];
-  const negotiatedRaw = G.flags.negotiatedPeace;
+  const agreedPeace = war.peace;
+  const negotiatedRaw = agreedPeace?.kind === "negotiated" ? agreedPeace.conceding : G.flags.negotiatedPeace;
   const negotiatedPeace =
     negotiatedRaw === "attacker" || negotiatedRaw === "defender" ? negotiatedRaw : null;
   const trueFlag = (value: unknown): boolean => value === true || value === "true" || value === 1;
+  const agreedWhitePeace = agreedPeace?.kind === "white";
 
   // 15.6: settle any capital that was occupied without a capture hook before
   // classification, so the knockout is historical rather than re-derived.
   recordWarKnockouts(G);
+  // 16.1.3(2): the defending side wins a defensive victory when the attacker is
+  // blockaded at the war's end [17.1].  The old writer only read a flag, so the
+  // printed condition never fired; compute the live blockade too.
+  const defenderBlockading = trueFlag(G.flags.defenderBlockading) || blockadedAt(G, war.attacker);
   const victory = classifyVictory(G, war, {
     attackerControlledAtStart,
     negotiatedPeace,
-    whitePeace: trueFlag(G.flags.whitePeace),
-    defenderBlockading: trueFlag(G.flags.defenderBlockading),
+    whitePeace: agreedWhitePeace || trueFlag(G.flags.whitePeace),
+    defenderBlockading,
   });
 
   if (treatyChoices !== undefined) {
     return settleWarImmediately(G, ctx, victory, treatyChoices);
+  }
+
+  // 16.1.4: "If players agreed on a specific treaty option to end the fighting,
+  // that agreement is binding."  With no 16.1.6 knockout option competing for
+  // the settlement, apply the agreed option directly instead of opening the
+  // victor's chooser.  (A binding option is refused while knockouts exist, so
+  // this branch never suppresses one.)
+  if (
+    agreedPeace?.kind === "negotiated" &&
+    agreedPeace.treaty !== undefined &&
+    victory.allyKnockouts.length === 0 &&
+    isTreatyOptionId(agreedPeace.treaty.option)
+  ) {
+    const agreedChoice: TreatyChoice = {
+      option: agreedPeace.treaty.option,
+      ...(agreedPeace.treaty.spaces !== undefined ? {spaces: [...agreedPeace.treaty.spaces]} : {}),
+    };
+    return settleWarImmediately(G, ctx, victory, [agreedChoice]);
   }
 
   // Rule 16.2: the victor chooses treaty options interactively.  Rule 16.1.6
@@ -8454,6 +9086,30 @@ export const endGwPlanningMove = (G: ImperialElegyState, ctx: Ctx): string | voi
   return undefined;
 };
 
+/**
+ * 25.7: an alliance sets its own GW impulse order during GW turn 0 planning.
+ * The printed step is secret and simultaneous; the engine lets one member of
+ * each alliance submit its permutation privately, applies the submitted order
+ * to the alternating track immediately, and keeps 4.3 seat order for an
+ * alliance that never submits one.  The maneuver step reveals the result.
+ */
+export const chooseGwOrder = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  side: "te" | "ta",
+  order: readonly Power[],
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "gwPlanning" || !G.gw || G.pending !== null) return INVALID_MOVE;
+  if (G.gw.turn !== 0) return INVALID_MOVE;
+  const members = side === "te" ? G.gw.te : G.gw.ta;
+  if (!members.includes(power)) return INVALID_MOVE;
+  if (!setGwOrderChoice(G, side, order)) return INVALID_MOVE;
+  log(G, power, "gwOrderChosen", {side, order: order.join(",")});
+  return undefined;
+};
+
 export const gwPass = (G: ImperialElegyState, ctx: Ctx): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
@@ -8556,14 +9212,22 @@ export const gwEliteCorps = (G: ImperialElegyState, ctx: Ctx, unitId: string): s
   return res.ok ? undefined : INVALID_MOVE;
 };
 
-export const gwDeploy = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, unitId?: string): string | void => {
+export const gwDeploy = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  space: SpaceId,
+  unitId?: string,
+  unitIds?: string[],
+): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = actor(G, playerID);
   if (G.phase !== "gwManeuver" || !G.gw || power === null) return INVALID_MOVE;
   // The shared allowance keeps the free staff action outside both the normal
   // budget action and the card bonus; no provisional charge/refund is needed.
   markSuperiorStaffWorkGwImpulse(G);
-  const res = performGwManeuver(G, ctx, {kind: "deploy", power, space, unitId});
+  // 15.2.3 / 27.5: one deploy places up to the half-industry allowance
+  // (1–3).  A caller that names no unit gets the whole allowance.
+  const res = performGwManeuver(G, ctx, {kind: "deploy", power, space, unitId, unitIds});
   if (!res.ok) return INVALID_MOVE;
   return undefined;
 };
@@ -8610,6 +9274,22 @@ export const gwTransferBudget = (G: ImperialElegyState, ctx: Ctx, to: Power, amo
   const from = actor(G, playerID);
   if (G.phase !== "gwPlanning" || !G.gw || from === null) return INVALID_MOVE;
   const res = transferGwBudget(G, ctx, from, to, amount);
+  return res.ok ? undefined : INVALID_MOVE;
+};
+
+/**
+ * 26.2: the US's own one-CP planning transfer.  The US has no seat, so a
+ * player on its side performs the move; `transferGwMajorBudget` owns the
+ * alliance, LoC and once-per-turn checks and debits `G.gw.usBudget`.
+ */
+export const gwUsTransferBudget = (G: ImperialElegyState, ctx: Ctx, to: Power, amount = 1): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = actor(G, playerID);
+  if (power === null || G.phase !== "gwPlanning" || !G.gw || !G.gw.usIn || G.pending !== null) return INVALID_MOVE;
+  const usSide = G.flags.usSide === "te" || G.flags.usSide === "ta" ? G.flags.usSide : null;
+  const playerSide = G.gw.te.includes(power) ? "te" : G.gw.ta.includes(power) ? "ta" : null;
+  if (usSide === null || playerSide !== usSide) return INVALID_MOVE;
+  const res = transferGwMajorBudget(G, ctx, to, amount);
   return res.ok ? undefined : INVALID_MOVE;
 };
 
@@ -9026,6 +9706,7 @@ export const playResponseCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId
   pruneRemovedFromDiscard(G);
   G.resolvingCard = null;
   G.impulseCard = null;
+  G.impulseCardCp = null;
   return;
 };
 
@@ -9159,6 +9840,9 @@ export const startWarManeuver = (G: ImperialElegyState, ctx: Ctx): string | void
   if (G.war.status !== "warAim" && G.war.status !== "alliance") return INVALID_MOVE;
   const rapid = rapidMobilizationBelligerent(G, G.war);
   G.war.status = "maneuver";
+  // 22.4: a unified Italy's lone-defender displacement and its reserve-army
+  // impulse happen at the start of the war/maneuver, before initiative.
+  applyItalyWarStartRules(G, G.war);
   // 5.6.3: a war may open paths and close others at once (allies stop supplying
   // enemies and start supplying each other), so the first maneuver impulse's
   // supply is repaired before the upkeep below reads it.

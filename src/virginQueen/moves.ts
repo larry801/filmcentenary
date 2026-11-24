@@ -15,7 +15,6 @@ import {CardDef,
     POWER_INDEX,
     POWER_INFO,
     NAVAL_LIMITS,
-    OTTOMAN_CAVALRY_LIMIT,
     REGULAR_LIMITS,
     POWERS,
     Power,
@@ -37,7 +36,7 @@ import {actingPower, ownerOf, samePlayer} from "./ownership";
 import {moveError} from "./movePolicy";
 import {canYieldSpace} from "./negotiation";
 import {formationIssue, landMoveIssue, transportMoveIssue} from "./movement";
-import {activateMajor, catholicLeagueDealsBlocked, checkCircumnavigation, die, discardTreasure, navigationCheck, resolveMajorDiplomacy, landForceCountController, navalForceCountController, navalLostCountController, springSeaCrossingBlocked} from "./util";
+import {activateMajor, catholicLeagueDealsBlocked, checkCircumnavigation, die, discardTreasure, navigationCheck, resolveMajorDiplomacy, landForceCountController, springSeaCrossingBlocked} from "./util";
 import {canPlayBattleCard, playBattleCard, startBattle} from "./combat";
 import {beginTutorialEvent, canPlayTutorialEvent} from "./tutorialEvents";
 import {canPlayHolyLeague, holyLeagueTracks} from "./holyLeague";
@@ -146,11 +145,13 @@ import {
     removeCardFromGame,
     reliefBattle,
     retreatLand,
-    cavalryCount,
+    addForeignWarLandFromPool,
+    addLandFromPool,
+    addNavalFromPool,
     landForceCount,
-    navalForceCount,
-    navalLostCount,
-    regularCount,
+    landPoolRoom,
+    navalPoolRoom,
+    navalPoolUsed,
     removeLandLosses,
     removePortNavalLosses,
     removeSeaNavalLosses,
@@ -415,7 +416,7 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
             ulster.land = {};
             ulster.leaders = [];
             ulster.control = "ireland";
-            addLand(G, "ulster", "ireland", "regular", 3);
+            addLandFromPool(G, "ulster", "ireland", "regular", 3);
             pushLog(G, "Ireland rises: Ulster is cleared and 3 Irish rebels are placed.");
             const ally = POWERS.find((major) => G.powers[major].alliedMinors.includes("ireland"));
             if (ally !== undefined) {
@@ -454,7 +455,7 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
         // FAQ #74 step 4 is unconditional: remove all Scottish land units from
         // the map, then replace them with the two regulars at Edinburgh.
         for (const space of SPACES) delete G.spaces[space.id].land.scotland;
-        addLand(G, "edinburgh", "scotland", "regular", 2);
+        addLandFromPool(G, "edinburgh", "scotland", "regular", 2);
         // Rules 23.3 / card #74: Scottish Lords Rebel moves Mary to "Captured
         // in England" only when the check makes Scotland an English or
         // Protestant ally and she is still alive in Scotland.  Every other
@@ -491,8 +492,8 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
             SPACES.find((space) => spaceHomes(space).includes("portugal") && G.spaces[space.id].control === "portugal" &&
                 G.spaces[space.id].siege === undefined);
         if (home !== undefined) {
-            addLand(G, home.id, "portugal", "regular", 3);
-            pushLog(G, `Don Antonio places 3 Portuguese regulars in ${home.name}.`);
+            const placed = addLandFromPool(G, home.id, "portugal", "regular", 3);
+            pushLog(G, `Don Antonio places ${placed} Portuguese regular(s) in ${home.name}.`);
             return true;
         }
         return false;
@@ -1071,7 +1072,7 @@ const resolveSpanishRoad = (G: VQGame): void => {
         pushLog(G, "Spanish Road requires Spanish control of Milan.");
         return;
     }
-    addLand(G, "milan", "spain", "regular", 1);
+    addLandFromPool(G, "milan", "spain", "regular", 1);
     G.spanishRoadAvailable = true;
     pushLog(G, "Spain adds a regular in Milan and prepares a Spanish Road move.");
 };
@@ -1135,7 +1136,7 @@ const resolveHolyRomanIntercession = (G: VQGame, ctx: Ctx, target?: string): voi
     const validHomes = SPACES.filter((space) => spaceHomes(space).includes("hre") && G.spaces[space.id].control === "hre" && !G.spaces[space.id].unrest);
     const chosen = chosenSpace !== undefined ? validHomes.find((s) => s.id === chosenSpace) : undefined;
     const home = chosen ?? validHomes[0];
-    if (home !== undefined) addLand(G, home.id, "hre", "regular", 2);
+    if (home !== undefined) addLandFromPool(G, home.id, "hre", "regular", 2);
     const dice = roll(ctx, 5);
     const ones = dice.filter((die) => die === 1).length;
     const unrestCandidates = SPACES.filter((space) => spaceHomes(space).includes("hre") && !G.spaces[space.id].unrest);
@@ -1332,7 +1333,7 @@ const resolveGrandTour = (G: VQGame, p: Power, target?: string): void => {
     }
     // The printed option adds one French regular in Paris before moving the stack.
     if (multi && p === "france" && (chosen.has("move") || chosen.has("reinforce"))) {
-        addLand(G, "paris", "france", "regular", 1);
+        addLandFromPool(G, "paris", "france", "regular", 1);
     }
     for (const segment of segments) {
         const [mode, value, extra] = segment.split(":");
@@ -1378,7 +1379,7 @@ const resolveGrandTour = (G: VQGame, p: Power, target?: string): void => {
             G.discard = G.discard.filter((id) => id !== "vq-063");
             G.powers[p].cards.push("vq-063");
         }
-        if (p === "france") addLand(G, "paris", "france", "regular", 1);
+        if (p === "france") addLandFromPool(G, "paris", "france", "regular", 1);
     } else {
         if (chosen.has("retrieve") && G.discard.includes("vq-063")) {
             G.discard = G.discard.filter((id) => id !== "vq-063");
@@ -1629,7 +1630,7 @@ const finishCityRebelsLoss = (G: VQGame, pending: CityRebelsLossChoice, ctx?: Ct
             captureLeaders(G, pending.space, [pending.controller], pending.power);
             const receiver = cityRebelsReceiver(def);
             state.control = receiver;
-            addLand(G, pending.space, receiver, "regular", 1);
+            addLandFromPool(G, pending.space, receiver, "regular", 1);
         }
         G.lastRolls = `City State Rebels [${pending.values.join(",")}] = ${hits(pending.values)} hit(s)`;
         pushLog(G, `${G.lastRolls} in ${def.name}.`);
@@ -1869,12 +1870,14 @@ const resolveForeignVolunteers = (G: VQGame, p: Power): void => {
     const targets = SPACES.filter((space) => G.spaces[space.id].control === p && !G.spaces[space.id].siege &&
         !G.spaces[space.id].unrest).slice(0, 3);
     if (targets.length === 0) return;
-    // The card always places exactly three regulars; when fewer than three
-    // spaces are eligible the remaining regulars go to the eligible spaces.
+    // The card places three regulars; when fewer than three spaces are
+    // eligible the remaining regulars go to the eligible spaces, and the
+    // physical counter limit can reduce the total.
+    let placed = 0;
     for (let index = 0; index < 3; index += 1) {
-        addLand(G, targets[index % targets.length].id, p, "regular", 1);
+        placed += addLandFromPool(G, targets[index % targets.length].id, p, "regular", 1);
     }
-    pushLog(G, `Foreign Volunteers place 3 regular(s) for ${powerLabel(p)}.`);
+    pushLog(G, `Foreign Volunteers place ${placed} of 3 regular(s) for ${powerLabel(p)}.`);
 };
 
 /** #26 A Small Aid: one regular in a small besieged fortress, owned by its controller. */
@@ -1882,8 +1885,10 @@ const resolveSmallAid = (G: VQGame, target?: string): void => {
     if (target === undefined) return;
     if (!canPlaySmallAid(G, target)) return;
     const state = G.spaces[target];
-    addLand(G, target, state.control, "regular", 1);
-    pushLog(G, `A Small Aid adds 1 ${controllerLabel(state.control)} regular to ${SPACE_BY_ID[target].name}.`);
+    const placed = addLandFromPool(G, target, state.control, "regular", 1);
+    if (placed > 0) {
+        pushLog(G, `A Small Aid adds 1 ${controllerLabel(state.control)} regular to ${SPACE_BY_ID[target].name}.`);
+    }
 };
 
 /** #26 pre-check: besieged fortified space with 3 or fewer defender units. */
@@ -2066,7 +2071,7 @@ const resolveJeanne = (G: VQGame, ctx: Ctx): void => {
             if (owner !== "protestant") delete bayonne.land[owner];
         }
         bayonne.control = "protestant";
-        addLand(G, "bayonne", "protestant", "regular", 1);
+        addLandFromPool(G, "bayonne", "protestant", "regular", 1);
     }
     removeCardFromGame(G, "vq-058");
     pushLog(G, "Jeanne of Navarre raises the Protestant cause and takes Bayonne.");
@@ -2085,9 +2090,8 @@ const resolveSeaBeggars = (G: VQGame, ctx: Ctx, target?: string): void => {
     if (inland !== undefined && !friendlyControlled(G, "protestant", inland)) return;
     state.control = "protestant";
     state.religion = "protestant";
-    addLand(G, target, "protestant", "regular", 1);
-    addNaval(G, target, "protestant", "galleon", 1);
-    if (["brielle", "flushing"].includes(target)) addNaval(G, target, "protestant", "galleon", 1);
+    addLandFromPool(G, target, "protestant", "regular", 1);
+    addNavalFromPool(G, target, "protestant", "galleon", ["brielle", "flushing"].includes(target) ? 2 : 1);
     pushLog(G, `Sea Beggars seize ${def.name} for the Protestant.`);
     const spanishPort = zonePorts("northSea").find((id) => G.spaces[id].control === "spain" && !G.spaces[id].unrest);
     if (spanishPort !== undefined && (G.piracyActions?.protestant ?? 0) < 3) {
@@ -2428,7 +2432,7 @@ const resolveDayOfBarricades = (G: VQGame): void => {
     G.spaces.paris.land = {};
     G.spaces.paris.leaders = [];
     G.spaces.paris.control = "spain";
-    addLand(G, "paris", "spain", "regular", 4);
+    addLandFromPool(G, "paris", "spain", "regular", 4);
     if (guise.location !== "paris") moveLeaders(G, guise.location, "paris", ["guise"]);
     for (const id of parisLeaders) {
         if (id === "guise") continue;
@@ -2523,17 +2527,28 @@ const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
 };
 
 const resolveEdmundCampion = (G: VQGame, ctx: Ctx, chosen?: string): void => {
-    const target = SPACES.find((space) => space.id === chosen && space.area === "england" &&
-        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest) ??
-        SPACES.find((space) => space.area === "england" &&
-            totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest);
+    const available = (space: {id: string}): boolean => totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 &&
+        totalNaval(G, space.id, ownersWithNaval(G, space.id)) === 0 && G.spaces[space.id].leaders.length === 0 &&
+        !G.spaces[space.id].unrest && !(G.espionage?.jesuits ?? []).includes(space.id);
+    const target = SPACES.find((space) => space.id === chosen && space.area === "england" && available(space)) ??
+        SPACES.find((space) => space.area === "england" && available(space));
     if (target === undefined) return;
     const state = espionageState(G);
-    if (!state.jesuits.includes(target.id)) {
-        state.jesuits.push(target.id);
-        state.jesuitsOnCard = Math.max(0, state.jesuitsOnCard - 1);
+    // Printed text: the Jesuit comes *off the power board*.  Without one there
+    // the event may not be resolved at all; it used to conjure a marker from
+    // the general supply.
+    if (state.jesuitsOnCard < 1) {
+        pushLog(G, "Edmund Campion: no Jesuit remains on Spain's power board.");
+        return;
     }
-    G.spaces[target.id].religion = "catholic";
+    state.jesuitsOnCard -= 1;
+    state.jesuits.push(target.id);
+    // Rule 18.1: the final Protestant space of an area may never be flipped,
+    // and an event may not be resolved in a way that would do so.
+    if (G.spaces[target.id].religion === "catholic" ||
+        SPACES.filter((s) => s.area === "england" && G.spaces[s.id].religion === "protestant").length > 1) {
+        G.spaces[target.id].religion = "catholic";
+    }
     const adjacentProtestant = landNeighbors(target.id).filter((neighbor) => G.spaces[neighbor.id]?.religion === "protestant").length;
     if (adjacentProtestant > 0) resolveConversions(G, ctx, "spain", "catholic", "england", adjacentProtestant);
     pushLog(G, `Edmund Campion places a Jesuit in ${target.name}; ${adjacentProtestant} conversion attempt(s).`);
@@ -4227,6 +4242,12 @@ export const giveMercenary = (G: VQGame, ctx: Ctx, args: {target: Power; space?:
     if (p === "ottoman" || args.target === "ottoman" || args.target === "hre") return INVALID_MOVE;
     const entry = giftEntry(G, p, args.target);
     if (entry.mercenaries >= 4 || reciprocalGift(G, p, args.target, "mercenaries")) return INVALID_MOVE;
+    // Rule 17.1: the gift uses one of the receiver's own land counters, so
+    // the receiver must have room in its unified force pool.  Receiving
+    // mercenaries are placed in the receiver's capital (either capital for
+    // Spain/Protestant), which must be friendly and free of unrest.
+    const capital = capitalSpacesFor(G, args.target).find((id) => G.spaces[id]?.control === args.target && !G.spaces[id].unrest);
+    if (capital === undefined || landPoolRoom(G, args.target) < 1) return INVALID_MOVE;
     // The HRE may pay from its Mercenaries for Hire track; otherwise the
     // counter comes from one selected space on the map.
     const fromTrack = p === "hre" && (G.mercenariesForHire ?? 0) > 0 && (args.space === undefined || G.spaces[args.space]?.land.hre?.merc === undefined);
@@ -4238,10 +4259,6 @@ export const giveMercenary = (G: VQGame, ctx: Ctx, args: {target: Power; space?:
         source.merc -= 1;
         if (landCount(source) === 0) delete G.spaces[args.space!].land[p];
     }
-    // Receiving mercenaries are placed in the receiver's capital (either
-    // capital for Spain/Protestant), which must be friendly and free of unrest.
-    const capital = capitalSpacesFor(G, args.target).find((id) => G.spaces[id]?.control === args.target && !G.spaces[id].unrest);
-    if (capital === undefined) return INVALID_MOVE;
     ensureLand(G, capital, args.target).merc += 1;
     entry.mercenaries += 1;
     pushLog(G, `${powerLabel(p)} gives a mercenary to ${powerLabel(args.target)} in ${SPACE_BY_ID[capital].name}.`);
@@ -4633,7 +4650,9 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         return INVALID_MOVE;
     }
     if (G.scenario === "tutorial" && p === "spain" && G.tutorialHreAlly === "spain" && spaceHomes(def).includes("hre")) {
-        if (s.control !== "hre" || s.unrest || s.siege || !["regular", "merc"].includes(args.kind) || !spend(G, p, args.kind === "regular" ? 2 : 1, args.kind === "regular" ? "recruitRegular" : "recruitMerc")) return INVALID_MOVE;
+        if (s.control !== "hre" || s.unrest || s.siege || !["regular", "merc"].includes(args.kind) ||
+            landForceCountController(G, "hre") >= REGULAR_LIMITS.hre ||
+            !spend(G, p, args.kind === "regular" ? 2 : 1, args.kind === "regular" ? "recruitRegular" : "recruitMerc")) return INVALID_MOVE;
         addLand(G, space, "hre", args.kind, 1);
         return;
     }
@@ -4661,9 +4680,6 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     if (args.kind === "cav" && p !== "ottoman") {
         return INVALID_MOVE;
     }
-    if (args.kind === "cav" && cavalryCount(G, p) >= OTTOMAN_CAVALRY_LIMIT) {
-        return INVALID_MOVE;
-    }
     if (args.kind === "merc" && p === "ottoman") {
         return INVALID_MOVE;
     }
@@ -4674,6 +4690,8 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
     // Netherlands Religious Struggle area are Walloons" — three regular
     // counters, and no mercenaries or cavalry at all.
     if (!canBuildInNetherlands(G, p, def, args.kind)) return INVALID_MOVE;
+    // Rule 17.1: regulars, mercenaries and Ottoman cavalry share one pool,
+    // including units on foreign wars and the Spanish Armada.
     if (landForceCount(G, p) >= REGULAR_LIMITS[p]) return INVALID_MOVE;
     const recruitCost = args.kind === "regular" ? 2 : 1;
     const action = "recruit" + args.kind[0].toUpperCase() + args.kind.slice(1);
@@ -4701,10 +4719,10 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     // Rule 16.7: no naval unit may ever enter Antwerp or Rotterdam.
     if (isInlandPort(port)) return INVALID_MOVE;
     const homesBn = spaceHomes(def);
-    const isMinorPort = homesBn.some((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never));
+    const minorBn = homesBn.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never));
+    const isMinorPort = minorBn !== undefined;
     if (isMinorPort) {
-        const minor = homesBn.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never))!;
-        if (s.control !== minor || s.unrest || spaceHasEnemyLand(G, p, port)) return INVALID_MOVE;
+        if (s.control !== minorBn || s.unrest || spaceHasEnemyLand(G, p, port)) return INVALID_MOVE;
         // continue to kind/limit checks below with minor-owner
     } else if (s.control !== p || s.unrest || spaceHasEnemyLand(G, p, port)) {
         return INVALID_MOVE;
@@ -4740,7 +4758,10 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
         G.dutchSpanishHome !== true) {
         return INVALID_MOVE;
     }
-    if (!isMinorPort && navalForceCount(G, p) + navalLostCount(G, p) >= NAVAL_LIMITS[p]) {
+    // Rule 17.1/17.3: every ship type and the rebuild delay share one pool.
+    if (isMinorPort) {
+        if (navalPoolUsed(G, minorBn!) >= (MINOR_NAVAL_LIMITS[minorBn!] ?? 4)) return INVALID_MOVE;
+    } else if (navalPoolUsed(G, p) >= NAVAL_LIMITS[p]) {
         return INVALID_MOVE;
     }
     if (kind === "galleon" && !portZones(port).some((z) => z === "atlanticOcean" || z === "englishChannel" || z === "northSea" || z === "irishSea" || z === "bayOfBiscay")) {
@@ -4758,11 +4779,7 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
     const placedKind = kind === "galleon" && p === "england" && port === "london" && G.year >= 3 &&
         hawkinsInLondon ? "racebuilt" : kind;
     if (isMinorPort) {
-        const minorBn = homesBn.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never))!;
-        const {MINOR_NAVAL_LIMITS} = require("./constant/general");
-        const {navalForceCountController, navalLostCountController} = require("./util");
-        if (navalForceCountController(G, minorBn) + navalLostCountController(G, minorBn) >= (MINOR_NAVAL_LIMITS[minorBn] ?? 4)) return INVALID_MOVE;
-        addNaval(G, port, minorBn, placedKind, 1);
+        addNaval(G, port, minorBn!, placedKind, 1);
     } else {
         addNaval(G, port, p, placedKind, 1);
     }
@@ -5258,8 +5275,9 @@ export const reinforceForeignWar = (
     const war = G.foreignWars[p];
     const cost = args.kind === "regular" ? 2 : 1;
     if ((p !== "ottoman" && p !== "hre") || war?.status !== "active" || landCount(war.units) >= 8 ||
-        (args.kind === "cav" && p !== "ottoman") || (args.kind === "merc" && p === "ottoman") || !spend(G, p, cost, "reinforceForeignWar")) return INVALID_MOVE;
-    war.units[args.kind] += 1;
+        (args.kind === "cav" && p !== "ottoman") || (args.kind === "merc" && p === "ottoman") ||
+        landPoolRoom(G, p) < 1 || !spend(G, p, cost, "reinforceForeignWar")) return INVALID_MOVE;
+    addForeignWarLandFromPool(G, p, args.kind, 1);
     pushLog(G, `${powerLabel(p)} recruits 1 ${args.kind} directly into the ${war.enemy} war.`);
 };
 

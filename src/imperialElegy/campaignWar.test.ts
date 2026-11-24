@@ -108,6 +108,8 @@ const passAllBelligerents = (G: ImperialElegyState): void => {
   ];
   for (const power of belligerents) {
     if (G.war === null || G.war.status !== "maneuver" || G.pending !== null) break;
+    // 15.0: these passes exercise the all-passed boundary; lower the budget.
+    G.war.budgets[power] = Math.min(G.war.budgets[power] ?? 0, 2);
     expect(passWarMove(G, makeCtx(seat(power)))).toBeUndefined();
   }
   expect(G.war === null || G.war.status === "victory" || G.pending !== null).toBe(true);
@@ -171,6 +173,8 @@ describe("campaign limited war", () => {
     G.spaces.paris.occupiedBy = "GE";
 
     // GE passes, then FR passes; the all-passed check settles the war.
+    G.war!.budgets.GE = 2; // 15.0: pass only at war budget ≤ 2
+    G.war!.budgets.FR = 2;
     expect(passWarMove(G, makeCtx(seat("GE")))).toBeUndefined();
     expect(G.war!.passed).toEqual(["GE"]);
     expect(G.activePower).toBe("FR");

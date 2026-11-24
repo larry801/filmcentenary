@@ -32,6 +32,7 @@ import {
   BISMARCK_HOME_CARD,
   JIHAD_HOME_CARD,
   RUSSO_TURKISH_WARS_HOME_CARD,
+  isPower,
   warDeclarationAllowsTwoPowers,
   warDeclarationEntitlement,
   warDeclarationMayForbidJoins,
@@ -46,7 +47,7 @@ import {
   warTargetKey,
   type WarDeclarationDefender,
 } from "../engine/declarationTargets";
-import {warTargetFromKey, seekingAidSlots, type WarTarget} from "../engine/limitedWar";
+import {ITALIAN_UNIFICATION_STATES, hasMarkerWithMinor, minorWarInfo, warTargetFromKey, seekingAidSlots, type WarTarget} from "../engine/limitedWar";
 import {ConfirmButton} from "./ConfirmButton";
 import {IEPanel} from "./theme";
 import {bi} from "./boardHelpers";
@@ -62,6 +63,7 @@ export interface WarDeclaration {
     secondTarget?: WarTarget;
     primary?: WarTarget;
     forbidPlayers?: boolean;
+    italianBeneficiary?: string;
   } | undefined;
 }
 
@@ -92,10 +94,17 @@ const minorLabel = (minor: string, locale: "en" | "zh_CN"): string => {
 
 const defenderLabel = (
   entry: WarDeclarationDefender, locale: "en" | "zh_CN", t: ReturnType<typeof ieT>,
-): string =>
-  typeof entry.target === "string"
+): string => {
+  const base = typeof entry.target === "string"
     ? t.seats[entry.target]
     : minorLabel(entry.target.minor, locale);
+  // 13.4: a named minor is defended by its player ally, so name the player the
+  // declaration is really aimed at (13.4.5's allied-minor rows rely on this).
+  const ally = isPower(entry.defender) && entry.defender !== entry.target
+    ? t.seats[entry.defender]
+    : null;
+  return ally === null ? base : `${base} (${ally})`;
+};
 
 export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   const {
@@ -112,6 +121,22 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   const [chosenSecondTarget, setChosenSecondTarget] = React.useState<string>("");
   const [chosenPrimary, setChosenPrimary] = React.useState<string>("");
   const [forbidPlayers, setForbidPlayers] = React.useState(false);
+  // Rule 13.2.1: the Italian state receiving any land won.  The form only
+  // offers it when the viewer holds a diplomacy/ally marker with one of the
+  // two states; GE/AU may keep their printed German/citizenship unification
+  // by choosing "no Italian beneficiary".
+  const [chosenItalianBeneficiary, setChosenItalianBeneficiary] = React.useState<string>("");
+  const italianMarkerChoices = React.useMemo(
+    () => ITALIAN_UNIFICATION_STATES.filter((minor) => hasMarkerWithMinor(G, viewer, minor)),
+    [G, viewer],
+  );
+  const italianBeneficiary = React.useMemo(() => {
+    if (chosenItalianBeneficiary !== "" && ITALIAN_UNIFICATION_STATES.includes(chosenItalianBeneficiary)) {
+      return chosenItalianBeneficiary;
+    }
+    if (viewer === "GE" || viewer === "AU") return "";
+    return italianMarkerChoices[0] ?? "";
+  }, [chosenItalianBeneficiary, italianMarkerChoices, viewer]);
 
   // A stable identity matters: the aim-selection memo below keys on this list,
   // and `declarationAimsFor` builds a fresh array.
@@ -136,9 +161,10 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   );
   const defendersForAim = React.useCallback(
     (a: WarDeclarationAim): WarDeclarationDefender[] =>
-      allDefenders.filter((candidate) => declarationObjectives(G, viewer, entitlement, candidate, a).length > 0),
+      allDefenders.filter((candidate) =>
+        declarationObjectives(G, viewer, entitlement, candidate, a, null, italianBeneficiary || undefined).length > 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allDefenders, G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null],
+    [allDefenders, G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, italianBeneficiary],
   );
   // One scan in the ordinary case.  A printed aim with no legal objective in
   // this position (Jihad's liberation before any Balkan rebellion, say) must
@@ -177,9 +203,11 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   // The spaces the declaration may name: a target pair uses both lists, so a
   // pair such as FR + Denmark can take one objective from either.
   const objectives = React.useMemo(
-    () => (entry === undefined ? [] : declarationObjectives(G, viewer, entitlement, entry, aim, secondEntry)),
+    () => (entry === undefined
+      ? []
+      : declarationObjectives(G, viewer, entitlement, entry, aim, secondEntry, italianBeneficiary || undefined)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, secondEntry],
+    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, secondEntry, italianBeneficiary],
   );
   const objective: SpaceId | "" =
     chosenObjective !== "" && objectives.includes(chosenObjective) ? chosenObjective : objectives[0] ?? "";
@@ -190,9 +218,10 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
       ? []
       : declarationSecondObjectives(
         G, viewer, entitlement, entry, aim, objective as SpaceId, secondEntry ?? null,
+        italianBeneficiary || undefined,
       )),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, objective, secondEntry],
+    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, objective, secondEntry, italianBeneficiary],
   );
   const secondObjective: SpaceId | "" =
     chosenSecondObjective !== "" && secondObjectives.includes(chosenSecondObjective)
@@ -210,8 +239,11 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   const forbidPlayersAllowed = entitlement !== null && warDeclarationMayForbidJoins(entitlement.card);
   // The card funds the declaration with its printed CP; an ordinary one picks
   // 1–4 and pays it out of the impulse (13.0).
-  const cp = entitlement !== null ? entitlement.cp : chosenCp;
-  const enoughCp = cpRemaining >= cp;
+  // Errata 12.17: an ordinary declaration spends the whole card played this
+  // impulse, so the panel locks the CP value to that card's printed CP.
+  const impulseCp = G.impulseCardCp ?? null;
+  const cp = entitlement !== null ? entitlement.cp : impulseCp ?? chosenCp;
+  const enoughCp = impulseCp !== null ? cpRemaining === impulseCp : cpRemaining >= cp;
   const canDeclare = canActionCard && objective !== "" && (entitlement !== null || enoughCp);
 
   const declaration: WarDeclaration | null = entry === undefined || objective === ""
@@ -231,6 +263,7 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
             ...(primaryChoices.length > 0 ? {primary: primary as Power} : {}),
           }),
         ...(forbidPlayersAllowed && forbidPlayers ? {forbidPlayers: true} : {}),
+        ...(italianBeneficiary !== "" ? {italianBeneficiary} : {}),
       },
     };
   const options = declaration === null ? undefined : declaration.options;
@@ -244,14 +277,26 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   // move would never ask (Bismarck's join ban suppresses it entirely).
   const aidHint = React.useMemo(() => {
     // Only the first target runs the 13.4 chain; a second non-player target is
-    // recorded as a co-defender minor with the war.
+    // recorded as a co-defender minor with the war.  Errata 13.4.5 is the
+    // exception: an unaligned first target beside a minor with a player ally
+    // immediately allies that player and never runs the 13.4.2 aid search —
+    // even over the five-ally cap and even when joins are forbidden.
     const minor = entry === undefined || typeof entry.target === "string" ? null : entry.target.minor;
     if (minor === null) return null;
+    const firstInfo = minorWarInfo(G, viewer, minor);
+    const secondInfo = secondEntry !== undefined && typeof secondEntry.target !== "string"
+      ? minorWarInfo(G, viewer, secondEntry.target.minor)
+      : null;
+    const pairAlly = secondInfo !== null && secondInfo.ok && secondInfo.ally !== null
+      && firstInfo.ok && firstInfo.ally === null
+      ? secondInfo.ally
+      : null;
+    if (pairAlly !== null) return {minor, forbidden: false, slots: [], pairAlly};
     const forbidden = forbidPlayersAllowed && forbidPlayers;
     const slots = forbidden ? [] : seekingAidSlots(G, viewer, minor);
-    return {minor, forbidden, slots};
+    return {minor, forbidden, slots, pairAlly: null};
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [G, viewer, entry, forbidPlayersAllowed, forbidPlayers]);
+  }, [G, viewer, entry, secondEntry, forbidPlayersAllowed, forbidPlayers]);
 
   const reason = canDeclare
     ? undefined
@@ -261,7 +306,9 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
       ? bi(locale, "World Tension is 3+; a new war cannot be declared.", "世界紧张达到 3+，无法发动新的战争。")
       : objective === ""
         ? bi(locale, "No legal objective for this defender and aim.", "该防守方与战争目标下没有合法目标空间。")
-        : bi(locale, `Needs ${cp} CP in this impulse.`, `本行动轮需要 ${cp} CP。`);
+        : impulseCp !== null && cpRemaining !== impulseCp
+          ? bi(locale, `Errata 12.17: the whole ${impulseCp} CP card must pay for the war; ${cpRemaining} CP remain.`, `勘误 12.17：必须用整张 ${impulseCp} CP 的牌支付战争；当前剩余 ${cpRemaining} CP。`)
+          : bi(locale, `Needs ${cp} CP in this impulse.`, `本行动轮需要 ${cp} CP。`);
 
   const title = entitlement !== null
     ? bi(locale, `Declare war — ${homeCardTitle(entitlement.card)}`, `宣战 — ${homeCardTitle(entitlement.card)}`)
@@ -295,7 +342,36 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
               ))
             )}
           </span>
-          {entitlement !== null ? (
+          {aim === "unification" && italianMarkerChoices.length > 0 && (
+            <label className="ie-inline">
+              <span className="ie-muted">{bi(locale, "Italian beneficiary", "意大利受赠邦国")}</span>
+              <select
+                className="ie-select"
+                data-testid="ie-war-italian-beneficiary"
+                value={italianBeneficiary}
+                onChange={(event) => {
+                  setChosenItalianBeneficiary(event.target.value);
+                  setChosenObjective("");
+                  setChosenSecondObjective("");
+                }}
+                title={bi(locale,
+                  "Rule 13.2.1: the state that receives any conquered land.",
+                  "规则 13.2.1：接收所征服领土的意大利邦国。")}
+              >
+                {(viewer === "GE" || viewer === "AU") && (
+                  <option value="">{bi(locale, "No Italian beneficiary (German/citizenship war)", "不指定意大利邦国（德意志/公民权战争）")}</option>
+                )}
+                {ITALIAN_UNIFICATION_STATES.map((minor) => (
+                  <option key={minor} value={minor}>
+                    {minor === "Sardinia-Piedmont"
+                      ? bi(locale, "Sardinia-Piedmont", "撒丁-皮埃蒙特")
+                      : bi(locale, "Kingdom of the Two Sicilies", "两西西里王国")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {entitlement !== null || impulseCp !== null ? (
             <span className="ie-chip" data-testid="ie-war-declare-cp-locked">{cp} CP</span>
           ) : (
             <label className="ie-inline">
@@ -480,7 +556,11 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
             )}
             {aidHint !== null && (
               <div className="ie-hint" data-testid="ie-war-nonplayer-aid">
-                {aidHint.forbidden
+                {aidHint.pairAlly !== null
+                  ? bi(locale,
+                    `Errata 13.4.5: ${minorLabel(aidHint.minor, locale)} immediately allies ${t.seats[aidHint.pairAlly]} (the ally of the other named minor); it does not run the aid search, even if you forbid joins.`,
+                    `勘误 13.4.5：${minorLabel(aidHint.minor, locale)}立即与${t.seats[aidHint.pairAlly]}（另一目标小国的盟友）结盟，不进行求援；即使你禁止其他玩家参战也照样发生。`)
+                  : aidHint.forbidden
                   ? bi(locale,
                     "You forbid other players from joining: the non-player power defends alone (13.4.2 / 15.4.2).",
                     "你已禁止其他玩家参战：该非玩家势力将独自防守（13.4.2 / 15.4.2）。")

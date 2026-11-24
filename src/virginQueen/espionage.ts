@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Controller, NavalStack, Power, POWERS, VQGame, isPower, navalCount, spaceHomes} from "./constant/general";
+import {Controller, NavalStack, Power, POWERS, ReligionArea, VQGame, isPower, navalCount, spaceHomes} from "./constant/general";
 import {LEADER_BY_ID, isArmyKind, leaderIsArmy, leaderIsNaval} from "./constant/leaders";
 import {cardById} from "./constant/cards";
 import i18n from "../constant/i18n";
@@ -8,7 +8,7 @@ import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES, mapName} from "./ma
 import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./ownership";
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
-import {addLand, addVp, allied, atWar, capitalOf, discardCard, discardTreasure, drawCards, ensureLand, ensureNaval,
+import {addLandFromPool, addVp, allied, atWar, capitalOf, discardCard, discardTreasure, drawCards, ensureLand, ensureNaval,
     ensureDefaultLeader, hits, isFortifiedSpace, pushLog, removeCardFromHand, removeCardFromGame,
     removePragueCulturalCenterOnRudolfDeath, ROYAL_FOR_ARMY_LEADER, roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
@@ -176,6 +176,13 @@ const responseOptions = (G: VQGame, p: PendingEspionage): {id: string; label: st
             {id: "walsingham:offensive", label: i18n.chain.vq.engine.walsinghamOffensive},
             {id: "walsingham:defensive", label: i18n.chain.vq.engine.walsinghamDefensive},
         ] : []),
+        // #102 answers the effect of a #81 that was just played.  The generic
+        // `cancelWalsingham` move is unreachable while an Espionage action is
+        // pending, so the window has to be offered here.  It must stay limited
+        // to the #81 play itself: a marker set earlier in the turn can no
+        // longer be cancelled.
+        ...(p.walsinghamFresh === true && cards.includes("vq-102") ?
+            [{id: "stafford", label: i18n.chain.vq.actionUi.staffordCancel}] : []),
         ...(p.kind === "assassination" && cards.includes("vq-088") && !p.used.includes("pistols") ?
             [{id: "pistols", label: i18n.chain.vq.engine.pistols}] : []),
         ...((p.kind === "rebellion" || p.kind === "assassination" && p.target === "elizabeth") &&
@@ -205,15 +212,27 @@ const attackHits = (G: VQGame, p: PendingEspionage, dice: number[]): number => d
     d >= (p.targetPower === "england" && G.espionage?.walsingham === "defensive" ? 6 :
         p.power === "england" && G.espionage?.walsingham === "offensive" ? 4 : 5)).length;
 
-const startConversions = (G: VQGame, ctx: Ctx, rebellion: boolean, side: "catholic" | "protestant" = "catholic", attempts = 6): void => {
+const startConversions = (
+    G: VQGame,
+    ctx: Ctx,
+    rebellion: boolean,
+    side: "catholic" | "protestant" = "catholic",
+    attempts = 6,
+    areas: ReligionArea[] = ["england"],
+): void => {
     const p = G.pendingEspionage!;
     p.step = "conversions";
     p.rebellionAfterConversions = rebellion;
     p.conversionSide = side;
+    p.conversionAreas = areas;
     p.conversionDice = roll(ctx, attempts);
     p.unrest = p.conversionDice.includes(1);
     p.conversionDice = p.conversionDice.filter((d) => d >= 4).sort((a, b) => b - a);
     p.converted = [];
+    // Rule 18.5 condition (b): the base is every space of this religion, since
+    // adjacency may cross an area border (York touches Edinburgh, and a port
+    // connects to any port in its sea zone).  Only the *targets* are narrowed
+    // to the areas this action or event names (`conversionAreas`).
     p.conversionBase = SPACES.filter((s) => G.spaces[s.id].religion === side && !G.spaces[s.id].unrest).map((s) => s.id);
     stage(G, ctx, p.power);
 };
@@ -301,11 +320,19 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
     const result = catholicRebellionResult(diff);
     pushLog(G, `English Catholic Rebellion: ${result}.`);
     if (result === "victory") {espionageState(G).catholicRebellionVictory = true; finish(G, ctx);}
-    else if (result === "conversions" || result === "conversionsAndRebellion") startConversions(G, ctx, result === "conversionsAndRebellion");
+    else if (result === "conversions" || result === "conversionsAndRebellion") {
+        // 19.4 Step 1: the six Catholic attempts "can affect spaces in England".
+        startConversions(G, ctx, result === "conversionsAndRebellion", "catholic", 6, ["england"]);
+    }
     else {
         if (result === "inspectEngland") inspect(G, "spain", "england");
         else {
-            for (const i of G.informants.filter((i) => i.target === "england")) i.neutralized = true;
+            // "Lose all operatives in England": the operatives Spain has placed
+            // in England — its informant on England and every Jesuit there.  The
+            // engine used to flip informants *spying on* England instead, which
+            // could neutralize another power's spy that England never owned.
+            const spanish = G.informants.find((i) => i.owner === "spain" && i.target === "england");
+            if (spanish !== undefined) spanish.neutralized = true;
             espionageState(G).jesuits = [];
             if (result === "inspectSpain") inspect(G, "england", "spain");
             if (result === "minusCard") espionageState(G).nextDraw.spain = (espionageState(G).nextDraw.spain ?? 0) - 1;
@@ -388,10 +415,16 @@ const conversionOptions = (G: VQGame, p: PendingEspionage): {id: string; label: 
     const dice = p.conversionDice ?? [];
     const opts = [{id: "conversionsDone", label: i18n.chain.vq.engine.finishConversions}];
     const side = p.conversionSide ?? "catholic";
-    if (SPACES.filter((s) => s.area === "england" && G.spaces[s.id].religion !== side).length <= 1) return opts;
+    // Rule 18.5 condition (a): only the areas this action or event targets.
+    // #96/#97/#107 use England; a rebellion's Catholic conversions stay in
+    // England as a whole (19.4 Step 1), never spilling into Scotland.
+    const areas = p.conversionAreas ?? ["england"];
+    const inAreas = SPACES.filter((s) => areas.includes(s.area as ReligionArea));
+    // Core presence (18.1): the last space of the opposing religion in an area
+    // cannot be flipped, so with nowhere left to convert there is no choice.
+    if (areas.every((area) => SPACES.filter((s) => s.area === area && G.spaces[s.id].religion !== side).length <= 1)) return opts;
     for (const d of [...new Set(dice)]) {
-        for (const s of SPACES.filter((s) => s.area === "england")) {
-            const side = p.conversionSide ?? "catholic";
+        for (const s of inAreas) {
             const opposing = side === "catholic" ? protestantUnits(G, s.id).length > 0 :
                 G.espionage?.jesuits.includes(s.id) || Object.keys({...G.spaces[s.id].land, ...G.spaces[s.id].naval}).some((c) =>
                     unitReligion(c as Controller) === "catholic" && ((G.spaces[s.id].land[c as Controller]?.regular ?? 0) > 0 || navalCount(G.spaces[s.id].naval[c as Controller]) > 0));
@@ -458,7 +491,7 @@ const continueRebellion = (G: VQGame, ctx: Ctx): void => {
     if (p.displacements?.length) {p.step = "displace"; stage(G, ctx, p.displacements[0].owner);}
     else {
         if (p.rebellionRegularsPending) {
-            addLand(G, p.rebellionRegularsPending, "spain", "regular", 2);
+            addLandFromPool(G, p.rebellionRegularsPending, "spain", "regular", 2);
             delete p.rebellionRegularsPending;
         }
         if (p.remaining > 0) {p.step = "rebelSpaces"; stage(G, ctx, "spain");}
@@ -571,7 +604,7 @@ const afterNeutralize = (G: VQGame, ctx: Ctx): void => {
     else if (p.neutralizeReturn === "topcliffe") {
         p.remaining--;
         if (p.remaining > 0 && espionageState(G).jesuits.length) {p.step = "neutralize"; stage(G, ctx, p.power);}
-        else startConversions(G, ctx, false, "protestant", 5);
+        else startConversions(G, ctx, false, "protestant", 5, ["england"]);
     } else {
         const extra = roll(ctx, 1)[0];
         if (extra >= 4 && operativeOptions(G, p, true).length) {p.step = "extraNeutralize"; stage(G, ctx, p.power);}
@@ -661,10 +694,31 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
     const choice = args.choice;
     if (p.step === "responses") {
         if (choice !== "continue") {
-            const id = choice.startsWith("walsingham:") ? "vq-081" : choice === "pistols" ? "vq-088" : "vq-089";
+            const id = choice === "stafford" ? "vq-102" :
+                choice.startsWith("walsingham:") ? "vq-081" : choice === "pistols" ? "vq-088" : "vq-089";
             removeCardFromHand(G, p.responding, id); discardCard(G, p.responding, id, true);
-            if (choice.startsWith("walsingham:")) espionageState(G).walsingham = choice.endsWith("offensive") ? "offensive" : "defensive";
-            else {p.used.push(choice); p.attackBonus = (p.attackBonus ?? 0) + (choice === "pistols" ? 2 : 3);}
+            if (choice === "stafford") {
+                // #102 answers the #81 marker before any dice are rolled.
+                delete espionageState(G).walsingham;
+                pushLog(G, `${p.responding} plays Sir Edward Stafford to cancel Walsingham.`);
+                return;
+            }
+            if (choice.startsWith("walsingham:")) {
+                espionageState(G).walsingham = choice.endsWith("offensive") ? "offensive" : "defensive";
+                // #102 answers #81 in the same window; give every #102 holder a
+                // turn now that the marker exists.  Playing the card consumes
+                // it, so this cannot loop.
+                p.walsinghamFresh = true;
+                const stafford = participatingPowers(G)
+                    .filter((power) => G.powers[power].cards.includes("vq-102") && power !== p.responding);
+                if (stafford.length > 0) {
+                    const rest = (p.responseQueue ?? []).filter((power) => !stafford.includes(power));
+                    p.responseQueue = [...rest.slice(0, 1), ...stafford, ...rest.slice(1)];
+                }
+                return;
+            }
+            p.used.push(choice);
+            p.attackBonus = (p.attackBonus ?? 0) + (choice === "pistols" ? 2 : 3);
             return;
         }
         p.responseQueue!.shift();
@@ -702,7 +756,7 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         }
         return;
     }
-    if (choice === "topcliffeDone") {startConversions(G, ctx, false, "protestant", 5); return;}
+    if (choice === "topcliffeDone") {startConversions(G, ctx, false, "protestant", 5, ["england"]); return;}
     if (p.step === "massacreConvert") {
         if (choice !== "massacreConvertDone") {
             const id = choice.slice(9);
@@ -802,7 +856,7 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         p.remaining = units.length ? hits(roll(ctx, 5)) : 0;
         if (!units.length) successfulRebellion(G, ctx);
         else if (p.remaining) {p.step = "rebelLosses"; stage(G, ctx, "england");}
-        else finish(G, ctx);
+        else finishOrMary(G, ctx);
         return;
     }
     if (p.step === "rebelLosses") {
@@ -812,7 +866,7 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         else s.naval[owner]![kind as keyof NavalStack]--;
         p.remaining--;
         if (!protestantUnits(G, p.target!, true).length) successfulRebellion(G, ctx);
-        else if (!p.remaining) finish(G, ctx);
+        else if (!p.remaining) finishOrMary(G, ctx);
         return;
     }
     if (p.step === "rebelSpaces") {seize(G, choice.slice(6)); p.remaining--; continueRebellion(G, ctx); return;}
@@ -845,6 +899,8 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
     if (p.step === "jesuitPlace" || p.step === "jesuitDestination") {
         const state = espionageState(G), id = choice.slice(6);
         if (p.step === "jesuitDestination") state.jesuits = state.jesuits.filter((s) => s !== p.movingJesuit);
+        // #94 moves the markers already on the power board; #93's marker came
+        // from outside it, so only #94 spends an allowance here.
         else if (p.event === "godsSecretAgents") state.jesuitsOnCard--;
         state.jesuits.push(id);
         if (G.spaces[id].religion === "catholic" || SPACES.filter((s) => s.area === "england" && G.spaces[s.id].religion === "protestant").length > 1) G.spaces[id].religion = "catholic";
@@ -1095,12 +1151,15 @@ export const beginEspionageEvent = (G: VQGame, ctx: Ctx, power: Power, handler: 
     if (handler === "richardTopcliffe") {
         p.power = power; p.responding = power; p.remaining = 2; p.step = "neutralize"; p.neutralizeReturn = "topcliffe";
         state.nextDraw.spain = (state.nextDraw.spain ?? 0) + 1;
-        if (!state.jesuits.length) {startConversions(G, ctx, false, "protestant", 5); return;}
+        if (!state.jesuits.length) {startConversions(G, ctx, false, "protestant", 5, ["england"]); return;}
     }
     if (handler === "godsSecretAgents") p.used = [...state.jesuits];
     if (handler === "englishCollegeAtDouai") {
         state.douai = true;
-        if (state.jesuits.length + state.jesuitsOnCard >= 5) {finish(G, ctx); return;}
+        // Printed text: "Spain immediately gains one additional Jesuit from
+        // outside its power board."  That extra marker is not one of the
+        // board's allowances, so this placement must not consume one.
+        if (state.jesuits.length >= 5) {finish(G, ctx); return;}
     }
     if (handler === "walsingham") {
         p.neutralizeReturn = "walsingham";

@@ -6,7 +6,7 @@ import {SPACE_BY_ID, SPACES, mapName} from "./mapData";
 import i18n from "../constant/i18n";
 import {ownerOf} from "./ownership";
 import {tutorialSpaceAllowed} from "./tutorial";
-import {addLand, addNaval, ensureDefaultLeader, inFrenchReligiousArea, pushLog, removeCardFromGame, resolveEvent, spaceHasEnemyLand, spaceHasEnemyNaval} from "./util";
+import {addForeignWarLandFromPool, addLandFromPool, addNavalFromPool, ensureDefaultLeader, inFrenchReligiousArea, landPoolRoom, navalPoolRoom, pushLog, removeCardFromGame, resolveEvent, spaceHasEnemyLand, spaceHasEnemyNaval} from "./util";
 
 export interface CardEventOption {id: string; label: string}
 
@@ -16,16 +16,20 @@ export const grandVizierInHand = (G: VQGame): string | undefined => G.powers.ott
 
 export const recruitmentOptions = (G: VQGame): CardEventOption[] => {
     const options: CardEventOption[] = [];
+    // Rule 17.1: every unit added by the event still consumes a physical
+    // Ottoman counter, so a full land or naval pool removes that choice.
+    const landRoom = landPoolRoom(G, "ottoman");
+    const navalRoom = navalPoolRoom(G, "ottoman");
     for (const space of SPACES) {
         const state = G.spaces[space.id];
         if (!spaceHomes(space).includes("ottoman") || state.control !== "ottoman" || state.siege || state.unrest ||
             (G.scenario === "tutorial" && !tutorialSpaceAllowed(space.id)) ||
             spaceHasEnemyLand(G, "ottoman", space.id) || spaceHasEnemyNaval(G, "ottoman", space.id)) continue;
-        if (!["algiers", "tripoli"].includes(space.id)) options.push({id: `regular:${space.id}`, label: i18n.chain.vq.engine.addRegularTo.replace("{space}", mapName(space.id))});
-        if (space.ports?.includes("aegean")) options.push({id: `galley:${space.id}`, label: i18n.chain.vq.engine.addGalleyTo.replace("{space}", mapName(space.id))});
+        if (landRoom > 0 && !["algiers", "tripoli"].includes(space.id)) options.push({id: `regular:${space.id}`, label: i18n.chain.vq.engine.addRegularTo.replace("{space}", mapName(space.id))});
+        if (navalRoom > 0 && space.ports?.includes("aegean")) options.push({id: `galley:${space.id}`, label: i18n.chain.vq.engine.addGalleyTo.replace("{space}", mapName(space.id))});
     }
     const war = G.foreignWars.ottoman;
-    if (G.scenario !== "tutorial" && war?.status === "active" && landCount(war.units) < 8) {
+    if (G.scenario !== "tutorial" && landRoom > 0 && war?.status === "active" && landCount(war.units) < 8) {
         options.push({id: "regular:foreignWar", label: i18n.chain.vq.engine.addRegularPersia});
     }
     return options;
@@ -120,11 +124,13 @@ export const chooseGrandVizierEvent = (G: VQGame, ctx: Ctx, choice: string): voi
         resolveEvent(G, ctx, "ottoman", {kind: "suez"});
     } else {
         const [kind, target] = choice.split(":");
-        if (target === "foreignWar") G.foreignWars.ottoman!.units.regular += 1;
-        else if (kind === "regular") addLand(G, target, "ottoman", "regular", 1);
-        else addNaval(G, target, "ottoman", "galley", 1);
+        const placed = target === "foreignWar"
+            ? addForeignWarLandFromPool(G, "ottoman", "regular", 1)
+            : kind === "regular"
+                ? addLandFromPool(G, target, "ottoman", "regular", 1)
+                : addNavalFromPool(G, target, "ottoman", "galley", 1);
         pending.remaining -= 1;
-        pushLog(G, `Grand Vizier adds 1 ${kind} in ${SPACE_BY_ID[target]?.name ?? "the Persia foreign war"}.`);
+        pushLog(G, `Grand Vizier adds ${placed} ${kind} in ${SPACE_BY_ID[target]?.name ?? "the Persia foreign war"}.`);
         if (pending.remaining > 0 && recruitmentOptions(G).length > 0) return;
     }
     delete G.pendingCardEvent;

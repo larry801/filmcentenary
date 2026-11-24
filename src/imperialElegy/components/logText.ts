@@ -425,6 +425,7 @@ const FORMATTERS: Record<string, Formatter> = {
   uprisingInIreland: discardText(" to Uprising in Ireland", "（因爱尔兰起义）"),
   eventDiscard: discardText(" to a card event", "（因卡牌事件）"),
   prepStabilityDiscard: discardText(" for +1 stability", "（换取 +1 稳定）"),
+  prepIndiaStabilityDiscard: discardText(" to stabilise India (10.4)", "（稳定印度，10.4）"),
 
   // A17/A18/A56: the victim chooses stability -1 or a random discard.
   stabilityOrCard: (entry, locale) => {
@@ -1078,10 +1079,112 @@ const FORMATTERS: Record<string, Formatter> = {
       "在征服战争中援助清廷，获得 +1 抽牌标记。",
     ),
 
+  italyKnockedOut: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "occupied Rome and knocked Italy out of the war; the 16.1.6 special option is resolved as the cession of Rome.",
+      "占领罗马并将意大利逐出战争；16.1.6 的特殊条约选项按割让罗马处理。",
+    ),
+
+  italyKnockoutCession: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `took control of ${space} from the knocked-out Italy.`, `从被逐出战争的意大利手中取得${space}的控制权。`);
+  },
+
+  italyImpulseStarted: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "takes the Italian wartime impulse last with Italy's 2 CP budget.",
+      "最后进行意大利战时行动轮，使用意大利的 2 CP 预算。",
+    ),
+
+  italyImpulseEnded: (entry, locale) =>
+    withActor(entry, locale, "ended the Italian wartime impulse.", "结束意大利战时行动轮。"),
+
+  italyPetitionMarkerGained: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "won the Italian war of unification and takes the +1 card marker from the Italian unification box.",
+      "赢得意大利统一战争，取得意大利统一格中的 +1 抽牌标记。",
+    ),
+
+  jointNavalMarkerPlaced: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    const count = Number(entry.args?.count ?? 0);
+    return withActor(
+      entry,
+      locale,
+      `placed a joint naval operations marker on ${count} naval unit(s) in ${space}.`,
+      `在${space}的 ${count} 支海军单位上放置联合海上行动标记。`,
+    );
+  },
+
+  jointNavalMove: (entry, locale) => {
+    const from = spaceName(entry.args?.from, locale);
+    const to = spaceName(entry.args?.to, locale);
+    const count = Number(entry.args?.count ?? 0);
+    const allies = str(entry.args?.allies);
+    return withActor(
+      entry,
+      locale,
+      `conducted a joint naval operation with ${allies || "an ally"}: ${count} naval unit(s) moved from ${from} to ${to}.`,
+      `与${allies || "盟友"}进行联合海上行动：${count} 支海军单位从${from}移动到${to}。`,
+    );
+  },
+
+  jointNavalRejected: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      `could not conduct the joint naval operation (${str(entry.args?.reason) || "illegal route"}).`,
+      `无法进行联合海上行动（${str(entry.args?.reason) || "路线不合法"}）。`,
+    ),
+
+  warPeaceProposed: (entry, locale) => {
+    const kind = str(entry.args?.kind);
+    const label = kind === "white"
+      ? text(locale, "a white peace", "白和")
+      : text(locale, "a negotiated peace (one side concedes one treaty option)", "协商和平（一方让出一项条约选项）");
+    return withActor(entry, locale, `proposed ${label}.`, `提议${label}。`);
+  },
+
+  warPeaceAccepted: (entry, locale) => {
+    const kind = str(entry.args?.kind);
+    return withActor(
+      entry,
+      locale,
+      kind === "white"
+        ? "accepted the white peace; the war ends with no treaty options."
+        : "accepted the negotiated peace; the war ends with one treaty option.",
+      kind === "white"
+        ? "接受白和；战争结束，双方不获得条约选项。"
+        : "接受协商和平；战争结束，胜方获得一项条约选项。",
+    );
+  },
+
+  warPeaceRefused: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "refused the peace proposal; the war continues.",
+      "拒绝和平提议；战争继续。",
+    ),
+
   italyLostDream: (_entry, locale) =>
     text(locale, "Italy's imperial dream fades; no effect.", "意大利的帝国梦想破灭；本次无效。"),
 
   italyUnified: (_entry, locale) => text(locale, "Italy is unified.", "意大利完成统一。"),
+  italyLoneDisplacement: (entry, locale) => {
+    const spaces = str(entry.args?.spaces).split(",").filter(Boolean).map((id) => spaceLabel(id, locale)).join(", ");
+    return text(locale, "Italy defending alone displaces its standing armies to " + spaces + ".", "意大利独自防守，常备军转移至" + spaces + "。");
+  },
+  italyReserveDeployed: (entry, locale) => {
+    const space = spaceLabel(str(entry.args?.space), locale);
+    return text(locale, "Italy deploys a reserve army to " + space + ".", "意大利向" + space + "部署一支预备军。");
+  },
 
   // 25.3: what the Alliance Track chit of a unified Italy does at the outbreak.
   gwItalyOutbreak: (entry, locale) => {
@@ -1168,6 +1271,17 @@ const FORMATTERS: Record<string, Formatter> = {
   gwPlanning: (entry, locale) => {
     const turn = num(entry.args?.turn);
     return text(locale, `Great War planning begins for turn ${turn}.`, `大战第 ${turn} 回合计划阶段开始。`);
+  },
+
+  gwOrderChosen: (entry, locale) => {
+    const side = str(entry.args?.side) === "te" ? "Triple Entente" : "Triple Alliance";
+    const order = str(entry.args?.order).split(",").filter(Boolean).join(" → ");
+    return withActor(
+      entry,
+      locale,
+      `set the ${side} GW impulse order: ${order}.`,
+      `设定了${side === "Triple Entente" ? "协约国" : "同盟国"}的大战行动顺序：${order}。`,
+    );
   },
 
   gwManeuver: (entry, locale) => {

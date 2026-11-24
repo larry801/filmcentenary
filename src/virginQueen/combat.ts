@@ -10,7 +10,7 @@ import {resolveNavalMoves} from "./moves";
 import {tutorialSpaceAllowed} from "./tutorial";
 import {
     addBesieger,
-    addLand, atWar, bestBattle, captureLeaders, checkCyprusVp, defenderOwners, discardCard, ensureLand, ensureNaval, friendlyControlled, landDistance,
+    addLandFromPool, atWar, bestBattle, captureLeaders, checkCyprusVp, defenderOwners, discardCard, ensureLand, ensureNaval, friendlyControlled, landDistance,
     friendlyController, hits, isFortifiedSpace, isSeaZone, minorAlly, moveLeaders, navalAdjacent,
     ownersWithLand, ownersWithNaval, powerLabel, pushLog, recordNavalLoss, removeCardFromHand, roll, totalLand, totalNaval,
 } from "./util";
@@ -428,7 +428,7 @@ export const chooseBattle = (G: VQGame, ctx: Ctx, args: {choice: string}): void 
                         !G.spaces[space.id].unrest && ownersWithLand(G, space.id).every((owner) => !isPower(owner) || owner === battle.responding))?.id;
                 if (target !== undefined) {
                     const nearHre = SPACES.some((space) => spaceHomes(space).includes("hre") && (landDistance(target, space.id) ?? 99) <= 2);
-                    addLand(G, target, battle.responding, "merc", nearHre ? 4 : 2);
+                    addLandFromPool(G, target, battle.responding, "merc", nearHre ? 4 : 2);
                 }
             }
         }

@@ -42,6 +42,7 @@ import {
   hasLoc,
   hostileOwner,
   isArmyKind,
+  minorHasLoc,
   isHomeSpace,
   isPower,
   industrializationModifier,
@@ -937,14 +938,18 @@ export const canRecruitIn = (
         isArmyKind(u.kind) &&
         (u.owner === power || G.spaces[space].ally === power),
     );
+    // 12.2: "Newly built ECs are placed with an army that has LoC."
+    const supply = army !== undefined && hasLoc(G, power, space);
     return {
       power,
       space,
       kind,
-      allowed: Boolean(army),
+      allowed: Boolean(army) && supply,
       reasons: army === undefined
         ? ["An elite corps needs a friendly army to attach to"]
-        : ["Elite corps can attach to a friendly army"],
+        : supply
+          ? ["Elite corps can attach to a friendly army with a LoC"]
+          : ["That army has no line of communication"],
     };
   }
 
@@ -1068,7 +1073,7 @@ export const canRecruitIn = (
 // 12.2 / 12.4 (March 2026 errata) — building for an allied minor power
 // ---------------------------------------------------------------------------
 
-export type MinorBuildKind = "army" | "squadron" | "dreadnought";
+export type MinorBuildKind = "army" | "squadron" | "dreadnought" | "eliteCorps";
 
 export interface MinorBuildDecision {
   power: Power | null;
@@ -1121,7 +1126,7 @@ export const minorBuildDecision = (
   const reducedExisting = kind === "army" && space !== null
     ? landUnitsIn(G, space).find((unit) => unit.owner === minor && unit.kind === "minorArmy" && unit.steps < 2)
     : undefined;
-  const cost = kind === "army" ? (reducedExisting ? 1 : steps) : minorFleetCost(kind);
+  const cost = kind === "eliteCorps" ? 2 : kind === "army" ? (reducedExisting ? 1 : steps) : minorFleetCost(kind);
   const decision: MinorBuildDecision = {
     power, minor, kind, space, allowed: false, cost, reasons,
   };
@@ -1153,6 +1158,25 @@ export const minorBuildDecision = (
   const def = SPACES[space];
   if (!state || !def || isNavalBox(space)) {
     reasons.push("That is not a land space on the map");
+    return decision;
+  }
+  // 12.8: "Players can build generic ECs for their allied minor powers; these
+  // units are marked MP for minor power, minor powers can only have 1 EC."
+  // 12.2: a newly built EC goes with an army that has a LoC.  The EC is a minor
+  // unit, so the attaching army may be the minor's or its controller's.
+  if (kind === "eliteCorps") {
+    const army = landUnitsIn(G, space).find(
+      (unit) => isArmyKind(unit.kind) && (unit.owner === minor || unit.owner === power),
+    );
+    if (army === undefined) {
+      reasons.push("An elite corps needs a friendly army to attach to");
+    } else if (!minorHasLoc(G, minor, space)) {
+      reasons.push("That army has no line of communication");
+    }
+    if (Object.values(G.units).some((unit) => unit.owner === minor && unit.kind === "eliteCorps")) {
+      reasons.push(`${minor} can only have 1 EC (12.8)`);
+    }
+    decision.allowed = reasons.length === 0;
     return decision;
   }
   // 12.2 / 12.4: the build goes in a home space of the minor itself.

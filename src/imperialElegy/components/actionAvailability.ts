@@ -56,13 +56,13 @@ import type {RecruitDecision} from "../engine/characteristics";
 
 export type ActionId =
   | "recruitArmy" | "recruitCw" | "recruitReserve" | "recruitEc" | "polishArmy" | "polishReserve"
-  | "minorArmy" | "minorSquadron" | "minorDreadnought"
+  | "minorArmy" | "minorSquadron" | "minorDreadnought" | "minorEliteCorps"
   | "buildSquadron" | "buildDreadnought" | "refitFleet" | "buildFort" | "buildFort2" | "upgradeFort"
   | "buildEf" | "moveEf"
   | "influence" | "diplomacy" | "minorAlliance" | "removeInfluence" | "breakAlliance" | "pacify"
   | "pacifyA065Marker" | "pacifyA065Rebel"
   | "move" | "gwNaval" | "gwMarch" | "gwRail" | "refit" | "rapidDeploy"
-  | "deployReserves" | "landBattle" | "navalBattle" | "gwDraft" | "gwDeploy" | "gwElite";
+  | "deployReserves" | "landBattle" | "navalBattle" | "jointNaval" | "gwDraft" | "gwDeploy" | "gwElite";
 
 /**
  * The player aid's cost list, in the order it prints them.  `rebuildZouave`
@@ -78,6 +78,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   minorArmy: 1,
   minorSquadron: 2,
   minorDreadnought: 3,
+  minorEliteCorps: 2,
   buildSquadron: 2,
   buildDreadnought: 3,
   refitFleet: 1,
@@ -103,6 +104,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   deployReserves: 1,
   landBattle: 1,
   navalBattle: 1,
+  jointNaval: 1,
   gwDraft: 1,
   gwDeploy: 1,
   gwElite: 1,
@@ -113,7 +115,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
 /** Every fixed-cost action, in the player aid's order. */
 export const ACTION_COST_ORDER: readonly ActionId[] = [
   "recruitArmy", "recruitReserve", "recruitEc", "recruitCw", "polishArmy", "polishReserve",
-  "minorArmy", "minorSquadron", "minorDreadnought",
+  "minorArmy", "minorSquadron", "minorDreadnought", "minorEliteCorps",
   "buildSquadron", "buildDreadnought", "refitFleet", "buildFort", "buildFort2", "upgradeFort", "buildEf", "moveEf",
   "influence", "diplomacy", "pacify", "removeInfluence", "minorAlliance", "breakAlliance",
   "move", "deployReserves", "landBattle", "navalBattle", "gwDraft", "gwDeploy", "gwElite",
@@ -130,6 +132,7 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   minorArmy: {en: "Allied minor army", zh: "盟国小国军团"},
   minorSquadron: {en: "Allied minor squadron", zh: "盟国小国分舰队"},
   minorDreadnought: {en: "Allied minor dreadnought", zh: "盟国小国无畏舰"},
+  minorEliteCorps: {en: "Allied minor elite corps", zh: "盟国小国精锐军"},
   buildSquadron: {en: "Build squadron", zh: "建造分舰队"},
   buildDreadnought: {en: "Build dreadnought", zh: "建造无畏舰"},
   refitFleet: {en: "Refit fleet", zh: "整补舰队"},
@@ -155,6 +158,7 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   deployReserves: {en: "Deploy reserves", zh: "部署预备军"},
   landBattle: {en: "Land battle here", zh: "在此发动陆战"},
   navalBattle: {en: "Naval battle here", zh: "在此发动海战"},
+  jointNaval: {en: "Joint naval operations here", zh: "在此进行联合海上行动"},
   gwDraft: {en: "Draft", zh: "征召"},
   gwDeploy: {en: "Deploy reserve army here", zh: "在此部署预备军"},
   gwElite: {en: "Attach elite corps", zh: "编入精锐军团"},
@@ -269,6 +273,7 @@ const ACTION_PHASE_FAMILY: Partial<Record<ActionId, ActionFamily>> = {
   minorArmy: "minorAlliance",
   minorSquadron: "minorAlliance",
   minorDreadnought: "minorAlliance",
+  minorEliteCorps: "minorAlliance",
   buildSquadron: "constructFleet",
   buildDreadnought: "constructFleet",
   refitFleet: "refitFleet",
@@ -547,6 +552,15 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
           : !minorArmy.allowed ? recruitReasonText(locale, minorArmy.reasons.join(" · "))
             : spendReason(ACTION_COSTS.minorArmy),
         run: () => doAction(() => moves.buildForMinor(homeMinor, "army", space, 1)),
+      });
+      const minorEc = minorBuildDecision(G, viewer, homeMinor, "eliteCorps", space, 2);
+      const ecEnabled = minorEc.allowed && canSpend(2);
+      push({
+        id: "minorEliteCorps", group: "recruit", cost: 2, enabled: ecEnabled,
+        reason: ecEnabled ? undefined
+          : !minorEc.allowed ? recruitReasonText(locale, minorEc.reasons.join(" · "))
+            : spendReason(2),
+        run: () => doAction(() => moves.buildForMinor(homeMinor, "eliteCorps", space, 2)),
       });
       if ((spaceDef.ports?.length ?? 0) > 0) {
         const squadron = minorBuildDecision(G, viewer, homeMinor, "squadron", space);
@@ -899,6 +913,29 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
           : gw ? bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。") : spendReason(cost),
       run: startNavalBattle,
     });
+  }
+  // 15.2.2: a limited-war joint naval operation.  On the unit's own space the
+  // row spends 1 CP to mark the selected fleet; on a destination space it
+  // removes every same-side marker and moves the marked contingents together.
+  if (!gw && phase === "wartime" && selectedUnit !== null && selected !== undefined
+    && selected.naval && selected.owner === viewer) {
+    if (selected.space === space) {
+      const enabled = canSpend(ACTION_COSTS.jointNaval);
+      push({
+        id: "jointNaval", group: "move", enabled,
+        reason: enabled ? undefined : spendReason(ACTION_COSTS.jointNaval),
+        run: () => doAction(() => moves.jointNaval([selected.id])),
+      });
+    } else if (selected.space !== undefined && selected.space !== null
+      && (G.war?.jointNavalMarkers ?? []).some((marker) =>
+        marker.power !== viewer && marker.space === selected.space)) {
+      const enabled = canSpend(ACTION_COSTS.jointNaval);
+      push({
+        id: "jointNaval", group: "move", enabled,
+        reason: enabled ? undefined : spendReason(ACTION_COSTS.jointNaval),
+        run: () => doAction(() => moves.jointNaval([selected.id], space)),
+      });
+    }
   }
 
   // -------------------------------------------------------------- great war

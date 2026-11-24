@@ -51,6 +51,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   revolution1905: {key: "revolution1905", power: "RU", args: {card: CARD_ID}},
   eventDiscard: {key: "eventDiscard", power: "GE", args: {card: CARD_ID}},
   prepStabilityDiscard: {key: "prepStabilityDiscard", power: "GE", args: {card: CARD_ID}},
+prepIndiaStabilityDiscard: {key: "prepIndiaStabilityDiscard", power: "GE", args: {card: CARD_ID}},
   atAnyCostDiscard: {key: "atAnyCostDiscard", power: "GE", args: {card: CARD_ID}},
   cardPlayed: {key: "cardPlayed", power: "GE", args: {card: CARD_ID, mode: "cp"}},
   passed: {key: "passed", power: "GE", args: {}},
@@ -119,6 +120,17 @@ const SAMPLES: Record<string, LogTextEntry> = {
   italyOttomanWar: {key: "italyOttomanWar", power: "FR", args: {}},
   qingArmyPlaced: {key: "qingArmyPlaced", power: "GE", args: {space: "shanghai"}},
   qingAidCardMarker: {key: "qingAidCardMarker", power: "UK", args: {minor: "Qing China", cardMarkers: 1}},
+  italyKnockedOut: {key: "italyKnockedOut", power: "GE", args: {capital: "rome", by: "attacker"}},
+  italyKnockoutCession: {key: "italyKnockoutCession", power: "GE", args: {space: "rome"}},
+  italyImpulseStarted: {key: "italyImpulseStarted", power: "FR", args: {budget: 2}},
+  italyImpulseEnded: {key: "italyImpulseEnded", power: "FR", args: {}},
+  italyPetitionMarkerGained: {key: "italyPetitionMarkerGained", power: "GE", args: {cardMarkers: 2}},
+  jointNavalMarkerPlaced: {key: "jointNavalMarkerPlaced", power: "UK", args: {space: "north-atlantic", count: 2}},
+  jointNavalMove: {key: "jointNavalMove", power: "UK", args: {from: "north-atlantic", to: "western-mediterranean", count: 3, allies: "FR"}},
+  jointNavalRejected: {key: "jointNavalRejected", power: "UK", args: {reason: "no-route"}},
+  warPeaceProposed: {key: "warPeaceProposed", power: "GE", args: {kind: "negotiated", conceding: "defender"}},
+  warPeaceAccepted: {key: "warPeaceAccepted", power: "AU", args: {kind: "white"}},
+  warPeaceRefused: {key: "warPeaceRefused", power: "AU", args: {kind: "negotiated"}},
   gwFortDegraded: {key: "gwFortDegraded", args: {space: "verdun", level: 1}},
   gwFortCancelsRetreat: {key: "gwFortCancelsRetreat", power: "FR", args: {space: "verdun"}},
   italyPetition: {key: "italyPetition", power: "GE", args: {minor: "Two Sicilies", removed: 1}},
@@ -129,11 +141,14 @@ const SAMPLES: Record<string, LogTextEntry> = {
   italyNavalBase: {key: "italyNavalBase", power: "GE", args: {space: "malta"}},
   italyLostDream: {key: "italyLostDream", power: "FR", args: {}},
   italyUnified: {key: "italyUnified", power: "FR", args: {}},
+  italyLoneDisplacement: {key: "italyLoneDisplacement", args: {spaces: "piedmont,lombardy", count: 2}},
+  italyReserveDeployed: {key: "italyReserveDeployed", args: {space: "lombardy", defend: true}},
   greatWarOutbreak: {key: "greatWarOutbreak", args: {incident: CARD_ID, te: "GE,AU", ta: "FR,UK,RU", neutrals: "OT"}},
   crisisRoll: {key: "crisisRoll", power: "GE", args: {roll: 3, inciting: CARD_ID}},
   internationalConference: {key: "internationalConference", power: "GE", args: {}},
   gwPlanning: {key: "gwPlanning", args: {turn: 2}},
   gwManeuver: {key: "gwManeuver", args: {turn: 2}},
+  gwOrderChosen: {key: "gwOrderChosen", power: "GE", args: {side: "ta", order: "AU,GE,RU"}},
   gwImpulse: {key: "gwImpulse", power: "GE", args: {kind: "power", index: 1, slot: "GE", bonus: false}},
   gwCpTransfer: {key: "gwCpTransfer", power: "GE", args: {to: "AU", amount: 2}},
   rebelDisplacement: {key: "rebelDisplacement", args: {count: 2}},
@@ -382,6 +397,8 @@ const engineLogKeys = (): string[] => {
     for (const match of source.matchAll(/\b(?:log|addLog)\(G,\s*[^,\n]+,\s*"([A-Za-z][A-Za-z0-9]*)"/g)) keys.add(match[1]);
     // `discardCard` passes its reason in the key slot.
     for (const match of source.matchAll(/discardCard\([^;\n]*?,\s*"([A-Za-z][A-Za-z0-9]*)"\s*\)/g)) keys.add(match[1]);
+    // `discardRandomHandCardTriggering` carries the same discard reason.
+    for (const match of source.matchAll(/discardRandomHandCardTriggering\([^,\n]*,\s*[^,\n]*,\s*"([A-Za-z][A-Za-z0-9]*)"/g)) keys.add(match[1]);
     for (const match of source.matchAll(/G\.log\.push\([^;\n]*?\bkey:\s*"([A-Za-z][A-Za-z0-9]*)"/g)) keys.add(match[1]);
   }
   return [...keys].sort();

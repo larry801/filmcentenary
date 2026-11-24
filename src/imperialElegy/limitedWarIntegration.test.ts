@@ -464,6 +464,9 @@ describe("end phase and wartime/action hooks", () => {
     declare(G, ctx);
     G.war!.status = "maneuver";
     G.war!.initiative = ["GE", "AU"];
+    // 15.0: both sides pass only at war budget ≤ 2.
+    G.war!.budgets.GE = 2;
+    G.war!.budgets.AU = 2;
 
     expect(passWarMove(G, ctx)).toBeUndefined();
     expect(G.war!.passed).toEqual(["GE"]);
@@ -488,6 +491,7 @@ describe("end phase and wartime/action hooks", () => {
     // take the second impulse.
     war.initiative = ["AU", "GE"];
     G.activePower = "AU";
+    war.budgets.AU = 2; // 15.0: pass only at war budget ≤ 2
 
     // AU passes; GE now holds the impulse.
     expect(passWarMove(G, au)).toBeUndefined();
@@ -500,6 +504,7 @@ describe("end phase and wartime/action hooks", () => {
     expect(war.passed).toEqual([]);
 
     // GE passes next.  AU has not passed since the action, so the war goes on.
+    war.budgets.GE = 2; // 15.0: the deploy left it above the pass cap
     expect(passWarMove(G, ctx)).toBeUndefined();
     expect(G.war).toBe(war);
     expect(war.passed).toEqual(["GE"]);

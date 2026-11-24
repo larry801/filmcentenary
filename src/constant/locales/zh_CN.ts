@@ -2371,6 +2371,7 @@ const zh_CN: Locale = {
                 mercGiveRestricted: "奥斯曼不能赠送雇佣兵。",
                 mercReceiveRestricted: "奥斯曼与神圣罗马帝国不能接收雇佣兵。",
                 mercNoCapital: "接收方没有符合条件的首都。",
+                mercReceiverFull: "接收方陆军 force pool 空间不足，无法接收这些雇佣兵。",
                 yieldUnavailable: "该地区不符合规则 9.1 的让渡条件。",
                 leaderUnavailable: "该将领不是可归还的被俘陆军将领。",
                 royalUnavailable: "该王室目前不可婚配。",

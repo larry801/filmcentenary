@@ -1,5 +1,5 @@
 import {Ctx} from "boardgame.io";
-import {GreatWarState, ImperialElegyState, Power} from "../types";
+import {CardId, GreatWarState, ImperialElegyState, Power} from "../types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
 import {resolvePending} from "./moves";
@@ -9,6 +9,9 @@ import {
   beginGwTurn,
   enterGwAlly,
   faceupCombatCards,
+  transferGwMajorBudget,
+  joinNeutralAlliance,
+  majorEntryCandidates,
   giftGwCombatCard,
   performGwManeuver,
   resolveGwWinter,
@@ -100,6 +103,26 @@ describe("Great War planning", () => {
     expect(G.powers.GE.warBudget).toBe(0);
     expect(G.powers.GE.flags.gwCpTransferDone).toBe(false);
     expect(G.turnIndex).toBe(0);
+  });
+
+  test("26.0 reshuffles the GW discard pile into the GW deck at planning", () => {
+    const G = baseGw();
+    // Five powers hold a card; OT is dealt from the pool.  GW-07/GW-08 sit in
+    // the discard pile from last turn, so the reshuffle must make them
+    // dealable again (the printed pool order then deals GW-08 to OT).
+    const held: CardId[] = ["IE-GW-01", "IE-GW-02", "IE-GW-03", "IE-GW-04", "IE-GW-05"];
+    (["GE", "UK", "FR", "AU", "RU"] as Power[]).forEach((power, index) => {
+      G.powers[power].gwCard = held[index];
+    });
+    G.powers.OT.gwCard = null;
+    G.gw!.discard = ["IE-GW-07", "IE-GW-08"];
+
+    const res = beginGwTurn(G, makeCtx(3));
+    expect(res.ok).toBe(true);
+    expect(G.gw!.discard).toEqual([]);
+    expect(G.powers.OT.gwCard).toBe("IE-GW-08");
+    // The held cards are kept, not redrawn.
+    expect(G.powers.GE.gwCard).toBe("IE-GW-01");
   });
 
   test("CP transfer only works within an alliance and only once per planning", () => {
@@ -325,6 +348,57 @@ describe("Great War maneuver budget spending", () => {
     expect(broke.ok).toBe(false);
     if (broke.ok) throw new Error("expected a failure");
     expect(broke.error).toBe("invalidTarget");
+    expect(JSON.stringify(G)).toBe(before);
+  });
+
+  test("15.2.3: one GW deploy places up to half the industry (min 1, max 3)", () => {
+    const G = baseGw({
+      order: ["GE"],
+      te: [],
+      ta: ["GE"],
+      belligerents: ["GE"],
+      neutrals: ["FR", "UK", "AU", "RU", "OT"],
+    });
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    G.turnIndex = 0;
+    G.powers.GE.gwBudget = 6;
+    // Industry 6 -> ceil(6/2) = 3 armies in one deploy.
+    G.powers.GE.industry = 6;
+    G.spaces.silesia.control = "GE";
+    for (const id of [...G.spaces.silesia.units]) removeUnit(G, id);
+    // The campaign setup starts with an empty holding box; fill it so the
+    // half-industry allowance can actually place three armies.
+    for (let i = 0; i < 3; i += 1) {
+      const unit = placeUnit(G, "GE", "reserveArmy", null, 2);
+      G.powers.GE.reserves.push(unit.id);
+    }
+    const reservesBefore = G.powers.GE.reserves.length;
+
+    const deploy = performGwManeuver(G, makeCtx(), {kind: "deploy", power: "GE", space: "silesia"});
+    expect(deploy.ok).toBe(true);
+    if (!deploy.ok) throw new Error(deploy.message);
+    expect(deploy.cost).toBe(1);
+    expect(deploy.unitIds).toHaveLength(3);
+    expect(G.spaces.silesia.units).toHaveLength(3);
+    expect(G.powers.GE.reserves.length).toBe(reservesBefore - 3);
+    expect(G.powers.GE.gwBudget).toBe(5);
+    for (const id of G.spaces.silesia.units) {
+      expect(G.units[id].flags?.deployedThisImpulse).toBe(true);
+    }
+
+    // 15.2.3 caps the batch at the same half-industry allowance.
+    beginGwImpulse(G, "GE");
+    G.powers.GE.industry = 2; // limit 1
+    const before = JSON.stringify(G);
+    const tooMany = performGwManeuver(G, makeCtx(), {
+      kind: "deploy",
+      power: "GE",
+      space: "silesia",
+      unitIds: G.powers.GE.reserves.slice(0, 2),
+    });
+    expect(tooMany.ok).toBe(false);
+    if (!tooMany.ok) expect(tooMany.error).toBe("invalidTarget");
     expect(JSON.stringify(G)).toBe(before);
   });
 
@@ -656,5 +730,82 @@ describe("Great War winter", () => {
     expect(res.ok).toBe(false);
     if (res.ok) throw new Error("expected a failure");
     expect(res.error).toBe("wrongPhase");
+  });
+});
+
+describe("25.2 / 25.4 printed entry rules", () => {
+  test("25.2: no US chit while the ACW runs or after the CSA wins", () => {
+    const G = baseGw({turn: 1});
+    expect(majorEntryCandidates(G, "FR")).toContain("US");
+    G.persistent.acw = true;
+    expect(majorEntryCandidates(G, "FR")).not.toContain("US");
+    delete G.persistent.acw;
+    G.persistent.csaIndependent = true;
+    expect(majorEntryCandidates(G, "FR")).not.toContain("US");
+  });
+
+  test("25.4: a player entering the GW at 0 stability gains 1", () => {
+    const G = baseGw({
+      te: ["FR"],
+      ta: ["GE"],
+      neutrals: ["UK", "AU", "RU", "OT"],
+      belligerents: ["GE", "FR"],
+      order: ["GE", "FR", "UK", "AU", "RU", "OT"],
+    });
+    G.powers.UK.stability = 0;
+    expect(joinNeutralAlliance(G, makeCtx(), "UK", "te")).toBe(true);
+    expect(G.powers.UK.stability).toBe(1);
+    expect(G.gw!.belligerents).toContain("UK");
+  });
+});
+
+describe("26.2 US planning transfer", () => {
+  const usPlanning = (): ImperialElegyState => {
+    const G = baseGw({
+      te: ["FR"],
+      ta: ["GE"],
+      belligerents: ["GE", "FR"],
+      neutrals: ["UK", "AU", "RU", "OT"],
+      usIn: true,
+    });
+    G.flags.usSide = "te";
+    G.phase = "gwPlanning";
+    G.gw!.usBudget = 4;
+    G.powers.FR.gwBudget = 2;
+    return G;
+  };
+
+  test("the US transfers its own CP to an ally once per planning step", () => {
+    const G = usPlanning();
+    const res = transferGwMajorBudget(G, makeCtx(), "FR", 1);
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error(res.message);
+    expect(res.from).toBe("US");
+    expect(G.gw!.usBudget).toBe(3);
+    expect(G.powers.FR.gwBudget).toBe(3);
+    expect(G.flags.usCpTransferDone).toBe(true);
+
+    const again = transferGwMajorBudget(G, makeCtx(), "FR", 1);
+    expect(again.ok).toBe(false);
+    if (!again.ok) expect(again.error).toBe("alreadyUsed");
+  });
+
+  test("only an ally, only when the US is in the war, and only with a LoC", () => {
+    const notIn = usPlanning();
+    notIn.gw!.usIn = false;
+    expect(transferGwMajorBudget(notIn, makeCtx(), "FR", 1).ok).toBe(false);
+
+    const enemy = usPlanning();
+    enemy.powers.GE.gwBudget = 2;
+    const res = transferGwMajorBudget(enemy, makeCtx(), "GE", 1);
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toBe("notAllied");
+
+    const cut = usPlanning();
+    // An enemy fleet in the North Atlantic severs the transatlantic LoC.
+    placeUnit(cut, "GE", "squadron", "north-atlantic", 2);
+    const blockaded = transferGwMajorBudget(cut, makeCtx(), "FR", 1);
+    expect(blockaded.ok).toBe(false);
+    if (!blockaded.ok) expect(blockaded.error).toBe("invalidTarget");
   });
 });
