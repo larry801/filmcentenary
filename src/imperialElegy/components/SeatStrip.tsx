@@ -139,7 +139,7 @@ export const SeatStrip: React.FC<SeatStripProps> = ({seats, onSelect, locale, au
           {...roving(seat.power)}
           onClick={() => onSelect(seat.power)}
         >
-          <span className="ie-seat-code">P{seat.index + 1} · {seat.power}</span>{" "}
+          <span className="ie-seat-code"><span className="ie-seat-index">P{seat.index + 1} · </span>{seat.power}</span>{" "}
           <span className="ie-seat-name">{seatPowerName(t, seat.power, locale, auFormed)}</span>{" "}
           <span className="ie-seat-dot" aria-hidden="true">{stateDot(seat.state)}</span>{" "}
           <span className="ie-seat-state">{seat.label}</span>

@@ -15,6 +15,7 @@ import {IEMap, type MapFrameRequest, type MapTarget} from "./map";
 import {SpacePicker} from "./SpacePicker";
 import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
+import {Icon} from "./Icon";
 import {MapLegend} from "./MapLegend";
 import {MAP_SECTIONS, MapSectionId, THEATRES, mapSectionById} from "./map-geometry";
 
@@ -187,6 +188,7 @@ export const MapPanel = ({
               setSearch={setSearch}
               onChoose={choose}
               onFocus={focusSpace}
+              defaultOpen
             />
           </div>
         )}
@@ -255,17 +257,24 @@ export const MapPanel = ({
             ))}
             <option value="all" hidden>{bi(locale, "Whole map", "全图")}</option>
           </select>
+          {/* The find control belongs to the framing bar: it was a bare
+              <button> in the stage's flow, so the stage's `overflow: hidden`
+              clipped it at every width and the space picker could not be opened
+              at all.  A phone shows the icon alone (the label is 4 CJK glyphs). */}
+          <button
+            type="button"
+            className={`ie-view-chip ie-view-find${showPicker ? " selected" : ""}`}
+            data-testid="ie-map-find"
+            aria-label={bi(locale, "Find space", "查找空间")}
+            aria-expanded={showPicker ? "true" : "false"}
+            aria-controls="ie-picker-panel"
+            title={bi(locale, "Find a space by name", "按名称查找地点")}
+            onClick={togglePicker}
+          >
+            <Icon name="search" size={16}/>
+            <span className="ie-view-find-label">{bi(locale, "Find space", "查找空间")}</span>
+          </button>
         </div>
-
-        <button
-          type="button"
-          className="ie-map-find"
-          data-testid="ie-map-find"
-          aria-expanded={showPicker ? "true" : "false"}
-          onClick={togglePicker}
-        >
-          {bi(locale, "Find space", "查找空间")}
-        </button>
       </div>
 
       <footer className="ie-map-footer">

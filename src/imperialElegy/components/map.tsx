@@ -10,6 +10,7 @@ import {flashpointHulls} from "./flashpoints";
 import {Anchor} from "./Anchor";
 import {BOARD_FONT, capitalStar, Flag, largeFlagName, PrintedNameplate, smallFlagName} from "./printedStyle";
 import {UnitToken} from "./UnitToken";
+import {mapHelp, useCoarsePointer} from "./useCoarsePointer";
 import {StackPopover} from "./StackPopover";
 import {type StackEntry, stackSummary} from "./stackSummary";
 import {bi} from "./boardHelpers";
@@ -265,6 +266,9 @@ export const IEMap = React.memo(
     const pointers = React.useRef(new Map<number, {x: number; y: number}>());
     const press = React.useRef<PressRecord | null>(null);
     const coarse = React.useRef(false);
+    // The one-line help names the gesture the reader has: wheel on a mouse,
+    // pinch on a finger.  (The `coarse` ref above tracks a gesture in flight.)
+    const touchHelp = useCoarsePointer();
 
     // Stack tokens and their popover.  `hovered` marks the space whose stack
     // the pointer (or keyboard focus) is on, `stackOpen` pins the popover open
@@ -1038,7 +1042,7 @@ export const IEMap = React.memo(
           </div>
         )}
         <div className="ie-map-legend">
-          <span>{locale === "zh_CN" ? "滚轮缩放 · 拖动平移 · 点击空间" : "wheel to zoom · drag to pan · click a space"}</span>
+          <span data-testid="ie-map-help">{mapHelp(locale, touchHelp)}</span>
           {(["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]).map((p) => (
             <span key={p}><i className={`ie-map-legend-dot ie-map-legend-dot-${p.toLowerCase()}`}/>{t.seats[p]}</span>
           ))}

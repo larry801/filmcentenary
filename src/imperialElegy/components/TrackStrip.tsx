@@ -97,6 +97,31 @@ export const TrackStrip = ({
         </span>
       </div>
 
+      {/*
+        Phone: the four-button stepper does not fit in 44 px (the stylesheet
+        hides it below 768 px), which left the folded screen with a bare turn
+        number and no way to tell whose turn it was or which step of the season
+        was running.  This one chip names the current step and the acting power
+        in the band the stepper would occupy, and opens that step's reference
+        exactly as a stepper button does.  It is hidden from 768 px up, where
+        the stepper is the better control.
+      */}
+      <button
+        type="button"
+        className="ie-track-step"
+        data-testid="ie-track-step"
+        title={bi(locale, "Current step — open its rules reference", "当前步骤 —— 打开该步规则参考")}
+        onClick={() => onOpenReference?.(currentStep?.anchor ?? "chart:sequence-of-play")}
+      >
+        <span className="ie-track-step-name">
+          {currentStep !== undefined ? stepLabel(currentStep) : PHASE_LABEL(t, phase)}
+        </span>
+        <span className="ie-track-step-power">
+          <i className={`ie-power-pip ie-power-pip-${active.toLowerCase()}`} aria-hidden="true"/>
+          {active}
+        </span>
+      </button>
+
       <PhaseStepper
         steps={steps}
         locale={locale}
