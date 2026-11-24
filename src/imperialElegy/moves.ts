@@ -5197,7 +5197,9 @@ const recordWarPass = (G: ImperialElegyState, ctx: Ctx, power: Power): string | 
       italyCommander !== null &&
       italyCommander !== "IT" &&
       isPower(italyCommander) &&
-      war.italyImpulseDone !== true
+      war.italyImpulseDone !== true &&
+      // 15.6: a knocked-out Italy is out of the war and takes no impulse.
+      war.italyKnockedOut === undefined
     ) {
       war.italyImpulseDone = true;
       war.italyBudget = 2;
