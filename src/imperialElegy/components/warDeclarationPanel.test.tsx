@@ -350,6 +350,42 @@ describe("the War panel's declaration form", () => {
     }]);
   });
 
+  test("errata 13.4.5: an allied minor is a second target beside an unaligned one", () => {
+    const G = homeImpulse("GE", BISMARCK_HOME_CARD);
+    G.spaces.hanover.ally = "AU";
+    G.spaces.hanover.diplomacy = null;
+    const {tree, declared, props} = renderPanel(G, "GE");
+    // Target 1: Denmark (no ally).  Target 2: Hanover, allied to Austria.  The
+    // ordinary defender list hides Hanover behind Austria's row; the errata
+    // keys on the minor itself, so the pair is offered as two minors.
+    change(tree, "ie-war-declare-defender", "minor:Denmark");
+    let next = rerender(props);
+    expect(optionsOf(next, "ie-war-second-power")).toContain("minor:Hanover");
+    let hanoverOption: React.ReactElement<any> | undefined;
+    walk(byTestId(next, "ie-war-second-power"), (element) => {
+      if (element.type === "option" && element.props?.value === "minor:Hanover") hanoverOption = element;
+    });
+    expect(textOf(hanoverOption)).toContain("Austria");
+    change(next, "ie-war-second-power", "minor:Hanover");
+    next = rerender(props);
+    // The hint is the errata, not the 13.4.2 aid search.
+    expect(textOf(byTestId(next, "ie-war-nonplayer-aid"))).toContain("13.4.5");
+    expect(textOf(byTestId(next, "ie-war-nonplayer-aid"))).toContain("Austria");
+    expect(byTestId(next, "ie-war-nonplayer-aid-candidates")).toBeUndefined();
+    change(next, "ie-war-declare-objective", "schleswig-holstein");
+    next = rerender(props);
+    // Neither target is a player, so there is no 14.1 primary choice.
+    expect(byTestId(next, "ie-war-primary-defender")).toBeUndefined();
+    click(next, "ie-declare-war");
+    expect(declared).toEqual([{
+      target: {minor: "Denmark"},
+      aim: "unification",
+      objectives: ["schleswig-holstein"],
+      cp: 3,
+      options: {secondTarget: {minor: "Hanover"}},
+    }]);
+  });
+
   test("a war may name two spaces, one from each named target", () => {
     const G = homeImpulse("GE", BISMARCK_HOME_CARD);
     const {tree, declared, props} = renderPanel(G, "GE");

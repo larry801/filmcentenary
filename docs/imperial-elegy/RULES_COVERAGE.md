@@ -183,11 +183,17 @@ Partial with named blockers.
   accepts that boundary) and **16.1.3(2)** computes the live 17.1 blockade at
   settlement, so a blockaded attacker that missed its aims gives the defender a
   defensive victory.  Pinned by `warEndingRules.test.ts` (3).
-- **§13–17 errata follow-up:** **13.4.5** now auto-allies an unaligned minor to
-  the player of the other Bismarck-targeted minor (before the 13.4.2 aid search,
-  over the five-ally cap) and **16.2** rejects a second treaty option imposed on
-  a player who is not a primary belligerent.  Coverage: `bismarckWar.test.ts`
-  and `treatyAllocation.test.ts`.
+- **§13–17 errata follow-up:** **13.4.5** now resolves the printed Bismarck
+  two-minor declaration in one step: the ally of one named minor immediately
+  allies the unaligned minor on every space it controls, over the five-ally cap,
+  without a 13.4.1 fight-or-abandon choice or a 13.4.2 aid search, and the war's
+  defending primary is that player in either target order; a refused
+  declaration leaves no marker behind.  The War panel offers the allied minor
+  as a second target beside an unaligned first target and explains the
+  immediate alliance.  **16.2** rejects a second treaty option imposed on a
+  player who is not a primary belligerent.  Coverage: `bismarckWar.test.ts`,
+  `declarationTargets.test.ts`, `components/warDeclarationPanel.test.tsx` and
+  `treatyAllocation.test.ts`.
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -201,8 +207,8 @@ Partial with named blockers.
 
 **Still open (the exact reasons these sections stay Partial):**
 
-- **§13–17:** 13.2.1 Italian unification wars; 13.4.4/13.4.5 remaining errata
-  cells; 14.0/15.4.1/15.6 unified Italy in a limited war; 15.0 pass budget ≤2;
+- **§13–17:** 13.2.1 Italian unification wars; 13.4.4's remaining errata
+  cell; 14.0/15.4.1/15.6 unified Italy in a limited war; 15.0 pass budget ≤2;
   15.2.2 limited-war joint naval operations; 15.5 capital capture ending the
   maneuver; 16.1.3(2) blockade victory; 16.1.4/16.1.5 negotiated/white peace
   agreements; 16.2 errata treaty targeting.
@@ -849,8 +855,11 @@ Partial with named blockers.
   `rulesCompletion.test.ts` pin them; **17.0's errata displacement** is live
   (`demobErrta.test.ts`).  **15.5's capital-capture end**, **16.1.3(2)'s
   blockade defensive victory** (`warEndingRules.test.ts`, 3), **13.4.5's
-  Bismarck auto-alliance errata** and **16.2's one-option-per-non-primary
-  player cap** (`bismarckWar.test.ts` / `treatyAllocation.test.ts`) are now
+  Bismarck auto-alliance errata** (completed 2026-11-24 with the printed
+  Denmark/Hanover example, the UI second-target row and the five-ally-cap
+  guard: `bismarckWar.test.ts`, `declarationTargets.test.ts`,
+  `components/warDeclarationPanel.test.tsx`) and **16.2's
+  one-option-per-non-primary player cap** (`treatyAllocation.test.ts`) are now
   live.  Still open: 13.2.1 Italian unification wars, unified Italy in a limited
   war (14.0/15.4.1/15.6), 15.0's pass-at-budget-≤2, 15.2.2 limited-war joint
   naval operations and 16.1.4/16.1.5 negotiated/agreed white peace.
