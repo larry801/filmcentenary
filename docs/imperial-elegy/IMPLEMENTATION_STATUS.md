@@ -1,7 +1,7 @@
 ## Verified: §13–17's 13.2.1, 13.4.4, 15.2.2 and 16.1.4/16.1.5 (2026-11-24)
 
-Four of the five remaining §13–17 blockers are now live.  The fifth — a unified
-Italy as a limited-war belligerent (14.0/15.4.1/15.6) — is the only one left.
+All five remaining §13–17 blockers are now live, so the section is promoted to
+**Implemented**.
 
 - **13.2.1 Italian wars of unification.**  `validateWarAim` now has an Italian
   `unification` branch, selected by a declaration-time `italianBeneficiary`.
