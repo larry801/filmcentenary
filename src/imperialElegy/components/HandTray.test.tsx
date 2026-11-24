@@ -116,6 +116,38 @@ test("a card row is its CP value and name, with its operations on the row", () =
   expect(rowHtml).not.toContain("ie-card-translation");
 });
 
+test("12.0 a used impulse offers no second card in the industry slot or the CP chain", () => {
+  // Reported as "帝国挽歌 事件俾斯麦之后不应该还能在同一行动轮打出其他牌": Bismarck's
+  // event leaves the impulse open for its declaration, so the row of every
+  // *other* card in hand must not still offer a second card play.
+  const G = game();
+  G.powers.GE.hand = ["IE-A029", "IE-A030"];
+  G.powers.GE.flags.actionCpSpentThisImpulse = true;
+  const id = "IE-A030";
+  const html = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
+  const row = html.slice(html.lastIndexOf("<article", html.indexOf(`data-testid="ie-card-${id}"`)));
+  const rowHtml = row.slice(0, row.indexOf("</article>"));
+  const button = (testId: string): string => {
+    const at = rowHtml.indexOf(`data-testid="${testId}"`);
+    const start = rowHtml.lastIndexOf("<button", at);
+    return rowHtml.slice(start, rowHtml.indexOf(">", at) + 1);
+  };
+
+  expect(button(`ie-industrialize-${id}`)).toContain("disabled");
+  expect(button(`ie-cp-chain-add-${id}`)).toContain("disabled");
+  expect(button(`ie-industrialize-${id}`)).toContain("每次行动轮只能打出 1 张牌");
+  expect(button(`ie-cp-chain-add-${id}`)).toContain("每次行动轮只能打出 1 张牌");
+
+  // A fresh impulse hands both controls back.
+  delete G.powers.GE.flags.actionCpSpentThisImpulse;
+  const fresh = renderToStaticMarkup(<HandTray {...props(G, true)}/>);
+  const freshRow = fresh.slice(fresh.lastIndexOf("<article", fresh.indexOf(`data-testid="ie-card-${id}"`)));
+  const freshHtml = freshRow.slice(0, freshRow.indexOf("</article>"));
+  const freshAt = freshHtml.indexOf(`data-testid="ie-industrialize-${id}"`);
+  expect(freshHtml.slice(freshHtml.lastIndexOf("<button", freshAt), freshHtml.indexOf(">", freshAt) + 1))
+    .not.toContain("disabled");
+});
+
 test("a phone row keeps its operations in the inspector, not on the row", () => {
   const G = game();
   const id = G.powers.GE.hand[0];

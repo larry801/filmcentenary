@@ -109,7 +109,8 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   // H-FR-6 Aux Armes: the card taken from the discard may be played
   // immediately, once, even though the impulse's home card is already played.
   const auxFreePlay = G.powers[power].flags.auxArmesFreePlay === cardId;
-  const impulseUsed = impulseAlreadyUsed(G, power) && !auxFreePlay;
+  const impulseSpent = impulseAlreadyUsed(G, power);
+  const impulseUsed = impulseSpent && !auxFreePlay;
   const cpModeOk = canActionCard && cpAllowed && !impulseUsed;
   const eventModeOk = canActionCard && eventAllowed && !impulseUsed && (eventGate === null || eventGate.ok);
   const responseEligible = card.type === "response" ? responseCardEligibility(G, power, cardId) : null;
@@ -130,8 +131,12 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   // Modernization home card."  The move refuses every OT card, so the tray must
   // not offer the slot either — otherwise the button is a guaranteed refusal.
   const otIndustryBlocked = power === "OT";
-  const industOk = canActionCard && industryCard === null && homeIndustryOk && !otIndustryBlocked;
-  const chainOk = canActionCard && cpChainLength < 2;
+  // 12.0 / 12.13 / 12.14: the industry slot and the CP chain are each "1 Card",
+  // the impulse's own card play, so neither is offered once the impulse's card
+  // is on the table.  The printed Aux Armes exception is for playing the card
+  // it took from the discard, never for industrializing or chaining.
+  const industOk = canActionCard && industryCard === null && homeIndustryOk && !otIndustryBlocked && !impulseSpent;
+  const chainOk = canActionCard && cpChainLength < 2 && !impulseSpent;
   const saveOk = (phase === "action" || phase === "end") && card.kind !== "home" && !isMandatory;
 
   // A response card is gated by its printed text first (the right seat, or
@@ -174,9 +179,14 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
         ? bi("Set it as your home card during Diplomacy first", "需先在外交阶段选为本国牌")
         : industryCard !== null
           ? bi("A card is already industrializing", "已有牌在工业化")
-          : bi("Industrialize only during your Action impulse", "工业化仅限你的行动阶段行动轮"));
+          : impulseSpent
+            ? oneCardReason
+            : bi("Industrialize only during your Action impulse", "工业化仅限你的行动阶段行动轮"));
   }
-  if (!chainOk && cpChainLength >= 2) reasons.push(bi("CP chain is full", "CP 链已满"));
+  if (!chainOk) {
+    if (cpChainLength >= 2) reasons.push(bi("CP chain is full", "CP 链已满"));
+    else if (impulseSpent) reasons.push(oneCardReason);
+  }
   if (!saveOk) reasons.push(bi("Save only in the Action or End phase", "仅可在行动或结束阶段保留"));
   const unique = [...new Set([...ownReasons, ...reasons])];
   return {

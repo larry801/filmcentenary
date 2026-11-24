@@ -2678,6 +2678,13 @@ export const industrialize = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): 
   if (power === null || G.phase !== "action") return INVALID_MOVE;
   const p = G.powers[power];
   if (G.pending !== null || p.industryCard !== null) return INVALID_MOVE;
+  // 12.0 / 12.13: the industrialization card is "1 Card" — the impulse's own
+  // card play — so it cannot follow another card in the same impulse.  Without
+  // this gate a seat that had already played its card (Bismarck's event, which
+  // keeps the impulse open for the declaration it grants, is the reported
+  // case) could still put a second card into the industry slot and lose the
+  // open declaration to `finishImpulse`.
+  if (impulseAlreadyUsed(G, power)) return INVALID_MOVE;
   // 12.14: CP chained cards cannot be used to industrialize.
   if (p.cpChain.includes(cardId)) return INVALID_MOVE;
   if (!p.hand.includes(cardId)) return INVALID_MOVE;
@@ -2921,6 +2928,12 @@ export const cpChain = (G: ImperialElegyState, ctx: Ctx, cardId: CardId): string
   const power = actor(G, playerID);
   if (power === null || G.phase !== "action" || G.pending !== null) return INVALID_MOVE;
   const p = G.powers[power];
+  // 12.0 / 12.14: a chained card is "1 Card" — the impulse's own card play —
+  // so it cannot follow another card in the same impulse.  A seat that already
+  // played its card (Bismarck's event keeps the impulse open for the
+  // declaration it grants) used to chain a second card here, which also threw
+  // the open declaration away with `finishImpulse`.
+  if (impulseAlreadyUsed(G, power)) return INVALID_MOVE;
   if (p.cpChain.length >= CP_CHAIN_MAX_CARDS) return INVALID_MOVE;
   if (p.cpChain.includes(cardId)) return INVALID_MOVE;
   if (!p.hand.includes(cardId)) return INVALID_MOVE;
