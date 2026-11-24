@@ -590,6 +590,13 @@ export interface WarSide {
   knockedOut?: WarKnockoutRecord[];
   /** Treaties chosen by the victor. */
   treaties: string[];
+  /**
+   * 16.2: each applied treaty option with the player/minor it was imposed on.
+   * The rule allows at most one option on a player who is not a primary
+   * belligerent, so the cap needs the allocation history, not just the option
+   * names in `treaties`.
+   */
+  treatyTargets?: {option: string; target: PowerOrMinor | null}[];
   /** 8.3 / 16.2: the two-primary harsh-terms shift has already resolved. */
   harshTermsApplied?: boolean;
   /** Who won (null if white peace). */

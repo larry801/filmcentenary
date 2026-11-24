@@ -183,6 +183,11 @@ Partial with named blockers.
   accepts that boundary) and **16.1.3(2)** computes the live 17.1 blockade at
   settlement, so a blockaded attacker that missed its aims gives the defender a
   defensive victory.  Pinned by `warEndingRules.test.ts` (3).
+- **§13–17 errata follow-up:** **13.4.5** now auto-allies an unaligned minor to
+  the player of the other Bismarck-targeted minor (before the 13.4.2 aid search,
+  over the five-ally cap) and **16.2** rejects a second treaty option imposed on
+  a player who is not a primary belligerent.  Coverage: `bismarckWar.test.ts`
+  and `treatyAllocation.test.ts`.
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -842,12 +847,13 @@ Partial with named blockers.
   (Denmark's 3rd Choice is Austria) and 13.4.4's “place the Qing army in the
   **targeted key**” are applied; `seekingAid.test.ts` and
   `rulesCompletion.test.ts` pin them; **17.0's errata displacement** is live
-  (`demobErrta.test.ts`).  Still open: 13.2.1 Italian unification wars,
-  13.4.5's co-defender/Bismarck errata, unified Italy in a limited war
-  (14.0/15.4.1/15.6), 15.0's pass-at-budget-≤2, 15.2.2 limited-war joint naval
-  operations, 16.1.4/16.1.5 negotiated/agreed white peace and 16.2's errata
-  targeting.  **15.5's capital-capture end** and **16.1.3(2)'s blockade
-  defensive victory** are now live (`warEndingRules.test.ts`, 3).
+  (`demobErrta.test.ts`).  **15.5's capital-capture end**, **16.1.3(2)'s
+  blockade defensive victory** (`warEndingRules.test.ts`, 3), **13.4.5's
+  Bismarck auto-alliance errata** and **16.2's one-option-per-non-primary
+  player cap** (`bismarckWar.test.ts` / `treatyAllocation.test.ts`) are now
+  live.  Still open: 13.2.1 Italian unification wars, unified Italy in a limited
+  war (14.0/15.4.1/15.6), 15.0's pass-at-budget-≤2, 15.2.2 limited-war joint
+  naval operations and 16.1.4/16.1.5 negotiated/agreed white peace.
 
 ## 18–19 Combat
 

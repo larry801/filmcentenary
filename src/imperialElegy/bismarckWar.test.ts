@@ -176,6 +176,25 @@ describe("Otto von Bismarck's war of unification", () => {
     expect(call.reason).toBe("forbid-join");
   });
 
+  test("errata 13.4.5: an unaligned minor auto-allies the player of the other targeted minor", () => {
+    const G = bismarckImpulse();
+    playBismarck(G);
+    // Hanover is allied to AU; Denmark is unaligned.
+    G.spaces.hanover.ally = "AU";
+    G.spaces.hanover.diplomacy = null;
+    expect(declareWar(G, makeCtx([], seat("GE")), {minor: "Hanover"}, "unification", ["hanover"], 3, {
+      secondTarget: {minor: "Denmark"},
+      primary: {minor: "Hanover"},
+    })).toBeUndefined();
+    // 13.4.1's abandon-minor choice comes first; the errata's auto-alliance is
+    // applied when the declaration finalizes.
+    if (G.pending?.kind === "minorAbandon") {
+      const join = G.pending.options.find((option) => option.id === "join") ?? G.pending.options[0];
+      expect(resolvePending(G, makeCtx([], seat("AU")), join.id)).toBeUndefined();
+    }
+    expect(G.spaces.denmark.ally).toBe("AU");
+  });
+
   test("the join ban also stops the 13.4.2 aid search on a minor", () => {
     const G = bismarckImpulse();
     playBismarck(G);

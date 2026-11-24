@@ -2519,6 +2519,13 @@ export const canApplyTreaty = (
   if (target !== null && target !== victory.loser && targetKnockout === undefined) {
     add("not-a-target", `${target} is neither the losing primary nor a knocked-out ally`);
   }
+  // 16.2 (errata): "the victorious player cannot impose more than one treaty
+  // option on a player who is not a primary belligerent."  Primary belligerents
+  // are the only targets exempt from the cap.
+  if (target !== null && isPower(target) && target !== war.attacker && target !== war.defender
+    && (war.treatyTargets ?? []).some((entry) => entry.target === target)) {
+    add("non-primary-cap", `${target} is not a primary belligerent and already received a treaty option`);
+  }
   if (targetKnockout !== undefined) {
     // Rule 16.1.6: only the side that knocked the ally out may impose the
     // option on them.  That side may be the winner (its pick comes first) or
@@ -2844,6 +2851,7 @@ export const applyTreaty = (
   }
 
   war.treaties.push(choice.option);
+  war.treatyTargets = [...(war.treatyTargets ?? []), {option: choice.option, target}];
   log(G, isPower(beneficiary) ? beneficiary : undefined, "treatyApplied", {
     option: choice.option,
     target,

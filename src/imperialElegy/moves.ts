@@ -3551,6 +3551,30 @@ const finalizeWarDeclaration = (
   addNamed(minor !== null ? {minor: minor.minor} : isPower(target) ? target : null);
   addNamed(flagSecond);
   for (const other of coDefenderTargets) addNamed(other);
+  // Errata 13.4.5 (Bismarck): when the two named targets are one minor with a
+  // player ally and one unaligned minor, "the player allied to the minor power
+  // immediately allies with the unaligned minor power.  This occurs even if
+  // that player already has five minor power allies."
+  if (declarationCard === BISMARCK_HOME_CARD) {
+    const declaredMinors = named
+      .filter((entry): entry is {minor: string} => !isPower(entry) && typeof entry === "object")
+      .map((entry) => entry.minor);
+    const infos = [...new Set(declaredMinors)]
+      .map((id) => minorWarInfo(G, power, id))
+      .filter((info) => info !== null && info.ok);
+    const alliedMinor = infos.find((info) => info !== null && info.ally !== null);
+    const unaligned = infos.find((info) => info !== null && info.ally === null);
+    if (alliedMinor && unaligned && alliedMinor.ally !== null && alliedMinor.ally !== power) {
+      const newAlly = alliedMinor.ally;
+      const state = unaligned.home !== null ? G.spaces[unaligned.home] : undefined;
+      if (state && state.ally !== newAlly && unaligned.home !== null) {
+        state.ally = newAlly;
+        state.diplomacy = null;
+        log(G, newAlly, "minorAlliance", {space: unaligned.home});
+        recomputeTracks(G);
+      }
+    }
+  }
   const playerCandidates: Power[] = named.filter(isPower);
   const requested = flagPrimary !== null && isPower(flagPrimary) ? flagPrimary : null;
   const primary: PowerOrMinor =
@@ -4370,6 +4394,27 @@ export const declareWar = (
         : null;
   if (secondDefenderForAim !== null && !warDeclarationTargetLegal(G, entitlement, secondDefenderForAim)) {
     return INVALID_MOVE;
+  }
+  // Errata 13.4.5 (Bismarck): when the declaration names one minor with a
+  // player ally and one unaligned minor, the allied player immediately allies
+  // the unaligned minor — so the unaligned minor does not run the 13.4.2 aid
+  // search and the second attack is treated as one on that player too.  Done
+  // before `beginMinorWarDeclaration` so its aid search sees the new ally.
+  if (entitlement?.card === BISMARCK_HOME_CARD) {
+    const autoAlly = (ally: Power | null, targetHome: SpaceId | null): void => {
+      if (ally === null || ally === power || targetHome === null) return;
+      const state = G.spaces[targetHome];
+      if (!state || state.ally === ally) return;
+      state.ally = ally;
+      state.diplomacy = null;
+      log(G, ally, "minorAlliance", {space: targetHome});
+      recomputeTracks(G);
+    };
+    if (minor !== null && minor.ally !== null && secondInfo !== null && secondInfo.ally === null) {
+      autoAlly(minor.ally, secondInfo.home);
+    } else if (secondInfo !== null && secondInfo.ally !== null && minor !== null && minor.ally === null) {
+      autoAlly(secondInfo.ally, minor.home);
+    }
   }
   // Rule 13.0: validate the aim (and every objective's control) before the CP
   // is spent, so an illegal declaration never mutates the state.  A two-target

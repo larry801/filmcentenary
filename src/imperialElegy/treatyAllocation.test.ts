@@ -221,6 +221,16 @@ describe("16.1.6 ally-knockout target chooser", () => {
     return war;
   };
 
+  test("16.2: a non-primary player can receive only one treaty option", () => {
+    const G = fresh();
+    const war = buildKnockoutWar(G);
+    const victory = classifyVictory(G, war);
+    expect(applyTreaty(G, war, victory, {option: "warReparations", target: "FR"}).applied).toBe(true);
+    const second = canApplyTreaty(G, war, victory, {option: "realignment", target: "FR"});
+    expect(second.ok).toBe(false);
+    expect(second.issues.some((issue) => issue.code === "non-primary-cap")).toBe(true);
+  });
+
   test("several knocked-out allies each appear as a distinct target", () => {
     const G = fresh();
     const war = buildKnockoutWar(G);
