@@ -108,6 +108,13 @@ export interface ScenarioSetup {
     wars: [Power, Power][];
     /** Undirected major/minor alliances. */
     alliances: [Power, "ireland" | "papacy" | "portugal" | "scotland" | "venice"][];
+    /**
+     * Wars that the Scenario Book forbids ending during the scenario's first
+     * turn: the Campaign locks its two starting wars in Turn 1, the Tournament
+     * locks only Ottoman-Spain in Turn 3 (Scenario Book pp. 7 and 10, errata
+     * p. 10).
+     */
+    peaceLock?: [Power, Power][];
     influence: Partial<Record<Power, Partial<Record<"ireland" | "papacy" | "portugal" | "scotland" | "venice", number>>>>;
     spaces: Record<string, ScenarioSpaceSetup>;
     /** Off-map world-map markers (Florida, Philippines, ...). */

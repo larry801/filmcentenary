@@ -436,7 +436,10 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
                 const card = OFFICIAL_CARDS[number - 1];
                 // Rule 6.2: cards marked "When Catholic League Forms" are not
                 // used on Turn 1; they enter the turn after the League forms.
+                // An on-board card (the Tournament's already-played Morisco
+                // Revolt) is on the map, not in the deck.
                 return card !== undefined && card.kind !== "home" &&
+                    !scenario.cardsOnBoard.includes(number) &&
                     typeof card.availableFromTurn === "number" && card.availableFromTurn <= scenario.startTurn;
             })
             .map((number) => OFFICIAL_CARDS[number - 1].id)),
@@ -444,6 +447,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
             .filter((number) => {
                 const card = OFFICIAL_CARDS[number - 1];
                 return card !== undefined && card.kind !== "home" &&
+                    !scenario.cardsOnBoard.includes(number) &&
                     (card.availableFromTurn === "variable" ||
                         (typeof card.availableFromTurn === "number" && card.availableFromTurn > scenario.startTurn));
             })
@@ -1366,6 +1370,18 @@ export const warCost = (G: VQGame, a: Power, b: Power): number => {
         return Math.max(1, G.doWCostEnglandSpain - (G.elizabethExcommunicated ? 2 : 0));
     }
     return WAR_COST[[a, b].sort().join("-")] ?? 2;
+};
+
+/**
+ * Scenario Book pp. 7 and 10 (with the p. 10 errata): the Campaign forbids
+ * ending either starting war during Turn 1 negotiations, and the Tournament
+ * forbids ending only the Ottoman-Spanish war during Turn 3 negotiations.  The
+ * lock applies to the scenario's first turn alone.
+ */
+export const peaceLockedThisTurn = (G: VQGame, a: Power, b: Power): boolean => {
+    const scenario = scenarioSetup(G.scenario, playerCount(G));
+    if (G.year !== scenario.startTurn) return false;
+    return (scenario.peaceLock ?? []).some(([x, y]) => (x === a && y === b) || (x === b && y === a));
 };
 
 export const canDeclareWar = (G: VQGame, a: Power, b: Power): boolean => {

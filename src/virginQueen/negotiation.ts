@@ -23,6 +23,7 @@ import {
     displaceNonFriendlyUnits,
     landAdjacent,
     landPoolRoom,
+    peaceLockedThisTurn,
     powerLabel,
     pushLog,
     resolveImmediateBetrothals,
@@ -113,6 +114,7 @@ export type NegotiationIssueCode =
     | "badCount"
     | "notParty"
     | "peaceUnavailable"
+    | "peaceLocked"
     | "catholicLeague"
     | "allianceUnavailable"
     | "allianceAtWar"
@@ -332,6 +334,8 @@ export const validateNegotiation = (
     if (peaceInDeal) {
         if (!atWar(G, from, to) || ((from === "england" && to === "spain") || (from === "spain" && to === "england"))) {
             issues.push({code: "peaceUnavailable"});
+        } else if (peaceLockedThisTurn(G, from, to)) {
+            issues.push({code: "peaceLocked"});
         }
     }
 
