@@ -540,8 +540,8 @@ export const italyBelligerentIn = (war: WarState | null | undefined): boolean =>
 /**
  * 15.6: "Italy can be knocked out of a war if Rome is occupied, but minor
  * powers are never knocked out."  Recorded once; Italy leaves the war's
- * rosters so it can no longer act, and the captor's 16.1.6 option is settled
- * as the cession of the occupied key.
+ * rosters so it can no longer act.  The captor's 16.1.6 option is chosen at
+ * settlement like every other knockout treaty pick.
  */
 export const recordItalyKnockout = (
   G: ImperialElegyState,
@@ -556,6 +556,20 @@ export const recordItalyKnockout = (
   war.defenderMinors = war.defenderMinors.filter((minor) => minor !== "Italy");
   log(G, captor, "italyKnockedOut", {capital: "rome", by});
   return true;
+};
+
+/** Rule 15.6 / 16.1.6: the recorded Italian knockout as a treaty target. */
+export const italyKnockoutFor = (war: WarState | null | undefined): ItalyKnockout | null => {
+  const record = war?.italyKnockedOut;
+  if (!record || !war) return null;
+  return {
+    power: "Italy",
+    by: record.by,
+    occupier: record.by === "attacker" ? war.attacker : war.defender,
+    captor: record.captor,
+    capital: record.capital,
+    treatyOptions: 1,
+  };
 };
 
 /** Rule 15.4.2: the non-player power defending alone, or null. */
@@ -1905,6 +1919,23 @@ export interface AllyKnockout {
   treatyOptions: 1;
 }
 
+/**
+ * Rule 15.6: Italy is a non-player major, so it is not a player ally and does
+ * not belong in `AllyKnockout` (whose `power` is a seat).  The occupying captor
+ * nevertheless keeps 16.1.6's special treaty option, which is chosen through
+ * the ordinary `treatyOption` decision with `target: "Italy"`.
+ */
+export interface ItalyKnockout {
+  power: "Italy";
+  by: WarSideName;
+  /** Primary belligerent on the occupying side. */
+  occupier: Power;
+  /** Power that actually occupied Rome (16.1.6 chooser for its own side). */
+  captor: Power;
+  capital: SpaceId;
+  treatyOptions: 1;
+}
+
 export interface VictoryClassification {
   /** Primary outcome, plus `allyKnockout` when that is the only result. */
   kind: WarVictoryKind;
@@ -1941,6 +1972,12 @@ export interface VictoryClassification {
   stability: {winner: number; loser: number};
   truceTurns: 1 | 2;
   allyKnockouts: AllyKnockout[];
+  /**
+   * Rule 15.6: a knocked-out unified Italy.  Kept apart from
+   * `allyKnockouts` because Italy is a non-player major (not a seat), but the
+   * captor still owes 16.1.6's special treaty option against it.
+   */
+  italyKnockout?: ItalyKnockout | null;
   notes: string[];
 }
 
@@ -2013,12 +2050,16 @@ export const firstTreatySide = (victory: VictoryClassification): WarSideName | n
  * One-sided knockouts keep the single captor's group (the other side has no
  * mandatory pick), so they need no order choice.
  */
-export const needsWhitePeaceOrderChoice = (victory: VictoryClassification): boolean =>
-  victory.victor === null &&
-  victory.primary === "whitePeace" &&
-  victory.kind === "allyKnockout" &&
-  victory.allyKnockouts.some((knockout) => knockout.by === "attacker") &&
-  victory.allyKnockouts.some((knockout) => knockout.by === "defender");
+export const needsWhitePeaceOrderChoice = (victory: VictoryClassification): boolean => {
+  if (victory.victor !== null || victory.primary !== "whitePeace" || victory.kind !== "allyKnockout") {
+    return false;
+  }
+  const sides = new Set<WarSideName>([
+    ...victory.allyKnockouts.map((knockout) => knockout.by),
+    ...(victory.italyKnockout ? [victory.italyKnockout.by] : []),
+  ]);
+  return sides.has("attacker") && sides.has("defender");
+};
 
 const spaceHeldBySide = (G: ImperialElegyState, war: WarState, space: SpaceId, side: WarSideName): boolean => {
   const state = G.spaces[space];
@@ -2263,6 +2304,7 @@ export const classifyVictory = (
   options: VictoryOptions = {},
 ): VictoryClassification => {
   const knockouts = knockoutsFor(G, war);
+  const italyKnockout = italyKnockoutFor(war);
   const notes: string[] = [];
   let primary: PrimaryVictoryKind;
   let victor: WarSideName | null = null;
@@ -2341,7 +2383,8 @@ export const classifyVictory = (
   const baseTreatyOptions =
     primary === "major" ? 2 : primary === "normal" || primary === "defensive" || primary === "negotiated" ? 1 : 0;
   const treatyOptions = victorCanImpose ? baseTreatyOptions : 0;
-  const kind: WarVictoryKind = primary === "whitePeace" && knockouts.length > 0 ? "allyKnockout" : primary;
+  const kind: WarVictoryKind =
+    primary === "whitePeace" && (knockouts.length > 0 || italyKnockout !== null) ? "allyKnockout" : primary;
 
   // Rule 16.1.6: "Regardless of the war's outcome, an ally knockout still
   // occurs."  When no primary outcome was won, a knockout by a single side
@@ -2351,18 +2394,24 @@ export const classifyVictory = (
   let classifiedLoser = loser;
   if (kind === "allyKnockout") {
     for (const knockout of knockouts) notes.push(`allyKnockout:${knockout.power}:${knockout.by}`);
-    const knockoutSides = new Set(knockouts.map((knockout) => knockout.by));
+    if (italyKnockout !== null) notes.push(`allyKnockout:Italy:${italyKnockout.by}`);
+    const knockoutSides = new Set<WarSideName>([
+      ...knockouts.map((knockout) => knockout.by),
+      ...(italyKnockout === null ? [] : [italyKnockout.by]),
+    ]);
     if (victor === null && knockoutSides.size === 1) {
-      const only = knockouts[0].by;
+      const only = [...knockoutSides][0];
       classifiedVictor = only;
       classifiedWinner = only === "attacker" ? war.attacker : war.defender;
-      // The knocked-out ally is the only target; a single one names the loser.
+      // The knocked-out ally is the only target; a single player ally names the
+      // loser.  Italy is a non-player major, so `loser` stays null and the
+      // Italy pick is found through `italyKnockout` instead.
       classifiedLoser = knockouts.length === 1 ? knockouts[0].power : null;
     } else if (victor === null) {
-      // Both sides knocked out an ally in a war with no primary victor.  There
-      // is no winner and no primary loser, but both sides still impose their
-      // knockout option(s).  The initiative order's first primary is the
-      // deterministic fallback when no negotiated order is present.
+      // Both sides knocked out an ally (or Italy) in a war with no primary
+      // victor.  There is no winner and no primary loser, but both sides still
+      // impose their knockout option(s).  The initiative order's first primary
+      // is the deterministic fallback when no negotiated order is present.
       notes.push("allyKnockout:bothSides:initiativeFirst");
     }
   }
@@ -2371,10 +2420,12 @@ export const classifyVictory = (
   // chooses its own option(s) against the first side's knocked-out allies.
   const firstSide = classifiedVictor ?? (kind === "allyKnockout" ? "attacker" : null);
   const secondSide = firstSide === null ? null : firstSide === "attacker" ? "defender" : "attacker";
+  const italyFirst = italyKnockout !== null && italyKnockout.by === firstSide ? 1 : 0;
+  const italySecond = italyKnockout !== null && italyKnockout.by === secondSide ? 1 : 0;
   const allyKnockoutTreatyOptions =
-    firstSide === null ? 0 : knockouts.filter((knockout) => knockout.by === firstSide).length;
+    firstSide === null ? 0 : knockouts.filter((knockout) => knockout.by === firstSide).length + italyFirst;
   const loserTreatyOptions =
-    secondSide === null ? 0 : knockouts.filter((knockout) => knockout.by === secondSide).length;
+    secondSide === null ? 0 : knockouts.filter((knockout) => knockout.by === secondSide).length + italySecond;
 
   return {
     kind,
@@ -2389,6 +2440,7 @@ export const classifyVictory = (
     stability,
     truceTurns: primary === "whitePeace" ? 1 : 2,
     allyKnockouts: knockouts,
+    italyKnockout,
     notes,
   };
 };
@@ -2500,7 +2552,7 @@ export interface TreatyChoice {
    */
   beneficiary?: PowerOrMinor;
   /** Treaty target when imposing an ally-knockout option. */
-  target?: Power;
+  target?: PowerOrMinor;
   /** v1.1 16.2.4. Omitted in older saves: infer home return, otherwise take. */
   righteousMode?: "take" | "returnHome" | "liberate";
   /** The printed minority flag selected for the liberation option. */
@@ -2568,7 +2620,7 @@ export interface TreatyValidation {
   option: TreatyOption;
   imposingSide: WarSideName | null;
   beneficiary: PowerOrMinor | null;
-  target: Power | null;
+  target: PowerOrMinor | null;
   treatySpaces: SpaceId[];
   issues: TreatyIssue[];
 }
@@ -2581,10 +2633,13 @@ const heldByAny = (G: ImperialElegyState, space: SpaceId, powers: readonly Power
   return powers.some((power) => state.control === power || state.occupiedBy === power);
 };
 
-const treatyTargetFor = (war: WarState, victory: VictoryClassification, choice: TreatyChoice): Power | null => {
+const treatyTargetFor = (war: WarState, victory: VictoryClassification, choice: TreatyChoice): PowerOrMinor | null => {
   if (choice.target) return choice.target;
   if (victory.kind === "allyKnockout" && victory.allyKnockouts.length === 1) {
     return victory.allyKnockouts[0].power;
+  }
+  if (victory.loser === null && victory.italyKnockout !== undefined && victory.italyKnockout !== null) {
+    return "Italy";
   }
   return victory.loser;
 };
@@ -2640,6 +2695,35 @@ export const isColonialTreatyKey = (G: ImperialElegyState, space: SpaceId, power
   return true;
 };
 
+/**
+ * 15.6 / 16.2.1: the spaces a knockout option may take from Italy.  Italy is a
+ * non-player major, so its capital (we hold it, which is what knocked Italy
+ * out) and any war objective it controls are the "targeted spaces"; every one
+ * must already be held by the imposing side because occupied spaces remain
+ * occupied until the war ends (15.3).
+ */
+export const italyKnockoutCessionSpaces = (
+  G: ImperialElegyState,
+  war: WarState,
+  side: WarSideName,
+): SpaceId[] => {
+  const powers = sidePowers(war, side);
+  const held = (space: SpaceId): boolean => {
+    const state = G.spaces[space];
+    if (!state) return false;
+    return powers.some((power) => state.occupiedBy === power || state.control === power);
+  };
+  const italian = (space: SpaceId): boolean => {
+    const state = G.spaces[space];
+    const def = SPACES[space];
+    if (!state || !def || isNavalBox(space)) return false;
+    if (state.control !== "IT") return false;
+    return isTreatyKey(G, space) || def.type === "territory";
+  };
+  const candidates = new Set<SpaceId>([war.italyKnockedOut?.capital ?? "rome", ...war.objectives]);
+  return [...candidates].filter((space) => italian(space) && held(space)).sort();
+};
+
 /** Rule 16.2 validation, including the once-per-option restriction. */
 export const canApplyTreaty = (
   G: ImperialElegyState,
@@ -2652,6 +2736,17 @@ export const canApplyTreaty = (
   let imposingSide = victory.victor;
   const target = treatyTargetFor(war, victory, choice);
   const targetKnockout = target === null ? undefined : victory.allyKnockouts.find((entry) => entry.power === target);
+  const italyKnockout =
+    target === "Italy" && victory.italyKnockout !== undefined && victory.italyKnockout !== null
+      ? victory.italyKnockout
+      : undefined;
+  /** Whether the treaty target controls (or is allied to) `space`. */
+  const targetControls = (space: SpaceId): boolean => {
+    if (target === null) return false;
+    if (isPower(target)) return controlledBy(G, space, target);
+    const state = G.spaces[space];
+    return state !== undefined && (state.control === target || state.ally === target);
+  };
 
   if (treatyAlreadyUsed(war, choice.option)) {
     add("already-used", `${choice.option} has already been chosen in this war`);
@@ -2660,9 +2755,10 @@ export const canApplyTreaty = (
     add("no-target", "no losing power is available for this treaty option");
   }
 
-  // A treaty option may target the primary loser or a player ally that was
-  // knocked out of the war (rule 16.1.6).  Anything else is not a legal target.
-  if (target !== null && target !== victory.loser && targetKnockout === undefined) {
+  // A treaty option may target the primary loser, a player ally that was
+  // knocked out of the war (rule 16.1.6), or a unified Italy knocked out when
+  // Rome fell (rule 15.6).  Anything else is not a legal target.
+  if (target !== null && target !== victory.loser && targetKnockout === undefined && italyKnockout === undefined) {
     add("not-a-target", `${target} is neither the losing primary nor a knocked-out ally`);
   }
   // 16.2 (errata): "the victorious player cannot impose more than one treaty
@@ -2677,11 +2773,14 @@ export const canApplyTreaty = (
     // option on them.  That side may be the winner (its pick comes first) or
     // the loser ("the loser chooses their treaty option after the winner").
     imposingSide = targetKnockout.by;
+  } else if (italyKnockout !== undefined) {
+    imposingSide = italyKnockout.by;
   }
   if (victory.kind === "allyKnockout" && target) {
     const knockout = victory.allyKnockouts.find((entry) => entry.power === target);
-    if (!knockout) add("not-knocked-out", `${target} was not knocked out of this war`);
-    else imposingSide = knockout.by;
+    if (knockout) imposingSide = knockout.by;
+    else if (italyKnockout !== undefined) imposingSide = italyKnockout.by;
+    else add("not-knocked-out", `${target} was not knocked out of this war`);
   }
   if (imposingSide === null) add("no-victor", "no side may impose a treaty option");
   // Rule 16.1: "The victorious player imposes treaty options"; a lone
@@ -2727,14 +2826,24 @@ export const canApplyTreaty = (
   }
 
   if (choice.option === "territorialCession") {
-    if (victory.primary === "whitePeace" || imposingSide === null) {
+    // 16.1.6: "Regardless of the war's outcome, an ally knockout still occurs",
+    // so a knockout target keeps its cession option even in a white peace.
+    if ((victory.primary === "whitePeace" && targetKnockout === undefined && italyKnockout === undefined) ||
+        imposingSide === null) {
       add("no-primary-victory", "territorial cession requires a primary victory");
     }
-    const spaces = choice.spaces ?? war.objectives;
+    const spaces = choice.spaces ?? (italyKnockout !== undefined
+      ? italyKnockoutCessionSpaces(G, war, imposingSide ?? "attacker")
+      : war.objectives);
     if (spaces.length === 0) add("no-objectives", "territorial cession needs at least one target space");
     for (const space of spaces) {
-      if (!war.objectives.includes(space)) add("not-an-objective", `${space} was not a war objective`);
-      else if (target && !controlledBy(G, space, target)) {
+      if (italyKnockout !== undefined) {
+        if (!italyKnockoutCessionSpaces(G, war, imposingSide ?? "attacker").includes(space)) {
+          add("not-an-objective", `${space} is not an occupied Italian key or territory`);
+        }
+      } else if (!war.objectives.includes(space)) {
+        add("not-an-objective", `${space} was not a war objective`);
+      } else if (target && !targetControls(space)) {
         add("not-controlled-by-loser", `${space} is not controlled by ${target}`);
       }
     }
@@ -2756,7 +2865,7 @@ export const canApplyTreaty = (
       add("minor-required", "realignment requires a minor power");
     }
   } else if (choice.option === "warReparations") {
-    if (!target || !POWERS.includes(target)) add("not-a-player", "war reparations can only be imposed on a player");
+    if (!target || !isPower(target)) add("not-a-player", "war reparations can only be imposed on a player");
     if (target) {
       // Rule 16.2.3: the winning side must occupy at least one home controlled
       // by the losing power; the marker itself may be awarded to any ally.
@@ -2788,7 +2897,7 @@ export const canApplyTreaty = (
         // 16.1.6: a knockout option can only take from its named target,
         // never another member of the attacking side.
         const enemyControlled = target !== null &&
-          (controlledBy(G, space, target) || state.occupiedBy === target);
+          (targetControls(space) || state.occupiedBy === target);
         const returnedHome = beneficiary !== null && treatyHomeOf(G, space, beneficiary) && enemyControlled;
         const occupiedByDefender = state.occupiedBy !== null && state.occupiedBy !== undefined && defenderPowers.includes(state.occupiedBy as Power);
         const majorDefense = victory.primary === "major" && victory.victor === "defender" && target === war.attacker;
@@ -2797,7 +2906,7 @@ export const canApplyTreaty = (
           if (allyBeneficiary) add("beneficiary-must-be-primary", "the defender gains the liberated power's alliance");
           if (target === null || state.control !== target || !occupiedByDefender) add("liberation-not-occupied", "liberation requires occupation of a space controlled by the treaty target");
           const nationality = choice.nationality;
-          if (!target || !nationality || !liberationNationalities(G, space, target).includes(nationality)) {
+          if (!isPower(target) || !nationality || !liberationNationalities(G, space, target).includes(nationality)) {
             add("not-minority-nationality", "select a surviving printed minority nationality of the treaty target");
           } else {
             const minor = liberatedPowerFor(space, nationality);
@@ -2874,7 +2983,7 @@ const setControl = (
   if (options.homeOverride !== undefined) state.homeOverride = options.homeOverride;
 };
 
-const realignMinor = (G: ImperialElegyState, minor: string, from: Power | null, to: Power): SpaceId[] => {
+const realignMinor = (G: ImperialElegyState, minor: string, from: PowerOrMinor | null, to: Power): SpaceId[] => {
   const affected: SpaceId[] = [];
   const home = nonPlayerHome(minor, G);
   if (home && G.spaces[home]) {
@@ -2917,12 +3026,18 @@ export const applyTreaty = (
   const primary = validation.imposingSide === "defender" ? war.defender : war.attacker;
   const beneficiary = validation.beneficiary ?? primary;
   const target = validation.target;
+  const targetKnockedOut =
+    target !== null &&
+    (victory.allyKnockouts.some((entry) => entry.power === target) ||
+      (target === "Italy" && victory.italyKnockout !== undefined && victory.italyKnockout !== null));
   const affectedSpaces: SpaceId[] = [];
   const notes: string[] = [];
   let affectedMinor: string | undefined;
 
   if (choice.option === "territorialCession") {
-    const spaces = choice.spaces ?? war.objectives;
+    const spaces = choice.spaces ?? (target === "Italy" && validation.imposingSide !== null
+      ? italyKnockoutCessionSpaces(G, war, validation.imposingSide)
+      : war.objectives);
     // 13.2.1: an Italian unification war's cessions go to the named Italian
     // state, not to the victorious player.  The state stays allied to the
     // winning attacker so it remains controllable.
@@ -2934,7 +3049,8 @@ export const applyTreaty = (
         affectedSpaces.push(space);
         continue;
       }
-      if (war.warAim === "liberation" && original !== null && !isPower(original) && isPower(beneficiary)) {
+      if (war.warAim === "liberation" && original !== null && !isPower(original) &&
+          original !== "IT" && isPower(beneficiary)) {
         // A liberated minor immediately becomes allied to the liberator (13.1.1).
         setControl(G, space, original, {ally: beneficiary});
       } else {
@@ -2942,6 +3058,7 @@ export const applyTreaty = (
         setControl(G, space, beneficiary, {ally: null});
       }
       affectedSpaces.push(space);
+      if (target === "Italy") log(G, isPower(beneficiary) ? beneficiary : undefined, "italyKnockoutCession", {space});
     }
     notes.push(`territorialCession:${affectedSpaces.join(",")}`);
   } else if (choice.option === "realignment") {
@@ -2964,7 +3081,7 @@ export const applyTreaty = (
       notes.push(`realignment:germanMinors->GE:${affectedSpaces.join(",")}`);
     }
   } else if (choice.option === "warReparations") {
-    if (target && POWERS.includes(target)) {
+    if (target !== null && isPower(target)) {
       if (isPower(beneficiary)) {
         G.powers[beneficiary].cardMarkers += 1;
       } else {
@@ -3010,7 +3127,7 @@ export const applyTreaty = (
   log(G, isPower(beneficiary) ? beneficiary : undefined, "treatyApplied", {
     option: choice.option,
     target,
-    targetKnockedOut: target !== null && victory.allyKnockouts.some((entry) => entry.power === target),
+    targetKnockedOut,
     beneficiary,
     allocatedTo: beneficiary === primary ? "primary" : "ally",
     spaces: affectedSpaces.join(","),
@@ -3345,6 +3462,9 @@ export const settleLimitedWar = (
     if (target !== null) {
       const knockout = victory.allyKnockouts.find((entry) => entry.power === target);
       if (knockout !== undefined) return knockout.by;
+      if (target === "Italy" && victory.italyKnockout !== undefined && victory.italyKnockout !== null) {
+        return victory.italyKnockout.by;
+      }
     }
     return victory.victor;
   };
@@ -3358,16 +3478,9 @@ export const settleLimitedWar = (
   const treaties = orderedChoices.map((choice) => applyTreaty(G, war, victory, choice));
   const invalid = treaties.filter((treaty) => !treaty.applied).map((treaty) => treaty.option);
   outcome.harshTerms = applyHarshTerms(G, war, orderedChoices.filter((_, index) => treaties[index].applied), ctx);
-  // 15.6 / 16.1.6: the captor of occupied Rome holds the special option against
-  // the knocked-out Italy.  It is settled as the cession of that key.
-  if (war.italyKnockedOut !== undefined) {
-    const {captor, capital} = war.italyKnockedOut;
-    if (isPower(captor) && G.spaces[capital] && G.spaces[capital].control !== captor) {
-      setSpaceControl(G, capital, captor);
-      G.spaces[capital].ally = null;
-      log(G, captor, "italyKnockoutCession", {space: capital});
-    }
-  }
+  // 15.6 / 16.1.6: a knocked-out Italy is a treaty target like a player ally;
+  // the captor's special option is applied above like every other pick.  With
+  // no pick against Italy (or no legal option) Rome simply stays occupied.
   const demobilization = demobilizeWar(G, war, ctx);
   return {
     ok: invalid.length === 0,

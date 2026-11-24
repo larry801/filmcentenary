@@ -2079,10 +2079,19 @@ export const jointNaval = (
   const contact = navalUnitsIn(G, to).some((unit) =>
     hostileOwner(G, power, unit.owner) || partnerMarkers.some((entry) => hostileOwner(G, entry.power, unit.owner)),
   );
+  // 15.2.2 moves the contingents as one force on one 12.3 route, so every
+  // participant must trace the same path; otherwise they are not moving
+  // together and the operation is refused.
+  let routePath: SpaceId[] | null = null;
   for (const participant of [power, ...partnerMarkers.map((entry) => entry.power)]) {
     const plan = planNavalMove(G, participant, from, to, {allowEnemyDestination: contact});
     if (!plan.ok) {
       log(G, power, "jointNavalRejected", {reason: plan.reason, ally: participant});
+      return INVALID_MOVE;
+    }
+    if (routePath === null) routePath = [...plan.path];
+    else if (plan.path.join(",") !== routePath.join(",")) {
+      log(G, power, "jointNavalRejected", {reason: "route", ally: participant});
       return INVALID_MOVE;
     }
   }
@@ -2097,6 +2106,43 @@ export const jointNaval = (
   war.jointNavalMarkers = (war.jointNavalMarkers ?? []).filter(
     (entry) => entry.power !== power && !partnerMarkers.some((partner) => partner.power === entry.power),
   );
+  const allies = [...new Set(partnerMarkers.map((entry) => entry.power))];
+  const allyFields: {ally?: Power; allies?: Power[]} = {
+    ...(allies[0] === undefined ? {} : {ally: allies[0]}),
+    ...(allies.length > 1 ? {allies} : {}),
+  };
+  // 19.1: a multi-box move enters each box in turn, so the first intermediate
+  // box adjacent to an enemy port interrupts the joint move there (exactly as
+  // a single power's navalMove is split).  The move already paid its one CP;
+  // the typed transit cursor finishes it after the window without spending
+  // again.
+  const path = routePath ?? [from, to];
+  const transitIndex = firstTransitInterceptHop(G, power, path);
+  if (transitIndex > 0) {
+    const hop = path[transitIndex];
+    for (const unit of allUnits) {
+      G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unit.id);
+      G.spaces[hop].units.push(unit.id);
+      unit.space = hop;
+    }
+    G.navalTransit = {
+      power,
+      ...allyFields,
+      unitIds: allUnits.map((unit) => unit.id),
+      path: [...path],
+      index: transitIndex,
+    };
+    log(G, power, "jointNavalMove", {
+      from,
+      to: hop,
+      count: allUnits.length,
+      allies: allies.join(","),
+      path: path.slice(0, transitIndex + 1).join(","),
+      transit: true,
+    });
+    openNavalTransitInterception(G, ctx);
+    return undefined;
+  }
   for (const unit of allUnits) {
     G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unit.id);
     G.spaces[to].units.push(unit.id);
@@ -2106,11 +2152,11 @@ export const jointNaval = (
     from,
     to,
     count: allUnits.length,
-    allies: partnerMarkers.map((entry) => entry.power).join(","),
+    allies: allies.join(","),
   });
   const interceptAtDestination = isNavalBox(to) && navalInterceptCandidates(G, power, to).length > 0;
   if ((contact || interceptAtDestination) && G.battle === null) {
-    openNavalContactDecision(G, ctx, power, from, to, allUnits.map((unit) => unit.id));
+    openNavalContactDecision(G, ctx, power, from, to, allUnits.map((unit) => unit.id), allyFields);
   }
   return undefined;
 };
@@ -5043,7 +5089,7 @@ export const proposeWarPeace = (
       // territorial cession, so no other option can be the agreed one.
       return INVALID_MOVE;
     }
-    if ((war.knockedOut?.length ?? 0) > 0) {
+    if ((war.knockedOut?.length ?? 0) > 0 || war.italyKnockedOut !== undefined) {
       // 16.1.6 keeps its mandatory knockout options; a binding single option
       // would suppress them, so the table may agree only on a plain peace.
       log(G, power, "warPeaceProposed", {kind, conceding, rejected: "knockout-options"});
@@ -5347,15 +5393,20 @@ const treatyAppliedFromPending = (pending: PendingDecision): TreatyChoice[] =>
 const treatyRemainingFromPending = (pending: PendingDecision, victory: VictoryClassification): number =>
   Number(pending.context?.remaining ?? victory.totalTreatyOptions);
 
-/** Powers whose treaty option has already been answered (16.1.6). */
-const treatyAppliedTargets = (applied: readonly TreatyChoice[]): Power[] =>
+/** Powers (or Italy) whose treaty option has already been answered (16.1.6). */
+const treatyAppliedTargets = (applied: readonly TreatyChoice[]): PowerOrMinor[] =>
   applied
     .map((choice) => choice.target)
-    .filter((target): target is Power => typeof target === "string" && target.length > 0);
+    .filter((target): target is PowerOrMinor => typeof target === "string" && target.length > 0);
 
 /** How many primary-outcome picks were already spent. */
-const appliedPrimaryPicks = (applied: readonly TreatyChoice[], victory: VictoryClassification): number =>
-  applied.filter((choice) => !victory.allyKnockouts.some((knockout) => knockout.power === choice.target)).length;
+const appliedPrimaryPicks = (applied: readonly TreatyChoice[], victory: VictoryClassification): number => {
+  const knockoutTarget = (target: PowerOrMinor | undefined): boolean =>
+    target !== undefined &&
+    (victory.allyKnockouts.some((knockout) => knockout.power === target) ||
+      (target === "Italy" && victory.italyKnockout !== undefined && victory.italyKnockout !== null));
+  return applied.filter((choice) => !knockoutTarget(choice.target)).length;
+};
 
 /** Sides whose optional primary picks were explicitly skipped with `done`. */
 const treatySkippedSides = (pending: PendingDecision): WarSideName[] =>
@@ -5403,6 +5454,15 @@ const openWarTreatyOption = (
   };
   const entries = treatyOptionsFor(G, war, victory, picks);
   if (entries.length === 0) return false;
+  // A knockout target with no legal option left (every applicable treaty has
+  // already been used) cannot be answered again; it must not keep the group's
+  // optional picks open or suppress `done` forever.
+  const optionTargets = new Set(
+    entries
+      .map((entry) => entry.target)
+      .filter((target): target is PowerOrMinor => target !== null && !appliedTargets.includes(target)),
+  );
+  const effectiveOutstanding = outstanding.filter((target) => optionTargets.has(target));
   // Total outstanding knockout options per side, for the chooser's display.
   const outstandingBySide = (side: WarSideName): number =>
     groups
@@ -5416,7 +5476,7 @@ const openWarTreatyOption = (
   const secondOutstanding = outstandingBySide(secondSide);
   const pending = buildTreatyPending(G, group.power, entries, {
     victory,
-    remaining: primaryRemaining + outstanding.length,
+    remaining: primaryRemaining + effectiveOutstanding.length,
     applied,
     remainingPrimary: primaryRemaining,
     remainingKnockout: firstStage ? firstOutstanding : 0,
@@ -5431,7 +5491,7 @@ const openWarTreatyOption = (
     primaryRemaining > 0 &&
     mandatoryCessionPending(war, victory, applied);
   // Rule 16.1.6: knockout treaty options are awarded, not optional.
-  if (outstanding.length === 0 && !mandatoryCession) {
+  if (effectiveOutstanding.length === 0 && !mandatoryCession) {
     pending.options.push({id: "done", label: "Finish treaties"});
   }
   openDecision(G, ctx, pending);
@@ -6559,13 +6619,16 @@ const resolveNavalContinuation = (
   const destinations = Array.isArray(context.destinations)
     ? (context.destinations as unknown[]).filter((id): id is SpaceId => typeof id === "string")
     : [];
-  const ally = isPower(context.ally) ? context.ally : undefined;
+  const allies = Array.isArray(context.allies)
+    ? (context.allies as unknown[]).filter((id): id is Power => isPower(id))
+    : [];
+  if (isPower(context.ally) && !allies.includes(context.ally)) allies.push(context.ally);
   if (contact === "" || !G.spaces[contact]) return INVALID_MOVE;
   const units = rawUnits
     .map((id) => G.units[id])
     .filter((unit): unit is Unit =>
       Boolean(unit) && unit!.space === contact && unit!.steps > 0 &&
-      (unit!.owner === pending.power || (ally !== undefined && unit!.owner === ally)),
+      (unit!.owner === pending.power || (isPower(unit!.owner) && allies.includes(unit!.owner))),
     );
   G.pending = null;
   G.navalContinuation = null;
@@ -6583,7 +6646,7 @@ const resolveNavalContinuation = (
   // gates and the destination's stacking/capacity.
   const plan = planNavalMove(G, pending.power, contact, to);
   if (!plan.ok) return INVALID_MOVE;
-  if (ally !== undefined && !planNavalMove(G, ally, contact, to).ok) return INVALID_MOVE;
+  if (allies.some((ally) => !planNavalMove(G, ally, contact, to).ok)) return INVALID_MOVE;
   if (movementEndProblem(G, to, units) !== null) return INVALID_MOVE;
   for (const unit of units) {
     G.spaces[contact].units = G.spaces[contact].units.filter((id) => id !== unit.id);
@@ -8686,6 +8749,7 @@ export const resolveWar = (
     agreedPeace?.kind === "negotiated" &&
     agreedPeace.treaty !== undefined &&
     victory.allyKnockouts.length === 0 &&
+    (victory.italyKnockout === undefined || victory.italyKnockout === null) &&
     isTreatyOptionId(agreedPeace.treaty.option)
   ) {
     const agreedChoice: TreatyChoice = {

@@ -627,9 +627,10 @@ Important boundaries (the status document has the full list):
   calls require the called ally's private accept/refuse; refusal applies the
   14.0 penalties (with the truce exemption and a no-second-call rule). Truces
   (13.5) block declarations and allied calls against a truce partner. Remaining:
-  13.4.2 Seeking Aid and 13.4.1 abandonment are live; 16.1.6’s loser treaty
-  choice is two-stage. Remaining: a lone non-player defender has no WarState,
-  independent-minor treaty beneficiaries and both-sides-knockout peace.
+  13.4.2 Seeking Aid and 13.4.1 abandonment are live; 16.1.6's loser treaty
+  choice is two-stage, and a unified Italy knocked out when Rome falls takes
+  the same mandatory `treatyOption` chooser (with only non-player-legal 16.2
+  options).
 - **The printed Crisis Table is live.** `engine/crisisTable.ts` carries all ten
   rows and six result columns plus the Balkan States table and the `*`/`**`/`†`
   footnotes. One International Conference is possible (WTT resets to 4; a second
@@ -724,7 +725,8 @@ Important boundaries (the status document has the full list):
   enemy-held. **30.1 capital-occupation surrender** is live in the GW (AU/RU/OT
   need capital and subcapital, with full marker bookkeeping) and **22.4** places
   one Italian army in Rome plus two on the frontier; **15.6** records an ally
-  knockout when a capital falls so a retaken capital does not erase it. **32.1 US Mexico/Canada** and the **Ottoman Ankara
+  (or Italy) knockout when a capital falls so a retaken capital does not erase
+  it, and a Rome knockout opens the captor's 16.1.6 chooser. **32.1 US Mexico/Canada** and the **Ottoman Ankara
   capital** switch are enforced. 29.1 blockade, 29.2 colonial war and 29.3
   neutral entry are live (a neutral chooses to join; blockade reduces maximum
   industry per GW year; the colonial war uses the printed modifiers, a

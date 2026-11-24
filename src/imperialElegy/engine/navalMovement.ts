@@ -545,6 +545,14 @@ export const specialRedeployPath = (
 // ---------------------------------------------------------------------------
 
 /**
+ * 15.2.2 / 19.1: every allied power whose contingent took part in an
+ * interrupted naval move.  Older saves and the GW single-ally path store only
+ * `ally`; a limited-war joint operation keeps the full list in `allies`.
+ */
+export const navalMoveAllies = (state: {ally?: Power; allies?: readonly Power[]}): Power[] =>
+  [...new Set([...(state.allies ?? []), ...(state.ally === undefined ? [] : [state.ally])])];
+
+/**
  * 19.1: "The active player will be able to finish their naval movement after
  * the interception attempt and subsequent battle (if one occurs)" and "Units
  * using naval movement in European Waters that were intercepted may continuing
@@ -566,11 +574,12 @@ export const navalContinuationDestinations = (
     .map((id) => G.units[id])
     .filter((unit) => Boolean(unit) && unit!.space === contact && unit!.steps > 0);
   if (units.length === 0) return [];
+  const allies = navalMoveAllies(continuation);
   const out: SpaceId[] = [];
   for (const dest of Object.keys(G.spaces).sort()) {
     if (dest === contact) continue;
     if (!planNavalMove(G, continuation.power, contact, dest).ok) continue;
-    if (continuation.ally !== undefined && !planNavalMove(G, continuation.ally, contact, dest).ok) continue;
+    if (allies.some((ally) => !planNavalMove(G, ally, contact, dest).ok)) continue;
     if (movementEndProblem(G, dest, units) !== null) continue;
     out.push(dest);
   }
@@ -599,6 +608,7 @@ export const openNavalContinuationDecision = (
   const live: NavalContinuationState = {...continuation, unitIds: survivors};
   const destinations = navalContinuationDestinations(G, live);
   if (destinations.length === 0) return false;
+  const allies = navalMoveAllies(live);
   const options = destinations.map((dest) =>
     option(
       dest,
@@ -619,6 +629,7 @@ export const openNavalContinuationDecision = (
       unitIds: survivors,
       destinations,
       ...(continuation.ally === undefined ? {} : {ally: continuation.ally}),
+      ...(allies.length > 1 ? {allies} : {}),
     },
   ));
   return true;
