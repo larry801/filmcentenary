@@ -126,13 +126,20 @@ export const HandTray = (props: HandTrayProps) => {
   // caller that renders the tray alone still gets the stored value.
   const storedConfirm = React.useMemo(() => readConfirmActions(), []);
   const confirmActions = props.confirmActions ?? storedConfirm;
-  // Playing a card removes it from the hand, and a card that has left the hand
-  // must not leave the inspector open on a face that is no longer in play.
-  // National Goals use the same dialog but live on the mat, so only a card face
-  // is subject to the close.
+  // An inspector is a read view of a face that is still somewhere on screen:
+  // a hand card lives in `hand` (playing it removes it), the Great War card
+  // lives in its own slot (`me.gwCard`, drawn only while its block is up and
+  // emptied when played), and a National Goal lives on the mat and never
+  // leaves.  Hand membership alone cannot be the test — the GW card is never
+  // in the hand, so a hand-only guard closed its dialog in the same commit
+  // that opened it.
   React.useEffect(() => {
-    if (inspector !== null && "card" in inspector.face && !hand.includes(inspector.key)) setInspector(null);
-  }, [hand, inspector]);
+    if (inspector === null || !("card" in inspector.face)) return;
+    const gwCardShown = G.gw?.active === true &&
+      (phase === "gwPlanning" || phase === "gwManeuver") &&
+      me?.gwCard === inspector.key;
+    if (!hand.includes(inspector.key) && !gwCardShown) setInspector(null);
+  }, [G.gw?.active, hand, inspector, me, phase]);
   // A shown card, a phase change or a seat handover invalidates an open picker.
   React.useEffect(() => {
     if (showPickerFor !== null && (phase !== "diplomacy" || !hand.includes(showPickerFor))) {
@@ -520,7 +527,8 @@ export const HandTray = (props: HandTrayProps) => {
                   <div className="ie-tray-gw" data-testid={`ie-gw-card-${gwId}`}>
                     <div className="ie-section-title">{bi(locale, "Great War card", "大战卡")} · {t.cp}: {me.gwBudget ?? 0}</div>
                     <article className="ie-card ie-card-standalone">
-                      <button type="button" className="ie-card-open" onClick={() => openInspector({card: gwCard}, gwId)}>
+                      <button type="button" className="ie-card-open" data-testid={`ie-open-gw-card-${gwId}`}
+                        onClick={() => openInspector({card: gwCard}, gwId)}>
                         {cardFace(gwCard)}
                       </button>
                       <div className="ie-card-actions">
