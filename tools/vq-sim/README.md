@@ -149,3 +149,19 @@ more. Each is pinned by a test under `src/virginQueen/`.
    (`campaign-2/VQ-SIM-3-c2`, year 6).  `startBattle` now takes the seated stack
    owner first, then the space's controller, and only then a seated fallback, so
    `pendingBattle.defender` always has a seat.
+
+10. **A minor's fleet crashed naval retreats** (`controllerHostility.test.ts`).
+    Rule 16.2 step 9 blocks a retreat only for *enemy* fleets, but
+    `navalRetreatCandidates` called `atWar` for every controller.  `atWar` takes
+    major powers only (`G.powers[minor]` does not exist), so an adjacent allied
+    minor counter threw "Cannot read properties of undefined (reading 'wars')"
+    (`VQ-SIM-3-c4`).  `controllersEnemy` now answers the question for any two
+    controllers: same power, minor allied to the mover, direct war on the minor,
+    or a war with the minor's ally; an independent fleet is hostile to all.
+
+11. **`removeLandLosses` used `Math.random()`** (same file).  Rule 14 says to
+    roll for the odd allied loss, and the engine used a real `Math.random()`
+    inside the reducer.  That made seeded self-play **irreproducible**: the same
+    commit passed locally and crashed on CI, and the shrink step could not replay
+    the failure.  The split now draws from `ctx.random`, which is the same stream
+    boardgame.io replays, so `VQ-SEED` really does pin a game.

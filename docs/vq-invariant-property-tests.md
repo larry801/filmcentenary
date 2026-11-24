@@ -213,6 +213,20 @@ runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999})
    保证 `pendingBattle.defender` 永远有席位。
    回归测试 `treacheryEmptyFortress.test.ts`（空要塞、被停用的奥斯曼、
    奥斯曼为进攻方三种情形）。
+6. **海军撤退把无席位控制器交给 `atWar`**：规则 16.2 第 9 步只让**敌方**
+   舰队阻挡撤退，但 `navalRetreatCandidates` 对所有非主要势力也调用了
+   `atWar`，而 `atWar` 只接受主要势力（`G.powers[minor]` 不存在），
+   于是 `Cannot read properties of undefined (reading 'wars')`。
+   长局里小国舰队巡防其港口很常见，任何海军损失都可能触发。
+   修复：新增 `controllersEnemy`，按“同一势力？小国是否与该势力结盟？
+   是否直接对其宣战？其盟主是否与该势力交战？”判定；独立势力对所有人敌对。
+   回归测试 `controllerHostility.test.ts`。
+7. **盟军平分损失用了 `Math.random()`**：规则 14 要求“掷随机决定谁承受
+   奇数损失”，`removeLandLosses` 却用 `Math.random()`。这让**同一种子的
+   重放不可复现**——同一个 commit 在本地通过、在 CI 崩溃（正是
+   `VQ-SIM-3-c4` 的现象），种子因此失去意义，失败收缩也无法重放。
+   修复：把 `ctx` 传入 `removeLandLosses`，改用 `ctx.random.Die`；
+   无 `ctx` 时退化为确定性分配（函数注释写明这一取舍）。
 
 ## 7. 运行方式
 
