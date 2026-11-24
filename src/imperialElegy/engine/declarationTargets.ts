@@ -223,8 +223,16 @@ const alliedMinorTargets = (
  * non-player powers are all offered.  The gates are the same ones `declareWar`
  * runs for a second target — no truce (13.5), not eliminated, not the attacker,
  * allowed by the card's printed target list — plus the pair rule: a second
- * target whose only spaces the shared aim refuses would be a dead row, because
+ * target whose own spaces the shared aim refuses would be a dead row, because
  * 13.0 requires at least one objective.
+ *
+ * That test reads the second target *alone*: 14.1 is one declaration against
+ * two powers, so each named power has to be attackable under the aim by itself.
+ * A power holding no such space would only ride along on the first target's
+ * objectives — Bismarck's unification listed every power and nearly every minor
+ * that way, although only German-nationality spaces (and the powers holding
+ * them) are targets of that war.  The panel reads this list, so the filter is
+ * what keeps the second-target dropdown to real targets.
  *
  * Bismarck's errata 13.4.5 adds one row the ordinary list cannot express: an
  * allied minor beside an unaligned minor.  Without it the panel can only name
@@ -251,10 +259,11 @@ export const declarationSecondTargets = (
   const seen = new Set<string>();
   return [...declarationDefenders(G, power, entitlement), ...extras]
     .filter((candidate) => warTargetKey(candidate.target) !== warTargetKey(entry.target))
-    // A pair with no space in common is a dead row: the panel would show no
-    // objective, and `declareWar` needs at least one.
+    // The second target must be attackable under the same aim by itself: a
+    // power with no objective of its own is not a power this declaration
+    // attacks, it only borrows the first target's spaces.
     .filter((candidate) =>
-      declarationObjectives(G, power, entitlement, entry, aim, candidate).length > 0)
+      declarationObjectives(G, power, entitlement, candidate, aim).length > 0)
     .filter((candidate) => {
       const key = warTargetKey(candidate.target);
       if (seen.has(key)) return false;

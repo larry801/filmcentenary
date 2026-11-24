@@ -163,6 +163,10 @@ describe("two-target declarations", () => {
 
   test("Bismarck offers a second target of either kind, in both directions", () => {
     const G = bismarck();
+    // A unification war only attacks German-nationality spaces, so a player
+    // power is a second target only while it holds one: give Austria Saxony
+    // (the state the Prussian-led Confederation actually disputed).
+    G.spaces.saxony.control = "AU";
     const {entitlement, fr, denmark} = entriesFor(G);
 
     // 14.1 counts "two different powers", and the reported fix is that a
@@ -178,6 +182,39 @@ describe("two-target declarations", () => {
     expect(secondOfDenmark).toContain("FR");
     expect(secondOfDenmark).toContain("minor:Bavaria");
     expect(secondOfDenmark).not.toContain("minor:Denmark");
+  });
+
+  test("a second target the unification refuses on its own is not offered", () => {
+    const G = bismarck();
+    const {entitlement, fr} = entriesFor(G);
+    // AU holds no German-nationality space, so naming it would only borrow
+    // France's objectives; RU, OT and UK are in the same position.
+    const secondOfFr = declarationSecondTargets(G, "GE", entitlement, fr, "unification");
+    const keys = secondOfFr.map((entry) => warTargetKey(entry.target));
+    expect(keys).not.toContain("AU");
+    expect(keys).not.toContain("RU");
+    expect(keys).not.toContain("OT");
+    expect(keys).not.toContain("UK");
+    // Every row can be attacked under the aim by itself, so the dropdown never
+    // offers a power the declaration does not actually reach.
+    for (const entry of secondOfFr) {
+      expect(declarationObjectives(G, "GE", entitlement, entry, "unification").length)
+        .toBeGreaterThan(0);
+    }
+  });
+
+  test("a player allied to a German minor is a target through that minor's key", () => {
+    const G = bismarck();
+    // 13.4 / controlledBy: an allied minor's key counts for its ally, so Austria
+    // is attackable under the unification once Hanover is allied to it.
+    G.spaces.hanover.ally = "AU";
+    G.spaces.hanover.diplomacy = null;
+    const {entitlement, fr} = entriesFor(G);
+    const keys = declarationSecondTargets(G, "GE", entitlement, fr, "unification")
+      .map((entry) => warTargetKey(entry.target));
+    expect(keys).toContain("AU");
+    // The allied minor itself is reached through that player row, not its own.
+    expect(keys).not.toContain("minor:Hanover");
   });
 
   test("errata 13.4.5: an allied minor is offered beside an unaligned one", () => {
