@@ -51,6 +51,20 @@ describe("diplomatic treasure exchange (rule 9.1)", () => {
         expect(G.spaces[capital].land.spain?.merc).toBe(1);
     });
 
+    it("rejects a mercenary gift when the receiver's land pool is full", () => {
+        const G = game();
+        for (const space of Object.values(G.spaces)) delete space.land.spain;
+        delete G.foreignWars.spain;
+        delete G.armada;
+        G.spaces.madrid.control = "spain";
+        G.spaces.madrid.unrest = false;
+        G.spaces.madrid.land.spain = {regular: 42, merc: 0, cav: 0};
+        G.spaces.paris.land.france = {regular: 0, merc: 1, cav: 0};
+
+        expect(giveMercenary(G, context(), {target: "spain", space: "paris"})).toBe(INVALID_MOVE);
+        expect(G.spaces.paris.land.france?.merc).toBe(1);
+    });
+
     it("cannot transfer to an enemy or with an invalid index", () => {
         const G = game();
         G.powers.france.treasures = [2];

@@ -1206,7 +1206,7 @@ export const resolveMinorDiplomacy = (
             if (ulster !== undefined) {
                 delete ulster.land.ireland;
                 ulster.fortress = true;
-                addLand(G, "ulster", "ireland", "regular", 3);
+                addLandFromPool(G, "ulster", "ireland", "regular", 3);
             }
         }
         pushLog(G, `${powerLabel(winner)} activates ${minor} as an ally.`);
@@ -1905,6 +1905,14 @@ export const navalForceCount = (G: VQGame, p: Power): number => navalForceCountC
 export const navalPoolUsed = (G: VQGame, c: Controller): number =>
     navalForceCountController(G, c) + navalLostCount(G, c);
 
+/** Physical naval-counter allowance for a major power or allied minor. */
+export const navalPoolLimit = (c: Controller): number =>
+    isPower(c) ? NAVAL_LIMITS[c] : (MINOR_NAVAL_LIMITS[c] ?? 4);
+
+/** Remaining room in a controller's unified naval force pool. */
+export const navalPoolRoom = (G: VQGame, c: Controller): number =>
+    c === "independent" ? Number.POSITIVE_INFINITY : Math.max(0, navalPoolLimit(c) - navalPoolUsed(G, c));
+
 /**
  * Unified land force pool (points).  Regulars are the same physical counters
  * as mercenaries for every power except the Ottoman, whose regulars back onto
@@ -1923,6 +1931,14 @@ export const landForceCountController = (G: VQGame, c: Controller): number => {
 };
 
 export const landForceCount = (G: VQGame, p: Power): number => landForceCountController(G, p);
+
+/** Physical land-counter allowance for a major power or allied minor. */
+export const landPoolLimit = (c: Controller): number =>
+    isPower(c) ? REGULAR_LIMITS[c] : (MINOR_REGULAR_LIMITS[c] ?? 12);
+
+/** Remaining room in a controller's unified land force pool. */
+export const landPoolRoom = (G: VQGame, c: Controller): number =>
+    c === "independent" ? Number.POSITIVE_INFINITY : Math.max(0, landPoolLimit(c) - landForceCountController(G, c));
 
 /**
  * Regulars only (map + foreign wars + armada).  Informational — the physical
@@ -2204,6 +2220,45 @@ export const addLand = (G: VQGame, space: string, c: Controller, kind: keyof Lan
 
 export const addNaval = (G: VQGame, space: string, c: Controller, kind: keyof NavalStack, n: number): void => {
     ensureNaval(G, space, c)[kind] += n;
+};
+
+/**
+ * Add newly created land counters without exceeding the physical force pool.
+ * Event cards, rebellions and replacements use this; movement, battle
+ * survivors, loans, conversions and winter returns must keep using `addLand`
+ * because they move counters that already exist.
+ *
+ * Returns the number of counters actually placed.
+ */
+export const addLandFromPool = (G: VQGame, space: string, c: Controller, kind: keyof LandStack, n: number): number => {
+    const placed = Math.min(n, landPoolRoom(G, c));
+    if (placed > 0) addLand(G, space, c, kind, placed);
+    if (placed < n) {
+        pushLog(G, `${controllerLabel(c)} land force pool is full; ${n - placed} ${kind} counter(s) could not be placed.`);
+    }
+    return placed;
+};
+
+/** Variant for new counters deployed directly to a foreign war card. */
+export const addForeignWarLandFromPool = (G: VQGame, p: Power, kind: keyof LandStack, n: number): number => {
+    const war = G.foreignWars[p];
+    if (war === undefined) return 0;
+    const placed = Math.min(n, landPoolRoom(G, p));
+    if (placed > 0) war.units[kind] += placed;
+    if (placed < n) {
+        pushLog(G, `${powerLabel(p)} land force pool is full; ${n - placed} ${kind} counter(s) could not be added to the foreign war.`);
+    }
+    return placed;
+};
+
+/** Add newly created naval counters without exceeding the physical force pool. */
+export const addNavalFromPool = (G: VQGame, space: string, c: Controller, kind: keyof NavalStack, n: number): number => {
+    const placed = Math.min(n, navalPoolRoom(G, c));
+    if (placed > 0) addNaval(G, space, c, kind, placed);
+    if (placed < n) {
+        pushLog(G, `${controllerLabel(c)} naval force pool is full; ${n - placed} ${kind} counter(s) could not be placed.`);
+    }
+    return placed;
 };
 
 export const ownersWithLand = (G: VQGame, space: string): Controller[] =>
@@ -4212,7 +4267,7 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
             flips -= 1;
         }
     }
-    addLand(G, space, "protestant", "regular", Math.floor(cp / 2));
+    addLandFromPool(G, space, "protestant", "regular", Math.floor(cp / 2));
     if (enemyPower === "france") {
         setWar(G, "protestant", "france");
     } else {
@@ -5584,12 +5639,12 @@ export const checkCatholicLeague = (G: VQGame, ctx: Ctx): boolean => {
     if (regularsRemoved > 0 || mercsRemoved > 0) {
         pushLog(G, `Catholic League: France removes ${regularsRemoved} regular(s) and ${mercsRemoved} mercenar(y/ies).`);
     }
-    if (regularsRemoved > 0) addLand(G, "reims", "spain", "regular", regularsRemoved);
-    if (mercsRemoved > 0) addLand(G, "reims", "spain", "merc", mercsRemoved);
+    if (regularsRemoved > 0) addLandFromPool(G, "reims", "spain", "regular", regularsRemoved);
+    if (mercsRemoved > 0) addLandFromPool(G, "reims", "spain", "merc", mercsRemoved);
     const spanishRegulars = G.spaces.reims.land.spain?.regular ?? 0;
     if (spanishRegulars < 4) {
-        addLand(G, "reims", "spain", "regular", 4 - spanishRegulars);
-        pushLog(G, "Catholic League: Spain raises the Reims garrison to 4 regulars.");
+        const placed = addLandFromPool(G, "reims", "spain", "regular", 4 - spanishRegulars);
+        if (placed > 0) pushLog(G, `Catholic League: Spain adds ${placed} regular(s) to the Reims garrison.`);
     }
     G.spaces.reims.fortress = true;
     const guise = G.leaders.guise;
@@ -5670,12 +5725,12 @@ export const applyHreReplacement = (G: VQGame, choice: HreReplacementChoice): bo
     // Vienna to Prague when #87 Rudolf II relocates it.
     const capital = capitalSpacesFor(G, "hre")[0];
     if (choice === "regular") {
-        if (!pending.canRegular) return false;
-        addLand(G, capital, "hre", "regular", 1);
+        if (!pending.canRegular || landPoolRoom(G, "hre") < 1) return false;
+        addLandFromPool(G, capital, "hre", "regular", 1);
         pushLog(G, `Holy Roman replacement: +1 regular in ${SPACE_BY_ID[capital].name}.`);
     } else if (choice === "mercs") {
-        if (!pending.canMercs) return false;
-        addLand(G, capital, "hre", "merc", 2);
+        if (!pending.canMercs || landPoolRoom(G, "hre") < 2) return false;
+        addLandFromPool(G, capital, "hre", "merc", 2);
         pushLog(G, `Holy Roman replacement: +2 mercenaries in ${SPACE_BY_ID[capital].name}.`);
     } else {
         if (!pending.canMarker || G.mercenariesForHire !== 0) return false;
@@ -5772,10 +5827,10 @@ export const resolveMoriscoRevolt = (G: VQGame, _p: Power): boolean => {
     captureLeaders(G, "granada", ownersWithLand(G, "granada"), "ottoman");
     granada.land = {};
     granada.unrest = true;
-    addLand(G, "granada", "ottoman", "regular", 2);
-    G.morisco = {space: "granada", units: 2};
+    const placed = addLandFromPool(G, "granada", "ottoman", "regular", 2);
+    G.morisco = {space: "granada", units: placed};
     placeMoriscoUnrest(G, "granada");
-    pushLog(G, "Morisco Revolt: Granada is cleared, unrest spreads, and 2 Morisco units appear.");
+    pushLog(G, `Morisco Revolt: Granada is cleared, unrest spreads, and ${placed} Morisco unit(s) appear.`);
     return true;
 };
 
@@ -5850,8 +5905,8 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             const cap = capitalSpacesFor(G, "hre")[0];
             const state = G.spaces[cap];
             const friendlyCapital = (state.control === p || (isPower(state.control) && allied(G, p, state.control))) && !state.unrest;
-            const canRegular = friendlyCapital;
-            const canMercs = friendlyCapital;
+            const canRegular = friendlyCapital && landPoolRoom(G, "hre") >= 1;
+            const canMercs = friendlyCapital && landPoolRoom(G, "hre") >= 2;
             const canMarker = G.mercenariesForHire === 0;
             if (canRegular || canMercs || canMarker) {
                 G.pendingHreReplacement = {canRegular, canMercs, canMarker};
@@ -5861,7 +5916,7 @@ export const winter = (G: VQGame, ctx: Ctx): void => {
             for (const cap of capitalSpacesFor(G, p)) {
                 const state = G.spaces[cap];
                 if ((state.control === p || (isPower(state.control) && allied(G, p, state.control))) && !state.unrest) {
-                    addLand(G, cap, p, "regular", 1);
+                    addLandFromPool(G, cap, p, "regular", 1);
                 }
             }
         }
@@ -6192,8 +6247,10 @@ export const resolveOfficialCardEffect = (
                 ? target
                 : candidates[0];
             if (space === undefined) return false;
-            addLand(G, space, p, effect.unit, effect.count);
-            pushLog(G, `${powerLabel(p)} places ${effect.count} ${effect.unit} unit(s) in ${SPACE_BY_ID[space].name}.`);
+            const placed = addLandFromPool(G, space, p, effect.unit, effect.count);
+            if (placed > 0) {
+                pushLog(G, `${powerLabel(p)} places ${placed} ${effect.unit} unit(s) in ${SPACE_BY_ID[space].name}.`);
+            }
             return true;
         }
         case "draw": {
@@ -6279,8 +6336,10 @@ const resolveOneEvent = (G: VQGame, ctx: Ctx, p: Power, e: EventEffect): void =>
         case "mercs": {
             const cap = capitalOf(G, p);
             if (cap !== undefined && friendlyControlled(G, p, cap) && !G.spaces[cap].unrest) {
-                addLand(G, cap, p, "merc", e.count);
-                pushLog(G, `${powerLabel(p)} raises ${e.count} mercenary unit(s) in ${SPACE_BY_ID[cap].name}.`);
+                const placed = addLandFromPool(G, cap, p, "merc", e.count);
+                if (placed > 0) {
+                    pushLog(G, `${powerLabel(p)} raises ${placed} mercenary unit(s) in ${SPACE_BY_ID[cap].name}.`);
+                }
             }
             break;
         }
@@ -6309,9 +6368,9 @@ const resolveOneEvent = (G: VQGame, ctx: Ctx, p: Power, e: EventEffect): void =>
         }
         case "armada": {
             const port = ["seville", "corunna"].find((id) => G.spaces[id].control === "spain") ?? "seville";
-            addNaval(G, port, "spain", "galleon", 2);
+            const placed = addNavalFromPool(G, port, "spain", "galleon", 2);
             addVp(G, "spain", 1);
-            pushLog(G, `The Armada is reinforced with 2 galleons in ${SPACE_BY_ID[port].name} (+1 VP).`);
+            pushLog(G, `The Armada is reinforced with ${placed} galleon(s) in ${SPACE_BY_ID[port].name} (+1 VP).`);
             break;
         }
         case "discard": {

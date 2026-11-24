@@ -8,7 +8,7 @@ import {LAND_NEIGHBORS, SEA_ZONE_BY_ID, SPACE_BY_ID, SPACES, mapName} from "./ma
 import {actingPower, isActivatedMajor, ownerOf, participatingPowers} from "./ownership";
 import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
-import {addLand, addVp, allied, atWar, capitalOf, discardCard, discardTreasure, drawCards, ensureLand, ensureNaval,
+import {addLandFromPool, addVp, allied, atWar, capitalOf, discardCard, discardTreasure, drawCards, ensureLand, ensureNaval,
     ensureDefaultLeader, hits, isFortifiedSpace, pushLog, removeCardFromHand, removeCardFromGame,
     removePragueCulturalCenterOnRudolfDeath, ROYAL_FOR_ARMY_LEADER, roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
@@ -458,7 +458,7 @@ const continueRebellion = (G: VQGame, ctx: Ctx): void => {
     if (p.displacements?.length) {p.step = "displace"; stage(G, ctx, p.displacements[0].owner);}
     else {
         if (p.rebellionRegularsPending) {
-            addLand(G, p.rebellionRegularsPending, "spain", "regular", 2);
+            addLandFromPool(G, p.rebellionRegularsPending, "spain", "regular", 2);
             delete p.rebellionRegularsPending;
         }
         if (p.remaining > 0) {p.step = "rebelSpaces"; stage(G, ctx, "spain");}
