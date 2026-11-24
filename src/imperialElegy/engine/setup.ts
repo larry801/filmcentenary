@@ -41,6 +41,7 @@ import {
   placeAltGwInventory,
 } from "./scenario";
 import {applyGoalDeckEdits, applyIndependentMinorMarkers, openGwBuildPointDecision} from "./scenarioSetup";
+import {beginScenarioGw} from "./greatWar";
 
 const newUnit = (
   G: ImperialElegyState,
@@ -225,9 +226,10 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   if (def.special.gwTutorial || def.special.altGw) {
     // Great-War scenarios open with the war already in progress: `beginScenarioGw`
     // builds the GW state (alliances, order, canals, permanent events) from the
-    // scenario data.  Imported lazily to keep the module graph acyclic.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const {beginScenarioGw} = require("./greatWar") as typeof import("./greatWar");
+    // scenario data.  `beginScenarioGw` is a static import: this file is served
+    // to the browser (the hotseat and solo shells run `setup` client-side), and
+    // a `require` there is not defined, which used to leave every GW scenario
+    // stuck on "connecting".
     beginScenarioGw(G, def);
   }
 

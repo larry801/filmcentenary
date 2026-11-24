@@ -4662,8 +4662,6 @@ export const recruit = (G: VQGame, ctx: Ctx, args: { space: string; kind: "regul
         const minor = homes.find((h) => !isPower(h) && h !== "independent" && G.powers[p].alliedMinors.includes(h as never))!;
         if (s.control !== minor || s.unrest || spaceHasEnemyLand(G, p, space)) return INVALID_MOVE;
         if (args.kind !== "regular") return INVALID_MOVE;
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const {MINOR_REGULAR_LIMITS} = require("./constant/general");
         if (landForceCountController(G, minor) >= (MINOR_REGULAR_LIMITS[minor] ?? 12)) return INVALID_MOVE;
         if (!spend(G, p, 2, "recruitRegular")) return INVALID_MOVE;
         addLand(G, space, minor, "regular", 1);

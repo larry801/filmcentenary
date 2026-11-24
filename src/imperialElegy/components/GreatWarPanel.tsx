@@ -6,10 +6,9 @@ import {POWERS} from "../types";
 import {cardById} from "../engine/deck";
 import {IEBadge, IEPanel} from "./theme";
 import {ieT} from "./i18n";
-import {PHASE_LABEL, bi} from "./boardHelpers";
+import {PHASE_LABEL, bi, gwImpulseReasonText} from "./boardHelpers";
 import {cardDisplayName} from "./cardDisplay";
 import {currentGwImpulse, gwCanEndTurn, gwFinishImpulseProblem} from "../engine/gwImpulse";
-import {gwImpulseReasonText} from "./boardHelpers";
 import {RuleLink} from "./RuleRef";
 import {ConfirmButton} from "./ConfirmButton";
 import {gwNonPlayerWarTargets, type GwNonPlayerTargetInfo} from "../engine/gwNonPlayerWar";
@@ -77,6 +76,14 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
   const giftToValue = gwSideAllies.includes(giftTo as Power) ? giftTo : gwSideAllies[0] ?? "";
   // 32.4: the declaration list is derived from the engine's own gate, so the
   // dropdown can never offer a target the move refuses.
+  /**
+   * Why the seat cannot close its impulse yet (27.1–27.3): the budget action is
+   * still owed, a card bonus is pending, or Exhaustion is in hand.  It also
+   * drives the inline hint — a grey "End impulse" with the reason only in a
+   * tooltip reads as a dead board (a reported case was a card-funded reserve
+   * deploy, after which every GW button was grey).
+   */
+  const impulseProblem = viewer === null ? null : gwFinishImpulseProblem(G, viewer);
   const gwTargets = viewer !== null && phase === "gwManeuver" && isActive && !eliminated && pending === null
     ? gwNonPlayerWarTargets(G, viewer)
     : [];
@@ -228,14 +235,17 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
           <div className="ie-inline">
             <button className="ie-btn" data-testid="ie-gw-draft" title={t.draftArmies} disabled={!canGwDraft}
               onClick={() => doAction(() => moves.gwDraft(selected!), {label: `${t.gwDraft}${selected ? ` · ${spaceLabel(selected, locale)}` : ""}`})}>{t.gwDraft}{selected ? ` · ${spaceLabel(selected, locale)}` : ""}</button>
-            <button className="ie-btn" data-testid="ie-gw-deploy" title={bi(locale, "Deploy one reserve army here (27.5).", "在此部署一支预备军（27.5）。")} disabled={!canGwDeployHere}
+            <button className="ie-btn" data-testid="ie-gw-deploy" title={bi(locale, "Deploy reserves here for 1 CP: up to half your industry, three at most (15.2.3/27.5).", "在此部署预备军（1 CP）：最多为工业值的一半，上限 3 支（15.2.3/27.5）。")} disabled={!canGwDeployHere}
               onClick={() => doAction(() => moves.gwDeploy(selected!), {label: t.gwDeploy})}>{t.gwDeploy}</button>
             {canGwReveal && (
               <button className="ie-btn secondary" data-testid="ie-gw-reveal" onClick={() => doAction(() => moves.gwRevealCombat(), {label: t.gwReveal})}>{t.gwReveal}</button>
             )}
             {G.gw?.impulse?.bonusPending && <span className="ie-hint">{bi(locale, "Immediate card bonus: choose a different non-land-battle action.", "即时卡牌奖励：选择另一种非陆战行动。")}</span>}
-            <button className="ie-btn secondary" data-testid="ie-gw-pass" disabled={viewer === null || gwFinishImpulseProblem(G, viewer) !== null}
-              title={viewer === null ? undefined : gwImpulseReasonText(locale, gwFinishImpulseProblem(G, viewer))}
+            {!G.gw?.impulse?.bonusPending && impulseProblem !== null && (
+              <span className="ie-hint" data-testid="ie-gw-impulse-hint">{gwImpulseReasonText(locale, impulseProblem)}</span>
+            )}
+            <button className="ie-btn secondary" data-testid="ie-gw-pass" disabled={viewer === null || impulseProblem !== null}
+              title={viewer === null ? undefined : gwImpulseReasonText(locale, impulseProblem)}
               onClick={() => doAction(() => moves.gwPass(), {label: viewer !== null && (currentGwImpulse(G, viewer).acted || G.gw?.neutralImpulses) ? bi(locale, "End impulse", "结束行动轮") : t.gwPass})}>{viewer !== null && (currentGwImpulse(G, viewer).acted || G.gw?.neutralImpulses) ? bi(locale, "End impulse", "结束行动轮") : t.gwPass}</button>
             <button className="ie-btn secondary" data-testid="ie-gw-end" disabled={viewer === null || !gwCanEndTurn(G, viewer)}
               title={bi(locale, "End the whole GW maneuver turn and go to winter.", "结束整个大战机动回合并进入冬季。")}

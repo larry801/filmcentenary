@@ -76,6 +76,7 @@ import type {GreatWarState, ImperialElegyState, Power} from "../types";
 import {POWERS} from "../types";
 import {setupImperialElegy} from "../engine/setup";
 import {isArmyKind} from "../engine/rules";
+import {placeUnit} from "../engine/effects";
 import {useBoardModel} from "./useBoardModel";
 import {BoardLayout} from "./BoardLayout";
 
@@ -295,5 +296,42 @@ describe("Great War maneuver board controls", () => {
     G.powers.GE.gwCard = "IE-GW-01";
     const tree = render(G, "GE", moveBag(...GW_MOVES));
     expect(byTestId(tree, "ie-gw-reveal")).toBeUndefined();
+  });
+});
+
+/**
+ * 27.1–27.3: the impulse's exit is one button, and when it is grey the panel must
+ * say why.  Reported case: France played its 1-CP GW card, deployed reserves with
+ * the bonus, and every control went grey — the card's action is not a substitute
+ * for the ordinary budget action, so the pass is refused until one is spent.
+ */
+describe("Great War impulse exit states", () => {
+  const fr = (impulse: Record<string, unknown>): ImperialElegyState => {
+    const G = baseGw();
+    G.phase = "gwManeuver";
+    G.gw!.turn = 0;
+    G.gw!.order = ["FR", "GE"];
+    G.activePower = "FR";
+    G.turnIndex = 0;
+    G.powers.FR.gwBudget = 5;
+    G.powers.FR.manpower = 4;
+    placeUnit(G, "FR", "army", "paris", 2);
+    G.gw!.impulse = {power: "FR", turn: 0, index: 0, serial: 1, acted: true, ...impulse} as never;
+    return G;
+  };
+
+  test("after a card-funded deploy the panel explains the budget action still owed", () => {
+    const tree = render(fr({cardPlayed: true, bonusAction: "deploy"}), "FR", moveBag(...GW_MOVES));
+    expect(byTestId(tree, "ie-gw-pass")?.props.disabled).toBe(true);
+    const hint = byTestId(tree, "ie-gw-impulse-hint");
+    expect(hint).toBeTruthy();
+    expect(hint!.props.children).toContain("war-budget CP");
+    expect(hint!.props.children).toContain("march, rail, draft or refit");
+  });
+
+  test("after the ordinary budget action the impulse can be ended", () => {
+    const tree = render(fr({budgetAction: "deploy"}), "FR", moveBag(...GW_MOVES));
+    expect(byTestId(tree, "ie-gw-pass")?.props.disabled).toBe(false);
+    expect(byTestId(tree, "ie-gw-impulse-hint")).toBeUndefined();
   });
 });

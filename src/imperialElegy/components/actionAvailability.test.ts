@@ -13,6 +13,7 @@
  */
 import {Ctx} from "boardgame.io";
 import {POWERS, Power, SpaceId, Unit} from "../types";
+import type {ImperialElegyState} from "../types";
 import {setupImperialElegy} from "../engine/setup";
 import {placeUnit} from "../engine/effects";
 import {landUnitsIn} from "../engine/rules";
@@ -354,5 +355,82 @@ describe("spaceActions: every row has its own render key", () => {
       if (candidate.uid !== undefined) continue;
       expect(candidate.uid ?? candidate.id).toBe(candidate.id);
     }
+  });
+});
+
+/**
+ * 27.1–27.3: a refused Great War row must name the real blocker.
+ *
+ * Reported as "历史大战模式 法国1CP部署完预备军之后就不能行动了": France played
+ * its 1-CP GW card and deployed reserves with the bonus action, which leaves the
+ * ordinary budget action still owed, and every GW row printed "Only during your
+ * Great War impulse" — the board told an active seat it was not its impulse, so
+ * the only enabled control was gone and the game looked frozen.
+ */
+describe("Great War refusals name the impulse's real blocker", () => {
+  const gwGame = (impulse: Record<string, unknown>): ImperialElegyState => {
+    const G = setupImperialElegy(testCtx("FR"));
+    G.phase = "gwManeuver";
+    G.activePower = "FR";
+    G.turnIndex = 0;
+    G.pending = null;
+    G.battle = null;
+    G.war = null;
+    G.powers.FR.alliance = "teCommitted";
+    G.powers.GE.alliance = "taCommitted";
+    G.powers.FR.gwBudget = 5;
+    G.powers.FR.manpower = 4;
+    G.spaces.paris.control = "FR";
+    G.gw = {
+      active: true,
+      turn: 1,
+      order: ["FR", "GE"],
+      belligerents: ["FR", "GE"],
+      neutrals: [],
+      te: ["FR"],
+      ta: ["GE"],
+      usIn: false,
+      italyIn: false,
+      usStability: 3,
+      usManpower: 3,
+      usBudget: 4,
+      italyStability: 3,
+      italyManpower: 3,
+      italyBudget: 2,
+      trenches: {},
+      lastColonialWar: null,
+      victor: null,
+      outbreakDone: true,
+      nationalWillDone: true,
+      bonusImpulses: [],
+      impulse: {power: "FR", turn: 1, index: 0, serial: 1, acted: true, ...impulse},
+    } as never;
+    return G;
+  };
+  const gwRows = (G: ImperialElegyState): SpaceAction[] =>
+    spaceActions(input({G, viewer: "FR", space: "paris", phase: "gwManeuver", locale: "en"}));
+
+  test("a card-funded action says the card's bonus cannot be repeated", () => {
+    const rows = gwRows(gwGame({cardPlayed: true, bonusAction: "deploy"}));
+    const deploy = row(rows, "gwDeploy");
+    expect(deploy?.enabled).toBe(false);
+    expect(deploy?.reason).toBe("The card's bonus was this action; this impulse cannot repeat it.");
+  });
+
+  test("a spent budget action says the impulse can be ended instead", () => {
+    const rows = gwRows(gwGame({budgetAction: "deploy"}));
+    expect(row(rows, "gwDeploy")?.reason).toBe(
+      "The budget action is complete; end the impulse or play a GW card.",
+    );
+    expect(row(rows, "gwDraft")?.reason).toBe(
+      "The budget action is complete; end the impulse or play a GW card.",
+    );
+  });
+
+  test("a seat that is not active still reads the impulse gate", () => {
+    const G = gwGame({});
+    G.activePower = "GE";
+    const rows = gwRows(G);
+    expect(row(rows, "gwDeploy")?.reason).toBe("Only during your GW maneuver impulse.");
   });
 });
