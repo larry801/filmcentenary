@@ -144,7 +144,7 @@ export const countersOwned = (G: ImperialElegyState, power: Power, kind: UnitKin
  * counter (chart note: "EFs - 1 Colonial Elite EF for GE, UK, FR, RU"), so it
  * is charged against the same EF pool as a regular expeditionary force.
  */
-const countersUsed = (G: ImperialElegyState, power: Power, kind: CounterKind): number => {
+export const countersUsed = (G: ImperialElegyState, power: Power, kind: CounterKind): number => {
   if (kind === "expeditionary") {
     return (
       countersOwned(G, power, "expeditionary") + countersOwned(G, power, "eliteColonialEf")

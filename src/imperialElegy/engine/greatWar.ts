@@ -1036,11 +1036,20 @@ export const outbreakGreatWar = (
           (unit) => unit.owner === "UK" && isArmyKind(unit.kind) && unit.space !== null && unit.space !== undefined,
         )
         : undefined;
-      const ec = army !== undefined && army.space !== null && army.space !== undefined
-        ? placeUnit(G, p, "eliteCorps", army.space, 1, {attachedTo: army.id})
-        : placeUnit(G, p, "eliteCorps", null, 1);
-      if (ec.space === null || ec.space === undefined) G.powers[p].reserves.push(ec.id);
-      log(G, p, "nationalWillEc", {space: ec.space ?? null});
+      // 4.2: the gain is still a physical EC counter, and the outbreak is not a
+      // clause that exempts it from the pool (25.6 places "ECs", it does not
+      // mint them).  A player who already holds its whole EC pool gains nothing
+      // and is told so, exactly like the UK army gain below.
+      const room = counterRemaining(G, p, "eliteCorps");
+      if (room !== null && room <= 0) {
+        log(G, p, "nationalWillEcLimited", {});
+      } else {
+        const ec = army !== undefined && army.space !== null && army.space !== undefined
+          ? placeUnit(G, p, "eliteCorps", army.space, 1, {attachedTo: army.id})
+          : placeUnit(G, p, "eliteCorps", null, 1);
+        if (ec.space === null || ec.space === undefined) G.powers[p].reserves.push(ec.id);
+        log(G, p, "nationalWillEc", {space: ec.space ?? null});
+      }
     }
     if (vp >= 5) ukOutbreakArmies += boostTrack(G, p, 1, ctx);
     if (vp >= 7) ukOutbreakArmies += boostTrack(G, p, 1, ctx);
