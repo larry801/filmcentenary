@@ -65,6 +65,21 @@ named blockers.
   order, 34.4.1/34.4.2/34.4.3/34.4.4/34.4.7/34.4.8 printed answers; the
   scenario sub-scope is complete.
 
+## Verified: §13–17's 13.4.5 and 16.2 errata (2026-11-23)
+
+- **13.4.5 Bismarck auto-alliance.**  When a Bismarck declaration names a minor
+  with a player ally and an unaligned minor, the allied player immediately
+  allies the unaligned minor — before the 13.4.2 aid search, over the five-ally
+  cap — and the declaration then resolves as an attack on that player.
+- **16.2 one option per non-primary player.**  The treaty cap is enforced from a
+  recorded allocation history (`WarState.treatyTargets`): a second option
+  imposed on a player who is not a primary belligerent is rejected with
+  `non-primary-cap`.
+
+Coverage: `bismarckWar.test.ts`, `treatyAllocation.test.ts` (new cases).  §13–17
+remains Partial: 13.2.1, unified Italy in a limited war, 15.0, 15.2.2 and
+16.1.4/16.1.5 stay open.
+
 ## Verified: §13–17's war-ending pair — 15.5 and 16.1.3(2) (2026-11-23)
 
 - **15.5 capital-capture end.**  A primary belligerent's occupied capital ends
@@ -2397,7 +2412,7 @@ This table tracks the current audit until every Partial row is reconciled.
 | 6–7 | Key/colonial/Arab track derivation and power-projection baseline audit. | Existing display/track suites; **2026-11-23: the display-only claim is gone** — `characteristicsCoverage.ts` registers 39 `live` bullets and zero `display-only`, pinned by `characteristicsCoverage`; the campaign setup now stores FR 3, matching the 3.3.1 port formula (Algeria’s printed naval-base station is the second Western Mediterranean point) and the derived track. |
 | 8 | **Closed 2026-11-23.** Full section audited; 8.1.2's alliance-member declaration gate and 8.4's A92 cap bypass were the two real holes and are now fixed (`allianceDeclarationGate.test.ts`, 6); everything else is a live helper + suite. | A015/A111 + d6 resolution: [0184ee01 CI](https://github.com/larry801/filmcentenary/actions/runs/43683138802); harsh terms: [ef8b259c CI](https://github.com/larry801/filmcentenary/actions/runs/43687623222); new gate tests. |
 | 9–12 | **Closed 2026-11-23.** All ten audit blockers are live: recruit phase gate, same-space rebel battles, US/CSA war immunity, 12.3 controlled-port landing, 10.3 marker expiry (+A094 persistence), 10.4 UK India flip, 12.2 EC LoC, 12.6 influence-only bar, 12.17 all-card CP, 9.1.4 discarded-mandatory trigger, 12.8 generic minor EC and 12.15 Special Redeployment. Only the 9.1.3/12.14 interpretation notes remain; section promoted to Implemented. | `auditFixes.test.ts` (8), `cardsPartialFixes.test.ts` (10), and the existing card/response/turn-flag suites. |
-| 13–17 | **Still open.** Closed 2026-11-23: errata 13.4.3 (Denmark→Austria), 13.4.4 (Qing army in the targeted key), 17.0’s errata displacement (`demobErrta.test.ts`), 15.5’s capital-capture end and 16.1.3(2)’s blockade defensive victory (`warEndingRules.test.ts`, 3). Remaining blockers: 13.2.1 Italian unification wars, 13.4.5 co-defender/Bismarck errata, unified Italy in a limited war (14.0/15.4.1/15.6), 15.0 pass at budget ≤2, 15.2.2 limited-war joint naval, 16.1.4/16.1.5 negotiated/agreed white peace, 16.2 errata targeting. | Treaty territory/continuation: [ca46b63b CI](https://github.com/larry801/filmcentenary/actions/runs/43690347798), after correcting the stale surrender assertion and random-card browser fixture. |
+| 13–17 | **Still open.** Closed 2026-11-23: errata 13.4.3 (Denmark→Austria), 13.4.4 (Qing army in the targeted key), 17.0’s errata displacement (`demobErrta.test.ts`), 15.5’s capital-capture end, 16.1.3(2)’s blockade defensive victory (`warEndingRules.test.ts`, 3), 13.4.5’s Bismarck auto-alliance and 16.2’s one-option-per-non-primary cap (`bismarckWar.test.ts` / `treatyAllocation.test.ts`). Remaining blockers: 13.2.1 Italian unification wars, unified Italy in a limited war (14.0/15.4.1/15.6), 15.0 pass at budget ≤2, 15.2.2 limited-war joint naval, 16.1.4/16.1.5 negotiated/agreed white peace. | Treaty territory/continuation: [ca46b63b CI](https://github.com/larry801/filmcentenary/actions/runs/43690347798), after correcting the stale surrender assertion and random-card browser fixture. |
 | 18–19 | Audit the remaining combat/naval fallback claims against current code and rules. | **Closed 2026-11-23** against the printed pages 37–41: 19.11 displaced naval units implemented (`combat.ts#queuePortNavalDisplacements` → `resolveDeferredNavalWork`, pinned by `displacedNavalUnits.test.ts`, 17) and the naval-combat bullet relabelled after re-reading the code; the remaining items are interpretation notes, not unwired rules. |
 | 20 | **Closed 2026-11-23.** The twelve steps were re-read against printed pp. 41–42 + the 12.12/20.2 errata; every printed clause has a live path and suite, and the remaining items are printed-unspecified interpretations (own-fort protection, full-port ships stay at sea, first-drawn NG default). Section promoted to Implemented. | `endPhaseSteps`, `endPhaseResiduals`, `navalEndReturn`, `manpowerTrackChoice`, `ngDrawShuffle`, `ngLimit`, `italianRebuild`, `minorBuildIndependence`, `industryCeilings`, `polishLimits` (175 tests / 16 suites). |
 | 21–23 | Crisis continuation/double-WTT audit, minors' actual GW participation, Italian/Polish table completeness. | **Closed 2026-11-23** against printed pp. 42–44: every 22.1/22.2/22.3.1 row, 22.4's plan helpers and the 22.5 Poland model are named in `RULES_COVERAGE.md` with their suites; the 22.4 lone-defender sub-clauses are now implemented (`engine/italyMilitary.ts`). The A100 double-WTT clause remains a recorded note. |
