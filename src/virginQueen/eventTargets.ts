@@ -113,7 +113,12 @@ export const eventTargetOptions = (G: VQGame, cardId: string, power: Power): Eve
             const options: EventTargetOption[] = [];
             for (const ally of POWERS) {
                 for (const enemy of POWERS) {
-                    if (ally === enemy || !atWar(G, ally, enemy) || allied(G, "hre", enemy)) continue;
+                    // Rule: the HRE intervenes in a war between two *other*
+                    // major powers, so the HRE can be neither the ally nor the
+                    // enemy.  Without this the drawer offered "Spain + HRE",
+                    // which declared war on the HRE itself.
+                    if (ally === "hre" || enemy === "hre" || ally === enemy || !atWar(G, ally, enemy) ||
+                        allied(G, "hre", enemy)) continue;
                     options.push({value: `${ally}:${enemy}`,
                         label: `${powerName(ally, locale())} + ${powerName(enemy, locale())}`});
                 }

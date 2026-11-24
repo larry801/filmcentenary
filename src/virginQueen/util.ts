@@ -2368,6 +2368,30 @@ export const enemyOwners = (G: VQGame, p: Power, space: string): Controller[] =>
         return isPower(c) ? atWar(G, p, c) : true;
     });
 
+/**
+ * Rule 16.2 step 9: whether two controllers are enemies for the purpose of
+ * blocking a retreat.  `atWar` only compares major powers, so a minor or
+ * independent fleet needs its own rule: a major is at war with a minor only
+ * through its printed war record, and an independent fleet is hostile to
+ * everyone.  Calling `atWar` with a minor used to crash because
+ * `G.powers[minor]` does not exist.
+ */
+export const controllersEnemy = (G: VQGame, a: Controller, b: Controller): boolean => {
+    if (a === b) return false;
+    if (a === "independent" || b === "independent") return true;
+    if (isPower(a)) {
+        if (isPower(b)) return atWar(G, a, b);
+        const minor = b as MinorPower;
+        // A minor allied to `a` fights alongside it, so its fleet is friendly.
+        if (minorAlly(G, minor) === a) return false;
+        if (G.powers[a].warsMinors.includes(minor)) return true;
+        const ally = minorAlly(G, minor);
+        return ally !== undefined && atWar(G, a, ally);
+    }
+    if (isPower(b)) return controllersEnemy(G, b, a);
+    return false;
+};
+
 export const spaceHasEnemyLand = (G: VQGame, p: Power, space: string): boolean =>
     enemyOwners(G, p, space).some((c) => landCount(G.spaces[space].land[c]) > 0);
 
@@ -2388,7 +2412,7 @@ export const spaceHasEnemyNaval = (G: VQGame, p: Power, space: string): boolean 
  * randomly to see who suffers any odd loss."  Within one power losses come from
  * mercenaries first, then regulars, then cavalry.
  */
-export const removeLandLosses = (G: VQGame, space: string, owners: Controller[], hitsCount: number): void => {
+export const removeLandLosses = (G: VQGame, space: string, owners: Controller[], hitsCount: number, ctx?: Ctx): void => {
     const live = owners.filter((c) => landCount(G.spaces[space].land[c]) > 0);
     if (live.length <= 1) {
         let left = hitsCount;
@@ -2406,14 +2430,20 @@ export const removeLandLosses = (G: VQGame, space: string, owners: Controller[],
         }
         return;
     }
-    // Split the hits as evenly as possible: every power takes `share` and the
-    // `remainder` odd losses go to powers chosen at random.
+    // Rule 14: "roll randomly to see who suffers any odd loss."  The choice
+    // must come from the match's RNG, not `Math.random()`: a real engine
+    // `Math.random()` here makes a seeded replay diverge (the vq-sim sweep
+    // found one seed that crashed on CI but not locally), and it also lets a
+    // client-invisible nondeterminism leak into the reducer.  Without a
+    // context the split stays deterministic and is documented as such.
     const share = Math.floor(hitsCount / live.length);
     const remainder = hitsCount % live.length;
     const order = [...live];
-    for (let i = order.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [order[i], order[j]] = [order[j], order[i]];
+    if (ctx !== undefined) {
+        for (let i = order.length - 1; i > 0; i--) {
+            const j = Math.floor(die(ctx, i + 1)) % (i + 1);
+            [order[i], order[j]] = [order[j], order[i]];
+        }
     }
     const odd = new Set(order.slice(0, remainder));
     for (const c of live) {
@@ -3552,8 +3582,8 @@ export const fieldBattle = (
     const dHits = hits(dRolls);
     G.lastRolls = `Field battle: ${powerLabel(attacker)} ${aHits} hits (${aDice} dice) vs ${defenderUnits} defenders ${dHits} hits (${dDice} dice)`;
     pushLog(G, G.lastRolls);
-    removeLandLosses(G, space, defenderOwners, aHits);
-    removeLandLosses(G, space, attackers, dHits);
+    removeLandLosses(G, space, defenderOwners, aHits, ctx);
+    removeLandLosses(G, space, attackers, dHits, ctx);
     // Rule 14 step 8: if both sides are eliminated, the side that rolled more
     // dice retains 1 unit; on equal dice the defender retains it.
     if (totalLand(G, space, defenderOwners) === 0 && totalLand(G, space, attackers) === 0) {
@@ -3742,13 +3772,13 @@ export const reliefBattle = (
     pushLog(G, `${powerLabel(p)} brings ${landCount(reliefStack)} relief unit(s) into ${SPACE_BY_ID[space].name}.`);
     G.lastRolls = `Relief battle at ${SPACE_BY_ID[space].name}: ${powerLabel(p)} ${aHits} hits (${aDice} dice) vs besiegers ${dHits} hits (${dDice} dice)`;
     pushLog(G, G.lastRolls);
-    removeLandLosses(G, space, defenders, aHits);
+    removeLandLosses(G, space, defenders, aHits, ctx);
     // Attacker losses come from the relief force first, then from allies inside.
     const pBefore = totalLand(G, space, [p]);
-    removeLandLosses(G, space, [p], dHits);
+    removeLandLosses(G, space, [p], dHits, ctx);
     const pRemoved = pBefore - totalLand(G, space, [p]);
     const otherAttackers = attackers.filter((c) => c !== p);
-    if (dHits > pRemoved) removeLandLosses(G, space, otherAttackers, dHits - pRemoved);
+    if (dHits > pRemoved) removeLandLosses(G, space, otherAttackers, dHits - pRemoved, ctx);
     const winner: "attacker" | "defender" = aHits > dHits ? "attacker" : "defender";
     const besiegerLeaders = leadersAt(G, space).filter((id) => LEADER_BY_ID[id]?.power === besieger);
     if (winner === "attacker") {
@@ -4063,8 +4093,8 @@ export const assaultSpace = (G: VQGame, ctx: Ctx, p: Power, space: string): bool
     const dHits = hits(roll(ctx, dDice));
     G.lastRolls = `Assault on ${SPACE_BY_ID[space].name}: ${aHits} hits (${aDice} dice) vs ${dHits} hits (${dDice} dice)`;
     pushLog(G, G.lastRolls);
-    removeLandLosses(G, space, defendersList, aHits);
-    removeLandLosses(G, space, [p], dHits);
+    removeLandLosses(G, space, defendersList, aHits, ctx);
+    removeLandLosses(G, space, [p], dHits, ctx);
     const defendersListLeft = totalLand(G, space, defendersList);
     const attackerLeft = totalLand(G, space, [p]);
     if (defendersListLeft === 0 && aHits > 0 && attackerLeft > 0) {

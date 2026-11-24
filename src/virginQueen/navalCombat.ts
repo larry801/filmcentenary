@@ -6,7 +6,7 @@ import {LEADER_BY_ID, leaderIsNaval, leaderName} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID, isInlandPort, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {
-    atWar, bestBattle, discardCard, friendlyController, hits, isSeaZone, leaderPower, leadersAt, moveLeaders,
+    atWar, bestBattle, controllersEnemy, discardCard, friendlyController, hits, isSeaZone, leaderPower, leadersAt, moveLeaders,
     navalAdjacent, ownersWithNaval, powerLabel, pushLog, removeCardFromHand, roll,
 } from "./util";
 
@@ -169,7 +169,7 @@ export const navalRetreatCandidates = (
             // avoid-battle destination; a neutral, non-belligerent fleet does
             // not.
             const hasEnemy = ownersWithNaval(G, id).some((target) =>
-                owners.some((owner) => isPower(owner) ? atWar(G, owner, target as Power) : owner !== target));
+                owners.some((owner) => controllersEnemy(G, owner, target)));
             if (hasEnemy) return false;
             if (!isSeaZone(id)) return owners.every((owner) => G.spaces[id].control === owner);
             return true;

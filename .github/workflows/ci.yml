@@ -83,6 +83,67 @@ jobs:
           --testPathPatterns "tools/ie-sim/fullGame"
           --testPathIgnorePatterns "/node_modules/"
 
+  # Rule-invariant and property-based self-play for Virgin Queen.  Both suites
+  # live under tools/ and are outside `yarn test`, so they need their own gate.
+  # The mutation suite proves each invariant actually fires on a broken board;
+  # the property suite plays seeded matches and checks the whole rule catalogue
+  # (docs/vq-invariant-property-tests.md) after every action.
+  vq-sim-invariants:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      # The root tsconfig only includes ./src/*; the harness has its own one.
+      - name: Type check the harness
+        run: yarn tsc -p tools/vq-sim/tsconfig.json --noEmit
+      - name: Run the invariant mutation and pending-window suites
+        run: >-
+          yarn test --ci --runInBand
+          --testPathPatterns "tools/vq-sim/(invariantMutation|pendingWindow)"
+          --testPathIgnorePatterns "/node_modules/"
+      - name: Run the property-based simulation
+        env:
+          # One seed, all four scenario/player-count configurations, ~1500
+          # actions.  A second seed roughly doubles an already ~12-minute run;
+          # longer soaks are local (`VQ_PROPERTY_SEEDS`).
+          VQ_PROPERTY_SEEDS: VQ-PROP-1
+        run: >-
+          yarn test --ci --runInBand
+          --testPathPatterns "tools/vq-sim/property"
+          --testPathIgnorePatterns "/node_modules/"
+
+  # The original sweep (refused moves, deadlocks, completion) over one seed and
+  # all six scenario/player-count configurations.  A second seed doubles an
+  # already ~4-minute run, so the matrix stays at one seed per push.
+  vq-sim-sweep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run the seeded self-play sweep
+        env:
+          VQ_SEEDS: VQ-SIM-3
+        run: >-
+          yarn test --ci --runInBand
+          --testPathPatterns "tools/vq-sim/sweep"
+          --testPathIgnorePatterns "/node_modules/"
+
   # Production build plus the server bundle.  The E2E jobs reuse `build/`
   # instead of paying for a second build, and e2e/imperial-elegy-spectator
   # needs build/server.js to exist before it starts.

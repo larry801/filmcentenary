@@ -1125,7 +1125,11 @@ const resolveHolyRomanIntercession = (G: VQGame, ctx: Ctx, target?: string): voi
     const parts = target.split(":");
     const [ally, enemy] = parts;
     const chosenSpace = parts[2];
-    if (!isPower(ally) || !isPower(enemy) || ally === enemy || !atWar(G, ally, enemy)) return;
+    // Rule #34: intervene in a war between two *other* major powers.  The HRE
+    // can be neither side; allowing it produced a one-sided "HRE is at war
+    // with itself" entry on the Diplomatic Status Display.
+    if (!isPower(ally) || !isPower(enemy) || ally === enemy || ally === "hre" || enemy === "hre" ||
+        !atWar(G, ally, enemy)) return;
     G.powers.hre.allies.push(ally);
     G.powers[ally].allies.push("hre");
     setWar(G, "hre", enemy);

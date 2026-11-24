@@ -30,7 +30,7 @@ import {eventBranchChoice, eventBranchTarget, effectiveBranchIds, branchParamVal
 import {eventTargetOptions} from "../../src/virginQueen/eventTargets";
 import {abjurationOffers} from "../../src/virginQueen/abjuration";
 import {
-    catholicLeagueSpaceOptions, homeCardChoiceRequired, hreReligiousPreferenceRequired, landNeighbors, legalTargets,
+    catholicLeagueSpaceOptions, eligibleScienceBonuses, homeCardChoiceRequired, hreReligiousPreferenceRequired, landNeighbors, legalTargets,
     legalWinterLandReturnOptions, legalWinterLandReturnUnits, rebellionTargets,
 } from "../../src/virginQueen/util";
 import {passBlockReasons} from "../../src/virginQueen/moves";
@@ -349,7 +349,11 @@ const springDecision = (G: VQGame, ctx: Ctx, power: Power, chaos: number, rng: (
     }
     const naval = navalPortDecision(G, power, chaos, rng);
     if (naval !== undefined) return naval;
-    if (G.orangeArrivalPending === true && power === "protestant") {
+    // Rule 10.4/Scenario: Orange's arrival is decided by the Protestant *turn*.
+    // A reduced-player seat may own the Protestant while a different power is
+    // active, and `chooseOrangePlacement` refuses then, so gate on the active
+    // power for the same test `moveError` uses.
+    if (G.orangeArrivalPending === true && power === "protestant" && G.activePower === "protestant") {
         return {move: "chooseOrangePlacement", args: [{place: chaos <= 0 || rng() < chaos}]};
     }
     if (!G.springDone.includes(power)) {
@@ -377,6 +381,29 @@ const springMove = (G: VQGame, power: Power, chaos: number, rng: () => number): 
 // ---------------------------------------------------------------------------
 
 const actionDecision = (G: VQGame, ctx: Ctx, seat: string, power: Power, chaos: number, rng: () => number): Decision => {
+    // Rule 18.5 step 4: after the conversion dice are rolled the power may
+    // trade one "6" for a "5" to cancel an Unrest marker.  The panel renders
+    // during the Action Phase and `moveError` refuses every other move while it
+    // is open, so the policy has to answer it before it can end the impulse.
+    // An event (Papal Bull, Calvinist Zeal, ...) can open the choice for a
+    // power other than the active one; the board lets the active seat resolve
+    // it on that power's behalf, which is what keeps the table moving.
+    if (G.pendingConversion !== undefined) {
+        const sixes = G.pendingConversion.dice
+            .map((die, index) => ({die, index}))
+            .filter((entry) => entry.die === 6);
+        const downgrade = chaos > 0 && rng() < chaos && sixes.length > 0
+            ? sixes[Math.floor(rng() * sixes.length)].index
+            : "none";
+        return {move: "chooseConversionNullify", args: [{downgrade}]};
+    }
+    // Rule 11: a Science Bonus treasure immediately claims an unclaimed bonus;
+    // until it is claimed `moveError` blocks pass, endImpulse and everything else.
+    if (G.pendingScienceTreasure?.power === power) {
+        const bonuses = eligibleScienceBonuses(G, power);
+        const bonus = (pick(bonuses, chaos, rng) ?? bonuses[0])?.id;
+        if (bonus !== undefined) return {move: "chooseScienceTreasureBonus", args: [{bonus}]};
+    }
     // Movement pendings have no stage; the action panel renders them inline.
     if (G.pendingReliefSplit?.power === power) {
         return {move: "chooseReliefSplit", args: [{keep: G.pendingReliefSplit.keepLimit}]};

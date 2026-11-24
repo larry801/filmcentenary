@@ -1,6 +1,6 @@
 import {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
-import {Controller, Power, VQGame, isPower, landCount, navalCount, spaceHomes, controllerName} from "./constant/general";
+import {Controller, MinorPower, POWERS, Power, VQGame, isPower, landCount, navalCount, spaceHomes, controllerName} from "./constant/general";
 import {cardById, cardName} from "./constant/cards";
 import i18n from "../constant/i18n";
 import {LEADER_BY_ID} from "./constant/leaders";
@@ -104,10 +104,38 @@ const moveSide = (G: VQGame, battle: Battle, attacker: boolean, destination: str
     moveLeaders(G, battle.location, destination, leaders);
 };
 
+/**
+ * The major power whose seat decides for a controller, if one exists.  A minor's
+ * stack is decided by its allied major (its own army is only a garrison), while
+ * an unaligned minor, an independent space and a deactivated major have no seat
+ * at all.
+ */
+const seatedMajor = (G: VQGame, controller: Controller | undefined): Power | undefined => {
+    if (controller === undefined) return undefined;
+    if (isPower(controller)) return ownerOf(G, controller) === undefined ? undefined : controller;
+    if (controller === "independent") return undefined;
+    const ally = minorAlly(G, controller as MinorPower);
+    return ally !== undefined && ownerOf(G, ally) !== undefined ? ally : undefined;
+};
+
 export const startBattle = (G: VQGame, ctx: Ctx, phase: Battle["phase"], location: string, attacker: Power, defenders: Controller[], from: string, attackers: Controller[] = [attacker]): void => {
-    const controllingDefender = defenders.map((owner) => isPower(owner) && ownerOf(G, owner) !== undefined ? owner :
-        !isPower(owner) && owner !== "independent" ? minorAlly(G, owner) : undefined).find((owner) => owner !== undefined);
-    const defender = controllingDefender || (attacker === "ottoman" ? "spain" : "ottoman");
+    // Rule 15.1 step 4: "The player controlling the space is always considered
+    // the defender in an assault."  That matters when the fortification is
+    // empty (or holds only unseated units): the controlling power still rolls
+    // the defender die and may play Combat cards, while the defending land
+    // stacks belong to nobody who can answer.  Without this, an assault on an
+    // empty fortress picked an uninvolved power -- and if that power happened
+    // to have no seat (a deactivated major), the battle stage was addressed to
+    // nobody and the game deadlocked (2-player Treachery! sweep).
+    const seatedDefender = defenders.map((owner) => seatedMajor(G, owner)).find((owner) => owner !== undefined);
+    const defaultDefender: Power = attacker === "ottoman" ? "spain" : "ottoman";
+    // Fall back to another seated power -- never the attacker, which would
+    // otherwise be asked to defend against itself.
+    const anySeated = (): Power | undefined => {
+        const candidates = [defaultDefender, ...POWERS];
+        return candidates.find((power) => power !== attacker && ownerOf(G, power) !== undefined);
+    };
+    const defender = seatedDefender ?? seatedMajor(G, G.spaces[location]?.control) ?? anySeated() ?? defaultDefender;
     G.pendingBattle = {phase, location, attacker, attackers, defenders, defender, from, responding: defender, step: "defend", cards: {}};
     G.cardWindow = {kind: "combat", phase, location, attacker};
     const leaders = isSeaZone(location) ? G.seaZones[location as keyof VQGame["seaZones"]].leaders : G.spaces[location].leaders;
