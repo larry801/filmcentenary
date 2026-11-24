@@ -603,9 +603,13 @@ on 2026-11-24: every named blocker is live and pinned.
   window. The board hides or disables the response control with the same gate.
   Each response's own printed trigger is checked too (`responseTriggerBlock`):
   A44/A89/A109 need France's/Russia's recorded stability (or lost-war) trigger;
-  A67 (International Conference) exists only inside the open crisis decision,
-  where it adds its +2 DRM and keeps the roll open, and refuses a crisis incited
-  by A105 (its normal-event mode offers the printed WTT decrease); A65 (Indian
+  A67 (International Conference) is printed "Play when the WTT reaches 5", so
+  both of its faces are gated on that trigger: as a response inside the open
+  crisis decision (WTT 5) it adds its +2 DRM and keeps the roll open, and as a
+  normal event in the holder's impulse at WTT 5 it decreases the WTT by 1 — the
+  same `eventPlayability` predicate drives the tray and the move, so the event
+  control is shown and refused with the printed reason below 5.  A crisis
+  incited by A105 at WTT 5 is refused; A65 (Indian
   Ocean Arms Trade) is offered by `pacify`'s printed pre-roll mode. A066
   is a combat card, not a response card.
   A063's free-deploy and extra-reserve clauses are live through the

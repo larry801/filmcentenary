@@ -75,7 +75,13 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const card = cardById(cardId);
   const isMandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
   const saved = saveList.includes(cardId);
-  const eventAllowed = (card.type !== "response" && card.type !== "combat") || card.id === "IE-A041";
+  // A41 and A67 are printed with a standard-event mode ("during your impulse" /
+  // "as a normal event (not as a response)"), so the tray shows their event
+  // control and `eventPlayability` states the printed condition; every other
+  // response/combat card is window-only and has no event to play in an impulse.
+  const eventAllowed = (card.type !== "response" && card.type !== "combat")
+    || card.id === "IE-A041"
+    || card.id === "IE-A067";
   const eventGate = eventAllowed ? eventPlayability(G, power, cardId) : null;
   const eventBlockKey = eventGate !== null && !eventGate.ok ? eventGate.reason : undefined;
   const eventBlockReason = eventBlockKey !== undefined ? playBlock[eventBlockKey] : undefined;
@@ -115,12 +121,17 @@ export const cardAvailability = (input: CardAvailabilityInput): CardAvailability
   const eventModeOk = canActionCard && eventAllowed && !impulseUsed && (eventGate === null || eventGate.ok);
   const responseEligible = card.type === "response" ? responseCardEligibility(G, power, cardId) : null;
   const responseOk = responseEligible?.ok === true;
-  const showResponse = card.type === "response" && (
+  // A67's printed response window is the open crisis decision itself, not the
+  // start of an impulse: the roll is amended while it waits, so every holder
+  // gets the control there (9.1.3: some responses are played on another
+  // player's impulse).  Every other response card keeps its impulse window.
+  const crisisWindow = card.id === "IE-A067" && G.pending?.kind === "crisis";
+  const showResponse = card.type === "response" && (crisisWindow || (
     phase === "action" ? isActive
       : phase === "wartime" ? isBelligerent && (isActive || war?.status === "alliance")
         : phase === "gwManeuver" ? isActive
           : false
-  );
+  ));
   // 12.13: the selected home card is a legal industrialization card too.
   // Unselected home cards never reach the hand except through A040 British
   // Trade, which grants the card for play, not for industrialization.

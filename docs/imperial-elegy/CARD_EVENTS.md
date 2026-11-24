@@ -717,8 +717,10 @@ you may forgo X CP to apply a -X DRM to the die roll.**”*
   `playCard` 共用该谓词。
 - **Printed response triggers** — 9.1.3 的卡面触发条件也由同一谓词把关：
   `responseTriggerBlock` 读取 `stabilityDecreased(Turn)` 与 `frLostWarTurn` 来判定
-  A44/A89/A109；A67 只在已打开的 `crisis` 决策内可用（并拒绝 A105 引发的危机，
-  同时恢复其“作为普通事件”模式）；A65 由 `pacify` 的 `a065` 模式提供
+  A44/A89/A109；A67 印有“Play when the WTT reaches 5”，两种用法都以该触发为准：
+  作为响应只能在已打开的 `crisis` 决策内（世界紧张为 5）加 +2 DRM 并保留掷骰，
+  作为普通事件则只能在自己行动轮、世界紧张为 5 时打出并把世界紧张 −1（低于 5
+  时按钮显示卡面理由）；拒绝 A105 引发的危机。A65 由 `pacify` 的 `a065` 模式提供
   （标记 −1 / 叛军恢复满编，卡牌在掷骰前结算），不再从行动轮开始时的通用响应窗口打出。
 - **Combat cards** — 7 张动作战斗牌 + GW-03–06 全部数据驱动；实测 A058 攻城炮
   在骰前削减要塞 2 级、A059 侧翼攻击造成 1 步损失且末尾触发“决定性胜利”、

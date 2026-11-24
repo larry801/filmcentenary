@@ -733,7 +733,8 @@ export const playCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId, mode: 
     // International Conference's printed normal-event mode is only the WTT
     // decrease; its +2 DRM belongs to the open crisis decision (above).  Do not
     // expose the OR chooser here, or the event mode could stock a DRM outside
-    // the printed window.
+    // the printed window.  The card's "Play when the WTT reaches 5" gate is
+    // `eventPlayability`'s, shared with the tray and the bot.
     changeWtt(G, -1, ctx, cardId);
     if (!G.discard.includes(cardId)) G.discard.push(cardId);
     pruneRemovedFromDiscard(G);

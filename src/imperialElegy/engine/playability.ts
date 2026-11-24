@@ -54,7 +54,11 @@ export type PlayBlockReason =
   /** AU-8 Kaiserreich: The Dual Monarchy must have been played. */
   | "dual-monarchy"
   /** A112 Franz Ferdinand: Death of Franz Joseph must have been played. */
-  | "franz-joseph";
+  | "franz-joseph"
+  /** A67 International Conference: printed "Play when the WTT reaches 5". */
+  | "wtt-max"
+  /** A standard event play waits for the pending decision to resolve. */
+  | "pending";
 
 export interface EventPlayability {
   ok: boolean;
@@ -244,6 +248,14 @@ export const eventPlayability = (
     }
     case "IE-A103":
       return flashpointController(G, "balkans").includes("OT") ? deny("balkans-ottoman") : OK;
+    case "IE-A067":
+      // Printed "Play when the WTT reaches 5": the whole card — the +2 DRM and
+      // the normal-event WTT decrease alike — is opened by that same trigger.
+      // The response use is offered inside the open crisis decision
+      // (`playResponseCard`); this is the standard-event use, so it also waits
+      // for any pending decision instead of stocking the DRM outside the roll.
+      if (G.wtt < 5) return deny("wtt-max");
+      return G.pending === null ? OK : deny("pending");
     case "IE-A108":
       return G.persistent.dreadnoughts === true ? OK : deny("dreadnought");
     case "IE-A112":
@@ -292,9 +304,11 @@ export const responseTriggerBlock = (
   void power;
   switch (cardId) {
     case "IE-A067": {
-      // The only fixed point where the crisis roll can be amended is the open
-      // crisis decision itself; outside it the card's +2 DRM has no roll.
-      if (G.pending?.kind !== "crisis") return "crisis-window";
+      // Printed "Play when the WTT reaches 5": the crisis the card answers is
+      // the one the climb to 5 incites.  A crisis a card's own `crisis` effect
+      // opened at a lower tension has no such roll, and outside the open crisis
+      // decision the +2 DRM has no roll to amend at all.
+      if (G.wtt < 5 || G.pending?.kind !== "crisis") return "crisis-window";
       const inciting = String(G.flags.crisisIncitingCard ?? G.pending.context?.inciting ?? "");
       // "exception: cannot be played in response to Impulsive Ruler."
       return inciting === "IE-A105" ? "impulsive-ruler" : null;
