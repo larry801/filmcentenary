@@ -18,7 +18,6 @@
 | 生成式属性测试 | `properties.ts` + `property.test.ts` | 在大量 seed/scenario/座位数下是否始终满足？ |
 | 变异测试 | `invariantMutation.test.ts` | 每一条不变量是否真的会在被破坏时报错？ |
 | 待决窗口一致性 | `pendingWindow.test.ts` | `pendingDecider` 列出的窗口是否真的会阻塞操作？ |
-
 ## 2. 不变量的分层与规则出处
 
 `INVARIANTS` 里每一条都带 `rule` 字段（规则书章节号）和 `tier`：
@@ -54,6 +53,7 @@
 | `turn.year` / `turn.impulse` / `turn.passes` / `turn.counters` | 7 / 11 | A | 年份在剧本区间内；连续过牌不超过座位数；回合计数为非负整数 |
 | `vp.history` / `vp.derivation` | 25.2 / 25.3 | A | VP 记录合法；VP 总分等于各项之和 |
 | `pending.owner` | 7 | A | 任何阻塞待决窗口的势力必须有控制席位（否则棋盘没有按钮可点） |
+| `pending.battle-seat` | 15.1 | A | 战斗的进攻方与防守方都必须有控制席位（空要塞的防守方是地区控制者） |
 | `victory.reason` / `victory.power` / `victory.seat` / `victory.standard` / `victory.domination` / `victory.time-limit` / `victory.automatic` | 25 | A | `gameover` 与规则 25 的判定一致 |
 | `force.land` / `force.naval` / `force.walloons` / `force.minor` | 17.1 / 17.2 / 17.3 / 24.3 | B | 陆地/海军棋子池不超印刷上限（规则 5.3 的“同一批实体棋子”模型），瓦隆 ≤ 3，小国按 24.3 |
 | `religion.core-presence` | 18.1 | B | 每个宗教区至少保留一个天主教区和一个新教区 |
@@ -117,7 +117,7 @@ runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999})
 ## 5. 变异测试：证明不变量真的会报错
 
 `invariantMutation.test.ts` 先跑 seed 自对弈拿到**真实的**中局状态
-（6 人局第 2 回合、2 人局第 1 回合），再用 23 个变异各注入一个具体的规则破坏：
+（6 人局第 2 回合、2 人局第 1 回合），再用 24 个变异各注入一个具体的规则破坏：
 
 | 变异 | 期望触发的 id |
 | --- | --- |
@@ -139,6 +139,7 @@ runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999})
 | 同一目标两名情报员 | `espionage.informant` |
 | 同一赞助类型本回合两次 | `patronage.once` |
 | 围城方是巴伐利亚（非主要势力） | `siege.besieger` |
+| 战斗防守方是无席位的 HRE | `pending.battle-seat` |
 | 年份 = 99 | `turn.year` |
 | 连续过牌超过座位数 | `turn.passes` |
 | 无席位势力的待决窗口 | `pending.owner` |
@@ -201,6 +202,17 @@ runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999})
    HRE，而 `chooseWinterReturn` 读的是 `activePower`（西班牙），合法返还被拒。
    `pendingDecider` 现在只列出真正阻塞的窗口；`pendingWindow.test.ts` 逐步
    断言它与 `moveError` 一致。
+5. **空要塞被强攻时，防守方可能没有席位**：规则 15.1 第 4 步规定
+   “控制该地区的玩家始终是攻城的防守方”。但 `startBattle` 原先只在
+   **有守军堆叠**的控制器里找席位，找不到就退回到“与进攻方相反的主要势力”。
+   2 人局里这个兜底恰好是已被停用的奥斯曼（无席位），于是 #31 变节！强制
+   发起的攻城把 stage 派给了一个没人能操作的席位，
+   `campaign-2/VQ-SIM-3-c2` 在第 6 年阿姆斯特丹卡死。
+   现在真正按规则取防守方：先取有席位的守军控制器，再取**地区控制者**
+   （控制者是已停用势力或无席位小国时继续退让），最后才用有席位的兜底，
+   保证 `pendingBattle.defender` 永远有席位。
+   回归测试 `treacheryEmptyFortress.test.ts`（空要塞、被停用的奥斯曼、
+   奥斯曼为进攻方三种情形）。
 
 ## 7. 运行方式
 

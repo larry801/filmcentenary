@@ -139,3 +139,13 @@ more. Each is pinned by a test under `src/virginQueen/`.
    rejected a legal return in the 2-player sweep.  `pendingDecider` now names
    only windows that actually block play, and the new test asserts that
    `moveError` and `pendingDecider` agree on every state of a short match.
+
+9. **An empty fortress had no seated defender** (`treacheryEmptyFortress.test.ts`).
+   Rule 15.1 step 4 makes the power controlling the space the defender, but
+   `startBattle` only looked at the *stack* owners and then fell back to "the
+   power opposite to the attacker".  In the 2-player sweep that fallback was the
+   Ottoman, which had just been deactivated and therefore has no seat: the #31
+   Treachery! assault on Amsterdam opened a battle stage addressed to nobody
+   (`campaign-2/VQ-SIM-3-c2`, year 6).  `startBattle` now takes the seated stack
+   owner first, then the space's controller, and only then a seated fallback, so
+   `pendingBattle.defender` always has a seat.

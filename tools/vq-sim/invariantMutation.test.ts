@@ -248,6 +248,20 @@ const MUTATIONS: Mutation[] = [
         },
     },
     {
+        name: "a battle whose defender has no controlling seat",
+        expect: "pending.battle-seat",
+        // Uses the reduced 2-player tables, where the HRE has no seat of its
+        // own; `ownerOf` resolves an activated HRE through its ally, so drop
+        // that activation first to reproduce a power with no seat at all.
+        mutate: (G) => {
+            if (G.activatedMajors !== undefined) delete G.activatedMajors.hre;
+            if (ownerOf(G, "hre") !== undefined) throw new Error("the HRE still has a controlling seat");
+            G.pendingBattle = {phase: "assault", location: "amsterdam", attacker: "spain", attackers: ["spain"],
+                defenders: ["hre"], defender: "hre", responding: "spain", from: "amsterdam",
+                step: "attackerCards", cards: {}};
+        },
+    },
+    {
         name: "a gameover that names the wrong seat",
         expect: "victory.seat",
         mutate: () => undefined,
@@ -278,7 +292,7 @@ test.each(MUTATIONS.map((mutation) => [mutation.name, mutation] as const))(
     (_name, mutation) => {
         // Reduced tables are where a pending window can belong to a power with
         // no seat; the full table exercises every other checker.
-        const state = clone(mutation.expect === "pending.owner" ? small : mid);
+        const state = clone(["pending.owner", "pending.battle-seat"].includes(mutation.expect) ? small : mid);
         mutation.mutate(state);
         if (mutation.expect === "victory.seat") {
             // Rule 25 only evaluates a finished match; the corrupted context

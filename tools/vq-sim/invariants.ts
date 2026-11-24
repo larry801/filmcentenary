@@ -692,6 +692,21 @@ export const checkPendingWindows = (G: VQGame): string[] => {
     if (decider !== undefined && ownerOf(G, decider) === undefined) {
         note(problems, "pending.owner", "7", "A", `pending decision for ${decider}, which has no controlling seat`);
     }
+    // Rule 15.1: both sides of a battle are seats that must answer in turn.
+    // `pendingDecider` only names the side whose step is open, so a seatless
+    // counter-side is invisible at e.g. the attacker's card step; it would
+    // deadlock as soon as the step passed to that side.  Checked on the stored
+    // battle rather than the current step, so every state of the battle is
+    // covered.
+    const battle = G.pendingBattle;
+    if (battle !== undefined) {
+        for (const [role, power] of [["attacker", battle.attacker], ["defender", battle.defender]] as const) {
+            if (ownerOf(G, power) === undefined) {
+                note(problems, "pending.battle-seat", "15.1", "A",
+                    `${role} ${power} of the ${battle.phase} battle at ${battle.location} has no controlling seat`);
+            }
+        }
+    }
     return problems;
 };
 
