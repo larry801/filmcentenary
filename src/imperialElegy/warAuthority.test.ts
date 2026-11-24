@@ -142,7 +142,7 @@ describe("4.4 the maneuver impulse belongs to one belligerent", () => {
   const maneuvering = (): ImperialElegyState => {
     const G = declaredWar("maneuver");
     G.war!.initiative = ["GE", "FR"];
-    G.war!.budgets = {GE: 4, FR: 4};
+    G.war!.budgets = {GE: 2, FR: 2}; // 15.0: pass only at budget ≤ 2
     G.war!.passed = [];
     G.activePower = "GE";
     return G;
@@ -229,7 +229,7 @@ describe("15.0 the war is over only when every belligerent has passed", () => {
   const maneuvering = (): ImperialElegyState => {
     const G = declaredWar("maneuver");
     G.war!.initiative = ["GE", "FR"];
-    G.war!.budgets = {GE: 4, FR: 4};
+    G.war!.budgets = {GE: 2, FR: 2}; // 15.0: pass only at budget ≤ 2
     G.war!.passed = [];
     G.activePower = "GE";
     return G;
@@ -351,7 +351,7 @@ describe("belligerentsOf is the authority list", () => {
     G.war!.attackerAllies = ["AU"];
     G.war!.defenderAllies = ["RU"];
     G.war!.initiative = ["GE", "FR", "AU", "RU"];
-    G.war!.budgets = {GE: 4, FR: 4, AU: 4, RU: 4};
+    G.war!.budgets = {GE: 2, FR: 2, AU: 2, RU: 2}; // 15.0: pass only at budget ≤ 2
     G.war!.passed = [];
     G.activePower = "GE";
     expect(belligerentsOf(G.war!).sort()).toEqual(["AU", "FR", "GE", "RU"]);
