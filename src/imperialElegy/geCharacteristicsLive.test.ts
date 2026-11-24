@@ -158,6 +158,7 @@ describe("33.1 Superior Staff Work", () => {
   test("passing forfeits the free action once per war and logs the decline", () => {
     const G = fresh();
     startUnificationWar(G);
+    G.war!.budgets.GE = 2; // 15.0: pass only at budget ≤ 2
     const ctx = makeCtx([3], seat("GE"));
     expect(passWarMove(G, ctx)).toBeUndefined();
     expect(G.powers.GE.flags.superiorStaffWorkUsed).toBe(true);

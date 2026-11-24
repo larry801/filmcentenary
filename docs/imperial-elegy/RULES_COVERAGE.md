@@ -194,6 +194,11 @@ Partial with named blockers.
   player who is not a primary belligerent.  Coverage: `bismarckWar.test.ts`,
   `declarationTargets.test.ts`, `components/warDeclarationPanel.test.tsx` and
   `treatyAllocation.test.ts`.
+- **§13–17 pass-rule follow-up:** **15.0** refuses a wartime pass while the
+  seat holds more than 2 budget and has not acted (handing over after acting
+  stays legal, so the engine's one-move impulse model cannot deadlock); the bot
+  spends the budget on a reserve deploy or a legal march/rail instead of
+  passing (`warPassRule.test.ts`).
 - **§24–32 order follow-up:** **25.7's alliance-set GW order** is live.
   `greatWar.ts#setGwOrderChoice` / `rebuildGwOrder` let one member of each
   alliance submit a permutation of its members during GW turn 0 planning; the
@@ -208,14 +213,10 @@ Partial with named blockers.
 **Still open (the exact reasons these sections stay Partial):**
 
 - **§13–17:** 13.2.1 Italian unification wars; 13.4.4's remaining errata
-  cell; 14.0/15.4.1/15.6 unified Italy in a limited war; 15.0 pass budget ≤2;
-  15.2.2 limited-war joint naval operations; 15.5 capital capture ending the
-  maneuver; 16.1.3(2) blockade victory; 16.1.4/16.1.5 negotiated/white peace
-  agreements; 16.2 errata treaty targeting.
-- **§34:** the bot's printed Priority-2 auto-pacification, unit/fort/naval
-  placement order, home-card pile order, war-aim/declaration guards, EC
-  differential rule and treaty/response-card rules are still approximated or
-  deterministic; the scenario sub-scope is complete.
+  cell; 14.0/15.4.1/15.6 unified Italy in a limited war; 15.2.2 limited-war
+  joint naval operations; 16.1.4/16.1.5 negotiated/white peace agreements.
+  (15.0's pass cap, 15.5's capital ending, 16.1.3(2)'s blockade victory and
+  16.2's non-primary cap are now live; §34 is Implemented.)
 
 ## 1–4 Key concepts
 
@@ -860,8 +861,12 @@ Partial with named blockers.
   guard: `bismarckWar.test.ts`, `declarationTargets.test.ts`,
   `components/warDeclarationPanel.test.tsx`) and **16.2's
   one-option-per-non-primary player cap** (`treatyAllocation.test.ts`) are now
-  live.  Still open: 13.2.1 Italian unification wars, unified Italy in a limited
-  war (14.0/15.4.1/15.6), 15.0's pass-at-budget-≤2, 15.2.2 limited-war joint
+  live, and **15.0's pass rule** now refuses a wartime pass while the seat still
+  holds more than 2 budget and has not acted (handing over after acting stays
+  legal); the bot spends the budget on a reserve deploy or a legal march/rail
+  (`warPassRule.test.ts`).  Still open: 13.2.1 Italian unification wars,
+  unified Italy in a limited war (14.0/15.4.1/15.6), 15.2.2 limited-war joint
+  naval operations and 16.1.4/16.1.5 negotiated/agreed white peace.
   naval operations and 16.1.4/16.1.5 negotiated/agreed white peace.
 
 ## 18–19 Combat
