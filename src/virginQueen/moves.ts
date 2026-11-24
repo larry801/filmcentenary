@@ -2523,17 +2523,28 @@ const resolveSultanaSafiye = (G: VQGame, ctx: Ctx, p: Power, target?: string): v
 };
 
 const resolveEdmundCampion = (G: VQGame, ctx: Ctx, chosen?: string): void => {
-    const target = SPACES.find((space) => space.id === chosen && space.area === "england" &&
-        totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest) ??
-        SPACES.find((space) => space.area === "england" &&
-            totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 && !G.spaces[space.id].unrest);
+    const available = (space: {id: string}): boolean => totalLand(G, space.id, ownersWithLand(G, space.id)) === 0 &&
+        totalNaval(G, space.id, ownersWithNaval(G, space.id)) === 0 && G.spaces[space.id].leaders.length === 0 &&
+        !G.spaces[space.id].unrest && !(G.espionage?.jesuits ?? []).includes(space.id);
+    const target = SPACES.find((space) => space.id === chosen && space.area === "england" && available(space)) ??
+        SPACES.find((space) => space.area === "england" && available(space));
     if (target === undefined) return;
     const state = espionageState(G);
-    if (!state.jesuits.includes(target.id)) {
-        state.jesuits.push(target.id);
-        state.jesuitsOnCard = Math.max(0, state.jesuitsOnCard - 1);
+    // Printed text: the Jesuit comes *off the power board*.  Without one there
+    // the event may not be resolved at all; it used to conjure a marker from
+    // the general supply.
+    if (state.jesuitsOnCard < 1) {
+        pushLog(G, "Edmund Campion: no Jesuit remains on Spain's power board.");
+        return;
     }
-    G.spaces[target.id].religion = "catholic";
+    state.jesuitsOnCard -= 1;
+    state.jesuits.push(target.id);
+    // Rule 18.1: the final Protestant space of an area may never be flipped,
+    // and an event may not be resolved in a way that would do so.
+    if (G.spaces[target.id].religion === "catholic" ||
+        SPACES.filter((s) => s.area === "england" && G.spaces[s.id].religion === "protestant").length > 1) {
+        G.spaces[target.id].religion = "catholic";
+    }
     const adjacentProtestant = landNeighbors(target.id).filter((neighbor) => G.spaces[neighbor.id]?.religion === "protestant").length;
     if (adjacentProtestant > 0) resolveConversions(G, ctx, "spain", "catholic", "england", adjacentProtestant);
     pushLog(G, `Edmund Campion places a Jesuit in ${target.name}; ${adjacentProtestant} conversion attempt(s).`);

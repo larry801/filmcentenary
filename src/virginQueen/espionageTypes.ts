@@ -1,4 +1,4 @@
-import type {Controller, Power} from "./constant/general";
+import type {Controller, Power, ReligionArea} from "./constant/general";
 
 export interface EspionageState {
     jesuits: string[];
@@ -35,8 +35,15 @@ export interface PendingEspionage {
     converted?: string[];
     conversionBase?: string[];
     conversionSide?: "catholic" | "protestant";
+    /** Areas this conversion batch may affect (18.5 condition a). */
+    conversionAreas?: ReligionArea[];
     unrest?: boolean;
     rebellionAfterConversions?: boolean;
+    /**
+     * True while a #81 played during this action may still be answered by
+     * #102.  A marker set in an earlier action cannot be cancelled.
+     */
+    walsinghamFresh?: boolean;
     event?: string;
     movingJesuit?: string;
     neutralizeReturn?: "offense" | "walsingham" | "extraNeutralize" | "topcliffe";
