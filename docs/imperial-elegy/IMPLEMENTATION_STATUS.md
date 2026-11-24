@@ -1,3 +1,24 @@
+## Fixed: Bismarck's impulse refuses a second card in the industry slot or the CP chain (2026-11-24)
+
+Reported as "帝国挽歌 事件俾斯麦之后不应该还能在同一行动轮打出其他牌".  Bismarck's
+event keeps the impulse open for the declaration the card grants
+(`warDeclarationEntitlement`), and the hand tray stayed live: the *other* cards
+in hand still offered **industrialization** (12.13) and the **CP chain** (12.14)
+in that same impulse, because only `playCard` answered 12.0's one-card rule.
+Both are "1 Card" on the printed action chart — the impulse's own card play —
+so `moves.industrialize` and `moves.cpChain` now refuse once
+`impulseAlreadyUsed` is true, and `cardAvailability` shuts `industOk` /
+`chainOk` with the same "one card per impulse" reason the tray already prints
+for CP/event.  That also stops the silent side effect the old path had: placing
+a second card ran `finishImpulse`, which cleared the open Bismarck declaration
+and handed the impulse over without the war.
+
+**Coverage:** `oneCardPerImpulse.test.ts` (3 — after a CP card, after the
+Bismarck event with the entitlement and a live declaration either side of the
+refusals, and the same two controls open on a fresh impulse) and
+`components/HandTray.test.tsx` (1 — the used impulse draws both controls
+disabled with the one-card reason, a fresh impulse hands them back).
+
 ## Verified: 15.6 Italy's 16.1.6 option and 15.2.2 joint 19.1 transit (2026-11-24)
 
 Two narrower gaps left by the §13–17 promotion are now live.

@@ -17,8 +17,8 @@ import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState, Power} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {impulseAlreadyUsed, placeMpit, playCard} from "./moves";
-import {spendCpFor} from "./engine/rules";
+import {cpChain, declareWar, impulseAlreadyUsed, industrialize, placeMpit, playCard} from "./moves";
+import {BISMARCK_HOME_CARD, spendCpFor, warDeclarationEntitlement} from "./engine/rules";
 import {ieStringsFor} from "./components/i18n";
 import {cardAvailability, type CardAvailabilityInput} from "./components/cardAvailability";
 
@@ -114,6 +114,71 @@ describe("12.0 one card opens an impulse", () => {
     expect(after.cpModeOk).toBe(false);
     expect(after.eventModeOk).toBe(false);
     expect(after.reasons).toContain("One card per impulse; finish this impulse first");
+  });
+});
+
+describe("12.0 the industry slot and the CP chain are the impulse's card too", () => {
+  // The report: "帝国挽歌 事件俾斯麦之后不应该还能在同一行动轮打出其他牌".  Bismarck's
+  // event keeps the impulse open so the seat can declare the war the card
+  // grants; the tray stayed live and offered the *other* cards in hand as the
+  // industry card (12.13) or a CP-chain card (12.14).  Both are "1 Card" — the
+  // impulse's own card play — so a used impulse must refuse them, and refusing
+  // them keeps the open declaration instead of losing it to `finishImpulse`.
+  const input = (G: ImperialElegyState, cardId: string, industryCard: string | null, cpChainLength: number): CardAvailabilityInput => ({
+    G, power: "GE", cardId, phase: "action", isActive: true, isBelligerent: false,
+    war: null, canActionCard: true, saveList: [], forcedCardIds: [], industryCard,
+    cpChainLength, homeCards: [G.powers.GE.homeCards[0]],
+    playBlock: {}, responseBlock: {}, bi: (_en: string, _zh: string) => _en,
+  });
+
+  test("a second card cannot be chained or industrialized after a CP card", () => {
+    const G = fresh();
+    G.powers.GE.hand = ["IE-A018", ORDINARY_CARD];
+    expect(playCard(G, makeCtx("0"), "IE-A018", "cp")).toBeUndefined();
+
+    expect(cpChain(G, makeCtx("0"), ORDINARY_CARD)).toBe(INVALID_MOVE);
+    expect(industrialize(G, makeCtx("0"), ORDINARY_CARD)).toBe(INVALID_MOVE);
+    expect(G.powers.GE.cpChain).toEqual([]);
+    expect(G.powers.GE.industryCard).toBeNull();
+    expect(G.powers.GE.hand).toContain(ORDINARY_CARD);
+
+    const blocked = cardAvailability(input(G, ORDINARY_CARD, null, 0));
+    expect(blocked.chainOk).toBe(false);
+    expect(blocked.industOk).toBe(false);
+    expect(blocked.reasons).toContain("One card per impulse; finish this impulse first");
+  });
+
+  test("after Bismarck's event the declaration survives and no other card can be placed", () => {
+    const G = fresh();
+    G.turn = 5;
+    G.powers.GE.hand = [BISMARCK_HOME_CARD, ORDINARY_CARD];
+    G.powers.GE.selectedHomeCard = BISMARCK_HOME_CARD;
+    expect(playCard(G, makeCtx("0"), BISMARCK_HOME_CARD, "event")).toBeUndefined();
+    expect(warDeclarationEntitlement(G, "GE")).not.toBeNull();
+
+    expect(industrialize(G, makeCtx("0"), ORDINARY_CARD)).toBe(INVALID_MOVE);
+    expect(cpChain(G, makeCtx("0"), ORDINARY_CARD)).toBe(INVALID_MOVE);
+    // Nothing moved and the impulse still belongs to GE with its declaration.
+    expect(G.powers.GE.hand).toEqual([ORDINARY_CARD]);
+    expect(G.powers.GE.industryCard).toBeNull();
+    expect(G.powers.GE.cpChain).toEqual([]);
+    expect(G.activePower).toBe("GE");
+    expect(warDeclarationEntitlement(G, "GE")).toEqual({card: BISMARCK_HOME_CARD, cp: 3, aim: "unification"});
+    // The printed declaration is still launchable in this impulse.
+    expect(declareWar(G, makeCtx("0"), "FR", "unification", ["alsace-lorraine"], 3)).toBeUndefined();
+    expect(G.war).not.toBeNull();
+  });
+
+  test("a fresh impulse offers both again", () => {
+    const G = fresh();
+    G.powers.GE.hand = [ORDINARY_CARD];
+    const open = cardAvailability(input(G, ORDINARY_CARD, null, 0));
+    expect(open.chainOk).toBe(true);
+    expect(open.industOk).toBe(true);
+    // Accepted: the card leaves the hand for the chain (the impulse then hands
+    // over, and an action phase with nothing left to play discards the chain).
+    expect(cpChain(G, makeCtx("0"), ORDINARY_CARD)).toBeUndefined();
+    expect(G.powers.GE.hand).not.toContain(ORDINARY_CARD);
   });
 });
 

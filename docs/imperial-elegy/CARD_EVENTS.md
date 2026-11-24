@@ -428,6 +428,26 @@ effect 写的是 `railTab`，但桌面端 `TurnPanel` 只在手机上传入 `act
 战争宣战后：不再点击页签，直接断言 `ie-war` 可见且 `ie-turn-tab-war` 已是
 `aria-selected="true"`）。
 
+### 3.12.3 俾斯麦事件之后同一行动轮还能打出别的牌 / a second card in Bismarck's impulse
+
+复报：“事件俾斯麦之后不应该还能在同一行动轮打出其他牌”。俾斯麦的事件会
+**保留本次行动轮**，好让玩家用本牌的 CP 宣战（`warDeclarationEntitlement`），
+于是手牌区仍然可点——手里的其他牌还能点“工业化”（12.13）和“CP 链”
+（12.14），因为 12.0 的“每行动轮 1 张牌”只写在 `playCard` 里。行动牌表上
+这两项都印着“1 张牌”，它们本身就是本次行动轮的那一张，所以
+`moves.industrialize` / `moves.cpChain` 现在也读 `impulseAlreadyUsed`；
+`cardAvailability` 的 `industOk` / `chainOk` 同步关闭，按钮悬停提示沿用
+“每次行动轮只能打出 1 张牌；请先结束本次行动”。
+
+旧路径还有个副作用：放入第二张牌会走 `finishImpulse`，把还没兑现的俾斯麦
+宣战授权连同行动轮一起清掉，玩家既没打成仗也没吃到第二张牌。现在只拒绝，
+授权与行动轮原样保留，宣战面板照常可用。
+
+回归：`oneCardPerImpulse.test.ts`（3 个：先出 CP 牌之后、俾斯麦事件之后
+拒绝前后授权都还在且宣战仍可成功、新一轮行动轮两项恢复可用）与
+`components/HandTray.test.tsx`（1 个：已用过的行动轮把两个按钮画成禁用并给出
+原因，新一轮恢复可用）。
+
 
 ### 3.13 其余三张宣战本国牌的授权与目标限制 / the other three declaration home cards
 
