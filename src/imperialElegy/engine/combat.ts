@@ -501,6 +501,8 @@ export const beginLandBattle = (
   const attackUnits = landUnitsIn(G, from).filter(
     (u) =>
       (u.owner === actor ||
+        // 15.4.1: Italian units attack during the Italian wartime impulse.
+        (u.owner === "IT" && G.flags.italyImpulse === true && actor === G.activePower) ||
         // 26.3: the controller attacks with US/Italian units during their impulse.
         (allyImpulse !== null && u.owner === allyImpulse) ||
         commandsAlliedMinor(G, actor, u.owner)) &&

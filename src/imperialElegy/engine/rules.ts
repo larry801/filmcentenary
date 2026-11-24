@@ -753,6 +753,14 @@ const cpWalletFor = (G: ImperialElegyState, power: Power): CpWallet | null => {
   if (G.phase === "wartime") {
     const war = G.war;
     if (war === null) return null;
+    // 15.4.1: the Italian impulse spends Italy's own budget, which "always
+    // starts at 2", not the commander's player budget.
+    if (G.flags.italyImpulse === true && power === G.activePower && war.italyBudget !== undefined) {
+      return {
+        get: () => war.italyBudget ?? 0,
+        set: (value) => { war.italyBudget = value; },
+      };
+    }
     return {
       get: () => war.budgets[power] ?? 0,
       set: (value) => { war.budgets[power] = value; },

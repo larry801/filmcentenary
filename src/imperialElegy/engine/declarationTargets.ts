@@ -280,6 +280,7 @@ export const declarationObjectives = (
   entry: WarDeclarationDefender,
   aim: WarDeclarationAim,
   second: WarDeclarationDefender | null = null,
+  italianBeneficiary?: string,
 ): SpaceId[] => {
   if (G.war !== null) return [];
   if (G.wtt >= 3) return [];
@@ -291,6 +292,7 @@ export const declarationObjectives = (
     validateWarAim(G, power, entry.defender, aim, [objective], {
       ...rules,
       ...(second === null ? {} : {defenders}),
+      ...(italianBeneficiary !== undefined ? {italianBeneficiary} : {}),
     }).ok);
 };
 
@@ -309,15 +311,17 @@ export const declarationSecondObjectives = (
   aim: WarDeclarationAim,
   selected: SpaceId,
   second: WarDeclarationDefender | null = null,
+  italianBeneficiary?: string,
 ): SpaceId[] => {
   const rules = aimRulesFor(entitlement);
   const defenders: PowerOrMinor[] | undefined =
     second !== null ? [entry.defender, second.defender] : undefined;
-  return declarationObjectives(G, power, entitlement, entry, aim, second)
+  return declarationObjectives(G, power, entitlement, entry, aim, second, italianBeneficiary)
     .filter((objective) => objective !== selected)
     .filter((objective) => validateWarAim(G, power, entry.defender, aim, [selected, objective], {
       ...rules,
       ...(defenders !== undefined ? {defenders} : {}),
+      ...(italianBeneficiary !== undefined ? {italianBeneficiary} : {}),
     }).ok);
 };
 

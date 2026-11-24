@@ -25,7 +25,7 @@ import {amphibiousAssaultCheck, canPassNow, hasActedThisImpulse, navalInterceptC
 import {planNavalTransport} from "../engine/navalMovement";
 import {AU_NATIONALITIES, auIncorporateDecision, auRightsDecision, canGrantCitizenship, jihadUse, passRestriction, superiorStaffWorkFreeDeploy, TSRR_RAIL_ARMY_KINDS, tsrrRail} from "../engine/characteristics";
 import {polishController, polishRecruitDecision} from "../engine/poland";
-import {deployReserveLimit, loneMinorDefender, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
+import {deployReserveLimit, loneMinorDefender, minorWarAlly, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
 import {isIndependentItaly} from "../engine/greatWarFlow";
 import {gwActionAllowance} from "../engine/gwImpulse";
@@ -1347,10 +1347,21 @@ export const useBoardModel = ({
     : [];
   const warAllyValue = callableAllies.includes(warAlly) ? warAlly : callableAllies[0];
   const callableMinors = war && viewer !== null && (viewer === war.attacker || viewer === war.defender)
-    ? minorAlliesOf(G, viewer).filter((minor) =>
-      MINOR_POWER_HOMES[minor] !== undefined &&
-      !war.attackerMinors.includes(minor) &&
-      !war.defenderMinors.includes(minor))
+    ? [
+      // 14.0: "all minor power allies, and a unified Italy, join the war at
+      // the primary belligerent's discretion."  Italy is a non-player major
+      // with no `MINOR_POWER_HOMES` row, so it is offered explicitly.
+      ...(G.persistent.italyUnified === true &&
+        minorWarAlly(G, "Italy") === viewer &&
+        !war.attackerMinors.includes("Italy") &&
+        !war.defenderMinors.includes("Italy")
+        ? ["Italy"]
+        : []),
+      ...minorAlliesOf(G, viewer).filter((minor) =>
+        MINOR_POWER_HOMES[minor] !== undefined &&
+        !war.attackerMinors.includes(minor) &&
+        !war.defenderMinors.includes(minor)),
+    ]
     : [];
   const warMinorValue = pickActionTarget(warMinor, callableMinors, callableMinors);
   const warBudgetRows = war

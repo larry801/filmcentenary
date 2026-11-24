@@ -281,6 +281,7 @@ import {
   endGreatWar,
   resolveCrisisPending,
   resolveItalianNationalistWaveChoice,
+  italianUnificationRoll,
   resolveItalyNavalBase,
   resolveItalyOttomanTerritoryChoice,
   setGwOrderChoice,
@@ -344,9 +345,11 @@ import {
   initiativeOrder,
   initiativeRollOff,
   isItalianUnificationWar,
+  ITALIAN_UNIFICATION_STATES,
   isMinorWarTargetArg,
   isWarImmuneNonPlayer,
   holdsWarImpulse,
+  minorWarAlly,
   minorWarDefender,
   minorWarInfo,
   nonPlayerHome,
@@ -379,7 +382,7 @@ import {
   warCapitalFallen,
 } from "./engine/limitedWar";
 import {blockadedAt} from "./engine/blockade";
-import {applyItalyWarStartRules} from "./engine/italyMilitary";
+import {applyItalyWarStartRules, italyInvolvedInWar, italyWartimeCommander} from "./engine/italyMilitary";
 import {
   applyTreatyChoice,
   buildTreatyPending,
@@ -388,6 +391,8 @@ import {
   treatyOptionsFor,
   treatyPickCounts,
   treatySpaceOptions,
+  TREATY_OPTION_ORDER,
+  TREATY_OPTION_LABELS,
   type TreatyChooserGroup,
   type TreatyOptionEntry,
   type TreatyPickAvailability,
@@ -1921,7 +1926,12 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
   // A088/UK-3: naval movement is a printed colonial/operation action.
   const power = requireColonialCp(G, ctx, playerID, 1, ["freeColonialCp", "freeOperationCp"]);
   if (power === INVALID_MOVE) return INVALID_MOVE;
-  const units = unitIds.map((id) => G.units[id]).filter((u): u is Unit => u !== undefined && u.owner === power && u.naval === true);
+  const units = unitIds
+    .map((id) => G.units[id])
+    .filter((u): u is Unit =>
+      u !== undefined &&
+      u.naval === true &&
+      (u.owner === power || (u.owner === "IT" && G.flags.italyImpulse === true && power === G.activePower)));
   if (units.length === 0) return INVALID_MOVE;
   const from = units[0].space;
   if (!from) return INVALID_MOVE;
@@ -1986,6 +1996,121 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
   const interceptAtDestination = isNavalBox(to) && navalInterceptCandidates(G, power, to).length > 0;
   if ((defenders.length > 0 || interceptAtDestination) && G.battle === null) {
     openNavalContactDecision(G, ctx, power, from, to, unitIds);
+  }
+  return undefined;
+};
+
+/**
+ * Rule 15.2.2 — Joint Naval Operations (1 CP).
+ *
+ * "Taking this action allows you to take a naval movement action with an ally.
+ * … when a player takes this action they spend a CP, announce what they're
+ * doing, they place their joint naval operations marker on any of their naval
+ * units, and play passes to the next player.  If an allied player takes a joint
+ * naval operation action in a future impulse, any allied players who have also
+ * taken this action may remove their markers and then they can conduct their
+ * naval movement together."
+ *
+ * Called without a destination the action places (or replaces) the caller's
+ * marker; called with a destination the caller's units plus every same-side
+ * marker's units conduct one combined 12.3 naval move.  The participating
+ * markers are removed and their CP is not refunded.  Leaving a marker on the
+ * map at the end of the war likewise just loses the CP.
+ */
+export const jointNaval = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  unitIds: string[],
+  to?: SpaceId,
+): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = requireActive(G, ctx, playerID);
+  if (power === INVALID_MOVE) return INVALID_MOVE;
+  if (G.phase !== "wartime" || G.war === null || G.gw?.active) return INVALID_MOVE;
+  const war = G.war;
+  if (war.status !== "maneuver" || G.pending !== null || G.battle !== null) return INVALID_MOVE;
+  if (G.activePower !== power) return INVALID_MOVE;
+  if (!Array.isArray(unitIds) || unitIds.length === 0) return INVALID_MOVE;
+  const units = unitIds
+    .map((id) => G.units[id])
+    .filter((unit): unit is Unit => unit !== undefined && commandsUnit(G, power, unit) && unit.naval === true);
+  if (units.length !== unitIds.length) return INVALID_MOVE;
+  const from = units[0].space;
+  if (!from || units.some((unit) => unit.space !== from)) return INVALID_MOVE;
+  const side: WarSideName | null =
+    war.attacker === power || war.attackerAllies.includes(power)
+      ? "attacker"
+      : war.defender === power || war.defenderAllies.includes(power)
+        ? "defender"
+        : null;
+  if (side === null) return INVALID_MOVE;
+  const sameSide = (other: Power): boolean =>
+    side === "attacker"
+      ? other === war.attacker || war.attackerAllies.includes(other)
+      : other === war.defender || war.defenderAllies.includes(other);
+  // A marker whose units have since moved or been eliminated is stale: the
+  // printed marker stays on the map but can no longer conduct the operation.
+  const markers = (war.jointNavalMarkers ?? []).filter((entry) =>
+    entry.unitIds.every((id) => {
+      const unit = G.units[id];
+      return unit !== undefined && unit.naval === true && unit.space === entry.space && entry.space === from;
+    }));
+  const partnerMarkers = markers.filter((entry) => entry.power !== power && sameSide(entry.power));
+
+  if (to === undefined) {
+    // Place (or replace) the caller's marker; the CP is spent and lost if the
+    // marker is never used.
+    if (!spendCpFor(G, power, 1)) return INVALID_MOVE;
+    war.jointNavalMarkers = [
+      ...(war.jointNavalMarkers ?? []).filter((entry) => entry.power !== power),
+      {power, unitIds: [...unitIds], space: from},
+    ];
+    log(G, power, "jointNavalMarkerPlaced", {space: from, count: unitIds.length});
+    return undefined;
+  }
+
+  // Conducting the operation needs at least one allied marker: a lone player
+  // simply takes an ordinary naval movement action instead.
+  if (partnerMarkers.length === 0) return INVALID_MOVE;
+  if (to === from) return INVALID_MOVE;
+  const partnerUnits = partnerMarkers.flatMap((entry) =>
+    entry.unitIds.map((id) => G.units[id]).filter((unit): unit is Unit => unit !== undefined),
+  );
+  const contact = navalUnitsIn(G, to).some((unit) =>
+    hostileOwner(G, power, unit.owner) || partnerMarkers.some((entry) => hostileOwner(G, entry.power, unit.owner)),
+  );
+  for (const participant of [power, ...partnerMarkers.map((entry) => entry.power)]) {
+    const plan = planNavalMove(G, participant, from, to, {allowEnemyDestination: contact});
+    if (!plan.ok) {
+      log(G, power, "jointNavalRejected", {reason: plan.reason, ally: participant});
+      return INVALID_MOVE;
+    }
+  }
+  const allUnits = [...units, ...partnerUnits];
+  if (!isNavalBox(to) && contact && allUnits.length > PORT_NAVAL_LIMIT) return INVALID_MOVE;
+  if (!contact) {
+    const endProblem = movementEndProblem(G, to, allUnits);
+    if (endProblem !== null) return INVALID_MOVE;
+  }
+  if (!spendCpFor(G, power, 1)) return INVALID_MOVE;
+  // Remove every marker that took part (including the caller's, if any).
+  war.jointNavalMarkers = (war.jointNavalMarkers ?? []).filter(
+    (entry) => entry.power !== power && !partnerMarkers.some((partner) => partner.power === entry.power),
+  );
+  for (const unit of allUnits) {
+    G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unit.id);
+    G.spaces[to].units.push(unit.id);
+    unit.space = to;
+  }
+  log(G, power, "jointNavalMove", {
+    from,
+    to,
+    count: allUnits.length,
+    allies: partnerMarkers.map((entry) => entry.power).join(","),
+  });
+  const interceptAtDestination = isNavalBox(to) && navalInterceptCandidates(G, power, to).length > 0;
+  if ((contact || interceptAtDestination) && G.battle === null) {
+    openNavalContactDecision(G, ctx, power, from, to, allUnits.map((unit) => unit.id));
   }
   return undefined;
 };
@@ -3032,7 +3157,11 @@ const moveOneWartimeLandUnit = (
 ): string | void => {
   const unit = G.units[unitId];
   if (!unit) return INVALID_MOVE;
-  const commands = unit.owner === power || commandsAlliedMinor(G, power, unit.owner);
+  // 15.4.1: during the Italian impulse the commander also commands "IT".
+  const commands =
+    unit.owner === power ||
+    (unit.owner === "IT" && G.flags.italyImpulse === true && power === G.activePower) ||
+    commandsAlliedMinor(G, power, unit.owner);
   if (!commands) return INVALID_MOVE;
   // 15.2.3: a reserve army deployed this impulse cannot march, rail or attack.
   if (unit.flags?.deployedThisImpulse === true) return INVALID_MOVE;
@@ -3517,10 +3646,18 @@ const finalizeWarDeclaration = (
       list.findIndex((other) => warTargetKey(other) === warTargetKey(entry)) === index);
   const forbidPlayers = G.flags.declarationForbid === true;
   const allowNeutralJoin = G.flags.declarationNeutralJoin === true;
+  // Rule 13.2.1: the Italian beneficiary crossed the 13.4 aid search (and any
+  // 33.3 decision) as a public flag, exactly like the 14.1 second target.
+  const rawItalianBeneficiary = G.flags.declarationItalianBeneficiary;
+  const italianBeneficiary =
+    typeof rawItalianBeneficiary === "string" && ITALIAN_UNIFICATION_STATES.includes(rawItalianBeneficiary)
+      ? rawItalianBeneficiary
+      : undefined;
   delete G.flags.declarationSecond;
   delete G.flags.declarationPrimary;
   delete G.flags.declarationForbid;
   delete G.flags.declarationNeutralJoin;
+  delete G.flags.declarationItalianBeneficiary;
   if (declarationCard === null || !warDeclarationExemptsConquestPenalty(declarationCard)) {
     applyConquestDeclarationPenalty(G, ctx, power, aim, stabilityDiscount);
   }
@@ -3605,6 +3742,7 @@ const finalizeWarDeclaration = (
     {
       ...(minor !== null ? {minor: {minor: minor.minor, ally: minor.ally}} : {}),
       ...(coMinors.length > 0 ? {coDefenderMinors: coMinors} : {}),
+      ...(italianBeneficiary !== undefined ? {italianBeneficiary} : {}),
     },
   );
   // 13.7 is a defending-seat action during the war-aim/alliance steps, while
@@ -3665,6 +3803,26 @@ const finalizeWarDeclaration = (
       }
       log(G, power, "qingArmyPlaced", {space: key});
     }
+  }
+  // Errata 13.4.4: "The player that aids the Qing in the war of conquest gains
+  // a +1 card marker regardless of the war's outcome."  The aider is the
+  // player defending Qing, whether found by 13.4.2's aid search or already
+  // allied to it (13.4 turns the declaration into one on that player); the
+  // marker is granted when the war is created, so its outcome cannot take it
+  // away.
+  if (
+    minor !== null &&
+    minor.minor === "Qing China" &&
+    aim === "conquest" &&
+    isPower(minor.ally) &&
+    minor.ally !== power
+  ) {
+    G.powers[minor.ally].cardMarkers += 1;
+    log(G, minor.ally, "qingAidCardMarker", {
+      minor: minor.minor,
+      cardMarkers: G.powers[minor.ally].cardMarkers,
+      existingAlly: true,
+    });
   }
   if (minor !== null) {
     // Rule 13.4 / 14.2 / 8.2: the aiding player ally shifts away from the
@@ -3883,15 +4041,8 @@ const finalizeMinorAid = (
   // 13.4.2: the *aiding* player answers the call and gains the alliance; the
   // attacker is only the power that declared war on the minor.
   log(G, ally, "minorAidGranted", {minor: state.minor, ally, space: home});
-  // 13.4.4 (as amended): "The player that aids the Qing in the war of conquest
-  // gains a +1 card marker regardless of the war's outcome."
-  if (state.minor === "Qing China" && state.aim === "conquest") {
-    G.powers[ally].cardMarkers += 1;
-    log(G, ally, "qingAidCardMarker", {
-      minor: state.minor,
-      cardMarkers: G.powers[ally].cardMarkers,
-    });
-  }
+  // Errata 13.4.4's aider marker is granted by `finalizeWarDeclaration` for
+  // every path (13.4.2 aid search included), so it is not duplicated here.
   G.pending = null;
   return finalizeWarDeclaration(
     G,
@@ -4270,6 +4421,13 @@ export interface DeclareWarOptions {
    * from joining the war."  Minor allies still join under 14.0.
    */
   forbidPlayers?: boolean;
+  /**
+   * Rule 13.2.1: the Italian state the attacker will give any conquered land
+   * to.  Supplying it declares an Italian war of unification (any player with
+   * a diplomacy/ally marker with Sardinia-Piedmont or the Two Sicilies may);
+   * leaving it out keeps 13.2's GE/AU unification branches.
+   */
+  italianBeneficiary?: string;
 }
 
 export const declareWar = (
@@ -4296,6 +4454,19 @@ export const declareWar = (
   // resolves.  It funds this one declaration with the card's printed CP and
   // carries the card's own aim/target limits, so no ordinary impulse CP is
   // spent (errata 12.17: the card's CP all go into the war).
+  // Rule 13.2.1: the Italian beneficiary is a declaration-time choice of
+  // Sardinia-Piedmont or the Two Sicilies.  Supplying it switches the
+  // unification aim to the Italian branch, which any player with a marker on
+  // either state may use; GE/AU keep their printed German/citizenship wars
+  // when they do not name one.
+  const italianBeneficiary = options.italianBeneficiary;
+  if (italianBeneficiary !== undefined) {
+    if (aim !== "unification") return INVALID_MOVE;
+    if (!ITALIAN_UNIFICATION_STATES.includes(italianBeneficiary)) return INVALID_MOVE;
+  } else if (aim === "unification" && power !== "GE" && power !== "AU") {
+    return INVALID_MOVE;
+  }
+
   const entitlement = warDeclarationEntitlement(G, power);
   const policy = entitlement !== null ? warDeclarationPolicy(entitlement.card) : null;
   if (entitlement !== null) {
@@ -4424,6 +4595,7 @@ export const declareWar = (
     ruRussoTurkishWars: policy?.russianBalkanLiberation === true,
     conquestKeyLimit: policy?.conquestKeyLimit,
     ...(declaredDefenders !== undefined ? {defenders: declaredDefenders} : {}),
+    ...(italianBeneficiary !== undefined ? {italianBeneficiary} : {}),
   });
   if (!validation.ok) return INVALID_MOVE;
   let bismarckAllianceApplied = false;
@@ -4446,6 +4618,19 @@ export const declareWar = (
       defenderForAim = minorWarDefender(minor);
     }
     if (secondInfo !== null) secondDefenderForAim = minorWarDefender(secondInfo);
+  }
+  if (italianBeneficiary !== undefined) {
+    // "then the attacking player gains an alliance with that power if they do
+    // not already have one."  Validation refused a beneficiary already allied
+    // to another player, so this is either a no-op or a fresh alliance.
+    if (minorWarAlly(G, italianBeneficiary) === null) {
+      const home = applyMinorAidAlliance(G, italianBeneficiary, power);
+      if (home === null) return INVALID_MOVE;
+      log(G, power, "minorAlliance", {space: home, italianBeneficiary});
+      recomputeTracks(G);
+    }
+    // The choice crosses every 13.4.1/13.4.2/33.3 decision on the public flag.
+    G.flags.declarationItalianBeneficiary = italianBeneficiary;
   }
   if (entitlement !== null) {
     // The declaration is paid for by the home card, not by impulse CP.  The
@@ -4803,6 +4988,142 @@ const resolveAttackerSurrender = (G: ImperialElegyState, ctx: Ctx, pending: Pend
 };
 
 /**
+ * Rule 16.1.4/16.1.5 — an agreed end to the fighting.
+ *
+ * Both primary belligerents must agree.  A **negotiated peace** names the side
+ * conceding one treaty option, so the other side is the victor and chooses that
+ * one option; if the proposal names the option, the agreement is binding.  A
+ * **white peace** awards no treaty option.  Either agreement ends the maneuver
+ * step at once (15.5), so `resolveWar`'s all-passed boundary is bypassed.
+ *
+ * A specific option is accepted only where the settlement can honour it without
+ * hiding another pick: the war must have no 16.1.6 ally knockout (whose
+ * mandatory option still has to be imposed) and an Italian unification war may
+ * only agree to the 16.2.1 mandatory cession.  Otherwise the primaries can
+ * still agree on a plain negotiated/white peace and let the ordinary victor
+ * chooser take the option, which keeps 16.1.6 intact.
+ */
+const isTreatyOptionId = (value: unknown): value is (typeof TREATY_OPTION_ORDER)[number] =>
+  typeof value === "string" && (TREATY_OPTION_ORDER as readonly string[]).includes(value);
+
+export const proposeWarPeace = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  kind: "negotiated" | "white",
+  conceding?: "attacker" | "defender",
+  treatyOption?: string,
+  treatySpaces?: SpaceId[],
+): string | void => {
+  const power = actor(G, ctx.playerID ?? null);
+  if (power === null || G.war === null || G.pending !== null || G.battle !== null) return INVALID_MOVE;
+  if (G.phase !== "wartime" || G.gw?.active) return INVALID_MOVE;
+  const war = G.war;
+  if (war.status !== "maneuver" || war.victor !== null) return INVALID_MOVE;
+  if (power !== war.attacker && power !== war.defender) return INVALID_MOVE;
+  const other = power === war.attacker ? war.defender : war.attacker;
+  // A lone non-player defender has no seat to agree with (15.4.2).
+  if (!isPower(other)) return INVALID_MOVE;
+  if (kind === "negotiated") {
+    if (conceding !== "attacker" && conceding !== "defender") return INVALID_MOVE;
+  } else if (conceding !== undefined) {
+    return INVALID_MOVE;
+  }
+  if (treatyOption !== undefined) {
+    if (kind !== "negotiated" || !isTreatyOptionId(treatyOption)) return INVALID_MOVE;
+    // The two space options need a named space; the ordinary chooser asks for
+    // it, a binding agreement must carry it.
+    if (
+      (treatyOption === "righteousDefense" || treatyOption === "colonialCession") &&
+      (treatySpaces === undefined || treatySpaces.length === 0)
+    ) {
+      return INVALID_MOVE;
+    }
+    if (war.italianBeneficiary !== undefined && treatyOption !== "territorialCession") {
+      // 16.2.1: the victorious attacker in an Italian unification war must take
+      // territorial cession, so no other option can be the agreed one.
+      return INVALID_MOVE;
+    }
+    if ((war.knockedOut?.length ?? 0) > 0) {
+      // 16.1.6 keeps its mandatory knockout options; a binding single option
+      // would suppress them, so the table may agree only on a plain peace.
+      log(G, power, "warPeaceProposed", {kind, conceding, rejected: "knockout-options"});
+      return INVALID_MOVE;
+    }
+  }
+  openDecision(G, ctx, {
+    kind: "warPeace",
+    power: other,
+    prompt: `${POWER_DEFS[power].name} proposes a ${
+      kind === "white" ? "white peace" : "negotiated peace"
+    }${kind === "negotiated" && conceding !== undefined
+      ? ` (${conceding === "attacker" ? war.attacker : war.defender} concedes one treaty option)`
+      : ""}. Accept?`,
+    promptZh: `${POWER_DEFS[power].nameZh}提议${
+      kind === "white" ? "白和" : "协商和平"
+    }${kind === "negotiated" && conceding !== undefined
+      ? `（${conceding === "attacker" ? POWER_DEFS[war.attacker].nameZh : POWER_DEFS[war.defender as Power].nameZh}让出一项条约选项）`
+      : ""}。接受吗？`,
+    options: [
+      option("accept", "Accept — end the war", undefined, false, "接受——结束战争"),
+      option("decline", "Decline — keep fighting", undefined, false, "拒绝——继续作战"),
+    ],
+    context: {
+      proposer: power,
+      kind,
+      ...(conceding !== undefined ? {conceding} : {}),
+      ...(treatyOption !== undefined ? {treatyOption} : {}),
+      ...(treatySpaces !== undefined ? {treatySpaces: [...treatySpaces]} : {}),
+    },
+    blocking: true,
+  });
+  log(G, power, "warPeaceProposed", {kind, conceding, treaty: treatyOption});
+  return undefined;
+};
+
+/** The other primary's answer to a 16.1.4/16.1.5 proposal. */
+const resolveWarPeaceAnswer = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  accept: boolean,
+): string | void => {
+  const war = G.war;
+  if (!war || pending.kind !== "warPeace") return INVALID_MOVE;
+  const proposer = pending.context?.proposer;
+  const kind = pending.context?.kind;
+  if (!isPower(proposer) || (kind !== "negotiated" && kind !== "white")) return INVALID_MOVE;
+  const expected = proposer === war.attacker ? war.defender : war.attacker;
+  if (!isPower(expected) || pending.power !== expected) return INVALID_MOVE;
+  const concedingRaw = pending.context?.conceding;
+  const conceding = concedingRaw === "attacker" || concedingRaw === "defender" ? concedingRaw : undefined;
+  if (kind === "negotiated" && conceding === undefined) return INVALID_MOVE;
+  const treatyRaw = pending.context?.treatyOption;
+  const treatyOption = isTreatyOptionId(treatyRaw) ? treatyRaw : undefined;
+  if (kind === "negotiated" && treatyRaw !== undefined && treatyOption === undefined) return INVALID_MOVE;
+  const spacesRaw = pending.context?.treatySpaces;
+  const treatySpaces = Array.isArray(spacesRaw)
+    ? spacesRaw.filter((space): space is SpaceId => typeof space === "string")
+    : undefined;
+  G.pending = null;
+  if (!accept) {
+    log(G, expected, "warPeaceRefused", {proposer, kind});
+    return undefined;
+  }
+  war.peace = {
+    kind,
+    ...(kind === "negotiated" && conceding !== undefined ? {conceding} : {}),
+    ...(treatyOption !== undefined
+      ? {treaty: {option: treatyOption, ...(treatySpaces !== undefined ? {spaces: treatySpaces} : {})}}
+      : {}),
+  };
+  log(G, expected, "warPeaceAccepted", {proposer, kind, treaty: treatyOption});
+  // 15.5 lists an agreed peace as a maneuver-step ending, so settle now.  The
+  // `war.peace` record both classifies the result and bypasses the all-passed
+  // gate below.
+  return resolveWar(G, ctx);
+};
+
+/**
  * Rule 14.3 pass order.  The initiative recorded when the maneuver started is
  * authoritative; any ally that joined afterwards is appended in side order so
  * it is not silently skipped by the all-passed check.
@@ -4857,11 +5178,40 @@ const recordWarPass = (G: ImperialElegyState, ctx: Ctx, power: Power): string | 
     G.powers.GE.flags.superiorStaffWorkUsed = true;
     log(G, "GE", "superiorStaffWorkDeclined", {scope: "war"});
   }
+  // 15.4.1: the Italian impulse is always last.  The commander's pass is the
+  // end of that impulse (and then of the maneuver), not a normal player pass.
+  if (G.flags.italyImpulse === true) {
+    delete G.flags.italyImpulse;
+    war.italyBudget = 0;
+    log(G, power, "italyImpulseEnded", {});
+    return resolveWar(G, ctx);
+  }
   if (!war.passed.includes(power)) war.passed.push(power);
   const order = warPassOrder(G, war);
-  // When every belligerent has passed the war is settled through the shared
-  // classifyVictory + settleLimitedWar path.
-  if (order.every((p) => war.passed.includes(p))) return resolveWar(G, ctx);
+  // When every player belligerent has passed, a unified Italy that is in the
+  // war takes its own 2-CP impulse first (15.4.1); without one the war settles
+  // through the shared classifyVictory + settleLimitedWar path.
+  if (order.every((p) => war.passed.includes(p))) {
+    const italyCommander = italyInvolvedInWar(war) ? italyWartimeCommander(G, war) : null;
+    if (
+      italyCommander !== null &&
+      italyCommander !== "IT" &&
+      isPower(italyCommander) &&
+      war.italyImpulseDone !== true &&
+      // 15.6: a knocked-out Italy is out of the war and takes no impulse.
+      war.italyKnockedOut === undefined
+    ) {
+      war.italyImpulseDone = true;
+      war.italyBudget = 2;
+      G.flags.italyImpulse = true;
+      G.activePower = italyCommander;
+      clearWarImpulseSpend(G);
+      log(G, italyCommander, "italyImpulseStarted", {budget: 2, space: war.minorTarget?.minor === "Italy" ? "defender" : "attacker"});
+      beginImpulseUpkeep(G, ctx, italyCommander);
+      return undefined;
+    }
+    return resolveWar(G, ctx);
+  }
   const next = order.find((p) => !war.passed.includes(p));
   if (next) {
     G.activePower = next;
@@ -5455,13 +5805,56 @@ const grantItalianUnificationMpitCp = (
   G: ImperialElegyState,
   war: WarState,
   victor: "attacker" | "defender" | null,
+  unified = false,
 ): void => {
-  if (!isItalianUnificationWar(war)) return;
-  const winner = victor === "defender" && isPower(war.defender) ? war.defender : war.attacker;
+  if (!isItalianUnificationWar(war) || victor !== "attacker") return;
+  // 22.2: "Then, if Italy unified immediately after an Italian war of
+  // unification, the primary belligerent that won the Italian war of
+  // unification may spend 2 free CP to influence Italy on the MPIT."  The
+  // concession is conditional on the unification roll, not on merely winning.
+  if (!unified && G.persistent.italyUnified !== true) return;
+  const winner = war.attacker;
   G.flags.italyUnificationMpitCp = 2;
   G.flags.italyUnificationMpitCpTurn = G.turn;
   G.flags.italyUnificationMpitCpPower = winner;
   log(G, winner, "italyUnificationMpitCp", {cp: 2});
+};
+
+/**
+ * Rule 13.2.1: "If the attacking player wins the war they must choose the
+ * territorial cession treaty option.  Additionally, if the attacking player
+ * wins, roll for Italian unification [22.1.5]."  The victory already required
+ * the cession (`warRequiresMandatoryCession`), so this runs after the treaties
+ * are applied and before demobilisation: the ceded spaces count towards the
+ * 22.1.5 DRMs.  22.1.2's unification-box +1 card marker goes to the winner.
+ *
+ * Returns true when the roll (or an already-unified board) leaves Italy
+ * unified, so the 22.2 free MPIT CP are granted only in that case.
+ */
+const resolveItalianWarVictory = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  war: WarState,
+  victor: "attacker" | "defender" | null,
+): boolean => {
+  if (!isItalianUnificationWar(war) || victor !== "attacker") return false;
+  if (G.persistent.italyUnified === true) return true;
+  if (G.flags.italyPetition === true) {
+    // 22.1.2: "After a player wins an Italian war of unification they gain the
+    // +1 card marker."  It was placed in the Italian unification box by the
+    // Petition for Aid result; winning takes it.
+    delete G.flags.italyPetition;
+    G.powers[war.attacker].cardMarkers += 1;
+    log(G, war.attacker, "italyPetitionMarkerGained", {
+      cardMarkers: G.powers[war.attacker].cardMarkers,
+    });
+  }
+  const unified = italianUnificationRoll(G, ctx, war.attacker);
+  // 22.1.3/22.1.4's own roll points stay live; this flag only keeps the action
+  // phase's 3-key auto-check from undoing a failed 13.2.1 roll in the same
+  // turn (the printed procedure rolls once per trigger).
+  if (!unified) G.flags.italianUnificationRolledTurn = G.turn;
+  return unified;
 };
 
 /** Demobilize the settled war and open the rule 17.0 free actions. */
@@ -5469,7 +5862,8 @@ const completeWarSettlement = (G: ImperialElegyState, ctx: Ctx): string | void =
   const war = G.war;
   if (!war) return INVALID_MOVE;
   drawPostWarCards(G, ctx, war);
-  grantItalianUnificationMpitCp(G, war, war.victor);
+  const unified = resolveItalianWarVictory(G, ctx, war, war.victor);
+  grantItalianUnificationMpitCp(G, war, war.victor, unified);
 
   // 33.1 German Confederation: every space GE gained by the treaties becomes a
   // permanent home space now, before the demobilization free actions.
@@ -5531,7 +5925,6 @@ const settleWarImmediately = (
   if (preparePostWarDraws(G, ctx, {mode: "immediate", victory, choices})) return undefined;
   applyWarEndCharacteristics(G, ctx);
   drawPostWarCards(G, ctx, war);
-  grantItalianUnificationMpitCp(G, war, victory.victor);
   G.flags.postWarWinner = postWarWinnerFor(war, victory.victor);
   const geWonUnification =
     war.warAim === "unification" && war.attacker === "GE" && victory.victor === "attacker";
@@ -5555,6 +5948,10 @@ const settleWarImmediately = (
     for (const treaty of settlement.treaties) {
       if (treaty.applied) displaceAfterTreaty(G, treaty.affectedSpaces);
     }
+    // 13.2.1: roll for Italian unification after the cession has been applied,
+    // then grant 22.2's 2 free MPIT CP only if Italy actually unified.
+    const unified = resolveItalianWarVictory(G, ctx, war, victory.victor);
+    grantItalianUnificationMpitCp(G, war, victory.victor, unified);
     G.flags.postWarWinner = settlement.demobilization.activePower;
     if (
       geWonUnification &&
@@ -6700,6 +7097,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
   const opt = pending.options.find((o) => o.id === optionId);
   if (!opt) return INVALID_MOVE;
   const context = pending.context ?? {};
+  if (pending.kind === "warPeace") {
+    if (optionId !== "accept" && optionId !== "decline") return INVALID_MOVE;
+    return resolveWarPeaceAnswer(G, ctx, pending, optionId === "accept");
+  }
   if (pending.kind === "eventTargetPower" && context.special === "balanceOfPowerDraw") {
     return resolvePostWarDrawChoice(G, ctx, pending, optionId);
   }
@@ -6987,6 +7388,8 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   const playerID = ctx.playerID ?? null;
   const pending = G.pending;
   if (!pending || playerID !== seatOf(pending.power)) return INVALID_MOVE;
+  // 16.1.4/16.1.5: declining a peace proposal keeps the war going.
+  if (pending.kind === "warPeace") return resolveWarPeaceAnswer(G, ctx, pending, false);
   if (pending.kind === "gwBonusImpulse") return resolvePending(G, ctx, "skip");
   if (pending.kind === "movementDestination" && pending.context?.special === "endPhaseNavalReturn") {
     const first = pending.options[0];
@@ -8232,7 +8635,12 @@ export const resolveWar = (
   // Rule 15.5: a fallen primary capital ends the maneuver step immediately, so
   // the normal all-passed boundary does not apply to that settlement.
   const capitalFallen = warCapitalFallen(G, war);
-  if (war.status === "maneuver" && !capitalFallen && !belligerentsOf(war).every((p) => war.passed.includes(p))) {
+  if (
+    war.status === "maneuver" &&
+    !capitalFallen &&
+    war.peace === undefined &&
+    !belligerentsOf(war).every((p) => war.passed.includes(p))
+  ) {
     const actorPower = actor(G, ctx.playerID ?? null);
     log(G, actorPower ?? undefined, "warResolveRefused", {reason: "not-all-passed"});
     return INVALID_MOVE;
@@ -8244,10 +8652,12 @@ export const resolveWar = (
     : typeof rawStart === "string" && rawStart.length > 0
       ? rawStart.split(",").filter(Boolean)
       : [];
-  const negotiatedRaw = G.flags.negotiatedPeace;
+  const agreedPeace = war.peace;
+  const negotiatedRaw = agreedPeace?.kind === "negotiated" ? agreedPeace.conceding : G.flags.negotiatedPeace;
   const negotiatedPeace =
     negotiatedRaw === "attacker" || negotiatedRaw === "defender" ? negotiatedRaw : null;
   const trueFlag = (value: unknown): boolean => value === true || value === "true" || value === 1;
+  const agreedWhitePeace = agreedPeace?.kind === "white";
 
   // 15.6: settle any capital that was occupied without a capture hook before
   // classification, so the knockout is historical rather than re-derived.
@@ -8259,12 +8669,30 @@ export const resolveWar = (
   const victory = classifyVictory(G, war, {
     attackerControlledAtStart,
     negotiatedPeace,
-    whitePeace: trueFlag(G.flags.whitePeace),
+    whitePeace: agreedWhitePeace || trueFlag(G.flags.whitePeace),
     defenderBlockading,
   });
 
   if (treatyChoices !== undefined) {
     return settleWarImmediately(G, ctx, victory, treatyChoices);
+  }
+
+  // 16.1.4: "If players agreed on a specific treaty option to end the fighting,
+  // that agreement is binding."  With no 16.1.6 knockout option competing for
+  // the settlement, apply the agreed option directly instead of opening the
+  // victor's chooser.  (A binding option is refused while knockouts exist, so
+  // this branch never suppresses one.)
+  if (
+    agreedPeace?.kind === "negotiated" &&
+    agreedPeace.treaty !== undefined &&
+    victory.allyKnockouts.length === 0 &&
+    isTreatyOptionId(agreedPeace.treaty.option)
+  ) {
+    const agreedChoice: TreatyChoice = {
+      option: agreedPeace.treaty.option,
+      ...(agreedPeace.treaty.spaces !== undefined ? {spaces: [...agreedPeace.treaty.spaces]} : {}),
+    };
+    return settleWarImmediately(G, ctx, victory, [agreedChoice]);
   }
 
   // Rule 16.2: the victor chooses treaty options interactively.  Rule 16.1.6

@@ -62,7 +62,7 @@ export type ActionId =
   | "influence" | "diplomacy" | "minorAlliance" | "removeInfluence" | "breakAlliance" | "pacify"
   | "pacifyA065Marker" | "pacifyA065Rebel"
   | "move" | "gwNaval" | "gwMarch" | "gwRail" | "refit" | "rapidDeploy"
-  | "deployReserves" | "landBattle" | "navalBattle" | "gwDraft" | "gwDeploy" | "gwElite";
+  | "deployReserves" | "landBattle" | "navalBattle" | "jointNaval" | "gwDraft" | "gwDeploy" | "gwElite";
 
 /**
  * The player aid's cost list, in the order it prints them.  `rebuildZouave`
@@ -104,6 +104,7 @@ export const ACTION_COSTS: Record<ActionId | "rebuildZouave" | "placeMpit", numb
   deployReserves: 1,
   landBattle: 1,
   navalBattle: 1,
+  jointNaval: 1,
   gwDraft: 1,
   gwDeploy: 1,
   gwElite: 1,
@@ -157,6 +158,7 @@ const LABELS: Record<ActionId | "rebuildZouave" | "placeMpit", {en: string; zh: 
   deployReserves: {en: "Deploy reserves", zh: "部署预备军"},
   landBattle: {en: "Land battle here", zh: "在此发动陆战"},
   navalBattle: {en: "Naval battle here", zh: "在此发动海战"},
+  jointNaval: {en: "Joint naval operations here", zh: "在此进行联合海上行动"},
   gwDraft: {en: "Draft", zh: "征召"},
   gwDeploy: {en: "Deploy reserve army here", zh: "在此部署预备军"},
   gwElite: {en: "Attach elite corps", zh: "编入精锐军团"},
@@ -911,6 +913,29 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
           : gw ? bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。") : spendReason(cost),
       run: startNavalBattle,
     });
+  }
+  // 15.2.2: a limited-war joint naval operation.  On the unit's own space the
+  // row spends 1 CP to mark the selected fleet; on a destination space it
+  // removes every same-side marker and moves the marked contingents together.
+  if (!gw && phase === "wartime" && selectedUnit !== null && selected !== undefined
+    && selected.naval && selected.owner === viewer) {
+    if (selected.space === space) {
+      const enabled = canSpend(ACTION_COSTS.jointNaval);
+      push({
+        id: "jointNaval", group: "move", enabled,
+        reason: enabled ? undefined : spendReason(ACTION_COSTS.jointNaval),
+        run: () => doAction(() => moves.jointNaval([selected.id])),
+      });
+    } else if (selected.space !== undefined && selected.space !== null
+      && (G.war?.jointNavalMarkers ?? []).some((marker) =>
+        marker.power !== viewer && marker.space === selected.space)) {
+      const enabled = canSpend(ACTION_COSTS.jointNaval);
+      push({
+        id: "jointNaval", group: "move", enabled,
+        reason: enabled ? undefined : spendReason(ACTION_COSTS.jointNaval),
+        run: () => doAction(() => moves.jointNaval([selected.id], space)),
+      });
+    }
   }
 
   // -------------------------------------------------------------- great war

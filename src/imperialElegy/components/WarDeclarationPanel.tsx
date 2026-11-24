@@ -47,7 +47,7 @@ import {
   warTargetKey,
   type WarDeclarationDefender,
 } from "../engine/declarationTargets";
-import {minorWarInfo, warTargetFromKey, seekingAidSlots, type WarTarget} from "../engine/limitedWar";
+import {ITALIAN_UNIFICATION_STATES, hasMarkerWithMinor, minorWarInfo, warTargetFromKey, seekingAidSlots, type WarTarget} from "../engine/limitedWar";
 import {ConfirmButton} from "./ConfirmButton";
 import {IEPanel} from "./theme";
 import {bi} from "./boardHelpers";
@@ -63,6 +63,7 @@ export interface WarDeclaration {
     secondTarget?: WarTarget;
     primary?: WarTarget;
     forbidPlayers?: boolean;
+    italianBeneficiary?: string;
   } | undefined;
 }
 
@@ -120,6 +121,22 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   const [chosenSecondTarget, setChosenSecondTarget] = React.useState<string>("");
   const [chosenPrimary, setChosenPrimary] = React.useState<string>("");
   const [forbidPlayers, setForbidPlayers] = React.useState(false);
+  // Rule 13.2.1: the Italian state receiving any land won.  The form only
+  // offers it when the viewer holds a diplomacy/ally marker with one of the
+  // two states; GE/AU may keep their printed German/citizenship unification
+  // by choosing "no Italian beneficiary".
+  const [chosenItalianBeneficiary, setChosenItalianBeneficiary] = React.useState<string>("");
+  const italianMarkerChoices = React.useMemo(
+    () => ITALIAN_UNIFICATION_STATES.filter((minor) => hasMarkerWithMinor(G, viewer, minor)),
+    [G, viewer],
+  );
+  const italianBeneficiary = React.useMemo(() => {
+    if (chosenItalianBeneficiary !== "" && ITALIAN_UNIFICATION_STATES.includes(chosenItalianBeneficiary)) {
+      return chosenItalianBeneficiary;
+    }
+    if (viewer === "GE" || viewer === "AU") return "";
+    return italianMarkerChoices[0] ?? "";
+  }, [chosenItalianBeneficiary, italianMarkerChoices, viewer]);
 
   // A stable identity matters: the aim-selection memo below keys on this list,
   // and `declarationAimsFor` builds a fresh array.
@@ -144,9 +161,10 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   );
   const defendersForAim = React.useCallback(
     (a: WarDeclarationAim): WarDeclarationDefender[] =>
-      allDefenders.filter((candidate) => declarationObjectives(G, viewer, entitlement, candidate, a).length > 0),
+      allDefenders.filter((candidate) =>
+        declarationObjectives(G, viewer, entitlement, candidate, a, null, italianBeneficiary || undefined).length > 0),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [allDefenders, G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null],
+    [allDefenders, G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, italianBeneficiary],
   );
   // One scan in the ordinary case.  A printed aim with no legal objective in
   // this position (Jihad's liberation before any Balkan rebellion, say) must
@@ -185,9 +203,11 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
   // The spaces the declaration may name: a target pair uses both lists, so a
   // pair such as FR + Denmark can take one objective from either.
   const objectives = React.useMemo(
-    () => (entry === undefined ? [] : declarationObjectives(G, viewer, entitlement, entry, aim, secondEntry)),
+    () => (entry === undefined
+      ? []
+      : declarationObjectives(G, viewer, entitlement, entry, aim, secondEntry, italianBeneficiary || undefined)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, secondEntry],
+    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, secondEntry, italianBeneficiary],
   );
   const objective: SpaceId | "" =
     chosenObjective !== "" && objectives.includes(chosenObjective) ? chosenObjective : objectives[0] ?? "";
@@ -198,9 +218,10 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
       ? []
       : declarationSecondObjectives(
         G, viewer, entitlement, entry, aim, objective as SpaceId, secondEntry ?? null,
+        italianBeneficiary || undefined,
       )),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, objective, secondEntry],
+    [G, viewer, entitlement?.card ?? null, entitlement?.aim ?? null, entry, aim, objective, secondEntry, italianBeneficiary],
   );
   const secondObjective: SpaceId | "" =
     chosenSecondObjective !== "" && secondObjectives.includes(chosenSecondObjective)
@@ -242,6 +263,7 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
             ...(primaryChoices.length > 0 ? {primary: primary as Power} : {}),
           }),
         ...(forbidPlayersAllowed && forbidPlayers ? {forbidPlayers: true} : {}),
+        ...(italianBeneficiary !== "" ? {italianBeneficiary} : {}),
       },
     };
   const options = declaration === null ? undefined : declaration.options;
@@ -320,6 +342,35 @@ export const WarDeclarationPanel = (props: WarDeclarationPanelProps) => {
               ))
             )}
           </span>
+          {aim === "unification" && italianMarkerChoices.length > 0 && (
+            <label className="ie-inline">
+              <span className="ie-muted">{bi(locale, "Italian beneficiary", "意大利受赠邦国")}</span>
+              <select
+                className="ie-select"
+                data-testid="ie-war-italian-beneficiary"
+                value={italianBeneficiary}
+                onChange={(event) => {
+                  setChosenItalianBeneficiary(event.target.value);
+                  setChosenObjective("");
+                  setChosenSecondObjective("");
+                }}
+                title={bi(locale,
+                  "Rule 13.2.1: the state that receives any conquered land.",
+                  "规则 13.2.1：接收所征服领土的意大利邦国。")}
+              >
+                {(viewer === "GE" || viewer === "AU") && (
+                  <option value="">{bi(locale, "No Italian beneficiary (German/citizenship war)", "不指定意大利邦国（德意志/公民权战争）")}</option>
+                )}
+                {ITALIAN_UNIFICATION_STATES.map((minor) => (
+                  <option key={minor} value={minor}>
+                    {minor === "Sardinia-Piedmont"
+                      ? bi(locale, "Sardinia-Piedmont", "撒丁-皮埃蒙特")
+                      : bi(locale, "Kingdom of the Two Sicilies", "两西西里王国")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {entitlement !== null || impulseCp !== null ? (
             <span className="ie-chip" data-testid="ie-war-declare-cp-locked">{cp} CP</span>
           ) : (

@@ -650,6 +650,47 @@ export interface WarSide {
    * may then join the defending side without an invitation.
    */
   allowNeutralJoin?: boolean;
+  /**
+   * Rule 13.2.1: the Italian state the attacker named at declaration time to
+   * receive any conquered land.  Only an Italian war of unification carries it
+   * ("this must be either Sardinia-Piedmont or the Kingdom of the Two
+   * Sicilies").  Optional so every other declaration and older save keeps its
+   * shape; the 16.2.1 mandatory cession reads it to route the ceded spaces.
+   */
+  italianBeneficiary?: string;
+  /**
+   * Rule 15.6: a unified Italy knocked out of the war when Rome was occupied.
+   * Italy is a non-player major, so it is not in `knockedOut` (which holds
+   * player allies); the occupying captor keeps the 16.1.6 special option,
+   * modelled as the cession of the occupied key at settlement.
+   */
+  italyKnockedOut?: {by: "attacker" | "defender"; captor: Power; capital: SpaceId; turn: number};
+  /**
+   * Rule 15.4.1: Italy's own war budget, which "always starts at 2" and is
+   * spent during the Italian impulse (always last).
+   */
+  italyBudget?: number;
+  /** True once Italy has taken its last impulse in this war. */
+  italyImpulseDone?: boolean;
+  /**
+   * Rule 15.2.2: a joint naval operations marker.  Taking the action spends 1
+   * CP and marks the naval units that will move with an ally in a later
+   * impulse.  All markers are removed when the operation is conducted (or at
+   * the end of the war), and the CP is never refunded.
+   */
+  jointNavalMarkers?: {power: Power; unitIds: string[]; space: SpaceId}[];
+  /**
+   * Rules 16.1.4 / 16.1.5: the primaries' agreed peace.  `kind` is the printed
+   * choice, `conceding` names the side that gives up one treaty option (so the
+   * other side is the victor), and `treaty` is the specific option the players
+   * agreed on, which is binding when present.  Optional: an ordinary
+   * classification by the board's state is unaffected.
+   */
+  peace?: {
+    kind: "negotiated" | "white";
+    conceding?: "attacker" | "defender";
+    treaty?: {option: string; spaces?: SpaceId[]; target?: PowerOrMinor};
+  };
 }
 
 /**
@@ -1049,6 +1090,8 @@ export const PENDING_KINDS = [
   "treatySpace",
   /** 16.1.6: a two-sided white-peace knockout has no printed chooser order. */
   "whitePeaceOrder",
+  /** 16.1.4/16.1.5: the other primary belligerent answers a peace proposal. */
+  "warPeace",
   "demobilizationFreeAction",
   "goalChoice",
   "industryCard",

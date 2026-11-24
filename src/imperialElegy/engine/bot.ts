@@ -573,6 +573,13 @@ export const botPendingMove = (
     case "whitePeaceOrder":
       return {move: "resolvePending", args: [pending.options[botChoiceIndex(ctx, pending.options.length)].id]};
 
+    case "warPeace": {
+      // 34.x has no printed bot policy for an agreed peace; a bot keeps
+      // fighting rather than concede terms on the human's behalf.
+      const decline = pending.options.find((entry) => entry.id === "decline") ?? pending.options[0];
+      return {move: "resolvePending", args: [decline.id]};
+    }
+
     case "goalChoice":
     case "industryCard":
     case "mpitAllocation":

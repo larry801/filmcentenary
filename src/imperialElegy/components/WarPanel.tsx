@@ -184,6 +184,32 @@ export const WarPanel = (props: WarPanelProps) => {
                 setConfirmSurrender(false);
               }}>{confirmSurrender ? bi(locale, "Confirm surrender", "确认投降") : bi(locale, "Surrender", "投降")}</button>
             )}
+            {/* 16.1.4/16.1.5: both primaries may agree to end the fighting,
+                with one side conceding a treaty option or with no terms. */}
+            {isPrincipal && phase === "wartime" && war.status === "maneuver" && viewer !== null && !pending && (
+              <>
+                <button
+                  className="ie-btn secondary"
+                  data-testid="ie-war-peace-negotiated"
+                  onClick={() => doAction(
+                    () => moves.proposeWarPeace("negotiated", viewer === war.attacker ? "attacker" : "defender"),
+                    {label: bi(locale, "Propose negotiated peace", "提议协商和平")},
+                  )}
+                >
+                  {bi(locale, "Negotiated peace (I concede one option)", "协商和平（我方让出一项条约）")}
+                </button>
+                <button
+                  className="ie-btn secondary"
+                  data-testid="ie-war-peace-white"
+                  onClick={() => doAction(
+                    () => moves.proposeWarPeace("white"),
+                    {label: bi(locale, "Propose white peace", "提议白和")},
+                  )}
+                >
+                  {bi(locale, "Propose white peace", "提议白和")}
+                </button>
+              </>
+            )}
             {/* 15.0: the impulse holder passes its impulse on ("战争停牌"), and a
                 war already recorded as won (15.5) is sent on to its victory
                 step by any belligerent. */}
