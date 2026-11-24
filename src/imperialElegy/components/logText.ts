@@ -3484,6 +3484,14 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  reserveArmyLimited: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "already holds every reserve army counter, so the gain is limited to the pool.",
+      "已持有全部预备军棋子，获得数量受棋子上限限制。",
+    ),
+
   nationalWillEcLimited: (entry, locale) =>
     withActor(
       entry,

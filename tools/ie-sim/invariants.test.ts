@@ -9,7 +9,8 @@
  * 2. A baselined code that no longer reproduces fails the run too, so fixing an
  *    engine bug forces its baseline entry to be deleted in the same change.
  *
- * `IE_SEEDS` selects seeds, `IE_MODES` a comma-separated subset of the modes,
+ * `IE_SEEDS` selects seeds, `IE_MODES` a comma-separated subset of the six
+ * modes (all of them by default),
  * `IE_CENSUS_DUMP=<path>` writes the full observation for triage.  `warn`
  * severities are reported but never gate (5.5.3 permits a transient overstack).
  */
@@ -56,13 +57,15 @@ const ALL_MODES: Mode[] = [
   {name: "chaos", options: {chaos: 0.5}},
 ];
 
-/** CI keeps a three-mode slice; the nightly job runs `IE_MODES=all`. */
-const DEFAULT_MODES = ["campaign", "war", "greatWar"];
-
+/**
+ * The gate runs the whole mode matrix by default: the three modes a first
+ * version skipped (amphibious, navy, chaos) produced three of the first six
+ * census findings, and the full set still costs under ten minutes in CI.
+ * `IE_MODES=campaign,war` narrows it for a quick local loop.
+ */
 const modes = (): Mode[] => {
   const requested = process.env.IE_MODES;
-  if (!requested) return ALL_MODES.filter((mode) => DEFAULT_MODES.includes(mode.name));
-  if (requested === "all") return ALL_MODES;
+  if (!requested || requested === "all") return ALL_MODES;
   const wanted = requested.split(",").map((name) => name.trim()).filter(Boolean);
   const picked = ALL_MODES.filter((mode) => wanted.includes(mode.name));
   if (picked.length !== wanted.length) {

@@ -7,10 +7,11 @@
  * step cadence.
  */
 import type {ImperialElegyState} from "../../types";
+import {PRINTED} from "./printed";
 import {STRUCTURAL} from "./structural";
 import type {CheckContext, CheckLevel, Invariant, Violation} from "./types";
 
-export const INVARIANTS: readonly Invariant[] = [...STRUCTURAL];
+export const INVARIANTS: readonly Invariant[] = [...STRUCTURAL, ...PRINTED];
 
 export interface CheckOptions {
   level?: CheckLevel;
@@ -58,4 +59,4 @@ export const countByCode = (violations: readonly Violation[]): Record<string, nu
 };
 
 export type {CheckContext, CheckLevel, Invariant, Violation};
-export {STRUCTURAL};
+export {STRUCTURAL, PRINTED};

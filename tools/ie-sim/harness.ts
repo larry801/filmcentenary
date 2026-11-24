@@ -199,8 +199,11 @@ const simStageAmphibious = (G: ImperialElegyState, ctx: Ctx): void => {
       const target = enemies[0];
       // 19.10 needs the armies *and* an escort in the box (12.3 transport).
       const present = landUnitsIn(G, box).filter((unit) => unit.owner === power && isArmyKind(unit.kind)).length;
-      for (let i = present; i < 2; i += 1) placeUnit(G, power, "army", box, 2);
-      if (navalUnitsIn(G, box).filter((unit) => unit.owner === power).length === 0) {
+      // Staging is scaffolding, so it must respect 4.2 like a real build: a
+      // fabricated sixth army would make the census report a state the engine
+      // can never reach.
+      for (let i = present; i < 2 && hasCounterFor(G, power, "army"); i += 1) placeUnit(G, power, "army", box, 2);
+      if (navalUnitsIn(G, box).filter((unit) => unit.owner === power).length === 0 && hasCounterFor(G, power, "squadron")) {
         placeUnit(G, power, "squadron", box, 2);
       }
       G.flags.simAmphibTarget = target;

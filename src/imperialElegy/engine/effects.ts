@@ -622,6 +622,13 @@ export const damageUnit = (G: ImperialElegyState, unitId: string, steps = 1): vo
 export const addReserve = (G: ImperialElegyState, power: Power, count: number): void => {
   const p = G.powers[power];
   for (let i = 0; i < count; i += 1) {
+    // 4.2: a reserve army is a physical counter, so a card that grants more
+    // than the power still owns cannot place them.  Aux Armes could take France
+    // past its nine reserve counters this way.
+    if (!hasCounterFor(G, power, "reserveArmy")) {
+      log(G, power, "reserveArmyLimited", {});
+      break;
+    }
     const unit = placeUnit(G, power, "reserveArmy", null, 2);
     p.reserves.push(unit.id);
   }
