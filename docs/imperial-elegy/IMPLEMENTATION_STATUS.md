@@ -2714,6 +2714,23 @@ verification.
   zeros agree. `CAMPAIGN_SETUP` stores the derived FR 3, so the setup display
   and the first end-phase recompute cannot disagree;
   `powerProjection.test.ts` pins the formula over the whole printed setup.
+- **1870/1880 power projection was displayed as unpublished (fixed 2026-11-24).**
+  The v1.1 Playbook prints a Power Projection line for both scenarios —
+  `UK 8, FR 4, RU 3, OT 0, AU 0, GE 0` on p. 4 and p. 5, each followed by
+  "UK and FR dominate Power Projection" — but `s1870.ts`/`s1880.ts` declared
+  "the print lists no Power Projection", stored all six markers as 0, and left
+  the display to the first end-phase recompute.  The setup therefore showed a
+  zero track that jumped to the board's totals one end phase later, and FR's
+  printed **4** (the +1 over the campaign's 3, from the Indochina control
+  marker's Indian Ocean port) never appeared until then.  Both scenarios now
+  store the printed line, so the opening display is FR 4 / RU 3 / UK 8 and
+  "UK and FR dominate".  The single printed value the board overrules is AU's:
+  3.3.1 scores Croatia's port plus AU's starting squadron at 1, so the stored
+  marker is that derived 1 rather than the printed 0 (a playbook slip) to keep
+  the display and the recompute equal.  `powerProjection.test.ts`'s
+  "1870/1880 printed power-projection display" block pins the stored line, the
+  campaign's unchanged FR 3 / RU 3, and display = `computePowerProjection` =
+  post-`recomputeTracks` for every power.
 
 ### A100 / 23.1 crisis sequencing corrected
 
