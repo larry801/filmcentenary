@@ -31,6 +31,33 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 | `chaos` | `0` takes the first legal choice, `0.5` picks randomly half the time — this is what explores the branches a fixed policy never reaches |
 | `maxSteps` | hard cap on dispatched actions (default 40000) |
 | `stopAfterTurn` | stop once that rulebook turn has finished |
+| `onState` | called with the state after every dispatched action; the property suites use it to run the rule catalogue on each step |
+
+## Rule invariants and property-based simulation
+
+`sweep.test.ts` asks whether the engine accepts the board's decisions.  The
+rule layer asks whether the resulting board is *legal*:
+
+| file | what it does |
+| --- | --- |
+| `invariants.ts` | the rule-cited catalogue (`INVARIANTS`): A-tier hard failures and B-tier rule audits, each with its rulebook section |
+| `properties.ts` | generative runner: per-action invariant checks, JSON round-trip, `playerView` privacy, rule 25 outcome, determinism; `shrinkFailure` replays the shortest failing prefix |
+| `property.test.ts` | the property suite over a scenario/player-count/chaos matrix (`VQ_PROPERTY_SEEDS`, `VQ_PROPERTY_STEPS`) |
+| `invariantMutation.test.ts` | injects one rule break into a real mid-game state per invariant and asserts the checker fires |
+
+```sh
+# rule invariants: does each checker actually fire when the board is broken?
+npx jest --testPathPatterns "tools/vq-sim/invariantMutation" \
+  --testPathIgnorePatterns "/node_modules/" --runInBand
+
+# property-based simulation over generated matches
+VQ_PROPERTY_SEEDS=VQ-PROP-1,VQ-PROP-2 npx jest \
+  --testPathPatterns "tools/vq-sim/property" \
+  --testPathIgnorePatterns "/node_modules/" --runInBand
+```
+
+Design notes, the full invariant table and the rule mapping are in
+`docs/vq-invariant-property-tests.md`.
 
 ## What it checks
 
@@ -46,8 +73,8 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 
 ## Findings
 
-The sweep found three bugs so far. Each is pinned by a test under
-`src/virginQueen/`.
+The sweep found three bugs so far, and the rule-invariant layer below adds three
+more. Each is pinned by a test under `src/virginQueen/`.
 
 1. **Mandatory #74 deadlocked the Action Phase** (`mandatoryResolvedMinor.test.ts`).
    `playCard` refused Scottish Lords Rebel whenever Scotland had already been
@@ -79,3 +106,26 @@ The sweep found three bugs so far. Each is pinned by a test under
    `deactivateMajor` clears the per-impulse flags with the hand.
 
 
+5. **Conversion / Science-Bonus windows deadlocked the Action Phase**
+   (`harness.ts#decidingPower`, `decision.ts`).  `moveError` refuses every move
+   while `pendingConversion` or `pendingScienceTreasure` is open, but neither is a
+   boardgame.io stage, so the policy never answered it and kept asking for
+   `endImpulse` until the stall detector fired.  Both windows are now deciding
+   powers, and `actionDecision` answers them.  (Registration for
+   `chooseConversionNullify` / `chooseScienceTreasureBonus` already existed in
+   `game.ts#choiceStages`; the policy simply was not choosing them.)
+
+6. **#34 Holy Roman Intercession could declare war on the HRE itself**
+   (`hreIntercession.test.ts`).  `eventTargetOptions` enumerated every warring
+   pair without excluding the HRE, so the drawer offered `Spain + HRE` and the
+   log read "神圣罗马帝国 declares war on 神圣罗马帝国".  `diplomacy.wars`
+   (rule 9.4) caught it.  The target generator and `resolveHolyRomanIntercession`
+   now both reject an HRE side.
+
+7. **Winter *return* choices were treated as blocking windows**
+   (`invariants.ts#pendingDecider`).  Rule 20 only requires the current power to
+   confirm its losses; return moves are optional (the automatic placement is a
+   legal result).  Reporting every `winterReturnChoices[0]` produced a phantom
+   "pending decision for england, which has no controlling seat" in the
+   2-player tutorial.  The decider now only names the active power's loss
+   confirmations.

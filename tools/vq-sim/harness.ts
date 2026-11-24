@@ -13,10 +13,10 @@ import {CreateGameReducer, InitializeGame, ProcessGameConfig} from "boardgame.io
 import {VirginQueenGameDef} from "../../src/virginQueen/game";
 import {setupGame} from "../../src/virginQueen/util";
 import {ownerOf} from "../../src/virginQueen/ownership";
-import {POWERS, Power, VQGame, ScenarioID, Controller} from "../../src/virginQueen/constant/general";
+import {POWERS, Power, VQGame, ScenarioID} from "../../src/virginQueen/constant/general";
 import {SPACE_BY_ID} from "../../src/virginQueen/mapData";
-import {controlOf} from "./support";
 import {decide} from "./decision";
+import {pendingDecider} from "./invariants";
 
 export interface SimOptions {
     seed: string | number;
@@ -30,6 +30,13 @@ export interface SimOptions {
     trace?: (step: number, event: SimEvent) => void;
     /** Stop once this rulebook turn (1-based) has finished. */
     stopAfterTurn?: number;
+    /**
+     * Called with the state produced by every dispatched action, including a
+     * refused one (the state is then unchanged).  The property suites use this
+     * to check the full rule catalogue after each step without changing the
+     * default check that `sweep.test.ts` relies on.
+     */
+    onState?: (G: VQGame, ctx: Ctx, step: number) => void;
 }
 
 export interface SimEvent {
@@ -104,40 +111,7 @@ export const actingSeat = (G: VQGame, ctx: Ctx): string | null => {
 };
 
 /** The power whose pending decision blocks play, if any. */
-export const decidingPower = (G: VQGame): Power | undefined => {
-    const b = G.pendingBattle;
-    if (b !== undefined) return b.responding;
-    if (G.pendingEspionage !== undefined) return G.pendingEspionage.responding;
-    if (G.pendingCardEvent !== undefined) {
-        return G.pendingCardEvent.kind === "cancelEvent" ? G.pendingCardEvent.responding : "ottoman";
-    }
-    if (G.pendingTutorialEvent !== undefined) return G.pendingTutorialEvent.responding;
-    if (G.pendingActivation !== undefined) return G.pendingActivation.ally;
-    if (G.pendingTribute !== undefined) return G.pendingTribute.target;
-    if (G.pendingAbjuration !== undefined) return "protestant";
-    if (G.pendingCityRebels !== undefined) return controlOf(G, G.pendingCityRebels.controller);
-    if (G.pendingMutiny !== undefined) return G.pendingMutiny.owner;
-    if (G.pendingPolishElection !== undefined) return G.pendingPolishElection.remaining[0];
-    if (G.pendingPiracy !== undefined) {
-        return G.pendingPiracy.step === "losses" ? G.pendingPiracy.power : G.pendingPiracy.target;
-    }
-    if (G.pendingAction !== undefined) {
-        return G.pendingAction.responder ?? G.pendingAction.responders?.[0] ?? G.pendingAction.power;
-    }
-    if (G.pendingBeacon !== undefined) return G.pendingBeacon.defender;
-    if (G.pendingInterceptionOrder !== undefined) return G.pendingInterceptionOrder.defender;
-    if (G.pendingIntercept !== undefined) return G.pendingIntercept.defender;
-    if (G.pendingWithdraw !== undefined) return G.pendingWithdraw.defender;
-    if (G.pendingReliefSplit !== undefined) return G.pendingReliefSplit.power;
-    if (G.pendingContinue !== undefined) return G.pendingContinue.power;
-    if (G.pendingForeignWar !== undefined) return G.pendingForeignWar.power;
-    if (G.pendingRebelMove !== undefined) return G.pendingRebelMove.power;
-    if (G.pendingBetrothal !== null) return G.pendingBetrothal.target;
-    if (G.pendingNavalOrder !== undefined) return G.pendingNavalOrder.attacker;
-    if (G.pendingNavalMoves !== undefined) return G.pendingNavalMoves.power;
-    if (G.gregorianResponse !== undefined) return G.gregorianResponse.responder;
-    return undefined;
-};
+export const decidingPower = (G: VQGame): Power | undefined => pendingDecider(G);
 
 /**
  * Structural invariants that must hold after every action.  These are the
@@ -317,6 +291,7 @@ export function runSeededGame(options: SimOptions): SimResult {
         events.push(event);
         options.trace?.(steps, event);
         state = next;
+        options.onState?.(state.G as VQGame, state.ctx as Ctx, steps);
         if (event.status !== "ok") {
             // A rejected decision on an unchanged state is the board's "bot is
             // stuck" signal.  Report it once and escape with a legal fallback so
