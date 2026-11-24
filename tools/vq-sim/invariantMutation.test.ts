@@ -253,13 +253,22 @@ const MUTATIONS: Mutation[] = [
         mutate: () => undefined,
     },
     {
-        name: "a galleon beyond the printed force pool",
-        expect: "force.naval-kind",
+        name: "naval counters beyond the printed pool",
+        expect: "force.naval",
         mutate: (G) => {
             const zone = Object.keys(G.seaZones)[0] as keyof VQGame["seaZones"];
             const stack = G.seaZones[zone].naval.spain ?? {galley: 0, galleon: 0, racebuilt: 0, corsair: 0};
             stack.galleon += 20;
             G.seaZones[zone].naval.spain = stack;
+        },
+    },
+    {
+        name: "land units beyond the printed pool",
+        expect: "force.land",
+        mutate: (G) => {
+            const space = Object.values(G.spaces).find((state) => state.land.france !== undefined);
+            if (space === undefined) throw new Error("France has no land on the board");
+            space.land.france!.regular += 40;
         },
     },
 ];

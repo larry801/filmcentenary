@@ -55,7 +55,7 @@
 | `vp.history` / `vp.derivation` | 25.2 / 25.3 | A | VP 记录合法；VP 总分等于各项之和 |
 | `pending.owner` | 7 | A | 任何阻塞待决窗口的势力必须有控制席位（否则棋盘没有按钮可点） |
 | `victory.reason` / `victory.power` / `victory.seat` / `victory.standard` / `victory.domination` / `victory.time-limit` / `victory.automatic` | 25 | A | `gameover` 与规则 25 的判定一致 |
-| `force.regular` / `force.merc` / `force.naval` / `force.naval-kind` / `force.cavalry` / `force.walloons` / `force.minor` | 17.1 / 17.2 / 24.3 | B | 各势力常规/雇佣/海军/船型/瓦隆/小国兵力不超过印刷上限 |
+| `force.land` / `force.naval` / `force.walloons` / `force.minor` | 17.1 / 17.2 / 17.3 / 24.3 | B | 陆地/海军棋子池不超印刷上限（规则 5.3 的“同一批实体棋子”模型），瓦隆 ≤ 3，小国按 24.3 |
 | `religion.core-presence` | 18.1 | B | 每个宗教区至少保留一个天主教区和一个新教区 |
 | `virgin-queen.cap` | 21.2 | B | 处女女王 VP 奖励不超过规则上限 |
 
@@ -143,7 +143,8 @@ runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999})
 | 连续过牌超过座位数 | `turn.passes` |
 | 无席位势力的待决窗口 | `pending.owner` |
 | `gameover.winner` 与胜者席位不符 | `victory.seat` |
-| 西班牙帆船超过印刷上限 | `force.naval-kind` |
+| 西班牙舰船超过印刷池 | `force.naval` |
+| 法国陆军超过印刷池 | `force.land` |
 
 外加一个基线用例：未变异的真实中局状态必须**A 级零违反**——否则变异测试
 本身就失去了意义。B 级审计允许出现在健康棋盘上（它们记录的是“引擎表示比
@@ -154,6 +155,11 @@ runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999})
 - **教学剧本的兵力上限**：`TUTORIAL_POWER_CARDS` 给奥斯曼/西班牙的固定教学
   配置不按实体棋子池计数，所以 `checkForcePools` 在 `scenario === "tutorial"`
   时直接返回空。
+- **统一棋子池**：`checkForcePools` 直接复用引擎的
+  `landPoolLimit` / `navalPoolLimit` / `navalPoolUsed`，与 `buildLand`、
+  `addLandFromPool` 的判断完全一致。规则 5.3 规定常规军、雇佣兵与奥斯曼
+  骑兵共用同一批实体棋子，所以不能按单位类型分别设上限（这样的审计会误报
+  合法建造）。
 - **教学剧本的宗教区**：教学剧本只用棋盘的一部分，未启用的宗教区（英格兰、
   苏格兰、荷兰、法国）没有开局摆放，全部留在天主教并不能说明“新教已被消灭”。
   `checkReligion` 只在剧本实际使用的宗教区上做审计。

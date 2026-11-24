@@ -18,20 +18,16 @@
 import {Ctx} from "boardgame.io";
 import {
     Controller,
-    GALLEON_LIMITS,
-    GALLEY_LIMITS,
-    CORSAIR_LIMITS,
     MINOR_NAVAL_LIMITS,
     MINOR_POWERS,
     MINOR_REGULAR_LIMITS,
-    MERC_LIMITS,
     NAVAL_LIMITS,
-    OTTOMAN_CAVALRY_LIMIT,
     POWERS,
     Power,
     REGULAR_LIMITS,
     RELIGION_AREAS,
     TREASURE_TABLE,
+    WALLOON_LIMIT,
     Treasure,
     VQGame,
     isPower,
@@ -46,18 +42,12 @@ import {ownerOf} from "../../src/virginQueen/ownership";
 import {controlOf} from "./support";
 import {
     automaticVictoryCandidates,
-    cavalryCount,
     defenderLandCount,
-    landForceCount,
     landForceCountController,
-    mercCount,
-    navalForceCount,
-    navalForceCountByKind,
-    navalForceCountController,
+    landPoolLimit,
     navalLostCount,
-    navalLostCountByKind,
-    navalLostCountController,
-    regularCount,
+    navalPoolLimit,
+    navalPoolUsed,
     vpBreakdown,
     victoryStandings,
 } from "../../src/virginQueen/util";
@@ -565,48 +555,44 @@ export const checkTurnStructure = (G: VQGame): string[] => {
 
 export const checkForcePools = (G: VQGame): string[] => {
     const problems: string[] = [];
-    // The tutorial deliberately ignores the printed force pools: it hands the
-    // Ottoman and Spanish players a fixed teaching set-up, so the physical
-    // counter limit is not a meaningful audit there.
+    // Rule 17.1: "Units may never be constructed in excess of the counters
+    // available."  The engine models this as one unified pool per controller —
+    // regulars, mercenaries and Ottoman cavalry share the same physical
+    // counters (rule 5.3) — so the audit mirrors `landPoolLimit`/`navalPoolLimit`
+    // rather than inventing separate allowances per unit type.
+    //
+    // The tutorial deliberately ignores the printed pools: `TUTORIAL_POWER_CARDS`
+    // hands the Ottoman and Spanish players a fixed teaching set-up, so the
+    // physical counter limit is not a meaningful audit there.
     if (G.scenario === "tutorial") return problems;
     for (const power of POWERS) {
-        // Rule 17.1/17.2: the printed regular allowance covers regulars *and*
-        // mercenaries, which is exactly the test `buildLand` applies
-        // (`landForceCount >= REGULAR_LIMITS`).  Mirroring the engine keeps the
-        // audit from flagging a legal build that happened to fill the pool.
-        const land = landForceCount(G, power);
-        if (land > REGULAR_LIMITS[power]) {
-            note(problems, "force.regular", "17.1", "B", `${power} regulars+mercs=${land} limit=${REGULAR_LIMITS[power]}`);
+        const land = landForceCountController(G, power);
+        const landLimit = landPoolLimit(power);
+        if (land > landLimit) {
+            note(problems, "force.land", "17.1", "B", `${power} land units=${land} limit=${landLimit}`);
         }
-        if (mercCount(G, power) > MERC_LIMITS[power]) {
-            note(problems, "force.merc", "17.1", "B", `${power} mercs=${mercCount(G, power)} limit=${MERC_LIMITS[power]}`);
+        const naval = navalPoolUsed(G, power);
+        const navalLimit = navalPoolLimit(power);
+        if (naval > navalLimit) {
+            note(problems, "force.naval", "17.3", "B", `${power} naval counters=${naval} (incl. pending rebuilds) limit=${navalLimit}`);
         }
-        if (navalForceCount(G, power) + navalLostCount(G, power) > NAVAL_LIMITS[power]) {
-            note(problems, "force.naval", "17.1", "B",
-                `${power} naval=${navalForceCount(G, power)}+${navalLostCount(G, power)} lost limit=${NAVAL_LIMITS[power]}`);
-        }
-        for (const [kind, limits] of [["galley", GALLEY_LIMITS], ["galleon", GALLEON_LIMITS], ["corsair", CORSAIR_LIMITS]] as const) {
-            const count = navalForceCountByKind(G, power, kind) + navalLostCountByKind(G, power, kind);
-            if (count > limits[power]) {
-                note(problems, "force.naval-kind", "17.1", "B", `${power} ${kind}s=${count} limit=${limits[power]}`);
-            }
-        }
-    }
-    if (cavalryCount(G, "ottoman") > OTTOMAN_CAVALRY_LIMIT) {
-        note(problems, "force.cavalry", "17.1", "B", `Ottoman cavalry=${cavalryCount(G, "ottoman")} limit=${OTTOMAN_CAVALRY_LIMIT}`);
-    }
-    if ((G.walloonsBuilt ?? 0) < 0 || (G.walloonsBuilt ?? 0) > 3) {
-        note(problems, "force.walloons", "17.2", "B", `walloonsBuilt=${G.walloonsBuilt}`);
     }
     for (const minor of MINOR_POWERS) {
         const land = landForceCountController(G, minor);
-        if (land > (MINOR_REGULAR_LIMITS[minor] ?? 12)) {
-            note(problems, "force.minor", "24.3", "B", `${minor} land=${land} limit=${MINOR_REGULAR_LIMITS[minor] ?? 12}`);
+        const landLimit = MINOR_REGULAR_LIMITS[minor] ?? 12;
+        if (land > landLimit) {
+            note(problems, "force.minor", "24.3", "B", `${minor} land units=${land} limit=${landLimit}`);
         }
-        const sea = navalForceCountController(G, minor) + navalLostCountController(G, minor);
-        if (sea > (MINOR_NAVAL_LIMITS[minor] ?? 4)) {
-            note(problems, "force.minor", "24.3", "B", `${minor} naval=${sea} limit=${MINOR_NAVAL_LIMITS[minor] ?? 4}`);
+        const naval = navalPoolUsed(G, minor);
+        const navalLimit = MINOR_NAVAL_LIMITS[minor] ?? 4;
+        if (naval > navalLimit) {
+            note(problems, "force.minor", "24.3", "B", `${minor} naval counters=${naval} limit=${navalLimit}`);
         }
+    }
+    // Rule 17.2(c): the three Walloon regular counters are a special Spanish
+    // build allowance, not an extra unit type, so a fourth one is impossible.
+    if ((G.walloonsBuilt ?? 0) < 0 || (G.walloonsBuilt ?? 0) > WALLOON_LIMIT) {
+        note(problems, "force.walloons", "17.2", "B", `walloonsBuilt=${G.walloonsBuilt}`);
     }
     return problems;
 };
