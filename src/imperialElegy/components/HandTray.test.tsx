@@ -269,6 +269,28 @@ test("an ordinary card keeps the plain 打出事件 label", () => {
   expect(eventButton).not.toContain("打出强制事件");
 });
 
+test("International Conference draws its printed event control at WTT 5", () => {
+  // A67's standard-event mode is printed on the card, so the row must offer it
+  // and state "Play when the WTT reaches 5" rather than hiding it as a
+  // window-only response.
+  const G = game();
+  G.powers.GE.hand = ["IE-A067"];
+  G.wtt = 4;
+  const low = renderToStaticMarkup(<HandTray {...props(G, true)} expandAll/>);
+  const lowButton = low.match(/<button[^>]*data-testid="ie-play-event-IE-A067"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  expect(lowButton).not.toBe("");
+  expect(lowButton).toContain("disabled");
+  expect(lowButton).toContain('data-blocked="wtt-max"');
+  expect(lowButton).toContain("世界紧张达到 5 时才能打出。");
+
+  G.wtt = 5;
+  const top = renderToStaticMarkup(<HandTray {...props(G, true)} expandAll/>);
+  const topButton = top.match(/<button[^>]*data-testid="ie-play-event-IE-A067"[^>]*>[\s\S]*?<\/button>/)?.[0] ?? "";
+  expect(topButton).not.toBe("");
+  expect(topButton).not.toContain("disabled");
+  expect(topButton).toContain(">打出事件<");
+});
+
 test("svg is the zero-image default and print mode uses the stored card scan", () => {
   const G = game();
   // The card face is what the inspector draws; drive it through `expandAll`

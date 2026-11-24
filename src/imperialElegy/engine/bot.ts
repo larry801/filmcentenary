@@ -347,8 +347,8 @@ const worthPlayingForEvent = (
  * plays that card for its event on reveal.  A card is only returned here when
  * the engine would accept the event play right now (`eventPlayability`, plus
  * the battle-window rule that keeps response/combat cards out of a normal
- * impulse — A41 is the one printed exception).  Returning an event the move
- * would refuse would leave the bot re-sending it every impulse.
+ * impulse — A41 and A67 are the printed exceptions).  Returning an event the
+ * move would refuse would leave the bot re-sending it every impulse.
  */
 const botBoxEvent = (G: ImperialElegyState, power: Power): BotMove | null => {
   if (impulseAlreadyUsed(G, power)) return null; // 12.0: one card opens the impulse
@@ -356,7 +356,7 @@ const botBoxEvent = (G: ImperialElegyState, power: Power): BotMove | null => {
     const def = cardById(cardId);
     if (def.botBox?.includes(power) !== true) continue;
     if (def.kind !== "action") continue;
-    if ((def.type === "response" || def.type === "combat") && cardId !== "IE-A041") continue;
+    if ((def.type === "response" || def.type === "combat") && cardId !== "IE-A041" && cardId !== "IE-A067") continue;
     if (!eventPlayability(G, power, cardId).ok) continue;
     return {move: "playCard", args: [cardId, "event"]};
   }

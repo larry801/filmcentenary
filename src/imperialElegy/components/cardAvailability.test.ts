@@ -16,6 +16,7 @@ import {ALL_CARDS, cardById} from "../engine/deck";
 import {CARDS} from "../constant/cards.data";
 import type {CardType} from "../constant/cards";
 import {setupImperialElegy} from "../engine/setup";
+import {openCrisisDecision} from "../engine/greatWar";
 import type {ImperialElegyState} from "../types";
 
 const testCtx = {
@@ -207,6 +208,54 @@ describe("cardAvailability", () => {
     // The same card is a German wartime response, not a neutral spectator's.
     expect(cardAvailability(input(G, id, {phase: "wartime", isBelligerent: false})).showResponse).toBe(false);
     expect(cardAvailability(input(G, id, {phase: "wartime", isBelligerent: true})).showResponse).toBe(true);
+  });
+
+  test("International Conference's printed event rides the WTT-5 trigger", () => {
+    // A67 is printed "Play when the WTT reaches 5", so the tray must show its
+    // standard-event control and state that condition instead of hiding it as
+    // a window-only response card.
+    const G = game(0);
+    const conference = "IE-A067";
+    G.powers.GE.hand = [conference];
+    const playBlock = {"wtt-max": "Play when the WTT reaches 5."};
+
+    G.wtt = 4;
+    const low = cardAvailability(input(G, conference, {playBlock}));
+    expect(low.eventAllowed).toBe(true);
+    expect(low.eventModeOk).toBe(false);
+    expect(low.eventBlockKey).toBe("wtt-max");
+    expect(low.eventBlockReason).toBe("Play when the WTT reaches 5.");
+    expect(low.reasons).toContain("Play when the WTT reaches 5.");
+    // No crisis roll is open, so the response use is shut as well.
+    expect(low.responseOk).toBe(false);
+
+    G.wtt = 5;
+    const top = cardAvailability(input(G, conference, {playBlock}));
+    expect(top.eventAllowed).toBe(true);
+    expect(top.eventModeOk).toBe(true);
+    expect(top.eventBlockKey).toBeUndefined();
+  });
+
+  test("International Conference answers the open crisis roll from any seat", () => {
+    // A67's printed response window is the crisis decision itself, not the
+    // start of an impulse, so an off-the-clock holder still gets the control
+    // while the roll waits; its own-impulse event face stays shut.
+    const G = game(0);
+    G.resolvingCard = null;
+    G.powers.GE.hand = ["IE-A067"];
+    G.wtt = 5;
+    openCrisisDecision(G, testCtx, "FR");
+    expect(G.pending?.kind).toBe("crisis");
+
+    const a = cardAvailability(input(G, "IE-A067", {
+      isActive: false,
+      playBlock: {"pending": "Resolve the pending decision first."},
+    }));
+    expect(a.showResponse).toBe(true);
+    expect(a.responseOk).toBe(true);
+    expect(a.eventModeOk).toBe(false);
+    expect(a.eventBlockKey).toBe("pending");
+    expect(a.reasons).toContain("Resolve the pending decision first.");
   });
 
   test("a closed card window blocks every mode", () => {

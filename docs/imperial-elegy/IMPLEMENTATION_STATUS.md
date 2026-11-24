@@ -4159,11 +4159,13 @@ each was a place where the printed text (or the map data) was cosmetic.
     tense, so the loss stays a legal trigger);
   - A109 Revolution of 1905 — the same trigger, for the current or previous
     turn;
-  - A67 International Conference — its only response window is the open
-    `crisis` decision, where it adds its +2 DRM without replacing the roll; the
-    Impulsive Ruler exception is enforced. Its printed normal-event mode is now
-    reachable and applies only the WTT decrease (`eventPlayability` allows A67
-    like A41);
+  - A67 International Conference — printed "Play when the WTT reaches 5", so
+    both faces sit on that trigger: the response is the open `crisis` decision
+    at WTT 5, where it adds its +2 DRM without replacing the roll and refuses
+    the Impulsive Ruler crisis; the normal-event mode is the WTT decrease in the
+    holder's own impulse at WTT 5, shown and refused with the printed reason by
+    the shared `eventPlayability` gate (below 5 the tray disables it, and it
+    also waits for any pending decision);
   - A65 Indian Ocean Arms Trade — `pacify(..., "marker" | "rebel")` consumes
     the card before its own roll (and the board offers one row per printed
     effect when the pacifying player holds it), so the printed "prior to a

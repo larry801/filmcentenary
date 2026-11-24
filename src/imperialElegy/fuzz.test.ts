@@ -12,6 +12,9 @@ test("every action card event can resolve without throwing", () => {
     G.phase = "action";
     G.activePower = "GE";
     G.powers.GE.hand.push(card.id);
+    // A67 International Conference is printed "Play when the WTT reaches 5";
+    // set the printed precondition so its event still resolves here.
+    if (card.id === "IE-A067") G.wtt = 5;
     try {
       playCard(G, ctx, card.id, "event");
       let guard = 0;

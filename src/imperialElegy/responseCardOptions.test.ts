@@ -3,6 +3,7 @@ import {ACTION_CARDS} from "./constant/cards.data";
 import {placeUnit} from "./engine/effects";
 import {setupImperialElegy} from "./engine/setup";
 import {pacify, playCard, playResponseCard, resolvePending, responseCardEligibility} from "./moves";
+import {eventPlayability} from "./engine/playability";
 import {openCrisisDecision} from "./engine/greatWar";
 import {POWERS} from "./types";
 
@@ -115,22 +116,55 @@ test("International Conference cannot answer Impulsive Ruler's crisis", () => {
   });
 });
 
-test("International Conference's event mode is the printed WTT decrease", () => {
+test("International Conference is not a response to a crisis below WTT 5", () => {
+  // "Play when the WTT reaches 5": a crisis a card's own effect incites at a
+  // lower tension is not the roll this card amends.
+  const {G} = startCrisisResponse();
+  G.wtt = 4;
+
+  expect(responseCardEligibility(G, "GE", "IE-A067")).toMatchObject({
+    ok: false,
+    reason: "crisis-window",
+  });
+  expect(playResponseCard(G, makeCtx("0"), "IE-A067")).toBe(INVALID_MOVE);
+  expect(G.powers.GE.hand).toContain("IE-A067");
+});
+
+test("International Conference's event mode needs the WTT at 5", () => {
   const G = fresh();
   G.phase = "action";
   G.activePower = "GE";
   G.cpRemaining = 0;
   clearHands(G);
   G.powers.GE.hand = ["IE-A067"];
-  G.wtt = 3;
   const ctx = makeCtx("0");
 
+  // Printed "Play when the WTT reaches 5": below the top of the track the
+  // normal-event mode is shut, so the card cannot bank a free WTT decrease.
+  G.wtt = 4;
+  expect(eventPlayability(G, "GE", "IE-A067")).toMatchObject({ok: false, reason: "wtt-max"});
+  expect(playCard(G, ctx, "IE-A067", "event")).toBe(INVALID_MOVE);
+  expect(G.powers.GE.hand).toContain("IE-A067");
+  expect(G.wtt).toBe(4);
+
+  // At 5 the printed normal-event mode is the WTT decrease; the +2 DRM stays
+  // exclusive to the open crisis window.
+  G.wtt = 5;
   expect(playCard(G, ctx, "IE-A067", "event")).toBeUndefined();
-  // Only the WTT branch: the +2 DRM is exclusive to the open crisis window.
-  expect(G.wtt).toBe(2);
+  expect(G.wtt).toBe(4);
   expect(G.flags.crisisDrm ?? 0).toBe(0);
   expect(G.pending).toBeNull();
   expect(G.discard).toContain("IE-A067");
+});
+
+test("International Conference's normal event waits for a pending decision", () => {
+  // The normal-event mode is a standard impulse play, so it cannot pre-empt the
+  // crisis decision whose roll it would otherwise amend as a response.
+  const {G} = startCrisisResponse();
+  expect(eventPlayability(G, "GE", "IE-A067")).toMatchObject({ok: false, reason: "pending"});
+  expect(playCard(G, makeCtx("0"), "IE-A067", "event")).toBe(INVALID_MOVE);
+  expect(G.pending?.kind).toBe("crisis");
+  expect(G.wtt).toBe(5);
 });
 
 test("Indian Ocean Arms Trade prints two distinct, non-empty options", () => {
