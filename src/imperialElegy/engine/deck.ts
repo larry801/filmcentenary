@@ -167,6 +167,10 @@ export const removeCard = (G: ImperialElegyState, card: CardId): void => {
     G.powers[p].hand = G.powers[p].hand.filter((c) => c !== card);
     G.powers[p].homeCards = G.powers[p].homeCards.filter((c) => c !== card);
     G.powers[p].cpChain = G.powers[p].cpChain.filter((c) => c !== card);
+    // A card that leaves the game cannot stay this turn's home-card
+    // selection: the seat would be unable to play it and, because a home card
+    // in hand forbids passing, unable to do anything else in its impulse.
+    if (G.powers[p].selectedHomeCard === card) G.powers[p].selectedHomeCard = null;
   }
   if (!G.removed.includes(card)) G.removed.push(card);
   log(G, undefined, "cardRemoved", {card});

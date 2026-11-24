@@ -55,3 +55,15 @@ export interface Invariant {
   title: string;
   check(G: ImperialElegyState, ctx: CheckContext): Violation[];
 }
+
+/** Bind a violation factory to one catalog entry. */
+export const violationAt = (inv: Invariant) =>
+  (path: string, observed: unknown, expected: string, msg: string): Violation => ({
+    code: inv.code,
+    rule: inv.rule,
+    severity: inv.severity,
+    path,
+    observed,
+    expected,
+    msg,
+  });

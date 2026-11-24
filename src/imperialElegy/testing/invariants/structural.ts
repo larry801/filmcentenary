@@ -29,6 +29,7 @@ import {
 import {ALLIANCE_MAX_PLAYERS, allianceMembers} from "../../engine/alliance";
 import {MINOR_ALLY_CAP} from "../../engine/effects";
 import {cpChainResolution} from "../../engine/economy";
+import {violationAt} from "./types";
 import type {CheckContext, Invariant, Severity, Violation} from "./types";
 
 const PHASES = [
@@ -55,17 +56,7 @@ const BATTLE_STAGES = [
   "done",
 ] as const;
 
-/** Violation factory bound to one catalog entry. */
-const at = (inv: Invariant) =>
-  (path: string, observed: unknown, expected: string, msg: string): Violation => ({
-    code: inv.code,
-    rule: inv.rule,
-    severity: inv.severity,
-    path,
-    observed,
-    expected,
-    msg,
-  });
+const at = violationAt;
 
 /**
  * A home card is not a zone: it lives in `homeCards` permanently and is also in
@@ -262,9 +253,10 @@ export const A04: Invariant = {
         if (space.type !== "navalBox" && !(space.ports ?? []).length) {
           out.push(bad(`units.${uid}.space`, unit.space, "a naval box or a port", `${unit.kind} ${uid} is in ${unit.space}, which is neither`));
         }
-      } else if (space.type === "navalBox") {
-        out.push(bad(`units.${uid}.space`, unit.space, "a land space", `land counter ${uid} (${unit.kind}) is in naval box ${unit.space}`));
       }
+      // An army may sit in a naval box: 12.3 transport and 19.10 embark it
+      // there, so "land counter on the water" is a legal staging state, not a
+      // break.
     }
     return out;
   },
@@ -624,10 +616,10 @@ export const A15: Invariant = {
           out.push(bad(`battle.${field}`, battle[field], "an existing space", `battle ${field} ${String(battle[field])} does not exist`));
         }
       }
-      for (const field of ["attacker", "defender"] as const) {
-        if (!POWERS.includes(battle[field])) {
-          out.push(bad(`battle.${field}`, battle[field], "a player power", `battle ${field} ${String(battle[field])} is not a power`));
-        }
+      // 15.4.2: a lone non-player defender has no seat, so `defender` may hold
+      // a control id ("Japan", "Serbia") and only the attacker must be a player.
+      if (!POWERS.includes(battle.attacker)) {
+        out.push(bad("battle.attacker", battle.attacker, "a player power", `battle attacker ${String(battle.attacker)} is not a power`));
       }
       if (!(BATTLE_STAGES as readonly string[]).includes(battle.stage)) {
         out.push(bad("battle.stage", battle.stage, "a battle stage", `battle stage ${String(battle.stage)} is unknown`));

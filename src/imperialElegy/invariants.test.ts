@@ -8,11 +8,11 @@
  * legitimately trip a second invariant.
  */
 import type {Ctx} from "boardgame.io";
-import type {BattleState, GreatWarState, ImperialElegyState} from "./types";
+import type {BattleState, GreatWarState, ImperialElegyState, WarState} from "./types";
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
-import {INVARIANTS, checkAll} from "./testing/invariants";
+import {INVARIANTS, PRINTED, STRUCTURAL, checkAll} from "./testing/invariants";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -288,10 +288,131 @@ describe("A16 — the state is plain JSON", () => {
   });
 });
 
+describe("B02 — home-card pools", () => {
+  test("a selected card from another seat's pool is reported", () => {
+    const G = fresh();
+    G.powers.GE.selectedHomeCard = "IE-H-NOPE";
+    expect(codes(G)).toContain("B02");
+  });
+
+  test("a home card listed by two seats is reported", () => {
+    const G = fresh();
+    const card = G.powers.UK.homeCards[0];
+    expect(card).toBeDefined();
+    if (card) G.powers.FR.homeCards.push(card);
+    expect(codes(G)).toContain("B02");
+  });
+});
+
+describe("B04 — war and Great War budgets", () => {
+  test("a negative war budget is reported", () => {
+    const G = fresh();
+    G.powers.GE.warBudget = -1;
+    expect(codes(G)).toContain("B04");
+  });
+
+  test("a fractional Great War budget is reported", () => {
+    const G = fresh();
+    G.powers.GE.gwBudget = 1.5;
+    expect(codes(G)).toContain("B04");
+  });
+});
+
+describe("B07 — a war describes two legal, disjoint sides", () => {
+  test("an ally on both sides, a duplicate ally and a missing objective are reported", () => {
+    const G = fresh();
+    G.war = {
+      attacker: "GE",
+      defender: "FR",
+      attackerAllies: ["UK", "UK"],
+      defenderAllies: ["UK"],
+      attackerMinors: [],
+      defenderMinors: [],
+      warAim: "conquest",
+      objectives: ["nowhere"],
+      status: "maneuver",
+      budgets: {},
+    } as unknown as WarState;
+    const reported = codes(G);
+    expect(reported).toContain("B07");
+  });
+
+  test("an unknown war aim is reported", () => {
+    const G = fresh();
+    G.war = {
+      attacker: "GE",
+      defender: "FR",
+      attackerAllies: [],
+      defenderAllies: [],
+      attackerMinors: [],
+      defenderMinors: [],
+      warAim: "annexation" as never,
+      objectives: [],
+      status: "maneuver",
+      budgets: {},
+    } as unknown as WarState;
+    expect(codes(G)).toContain("B07");
+  });
+});
+
+describe("B10 — end-phase progress", () => {
+  test("a step past the printed list is reported", () => {
+    const G = fresh();
+    G.phase = "end";
+    G.endPhase = {step: 99};
+    expect(codes(G)).toContain("B10");
+  });
+
+  test("end-phase progress left behind outside the end phase is reported", () => {
+    const G = fresh();
+    G.endPhase = {step: 0};
+    const reported = checkAll(G, {level: "cheap"}).filter((violation) => violation.code === "B10");
+    expect(reported.some((violation) => violation.path === "endPhase")).toBe(true);
+  });
+
+  test("a settlement list with a stale power is reported", () => {
+    const G = fresh();
+    G.phase = "end";
+    G.endPhase = {step: 1, militarismSettled: ["GE", "GE"]};
+    expect(codes(G)).toContain("B10");
+  });
+});
+
+describe("B18 — blockade industry cap", () => {
+  test("industry above its cap is reported", () => {
+    const G = fresh();
+    G.powers.GE.industry = 99;
+    expect(codes(G)).toContain("B18");
+  });
+
+  test("a blockade maximum below the printed floor is reported", () => {
+    const G = fresh();
+    G.powers.GE.maxIndustry = 2;
+    expect(codes(G)).toContain("B18");
+  });
+});
+
+describe("B22 — characteristic markers", () => {
+  test("a Russian marker on France is reported", () => {
+    const G = fresh();
+    G.powers.FR.tsrr = true;
+    expect(codes(G)).toContain("B22");
+  });
+
+  test("an Ottoman marker on Germany is reported", () => {
+    const G = fresh();
+    G.powers.GE.jihad = 2;
+    expect(codes(G)).toContain("B22");
+  });
+});
+
 test("the registry is ordered, unique and cites a rule", () => {
-  expect(INVARIANTS.map((invariant) => invariant.code)).toEqual(
-    Array.from({length: INVARIANTS.length}, (_unused, index) => `A${String(index + 1).padStart(2, "0")}`),
+  const codes = INVARIANTS.map((invariant) => invariant.code);
+  expect(new Set(codes).size).toBe(codes.length);
+  expect(codes.slice(0, STRUCTURAL.length)).toEqual(
+    Array.from({length: STRUCTURAL.length}, (_unused, index) => `A${String(index + 1).padStart(2, "0")}`),
   );
+  expect(codes.slice(STRUCTURAL.length)).toEqual(PRINTED.map((invariant) => invariant.code));
   for (const invariant of INVARIANTS) expect(invariant.rule.length).toBeGreaterThan(0);
   expect(POWERS.length).toBe(6);
 });

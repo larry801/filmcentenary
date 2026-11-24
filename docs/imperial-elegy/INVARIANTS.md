@@ -9,12 +9,12 @@ the states it produces are ones the printed rules allow. It replaces the six
 ad-hoc structural checks that used to live in `tools/ie-sim/harness.ts`.
 
 ```sh
-# the gate (three modes x three seeds, a few minutes)
+# the gate (all six simulation modes x three seeds, under ten minutes)
 npx jest --testPathPatterns "tools/ie-sim/invariants" \
   --testPathIgnorePatterns "/node_modules/" --runInBand
 
-# the whole matrix, longer
-IE_MODES=all IE_SEEDS=IE-SIM-1,IE-SIM-2,IE-SIM-3 npx jest \
+# a narrower local loop
+IE_MODES=campaign,war IE_SEEDS=IE-SIM-1 npx jest \
   --testPathPatterns "tools/ie-sim/invariants" \
   --testPathIgnorePatterns "/node_modules/" --runInBand
 ```
@@ -55,7 +55,7 @@ Every check holds after *every* action in every phase.
 | A01 | 9.x / 10.x | cheap | error | a card is in at most one of deck, discard, removed, delayedCards, hand, cpChain, industryCard, gwCard. `homeCards` is a permanent pool, not a zone (10.4) |
 | A02 | 9.x | cheap | error | no zone lists an entry twice; `pending` and `pendingStack` ids are unique |
 | A03 | 5.x | cheap | error | `G.units` and every `space.units` list agree in both directions; a reserve counter owned by a power is off the board; no unit is listed in two spaces |
-| A04 | 5.1 / 5.3 / 5.4 | cheap | error | steps are 1 or 2; elite counters have exactly one; `naval` matches the kind; squadrons/dreadnoughts sit in a naval box or a port, land counters never in a box |
+| A04 | 5.1 / 5.3 / 5.4 | cheap | error | steps are 1 or 2; elite counters have exactly one; `naval` matches the kind; squadrons/dreadnoughts sit in a naval box or a port. An army *may* sit in a box: 12.3 transport and 19.10 embark it there |
 | A05 | 4.2 | full | error | no power holds more counters of a kind than its pool (naval limits included, EF/elite-colonial EF share one pool) |
 | A06 | 7.1 / 7.2 / 7.4 / 3.7 | cheap | error | stability 0..6, manpower/secondary >= 0, industry >= 0, keys >= 0, `wtt` 0..`worldTensionMax` (3.7), `cpRemaining` >= 0 |
 | A07 | 4.7 / 7.2 | full | error | at the start of a campaign turn, territorial/colonial/arab keys equal a `recomputeTracks` of the board. 7.2 recomputes them in the end phase, so a mid-turn lag is the printed sequence |
@@ -66,7 +66,7 @@ Every check holds after *every* action in every phase.
 | A12 | 8.4 | cheap | warn | at most three player powers per alliance; Italy and the US are exempt by the rule itself. 8.3's forced shift can legally fill a full alliance, so this warns |
 | A13 | pending.ts | cheap | error | every decision has a player owner, a known kind, and non-empty options with unique ids |
 | A14 | 2.1 / 24.1 | cheap | error | phase in the enum, turn 1..8 (20.12 advances the counter before the end), GW turn 0..6 (the winter step advances it before 2.2.2 scores), `activePower` a power, `turnIndex` a non-negative integer (it indexes a seat, then the GW impulse order, then 27.4's neutral order, and keeps the last used value after an order clears), `passed` duplicate-free |
-| A15 | 15 / 24 / 25 | cheap | error | a live battle names existing spaces, player powers and a known stage; a live Great War is in turn 0..5, its lists hold only powers, and no power is belligerent and neutral at once |
+| A15 | 15 / 24 / 25 | cheap | error | a live battle names existing spaces, a player attacker and a known stage (15.4.2 lets `defender` hold a non-player control id); a live Great War's lists hold only powers, and no power is belligerent and neutral at once |
 | A16 | sync | full | error | no `NaN`, `Infinity`, function, `Map`/`Set` or class instance; no `undefined` array entry (it arrives as `null`); `JSON.parse(JSON.stringify(G))` reproduces the state. A property explicitly set to `undefined` is *not* a break: transport drops it and every reader treats it as absent |
 
 ### Known limits of the A group
@@ -91,20 +91,60 @@ Every check holds after *every* action in every phase.
 - **A15** does not yet assert `war`/`battle`/`gw` mutual exclusion across the
   phase machine; the referential part is what a hand-built state can get wrong.
 
-## B–E — catalogued, not yet implemented
+## B — printed-rule state (implemented subset)
+
+The printed rules a *single state* can adjudicate. Everything that needs the
+previous state is left to `C`, and everything a card effect may legally override
+is recorded as a limit below rather than shipped as an error.
+
+| id | rule | level | severity | asserts |
+| --- | --- | --- | --- | --- |
+| B02 | 10.4 / 11.1 / 11.2 | cheap | error | each home card belongs to one seat's pool, no pool lists a card twice, and a selected home card is one of its own seat's |
+| B04 | 12.1 / 14.3 / 26.2 | cheap | error | war and Great War budgets — live and archived — are whole, non-negative CP |
+| B07 | 13.x / 14.x | cheap | error | a war's allies are player powers listed once, the two sides are disjoint (allies of both, attacker on its own side), its objectives exist on the board and are unique, and its aim is liberation/unification/conquest or not yet chosen |
+| B10 | 20.1–20.12 | cheap | error | end-phase progress exists only in the end phase, its step cursor is inside the twelve printed steps, 20.1's settlement list holds each power once, and the 20.9/20.11 cursors are inside their orders |
+| B18 | 29.1 | cheap | error | industry never exceeds its blockade maximum; a stored maximum is a whole number, at least 3, and no higher than the printed display maximum |
+| B22 | 33.x | cheap | error | the characteristic markers sit only on the power that owns them: GE `unified`; RU `tsrr`/`scorchedEarth`; OT `jihad`; UK `indiaStable`/`indiaIndependent`; FR `cityOfLight`/`government` |
+
+### Known limits of the B group
+
+- **B01** (decade deals, card markers) and **B03** (one card per impulse) describe
+  a *change*, not a state, so they belong with `C`, which already receives the
+  previous state.
+- **B05** (standing armies vs manpower, reserve ceilings) and **B06** (the WTT
+  declaration gates) bound an *action*: the engine enforces them in
+  `canRecruitIn`/`recruit` and the declaration validators, and a state-level
+  version cannot tell a mid-resolution state from a violation. They land with
+  `D01` (validator agreement), where "allowed ⇒ dispatch succeeds" is decidable.
+- **B07** deliberately does not check `defender` against the player list: 15.4.2
+  stores a non-player control id there ("Serbia", "IT"). It also does not check
+  that the objective count matches the aim, because the printed count depends on
+  the aim and on the declaring card.
+- **B18** reads the stored `maxIndustry` directly: `maxIndustryOf` clamps to the
+  floor and the printed maximum, so the helper cannot report a bad stored value.
+- `addReserve` models a "reserve army step" grant as whole 2-step counters, so
+  the *number of steps* a card like Aux Armes grants is a rule-modelling
+  question this catalog does not adjudicate; the 4.2 pool is what it can prove,
+  and the helper now respects it.
+- **B02** does not assert that home cards never enter deck or discard. `A01`
+  treats `homeCards` as a permanent pool outside the zones by design (10.4), so a
+  card appearing there is not a double placement.
+
+## C–E — catalogued, not yet implemented
 
 These are the remaining groups of the design. Each is listed with the state it
 needs, because several cannot be written as a single-state check.
 
-**B — printed-rule state (23 items).** Decade deals and card markers (10.1–10.4),
-hand conservation after a gift (11.1/11.2), one card per impulse (12.0), peace vs
-war vs GW budgets (12.1/14.3/26.2), standing/reserve limits (7.2/7.3/12.2), WTT
-declaration gates (12.17.1), war aims and truces (13.x), victory types and treaty
-options (16.x), territory transfer bookkeeping (13.1–13.3), the twelve end-phase
-steps (20.1–20.12), rebels (21.x), Italy (22.x), the crisis table (23.x), GW
-outbreak (25.x), GW combat cards and budgets (26.x), GW impulses (27.x),
-exhaustion (27.6), blockade (29.1), colonial war (29.2), surrender and
-elimination (30.1/30.2), national characteristics (33.x), bot legality (34.x).
+**B — the seventeen items still open.** The decade deal and its card markers
+(10.1–10.3), one card per impulse (12.0), the standing/reserve ceilings
+(7.2/7.3/12.2), the WTT declaration gates (12.17.1), truce expiry (13.5), victory
+types and treaty options (16.x), territory transfer bookkeeping (13.1–13.3), what
+each of the twelve end-phase steps owes beyond its cursor (20.2–20.12), rebels
+(21.x), Italy (22.x), the crisis table's modifiers (23.2–23.4), the GW outbreak
+(25.x), GW combat cards (26.1), GW impulses (27.1–27.5), exhaustion (27.6),
+colonial war (29.2), surrender and elimination (30.1/30.2) and bot legality
+(34.x). Most of these are assertions about a *resolution*, so they will be
+written against a `C` delta rather than a lone state.
 
 **C — transition (12 items).** Needs `ctx.before`, which the harness now passes
 to `checkAll` but no check reads yet: `INVALID_MOVE` ⇒ deep-equal state (C01),

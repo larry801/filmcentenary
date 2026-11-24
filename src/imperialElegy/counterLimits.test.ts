@@ -2,7 +2,7 @@ import type {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
 import type {ImperialElegyState} from "./types";
 import {setupImperialElegy} from "./engine/setup";
-import {gainMinorAlliance, placeUnit} from "./engine/effects";
+import {addReserve, gainMinorAlliance, placeUnit} from "./engine/effects";
 import {
   counterPool,
   counterRemaining,
@@ -151,6 +151,20 @@ describe("4.2 counter pool", () => {
     expect(hasCounterFor(G, "GE", "army")).toBe(false);
     G.powers.GE.manpower = 30;
     expect(recruit(G, ctx, "berlin", "army")).toBe(INVALID_MOVE);
+  });
+
+  test("a card that grants reserve armies cannot exceed the pool", () => {
+    const G = fresh();
+    const pool = counterPool(G, "FR").reserveArmy!;
+    for (let i = countersOwned(G, "FR", "reserveArmy"); i < pool; i += 1) {
+      placeUnit(G, "FR", "reserveArmy", null, 2);
+    }
+    const before = countersOwned(G, "FR", "reserveArmy");
+    expect(before).toBe(pool);
+    // Aux Armes' "gain 2 reserve army steps" goes through this helper.
+    addReserve(G, "FR", 2);
+    expect(countersOwned(G, "FR", "reserveArmy")).toBe(pool);
+    expect(G.log.some((entry) => entry.key === "reserveArmyLimited" && entry.power === "FR")).toBe(true);
   });
 
   test("25.6 grants no Elite Corps beyond the pool", () => {

@@ -34,6 +34,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
   scenarioStartingWar: {key: "scenarioStartingWar", args: {attacker: "RU", defender: "Poland", minor: "Poland", ally: "AU"}},
   nationalWillEc: {key: "nationalWillEc", power: "UK", args: {space: "london"}},
   nationalWillEcLimited: {key: "nationalWillEcLimited", power: "GE", args: {}},
+  reserveArmyLimited: {key: "reserveArmyLimited", power: "FR", args: {}},
   pacificationRemoved: {key: "pacificationRemoved", args: {}},
   seatOrder: {key: "seatOrder", args: {order: "GE, UK, FR, AU, RU, OT"}},
   botSeatChanged: {key: "botSeatChanged", power: "FR", args: {bot: "yes"}},
