@@ -259,8 +259,10 @@ const at = (id: string, eligibility: number, extra: Partial<RoyalSetup> = {}): R
 };
 
 /**
- * Campaign Royal Weddings card (page 7).  Only the royals actually offered by
- * this scenario are listed; Rudolf II and the Turn 2+ royals enter later.
+ * Campaign Royal Weddings card (page 7).  The card lists the Turn 1 pool;
+ * every printed royal whose entry turn is later joins during that turn's Card
+ * Draw Phase (`CAMPAIGN_ROYAL_ARRIVALS`).  Louise of Lorraine is event-only
+ * (#95), so she is not scheduled as an automatic arrival.
  */
 export const CAMPAIGN_ROYALS: RoyalSetup[] = [
     at("elizabethI", 5),
@@ -273,6 +275,11 @@ export const CAMPAIGN_ROYALS: RoyalSetup[] = [
     at("annaSaxony", 1),
     at("arran", 1),
 ];
+
+/** Later Campaign royals, by printed entry turn (Scenario Book p. 33). */
+export const CAMPAIGN_ROYAL_ARRIVALS: string[] = ROYALS
+    .filter((royal) => royal.turn > 1 && royal.id !== "louiseLorraine")
+    .map((royal) => royal.id);
 
 /**
  * Tournament Royal Weddings card (page 9).  Elizabeth I, Philip II and
@@ -290,6 +297,15 @@ export const TOURNAMENT_ROYALS: RoyalSetup[] = [
     at("williamOrange", 2),
     at("leicester", 1),
 ];
+
+/**
+ * Turn 4-5 royals still to enter in the Tournament.  The scenario starts on
+ * Turn 3, so every royal with an entry turn of 3 or less is already on its
+ * setup list and must not be re-added.
+ */
+export const TOURNAMENT_ROYAL_ARRIVALS: string[] = ROYALS
+    .filter((royal) => royal.turn > 3 && royal.id !== "louiseLorraine")
+    .map((royal) => royal.id);
 
 export const CAMPAIGN_ROYAL_STATUS: Record<string, RoyalSetup["status"]> = {};
 

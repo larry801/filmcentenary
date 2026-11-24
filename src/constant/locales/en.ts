@@ -1986,6 +1986,7 @@ const en = {
             displaceNaval: "Return navy and leaders: {space}",
             displaceToPool: "No legal return space; return to the force pool",
             playWalsingham: "Play Walsingham: first remove an operative, then gain intelligence with +2 dice",
+            allowWalsingham: "Let Walsingham resolve",
             allowNeutralize: "Allow neutralization",
             spareMary: "Spare Mary",
             executeMary: "Execute Mary (England −1 VP)",

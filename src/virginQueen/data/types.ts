@@ -115,6 +115,13 @@ export interface ScenarioSetup {
     powerCard: Record<Power, PowerCardSetup>;
     royals: RoyalSetup[];
     royalStatus?: Record<string, RoyalSetup["status"]>;
+    /**
+     * Royal counters that join the pool on a later turn (Card Draw Phase,
+     * rule 8.1).  Ids refer to the printed Royal Weddings table.
+     */
+    royalArrivals?: string[];
+    /** Royal counters this scenario removes from play entirely. */
+    royalsRemoved?: string[];
     patronage: PatronageSetup;
     cardsInPlay: number[];
     cardsRemoved: number[];

@@ -175,6 +175,13 @@ const responseOptions = (G: VQGame, p: PendingEspionage): {id: string; label: st
         ...(cards.includes("vq-081") && !G.espionage?.walsingham ? [
             {id: "walsingham:offensive", label: i18n.chain.vq.engine.walsinghamOffensive},
             {id: "walsingham:defensive", label: i18n.chain.vq.engine.walsinghamDefensive},
+            // Mode 2 is also a Response.  It may be played in the pre-dice
+            // window of another power's Espionage action, so England can use
+            // it as a free-timing response even when no English informant is
+            // being removed.
+            ...(p.power !== p.responding ? [
+                {id: "walsingham:remove", label: i18n.chain.vq.engine.playWalsingham},
+            ] : []),
         ] : []),
         // #102 answers the effect of a #81 that was just played.  The generic
         // `cancelWalsingham` move is unreachable while an Espionage action is
@@ -524,6 +531,10 @@ export const espionageOptions = (G: VQGame): {id: string; label: string}[] => {
         {id: "walsingham", label: i18n.chain.vq.engine.playWalsingham},
         {id: "continue", label: i18n.chain.vq.engine.allowNeutralize},
     ];
+    if (p.step === "staffordResponse") return [
+        {id: "stafford", label: i18n.chain.vq.actionUi.staffordCancel},
+        {id: "continue", label: i18n.chain.vq.engine.allowWalsingham},
+    ];
     if (p.step === "mary") return [{id: "spareMary", label: i18n.chain.vq.engine.spareMary}, {id: "executeMary", label: i18n.chain.vq.engine.executeMary}];
     if (p.step === "priestHoles") return [{id: "allowNeutralize", label: i18n.chain.vq.engine.allowJesuitNeutralize},
         ...(G.powers[p.responding].cards.includes("vq-090") ? [{id: "priestHoles", label: i18n.chain.vq.engine.priestHoles}] : [])];
@@ -638,6 +649,21 @@ const canRespondWithWalsingham = (G: VQGame, p: PendingEspionage, choice: string
     return type === "informant" && owner === "england";
 };
 
+/** Continue #81 after the #102 window: remove an operative (if any), then gain intelligence. */
+const continueWalsinghamInner = (G: VQGame, ctx: Ctx, inner: PendingEspionage): void => {
+    delete inner.staffordQueue;
+    if (!operativeOptions(G, inner).length) {
+        // No enemy operative is on England's card; only the bonus intelligence remains.
+        inner.kind = "intelligence";
+        inner.attackBonus = 2;
+        inner.step = "responses";
+        beginResponses(G, ctx);
+        return;
+    }
+    inner.step = "neutralize";
+    stage(G, ctx, "england");
+};
+
 /** Start Walsingham's remove-person + bonus intelligence sequence as a nested action. */
 const beginWalsinghamResponse = (G: VQGame, ctx: Ctx, outer: PendingEspionage): void => {
     const target = outer.power === "england" ? outer.targetPower : outer.power;
@@ -648,17 +674,22 @@ const beginWalsinghamResponse = (G: VQGame, ctx: Ctx, outer: PendingEspionage): 
     };
     removeCardFromHand(G, "england", "vq-081");
     discardCard(G, "england", "vq-081", true);
-    pushLog(G, `England responds with Walsingham before the English informant is neutralized.`);
+    pushLog(G, outer.walsinghamStep === "responses"
+        ? "England plays Walsingham as a response."
+        : `England responds with Walsingham before the English informant is neutralized.`);
     G.pendingEspionage = inner;
-    if (!operativeOptions(G, inner).length) {
-        // No enemy operative is on England's card; only the bonus intelligence remains.
-        inner.kind = "intelligence";
-        inner.attackBonus = 2;
-        inner.step = "responses";
-        beginResponses(G, ctx);
+    // #102 is a Response that cancels Walsingham.  The nested sequence must
+    // offer it *before* the operative is removed, just like the marker mode.
+    const stafford = participatingPowers(G).filter((power) => power !== "england" &&
+        G.powers[power].cards.includes("vq-102"));
+    if (stafford.length > 0) {
+        inner.step = "staffordResponse";
+        inner.staffordQueue = stafford;
+        inner.responding = stafford[0];
+        stage(G, ctx, stafford[0]);
         return;
     }
-    stage(G, ctx, "england");
+    continueWalsinghamInner(G, ctx, inner);
 };
 
 /** Resume the interrupted action after Walsingham's nested sequence finishes. */
@@ -669,6 +700,14 @@ const resumeWalsinghamOuter = (G: VQGame, ctx: Ctx, outer: PendingEspionage,
         // #92 Double Agent and #59 John Hawkins remove an English informant as
         // part of their event; finish the interrupted event after Walsingham.
         resolveInterruptedEvent(G, ctx, outer);
+        return;
+    }
+    if (step === "responses") {
+        // Walsingham was the current responder's free-timing response.  That
+        // responder is done, so continue the interrupted pre-dice window.
+        outer.responseQueue!.shift();
+        if (outer.responseQueue!.length) stage(G, ctx, outer.responseQueue![0]);
+        else resolveRoll(G, ctx);
         return;
     }
     outer.responding = step === "defense" ? outer.targetPower : outer.power;
@@ -693,6 +732,15 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
     if (!p || ctx.playerID !== ownerOf(G, p.responding) || !espionageOptions(G).some((o) => o.id === args.choice)) return INVALID_MOVE;
     const choice = args.choice;
     if (p.step === "responses") {
+        if (choice === "walsingham:remove") {
+            // Free-timing use of #81 mode 2: interrupt this pre-dice window,
+            // remove an operative (then gain intelligence), and come back.
+            p.walsinghamStep = "responses";
+            p.walsinghamChoice = "continue";
+            p.responding = "england";
+            beginWalsinghamResponse(G, ctx, p);
+            return;
+        }
         if (choice !== "continue") {
             const id = choice === "stafford" ? "vq-102" :
                 choice.startsWith("walsingham:") ? "vq-081" : choice === "pistols" ? "vq-088" : "vq-089";
@@ -741,6 +789,33 @@ export const chooseEspionage = (G: VQGame, ctx: Ctx, args: {choice: string}): vo
         }
         p.step = step;
         resumeWalsinghamOuter(G, ctx, p, pendingChoice, step);
+        return;
+    }
+    if (p.step === "staffordResponse") {
+        if (choice === "stafford") {
+            // #102 cancels the whole Walsingham effect before its removal, so
+            // the interrupted action resumes exactly as if #81 was never
+            // played (the card itself still goes to the discard pile).
+            removeCardFromHand(G, p.responding, "vq-102");
+            discardCard(G, p.responding, "vq-102", true);
+            pushLog(G, `${p.responding} plays Sir Edward Stafford to cancel Walsingham.`);
+            const outer = p.walsinghamReturn!;
+            const step = outer.walsinghamStep!;
+            const pendingChoice = outer.walsinghamChoice ?? "continue";
+            delete outer.walsinghamStep;
+            delete outer.walsinghamChoice;
+            delete p.walsinghamReturn;
+            G.pendingEspionage = outer;
+            resumeWalsinghamOuter(G, ctx, outer, pendingChoice, step);
+            return;
+        }
+        p.staffordQueue!.shift();
+        if (p.staffordQueue!.length > 0) {
+            p.responding = p.staffordQueue![0];
+            stage(G, ctx, p.responding);
+            return;
+        }
+        continueWalsinghamInner(G, ctx, p);
         return;
     }
     if (p.step === "mary") {if (choice === "executeMary") executeMary(G); finish(G, ctx); return;}

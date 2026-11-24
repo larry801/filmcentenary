@@ -8,18 +8,19 @@ import {
     RoyalDef,
     ScenarioID,
     SpaceState,
+    VQGame,
     VQLocale,
     emptyLand,
     emptyNaval,
 } from "./constant/general";
 import {LEADERS} from "./constant/leaders";
 import {PATRON_BY_ID} from "./data/patrons";
-import {ROYAL_BY_ID} from "./data/royals";
+import {ROYAL_BY_ID, RoyalDef as OfficialRoyalDef} from "./data/royals";
 import {SCENARIOS} from "./data/scenarios";
 import {OFFICIAL_LEADERS} from "./data/leaders";
 import {SCIENCE_BONUSES, SCIENCE_BONUS_BY_ID} from "./data/scienceBonuses";
 import {SEA_CAPTAINS, SEA_CAPTAIN_BY_ID} from "./data/seaCaptains";
-import {PowerCardSetup, ScenarioSetup, ScenarioSpaceSetup} from "./data/types";
+import {PowerCardSetup, RoyalSetup, ScenarioSetup, ScenarioSpaceSetup} from "./data/types";
 import {OFFICIAL_SPACES} from "./data/spaces";
 import {OFFICIAL_CARDS} from "./data/cards";
 import {validateSetupData} from "./configuration";
@@ -66,6 +67,8 @@ const reducedMajorSetup = (id: ScenarioID): ScenarioSetup => {
     setup.cardsRemoved = setup.cardsRemoved.filter((number) => number !== 4 && number !== 37);
     setup.cardsRemoved = [...new Set([...setup.cardsRemoved, ...removedNumbers])].sort((first, second) => first - second);
     setup.royals = setup.royals.filter((royal) => royal.nameEn !== "Rudolf II");
+    setup.royalsRemoved = [...new Set([...(setup.royalsRemoved ?? []), "rudolfII"])];
+    setup.royalArrivals = setup.royalArrivals?.filter((id) => id !== "rudolfII");
     const removedPatrons = ["sinan", "seydiAliReis", "taqiAlDin", "baki", "mercator", "arcimboldo", "brahe", "spranger", "kepler"];
     setup.patronage.artists = setup.patronage.artists.filter((patron) => !removedPatrons.includes(patron));
     setup.patronage.scientists = setup.patronage.scientists.filter((patron) => !removedPatrons.includes(patron));
@@ -85,6 +88,8 @@ const fivePlayerSetup = (id: ScenarioID): ScenarioSetup => {
     setup.cardsInPlay = [...new Set([...setup.cardsInPlay, 4])].sort((first, second) => first - second);
     setup.cardsRemoved = setup.cardsRemoved.filter((number) => number !== 4);
     setup.royals = setup.royals.filter((royal) => royal.nameEn !== "Rudolf II");
+    setup.royalsRemoved = [...new Set([...(setup.royalsRemoved ?? []), "rudolfII"])];
+    setup.royalArrivals = setup.royalArrivals?.filter((id) => id !== "rudolfII");
     const removedPatrons = ["mercator", "arcimboldo", "brahe", "spranger", "kepler"];
     setup.patronage.artists = setup.patronage.artists.filter((patron) => !removedPatrons.includes(patron));
     setup.patronage.scientists = setup.patronage.scientists.filter((patron) => !removedPatrons.includes(patron));
@@ -403,27 +408,51 @@ const ROYAL_FAMILY: Record<string, "valois" | "hapsburg"> = {
     alencon: "valois",
 };
 
-export const scenarioRoyals = (setup: ScenarioSetup): RoyalDef[] => {
-    return setup.royals.map((royal) => {
-        const base = ROYAL_BY_ID[royal.id];
-        const status = royal.status ?? setup.royalStatus?.[royal.id];
-        return {
-            id: RUNTIME_ROYAL_IDS[royal.id] ?? royal.id,
-            name: base?.nameEn ?? royal.nameEn,
-            nameZh: base?.nameZh ?? royal.nameZh,
-            power: (royal.country === "any" ? "france" : royal.country) as Power,
-            gender: ROYAL_GENDER[royal.id] ?? "male",
-            family: ROYAL_FAMILY[royal.id],
-            turn: royal.turn,
-            eligibility: royal.eligibility,
-            status,
-            alive: status !== "dead",
-            // The Campaign's prearranged Philip II / Elisabeth de Valois match
-            // is an agreement, not a wedding: both royals stay in the pool for
-            // Turn 1 and break the agreement at the cost of Philip II's bonus.
-            married: false,
-        };
-    });
+/** Build the runtime royal from its printed Scenario Book definition. */
+const toRuntimeRoyal = (royal: RoyalSetup, status?: RoyalSetup["status"]): RoyalDef => {
+    const base = ROYAL_BY_ID[royal.id];
+    return {
+        id: RUNTIME_ROYAL_IDS[royal.id] ?? royal.id,
+        name: base?.nameEn ?? royal.nameEn,
+        nameZh: base?.nameZh ?? royal.nameZh,
+        power: (royal.country === "any" ? "france" : royal.country) as Power,
+        gender: ROYAL_GENDER[royal.id] ?? "male",
+        family: ROYAL_FAMILY[royal.id],
+        turn: royal.turn,
+        eligibility: royal.eligibility,
+        status,
+        alive: status !== "dead",
+        // The Campaign's prearranged Philip II / Elisabeth de Valois match
+        // is an agreement, not a wedding: both royals stay in the pool for
+        // Turn 1 and break the agreement at the cost of Philip II's bonus.
+        married: false,
+    };
+};
+
+export const scenarioRoyals = (setup: ScenarioSetup): RoyalDef[] =>
+    setup.royals.map((royal) => toRuntimeRoyal(royal, royal.status ?? setup.royalStatus?.[royal.id]));
+
+/** Runtime royal for a printed table entry, used when a scheduled entry arrives. */
+export const royalFromOfficial = (def: OfficialRoyalDef): RoyalDef => toRuntimeRoyal(def);
+
+/**
+ * Rule 8.1: add the royals whose printed entry turn is this Card Draw Phase.
+ * The scenario's setup list already contains every royal available at its
+ * start turn, so only the later turns are scheduled here.  Returns the royals
+ * that actually joined, for the caller's log.
+ */
+export const arriveRoyals = (G: VQGame): RoyalDef[] => {
+    if (G.scenario === "tutorial") return [];
+    const arrived: RoyalDef[] = [];
+    for (const id of G.royalArrivals ?? []) {
+        const def = ROYAL_BY_ID[id];
+        if (def === undefined || (def.turn ?? 1) > G.year) continue;
+        const royal = royalFromOfficial(def);
+        if (G.royals.some((present) => present.id === royal.id)) continue;
+        G.royals.push(royal);
+        arrived.push(royal);
+    }
+    return arrived;
 };
 
 export const royalAvailable = (royal: RoyalDef): boolean =>
