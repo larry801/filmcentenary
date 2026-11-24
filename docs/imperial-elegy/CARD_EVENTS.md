@@ -637,10 +637,12 @@ is, and, if they cannot agree, the attacker decides.”*
   盟友结盟（即使超过五个盟友上限、不进行求援），选项本身仍标出盟友
   （如 `Hanover (Austria)`）。
 - 回归：`declarationTargets.test.ts`（法国行不再列奥地利/俄国/奥斯曼/英国、
-  每一行都能单独成立；两个玩家国家的配对改成让奥地利持有一个德意志空间）、
+  每一行都能单独成立、与德意志小国结盟的玩家通过该小国的关键区出现在列表里；
+  两个玩家国家的配对改成让奥地利持有一个德意志空间）、
   `components/warDeclarationPanel.test.tsx`（两个玩家国家的用例同样先让奥地利持有
   萨克森，并断言选第二目标前后都出现五点上限提示）与
-  `e2e/imperial-elegy-controls.spec.ts`（第一目标法国时不再出现 `AU` 选项）。
+  `e2e/imperial-elegy-controls.spec.ts`（第二目标列表仍列德意志小国，且第一目标
+  自己不会出现在第二目标里）。
 
 ### 3.15 RU-9 的巴尔干结盟与三张牌的获胜稳定度 / RU-9 alliance and win stability
 

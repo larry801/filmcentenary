@@ -25,12 +25,13 @@ all, only riders on France's Alsace-Lorraine.
   ally (`Hanover (Austria)`).
 
 **Coverage:** `declarationTargets.test.ts` (France's row no longer lists
-Austria/Russia/the Ottomans/Britain and every listed row stands alone; the
-two-player-power case gives Austria a German space so the pair still exists),
+Austria/Russia/the Ottomans/Britain, every listed row stands alone, and a player
+allied to a German minor appears through that minor's key; the two-player-power
+case gives Austria a German space so the pair still exists),
 `components/warDeclarationPanel.test.tsx` (the same setup for the 14.1
 primary-defender case, plus the cap text and the pre-selection preview) and
-`e2e/imperial-elegy-controls.spec.ts` (France as the first target no longer
-offers `AU`).
+`e2e/imperial-elegy-controls.spec.ts` (the second-target list keeps the German
+minors and never lists the first target itself).
 
 ## Fixed: a war the attacker won no longer returns the action phase to the attacker (2026-11-24)
 

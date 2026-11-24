@@ -721,11 +721,12 @@ test.describe("Imperial Elegy new controls", () => {
         await defender.selectOption("FR");
         const second = declare.locator('[data-testid="ie-war-second-power"]');
         await expect(second).toBeVisible();
-        // The second target must itself be attackable under the unification
-        // aim: Austria holds no German-nationality space, so it is not listed,
-        // while the German minors are.
-        await expect(second.locator('option[value="AU"]')).toHaveCount(0);
+        // Every listed row is a power the unification can attack on its own —
+        // the German minors, plus a player power holding (or allied to a minor
+        // holding) a German-nationality space — and the first target is never
+        // its own second target.
         await expect(second.locator('option[value="minor:Denmark"]')).toHaveCount(1);
+        await expect(second.locator('option[value="FR"]')).toHaveCount(0);
         await declare.locator('[data-testid="ie-war-declare-objective"]').selectOption("alsace-lorraine");
 
         // Confirmed twice (arm, then declare).

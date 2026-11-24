@@ -203,6 +203,20 @@ describe("two-target declarations", () => {
     }
   });
 
+  test("a player allied to a German minor is a target through that minor's key", () => {
+    const G = bismarck();
+    // 13.4 / controlledBy: an allied minor's key counts for its ally, so Austria
+    // is attackable under the unification once Hanover is allied to it.
+    G.spaces.hanover.ally = "AU";
+    G.spaces.hanover.diplomacy = null;
+    const {entitlement, fr} = entriesFor(G);
+    const keys = declarationSecondTargets(G, "GE", entitlement, fr, "unification")
+      .map((entry) => warTargetKey(entry.target));
+    expect(keys).toContain("AU");
+    // The allied minor itself is reached through that player row, not its own.
+    expect(keys).not.toContain("minor:Hanover");
+  });
+
   test("errata 13.4.5: an allied minor is offered beside an unaligned one", () => {
     const G = bismarck();
     // Hanover is allied to AU; Denmark has no ally.
