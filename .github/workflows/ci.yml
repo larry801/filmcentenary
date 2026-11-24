@@ -334,6 +334,8 @@ jobs:
             command: yarn test:e2e:ie:controls
           - name: ie-spectator
             command: yarn test:e2e:ie:spectator
+          - name: ie-mobile
+            command: yarn test:e2e:ie:mobile
     container:
       image: ${{ needs.playwright-image.outputs.image }}:${{ needs.playwright-image.outputs.tag }}
       credentials:

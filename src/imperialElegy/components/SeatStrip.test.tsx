@@ -191,7 +191,10 @@ describe("SeatStrip markup", () => {
     expect((html.match(/role="tab"/g) ?? []).length).toBe(6);
 
     // Visible text carries the accessible name — no aria-label on the tab.
-    expect(html).toContain("P1 · GE");
+    // The P-number is its own span so a phone (where the row has to hold six
+    // seats) can drop it visually and keep it in the accessible name.
+    expect(html).toContain('<span class="ie-seat-index">P1 · </span>');
+    expect(tabTag(html, "GE")).toContain("GE");
     expect(html).toContain("Germany");
     expect(html).toContain("Your decision");
     expect(tabTag(html, "GE")).not.toContain("aria-label");
