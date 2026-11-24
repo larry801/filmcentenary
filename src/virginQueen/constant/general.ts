@@ -82,21 +82,30 @@ export const NAVAL_LIMITS: Record<Power, number> = {
  */
 export const WALLOON_LIMIT = 3;
 
-/** Minor-power force-pool caps (Rule 24.3 — proxies until printed counters are digitised). */
+/**
+ * Minor-power force-pool caps from the printed counter mix (Rule 24.3).
+ *
+ * Every minor regular is a two-sided 1/2 counter, so a power with two pieces
+ * can field at most four regulars and Venice/Ireland (three pieces) at most
+ * six.  These are the physical limits; they replace the old placeholder of
+ * twelve regulars for every minor.  Scotland and Ireland have no ship
+ * counters at all, so their naval allowance is zero rather than the old
+ * two-counter proxy.
+ */
 export const MINOR_REGULAR_LIMITS: Record<string, number> = {
-    scotland: 12,
-    ireland: 12,
-    portugal: 12,
-    papacy: 12,
-    venice: 12,
-};
-
-export const MINOR_NAVAL_LIMITS: Record<string, number> = {
-    scotland: 2,
-    ireland: 2,
+    scotland: 4,
+    ireland: 6,
     portugal: 4,
     papacy: 4,
     venice: 6,
+};
+
+export const MINOR_NAVAL_LIMITS: Record<string, number> = {
+    scotland: 0,
+    ireland: 0,
+    portugal: 2,
+    papacy: 1,
+    venice: 4,
 };
 
 export const POWER_NAMES: Record<Power, { en: string; zh: string; short: string }> = {
@@ -1005,6 +1014,8 @@ export interface VQGame {
     lastAction: string;
     lastRolls: string;
     royals: RoyalDef[];
+    /** Printed royals still due to enter on a later turn (rule 8.1). */
+    royalArrivals?: string[];
     /** Patrons available under this scenario's patronage chart. */
     patronsAvailable: string[];
     /** VP award markers still available to claim from the patronage chart. */

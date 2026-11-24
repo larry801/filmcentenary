@@ -1028,6 +1028,7 @@ All steps may be done simultaneously.
 - Units treated like major power's units (move, fight, etc.)
 - Can winter at minor power home keys (additional "capital")
 - Major power may build minor's regulars/naval units in minor's home spaces
+- Printed counter limits (each regular counter flips between 1 and 2): Scotland 4, Ireland 6, Portugal 4, Papacy 4, Venice 6 regulars; naval counters: Portugal 2, Papacy 1, Venice 4, Scotland/Ireland 0.
 
 ### 24.4 Deactivation
 - Only via diplomatic status evaluation won by non-current-ally

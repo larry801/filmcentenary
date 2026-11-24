@@ -1,6 +1,6 @@
 import {Controller} from "../constant/general";
 import {ALL_CARD_NUMBERS, campaignCards, tournamentCards} from "./deck";
-import {CAMPAIGN_ROYALS, TOURNAMENT_ROYALS, TOURNAMENT_ROYAL_STATUS} from "./royals";
+import {CAMPAIGN_ROYAL_ARRIVALS, CAMPAIGN_ROYALS, TOURNAMENT_ROYAL_ARRIVALS, TOURNAMENT_ROYALS, TOURNAMENT_ROYAL_STATUS} from "./royals";
 import {CAMPAIGN_PATRONAGE, TOURNAMENT_PATRONAGE} from "./patrons";
 import {CAMPAIGN_VP_AWARDS, TOURNAMENT_UNAVAILABLE_VP_AWARDS, TOURNAMENT_VP_AWARDS} from "./patronage";
 import {SCIENCE_BONUSES} from "./scienceBonuses";
@@ -200,6 +200,7 @@ export const CAMPAIGN: ScenarioSetup = {
     },
     royals: CAMPAIGN_ROYALS,
     royalStatus: {},
+    royalArrivals: CAMPAIGN_ROYAL_ARRIVALS,
     patronage: {
         artists: [...CAMPAIGN_PATRONAGE.artists],
         scientists: [...CAMPAIGN_PATRONAGE.scientists],
@@ -451,6 +452,7 @@ export const TOURNAMENT: ScenarioSetup = {
     },
     royals: TOURNAMENT_ROYALS,
     royalStatus: TOURNAMENT_ROYAL_STATUS,
+    royalArrivals: TOURNAMENT_ROYAL_ARRIVALS,
     patronage: {
         artists: [...TOURNAMENT_PATRONAGE.artists],
         scientists: [...TOURNAMENT_PATRONAGE.scientists],
@@ -505,6 +507,7 @@ export const TUTORIAL: ScenarioSetup = {
     powerCard: {ottoman: {scmOnCard: 4, ruler: "suleiman"}, spain: {scmOnCard: 6}, england: {}, france: {}, hre: {}, protestant: {}},
     royals: [],
     royalStatus: {},
+    royalArrivals: [],
     patronage: {artists: [], scientists: [], vpMarkers: 0, artistVpMarkers: 0, scientistVpMarkers: 0, scienceBonuses: [], vpAwards: []},
     cardsInPlay: Array.from({length: 31}, (_, index) => index + 1),
     cardsRemoved: Array.from({length: 81}, (_, index) => index + 32),

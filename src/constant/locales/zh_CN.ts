@@ -2073,6 +2073,7 @@ const zh_CN: Locale = {
             displaceNaval: "遣返海军与将领：{space}",
             displaceToPool: "无合法遣返地区，返回人员池",
             playWalsingham: "打出沃尔辛厄姆：先移除人员，再以 +2 骰获取情报",
+            allowWalsingham: "让沃尔辛厄姆结算",
             allowNeutralize: "允许无效化",
             spareMary: "不处决玛丽",
             executeMary: "处决玛丽（英格兰 −1 VP）",

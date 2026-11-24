@@ -79,6 +79,7 @@ import {
     scenarioFromSetupData,
     scenarioLeaders,
     scenarioPatrons,
+    arriveRoyals,
     scenarioRoyals,
     seaCaptainById,
     royalAvailable,
@@ -469,6 +470,7 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         patronizedThisTurn: [],
         cardDrawDone: [],
         royals: scenarioRoyals(scenario),
+        royalArrivals: (scenario.royalArrivals ?? []).filter((id) => !(scenario.royalsRemoved ?? []).includes(id)),
         // Campaign Turn 1 prearranges Philip II and Elisabeth de Valois.  The
         // agreement is not binding; Philip II's bonus charges Spain a card on
         // Turn 2 if it is broken (Scenario Book pp. 7 and 33).
@@ -1011,6 +1013,9 @@ export const dealYear = (G: VQGame, ctx: Ctx): void => {
     // played this year resets when the new year's cards are dealt.
     G.playedThisTurn = {};
     refreshJesuits(G);
+    for (const royal of arriveRoyals(G)) {
+        pushLog(G, `${royal.name} enters the Royal Weddings pool.`);
+    }
     const cardDrawBonuses = applyPendingCardDraws(G);
     const eligibleFuture: string[] = [];
     G.futureDeck = G.futureDeck.filter((id) => {

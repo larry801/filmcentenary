@@ -8,8 +8,10 @@ import {
     addForeignWarLandFromPool,
     addLandFromPool,
     addNavalFromPool,
+    landPoolLimit,
     landPoolRoom,
     navalLostCount,
+    navalPoolLimit,
     navalPoolRoom,
     navalPoolUsed,
     recordNavalLoss,
@@ -241,5 +243,36 @@ describe("event and replacement additions respect the physical pool (17.1)", () 
         const options = recruitmentOptions(G);
         expect(options.some((option) => option.id.startsWith("galley:"))).toBe(true);
         expect(options.some((option) => option.id.startsWith("regular:"))).toBe(false);
+    });
+});
+
+describe("minor-power counter supply (24.3)", () => {
+    it("uses the printed regular counters instead of a flat twelve-point allowance", () => {
+        expect(landPoolLimit("scotland")).toBe(4);
+        expect(landPoolLimit("ireland")).toBe(6);
+        expect(landPoolLimit("portugal")).toBe(4);
+        expect(landPoolLimit("papacy")).toBe(4);
+        expect(landPoolLimit("venice")).toBe(6);
+
+        const G = game();
+        for (const space of Object.values(G.spaces)) delete space.land.venice;
+        G.spaces.venice.land.venice = {regular: 6, merc: 0, cav: 0};
+        expect(landPoolRoom(G, "venice")).toBe(0);
+        expect(addLandFromPool(G, "venice", "venice", "regular", 1)).toBe(0);
+    });
+
+    it("uses the printed minor naval counters, including no ships for Scotland and Ireland", () => {
+        expect(navalPoolLimit("scotland")).toBe(0);
+        expect(navalPoolLimit("ireland")).toBe(0);
+        expect(navalPoolLimit("portugal")).toBe(2);
+        expect(navalPoolLimit("papacy")).toBe(1);
+        expect(navalPoolLimit("venice")).toBe(4);
+
+        const G = game();
+        for (const zone of Object.values(G.seaZones)) delete zone.naval.venice;
+        for (const space of Object.values(G.spaces)) delete space.naval.venice;
+        G.spaces.venice.naval.venice = {galley: 4, galleon: 0, racebuilt: 0, corsair: 0};
+        expect(navalPoolRoom(G, "venice")).toBe(0);
+        expect(addNavalFromPool(G, "venice", "venice", "galley", 1)).toBe(0);
     });
 });

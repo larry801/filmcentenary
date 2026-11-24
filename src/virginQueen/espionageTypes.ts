@@ -22,7 +22,8 @@ export interface PendingEspionage {
     step: "responses" | "offense" | "neutralize" | "extraNeutralize" | "defense" | "mary" |
         "conversions" | "unrest" | "rebelTarget" | "rebelLosses" | "rebelSpaces" |
         "jesuitPlace" | "jesuitMove" | "jesuitDestination" | "priestHoles" | "displace" |
-        "northernConvert" | "northernUnrest" | "massacreConvert" | "massacreAssassinate" | "walsinghamResponse";
+        "northernConvert" | "northernUnrest" | "massacreConvert" | "massacreAssassinate" | "walsinghamResponse" |
+        "staffordResponse";
     target?: string;
     cp: number;
     remaining: number;
@@ -55,7 +56,9 @@ export interface PendingEspionage {
     walsinghamReturn?: PendingEspionage;
     /** The outer neutralization choice held while England decides on #81. */
     walsinghamChoice?: string;
-    walsinghamStep?: "neutralize" | "extraNeutralize" | "defense" | "event";
+    walsinghamStep?: "neutralize" | "extraNeutralize" | "defense" | "event" | "responses";
+    /** #102 holders still deciding whether to cancel a nested #81. */
+    staffordQueue?: Power[];
     /**
      * A card event's remaining printed effect (for example #80 The Black
      * Queen's "then draw a card") waits until its embedded Espionage action

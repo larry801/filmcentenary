@@ -53,7 +53,7 @@ describe("#81 Walsingham response to #80 The Black Queen's event Espionage actio
         });
         // The event's "then draw a card" waits for the Espionage action.
         expect(G.powers.france.cards).toHaveLength(handBefore - 1);
-        expect(options(G)).toEqual(["continue", "walsingham:offensive", "walsingham:defensive"]);
+        expect(options(G)).toEqual(["continue", "walsingham:offensive", "walsingham:defensive", "walsingham:remove"]);
 
         choose(G, "continue", ctx);
         expect(G.pendingEspionage).toMatchObject({step: "offense", remaining: 4});
