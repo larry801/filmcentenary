@@ -1281,18 +1281,29 @@ const crisisRunOf = (pending: PendingDecision): CrisisRun | null => {
  * use the single decision shape for the `wtt` effect, the `crisis` effect and
  * the post-event check that catches WTT increases raised inside a special
  * handler (Powder Keg, Naval Arms Race, Balkan Wars, Bosnian Crisis).
+ *
+ * `incitingCard` defaults to the card being resolved.  A caller whose increase
+ * came from a player action instead of a card (13.3's conquest declaration,
+ * 4.9.3) passes `null` so the roll answers the printed fallback row rather than
+ * an unrelated card's row.
  */
-export const openCrisisDecision = (G: ImperialElegyState, ctx: Ctx, actor: Power, resume: Effect[] = []): void => {
+export const openCrisisDecision = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  actor: Power,
+  resume: Effect[] = [],
+  incitingCard: string | null = G.resolvingCard ?? null,
+): void => {
   // A67's "cannot be played in response to Impulsive Ruler" exception must be
   // visible to every holder, including one who is not the crisis owner and so
   // receives a redacted `pending.context`.
-  G.flags.crisisIncitingCard = G.resolvingCard ?? "";
+  G.flags.crisisIncitingCard = incitingCard ?? "";
   openDecision(
     G,
     ctx,
     decision("crisis", actor, "Roll on the Crisis Table", [option("roll", "Roll")], {
       resume,
-      inciting: G.resolvingCard,
+      inciting: incitingCard ?? undefined,
     }),
   );
 };

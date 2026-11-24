@@ -813,7 +813,14 @@ on 2026-11-24: every named blocker is live and pinned.
 - **Live details:**
   - `declareWar` uses `validateWarAim`; conquest applies the WTT/stability
     penalty; the attacker’s starting control is snapshotted for defensive
-    victory.
+    victory.  4.9.3's "player actions" half of the WTT trigger is live too: when
+    the 13.3 penalty lands on 5 the declaration opens the Crisis Table roll
+    itself (`openCrisisDecision` with no inciting card, so the roll answers the
+    fallback row).  12.17.1 still forbids a fresh declaration at WTT 3+, so the
+    reachable case is a declaration validated below the gate that finalizes
+    after the tension rose while its 13.4.2/33.3 decision was open; the war is
+    created first, so the roll never suspends the declaration
+    (`conquestCrisis.test.ts`).
   - `startWarManeuver` computes `war.initiative` from card CP, GE’s
     Bewegungskrieg tie-break, industry and a deterministic seat-order fallback.
     A063 Rapid Mobilization then moves the belligerent that played it to the
