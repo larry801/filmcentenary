@@ -1648,6 +1648,9 @@ const zh_CN: Locale = {
             treasurePoolValue: "池中 {pool} 枚 / 本回合已弃置 {discard} 枚",
             cardDrawPhase: "Card Draw 阶段",
             turn: "回合",
+            moriscoUnrest: "摩尔人起义：选择冬季骚动地点",
+            moriscoUnrestDesc: "规则 20.1：奥斯曼在与摩尔人部队距离不超过 2 的 2 个未驻军地区放置骚动标记；2-4 人局由控制该激活强国的英格兰选择。已选的 2 个地区为自动结果，可改选其他合法组合，或直接确认保留。",
+            confirmUnrest: "在此放置骚动",
             winterReturns: "冬季返营：选择目的地与部队",
             winterReturnsDesc: "程序已按 20.4 把部队撤到最近的合法目的地；此处可改为本国首都或同距离的其他设防地区，并决定超编要塞带走的兵种。不选择则保留自动结果。",
             winterNavalReturns: "冬季返港：选择同距离港口",
@@ -1862,6 +1865,7 @@ const zh_CN: Locale = {
             },
             giftBlocks: {
                 noPlayer: "该强国没有玩家控制，不能与其交换物品",
+                samePlayerGift: "不能在同一玩家控制的两个强国之间赠送手牌或雇佣兵",
                 alreadyAtWar: "已与该国交战，不能赠送",
                 limit: "本回合对该国的赠送已达上限",
                 reciprocal: "对方本回合已赠送同类物品，不能回赠",

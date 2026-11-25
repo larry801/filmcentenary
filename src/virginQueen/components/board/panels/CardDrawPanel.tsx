@@ -8,11 +8,11 @@ import {POLISH_ELECTION_POWERS, polishElectionBidOptions, polishElectionBidValue
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import i18n from "../../../../constant/i18n";
-import {powerName, LandStack, NavalStack, WinterReturnChoice} from "../../../constant/general";
+import {powerName, LandStack, MoriscoUnrestChoice, NavalStack, VQGame, WinterReturnChoice} from "../../../constant/general";
 import {seaZoneName} from "../../../mapData";
 import {participatingPowers} from "../../../ownership";
 import {scenarioName} from "../../../scenario";
-import {legalWinterLandReturnOptions, legalWinterLandReturnUnits} from "../../../util";
+import {legalWinterLandReturnOptions, legalWinterLandReturnUnits, moriscoUnrestOptions} from "../../../util";
 
 import {placeLabel, vqLocaleNow} from "../helpers";
 import {useVQBoard} from "../BoardContext";
@@ -73,6 +73,43 @@ const WinterCompositionPicker = ({entry, options, disabled, unitNames, onConfirm
     </Stack>;
 };
 
+/**
+ * Rule 20.1: the Ottoman's owner places the winter Unrest markers within two
+ * spaces of the Morisco unit.  The automatic pair is preselected, so the
+ * confirm button accepts it unchanged and the map keeps that result if the
+ * turn ends without a choice.
+ */
+const MoriscoUnrestPicker = ({G, choice, disabled, onConfirm}: {
+    G: VQGame;
+    choice: MoriscoUnrestChoice;
+    disabled: boolean;
+    onConfirm: (spaces: string[]) => void;
+}) => {
+    const [picked, setPicked] = React.useState<string[]>(choice.auto);
+    // The legal spaces are read fresh: winter replacements run after rule 20.1
+    // marks the automatic pair, so a capital that just received its regular is
+    // no longer unoccupied.
+    const options = [...new Set([...moriscoUnrestOptions(G, choice.origin), ...choice.auto])];
+    const toggle = (id: string): void => setPicked((current) => {
+        if (current.includes(id)) return current.filter((entry) => entry !== id);
+        // A full selection replaces its oldest space, so one tap never leaves
+        // the player without a confirmable pair.
+        return current.length >= choice.count ? [...current.slice(1), id] : [...current, id];
+    });
+    return <Stack spacing={0.5}>
+        <Typography variant="caption" color="text.secondary">{i18n.chain.vq.cardDraw.moriscoUnrestDesc}</Typography>
+        <Stack direction="row" spacing={0.5} sx={{flexWrap: "wrap"}}>
+            {options.map((id) => <Button key={id} size="small" disabled={disabled}
+                variant={picked.includes(id) ? "contained" : "outlined"}
+                onClick={() => toggle(id)}>{placeLabel(id)}</Button>)}
+        </Stack>
+        <Button size="small" variant="outlined" disabled={disabled || picked.length !== choice.count}
+            onClick={() => onConfirm(picked)}>
+            {i18n.chain.vq.cardDraw.confirmUnrest}
+        </Button>
+    </Stack>;
+};
+
 export const CardDrawPanel = () => {
     const {G, ctx, moves, vqLocale, me, myTurn, switchToTab, space} = useVQBoard();
     if (me === undefined) return null;
@@ -82,6 +119,7 @@ export const CardDrawPanel = () => {
     const winterNavalLosses = (G.winterNavalLossChoices ?? []).filter((entry) => entry.power === me);
     const winterReturns = (G.winterReturnChoices ?? []).filter((entry) => entry.power === me);
     const winterNavalReturns = (G.winterNavalReturnChoices ?? []).filter((entry) => entry.power === me);
+    const moriscoUnrest = G.pendingMoriscoUnrest?.power === me ? G.pendingMoriscoUnrest : undefined;
     const unitNames: Record<keyof LandStack, string> = {regular: i18n.chain.vq.cardDraw.regular, merc: i18n.chain.vq.cardDraw.merc, cav: i18n.chain.vq.cardDraw.cav};
     const shipNames: Record<keyof NavalStack, string> = {galley: i18n.chain.vq.cardDraw.galley, galleon: i18n.chain.vq.cardDraw.galleon, racebuilt: i18n.chain.vq.cardDraw.racebuilt, corsair: i18n.chain.vq.cardDraw.corsair};
     return <Stack spacing={1}>
@@ -97,6 +135,11 @@ export const CardDrawPanel = () => {
             {(G.colonyRolls ?? []).map((entry) => <Typography key={entry.settlement} variant="caption">
                 {placeLabel(entry.settlement)} · {powerName(entry.power, vqLocale)} · {entry.total} · {i18n.chain.vq.cardDraw[entry.result === "eliminated" ? "colonyEliminated" : entry.result === "none" ? "colonyNone" : entry.result === "treasure" ? "colonyTreasure" : "colonyTreasureVp"]}
             </Typography>)}
+        </Stack>}
+        {moriscoUnrest !== undefined && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "warning.main", borderRadius: 1}}>
+            <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.moriscoUnrest}</Typography>
+            <MoriscoUnrestPicker G={G} choice={moriscoUnrest} disabled={!myTurn}
+                onConfirm={(spaces) => moves.chooseMoriscoUnrest({spaces})}/>
         </Stack>}
         {winterReturns.length > 0 && <Stack spacing={0.5} sx={{p: 1, border: 1, borderColor: "info.main", borderRadius: 1}}>
             <Typography variant="subtitle2">{i18n.chain.vq.cardDraw.winterReturns}</Typography>

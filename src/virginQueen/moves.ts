@@ -72,9 +72,11 @@ import {
     assaultSpace,
     atWar,
     atWarWithMinor,
+    applyMoriscoUnrestChoice,
     applyWinterLandReturnChoice,
     applyWinterNavalReturnChoice,
     autoPlaceNavalLeaderArrivals,
+    autoResolveMoriscoUnrest,
     autoResolveOrangeArrival,
     autoResolveWinterLossChoices,
     autoResolveWinterNavalLossChoices,
@@ -86,6 +88,8 @@ import {
     canControlSpace,
     canMoveNavalTo,
     canDeclareWar,
+    spanishEntryRestricted,
+    triggerSpanishEntryWar,
     capitalOf,
     capitalSpacesFor,
     captureLeaders,
@@ -3802,6 +3806,7 @@ export const endPhaseTurn = (G: VQGame, ctx: Ctx): void | typeof INVALID_MOVE =>
         autoResolveWinterLossChoices(G, power(G, ctx));
         autoResolveWinterNavalLossChoices(G, power(G, ctx));
         autoResolveWinterReturnChoices(G, power(G, ctx));
+        autoResolveMoriscoUnrest(G, power(G, ctx));
     }
     ctx.events?.endTurn();
 };
@@ -4099,6 +4104,23 @@ export const chooseWinterNavalReturn = (
     if (!winterLossChoicesRemain(G, p)) ctx.events?.endStage();
 };
 
+/**
+ * Rule 20.1: during Card Draw the Ottoman's owner replaces the automatic pair
+ * of winter Unrest markers with any two unoccupied spaces within two of the
+ * Morisco unit.  In 2-4 player games the Ottoman is England's activated ally,
+ * so `ownerOf` puts this stage in front of the English seat.  Ending the Card
+ * Draw turn keeps the automatic pair.
+ */
+export const chooseMoriscoUnrest = (G: VQGame, ctx: Ctx, args: {spaces: string[]}): void | typeof INVALID_MOVE => {
+    if (ctx.phase !== "cardDraw") return INVALID_MOVE;
+    if (moveError(G, "chooseMoriscoUnrest", args)) return INVALID_MOVE;
+    const pending = G.pendingMoriscoUnrest;
+    if (pending === undefined) return INVALID_MOVE;
+    if (ctx.playerID !== undefined && ctx.playerID !== null && ownerOf(G, pending.power) !== ctx.playerID) return INVALID_MOVE;
+    if (!applyMoriscoUnrestChoice(G, pending.power, args.spaces)) return INVALID_MOVE;
+    if (!winterLossChoicesRemain(G, pending.power)) ctx.events?.endStage();
+};
+
 export const makePeace = (G: VQGame, ctx: Ctx, args: { target: Power }): void | typeof INVALID_MOVE => {
     if (moveError(G, "makePeace", args)) return INVALID_MOVE;
     if (ctx.phase !== "diplomacy") {
@@ -4230,6 +4252,9 @@ export const giveRandomCard = (G: VQGame, ctx: Ctx, args: {target: Power}): void
     const p = power(G, ctx);
     if (!isPower(args.target) || args.target === p || ownerOf(G, args.target) === undefined ||
         atWar(G, p, args.target)) return INVALID_MOVE;
+    // Scenario Book p. 12: a player may never award a card draw from one of
+    // his powers to the other.
+    if (samePlayer(G, p, args.target)) return INVALID_MOVE;
     const entry = giftEntry(G, p, args.target);
     if (entry.cards >= 2 || reciprocalGift(G, p, args.target, "cards")) return INVALID_MOVE;
     const candidates = G.powers[p].cards.filter((id) => cardById(id).kind !== "home");
@@ -4246,6 +4271,9 @@ export const giveMercenary = (G: VQGame, ctx: Ctx, args: {target: Power; space?:
     const p = power(G, ctx);
     if (!isPower(args.target) || args.target === p || ownerOf(G, args.target) === undefined ||
         atWar(G, p, args.target)) return INVALID_MOVE;
+    // Scenario Book p. 12: a player may never award mercenaries from one of his
+    // powers to the other.
+    if (samePlayer(G, p, args.target)) return INVALID_MOVE;
     // Rule 9.1: the Ottoman may not give mercenaries, and neither the Ottoman
     // nor the Holy Roman Empire may receive them.
     if (p === "ottoman" || args.target === "ottoman" || args.target === "hre") return INVALID_MOVE;
@@ -5349,11 +5377,10 @@ export const navalTransport = (G: VQGame, ctx: Ctx, args: {from: string; to: str
         if (args.zones.length !== 1 || args.zones[0] !== "northSea" || !portZones(other).includes("northSea") ||
             !friendlyControlled(G, p, link)) return INVALID_MOVE;
     }
-    // Rule 9.5/9.4: Spain may not transport into Ireland/Scotland until war cost <=3.
-    if (p === "spain" && (spaceHomes(SPACE_BY_ID[args.to]).includes("ireland" as never) || spaceHomes(SPACE_BY_ID[args.to]).includes("scotland" as never))) {
-        if (warCost(G, "spain", "england") > 3) return INVALID_MOVE;
-        if (!atWar(G, "spain", "england")) setWar(G, "spain", "england");
-    }
+    // Rule 9.5: Spain may not enter Ireland/Scotland until the England-Spain
+    // DOW cost is 3 CP or less; entry then triggers that war immediately.
+    if (spanishEntryRestricted(G, p, args.to)) return INVALID_MOVE;
+    triggerSpanishEntryWar(G, p, args.to);
     // Rule 9.4: "English troops entering the Netherlands (unless allied with
     // Spain)".
     if (p === "england" && SPACE_BY_ID[args.to]?.area === "netherlands" && !allied(G, "england", "spain")) {
@@ -5479,15 +5506,13 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
         besiegerOwners(G, to).some((b) => atWar(G, p, b));
     const pUnitsInside = totalLand(G, to, [p]);
     const destControl = dest.control;
-    // Rule 9.5/9.4: Spain may not enter Ireland/Scotland until the war cost is
-    // 3 or less; entry then triggers war with England. English entry into the
-    // Netherlands likewise triggers war with Spain — but the printed trigger
-    // list reads "English troops entering the Netherlands (unless allied with
-    // Spain)", so an alliance suppresses it.
-    if (p === "spain" && (spaceHomes(SPACE_BY_ID[to]).includes("ireland" as never) || spaceHomes(SPACE_BY_ID[to]).includes("scotland" as never))) {
-        if (warCost(G, "spain", "england") > 3) return INVALID_MOVE;
-        if (!atWar(G, "spain", "england")) setWar(G, "spain", "england");
-    }
+    // Rule 9.5: Spain may not enter Ireland/Scotland until the England-Spain
+    // DOW cost is 3 CP or less; entry then triggers war with England. English
+    // entry into the Netherlands likewise triggers war with Spain — but the
+    // printed trigger list reads "English troops entering the Netherlands
+    // (unless allied with Spain)", so an alliance suppresses it.
+    if (spanishEntryRestricted(G, p, to)) return INVALID_MOVE;
+    triggerSpanishEntryWar(G, p, to);
     if (p === "england" && SPACE_BY_ID[to]?.area === "netherlands" && !allied(G, "england", "spain")) {
         if (!atWar(G, "england", "spain")) setWar(G, "england", "spain");
     }
@@ -5717,6 +5742,10 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: NavalMoveOrder | {fleets: N
         fleets.some(({from, to}) => moveError(G, "moveNaval", {from, to}) || !canMoveNavalTo(G, p, from, to))) return INVALID_MOVE;
     if (offerActionResponse(G, ctx, "moveNaval", args)) return;
     if (!spend(G, p, 1, "moveNaval")) return INVALID_MOVE;
+    // Rule 9.5: a Spanish squadron sailing into an Irish or Scottish port is an
+    // immediate war trigger; the entry itself is already gated above by
+    // `canMoveNavalTo`, so this only records the war.
+    for (const {to} of fleets) triggerSpanishEntryWar(G, p, to);
     const location = (id: string) => isSeaZone(id) ? G.seaZones[id as keyof VQGame["seaZones"]] : G.spaces[id];
     // Snapshot and remove every departing stack before adding arrivals. This
     // prevents a fleet from moving twice through another declared origin.
