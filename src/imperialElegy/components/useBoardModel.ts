@@ -58,6 +58,7 @@ import {pendingOptionSafety} from "./pendingSafety";
 import {pendingDeclinesItself} from "./PendingPanel";
 import {engineReasonText} from "./reasonText";
 import {ARM_MS} from "./ConfirmButton";
+import {actionHints} from "./actionHints";
 import type {InjectedUi, MobileTab, ModelValues} from "./modelValues";
 import {panelLocaleView} from "./panelLocale";
 import {BoardLayout} from "./BoardLayout";
@@ -634,7 +635,9 @@ export const useBoardModel = ({
   })();
   const lastNavalMover: Power | null = lastNavalBox !== null && lastLog?.power !== undefined ? lastLog.power : null;
 
-  const amphibiousVisible = viewer !== null && !eliminated && (phase === "action" || phase === "wartime") && pending === null;
+  // 27.5 lists naval movement in the GW, and 19.10's assault is one: the
+  // Historical Great War's own UK restriction (p. 7) needs this control.
+  const amphibiousVisible = viewer !== null && !eliminated && (phase === "action" || phase === "wartime" || phase === "gwManeuver") && pending === null;
   const ownLoadedArmyAt = (space: SpaceId): boolean =>
     G.spaces[space]?.units.some((id) => {
       const unit = G.units[id];
@@ -680,7 +683,7 @@ export const useBoardModel = ({
   const amphibiousCheck = amphibiousVisible && viewer !== null
     ? amphibiousAssaultCheck(G, viewer, amphibiousFromValue, amphibiousToValue, amphibiousArmyValue)
     : null;
-  const amphibiousPhaseOk = phase === "action" ? isActive : phase === "wartime" ? isBelligerent : false;
+  const amphibiousPhaseOk = phase === "action" || phase === "gwManeuver" ? isActive : phase === "wartime" ? isBelligerent : false;
   const amphibiousReason = amphibiousCheck === null
     ? undefined
     : amphibiousOrigins.length === 0
@@ -1646,6 +1649,10 @@ export const useBoardModel = ({
                         `你的行动轮——还有 ${freeGrantTotal} 点事件赠予 CP 可花`)
                       : bi(actualLocale, "Your impulse", "你的行动轮")
                     : bi(actualLocale, "Waiting", "等待");
+  // The summary names the rule; these lines name the control that performs it,
+  // so a player who only reads the board is never left guessing which button
+  // the printed step means (the solo Historical Great War stalled there).
+  const dockNextSteps = actionHints(G, viewer, actualLocale, t);
   const handChoicesHint = phase === "diplomacy" && homeCardChoicePending && !negotiationConcludedNow
     ? bi(actualLocale,
       "Finish negotiating first: every seat must press \"Finish negotiating\", then the home-card choice opens.",
@@ -1986,6 +1993,7 @@ export const useBoardModel = ({
     dockChoices,
     dockVisible,
     dockSummary,
+    dockNextSteps,
     handChoicesHint,
     mapHint,
     board,

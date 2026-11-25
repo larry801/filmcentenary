@@ -28,6 +28,30 @@ Status labels:
 > the AU/FR/RU/OT special actions are live moves. Exact gaps are in
 > [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
 
+## Solo Historical Great War pass (2026-11-25)
+
+A solo play of the printed Historical Great War (`gwTutorial`) surfaced three
+board-level defects and one dead printed rule:
+
+- **8.0 in the Great War (UI):** the influence matrix was still clickable in a
+  GW impulse and only produced `invalid move: placeMpit`.  The matrix is now
+  read-only outside the action phase, with the printed reason, matching the
+  engine's existing 27.5 gate.  No rule changed.
+- **27.1–27.6 prompts:** the dock summary named the rule ("play Exhaustion",
+  "spend a war-budget CP") but never the control.  `components/actionHints.ts`
+  adds the concrete click path and the live budget under the summary
+  (`ie-next-step`); see [`docs/qa/ie-solo-gw-2026-11-25/REPORT.md`](../qa/ie-solo-gw-2026-11-25/REPORT.md).
+- **27.2 duplicate budget readout:** the GW panel printed the campaign
+  `warBudget` field (always 0 in a GW) under the real `gwBudget` grid.  The
+  duplicate line is gone.
+- **27.5 / 19.10 amphibious assault:** `amphibiousAssaultCheck` now accepts the
+  GW maneuver as a naval action, charges one war-budget CP through the 27.1
+  ledger, and therefore lets the Historical Great War's p. 7 clause ("The UK
+  cannot amphibiously assault GE home spaces containing a GE naval unit(s)")
+  fire for the first time.  `amphibiousInterception.test.ts` covers the legal
+  assault, the one-action limit and the scenario refusal; the previous entry
+  in [`SCENARIOS.md`](SCENARIOS.md) §3.7 is marked fixed.
+
 ## Residual rules pass (2026-11-18)
 
 Five printed/errata clauses that earlier refreshes listed as open are live:

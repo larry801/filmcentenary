@@ -12,6 +12,7 @@ import type {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../t
 import type {PhaseAction} from "./PhaseActions";
 import type {CardChoiceFace} from "./CardChoice";
 import type {HandChoicesProps} from "./HandChoices";
+import type {ActionHint} from "./actionHints";
 import type {OrdersTab} from "./OrdersPanel";
 import type {DealOffer, DiplomacyDeals} from "../types";
 import type {DoAction} from "./moveFeedback";
@@ -361,6 +362,8 @@ export interface ModelValues {
   dockChoices: boolean;
   dockVisible: boolean;
   dockSummary: string;
+  /** The dock's "what now" lines: the concrete next click (see `actionHints`). */
+  dockNextSteps: ActionHint[];
   handChoicesHint: string | null;
   mapHint: string;
   board: "world" | "greatWar";

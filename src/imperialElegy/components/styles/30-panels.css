@@ -1098,6 +1098,27 @@
 .ie-turn-head .ie-btn { min-height: 44px; padding: 6px 14px; }
 
 .ie-turn-head .ie-command-cp b { font-size: var(--ie-font-lg); }
+/* The "what now" lines: one or two concrete click paths under the summary.
+   They wrap (unlike the one-line summary) because they name controls, and a
+   truncated control name is exactly what a player cannot act on. */
+.ie-next-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--ie-panel-3);
+  background: var(--ie-panel);
+  font-size: var(--ie-font-xs);
+  line-height: 1.35;
+  color: var(--ie-ink-2);
+}
+
+.ie-next-step-line::before {
+  content: "›";
+  margin-inline-end: 4px;
+  color: var(--ie-brass-deep);
+}
+
 
 .ie-turn-tabs {
   display: flex;

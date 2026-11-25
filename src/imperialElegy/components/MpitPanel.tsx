@@ -35,6 +35,12 @@ export interface MpitPanelProps {
   moves: Record<string, (...args: any[]) => void>;
   /** The live `confirmActions` preference; omitted means "read the stored one". */
   confirmActions?: boolean;
+  /**
+   * Why the matrix is read-only, when the phase rather than the seat blocks it.
+   * 8.0's placement is a 12.1 peacetime action, so 15.2 and 27.5 do not offer
+   * it — a Great War impulse is active without being an action phase.
+   */
+  lockedReason?: string;
 }
 
 const TRACKS: readonly MpitTrack[] = ["te", "ta", "neutral"];
@@ -43,7 +49,7 @@ export const mpitTrackLabel = (t: ReturnType<typeof ieT>, track: MpitTrack): str
   track === "te" ? t.mpitTe : track === "ta" ? t.mpitTa : t.mpitNeutral;
 
 export const MpitPanel = ({
-  G, canAct, viewer, me, cpBudget, canSpend, locale, t, doAction, moves, confirmActions: liveConfirm,
+  G, canAct, viewer, me, cpBudget, canSpend, locale, t, doAction, moves, confirmActions: liveConfirm, lockedReason,
 }: MpitPanelProps) => {
   // One read per mount, like PhaseActions: the preference is display-only.
   const storedConfirm = React.useMemo(() => readConfirmActions(), []);
@@ -65,7 +71,11 @@ export const MpitPanel = ({
               {bi(locale, "Tap a track value to place a marker there (1 CP).", "点按轨道数字，即在该轨放置 1 个标记（1 CP）。")}
             </span>
           </div>
-        ) : <div className="ie-muted">{bi(locale, "Available during your own impulse.", "仅在你的行动轮可用。")}</div>}
+        ) : (
+          <div className="ie-muted" data-testid="ie-mpit-locked">
+            {lockedReason ?? bi(locale, "Available during your own impulse.", "仅在你的行动轮可用。")}
+          </div>
+        )}
         <div
           className="ie-mpit-grid"
           role={canAct ? "group" : undefined}

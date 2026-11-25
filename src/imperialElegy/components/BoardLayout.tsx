@@ -331,8 +331,16 @@ export const OrdersRegion = (props: OrdersSlice & {
         influence: (
           <>
             <MpitPanel
-              G={G} canAct={canAct} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
+              // 8.0's marker is a 12.1 peacetime action: the engine already
+              // refuses it in a war or Great War phase (15.2 / 27.5), so the
+              // matrix must not offer a button that only logs an invalid move.
+              G={G} canAct={canAct && phase === "action"} viewer={viewer} me={me} cpBudget={cpBudget} canSpend={canSpend}
               locale={locale} t={t} doAction={doAction} moves={moves} confirmActions={confirmActions}
+              lockedReason={canAct && phase !== "action"
+                ? bi(locale,
+                  "Influence markers are placed in the action phase only (8.0); wartime and Great War impulses use their own action lists.",
+                  "影响力标记只能在行动阶段放置（8.0）；战时与大战行动轮使用各自的行动列表。")
+                : undefined}
             />
             <NationalActionsPanel
               show={showNationalActions && viewer !== null}
@@ -826,6 +834,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             activeLabel={`${t.active}: ${seatPowerName(t, active, locale, auFormedForState(G))}`}
             turn={G.turn}
             summary={core.dockSummary}
+            nextSteps={core.dockNextSteps}
             hasDecision={decisionOwed}
             // The dock owns the phone decision cap; the turn panel itself is
             // never narrowed by the decision.

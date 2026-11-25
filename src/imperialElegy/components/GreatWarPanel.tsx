@@ -147,7 +147,6 @@ export const GreatWarPanel = (props: GreatWarPanelProps) => {
               .reduce<React.ReactNode[]>((acc, node, index) => (index === 0 ? [node] : [...acc, " · ", node]), [])}
           </div>
         )}
-        <div className="ie-muted">{bi(locale, "War budget", "战争预算")}: {POWERS.map((p) => `${p} ${G.powers[p].warBudget ?? 0}`).join(" · ")}</div>
         <div className="ie-gw-front" data-testid="ie-gw-combat-cards-in-front">
           <div className="ie-section-title">{bi(locale, "GW combat cards in front", "阵前大战战斗牌")}</div>
           {(gw.combatCardsInFront ?? []).length === 0 ? (

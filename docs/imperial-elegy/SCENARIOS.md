@@ -257,7 +257,7 @@ players lose." 由既有的 `endGreatWar` 处理。
 
 **仍然存在（已记录，非本次修复）**
 
-1. GW 中没有两栖登陆：`amphibiousAssaultCheck` 只接受 action/wartime，GW 的陆战也要求陆地→陆地，因此 p. 7 的英国两栖限制规则无法触发。这是 15.2.1/19.10 在 GW 下的整体缺口。
+1. ~~GW 中没有两栖登陆~~（2026-11-25 修复）：`amphibiousAssaultCheck` 现接受 `gwManeuver`，按 27.1 记为一次 naval 预算行动（每次行动轮一次），`amphibiousAssault` 在 GW 里从战争预算扣除 1 CP。p. 7 的英国限制（`blocksUkAmphibiousPort`）因此首次可以真正触发；见 `amphibiousInterception.test.ts` 的三条 GW 用例与 `docs/qa/ie-solo-gw-2026-11-25/REPORT.md`。
 2. 25.5 的 NG 补抽仍是确定性选择（保留最高印刷 VP），25.6 的 track boost 仍是固定顺序——两者都需要可中断的 Outbreak 决策。
 3. 25.7 的"同盟自行决定顺序"仍未提供选择界面；剧本先手按印刷顺序/25.7 默认值。
 4. 2.2.2 的"赢得 GW 的同盟获得 4 − GW 回合数的奖励 VP"未计入战役 GW 的最终比分。
