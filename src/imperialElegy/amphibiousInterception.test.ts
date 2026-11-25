@@ -4,7 +4,8 @@ import type {ImperialElegyState, Power, WarState} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit, removeUnit} from "./engine/effects";
 import {landUnitsIn, navalUnitsIn} from "./engine/rules";
-import {amphibiousAssault, navalIntercept, navalMove} from "./moves";
+import {amphibiousAssault, amphibiousAssaultCheck, navalIntercept, navalMove} from "./moves";
+import {beginGwImpulse, currentGwImpulse} from "./engine/gwImpulse";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "1"): Ctx => {
   let index = 0;
@@ -172,5 +173,66 @@ describe("19.1 naval interception", () => {
     // Germany owns no port adjacent to the box and is not at war with the UK.
     placeUnit(G, "FR", "squadron", "brittany", 2);
     expect(navalIntercept(G, makeCtx([6], "0"), "brittany", "north-atlantic")).toBe(INVALID_MOVE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 27.5 — amphibious assault as a Great War naval action
+// ---------------------------------------------------------------------------
+
+describe("27.5 Great War amphibious assault", () => {
+  const gwUk = (): ImperialElegyState => {
+    const G = setupImperialElegy(makeCtx(), {scenario: "gwTutorial"});
+    G.phase = "gwManeuver";
+    G.pending = null;
+    G.battle = null;
+    G.gw!.active = true;
+    G.gw!.turn = 1;
+    G.gw!.neutralImpulses = 0;
+    G.gw!.belligerents = ["GE", "AU", "FR", "UK", "RU"];
+    G.activePower = "UK";
+    G.turnIndex = 5;
+    beginGwImpulse(G, "UK");
+    G.powers.UK.gwBudget = 5;
+    for (const unit of [...landUnitsIn(G, "north-atlantic")]) removeUnit(G, unit.id);
+    for (const unit of [...navalUnitsIn(G, "north-atlantic")]) removeUnit(G, unit.id);
+    for (const unit of [...landUnitsIn(G, "hanover")]) removeUnit(G, unit.id);
+    for (const unit of [...navalUnitsIn(G, "hanover")]) removeUnit(G, unit.id);
+    return G;
+  };
+
+  test("an assault is legal in the GW maneuver and spends one war-budget CP", () => {
+    const G = gwUk();
+    const id = placeUnit(G, "UK", "army", "north-atlantic", 2).id;
+    const check = amphibiousAssaultCheck(G, "UK", "north-atlantic", "hanover", [id]);
+    expect(check.reason).toBeUndefined();
+    expect(check.ok).toBe(true);
+    expect(amphibiousAssault(G, makeCtx([], "1"), "north-atlantic", "hanover", [id])).toBeUndefined();
+    expect(G.powers.UK.gwBudget).toBe(4);
+    expect(currentGwImpulse(G, "UK").acted).toBe(true);
+  });
+
+  test("27.1: a second assault in the same impulse is refused", () => {
+    const G = gwUk();
+    const first = placeUnit(G, "UK", "army", "north-atlantic", 2).id;
+    const second = placeUnit(G, "UK", "army", "north-atlantic", 2).id;
+    expect(amphibiousAssault(G, makeCtx([], "1"), "north-atlantic", "hanover", [first])).toBeUndefined();
+    placeUnit(G, "UK", "army", "north-atlantic", 2);
+    expect(amphibiousAssault(G, makeCtx([], "1"), "north-atlantic", "hanover", [second])).toBe(INVALID_MOVE);
+  });
+
+  test("the Historical Great War's UK restriction now applies to a held German port", () => {
+    const G = gwUk();
+    // p. 7: "The UK cannot amphibiously assault GE home spaces containing a GE
+    // naval unit(s)."  Hanover is a German home port in this scenario.
+    placeUnit(G, "GE", "squadron", "hanover", 2);
+    const id = placeUnit(G, "UK", "army", "north-atlantic", 2).id;
+    // Enough escorts to clear the 19.10 2:1 rule, so only the scenario clause
+    // can refuse the assault.
+    for (let i = 0; i < 8; i++) placeUnit(G, "UK", "squadron", "north-atlantic", 2);
+    const check = amphibiousAssaultCheck(G, "UK", "north-atlantic", "hanover", [id]);
+    expect(check.ok).toBe(false);
+    expect(check.reason).toBe("scenario-german-port");
+    expect(amphibiousAssault(G, makeCtx([], "1"), "north-atlantic", "hanover", [id])).toBe(INVALID_MOVE);
   });
 });

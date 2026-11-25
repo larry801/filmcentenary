@@ -362,7 +362,7 @@ export const amphibiousReasonText = (
     case undefined: return undefined;
     case "no-seat": return bi(locale, "Only a seated player can launch an assault.", "仅入座玩家可以发动两栖突击。");
     case "not-active": return bi(locale, "Only the active power can launch an assault now.", "仅当前行动国家可以发动两栖突击。");
-    case "phase": return bi(locale, "Amphibious assaults happen in the action or limited-war phase.", "两栖突击只能在行动阶段或有限战争阶段发动。");
+    case "phase": return bi(locale, "Amphibious assaults happen in the action, limited-war or Great War maneuver phase.", "两栖突击只能在行动阶段、有限战争或大战机动阶段发动。");
     case "busy": return bi(locale, "Resolve the pending decision or battle first.", "请先处理待决事项或战斗。");
     case "no-cp": return bi(locale, "Needs 1 CP in this impulse.", "本行动轮需要 1 CP。");
     case "unit-count": return bi(locale, "Choose one or two loaded armies.", "请选择 1 至 2 个已装载军团。");

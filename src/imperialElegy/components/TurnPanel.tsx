@@ -18,6 +18,7 @@ import type {PhaseAction} from "./PhaseActions";
 import {PhaseActions} from "./PhaseActions";
 import {useRovingTabs} from "./useRovingTabs";
 import {resolveTurnTab, turnTabKeys} from "./turnPanelTab";
+import type {ActionHint} from "./actionHints";
 
 export interface TurnPanelProps {
   locale: "en" | "zh_CN";
@@ -30,6 +31,11 @@ export interface TurnPanelProps {
   turn: number;
   /** One-line "what now". */
   summary: string;
+  /**
+   * The concrete next click, one or two lines under the summary (the summary
+   * names the rule; these name the control that performs it).
+   */
+  nextSteps?: ActionHint[];
   /** A decision or battle is open, so Orders shows it instead of actions. */
   hasDecision: boolean;
   /**
@@ -53,7 +59,7 @@ export interface TurnPanelProps {
 }
 
 export const TurnPanel = ({
-  locale, t, cp, phaseActions, phaseLabel, activeLabel, turn, summary, hasDecision,
+  locale, t, cp, phaseActions, phaseLabel, activeLabel, turn, summary, nextSteps, hasDecision,
   decisionOnlyOnPhone = false, decisionBadge = false, warBadge, tabs, activeTab, onTabChange,
   confirmActions,
 }: TurnPanelProps) => {
@@ -98,6 +104,12 @@ export const TurnPanel = ({
             the CP readout; the strip above only reports the position. */}
         <PhaseActions title={t.yourTurnActions} locale={locale} actions={phaseActions} confirmActions={confirmActions}/>
       </div>
+
+      {nextSteps !== undefined && nextSteps.length > 0 && (
+        <div className="ie-next-step" data-testid="ie-next-step">
+          {nextSteps.map((hint) => <div key={hint.key} className="ie-next-step-line">{hint.text}</div>)}
+        </div>
+      )}
 
       <div className="ie-turn-tabs" role="tablist" aria-label={bi(locale, "Turn panel sections", "回合面板分页")}>
         {keys.map((key) => {

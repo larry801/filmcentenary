@@ -3422,9 +3422,20 @@ export const amphibiousAssaultCheck = (
   unitIds: string[],
 ): AmphibiousCheck => {
   if (power === null) return {ok: false, reason: "no-seat"};
-  if (G.phase !== "action" && G.phase !== "wartime") return {ok: false, reason: "phase"};
+  // 27.5 lists naval movement among the Great War actions, and 19.10's assault
+  // is a naval movement: the Historical Great War's own "the UK cannot
+  // amphibiously assault GE home spaces containing a GE naval unit(s)" (p. 7)
+  // can only ever apply inside the GW.  The wartime phase already shares the
+  // list, so the GW maneuver is the last phase that missed it.
+  if (G.phase !== "action" && G.phase !== "wartime" && G.phase !== "gwManeuver") return {ok: false, reason: "phase"};
   if (G.pending !== null || G.battle !== null) return {ok: false, reason: "busy"};
   if (G.phase === "action" && G.activePower !== power) return {ok: false, reason: "not-active"};
+  // 27.1/27.5: one budget-funded action per GW impulse, charged as a naval
+  // action so a card-bonus impulse cannot repeat it.
+  if (G.phase === "gwManeuver") {
+    if (!G.gw?.active || G.activePower !== power || G.powers[power].eliminated) return {ok: false, reason: "not-active"};
+    if (!gwActionAllowance(G, power, "naval").ok) return {ok: false, reason: "no-cp"};
+  }
   if (!Array.isArray(unitIds) || unitIds.length === 0 || unitIds.length > 2) {
     return {ok: false, reason: "unit-count"};
   }
@@ -3505,7 +3516,14 @@ export const amphibiousAssault = (
   // impulse budget (the old body charged first and rejected afterwards).
   const check = amphibiousAssaultCheck(G, actor(G, playerID), from, to, unitIds);
   if (!check.ok) return INVALID_MOVE;
-  const power = requireCp(G, ctx, playerID, 1);
+  // The GW charges the action to the 27.1 ledger; the other phases use the
+  // ordinary impulse wallet.
+  const power = G.phase === "gwManeuver"
+    ? (() => {
+        const seat = actor(G, playerID);
+        return seat !== null && spendGwManeuverBudget(G, seat) ? seat : INVALID_MOVE;
+      })()
+    : requireCp(G, ctx, playerID, 1);
   if (power === INVALID_MOVE) return INVALID_MOVE;
   const armies = unitIds
     .map((id) => G.units[id])

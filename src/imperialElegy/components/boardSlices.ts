@@ -39,7 +39,7 @@ const CORE_KEYS = [
   "phase", "active", "isActive", "eliminated", "botSeats", "isBotViewer", "canHandOverSeat", "setSeatBot", "pending", "war", "gw",
   "battle", "hasPhaseButtons", "phaseActions", "canDecide", "canAct", "canActionCard", "cpBudget",
   "mapLegalTargets",
-  "canSpend", "dockVisible", "dockSummary", "dockCollapsed", "setDockCollapsed", "isCurrentSeat",
+  "canSpend", "dockVisible", "dockSummary", "dockNextSteps", "dockCollapsed", "setDockCollapsed", "isCurrentSeat",
   "isPhone", "mobileTab", "setMobileTab", "trayOpen", "setTrayOpen", "trayExpanded", "setTrayExpanded",
   "otherSeatPending", "seatUi", "pendingPrompt", "pendingKind", "responseWindow", "handChoicesHint",
   "cardFaceMode", "setCardFaceMode", "confirmActions", "setConfirmActions", "board", "setBoard", "railTab", "setRailTab", "choiceKinds",
