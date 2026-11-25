@@ -3,7 +3,7 @@
 /* ---------------------------------------------------------------- surface */
 .ie-surface {
   position: relative;
-  background: radial-gradient(circle at 30% 0%, var(--ie-table-2), var(--ie-table) 70%);
+  background: var(--ie-table);
   color: var(--ie-on-dark);
   min-height: 100%;
   padding: 6px var(--ie-space-3);
@@ -11,17 +11,6 @@
   font-size: var(--ie-font-sm);
   line-height: var(--ie-font-sm-line);
   font-variant-numeric: tabular-nums lining-nums;
-}
-
-/* The grain tile sits under the content and never adds layout height (§6.2). */
-.ie-surface::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: .05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='96' height='96' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
 }
 
 .ie-board {
@@ -53,13 +42,13 @@
 .ie-title {
   font-family: var(--ie-font-display);
   font-size: var(--ie-font-lg);
-  letter-spacing: .04em;
-  color: var(--ie-brass-soft);
+  letter-spacing: 0;
+  color: var(--ie-on-dark);
   margin: 0;
   line-height: var(--ie-font-lg-line);
 }
 
-.ie-sub { font-size: var(--ie-font-xs); color: var(--ie-on-dark-muted); letter-spacing: .06em; }
+.ie-sub { font-size: var(--ie-font-xs); color: var(--ie-on-dark-muted); letter-spacing: 0; }
 
 .ie-status { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--ie-font-xs); }
 
@@ -181,7 +170,7 @@
 
 .ie-command-active, .ie-command-turn { white-space: nowrap; color: var(--ie-on-dark-2); }
 
-.ie-command-sep { color: var(--ie-rule-strong); }
+.ie-command-sep { color: var(--ie-on-dark-muted); }
 
 .ie-command-cp {
   display: inline-flex;
@@ -222,7 +211,7 @@
 
 .ie-display-trigger::-webkit-details-marker { display: none; }
 
-.ie-display-trigger:hover { background: var(--ie-ink-2); }
+.ie-display-trigger:hover { background: var(--ie-panel-3); }
 
 .ie-display-panel {
   position: relative;
@@ -232,10 +221,10 @@
   border: 1px solid var(--ie-brass);
   border-radius: var(--ie-radius-md);
   background: var(--ie-panel);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .65);
+  box-shadow: var(--ie-shadow-2);
 }
 
-.ie-display-title { font-size: var(--ie-font-xs); color: var(--ie-on-dark-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.ie-display-title { font-size: var(--ie-font-xs); color: var(--ie-on-dark-2); text-transform: uppercase; letter-spacing: .02em; margin-bottom: 4px; }
 
 .ie-display-options { display: flex; gap: 4px; }
 
@@ -264,7 +253,7 @@
   flex-direction: column;
   border: 1px solid var(--ie-rule);
   border-radius: var(--ie-radius-md);
-  background: rgba(33, 27, 22, .6);
+  background: var(--ie-panel);
   overflow: hidden;
 }
 
@@ -415,23 +404,23 @@
 
 .ie-step.current::before { content: "●"; margin-right: 5px; color: var(--ie-brass-soft); font-size: 12px; }
 
-.ie-stepper-sep { flex: 0 0 auto; color: var(--ie-rule-strong); font-size: var(--ie-font-xs); padding: 0 1px; }
+.ie-stepper-sep { flex: 0 0 auto; color: var(--ie-on-dark-muted); font-size: var(--ie-font-xs); padding: 0 1px; }
 
 /* Phone only: one chip in place of the four-button stepper (see TrackStrip).
    It names the current step and the acting power and opens that step's
    reference; `90-phone.css` turns it on below 768 px. */
 .ie-track-step {
-  display: none;
+  display: inline-flex;
   flex: 0 1 auto;
   align-items: center;
   gap: 5px;
   min-width: 0;
-  max-width: 132px;
-  height: 36px;
-  padding: 0 8px;
-  border: 1px solid var(--ie-rule-strong);
+  max-width: 170px;
+  height: 30px;
+  padding: 0 6px;
+  border: 0;
   border-radius: var(--ie-radius-sm);
-  background: var(--ie-panel-2);
+  background: transparent;
   color: var(--ie-on-dark);
   font-size: var(--ie-font-xs);
   font-weight: 700;
@@ -440,7 +429,72 @@
   cursor: pointer;
 }
 
-.ie-track-step:hover { border-color: var(--ie-brass); color: var(--ie-brass-soft); }
+.ie-track-step:hover { background: var(--ie-panel-3); color: var(--ie-on-dark); }
+
+/* The viewer's four printed figures, inline in the one top row. */
+.ie-track-stats { flex: 0 0 auto; display: inline-flex; min-width: 0; overflow: hidden; }
+
+.ie-stats-row { display: inline-flex; gap: 10px; }
+
+.ie-stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--ie-font-xs);
+  color: var(--ie-on-dark-muted);
+  white-space: nowrap;
+}
+
+.ie-stat b { color: var(--ie-on-dark); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* The hotseat's seat tabs sit in the one top row, not on a header of their own. */
+.ie-statusline-seats { flex: 0 1 auto; min-width: 0; display: flex; overflow-x: auto; scrollbar-width: none; }
+
+.ie-statusline-seats::-webkit-scrollbar { display: none; }
+
+.ie-statusline-seats .ie-seat-strip {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ie-statusline-seats .ie-seat-strip::-webkit-scrollbar { display: none; }
+
+.ie-statusline-seats .ie-seat-tab {
+  height: 43px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--ie-on-dark-muted);
+}
+
+.ie-statusline-seats .ie-seat-tab:hover { background: var(--ie-panel-3); color: var(--ie-on-dark); }
+
+.ie-statusline-seats .ie-seat-tab[aria-selected="true"] {
+  background: transparent;
+  box-shadow: inset 0 -2px 0 var(--ie-brass);
+  color: var(--ie-on-dark);
+}
+
+/* The code is the label in this row; the printed name and the state word stay
+   in the accessible name and in the button's tooltip. */
+.ie-statusline-seats .ie-seat-index,
+.ie-statusline-seats .ie-seat-name,
+.ie-statusline-seats .ie-seat-state {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
 
 .ie-track-step-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 

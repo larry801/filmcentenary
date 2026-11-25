@@ -1,5 +1,6 @@
 import React from "react";
 import {ImperialElegyState, Power} from "../types";
+import type {SeatStatus} from "./SeatStrip";
 
 /**
  * Hotseat-only bridge between the single seat strip (owned by local.tsx) and
@@ -21,6 +22,13 @@ export interface SeatUi {
    */
   choiceOpen?: Partial<Record<Power, boolean>>;
   setChoiceOpen?: (power: Power, open: boolean) => void;
+  /** The seat tabs the shell derives, rendered inside the board's top row. */
+  seats?: SeatStatus[];
+  /**
+   * The hotseat shell's own controls (new game, help, difficulty).  They live
+   * in the board's menu so the shell adds no second header row.
+   */
+  shellMenu?: React.ReactNode;
 }
 
 export const SeatUiContext = React.createContext<SeatUi>({currentSeat: null});

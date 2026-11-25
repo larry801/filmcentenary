@@ -68,7 +68,7 @@
   overflow: auto;
   background: var(--ie-table);
   border: 1px solid var(--ie-ink-2);
-  box-shadow: 0 24px 80px rgba(0, 0, 0, .55);
+  box-shadow: var(--ie-shadow-3);
 }
 
 .ie-printed-board {
@@ -76,8 +76,8 @@
   width: 100%;
   height: auto;
   max-width: 100%;
-  background: var(--ie-on-dark);
-  box-shadow: 0 2px 14px rgba(0, 0, 0, .55);
+  background: var(--ie-panel);
+  box-shadow: var(--ie-shadow-1);
 }
 
 @media print {

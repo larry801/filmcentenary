@@ -11,14 +11,12 @@
  * presentation only: every value and every action comes from the board model.
  */
 import React from "react";
-import {Icon} from "./Icon";
 import {ImperialElegyState, Power, POWERS} from "../types";
 import {IEBadge} from "./theme";
 import {ieT} from "./i18n";
 import {bi, controlLabel, PHASE_LABEL} from "./boardHelpers";
 import {phaseSteps, type PhaseStep} from "./phaseSteps";
 import type {PhaseAction} from "./PhaseActions";
-import {useRovingTabs} from "./useRovingTabs";
 
 export interface TrackStripProps {
   G: ImperialElegyState;
@@ -36,6 +34,12 @@ export interface TrackStripProps {
   status?: React.ReactNode;
   /** A decision waiting on another seat (hotseat). */
   notice?: React.ReactNode;
+  /** The hotseat's seat tabs, rendered inline so the board has one top row. */
+  seats?: React.ReactNode;
+  /** The viewer's four printed figures (VP, stability, manpower, industry). */
+  stats?: React.ReactNode;
+  /** The instruction drawer's toggle (desktop). */
+  panel?: {open: boolean; onToggle: () => void; label: string; badge?: boolean};
   /** Opens the reference drawer at an anchor. */
   onOpenReference?: (anchor: string) => void;
 }
@@ -61,7 +65,7 @@ const ALLIANCE_MARKERS: readonly {box: string; short: string; title: string; tit
 
 export const TrackStrip = ({
   G, viewer, active, phase, war, gw, cp, cpBudget, locale, t,
-  menu, status, notice, onOpenReference,
+  menu, status, notice, seats, stats, panel, onOpenReference,
 }: TrackStripProps) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const hasWar = war !== null || gw !== null;
@@ -71,12 +75,7 @@ export const TrackStrip = ({
     gw,
     endPhase: G.endPhase,
   }), [phase, war, gw, G.endPhase]);
-  const stepKeys = steps.map((step) => step.key);
   const currentStep = steps.find((step) => step.current);
-  const roving = useRovingTabs(stepKeys, currentStep?.key ?? "", (key) => {
-    const step = steps.find((candidate) => candidate.key === key);
-    if (step) onOpenReference?.(step.anchor);
-  });
 
   const openRef = (anchor: string) => (event: React.MouseEvent) => {
     event.preventDefault();
@@ -97,8 +96,12 @@ export const TrackStrip = ({
         </span>
       </div>
 
+      {seats !== undefined && <div className="ie-statusline-seats">{seats}</div>}
+
       {/*
-        Phone: the four-button stepper does not fit in 44 px (the stylesheet
+        The step chip names the current step and the acting power, and opens
+        that step's reference.  It replaced the four-button stepper: the
+        sequence of play is reference material, not a permanent control. (the stylesheet
         hides it below 768 px), which left the folded screen with a bare turn
         number and no way to tell whose turn it was or which step of the season
         was running.  This one chip names the current step and the acting power
@@ -121,14 +124,6 @@ export const TrackStrip = ({
           {active}
         </span>
       </button>
-
-      <PhaseStepper
-        steps={steps}
-        locale={locale}
-        label={bi(locale, "Sequence of play", "游戏流程")}
-        roving={roving}
-        onOpenReference={(anchor) => onOpenReference?.(anchor)}
-      />
 
       <div className="ie-track-status">
         <span
@@ -181,12 +176,29 @@ export const TrackStrip = ({
         )}
       </div>
 
+      {stats !== undefined && <div className="ie-track-stats">{stats}</div>}
+
       <div className="ie-track-cp" data-testid="ie-command-cp" title={bi(locale, "CP left this impulse", "本行动轮剩余 CP")}>
         <span className="ie-track-cp-label">{t.cp.replace(/\s*CP\s*$/, "")}</span>
         <b>{cp}</b>
       </div>
 
       {status !== undefined && <div className="ie-track-badges">{status}</div>}
+
+      {panel !== undefined && (
+        <button
+          type="button"
+          className="ie-panel-toggle"
+          data-testid="ie-panel-toggle"
+          data-open={panel.open ? "true" : "false"}
+          aria-expanded={panel.open}
+          title={panel.label}
+          onClick={panel.onToggle}
+        >
+          {panel.label}
+          {panel.badge === true && <i className="ie-panel-pip" aria-hidden="true"/>}
+        </button>
+      )}
 
       <div className="ie-track-round">
         <button
@@ -227,42 +239,3 @@ export const TrackStrip = ({
     </header>
   );
 };
-
-/** The stepper itself; exported so the phase-order tests can render it alone. */
-export const PhaseStepper = ({steps, locale, label, roving, onOpenReference}: {
-  steps: PhaseStep[];
-  locale: "en" | "zh_CN";
-  label: string;
-  roving: (key: string) => {ref: (node: HTMLButtonElement | null) => void; tabIndex: number; onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => void};
-  onOpenReference: (anchor: string) => void;
-}) => (
-  // Not a tablist: the strip already has one (the seat strip uses role="tab"
-  // with "P1 · GE"), and two tab roles on one page make `role=tab` ambiguous.
-  // The stepper is a group of buttons that mark the current step with
-  // aria-current, which is what a reader needs anyway (it opens a reference,
-  // not a panel).
-  <div className="ie-stepper" role="group" aria-label={label} data-testid="ie-stepper">
-    {steps.map((step, index) => {
-      const done = !step.current && steps.findIndex((candidate) => candidate.current) > index;
-      return (
-        <React.Fragment key={step.key}>
-          {index > 0 && <span className="ie-stepper-sep" aria-hidden="true"><Icon name="chevron-right" size={14}/></span>}
-          <button
-            type="button"
-            aria-pressed={step.current ? "true" : "false"}
-            aria-current={step.current ? "step" : undefined}
-            className={`ie-step${step.current ? " current" : ""}${done ? " done" : ""}`}
-            data-testid={`ie-step-${step.key.replace(/[^a-z0-9]+/gi, "-")}`}
-            data-anchor={step.anchor}
-            title={`${locale === "zh_CN" ? step.titleZh : step.title}${step.rule ? ` · ${step.rule}` : ""}`}
-            aria-label={`${locale === "zh_CN" ? step.titleZh : step.title}${step.rule ? ` (${step.rule})` : ""}`}
-            {...roving(step.key)}
-            onClick={() => onOpenReference(step.anchor)}
-          >
-            {locale === "zh_CN" ? step.titleZh : step.title}
-          </button>
-        </React.Fragment>
-      );
-    })}
-  </div>
-);

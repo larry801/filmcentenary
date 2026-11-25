@@ -145,6 +145,10 @@
   .ie-track-status .ie-track-wtt { padding: 1px 6px; }
   .ie-track-wtt-label, .ie-track-wtt-note { display: none; }
   .ie-track-alliance, .ie-track-war { display: none; }
+  .ie-track-stats { display: none; }
+  /* The phone's orders live in the bottom dock, not in a drawer. */
+  .ie-turn-slot { display: contents; }
+  .ie-panel-close, .ie-panel-toggle { display: none; }
   .ie-track-cp {
     display: inline-flex;
     align-items: baseline;
@@ -161,8 +165,6 @@
   /* Phones read CP from the strip; the panel head would be the second readout,
      so on a phone the head keeps its buttons and drops the number. */
   .ie-turn-panel .ie-command-cp { display: none; }
-  /* The stepper's one-chip stand-in (base style in 20-shell.css). */
-  .ie-track-step { display: inline-flex; }
   .ie-round-btn { position: relative; width: 36px; height: 36px; }
   /* Visual 36 px, hit 44 px: the strip is 44 px tall, so the pseudo-element
      reaches its edges exactly. */
@@ -242,8 +244,8 @@
     overflow: hidden;
     border: 1px solid var(--ie-rule);
     border-radius: var(--ie-radius-sm);
-    background: linear-gradient(180deg, var(--ie-panel-2), var(--ie-panel));
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
+    background: var(--ie-panel);
+    box-shadow: var(--ie-shadow-3);
     transition: height var(--ie-motion-sheet) var(--ie-motion-easing-sheet),
       max-height var(--ie-motion-sheet) var(--ie-motion-easing-sheet);
   }

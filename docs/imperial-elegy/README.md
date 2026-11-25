@@ -6,9 +6,10 @@ Imperial World at War, 1850–1920** (VUCA Simulations, design Michael Lorino).
 ## Visual system
 
 The board's visual language — palette, typography, surfaces, components,
-motion and verification — is specified in
-[`VISUAL_SYSTEM.md`](VISUAL_SYSTEM.md). Layout and behaviour remain specified
-here; the visual spec must not change them.
+motion and verification — is specified in [`MINIMAL_UI.md`](MINIMAL_UI.md)
+(2026-11-25, "One Sheet"). It replaced the earlier Field Atlas direction
+([`VISUAL_SYSTEM.md`](VISUAL_SYSTEM.md) is now a pointer). Layout and behaviour
+remain specified here; the visual spec must not change them.
 
 ## Scenarios
 
@@ -336,72 +337,84 @@ decision is still waiting.
 
 ### Layout at 1440×900
 
-`components/BoardLayout.tsx` and `imperial-elegy.css` split the board into five
-regions:
+`components/BoardLayout.tsx` and the stylesheet split the board into three
+regions plus two surfaces that open on demand (see
+[`MINIMAL_UI.md`](MINIMAL_UI.md) §5 for the visual contract):
 
 ```
 +--------------------------------------------------------------+
-| seat strip                                                   |
+| status row (44 px): turn · step · seats · figures · CP · menu|
 +--------------------------------------------------------------+
-| track strip (52 px)                                          |
-+--------+-------------------------------+---------------------+
-| mat    | map                           | turn panel (348 px) |
-| 148 px |                               |  head + tabs        |
-|        +-------------------------------+                     |
-| hand tray (212 px max, spans mat+map)  |                     |
-+--------+-------------------------------+---------------------+
+|                                                              |
+|  map (full width)                     [ orders drawer 348 px ]|
+|                                       [ only while open     ]|
++--------------------------------------------------------------+
+| hand bar (44 px folded) / card strip (152 px open)           |
++--------------------------------------------------------------+
 ```
 
-- **Track strip** — `components/TrackStrip.tsx`, 52 px under the seat strip. It
-  carries the turn and decade, the sequence-of-play stepper (each step opens the
-  reference at that step), World Tension pips with the "3: no war" warning, the
-  five alliance boxes (cTA / aTA / N / aTE / cTE), the Great War turn or the
-  current war, status badges, and the round controls: `?` (reference) and the
-  menu. The stepper is a group of buttons under one roving tab stop, not a
-  tablist.
-- **Map and mat** — `components/MapPanel.tsx` (`map.tsx` draws the spaces and
-  units) takes the middle column; the player mat (`components/PlayerMat.tsx`)
-  is the narrow strip beside it (148 px; 132 px below 1100 px) and reproduces
-  the printed player display for the viewer: the stability track with the VP /
-  BM / card each box prints, the manpower count and the key box that supplies
-  it, the industry track with the cards each level draws, the territorial key
-  track with the MP under each box and its AUTO VICTORY box, the colonial (UK)
-  or Arab (OT) key track with its own MP/AMP ladder, the Reserve Armies
-  holding box and its printed Box Limit formula, the per-turn draw, VP, the
-  Industry Card and CP Chain slots, the National Goals, and the national
-  characteristics folded under the tracks. Every number comes from
-  `POWER_DEFS` and the engine's own helpers (`cardsToDraw`,
-  `reserveAllowance`, `industryTarget`), so the mat prints the rules rather
-  than a second copy of them. It begins open on desktop and folds to a
-  one-line chip row with a popover below 1100 px; on a phone it is the dock's
-  Mat tab (§8 of [`UI_CHECKLIST.md`](UI_CHECKLIST.md)).
-- **Turn panel** — 348 px, described above. The War tab is always present and
-  is the single home of war operations: `components/WarDeclarationPanel.tsx`
-  declares a war before one exists (defender, aim, objective and the 14.1
-  clauses are all picked in the panel, with no map selection), and
-  `components/WarPanel.tsx` runs it once it does; the Great War's
-  `components/TrenchBoard.tsx` rows mount there while it is active. On desktop
-  the panel has no collapse toggle: it is a permanent table cell, and the
-  decision it shows replaces its Orders body rather than expanding over the
-  map. On a phone it is the dock's body for the Orders, Log and War tabs, and
+- **Status row** — `components/TrackStrip.tsx`, 44 px, the only permanent chrome.
+  It carries the turn and decade, one **step chip** naming the current step of
+  the sequence (it opens that step's reference; it replaced the four-button
+  stepper), the hotseat's seat tabs (passed in through `SeatUiContext.seats`),
+  the viewer's four figures (VP, stability, manpower, industry), World Tension
+  pips with the "3: no war" warning, the five alliance boxes (cTA / aTA / N /
+  aTE / cTE), the Great War turn or the current war, the CP chip on a phone,
+  the Orders drawer toggle, `?` (reference) and the menu. The hotseat shell's
+  own controls (new game, help, difficulty) render inside that menu through
+  `SeatUiContext.shellMenu`, so the shell adds no second header row.
+- **Map** — `components/MapPanel.tsx` (`map.tsx` draws the spaces and units)
+  owns the full width the mat column used to take: 1392 px at 1440×900, with
+  the hand folded.
+- **Player figures and the printed display** — the status row prints VP,
+  stability, manpower and industry from `core.me`; the full printed display
+  (`components/PlayerMat.tsx`) is the first section of the reference drawer
+  (`ie-ref-mat`) and the phone dock's Mat tab. It still reproduces the printed
+  player display item for item — the stability track with the VP / BM / card
+  each box prints, the manpower count and the key box that supplies it, the
+  industry track with the cards each level draws, the territorial key track
+  with the MP under each box and its AUTO VICTORY box, the colonial (UK) or
+  Arab (OT) key track with its own MP/AMP ladder, the Reserve Armies holding
+  box and its printed Box Limit formula, the per-turn draw, VP, the Industry
+  Card and CP Chain slots, the National Goals and the national characteristics.
+  Every number comes from `POWER_DEFS` and the engine's own helpers
+  (`cardsToDraw`, `reserveAllowance`, `industryTarget`), so the display prints
+  the rules rather than a second copy of them.
+- **Orders drawer** — 348 px over the right of the map, closed until asked for.
+  The status row's `指令 / Orders` button opens it (it reads `决策 / Decision`
+  with a red dot while this seat owes a decision), a pending decision or a
+  battle opens it by itself, and `Esc` or its × closes it; while closed it is
+  `inert`. The War tab is always present and is the single home of war
+  operations: `components/WarDeclarationPanel.tsx` declares a war before one
+  exists (defender, aim, objective and the 14.1 clauses are all picked in the
+  panel, with no map selection), and `components/WarPanel.tsx` runs it once it
+  does; the Great War's `components/TrenchBoard.tsx` rows mount there while it
+  is active. The decision it shows replaces its Orders body rather than
+  expanding over the map. On a phone the same node is the dock's body for the
+  Orders, Log and War tabs (`.ie-turn-slot` is `display: contents` there), and
   the dock owns its height.
-- **Hand** — `components/HandTray.tsx`, a row under the mat and the map that
-  spans both of those columns on desktop (at most 212 px open, folded to a 44 px
-  bar; the turn panel keeps the right column); on a phone it is the dock's Hand
-  tab. Its head has the card count, the CP-chain/saved/response chips and the
-  tray toggle; each card is one row — CP value and name, plus the first reason
-  it cannot be played when it is stuck. There is no filter (a hand is only a few
-  cards, so all of them are always listed), no sort select (the hand is always
-  printed order) and no type icon (it used to sit over the CP number). Every
-  card may be played for CP (rule 12.0), so a playable row carries no badge. On
-  a desktop the row also draws its operations inline — play for CP, the event,
-  a response, industrialize, the CP chain and Save, with every blocked button
-  carrying its reason as a title — so the common play needs no dialog; the name
-  still opens the `CardInspector` with the face and the aggregated reasons. On
-  a phone the row stays one line and the operations stay in the inspector.
+- **Hand** — `components/HandTray.tsx`, a row under the map spanning the full
+  width. It starts folded to a 44 px bar (card count, CP-chain/saved/response
+  chips, the toggle); opened it is a 152 px card strip. Each card is one line —
+  CP value, name, and its two printed plays (play for CP, play the event) with
+  every blocked button carrying its reason as a title; industrialise, show,
+  the CP chain and Save are in the `CardInspector` the name opens, and a stuck
+  card prints the first reason it cannot be played. There is no filter (a hand
+  is only a few cards), no sort select (always printed order) and no type icon.
+  Every card may be played for CP (rule 12.0), so a playable row carries no
+  badge. On a phone it is the dock's Hand tab and the same compact row.
 - **Reference drawer** — `components/ReferenceDrawer.tsx` opens from the right
-  at an anchor (the strip's `?`, a stepper step, the mat's "Printed display", a
-  `?` rule link) and closes on Esc. It shows the tables the engine renders — the
+  at an anchor (the row's `?`, the step chip, the hand's rule links) and closes
+  on Esc. It begins with the viewer's own printed display (`ie-ref-mat`), then
+  the tables the engine renders — the CRT from `crt()`, the action costs from
+  `ACTION_COSTS`, the sequence of play from `phaseSteps`
+  (`components/referenceTables.tsx`) — then the other powers' dashboards, and
+  finally the nine printed PNG charts. Opening a chart opens
+  `components/ChartLightbox.tsx` full screen instead of squeezing the image
+  into drawer width. There is no rail or board-wide Reference tab, and no
+  always-open chart grid.
+- **Reference drawer** — `components/ReferenceDrawer.tsx` opens from the right
+  at an anchor (the row's `?`, the step chip, a `?` rule link) and closes on Esc. It shows the tables the engine renders — the
   CRT from `crt()`, the action costs from `ACTION_COSTS`, the sequence of play
   from `phaseSteps` (`components/referenceTables.tsx`) — then the other powers'
   dashboards, and finally the nine printed PNG charts. Opening a chart opens
@@ -459,9 +472,11 @@ Enter commits a single target. Only `submitTargeting` in
 
 ### Phones
 
-Below 768 px the board becomes one column: a 44 px track strip (the stepper and
-alliance boxes are dropped; the CP readout shows here because the turn panel's
-head hides `ie-command-cp` below 768 px), the map, and **one** bottom dock
+Below 768 px the board becomes one column: the 44 px status row (the step chip
+names the step, the figures and alliance boxes are dropped, the seat tabs stay
+in a horizontally scrolling strip, and the CP readout shows here because the
+turn panel's head hides `ie-command-cp` below 768 px), the map, and **one**
+bottom dock
 `data-testid="ie-mobile-dock"`. The dock replaces the old hand sheet plus a
 separate turn panel. It exposes its state in attributes: `data-open` (`false`
 closed, `true` open), `data-expanded` (`false` half, `true` full; only
@@ -831,52 +846,19 @@ The same rule applies in Playwright: wait for the state the sleep was guessing
 at (`data-active` on a seat panel, a button disappearing, a pending decision's
 `id` changing) rather than `waitForTimeout`.
 
-### IE Playwright configs
+### Browser suite
 
-The three IE browser configs are deliberately separate, and all three are
-started by their own config so CI needs no hand-started servers:
+Imperial Elegy no longer has a Playwright suite. The four IE specs (regression,
+controls, spectator, phone) and their `playwright.ie-*.config.ts` files were
+deleted with the minimal-UI redesign: they pinned the old shell's regions,
+ports and `data-testid` placement, which the redesign changes on purpose. The
+default `yarn test:e2e` suite still runs the lobby, Virgin Queen and the shared
+card tables.
 
-- **regression** (`playwright.ie-regression.config.ts`) builds nothing itself;
-  its `webServer` runs `vite preview` over `build/` on `:5203`, so `yarn build`
-  must run first.
-- **controls** (`playwright.ie-controls.config.ts`) does the same on `:5201`.
-- **spectator** (`playwright.ie-spectator.config.ts`) has no `webServer`
-  block: the spec itself starts a boardgame.io server on `:4004` and a
-  `vite preview` on `:5202`, and requires `build/server.js` to exist.
-
-`yarn test:e2e` deliberately ignores these three specs (they run against the
-dev server on `:5173`, not their own origin); `yarn test:e2e:ie` runs all three
-in order, and each one also has its own script
-(`test:e2e:ie:regression`, `:controls`, `:spectator`) for a CI job that runs
-them on separate runners.
-
-All three IE specs now wait on observable state instead of fixed sleeps, so the
-suite no longer pays a 180-250 ms pause per seat switch. `focusSeat` waits for
-the seat panel's `data-active`, the prep/home-card helpers wait for their button
-to disappear, and `answerStartPending` waits for the pending decision's `id` to
-change. The controls spec dropped from 1.4 min to ~58 s and the regression spec
-from 1.3 min to ~53 s on the same runner; CI runs the three IE configs and the
-default suite as four parallel jobs, so the whole browser stage is bounded by
-the slowest one instead of by their sum.
-
-```sh
-# Regression: original hotseat spec, 6 tests, preview :5203
-yarn build
-./node_modules/.bin/playwright test --config=playwright.ie-regression.config.ts
-
-# Controls: 15 tests, preview :5201
-./node_modules/.bin/playwright test --config=playwright.ie-controls.config.ts
-
-# Online/spectator: 3 tests, self-starts game server :4004 + preview :5202
-yarn build:server          # produces build/server.js, which the spec requires
-./node_modules/.bin/playwright test --config=playwright.ie-spectator.config.ts
-
-# All three in order
-yarn test:e2e:ie
-```
-
-The spectator spec builds its own frontend into `/tmp/ie/spectator-dist` and
-writes its playwright output under `test-results/ie-spectator`.
+What replaces them: the Jest component suites (render-level assertions on the
+same controls), the design gates (`yarn ie:tokens:check`, `yarn ie:contrast`)
+and a manual screenshot record under `docs/qa/`. See
+[`MINIMAL_UI.md`](MINIMAL_UI.md) §7 for the verification method.
 
 **Full evidence for this refresh:** the IE Jest suite passes **2641/2641 tests
 in 205/205 suites**; `tsc`, server `tsc`, `yarn build` and `yarn build:server` are
@@ -884,10 +866,7 @@ clean; `python3 scripts/extract-imperial-elegy.py --check` verifies **501
 assets**. The declared `@i18n-chain/react@2.0.1` is now installed in this
 checkout’s `node_modules`, so no shim is needed (see
 [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md#test-and-build-evidence)).
-The browser specs **now contain 6 regression, 15 controls and 3 spectator
-tests** (older notes here quoted 5 / 3 / 3), so take the pass counts from the
-`ci.yml` e2e job (`yarn test:e2e:ie`) rather than from an older local run. The
-combat-card suites are included in the run, as are
+The combat-card suites are included in the run, as are
 the new crisis, settlement, characteristics, logistics, card-choice, end-phase,
 alliance, naval, privacy, Great War home-front, India/UK, Rome/GW-major and
 playability/UI suites.

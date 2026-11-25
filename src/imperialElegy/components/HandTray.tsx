@@ -22,6 +22,12 @@ import {cardDisplayName, pinHomeCards} from "./cardDisplay";
 export interface HandTrayProps {
   /** Live `confirmActions` preference (the Display menu writes it). */
   confirmActions?: boolean;
+  /**
+   * The desktop card strip: one line per card, its two printed plays in place,
+   * everything else in the inspector.  Off for the static suites, which want
+   * the whole operation list on the row.
+   */
+  compact?: boolean;
   G: ImperialElegyState;
   viewer: Power | null;
   me: ImperialElegyState["powers"][Power] | null;
@@ -110,7 +116,7 @@ export const HandTray = (props: HandTrayProps) => {
     chainReady, chainDisabledReason, cpBudget, doAction, moves, handChoicesHint,
     cardFaceMode, open, onToggleOpen, expanded = false, onToggleExpanded, decisionPeek = false,
     decisionPeekLabel,
-    onOpenReference, expandAll = false, isPhone = false, isBotViewer = false,
+    onOpenReference, expandAll = false, isPhone = false, isBotViewer = false, compact = false,
   } = props;
   const [inspector, setInspector] = React.useState<{face: CardChoiceFace; key: string} | null>(null);
   const [chainCard, setChainCard] = React.useState<string>("");
@@ -233,11 +239,11 @@ export const HandTray = (props: HandTrayProps) => {
   // Save in particular is legal outside the seat's own impulse.
   const showRowActions = (!isPhone || expandAll) && !isBotViewer;
 
-  const actionButtons = (id: string, where: "inline" | "inspector"): React.ReactNode => {
+  const actionButtons = (id: string, where: "row" | "inline" | "inspector"): React.ReactNode => {
     const a = availability(id);
-    // The inspector is the full list; the row prints the same list wherever the
-    // row draws it (desktop, or the static `expandAll` body).
-    const all = where === "inspector" || showRowActions;
+    // The inspector is the full list; a strip row keeps the two printed plays
+    // (CP and event) in place and sends the rest to the inspector.
+    const all = where === "inspector" || (where === "inline" && showRowActions);
     const mandatoryTitle = a.isMandatory ? bi(locale, "Mandatory card: play its event", "强制牌：需打出其事件") : undefined;
     const cpDisabled = !a.cpModeOk;
     // 12.0's one-card rule and the printed gates both land in `reasons`, so a
@@ -495,7 +501,7 @@ export const HandTray = (props: HandTrayProps) => {
                       // dialog and another click.  Blocked buttons carry their
                       // reason as a title, exactly as they do in the inspector.
                       <div className="ie-card-actions ie-card-row-actions" data-testid={`ie-card-row-actions-${id}`}>
-                        {actionButtons(id, "inline")}
+                        {actionButtons(id, compact ? "row" : "inline")}
                       </div>
                     )}
                     {rowOpen && (

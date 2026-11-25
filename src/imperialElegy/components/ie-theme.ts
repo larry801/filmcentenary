@@ -88,9 +88,9 @@ export const IE_THEME_TOKENS = ieTokenNames();
 /** MUI theme for the Imperial Elegy board, built from the tokens. */
 export const ieTheme = createTheme({
   palette: {
-    mode: "dark",
+    mode: "light",
     background: {default: IE_COLORS.table, paper: IE_COLORS.panel},
-    primary: {main: IE_COLORS.brass, contrastText: IE_COLORS.ink},
+    primary: {main: IE_COLORS.brass, contrastText: IE_COLORS.paper},
     secondary: {main: IE_COLORS.brassDeep},
     text: {primary: IE_COLORS.onDark, secondary: IE_COLORS.onDark2},
     divider: IE_COLORS.rule,
