@@ -1037,17 +1037,87 @@
   /* The map owns the whole width the mat used to take: the player's figures
      are five numbers in the status line and the printed display is a drawer
      section, so the table is two columns and two rows. */
-  grid-template-columns: minmax(0, 1fr) 348px;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   grid-template-areas:
-    "map turn"
-    "hand turn";
+    "map"
+    "hand";
+  position: relative;
   gap: var(--ie-space-1) var(--ie-space-2);
   min-height: 0;
   overflow: hidden;
 }
 
 .ie-turn-panel { grid-area: turn; }
+
+/* Desktop: the orders are a drawer over the map, opened by the status line's
+   Orders button and closed again with Esc or its ×.  The phone keeps the dock,
+   where the slot has no box of its own. */
+.ie-turn-slot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 348px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--ie-table);
+  border-left: 1px solid var(--ie-rule);
+  transform: translateX(100%);
+  transition: transform var(--ie-motion-sheet) var(--ie-motion-easing-sheet);
+  z-index: 30;
+}
+
+.ie-turn-slot[data-open="true"] { transform: none; }
+
+.ie-turn-slot > .ie-turn-panel { flex: 1 1 auto; min-height: 0; }
+
+.ie-panel-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel);
+  color: var(--ie-on-dark-2);
+  cursor: pointer;
+}
+
+.ie-panel-close:hover { background: var(--ie-panel-3); color: var(--ie-on-dark); }
+
+.ie-panel-toggle {
+  flex: 0 0 auto;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--ie-radius-sm);
+  background: transparent;
+  color: var(--ie-on-dark-2);
+  font-size: var(--ie-font-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ie-panel-toggle:hover { background: var(--ie-panel-3); color: var(--ie-on-dark); }
+
+.ie-panel-toggle[data-open="true"] { background: var(--ie-panel-3); color: var(--ie-on-dark); }
+
+.ie-panel-badge {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ie-overprint);
+}
 
 .ie-mat { grid-area: mat; }
 
@@ -1426,7 +1496,7 @@
 
 /* ---------------------------------------------------------------- responsive: 900-1099 */
 @media (max-width: 1099px) {
-  .ie-table { grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "map turn" "hand turn"; }
+  .ie-table { grid-template-columns: minmax(0, 1fr); grid-template-areas: "map" "hand"; }
   .ie-mat-grid, .ie-mat-slots, .ie-mat-characteristics, .ie-mat-display { display: none; }
   .ie-mat-toggle { display: grid; }
   .ie-mat::before {

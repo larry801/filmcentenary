@@ -146,6 +146,9 @@
   .ie-track-wtt-label, .ie-track-wtt-note { display: none; }
   .ie-track-alliance, .ie-track-war { display: none; }
   .ie-track-stats { display: none; }
+  /* The phone's orders live in the bottom dock, not in a drawer. */
+  .ie-turn-slot { display: contents; }
+  .ie-panel-close, .ie-panel-toggle { display: none; }
   .ie-track-cp {
     display: inline-flex;
     align-items: baseline;

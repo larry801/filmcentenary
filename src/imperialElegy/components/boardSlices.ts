@@ -41,6 +41,7 @@ const CORE_KEYS = [
   "mapLegalTargets",
   "canSpend", "dockVisible", "dockSummary", "dockNextSteps", "dockCollapsed", "setDockCollapsed", "isCurrentSeat",
   "isPhone", "mobileTab", "setMobileTab", "trayOpen", "setTrayOpen", "trayExpanded", "setTrayExpanded",
+  "panelOpen", "setPanelOpen",
   "otherSeatPending", "seatUi", "pendingPrompt", "pendingKind", "responseWindow", "handChoicesHint",
   "cardFaceMode", "setCardFaceMode", "confirmActions", "setConfirmActions", "board", "setBoard", "railTab", "setRailTab", "choiceKinds",
   "choicesProps", "targetingHint", "handCounts", "goalCounts", "minorMarkerRows", "homeCardTitle",

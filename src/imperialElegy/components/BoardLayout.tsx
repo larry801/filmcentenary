@@ -548,6 +548,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
     moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast, goalCounts,
     isPhone, mobileTab, setMobileTab, trayOpen, setTrayOpen, trayExpanded, setTrayExpanded, isCurrentSeat,
+    panelOpen, setPanelOpen,
     railTab, setRailTab,
   } = core;
   const {selected, onSelect, modePill, mapTargets, mapFocusedTarget, chooser} = interaction;
@@ -706,6 +707,16 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     />
   );
 
+  // Esc closes the orders drawer, the same key that closes the reference.
+  React.useEffect(() => {
+    if (isPhone || !panelOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPanelOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isPhone, panelOpen, setPanelOpen]);
+
   const commandStats = core.me === null ? undefined : (
     <span className="ie-stats-row" data-testid="ie-stat-row">
       {([
@@ -792,6 +803,12 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
         status={commandStatus}
         onOpenReference={(anchor) => setRefAnchor(anchor)}
         stats={commandStats}
+        panel={isPhone ? undefined : {
+          open: panelOpen,
+          onToggle: () => setPanelOpen(!panelOpen),
+          label: decisionOwed ? bi(locale, "Decision", "决策") : bi(locale, "Orders", "指令"),
+          badge: pending !== null && viewer !== null && pending.power === viewer,
+        }}
         seats={seatUi.seats !== undefined && seatUi.onSwitchSeat !== undefined ? (
           <SeatStrip
             seats={seatUi.seats}
@@ -851,6 +868,19 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
           }}
           onToggleExpanded={() => setTrayExpanded((value) => !value)}
         >
+          <div className="ie-turn-slot" data-open={panelOpen ? "true" : "false"} inert={!isPhone && !panelOpen}>
+          {!isPhone && panelOpen && (
+            <button
+              type="button"
+              className="ie-panel-close"
+              data-testid="ie-panel-close"
+              aria-label={bi(locale, "Close the orders", "关闭指令")}
+              title={bi(locale, "Close (Esc)", "关闭（Esc）")}
+              onClick={() => setPanelOpen(false)}
+            >
+              <Icon name="close" size={16}/>
+            </button>
+          )}
           <TurnPanel
             locale={locale}
             t={t}
@@ -943,6 +973,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
               log: <LogRegion key={`log-${locale}`} G={G} locale={locale} t={t} mode={cardFaceMode}/>,
             }}
           />
+          </div>
           {isPhone && (
             <PlayerMat
               G={G}

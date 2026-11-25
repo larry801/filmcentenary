@@ -253,6 +253,9 @@ export const useBoardModel = ({
   // An explicit `handOpen` (tests, embeds) still opens it.
   const [trayOpen, setTrayOpen] = React.useState(() => handOpen ?? false);
   const [trayExpanded, setTrayExpanded] = React.useState(false);
+  // The instruction panel is a drawer on desktop: the map owns the screen until
+  // a decision, a battle or the reader asks for the orders.
+  const [panelOpen, setPanelOpen] = React.useState(false);
   const [cardFaceMode, setCardFaceMode] = useCardFaceMode();
   const [amphibiousFrom, setAmphibiousFrom] = React.useState<string>("");
   const [amphibiousTo, setAmphibiousTo] = React.useState<string>("");
@@ -1568,6 +1571,14 @@ export const useBoardModel = ({
     doAction, moves,
   };
   const choiceKinds = handChoiceAvailability(choicesProps);
+  // A decision this seat owes opens the panel by itself; the reader can close
+  // it again without dismissing the decision.
+  const pendingId = pending?.id ?? null;
+  const battleKey = battle === null ? null : `${battle.kind}:${battle.to}:${battle.stage}`;
+  React.useEffect(() => {
+    if (pendingId !== null || battleKey !== null) setPanelOpen(true);
+  }, [pendingId, battleKey]);
+
   const dockChoices = choiceKinds.required || choiceKinds.optional;
   // The home card is a required choice, but it is no longer a blocker that
   // covers the table the moment diplomacy opens: 9.1's negotiation segment
@@ -2059,6 +2070,8 @@ export const useBoardModel = ({
     dispatch,
     refAnchor,
     setRefAnchor,
+    panelOpen,
+    setPanelOpen,
   };
   const values = raw as unknown as ModelValues;
   // The hand slice keeps the tray's controlled three-position state under the

@@ -417,6 +417,8 @@ export interface ModelValues {
   expanded: boolean;
   onToggleExpanded: () => void;
   trayOpen: boolean;
+  panelOpen: boolean;
+  setPanelOpen: (open: boolean) => void;
   setTrayOpen: SetState<boolean>;
   trayExpanded: boolean;
   setTrayExpanded: SetState<boolean>;

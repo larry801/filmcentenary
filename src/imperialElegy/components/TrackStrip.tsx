@@ -38,6 +38,8 @@ export interface TrackStripProps {
   seats?: React.ReactNode;
   /** The viewer's four printed figures (VP, stability, manpower, industry). */
   stats?: React.ReactNode;
+  /** The instruction drawer's toggle (desktop). */
+  panel?: {open: boolean; onToggle: () => void; label: string; badge?: boolean};
   /** Opens the reference drawer at an anchor. */
   onOpenReference?: (anchor: string) => void;
 }
@@ -63,7 +65,7 @@ const ALLIANCE_MARKERS: readonly {box: string; short: string; title: string; tit
 
 export const TrackStrip = ({
   G, viewer, active, phase, war, gw, cp, cpBudget, locale, t,
-  menu, status, notice, seats, stats, onOpenReference,
+  menu, status, notice, seats, stats, panel, onOpenReference,
 }: TrackStripProps) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const hasWar = war !== null || gw !== null;
@@ -182,6 +184,21 @@ export const TrackStrip = ({
       </div>
 
       {status !== undefined && <div className="ie-track-badges">{status}</div>}
+
+      {panel !== undefined && (
+        <button
+          type="button"
+          className="ie-panel-toggle"
+          data-testid="ie-panel-toggle"
+          data-open={panel.open ? "true" : "false"}
+          aria-expanded={panel.open}
+          title={panel.label}
+          onClick={panel.onToggle}
+        >
+          {panel.label}
+          {panel.badge === true && <i className="ie-panel-badge" aria-hidden="true"/>}
+        </button>
+      )}
 
       <div className="ie-track-round">
         <button
