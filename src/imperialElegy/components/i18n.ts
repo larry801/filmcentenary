@@ -8,6 +8,7 @@ const S = {
   en: {
     title: "Imperial Elegy",
     subtitle: "The Imperial World at War, 1850–1920",
+    greatWar: "Great War",
     campaign: "Campaign",
     seats: {GE: "Germany", UK: "United Kingdom", FR: "France", AU: "Austria-Hungary", RU: "Russia", OT: "Ottoman Empire"},
     phases: {prep: "Prep", diplomacy: "Diplomacy", action: "Action", wartime: "Limited War", end: "End", gwPlanning: "GW Planning", gwManeuver: "GW Maneuver", gwWinter: "GW Winter", gameOver: "Game Over", gwOutbreak: "GW Outbreak"},
@@ -383,6 +384,7 @@ const S = {
   zh_CN: {
     title: "帝国挽歌",
     subtitle: "1850–1920 帝国世界大战",
+    greatWar: "大战",
     campaign: "战役",
     seats: {GE: "德国", UK: "英国", FR: "法国", AU: "奥匈帝国", RU: "俄国", OT: "奥斯曼帝国"},
     phases: {prep: "准备", diplomacy: "外交", action: "行动", wartime: "有限战争", end: "结束", gwPlanning: "大战计划", gwManeuver: "大战机动", gwWinter: "大战冬季", gameOver: "游戏结束", gwOutbreak: "大战爆发"},

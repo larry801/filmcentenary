@@ -12,7 +12,9 @@
  *
  *   actions    the space's name, its legal actions, the folded refused rows
  *   space      what the space *is*, and its unit selection
- *   influence  the MPIT matrix and the national characteristics
+ *   influence  the MPIT matrix and the national characteristics (only before
+ *              the Great War: 8.0 is a peacetime action and the outbreak
+ *              resolves the track into the GW rosters)
  *   deals      the 11.0/11.1 negotiation table (only during the diplomacy phase)
  *   naval      amphibious / transport / interception (only while offered)
  *
@@ -28,6 +30,9 @@
  * The deals page is conditional for the same reason (rules 11.0/11.1): the
  * negotiation table only exists during the diplomacy phase, and an offer
  * addressed to the reader pulls it to the front so a deal cannot sit unread.
+ * The influence page is conditional too: once the Great War runs the Alliance
+ * Track is already resolved and 27.5 has no MPIT placement, so the page would
+ * hold one frozen matrix.
  */
 import React from "react";
 import {bi} from "./boardHelpers";
@@ -50,6 +55,12 @@ export interface OrdersPanelProps {
   navalVisible: boolean;
   /** 11.0/11.1: the diplomacy phase's negotiation table is open this render. */
   dealsVisible?: boolean;
+  /**
+   * 8.0: the MPIT matrix is a 12.1 peacetime action, so the page exists only
+   * before the Great War — 15.2 and 27.5 replace the action list and the track
+   * is frozen from the outbreak (`formAlliances` writes the GW rosters).
+   */
+  influenceVisible?: boolean;
   /** A deal addressed to the reader just arrived: pull its page to the front. */
   dealUrgent?: boolean;
   /** An interception window just opened: pull the naval page to the front. */
@@ -66,10 +77,14 @@ export interface OrdersPanelProps {
  * "first key", which is what both the turn panel and the phone dock do with
  * their own tab strips.
  */
-export const ordersTabKeys = (navalVisible: boolean, dealsVisible = false): OrdersTab[] => [
+export const ordersTabKeys = (
+  navalVisible: boolean,
+  dealsVisible = false,
+  influenceVisible = true,
+): OrdersTab[] => [
   "actions",
   "space",
-  "influence",
+  ...(influenceVisible ? ["influence" as OrdersTab] : []),
   ...(dealsVisible ? ["deals" as OrdersTab] : []),
   ...(navalVisible ? ["naval" as OrdersTab] : []),
 ];
@@ -79,15 +94,16 @@ export const resolveOrdersTab = (
   requested: OrdersTab,
   navalVisible: boolean,
   dealsVisible = false,
+  influenceVisible = true,
 ): OrdersTab =>
-  ordersTabKeys(navalVisible, dealsVisible).includes(requested) ? requested : "actions";
+  ordersTabKeys(navalVisible, dealsVisible, influenceVisible).includes(requested) ? requested : "actions";
 
 export const OrdersPanel = ({
   locale, labels, active, onTab, navalVisible, navalUrgent = false,
-  dealsVisible = false, dealUrgent = false, heading, tabs,
+  dealsVisible = false, influenceVisible = true, dealUrgent = false, heading, tabs,
 }: OrdersPanelProps) => {
-  const keys = ordersTabKeys(navalVisible, dealsVisible);
-  const selected = resolveOrdersTab(active, navalVisible, dealsVisible);
+  const keys = ordersTabKeys(navalVisible, dealsVisible, influenceVisible);
+  const selected = resolveOrdersTab(active, navalVisible, dealsVisible, influenceVisible);
   const roving = useRovingTabs(keys, selected, (key) => onTab(key as OrdersTab));
 
   return (

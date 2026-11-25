@@ -268,6 +268,39 @@ describe("Imperial Elegy board controls", () => {
     expect(spectator).not.toContain("data-testid=\"ie-gw-draft\"");
   });
 
+  test("the Great War drops the settled World Tension and Alliance Track from the strip", () => {
+    // A peacetime board still prints both: they are live public state that no
+    // other always-visible surface shows.
+    const G = freshGame();
+    const peace = html(G, "0");
+    expect(peace).toContain('data-testid="ie-track-wtt"');
+    expect(peace).toContain('data-testid="ie-track-alliance"');
+    expect(peace).toContain('data-testid="ie-status-wtt"');
+    expect(peace).toMatch(/data-testid="ie-track-turn">T\d+</);
+    expect(peace).toContain('data-testid="ie-orders-tab-influence"');
+    expect(peace).toContain('data-testid="ie-mpit"');
+    expect(peace).toContain('data-testid="ie-dash-mpit-GE"');
+
+    // The outbreak pins the World Tension at 5, resolves the Alliance Track
+    // into `G.gw`'s rosters and stops the campaign clock, so all three are
+    // frozen (or duplicated by the Great War panel) and the MPIT matrix has
+    // nothing left to place under 27.5.
+    G.phase = "gwManeuver";
+    G.wtt = 5;
+    G.gw = greatWarState();
+    const gw = html(G, "0");
+    expect(gw).toMatch(/data-testid="ie-track-turn">GW 2</);
+    expect(gw).toContain("大战 · GW 2");
+    expect(gw).not.toContain('data-testid="ie-track-wtt"');
+    expect(gw).not.toContain('data-testid="ie-track-alliance"');
+    expect(gw).not.toContain('data-testid="ie-track-box-');
+    expect(gw).not.toContain('data-testid="ie-status-wtt"');
+    expect(gw).not.toContain('data-testid="ie-orders-tab-influence"');
+    expect(gw).not.toContain('data-testid="ie-orders-panel-influence"');
+    expect(gw).not.toContain('data-testid="ie-mpit"');
+    expect(gw).not.toContain('data-testid="ie-dash-mpit-');
+  });
+
   test("Great War panel shows US/Italian stability and a surrender", () => {
     const G = freshGame();
     G.phase = "gwManeuver";

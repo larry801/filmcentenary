@@ -1,3 +1,32 @@
+## Fixed: the Great War stops printing the peacetime tracks (2026-11-25)
+
+Reported as "帝国挽歌世界大战爆发后不再显示紧张度mpti等用不到的内容": a solo
+Historical Great War still printed World Tension, the five Alliance Track
+boxes, the campaign turn and the Influence page's MPIT matrix, none of which
+the war reads any more.  Four readouts, one pass; no rule changed.
+
+- **World Tension (3.7 / 13.0).** `outbreakGreatWar` pins `G.wtt = 5` and
+  discards every action and home card, and every `wtt` effect in the card data
+  belongs to one of those cards; 27.5 also has no declaration.  The pips with
+  the "3: no war" warning and the status badge are gone from the outbreak on.
+- **Alliance Track (8.0).** `formAlliances` resolves the five boxes into
+  `G.gw`'s TE / TA / neutral rosters, which the Great War panel prints, so the
+  strip's five boxes are dropped there.  A neutral joining mid-war still shows
+  in that panel and on its own entry line.
+- **Campaign turn.** `G.turn` never advances during the Great War — only
+  `gw.turn` does — so the strip's token reads `GW n` (the subline keeps the
+  decade) and the dock's chip reads "大战 · GW n" instead of a frozen "回合 7".
+- **Influence page (8.0).** 8.0's marker is a 12.1 peacetime action and 27.5
+  refuses it, so the page held one read-only matrix and the national actions
+  can never appear in a GW phase; the page is not offered at all after the
+  outbreak, and the player-display reference drops its per-power MPIT figure.
+
+**Coverage:** `components/board.test.tsx` (+1: a peacetime board still prints
+the tension pips, the alliance boxes and the matrix; a Great War board prints
+`GW 2` / "大战 · GW 2" and none of them), `components/ordersPanelNav.test.tsx`
+(+2: the key set and fallback with the page absent, and the two-page render),
+and the whole `src/imperialElegy` suite.
+
 ## Fixed: the winter spells out its colonial-war modifiers (2026-11-25)
 
 Reported as "看看冬季": the Winter Step played through the solo Historical
