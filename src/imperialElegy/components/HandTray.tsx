@@ -132,6 +132,17 @@ export const HandTray = (props: HandTrayProps) => {
   // caller that renders the tray alone still gets the stored value.
   const storedConfirm = React.useMemo(() => readConfirmActions(), []);
   const confirmActions = props.confirmActions ?? storedConfirm;
+  /**
+   * 26.0/27.2: a seat's Great War card is played from its own slot
+   * (`me.gwCard`), never from the hand, so the hand's ordinary operations all
+   * belong to moves that look the card up in `hand` and refuse it.  The tray
+   * block and the card's inspector both draw the GW controls instead, and this
+   * predicate is the one test they share.
+   */
+  const isGwSlotCard = (id: string): boolean =>
+    G.gw?.active === true &&
+    (phase === "gwPlanning" || phase === "gwManeuver") &&
+    me?.gwCard === id;
   // An inspector is a read view of a face that is still somewhere on screen:
   // a hand card lives in `hand` (playing it removes it), the Great War card
   // lives in its own slot (`me.gwCard`, drawn only while its block is up and
@@ -141,10 +152,7 @@ export const HandTray = (props: HandTrayProps) => {
   // that opened it.
   React.useEffect(() => {
     if (inspector === null || !("card" in inspector.face)) return;
-    const gwCardShown = G.gw?.active === true &&
-      (phase === "gwPlanning" || phase === "gwManeuver") &&
-      me?.gwCard === inspector.key;
-    if (!hand.includes(inspector.key) && !gwCardShown) setInspector(null);
+    if (!hand.includes(inspector.key) && !isGwSlotCard(inspector.key)) setInspector(null);
   }, [G.gw?.active, hand, inspector, me, phase]);
   // A shown card, a phase change or a seat handover invalidates an open picker.
   React.useEffect(() => {
@@ -344,6 +352,56 @@ export const HandTray = (props: HandTrayProps) => {
     );
   };
 
+  /**
+   * 27.2/27.3: the seat's Great War card is played from its own slot — its
+   * bonus action (`playGwCardMove("cp")`) and its event — and both are gated
+   * by `gwCardProblem`, not by the action phase's `cardAvailability`.  The tray
+   * block and the card's inspector share this list so a tap on the card face
+   * can no longer show the hand's CP/event/industrialize controls, which the
+   * moves behind them (`playCard`, `industrialize`) refuse because the card is
+   * not in `hand`.
+   */
+  const gwActionButtons = (id: string, where: "tray" | "inspector"): React.ReactNode => {
+    const card = cardById(id);
+    const mandatory = card.type === "mandatory" || card.type === "mandatoryResponse";
+    // 27.3's Exhaustion is the GW deck's mandatory event: like a hand's
+    // mandatory event, its CP play *is* its event (`playGwCardMove` resolves
+    // the text in both modes), so the tray offers one control, not two that do
+    // the same thing.
+    const showBonus = card.type !== "mandatory";
+    const eventLabel = mandatory
+      ? bi(locale,
+        card.type === "mandatoryResponse" ? "Play mandatory response" : "Play mandatory event",
+        card.type === "mandatoryResponse" ? "打出强制响应" : "打出强制事件")
+      : t.eventMode;
+    const cpProblem = gwCardProblem(G, viewer, "cp");
+    const eventProblem = gwCardProblem(G, viewer, "event");
+    const canCard = !eliminated && isActive && pending === null;
+    const testId = (name: string): string => `ie-gw-${name}-${where === "inspector" ? "inspector-" : ""}${id}`;
+    return (
+      <>
+        {showBonus && <button
+          key="gw-cp"
+          data-testid={testId("bonus")}
+          disabled={!canCard || cpProblem !== null}
+          title={gwImpulseReasonText(locale, cpProblem)}
+          onClick={() => doAction(() => moves.playGwCardMove("cp"), {label: bi(locale, "Bonus action", "奖励行动"), reason: gwImpulseReasonText(locale, cpProblem) ?? undefined})}
+        >
+          {bi(locale, "Bonus action", "奖励行动")}
+        </button>}
+        <button
+          key="gw-event"
+          data-testid={testId("event")}
+          disabled={!canCard || eventProblem !== null}
+          title={gwImpulseReasonText(locale, eventProblem) ?? undefined}
+          onClick={() => doAction(() => moves.playGwCardMove("event"), {label: eventLabel, reason: gwImpulseReasonText(locale, eventProblem) ?? undefined})}
+        >
+          {eventLabel}
+        </button>
+      </>
+    );
+  };
+
   const cardFace = (card: CardDef) => {
     const src = cardImageSrc(card.image);
     if (cardFaceMode === "print" && src) {
@@ -356,17 +414,17 @@ export const HandTray = (props: HandTrayProps) => {
   /**
    * 27.2/27.3: the seat's Great War card is not an action card, so the action
    * phase's reasons ("only during your Action-phase impulse") are wrong for
-   * it — the card is played in planning or the maneuver.  When both printed
-   * modes are blocked, report the Great War reason instead; when either mode is
-   * open, the inspector prints no "cannot play" line at all.
+   * it — the card is played in planning or the maneuver.  The footer names the
+   * reason for each printed mode that is shut (the hand's inspector lists the
+   * same per-mode reasons), so a touch reader gets the "battle window" line
+   * that a mouse reader only sees in the button's tooltip.
    */
   const gwInspectorReasons = (id: string): string[] | null => {
-    if (G.gw?.active !== true || me.gwCard !== id) return null;
-    const cpProblem = gwCardProblem(G, viewer, "cp");
-    const eventProblem = gwCardProblem(G, viewer, "event");
-    if (cpProblem === null || eventProblem === null) return [];
-    const reason = gwImpulseReasonText(locale, eventProblem) ?? gwImpulseReasonText(locale, cpProblem);
-    return reason === undefined ? [] : [reason];
+    if (!isGwSlotCard(id)) return null;
+    const reasons = [gwCardProblem(G, viewer, "cp"), gwCardProblem(G, viewer, "event")]
+      .map((problem) => gwImpulseReasonText(locale, problem))
+      .filter((text): text is string => text !== undefined);
+    return [...new Set(reasons)];
   };
   const inspectorCard = inspector?.face.card;
   // While a decision is owed the sheet starts folded: it must not cover the
@@ -535,15 +593,6 @@ export const HandTray = (props: HandTrayProps) => {
               {G.gw?.active && me.gwCard && (phase === "gwPlanning" || phase === "gwManeuver") && (() => {
                 const gwId = me.gwCard!;
                 const gwCard = cardById(gwId);
-                const gwMandatory = gwCard.type === "mandatory" || gwCard.type === "mandatoryResponse";
-                const gwEventLabel = gwMandatory
-                  ? bi(locale,
-                    gwCard.type === "mandatoryResponse" ? "Play mandatory response" : "Play mandatory event",
-                    gwCard.type === "mandatoryResponse" ? "打出强制响应" : "打出强制事件")
-                  : t.eventMode;
-                const cpProblem = gwCardProblem(G, viewer, "cp");
-                const eventProblem = gwCardProblem(G, viewer, "event");
-                const canGwCard = !eliminated && isActive && pending === null;
                 return (
                   <div className="ie-tray-gw" data-testid={`ie-gw-card-${gwId}`}>
                     <div className="ie-section-title">{bi(locale, "Great War card", "大战卡")} · {t.cp}: {me.gwBudget ?? 0}</div>
@@ -552,10 +601,7 @@ export const HandTray = (props: HandTrayProps) => {
                         onClick={() => openInspector({card: gwCard}, gwId)}>
                         {cardFace(gwCard)}
                       </button>
-                      <div className="ie-card-actions">
-                        <button disabled={!canGwCard || cpProblem !== null} title={gwImpulseReasonText(locale, cpProblem)} onClick={() => doAction(() => moves.playGwCardMove("cp"), {label: bi(locale, "Bonus action", "奖励行动"), reason: gwImpulseReasonText(locale, cpProblem) ?? undefined})}>{bi(locale, "Bonus action", "奖励行动")}</button>
-                        <button disabled={!canGwCard || eventProblem !== null} title={gwImpulseReasonText(locale, eventProblem) ?? undefined} onClick={() => doAction(() => moves.playGwCardMove("event"), {label: gwEventLabel, reason: gwImpulseReasonText(locale, eventProblem) ?? undefined})}>{gwEventLabel}</button>
-                      </div>
+                      <div className="ie-card-actions">{gwActionButtons(gwId, "tray")}</div>
                     </article>
                   </div>
                 );
@@ -646,7 +692,11 @@ export const HandTray = (props: HandTrayProps) => {
           locale={locale}
           face={inspector.face}
           mode={cardFaceMode}
-          actions={inspectorCard ? actionButtons(inspectorCard.id, "inspector") : null}
+          actions={inspectorCard
+            ? (isGwSlotCard(inspectorCard.id)
+              ? gwActionButtons(inspectorCard.id, "inspector")
+              : actionButtons(inspectorCard.id, "inspector"))
+            : null}
           unavailable={inspectorCard
             ? gwInspectorReasons(inspectorCard.id) ?? availability(inspectorCard.id).reasons
             : [bi(locale, "National Goals have no card operation - they score at game end.", "国家目标没有卡牌操作——在游戏结束时计分。")]}
