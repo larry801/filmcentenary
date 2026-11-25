@@ -42,6 +42,9 @@ test.describe("two-player tutorial hotseat", () => {
 
         await page.getByRole("button", {name: "确认西班牙抽牌完成"}).click();
         await expect(visibleText(page, "第 2 步：春季部署").first()).toBeVisible();
+        // Spring opens with the Ottoman seat; Spain's panel offers that tab
+        // instead of a disabled end-of-spring button.
+        await page.getByRole("button", {name: "请切换到 P1 标签页", exact: true}).click();
         await expect(page.getByRole("button", {name: "结束春季部署"})).toBeVisible();
     });
 });
