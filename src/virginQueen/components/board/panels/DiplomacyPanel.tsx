@@ -50,8 +50,9 @@ export const DiplomacyPanel = () => {
         return i18n.chain.vq.diplomacy.giftBlocks[state.reason];
     };
     const giftNotice = [...new Set([cardGift, mercGift, treasureGift]
-        .filter((state): state is {ok: false; reason: "limit" | "reciprocal" | "ottomanMercs"} =>
-            state?.ok === false && (state.reason === "limit" || state.reason === "reciprocal" || state.reason === "ottomanMercs"))
+        .filter((state): state is {ok: false; reason: "limit" | "reciprocal" | "ottomanMercs" | "samePlayerGift"} =>
+            state?.ok === false && (state.reason === "limit" || state.reason === "reciprocal" ||
+                state.reason === "ottomanMercs" || state.reason === "samePlayerGift"))
         .map((state) => i18n.chain.vq.diplomacy.giftBlocks[state.reason]))];
     return <Stack spacing={1}>
         <Typography variant="subtitle2">{i18n.chain.vq.diplomacy.title}</Typography>

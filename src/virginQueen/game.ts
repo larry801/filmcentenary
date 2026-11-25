@@ -8,7 +8,7 @@ import {chooseBattle} from "./combat";
 import {chooseTutorialEvent} from "./tutorialEvents";
 import {choosePiracy} from "./piracy";
 import {chooseInterception} from "./interception";
-import {arriveLeaders, autoResolvePendingConversion, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, autoResolveWinterReturnChoices, checkImmediateVictory, checkVictory, chooseReliefSplit, dealYear, pushLog, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
+import {arriveLeaders, autoResolveMoriscoUnrest, autoResolvePendingConversion, autoResolveWinterLossChoices, autoResolveWinterNavalLossChoices, autoResolveWinterReturnChoices, checkImmediateVictory, checkVictory, chooseReliefSplit, dealYear, pushLog, resolvePendingCatholicLeague, resolvePendingHreReplacement, restorePatrons, setupGame, winter} from "./util";
 import {
     assault,
     autoInterceptionOrder,
@@ -33,6 +33,7 @@ import {
     chooseWinterNavalLoss,
     chooseWinterReturn,
     chooseWinterNavalReturn,
+    chooseMoriscoUnrest,
     chooseHreReplacement,
     chooseHreReligiousPreference,
     controlSpace,
@@ -116,9 +117,11 @@ const turnBegin = (G: VQGame, ctx: Ctx): void => {
         ((G.winterLossChoices?.some((entry) => entry.power === G.activePower) ||
             G.winterNavalLossChoices?.some((entry) => entry.power === G.activePower)) ||
             (G.winterReturnChoices?.some((entry) => entry.power === G.activePower) ||
-                G.winterNavalReturnChoices?.some((entry) => entry.power === G.activePower)))) {
-        // Winter attrition, no-port naval losses, winter ports and return
-        // destinations are all resolved before the new year's card draw.
+                G.winterNavalReturnChoices?.some((entry) => entry.power === G.activePower)) ||
+            G.pendingMoriscoUnrest?.power === G.activePower)) {
+        // Winter attrition, no-port naval losses, winter ports, return
+        // destinations and the Morisco unrest placement are all resolved
+        // before the new year's card draw.
         const owner = ownerOf(G, G.activePower);
         if (owner !== undefined) {
             ctx.events?.setActivePlayers({value: {[owner]: "winterLossChoice"}});
@@ -269,6 +272,8 @@ const choiceStages = {
     winterLossChoice: {moves: {...conversionChoiceMoves,
         chooseWinterLoss, chooseWinterNavalLoss,
         chooseWinterReturn, chooseWinterNavalReturn,
+        // Rule 20.1: the Ottoman's owner places the winter Morisco unrest.
+        chooseMoriscoUnrest,
         endPhaseTurn,
     }},
     // Rule 9.1 negotiation table.  The proposer may withdraw while the other
@@ -363,6 +368,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 autoResolveWinterLossChoices(G);
                 autoResolveWinterNavalLossChoices(G);
                 autoResolveWinterReturnChoices(G);
+                autoResolveMoriscoUnrest(G);
                 G.peaceMadeThisPhase = [];
                 G.diplomacyGifts = {};
                 negotiationState(G).offer = null;
@@ -399,6 +405,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
                 autoResolveWinterLossChoices(G);
                 autoResolveWinterNavalLossChoices(G);
                 autoResolveWinterReturnChoices(G);
+                autoResolveMoriscoUnrest(G);
                 // Clear anything left over from an interrupted Spring, then let
                 // naval leaders returning from the pool pick a home port.
                 delete G.navalLeaderArrivals;
@@ -445,6 +452,7 @@ export const VirginQueenGameDef: Game<VQGame> = {
         chooseWinterNavalLoss,
         chooseWinterReturn,
         chooseWinterNavalReturn,
+        chooseMoriscoUnrest,
         chooseHreReplacement,
         chooseHreReligiousPreference: {move: chooseHreReligiousPreference, redact: true},
         placeSeaCaptainLeader,

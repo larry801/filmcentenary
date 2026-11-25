@@ -580,13 +580,16 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     const winterNavalChoice = me !== undefined && (G.winterNavalLossChoices ?? []).some((entry) => entry.power === me);
     const winterReturnChoice = me !== undefined && ((G.winterReturnChoices ?? []).some((entry) => entry.power === me) ||
         (G.winterNavalReturnChoices ?? []).some((entry) => entry.power === me));
-    const winterChoiceRequired = phase === "cardDraw" && (winterLandChoice || winterNavalChoice);
+    // Rule 20.1: the Ottoman's owner places the winter Morisco unrest during
+    // Card Draw, so it belongs in the same mandatory-choice cue.
+    const winterMoriscoChoice = me !== undefined && G.pendingMoriscoUnrest?.power === me;
+    const winterChoiceRequired = phase === "cardDraw" && (winterLandChoice || winterNavalChoice || winterMoriscoChoice);
     const needsAction = hasResponse || winterChoiceRequired;
-    const winterChoiceLabel = winterLandChoice && winterNavalChoice
-        ? `${i18n.chain.vq.cardDraw.winterLosses} / ${i18n.chain.vq.cardDraw.winterNavalLosses}`
-        : winterLandChoice ? i18n.chain.vq.cardDraw.winterLosses
-            : winterNavalChoice ? i18n.chain.vq.cardDraw.winterNavalLosses
-                : `${i18n.chain.vq.cardDraw.winterReturns} / ${i18n.chain.vq.cardDraw.winterNavalReturns}`;
+    const winterChoiceLabel = [winterLandChoice ? i18n.chain.vq.cardDraw.winterLosses : undefined,
+        winterNavalChoice ? i18n.chain.vq.cardDraw.winterNavalLosses : undefined,
+        winterMoriscoChoice ? i18n.chain.vq.cardDraw.moriscoUnrest : undefined]
+        .filter((label) => label !== undefined)
+        .join(" / ") || `${i18n.chain.vq.cardDraw.winterReturns} / ${i18n.chain.vq.cardDraw.winterNavalReturns}`;
     const winterReturnHint = phase === "cardDraw" && winterReturnChoice && !winterChoiceRequired;
     const selectedSea = selected ? G.seaZones[selected as keyof VQGame["seaZones"]] : undefined;
     const panelProps = (name: string) => ({id: `${panelID}-${name}`, role: isDesktop ? undefined : "tabpanel",

@@ -1561,6 +1561,9 @@ const en = {
             treasurePoolValue: "{pool} in pool / {discard} spent this turn",
             cardDrawPhase: "Card Draw phase",
             turn: "Turn",
+            moriscoUnrest: "Morisco Revolt: choose the winter unrest",
+            moriscoUnrestDesc: "Rule 20.1: the Ottoman places Unrest on 2 unoccupied spaces within 2 of the Morisco unit. England makes this choice while it controls the activated Ottoman (2-4 players). The two spaces already marked are preselected; pick any other legal pair, or confirm to keep them.",
+            confirmUnrest: "Place unrest here",
             winterReturns: "Winter return: choose destinations and units",
             winterReturnsDesc: "The engine already returned the units to the nearest legal destination under 20.4; here you may switch to the home capital or another equidistant fortified space and choose which kinds an overstacked fortress sends. Leaving it unset keeps the automatic result.",
             winterNavalReturns: "Winter ports: choose between equidistant ports",
@@ -1775,6 +1778,7 @@ const en = {
             },
             giftBlocks: {
                 noPlayer: "That power has no player, so it cannot exchange gifts",
+                samePlayerGift: "A player may not give cards or mercenaries from one of his powers to the other",
                 alreadyAtWar: "Cannot give gifts while at war with that power",
                 limit: "Already reached this turn's gift limit for that power",
                 reciprocal: "That power already gave this kind of gift this turn",

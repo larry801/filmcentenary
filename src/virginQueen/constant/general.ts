@@ -292,6 +292,30 @@ export interface WinterLossChoice {
 }
 
 /**
+ * The two Unrest markers rule 20.1 has the Ottoman place within two spaces of
+ * the Morisco unit at Winter.  The engine marks the automatic pair so a
+ * skipped choice has a defined result; during Card Draw the power's owner may
+ * replace it with any other legal pair before the Diplomacy Phase begins.  The
+ * choosing power is always the Ottoman, which England controls in 2-4 player
+ * games (`ownerOf` resolves that seat).
+ */
+export interface MoriscoUnrestChoice {
+    /** Power that places the markers: the Ottoman. */
+    power: Power;
+    /** Center of the two-space radius: the Morisco unit's space. */
+    origin: string;
+    /** The pair already marked; its markers are removed if another pair is chosen. */
+    auto: string[];
+    /**
+     * Markers to place: fewer than two when too few spaces are unoccupied.
+     * The legal spaces are `moriscoUnrestOptions(G, origin)` plus `auto`, read
+     * fresh when the choice is applied so a capital that received its winter
+     * replacement is no longer offered.
+     */
+    count: number;
+}
+
+/**
  * A land stack the Winter Phase moved (rule 20.4) whose owner may still pick a
  * different destination or a different set of units.  The automatic placement
  * is already on the board, so skipping the choice keeps it.  The owner chooses
@@ -1178,6 +1202,13 @@ export interface VQGame {
      * the owner record the lost ship types or keep the automatic composition.
      */
     winterNavalLossChoices?: WinterNavalLossChoice[];
+    /**
+     * Rule 20.1: the two Unrest markers the Ottoman places near the Morisco
+     * unit at Winter.  The automatic pair is already on the map; achieving the
+     * choice during Card Draw replaces it before Diplomacy begins, and skipping
+     * keeps it.
+     */
+    pendingMoriscoUnrest?: MoriscoUnrestChoice;
     spanishRoadAvailable?: boolean;
     /** Beacon Fires: next interception by this power succeeds and gains +2 dice. */
     navalDiceBonus?: {power: Power; amount: number};

@@ -5806,22 +5806,93 @@ export const resolvePendingHreReplacement = (G: VQGame): void => {
 // Morisco Revolt (card #28 / rule 20.1)
 // --------------------------------------------------------------------------
 
-export const placeMoriscoUnrest = (G: VQGame, origin?: string): string[] => {
-    if (G.morisco === undefined) return [];
-    const center = origin ?? G.morisco.space;
-    const candidates = landWithin(center, 2).filter((id) =>
+/** Rule 20.1: the unoccupied spaces within two of the Morisco unit. */
+export const moriscoUnrestOptions = (G: VQGame, center: string): string[] =>
+    landWithin(center, 2).filter((id) =>
         id !== center && G.spaces[id] !== undefined && !G.spaces[id].unrest &&
         ownersWithLand(G, id).length === 0 && ownersWithNaval(G, id).length === 0 &&
         (G.spaces[id].leaders?.length ?? 0) === 0);
-    const chosen = candidates.slice(0, 2);
-    for (const id of chosen) {
+
+const markMoriscoUnrest = (G: VQGame, ids: string[]): void => {
+    for (const id of ids) {
         G.spaces[id].unrest = true;
         pushLog(G, `Morisco Revolt: unrest in ${SPACE_BY_ID[id].name}.`);
     }
+};
+
+/**
+ * Card #28's own event scatters two Unrest markers inside `playCard`, so the
+ * engine takes the printed order there.  The Winter Phase hands the same
+ * placement to the Ottoman's owner instead (rule 20.1).
+ */
+export const placeMoriscoUnrest = (G: VQGame, origin?: string): string[] => {
+    if (G.morisco === undefined) return [];
+    const center = origin ?? G.morisco.space;
+    const chosen = moriscoUnrestOptions(G, center).slice(0, 2);
+    markMoriscoUnrest(G, chosen);
     if (chosen.length < 2) {
         pushLog(G, `Morisco Revolt: only ${chosen.length} unoccupied space(s) within 2 of ${SPACE_BY_ID[center]?.name ?? center}.`);
     }
     return chosen;
+};
+
+/**
+ * Rule 20.1: at Winter "the Ottoman player places Unrest markers on 2
+ * unoccupied spaces within 2 spaces of this unit."  In 2-4 player games
+ * England makes that choice because it controls the activated Ottoman, which
+ * `ownerOf` resolves on its own.  The automatic pair is marked immediately so
+ * a skipped choice still places the markers; the owner may then replace it
+ * with any other legal pair during Card Draw.
+ */
+export const recordMoriscoUnrestChoice = (G: VQGame): void => {
+    const morisco = G.morisco;
+    if (morisco === undefined) return;
+    const options = moriscoUnrestOptions(G, morisco.space);
+    const auto = options.slice(0, 2);
+    if (options.length === 0) {
+        pushLog(G, `Morisco Revolt: no unoccupied space within 2 of ${SPACE_BY_ID[morisco.space]?.name ?? morisco.space}.`);
+        return;
+    }
+    markMoriscoUnrest(G, auto);
+    G.pendingMoriscoUnrest = {power: "ottoman", origin: morisco.space, auto, count: Math.min(2, options.length)};
+};
+
+/**
+ * Safe fallback: the automatic pair is already on the map, so dropping the
+ * record keeps it.  With no power given every pending placement is dropped
+ * (used when Card Draw ends or the next phase begins).
+ */
+export const autoResolveMoriscoUnrest = (G: VQGame, p?: Power): void => {
+    const pending = G.pendingMoriscoUnrest;
+    if (pending === undefined) return;
+    if (p !== undefined && pending.power !== p) return;
+    if (p !== undefined) pushLog(G, `${powerLabel(p)} keeps the automatic Morisco unrest placement.`);
+    delete G.pendingMoriscoUnrest;
+};
+
+/**
+ * Replace the automatic winter unrest pair with the owner's chosen pair.  Only
+ * the markers this record placed are withdrawn, and the chosen spaces are
+ * marked instead.  Invalid input leaves the record in place.
+ */
+export const applyMoriscoUnrestChoice = (G: VQGame, p: Power, spaces: string[]): boolean => {
+    const pending = G.pendingMoriscoUnrest;
+    if (pending === undefined || pending.power !== p) return false;
+    // Read the legal spaces fresh: winter replacements happen after rule 20.1
+    // marks the automatic pair, so a capital that received its regular must not
+    // be offered any more.  The automatic pair stays legal because its own
+    // markers keep those spaces unoccupied.
+    const allowed = new Set([...moriscoUnrestOptions(G, pending.origin), ...pending.auto]);
+    if (!Array.isArray(spaces) || spaces.length !== pending.count || new Set(spaces).size !== spaces.length ||
+        spaces.some((id) => !allowed.has(id))) return false;
+    for (const id of pending.auto) {
+        if (spaces.includes(id) || G.spaces[id]?.unrest !== true) continue;
+        G.spaces[id].unrest = false;
+        pushLog(G, `Morisco Revolt: the unrest marker in ${SPACE_BY_ID[id].name} is withdrawn.`);
+    }
+    markMoriscoUnrest(G, spaces.filter((id) => !pending.auto.includes(id)));
+    delete G.pendingMoriscoUnrest;
+    return true;
 };
 
 /**
@@ -5898,7 +5969,7 @@ const winterMorisco = (G: VQGame): void => {
         clearMorisco(G, true);
         return;
     }
-    placeMoriscoUnrest(G, morisco.space);
+    recordMoriscoUnrestChoice(G);
     checkMoriscoStatus(G, true);
 };
 
@@ -6653,6 +6724,37 @@ export const springTargetsFrom = (G: VQGame, p: Power, from: string, unitCount?:
     return out;
 };
 
+/**
+ * Rule 9.5 "Spanish Units Entering Ireland or Scotland": true for a home space
+ * of the minor powers Ireland and Scotland, the two spaces Spain is barred
+ * from while the England-Spain DOW cost is above 3 CP.
+ */
+export const isIrishOrScottishHome = (space: string): boolean => {
+    const def = SPACE_BY_ID[space];
+    return def !== undefined && spaceHomes(def).some((home) => home === "ireland" || home === "scotland");
+};
+
+/**
+ * Rule 9.5: "Spanish units may not enter a home space for the minor powers
+ * Ireland and Scotland at the start of the game for any reason.  However, once
+ * the cost of a DOW between England and Spain drops to 3 CP or less, Spain may
+ * move land and naval units into home spaces for these two powers."  The gate
+ * is the live DOW cost, not the war state: a Spanish war declared at 5 CP does
+ * not by itself open these spaces.
+ */
+export const spanishEntryRestricted = (G: VQGame, p: Power, space: string): boolean =>
+    p === "spain" && isIrishOrScottishHome(space) && warCost(G, "spain", "england") > 3;
+
+/**
+ * Rule 9.5 immediate war trigger: "A Spanish unit entering one of these spaces
+ * is an immediate war trigger."  It runs only for a legal entry (one the cost
+ * has already opened), so it never rescues a move the restriction forbids.
+ */
+export const triggerSpanishEntryWar = (G: VQGame, p: Power, space: string): void => {
+    if (p !== "spain" || !isIrishOrScottishHome(space) || atWar(G, "spain", "england")) return;
+    setWar(G, "spain", "england");
+};
+
 /** Rule 5.2 land movement: mirrors the destination checks in `moveLand`. */
 export const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string, selectedOwner?: Controller): boolean => {
     const src = G.spaces[from];
@@ -6666,10 +6768,7 @@ export const canMoveLandTo = (G: VQGame, p: Power, from: string, to: string, sel
         friendlyController(G, p, LEADER_BY_ID[id].power));
     if (unitPowers.length === 0 && !leaderOnly) return false;
     const defTo = SPACE_BY_ID[to];
-    const spainIberianPenalty = p === "spain" && defTo !== undefined &&
-        (spaceHomes(defTo).includes("ireland") || spaceHomes(defTo).includes("scotland")) &&
-        warCost(G, "spain", "england") > 3;
-    if (spainIberianPenalty) return false;
+    if (spanishEntryRestricted(G, p, to)) return false;
     const cost = passBetween(from, to) ? 2 : 1;
     if (G.powers[p].cp < cost) return false;
     const destinationChecks = (unitPower: Controller): boolean => {
@@ -6713,6 +6812,9 @@ export const canMoveNavalTo = (G: VQGame, p: Power, from: string, to: string): b
     // not take a Naval Move.
     if (G.lostNavalCombatImpulse?.impulse === G.impulse && G.lostNavalCombatImpulse.owners.includes(p)) return false;
     if (G.spaces[to] !== undefined) {
+        // Rule 9.5 bars a Spanish port entry in Ireland/Scotland, ally-owned or
+        // enemy-held alike, until the England-Spain DOW cost is 3 CP or less.
+        if (spanishEntryRestricted(G, p, to)) return false;
         const enemyNaval = ownersWithNaval(G, to).some((c) => isPower(c) && atWar(G, p, c));
         if (G.spaces[to].control !== p && !enemyNaval) return false;
     }

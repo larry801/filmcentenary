@@ -66,7 +66,12 @@ export const diplomacyActionState = (
     target: Power,
     action: DiplomacyAction,
 ): DiplomacyActionState => {
-    if (p === target || samePlayer(G, p, target)) return blocked("samePower");
+    if (p === target) return blocked("samePower");
+    // Scenario Book p. 12, "Controlling 2 Powers": a player may never have one
+    // of his powers declare war on the other, but "the two powers controlled
+    // by a single player may ally and loan naval squadrons however".  Alliance
+    // therefore stays open for the same player's powers; war and peace do not.
+    if (samePlayer(G, p, target) && action !== "formAlliance") return blocked("samePower");
     // A major power without a seat (an inactive Ottoman/HRE in a 2-5 player
     // game) cannot be the other party to a diplomatic agreement: nobody is
     // seated to agree to it.  Declaring war is the one exception, because it
@@ -137,7 +142,7 @@ export const diplomacyBlockText = (
 /** Rule 9.1 gifts: at most 2 cards / 2 treasures / 4 mercenaries per target. */
 export type GiftKind = "cards" | "treasures" | "mercenaries";
 
-export type GiftBlock = "noPlayer" | "alreadyAtWar" | "limit" | "reciprocal" | "unavailable" | "ottomanMercs";
+export type GiftBlock = "noPlayer" | "samePlayerGift" | "alreadyAtWar" | "limit" | "reciprocal" | "unavailable" | "ottomanMercs";
 
 export interface GiftState {
     ok: boolean;
@@ -159,6 +164,10 @@ export const giftState = (
 ): GiftState => {
     // A major power without a seat cannot be the other party to an exchange.
     if (ownerOf(G, target) === undefined) return {ok: false, reason: "noPlayer"};
+    // Scenario Book p. 12: "A player may never award a card draw or mercenaries
+    // from one of his powers to the other."  Treasures are not a card draw, so
+    // they stay exchangeable between the same player's two powers.
+    if (kind !== "treasures" && samePlayer(G, p, target)) return {ok: false, reason: "samePlayerGift"};
     if (atWar(G, p, target)) return {ok: false, reason: "alreadyAtWar"};
     const limit = kind === "mercenaries" ? 4 : 2;
     if (giftCount(G, p, target, kind) >= limit) return {ok: false, reason: "limit"};
