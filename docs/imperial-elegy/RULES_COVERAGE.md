@@ -28,6 +28,32 @@ Status labels:
 > the AU/FR/RU/OT special actions are live moves. Exact gaps are in
 > [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
 
+## March 2026 errata pass (2026-11-26)
+
+The whole errata was re-read against the live path. Five clauses changed:
+
+- **33.6 / 12.2 elite-corps ceiling.** The errata limits only the Ottomans to
+  one EC "until the play of the Young Turks"; 12.2 prints no per-player
+  ceiling, so every other power is bounded by the printed counter chart (4.2:
+  GE four, FR three, UK/AU/RU two). The old hard cap of one for every power is
+  gone (`characteristics.ts#eliteCorpsCap`, read by `canRecruitIn`, `recruit`
+  and the 27.5.3 GW draft). A106 still lifts the Ottoman ceiling to two.
+- **19.1 / 19.8 naval continuation.** "Units using naval movement in European
+  Waters that were intercepted may continue moving in European Waters if they
+  win a decisive victory." `finishBattle` now requires `battle.decisive`; a
+  plain win ends the move. 19.8's port move is unchanged (unconditional).
+- **3.2.5.2 dual home spaces.** "Egypt starts the campaign game as a dual home
+  space", so 13.1's exception bars a war of liberation on Egypt
+  (`limitedWar.ts#defaultDualHome`); it must be conquered.
+- **Card 96 Empire of the Sun.** Playable "if Japan is not controlled by
+  another player" — a new `japan-controlled` event gate.
+- **Cards 23/24 New Rifles / New Artillery.** The +1 is "a total of +1, not
+  +1 per army", and it belongs to the playing belligerent's side whether it
+  attacks or defends; the flag is now stamped per power and routed by side.
+
+Coverage: `src/imperialElegy/errataMar2026.test.ts` (13) plus the corrected
+`flagEnforcement` EC test and the existing naval/GW/war-aim suites.
+
 ## Solo Historical Great War pass (2026-11-25)
 
 A solo play of the printed Historical Great War (`gwTutorial`) surfaced three
@@ -1015,9 +1041,11 @@ on 2026-11-24: every named blocker is live and pinned.
     19.11’s interception window is the same 19.1 window, opened after the
     action closes rather than mid-move, as 19.11 explicitly orders.
   - 19.1 keeps the interrupted movement for ships left at sea after a partial
-    19.8 port move (only a whole-force move consumes it); the 19.4 mine-retreat
-    choice is unconditional and a force that cannot retreat is eliminated by
-    19.7; defenders cannot retreat into the box the attacker came from.
+    19.8 port move (only a whole-force move consumes it), and since the March
+    2026 errata only after a **decisive** victory (errata 19.1/19.8; a plain win
+    ends the move); the 19.4 mine-retreat choice is unconditional and a force
+    that cannot retreat is eliminated by 19.7; defenders cannot retreat into the
+    box the attacker came from.
   - Split retreats enumerate completely up to 512 assignments; 19.8 enumerates
     every legal port split up to 512 list options and uses a complete per-unit
     chooser above that. Interception battles cannot be avoided (19.2), and an
