@@ -490,14 +490,18 @@ export const recomputeBattleSupport = (G: ImperialElegyState, battle: BattleStat
  */
 export {commandsAlliedMinor};
 
-export const beginLandBattle = (
+/**
+ * The units and legality gate of `beginLandBattle`, without building the
+ * battle.  `beginLandBattle` returns null exactly when this does, so a caller
+ * that only needs the yes/no answer (the bot's destination sweep) can ask it
+ * without cloning the state for a throwaway battle.
+ */
+const landBattleForces = (
   G: ImperialElegyState,
-  ctx: Ctx,
   actor: Power,
   from: SpaceId,
   to: SpaceId,
-  amphibious = false,
-): BattleState | null => {
+): {attackUnits: Unit[]; defendUnits: Unit[]; trenchTerrain: boolean} | null => {
   const allyImpulse = gwAllyImpulseFor(G, actor);
   const attackUnits = landUnitsIn(G, from).filter(
     (u) =>
@@ -545,6 +549,28 @@ export const beginLandBattle = (
   if (trenchTerrain && !attackUnits.some((u) => isArmyKind(u.kind) && u.steps >= 2)) {
     return null;
   }
+  return {attackUnits, defendUnits, trenchTerrain};
+};
+
+/** Would `beginLandBattle` find this battle legal?  Same gate, no state change. */
+export const canBeginLandBattle = (
+  G: ImperialElegyState,
+  actor: Power,
+  from: SpaceId,
+  to: SpaceId,
+): boolean => landBattleForces(G, actor, from, to) !== null;
+
+export const beginLandBattle = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  actor: Power,
+  from: SpaceId,
+  to: SpaceId,
+  amphibious = false,
+): BattleState | null => {
+  const forces = landBattleForces(G, actor, from, to);
+  if (forces === null) return null;
+  const {attackUnits, defendUnits, trenchTerrain} = forces;
   // 5.5.3: an overstacked stack that is attacked contributes FP with at most
   // the space's stacking limit.  The engine keeps the strongest defenders.
   const defenderLimit = landStackingLimit(to);

@@ -108,6 +108,10 @@ export interface SimResult {
   invariantCounts: Record<string, number>;
   /** The first reported break of each catalog id, for the census report. */
   invariantSamples: Record<string, string>;
+  /** Full-tier passes: phase boundaries plus the step cadence. */
+  fullChecks: number;
+  /** Phase changes in this run (each one is a full-tier pass). */
+  phaseBoundaries: number;
   /** The authoritative end state (for milestone assertions and reports). */
   finalState: ImperialElegyState;
 }
@@ -615,6 +619,8 @@ export function runSeededGame(opts: SimOptions): SimResult {
   const invariantCounts: Record<string, number> = {};
   const invariantSamples: Record<string, string> = {};
   let invariantIssues = 0;
+  let fullChecks = 0;
+  let phaseBoundaries = 0;
   let steps = 0;
   /** Repeated identical rejected decision detector (mirrors the board's escape). */
   let repeat = {key: "", count: 0};
@@ -965,10 +971,14 @@ export function runSeededGame(opts: SimOptions): SimResult {
     views.clear();
     const after = state.G as ImperialElegyState;
     // Cheap checks run after every action; the full set recomputes the board
-    // (A07) and serializes the whole state (A16), so it is paid for only at a
-    // phase boundary and on a fixed cadence.
-    const invariantLevel: CheckLevel = after.phase !== beforePhase || steps % 25 === 0 ? "full" : "cheap";
-    const violations = checkAll(after, {level: invariantLevel, before});
+    // (A07) and walks the whole state (A16), so it is paid for only at a phase
+    // boundary and on a fixed cadence.  A16's JSON round trip is the one piece
+    // that stays at the boundary alone.
+    const phaseBoundary = after.phase !== beforePhase;
+    const invariantLevel: CheckLevel = phaseBoundary || steps % 25 === 0 ? "full" : "cheap";
+    if (invariantLevel === "full") fullChecks += 1;
+    if (phaseBoundary) phaseBoundaries += 1;
+    const violations = checkAll(after, {level: invariantLevel, before, phaseBoundary});
     for (const violation of violations) {
       invariantCounts[violation.code] = (invariantCounts[violation.code] ?? 0) + 1;
       if (violation.severity === "error" && invariantSamples[violation.code] === undefined) {
@@ -1058,6 +1068,8 @@ export function runSeededGame(opts: SimOptions): SimResult {
     issues,
     invariantCounts,
     invariantSamples,
+    fullChecks,
+    phaseBoundaries,
     gw: Boolean(finalG.gw?.outbreakDone),
     events,
     finalState: finalG,

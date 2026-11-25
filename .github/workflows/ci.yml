@@ -94,6 +94,12 @@ jobs:
   # The per-constraint positive/negative cases live in src/ and already run in
   # the "test" job; this job is the seeded census.  See
   # docs/imperial-elegy/INVARIANTS.md.
+  # The matrix is six modes x three seeds (18 runs).  Measured on a 4-core box:
+  # a 1369-step campaign seed takes ~31 s and pays ~0.7 s of that in invariant
+  # checks (the full tier runs 106 times: 53 phase boundaries + 53 cadence
+  # steps), so the wall clock is boardgame.io's reducer drafting the whole state
+  # per move, not the checks.  `IE_MODES` / `IE_SEEDS` narrow the matrix for a
+  # local loop; the job runs all 18 runs, ~7 min.
   ie-sim-invariants:
     runs-on: ubuntu-24.04
     timeout-minutes: 30

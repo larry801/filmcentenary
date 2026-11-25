@@ -45,6 +45,13 @@ export interface CheckContext {
    * (transition) group; the `A` group ignores it.
    */
   before?: ImperialElegyState;
+  /**
+   * True when `G` is the state after a phase change.  Whole-state work (A16's
+   * JSON round trip serializes the full state) is only worth its cost there: on
+   * a mid-phase cadence step the structural scan covers the same failure modes
+   * for a fraction of the time.
+   */
+  phaseBoundary: boolean;
 }
 
 export interface Invariant {

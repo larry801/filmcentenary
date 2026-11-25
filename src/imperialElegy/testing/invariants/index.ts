@@ -16,12 +16,18 @@ export const INVARIANTS: readonly Invariant[] = [...STRUCTURAL, ...PRINTED];
 export interface CheckOptions {
   level?: CheckLevel;
   before?: ImperialElegyState;
+  /**
+   * Whether this pass follows a phase change.  Defaults to `true` so a direct
+   * `checkAll(G, {level: "full"})` keeps the whole-state round trip; the
+   * harness passes the real answer and the cadence steps skip it.
+   */
+  phaseBoundary?: boolean;
 }
 
 /** Run the registry.  `full` implies every `cheap` check. */
 export const checkAll = (G: ImperialElegyState, options: CheckOptions = {}): Violation[] => {
   const level: CheckLevel = options.level ?? "cheap";
-  const ctx: CheckContext = {level, before: options.before};
+  const ctx: CheckContext = {level, before: options.before, phaseBoundary: options.phaseBoundary ?? true};
   const out: Violation[] = [];
   for (const invariant of INVARIANTS) {
     if (level !== "full" && invariant.level !== "cheap") continue;

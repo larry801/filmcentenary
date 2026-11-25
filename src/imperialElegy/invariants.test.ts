@@ -269,22 +269,77 @@ describe("A15 — battle and Great War coherence", () => {
 });
 
 describe("A16 — the state is plain JSON", () => {
+  /**
+   * The cadence path: the structural scan on its own, without the whole-state
+   * round trip the harness only pays for at a phase boundary.  Every failure
+   * mode has to be reported here, or a cadence step would miss it.
+   */
+  const scan = (G: ImperialElegyState) => checkAll(G, {level: "full", phaseBoundary: false});
+  const scanCodes = (G: ImperialElegyState): string[] => scan(G).map((violation) => violation.code);
+
   test("NaN in state is reported", () => {
     const G = fresh();
     (G.flags as Record<string, unknown>).broken = Number.NaN;
     expect(codes(G)).toContain("A16");
   });
 
-  test("an undefined entry in an array is reported by the round-trip", () => {
+  test("NaN nested inside an array of objects is reported without the round trip", () => {
     const G = fresh();
-    (G.deck as unknown[]).push(undefined);
-    expect(codes(G)).toContain("A16");
+    (G.flags as Record<string, unknown>).deep = {list: [{ok: 1}, {broken: Number.NaN}]};
+    const violations = scan(G);
+    expect(violations.map((violation) => violation.code)).toContain("A16");
+    expect(violations.map((violation) => violation.path)).toContain("G.flags.deep.list[1].broken");
+  });
+
+  test("Infinity and a function are reported without the round trip", () => {
+    const G = fresh();
+    (G.flags as Record<string, unknown>).endless = Number.POSITIVE_INFINITY;
+    (G.flags as Record<string, unknown>).callback = () => undefined;
+    expect(scanCodes(G)).toContain("A16");
+  });
+
+  test("an undefined entry in an array is reported by the scanner", () => {
+    const G = fresh();
+    (G.flags as Record<string, unknown>).list = ["ok", undefined];
+    const violations = scan(G);
+    expect(violations.map((violation) => violation.code)).toContain("A16");
+    expect(violations.map((violation) => violation.path)).toContain("G.flags.list[1]");
+  });
+
+  test("a Map instance is reported", () => {
+    const G = fresh();
+    (G.flags as Record<string, unknown>).lookup = new Map([["GE", 1]]);
+    const violations = scan(G);
+    expect(violations.map((violation) => violation.code)).toContain("A16");
+    expect(violations.find((violation) => violation.path === "G.flags.lookup")?.observed).toBe("Map");
+  });
+
+  test("a Set instance is reported", () => {
+    const G = fresh();
+    (G.flags as Record<string, unknown>).seen = new Set(["GE"]);
+    expect(scanCodes(G)).toContain("A16");
   });
 
   test("a class instance is reported", () => {
     const G = fresh();
     (G.flags as Record<string, unknown>).when = new Date(0);
     expect(codes(G)).toContain("A16");
+  });
+
+  test("a property explicitly set to undefined is not a break", () => {
+    const G = fresh();
+    (G.flags as Record<string, unknown>).optional = undefined;
+    expect(scanCodes(G)).not.toContain("A16");
+  });
+
+  test("the round trip still runs at a phase boundary", () => {
+    // A cycle is the one break the scan cannot see: `JSON.stringify` throws and
+    // the registry reports that as an A16 violation.  It is why the harness
+    // keeps one real round trip at every phase boundary.
+    const G = fresh();
+    const flags = G.flags as Record<string, unknown>;
+    flags.self = flags;
+    expect(checkAll(G, {level: "full", phaseBoundary: true}).map((violation) => violation.code)).toContain("A16");
   });
 });
 

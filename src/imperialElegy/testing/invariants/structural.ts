@@ -645,43 +645,84 @@ export const A15: Invariant = {
 // A16 — the state is plain JSON
 // ---------------------------------------------------------------------------
 
+/**
+ * One structural walk, reporting exactly the values a JSON round trip would
+ * change: a non-finite number (it arrives as `null`), a function/symbol/bigint
+ * (dropped or refused), a `Map`/`Set` or class instance (it arrives as `{}` or
+ * through `toJSON`), and an `undefined` array entry (it arrives as `null`).
+ * A property explicitly set to `undefined` is dropped by transport and reads
+ * the same as an absent optional field, so it is not a break here.
+ *
+ * The path is only built when something is reported, so the common case pays
+ * one prototype check and one key loop per node.  `A16.check` still runs the
+ * real serialize/parse/serialize at a phase boundary, which is what catches a
+ * `toJSON` or a cycle; this walk is what the cadence steps pay for.
+ */
 const isPlainJson = (G: ImperialElegyState, limit = 8): Violation[] => {
   const bad = at(A16);
   const out: Violation[] = [];
-  const walk = (value: unknown, path: string, depth: number, seen: WeakSet<object>, inArray: boolean) => {
+  const seen = new WeakSet<object>();
+  /** Keys from `G` to the node being visited, rendered into a path on report. */
+  const trail: (string | number)[] = ["G"];
+  const path = (): string => {
+    let text = "G";
+    for (let i = 1; i < trail.length; i += 1) {
+      const segment = trail[i];
+      text += typeof segment === "number" ? `[${segment}]` : `.${segment}`;
+    }
+    return text;
+  };
+  const walk = (value: unknown, depth: number, inArray: boolean): void => {
     if (out.length >= limit || depth > 14) return;
-    // A property explicitly set to `undefined` is dropped by JSON transport and
-    // reads the same as an absent optional field, so it is not a break here.
-    // An `undefined` array entry *is* one: it arrives as `null` on the other
-    // side, which changes the array.
     if (value === undefined) {
-      if (inArray) out.push(bad(path, "undefined", "a JSON value", `undefined array entry at ${path} arrives as null`));
+      if (inArray) out.push(bad(path(), "undefined", "a JSON value", `undefined array entry at ${path()} arrives as null`));
       return;
     }
-    if (typeof value === "number" && !Number.isFinite(value)) {
-      out.push(bad(path, value, "a finite number", `${String(value)} at ${path}`));
+    const kind = typeof value;
+    if (kind === "number") {
+      if (!Number.isFinite(value as number)) out.push(bad(path(), value, "a finite number", `${String(value)} at ${path()}`));
       return;
     }
-    if (typeof value === "function" || typeof value === "symbol" || typeof value === "bigint") {
-      out.push(bad(path, typeof value, "JSON-serializable", `${typeof value} at ${path}`));
+    if (kind === "function" || kind === "symbol" || kind === "bigint") {
+      out.push(bad(path(), kind, "JSON-serializable", `${kind} at ${path()}`));
       return;
     }
-    if (value === null || typeof value !== "object") return;
-    if (value instanceof Map || value instanceof Set) {
-      out.push(bad(path, value.constructor.name, "a plain object or array", `${value.constructor.name} at ${path}`));
-      return;
+    if (kind !== "object" || value === null) return;
+    const array = Array.isArray(value);
+    // A plain object can never be a `Map`/`Set`, so the `instanceof` pair is
+    // only paid for the rare non-plain object, where it names the class.
+    if (!array) {
+      const prototype = Object.getPrototypeOf(value);
+      if (prototype !== Object.prototype && prototype !== null) {
+        const name = value instanceof Map || value instanceof Set ? value.constructor.name : value.constructor?.name ?? "class instance";
+        out.push(bad(path(), name, "a plain object or array", `${name} at ${path()}`));
+        return;
+      }
     }
     if (seen.has(value)) return;
     seen.add(value);
-    const prototype = Object.getPrototypeOf(value);
-    if (!Array.isArray(value) && prototype !== Object.prototype && prototype !== null) {
-      out.push(bad(path, value.constructor?.name ?? "class instance", "a plain object", `class instance at ${path}`));
+    if (array) {
+      const items = value as unknown[];
+      for (let index = 0; index < items.length; index += 1) {
+        // A hole is not a JSON value either, but `forEach` (the walk this
+        // replaces) never visited it, so it is not reported here.
+        if (!(index in items)) continue;
+        trail.push(index);
+        walk(items[index], depth + 1, true);
+        trail.pop();
+        if (out.length >= limit) return;
+      }
       return;
     }
-    if (Array.isArray(value)) value.forEach((item, index) => walk(item, `${path}[${index}]`, depth + 1, seen, true));
-    else for (const [key, item] of Object.entries(value)) walk(item, path === "G" ? key : `${path}.${key}`, depth + 1, seen, false);
+    const record = value as Record<string, unknown>;
+    for (const key of Object.keys(record)) {
+      trail.push(key);
+      walk(record[key], depth + 1, false);
+      trail.pop();
+      if (out.length >= limit) return;
+    }
   };
-  walk(G, "G", 0, new WeakSet(), false);
+  walk(G, 0, false);
   return out;
 };
 
@@ -691,9 +732,13 @@ export const A16: Invariant = {
   level: "full",
   severity: "error",
   title: "the state round-trips through JSON unchanged",
-  check: (G) => {
+  check: (G, ctx) => {
     const bad = at(A16);
     const out = isPlainJson(G);
+    // The round trip serializes the whole state twice: 2.2 ms of the full
+    // tier's 6.0 ms on the 215 KB end state, so the harness only pays it where
+    // a `toJSON` or a cycle could first appear.
+    if (!ctx.phaseBoundary) return out;
     const serialized = JSON.stringify(G);
     const roundTripped = JSON.stringify(JSON.parse(serialized));
     if (serialized !== roundTripped) {
