@@ -176,7 +176,7 @@ export const TrackStrip = ({
         )}
         {hasWar && !gw && war && (
           <span className="ie-track-war" data-testid="ie-track-war">
-            <IEBadge tone="warn">{controlLabel(t, war.attacker)} — {controlLabel(t, war.defender)}</IEBadge>
+            <IEBadge tone="warn">{controlLabel(t, war.attacker, locale)} — {controlLabel(t, war.defender, locale)}</IEBadge>
           </span>
         )}
       </div>

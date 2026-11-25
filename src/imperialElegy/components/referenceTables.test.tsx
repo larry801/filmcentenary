@@ -259,8 +259,8 @@ describe("the sequence of play", () => {
 
   test("uses the English titles in the en UI", () => {
     const sequence = sectionOf(renderTables(game(), "en"), "ie-ref-sequence");
-    expect(textOf(elementOf(sequence, "ie-ref-step-diplomacy", "li"))).toBe("Diplomacy · 6.1");
-    expect(textOf(elementOf(sequence, "ie-ref-step-prep", "li"))).toBe("Prep · 5.1");
+    expect(textOf(elementOf(sequence, "ie-ref-step-diplomacy", "li"))).toBe("Diplomacy · 11.0");
+    expect(textOf(elementOf(sequence, "ie-ref-step-prep", "li"))).toBe("Prep · 10.0");
   });
 });
 

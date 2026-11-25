@@ -10,6 +10,13 @@ test("an army/manpower ceiling prints in Chinese with its number", () => {
   expect(engineReasonText("zh_CN", "Manpower/army limit 4 reached")).toBe("人力／军团上限 4 已达");
 });
 
+test("a reserve-army ceiling prints in Chinese with its number", () => {
+  // 7.3: the reserve box holds as many armies as the lower of manpower and
+  // industry.  The engine embeds that number in the reason.
+  expect(engineReasonText("zh_CN", "Reserve limit 1 reached")).toBe("预备军已满（上限 1）");
+  expect(engineReasonText("zh_CN", "Reserve limit 0 reached")).toBe("预备军已满");
+});
+
 test("a nationality reason uses the printed Chinese nationality name", () => {
   expect(engineReasonText("zh_CN", "Italians does not have rights yet")).toBe("意大利尚未获得权利");
   expect(engineReasonText("zh_CN", "Czechs already has full citizenship")).toBe("捷克已获得完整公民权");

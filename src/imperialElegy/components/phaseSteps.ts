@@ -1,7 +1,7 @@
 /**
  * The sequence of play, as the track strip's stepper shows it.
  *
- * The campaign turn is Prep → Diplomacy → Action → End (5.0).  A limited war
+ * The campaign turn is Prep → Diplomacy → Action → End (2.1).  A limited war
  * replaces the Action step with its own `war.status` ladder (13.x), and the
  * Great War replaces the campaign turn with Planning → Maneuver → Winter
  * (27.x).  Each step names the printed reference anchor it opens, so the
@@ -33,30 +33,35 @@ export interface PhaseStep {
   action?: {testId: string; label: string};
 }
 
-/** The campaign's own four steps (5.0), in printed order. */
+/**
+ * The campaign's own four steps (2.1), in printed order.
+ *
+ * Each rule number is the section the rulebook prints for that phase, not the
+ * first sub-rule inside it: 10.0 Prep, 11.0 Diplomacy, 12.0 Action, 20.0 End.
+ */
 const CAMPAIGN_STEPS: Record<"prep" | "diplomacy" | "action" | "end", {title: string; titleZh: string; rule: string}> = {
-  prep: {title: "Prep", titleZh: "准备", rule: "5.1"},
-  diplomacy: {title: "Diplomacy", titleZh: "外交", rule: "6.1"},
-  action: {title: "Action", titleZh: "行动", rule: "11.0"},
+  prep: {title: "Prep", titleZh: "准备", rule: "10.0"},
+  diplomacy: {title: "Diplomacy", titleZh: "外交", rule: "11.0"},
+  action: {title: "Action", titleZh: "行动", rule: "12.0"},
   end: {title: "End", titleZh: "结束", rule: "20.0"},
 };
 
-/** A limited war's `war.status` ladder (13.0), in printed order. */
+/** A limited war's `war.status` ladder (12.17.2), in printed order. */
 export const WAR_STEPS: readonly {status: string; title: string; titleZh: string; rule: string}[] = [
-  {status: "warAim", title: "War aim", titleZh: "战争目标", rule: "13.2"},
-  {status: "alliance", title: "Alliances", titleZh: "同盟", rule: "13.4"},
-  {status: "shift", title: "Alliance shift", titleZh: "同盟转换", rule: "8.2"},
-  {status: "initiative", title: "Initiative", titleZh: "先手", rule: "13.6"},
-  {status: "maneuver", title: "Maneuver", titleZh: "机动", rule: "15.2"},
-  {status: "victory", title: "Victory & treaty", titleZh: "胜利与条约", rule: "16.1"},
+  {status: "warAim", title: "War aim", titleZh: "战争目标", rule: "13.0"},
+  {status: "alliance", title: "Alliances", titleZh: "同盟", rule: "14.0"},
+  {status: "shift", title: "Alliance shift", titleZh: "同盟转换", rule: "14.2"},
+  {status: "initiative", title: "Initiative", titleZh: "先手", rule: "14.3"},
+  {status: "maneuver", title: "Maneuver", titleZh: "机动", rule: "15.0"},
+  {status: "victory", title: "Victory & treaty", titleZh: "胜利与条约", rule: "16.0"},
   {status: "demobilization", title: "Demobilization", titleZh: "复员", rule: "17.0"},
 ];
 
-/** The Great War ladder (27.0). */
+/** The Great War ladder (24.1). */
 export const GW_STEPS: readonly {phase: string; title: string; titleZh: string; rule: string}[] = [
-  {phase: "gwPlanning", title: "Planning", titleZh: "计划", rule: "27.3"},
-  {phase: "gwManeuver", title: "Maneuver", titleZh: "机动", rule: "27.5"},
-  {phase: "gwWinter", title: "Winter", titleZh: "冬季", rule: "28.0"},
+  {phase: "gwPlanning", title: "Planning", titleZh: "计划", rule: "26.0"},
+  {phase: "gwManeuver", title: "Maneuver", titleZh: "机动", rule: "27.0"},
+  {phase: "gwWinter", title: "Winter", titleZh: "冬季", rule: "29.0"},
 ];
 
 const warAnchor = (status: string): string => {
@@ -173,7 +178,7 @@ export const nextStepAction = (
 ): {testId: string; label: string} | null => {
   const current = phaseSteps(G).find((step) => step.current);
   if (current?.kind === "war") {
-    // 13.6 / 15.2 / 17.0 each have their own button; the Action tab owns them.
+    // 14.3 / 15.0 / 17.0 each have their own button; the Action tab owns them.
     return null;
   }
   const button = phaseActions.find((action) => action.testId !== undefined);
