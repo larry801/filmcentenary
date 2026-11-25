@@ -327,6 +327,12 @@ export interface ModelValues {
   deals: DiplomacyDeals;
   /** The diplomacy deals page exists right now (seated, diplomacy phase). */
   dealsVisible: boolean;
+  /**
+   * The Influence page exists right now: 8.0's MPIT marker is a 12.1 peacetime
+   * action, and the outbreak freezes the track into the GW rosters, so the page
+   * is gone once the Great War runs.
+   */
+  influenceVisible: boolean;
   /** Offers this seat must confirm. */
   pendingDeals: DealOffer[];
   /** Every offer this seat is party to (proposed or accepted). */

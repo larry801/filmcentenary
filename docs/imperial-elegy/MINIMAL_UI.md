@@ -214,4 +214,7 @@ ports — so there is no browser regression gate for this game; screenshots unde
   already the full-operation surface and one popover less is one component less.
 - **Deviation 3 —** the status row keeps the World Tension pips and the five
   alliance boxes. They are live public state that no other always-visible
-  surface prints.
+  surface prints. Both disappear once the Great War starts: the outbreak pins
+  the World Tension at 5, `formAlliances` resolves the boxes into `G.gw`'s
+  rosters (printed in the Great War panel), and the campaign clock stops, so
+  the left cluster follows `gw.turn` instead.

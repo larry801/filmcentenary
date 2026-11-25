@@ -255,7 +255,7 @@ export const OrdersRegion = (props: OrdersSlice & {
     ownNavalInSelected, potentialLandTargets, potentialNavalTargets, doAction, confirmActions, moves,
     selected, selectedUnit, setSelectedUnit, selectedUnitIds, toggleUnitSelection, selectUnitGroup,
     startMoveTargeting, battleFrom, setBattleFrom, navalFrom, setNavalFrom,
-    ordersTab, setOrdersTab, navalVisible, deals, dealsVisible, pendingDeals, myDealOffers,
+    ordersTab, setOrdersTab, navalVisible, influenceVisible, deals, dealsVisible, pendingDeals, myDealOffers,
     homeChoice, setHomeCardDialogOpen,
     dealTarget, setDealTarget, dealGive, setDealGive, dealTake, setDealTake, dealPromises, setDealPromises,
     handCounts,
@@ -342,6 +342,7 @@ export const OrdersRegion = (props: OrdersSlice & {
       navalVisible={navalVisible}
       navalUrgent={interceptVisible}
       dealsVisible={dealsVisible}
+      influenceVisible={influenceVisible}
       dealUrgent={pendingDeals.length > 0}
       heading={heading}
       tabs={{
@@ -793,8 +794,13 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
 
   const commandStatus = (
     <div className="ie-status">
-      <IEBadge tone={G.wtt >= 4 ? "warn" : "default"}>{t.wtt}: {G.wtt}/5</IEBadge>
-      {G.gw?.active && <IEBadge tone="warn">GW {G.gw.turn}</IEBadge>}
+      {/* 3.7 / 13.0 are settled by the outbreak: `G.wtt` pins at 5 and no new
+          war can be declared under 27.5, so the badge is dead weight then. */}
+      {!G.gw?.active && (
+        <span data-testid="ie-status-wtt">
+          <IEBadge tone={G.wtt >= 4 ? "warn" : "default"}>{t.wtt}: {G.wtt}/5</IEBadge>
+        </span>
+      )}
       {battle && <IEBadge tone="warn">{bi(locale, battle.kind === "naval" ? "Naval battle" : "Land battle", battle.kind === "naval" ? "海战" : "陆战")}</IEBadge>}
       {pending && <IEBadge tone="warn">{canDecide ? t.yourDecision : decidingText(t.seats[pending.power], locale)}</IEBadge>}
       {responseWindow && <IEBadge tone="warn">{t.responseWindow}</IEBadge>}
@@ -943,6 +949,8 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
               <Icon name="close" size={16}/>
             </button>
           )}
+          {/* The campaign clock stops at the outbreak; the war counts its own
+              turns from GW 0, so the chip follows `gw.turn` instead. */}
           <TurnPanel
             locale={locale}
             t={t}
@@ -951,6 +959,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             phaseLabel={PHASE_LABEL(t, phase)}
             activeLabel={`${t.active}: ${seatPowerName(t, active, locale, auFormedForState(G))}`}
             turn={G.turn}
+            turnLabel={G.gw?.active === true ? `${t.greatWar} · GW ${G.gw.turn}` : undefined}
             summary={core.dockSummary}
             nextSteps={core.dockNextSteps}
             hasDecision={decisionOwed}

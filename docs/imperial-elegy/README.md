@@ -368,10 +368,13 @@ regions plus two surfaces that open on demand (see
   stepper), the hotseat's seat tabs (passed in through `SeatUiContext.seats`),
   the viewer's four figures (VP, stability, manpower, industry), World Tension
   pips with the "3: no war" warning, the five alliance boxes (cTA / aTA / N /
-  aTE / cTE), the Great War turn or the current war, the CP chip on a phone,
-  the Orders drawer toggle, `?` (reference) and the menu. The hotseat shell's
-  own controls (new game, help, difficulty) render inside that menu through
-  `SeatUiContext.shellMenu`, so the shell adds no second header row.
+  aTE / cTE), the current limited war, the CP chip on a phone, the Orders
+  drawer toggle, `?` (reference) and the menu. From the Great War's outbreak
+  the campaign clock stops and the Alliance Track is resolved, so the cluster
+  shows `GW n` in place of the campaign turn and drops the tension pips and the
+  alliance boxes; the war's rosters live in the Great War panel. The hotseat
+  shell's own controls (new game, help, difficulty) render inside that menu
+  through `SeatUiContext.shellMenu`, so the shell adds no second header row.
 - **Map** — `components/MapPanel.tsx` (`map.tsx` draws the spaces and units)
   owns the full width the mat column used to take: 1392 px at 1440×900, with
   the hand folded.

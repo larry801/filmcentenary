@@ -1501,6 +1501,13 @@ export const useBoardModel = ({
   // 11.0/11.1: the deals page exists for a seated power in the diplomacy phase.
   const diplomacyPhase = phase === "diplomacy";
   const dealsVisible = diplomacyPhase && viewer !== null && !eliminated;
+  // 8.0's marker is a 12.1 peacetime action: 15.2 and 27.5 replace the action
+  // list, and the outbreak resolves the Alliance Track into `G.gw`'s rosters,
+  // so the matrix has nothing left to place and nothing left to read.
+  const influenceVisible = G.gw?.active !== true;
+  React.useEffect(() => {
+    if (!influenceVisible && ordersTab === "influence") setOrdersTab("actions");
+  }, [influenceVisible, ordersTab]);
   const myDealOffers = viewer === null ? [] : deals.offers;
   const pendingDeals = myDealOffers.filter((offer) => offer.status === "proposed" && offer.to === viewer);
   // An offer addressed to this seat is something to answer, so its page comes
@@ -1976,6 +1983,7 @@ export const useBoardModel = ({
     cardsShownToMe,
     deals,
     dealsVisible,
+    influenceVisible,
     pendingDeals,
     myDealOffers,
     dealTarget,

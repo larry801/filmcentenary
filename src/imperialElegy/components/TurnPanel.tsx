@@ -29,6 +29,12 @@ export interface TurnPanelProps {
   phaseLabel: string;
   activeLabel: string;
   turn: number;
+  /**
+   * What the turn chip reads, when the campaign clock is not the running one:
+   * the Great War has its own turn counter (`gw.turn`) and the campaign's
+   * `G.turn` is frozen from the outbreak, so the board passes "大战 · GW 2".
+   */
+  turnLabel?: string;
   /** One-line "what now". */
   summary: string;
   /**
@@ -59,7 +65,7 @@ export interface TurnPanelProps {
 }
 
 export const TurnPanel = ({
-  locale, t, cp, phaseActions, phaseLabel, activeLabel, turn, summary, nextSteps, hasDecision,
+  locale, t, cp, phaseActions, phaseLabel, activeLabel, turn, turnLabel, summary, nextSteps, hasDecision,
   decisionOnlyOnPhone = false, decisionBadge = false, warBadge, tabs, activeTab, onTabChange,
   confirmActions,
 }: TurnPanelProps) => {
@@ -92,7 +98,7 @@ export const TurnPanel = ({
       <div className="ie-dock-bar">
         <span className="ie-dock-bar-summary" data-testid="ie-dock-summary" title={summary}>{summary}</span>
         <span className="ie-command-phase" data-testid="ie-tp-phase">{phaseLabel}</span>
-        <span className="ie-command-turn">{t.turn} {turn}</span>
+        <span className="ie-command-turn" data-testid="ie-command-turn">{turnLabel ?? `${t.turn} ${turn}`}</span>
         <span className="ie-command-active">{activeLabel}</span>
       </div>
 
