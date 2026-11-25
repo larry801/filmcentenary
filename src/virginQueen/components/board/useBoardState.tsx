@@ -4,7 +4,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import {eventTargetOptions, eventTargetValue} from "../../eventTargets";
 import {POLISH_ELECTION_POWERS, polishElectionBidOptions, polishElectionBidValue, polishElectionTargetValue, type PolishElectionBidChoices, type PolishElectionPower} from "../../polishElection";
 import {blockingPendingReason, vqLocaleNow} from "./helpers";
-import {useNotificationPermission, useTurnNotification} from "./useNotifications";
+import {useNotificationPermission, usePageTitle, useTurnNotification} from "./useNotifications";
 import MenuItem from "@mui/material/MenuItem";
 import Select from "@mui/material/Select";
 import Stack from "@mui/material/Stack";
@@ -164,6 +164,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         titleSuffix: responsePower !== undefined ? i18n.chain.vq.shell.responseNeeded : myTurn ? i18n.chain.vq.shell.yourTurn : undefined,
     });
     useNotificationPermission(myTurn || responsePower !== undefined);
+    usePageTitle(i18n.chain.drawer.section.virginQueen);
     const phase = ctx.phase ?? "";
     // boardgame.io clears ctx.phase when the game ends; showing the empty key
     // would render "vq.header.phase." and spam the i18n missing-key warning.
@@ -327,7 +328,10 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     React.useEffect(() => {
         // Spring deployment is the only map action available in the spring
         // phase, so arm it automatically instead of asking for a dropdown pick.
-        setMode(ctx.phase === "spring" && myTurn ? "spring" : "inspect");
+        // Once this power has deployed its one formation, leave the step
+        // instead of re-arming a banner whose next click the engine rejects.
+        const springOpen = ctx.phase === "spring" && myTurn && me !== undefined && !G.springDone.includes(me);
+        setMode(springOpen ? "spring" : "inspect");
         setFrom(null);
         setNavalOrders([]);
         submittedMove.current = undefined;
@@ -349,6 +353,9 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         setFrom(null);
         setTransportZones([]);
         if (submitted.name === "moveNaval") setNavalOrders([]);
+        // A spring deployment is once per turn (rule 10), so the step banner
+        // has to leave with the formation it was guiding.
+        if (submitted.name === "springDeploy") setMode("inspect");
         setActionNotice(undefined);
     }, [acceptedMove]);
 

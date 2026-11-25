@@ -58,6 +58,10 @@ export * from "./board/helpers";
 export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
     const board = useBoardState(props);
     const {setMode, G, log, ctx, moves, playerID, matchID, vqLocale, militaryGoal, selected, isDesktop, mobileView, setMobileView, handExpanded, setHandExpanded, selectedCard, setSelectedCard, actionRef, sidebarRef, panelID, mode, from, setFrom, movingUnits, movingLeaders, setTransportZones, actionNotice, setActionNotice, openCard, gregorianTarget, setGregorianTarget, setSelectedActionResponder, selectedAbjurationPower, setSelectedAbjurationPower, confirmAction, setConfirmAction, sheetOpen, setSheetOpen, formationSheetOpen, setFormationSheetOpen, setViewPower, owned, piracyResponder, actionResponders, myActionChoices, actionResponder, responsePower, me, myTurn, switchToTab, phase, phaseText, displayYear, ps, cp, hand, canAct, vqCombatRetrieve, mapHighlights, stepInfo, stackPicker, formationSummary, onSelect, spaceDef, standings, pendingPower, hasResponse, winterChoiceRequired, needsAction, winterChoiceLabel, winterReturnChoice, winterReturnHint, panelProps} = board;
+    // Rule 13.1/16.1/10.6: the first click of a move (or of Spring Deployment)
+    // picks the origin, so those highlights are starting points, not targets.
+    const originStep = mapHighlights !== undefined && from === null &&
+        (mode === "moveLand" || mode === "moveNaval" || mode === "navalTransport" || mode === "spring");
     const actionPanel = () => {
         if (G.pendingPolishElection) {
             const bidder = G.pendingPolishElection.remaining[0];
@@ -152,7 +156,8 @@ export const VirginQueenBoard = (props: VirginQueenBoardProps) => {
         <div className="vq-workspace">
             <section className="vq-panel vq-map-panel" {...panelProps("map")}>
                 <VQMap G={G} selected={selected} origin={from} onSelect={onSelect}
-                       highlights={mapHighlights} dimUnavailable/>
+                       highlights={mapHighlights} highlightLabel={originStep ? i18n.chain.vq.legend.origin : undefined}
+                       dimUnavailable/>
                 <StatusOverlay/>
                 {stepInfo !== undefined && <StepBanner steps={stepInfo.steps} active={stepInfo.active}
                     hint={from !== null && (mode === "spring" || mode === "moveLand" || mode === "navalTransport")

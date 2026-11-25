@@ -1637,6 +1637,7 @@ const zh_CN: Locale = {
             capital: "首都",
             origin: "起点",
             endSpring: "结束春季部署",
+            deployed: "本回合已完成春季部署（每方每回合仅一次）。",
         },
         cardDraw: {
             colonies: "殖民地表（每块殖民地 2d6）",
@@ -2035,6 +2036,7 @@ const zh_CN: Locale = {
             siege: "围困圈",
             closed: "禁入（教学）",
             legal: "合法目标",
+            origin: "合法起点",
         },
         setupLog: {
             scenario: "Virgin Queen: {scenario}（第 {start}-{end} 回合）",

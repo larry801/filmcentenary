@@ -329,6 +329,7 @@ const RULES: Rule[] = [
     [/^Venetian Galleasses add (\d+) dice to the (.+)\.$/, (_m, n, sideName) => `威尼斯桨帆船给${sideName === "attacker" ? "攻方" : "守方"}增加 ${n} 个骰子。`],
     [/^(.+) leaves play because a standard army leader arrived\.$/, (_m, leader) => `${leader} 因标准陆军将领登场而离场。`],
     [/^(.+) places a Default Leader on the Turn Track\.$/, (_m, p) => `${p} 在回合记录轨放置一名默认将领。`],
+    [/^(.+) joins (.+)'s sea captain pool\.$/, (_m, captain, p) => `${captain} 加入 ${p} 的海船长池。`],
     [/^(.+) returns to (.+)'s sea captain pool\.$/, (_m, captain, p) => `${captain} 返回 ${p} 的海船长池。`],
     [/^(.+) returns to (.+)'s sea captain pool at Winter\.$/, (_m, captain, p) => `${captain} 在冬季返回 ${p} 的海船长池。`],
     [/^(.+) returns to England's sea captain pool\.$/, (_m, captain) => `${captain} 返回英格兰的海船长池。`],

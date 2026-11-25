@@ -25,6 +25,8 @@ interface TitleClaim {
  */
 const claims: TitleClaim[] = [];
 let baseTitle: string | undefined;
+/** Site title, captured before any game page overrides it. */
+let siteTitle: string | undefined;
 let flashTimer: number | undefined;
 let flashOn = true;
 let visibilityBound = false;
@@ -184,6 +186,28 @@ export const useTurnNotification = ({isMyTurn, needsResponse, titleSuffix}: Noti
         wasAlerting.current = true;
         return () => releaseTitle(owner);
     }, [alert, titleSuffix, owner]);
+};
+
+/**
+ * Names the game in the tab title while one of its boards is on screen.
+ *
+ * The site title comes from `index.html`, so without this a Virgin Queen tab
+ * reads "Film Centenary".  The previous title is restored on unmount, which
+ * keeps the shared `baseTitle` below correct for the next page.
+ */
+export const usePageTitle = (title: string | undefined): void => {
+    React.useEffect(() => {
+        if (!hasDocument() || title === undefined || title === "") return undefined;
+        // Hotseat mounts several boards, so the restore target is captured once
+        // and never read back from a title a game page already replaced.
+        siteTitle = siteTitle ?? getBaseTitle();
+        baseTitle = title;
+        paintTitle(true);
+        return () => {
+            baseTitle = siteTitle;
+            paintTitle(true);
+        };
+    }, [title]);
 };
 
 /** Asks for notification permission once, on the first deliberate click. */

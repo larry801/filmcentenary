@@ -71,6 +71,8 @@ export interface VQBoardMapProps {
     origin?: string | null;
     onSelect: (id: string) => void;
     highlights?: ReadonlySet<string>;
+    /** Legend word appended to each highlighted node's label; defaults to "legal target". */
+    highlightLabel?: string;
     dimUnavailable?: boolean;
     homeSpace?: string;
     /** Switch back to the geographic projection. */
@@ -158,7 +160,7 @@ const useBoardIdSuffix = (): string => React.useId().replace(/[^a-zA-Z0-9_-]/g, 
 /** Local paint-server id for one board instance. */
 const scopedId = (suffix: string, id: string): string => `${id}-${suffix}`;
 
-type SpaceShapeProps = Pick<VQBoardMapProps, "G" | "selected" | "origin" | "onSelect" | "highlights" | "dimUnavailable"> & {
+type SpaceShapeProps = Pick<VQBoardMapProps, "G" | "selected" | "origin" | "onSelect" | "highlights" | "highlightLabel" | "dimUnavailable"> & {
     id: string;
     /** Per-board suffix for shared paint-server ids; see `useBoardIdSuffix`. */
     idSuffix: string;
@@ -166,7 +168,7 @@ type SpaceShapeProps = Pick<VQBoardMapProps, "G" | "selected" | "origin" | "onSe
     onHover: (id: string | undefined) => void;
 };
 
-function BoardSpaceShape({id, idSuffix, G, selected, origin, onSelect, highlights, dimUnavailable = true, onHover, label}: SpaceShapeProps) {
+function BoardSpaceShape({id, idSuffix, G, selected, origin, onSelect, highlights, highlightLabel, dimUnavailable = true, onHover, label}: SpaceShapeProps) {
     const def = SPACE_BY_ID[id];
     const vqLocale: BoardLocale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
     const excluded = G.scenario === "tutorial" && !tutorialSpaceAllowed(id);
@@ -187,7 +189,7 @@ function BoardSpaceShape({id, idSuffix, G, selected, origin, onSelect, highlight
         ? TUTORIAL_KEYS.includes(id) ? "key" : TUTORIAL_FORTRESSES.includes(id) ? "fortress" : "open"
         : def.kind === "open" && st.fortress ? "fortress" : def.kind;
     const baseTitle = spaceSummary(G, id);
-    const title = highlighted ? `${baseTitle} · ${i18n.chain.vq.legend.legal}` : baseTitle;
+    const title = highlighted ? `${baseTitle} · ${highlightLabel ?? i18n.chain.vq.legend.legal}` : baseTitle;
     const className = `vq-map-node vq-board-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`;
     const common = {fill, stroke, strokeWidth: 1.8};
     const marker = () => {
@@ -298,7 +300,7 @@ function BoardLegend() {
 }
 
 export const VQBoardMap = ({
-    G, selected, origin, onSelect, highlights, dimUnavailable = true, homeSpace, onSwitchStyle,
+    G, selected, origin, onSelect, highlights, highlightLabel, dimUnavailable = true, homeSpace, onSwitchStyle,
 }: VQBoardMapProps) => {
     i18n.use();
     const vqLocale: BoardLocale = i18n.getLocaleName() === "en" ? "en" : "zh_CN";
@@ -566,7 +568,7 @@ export const VQBoardMap = ({
                             const highlighted = highlights?.has(zone.id) === true;
                             const dimmed = highlights !== undefined && dimUnavailable && !highlighted;
                             const label = seaSummary(G, zone.id) +
-                                (highlighted ? ` · ${i18n.chain.vq.legend.legal}` : "");
+                                (highlighted ? ` · ${highlightLabel ?? i18n.chain.vq.legend.legal}` : "");
                             return <g key={zone.id} className={`vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`}
                                       role="button" tabIndex={0} aria-label={label} aria-pressed={selected === zone.id}
                                       opacity={dimmed ? 0.35 : undefined}
@@ -590,6 +592,7 @@ export const VQBoardMap = ({
                         {SPACES.map((space) => <BoardSpaceShape key={space.id} id={space.id} idSuffix={idSuffix}
                                                                G={G} selected={selected}
                                                                origin={origin} onSelect={onSelect} highlights={highlights}
+                                                               highlightLabel={highlightLabel}
                                                                dimUnavailable={dimUnavailable} onHover={setHovered}
                                                                label={labelPlacements[space.id]}/>)}
 

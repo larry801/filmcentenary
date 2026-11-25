@@ -1550,6 +1550,7 @@ const en = {
             capital: "Capital",
             origin: "origin",
             endSpring: "End Spring Deployment",
+            deployed: "Deployed this turn (one formation per power per turn).",
         },
         cardDraw: {
             colonies: "Colony Table (2d6 per colony)",
@@ -1948,6 +1949,7 @@ const en = {
             siege: "Siege ring",
             closed: "Closed (tutorial)",
             legal: "Legal target",
+            origin: "Legal origin",
         },
         setupLog: {
             scenario: "Virgin Queen: {scenario} (turns {start}-{end})",

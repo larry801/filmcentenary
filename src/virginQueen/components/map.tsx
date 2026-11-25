@@ -32,6 +32,8 @@ export interface VQMapProps {
     onSelect: (id: string) => void;
     /** Space / sea-zone ids that are legal targets for the current action. */
     highlights?: ReadonlySet<string>;
+    /** Legend word appended to each highlighted node's label; defaults to "legal target". */
+    highlightLabel?: string;
     /** Dim every node outside `highlights`; defaults to true when highlights are provided. */
     dimUnavailable?: boolean;
     /** Space the "centre on my capital" control jumps to; the control is hidden without one. */
@@ -119,7 +121,7 @@ const shouldShowSpaceLabel = (G: VQGame, id: string, scale: number, selected?: s
         (!excluded && (total > 0 || kind === "key"));
 };
 
-function SpaceShape({id, G, selected, origin, onSelect, highlights, dimUnavailable = true, onHover, label}: VQMapProps & {
+function SpaceShape({id, G, selected, origin, onSelect, highlights, highlightLabel, dimUnavailable = true, onHover, label}: VQMapProps & {
     id: string;
     label?: MapLabelPlacement;
     onHover: (id: string | undefined) => void;
@@ -140,7 +142,7 @@ function SpaceShape({id, G, selected, origin, onSelect, highlights, dimUnavailab
     const kind = G.scenario === "tutorial" ? TUTORIAL_KEYS.includes(id) ? "key" : TUTORIAL_FORTRESSES.includes(id) ? "fortress" : "open" :
         def.kind === "open" && st.fortress ? "fortress" : def.kind;
     const baseTitle = spaceSummary(G, id);
-    const title = highlighted ? `${baseTitle} · ${i18n.chain.vq.legend.legal}` : baseTitle;
+    const title = highlighted ? `${baseTitle} · ${highlightLabel ?? i18n.chain.vq.legend.legal}` : baseTitle;
     const className = `vq-map-node${dimmed ? " vq-dim" : ""}${highlighted ? " vq-legal-target" : ""}`;
     return <g className={className} role="button" tabIndex={0} aria-label={title} aria-pressed={isSelected}
               onKeyDown={(event) => {
@@ -196,7 +198,7 @@ function MapLegend() {
     </details>;
 }
 
-export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable = true, homeSpace, defaultPrimaryMap = "europe", defaultEuropeInsetOpen, defaultMapStyle = "board"}: VQMapProps) => {
+export const VQMap = ({G, selected, origin, onSelect, highlights, highlightLabel, dimUnavailable = true, homeSpace, defaultPrimaryMap = "europe", defaultEuropeInsetOpen, defaultMapStyle = "board"}: VQMapProps) => {
     i18n.use();
     const vqLocale = (i18n.getLocaleName() === "en" ? "en" : "zh_CN") as "en" | "zh_CN";
     const [view, setView] = React.useState<MapView>(INITIAL_VIEW);
@@ -284,7 +286,7 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
     // early return leaves the geographic renderer (and its tests) untouched.
     if (mapStyle === "board") {
         return <VQBoardMap G={G} selected={selected} origin={origin} onSelect={onSelect}
-                           highlights={highlights} dimUnavailable={dimUnavailable} homeSpace={homeSpace}
+                           highlights={highlights} highlightLabel={highlightLabel} dimUnavailable={dimUnavailable} homeSpace={homeSpace}
                            onSwitchStyle={() => setMapStyle("geographic")}/>;
     }
     return <div className={`vq-map${worldPrimary ? " vq-map-world-primary" : ""}`}>
@@ -395,7 +397,7 @@ export const VQMap = ({G, selected, origin, onSelect, highlights, dimUnavailable
                             {highlighted && <rect className="vq-legal-ring" x={x - 46} y={y - 14} width={92} height={29} rx={7} fill="none"/>}
                         </g>;
                     })}
-                    {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} highlights={highlights} dimUnavailable={dimUnavailable} onHover={setHovered} label={labelPlacements[space.id]}/>)}
+                    {SPACES.map((space) => <SpaceShape key={space.id} id={space.id} G={G} selected={selected} origin={origin} onSelect={onSelect} highlights={highlights} highlightLabel={highlightLabel} dimUnavailable={dimUnavailable} onHover={setHovered} label={labelPlacements[space.id]}/>)}
                 </g>
             </svg>
         </details>
