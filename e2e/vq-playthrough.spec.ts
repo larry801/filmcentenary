@@ -223,3 +223,26 @@ for (const players of [2, 6]) {
         await expect(page.getByRole("button", {name: "Naval move (1 CP)", exact: true})).toBeVisible();
     });
 }
+
+test("a waiting hotseat panel offers the next seat instead of a dead action", async ({page}) => {
+    await page.goto("/localVQ/tutorial");
+    await page.getByText("English", {exact: true}).click();
+    await page.getByRole("button", {name: /^Confirm .* card draw complete$/}).click();
+    const panel = page.locator(".vq-actions:visible");
+    const switchButton = panel.getByRole("button", {name: "Switch to the P2 tab", exact: true});
+    await expect(switchButton).toBeVisible();
+    await expect(panel.getByRole("button", {name: /^Confirm Spain card draw complete$/})).toHaveCount(0);
+    await switchButton.click();
+    await expect(page.getByRole("tab", {name: /^P2 /})).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator(".vq-actions:visible").getByRole("button", {name: /^Confirm Spain card draw complete$/})).toBeEnabled();
+});
+
+test("the English log renders the engine's embedded names in English", async ({page}) => {
+    test.setTimeout(120_000);
+    await startTutorial(page);
+    await page.getByText(/^Game log/).first().click();
+    const log = page.locator(".vq-log-list:visible").first();
+    await expect(log).toContainText("Ottoman Empire plays Grand Vizier for 5 CP.");
+    await expect(log).not.toContainText("大维齐尔");
+    await expect(log).not.toContainText("奥斯曼帝国");
+});

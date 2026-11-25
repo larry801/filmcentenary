@@ -1182,7 +1182,29 @@ export const cardKindLabel = (def: CardDef): string => {
     return i18n.chain.vq.cardTray.actionCard;
 };
 
+/**
+ * Phase-locked mandatory choices.  The engine keeps these pending across
+ * phases, but each one can only be answered in its own phase (the moves reject
+ * any other phase).  A hotseat banner that points at the owner in the wrong
+ * phase sends players back and forth between tabs with nothing to click, so the
+ * board only names the owner while the choice is actionable.
+ */
+export const phaseChoicePower = (G: VQGame, phase: string): Power | undefined => {
+    if (phase === "diplomacy") {
+        if (G.pendingCatholicLeague !== undefined) return "spain";
+        if (G.pendingHreReplacement !== undefined) return "hre";
+    }
+    if (phase === "spring") {
+        if (G.orangeArrivalPending === true) return "protestant";
+        const arrival = G.navalLeaderArrivals?.[0]?.power;
+        if (arrival !== undefined) return arrival;
+    }
+    return undefined;
+};
+
 export interface VirginQueenBoardProps extends BoardProps<VQGame> {
     /** Local hotseat mounts every seat; show "switch to Pn" hints. */
     hotseat?: boolean;
+    /** Hotseat only: activate another seat's panel from a waiting hint. */
+    onSwitchSeat?: (seat: number) => void;
 }

@@ -19,7 +19,7 @@ import {leaderLabel, placeLabel, vqLocaleNow} from "../helpers";
 import {useVQBoard} from "../BoardContext";
 
 export const SpringPanel = () => {
-    const {G, moves, vqLocale, from, seaCaptainChoice, setSeaCaptainChoice, seaCaptainPort, setSeaCaptainPort, me, myTurn, ps, hand, hotseatWaitHint, stackPicker, space} = useVQBoard();
+    const {G, moves, vqLocale, from, seaCaptainChoice, setSeaCaptainChoice, seaCaptainPort, setSeaCaptainPort, me, myTurn, switchToTab, switchToSeat, ps, hand, hotseatWaitHint, stackPicker, space} = useVQBoard();
     if (me === undefined) return null;
     const springHomeCards = hand.filter((id) => cardById(id).kind === "home");
     const choiceRequired = homeCardChoiceRequired(G, me);
@@ -139,8 +139,12 @@ export const SpringPanel = () => {
             <Typography variant="caption">{i18n.chain.vq.board.moveHint}</Typography>
             {stackPicker(true)}
         </Stack>}
-        <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired || navalPortChoices.length > 0 || orangeChoice} onClick={() => moves.endPhaseTurn()}>
-            {i18n.chain.vq.spring.endSpring}
-        </Button>
+        {!myTurn && switchToSeat(G.activePower) !== undefined
+            ? <Button size="small" variant="contained" onClick={switchToSeat(G.activePower)}>
+                {switchToTab(G.activePower)}
+            </Button>
+            : <Button size="small" variant="outlined" disabled={!myTurn || choiceRequired || preferenceRequired || navalPortChoices.length > 0 || orangeChoice} onClick={() => moves.endPhaseTurn()}>
+                {i18n.chain.vq.spring.endSpring}
+            </Button>}
     </Stack>;
 };
