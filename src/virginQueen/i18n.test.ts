@@ -77,6 +77,8 @@ describe("VQ bilingual helpers (zh_CN default, en on request)", () => {
             .toBe("鲁道夫二世死亡；+2 布拉格文化中心标记移出游戏。");
         expect(localizeLogLine("西班牙 land units return from Naples to Ancona."))
             .toBe("西班牙 的陆军单位从 那不勒斯 返回 安科纳。");
+        expect(localizeLogLine("Murat Reis joins Ottoman's sea captain pool."))
+            .toBe("穆拉特·雷斯 加入 奥斯曼帝国 的海船长池。");
         expect(localizeLogLine("Spain moves into Paris")).toBe("西班牙 moves into 巴黎");
         expect(localizeLogLine("Holy Roman replacement: +1 regular in Vienna."))
             .toBe("神圣罗马帝国 冬季补员：维也纳 +1 正规军。");

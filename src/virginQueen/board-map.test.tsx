@@ -167,6 +167,19 @@ describe("printed-board vector map (VQ.png redraw)", () => {
         expect(html).toMatch(/aria-label="爱琴海 · [^"]*合法目标"/);
     });
 
+    it("names highlighted origins as starting points, not targets", () => {
+        // Rule 13.1/16.1: the first click of a move picks the formation's
+        // origin, so that highlight is a legal origin rather than a legal
+        // target; the board has to say which one it is.
+        const html = renderToStaticMarkup(
+            <VQMap G={G()} onSelect={() => {}} highlights={new Set(["venice", "aegean"])}
+                   highlightLabel="合法起点" defaultMapStyle="board"/>,
+        );
+        expect(html).toMatch(/aria-label="威尼斯 · [^"]*合法起点"/);
+        expect(html).toMatch(/aria-label="爱琴海 · [^"]*合法起点"/);
+        expect(html).not.toContain("合法目标");
+    });
+
     it("clips the warped surface to the printed frame", () => {
         const html = renderToStaticMarkup(<VQMap G={G()} onSelect={() => {}} defaultMapStyle="board"/>);
         // The cartogram pushes coastline past the 1000 × 620 frame (Land's End

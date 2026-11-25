@@ -72,6 +72,9 @@ export const SpringPanel = () => {
         <Typography variant="body2">
             {choiceRequired ? i18n.chain.vq.springUi.deployHintChoice : i18n.chain.vq.springUi.deployHint}
         </Typography>
+        {G.springDone.includes(me) && <Typography variant="caption" color="success.main" role="status">
+            {i18n.chain.vq.spring.deployed}
+        </Typography>}
         {mayKeepBoth && <Typography variant="caption" color="success.main">
             {i18n.chain.vq.spring.suleiman}
         </Typography>}

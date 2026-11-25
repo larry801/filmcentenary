@@ -1,7 +1,9 @@
 import {expect, test, type Page} from "@playwright/test";
 
-const TITLE_ZH = "● Film Centenary · 轮到你选择";
-const TITLE_EN = "● Film Centenary · your turn to choose";
+// The board names its game in the tab; the site title ("Film Centenary")
+// only belongs to pages that are not playing Virgin Queen.
+const TITLE_ZH = "● Virgin Queen 童贞女王 · 轮到你选择";
+const TITLE_EN = "● Virgin Queen · your turn to choose";
 
 const visibleText = (page: Page, text: string | RegExp) =>
     page.getByText(text).filter({visible: true});
