@@ -1865,7 +1865,7 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 
 `src/virginQueen/logText.ts` 原先按"先替换专名、再匹配规则"工作，凡是规则里写死了英文专名（如 `Spain`、`French home spaces`、`the Ottoman`）的行，一旦专名先被换成中文就再也匹配不上，只能回退成中英混排。现在改为先用英文原文匹配规则，再对结果做专名替换；同时把行文中出现的专名补齐到名称表：将领与王室成员的内部 id（`alba`、`maryScots`）、地区 id（`ulster`、`dublin`）、官方卡牌英文名（含小写 `the Black Queen` 形式），以及船型、单位名的复数写法。
 
-逐个清点了引擎里 501 条 `pushLog` 模板，为仍然落到英文的模板补规则，覆盖外交、谍报、叛乱、赞助、海船长、冬季返营、天主教联盟、摩里斯科叛乱、无敌舰队等模块，包括此前举例的 `Treasure Fleet appears…`、`… pays tribute: the Ottoman …`、`Catholic League: Spain takes …`、`Morisco Revolt: …`。另修正几条会把细节吞掉的旧规则：`X adds N <power> influence in <place>` 丢失地点、`removes the colony at X and draws a treasure` 因贪婪匹配把后半句当殖民地名、冬季移动/超编返营/撤退丢弃损耗附注、`the Mercenaries for Hire marker` 少了冠词就不匹配、`galleon(s)` 写法与 `2 galleons` 不一致。掷骰摘要（`[1,2] = 1 hit(s)` 之类）不是模板而是自由文本，`logText` 也补了一层常见词替换（命中、骰子、动荡、攻守方等），避免中文行里夹 `hit(s)`。
+逐个清点了引擎里 501 条 `pushLog` 模板，为仍然落到英文的模板补规则，覆盖外交、谍报、叛乱、赞助、海船长、冬季返营、天主教联盟、摩里斯科叛乱、无敌舰队等模块，包括此前举例的 `Treasure Fleet appears…`、`… pays tribute: the Ottoman …`、`Catholic League: Spain takes …`、`Morisco Revolt: …`。另修正几条会把细节吞掉的旧规则：`X adds N <power> influence in <place>` 丢失地点、`removes the colony at X and draws a treasure` 因贪婪匹配把后半句当殖民地名、冬季移动/超编返营/撤退丢弃损耗附注、`the Mercenaries for Hire marker` 少了冠词就不匹配、`galleon(s)` 写法与 `2 galleons` 不一致。掷骰摘要（`[1,2] = 1 hit(s)` 之类）不是模板而是自由文本，`logText` 也补了一层常见词替换（命中、骰子、动荡、攻守方等），避免中文行里夹 `hit(s)`；单独成行的情报检定、城邦叛乱掷骰与赞助检定摘要另补了三条规则，整行输出中文。
 
 回归测试新增 `src/virginQueen/logTextCoverage.test.ts`：约 180 条按各模板真实参数拼出的战报行，逐条断言中文输出不再残留拉丁单词，并对地点、卡名、专名与"丢细节"的旧规则做精确断言。
 

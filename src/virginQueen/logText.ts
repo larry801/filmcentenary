@@ -177,6 +177,13 @@ const unitKind = (value: string): string => ({
 }[value] ?? value);
 
 
+const ESPIONAGE_ROLL_KINDS: Record<string, string> = {
+    "Gain Intelligence": "获取情报",
+    intelligence: "获取情报",
+    assassination: "刺杀",
+    rebellion: "叛乱",
+};
+
 const REBELLION_RESULTS: Record<string, string> = {
     victory: "天主教叛乱成功",
     conversionsAndRebellion: "进行 6 次天主教转化并发动叛乱",
@@ -199,6 +206,13 @@ const CITY_REBEL_CHOICES: Record<string, string> = {
 
 const RULES: Rule[] = [
     // ---------------------------------------------------------------- gap fill
+    [/^(.+): (\d+) dice \[(.+)\] = (\d+) hits; defense (\d+) \[(.+)\] = (\d+) hits$/,
+        (_m, kind, n, dice, attackHits, defenseDice, defenseRolls, defenseHits) =>
+            `${ESPIONAGE_ROLL_KINDS[kind] ?? kind}：${n} 个骰子 [${dice}] = ${attackHits} 次命中；防御 ${defenseDice} [${defenseRolls}] = ${defenseHits} 次命中`],
+    [/^(.+) \[(.+)\] = (\d+) hit\(s\) in (.+)\.$/, (_m, label, dice, hits, place) => `${label} [${dice}] = ${hits} 次命中（${place}）。`],
+    [/^(.+) Patronage: (.+) (\d+)\+(\d+)\+rating (\d+)\+bonus (\d+)=(\d+)$/,
+        (_m, p, patron, d1, d2, rating, bonus, total) =>
+            `${p} 赞助：${patron} ${d1}+${d2}+评级 ${rating}+加成 ${bonus}=${total}`],
     [/^(.+) returns (\d+) overstacked unit\(s\) from (.+?) to (.+?)( \((\d+) lost to winter attrition\))?\.$/,
         (_m, p, n, from, to, _clause, lost) => `${p} 将 ${n} 个超编单位从 ${from} 返回 ${to}${lost ? `（${lost} 个因冬季损耗损失）` : ""}。`],
     [/^(.+) withdraws (\d+) unit\(s\) from (.+?) to (.+?)( \((\d+) lost to winter attrition\))?\.$/,
