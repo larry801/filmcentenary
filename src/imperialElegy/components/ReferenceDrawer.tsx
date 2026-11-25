@@ -26,6 +26,8 @@ export interface ReferenceDrawerProps {
   anchor?: string | null;
   onOpen?: (anchor: string) => void;
   onClose?: () => void;
+  /** The viewer's own printed display, which no longer holds a table column. */
+  mat?: React.ReactNode;
 }
 
 /**
@@ -67,7 +69,7 @@ export const resolveAnchor = (anchor: string | null | undefined, locale: "en" | 
   return {chart: chartById(anchor) ?? null, section: null};
 };
 
-export const ReferenceDrawer = ({core, reference, open: openProp, anchor = null, onOpen, onClose}: ReferenceDrawerProps) => {
+export const ReferenceDrawer = ({core, reference, open: openProp, anchor = null, onOpen, onClose, mat}: ReferenceDrawerProps) => {
   const t: ReturnType<typeof ieT> = core.t;
   const locale = core.locale;
   const [internalOpen, setInternalOpen] = React.useState(false);
@@ -132,6 +134,12 @@ export const ReferenceDrawer = ({core, reference, open: openProp, anchor = null,
           </button>
         </header>
         <div className="ie-ref-body">
+          {mat !== undefined && (
+            <section className="ie-ref-mat" data-testid="ie-ref-mat" aria-label={bi(locale, "Your display", "你的面板")}>
+              <h3 className="ie-ref-mat-title">{bi(locale, "Your display", "你的面板")}</h3>
+              {mat}
+            </section>
+          )}
           {/* The drawer's stale copy of the slice lost `locale` (the `locale` key
               is resolved late in the hook), so the board's own values are
               passed explicitly and the slice fills the rest. */}

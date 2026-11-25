@@ -135,6 +135,7 @@ export const SeatStrip: React.FC<SeatStripProps> = ({seats, onSelect, locale, au
           aria-selected={seat.current}
           data-testid={`ie-seat-status-${seat.power}`}
           data-state={seat.state}
+          title={`P${seat.index + 1} · ${seatPowerName(t, seat.power, locale, auFormed)} — ${seat.label}`}
           className={`ie-seat-tab ie-seat-tab-${seat.state}`}
           {...roving(seat.power)}
           onClick={() => onSelect(seat.power)}

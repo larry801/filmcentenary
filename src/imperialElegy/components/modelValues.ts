@@ -9,6 +9,7 @@
  * module inside its factory.
  */
 import type {ImperialElegyState, PendingOption, Power, SpaceId, Unit} from "../types";
+import type {SeatUi} from "./seatUiContext";
 import type {PhaseAction} from "./PhaseActions";
 import type {CardChoiceFace} from "./CardChoice";
 import type {HandChoicesProps} from "./HandChoices";
@@ -50,7 +51,7 @@ export interface ModelDeps {
 
 export interface InjectedUi {
   botSeats?: ReadonlySet<Power>;
-  seatUi?: {currentSeat: Power | null; onSwitchSeat?: (power: Power) => void};
+  seatUi?: SeatUi;
   /** The dictionary, for a suite that stubs the i18n module. */
   i18n?: T;
   /**
@@ -125,7 +126,7 @@ export interface ModelValues {
   targeting: InteractionLike | null;
   battleFrom: SpaceId | null;
   navalFrom: SpaceId | null;
-  seatUi: {currentSeat: Power | null; onSwitchSeat?: (power: Power) => void};
+  seatUi: SeatUi;
   me: ImperialElegyState["powers"][Power] | null;
   phase: string;
   active: Power;

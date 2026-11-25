@@ -111,10 +111,10 @@
 
 .ie-local-title {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: var(--ie-font-ui);
   font-size: var(--ie-font-lg);
-  color: var(--ie-brass-soft);
-  letter-spacing: .04em;
+  color: var(--ie-on-dark);
+  letter-spacing: 0;
   white-space: nowrap;
 }
 

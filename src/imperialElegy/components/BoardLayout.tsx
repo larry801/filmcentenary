@@ -46,7 +46,7 @@ import {WarPanel} from "./WarPanel";
 import {WarDeclarationPanel} from "./WarDeclarationPanel";
 import {MoveConsole} from "./MoveConsole";
 import {GreatWarPanel} from "./GreatWarPanel";
-import {SeatAlert} from "./SeatStrip";
+import {SeatAlert, SeatStrip} from "./SeatStrip";
 import {decidingText} from "./i18n";
 import {IntentChooser} from "./IntentChooser";
 import {TrenchBoard} from "./TrenchBoard";
@@ -523,7 +523,7 @@ export const ReferenceRegion = (props: ReferenceSlice) => {
  * string in the tray (the CP-chain button, the give-card hint, the filter
  * labels) silently fell back to English.
  */
-export const HandRegion = (props: HandSlice & {locale: "en" | "zh_CN"; t: T; decisionPeek?: boolean; decisionPeekLabel?: string}) => <HandTray {...props}/>;
+export const HandRegion = (props: HandSlice & {locale: "en" | "zh_CN"; t: T; decisionPeek?: boolean; decisionPeekLabel?: string}) => <HandTray {...props} compact/>;
 
 // ---------------------------------------------------------------------------
 // Shell
@@ -706,6 +706,22 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     />
   );
 
+  const commandStats = core.me === null ? undefined : (
+    <span className="ie-stats-row" data-testid="ie-stat-row">
+      {([
+        [bi(locale, "VP", "VP"), core.me.vp],
+        [bi(locale, "Stability", "稳定"), core.me.stability],
+        [bi(locale, "Manpower", "人力"), core.me.manpower],
+        [bi(locale, "Industry", "工业"), core.me.industry],
+      ] as const).map(([label, value]) => (
+        <span key={label} className="ie-stat" title={label}>
+          <span className="ie-stat-label">{label}</span>
+          <b>{value}</b>
+        </span>
+      ))}
+    </span>
+  );
+
   const commandStatus = (
     <div className="ie-status">
       <IEBadge tone={G.wtt >= 4 ? "warn" : "default"}>{t.wtt}: {G.wtt}/5</IEBadge>
@@ -755,6 +771,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       <button className="ie-btn secondary ie-mini" data-testid="ie-open-scores" onClick={() => setRefAnchor("rules:scores")}>{t.scores}</button>
       <button className="ie-btn secondary ie-mini" data-testid="ie-open-charts" onClick={() => setRefAnchor("chart:sequence-of-play")}>{t.charts}</button>
       <button className="ie-btn secondary ie-mini" data-testid="ie-open-rules" onClick={() => setRefAnchor("rules:crt")}>{t.rulesCoverage}</button>
+      {seatUi.shellMenu}
     </div>
   );
 
@@ -774,6 +791,15 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
         menu={commandMenu}
         status={commandStatus}
         onOpenReference={(anchor) => setRefAnchor(anchor)}
+        stats={commandStats}
+        seats={seatUi.seats !== undefined && seatUi.onSwitchSeat !== undefined ? (
+          <SeatStrip
+            seats={seatUi.seats}
+            onSelect={seatUi.onSwitchSeat}
+            locale={locale}
+            auFormed={auFormedForState(G)}
+          />
+        ) : undefined}
         notice={pending !== null && pendingElsewhere && (!hotseat || otherSeatPending) ? (
           <SeatAlert
             pendingPower={pending.power}
@@ -917,18 +943,20 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
               log: <LogRegion key={`log-${locale}`} G={G} locale={locale} t={t} mode={cardFaceMode}/>,
             }}
           />
-          <PlayerMat
-            G={G}
-            viewer={viewer}
-            me={core.me}
-            active={active}
-            locale={locale}
-            t={t}
-            forceOpen={isPhone}
-            // The mat's "Printed display" and reserve-box links open the
-            // drawer at the chart they name, like every other reference link.
-            onOpenReference={(anchor) => setRefAnchor(anchor)}
-          />
+          {isPhone && (
+            <PlayerMat
+              G={G}
+              viewer={viewer}
+              me={core.me}
+              active={active}
+              locale={locale}
+              t={t}
+              forceOpen
+              // The mat's "Printed display" and reserve-box links open the
+              // drawer at the chart they name, like every other reference link.
+              onOpenReference={(anchor) => setRefAnchor(anchor)}
+            />
+          )}
           {/* The Display menu's `confirmActions` switch is live: the tray gets
               the shell's current value, not the one it read from storage on
               mount.  On a phone the dock owns the height and the peek, so the
@@ -1029,6 +1057,18 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       <ReferenceDrawer
         core={core}
         reference={reference}
+        mat={isPhone ? undefined : (
+          <PlayerMat
+            G={G}
+            viewer={viewer}
+            me={core.me}
+            active={active}
+            locale={locale}
+            t={t}
+            forceOpen
+            onOpenReference={(anchor) => setRefAnchor(anchor)}
+          />
+        )}
         open={refAnchor !== null}
         anchor={refAnchor}
         onOpen={(anchor) => setRefAnchor(anchor)}

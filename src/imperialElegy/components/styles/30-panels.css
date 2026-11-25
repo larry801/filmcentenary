@@ -880,12 +880,13 @@
   display: flex;
   align-items: center;
   gap: var(--ie-space-2);
-  height: 52px;
+  height: 44px;
   min-width: 0;
-  padding: 0 var(--ie-space-2);
-  border: 1px solid var(--ie-rule);
-  border-radius: var(--ie-radius-md);
-  background: var(--ie-panel);
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 1px solid var(--ie-rule);
+  border-radius: 0;
+  background: var(--ie-table);
   z-index: 20;
 }
 
@@ -894,9 +895,9 @@
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
-  padding: 2px 8px;
-  border: 1px solid var(--ie-rule-strong);
-  border-radius: var(--ie-radius-sm);
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
   white-space: nowrap;
 }
 
@@ -927,9 +928,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 8px;
-  border: 1px solid var(--ie-rule-strong);
-  border-radius: var(--ie-radius-sm);
+  padding: 0 4px;
+  border: 0;
+  border-radius: 0;
   font-size: var(--ie-font-xs);
   color: var(--ie-on-dark-2);
   white-space: nowrap;
@@ -957,7 +958,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 5px;
+  padding: 0 2px;
   border: 1px solid var(--ie-rule);
   border-radius: var(--ie-radius-sm);
   background: var(--ie-panel);
@@ -1033,14 +1034,14 @@
 /* ---------------------------------------------------------------- table grid */
 .ie-table {
   display: grid;
-  /* The mat is the strip under the map and shares its row; the hand owns the
-     full width of the bottom row so 228 px of tray is all cards, not cards
-     squeezed into a 320 px column. */
-  grid-template-columns: 148px minmax(0, 1fr) 348px;
-  grid-template-rows: minmax(0, 1fr) minmax(212px, auto);
+  /* The map owns the whole width the mat used to take: the player's figures
+     are five numbers in the status line and the printed display is a drawer
+     section, so the table is two columns and two rows. */
+  grid-template-columns: minmax(0, 1fr) 348px;
+  grid-template-rows: minmax(0, 1fr) auto;
   grid-template-areas:
-    "mat map turn"
-    "hand hand turn";
+    "map turn"
+    "hand turn";
   gap: var(--ie-space-1) var(--ie-space-2);
   min-height: 0;
   overflow: hidden;
@@ -1185,6 +1186,13 @@
 .ie-turn-body .ie-log { height: auto; max-height: none; }
 
 /* ---------------------------------------------------------------- player mat */
+/* In the drawer the mat is a page-wide figure sheet, not a column. */
+.ie-ref-mat .ie-mat { height: auto; max-height: none; }
+.ie-ref-mat .ie-mat-grid, .ie-ref-mat .ie-mat-slots, .ie-ref-mat .ie-mat-characteristics,
+.ie-ref-mat .ie-mat-display { display: flex; }
+.ie-ref-mat .ie-mat-chips { display: none; }
+.ie-ref-mat-title { margin: 0 0 4px; font-size: var(--ie-font-xs); font-weight: 600; color: var(--ie-on-dark-2); }
+
 .ie-mat {
   position: relative;
   display: flex;
@@ -1418,8 +1426,7 @@
 
 /* ---------------------------------------------------------------- responsive: 900-1099 */
 @media (max-width: 1099px) {
-  .ie-table { grid-template-columns: 132px minmax(0, 1fr) 300px; grid-template-areas: "mat map turn" "hand hand turn"; }
-  .ie-mat { grid-area: mat; }
+  .ie-table { grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "map turn" "hand turn"; }
   .ie-mat-grid, .ie-mat-slots, .ie-mat-characteristics, .ie-mat-display { display: none; }
   .ie-mat-toggle { display: grid; }
   .ie-mat::before {

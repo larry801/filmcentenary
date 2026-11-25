@@ -575,9 +575,19 @@ img.ie-card-face { background: var(--ie-paper-2); }
 .ie-table .ie-hand-tray {
   position: relative;
   height: auto;
-  max-height: 212px;
+  /* One strip of cards: CP, name and the two printed plays.  Everything else
+     is in the inspector the name opens. */
+  max-height: 152px;
   border-radius: var(--ie-radius-md);
 }
+
+.ie-table .ie-tray-head { flex: 0 0 36px; }
+
+.ie-table .ie-card-actions { gap: 3px; }
+
+.ie-table .ie-card-actions button { min-height: 26px; padding: 2px 6px; }
+
+.ie-table .ie-card-actions button.ie-card-primary { font-weight: 600; }
 
 .ie-table .ie-hand-tray[data-open="false"] { height: 44px; }
 

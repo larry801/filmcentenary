@@ -248,11 +248,10 @@ export const useBoardModel = ({
   // The phone shell is one bottom sheet; `mobileTab` picks the body it shows.
   const isPhone = useIsPhone();
   const [mobileTab, setMobileTab] = React.useState<MobileTab>("orders");
-  // Phones start at the peek position (the plan's drawer); desktop keeps the
-  // 220 px hand row open.  SSR has no window and defaults to desktop.  An
-  // explicit `handOpen` (tests, embeds) wins over the viewport default.
-  const [trayOpen, setTrayOpen] = React.useState(() =>
-    handOpen ?? (typeof window === "undefined" || window.innerWidth >= 768));
+  // Both shells start with the hand folded to its 44 px bar: the map is the
+  // surface a player reads first, and the bar already carries the card count.
+  // An explicit `handOpen` (tests, embeds) still opens it.
+  const [trayOpen, setTrayOpen] = React.useState(() => handOpen ?? false);
   const [trayExpanded, setTrayExpanded] = React.useState(false);
   const [cardFaceMode, setCardFaceMode] = useCardFaceMode();
   const [amphibiousFrom, setAmphibiousFrom] = React.useState<string>("");
