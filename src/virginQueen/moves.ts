@@ -69,6 +69,7 @@ import {
     attemptLandAvoidBattle,
     attemptLandInterception,
     applyHreReplacement,
+    drawTreasure,
     assaultSpace,
     atWar,
     atWarWithMinor,
@@ -472,7 +473,6 @@ const resolveMinorDiplomacyCard = (G: VQGame, ctx: Ctx, p: Power, def: CardDef, 
             G.powers[winner].alliedMinors.includes("scotland");
         if (englishOrProtestantAlly && mary.mary === "scotland") {
             mary.mary = "captured";
-            G.doWCostEnglandSpain = Math.max(1, G.doWCostEnglandSpain - 2);
             const royal = G.royals.find((r) => r.id === "maryScots");
             if (royal !== undefined) royal.status = "captured";
         }
@@ -636,6 +636,26 @@ export const passBlock = (G: VQGame, p: Power): PassBlock | undefined => passBlo
 const canUseCardForWar = (c: CardDef): boolean => c.kind !== "home" && c.officialKind !== "mandatory";
 
 const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
+    // Rule 9.4 step 3 computes the *total* cost of the declarations made in the
+    // diplomacy step and pays it with cards or treasures whose CP value is at
+    // least that total.  Any excess paid for one declaration therefore covers
+    // the next declaration in the same step instead of being lost.
+    const credits = (G.warCredit ??= {});
+    const credit = credits[p] ?? 0;
+    if (credit > 0) {
+        if (credit >= cost) {
+            credits[p] = credit - cost;
+            return true;
+        }
+        cost -= credit;
+        delete credits[p];
+    }
+    const paidFromCards = payWarCostInCards(G, p, cost);
+    if (!paidFromCards) return false;
+    return true;
+};
+
+const payWarCostInCards = (G: VQGame, p: Power, cost: number): boolean => {
     const usable = G.powers[p].cards
         .filter((id) => canUseCardForWar(cardById(id)))
         .sort((a, b) => cardById(a).cp - cardById(b).cp);
@@ -667,6 +687,9 @@ const payWarCost = (G: VQGame, p: Power, cost: number): boolean => {
     for (const c of toDiscard) {
         removeCardFromHand(G, p, c);
         discardCard(G, p, c, false);
+    }
+    if (total > cost) {
+        G.warCredit = {...(G.warCredit ?? {}), [p]: (G.warCredit?.[p] ?? 0) + (total - cost)};
     }
     return true;
 };
@@ -786,10 +809,18 @@ const resolveVirginQueenEvent = (G: VQGame, ctx: Ctx, p: Power, target?: string)
 /** Spanish Armada home card: place it and grant CP, or grant CP if already placed. */
 /** Treasure Fleet mandatory event (23.2). */
 const resolveTreasureFleet = (G: VQGame, ctx: Ctx): void => {
-    addTreasure(G, ctx, "spain", 1);
+    // Rule 23.2 step 1: "Draw an additional treasure from the pool and add it
+    // to the row of Spanish treasures (even if that row is already full)."
+    const extra = drawTreasure(G, ctx);
+    if (extra !== undefined) {
+        G.spanishTreasureRow = [...(G.spanishTreasureRow ?? []), extra];
+        pushLog(G, "An extra treasure joins the Spanish treasure row.");
+    }
+    // Rule 23.2 step 2: Spain sends 3 treasures with two escorting galleons,
+    // otherwise 2; too few on the row means the whole row sails.
     const escorts = G.treasureFleetEscorts ?? 0;
-    const count = Math.min(escorts >= 2 ? 3 : 2, G.powers.spain.treasures.length);
-    const fleet = G.powers.spain.treasures.splice(0, count);
+    const count = Math.min(escorts >= 2 ? 3 : 2, (G.spanishTreasureRow ?? []).length);
+    const fleet = (G.spanishTreasureRow ?? []).splice(0, count);
     const zoneRoll = die(ctx, 6);
     const zone = zoneRoll <= 2 ? "northAtlantic" : zoneRoll <= 4 ? "antilles" :
         zoneRoll === 5 ? "spanishMain" : (G.worldControls.philippines === "spain" ? "mexicanCoast" : "spanishMain");
@@ -4173,9 +4204,12 @@ export const formAlliance = (G: VQGame, ctx: Ctx, args: { target: Power }): void
     if ((p === "spain" && t === "england") || (p === "england" && t === "spain")) {
         if (warCost(G, p, t) <= 3) return INVALID_MOVE;
     }
-    if (p === "france") {
-        if ((t === "spain" && G.powers.france.allies.includes("protestant"))
-            || (t === "protestant" && G.powers.france.allies.includes("spain"))) {
+    // Rule 9.2: "France may ally with Spain or the Protestant but not with
+    // both these powers on the same turn" — check from either side.
+    if (p === "france" || t === "france") {
+        const other = p === "france" ? t : p;
+        if ((other === "spain" || other === "protestant") &&
+            G.powers.france.allies.includes(other === "spain" ? "protestant" : "spain")) {
             return INVALID_MOVE;
         }
     }
@@ -4369,14 +4403,9 @@ export const proposeBetroth = (G: VQGame, ctx: Ctx, args: { male: string; female
         return INVALID_MOVE;
     }
     // #95: Louise is treated as a royal of the power that played the card.
-    // That allows a same-power marriage (the card player's own male royal) even
-    // though ordinary same-power betrothals are not announced as agreements.
     const louiseMarriage = female.id === "louiseLorraine";
     const attachedLouise = louiseMarriage && G.louiseAttachment?.power === female.power &&
         G.louiseAttachment.available;
-    if (male.power === female.power && !louiseMarriage) {
-        return INVALID_MOVE;
-    }
     if (male.family !== undefined && male.family === female.family) {
         return INVALID_MOVE;
     }
@@ -4786,11 +4815,10 @@ export const buildNaval = (G: VQGame, ctx: Ctx, args: { port: string; kind: keyo
          return INVALID_MOVE;
      }
     // Rule 17.3: "Spain may not build galleys or galleons in spaces in the
-    // Netherlands religious struggle area."  #109 Union of Arras redefines the
-    // Dutch two-color spaces as Spanish home spaces for the rest of the game,
-    // which lifts this prohibition (`dutchSpanishHome`).
-    if (p === "spain" && (kind === "galley" || kind === "galleon") && SPACE_BY_ID[port]?.area === "netherlands" &&
-        G.dutchSpanishHome !== true) {
+    // Netherlands religious struggle area."  Card FAQ #109 (Scenario Book
+    // p. 32): "Even after this event [Union of Arras], Walloons remain the only
+    // units that Spain may build in the Netherlands" — the ban still applies.
+    if (p === "spain" && (kind === "galley" || kind === "galleon") && SPACE_BY_ID[port]?.area === "netherlands") {
         return INVALID_MOVE;
     }
     // Rule 17.1/17.3: every ship type and the rebuild delay share one pool.
@@ -5030,7 +5058,10 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
     G.piracyZones = {...(G.piracyZones ?? {}), [expedition.location]: [...(G.piracyZones?.[expedition.location] ?? []), p]};
     if (args.captain === "dragut") G.dragutFought = true;
     const patrols = G.worldPatrols?.[expedition.location] ?? 0;
-    const fortresses = settlements.filter((settlement) => G.worldFortresses?.[settlement.id] === "spain").length;
+    const fortressCount = settlements.filter((settlement) => G.worldFortresses?.[settlement.id] === "spain").length;
+    // Scenario Book p. 34: "Fortresses do not roll against him" (de Sores);
+    // they still protect one treasure from the draw.
+    const fortresses = args.captain === "deSores" ? 0 : fortressCount;
     const portugueseGalleons = targetIsPortugal ? (G.spaces.lisbon.naval.portugal?.galleon ?? 0) + (G.spaces.oporto.naval.portugal?.galleon ?? 0) : 0;
     const defenseDice = targetIsPortugal ? portugueseSettlements.length : patrols + fortresses;
     if (defenseDice > 0) {
@@ -5048,7 +5079,13 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
     }
     const base = expedition.damaged || settlements.length === 1 ? 1 : 2;
     const hawkinsPiracy = args.captain === "hawkins" && ["guineaCoast", "spanishMain"].includes(expedition.location);
-    const piracyDice = base + (hawkinsPiracy ? 2 : captain.piracy);
+    // Scenario Book p. 34: le Clerc is P2 in the Antilles; Cavendish and van
+    // Noort are P2 in the Mexican and Chilean Coasts.
+    const zonePiracy2 =
+        (args.captain === "leClerc" && expedition.location === "antilles") ||
+        (["cavendish", "vanNoort"].includes(args.captain) && ["mexicanCoast", "chileanCoast"].includes(expedition.location));
+    const captainPiracy = zonePiracy2 ? Math.max(2, captain.piracy) : captain.piracy;
+    const piracyDice = base + (hawkinsPiracy ? 2 : captainPiracy);
     const dice = roll(ctx, piracyDice);
     const hits = dice.filter((die) => die >= 5).length;
     G.lastRolls = `World piracy (${captain.nameEn}): [${dice.join(",")}] = ${hits} hit(s)`;
@@ -5075,8 +5112,9 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
     // treasure is safeguarded (the most conservative reading of the rule).
     const withholdIndex = (!targetIsPortugal && fortresses > 0 && G.worldPiracyWithholds?.["spain"] !== undefined)
         ? G.worldPiracyWithholds["spain"] : 0;
-    const withholdSpanishTreasure = !targetIsPortugal && fortresses > 0
-        ? G.powers.spain.treasures[withholdIndex] : undefined;
+    // Rule 16.5: pirates draw from the Spanish treasure *row*, not Spain's hand.
+    const withholdSpanishTreasure = !targetIsPortugal && fortressCount > 0
+        ? G.spanishTreasureRow?.[withholdIndex] : undefined;
     const capacity = expedition.damaged ? 1 : 2;
     // Track reward counts for even division.
     const rewardCounts: Record<string, number> = {patrol: 0, treasure: 0, vp: 0};
@@ -5086,7 +5124,7 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
         const options: string[] = [];
         if ((G.worldPatrols?.[expedition.location] ?? 0) > 0) options.push("patrol");
         if (portugueseTreasureAvailable && (G.portugueseTreasures?.length ?? 0) > 0) options.push("treasure");
-        else if (!targetIsPortugal && G.powers.spain.treasures.some((value) => value !== withholdSpanishTreasure)) options.push("treasure");
+        else if (!targetIsPortugal && (G.spanishTreasureRow ?? []).some((value) => value !== withholdSpanishTreasure)) options.push("treasure");
         // VP always available as fallback.
         options.push("vp");
         // Pick the option with the fewest hits so far (even division).
@@ -5112,14 +5150,15 @@ export const worldPiracy = (G: VQGame, ctx: Ctx, args: {captain: string; target?
                     discardTreasure(G, treasure);
                     pushLog(G, `${powerLabel(p)} discards ${typeof treasure === "number" ? `a ${treasure} CP` : treasureName(treasure, "en")} Portuguese treasure (no room).`);
                 }
-            } else if (!targetIsPortugal && G.powers.spain.treasures.some((value) => value !== withholdSpanishTreasure)) {
-                // Draw at random from the Spanish pool, skipping the treasure
+            } else if (!targetIsPortugal && (G.spanishTreasureRow ?? []).some((value) => value !== withholdSpanishTreasure)) {
+                // Draw at random from the Spanish row, skipping the treasure
                 // Spain withheld (rule 16.5 fortress clause).
-                const pool = G.powers.spain.treasures
+                const row = G.spanishTreasureRow ?? [];
+                const pool = row
                     .map((value, index) => ({value, index}))
                     .filter((entry) => entry.value !== withholdSpanishTreasure);
                 const pick = pool[Math.min(pool.length - 1, Math.max(0, die(ctx, pool.length) - 1))];
-                const [treasure] = G.powers.spain.treasures.splice(pick.index, 1);
+                const [treasure] = row.splice(pick.index, 1);
                 if (expedition.treasureValues === undefined) expedition.treasureValues = [];
                 if (expedition.treasureValues.length < capacity) {
                     expedition.treasureValues.push(treasure);
@@ -5626,8 +5665,17 @@ export const moveLand = (G: VQGame, ctx: Ctx, args: { from: string; to: string; 
             startBattle(G, ctx, "field", to, p, hostile, from, [unitPower]);
             return;
         }
-        if (isFortifiedSpace(G, to) && defenders <= 4) {
-            const defenderPower = hostile.find(isPower);
+        const fortressDefender = hostile.find(isPower);
+        // Rule 13.4: a major power's units may only withdraw into the
+        // fortifications when that power controls the destination space.  A
+        // major stack sitting in a fortress controlled by someone else fights a
+        // field battle instead of being besieged without one.  Inactive minor
+        // and independent garrisons hold their ground and withdraw regardless
+        // (rule 24.1 / 24.7), so they keep the normal path.
+        const garrisonWithdraws = fortressDefender === undefined ||
+            friendlyControlled(G, fortressDefender as Power, to);
+        if (isFortifiedSpace(G, to) && defenders <= 4 && garrisonWithdraws) {
+            const defenderPower = fortressDefender;
             if (defenderPower !== undefined && friendlyControlled(G, defenderPower as Power, to)) {
                 const decider = (isPower(G.spaces[to].control) ? G.spaces[to].control : defenderPower) as Power;
                 if (ownerOf(G, decider) !== undefined) {
@@ -5701,10 +5749,11 @@ const finishNavalMove = (
     intercepted = false,
     beaconSkipAt?: string,
     announced?: InterceptionCandidate,
+    destinationHadFriendly = false,
 ): void => {
     let hit = intercepted;
     if (!hit) {
-        const result = attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy, beaconSkipAt, announced);
+        const result = attemptNavalInterception(G, ctx, p, from, to, destinationHadEnemy, beaconSkipAt, announced, false, destinationHadFriendly);
         if (result === "paused" || result === "choice") return;
         hit = result;
     }
@@ -5717,7 +5766,7 @@ export const resolveNavalMoves = (G: VQGame, ctx: Ctx): void => {
     if (pending === undefined) return;
     while (pending.arrivals.length > 0) {
         if (G.pendingBattle || G.pendingIntercept || G.pendingBeacon || G.pendingInterceptionOrder || G.pendingNavalOrder) return;
-        const {from, to, destinationHadEnemy} = pending.arrivals.shift()!;
+        const {from, to, destinationHadEnemy, destinationHadFriendly} = pending.arrivals.shift()!;
         const p = pending.power;
         if (G.scenario === "tutorial") {
             if (offerInterception(G, ctx, "naval", from, to, p)) return;
@@ -5725,7 +5774,7 @@ export const resolveNavalMoves = (G: VQGame, ctx: Ctx): void => {
                 (isPower(owner) ? atWar(G, p, owner) : true));
             if (enemies.length) startBattle(G, ctx, "naval", to, p, enemies, from);
         } else {
-            finishNavalMove(G, ctx, p, from, to, destinationHadEnemy);
+            finishNavalMove(G, ctx, p, from, to, destinationHadEnemy, false, undefined, undefined, destinationHadFriendly === true);
         }
     }
     delete G.pendingNavalMoves;
@@ -5755,6 +5804,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: NavalMoveOrder | {fleets: N
         leaders: location(from).leaders.filter((id) => leaderPower(G, id) === p && leaderIsNaval(id)),
         armada: p === "spain" && G.armada?.location === from,
         destinationHadEnemy: ownersWithNaval(G, to).some((owner) => !friendlyController(G, p, owner)),
+        destinationHadFriendly: ownersWithNaval(G, to).some((owner) => friendlyController(G, p, owner)),
     }));
     for (const {from, leaders} of departures) {
         delete location(from).naval[p];
@@ -5775,7 +5825,7 @@ export const moveNaval = (G: VQGame, ctx: Ctx, args: NavalMoveOrder | {fleets: N
     // Fleets converging on one destination fight together, once.
     G.pendingNavalMoves = {power: p, arrivals: departures
         .filter((entry, index) => departures.findIndex((other) => other.to === entry.to) === index)
-        .map(({from, to, destinationHadEnemy}) => ({from, to, destinationHadEnemy}))};
+        .map(({from, to, destinationHadEnemy, destinationHadFriendly}) => ({from, to, destinationHadEnemy, destinationHadFriendly}))};
     resolveNavalMoves(G, ctx);
 };
 

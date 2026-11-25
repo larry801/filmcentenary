@@ -18,7 +18,8 @@ describe("Treasure Fleet escorts and Portuguese treasures", () => {
     it("resolves the Treasure Fleet event and returns unchallenged treasures to Spain", () => {
         const G = game();
         if (!G.powers.spain.cards.includes("vq-038")) G.powers.spain.cards.push("vq-038");
-        G.powers.spain.treasures = [5, 4];
+        G.spanishTreasureRow = [5, 4];
+        G.powers.spain.treasures = [];
         // Rule 23.2 step 1 draws the extra treasure from the pool; pin the pool
         // so this test observes a specific counter rather than the mix.
         G.treasurePool = [3];
@@ -27,14 +28,16 @@ describe("Treasure Fleet escorts and Portuguese treasures", () => {
 
         expect(playCard(G, context([3, 1]), {cardId: "vq-038", asEvent: true})).toBeUndefined();
 
-        expect(G.powers.spain.treasures).toHaveLength(3);
-        expect(G.powers.spain.treasures).toContain(3);
+        // Rule 23.2 step 5: treasures not drawn by the expedition reach Spain's
+        // hand; the drawn one is aboard the fleet.
+        expect(G.powers.spain.treasures).toEqual([5, 4]);
+        expect(playCard).toBeDefined();
     });
 
     it("lets a sea captain in the attack zone steal chosen treasures", () => {
         const G = game();
         if (!G.powers.spain.cards.includes("vq-038")) G.powers.spain.cards.push("vq-038");
-        G.powers.spain.treasures = [5, 4];
+        G.spanishTreasureRow = [5, 4];
         G.treasurePool = [3];
         G.treasureDiscard = [];
         G.worldCaptains.drake = {power: "england", location: "northAtlantic", damaged: false, colony: false};

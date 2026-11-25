@@ -36,11 +36,13 @@ describe("Spain may not build galleys or galleons in Netherlands ports (rule 17.
         expect(buildNaval(G, context([6], "1"), {port: "amsterdam", kind: "galleon"})).toBe("INVALID_MOVE");
     });
 
-    it("allows a galleon after Union of Arras makes the Dutch spaces Spanish home", () => {
+    it("still refuses a galleon after Union of Arras (card FAQ #109)", () => {
         const G = game();
         prepare(G);
         G.dutchSpanishHome = true;
-        expect(buildNaval(G, context([6], "1"), {port: "amsterdam", kind: "galleon"})).toBeUndefined();
+        // "Even after this event, Walloons remain the only units that Spain may
+        // build in the Netherlands" (Scenario Book p. 32).
+        expect(buildNaval(G, context([6], "1"), {port: "amsterdam", kind: "galleon"})).toBe("INVALID_MOVE");
     });
 });
 

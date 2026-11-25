@@ -383,6 +383,9 @@ export const VirginQueenGameDef: Game<VQGame> = {
                     G.mercenariesForHire = 0;
                     pushLog(G, "Mercenaries for Hire not granted this turn are lost.");
                 }
+                // Rule 9.4 step 3: the shared payment credit expires with the
+                // diplomacy step that created it.
+                delete G.warCredit;
                 turnEnd(G, ctx);
             },
             turn: {

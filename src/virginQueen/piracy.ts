@@ -91,7 +91,11 @@ export const startPiracy = (G: VQGame, ctx: Ctx, power: Power, target: Power, zo
         const space = G.spaces[id];
         if (space.unrest || space.siege || !isPower(space.control)) return false;
         if (space.control !== target && !atWar(G, power, space.control)) return false;
-        return G.scenario === "tutorial" ? TUTORIAL_FORTRESSES.includes(id) : SPACE_BY_ID[id]?.kind === "fortress";
+        // Rule 16.4 step 2: "1 die for each fortress ... (NOTE: This die is for
+        // fortresses, not fortified spaces, so keys do not give you these
+        // dice.)"  A fortress built during play counts like a printed one.
+        return G.scenario === "tutorial" ? TUTORIAL_FORTRESSES.includes(id) :
+            SPACE_BY_ID[id]?.kind === "fortress" || (space.fortress && SPACE_BY_ID[id]?.kind !== "key");
     }).length;
     // Rule 16.4 step 2: "1 die if this is piracy by the Ottoman and the
     // Knights of St. John unit is in a port adjacent to the zone where piracy

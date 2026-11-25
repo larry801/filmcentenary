@@ -83,6 +83,11 @@ export const transportMoveIssue = (G: VQGame, power: Power, order: FormationOrde
     // ally" (see "The considerations above ... also apply to a power whose
     // ally controls Flushing or Brielle").
     if (inland && (zones.length !== 1 || zones[0] !== "northSea" || !friendlyControlled(G, power, inlandPortLink(inland)!))) return "transportRoute";
+    // Rules 13.1 / 16.1: a formation that lost a field battle earlier in the
+    // impulse may not move, and a besieging force may not leave by sea in the
+    // impulse it closed the siege.
+    if (G.lostBattleImpulse?.impulse === G.impulse && G.lostBattleImpulse.owners.includes(power)) return "illegalTarget";
+    if (G.spaces[from].siege?.by === power && G.spaces[from].siege.sinceImpulse >= G.impulse) return "illegalTarget";
     if (G.powers[power].cp < zones.length + 1 - (inland ? 1 : 0)) return "movementCp";
     if (power === "spain" && spaceHomes(SPACE_BY_ID[to]).some((home) => home === "ireland" || home === "scotland") && warCost(G, "spain", "england") > 3) return "illegalTarget";
     // These entries declare the England-Spain war before the destination check.

@@ -867,7 +867,7 @@ export interface VQGame {
     resumeAction?: boolean;
     pendingNavalOrder?: {attacker: Power; location: string; enemies: Power[]};
     /** All fleets have moved simultaneously; resolve each destination before another action. */
-    pendingNavalMoves?: {power: Power; arrivals: {from: string; to: string; destinationHadEnemy: boolean}[]};
+    pendingNavalMoves?: {power: Power; arrivals: {from: string; to: string; destinationHadEnemy: boolean; destinationHadFriendly?: boolean}[]};
     pendingWithdraw?: {active: Power; /** Owner of the incoming stack; may be an ally of `active`. */ unitPower?: Controller; defender: Power; space: string; origin: string};
     pendingReliefSplit?: {space: string; from: string; power: Power; keepLimit: number; pUnits: number};
     /** `unitPower` owns the moving stack; it may be an ally of `power` (rule 13.4 + 9.1). */
@@ -1125,6 +1125,14 @@ export interface VQGame {
     playedThisTurn?: Partial<Record<Power, string[]>>;
     lockedCards?: Partial<Record<Power, string[]>>;
     elizabethExcommunicated?: boolean;
+    /** Rule 9.5: England executed Mary Queen of Scots (a -3 CP reduction). */
+    maryExecuted?: boolean;
+    /**
+     * Rule 9.4 step 3: one payment covers the total CP cost of every
+     * declaration made in the same diplomacy step, so overpaid CP carries over
+     * to the next declaration of that step.
+     */
+    warCredit?: Partial<Record<Power, number>>;
     cyprusTarget?: string;
     cyprusAwarded?: boolean;
     /**

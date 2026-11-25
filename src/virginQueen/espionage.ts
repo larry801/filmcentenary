@@ -10,7 +10,7 @@ import {assassinationResult, catholicRebellionResult} from "./data/espionage";
 import {EspionageState, PendingEspionage} from "./espionageTypes";
 import {addLandFromPool, addVp, allied, atWar, capitalOf, discardCard, discardTreasure, drawCards, ensureLand, ensureNaval,
     ensureDefaultLeader, hits, isFortifiedSpace, pushLog, removeCardFromHand, removeCardFromGame,
-    removePragueCulturalCenterOnRudolfDeath, ROYAL_FOR_ARMY_LEADER, roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
+    ROYAL_FOR_ARMY_LEADER, roll, setWar, shuffle, unitReligion, zonePorts} from "./util";
 
 export const espionageState = (G: VQGame): EspionageState => G.espionage ??= {
     jesuits: [], jesuitsOnCard: G.scenario === "tournament" ? 1 : 0, douai: false,
@@ -24,20 +24,11 @@ const crypto = (G: VQGame, p: Power, target: Power): number =>
 const maryAlive = (G: VQGame): boolean => G.espionage?.mary !== "dead" &&
     G.royals.find((r) => r.id === "maryScots")?.alive !== false;
 
-/**
- * Canonical assassination target for Rudolf.  The Scenario Book pool uses
- * `rudolfII`; the initial pool uses `rudolf`.  Assassination and Prague
- * cleanup must treat the two spellings as the same person.
- */
-export const rudolfRoyal = (G: VQGame): {id: string} | undefined =>
-    G.royals.find((r) => r.id === "rudolf" && r.alive) ?? G.royals.find((r) => r.id === "rudolfII" && r.alive);
-
 export const assassinationTargets = (G: VQGame, p: Power): string[] => [
+    // Rule 3.3: of the four final rulers, only Elizabeth (19.3) and Henry III
+    // (an army leader) may be killed by Assassination; Philip II and Rudolf II
+    // can only die through a Marriage result (21.1).
     ...(p !== "england" && G.royals.some((r) => r.id === "elizabeth" && r.alive) ? ["elizabeth"] : []),
-    // #35 FAQ: Rudolf's death (like Elizabeth's) has ruler effects, so he
-    // is an assassination-eligible royal; he can only die that way (and
-    // through the marriage table), never as an army leader.
-    ...(p !== "hre" && rudolfRoyal(G) !== undefined ? [rudolfRoyal(G)!.id] : []),
     ...Object.keys(G.leaders).filter((id) => {
         const def = LEADER_BY_ID[id];
         const loc = G.leaders[id].location;
@@ -46,8 +37,6 @@ export const assassinationTargets = (G: VQGame, p: Power): string[] => [
             !isActivatedMajor(G, def.power) && !!G.spaces[loc] && G.spaces[loc].leaders.includes(id);
     }),
 ];
-
-const isRudolfTarget = (target: string | undefined): boolean => target === "rudolf" || target === "rudolfII";
 
 export const espionageDice = (G: VQGame, pending: PendingEspionage): {attack: number; defense: number} => {
     const {power: p, targetPower: target, kind} = pending;
@@ -59,10 +48,6 @@ export const espionageDice = (G: VQGame, pending: PendingEspionage): {attack: nu
         if (pending.target === "elizabeth") {
             attack += maryAlive(G) ? 1 : 0;
             defense += 3;
-        } else if (isRudolfTarget(pending.target)) {
-            // Rudolf is a royal, not an army leader: defend him like a
-            // ruler (base defense + a home-capital bonus, no battle rating).
-            if (spaceHomes(SPACE_BY_ID["prague"]).includes(target) && G.spaces["prague"].control === target) defense++;
         } else {
             const def = LEADER_BY_ID[pending.target!];
             defense += def?.battle ?? 0;
@@ -211,7 +196,7 @@ const executeMary = (G: VQGame): void => {
     const royal = G.royals.find((r) => r.id === "maryScots");
     if (royal) {royal.alive = false; royal.status = "dead";}
     addVp(G, "england", -1);
-    G.doWCostEnglandSpain = Math.max(1, G.doWCostEnglandSpain - 3);
+    G.maryExecuted = true;
     pushLog(G, "England executes Mary Queen of Scots (−1 VP).");
 };
 
@@ -258,7 +243,7 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
         return;
     }
     if (p.kind === "assassination") {
-        const battleRating = p.target === "elizabeth" ? 2 : isRudolfTarget(p.target) ? 0 : LEADER_BY_ID[p.target!]?.battle ?? 0;
+        const battleRating = p.target === "elizabeth" ? 2 : LEADER_BY_ID[p.target!]?.battle ?? 0;
         const result = assassinationResult(diff, battleRating);
         if (result.reroll) {
             // A new response window also avoids an unbounded synchronous reroll loop.
@@ -278,17 +263,6 @@ const resolveRoll = (G: VQGame, ctx: Ctx): void => {
                 removeCardFromGame(G, "vq-036");
                 removeCardFromGame(G, "vq-home-virgin-queen");
                 if (espionageState(G).mary === "captured") {executeMary(G); espionageState(G).maryBonusTurn = G.year;}
-            } else if (isRudolfTarget(p.target)) {
-                // #35 FAQ: Rudolf's death removes the +2 Prague Cultural
-                // Center marker.  (He is not an army leader, so a direct
-                // assassination uses the royal-kill branch rather than the
-                // leader branch below.)  Match either spelling so the
-                // Scenario Book pool (`rudolfII`) and the initial pool
-                // (`rudolf`) both die.
-                const royal = G.royals.find((r) => r.id === "rudolf" || r.id === "rudolfII");
-                if (royal !== undefined) {royal.alive = false; royal.status = "dead"; royal.id = p.target === "rudolfII" && royal.id === "rudolf" ? "rudolf" : royal.id;}
-                removePragueCulturalCenterOnRudolfDeath(G);
-                pushLog(G, "Rudolf II is assassinated; the Holy Roman Empire drops to 1 Admin and 0 card bonus.");
             } else {
                 const loc = G.leaders[p.target!].location;
                 G.spaces[loc].leaders = G.spaces[loc].leaders.filter((id) => id !== p.target);
@@ -361,9 +335,8 @@ const beginResponses = (G: VQGame, ctx: Ctx): void => {
 export const startEspionage = (G: VQGame, ctx: Ctx, kind: "intelligence" | "assassination" | "rebellion", args: {target?: string; cp?: number; event?: string; deferredEvent?: PendingEspionage["deferredEvent"]}): void | typeof INVALID_MOVE => {
     const power = actingPower(G, ctx.currentPlayer);
     const cp = kind === "intelligence" ? 2 : args.cp!;
-    const isRudolf = kind === "assassination" && isRudolfTarget(args.target);
     const targetPower = kind === "intelligence" ? args.target as Power : kind === "rebellion" || args.target === "elizabeth" ? "england" :
-        isRudolf ? "hre" : LEADER_BY_ID[args.target!]?.power;
+        LEADER_BY_ID[args.target!]?.power;
     if (ctx.phase !== "action" || !espionageAvailable(G) || isActivatedMajor(G, power) || !isPower(targetPower) || targetPower === power ||
         !ownerOf(G, targetPower) || isActivatedMajor(G, targetPower) || G.pendingEspionage ||
         !Number.isInteger(cp) || cp < (kind === "rebellion" ? 3 : 2) || cp > (kind === "rebellion" ? 5 : kind === "assassination" ? 4 : 2) ||
