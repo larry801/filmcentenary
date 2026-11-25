@@ -2784,6 +2784,8 @@ export const resolveColonialWar = (
     taTotal,
     teMod: te.mod,
     taMod: ta.mod,
+    teSources: te.sources.join(","),
+    taSources: ta.sources.join(","),
     winner,
     controlling: controllingSide ?? "",
   });

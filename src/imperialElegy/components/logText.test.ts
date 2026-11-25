@@ -208,7 +208,7 @@ prepIndiaStabilityDiscard: {key: "prepIndiaStabilityDiscard", power: "GE", args:
   gwItalyPresence: {key: "gwItalyPresence", args: {spaces: "piedmont,tuscany", reserve: 2}},
   gwMajorEntryNone: {key: "gwMajorEntryNone", power: "FR", args: {drew: true}},
   imperialGermanyManpower: {key: "imperialGermanyManpower", power: "GE", args: {}},
-  colonialWar: {key: "colonialWar", args: {region: "africa", teRoll: 7, taRoll: 5, winner: "te"}},
+  colonialWar: {key: "colonialWar", args: {region: "africa", teRoll: 7, taRoll: 5, winner: "te", teMod: 2, taMod: 1, teSources: "navalSupremacy", taSources: "ef:GE"}},
   greatWarEnded: {key: "greatWarEnded", args: {victor: "te", winners: "GE,AU"}},
   auUnstable: {key: "auUnstable", power: "AU", args: {roll: 2, rights: 1}},
   frThirdRepublic: {key: "frThirdRepublic", power: "FR", args: {}},
@@ -456,6 +456,20 @@ describe("Imperial Elegy engine log localization", () => {
     expect(logText(war, "en")).toContain(POWER_DEFS.FR.name);
     expect(logText(war, "zh_CN")).toContain(POWER_DEFS.FR.nameZh);
     expect(logText(war, "zh_CN")).toContain("征服");
+  });
+
+  it("spells out the 29.2 colonial-war modifiers instead of only their total", () => {
+    const entry: LogTextEntry = {
+      key: "colonialWar",
+      args: {region: "africa", teRoll: 6, taRoll: 5, teTotal: 8, taTotal: 6, teMod: 2, taMod: 1, winner: "te", teSources: "navalSupremacy", taSources: "ef:GE,ef:GE"},
+    };
+    const en = logText(entry, "en");
+    expect(en).toContain("modifiers TE +2, TA +1");
+    expect(en).toContain("TE: naval supremacy");
+    expect(en).toContain("TA: EF (Germany) ×2");
+    const zh = logText(entry, "zh_CN");
+    expect(zh).toContain("海军霸权");
+    expect(zh).toContain("远征军（德国） ×2");
   });
 
   it("names a single-turn scenario with one turn number", () => {

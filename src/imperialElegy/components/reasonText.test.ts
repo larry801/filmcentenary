@@ -17,6 +17,15 @@ test("a reserve-army ceiling prints in Chinese with its number", () => {
   expect(engineReasonText("zh_CN", "Reserve limit 0 reached")).toBe("预备军已满");
 });
 
+test("the Russian colonial-war reason names its three spaces in Chinese", () => {
+  // 29.2.1: "RU's alliance checks the following spaces: Central Asia, Qajar
+  // Persia, Manchuria."  The engine embeds the count in the reason.
+  expect(engineReasonText("zh_CN", "3 of Central Asia, Qajar Persia and Manchuria are enemy controlled")).toBe(
+    "中亚、卡扎尔波斯与满洲中有 3 处被敌方控制",
+  );
+  expect(engineReasonText("zh_CN", "lost the africa colonial war")).toBe("输掉了非洲殖民战争");
+});
+
 test("a nationality reason uses the printed Chinese nationality name", () => {
   expect(engineReasonText("zh_CN", "Italians does not have rights yet")).toBe("意大利尚未获得权利");
   expect(engineReasonText("zh_CN", "Czechs already has full citizenship")).toBe("捷克已获得完整公民权");
