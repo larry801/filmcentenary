@@ -37,7 +37,7 @@ import {negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
 import {useBotAutoSubmit} from "./botDriver";
 import {SeatUiContext} from "./seatUiContext";
 import {useInteraction, interactionPrompt} from "./useInteraction";
-import {useCardFaceMode, useConfirmActions} from "./preferences";
+import {useCardFaceMode, useConfirmActions, useMapView, useTableArt} from "./preferences";
 import {sliceModel, type BoardSlices} from "./boardSlices";
 import {resolveLocale} from "./modelValues";
 import type {OrdersTab} from "./OrdersPanel";
@@ -257,6 +257,8 @@ export const useBoardModel = ({
   // a decision, a battle or the reader asks for the orders.
   const [panelOpen, setPanelOpen] = React.useState(false);
   const [cardFaceMode, setCardFaceMode] = useCardFaceMode();
+  const [mapView, setMapView] = useMapView();
+  const [tableArt, setTableArt] = useTableArt();
   const [amphibiousFrom, setAmphibiousFrom] = React.useState<string>("");
   const [amphibiousTo, setAmphibiousTo] = React.useState<string>("");
   const [amphibiousUnitIds, setAmphibiousUnitIds] = React.useState<string[]>([]);
@@ -2059,6 +2061,10 @@ export const useBoardModel = ({
     setTrayExpanded,
     cardFaceMode,
     setCardFaceMode,
+    mapView,
+    setMapView,
+    tableArt,
+    setTableArt,
     expandHand,
     amphibiousFrom,
     setAmphibiousFrom,

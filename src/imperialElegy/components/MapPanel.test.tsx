@@ -200,3 +200,38 @@ test("a spectator gets the framing bar without a capital to frame", () => {
   expect(html).toContain('data-testid="ie-map-capital"');
   expect(html).not.toContain('title="柏林"');
 });
+
+test("the sheet is the default presentation and offers the 3D table", () => {
+  const html = renderToStaticMarkup(<MapPanel {...props()} />);
+  expect(html).toContain('data-testid="ie-map-view-sheet"');
+  expect(html).toContain('data-testid="ie-map-view-table"');
+  expect(html).toContain('data-testid="ie-map"');
+  // The material chips belong to the table, not to the sheet.
+  expect(html).not.toContain('data-testid="ie-table-art-felt"');
+});
+
+test("the 3D presentation swaps the map and offers the two materials", () => {
+  const html = renderToStaticMarkup(
+    <MapPanel {...props({view: "table", art: "felt"})} />,
+  );
+  // The renderer arrives through a lazy chunk, so a static render shows the
+  // loading state rather than a canvas — which is exactly what a reader sees
+  // for the first frame.
+  expect(html).toContain('data-testid="ie-table-3d-suspense"');
+  expect(html).not.toContain('data-testid="ie-map"');
+  expect(html).toContain('data-testid="ie-table-art-felt"');
+  expect(html).toContain('data-testid="ie-table-art-paper"');
+  expect(html).toContain('aria-pressed="true"');
+});
+
+test("the 3D renderer is only reachable through a lazy import", () => {
+  const fs = require("fs") as typeof import("fs");
+  const path = require("path") as typeof import("path");
+  const panel = fs.readFileSync(path.join(__dirname, "MapPanel.tsx"), "utf8");
+  expect(panel).toContain('React.lazy(() => import("./table3d/TableMap"))');
+  expect(panel).not.toContain('from "./table3d/TableMap"');
+  // three.js itself lives behind the table's own module, never behind the
+  // sheet that every player loads by default.
+  const scene = fs.readFileSync(path.join(__dirname, "table3d", "scene.ts"), "utf8");
+  expect(scene).toContain('from "three"');
+});

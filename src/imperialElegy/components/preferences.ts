@@ -8,6 +8,7 @@
  * in a Node test or on the server is safe.
  */
 import {useCallback, useState} from "react";
+import type {TableArt} from "./table3d/camera";
 
 export type CardFaceMode = "svg" | "print";
 
@@ -169,4 +170,81 @@ export const writeShowUnavailable = (
   } catch {
     // Cosmetic: a failed write must never stop play.
   }
+};
+
+// ---------------------------------------------------------------------------
+// The map's presentation: the printed sheet, or the 3D table
+// ---------------------------------------------------------------------------
+
+export type MapViewMode = "sheet" | "table";
+
+export const MAP_VIEW_KEY = "ie_map_view";
+export const TABLE_ART_KEY = "ie_table_art";
+
+/**
+ * The map is a sheet by default: it is the interface every player already
+ * knows, and the 3D table is the fuller experience the reader opts into.
+ */
+export const DEFAULT_MAP_VIEW: MapViewMode = "sheet";
+/** The physical table is the 3D view's default material. */
+export const DEFAULT_TABLE_ART: TableArt = "felt";
+
+export const readMapView = (
+  storage: PreferenceStorage | null = defaultPreferenceStorage(),
+): MapViewMode => {
+  try {
+    return storage?.getItem(MAP_VIEW_KEY) === "table" ? "table" : DEFAULT_MAP_VIEW;
+  } catch {
+    return DEFAULT_MAP_VIEW;
+  }
+};
+
+export const writeMapView = (
+  view: MapViewMode,
+  storage: PreferenceStorage | null = defaultPreferenceStorage(),
+): void => {
+  try {
+    storage?.setItem(MAP_VIEW_KEY, view);
+  } catch {
+    // Cosmetic: a failed write must never stop play.
+  }
+};
+
+export const useMapView = (): [MapViewMode, (view: MapViewMode) => void] => {
+  const [view, setView] = useState<MapViewMode>(() => readMapView(defaultPreferenceStorage()));
+  const choose = useCallback((next: MapViewMode) => {
+    writeMapView(next, defaultPreferenceStorage());
+    setView(next);
+  }, []);
+  return [view, choose];
+};
+
+export const readTableArt = (
+  storage: PreferenceStorage | null = defaultPreferenceStorage(),
+): TableArt => {
+  try {
+    return storage?.getItem(TABLE_ART_KEY) === "paper" ? "paper" : DEFAULT_TABLE_ART;
+  } catch {
+    return DEFAULT_TABLE_ART;
+  }
+};
+
+export const writeTableArt = (
+  art: TableArt,
+  storage: PreferenceStorage | null = defaultPreferenceStorage(),
+): void => {
+  try {
+    storage?.setItem(TABLE_ART_KEY, art);
+  } catch {
+    // Cosmetic: a failed write must never stop play.
+  }
+};
+
+export const useTableArt = (): [TableArt, (art: TableArt) => void] => {
+  const [art, setArt] = useState<TableArt>(() => readTableArt(defaultPreferenceStorage()));
+  const choose = useCallback((next: TableArt) => {
+    writeTableArt(next, defaultPreferenceStorage());
+    setArt(next);
+  }, []);
+  return [art, choose];
 };

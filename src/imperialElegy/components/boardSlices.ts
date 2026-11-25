@@ -44,6 +44,7 @@ const CORE_KEYS = [
   "panelOpen", "setPanelOpen",
   "otherSeatPending", "seatUi", "pendingPrompt", "pendingKind", "responseWindow", "handChoicesHint",
   "cardFaceMode", "setCardFaceMode", "confirmActions", "setConfirmActions", "board", "setBoard", "railTab", "setRailTab", "choiceKinds",
+  "mapView", "setMapView", "tableArt", "setTableArt",
   "choicesProps", "targetingHint", "handCounts", "goalCounts", "minorMarkerRows", "homeCardTitle",
   "homeChoice", "goalChoice", "homeCardDialogOpen", "setHomeCardDialogOpen",
   "doAction", "mapHint", "pendingSpaceTargets", "optionLabel", "optionFace", "optionAction", "canDecline",

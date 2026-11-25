@@ -5,13 +5,21 @@
  */
 import {
   CARD_FACE_KEY,
+  DEFAULT_MAP_VIEW,
+  DEFAULT_TABLE_ART,
+  MAP_VIEW_KEY,
   SHOW_UNAVAILABLE_KEY,
+  TABLE_ART_KEY,
   cardImageSrc,
   defaultPreferenceStorage,
   readCardFace,
+  readMapView,
   readShowUnavailable,
+  readTableArt,
   writeCardFace,
+  writeMapView,
   writeShowUnavailable,
+  writeTableArt,
 } from "./preferences";
 import type {PreferenceStorage} from "./preferences";
 
@@ -157,5 +165,55 @@ describe("writeShowUnavailable", () => {
 
   test("silently ignores storage errors", () => {
     expect(() => writeShowUnavailable(true, throwingStorage())).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The map's presentation
+// ---------------------------------------------------------------------------
+
+const mapStorage = (entries: Record<string, string | null>): PreferenceStorage & {written: Record<string, string>} => {
+  const written: Record<string, string> = {};
+  return {
+    written,
+    getItem: (key: string) => entries[key] ?? null,
+    setItem: (key: string, value: string) => {
+      written[key] = value;
+    },
+  };
+};
+
+describe("map presentation", () => {
+  test("defaults to the printed sheet and the felt table", () => {
+    expect(DEFAULT_MAP_VIEW).toBe("sheet");
+    expect(DEFAULT_TABLE_ART).toBe("felt");
+    expect(readMapView(null)).toBe("sheet");
+    expect(readTableArt(null)).toBe("felt");
+  });
+
+  test("a stored choice is read back", () => {
+    expect(readMapView(mapStorage({[MAP_VIEW_KEY]: "table"}))).toBe("table");
+    expect(readTableArt(mapStorage({[TABLE_ART_KEY]: "paper"}))).toBe("paper");
+  });
+
+  test("an unknown or damaged value falls back to the default", () => {
+    expect(readMapView(mapStorage({[MAP_VIEW_KEY]: "hologram"}))).toBe("sheet");
+    expect(readTableArt(mapStorage({[TABLE_ART_KEY]: "velvet"}))).toBe("felt");
+  });
+
+  test("a choice is written under the map's own key", () => {
+    const storage = mapStorage({});
+    writeMapView("table", storage);
+    writeTableArt("paper", storage);
+    expect(storage.written[MAP_VIEW_KEY]).toBe("table");
+    expect(storage.written[TABLE_ART_KEY]).toBe("paper");
+  });
+
+  test("storage that throws never breaks the map", () => {
+    const storage = throwingStorage();
+    expect(readMapView(storage)).toBe("sheet");
+    expect(readTableArt(storage)).toBe("felt");
+    expect(() => writeMapView("table", storage)).not.toThrow();
+    expect(() => writeTableArt("paper", storage)).not.toThrow();
   });
 });

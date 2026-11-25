@@ -57,6 +57,10 @@ jobs:
         run: yarn ie:tokens:check
       - name: Check Imperial Elegy contrast
         run: yarn ie:contrast
+      # The 3D table's map textures are derived from the published scan; the
+      # check re-hashes them, so a regenerated scan cannot ship a stale table.
+      - name: Check Imperial Elegy table textures
+        run: yarn ie:table:check
       - name: Run unit tests
         run: yarn test --ci
 
@@ -322,6 +326,39 @@ jobs:
         run: yarn test:e2e
       # Screenshots, traces and the HTML report are what a failure is
       # diagnosed from, so they are kept even when the run fails.
+  # The 3D table is the one browser suite that needs WebGL.  It runs on its own
+  # runner: software rasterising a table scene beside the VQ boards starved their
+  # ten-second waits, so the two never share a machine.
+  e2e-table3d:
+    needs: playwright-image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    container:
+      image: ${{ needs.playwright-image.outputs.image }}:${{ needs.playwright-image.outputs.tag }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --shm-size=1gb
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Trust the checkout inside the container
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+      - name: Link dependencies from the image cache
+        run: yarn install --frozen-lockfile --offline --non-interactive
+      - name: Run the 3D table suite
+        run: yarn test:e2e:table3d
+      - name: Upload the Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report-table3d
+          path: |
+            playwright-report
+            test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
       - name: Upload the Playwright report
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7

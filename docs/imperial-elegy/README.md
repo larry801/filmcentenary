@@ -3,6 +3,13 @@
 This directory documents the web implementation of **Imperial Elegy: The
 Imperial World at War, 1850–1920** (VUCA Simulations, design Michael Lorino).
 
+## The 3D table
+
+The map has a second presentation: `TABLE_3D.md` describes the 3D tabletop
+(three.js, orbit camera, standee counters) that coexists with the printed sheet.
+The sheet stays the default; the chip in the map's framing bar (or Display → Map)
+switches, and the choice is remembered.
+
 ## Visual system
 
 The board's visual language — palette, typography, surfaces, components,
@@ -69,6 +76,8 @@ yarn serve          # build + boardgame.io server (multiplayer)
 - Local hotseat: <http://localhost:5173/localIE>
 - Solo (pick one great power): <http://localhost:5173/localIE/solo>
 - Printed board (static, 1:1 vector sheet): <http://localhost:5173/board/imperialElegy>
+- 3D table: the `3D` chip in the map's framing bar (or Display → Map) on any
+  board page.
 - Online match creation: `/imperialElegy`
 - Join/spectate: `/join/imperialElegy/:matchID/:player` (or `/spectate`)
 

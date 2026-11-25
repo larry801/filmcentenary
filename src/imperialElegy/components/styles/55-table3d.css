@@ -1,0 +1,146 @@
+/* ============================================================================
+   The 3D table.
+
+   A second presentation of the same board: the printed sheet lying on a table,
+   the live control plates on top of it, the legal-target rings, and the unit
+   counters standing as cardboard standees.  The stylesheet owns the shell (the
+   canvas, the HTML overlay and the fallback states); the scene draws inside the
+   canvas with three.js.
+   ========================================================================== */
+
+.ie-table-3d {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  background: var(--ie-felt-2);
+  border-radius: var(--ie-radius-sm);
+}
+
+.ie-table-3d[data-art="paper"] { background: var(--ie-table); }
+
+.ie-table-3d:active { cursor: grabbing; }
+
+.ie-table-3d-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The table's own legend sits at the sheet's south edge, like the printed
+   key; the footer keeps the targeting key. */
+.ie-table-3d > .ie-map-legend {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  padding: 5px 8px;
+  border-top: 1px solid var(--ie-rule);
+  background: color-mix(in srgb, var(--ie-panel) 92%, transparent);
+}
+
+/* A browser with no WebGL (or a texture still decoding) says so where the map
+   would be, instead of leaving an empty stage. */
+.ie-table-3d-loading,
+.ie-table-3d-note {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 8px 14px;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel);
+  color: var(--ie-on-dark-2);
+  font-size: var(--ie-font-sm);
+  text-align: center;
+}
+
+.ie-table-3d-loading { position: absolute; inset: 0; display: grid; place-items: center; border: 0; background: var(--ie-table); }
+
+.ie-table-3d-fallback {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 46px;
+  z-index: 6;
+  padding: 6px 10px;
+  border: 1px solid var(--ie-rule-strong);
+  border-left: 3px solid var(--ie-warn);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel);
+  color: var(--ie-on-dark-2);
+  font-size: var(--ie-font-xs);
+}
+
+/* Hovering a space names it: the printed names are on the sheet, but they are
+   too small to read at fit zoom and the counter sits on top of them. */
+.ie-table-3d-hover {
+  position: absolute;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  max-width: 220px;
+  padding: 4px 8px;
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel);
+  color: var(--ie-on-dark);
+  font-size: var(--ie-font-xs);
+  pointer-events: none;
+}
+
+.ie-table-3d-hover-name { font-weight: 600; }
+.ie-table-3d-hover-meta { color: var(--ie-on-dark-muted); }
+
+/* The "+N" counter the sheet prints at the corner of a big stack. */
+.ie-table-3d-more {
+  position: absolute;
+  z-index: 6;
+  transform: translate(6px, -50%);
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--ie-ink);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-paper);
+  color: var(--ie-ink);
+  font-size: var(--ie-font-xs);
+  font-weight: 600;
+  line-height: 24px;
+  cursor: pointer;
+}
+
+.ie-table-3d-more:hover { background: var(--ie-panel-3); }
+
+/* The actionable spaces as real buttons, off screen: a screen reader gets the
+   same list the rings describe, without 145 tab stops on the way to the panel. */
+.ie-table-3d-a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ie-table-3d-a11y button { font-size: var(--ie-font-xs); }
+
+/* The presentation chips sit in the stage's framing bar, before the sheets. */
+.ie-map-view-mode { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
+
+.ie-map-view-mode + .ie-map-view-mode { border-left: 1px solid var(--ie-rule); padding-left: 6px; }
+
+/* A phone gives the table the same full-height stage as the sheet; the drag
+   gestures belong to the canvas, so the stage must not scroll under a finger. */
+@media (pointer: coarse) {
+  .ie-table-3d { cursor: default; }
+  .ie-table-3d-more { min-width: 30px; height: 30px; line-height: 28px; }
+}

@@ -31,6 +31,15 @@ What changed from the Field Atlas:
 The rules engine, the printed map, the card faces, both UI languages and every
 `data-testid` that names a control are unchanged.
 
+### The 3D table
+
+`TABLE_3D.md` adds a second presentation of the same board: the printed sheet
+lying on a felt (or plain) table with the counters standing as standees. It is
+opt-in — the sheet above stays the default — and it shares this document's
+target rings, control colours and token data. It adds the felt-specific ring
+colours (`--ie-felt-move` … `--ie-felt-selection`) to `tokens.json`, each held
+to 3:1 on the cloth by the same contrast gate.
+
 ---
 
 ## 2. Colour

@@ -18,6 +18,12 @@ import {bi} from "./boardHelpers";
 import {Icon} from "./Icon";
 import {MapLegend} from "./MapLegend";
 import {MAP_SECTIONS, MapSectionId, THEATRES, mapSectionById} from "./map-geometry";
+import type {MapViewMode} from "./preferences";
+import type {TableArt} from "./table3d/camera";
+
+// three.js only ever loads with the 3D table: the sheet path, the Jest suites
+// and an SSR render never touch the renderer's 600 KB.
+const TableMap = React.lazy(() => import("./table3d/TableMap"));
 
 export interface MapPanelProps {
   G: ImperialElegyState;
@@ -44,11 +50,18 @@ export interface MapPanelProps {
   onFindSpace?: (open: boolean) => void;
   /** The seat on this board, so the map opens on its capital. */
   viewer?: Power | null;
+  /** The map's presentation; `sheet` unless the reader opted into the table. */
+  view?: MapViewMode;
+  /** The table's material. */
+  art?: TableArt;
+  onViewChange?: (view: MapViewMode) => void;
+  onArtChange?: (art: TableArt) => void;
 }
 
 export const MapPanel = ({
   G, selected, onSelect, targets, focusedTarget = null, locale, t, mapHint, modePill = null,
   focus = null, onFindSpace, viewer = null,
+  view = "sheet", art = "felt", onViewChange, onArtChange,
 }: MapPanelProps) => {
   // The printed map is 6693 board units wide, which is four pixels per space on
   // a phone, so the map opens on the player's own capital and every theatre of
@@ -78,6 +91,13 @@ export const MapPanel = ({
     setFrame({kind: "capital", space: capital, nonce: Date.now()});
   }, [capital]);
   const [showPicker, setShowPicker] = React.useState(false);
+  // A browser without WebGL gets the sheet, with a note, instead of a blank
+  // map: a renderer must never cost a player their turn.
+  const [rendererUnavailable, setRendererUnavailable] = React.useState(false);
+  React.useEffect(() => {
+    if (view === "table") setRendererUnavailable(false);
+  }, [view]);
+  const showTable = view === "table" && !rendererUnavailable;
   const [search, setSearch] = React.useState("");
   const [localFocus, setLocalFocus] = React.useState<{x: number; y: number; nonce: number} | null>(null);
   // The map owns its roving keyboard focus; lift the focused target here so the
@@ -162,19 +182,50 @@ export const MapPanel = ({
           </div>
         )}
 
-        <IEMap
-          G={G}
-          selected={selected}
-          onSelect={onSelect}
-          locale={locale}
-          targets={targets}
-          emphasis={focusedTarget}
-          onFocusTarget={setKeyboardFocus}
-          focus={focus ?? localFocus}
-          frame={frame}
-          homeCapital={capital ?? null}
-          section={sectionBox}
-        />
+        {showTable ? (
+          <React.Suspense fallback={(
+            <div className="ie-table-3d-loading" data-testid="ie-table-3d-suspense" role="status">
+              {bi(locale, "Laying the table…", "正在铺开桌面…")}
+            </div>
+          )}>
+            <TableMap
+              G={G}
+              selected={selected}
+              onSelect={onSelect}
+              targets={targets}
+              locale={locale}
+              t={t}
+              focusedTarget={focusedTarget}
+              onFocusTarget={setKeyboardFocus}
+              focus={focus ?? localFocus}
+              frame={frame}
+              homeCapital={capital ?? null}
+              section={sectionBox}
+              art={art}
+              onUnavailable={() => setRendererUnavailable(true)}
+            />
+          </React.Suspense>
+        ) : (
+          <IEMap
+            G={G}
+            selected={selected}
+            onSelect={onSelect}
+            locale={locale}
+            targets={targets}
+            emphasis={focusedTarget}
+            onFocusTarget={setKeyboardFocus}
+            focus={focus ?? localFocus}
+            frame={frame}
+            homeCapital={capital ?? null}
+            section={sectionBox}
+          />
+        )}
+
+        {view === "table" && rendererUnavailable && (
+          <div className="ie-table-3d-fallback" data-testid="ie-table-3d-fallback" role="status">
+            {bi(locale, "This browser has no WebGL, so the printed sheet is shown instead.", "此浏览器不支持 WebGL，已改为显示平面图。")}
+          </div>
+        )}
 
         {showPicker && (
           <div className="ie-map-picker-slot">
@@ -195,6 +246,54 @@ export const MapPanel = ({
 
         <div className="ie-map-views" data-testid="ie-map-views" role="group"
           aria-label={bi(locale, "Map framing", "地图取景")}>
+          <div className="ie-map-view-mode" role="group"
+            aria-label={bi(locale, "Map presentation", "地图视图")}>
+            <button
+              type="button"
+              className={`ie-view-chip${!showTable ? " selected" : ""}`}
+              data-testid="ie-map-view-sheet"
+              aria-pressed={!showTable}
+              title={bi(locale, "The printed sheet, as specified by One Sheet", "单页纸面（One Sheet 规范）")}
+              onClick={() => onViewChange?.("sheet")}
+            >
+              {bi(locale, "Sheet", "平面图")}
+            </button>
+            <button
+              type="button"
+              className={`ie-view-chip${showTable ? " selected" : ""}`}
+              data-testid="ie-map-view-table"
+              aria-pressed={showTable}
+              title={bi(locale, "The board as a 3D table with counters standing on it", "把棋盘当作 3D 桌面，计数器立在桌上")}
+              onClick={() => onViewChange?.("table")}
+            >
+              3D
+            </button>
+          </div>
+          {showTable && (
+            <div className="ie-map-view-mode" role="group"
+              aria-label={bi(locale, "Table material", "桌面材质")}>
+              <button
+                type="button"
+                className={`ie-view-chip${art === "felt" ? " selected" : ""}`}
+                data-testid="ie-table-art-felt"
+                aria-pressed={art === "felt"}
+                title={bi(locale, "Felt table under a warm lamp", "台灯下的绒布桌面")}
+                onClick={() => onArtChange?.("felt")}
+              >
+                {bi(locale, "Felt", "绒布")}
+              </button>
+              <button
+                type="button"
+                className={`ie-view-chip${art === "paper" ? " selected" : ""}`}
+                data-testid="ie-table-art-paper"
+                aria-pressed={art === "paper"}
+                title={bi(locale, "Plain paper ground, the One Sheet palette", "纸面色底（沿用 One Sheet 配色）")}
+                onClick={() => onArtChange?.("paper")}
+              >
+                {bi(locale, "Paper", "纸面")}
+              </button>
+            </div>
+          )}
           <div className="ie-map-sections" role="tablist"
             aria-label={bi(locale, "Atlas sheets", "地图分册")}>
             {MAP_SECTIONS.map((option) => (
