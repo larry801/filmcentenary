@@ -213,6 +213,58 @@ const LocalImperialElegy = () => {
     setChoiceOpen((prev) => (prev[power] === open ? prev : {...prev, [power]: open}));
   }, []);
 
+  const eliminated = new Set<Power>(
+    snapshot === null ? [] : POWERS.filter((power) => snapshot.powers[power]?.eliminated === true),
+  );
+  // One match id for every seat of this shell: it is the same `Local()` master,
+  // and exposing it on each seat is what lets a test (or the reader) tell a
+  // re-dealt match from the running one without reading localStorage.
+  const matchID = matchNonce === 0 ? MATCH_ID : `${MATCH_ID}_${matchNonce}`;
+  const seats = deriveSeatStatuses({
+    pendingPower: snapshot?.pending?.power ?? null,
+    activePower: snapshot?.activePower ?? "GE",
+    botSeats,
+    eliminated,
+    viewer: currentSeat,
+    locale,
+  });
+
+  const shellMenu = (
+    <>
+      <span className="ie-chip" data-testid="ie-local-difficulty">
+        {t.botDifficultyLabel} {botDifficultyLabel(botDifficulty, locale)}
+      </span>
+      <details className="ie-local-help">
+        <summary>{t.localHelpLabel}</summary>
+        <div className="ie-muted">{t.localHelp}</div>
+      </details>
+      <button
+        type="button"
+        className="ie-btn secondary ie-btn-xs"
+        data-testid="ie-seat-setup"
+        title={t.seatChangeWarning}
+        onClick={() => setConfirmNewGame(true)}
+      >
+        {t.newGame}
+      </button>
+    </>
+  );
+
+  const seatUi = React.useMemo(
+    () => ({
+      currentSeat,
+      onSwitchSeat: switchSeat,
+      onGameState,
+      choiceOpen,
+      setChoiceOpen: markChoiceOpen,
+      seats,
+      shellMenu,
+    }),
+    // `shellMenu` is rebuilt every render on purpose: it closes over the live
+    // difficulty and the new-game dialog's setter.
+    [currentSeat, switchSeat, onGameState, choiceOpen, markChoiceOpen, seats, shellMenu],
+  );
+
   if (showSetup) {
     return (
       <IESurface className="ie-local ie-local-setup">
@@ -319,57 +371,6 @@ const LocalImperialElegy = () => {
     );
   }
 
-  const eliminated = new Set<Power>(
-    snapshot === null ? [] : POWERS.filter((power) => snapshot.powers[power]?.eliminated === true),
-  );
-  // One match id for every seat of this shell: it is the same `Local()` master,
-  // and exposing it on each seat is what lets a test (or the reader) tell a
-  // re-dealt match from the running one without reading localStorage.
-  const matchID = matchNonce === 0 ? MATCH_ID : `${MATCH_ID}_${matchNonce}`;
-  const seats = deriveSeatStatuses({
-    pendingPower: snapshot?.pending?.power ?? null,
-    activePower: snapshot?.activePower ?? "GE",
-    botSeats,
-    eliminated,
-    viewer: currentSeat,
-    locale,
-  });
-
-  const shellMenu = (
-    <>
-      <span className="ie-chip" data-testid="ie-local-difficulty">
-        {t.botDifficultyLabel} {botDifficultyLabel(botDifficulty, locale)}
-      </span>
-      <details className="ie-local-help">
-        <summary>{t.localHelpLabel}</summary>
-        <div className="ie-muted">{t.localHelp}</div>
-      </details>
-      <button
-        type="button"
-        className="ie-btn secondary ie-btn-xs"
-        data-testid="ie-seat-setup"
-        title={t.seatChangeWarning}
-        onClick={() => setConfirmNewGame(true)}
-      >
-        {t.newGame}
-      </button>
-    </>
-  );
-
-  const seatUi = React.useMemo(
-    () => ({
-      currentSeat,
-      onSwitchSeat: switchSeat,
-      onGameState,
-      choiceOpen,
-      setChoiceOpen: markChoiceOpen,
-      seats,
-      shellMenu,
-    }),
-    // `shellMenu` is rebuilt every render on purpose: it closes over the live
-    // difficulty and the new-game dialog's setter.
-    [currentSeat, switchSeat, onGameState, choiceOpen, markChoiceOpen, seats, shellMenu],
-  );
   return (
     <IESurface className="ie-local">
       <h1 className="ie-sr-only">{t.localTitle}</h1>
