@@ -104,14 +104,16 @@ const gwSeat = (): ImperialElegyState => {
   return G;
 };
 
-const trayProps = (G: ImperialElegyState): HandTrayProps => ({
+type MoveBag = Record<string, (...args: any[]) => void>;
+
+const trayProps = (G: ImperialElegyState, moves: MoveBag = {}): HandTrayProps => ({
   G, viewer: "GE", me: G.powers.GE, locale: "zh_CN", t: ieT(),
   phase: G.phase, isActive: true, eliminated: false, pending: null,
   canActionCard: true, isBelligerent: true, war: null, forcedCardIds: [],
   hand: G.powers.GE.hand, saveList: [], shownCards: [], cardsShownToMe: [],
   responseInHand: false, responseWindow: false, chainNonEmpty: false, chainSpendable: 0,
   chainCap: 4, chainReady: false, chainDisabledReason: undefined,
-  cpBudget: () => 3, doAction: (fn: () => void) => fn(), moves: {},
+  cpBudget: () => 3, doAction: (fn: () => void) => fn(), moves,
   handChoicesHint: null, cardFaceMode: "svg", open: true, onToggleOpen: () => undefined,
 });
 
@@ -201,6 +203,78 @@ describe("the Great War card's inspector", () => {
     // `playGwCardMove` empties the slot; the dialog must not outlive the card.
     G.powers.GE.gwCard = null;
     expect(inspector(render(trayProps(G)))).toBeUndefined();
+  });
+
+  test("the inspector draws the GW card's own two plays, not the hand's controls", () => {
+    const G = gwSeat();
+    const props = trayProps(G);
+    const before = render(props);
+    openButton(before, `ie-open-gw-card-${GW_CARD}`).props.onClick();
+
+    const dialog = inspector(render(props))!;
+    const ids: string[] = [];
+    walk(dialog.props.actions as React.ReactNode, (element) => {
+      const testId = element.props?.["data-testid"];
+      if (typeof testId === "string") ids.push(testId);
+    });
+    // 26.0/27.2: the card is played from `me.gwCard`, so the hand's CP,
+    // event, industrialization, chain and Save controls belong to moves that
+    // refuse it.  Reported as "大战卡牌无法打出 UI 上面显示 cp 事件 工业化
+    // 跟普通卡牌一样".
+    expect(ids).toEqual([`ie-gw-bonus-inspector-${GW_CARD}`, `ie-gw-event-inspector-${GW_CARD}`]);
+  });
+
+  test("the inspector's buttons play the GW slot's card, never a hand card", () => {
+    const G = gwSeat();
+    G.phase = "gwManeuver";
+    G.gw!.impulse = {power: "GE", turn: 1, index: 0, serial: 1, acted: false};
+    G.powers.GE.gwBudget = 3;
+    const moves: MoveBag = {playGwCardMove: jest.fn(), playCard: jest.fn(), industrialize: jest.fn()};
+    const props = trayProps(G, moves);
+    const before = render(props);
+    openButton(before, `ie-open-gw-card-${GW_CARD}`).props.onClick();
+
+    const dialog = inspector(render(props))!;
+    // GW-03 is a battle-window combat card: its event cannot be opened from
+    // the impulse, and the button says why instead of silently refusing.
+    const event = find(dialog.props.actions as React.ReactNode,
+      (element) => element.props?.["data-testid"] === `ie-gw-event-inspector-${GW_CARD}`)!;
+    expect(event.props.disabled).toBe(true);
+    expect(event.props.title).toContain("战斗窗口");
+    // The footer repeats the shut mode's reason: a touch reader has no tooltip.
+    expect(dialog.props.unavailable).toEqual(["此牌事件须在规定的战斗窗口使用。"]);
+
+    const bonus = find(dialog.props.actions as React.ReactNode,
+      (element) => element.props?.["data-testid"] === `ie-gw-bonus-inspector-${GW_CARD}`)!;
+    bonus.props.onClick();
+    expect(moves.playGwCardMove).toHaveBeenCalledWith("cp");
+    expect(moves.playCard).not.toHaveBeenCalled();
+    expect(moves.industrialize).not.toHaveBeenCalled();
+  });
+
+  test("a mandatory GW event offers its one event control, not a duplicate bonus", () => {
+    const G = gwSeat();
+    G.powers.GE.gwCard = "IE-GW-10";
+    const before = render(trayProps(G));
+    openButton(before, "ie-open-gw-card-IE-GW-10").props.onClick();
+
+    const dialog = inspector(render(trayProps(G)))!;
+    const ids: string[] = [];
+    walk(dialog.props.actions as React.ReactNode, (element) => {
+      const testId = element.props?.["data-testid"];
+      if (typeof testId === "string") ids.push(testId);
+    });
+    // 27.3: playing Exhaustion for CP *is* its event, so the two controls the
+    // old block drew would do the same thing.
+    expect(ids).toEqual(["ie-gw-event-inspector-IE-GW-10"]);
+  });
+
+  test("the tray block keeps its own two GW controls", () => {
+    const G = gwSeat();
+    const props = trayProps(G);
+    const tree = render(props);
+    expect(byTestId(tree, `ie-gw-bonus-${GW_CARD}`)).toBeTruthy();
+    expect(byTestId(tree, `ie-gw-event-${GW_CARD}`)).toBeTruthy();
   });
 
   test("a hand card's dialog still closes when the played card leaves the hand", () => {

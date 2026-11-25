@@ -22,6 +22,36 @@ conquest still legal, and the A096 gate), plus the updated
 Local checks: `tsc --noEmit` clean, the affected 27 suites (287 tests) green.
 Remote GitHub Actions remains the authority (AGENTS.md §7/§10).
 
+## Fixed: the Great War card's inspector offers its own two plays (2026-11-26)
+
+Reported as "帝国挽歌大战卡牌无法打出 UI上面显示 cp 事件 工业化 跟普通卡牌一样": tapping
+a seat's GW card opened the hand card's inspector, which drew the hand's
+operations — 作为 CP 打出 / 打出事件 / 工业化 / CP 链 / 保留 — although every one of
+those moves looks the card up in `hand` and refuses it (the GW card lives in
+`me.gwCard`).  With either GW mode open the footer printed no reason at all, so
+the card read as a normal, playable hand card whose buttons did nothing.
+
+- **The inspector drew the wrong operations.** The tray block and the card's
+  inspector now share `gwActionButtons`: the GW card's printed plays only —
+  奖励行动 (`playGwCardMove("cp")`) and its event (`playGwCardMove("event")`),
+  each disabled with its `gwCardProblem` reason.  The hand's
+  CP/event/industrialize/chain/Save controls are no longer drawn for a card that
+  is not in the hand.
+- **Exhaustion keeps one control (27.3).** GW-10's CP play *is* its event, so
+  its duplicate 奖励行动 button is gone, matching how a hand's mandatory event
+  folds the two plays into one.
+- **The footer names the shut mode.** `gwInspectorReasons` reports the reason
+  for each printed mode that is closed (a battle card's "此牌事件须在规定的战斗窗口
+  使用。"), so a touch reader gets the line a mouse reader only saw in the
+  button's tooltip.
+
+**Coverage:** `components/gwCardInspector.test.tsx` (+4: the inspector's GW
+controls instead of the hand's, the event click reaching `playGwCardMove`, the
+mandatory card's single control, and the footer reason), and the whole
+`components` suite.  Verified in the browser through the solo Historical Great
+War: the inspector's 奖励行动 plays the card, the GW slot empties, and the dock
+moves to "大战卡奖励——立刻执行一次非陆战行动".
+
 ## Fixed: the Great War stops printing the peacetime tracks (2026-11-25)
 
 Reported as "帝国挽歌世界大战爆发后不再显示紧张度mpti等用不到的内容": a solo
