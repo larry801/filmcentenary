@@ -113,4 +113,14 @@ describe("VQ bilingual helpers (zh_CN default, en on request)", () => {
         const source = "Rudolf II dies; the +2 Prague Cultural Center marker is removed from the game.";
         expect(localizeLogLine(source, "en")).toBe(source);
     });
+    it("renders engine log lines that carry Chinese names in English", () => {
+        expect(localizeLogLine("奥斯曼帝国 plays 大维齐尔 for 5 CP.", "en"))
+            .toBe("Ottoman Empire plays Grand Vizier for 5 CP.");
+        expect(localizeLogLine("Murat Reis joins 奥斯曼帝国's sea captain pool.", "en"))
+            .toBe("Murat Reis joins Ottoman Empire's sea captain pool.");
+        expect(localizeLogLine("法国 gains 1 Paris VP.", "en")).toBe("France gains 1 Paris VP.");
+        expect(localizeLogLine("新教联盟 plays 风暴 for 2 CP.", "en")).toBe("Protestants plays Storms for 2 CP.");
+        expect(localizeLogLine("西班牙 land units return from Naples to Ancona.", "en"))
+            .toBe("Spain land units return from Naples to Ancona.");
+    });
 });
