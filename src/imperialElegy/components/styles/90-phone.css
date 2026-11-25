@@ -242,8 +242,8 @@
     overflow: hidden;
     border: 1px solid var(--ie-rule);
     border-radius: var(--ie-radius-sm);
-    background: linear-gradient(180deg, var(--ie-panel-2), var(--ie-panel));
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
+    background: var(--ie-panel);
+    box-shadow: var(--ie-shadow-3);
     transition: height var(--ie-motion-sheet) var(--ie-motion-easing-sheet),
       max-height var(--ie-motion-sheet) var(--ie-motion-easing-sheet);
   }

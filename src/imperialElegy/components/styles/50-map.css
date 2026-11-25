@@ -209,10 +209,10 @@
   padding: 5px 6px 5px 12px;
   border: 1px solid var(--ie-brass);
   border-radius: var(--ie-radius-sm);
-  background: rgba(44, 36, 29, .95);
+  background: var(--ie-panel);
   color: var(--ie-on-dark);
   font-size: var(--ie-font-xs);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, .55);
+  box-shadow: var(--ie-shadow-2);
 }
 
 .ie-mode-pill-label { font-weight: 700; color: var(--ie-brass-soft); white-space: nowrap; }
@@ -234,7 +234,7 @@
   white-space: nowrap;
 }
 
-.ie-mode-pill-cancel:hover { background: var(--ie-ink-2); }
+.ie-mode-pill-cancel:hover { background: var(--ie-panel-3); }
 
 .ie-mode-pill-esc { color: var(--ie-on-dark-muted); }
 
@@ -249,7 +249,7 @@
   border-radius: var(--ie-radius-md);
   background: var(--ie-paper);
   color: var(--ie-ink);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, .5);
+  box-shadow: var(--ie-shadow-2);
   font-size: var(--ie-font-xs);
   line-height: 1.45;
 }
@@ -349,7 +349,7 @@
   border-radius: var(--ie-radius-md);
   background: var(--ie-paper);
   color: var(--ie-ink);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, .55);
+  box-shadow: var(--ie-shadow-2);
 }
 
 .ie-map-pick-title { font-size: var(--ie-font-xs); color: var(--ie-ink-2); margin-bottom: 4px; }
@@ -359,16 +359,16 @@
 .ie-map-pick-list button {
   min-height: 32px;
   padding: 3px 8px;
-  border: 1px solid var(--ie-brass-deep);
+  border: 1px solid var(--ie-rule-strong);
   border-radius: var(--ie-radius-sm);
-  background: var(--ie-on-dark);
+  background: var(--ie-panel);
   color: var(--ie-ink);
   font-size: var(--ie-font-sm);
   text-align: left;
   cursor: pointer;
 }
 
-.ie-map-pick-list button:hover { background: var(--ie-brass-soft); }
+.ie-map-pick-list button:hover { background: var(--ie-panel-3); }
 
 .ie-map-pick-close {
   position: absolute;

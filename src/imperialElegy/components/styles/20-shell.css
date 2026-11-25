@@ -3,7 +3,7 @@
 /* ---------------------------------------------------------------- surface */
 .ie-surface {
   position: relative;
-  background: radial-gradient(circle at 30% 0%, var(--ie-table-2), var(--ie-table) 70%);
+  background: var(--ie-table);
   color: var(--ie-on-dark);
   min-height: 100%;
   padding: 6px var(--ie-space-3);
@@ -11,17 +11,6 @@
   font-size: var(--ie-font-sm);
   line-height: var(--ie-font-sm-line);
   font-variant-numeric: tabular-nums lining-nums;
-}
-
-/* The grain tile sits under the content and never adds layout height (§6.2). */
-.ie-surface::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: .05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2'/%3E%3C/filter%3E%3Crect width='96' height='96' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-repeat: repeat;
 }
 
 .ie-board {
@@ -53,13 +42,13 @@
 .ie-title {
   font-family: var(--ie-font-display);
   font-size: var(--ie-font-lg);
-  letter-spacing: .04em;
-  color: var(--ie-brass-soft);
+  letter-spacing: 0;
+  color: var(--ie-on-dark);
   margin: 0;
   line-height: var(--ie-font-lg-line);
 }
 
-.ie-sub { font-size: var(--ie-font-xs); color: var(--ie-on-dark-muted); letter-spacing: .06em; }
+.ie-sub { font-size: var(--ie-font-xs); color: var(--ie-on-dark-muted); letter-spacing: 0; }
 
 .ie-status { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--ie-font-xs); }
 
@@ -181,7 +170,7 @@
 
 .ie-command-active, .ie-command-turn { white-space: nowrap; color: var(--ie-on-dark-2); }
 
-.ie-command-sep { color: var(--ie-rule-strong); }
+.ie-command-sep { color: var(--ie-on-dark-muted); }
 
 .ie-command-cp {
   display: inline-flex;
@@ -222,7 +211,7 @@
 
 .ie-display-trigger::-webkit-details-marker { display: none; }
 
-.ie-display-trigger:hover { background: var(--ie-ink-2); }
+.ie-display-trigger:hover { background: var(--ie-panel-3); }
 
 .ie-display-panel {
   position: relative;
@@ -232,10 +221,10 @@
   border: 1px solid var(--ie-brass);
   border-radius: var(--ie-radius-md);
   background: var(--ie-panel);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, .65);
+  box-shadow: var(--ie-shadow-2);
 }
 
-.ie-display-title { font-size: var(--ie-font-xs); color: var(--ie-on-dark-2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.ie-display-title { font-size: var(--ie-font-xs); color: var(--ie-on-dark-2); text-transform: uppercase; letter-spacing: .02em; margin-bottom: 4px; }
 
 .ie-display-options { display: flex; gap: 4px; }
 
@@ -264,7 +253,7 @@
   flex-direction: column;
   border: 1px solid var(--ie-rule);
   border-radius: var(--ie-radius-md);
-  background: rgba(33, 27, 22, .6);
+  background: var(--ie-panel);
   overflow: hidden;
 }
 
@@ -415,7 +404,7 @@
 
 .ie-step.current::before { content: "●"; margin-right: 5px; color: var(--ie-brass-soft); font-size: 12px; }
 
-.ie-stepper-sep { flex: 0 0 auto; color: var(--ie-rule-strong); font-size: var(--ie-font-xs); padding: 0 1px; }
+.ie-stepper-sep { flex: 0 0 auto; color: var(--ie-on-dark-muted); font-size: var(--ie-font-xs); padding: 0 1px; }
 
 /* Phone only: one chip in place of the four-button stepper (see TrackStrip).
    It names the current step and the acting power and opens that step's
