@@ -71,6 +71,35 @@ const pick = <T>(values: T[], chaos: number, rng: () => number): T | undefined =
     return values[0];
 };
 
+/**
+ * Pick one of the enumerated candidates and probe only that one.
+ *
+ * `accepts` copies the whole board before it tries a move, and `boardAction`
+ * enumerates every recruit/build/move/influence/piracy target the board offers,
+ * so probing each candidate up front cost hundreds of 40 KB JSON copies per
+ * action — by far the largest part of a simulated match.  Here the candidates
+ * are drawn first and only the drawn one is probed: with `chaos: 0` that is the
+ * first candidate the engine accepts, exactly as before (a refused one is
+ * dropped and the next in order tried) and no RNG is consumed.
+ *
+ * With chaos the draw now covers the whole enumeration instead of the
+ * pre-filtered list, so a seed explores a slightly different action order —
+ * a refused draw costs one probe and is dropped, which is also how the sweep
+ * notices an enumerator offering something the engine rejects.
+ */
+const pickAccepted = (
+    G: VQGame, ctx: Ctx, seat: string, power: Power, candidates: Decision[], chaos: number, rng: () => number,
+): Decision | undefined => {
+    let pool = candidates;
+    while (pool.length > 0) {
+        const chosen = pick(pool, chaos, rng);
+        if (chosen === undefined) return undefined;
+        if (accepts(G, ctx, seat, power, chosen.move, chosen.args[0])) return chosen;
+        pool = pool.filter((candidate) => candidate !== chosen);
+    }
+    return undefined;
+};
+
 /** One decision for the seat; `power` is the power the engine is waiting on. */
 export const decide = (
     G: VQGame, ctx: Ctx, seat: string, power: Power | undefined, chaos: number, rng: () => number,
@@ -505,9 +534,9 @@ const eventTargets = (G: VQGame, power: Power, cardId: string, numPlayers: numbe
 
 /** Every board action the map or the action panel offers right now. */
 const boardAction = (G: VQGame, ctx: Ctx, seat: string, power: Power, chaos: number, rng: () => number): Decision | undefined => {
-    const legal: Decision[] = [];
+    const candidates: Decision[] = [];
     const add = (move: string, args: unknown): void => {
-        if (accepts(G, ctx, seat, power, move, args)) legal.push({move, args: [args]});
+        candidates.push({move, args: [args]});
     };
 
     for (const id of legalTargets(G, power, "recruitRegular")) add("recruit", {space: id, kind: "regular"});
@@ -583,7 +612,7 @@ const boardAction = (G: VQGame, ctx: Ctx, seat: string, power: Power, chaos: num
         }
         for (const settlement of WORLD_SETTLEMENTS) add("buildWorldFortress", {settlement: settlement.id});
     }
-    return pick(legal, chaos, rng);
+    return pickAccepted(G, ctx, seat, power, candidates, chaos, rng);
 };
 
 /** First short sea leg from `zone` to any port in `ports`, using own fleets. */

@@ -63,10 +63,21 @@ export interface InvariantViolation {
     detail: string;
 }
 
+export type InvariantLevel = "cheap" | "full";
+
 export interface InvariantSpec {
     id: string;
     rule: string;
     tier: InvariantTier;
+    /**
+     * When the check is worth paying for.  `cheap` walks one state without
+     * recomputing the board (~0.005-0.05 ms); `full` derives VP standings or
+     * force pools across the whole board (~0.05 ms, and it is the tier that
+     * matters once the policy is no longer the bottleneck).  The property
+     * harness runs `cheap` after every action and `full` at phase boundaries
+     * and on a step cadence.
+     */
+    level: InvariantLevel;
     check: (G: VQGame, ctx?: Ctx) => string[];
 }
 
@@ -765,29 +776,34 @@ export const checkVictoryOutcome = (G: VQGame, ctx?: Ctx): string[] => {
 // ---------------------------------------------------------------------------
 
 export const INVARIANTS: InvariantSpec[] = [
-    {id: "cards", rule: "6.2", tier: "A", check: checkCardBookkeeping},
-    {id: "treasures", rule: "6.3", tier: "A", check: checkTreasureBookkeeping},
-    {id: "counters", rule: "5/11", tier: "A", check: checkCounters},
-    {id: "zones", rule: "2.1", tier: "A", check: checkZones},
-    {id: "leaders", rule: "5.1", tier: "A", check: checkLeaders},
-    {id: "naval", rule: "16.1", tier: "A", check: checkNavalPlacement},
-    {id: "control", rule: "2.2", tier: "A", check: checkControlAndReligion},
-    {id: "diplomacy", rule: "9.2", tier: "A", check: checkDiplomacy},
-    {id: "piracy", rule: "16.4", tier: "A", check: checkPiracy},
-    {id: "espionage", rule: "19.2", tier: "A", check: checkEspionage},
-    {id: "patronage", rule: "22", tier: "A", check: checkPatronage},
-    {id: "turn", rule: "7", tier: "A", check: checkTurnStructure},
-    {id: "pending", rule: "7", tier: "A", check: checkPendingWindows},
-    {id: "victory", rule: "25", tier: "A", check: checkVictoryOutcome},
+    {id: "cards", rule: "6.2", tier: "A", level: "cheap", check: checkCardBookkeeping},
+    {id: "treasures", rule: "6.3", tier: "A", level: "cheap", check: checkTreasureBookkeeping},
+    {id: "counters", rule: "5/11", tier: "A", level: "cheap", check: checkCounters},
+    {id: "zones", rule: "2.1", tier: "A", level: "cheap", check: checkZones},
+    {id: "leaders", rule: "5.1", tier: "A", level: "cheap", check: checkLeaders},
+    {id: "naval", rule: "16.1", tier: "A", level: "cheap", check: checkNavalPlacement},
+    {id: "control", rule: "2.2", tier: "A", level: "cheap", check: checkControlAndReligion},
+    {id: "diplomacy", rule: "9.2", tier: "A", level: "cheap", check: checkDiplomacy},
+    {id: "piracy", rule: "16.4", tier: "A", level: "cheap", check: checkPiracy},
+    {id: "espionage", rule: "19.2", tier: "A", level: "cheap", check: checkEspionage},
+    {id: "patronage", rule: "22", tier: "A", level: "cheap", check: checkPatronage},
+    {id: "pending", rule: "7", tier: "A", level: "cheap", check: checkPendingWindows},
+    {id: "victory", rule: "25", tier: "A", level: "cheap", check: checkVictoryOutcome},
+    // Board-wide derivations: six `vpBreakdown`s, fifteen force-pool counts or
+    // four religion-area bucketing passes, so they run at phase boundaries and
+    // on the full cadence instead of on every action.
+    {id: "turn", rule: "7", tier: "A", level: "full", check: checkTurnStructure},
     // Rule audits whose representation is intentionally looser than the print.
-    {id: "force", rule: "17.1", tier: "B", check: checkForcePools},
-    {id: "religion", rule: "18.1", tier: "B", check: checkReligion},
+    {id: "force", rule: "17.1", tier: "B", level: "full", check: checkForcePools},
+    {id: "religion", rule: "18.1", tier: "B", level: "full", check: checkReligion},
 ];
 
 export interface CheckOptions {
     /** Include B-tier rule audits (default true). */
     audit?: boolean;
     ctx?: Ctx;
+    /** `cheap` skips the board-wide derivations; omit to run the whole catalogue. */
+    level?: InvariantLevel;
 }
 
 /** Run the catalogue and return structured violations. */
@@ -795,6 +811,7 @@ export const checkRuleInvariants = (G: VQGame, options: CheckOptions = {}): Inva
     const violations: InvariantViolation[] = [];
     for (const invariant of INVARIANTS) {
         if (invariant.tier === "B" && options.audit === false) continue;
+        if (options.level === "cheap" && invariant.level === "full") continue;
         for (const entry of invariant.check(G, options.ctx)) {
             const [id, rule, tier, detail] = entry.split("|");
             violations.push({id, rule, tier: tier as InvariantTier, detail});

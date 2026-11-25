@@ -93,26 +93,49 @@
 | `tournament-2-chaos` | tournament | 2 | 0.5（激活主要势力流程） | 350 |
 | `tutorial-2` | tutorial | 2 | 0.35（教学剧本与简化规则） | 300 |
 
-步数预算不是“必须打完”：引擎每次操作都会深拷贝状态，约 200 ms/步，
-所以预算按**覆盖多个年份**来定。`sweep.test.ts` 才是要求每局必须打完的那一层。
+步数预算不是“必须打完”：预算按**覆盖多个年份**来定，`sweep.test.ts`
+才是要求每局必须打完的那一层。
+
+单步成本（本机实测，4 人剧本 chaos=0.5）：约 3–5 ms，其中策略取动作约 1 ms、
+reducer 约 1.4 ms、不变量层约 1 ms。检查按 IE 的 `cheap`/`full` 分层：
+
+- **cheap**（`cards`/`treasures`/`counters`/`zones`/`leaders`/`naval`/`control`/
+  `diplomacy`/`piracy`/`espionage`/`patronage`/`pending`/`victory`）：每一步都跑，
+  只走一遍状态，不重算棋盘。
+- **full**（`turn` 的 6 次 `vpBreakdown`、`force` 的 15 个控制方兵力池、
+  `religion` 的 4 个区域统计，加上严格 `JSON.parse(JSON.stringify())` 往返）：
+  在**阶段切换**和**每 25 步**跑一次（`PropertyConfig.fullEvery`）。
+- 每一步另外跑一次零分配的 JSON 安全检查（NaN/Infinity、数组内的
+  `undefined`、Map/Set、class 实例、函数），严格往返只在 full 节奏上做，
+  所以“可序列化”仍然按步覆盖。
+
+每个配置在测试输出里打印自己的 `elapsed` 和 `msPerStep`，CI 日志就是基线。
 
 ## 4. 失败复现与收缩
 
-自对弈是确定性的（seeded RNG + 纯 reducer），所以**第一个**违反不变量的操作
-就是最短失败前缀。`shrinkFailure(config, step)` 用 `maxSteps = step + 1`
-重跑，并在测试输出里确认：
+自对弈是确定性的（seeded RNG + 纯 reducer），所以报告里的 `seed` 加
+`maxSteps = step + 1` 就能重放：
 
 ```text
 campaign-4-chaos/VQ-PROP-1-c4x/campaign/4p/chaos=0.5/seed32=3806833348
   step 998/1259: [rule 16.1] naval.port: naval units in inland space paris
-  (reproduced with maxSteps=999, seed="VQ-PROP-1-c4x")
+  (seed="VQ-PROP-1-c4x", maxSteps=999)
 ```
-
-手工复现：
 
 ```ts
 runSeededGame({seed: "VQ-PROP-1-c4x", numPlayers: 4, chaos: 0.5, maxSteps: 999});
 ```
+
+收缩由 `shrink.ts#shrinkTrace` 做：它把记录下来的动作序列当输入，删掉一块就
+用 `forced` 重放一次（引擎拒绝的动作回退问策略），只有违规仍然出现才保留这次
+删减，最后给出最小动作序列——ddmin 的删块法，不是“整段前缀重放”。
+每次重放都是一整局模拟，所以由 `VQ_PROPERTY_SHRINK` 控制：
+
+| 值 | 行为 |
+| --- | --- |
+| `off` | 只报告 seed 和步号（CI 用这个，失败时不额外花时间） |
+| `auto`（默认） | 每个配置只收缩第一条违规 |
+| `always` | 收缩每一条违规 |
 
 ## 5. 变异测试：证明不变量真的会报错
 

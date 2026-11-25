@@ -37,6 +37,19 @@ export interface SimOptions {
      * default check that `sweep.test.ts` relies on.
      */
     onState?: (G: VQGame, ctx: Ctx, step: number) => void;
+    /**
+     * Skip the harness's own structural pass.  The property layer runs the
+     * rule catalogue (`cheap` after every action, `full` on a cadence) over the
+     * same board with rule citations, so the default pass would be a second,
+     * redundant walk.  `sweep.test.ts` keeps the default.
+     */
+    skipStructuralCheck?: boolean;
+    /**
+     * Recorded decisions to replay instead of asking the policy, indexed by
+     * step — the shrinker's input.  An entry the engine refuses at that point
+     * falls back to the policy, so a reduced trace still plays.
+     */
+    forced?: {move: string; args: unknown[]}[];
 }
 
 export interface SimEvent {
@@ -253,9 +266,12 @@ export function runSeededGame(options: SimOptions): SimResult {
         const pendingOwner = pendingPower === undefined ? undefined : ownerOf(G, pendingPower);
         const power = pendingOwner === seat ? pendingPower : G.activePower;
 
+        const forced = options.forced?.[steps];
         let decision: Decision;
         try {
-            decision = safeDecide(G, ctx, seat, power, options.chaos ?? 0, rng);
+            decision = forced === undefined
+                ? safeDecide(G, ctx, seat, power, options.chaos ?? 0, rng)
+                : {move: forced.move, args: forced.args};
         } catch (error) {
             issues.push({kind: "exception", step: steps, turn: ctx.turn, year: G.year, phase: ctx.phase ?? "",
                 power: power ?? null, detail: String((error as Error)?.stack ?? error)});
@@ -267,6 +283,13 @@ export function runSeededGame(options: SimOptions): SimResult {
         let next: any;
         try {
             next = reducer(state, action);
+            if (forced !== undefined && next.transients?.error) {
+                // The recorded action no longer applies after a shrink; ask the
+                // policy instead so the reduced trace keeps playing.
+                decision = safeDecide(G, ctx, seat, power, options.chaos ?? 0, rng);
+                next = reducer(state, {type: "MAKE_MOVE",
+                    payload: {type: decision.move, args: decision.args, playerID: seat}} as never);
+            }
         } catch (error) {
             issues.push({kind: "exception", step: steps, turn: ctx.turn, year: G.year, phase: ctx.phase ?? "",
                 power: power ?? null, move: decision.move, args: decision.args,
@@ -310,12 +333,12 @@ export function runSeededGame(options: SimOptions): SimResult {
         }
 
         const after = state.G as VQGame;
-        const problems = checkInvariants(after);
+        const problems = options.skipStructuralCheck === true ? [] : checkInvariants(after);
         // A pending window whose deciding seat does not exist can never be
         // answered, which is exactly the class of bug this harness hunts: the
         // panel has no buttons and every seat is blocked from playing on.
         const orphan = decidingPower(after);
-        if (orphan !== undefined && ownerOf(after, orphan) === undefined) {
+        if (orphan !== undefined && ownerOf(after, orphan) === undefined && options.skipStructuralCheck !== true) {
             problems.push(`pending decision for ${orphan}, which has no controlling seat`);
         }
         if (problems.length > 0) {

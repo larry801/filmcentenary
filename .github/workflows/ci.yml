@@ -142,9 +142,13 @@ jobs:
       - name: Run the property-based simulation
         env:
           # One seed, all four scenario/player-count configurations, ~1500
-          # actions.  A second seed roughly doubles an already ~12-minute run;
-          # longer soaks are local (`VQ_PROPERTY_SEEDS`).
+          # actions at ~3-5 ms per action.  A second seed roughly doubles the
+          # run; longer soaks are local (`VQ_PROPERTY_SEEDS`).
           VQ_PROPERTY_SEEDS: VQ-PROP-1
+          # A failing seed is reproducible from its recorded step; shrinking
+          # replays the match once per candidate reduction, so it stays a local
+          # triage step instead of extending a red CI run.
+          VQ_PROPERTY_SHRINK: "off"
         run: >-
           yarn test --ci --runInBand
           --testPathPatterns "tools/vq-sim/property"

@@ -25,20 +25,25 @@
  *     --testPathPatterns "tools/vq-sim/property" \
  *     --testPathIgnorePatterns "/node_modules/" --runInBand
  */
-import {PropertyConfig, PropertyRun, experimentId, runProperty, shrinkFailure} from "./properties";
+import {PropertyConfig, PropertyRun, experimentId, runProperty} from "./properties";
+import {describeShrink, shrinkTrace} from "./shrink";
 
 jest.setTimeout(1800000);
 
 const seeds = (process.env.VQ_PROPERTY_SEEDS ?? "VQ-PROP-1").split(",").filter((seed) => seed !== "");
 /**
- * Step budget per configuration.  These matches are driven through the real
- * boardgame.io reducer, which deep-clones the state on every action: roughly
- * 200 ms per action on a laptop, so one seed of this matrix is ~8 minutes.  The
- * budgets are therefore sized to cover many full years (not every last Winter):
- * this suite is about invariant coverage, while `sweep.test.ts` is the one that
- * insists every match reaches a result.  `VQ_PROPERTY_STEPS` overrides every
- * configuration for a longer soak.
+ * Step budget per configuration.  The budgets are sized to cover many full
+ * years (not every last Winter): this suite is about invariant coverage, while
+ * `sweep.test.ts` is the one that insists every match reaches a result.
+ * `VQ_PROPERTY_STEPS` overrides every configuration for a longer soak.
+ *
+ * Cost: the harness drives the real boardgame.io reducer and the policy only
+ * probes the action it actually takes, so a step is ~3 ms (of which ~1 ms is
+ * the invariant layer: the cheap tier after every action, the board-wide
+ * derivations plus the strict round-trip at phase boundaries and every 25th
+ * action).  Each configuration prints its own elapsed time and ms/step.
  */
+const shrink = (process.env.VQ_PROPERTY_SHRINK ?? "auto") as "off" | "auto" | "always";
 const budget = (fallback: number): number => Number(process.env.VQ_PROPERTY_STEPS ?? fallback);
 
 /** One configuration per interesting flow: full table, reduced table, knockout, tutorial. */
@@ -52,15 +57,20 @@ const CONFIGS: PropertyConfig[] = seeds.flatMap((seed) => [
 let runs: PropertyRun[];
 
 beforeAll(() => {
-    runs = CONFIGS.map(runProperty);
-    for (const run of runs) {
+    runs = CONFIGS.map((config) => {
+        const started = Date.now();
+        const run = runProperty(config);
+        const elapsed = Date.now() - started;
+        const steps = Math.max(1, run.result.steps);
         console.log(
             `${experimentId(run.config)}: steps=${run.result.steps} year=${run.result.year} `
+            + `elapsed=${elapsed}ms msPerStep=${(elapsed / steps).toFixed(2)} `
             + `finished=${run.result.finished} gameover=${JSON.stringify(run.result.gameover)} `
             + `violations=${run.violations.length} audits=${run.audits.length} `
             + `privacy=${run.privacy.length} roundTrip=${run.roundTrip.length}`,
         );
-    }
+        return run;
+    });
 });
 
 const describeViolation = (run: PropertyRun, step: number, entries: string[]): string =>
@@ -69,21 +79,20 @@ const describeViolation = (run: PropertyRun, step: number, entries: string[]): s
 test("no A-tier rule invariant is violated by any generated match", () => {
     const failures: string[] = [];
     for (const run of runs) {
-        for (const {step, violations} of run.violations) {
-            // The first failing action is already the shortest failing prefix
-            // because the run is deterministic; re-running it proves that and
-            // hands the reader a minimal reproduction.
-            let shrunk = "";
-            try {
-                const replay = shrinkFailure(run.config, step);
-                const reproduced = replay.violations.some((entry) =>
-                    entry.step === step && entry.violations.map((violation) => violation.id).join(",") ===
-                        violations.map((violation) => violation.id).join(","));
-                shrunk = reproduced
-                    ? ` (reproduced with maxSteps=${step + 1}, seed="${run.config.seed}")`
-                    : " (WARNING: not reproducible on replay)";
-            } catch (error) {
-                shrunk = ` (replay threw: ${String((error as Error)?.message ?? error)})`;
+        for (const [index, {step, violations}] of run.violations.entries()) {
+            const ids = violations.map((violation) => violation.id);
+            // Reproduction is free (the seed is deterministic and the step is
+            // recorded); *shrinking* replays the match once per candidate
+            // reduction, so CI skips it and `auto` only shrinks the first
+            // violation of each run.
+            let shrunk = ` (seed="${run.config.seed}", maxSteps=${step + 1})`;
+            const shouldShrink = shrink === "always" || (shrink === "auto" && index === 0);
+            if (shouldShrink) {
+                try {
+                    shrunk += `; ${describeShrink(shrinkTrace(run, step, ids))}`;
+                } catch (error) {
+                    shrunk += `; shrinker threw: ${String((error as Error)?.message ?? error)}`;
+                }
             }
             failures.push(describeViolation(run, step, violations.map((violation) =>
                 `[rule ${violation.rule}${violation.tier === "B" ? " audit" : ""}] ${violation.id}: ${violation.detail}`)) + shrunk);
@@ -93,6 +102,9 @@ test("no A-tier rule invariant is violated by any generated match", () => {
 });
 
 test("every intermediate state survives a JSON round-trip", () => {
+    // The allocation-free scan runs on every action and the strict
+    // stringify/parse comparison on the full cadence, so a transient
+    // non-JSON value still surfaces at the step that wrote it.
     const failures = runs.flatMap((run) =>
         run.roundTrip.map((entry) => describeViolation(run, entry.step, [entry.detail])));
     expect(failures).toEqual([]);
