@@ -59,6 +59,23 @@ const SHEET = {
   height: (background.viewBox?.[1] ?? 5462) / SCALE,
 };
 
+/**
+ * The sheet's cardboard edge, stacked *below* the printed sheet.
+ *
+ * The edge used to be a box whose top face sat exactly on the sheet's plane
+ * with the same footprint, so the two shared every depth bucket: on some
+ * frames the plain top face won the depth test and the whole printed map
+ * vanished for that frame — the board flashed blank whenever the camera moved,
+ * which is exactly the flicker players reported while dragging.  The edge now
+ * stops short of the sheet, and the sheet carries a constant depth offset
+ * (`SHEET_DEPTH_OFFSET`) so even a distant camera keeps the map in front.
+ */
+const SHEET_EDGE_TOP = -0.0022;
+/** Above the felt plane (-0.006) so the edge's bottom face never meets it. */
+const SHEET_EDGE_BOTTOM = -0.0055;
+/** Depth-buffer units the sheet is pulled toward the camera. */
+const SHEET_DEPTH_OFFSET = 2;
+
 const RING_STYLE: Record<MapTargetStyle, {width: number; dash: [number, number]; ticks: "pip" | "crosshair" | "rail" | null; double: boolean}> = {
   move: {width: 9, dash: [22, 14], ticks: "pip", double: false},
   attack: {width: 9, dash: [22, 14], ticks: "crosshair", double: false},
@@ -340,17 +357,24 @@ export class TableScene {
   private loadSheetTexture(): void {
     const max = this.renderer.capabilities.maxTextureSize;
     const url = max >= 4096 ? TEXTURE_URLS.large : TEXTURE_URLS.small;
+    const edgeHeight = SHEET_EDGE_TOP - SHEET_EDGE_BOTTOM;
     const edge = new THREE.Mesh(
-      new THREE.BoxGeometry(SHEET.width, 0.008, SHEET.height),
+      new THREE.BoxGeometry(SHEET.width, edgeHeight, SHEET.height),
       this.material("sheet-edge", () => new THREE.MeshStandardMaterial({roughness: 0.9})),
     );
-    edge.position.set(SHEET.width / 2, -0.004, SHEET.height / 2);
+    edge.position.set(SHEET.width / 2, SHEET_EDGE_TOP - edgeHeight / 2, SHEET.height / 2);
     edge.receiveShadow = true;
     this.sheetGroup.add(edge);
 
+    const sheetPaper = new THREE.MeshStandardMaterial({roughness: 0.92, metalness: 0});
+    // A constant depth offset, not a slope offset: the edge and the sheet are
+    // parallel planes, so only the units term separates them at every distance.
+    sheetPaper.polygonOffset = true;
+    sheetPaper.polygonOffsetFactor = 0;
+    sheetPaper.polygonOffsetUnits = -SHEET_DEPTH_OFFSET;
     const sheet = new THREE.Mesh(
       new THREE.PlaneGeometry(SHEET.width, SHEET.height),
-      this.material("sheet", () => new THREE.MeshStandardMaterial({roughness: 0.92, metalness: 0})),
+      this.material("sheet", () => sheetPaper),
     );
     sheet.rotation.x = -Math.PI / 2;
     sheet.position.set(SHEET.width / 2, 0, SHEET.height / 2);

@@ -46,9 +46,11 @@ import {
   panCamera,
   projectPoint,
   tweenCamera,
+  walkCamera,
   zoomCamera,
 } from "./camera";
 import {TableScene} from "./scene";
+import {type WalkInput, STILL, WALK_PIXELS_PER_SECOND, keysWalk, stickAxis, stickOffset, sumWalk} from "./walk";
 
 export interface TableMapProps {
   G: ImperialElegyState;
@@ -78,6 +80,78 @@ const PAPER: BoardBox = {
 
 const DRAG_THRESHOLD = 6;
 
+/** The knob's travel, in CSS pixels; the CSS sizes the base to match. */
+const STICK_RADIUS = 34;
+
+/**
+ * The touch camera stick.
+ *
+ * A phone has no WASD: one finger on the table orbits it, so the walk needs a
+ * control of its own.  The knob follows the thumb, and its deflection is the
+ * speed — half way walks half as fast — which is what a joystick on a game pad
+ * does.  It sits in the stage's corner and stops its own pointers, so a thumb
+ * on the stick never orbits the table underneath.
+ */
+const CameraStick = ({
+  locale, onWalk,
+}: {
+  locale: "en" | "zh_CN";
+  onWalk: (input: WalkInput) => void;
+}) => {
+  const [knob, setKnob] = React.useState<Vec2>({x: 0, y: 0});
+  const base = React.useRef<HTMLDivElement | null>(null);
+  const held = React.useRef<number | null>(null);
+
+  const follow = (event: React.PointerEvent<HTMLDivElement>): void => {
+    const rect = base.current?.getBoundingClientRect();
+    if (!rect) return;
+    const centre = {x: rect.left + rect.width / 2, y: rect.top + rect.height / 2};
+    const knobAt = stickOffset({x: event.clientX, y: event.clientY}, centre, STICK_RADIUS);
+    setKnob(knobAt);
+    onWalk({forward: -stickAxis(knobAt.y, STICK_RADIUS), right: stickAxis(knobAt.x, STICK_RADIUS)});
+  };
+
+  const release = (event: React.PointerEvent<HTMLDivElement>): void => {
+    if (held.current !== event.pointerId) return;
+    event.stopPropagation();
+    held.current = null;
+    setKnob({x: 0, y: 0});
+    onWalk(STILL);
+  };
+
+  const label = bi(locale, "Walk the table", "摇杆移动桌面");
+  return (
+    <div
+      ref={base}
+      className="ie-table-3d-stick"
+      data-testid="ie-table-3d-joystick"
+      role="group"
+      aria-label={label}
+      title={label}
+      onPointerDown={(event) => {
+        event.stopPropagation();
+        event.currentTarget.setPointerCapture(event.pointerId);
+        held.current = event.pointerId;
+        follow(event);
+      }}
+      onPointerMove={(event) => {
+        if (held.current !== event.pointerId) return;
+        event.stopPropagation();
+        follow(event);
+      }}
+      onPointerUp={release}
+      onPointerCancel={release}
+      onContextMenu={(event) => event.preventDefault()}
+    >
+      <div
+        className="ie-table-3d-stick-knob"
+        data-testid="ie-table-3d-joystick-knob"
+        style={{transform: `translate(${knob.x}px, ${knob.y}px)`}}
+      />
+    </div>
+  );
+};
+
 /** The board box of a theatre id, or the whole sheet. */
 const theatreBox = (id: string | undefined): BoardBox => {
   const theatre = id === undefined ? undefined : theatreById(id);
@@ -100,6 +174,12 @@ export const TableMap = ({
   const overlayFrame = React.useRef(0);
   const framedRef = React.useRef(false);
   const coarse = useCoarsePointer();
+  // The camera's walk: a held key and a dragged joystick are separate inputs,
+  // summed, so releasing one never cancels the other.
+  const keysRef = React.useRef<Set<string>>(new Set());
+  const keyWalk = React.useRef<WalkInput>(STILL);
+  const stickWalk = React.useRef<WalkInput>(STILL);
+  const walkingRef = React.useRef(0);
 
   const [ready, setReady] = React.useState(false);
   const [stats, setStats] = React.useState({
@@ -140,6 +220,35 @@ export const TableMap = ({
     sceneRef.current?.setCamera(next);
     overlayTick();
   }, [overlayTick]);
+
+  // ------------------------------------------------------------------- walk
+
+  // A held key is one continuous movement, not one nudge per press: the loop
+  // below walks the look-at point by a screen-relative step every frame, until
+  // neither input asks for anything.  `walkCamera` clamps to the sheet, so a
+  // held key cannot walk the table out of sight.
+  const startWalking = React.useCallback(() => {
+    if (walkingRef.current !== 0) return;
+    let last = performance.now();
+    const step = (now: number): void => {
+      const seconds = Math.min(0.12, Math.max(0, (now - last) / 1000));
+      last = now;
+      const {forward, right} = sumWalk(keyWalk.current, stickWalk.current);
+      if (forward === 0 && right === 0) {
+        walkingRef.current = 0;
+        return;
+      }
+      const pixels = WALK_PIXELS_PER_SECOND * seconds;
+      applyCamera(walkCamera(cameraRef.current, forward * pixels, right * pixels, viewportRef.current, PAPER));
+      walkingRef.current = requestAnimationFrame(step);
+    };
+    walkingRef.current = requestAnimationFrame(step);
+  }, [applyCamera]);
+
+  const stopKeys = React.useCallback(() => {
+    keysRef.current.clear();
+    keyWalk.current = STILL;
+  }, []);
 
   // --------------------------------------------------------------- lifecycle
 
@@ -184,6 +293,8 @@ export const TableMap = ({
       scene.dispose();
       if (overlayFrame.current !== 0) cancelAnimationFrame(overlayFrame.current);
       if (tweenRef.current !== null) cancelAnimationFrame(tweenRef.current);
+      if (walkingRef.current !== 0) cancelAnimationFrame(walkingRef.current);
+      walkingRef.current = 0;
     };
     // The scene is built once for the lifetime of this mount.  Art and state
     // changes are pushed through their own effects below.
@@ -358,6 +469,17 @@ export const TableMap = ({
   }, [applyCamera]);
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    // WASD walks the camera whatever the move in progress is: the board is
+    // always navigable, so these keys come before the target ring's handling.
+    const key = event.key.toLowerCase();
+    if ((key === "w" || key === "a" || key === "s" || key === "d") &&
+      !event.ctrlKey && !event.metaKey && !event.altKey) {
+      event.preventDefault();
+      keysRef.current.add(key);
+      keyWalk.current = keysWalk(keysRef.current);
+      startWalking();
+      return;
+    }
     const ids = targets.map((target) => target.id);
     if (ids.length === 0) return;
     const current = focusedTarget === null ? -1 : ids.indexOf(focusedTarget);
@@ -397,6 +519,15 @@ export const TableMap = ({
         return;
       default:
     }
+  };
+
+  // Lifting the key ends its part of the walk; the loop stops on its own when
+  // no input is left, so a gesture can hand over to the other one cleanly.
+  const onKeyUp = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const key = event.key.toLowerCase();
+    if (key !== "w" && key !== "a" && key !== "s" && key !== "d") return;
+    if (!keysRef.current.delete(key)) return;
+    keyWalk.current = keysWalk(keysRef.current);
   };
 
   // ---------------------------------------------------------------- overlay
@@ -445,8 +576,10 @@ export const TableMap = ({
       role="application"
       aria-label={t.map}
       aria-describedby="ie-table-3d-legend"
-      tabIndex={targets.length > 0 ? 0 : -1}
+      tabIndex={0}
       onKeyDown={onKeyDown}
+      onKeyUp={onKeyUp}
+      onBlur={stopKeys}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endPress}
@@ -461,6 +594,15 @@ export const TableMap = ({
       onContextMenu={(event) => event.preventDefault()}
     >
       <canvas ref={canvasRef} className="ie-table-3d-canvas" aria-hidden="true"/>
+      {coarse && (
+        <CameraStick
+          locale={locale}
+          onWalk={(input) => {
+            stickWalk.current = input;
+            startWalking();
+          }}
+        />
+      )}
       {!ready && (
         <div className="ie-table-3d-note" role="status" data-testid="ie-table-3d-loading">
           {bi(locale, "Laying the table…", "正在铺开桌面…")}
@@ -546,7 +688,12 @@ export const TableMap = ({
       )}
 
       <div className="ie-map-legend" id="ie-table-3d-legend">
-        <span>{bi(locale, "Drag to orbit · wheel to zoom · right-drag to pan", "拖拽旋转 · 滚轮缩放 · 右键拖拽平移")}</span>
+        <span data-testid="ie-table-3d-gestures">{
+          coarse
+            ? bi(locale, "Drag to orbit · pinch to zoom · stick to walk", "拖动旋转 · 双指缩放 · 摇杆移动")
+            : bi(locale, "Drag to orbit · wheel to zoom · right-drag to pan · WASD to walk",
+              "拖拽旋转 · 滚轮缩放 · 右键拖拽平移 · WASD 移动")
+        }</span>
         {(POWER_KEYS as Power[]).map((power) => (
           <span key={power}><i className={`ie-map-legend-dot ie-map-legend-dot-${power.toLowerCase()}`}/>{t.seats[power]}</span>
         ))}

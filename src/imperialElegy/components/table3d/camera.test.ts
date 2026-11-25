@@ -17,11 +17,13 @@ import {
   defaultCamera,
   fitDistance,
   frameBox,
+  clampTarget,
   orbitCamera,
   panCamera,
   projectPoint,
   tweenCamera,
   unprojectPoint,
+  walkCamera,
   zoomCamera,
 } from "./camera";
 
@@ -58,7 +60,10 @@ test.each([
 });
 
 test("a pointer aimed above the horizon has no table point", () => {
-  const view = camera({pitch: MIN_PITCH, distance: 9});
+  // The reader cannot reach this camera any more — the elevation floor is
+  // higher — but the projection still has to refuse a ray that never meets the
+  // table, because a framing tween can pass through any intermediate camera.
+  const view = camera({pitch: 0.3, distance: 9});
   expect(unprojectPoint({x: 600, y: 10}, view, viewport)).toBeNull();
 });
 
@@ -76,6 +81,14 @@ test("the camera basis stays orthonormal away from the vertical", () => {
   expect(dot(right, right)).toBeCloseTo(1, 6);
   expect(dot(up, up)).toBeCloseTo(1, 6);
   expect(dot(forward, right)).toBeCloseTo(0, 6);
+});
+
+test("the elevation cannot be lowered into a grazing view", () => {
+  // Players asked for the floor: below it the sheet foreshortens into a sliver
+  // and every flat layer shares its depth buckets.
+  expect(MIN_PITCH).toBeGreaterThan(0.45);
+  expect(clampCamera(camera({pitch: 0.05})).pitch).toBe(MIN_PITCH);
+  expect(orbitCamera(camera(), 0, 5000).pitch).toBe(MIN_PITCH);
 });
 
 test("pitch, distance and yaw are clamped", () => {
@@ -110,6 +123,51 @@ test("panning moves the look-at point along the table, not into the air", () => 
   const vertical = panCamera(start, 0, 90, viewport);
   expect(Math.abs(vertical.target.y - start.target.y)).toBeGreaterThan(50);
   expect(vertical.target.x).toBeCloseTo(start.target.x, 3);
+});
+
+test("walking moves the look-at point the way the screen reads", () => {
+  const start = camera({pitch: OVERHEAD_PITCH, yaw: 0});
+  const forward = walkCamera(start, 90, 0, viewport);
+  // The camera looks from +z, so walking up the screen moves the target -y.
+  expect(Math.abs(forward.target.y - start.target.y)).toBeGreaterThan(50);
+  expect(forward.target.y).toBeLessThan(start.target.y);
+  const right = walkCamera(start, 0, 90, viewport);
+  expect(right.target.x).toBeGreaterThan(start.target.x);
+  expect(right.target.y).toBeCloseTo(start.target.y, 3);
+});
+
+test("walking is screen-relative, so an orbit does not invert it", () => {
+  const turned = camera({pitch: OVERHEAD_PITCH, yaw: Math.PI});
+  const walked = walkCamera(turned, 90, 0, viewport);
+  // From the far side of the table, "up the screen" is the other way on the
+  // board — the same gesture, read from where the reader is standing.
+  expect(walked.target.y).toBeGreaterThan(turned.target.y);
+});
+
+test("a step scales with how far the camera is", () => {
+  const near = walkCamera(camera({distance: 3}), 120, 0, viewport);
+  const far = walkCamera(camera({distance: 12}), 120, 0, viewport);
+  const nearStep = Math.hypot(near.target.x - camera({distance: 3}).target.x, near.target.y - camera({distance: 3}).target.y);
+  const farStep = Math.hypot(far.target.x - camera({distance: 12}).target.x, far.target.y - camera({distance: 12}).target.y);
+  expect(farStep).toBeGreaterThan(nearStep);
+});
+
+test("a held key cannot walk the table off the sheet", () => {
+  const sheet = {x: 0, y: 0, width: 7706, height: 5462};
+  let view = camera({pitch: OVERHEAD_PITCH});
+  for (let i = 0; i < 400; i += 1) view = walkCamera(view, 200, 200, viewport, sheet);
+  // Forward walks up the screen (toward the sheet's y = 0 edge) and right walks
+  // toward +x, so a held key ends up pinned in that corner, not off the sheet.
+  expect(view.target.x).toBeLessThanOrEqual(sheet.width);
+  expect(view.target.x).toBeGreaterThan(sheet.width - 1);
+  expect(view.target.y).toBeGreaterThanOrEqual(sheet.y);
+  expect(view.target.y).toBeLessThan(sheet.y + 1);
+});
+
+test("a look-at point is clamped onto the sheet, never outside it", () => {
+  const sheet = {x: 100, y: 50, width: 400, height: 300};
+  expect(clampTarget({x: -900, y: 9999}, sheet)).toEqual({x: 100, y: 350});
+  expect(clampTarget({x: 300, y: 200}, sheet)).toEqual({x: 300, y: 200});
 });
 
 test("framing a box keeps all four of its corners on screen", () => {

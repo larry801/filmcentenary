@@ -108,7 +108,9 @@ languages except 0.02 em on uppercase micro-labels.
   border and no shadow.
 - The only shadows are `--ie-shadow-2` (popover, 0 8px 24px at 10 %) and
   `--ie-shadow-3` (drawer, dialog, mobile dock).
-- Radii: 2 px for controls, 3 px for surfaces. No pills outside pips.
+- Radii: 2 px for controls, 3 px for surfaces. No pills outside pips, counter
+  tokens and the camera stick — the three shapes that are round because the
+  thing they draw is round.
 - Focus: `2px solid var(--ie-focus-dark)` with a 2 px offset, on every
   focusable control.
 - Motion: 100 ms press, 160 ms popover, 180 ms sheet; opacity and translate

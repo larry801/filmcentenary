@@ -148,7 +148,10 @@ describe("Imperial Elegy tokens", () => {
         const selector = `${stack.join(" ")} ${line}`;
         expect({file, selector}).toEqual({
           file,
-          selector: expect.stringMatching(/pip|counter|unit-token|key::before|glyph|roundel/),
+          // The shapes that are round because the thing they draw is round: a
+          // printed pip, a counter, a key glyph, and the camera stick a thumb
+          // pushes (MINIMAL_UI §6).
+          selector: expect.stringMatching(/pip|counter|unit-token|key::before|glyph|roundel|stick/),
         });
       }
     }

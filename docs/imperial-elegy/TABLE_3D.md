@@ -30,18 +30,36 @@ next visit.
 
 | Gesture | Effect |
 | --- | --- |
-| drag | orbit (yaw + elevation) |
+| drag | orbit (yaw + elevation, floored at 29° — see below) |
 | wheel / pinch | dolly toward the look-at point |
 | right-drag / shift-drag | pan the look-at point across the table |
+| `W A S D` | walk the look-at point up / left / down / right, screen-relative |
+| the corner stick (touch) | the same walk, with the knob's deflection as the speed |
 | click a marker | select the space (`onSelect`, same as the sheet) |
 | arrows / Home / End | walk the legal targets |
 | Enter / Space | select the focused target |
 | `+ / − / ⟲ / ◎ / ⌃` | zoom, reset, fit targets, overhead 65° |
 
-Every one of these has a keyboard equivalent because the stage is one focus
-stop (`tabIndex` only while a target exists), exactly like the SVG map. The
-legal targets are also exposed as off-screen buttons (`ie-space-*`) so a screen
-reader hears the same list the rings describe without 145 tab stops.
+Walking is a *held* movement, not one nudge per press: a key or a deflected
+stick moves the camera every frame at `WALK_PIXELS_PER_SECOND` (620 px/s of the
+stage, so it feels the same at any zoom), and the look-at point is clamped to
+the sheet, so a held key can never walk the table out of sight. A drag is
+unbounded on purpose — it ends when the pointer lifts. The walk itself is pure
+arithmetic in `table3d/walk.ts` (keys → axis, stick → axis, the two summed),
+and `walkCamera` in `camera.ts` turns an axis pair into the same pan a drag
+performs, so a walk reads the way the screen reads whatever the orbit is.
+
+The elevation has a floor (`MIN_PITCH`, 0.5 rad ≈ 29°). Below it the sheet
+foreshortens into a sliver, the printed names disappear behind the front
+counters, and every flat layer squeezes into the same depth buckets. The floor
+is what players asked for; it is not a preference, so it lives in the camera
+rather than in a setting.
+
+Every camera control has a keyboard equivalent, so the stage is one focus stop
+whether or not a move is in progress: the camera is always walkable, and the
+arrow keys pick up the legal targets as soon as there are any. The legal targets
+are also exposed as off-screen buttons (`ie-space-*`) so a screen reader hears
+the same list the rings describe without 145 tab stops.
 
 ## 3. Geometry and picking
 
@@ -68,11 +86,21 @@ has no table point.
 | --- | --- |
 | table | felt plane + wooden rim, or the paper ground |
 | sheet | the published map scan (`maps/world-table.jpg`), 1:1 with the space coordinates |
+| sheet edge | the sheet's cardboard thickness, stacked strictly *below* the sheet (see below) |
 | control plates | `G.spaces[id].control`, printed shape per space type, edge in ink |
 | target rings | `MapTarget.style`, the printed key's vocabulary (pip / crosshair / rail / double) |
 | selection ring | the lamp-toned ring, plus a hairline outer ring |
 | counters | `stackSummary` → one standee per (power, kind, reduced), top three + `+N`, wearing the module's printed counter face |
 | names | the hover tooltip; the printed map already names every space |
+
+The sheet and its edge are drawn as two parallel planes. They are separated in
+both height (`SHEET_EDGE_TOP`) and depth (`SHEET_DEPTH_OFFSET`, a constant
+`polygonOffsetUnits` pull toward the camera) because a coplanar pair makes the
+depth test a coin toss: with the edge's top face exactly on the sheet's plane
+and the same footprint, some frames let the plain edge win and the whole
+printed map vanished for that frame — the board flashed blank under a drag. The
+constant offset, rather than a slope offset, is what keeps the sheet in front
+at every camera distance.
 
 A standee wears the module's own counter. `unitArt.ts` maps (power, kind,
 reduced) to a published face under `units/` — the printed front, or the back the
@@ -128,15 +156,21 @@ down to 1 → the small texture. None of these changes what the board says.
 
 ## 7. Verification
 
-- `components/table3d/*.test.ts` — camera round-trip and clamps, fit framing,
-  pick radius and tie-breaks, counter-face coverage for every power × kind, and
-  `unitArt.test.ts` — every power × kind resolves to a face that exists on disk,
-  a two-step counter flips to its printed back, only a reserve army carries the
-  badge, and a naval face keeps 200 × 120.
+- `components/table3d/*.test.ts` — camera round-trip and clamps (including the
+  elevation floor), the walk (direction, screen-relativity, distance scaling and
+  the sheet clamp), fit framing, pick radius and tie-breaks, counter-face
+  coverage for every power × kind, and `unitArt.test.ts` — every power × kind
+  resolves to a face that exists on disk, a two-step counter flips to its
+  printed back, only a reserve army carries the badge, and a naval face keeps
+  200 × 120. `walk.test.ts` pins the keys→axis and stick→axis mapping.
 - `components/MapPanel.test.tsx` — the chips, the lazy boundary, the fallback.
 - `e2e/table3d.spec.ts` — against real SwiftShader WebGL in CI: the scan loads,
   145 markers and counters are drawn (`data-faces` proves they wear the
-  module's faces), a click selects a space, a drag repaints,
+  module's faces), a click selects a space, a drag repaints, the printed sheet
+  keeps drawing in every frame of an orbit (the coplanar edge used to blank it,
+  and a blank map compresses well under two thirds of a printed one), WASD walks
+  and settles on release, and a phone gets the stick — which walks without the
+  stage ever claiming the pointer,
   the sheet round-trip keeps the selection, and both materials differ.
   It has its own config (`playwright.table3d.config.ts`, `yarn
   test:e2e:table3d`) and its own CI runner: software-rasterising a table scene
