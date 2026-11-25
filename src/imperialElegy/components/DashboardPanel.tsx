@@ -46,7 +46,11 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
               <span>{t.reserves} {state.reserves.length}</span>
               <span>{t.hand} {handCounts[p] ?? state.hand.length}</span>
               <span>{t.goals} {goalCounts[p] ?? state.goals.length}</span>
-              <span>{t.mpit} {state.mpit.te}/{state.mpit.ta}/{state.mpit.neutral}</span>
+              {/* 8.0's track is frozen from the outbreak into `G.gw`'s rosters,
+                  so its three counts say nothing the Great War panel does not. */}
+              {!G.gw?.active && (
+                <span data-testid={`ie-dash-mpit-${p}`}>{t.mpit} {state.mpit.te}/{state.mpit.ta}/{state.mpit.neutral}</span>
+              )}
             </div>
             <div className="ie-power-chips">
               {state.selectedHomeCard && <IEChip>{t.homeCard}: {homeCardTitle(state.selectedHomeCard)}</IEChip>}

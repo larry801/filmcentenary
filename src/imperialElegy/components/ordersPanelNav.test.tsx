@@ -55,6 +55,14 @@ describe("which pages exist", () => {
     expect(resolveOrdersTab("deals", false, false)).toBe("actions");
     expect(resolveOrdersTab("deals", false, true)).toBe("deals");
   });
+
+  test("the influence page is gone once the Great War resolves the Alliance Track (8.0)", () => {
+    expect(ordersTabKeys(false, false)).toEqual(["actions", "space", "influence"]);
+    expect(ordersTabKeys(false, false, false)).toEqual(["actions", "space"]);
+    expect(ordersTabKeys(true, true, false)).toEqual(["actions", "space", "deals", "naval"]);
+    expect(resolveOrdersTab("influence", false, false, false)).toBe("actions");
+    expect(resolveOrdersTab("influence", false, false, true)).toBe("influence");
+  });
 });
 
 describe("the rendered panel", () => {
@@ -62,6 +70,14 @@ describe("the rendered panel", () => {
     const markup = render({dealsVisible: true, dealUrgent: true});
     expect(markup).toContain('data-testid="ie-orders-tab-deals"');
     expect(markup).toContain("ie-orders-tab urgent");
+  });
+
+  test("the Great War leaves two pages: no influence matrix", () => {
+    const war = render({influenceVisible: false});
+    expect((war.match(/role="tab"/g) ?? []).length).toBe(2);
+    expect(war).not.toContain('data-testid="ie-orders-tab-influence"');
+    expect(war).not.toContain('data-testid="ie-orders-panel-influence"');
+    expect(war).toContain('data-testid="ie-orders-tab-actions"');
   });
 
   test("three pages by default, four while a naval flow is offered", () => {

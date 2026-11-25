@@ -94,9 +94,9 @@ const ORDERS_KEYS = [
   "interceptPortValue", "setInterceptPort", "interceptCheck", "interceptReason",
   "jihadDecision", "jihadReason",
   "commandedOwner", "commandsSelected", "hand",
-  // The Orders panel's own page state and the derived "is there a naval flow"
-  // flag the fourth page hinges on.
-  "ordersTab", "setOrdersTab", "navalVisible",
+  // The Orders panel's own page state and the derived "is there a naval flow /
+  // an influence page" flags two of the pages hinge on.
+  "ordersTab", "setOrdersTab", "navalVisible", "influenceVisible",
 ] as const;
 
 /** The hand tray and the card inspector. */

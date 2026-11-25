@@ -68,7 +68,11 @@ export const TrackStrip = ({
   menu, status, notice, seats, stats, panel, onOpenReference,
 }: TrackStripProps) => {
   const [menuOpen, setMenuOpen] = React.useState(false);
-  const hasWar = war !== null || gw !== null;
+  // 27.0: once the Great War runs the campaign clock is frozen and the Alliance
+  // Track has been resolved into the GW rosters; the war's own turn is the
+  // only clock left, so the left cluster follows it and the peacetime tracks
+  // (World Tension, the five alliance boxes) are gone until the game ends.
+  const gwActive = gw !== null && gw.active;
   const steps = React.useMemo(() => phaseSteps({
     phase: phase as ImperialElegyState["phase"],
     war,
@@ -87,12 +91,24 @@ export const TrackStrip = ({
 
   return (
     <header className="ie-track-strip" data-testid="ie-track-strip">
-      <div className="ie-track-decade" data-testid="ie-track-decade" title={bi(locale, "Campaign turn and decade", "战役回合与年代")}>
-        <span className="ie-track-decade-turn">T{G.turn}</span>
+      <div
+        className="ie-track-decade"
+        data-testid="ie-track-decade"
+        title={gwActive
+          ? bi(locale, "Great War turn and decade", "大战回合与年代")
+          : bi(locale, "Campaign turn and decade", "战役回合与年代")}
+      >
+        <span className="ie-track-decade-turn" data-testid="ie-track-turn">
+          {gwActive && gw !== null ? `GW ${gw.turn}` : `T${G.turn}`}
+        </span>
         {/* The same `ie-sub` line the header carried: turn, decade and the
-            game's subtitle, localized by `decadeLabel`. */}
+            game's subtitle, localized by `decadeLabel`.  In the Great War the
+            campaign turn is frozen, so the subline drops it and the token
+            above carries the war's own turn. */}
         <span className="ie-track-decade-label ie-sub">
-          {t.subtitle} · {t.turn} {G.turn} · {locale === "zh_CN" ? decade.zh : decade.en}
+          {gwActive
+            ? `${t.subtitle} · ${locale === "zh_CN" ? decade.zh : decade.en}`
+            : `${t.subtitle} · ${t.turn} ${G.turn} · ${locale === "zh_CN" ? decade.zh : decade.en}`}
         </span>
       </div>
 
@@ -126,50 +142,52 @@ export const TrackStrip = ({
       </button>
 
       <div className="ie-track-status">
-        <span
-          className={`ie-track-wtt${G.wtt >= 3 ? " warn" : ""}`}
-          data-testid="ie-track-wtt"
-          title={G.wtt >= 3 ? bi(locale, "World Tension 3+: no new wars may be declared", "世界紧张 3+：不能发动新的战争") : bi(locale, "World Tension: 3 or more forbids new wars", "世界紧张：达到 3 或以上禁止新的战争")}
-        >
-          <span className="ie-track-wtt-label">{t.wtt}</span>
-          <span className="ie-track-wtt-pips" aria-hidden="true">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <i key={n} className={n <= G.wtt ? (n === 3 ? "on at3" : "on") : ""}/>
-            ))}
-          </span>
-          <b>{G.wtt}</b>
-          <span className="ie-track-wtt-note">{bi(locale, "3: no war", "3：禁战")}</span>
-        </span>
-
-        <span className="ie-track-alliance" data-testid="ie-track-alliance" title={bi(locale, "Alliance track markers by power", "各国同盟轨标记")}>
-          {ALLIANCE_MARKERS.map((marker) => {
-            const holders = POWERS.filter((power) => G.powers[power]?.alliance === marker.box && G.powers[power]?.eliminated !== true);
-            return (
-              <span
-                key={marker.box}
-                className={`ie-track-box${marker.box === "neutral" ? " neutral" : ""}${holders.length > 0 ? " held" : ""}`}
-                data-testid={`ie-track-box-${marker.box}`}
-                title={`${locale === "zh_CN" ? marker.titleZh : marker.title}: ${holders.length === 0 ? "—" : holders.map((p) => t.seats[p]).join(", ")}`}
-              >
-                <span className="ie-track-box-name" aria-hidden="true">{marker.short}</span>
-                <span className="ie-track-box-pips">
-                  {holders.length === 0
-                    ? <span className="ie-track-box-empty" aria-hidden="true">·</span>
-                    : holders.map((power) => (
-                      <i key={power} className={`ie-power-pip ie-power-pip-${power.toLowerCase()}`} title={t.seats[power]}/>
-                    ))}
-                </span>
+        {/* 3.7 / 13.0 and the 8.0 Alliance Track: both are settled by the
+            outbreak (`G.wtt` pins at 5, `formAlliances` writes the rosters the
+            Great War panel prints), so neither is shown once the war runs. */}
+        {!gwActive && (
+          <>
+            <span
+              className={`ie-track-wtt${G.wtt >= 3 ? " warn" : ""}`}
+              data-testid="ie-track-wtt"
+              title={G.wtt >= 3 ? bi(locale, "World Tension 3+: no new wars may be declared", "世界紧张 3+：不能发动新的战争") : bi(locale, "World Tension: 3 or more forbids new wars", "世界紧张：达到 3 或以上禁止新的战争")}
+            >
+              <span className="ie-track-wtt-label">{t.wtt}</span>
+              <span className="ie-track-wtt-pips" aria-hidden="true">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <i key={n} className={n <= G.wtt ? (n === 3 ? "on at3" : "on") : ""}/>
+                ))}
               </span>
-            );
-          })}
-        </span>
+              <b>{G.wtt}</b>
+              <span className="ie-track-wtt-note">{bi(locale, "3: no war", "3：禁战")}</span>
+            </span>
 
-        {gw && (
-          <span className="ie-track-gw" data-testid="ie-track-gw" title={bi(locale, "Great War turn", "大战回合")}>
-            GW <b>{gw.turn}</b>
-          </span>
+            <span className="ie-track-alliance" data-testid="ie-track-alliance" title={bi(locale, "Alliance track markers by power", "各国同盟轨标记")}>
+              {ALLIANCE_MARKERS.map((marker) => {
+                const holders = POWERS.filter((power) => G.powers[power]?.alliance === marker.box && G.powers[power]?.eliminated !== true);
+                return (
+                  <span
+                    key={marker.box}
+                    className={`ie-track-box${marker.box === "neutral" ? " neutral" : ""}${holders.length > 0 ? " held" : ""}`}
+                    data-testid={`ie-track-box-${marker.box}`}
+                    title={`${locale === "zh_CN" ? marker.titleZh : marker.title}: ${holders.length === 0 ? "—" : holders.map((p) => t.seats[p]).join(", ")}`}
+                  >
+                    <span className="ie-track-box-name" aria-hidden="true">{marker.short}</span>
+                    <span className="ie-track-box-pips">
+                      {holders.length === 0
+                        ? <span className="ie-track-box-empty" aria-hidden="true">·</span>
+                        : holders.map((power) => (
+                          <i key={power} className={`ie-power-pip ie-power-pip-${power.toLowerCase()}`} title={t.seats[power]}/>
+                        ))}
+                    </span>
+                  </span>
+                );
+              })}
+            </span>
+          </>
         )}
-        {hasWar && !gw && war && (
+
+        {war !== null && !gwActive && (
           <span className="ie-track-war" data-testid="ie-track-war">
             <IEBadge tone="warn">{controlLabel(t, war.attacker, locale)} — {controlLabel(t, war.defender, locale)}</IEBadge>
           </span>
