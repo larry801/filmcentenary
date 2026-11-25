@@ -9,8 +9,8 @@ the states it produces are ones the printed rules allow. It replaces the six
 ad-hoc structural checks that used to live in `tools/ie-sim/harness.ts`.
 
 ```sh
-# the gate (all six simulation modes x three seeds: 18 runs, ~7 min on the
-# machine the numbers below were measured on)
+# the gate (all six simulation modes x three seeds: 18 runs, 19 200 steps;
+# measured 566 s of play on ubuntu-24.04, so the CI job is ~10 min)
 npx jest --testPathPatterns "tools/ie-sim/invariants" \
   --testPathIgnorePatterns "/node_modules/" --runInBand
 

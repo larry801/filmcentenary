@@ -60,9 +60,10 @@ const ALL_MODES: Mode[] = [
 /**
  * The gate runs the whole mode matrix by default: the three modes a first
  * version skipped (amphibious, navy, chaos) produced three of the first six
- * census findings.  That is 18 runs, ~7 min on a 4-core box, of which the
- * invariant checks are ~2% (see the per-run table the report prints); the rest
- * is the reducer.  `IE_MODES=campaign,war` narrows it for a quick local loop.
+ * census findings.  That is 18 runs / 19 200 steps, measured 566 s of play on
+ * the CI runner, of which the invariant checks are ~2% (see the per-run table
+ * the report prints); the rest is the reducer.
+ * `IE_MODES=campaign,war` narrows it for a quick local loop.
  */
 const modes = (): Mode[] => {
   const requested = process.env.IE_MODES;

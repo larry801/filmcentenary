@@ -99,7 +99,8 @@ jobs:
   # checks (the full tier runs 106 times: 53 phase boundaries + 53 cadence
   # steps), so the wall clock is boardgame.io's reducer drafting the whole state
   # per move, not the checks.  `IE_MODES` / `IE_SEEDS` narrow the matrix for a
-  # local loop; the job runs all 18 runs, ~7 min.
+  # local loop; the job runs all 18 runs, measured 566 s of play (19 200 steps)
+  # on this runner and ~10 min including install.
   ie-sim-invariants:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
