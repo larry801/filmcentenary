@@ -200,7 +200,21 @@ const isRebellious = (G: ImperialElegyState, space: SpaceId): boolean => {
   );
 };
 
+/**
+ * 3.2.5.2's dual home spaces: a space that is a home space both for the player
+ * it once belonged to and for the non-player power that gained it.
+ *
+ * Errata 3.2.5.2 changes the design note: "Egypt starts the campaign game as a
+ * dual home space."  The printed note said there were none at the start, and
+ * `defaultDualHome`'s override test only catches the dynamic cases (GE taking
+ * Alsace-Lorraine, Italy unifying, a minor gaining independence).  Egypt is a
+ * printed OT home space and also the Egyptian home space from setup, so a war
+ * of liberation can never target it (13.1's exception: it must be conquered).
+ */
+const STARTING_DUAL_HOME_SPACES: ReadonlySet<SpaceId> = new Set<SpaceId>(["egypt"]);
+
 const defaultDualHome = (G: ImperialElegyState, space: SpaceId): boolean => {
+  if (STARTING_DUAL_HOME_SPACES.has(space)) return true;
   const printedHome = SPACES[space]?.home ?? null;
   const override = G.spaces[space]?.homeOverride ?? null;
   return printedHome !== null && override !== null && printedHome !== override;

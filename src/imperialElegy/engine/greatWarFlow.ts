@@ -141,7 +141,7 @@ import {
 } from "./combatCards";
 import {applyGwKeyCapture, checkGwVictory, endGreatWar, rebuildGwOrder} from "./greatWar";
 import {grantRapidDeployment, placeNonPlayerCounter, placeUnit, removeUnit} from "./effects";
-import {EXHAUSTION_CARD, markSuperiorStaffWorkGwImpulse} from "./characteristics";
+import {EXHAUSTION_CARD, eliteCorpsCap, markSuperiorStaffWorkGwImpulse} from "./characteristics";
 import {gwExhaustionTurnZero} from "./playability";
 import {
   enemyOccupiedItalianKeys,
@@ -2092,8 +2092,10 @@ export const performGwManeuver = (
       }
       if (!hasLoc(G, power, army.space)) return fail("invalidTarget", "An elite corps requires a line of communication");
       if (!hasCounterFor(G, power, "eliteCorps")) return fail("noCounter", "No elite corps counter remains");
-      const cap = power === "OT" && G.persistent.otTwoElite === true ? 2 : 1;
-      if (Object.values(G.units).filter((u) => u.owner === power && u.kind === "eliteCorps").length >= cap) {
+      // 27.5.3 prints no per-player EC ceiling; errata 33.6 limits only the
+      // Ottomans to one EC until A106, which then allows two.
+      const cap = eliteCorpsCap(G, power);
+      if (cap !== null && Object.values(G.units).filter((u) => u.owner === power && u.kind === "eliteCorps").length >= cap) {
         return fail("noCounter", "The elite corps limit has been reached");
       }
       const ec = placeUnit(G, power, "eliteCorps", army.space, 1);

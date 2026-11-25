@@ -702,6 +702,24 @@ you may forgo X CP to apply a -X DRM to the die roll.**”*
 掷骰、点数上限 6、放弃决策走默认首项）；`components/logText.test.ts` 增加
 `cityOfLightRoll` 的双语样例。
 
+### 3.17 2026 年 3 月勘误：A023/A024 与 A096 / the March 2026 card errata
+
+`IE_ERRATA_-_Mar_20_2026.pdf` 对两张牌面文本有改动，实现随之调整：
+
+- **A023 New Rifles / A024 New Artillery.** 勘误补上 *“This modifier is a total
+  of +1, not +1 per army”*。原实现把 `warLandDrm` 一律加在**进攻方**：卡主防守时
+  得不到 +1，而同场战争中其他玩家的进攻却白拿 +1。现在 `playResponseCard` 把打出者
+  记在 `G.powers[p].flags.warLandDrm`（`privacy.ts` 视为公开信息），
+  `beginLandBattle` 只把 +1 给该玩家所在的一侧（进攻或防守），每场战斗一次，
+  与军团数量无关；卡面文本也补上勘误句。
+- **A096 Empire of the Sun.** 勘误把可打出条件改为 *“Playable after Meiji
+  Restoration **and if Japan is not controlled by another player**”*。
+  `playability.ts` 新增 `japan-controlled` 原因：日本被其他玩家控制时拒绝，
+  控制日本的玩家本人、以及日本自立时均可打出；`components/i18n.ts` 双语提示。
+
+回归：`errataMar2026.test.ts`（A023 防守 +1、A024 进攻 +1、两支军团仍只 +1；
+A096 三种控制状态）。
+
 ---
 
 ## 4. 已确认正确的实现 / Verified-correct behaviour

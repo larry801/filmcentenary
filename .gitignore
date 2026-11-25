@@ -51,3 +51,9 @@ src/data/film-match-stats.jsonl
 /src/coding
 /src/film_image
 src/_spectate_raw.html
+
+# yarn 4 local state (never committed)
+/.yarn/install-state.gz
+/.yarn/cache
+/.yarn/unplugged
+/.yarnrc.yml

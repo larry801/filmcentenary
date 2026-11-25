@@ -66,6 +66,8 @@ export interface RedactContext {
  *  - `rapidMobilization`, `rapidFreeDeployUsed` — A063 Rapid Mobilization: the
  *    card is played faceup, so the first-impulse priority and its one free
  *    deploy are public; the flag only marks that the public grant was used.
+ *  - `warLandDrm` — A023/A024 are played faceup; the stamp names the belligerent
+ *    whose side the printed war-long +1 belongs to.
  *  - `reserveLimitBonus` — card 110 Extreme Militarism is a permanent, visible
  *    display bonus ("increased by 1 until the end of the game").
  *  - `navalLimit` — 12.4: the Dreadnought/Naval Arms Race events are public and
@@ -101,6 +103,9 @@ export const PUBLIC_POWER_FLAGS: readonly string[] = [
   "professionalArmy",
   "rapidMobilization",
   "rapidFreeDeployUsed",
+  // A023/A024 New Rifles / New Artillery: the card is played faceup and the
+  // war-long +1 is public, so every client can name the side that owns it.
+  "warLandDrm",
   "reserveLimitBonus",
   "navalLimit",
   "navalLimitRaised",

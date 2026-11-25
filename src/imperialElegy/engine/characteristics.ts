@@ -868,6 +868,18 @@ export const recruitmentLimits = (G: ImperialElegyState, power: Power): Recruitm
   };
 };
 
+/**
+ * Errata 33.6: "OT is limited to building one EC until the play of the Young
+ * Turks mandatory event", and A106 then prints "the Ottoman player can field
+ * 2 ECs instead of one".  Every other power is limited only by the printed
+ * counter chart (4.2), so the ceiling is `null` (the counter pool applies).
+ *
+ * Shared by the action-phase `recruit` move and the 27.5.3 GW draft so the two
+ * build paths cannot disagree.
+ */
+export const eliteCorpsCap = (G: ImperialElegyState, power: Power): number | null =>
+  power === "OT" ? (G.persistent.otTwoElite === true ? 2 : 1) : null;
+
 export interface RecruitDecision {
   power: Power;
   space: SpaceId | null;
@@ -932,6 +944,21 @@ export const canRecruitIn = (
   }
 
   if (kind === "eliteCorps") {
+    // Errata 33.6 / A106: only the Ottomans have a printed EC ceiling, and the
+    // Orders panel and the Rule 34 bot read this helper, so it belongs here
+    // with the other build gates (a refusal must not be offered as a button).
+    const cap = eliteCorpsCap(G, power);
+    if (cap !== null && Object.values(G.units).filter((u) => u.owner === power && u.kind === "eliteCorps").length >= cap) {
+      return {
+        power,
+        space,
+        kind,
+        allowed: false,
+        reasons: [power === "OT" && G.persistent.otTwoElite !== true
+          ? "The Ottomans may field one elite corps until The Young Turks (33.6)"
+          : `The elite corps limit ${cap} is reached`],
+      };
+    }
     const army = Object.values(G.units).find(
       (u) =>
         u.space === space &&

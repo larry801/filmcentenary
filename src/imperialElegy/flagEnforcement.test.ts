@@ -496,13 +496,19 @@ describe("A106 The Young Turks", () => {
     ).toHaveLength(2);
   });
 
-  test("other players are still limited to one elite corps", () => {
+  test("other players build up to their printed counter mix, not one", () => {
     const G = fresh();
     G.phase = "action";
     G.activePower = "AU";
-    G.cpRemaining = 6;
-    // AU starts with a full army in Vienna and no elite corps.
+    G.cpRemaining = 8;
+    // AU starts with a full army in Vienna and no elite corps.  Rule 12.2 has
+    // no per-player EC ceiling; the printed counter chart (4.2) is the limit,
+    // and it gives AU two ECs (errata 33.6 limits only the Ottomans to one).
+    expect(recruit(G, ctxFor("AU"), "vienna", "eliteCorps")).toBeUndefined();
     expect(recruit(G, ctxFor("AU"), "vienna", "eliteCorps")).toBeUndefined();
     expect(recruit(G, ctxFor("AU"), "vienna", "eliteCorps")).toBe("INVALID_MOVE");
+    expect(
+      Object.values(G.units).filter((unit) => unit.owner === "AU" && unit.kind === "eliteCorps"),
+    ).toHaveLength(2);
   });
 });

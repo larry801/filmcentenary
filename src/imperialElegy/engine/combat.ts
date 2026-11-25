@@ -651,8 +651,21 @@ export const beginLandBattle = (
   if (conn && (conn.type === "difficult" || conn.type === "severe")) {
     recordBattleDrm(battle, "attacker", -1, "difficultTerrain", {space: to}, "rule");
   }
+  // A023/A024 New Rifles / New Artillery (errata): "Your armies gain a +1 land
+  // battle modifier in each battle fought during this war.  This modifier is a
+  // total of +1, not +1 per army, and your armies only provide this bonus if
+  // they are in the main attack force or main defense force."  The flag is
+  // shared on `G.flags`, so the playing belligerent is stamped on its own
+  // `PowerState.flags` (see `playResponseCard`) and the +1 follows that side:
+  // it is a side-level DRM, never one per army, and it applies on defense too.
   if (G.flags.warLandDrm && G.war) {
-    recordBattleDrm(battle, "attacker", Number(G.flags.warLandDrm), "warLandDrm", undefined, "flag");
+    const warDrm = Number(G.flags.warLandDrm);
+    const warDrmOwner = POWERS.find((p) => G.powers[p]?.flags.warLandDrm === true) ?? null;
+    if (warDrmOwner === null || warDrmOwner === actor) {
+      recordBattleDrm(battle, "attacker", warDrm, "warLandDrm", {power: actor}, "flag");
+    } else if (warDrmOwner === defender || warDrmOwner === landDefenderLeader) {
+      recordBattleDrm(battle, "defender", warDrm, "warLandDrm", {power: warDrmOwner}, "flag");
+    }
   }
   if (G.flags.combatDrm) {
     recordBattleDrm(battle, "attacker", Number(G.flags.combatDrm), "combatDrm", undefined, "flag");
@@ -3747,6 +3760,11 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       continuation !== null &&
       continuation !== undefined &&
       winner === "attacker" &&
+      // Errata 19.1/19.8: "Units using naval movement in European Waters that
+      // were intercepted may continue moving in European Waters **if they win
+      // a decisive victory**" (the printed 19.8 said they may not continue at
+      // all; the errata replaces both clauses).  A plain win ends the move.
+      battle.decisive === true &&
       continuation.contact === battle.to &&
       continuation.power === battle.attacker &&
       continuation.intercepted &&

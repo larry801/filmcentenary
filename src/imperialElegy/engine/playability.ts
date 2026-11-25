@@ -35,6 +35,11 @@ export type PlayBlockReason =
   | "dreadnought"
   /** A96 Empire of the Sun: Meiji Restoration must have been played. */
   | "meiji"
+  /**
+   * A96 Empire of the Sun (errata): "Playable after Meiji Restoration and if
+   * Japan is not controlled by another player."
+   */
+  | "japan-controlled"
   /** A103 Bosnian Crisis: the Ottomans must not control the Balkans flashpoint. */
   | "balkans-ottoman"
   /** A102 Moroccan Crisis: another player must control Morocco. */
@@ -240,8 +245,13 @@ export const eventPlayability = (
       return G.spaces["central-asia"]?.control === "RU" ? OK : deny("central-asia");
     case "IE-A087":
       return africanPlayerMarkerSpaces(G).length > 0 ? OK : deny("mahdist-target");
-    case "IE-A096":
-      return G.persistent.meiji === true || G.flags.meiji === true ? OK : deny("meiji");
+    case "IE-A096": {
+      if (!(G.persistent.meiji === true || G.flags.meiji === true)) return deny("meiji");
+      // Errata: the card is playable only while no *other* player controls
+      // Japan.  Japan's own control marker and an uncontrolled Japan both pass.
+      const control = G.spaces.japan?.control ?? null;
+      return isPower(control) && control !== power ? deny("japan-controlled") : OK;
+    }
     case "IE-A102": {
       const control = G.spaces.morocco?.control ?? null;
       return isPower(control) && control !== power ? OK : deny("morocco-other");

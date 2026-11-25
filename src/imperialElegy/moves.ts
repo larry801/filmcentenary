@@ -1586,11 +1586,10 @@ export const recruit = (
   if (kind === "eliteCorps") {
     const armies = landUnitsIn(G, space).filter((u) => isArmyKind(u.kind) && (u.owner === power || G.spaces[space].ally === power));
     if (armies.length === 0) return INVALID_MOVE;
-    // 12.2 / A106: a player may field one elite corps; The Young Turks lets the
-    // Ottomans field two.  Additive to the shared recruitment checks.
-    const ecCap = power === "OT" && G.persistent.otTwoElite === true ? 2 : 1;
-    const ecs = unitsOfPower(G, power).filter((u) => u.kind === "eliteCorps").length;
-    if (ecs >= ecCap) return INVALID_MOVE;
+    // 12.2 prints no per-player EC ceiling: the counter chart (4.2) is the
+    // limit, so GE may field its four ECs and FR its three.  Errata 33.6's
+    // Ottoman ceiling is enforced by `canRecruitIn` above (shared with the
+    // Orders panel and the Rule 34 bot).
     // 4.2: the printed chart's EC counters are the physical limit.
     if (!hasCounterFor(G, power, "eliteCorps")) {
       log(G, power, "recruitRejected", {kind, space, reasons: "No elite corps counter available"});
@@ -5418,6 +5417,7 @@ export const clearWarDurationFlags = (G: ImperialElegyState): void => {
   // honour the initiative bonus; that marker belongs to the war too.
   for (const power of POWERS) {
     delete G.powers[power].flags.rapidMobilization;
+    delete G.powers[power].flags.warLandDrm;
     delete G.powers[power].flags.rapidFreeDeployUsed;
     delete G.powers[power].flags.superiorStaffWorkUsed;
     delete G.powers[power].flags.superiorStaffWorkDeclined;
@@ -9810,6 +9810,12 @@ export const playResponseCard = (G: ImperialElegyState, ctx: Ctx, cardId: CardId
     // A063's war flag is shared on `G.flags`; stamp the playing belligerent so
     // `startWarManeuver` knows whose initiative it must win.
     G.powers[power].flags.rapidMobilization = true;
+  }
+  if ((cardId === "IE-A023" || cardId === "IE-A024") && Number(G.flags.warLandDrm ?? 0) !== 0) {
+    // A023/A024's +1 is a war-duration DRM shared on `G.flags`; stamp the
+    // playing belligerent so `beginLandBattle` gives the +1 to that side
+    // whether it attacks or defends (errata: total +1, not one per army).
+    G.powers[power].flags.warLandDrm = true;
   }
   if (!done) {
     G.flags.pendingCard = cardId;
