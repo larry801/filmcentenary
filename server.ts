@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import {randomBytes} from 'crypto';
+import {gunzipSync} from 'zlib';
 import * as Koa from "koa"
 import serve from 'koa-static';
 import {FilmCentenaryGame} from "./src/Game";
@@ -224,6 +225,46 @@ app.use(async (ctx: Koa.Context, next: Koa.Next) => {
     await next();
 });
 
+/**
+ * The single-file panel build inlines the built client (index.html and the
+ * hashed bundles under assets/) as gzipped base64, so the uploaded file serves
+ * the app without a copy of build/. `__CLIENT_ASSETS__` is replaced by that map
+ * at build time and is undefined everywhere else, where the same files are
+ * served from build/ below.
+ */
+declare const __CLIENT_ASSETS__: string | undefined;
+
+type EmbeddedClient = Record<string, {type: string; body: string}>;
+
+const EMBEDDED_CLIENT: EmbeddedClient | null =
+    typeof __CLIENT_ASSETS__ === 'string' ? JSON.parse(__CLIENT_ASSETS__) : null;
+
+const serveEmbedded = (ctx: Koa.Context, url: string): boolean => {
+    const file = EMBEDDED_CLIENT?.[url];
+    if (!file) {
+        return false;
+    }
+    ctx.type = file.type;
+    ctx.body = gunzipSync(Buffer.from(file.body, 'base64'));
+    return true;
+};
+
+if (EMBEDDED_CLIENT) {
+    app.use(async (ctx: Koa.Context, next: Koa.Next) => {
+        if (ctx.method === 'GET' && serveEmbedded(ctx, ctx.path === '/' ? '/index.html' : ctx.path)) {
+            return;
+        }
+        await next();
+    });
+    // The artwork (img/, imperial-elegy/, vq-cards/) is far too large to inline:
+    // it is committed under public/ and served from the checkout beside the
+    // uploaded file.
+    const publicDir = path.resolve(process.cwd(), 'public');
+    if (fs.existsSync(publicDir)) {
+        app.use(serve(publicDir));
+    }
+}
+
 const FRONTEND_PATH = path.join(__dirname);
 app.use(
     serve(FRONTEND_PATH, {
@@ -242,6 +283,9 @@ server.run(
         // for client-side routing
         server.app.use(async (ctx: Koa.Context, next: Koa.Next) => {
             console.log(`${ctx.method}|${ctx.host}${ctx.url}|${ctx.ip}|${JSON.stringify(ctx.ips)}`)
+            if (serveEmbedded(ctx, '/index.html')) {
+                return;
+            }
             await serve("build")(
                 Object.assign(ctx, {path: 'index.html'}),
                 next

@@ -94,16 +94,16 @@ docker compose pull && docker compose up -d
 ## 部署（Nodaroo）
 
 Nodaroo 用的是 Pterodactyl 一类面板，没有 Dockerfile：它先跑一遍 `npm install`，再用
-`node` 启动 `MAIN_FILE`。为了让面板上不需要安装依赖、也不需要编译，这里部署的是一个
-**零依赖的单文件服务端**：`server.ts` 连同它引用的整棵 TS/JS 代码树和全部 npm 包打成一个
-`build/server.js`，放进面板用 `node` 直接跑。
+`node` 启动 `MAIN_FILE`。这里部署的是一个**零依赖的单文件服务端**：`server.ts`、它引用的整棵
+TS/JS 代码树、全部 npm 包，以及上一次 `yarn build` 产出的 `index.html` 和 `assets/`，全部
+内联进 `build/server.js`（约 11 MB），面板上 `node` 直接跑。
 
-在仓库根目录生成：
+生成：
 
 ```shell
 yarn install
 yarn build         # 前端 → build/
-yarn build:single  # 服务端 → build/server.js（约 9 MB，依赖全部内联）
+yarn build:single  # 服务端 + 内联前端 → build/server.js
 ```
 
 面板上的设置：
@@ -115,31 +115,28 @@ yarn build:single  # 服务端 → build/server.js（约 9 MB，依赖全部内�
 | `DB_DIR` | 可选。不设是纯内存，容器重启对局就没了；填 `/home/container/data` 才会落盘 |
 | `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` | `1`：面板那次 `npm install` 会连 `@playwright/test` 一起装，没必要下载 Chromium |
 
-放文件：
+上传只有两步：
 
-1. `build/server.js` 传到 `/home/container/server.js`
-2. `build/` 里除 `server.js` 以外的内容（`index.html`、`assets/`、`img/`、`vq-cards/`、
-   `imperial-elegy/`）传成 `/home/container/build/`——前端就是这些静态文件，服务端按相对路径
-   直接服务它们
-3. 启动
+1. `build/server.js` → `/home/container/server.js`
+2. 面板把仓库 clone 到 `/home/container` 即可（`public/` 里的图片、字体、卡面就从这里读，
+   不需要另外传）；然后启动
 
-端口默认值写在 `vite.server.config.mts` 的 `define` 里（现在是 `25664`），面板换了端口就改那
-一行再 `yarn build:single`；`PORT` / `SERVER_PORT` 环境变量仍然优先。
+关于"单文件"的边界，说清楚免得误会：
 
-关于"零依赖"的边界，说清楚免得误会：
-
-- 服务端真的不依赖 `node_modules`：包里内联了 koa-static、boardgame.io、ioredis、pg 等
-  全部运行时依赖，`pg-native` 是唯一的外置项，`pg` 只是可选地加载它，面板用的 FlatFile
-  存储不会走到
-- 前端产物不会打进那个 js，`build/` 要单独传。改了代码就要重新 `yarn build` +
-  `yarn build:single` 再覆盖一次
+- 服务端不依赖 `node_modules`：koa-static、boardgame.io、ioredis、pg 全部内联，唯一外置的是
+  `pg-native`（`pg` 可选加载的原生绑定，面板用的 FlatFile 存储不会走到它）
+- 前端**代码**（`index.html` 和 `assets/` 里的打包产物）在 `server.js` 里，所以改了源码就要
+  重新 `yarn build && yarn build:single` 再传一次；`public/` 下的美术资源没内联，`git pull`
+  就能更新，不用重新打包
+- 端口默认值写在 `vite.server.config.mts` 的 `define` 里（现在是 `25664`），面板换了端口就改
+  那一行再 `yarn build:single`；`PORT` / `SERVER_PORT` 环境变量仍然优先
 
 `package-lock.json` 与 `package.json` 保持同步（由 npm 生成）。面板每次启动都会
 `npm install`，锁文件一旦被改写，工作区就脏了，之后的 `git pull` 会被 git 拒绝。
 
-`ci.yml` 的 `build` job 打完这个单文件后会把 `build/` 复制到一个**没有 node_modules**
-的临时目录里用 `node` 起一次，请求 `/` 和 `/api/match-stats`，所以内联漏了依赖或者打包
-产物跑不起来，会在 CI 里先暴露。
+`ci.yml` 的 `build` job 会把这个单文件复制到一个既没有 `node_modules` 也没有 `build/` 的
+临时目录里，只带 `public/` 和 `server.js`，用 `node` 起一次，请求 `/`、一个 `/assets/`
+打包产物和 `/api/match-stats`，所以内联漏了东西会在 CI 里先暴露。
 
 ## 结构
 

@@ -197,18 +197,18 @@ jobs:
           path: build
           retention-days: 3
       # The Nodaroo deployment uploads `yarn build:single`'s output and starts it
-      # with plain node on a panel that has no node_modules and no PORT variable,
-      # so the bundle has to carry its dependencies and its port. Copy the build
-      # into an empty directory and boot it there with no PORT set: anything left
-      # as an external `require`, or a lost `__PANEL_PORT__`, fails here.
-      - name: Boot the single-file bundle with no node_modules and no PORT
+      # with plain node on a panel that has no node_modules, no build/ and no PORT
+      # variable: the client is inlined into the file and the artwork comes from
+      # the checkout's public/. Reproduce exactly that here, in an empty
+      # directory, so anything left external fails before it reaches the panel.
+      - name: Boot the single-file server with nothing but public/
         run: |
           yarn build:single
-          mkdir -p "$RUNNER_TEMP/app/build"
-          cp build/server.js build/index.html "$RUNNER_TEMP/app/build/"
-          cp -r build/assets "$RUNNER_TEMP/app/build/"
+          mkdir -p "$RUNNER_TEMP/app"
+          cp build/server.js "$RUNNER_TEMP/app/"
+          cp -r public "$RUNNER_TEMP/app/"
           cd "$RUNNER_TEMP/app"
-          DB_DIR="$RUNNER_TEMP/data" node build/server.js > bundle.log 2>&1 &
+          DB_DIR="$RUNNER_TEMP/data" node server.js > server.log 2>&1 &
           for i in $(seq 1 60); do
             if [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:25664/ || true)" = "200" ]; then
               break
@@ -216,12 +216,16 @@ jobs:
             sleep 2
           done
           page=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:25664/ || true)
+          asset=$(curl -s http://127.0.0.1:25664/ | grep -o '/assets/[^"]*\.js' | head -1)
+          asset_code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:25664${asset}" || true)
+          art=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:25664/img/B01.png || true)
           stats=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:25664/api/match-stats || true)
-          pkill -f 'node build/server.js' || true
-          echo "bundle: $(du -h build/server.js | cut -f1), GET / -> $page, GET /api/match-stats -> $stats on :25664"
-          echo "node_modules present: $(test -d node_modules && echo yes || echo no)"
-          tail -10 bundle.log
-          test "$page" = "200" && test "$stats" = "200" && test ! -d node_modules
+          pkill -f 'node server.js' || true
+          echo "server.js $(du -h server.js | cut -f1): GET / -> $page, ${asset} -> $asset_code, /img -> $art, /api/match-stats -> $stats"
+          echo "node_modules: $(test -d node_modules && echo yes || echo no), build/: $(test -d build && echo yes || echo no)"
+          tail -10 server.log
+          test "$page" = "200" && test "$asset_code" = "200" && test "$art" = "200" && test "$stats" = "200"
+          test ! -d node_modules && test ! -d build
 
   # The browser environment, built once per dependency set.  The image holds
   # everything that used to be reinstalled on every push (Chromium headless
