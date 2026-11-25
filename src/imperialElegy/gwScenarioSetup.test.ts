@@ -32,6 +32,7 @@ import {altGwVictoryOnly, startingGwTurn} from "./engine/scenario";
 import {openGwBuildPointDecision} from "./engine/scenarioSetup";
 import {resolvePending} from "./moves";
 import {endGreatWar} from "./engine/greatWar";
+import {beginGwTurn} from "./engine/greatWarFlow";
 
 const ctxOf = (die = 1, playerID: string | null = "0"): Ctx =>
   ({
@@ -322,4 +323,30 @@ test("every GW scenario still opens inside the Great War", () => {
   for (const id of ["gwTutorial", "altGw1", "altGw2", "altGw3"] as const) {
     expect(startingGwTurn(setup(id))).toBe(0);
   }
+});
+
+// ---------------------------------------------------------------------------
+// The opening history lines name the scenario that is actually being played
+// ---------------------------------------------------------------------------
+
+test("a Great-War scenario does not claim the 1850 campaign has begun", () => {
+  for (const id of ["gwTutorial", "altGw1", "altGw2", "altGw3"] as const) {
+    const G = setup(id);
+    expect(G.log.some((entry) => entry.key === "campaignStarted")).toBe(false);
+    // Its own start is already on the ledger (playbook p. 7).
+    expect(G.log.some((entry) => entry.key === "greatWarOutbreak")).toBe(true);
+  }
+  // The campaign itself still opens with the 1850 line.
+  expect(setup("campaign").log.some((entry) => entry.key === "campaignStarted")).toBe(true);
+});
+
+test("the planning step is written to the log once per GW turn", () => {
+  const G = setup("gwTutorial");
+  const turn = G.gw?.turn ?? 0;
+  // `prepBegin` and the planning phase hook both call beginGwTurn on a fresh
+  // match; the history must not show the same planning step twice.
+  beginGwTurn(G, ctxOf());
+  beginGwTurn(G, ctxOf());
+  const planning = G.log.filter((entry) => entry.key === "gwPlanning" && entry.args?.turn === turn);
+  expect(planning).toHaveLength(1);
 });

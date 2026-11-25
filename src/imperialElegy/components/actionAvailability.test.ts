@@ -504,6 +504,16 @@ describe("Great War rows ask the engine's own question", () => {
     expect(full?.reason).toContain("27.5.2");
   });
 
+  test("the draft row prints its manpower cost beside the CP (27.5.2 / 27.6)", () => {
+    const G = gwState("UK");
+    const draft = row(rowsFor(G, "UK", "london"), "gwDraft");
+    expect(draft?.cost).toBe(1);
+    expect(draft?.extra).toBe("1 manpower");
+    // The same row in the Chinese UI names the manpower in Chinese.
+    const zh = spaceActions({...input({G, viewer: "UK", space: "london", phase: "gwManeuver", canGwDraft: true}), locale: "zh_CN"} as never);
+    expect(row(zh, "gwDraft")?.extra).toBe("1 人力");
+  });
+
   test("rail and march refuse a reserve army deployed this impulse (15.2.3)", () => {
     const G = gwState("GE");
     const army = Object.values(G.units).find((unit) => unit.owner === "GE" && unit.space === "berlin" && !unit.naval)!;

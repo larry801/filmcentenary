@@ -391,6 +391,7 @@ export const SpaceActionsPanel = (props: SpaceActionsPanelProps) => {
       >
         {item.label}
         {item.cost > 0 && <span className="ie-action-cost" aria-hidden="true"> · {item.cost} CP</span>}
+        {item.extra !== undefined && <span className="ie-action-cost" aria-hidden="true"> · {item.extra}</span>}
       </button>
       {/* The reason is a block, not a title attribute: the printed restriction
           must be legible on a phone, where a tooltip needs a pointer. */}

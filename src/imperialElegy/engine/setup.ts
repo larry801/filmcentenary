@@ -385,7 +385,12 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
     if (openGwBuildPointDecision(G)) G.flags.gwSetupPending = true;
   }
 
-  G.log.push({id: G.nextLogId++, turn: G.turn, phase: "prep", key: "campaignStarted", args: {}});
+  // A Great-War scenario opens with the war already in progress (playbook p. 7),
+  // so it does not begin the 1850 campaign; `beginScenarioGw` already wrote the
+  // `greatWarOutbreak` line that names its own start.
+  if (!def.special.gwTutorial && !def.special.altGw) {
+    G.log.push({id: G.nextLogId++, turn: G.turn, phase: "prep", key: "campaignStarted", args: {}});
+  }
   if (def.id !== "campaign") {
     // A separate line names the scenario, so the campaign's original log entry
     // (and every test that reads its empty `args`) stays exactly as it was.

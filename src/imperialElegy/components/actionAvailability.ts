@@ -320,6 +320,12 @@ export interface SpaceAction {
   label: string;
   /** CP the row costs; `0` for the free ones (Rapid Deployment, staff deploy). */
   cost: number;
+  /**
+   * A second, non-CP cost printed beside the CP price.  27.5.2's draft is the
+   * only one: it costs "1 CP and 1 Manpower", and a reader who sees only the CP
+   * spends manpower they cannot get back (27.6).
+   */
+  extra?: string;
   enabled: boolean;
   /** Why the row is disabled; cleared when it is enabled. */
   reason?: string;
@@ -463,7 +469,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
       : gwImpulseReasonText(locale, allowance.reason) ??
         bi(locale, "Only during your Great War impulse.", "仅限你的大战行动轮。");
 
-  const push = (row: Omit<SpaceAction, "label" | "cost"> & {cost?: number; label?: string}): void => {
+  const push = (row: Omit<SpaceAction, "label" | "cost"> & {cost?: number; label?: string; extra?: string}): void => {
     const cost = row.cost ?? ACTION_COSTS[row.id];
     const label = row.label ?? actionCostLabel(row.id, locale);
     rows.push({
@@ -981,6 +987,7 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     const draftEnabled = canGwDraft && draftProblem === null;
     push({
       id: "gwDraft", group: "greatWar", cost: draft.ok ? draft.cost : ACTION_COSTS.gwDraft,
+      extra: bi(locale, "1 manpower", "1 人力"),
       enabled: draftEnabled,
       reason: draftEnabled ? undefined
         : !draft.ok ? gwRefusal(draft)
