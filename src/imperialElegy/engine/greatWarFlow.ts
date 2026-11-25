@@ -1371,7 +1371,13 @@ export const beginGwTurn = (G: ImperialElegyState, ctx: Ctx): GwBeginResult => {
   const firstPower = firstIndex >= 0 ? (gw.order[firstIndex] as Power) : null;
   if (firstPower) G.activePower = firstPower;
   G.turnIndex = firstIndex >= 0 ? firstIndex : 0;
-  log(G, undefined, "gwPlanning", {turn});
+  // `beginGwTurn` is re-runnable (the planning phase hook calls it again after
+  // `prepBegin` has already run it), so the history line is written once per
+  // GW turn instead of once per call.
+  if (G.flags.gwPlanningLoggedTurn !== turn) {
+    log(G, undefined, "gwPlanning", {turn});
+    G.flags.gwPlanningLoggedTurn = turn;
+  }
   return {
     ok: true,
     turn,

@@ -1,3 +1,31 @@
+## Fixed: the Great War scenario's opening history and the draft's manpower (2026-11-25)
+
+Reported as "用大战剧本玩": the Historical Great War (`gwTutorial`) played from
+the solo page as Germany, checked against the GW sections of the printed
+rulebook (`IE_rule.pdf` 24-29).  Four defects, one pass.
+
+- **The scenario claimed the 1850 campaign had begun.** Every scenario pushed
+  the campaign's own opening line, so the Historical Great War's history read
+  "Campaign begins in 1850 with six powers" while the board was at GW turn 0
+  (1914) and its real start (`greatWarOutbreak`) sat one line away.  A Great-War
+  scenario (tutorial and the three alternates) no longer writes it
+  (`engine/setup.ts`).
+- **The planning step was logged twice.** `prepBegin` runs `beginGwTurn`, and
+  the `gwPlanning` phase hook runs it again from a fresh match, so the history
+  showed "Great War planning begins for turn 0" twice.  The line is now written
+  once per GW turn (`G.flags.gwPlanningLoggedTurn`).
+- **"turns 7-7".** A one-turn scenario printed its range with a dash.  The
+  formatter prints "turn 7" when the first and last turns match.
+- **The draft hid its manpower cost (27.5.2 / 27.6).** The Orders row read
+  "Draft · 1 CP" while the printed action costs "1 CP **and 1 Manpower**", and
+  manpower is the resource a GW player cannot get back.  The row now prints
+  "· 1 CP · 1 人力" through a new `extra` field on `SpaceAction`.
+
+**Coverage:** `gwScenarioSetup.test.ts` (+2: no campaign line in a GW scenario,
+one planning line per turn), `logText.test.ts` (+1: single-turn scenario),
+`components/actionAvailability.test.ts` (+1: the draft's CP and manpower), and
+the whole `src/imperialElegy` suite.
+
 ## Fixed: the sequence list cites the rulebook's own sections (2026-11-25)
 
 Reported as "只看界面玩帝国挽歌 按照规则 pdf 查找问题并修复": a campaign played

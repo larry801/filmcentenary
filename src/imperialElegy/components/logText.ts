@@ -3373,6 +3373,9 @@ const FORMATTERS: Record<string, Formatter> = {
     const name = str(entry.args?.name);
     const first = num(entry.args?.firstTurn);
     const last = num(entry.args?.lastTurn);
+    if (first === last) {
+      return text(locale, `Scenario ${name}: turn ${first}.`, `剧本 ${name}：第 ${first} 回合。`);
+    }
     return text(
       locale,
       `Scenario ${name}: turns ${first}-${last}.`,

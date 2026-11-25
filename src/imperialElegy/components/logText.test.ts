@@ -458,6 +458,16 @@ describe("Imperial Elegy engine log localization", () => {
     expect(logText(war, "zh_CN")).toContain("征服");
   });
 
+  it("names a single-turn scenario with one turn number", () => {
+    // The Historical Great War is printed as turn 7 only; "turns 7-7" read as
+    // if the scenario spanned two turns.
+    const single: LogTextEntry = {key: "scenarioStarted", args: {scenario: "gwTutorial", name: "Historical Great War", firstTurn: 7, lastTurn: 7}};
+    expect(logText(single, "en")).toBe("Scenario Historical Great War: turn 7.");
+    expect(logText(single, "zh_CN")).toBe("剧本 Historical Great War：第 7 回合。");
+    const span: LogTextEntry = {key: "scenarioStarted", args: {scenario: "campaign", name: "1870 Scenario", firstTurn: 3, lastTurn: 6}};
+    expect(logText(span, "zh_CN")).toBe("剧本 1870 Scenario：第 3-6 回合。");
+  });
+
   it("renders a lone non-player defender's victory without a player actor", () => {
     // Rule 15.4.2: the attacker's surrender is a defensive result for the
     // non-player defender, which has no player log actor and no treaty options.
