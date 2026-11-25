@@ -1112,7 +1112,7 @@
 
 .ie-panel-toggle[data-open="true"] { background: var(--ie-panel-3); color: var(--ie-on-dark); }
 
-.ie-panel-badge {
+.ie-panel-pip {
   width: 6px;
   height: 6px;
   border-radius: 50%;

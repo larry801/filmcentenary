@@ -448,7 +448,9 @@
 .ie-stat b { color: var(--ie-on-dark); font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* The hotseat's seat tabs sit in the one top row, not on a header of their own. */
-.ie-statusline-seats { flex: 0 1 auto; min-width: 0; display: flex; overflow: hidden; }
+.ie-statusline-seats { flex: 0 1 auto; min-width: 0; display: flex; overflow-x: auto; scrollbar-width: none; }
+
+.ie-statusline-seats::-webkit-scrollbar { display: none; }
 
 .ie-statusline-seats .ie-seat-strip {
   display: flex;

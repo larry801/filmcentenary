@@ -196,7 +196,7 @@ export const TrackStrip = ({
           onClick={panel.onToggle}
         >
           {panel.label}
-          {panel.badge === true && <i className="ie-panel-badge" aria-hidden="true"/>}
+          {panel.badge === true && <i className="ie-panel-pip" aria-hidden="true"/>}
         </button>
       )}
 
