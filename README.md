@@ -26,20 +26,19 @@ CI 分成两个 workflow：
 - `.github/workflows/ci.yml`：单元测试、类型检查、生产构建和 Playwright E2E，
   跑在 `feature/**`、`fix/**`、`refactor/**`、`test/**`、`perf/**` 分支上，以及指向 `master`
   的 pull request。**`master` 上的 push 不跑这套测试**（合并前后已经验证过）。
-  E2E 拆成两组并行 job：`e2e-app` 跑默认套件（Vite dev server，不需要 `build`
-  产物，所以不等构建，push 后立即启动）；`e2e-ie` 按四个 IE 配置各起一个
-  runner（`:5203` 回归、`:5201` 控件、`:5202` 观战、`:5204` 手机版 390×844，
-  含一个粗指针项目），四者端口和服务器本来就互不相干，并行后墙钟从四个套件
-  之和降到最慢的那一个。
+  E2E 只剩一个 `e2e-app` job：默认套件跑在 Vite dev server 上（大厅、Virgin
+  Queen 与共享卡表），不需要 `build` 产物，push 后立即启动。帝国挽歌的四个
+  专用套件（回归 / 控件 / 观战 / 手机）随极简界面改版一起删除，见
+  `docs/imperial-elegy/MINIMAL_UI.md`。
 
-  E2E 不再在 runner 上装浏览器。`ci.yml` 先由 `playwright-image` job 构建
+  E2E 不在 runner 上装浏览器。`ci.yml` 先由 `playwright-image` job 构建
   （或复用）`Dockerfile.playwright` 定义的测试镜像：Node 22、Chromium
-  headless shell 及其系统依赖、预热的 Yarn 缓存。E2E job（`e2e-ie` 是四个
-  矩阵实例）用 `container:` 直接跑在这个镜像里，工作目录就是 runner 挂载的
-  checkout；再用 `yarn install --offline` 从镜像缓存里链接 `node_modules`，
-  所以一次运行既不下载浏览器也不访问 npm。镜像 tag 由 `Dockerfile.playwright`
-  （含紧随其后的 `.dockerignore`）、`package.json`、`yarn.lock` 的内容哈希
-  决定：只改源码会复用已发布的镜像，改了这几个文件才会重新构建并推到
+  headless shell 及其系统依赖、预热的 Yarn 缓存。`e2e-app` 用 `container:`
+  直接跑在这个镜像里，工作目录就是 runner 挂载的 checkout；再用
+  `yarn install --offline` 从镜像缓存里链接 `node_modules`，所以一次运行既不
+  下载浏览器也不访问 npm。镜像 tag 由 `Dockerfile.playwright`（含紧随其后的
+  `.dockerignore`）、`package.json`、`yarn.lock` 的内容哈希决定：只改源码会
+  复用已发布的镜像，改了这几个文件才会重新构建并推到
   `ghcr.io/larry801/film-centenary-playwright`。
 
   注意发布镜像需要 `packages: write`，fork 来的 PR 拿不到这个权限，这类 PR

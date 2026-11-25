@@ -170,9 +170,8 @@ jobs:
           --testPathPatterns "tools/vq-sim/sweep"
           --testPathIgnorePatterns "/node_modules/"
 
-  # Production build plus the server bundle.  The E2E jobs reuse `build/`
-  # instead of paying for a second build, and e2e/imperial-elegy-spectator
-  # needs build/server.js to exist before it starts.
+  # Production build plus the server bundle.  `e2e-app` runs against the dev
+  # server on its own origin, so nothing downstream consumes these artifacts.
   build:
     runs-on: ubuntu-24.04
     timeout-minutes: 25
@@ -190,12 +189,6 @@ jobs:
         run: yarn build
       - name: Build the server bundle
         run: yarn build:server
-      - name: Upload the build output
-        uses: actions/upload-artifact@v7
-        with:
-          name: app-build
-          path: build
-          retention-days: 3
       # The Nodaroo deployment uploads `yarn build:single`'s output and starts it
       # with plain node on a panel that has no node_modules and no PORT variable,
       # so the bundle has to carry its dependencies and its port. Copy the build
@@ -334,64 +327,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report-app
-          path: |
-            playwright-report
-            test-results
-          retention-days: 7
-          if-no-files-found: ignore
-
-  # The three Imperial Elegy configs own distinct ports and origins (:5203,
-  # :5201, :5202 + a game server on :4004), so they never contended with each
-  # other; running them in one job serialised 47 s + 60 s + 8 s of tests behind
-  # one runner.  One job per config keeps the wall clock at the slowest config
-  # (controls, ~60 s) instead of their sum.  All three reuse `build/` from the
-  # build job, and the spectator spec needs build/server.js.
-  e2e-ie:
-    needs: [build, playwright-image]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: ie-regression
-            command: yarn test:e2e:ie:regression
-          - name: ie-controls
-            command: yarn test:e2e:ie:controls
-          - name: ie-spectator
-            command: yarn test:e2e:ie:spectator
-          - name: ie-mobile
-            command: yarn test:e2e:ie:mobile
-    container:
-      image: ${{ needs.playwright-image.outputs.image }}:${{ needs.playwright-image.outputs.tag }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-      # Docker's default 64 MB /dev/shm is where Chromium keeps its shared
-      # memory; a full six-player match exhausts it and the browser dies with a
-      # closed-target error that looks like a test bug.
-      options: --shm-size=1gb
-    steps:
-      - name: Check out the repo
-        uses: actions/checkout@v7
-      - name: Download the build output
-        uses: actions/download-artifact@v8
-        with:
-          name: app-build
-          path: build
-      - name: Trust the checkout inside the container
-        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - name: Link dependencies from the image cache
-        run: yarn install --frozen-lockfile --offline --non-interactive
-      - name: Run browser tests
-        run: ${{ matrix.command }}
-      # `test-results/ie-spectator` is the spectator spec's own output dir, so
-      # the same glob keeps every config's failure material.
-      - name: Upload the Playwright report
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v7
-        with:
-          name: playwright-report-${{ matrix.name }}
           path: |
             playwright-report
             test-results

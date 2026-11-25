@@ -831,52 +831,19 @@ The same rule applies in Playwright: wait for the state the sleep was guessing
 at (`data-active` on a seat panel, a button disappearing, a pending decision's
 `id` changing) rather than `waitForTimeout`.
 
-### IE Playwright configs
+### Browser suite
 
-The three IE browser configs are deliberately separate, and all three are
-started by their own config so CI needs no hand-started servers:
+Imperial Elegy no longer has a Playwright suite. The four IE specs (regression,
+controls, spectator, phone) and their `playwright.ie-*.config.ts` files were
+deleted with the minimal-UI redesign: they pinned the old shell's regions,
+ports and `data-testid` placement, which the redesign changes on purpose. The
+default `yarn test:e2e` suite still runs the lobby, Virgin Queen and the shared
+card tables.
 
-- **regression** (`playwright.ie-regression.config.ts`) builds nothing itself;
-  its `webServer` runs `vite preview` over `build/` on `:5203`, so `yarn build`
-  must run first.
-- **controls** (`playwright.ie-controls.config.ts`) does the same on `:5201`.
-- **spectator** (`playwright.ie-spectator.config.ts`) has no `webServer`
-  block: the spec itself starts a boardgame.io server on `:4004` and a
-  `vite preview` on `:5202`, and requires `build/server.js` to exist.
-
-`yarn test:e2e` deliberately ignores these three specs (they run against the
-dev server on `:5173`, not their own origin); `yarn test:e2e:ie` runs all three
-in order, and each one also has its own script
-(`test:e2e:ie:regression`, `:controls`, `:spectator`) for a CI job that runs
-them on separate runners.
-
-All three IE specs now wait on observable state instead of fixed sleeps, so the
-suite no longer pays a 180-250 ms pause per seat switch. `focusSeat` waits for
-the seat panel's `data-active`, the prep/home-card helpers wait for their button
-to disappear, and `answerStartPending` waits for the pending decision's `id` to
-change. The controls spec dropped from 1.4 min to ~58 s and the regression spec
-from 1.3 min to ~53 s on the same runner; CI runs the three IE configs and the
-default suite as four parallel jobs, so the whole browser stage is bounded by
-the slowest one instead of by their sum.
-
-```sh
-# Regression: original hotseat spec, 6 tests, preview :5203
-yarn build
-./node_modules/.bin/playwright test --config=playwright.ie-regression.config.ts
-
-# Controls: 15 tests, preview :5201
-./node_modules/.bin/playwright test --config=playwright.ie-controls.config.ts
-
-# Online/spectator: 3 tests, self-starts game server :4004 + preview :5202
-yarn build:server          # produces build/server.js, which the spec requires
-./node_modules/.bin/playwright test --config=playwright.ie-spectator.config.ts
-
-# All three in order
-yarn test:e2e:ie
-```
-
-The spectator spec builds its own frontend into `/tmp/ie/spectator-dist` and
-writes its playwright output under `test-results/ie-spectator`.
+What replaces them: the Jest component suites (render-level assertions on the
+same controls), the design gates (`yarn ie:tokens:check`, `yarn ie:contrast`)
+and a manual screenshot record under `docs/qa/`. See
+[`MINIMAL_UI.md`](MINIMAL_UI.md) §7 for the verification method.
 
 **Full evidence for this refresh:** the IE Jest suite passes **2641/2641 tests
 in 205/205 suites**; `tsc`, server `tsc`, `yarn build` and `yarn build:server` are
@@ -884,10 +851,7 @@ clean; `python3 scripts/extract-imperial-elegy.py --check` verifies **501
 assets**. The declared `@i18n-chain/react@2.0.1` is now installed in this
 checkout’s `node_modules`, so no shim is needed (see
 [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md#test-and-build-evidence)).
-The browser specs **now contain 6 regression, 15 controls and 3 spectator
-tests** (older notes here quoted 5 / 3 / 3), so take the pass counts from the
-`ci.yml` e2e job (`yarn test:e2e:ie`) rather than from an older local run. The
-combat-card suites are included in the run, as are
+The combat-card suites are included in the run, as are
 the new crisis, settlement, characteristics, logistics, card-choice, end-phase,
 alliance, naval, privacy, Great War home-front, India/UK, Rome/GW-major and
 playability/UI suites.
