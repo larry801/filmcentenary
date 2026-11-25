@@ -148,13 +148,14 @@ describe("UK Professional Army (33.2)", () => {
     expect(recruit(G, makeCtx([], seat("GE")), "saxony", "army")).toBe(INVALID_MOVE);
   });
 
-  test("elite corps needs a friendly army and obeys the printed EC cap", () => {
+  test("elite corps needs a friendly army and is bounded by the printed counter mix", () => {
     const G = fresh();
     startAction(G, "GE", 4);
     expect(recruit(G, makeCtx([], seat("GE")), "saxony", "eliteCorps")).toBe(INVALID_MOVE);
-    // GE already fields the Berlin EC at setup; 12.2/A106 cap a power at one
-    // elite corps (two for the Ottomans with The Young Turks).
-    expect(recruit(G, makeCtx([], seat("GE")), "berlin", "eliteCorps")).toBe(INVALID_MOVE);
+    // GE already fields the Berlin EC at setup and its chart prints four ECs.
+    // 12.2 has no per-player ceiling; errata 33.6 caps only the Ottomans (one
+    // until The Young Turks, then two), so a second GE EC is legal.
+    expect(recruit(G, makeCtx([], seat("GE")), "berlin", "eliteCorps")).toBeUndefined();
     // AU has an army in Vienna and no starting EC, so the attachment is legal.
     startAction(G, "AU", 4);
     expect(recruit(G, makeCtx([], seat("AU")), "vienna", "eliteCorps")).toBeUndefined();
