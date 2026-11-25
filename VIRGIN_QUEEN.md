@@ -1859,4 +1859,14 @@ Scenario Book 第 13 页：2–5 人局里奥斯曼（2–4 人局）与 HRE（2
 - **标签页标题（Site title）**：Virgin Queen 页面此前沿用站点标题 "Film Centenary"，现在由 `usePageTitle` 在 VQ 棋盘挂载期间把标题换成 `Virgin Queen 童贞女王`（英文界面为 `Virgin Queen`），离开时还原；热座同时挂载多个棋盘也只在首次记录站点标题，避免把棋盘标题当成还原目标。
 - **春季部署后的死路（规则 10）**：完成一次春季部署后，步骤条仍显示"选择起点／选择单位／选择目标"，再次点击目的地被引擎以 `INVALID_MOVE` 静默拒绝。现在部署成功后退出该步骤并显示"本回合已完成春季部署（每方每回合仅一次）"；若本势力已在 `springDone` 内，重新进入春季阶段也不再武装该模式。
 - **起点高亮用词（13.1 / 16.1 / 10.6）**：移动与春季部署的第一步选的是起点，地图却把所有高亮地区读作"合法目标"。`VQMap` 新增 `highlightLabel`，起点步骤改用"合法起点"（英文 `Legal origin`），其余动作不变。
-- **战报本地化**：`Murat Reis joins Ottoman's sea captain pool.` 一类"加入海船长池"的战报缺少中文规则，中文界面会显示"穆拉特·雷斯 joins 奥斯曼帝国's sea captain pool."。已补上 `logText` 规则。战报模块仍有约 80 条模板没有中文规则（`Treasure Fleet appears…`、`… pays tribute…` 等），属于同类已知缺口，未在本轮处理。
+- **战报本地化**：`Murat Reis joins Ottoman's sea captain pool.` 一类"加入海船长池"的战报缺少中文规则，中文界面会显示"穆拉特·雷斯 joins 奥斯曼帝国's sea captain pool."。已补上 `logText` 规则。其余战报模板已在后续「战报模板全量中文化」一轮全部补齐。
+
+## 战报模板全量中文化
+
+`src/virginQueen/logText.ts` 原先按"先替换专名、再匹配规则"工作，凡是规则里写死了英文专名（如 `Spain`、`French home spaces`、`the Ottoman`）的行，一旦专名先被换成中文就再也匹配不上，只能回退成中英混排。现在改为先用英文原文匹配规则，再对结果做专名替换；同时把行文中出现的专名补齐到名称表：将领与王室成员的内部 id（`alba`、`maryScots`）、地区 id（`ulster`、`dublin`）、官方卡牌英文名（含小写 `the Black Queen` 形式），以及船型、单位名的复数写法。
+
+逐个清点了引擎里 501 条 `pushLog` 模板，为仍然落到英文的模板补规则，覆盖外交、谍报、叛乱、赞助、海船长、冬季返营、天主教联盟、摩里斯科叛乱、无敌舰队等模块，包括此前举例的 `Treasure Fleet appears…`、`… pays tribute: the Ottoman …`、`Catholic League: Spain takes …`、`Morisco Revolt: …`。另修正几条会把细节吞掉的旧规则：`X adds N <power> influence in <place>` 丢失地点、`removes the colony at X and draws a treasure` 因贪婪匹配把后半句当殖民地名、冬季移动/超编返营/撤退丢弃损耗附注、`the Mercenaries for Hire marker` 少了冠词就不匹配、`galleon(s)` 写法与 `2 galleons` 不一致。掷骰摘要（`[1,2] = 1 hit(s)` 之类）不是模板而是自由文本，`logText` 也补了一层常见词替换（命中、骰子、动荡、攻守方等），避免中文行里夹 `hit(s)`。
+
+回归测试新增 `src/virginQueen/logTextCoverage.test.ts`：约 180 条按各模板真实参数拼出的战报行，逐条断言中文输出不再残留拉丁单词，并对地点、卡名、专名与"丢细节"的旧规则做精确断言。
+
+验证：`jest src/virginQueen --silent --maxWorkers=4` 281 suites、1722 tests passed；`npx tsc --noEmit` 通过。

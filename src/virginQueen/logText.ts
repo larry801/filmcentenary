@@ -5,6 +5,7 @@ import {PATRONS} from "./data/patrons";
 import {ROYALS} from "./data/royals";
 import {SEA_CAPTAINS} from "./data/seaCaptains";
 import {WORLD_SEA_ZONES, WORLD_SETTLEMENTS} from "./data/world";
+import {OFFICIAL_CARDS} from "./data/cards";
 
 /**
  * Display-time Chinese translation for the engine log.
@@ -26,11 +27,23 @@ const addName = (english: string | undefined, chinese: string | undefined): void
     names.set(english, chinese);
 };
 
-for (const space of SPACES) addName(space.name, space.nameZh);
-for (const zone of SEA_ZONES) addName(zone.name, zone.nameZh);
+for (const space of SPACES) {
+    addName(space.name, space.nameZh);
+    addName(space.id, space.nameZh);
+}
+for (const zone of SEA_ZONES) {
+    addName(zone.name, zone.nameZh);
+    addName(zone.id, zone.nameZh);
+}
 for (const zone of SEA_ZONES) addName(zone.id, zone.nameZh);
-for (const leader of LEADERS) addName(leader.name, leader.nameZh);
-for (const royal of ROYALS) addName(royal.nameEn, royal.nameZh);
+for (const leader of LEADERS) {
+    addName(leader.name, leader.nameZh);
+    addName(leader.id, leader.nameZh);
+}
+for (const royal of ROYALS) {
+    addName(royal.nameEn, royal.nameZh);
+    addName(royal.id, royal.nameZh);
+}
 for (const patron of PATRONS) addName(patron.nameEn, patron.nameZh);
 for (const captain of SEA_CAPTAINS) addName(captain.nameEn, captain.nameZh);
 for (const zone of WORLD_SEA_ZONES) addName(zone.nameEn, zone.nameZh);
@@ -73,8 +86,80 @@ addName("Mercenaries for Hire", "雇佣兵征募标记");
 addName("Prague Cultural Center", "布拉格文化中心");
 addName("Prague", "布拉格");
 
+
+// Event and card titles the engine logs verbatim; they are not in the card
+// table names because the official cards already carry Chinese names.
+const LEGACY_CARD_NAMES: Record<string, string> = {
+    "Grand Vizier": "大维齐尔",
+    "Valois Wedding": "瓦卢瓦婚礼",
+    "Imperial Diet": "帝国议会",
+    "Huguenot Lent": "胡格诺斋期",
+    "Morisco Revolt": "摩里斯科叛乱",
+    "Scottish Lords Rebel": "苏格兰领主叛乱",
+    "Calvinist Zeal": "加尔文教热忱",
+    "Belgic Confession": "比利时信条",
+    "Iconoclastic Fury": "破坏圣像狂潮",
+    "Council of Troubles": "动乱委员会",
+    "Index of Prohibited Books": "禁书目录",
+    "Tridentine Catechism": "特伦托教理问答",
+    "English Recusants": "英格兰拒教者",
+    "Rising of the North": "北方起义",
+    "Spanish Fury": "西班牙暴怒",
+    "Grand Tour": "壮游",
+    "Papal Bull": "教皇诏书",
+    "War in Persia": "波斯战争",
+    "War with Poland": "波兰战争",
+    "Dutch Revolt": "荷兰起义",
+    "Enterprise of England": "英格兰远征",
+    "Lord of the Netherlands": "尼德兰领主",
+    "Paris is Worth a Mass": "巴黎值得一场弥撒",
+    "St. Bartholomew's Day Massacre": "圣巴托罗缪之夜大屠杀",
+    "New World Riches": "新世界财富",
+    "Traders of the World": "世界商人",
+    "Elizabeth Excommunicated": "伊丽莎白被逐出教门",
+    "Foxe's Book of Martyrs": "《殉道者之书》",
+    "Sultan's Harem": "苏丹后宫",
+    "Northern Rising": "北方起义",
+    "Tenth Penny": "什一税",
+    "Black Magic": "黑魔法",
+    "Double Agent": "双面间谍",
+    "John Hawkins": "约翰·霍金斯",
+    "Nostradamus' Prophecies": "诺查丹玛斯预言",
+    "Catherine's Flying Squadron": "凯瑟琳的飞龙舰队",
+    "Walsingham": "沃尔辛厄姆",
+    "Sir Edward Stafford": "爱德华·斯塔福德爵士",
+    "Edmund Campion": "埃德蒙·坎皮恩",
+    "John Knox": "约翰·诺克斯",
+    "Sultana Safiye": "苏丹娜·萨菲耶",
+    "Don Antonio": "安东尼奥",
+    "Menéndez de Avilés": "梅嫩德斯·德阿维莱斯",
+    "Richard Topcliffe": "理查德·托普克利夫",
+    "Le Testu": "勒泰斯蒂",
+    "Gaspard de Coligny": "加斯帕尔·德科利尼",
+    "Coligny": "科利尼",
+    "Knights of St. John": "圣约翰骑士团",
+    "Genoese Bankers": "热那亚银行家",
+    "Muscovy Company": "莫斯科公司",
+    "Taxis Family Courier": "塔克西斯家族信使",
+    "Philosopher's Stone": "贤者之石",
+    "Italian Expert": "意大利专家",
+    "Patron of Arts": "艺术赞助人",
+    "Foreign Volunteers": "外国志愿者",
+    "Diplomatic Faux Pas": "外交失仪",
+    "German Recruitment Curtailed": "德意志征募受限",
+    "Unrest in the Realm": "国境动荡",
+    "Sea Beggars": "海上乞丐",
+    "Border Reivers": "边境掠夺者",
+    "Army Mutiny": "军队哗变",
+};
+for (const [english, chinese] of Object.entries(LEGACY_CARD_NAMES)) addName(english, chinese);
+for (const card of OFFICIAL_CARDS) {
+    addName(card.nameEn, card.nameZh);
+    if (card.nameEn.startsWith("The ")) addName(`the ${card.nameEn.slice(4)}`, card.nameZh);
+}
+
 const sortedNames = [...names.keys()].sort((a, b) => b.length - a.length);
-const namePattern = new RegExp(`(^|[^\\p{L}\\p{N}])(${sortedNames.map(escapeRegExp).join("|")})(?=$|[^\\p{L}\\p{N}])`, "gu");
+const namePattern = new RegExp(`(^|[^A-Za-z0-9])(${sortedNames.map(escapeRegExp).join("|")})(?![A-Za-z0-9])`, "gu");
 
 const localizeNames = (text: string): string =>
     text.replace(namePattern, (_match, prefix: string, english: string) =>
@@ -84,12 +169,286 @@ const side = (value: string): string => value === "field" ? "野战" : value ===
 const religion = (value: string): string => value === "catholic" ? "天主教" : value === "protestant" ? "新教" : value === "新教联盟" ? "新教" : value;
 const phase = (value: string): string => value === "spring" ? "春季部署" : value === "action" ? "行动阶段" : value === "diplomacy" ? "外交阶段" : value;
 const unitKind = (value: string): string => ({
-    regular: "正规军", merc: "雇佣兵", mercenary: "雇佣兵", cav: "骑兵", cavalry: "骑兵",
-    galley: "桨帆船", galleon: "大帆船", racebuilt: "快帆船", "race-built": "快帆船", corsair: "海盗船",
-    fortress: "要塞", patrol: "巡逻队",
+    regular: "正规军", regulars: "正规军", merc: "雇佣兵", mercenary: "雇佣兵",
+    mercenaries: "雇佣兵", cav: "骑兵", cavalry: "骑兵",
+    galley: "桨帆船", galleys: "桨帆船", galleon: "大帆船", galleons: "大帆船",
+    racebuilt: "快帆船", "race-built": "快帆船", "race-built galleon": "快帆船",
+    corsair: "海盗船", corsairs: "海盗船", fortress: "要塞", patrol: "巡逻队",
 }[value] ?? value);
 
+
+const REBELLION_RESULTS: Record<string, string> = {
+    victory: "天主教叛乱成功",
+    conversionsAndRebellion: "进行 6 次天主教转化并发动叛乱",
+    conversions: "进行 6 次天主教转化",
+    inspectEngland: "西班牙查看英格兰手牌",
+    loseOperatives: "西班牙失去在英格兰的全部特工",
+    inspectSpain: "英格兰查看西班牙手牌",
+    minusCard: "西班牙下回合少抽一张牌",
+};
+
+const CITY_REBEL_CHOICES: Record<string, string> = {
+    "land:spain:regular": "西班牙损失 1 个正规军",
+    "land:spain:merc": "西班牙损失 1 个雇佣兵",
+    "land:spain:cav": "西班牙损失 1 个骑兵",
+    "naval:spain:galley": "西班牙损失 1 艘桨帆船",
+    "naval:spain:galleon": "西班牙损失 1 艘大帆船",
+    "naval:spain:racebuilt": "西班牙损失 1 艘快帆船",
+    "naval:spain:corsair": "西班牙损失 1 艘海盗船",
+};
+
 const RULES: Rule[] = [
+    // ---------------------------------------------------------------- gap fill
+    [/^(.+) returns (\d+) overstacked unit\(s\) from (.+?) to (.+?)( \((\d+) lost to winter attrition\))?\.$/,
+        (_m, p, n, from, to, _clause, lost) => `${p} 将 ${n} 个超编单位从 ${from} 返回 ${to}${lost ? `（${lost} 个因冬季损耗损失）` : ""}。`],
+    [/^(.+) withdraws (\d+) unit\(s\) from (.+?) to (.+?)( \((\d+) lost to winter attrition\))?\.$/,
+        (_m, p, n, from, to, _clause, lost) => `${p} 将 ${n} 个单位从 ${from} 撤往 ${to}${lost ? `（${lost} 个因冬季损耗损失）` : ""}。`],
+    [/^(.+) moves (\d+) unit\(s\) from (.+?) to (.+?) for the winter( \((\d+) lost to winter attrition\))?\.$/,
+        (_m, p, n, from, to, _clause, lost) => `${p} 冬季将 ${n} 个单位从 ${from} 移至 ${to}${lost ? `（${lost} 个因冬季损耗损失）` : ""}。`],
+    // Templates the engine logged with no Chinese rule.  They are matched
+    // before the generic rules below so that a specific phrase wins over a
+    // broader "X verb Y" pattern.
+    [/^Grand Vizier adds (\d+) (.+) in (.+)\.$/, (_m, n, kind, place) => `大维齐尔在 ${place} 增加 ${n} 个${unitKind(kind)}。`],
+    [/^Untimely Death: no listed leader remains in play\.$/, () => "英年早逝：没有列出的将领仍在场上。"],
+    [/^(.+) is dead; the betrothal is cancelled\.$/, (_m, royal) => `${royal} 已死亡；婚约取消。`],
+    [/^English Catholic Rebellion: (.+) controls (.+)\.$/, (_m, power, place) => `英格兰天主教叛乱：${power} 控制 ${place}。`],
+    [/^English Catholic Rebellion: (.+)\.$/, (_m, result) => `英格兰天主教叛乱：${REBELLION_RESULTS[result] ?? result}。`],
+    [/^(.+) plays Sir Edward Stafford to cancel Walsingham\.$/, (_m, p) => `${p} 打出爱德华·斯塔福德爵士，取消沃尔辛厄姆。`],
+    [/^St\. Bartholomew's Day Massacre: (.+) becomes Catholic\.$/, (_m, place) => `圣巴托罗缪之夜大屠杀：${place} 转为天主教。`],
+    [/^France attempts a free (\d+) CP assassination of Coligny\.$/, (_m, cp) => `法国尝试一次免费的 ${cp} CP 刺杀科利尼行动。`],
+    [/^Northern Rising: (.+) becomes Catholic\.$/, (_m, place) => `北方起义：${place} 转为天主教。`],
+    [/^Northern Rising: unrest in (.+)\.$/, (_m, place) => `北方起义：${place} 出现动荡。`],
+    [/^(.+) plays Northern Rising; Spain resolves it\.$/, (_m, p) => `${p} 打出北方起义；西班牙结算该事件。`],
+    [/^St\. Bartholomew's Day Massacre: (\d+) Protestant mercenaries in France removed; the Protestant gains a \+1 Card marker\.$/,
+        (_m, n) => `圣巴托罗缪之夜大屠杀：移除法国 ${n} 个新教雇佣兵；新教获得 +1 抽牌标记。`],
+    [/^(.+) would remove England's informant; England may respond with Walsingham\.$/,
+        (_m, source) => `${source} 将移除英格兰的间谍；英格兰可用沃尔辛厄姆响应。`],
+    [/^Mercenaries for Hire not granted this turn are lost\.$/, () => "本回合未授予的雇佣兵征募标记作废。"],
+    [/^(.+) plays Sultan's Harem: the Ottoman skips its next action round and (.+) draws a card\.$/,
+        (_m, p, drawer) => `${p} 打出苏丹后宫：奥斯曼跳过下一个行动轮，${drawer} 抽一张牌。`],
+    [/^Scottish Lords Rebel: Scotland was already evaluated this turn, so the event is ignored \(rule 24\.6\)\.$/,
+        () => "苏格兰领主叛乱：本回合已评估过苏格兰，事件被忽略（规则 24.6）。"],
+    [/^Scottish Lords Rebel: no power wins the Scottish diplomacy check; Scottish control is unchanged and no units are displaced\.$/,
+        () => "苏格兰领主叛乱：没有势力在苏格兰外交检定中获胜；苏格兰控制权不变，也没有单位被移动。"],
+    [/^Don Antonio places (\d+) Portuguese regular\(s\) in (.+)\.$/, (_m, n, place) => `安东尼奥在 ${place} 放置 ${n} 个葡萄牙正规军。`],
+    [/^(\d+)-unit foreign army appears in (.+); (.+) must commit 3–8 land units\.$/,
+        (_m, n, enemy, p) => `${n} 个单位的敌军出现在 ${enemy}；${p} 必须投入 3–8 个陆军单位。`],
+    [/^England finds no retrievable card in the discard pile\.$/, () => "英格兰在弃牌堆中没有可取回的牌。"],
+    [/^England takes (.+) from the discard pile\.$/, (_m, card) => `英格兰从弃牌堆取得 ${card}。`],
+    [/^An extra treasure joins the Spanish treasure row\.$/, () => "西班牙宝藏区增加一个宝藏。"],
+    [/^Foxe's Book of Martyrs converts (\d+) English Catholic space\(s\)\.$/,
+        (_m, n) => `《殉道者之书》转化 ${n} 个英格兰天主教地区。`],
+    [/^Council of Troubles converts the Netherlands and takes (\d+) space\(s\); the Protestant gains a \+1 Card marker\.$/,
+        (_m, n) => `动乱委员会转化尼德兰并夺取 ${n} 个地区；新教获得 +1 抽牌标记。`],
+    [/^Sir Edward Stafford discards a (\d+) CP treasure from (.+)\.$/,
+        (_m, cp, p) => `爱德华·斯塔福德爵士从 ${p} 弃置一个 ${cp} CP 宝藏。`],
+    [/^Sir Edward Stafford discards (.+) from (.+)\.$/, (_m, what, p) => `爱德华·斯塔福德爵士从 ${p} 弃置 ${what}。`],
+    [/^Ottoman Tribute: no legal target; the event has no effect\.$/, () => "奥斯曼贡金：没有合法目标；事件没有效果。"],
+    [/^Venice cannot pay tribute; the Ottoman declares war and gains 2 CP\.$/,
+        () => "威尼斯无法纳贡；奥斯曼宣战并获得 2 CP。"],
+    [/^(.+) declines to move (\d+) rebels\.$/, (_m, p, n) => `${p} 放弃移动 ${n} 个叛军。`],
+    [/^(.+) rebels move from (.+) to (.+)\.$/, (_m, rebel, from, to) => `${rebel}叛军从 ${from} 移动到 ${to}。`],
+    [/^Spain uses the Spanish Road from Milan to (.+)\.$/, (_m, place) => `西班牙使用西班牙之路从米兰前往 ${place}。`],
+    [/^(.+) allies with (.+), declares war on (.+), and places (\d+) unrest \((.+)\)\.$/,
+        (_m, p, ally, enemy, n, rolls) => `${p} 与 ${ally} 结盟，向 ${enemy} 宣战，并放置 ${n} 个动荡（${rolls}）。`],
+    [/^Dutch Revolt: (\d+) Netherlands space\(s\) under Spanish control\.$/,
+        (_m, n) => `荷兰起义：${n} 个尼德兰地区处于西班牙控制下。`],
+    [/^Act of Abjuration: the Protestant accepts (.+)'s offer\.$/, (_m, p) => `誓绝法案：新教接受 ${p} 的提议。`],
+    [/^Papal Bull sponsors (.+) for (.+)\.$/, (_m, patron, p) => `教皇诏书为 ${p} 赞助 ${patron}。`],
+    [/^Grand Tour makes peace between (.+) and (.+)\.$/, (_m, a, b) => `壮游促成 ${a} 与 ${b} 议和。`],
+    [/^Grand Tour clears French unrest and reinforces Paris for (.+)\.$/,
+        (_m, p) => `壮游清除法国动荡并为 ${p} 增援巴黎。`],
+    [/^Genoese Bankers launch (.+)'s colonist expedition and grant 3 CP\.$/,
+        (_m, captain) => `热那亚银行家发起 ${captain} 的殖民远征并获得 3 CP。`],
+    [/^Muscovy Company grants (.+) an extra card next year\.$/, (_m, p) => `莫斯科公司给予 ${p} 下一年多抽一张牌。`],
+    [/^Knights of St\. John reduce the Ottoman's piracy VP\.$/, () => "圣约翰骑士团减少奥斯曼的海盗分。"],
+    [/^Knights of St\. John take (.+) from the Ottoman\.$/, (_m, card) => `圣约翰骑士团从奥斯曼取得 ${card}。`],
+    [/^Knights of St\. John deploy 2 regulars and a fortress in (.+)\.$/,
+        (_m, place) => `圣约翰骑士团在 ${place} 部署 2 个正规军和 1 座要塞。`],
+    [/^Holy League adds (.+) influence for (.+)\.$/, (_m, list, p) => `神圣联盟为 ${p} 增加影响力：${list}。`],
+    [/^Treachery! forces an assault on (.+)\.$/, (_m, place) => `背叛！迫使对 ${place} 发起强攻。`],
+    [/^City State Rebels: (.+) must allocate (\d+) hit\(s\) in (.+)\.$/,
+        (_m, controller, n, place) => `城邦叛乱：${controller} 必须在 ${place} 分配 ${n} 次命中。`],
+    [/^Army Mutiny strikes (.+) in (.+)\.$/, (_m, p, place) => `军队哗变打击 ${place} 的 ${p}。`],
+    [/^El Dorado: (\d+) treasure\(s\) are lost with the expedition\.$/,
+        (_m, n) => `黄金国：远征损失 ${n} 个宝藏。`],
+    [/^(.+) departs for El Dorado; the expedition ends and returns next turn\.$/,
+        (_m, captain) => `${captain} 启程前往黄金国；远征结束，下回合返回。`],
+    [/^Philosopher's Stone cancels (.+)'s work\.$/, (_m, patron) => `贤者之石取消 ${patron} 的研究。`],
+    [/^Richard Topcliffe removes (\d+) Jesuit\(s\), converts England, and Spain gains \+1 Card\.$/,
+        (_m, n) => `理查德·托普克利夫移除 ${n} 名耶稣会士，转化英格兰，西班牙获得 +1 张牌。`],
+    [/^Foreign Volunteers place (\d+) of 3 regular\(s\) for (.+)\.$/,
+        (_m, n, p) => `外国志愿者为 ${p} 放置 3 个正规军中的 ${n} 个。`],
+    [/^Diplomatic Faux Pas removes (\d+) influence from (.+)\.$/,
+        (_m, n, p) => `外交失仪从 ${p} 移除 ${n} 点影响力。`],
+    [/^German Recruitment Curtailed removes (.+)\.$/,
+        (_m, removed) => `德意志征募受限：移除 ${removed === "no mercenaries" ? "没有雇佣兵" : removed.split("; ").map(unitKind).join("、")}。`],
+    [/^Unrest in the Realm places (\d+) unrest in (.+) home spaces\.$/,
+        (_m, n, p) => `国境动荡在 ${p} 的本土地区放置 ${n} 个动荡。`],
+    [/^Sea Beggars seize (.+) for the Protestant\.$/, (_m, place) => `海上乞丐为新教夺取 ${place}。`],
+    [/^Border Reivers take (.+) from (.+)\.$/, (_m, card, p) => `边境掠夺者从 ${p} 取得 ${card}。`],
+    [/^Border Reivers add 4 (.+) influence in Scotland\.$/,
+        (_m, p) => `边境掠夺者在苏格兰为 ${p} 增加 4 点影响力。`],
+    [/^(.+\[.+\] = .+) against (.+)\.$/, (_m, rolls, place) => `${rolls}，对抗 ${place}。`],
+    [/^Gregorian Calendar: (.+) will begin the next action round\.$/,
+        (_m, p) => `格里高利历：${p} 将开始下一个行动轮。`],
+    [/^Polish Royal Election ends the Polish war; the Holy Roman Empire is considered victorious\.$/,
+        () => "波兰王室选举结束波兰战争；神圣罗马帝国被视为胜利。"],
+    [/^Polish election: (.+) bids (\d+) and rolls (\d+) = (\d+)\.$/,
+        (_m, p, bid, roll, score) => `波兰选举：${p} 出价 ${bid}，掷骰 ${roll} 合计 ${score}。`],
+    [/^The Black Queen sends a spy against (.+)\.$/, (_m, p) => `黑王后派间谍针对 ${p}。`],
+    [/^The Black Queen sends an agent to assassinate (.+)\.$/,
+        (_m, leader) => `黑王后派特工刺杀 ${leader}。`],
+    [/^The Black Queen takes (.+) from (.+)\.$/, (_m, card, p) => `黑王后从 ${p} 取得 ${card}。`],
+    [/^Sultana Safiye gives (.+) 2 influence in Venice\.$/,
+        (_m, p) => `苏丹娜·萨菲耶在威尼斯给予 ${p} 2 点影响力。`],
+    [/^Sultana Safiye exchanges a card with (.+)\.$/, (_m, p) => `苏丹娜·萨菲耶与 ${p} 交换一张牌。`],
+    [/^Edmund Campion: no Jesuit remains on Spain's power board\.$/,
+        () => "埃德蒙·坎皮恩：西班牙势力板上没有耶稣会士。"],
+    [/^Edmund Campion places a Jesuit in (.+); (\d+) conversion attempt\(s\)\.$/,
+        (_m, place, n) => `埃德蒙·坎皮恩在 ${place} 放置耶稣会士；进行 ${n} 次转化尝试。`],
+    [/^Tenth Penny: Spain takes (.+) from the Protestant; it cannot be played this impulse\.$/,
+        (_m, card) => `什一税：西班牙从新教取得 ${card}；本行动轮不能打出。`],
+    [/^Taxis Family Courier gives (.+) to (.+)\.$/, (_m, card, p) => `塔克西斯家族信使将 ${card} 交给 ${p}。`],
+    [/^Black Magic discards (.+) from (.+)\.$/, (_m, card, p) => `黑魔法从 ${p} 弃置 ${card}。`],
+    [/^Black Magic takes (.+) from (.+)\.$/, (_m, card, p) => `黑魔法从 ${p} 取得 ${card}。`],
+    [/^Armada Pardon grants Spain (\d+) CP for the Armada\.$/,
+        (_m, cp) => `无敌舰队赦免给予西班牙 ${cp} CP 用于无敌舰队。`],
+    [/^Convention of Estates converts (\d+) Netherlands space\(s\) to Protestant\.$/,
+        (_m, n) => `三级会议转化 ${n} 个尼德兰地区为新教。`],
+    [/^Puritans draw (.+) from England; England discards it\.$/,
+        (_m, card) => `清教徒从英格兰抽走 ${card}；英格兰将其弃置。`],
+    [/^Puritans draw (.+) from England; England gives it to (.+)\.$/,
+        (_m, card, p) => `清教徒从英格兰抽走 ${card}；英格兰将其交给 ${p}。`],
+    [/^Puritans place unrest in (\d+) English space\(s\)\.$/,
+        (_m, n) => `清教徒在 ${n} 个英格兰地区放置动荡。`],
+    [/^Northwest Passage: (.+) rolls (\d+) and remains safe\.$/,
+        (_m, captain, first) => `西北航道：${captain} 掷出 ${first}，安全无事。`],
+    [/^Northwest Passage: (\d+) treasure\(s\) are lost with the expedition\.$/,
+        (_m, n) => `西北航道：远征损失 ${n} 个宝藏。`],
+    [/^Northwest Passage: (.+) rolls (\d+) then (\d+) and dies\.$/,
+        (_m, captain, first, second) => `西北航道：${captain} 掷出 ${first} 再掷 ${second}，死亡。`],
+    [/^Northwest Passage: (.+) rolls (\d+) then (\d+); the expedition ends and he returns next turn\.$/,
+        (_m, captain, first, second) => `西北航道：${captain} 掷出 ${first} 再掷 ${second}；远征结束，他下回合返回。`],
+    [/^Menéndez de Avilés adds a galleon to the Treasure Fleet escorts\.$/,
+        () => "梅嫩德斯·德阿维莱斯为珍宝舰队护航增加 1 艘大帆船。"],
+    [/^Menéndez de Avilés fortifies (.+) and adds a patrol\.$/,
+        (_m, place) => `梅嫩德斯·德阿维莱斯加固 ${place} 并增加一支巡逻队。`],
+    [/^Nostradamus' Prophecies: (.+) keeps (.+) and returns the rest\.$/,
+        (_m, p, card) => `诺查丹玛斯预言：${p} 保留 ${card}，其余返回。`],
+    [/^John Knox converts Scotland, sparing (.+)\.$/, (_m, place) => `约翰·诺克斯转化苏格兰，唯独保留 ${place}。`],
+    [/^John Knox adds 4 (.+) influence in Scotland\.$/,
+        (_m, p) => `约翰·诺克斯在苏格兰为 ${p} 增加 4 点影响力。`],
+    [/^Index of Prohibited Books cancels (.+)'s work\.$/, (_m, patron) => `禁书目录取消 ${patron} 的研究。`],
+    [/^Patron of Arts draws two cards and gives (.+) to (.+)\.$/,
+        (_m, card, p) => `艺术赞助人抽两张牌并将 ${card} 交给 ${p}。`],
+    [/^Patron of Arts sponsors (.+) for the Holy Roman Empire\.$/,
+        (_m, patron) => `艺术赞助人为神圣罗马帝国赞助 ${patron}。`],
+    [/^Italian Expert sponsors (.+) for (.+)\.$/, (_m, patron, p) => `意大利专家为 ${p} 赞助 ${patron}。`],
+    [/^Sack! roll at (.+): (.+) vs (\d+) defender\(s\)\.$/,
+        (_m, place, rolls, n) => `劫掠掷骰（${place}）：${rolls}，对抗 ${n} 个守军。`],
+    [/^Spanish Fury seizes (.+) from (.+); (.+) draws a card and the defender gains \+1 Card\.$/,
+        (_m, card, target, attacker) => `西班牙暴怒从 ${target} 夺取 ${card}；${attacker} 抽一张牌，守方获得 +1 张牌。`],
+    [/^(.+) becomes an Experienced Navigator \(Navigation (\d+)\)\.$/,
+        (_m, captain, nav) => `${captain} 成为经验丰富的航海家（航海值 ${nav}）。`],
+    [/^Gouvernante de France converts (\d+) French space\(s\); Protestant rebellions are blocked this turn\.$/,
+        (_m, n) => `法国女摄政转化 ${n} 个法国地区；本回合新教叛乱被阻止。`],
+    [/^Enterprise of England: (\d+) Jesuit\(s\), (\d+) Catholic, (\d+) Spanish-controlled, (\d+) Spanish regulars = (\d+)\.$/,
+        (_m, j, c, sc, sr, total) =>
+            `英格兰远征：${j} 名耶稣会士、${c} 个天主教地区、${sc} 个西班牙控制地区、${sr} 个西班牙正规军 = ${total}。`],
+    [/^The Spanish Armada is placed in (.+); Spain gains (\d+) CP\.$/,
+        (_m, port, cp) => `西班牙无敌舰队被放置在 ${port}；西班牙获得 ${cp} CP。`],
+    [/^Spain gains (\d+) CP for the Armada\.$/, (_m, cp) => `西班牙为无敌舰队获得 ${cp} CP。`],
+    [/^(.+) plays (.+) as an event\.$/, (_m, p, card) => `${p} 将 ${card} 作为事件打出。`],
+    [/^Sir Edward Stafford cancels Walsingham for (.+)\.$/,
+        (_m, p) => `爱德华·斯塔福德爵士为 ${p} 取消沃尔辛厄姆。`],
+    [/^William of Orange arrives but finds no friendly capital; he stays in the pool\.$/,
+        () => "奥兰治的威廉抵达，但找不到友好的首都；他留在人员池中。"],
+    [/^William of Orange is held back and may lead a Protestant rebellion\.$/,
+        () => "奥兰治的威廉被暂留，可领导新教叛乱。"],
+    [/^(.+) gives a random card to (.+)\.$/, (_m, p, target) => `${p} 随机给 ${target} 一张牌。`],
+    [/^(.+) gives a mercenary to (.+) in (.+)\.$/, (_m, p, target, place) => `${p} 在 ${place} 给 ${target} 一名雇佣兵。`],
+    [/^(.+) gives a treasure to (.+)\.$/, (_m, p, target) => `${p} 给 ${target} 一个宝藏。`],
+    [/^(.+) takes shared Sea Captain (.+) \(first come, first served; 5\.2\/17\.4\)\.$/,
+        (_m, p, captain) => `${p} 取用共享海船长 ${captain}（先到先得；5.2/17.4）。`],
+    [/^(.+) loads (.+) Portuguese treasure onto the expedition\.$/,
+        (_m, p, treasure) => `${p} 将 ${treasure.replace(/^(?:the|a) /, "")}葡萄牙宝藏装上远征队。`],
+    [/^(.+) discards (.+) Portuguese treasure \(no room\)\.$/,
+        (_m, p, treasure) => `${p} 弃置 ${treasure.replace(/^(?:the|a) /, "")}葡萄牙宝藏（舱位不足）。`],
+    [/^(.+) is caught alone and returns to the Turn Track\.$/,
+        (_m, leader) => `${leader} 孤军被截，返回回合记录轨。`],
+    [/^The siege of (.+) is lifted\.$/, (_m, place) => `${place} 的围城被解除。`],
+    [/^(.+) is placed on the Turn Track after his fleet is destroyed\.$/,
+        (_m, leader) => `${leader} 的舰队被消灭后，他被放置在回合记录轨。`],
+    [/^(.+) and (.+) announce an agreement: ?$/, (_m, a, b) => `${a} 与 ${b} 宣布达成协议：`],
+    [/^(.+) takes a treasure from the hand\.$/, (_m, p) => `${p} 从手中取得一个宝藏。`],
+    [/^(.+) takes (.+) from the hand\.$/, (_m, p, card) => `${p} 从手中取得 ${card}。`],
+    [/^The Spanish Armada is eliminated by piracy\.$/, () => "西班牙无敌舰队在海盗行动中被消灭。"],
+    [/^The Spanish Armada is downgraded to strength (\d+) by piracy\.$/,
+        (_m, strength) => `西班牙无敌舰队在海盗行动中降至强度 ${strength}。`],
+    [/^Spanish Road deploys (\d+) land unit\(s\) from Milan to (.+)\.$/,
+        (_m, n, place) => `西班牙之路从米兰向 ${place} 部署 ${n} 个陆军单位。`],
+    [/^City State Rebels in (.+): (.+)\.$/, (_m, place, choice) => `城邦叛乱（${place}）：${CITY_REBEL_CHOICES[choice] ?? choice}。`],
+    [/^(\d+) spent treasure\(s\) return to the pool\.$/, (_m, n) => `${n} 个已花费的宝藏返回宝藏池。`],
+    [/^The treasure pool holds only (\d+) of (\d+) (.+) treasure\(s\)\.$/,
+        (_m, n, total, row) => `${row} 行的宝藏只剩 ${n}/${total} 个。`],
+    [/^(.+) is lost before (.+); the companion absorbs the elimination\.$/,
+        (_m, companion, captain) => `${companion} 在 ${captain} 之前损失；同伴吸收了消灭结果。`],
+    [/^(.+) takes a Portuguese treasure\.$/, (_m, p) => `${p} 取得一个葡萄牙宝藏。`],
+    [/^(.+) enters the Royal Weddings pool\.$/, (_m, royal) => `${royal} 进入王室婚礼池。`],
+    [/^(.+) declares war on (.+) at no cost \(24\.2 step 6\)\.$/,
+        (_m, a, b) => `${a} 无代价向 ${b} 宣战（24.2 第 6 步）。`],
+    [/^(.+) land force pool is full; (\d+) (.+) counter\(s\) could not be placed\.$/,
+        (_m, c, n, kind) => `${c} 的陆军人员池已满；${n} 个${unitKind(kind)}标记无法放置。`],
+    [/^(.+) land force pool is full; (\d+) (.+) counter\(s\) could not be added to the foreign war\.$/,
+        (_m, p, n, kind) => `${p} 的陆军人员池已满；${n} 个${unitKind(kind)}标记无法加入境外战争。`],
+    [/^(.+) naval force pool is full; (\d+) (.+) counter\(s\) could not be placed\.$/,
+        (_m, c, n, kind) => `${c} 的海军人员池已满；${n} 个${unitKind(kind)}标记无法放置。`],
+    [/^William of Orange has arrived; Protestant must choose to place him in the capital or hold him back for a rebellion\.$/,
+        () => "奥兰治的威廉已抵达；新教必须选择将他放在首都，或留待叛乱。"],
+    [/^The Protestant seizes (.+)\.$/, (_m, place) => `新教夺取 ${place}。`],
+    [/^The Protestant designates (.+) as its capital\.$/, (_m, place) => `新教指定 ${place} 为其首都。`],
+    [/^Rudolf II is murdered; the Holy Roman Empire drops to 1 Admin and 0 card bonus\.$/,
+        () => "鲁道夫二世遇刺；神圣罗马帝国降至 1 点行政、0 张额外牌。"],
+    [/^Le Testu's scientist counter is removed from play with his sea captain marker\.$/,
+        () => "勒泰斯蒂的科学家标记随其海船长标记一同移出游戏。"],
+    [/^Le Testu's sea captain marker is removed from play with his scientific work\.$/,
+        () => "勒泰斯蒂的海船长标记随其科学工作一同移出游戏。"],
+    [/^(.+) returns to the available pool with the Observatory bonus\.$/,
+        (_m, patron) => `${patron} 带着天文台奖励返回可用池。`],
+    [/^Catholic League: Spain takes Reims; Spain must now choose (\d+) unfortified French home spaces\.$/,
+        (_m, n) => `天主教联盟：西班牙夺取兰斯；西班牙现在必须选择 ${n} 个未设防的法国本土地区。`],
+    [/^Catholic League: France removes (\d+) regular\(s\) and (\d+) mercenar\(y\/ies\)\.$/,
+        (_m, regulars, mercs) => `天主教联盟：法国移除 ${regulars} 个正规军和 ${mercs} 个雇佣兵。`],
+    [/^Catholic League: Spain adds (\d+) regular\(s\) to the Reims garrison\.$/,
+        (_m, n) => `天主教联盟：西班牙向兰斯守军增加 ${n} 个正规军。`],
+    [/^Catholic League: the Duke of Guise joins the League in Reims\.$/,
+        () => "天主教联盟：吉斯公爵在兰斯加入联盟。"],
+    [/^The Catholic League has formed; Spain may make no deals with France or the Protestant this coming Diplomacy Segment\.$/,
+        () => "天主教联盟已成立；西班牙在接下来的外交阶段不得与法国或新教达成协议。"],
+    [/^Catholic League: Spain takes (.+)\.$/, (_m, place) => `天主教联盟：西班牙夺取 ${place}。`],
+    [/^Catholic League spaces: (.+)\.$/, (_m, list) => `天主教联盟地区：${list}。`],
+    [/^Catholic League: no further unfortified French home spaces are available\.$/,
+        () => "天主教联盟：没有更多未设防的法国本土地区。"],
+    [/^Morisco Revolt: unrest in (.+)\.$/, (_m, place) => `摩里斯科叛乱：${place} 出现动荡。`],
+    [/^Morisco Revolt: only (\d+) unoccupied space\(s\) within 2 of (.+)\.$/,
+        (_m, n, place) => `摩里斯科叛乱：${place} 两格内只有 ${n} 个无人地区。`],
+    [/^Morisco Revolt: no unoccupied space within 2 of (.+)\.$/,
+        (_m, place) => `摩里斯科叛乱：${place} 两格内没有无人地区。`],
+    [/^(.+) keeps the automatic Morisco unrest placement\.$/,
+        (_m, p) => `${p} 保留自动的摩里斯科动荡放置。`],
+    [/^Morisco Revolt: the unrest marker in (.+) is withdrawn\.$/,
+        (_m, place) => `摩里斯科叛乱：${place} 的动荡标记被撤回。`],
+    [/^Morisco Revolt ends: the Morisco unit is removed and card #28 leaves play\.$/,
+        () => "摩里斯科叛乱结束：摩里斯科单位被移除，#28 牌移出游戏。"],
+    [/^Morisco Revolt: Granada is cleared, unrest spreads, and (\d+) Morisco unit\(s\) appear\.$/,
+        (_m, n) => `摩里斯科叛乱：格拉纳达被清空，动荡蔓延，出现 ${n} 个摩里斯科单位。`],
+    [/^Morisco Revolt: the Morisco unit is besieging a fortified space at Winter and is eliminated\.$/,
+        () => "摩里斯科叛乱：摩里斯科单位冬季围困设防地区，被消灭。"],
+    [/^Holy Roman reveals religious preference: (.+) \((\d+) VP\)\.$/,
+        (_m, preference, vp) => `神圣罗马揭示宗教倾向：${preference}（${vp} VP）。`],
+    [/^England-Spain war cost is now (\d+) CP\.$/, (_m, cp) => `英格兰-西班牙战争费用现在为 ${cp} CP。`],
+
     // ---------------------------------------------------------------- setup / turn
     [/^Winter ends\. Turn (\d+) begins\.$/, (_m, turn) => `冬季结束，第 ${turn} 回合开始。`],
     [/^Winter ends\. Scenario turn (\d+) is complete\.$/, (_m, turn) => `冬季结束，剧本第 ${turn} 回合结束。`],
@@ -104,7 +463,7 @@ const RULES: Rule[] = [
     [/^(.+) passes \(no card played\)\.$/, (_m, p) => `${p} 跳过（未出牌）。`],
     [/^(.+) replacement: \+1 regular in (.+)\.$/, (_m, p, space) => `${p} 冬季补员：${space} +1 正规军。`],
     [/^(.+) replacement: \+2 mercenaries in (.+)\.$/, (_m, p, space) => `${p} 冬季补员：${space} +2 雇佣兵。`],
-    [/^(.+) replacement: (.+) marker moves from 0 to 4\.$/, (_m, p, marker) => `${p} 冬季补员：${marker.trim()}从 0 移到 4。`],
+    [/^(.+) replacement: (?:the )?(.+) marker moves from 0 to 4\.$/, (_m, p, marker) => `${p} 冬季补员：${marker.trim()}从 0 移到 4。`],
     [/^(.+) replacement: choose 1 regular, 2 mercenaries, or the (.+) marker 0→4\.$/, (_m, p, marker) => `${p} 冬季补员：选择 1 正规军、2 雇佣兵，或将 ${marker.trim()} 从 0 移到 4。`],
     // The engine logs the Catholic League check verbatim; without these rules
     // the line keeps most of its English text even in the Chinese UI.
@@ -122,10 +481,10 @@ const RULES: Rule[] = [
     [/^(.+) wins the Polish election and gains 2 VP\.$/, (_m, p) => `${p} 赢得波兰选举并获得 2 分。`],
     [/^(.+) ends the foreign war and gains 1 War Winner VP\.$/, (_m, p) => `${p} 结束境外战争并获得 1 点战争胜利分。`],
     [/^(.+) launches (.+)'s expedition from (.+) with a colony\.$/, (_m, p, captain, zone) => `${p} 从 ${zone} 发起 ${captain} 的远征（携带殖民地）。`],
-    [/^(.+) pays tribute: (.+) takes a treasure\.$/, (_m, p, ottoman) => `${p} 纳贡：${ottoman} 取得一个宝藏。`],
-    [/^(.+) pays tribute: (.+) takes a card\.$/, (_m, p, ottoman) => `${p} 纳贡：${ottoman} 取得一张牌。`],
-    [/^(.+) refuses tribute; (.+) declares war and gains 2 CP\.$/, (_m, p, ottoman) => `${p} 拒绝纳贡；${ottoman} 宣战并获得 2 CP。`],
-    [/^(.+) has nothing to pay; (.+) declares war and gains 2 CP\.$/, (_m, p, ottoman) => `${p} 无物可纳；${ottoman} 宣战并获得 2 CP。`],
+    [/^(.+) pays tribute: (?:the )?(.+) takes a treasure\.$/, (_m, p, ottoman) => `${p} 纳贡：${ottoman} 取得一个宝藏。`],
+    [/^(.+) pays tribute: (?:the )?(.+) takes a card\.$/, (_m, p, ottoman) => `${p} 纳贡：${ottoman} 取得一张牌。`],
+    [/^(.+) refuses tribute; (?:the )?(.+) declares war and gains 2 CP\.$/, (_m, p, ottoman) => `${p} 拒绝纳贡；${ottoman} 宣战并获得 2 CP。`],
+    [/^(.+) has nothing to pay; (?:the )?(.+) declares war and gains 2 CP\.$/, (_m, p, ottoman) => `${p} 无物可纳；${ottoman} 宣战并获得 2 CP。`],
     [/^(.+) gains 2 CP for the tribute threat\.$/, (_m, p) => `${p} 因贡金威胁获得 2 CP。`],
     [/^(.+) plays (.+) for (\d+) CP\.$/, (_m, p, card, cp) => `${p} 将 ${card} 作为 ${cp} CP 打出。`],
     [/^(.+) plays (.+) for the (field|naval|assault) battle\.$/, (_m, p, card, phaseName) => `${p} 打出 ${card} 用于${side(phaseName)}。`],
@@ -187,7 +546,7 @@ const RULES: Rule[] = [
     [/^(.+) plays Beacon Fires: interception succeeds automatically\.$/, (_m, p) => `${p} 打出烽火：拦截自动成功。`],
     [/^(.+) naval force is eliminated \(no retreat\)\.$/, (_m, p) => `${p} 海军部队被消灭（无路可退）。`],
     [/^(.+) naval force retreats to (.+)\.$/, (_m, p, place) => `${p} 海军部队撤退到 ${place}。`],
-    [/^Both naval forces are eliminated; (.+) retains 1 (.+)\.$/, (_m, p, kind) => `双方海军部队均被消灭；${p} 保留 1 ${kind}。`],
+    [/^Both naval forces are eliminated; (.+) retains 1 (.+)\.$/, (_m, p, kind) => `双方海军部队均被消灭；${p} 保留 1 ${unitKind(kind)}。`],
     [/^(.+) retains 1 unit after both sides are eliminated\.$/, (_m, p) => `双方均被消灭后，${p} 保留 1 个单位。`],
     [/^(.+) loses the battle at the end of a naval transport; (.+) transported unit\(s\) are eliminated\.$/, (_m, p, n) => `${p} 在海运结束时战败；${n} 个运输单位被消灭。`],
     [/^(.+) has no retreat; its force is destroyed\.$/, (_m, p) => `${p} 无路可退，其部队被消灭。`],
@@ -237,13 +596,12 @@ const RULES: Rule[] = [
     [/^(.+) loses (\d+) unit\(s\) to winter attrition in (.+)\.$/, (_m, p, n, place) => `${p} 在 ${place} 因冬季损耗损失 ${n} 个单位。`],
     [/^(.+) has no capital and loses (\d+) overstacked unit\(s\) in (.+)\.$/, (_m, p, n, place) => `${p} 没有首都，在 ${place} 损失 ${n} 个超编单位。`],
     [/^(.+) returns (\d+) unit\(s\) from (.+) to (.+)\.$/, (_m, p, n, from, to) => `${p} 将 ${n} 个单位从 ${from} 撤回 ${to}。`],
-    [/^(.+) withdraws (\d+) unit\(s\) from (.+) to (.+)\.$/, (_m, p, n, from, to) => `${p} 将 ${n} 个单位从 ${from} 撤往 ${to}。`],
+    [/^(.+) withdraws (\d+) unit\(s\) from (.+?) to (.+)\.$/, (_m, p, n, from, to) => `${p} 将 ${n} 个单位从 ${from} 撤往 ${to}。`],
     [/^(.+) keeps the automatic winter losses in (.+)\.$/, (_m, p, place) => `${p} 保留 ${place} 的自动冬季损失。`],
     [/^(.+) keeps the automatic winter naval losses in (.+)\.$/, (_m, p, place) => `${p} 保留 ${place} 的自动冬季海军损失。`],
     [/^(.+) keeps the automatic winter loss composition\.$/, (_m, p) => `${p} 保留自动冬季损失构成。`],
     [/^(.+) keeps the automatic winter return moves\.$/, (_m, p) => `${p} 保留自动冬季返营结果。`],
     [/^(.+) keeps the automatic winter ports\.$/, (_m, p) => `${p} 保留自动冬季返港港口。`],
-    [/^(.+) moves (\d+) unit\(s\) from (.+) to (.+) for the winter( \(.+\))?\.$/, (_m, p, n, from, to) => `${p} 冬季将 ${n} 个单位从 ${from} 移至 ${to}。`],
     [/^(.+) keeps (\d+) unit\(s\) in (.+) for the winter\.$/, (_m, p, n, place) => `${p} 冬季将 ${n} 个单位留在 ${place}。`],
     [/^(.+) fleet moves from (.+) to (.+) for the winter\.$/, (_m, p, from, to) => `${p} 的舰队冬季从 ${from} 移至 ${to}。`],
     [/^(.+) keeps the automatic winter naval loss composition\.$/, (_m, p) => `${p} 保留自动冬季海军损失构成。`],
@@ -376,7 +734,7 @@ const RULES: Rule[] = [
     // ---------------------------------------------------------------- misc card events
     [/^(.+) is completed! Ottoman gains 2 VP and \+1 card\.$/, (_m, project) => `${project} 完工！奥斯曼获得 2 分和 +1 张牌。`],
     [/^The Suez Canal is completed! Ottoman gains 2 VP and \+1 card\.$/, "苏伊士运河完工！奥斯曼获得 2 分和 +1 张牌。"],
-    [/^(.+) is reinforced with 2 galleons in (.+) \(\+1 VP\)\.$/, (_m, fleet, port) => `${fleet} 在 ${port} 获得 2 艘大帆船增援（+1 分）。`],
+    [/^(.+) is reinforced with (\d+) galleon\(s\) in (.+) \(\+1 VP\)\.$/, (_m, fleet, n, port) => `${fleet} 在 ${port} 获得 ${n} 艘大帆船增援（+1 分）。`],
     [/^(.+) places (\d+) unrest in (.+) home spaces\.$/, (_m, p, n, target) => `${p} 在 ${target} 的本土地区放置 ${n} 个动荡。`],
     [/^(.+) removes unrest from (.+)\.$/, (_m, p, place) => `${p} 移除 ${place} 的动荡。`],
     [/^(.+) discards a random treasure\.$/, (_m, p) => `${p} 随机弃置一个宝藏。`],
@@ -401,8 +759,8 @@ const RULES: Rule[] = [
     [/^(.+) gives a random card to (.+)\.$/, (_m, p, target) => `${p} 随机给 ${target} 一张牌。`],
     [/^(.+) gives a mercenary to (.+) in (.+)\.$/, (_m, p, target, place) => `${p} 在 ${place} 给 ${target} 一名雇佣兵。`],
     [/^(.+) gives a treasure to (.+)\.$/, (_m, p, target) => `${p} 给 ${target} 一个宝藏。`],
-    [/^(.+) loans one (.+) to (.+)\.$/, (_m, p, kind, target) => `${p} 借给 ${target} 一个${kind}。`],
-    [/^(.+)'s loaned (.+) returns from (.+)\.$/, (_m, lender, kind, borrower) => `${lender} 借出的${kind}从 ${borrower} 返回。`],
+    [/^(.+) loans one (.+) to (.+)\.$/, (_m, p, kind, target) => `${p} 借给 ${target} 一个${unitKind(kind)}。`],
+    [/^(.+)'s loaned (.+) returns from (.+)\.$/, (_m, lender, kind, borrower) => `${lender} 借出的${unitKind(kind)}从 ${borrower} 返回。`],
     [/^(.+) yields control of (.+) to (.+)\.$/, (_m, p, place, target) => `${p} 将 ${place} 的控制权交给 ${target}。`],
     [/^(.+) returns (.+) to (.+) in (.+)\.$/, (_m, p, leader, owner, place) => `${p} 将 ${leader} 交还给 ${owner}，位于 ${place}。`],
     [/^(.+) is ransomed and returns to (.+)\.$/, (_m, leader, place) => `${leader} 被赎回并返回 ${place}。`],
@@ -423,11 +781,11 @@ const RULES: Rule[] = [
     [/^(.+) pays tribute: (.+) takes a card\.$/, (_m, p, ottoman) => `${p} 纳贡：${ottoman} 取得一张牌。`],
     [/^(.+) has nothing to pay; (.+) declares war and gains 2 CP\.$/, (_m, p, ottoman) => `${p} 无物可纳；${ottoman} 宣战并获得 2 CP。`],
     [/^(.+) loses (\d+) unit\(s\); (.+) loses (\d+)\.$/, (_m, p, own, enemy, enemyLosses) => `${p} 损失 ${own} 个单位；${enemy} 损失 ${enemyLosses} 个。`],
-    [/^(.+) adds (\d+) (.+) influence in (.+)\.$/, (_m, p, n, target) => `${p} 在 ${target} 增加 ${n} 点影响力。`],
+    [/^(.+) adds (\d+) (.+) influence in (.+)\.$/, (_m, p, n, target, place) => `${p} 在 ${place} 为 ${target} 增加 ${n} 点影响力。`],
     [/^(.+) converts (\d+) (.+) space\(s\)(.*)$/, (_m, who, n, kind, suffix) => `${who} 转化 ${n} 个${kind}地区${suffix}`],
     [/^(.+) places a Jesuit in (.+); (\d+) conversion attempt\(s\)\.$/, (_m, who, place, n) => `${who} 在 ${place} 放置耶稣会士；进行 ${n} 次转化尝试。`],
     [/^(.+) removes (\d+) Jesuit\(s\), converts England, and Spain gains \+1 Card\.$/, (_m, who, n) => `${who} 移除 ${n} 名耶稣会士，转化英格兰，西班牙获得 +1 张牌。`],
-    [/^(.+) removes the colony at (.+)( and draws a treasure)?\.$/, (_m, who, place, draw) => `${who} 移除 ${place} 的殖民地${draw ? "并抽一个宝藏" : ""}。`],
+    [/^(.+) removes the colony at (.+?)( and draws a treasure)?\.$/, (_m, who, place, draw) => `${who} 移除 ${place} 的殖民地${draw ? "并抽一个宝藏" : ""}。`],
     [/^(.+) fortifies (.+) and adds a patrol\.$/, (_m, who, place) => `${who} 加固 ${place} 并增加一支巡逻队。`],
     [/^(.+) adds a galleon to the Treasure Fleet escorts\.$/, (_m, who) => `${who} 为珍宝舰队护航增加 1 艘大帆船。`],
     [/^Spain assigns (\d+) galleon\(s\) to Treasure Fleet escort\.$/, (_m, n) => `西班牙指派 ${n} 艘大帆船为珍宝舰队护航。`],
@@ -531,6 +889,13 @@ const RULES: Rule[] = [
     [/^Menéndez de Avilés: (.+)$/, (_m, roll) => `梅嫩德斯·德·阿维莱斯：${roll}`],
     [/^([^:]+): \[(.+)\] = (.+) hit\(s\)$/, (_m, label, dice, hits) => `${label}：[${dice}] = ${hits} 次命中`],
     [/^([^:]+): \[(.+)\]$/, (_m, label, dice) => `${label}：[${dice}]`],
+    // ---------------------------------------------------------------- generic fallbacks
+    [/^(.+) diplomacy: (.+)\.$/, (_m, p, scores) => `${p} 外交：${scores}。`],
+    [/^(.+) discards (.+)\.$/, (_m, p, card) => `${p} 弃置 ${card}。`],
+    [/^(.+) continues to (.+)\.$/, (_m, p, place) => `${p} 继续前往 ${place}。`],
+    [/^(.+) preaches a sermon in (.+)\.$/, (_m, p, place) => `${p} 在 ${place} 布道。`],
+    [/^(.+) suppresses heresy in (.+)\.$/, (_m, p, place) => `${p} 在 ${place} 镇压异端。`],
+    [/^(.+) returns to (.+)\.$/, (_m, p, place) => `${p} 返回 ${place}。`],
 ];
 
 const STATIC: Record<string, string> = {
@@ -588,6 +953,57 @@ const STATIC: Record<string, string> = {
     "Hawkins fails to roll 4-6; England takes a -1 Slave Trader VP marker.": "霍金斯未能掷出 4–6；英格兰获得 −1 奴隶贩子分标记。",
 };
 
+/**
+ * Dice summaries are logged as free text ("Dunkirk Privateers [1,2] = 1
+ * hit(s)").  They are not templates of their own, so the rule table never
+ * sees them; translating the recurring words keeps a Chinese log from mixing
+ * "1 hit(s)" into an otherwise Chinese line.
+ */
+const ROLL_PHRASES: [RegExp, string][] = [
+    [/\b(\d+) hit\(s\)/g, "$1 次命中"],
+    [/\b(\d+) hits\b/g, "$1 次命中"],
+    [/\b(\d+) dice\b/g, "$1 个骰子"],
+    [/\b(\d+) unrest\b/g, "$1 个动荡"],
+    [/\bhit\(s\)/g, "次命中"],
+    [/\bhits\b/g, "次命中"],
+    [/\bdice\b/g, "骰子"],
+    [/\bvs\b/g, "对"],
+    [/\bdefenders\b/g, "守军"],
+    [/\bbesiegers\b/g, "围城军"],
+    [/\bdefense\b/g, "防御"],
+    [/\battacker\b/g, "攻方"],
+    [/\bdefender\b/g, "守方"],
+    [/\bplantation\b/g, "种植园"],
+    [/\bfortress\b/g, "要塞"],
+    [/\brating\b/g, "评级"],
+    [/\bbonus\b/g, "加成"],
+    [/\bscience\b/g, "科学"],
+    [/\binformant\b/g, "间谍"],
+    [/\bGain Intelligence\b/g, "获取情报"],
+    [/\bHoly Roman Intercession\b/g, "神圣罗马调解"],
+    [/\bJilted by Elizabeth\b/g, "被伊丽莎白抛弃"],
+    [/\bCity State Rebels\b/g, "城邦叛乱"],
+    [/\bSea Beggars piracy\b/g, "海上乞丐海盗行动"],
+    [/\bDunkirk Privateers\b/g, "敦刻尔克私掠船"],
+    [/\bWorld piracy defense\b/g, "世界海盗防御"],
+    [/\bWorld piracy\b/g, "世界海盗行动"],
+    [/\bDragut Falls\b/g, "德拉加特陨落"],
+    [/\bLost Colony\b/g, "失落殖民地"],
+    [/\bField battle\b/g, "野战"],
+    [/\bNaval battle at\b/g, "海战（"],
+    [/\bRelief battle at\b/g, "解围战（"],
+    [/\bAssault on\b/g, "强攻（"],
+    [/\bRebellion dice\b/g, "叛乱掷骰"],
+    [/\bMarriage roll\b/g, "婚姻掷骰"],
+    [/\bPatronage\b/g, "赞助"],
+    [/\bSuez Canal attempt\b/g, "苏伊士运河尝试"],
+    [/\bForeign war\b/g, "境外战争"],
+    [/\bPiracy\b/g, "海盗行动"],
+];
+
+const localizeRollPhrases = (text: string): string =>
+    ROLL_PHRASES.reduce((current, [pattern, replacement]) => current.replace(pattern, replacement), text);
+
 const translateWithRules = (text: string): string | undefined => {
     const fixed = STATIC[text];
     if (fixed !== undefined) return fixed;
@@ -610,8 +1026,14 @@ const translateWithRules = (text: string): string | undefined => {
  */
 export const localizeLogLine = (text: string, locale: VQLocale = "zh_CN"): string => {
     if (locale === "en" || text === "") return text;
+    // Match the rules against the English engine line first: several rule
+    // patterns name powers or places literally ("Spain ...", "French home
+    // spaces"), and those patterns stop matching once the names have been
+    // replaced.  Names inside the rendered result are localized afterwards.
+    const rendered = translateWithRules(text);
+    if (rendered !== undefined) return localizeRollPhrases(localizeNames(rendered));
     const named = localizeNames(text);
-    return translateWithRules(named) ?? translateWithRules(text) ?? named;
+    return translateWithRules(named) ?? named;
 };
 
 /** Convenience export used by tests and the log panel. */
