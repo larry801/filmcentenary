@@ -8,9 +8,10 @@
  * targets, selection, units) and rebuilds only those layers, so a seat that
  * rerenders every log line does not re-upload 145 markers.
  *
- * Everything is drawn from game data — the only raster asset is the published
- * map scan, which is exactly the printed board (7706 x 5462, the same
- * coordinate space as `SPACES`), so a marker sits on its printed counterpart.
+ * Everything is drawn from game data.  The raster assets are the published map
+ * scan, which is exactly the printed board (7706 x 5462, the same coordinate
+ * space as `SPACES`), so a marker sits on its printed counterpart, and the
+ * module's own counter faces, which a standee wears instead of a lookalike.
  */
 import * as THREE from "three";
 import background from "../../data/map-background.json";
@@ -30,7 +31,8 @@ import {
   unprojectPoint,
 } from "./camera";
 import {type TablePalette, readTablePalette} from "./palette";
-import {COUNTER_TEXTURE_PX, type CounterFace, counterFace, drawCounterFace} from "./counterFace";
+import {COUNTER_TEXTURE_PX, type CounterFace, counterFace, drawCounterFace, drawUnitFace} from "./counterFace";
+import {type UnitFaceArt, loadCounterImage, unitFaceArt} from "./unitArt";
 import {pickSpace, pickRadius} from "./hitTest";
 
 export interface TableSceneState {
@@ -45,6 +47,8 @@ export interface TableSceneOptions {
   onContextLost?: () => void;
   /** Called once the published map scan has decoded and is on the sheet. */
   onSheetLoaded?: () => void;
+  /** Called when a standee's module counter face has been painted. */
+  onFacePainted?: () => void;
 }
 
 /** How many counters a space paints before the "+N" badge takes over. */
@@ -121,6 +125,8 @@ export class TableScene {
   private readonly fill: THREE.HemisphereLight;
   private readonly ambient: THREE.AmbientLight;
   private readonly tokenTextures = new Map<string, THREE.CanvasTexture>();
+  /** The token keys whose face came from the module rather than the palette. */
+  private readonly moduleFaces = new Set<string>();
   private readonly ringTextures = new Map<string, THREE.CanvasTexture>();
   private readonly materialCache = new Map<string, THREE.Material>();
   private readonly tokenGroups: THREE.Group[] = [];
@@ -242,12 +248,13 @@ export class TableScene {
   }
 
   /** What the table actually drew, for the host's diagnostics and its tests. */
-  stats(): {markers: number; tokens: number; texture: "pending" | "loaded"} {
+  stats(): {markers: number; tokens: number; faces: number; texture: "pending" | "loaded"} {
     let tokens = 0;
     for (const group of this.tokenGroups) tokens += group.children.length > 0 ? 1 : 0;
     return {
       markers: Math.round(this.markerGroup.children.length / 2),
       tokens,
+      faces: this.moduleFaces.size,
       texture: this.sheetTexture === null ? "pending" : "loaded",
     };
   }
@@ -540,8 +547,12 @@ export class TableScene {
 
   private standee(entry: StackEntry, size: number): THREE.Group | null {
     const face = counterFace(entry.power, entry.kind, entry.reduced, this.counterPalette);
+    const art = unitFaceArt(entry.power, entry.kind, entry.reduced);
     const key = `${entry.power}|${entry.kind}|${entry.reduced ? "r" : "f"}`;
-    const texture = this.tokenTexture(key, face);
+    const texture = this.tokenTexture(key, face, art);
+    // The printed counters are not square: a squadron stands 200 x 120.
+    const width = size;
+    const height = size / (art?.aspect ?? 1);
     const group = new THREE.Group();
     const paper = new THREE.MeshStandardMaterial({color: new THREE.Color(this.counterPalette.paper), roughness: 0.95});
     const faceMaterial = new THREE.MeshStandardMaterial({
@@ -552,14 +563,14 @@ export class TableScene {
       metalness: 0,
       side: THREE.FrontSide,
     });
-    const body = new THREE.Mesh(new THREE.BoxGeometry(size, size, size * 0.045), paper);
-    body.position.set(0, size / 2, -size * 0.0225);
+    const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, size * 0.045), paper);
+    body.position.set(0, height / 2, -size * 0.0225);
     body.castShadow = true;
-    const front = new THREE.Mesh(new THREE.PlaneGeometry(size, size), faceMaterial);
-    front.position.set(0, size / 2, 0.0004);
+    const front = new THREE.Mesh(new THREE.PlaneGeometry(width, height), faceMaterial);
+    front.position.set(0, height / 2, 0.0004);
     front.castShadow = true;
-    const back = new THREE.Mesh(new THREE.PlaneGeometry(size, size), paper);
-    back.position.set(0, size / 2, -size * 0.0451);
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(width, height), paper);
+    back.position.set(0, height / 2, -size * 0.0451);
     back.rotation.y = Math.PI;
     const base = new THREE.Mesh(
       new THREE.CylinderGeometry(size * 0.26, size * 0.3, size * 0.03, 16),
@@ -571,7 +582,7 @@ export class TableScene {
     return group;
   }
 
-  private tokenTexture(key: string, face: CounterFace): THREE.CanvasTexture {
+  private tokenTexture(key: string, face: CounterFace, art: UnitFaceArt | null): THREE.CanvasTexture {
     const cached = this.tokenTextures.get(key);
     if (cached) return cached;
     const canvas = document.createElement("canvas");
@@ -584,7 +595,33 @@ export class TableScene {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = Math.min(4, this.renderer.capabilities.getMaxAnisotropy());
     this.tokenTextures.set(key, texture);
+    if (art !== null) this.paintUnitFace(key, context, texture, art);
     return texture;
+  }
+
+  /**
+   * Replace the drawn stand-in with the module's own counter face once it
+   * decodes.  The standee is already on the table, so a slow network shows the
+   * paper-and-ink fallback rather than an empty counter, and a face that fails
+   * to decode simply keeps it.
+   */
+  private paintUnitFace(
+    key: string,
+    context: CanvasRenderingContext2D,
+    texture: THREE.CanvasTexture,
+    art: UnitFaceArt,
+  ): void {
+    const urls = art.badge === undefined ? [art.url] : [art.url, art.badge];
+    void Promise.all(urls.map(loadCounterImage)).then((images) => {
+      if (this.disposed) return;
+      const face = images[0] ?? null;
+      if (face === null) return;
+      drawUnitFace(context, COUNTER_TEXTURE_PX, face, images[1] ?? null);
+      texture.needsUpdate = true;
+      this.moduleFaces.add(key);
+      this.options.onFacePainted?.();
+      this.requestRender();
+    });
   }
 
   private ringTexture(style: MapTargetStyle, focus: boolean): THREE.CanvasTexture {

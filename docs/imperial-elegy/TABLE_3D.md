@@ -71,19 +71,27 @@ has no table point.
 | control plates | `G.spaces[id].control`, printed shape per space type, edge in ink |
 | target rings | `MapTarget.style`, the printed key's vocabulary (pip / crosshair / rail / double) |
 | selection ring | the lamp-toned ring, plus a hairline outer ring |
-| counters | `stackSummary` → one standee per (power, kind, reduced), top three + `+N` |
+| counters | `stackSummary` → one standee per (power, kind, reduced), top three + `+N`, wearing the module's printed counter face |
 | names | the hover tooltip; the printed map already names every space |
 
-Counter faces are painted on a canvas (`counterFace.ts`) rather than snapshotted
-from the SVG: a stylesheet does not reach into an SVG loaded as an image, so a
-serialised `UnitToken` would lose every colour. The face is the printed design —
-filled square, Elite circle, EF square, ship hull, "R" for a reserve, the
-reduction band — with colours read from the tokens at runtime.
+A standee wears the module's own counter. `unitArt.ts` maps (power, kind,
+reduced) to a published face under `units/` — the printed front, or the back the
+module's "Reduced" layer flips to after a step loss — and the face is painted
+into a canvas texture (`counterFace.ts`), with the module's reserve badge over a
+reserve army. A squadron keeps its printed 200 × 120 proportions, so its standee
+is wider and shorter than an army's.
+
+The standee is on the table before the image decodes, so the same canvas is
+first painted with a drawn stand-in — the printed family's shape in the power's
+colour, read from the tokens at runtime, "R" for a reserve, the reduction band.
+A face that fails to decode keeps that stand-in rather than showing an empty
+counter; `data-faces` reports how many textures came from the module.
 
 Colours never appear as literals in the scene: `palette.ts` reads the
 `--ie-*` custom properties, including the felt-specific ring set
 (`felt-move` … `felt-selection`) that `scripts/check-ie-contrast.mjs` holds to
-3:1 on the cloth.
+3:1 on the cloth. That palette now dresses the fallback and the rings; a counter
+face carries the module's own colours.
 
 ## 5. Assets and performance
 
@@ -96,10 +104,11 @@ scan and records their checksums in `data/generated/table-textures.json`;
 | --- | --- | --- | --- |
 | `maps/world-table.jpg` | 4096 × 2903 | 2.9 MB | `maxTextureSize >= 4096` |
 | `maps/world-table-small.jpg` | 1024 × 726 | 0.2 MB | small GPUs, phones |
+| `units/*` | 141 × 141 (army, elite, EF) or 200 × 120 (squadron, dreadnought) | ~10–30 KB each | one face per standee, decoded once and shared |
 
 Budget, measured on the 1440 × 900 desktop target: first frame under 1.5 s on a
-warm cache (the scan is the only network asset), and the opening table draws
-145 markers and ~34 standees. The renderer is created with
+warm cache, and the opening table draws 145 markers and ~34 standees over 16
+distinct faces. The renderer is created with
 `powerPreference: "high-performance"`, `pixelRatio` capped at 2, and soft
 shadows only in the felt material — paper switches them off.
 
@@ -120,10 +129,14 @@ down to 1 → the small texture. None of these changes what the board says.
 ## 7. Verification
 
 - `components/table3d/*.test.ts` — camera round-trip and clamps, fit framing,
-  pick radius and tie-breaks, counter-face coverage for every power × kind.
+  pick radius and tie-breaks, counter-face coverage for every power × kind, and
+  `unitArt.test.ts` — every power × kind resolves to a face that exists on disk,
+  a two-step counter flips to its printed back, only a reserve army carries the
+  badge, and a naval face keeps 200 × 120.
 - `components/MapPanel.test.tsx` — the chips, the lazy boundary, the fallback.
 - `e2e/table3d.spec.ts` — against real SwiftShader WebGL in CI: the scan loads,
-  145 markers and counters are drawn, a click selects a space, a drag repaints,
+  145 markers and counters are drawn (`data-faces` proves they wear the
+  module's faces), a click selects a space, a drag repaints,
   the sheet round-trip keeps the selection, and both materials differ.
   It has its own config (`playwright.table3d.config.ts`, `yarn
   test:e2e:table3d`) and its own CI runner: software-rasterising a table scene

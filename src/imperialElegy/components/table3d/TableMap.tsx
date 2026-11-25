@@ -102,7 +102,12 @@ export const TableMap = ({
   const coarse = useCoarsePointer();
 
   const [ready, setReady] = React.useState(false);
-  const [stats, setStats] = React.useState({markers: 0, tokens: 0, texture: "pending" as "pending" | "loaded"});
+  const [stats, setStats] = React.useState({
+    markers: 0,
+    tokens: 0,
+    faces: 0,
+    texture: "pending" as "pending" | "loaded",
+  });
   const [hovered, setHovered] = React.useState<SpaceId | null>(null);
   const [hoverAt, setHoverAt] = React.useState<Vec2 | null>(null);
   const [stackOpen, setStackOpen] = React.useState<SpaceId | null>(null);
@@ -148,6 +153,7 @@ export const TableMap = ({
         art,
         onContextLost: () => onUnavailable(),
         onSheetLoaded: () => setStats(sceneRef.current?.stats() ?? stats),
+        onFacePainted: () => setStats(sceneRef.current?.stats() ?? stats),
       });
     } catch {
       onUnavailable();
@@ -434,6 +440,7 @@ export const TableMap = ({
       data-focused-target={focusedTarget ?? undefined}
       data-markers={stats.markers}
       data-tokens={stats.tokens}
+      data-faces={stats.faces}
       data-sheet-texture={stats.texture}
       role="application"
       aria-label={t.map}
