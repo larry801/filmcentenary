@@ -111,7 +111,7 @@ yarn build:single  # 服务端 → build/server.js（约 9 MB，依赖全部内�
 | 变量 | 值 |
 | --- | --- |
 | `MAIN_FILE` | `server.js` |
-| `PORT` | 面板分配的端口 |
+| `PORT` | 可选。面板分配的 `25664` 已经打进包里，设了会覆盖它 |
 | `DB_DIR` | 可选。不设是纯内存，容器重启对局就没了；填 `/home/container/data` 才会落盘 |
 | `PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD` | `1`：面板那次 `npm install` 会连 `@playwright/test` 一起装，没必要下载 Chromium |
 
@@ -122,6 +122,9 @@ yarn build:single  # 服务端 → build/server.js（约 9 MB，依赖全部内�
    `imperial-elegy/`）传成 `/home/container/build/`——前端就是这些静态文件，服务端按相对路径
    直接服务它们
 3. 启动
+
+端口默认值写在 `vite.server.config.mts` 的 `define` 里（现在是 `25664`），面板换了端口就改那
+一行再 `yarn build:single`；`PORT` / `SERVER_PORT` 环境变量仍然优先。
 
 关于"零依赖"的边界，说清楚免得误会：
 
