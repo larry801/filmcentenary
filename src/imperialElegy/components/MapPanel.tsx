@@ -17,6 +17,7 @@ import {ieT} from "./i18n";
 import {bi} from "./boardHelpers";
 import {Icon} from "./Icon";
 import {MapLegend} from "./MapLegend";
+import {spaceFlashpointNames} from "./flashpointHints";
 import {MAP_SECTIONS, MapSectionId, THEATRES, mapSectionById} from "./map-geometry";
 import type {MapViewMode} from "./preferences";
 import type {TableArt} from "./table3d/camera";
@@ -56,12 +57,14 @@ export interface MapPanelProps {
   art?: TableArt;
   onViewChange?: (view: MapViewMode) => void;
   onArtChange?: (art: TableArt) => void;
+  /** Opens the reference drawer at the flashpoint chart. */
+  onOpenReference?: (anchor: string) => void;
 }
 
 export const MapPanel = ({
   G, selected, onSelect, targets, focusedTarget = null, locale, t, mapHint, modePill = null,
   focus = null, onFindSpace, viewer = null,
-  view = "sheet", art = "felt", onViewChange, onArtChange,
+  view = "sheet", art = "felt", onViewChange, onArtChange, onOpenReference,
 }: MapPanelProps) => {
   // The printed map is 6693 board units wide, which is four pixels per space on
   // a phone, so the map opens on the player's own capital and every theatre of
@@ -396,6 +399,11 @@ export const MapPanel = ({
                 {" · "}{t.pacification}: {spaceState.pacification ?? 0}
                 {spaceState.trench ? ` · ${bi(locale, "trench", "战壕")}` : ""}
               </span>
+              {spaceFlashpointNames(cardSpace!, locale).length > 0 && (
+                <span className="ie-space-card-line" data-testid="ie-space-card-flashpoints">
+                  {bi(locale, "Flashpoint", "闪点")}: {spaceFlashpointNames(cardSpace!, locale).join(" · ")}
+                </span>
+              )}
               {selection !== t.selectSpace && <span className="ie-space-card-hint">{mapHint}</span>}
             </>
           )}
@@ -406,7 +414,7 @@ export const MapPanel = ({
             help above them — inside `.ie-map-wrap`.  Repeating it here printed
             the identical key a second time right under it (and cost a phone
             29 px of map height). */}
-        <MapLegend locale={locale} counts={counts}/>
+        <MapLegend locale={locale} counts={counts} onOpenReference={onOpenReference}/>
       </footer>
     </section>
   );

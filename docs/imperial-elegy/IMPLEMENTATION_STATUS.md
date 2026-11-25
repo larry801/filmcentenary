@@ -1,3 +1,93 @@
+## Added: flashpoint and power-projection hints, on the printed chart's data (2026-11-26)
+
+Reported as "帝国挽歌给 flash point和powerprojection 增加提示": the map shaded its
+flashpoint theatres with no key, the space page never said which theatre a
+space belonged to, and power projection existed only inside the reference
+chart.  The same pass aligns the flashpoint data with the printed
+`map-flashpoints` chart (transcribed and OCR-checked against the PNG), because
+a hint that printed eight keys while the engine awarded on six would have been
+a second rulebook.
+
+### The printed Flashpoint Summary, now the engine's data
+
+| Flashpoint | Dominate | Reward |
+| --- | --- | --- |
+| Germany | 8 keys | +1 card |
+| Qing China | 3 keys | +1 card |
+| Italy | 4 keys | +1 card |
+| Africa | most keys (min. 5) | +1 card |
+| Low Countries | both keys (2) | +½ card |
+| Great Game | 3 keys | +½ card |
+| Balkans | most keys | +½ card |
+| Central Europe | 3 keys | +½ card |
+| Caucasus | 5 spaces | +½ card |
+| Power Projection | lead the track | +1 Industrialization DRM |
+| Suez Canal | canal built + control Egypt | +½ card |
+
+- **Germany is the nine German keys.** The five GE home keys now carry the
+  `germany` tag (Berlin, Westphalia, Pomerania, Prussia; Silesia already did),
+  so the chart's eight is reachable; five tagged minor states could never
+  reach six, let alone eight.  `germanKeysControlled` already counted
+  `home === "GE"` or the tag, so the AU containment goal and the GE home goal
+  read the same nine spaces as before.
+- **The Caucasus is new.** Seven spaces (Caucasus, Dagestan, Georgia,
+  Azerbaijan, Baku, Erzurum, Van), five to dominate; the map shading and a
+  `CAUCASUS` label on the printed sheet follow from the tags.
+- **The chart's units are enforced.** Key rows count keys through
+  `isKeySpace`, so Africa's Algeria and West Africa no longer count (15 keys,
+  not 17); the Caucasus row prints spaces, so its territories do count.
+- **"Most keys" keeps the chart's minimum.** Africa needs a unique maximum of
+  at least five; the Balkans prints no minimum, so one unique key dominates.
+  Ties still dominate nobody.
+- **Rewards use the chart's weights.** `cardsToDraw` sums `cardBonus` (1 or
+  0.5) and rounds up, the same treatment the old "each domination is half a
+  card" shortcut gave a lone half.  Two +1 theatres now add two cards where
+  the old formula added one.
+- **Opening consequence, recorded rather than smoothed over.** At the campaign
+  setup RU dominates Central Europe (Poland, West Ukraine, Belorussia) and the
+  Caucasus, and OT dominates the Balkans; both draw one extra card.  A103
+  (Bosnian Crisis) is therefore shut until the Ottomans lose the Balkans —
+  `crisisFlow.test.ts` now annexes Bosnia and Macedonia to AU, the historical
+  move that opens it, before playing the card.
+
+### The hints
+
+- `components/flashpointHints.ts` (pure, state-in): `spaceFlashpointLines`
+  (name, `you N/threshold`, leader, reward), `flashpointOpportunity` (one
+  member short of the printed threshold; skipped when the theatre's member
+  count cannot reach it), `powerProjectionHint` (track value, per-box source,
+  naval ceiling, lead/tie/behind) and `powerProjectionOpportunity` (one point
+  from a two-way lead).  Every line reads the award's own helpers
+  (`flashpointCounts`, `flashpointController`, `flashpointMemberCount`,
+  `powerProjectionParts`), so display and award cannot drift.
+- **Map key.** `MapLegend` gains a hatch swatch, "闪点地区 / Flashpoint
+  theatre"; it is a button that opens `chart:map-flashpoints`, so a phone gets
+  the full chart rather than a hover title.
+- **Space card and Space page.** The map footer names the theatre(s); the
+  Space page prints the progress line and a rule link to the chart.
+- **Player mat.** A new "力量投射" figure prints the value, its counted boxes,
+  the naval ceiling (and when it cuts the port score) and the lead/behind line;
+  the figure opens the chart.
+- **Dashboard.** All six displays print `力量投射 N`, the leader bold, with a
+  title carrying the sources and the +1 Industrialization DRM.
+- **Dock.** The campaign action phase adds at most one opportunity line after
+  the CP line: the map objective first, the projection chase second.
+
+**Coverage:** `flashpointData.test.ts` (the printed table, Germany's nine keys
+and 8/7 boundary, the Caucasus's seven spaces, Africa's key-only counting,
+every threshold reachable, the card weights and their rounding),
+`components/flashpointHints.test.ts` (space lines, one-short and tied-lead
+cases, projection sources/ceiling/standing, opportunity priority),
+`components/flashpointPanel.test.tsx` (the Space page row and six dashboard
+values), `components/mapLegend.test.tsx` (+2: the hatch key and its chart
+button), `components/MapPanel.test.tsx` (+1: the footer's theatre line),
+`components/PlayerMat.test.tsx` (+1: the projection figure),
+`actionHints.test.ts` (+1: both opportunity lines), the updated
+`components/flashpoints.test.ts` (nine theatres) and `crisisFlow.test.ts`.
+Local checks: `tsc --noEmit` clean, the whole `src/imperialElegy` suite green
+(379 suites, 4990 tests).  Remote GitHub Actions remains the authority
+(AGENTS.md §7/§10).
+
 ## Errata pass — the March 2026 errata (2026-11-26)
 
 The whole of `IE_ERRATA_-_Mar_20_2026.pdf` was re-read against the live path.

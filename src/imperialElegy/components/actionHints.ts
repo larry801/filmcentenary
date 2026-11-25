@@ -22,6 +22,7 @@ import {ImperialElegyState, Power} from "../types";
 import {cpBudgetFor} from "../engine/rules";
 import {currentGwImpulse, gwFinishImpulseProblem} from "../engine/gwImpulse";
 import {negotiatingPowers, negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
+import {opportunityHint} from "./flashpointHints";
 import {bi} from "./boardHelpers";
 import type {ieT} from "./i18n";
 
@@ -37,8 +38,11 @@ export interface ActionHint {
 /**
  * 27.1–27.6, 12.0 and the diplomacy/end steps: the concrete next click.
  *
- * Returns at most two lines — the owed step first, the follow-on second — and
- * never repeats the dock summary, which already names the governing rule.
+ * Returns the owed step first and its follow-on second, and never repeats the
+ * dock summary, which already names the governing rule.  The campaign action
+ * phase may add one opportunity line after them (a flashpoint one key short of
+ * domination, or one point of projection from a tie) — an opportunity, not an
+ * owed step, so it never displaces the two lines above it.
  */
 export const actionHints = (
   G: ImperialElegyState,
@@ -135,6 +139,8 @@ export const actionHints = (
         `Spend the ${G.cpRemaining} CP left: pick a space on the map, then an action in Orders.`,
         `使用剩余 ${G.cpRemaining} 点 CP：在地图上点选空间，再在指令面板选择行动。`);
     }
+    const opportunity = opportunityHint(G, viewer, locale);
+    if (opportunity !== null) out.push(opportunity);
     return out;
   }
 

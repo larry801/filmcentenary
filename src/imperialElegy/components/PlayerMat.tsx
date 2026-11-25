@@ -35,6 +35,7 @@ import {cardDisplayNameById} from "./cardDisplay";
 import {AU_NATIONALITIES} from "../engine/characteristics";
 import {nationalityLabel} from "../engine/nationality";
 import {auFormedForState, seatPowerName} from "./seatNames";
+import {powerProjectionHint} from "./flashpointHints";
 
 export interface PlayerMatProps {
   G: ImperialElegyState;
@@ -141,6 +142,9 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
   const reserveCap = reserveAllowance(G, viewer);
   const goals = me.goals;
   const draw = cardsToDraw(G, viewer);
+  // 3.3.1: the printed display carries a power-projection track; the mat had
+  // never printed it, so the number only existed in the reference chart.
+  const projection = powerProjectionHint(G, viewer, locale);
   // The printed boxes read "3 cards" / "3 张卡"; `t.cards` alone is the bare
   // counter word the hand tray uses ("7 张"), which reads wrong under a box.
   const cardsLabel = (count: number, signed = false): string => {
@@ -239,6 +243,7 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
     {key: "keys", label: t.territorialKeys, value: me.territorialKeys, title: bi(locale, "Territorial keys controlled", "控制的领土关键区")},
     {key: "colonial", label: t.colonialKeys, value: me.colonialKeys, title: bi(locale, "Colonial keys controlled", "控制的殖民地关键区")},
     ...(arabKeys !== undefined ? [{key: "arab", label: t.arabKeys, value: arabKeys}] : []),
+    {key: "projection", label: bi(locale, "Power projection", "力量投射"), value: projection.value, title: projection.detail},
     {key: "vp", label: t.vp, value: me.vp, title: bi(locale, "Victory points", "胜利点")},
     {key: "draw", label: bi(locale, "Draw", "抽牌"), value: cardsLabel(draw), title: bi(locale, "10.2: cards drawn each turn", "10.2：每回合抽牌数")},
   ];
@@ -401,6 +406,22 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
               <span className="ie-mat-hintnote">{bi(locale, "Colonial keys controlled", "控制的殖民地关键区")}</span>
             </div>
           )}
+
+          {/* --- 3.3.1: the printed power-projection track, with its sources. */}
+          <button
+            type="button"
+            className="ie-mat-figure ie-mat-link"
+            data-testid="ie-mat-projection"
+            onClick={() => onOpenReference?.("chart:map-flashpoints")}
+            title={bi(locale,
+              "3.3.1: ports and naval bases next to a naval box, capped by naval units × 2",
+              "3.3.1：海军区旁的港口与海军基地，上限为海军单位数 × 2")}
+          >
+            <span className="ie-mat-figure-label">{bi(locale, "Power projection", "力量投射")}</span>
+            <b className="ie-mat-figure-value">{projection.value}</b>
+            <span className="ie-mat-hintnote" data-testid="ie-mat-projection-source">{projection.detail}</span>
+            <span className="ie-mat-hintnote" data-testid="ie-mat-projection-standing">{projection.standing}</span>
+          </button>
 
           {/* --- Reserve armies holding box: the printed Box Limit formula. */}
           <button

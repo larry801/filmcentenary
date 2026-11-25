@@ -70,4 +70,23 @@ describe("the map key", () => {
     expect(html).not.toContain('data-testid="ie-key-rail"');
     expect(html).not.toContain('data-testid="ie-key-pending"');
   });
+
+  test("explains the board's flashpoint hatch, even with no rings drawn", () => {
+    const html = render();
+    expect(html).toContain('data-testid="ie-key-flashpoint"');
+    expect(html).toContain("闪点地区");
+    expect(html).toContain("ie-key-hatch");
+    // Without a reference drawer the key is explanatory only.
+    expect(html).toContain('<span class="ie-key ie-key-flashpoint"');
+    expect(html).not.toContain('<button type="button" class="ie-key ie-key-flashpoint"');
+  });
+
+  test("with a drawer the hatch key opens the flashpoint chart", () => {
+    const html = renderToStaticMarkup(
+      <MapLegend locale="en" counts={{}} onOpenReference={() => undefined}/>,
+    );
+    expect(html).toContain('<button type="button" class="ie-key ie-key-flashpoint"');
+    expect(html).toContain('title="Hatched regions are flashpoint theatres');
+    expect(html).toContain("Flashpoint theatre");
+  });
 });

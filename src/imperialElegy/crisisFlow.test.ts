@@ -288,7 +288,12 @@ describe("23.2/23.3 special results", () => {
     setAlliances(G, {GE: "taCommitted", AU: "taCommitted", UK: "teCommitted", FR: "teCommitted"});
     G.spaces.serbia.control = "Serbia";
     // A103 is printed "Playable if the Ottomans do not control the Balkans
-    // flashpoint"; the campaign start has the Ottomans at five Balkan keys.
+    // flashpoint".  The printed Balkans row is "control most keys", so the
+    // Ottomans hold the theatre from setup (five of its seven keys); the
+    // historical annexation moves Bosnia and Macedonia to Austria, which takes
+    // the lead and opens the event.
+    G.spaces["bosnia-herzegovina"].control = "AU";
+    G.spaces.macedonia.control = "AU";
     G.spaces.bulgaria.control = "Bulgaria";
     armCard(G, "IE-A103");
     // 4 = the Bosnian Crisis die raises the WTT; 1 = Balkan Table (twice);

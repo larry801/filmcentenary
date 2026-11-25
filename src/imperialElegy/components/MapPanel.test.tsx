@@ -126,6 +126,14 @@ describe("the map panel", () => {
     expect(line).toContain("要塞: 1");
   });
 
+  test("the space card names the flashpoint theatre", () => {
+    const html = renderToStaticMarkup(<MapPanel {...props({selected: "berlin"})} />);
+    const card = spaceCard(html);
+    expect(card).toContain('data-testid="ie-space-card-flashpoints"');
+    expect(card).toContain("闪点");
+    expect(card).toContain("德意志");
+  });
+
   test("the find-space control opens the picker", () => {
     const html = renderToStaticMarkup(<MapPanel {...props()} />);
     expect(html).toContain('data-testid="ie-map-find"');
