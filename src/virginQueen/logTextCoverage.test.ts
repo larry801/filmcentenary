@@ -173,6 +173,9 @@ const LINES: string[] = [
     "Spain preaches a sermon in England.",
     "Spain suppresses heresy in England.",
     "Ruler Falls Ill: alba returns to Paris.",
+    "Gain Intelligence: 3 dice [1,2,3] = 1 hits; defense 2 [4,5] = 1 hits",
+    "City State Rebels [1,2] = 1 hit(s) in Paris.",
+    "Spain Patronage: Titian 3+4+rating 2+bonus 1=10",
 ];
 
 describe("log template coverage", () => {
@@ -195,6 +198,15 @@ describe("log template coverage", () => {
             .toBe("黑王后派间谍针对 西班牙。");
         expect(localizeLogLine("Spain pays tribute: the Ottoman takes a treasure."))
             .toBe("西班牙 纳贡：奥斯曼帝国 取得一个宝藏。");
+    });
+
+    it("localizes the dice summaries that are logged on their own", () => {
+        expect(localizeLogLine("Gain Intelligence: 3 dice [1,2,3] = 1 hits; defense 2 [4,5] = 1 hits"))
+            .toBe("获取情报：3 个骰子 [1,2,3] = 1 次命中；防御 2 [4,5] = 1 次命中");
+        expect(localizeLogLine("City State Rebels [1,2] = 1 hit(s) in Paris."))
+            .toBe("城邦起义 [1,2] = 1 次命中（巴黎）。");
+        expect(localizeLogLine("Spain Patronage: Titian 3+4+rating 2+bonus 1=10"))
+            .toBe("西班牙 赞助：提香 3+4+评级 2+加成 1=10");
     });
 
     it("uses the right semantics for the rules that used to drop detail", () => {
