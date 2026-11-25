@@ -1,3 +1,61 @@
+## Fixed: the Great War impulse can be played from the dock, and its rows no longer lie (2026-11-25)
+
+Reported as "只看界面玩帝国挽歌单人历史大战 增加玩家行动提示": playing the solo
+Historical Great War through nothing but the screen, the maneuver step started
+fine but could not be finished, and several offered actions were refused by the
+engine without a reason on screen.  Seven defects, one pass:
+
+- **No exit in the dock.** `phaseActions` only built buttons for `prep`,
+  `diplomacy`, `action` and `end`, so the "End impulse" / "End GW turn" /
+  "Start GW maneuver" controls existed only inside the War tab and the dock's
+  one-line summary said a bare "your impulse".  A player reading the pinned dock
+  (the way every campaign phase ends) had no visible way to hand the impulse on.
+  The dock now carries `ie-gw-start-dock` (planning), `ie-gw-pass-dock` (the
+  27.1 exit, disabled with its printed reason) and, when `gwCanEndTurn` allows
+  it, `ie-gw-end-dock`.  The summary names the real state: the war budget left,
+  "you may pass only at 2 or less", "Play Exhaustion before passing", "GW card
+  bonus — take one immediate non-land-battle action", "Action done — end your
+  impulse".  The War-tab copies keep their own ids and behaviour.
+- **The Draft row lied (27.5.2 / 4.2).** `canGwDraft` only asked the impulse
+  allowance and manpower, so the row was enabled on a home key already at its
+  three-army stacking limit and for a power whose army-counter pool was empty;
+  `gwDraft` then refused the click.  The eligibility now lives in one engine
+  predicate, `greatWarFlow.ts#gwDraftProblem` (home key + room + no trench,
+  manpower, and the counter pool with the allied-minor/Zouave substitution), read
+  by both the move and the row.  A refused row prints the printed reason
+  (translated in `reasonText.ts`).
+- **The Rail row lied (15.2.3).** The march and rail rows checked only the
+  impulse allowance, so a reserve army deployed this very impulse was offered a
+  Rail the move refused.  Both rows now call `gwLandMoveProblem`, the engine's
+  own destination question, and print its reason.
+- **The map hint promised a move the click never makes.** With a unit selected
+  the map click only selects the destination (the move is committed with Enter
+  or the Orders row); the hint now says so instead of "click a highlighted space
+  to move the selected unit there", which did nothing on a mouse-only play.
+- **Eight invalid moves on every solo GW match.** A scenario that prints "start
+  with the Maneuver Step" opens on planning so the GW cards and budgets are
+  dealt, and the first move starts the maneuver.  All five bot clients sent
+  `endGwPlanningMove` in the same tick, so four were refused and the driver's
+  fallback added more.  The move is now already satisfied once the maneuver is
+  running (`moves.ts#endGwPlanningMove`), and the console stays clean.
+- **The GW card's inspector quoted the action-card window.** The hand's inspector
+  passed the card's action-card availability into the footer, which read "only
+  during your Action-phase impulse" for a card that is played in planning or the
+  maneuver.  `HandTray` now asks `gwCardProblem` for the seat's own GW card.
+- **The free staff deploy was priced.** The Orders row printed "· 1 CP" for the
+  deploy that 33.1 Superior Staff Work funds; the row's cost now follows the
+  allowance (`0` while the staff grant is live), like the wartime
+  `deployReserves` row.
+
+**Coverage:** `gwDraftProblem.test.ts` (6 tests: legal key, full key, trench,
+foreign key, manpower, counter pool), `components/gwControls.test.tsx` (3:
+the dock's impulse exit, the disabled exit's reason, the planning start),
+`components/actionAvailability.test.ts` (2: the draft row on a full key, and
+rail/march refused for a deployed reserve — plus the existing reason-order
+assertions), `greatWarIntegration.test.ts` (2: the idempotent
+planning exit, and the same move still refused outside planning), and the
+`components` suite (1520 tests) for the rendered board.
+
 ## Fixed: Bismarck's second target list only names powers the unification can reach (2026-11-24)
 
 Reported as "俾斯麦宣战的界面 第二目标应该限制在可以按照统一宣战的部分 还要标出如果

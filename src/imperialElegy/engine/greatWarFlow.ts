@@ -914,6 +914,48 @@ export const gwDraftZouaveChoice = (
   return {space};
 };
 
+/**
+ * Everything 27.5.2 needs from the board before a draft may start.
+ *
+ * The board's action row and the live move must answer the same question, or
+ * the panel offers a Draft the engine then refuses with no reason the reader
+ * can see (a full home key and an exhausted army-counter pool were both
+ * reported that way).  The checks are pure and run before the first army is
+ * placed, so the row can call this on every render.
+ */
+export interface GwDraftProblem {
+  error: GwFlowError;
+  message: string;
+}
+
+export const gwDraftProblem = (
+  G: ImperialElegyState,
+  power: Power,
+  space: SpaceId,
+  first: SpaceId | null = null,
+): GwDraftProblem | null => {
+  if (!gwDraftSpaceAllowed(G, power, space, first)) {
+    return {
+      error: "invalidTarget",
+      message: "A draft needs a controlled home key with room for one more army and no trench battle marker (27.5.2)",
+    };
+  }
+  if (G.powers[power].manpower < 1) {
+    return {error: "noManpower", message: "Not enough manpower to draft"};
+  }
+  // 4.2: two reduced armies are two army counters (the second is forfeited
+  // when there is nowhere legal to put it, but a full draft needs both).
+  // 27.5.2: an allied minor army or the FR Zouaves may replace the second
+  // army, so one own counter is then enough.
+  const remaining = counterRemaining(G, power, "army");
+  const minorChoices = gwDraftMinorChoices(G, power, space);
+  const zouaveChoice = gwDraftZouaveChoice(G, power, space);
+  if (remaining !== null && remaining < (minorChoices.length > 0 || zouaveChoice !== null ? 1 : 2)) {
+    return {error: "noCounter", message: `${power} does not have enough army counters for a draft`};
+  }
+  return null;
+};
+
 /** 27.5.2: an allied minor power's army may replace one of the drafted armies. */
 export interface GwDraftMinorChoice {
   minor: string;
@@ -1953,23 +1995,8 @@ export const performGwManeuver = (
       // 27.5.2: drafted reduced armies "must be placed in controlled home
       // keys, no more than one per space", without a trench battle marker and
       // within the 5.5.1 stacking limit.
-      if (!gwDraftSpaceAllowed(G, power, request.space, null)) {
-        return fail(
-          "invalidTarget",
-          "A draft needs a controlled home key with room for one more army and no trench battle marker (27.5.2)",
-        );
-      }
-      if (p.manpower < 1) return fail("noManpower", "Not enough manpower to draft");
-      // 4.2: two reduced armies are two army counters (the second is forfeited
-      // when there is nowhere legal to put it, but a full draft needs both).
-      // 27.5.2: an allied minor army or the FR Zouaves may replace the second
-      // army, so one own counter is then enough.
-      const remaining = counterRemaining(G, power, "army");
-      const minorChoices = gwDraftMinorChoices(G, power, request.space);
-      const zouaveChoice = gwDraftZouaveChoice(G, power, request.space);
-      if (remaining !== null && remaining < (minorChoices.length > 0 || zouaveChoice !== null ? 1 : 2)) {
-        return fail("noCounter", `${power} does not have enough army counters for a draft`);
-      }
+      const draftProblem = gwDraftProblem(G, power, request.space, null);
+      if (draftProblem !== null) return fail(draftProblem.error, draftProblem.message);
       p.manpower -= 1;
       const first = placeUnit(G, power, "army", request.space, 1);
       const payload = finish({to: request.space, unitIds: [first.id]});

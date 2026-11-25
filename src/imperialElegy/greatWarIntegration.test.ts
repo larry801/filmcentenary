@@ -111,6 +111,25 @@ describe("Great War phase hook integration", () => {
     expect(G.powers.GE.gwBudget).toBe(budget);
   });
 
+  test("endGwPlanningMove is already satisfied once the maneuver has started", () => {
+    // The GW scenarios that print "start this scenario with the Maneuver Step"
+    // open on planning so the cards and budgets are dealt; every bot client can
+    // send the move in the same tick.  The duplicates used to be refused with
+    // eight invalid-move errors in the console on every solo GW match.
+    const G = baseGw();
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    const before = JSON.stringify({phase: G.phase, active: G.activePower, turn: G.turnIndex});
+    expect(endGwPlanningMove(G, makeCtx("0"))).toBeUndefined();
+    expect(JSON.stringify({phase: G.phase, active: G.activePower, turn: G.turnIndex})).toBe(before);
+  });
+
+  test("endGwPlanningMove still refuses outside planning and the maneuver", () => {
+    const G = baseGw();
+    G.phase = "prep";
+    expect(endGwPlanningMove(G, makeCtx("0"))).toBe(INVALID_MOVE);
+  });
+
   test("endGwPlanningMove starts the maneuver at the first living order slot", () => {
     const G = baseGw({order: [null, "FR", "GE"]});
     const ctx = makeCtx("0");

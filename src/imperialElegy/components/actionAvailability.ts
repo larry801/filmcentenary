@@ -15,6 +15,7 @@
 import type {GwActionKind, ImperialElegyState, Power, SpaceId} from "../types";
 // Engine refusal reasons are English state; this is the shared display table.
 import {engineReasonText} from "./reasonText";
+import {gwDraftProblem, gwLandMoveProblem} from "../engine/greatWarFlow";
 import {SPACES, portBoxes} from "../constant/spaces";
 import {
   efDestinationAllowed, friendlyPort, gwAllyImpulseFor, isArmyKind, isHomeSpace, isPower,
@@ -850,16 +851,27 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
         }
       }
     } else {
+      // 15.2.3/30.1/32.1: `gwLandMoveProblem` is the engine's own question for
+      // a march or rail destination, and the row must ask it too.  Checking
+      // only the impulse allowance offered a Rail for a reserve army deployed
+      // this impulse, which the move then refused (15.2.3) with no reason on
+      // screen.
       const march = gwAllowed("march");
+      const marchProblem = gwLandMoveProblem(G, viewer, selected.id, space, "march");
       push({
-        id: "gwMarch", group: "move", enabled: march.ok,
-        reason: march.ok ? undefined : gwRefusal(march),
+        id: "gwMarch", group: "move",
+        enabled: march.ok && marchProblem === null,
+        reason: !march.ok ? gwRefusal(march)
+          : marchProblem !== null ? engineReasonText(locale, marchProblem.message) : undefined,
         run: () => doAction(() => moves.gwMarch(selected.id, space)),
       });
       const rail = gwAllowed("rail");
+      const railProblem = gwLandMoveProblem(G, viewer, selected.id, space, "rail");
       push({
-        id: "gwRail", group: "move", enabled: rail.ok,
-        reason: rail.ok ? undefined : gwRefusal(rail),
+        id: "gwRail", group: "move",
+        enabled: rail.ok && railProblem === null,
+        reason: !rail.ok ? gwRefusal(rail)
+          : railProblem !== null ? engineReasonText(locale, railProblem.message) : undefined,
         run: () => doAction(() => moves.gwRail(selected.id, space)),
       });
     }
@@ -958,11 +970,22 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
   // -------------------------------------------------------------- great war
   if (gw) {
     const draft = gwAllowed("draft");
+    // 27.5.2: the space and the counter pool decide a draft as much as the
+    // impulse allowance does.  The row used to be enabled on a full home key
+    // or with no army counter left, and the engine refused the click without
+    // saying which of the printed conditions failed.
+    const draftProblem = gwDraftProblem(G, viewer, space);
+    // The model's `canGwDraft` already folds this in, but the row keeps the
+    // engine check beside the reason it prints: a caller that forgets the
+    // model must still not offer a draft the move refuses.
+    const draftEnabled = canGwDraft && draftProblem === null;
     push({
-      id: "gwDraft", group: "greatWar", enabled: canGwDraft,
-      reason: canGwDraft ? undefined
+      id: "gwDraft", group: "greatWar", cost: draft.ok ? draft.cost : ACTION_COSTS.gwDraft,
+      enabled: draftEnabled,
+      reason: draftEnabled ? undefined
         : !draft.ok ? gwRefusal(draft)
-          : bi(locale, "No manpower or this space cannot draft.", "人力不足或此空间不能征召。"),
+          : draftProblem !== null ? engineReasonText(locale, draftProblem.message)
+            : bi(locale, "No manpower or this space cannot draft.", "人力不足或此空间不能征召。"),
       run: () => doAction(() => moves.gwDraft(space)),
     });
     if (viewer === "UK" && isCwArmySpace(space)) {
@@ -975,7 +998,10 @@ export const spaceActions = (input: SpaceActionsInput): SpaceAction[] => {
     }
     const deploy = gwAllowed("deploy");
     push({
-      id: "gwDeploy", group: "greatWar", enabled: canGwDeployHere,
+      // 33.1 Superior Staff Work funds GE's first GW deploy: the row must not
+      // charge the reader a CP the engine never takes.
+      id: "gwDeploy", group: "greatWar", cost: deploy.ok ? deploy.cost : ACTION_COSTS.gwDeploy,
+      enabled: canGwDeployHere,
       reason: canGwDeployHere ? undefined
         : !deploy.ok ? gwRefusal(deploy)
           : bi(locale, "Needs reserve armies, room for them, and a friendly home or key without a trench.", "需要预备军、堆叠空间，以及无战壕的友方核心区或关键区。"),

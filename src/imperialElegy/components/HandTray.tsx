@@ -347,6 +347,21 @@ export const HandTray = (props: HandTrayProps) => {
   };
 
   const openInspector = (face: CardChoiceFace, key: string) => setInspector({face, key});
+  /**
+   * 27.2/27.3: the seat's Great War card is not an action card, so the action
+   * phase's reasons ("only during your Action-phase impulse") are wrong for
+   * it — the card is played in planning or the maneuver.  When both printed
+   * modes are blocked, report the Great War reason instead; when either mode is
+   * open, the inspector prints no "cannot play" line at all.
+   */
+  const gwInspectorReasons = (id: string): string[] | null => {
+    if (G.gw?.active !== true || me.gwCard !== id) return null;
+    const cpProblem = gwCardProblem(G, viewer, "cp");
+    const eventProblem = gwCardProblem(G, viewer, "event");
+    if (cpProblem === null || eventProblem === null) return [];
+    const reason = gwImpulseReasonText(locale, eventProblem) ?? gwImpulseReasonText(locale, cpProblem);
+    return reason === undefined ? [] : [reason];
+  };
   const inspectorCard = inspector?.face.card;
   // While a decision is owed the sheet starts folded: it must not cover the
   // map target the decision points at.  The toggle stays live, so a reader can
@@ -627,7 +642,7 @@ export const HandTray = (props: HandTrayProps) => {
           mode={cardFaceMode}
           actions={inspectorCard ? actionButtons(inspectorCard.id, "inspector") : null}
           unavailable={inspectorCard
-            ? availability(inspectorCard.id).reasons
+            ? gwInspectorReasons(inspectorCard.id) ?? availability(inspectorCard.id).reasons
             : [bi(locale, "National Goals have no card operation - they score at game end.", "国家目标没有卡牌操作——在游戏结束时计分。")]}
         />
       )}
