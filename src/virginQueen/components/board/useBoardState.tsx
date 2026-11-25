@@ -219,8 +219,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
     const hotseatWaitHint = (): string | undefined => {
         if (myTurn || responsePower !== undefined || me === undefined) return undefined;
         const base = `${i18n.chain.vq.board.waiting} ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.board.act}${i18n.chain.vq.punct.period}`;
-        // A clickable switch button already names the tab; keep the hint short.
-        const tab = onSwitchSeat === undefined ? switchToTab(G.activePower) : undefined;
+        const tab = switchToTab(G.activePower);
         return tab === undefined ? base : `${base} ${tab}`;
     };
     const canAct = myTurn && phase === "action" && !G.pendingNavalMoves && !G.pendingNavalOrder && !G.pendingPolishElection && !G.pendingEspionage && !G.pendingBattle && !G.pendingWithdraw && !G.pendingContinue && !G.pendingActivation && !G.pendingCardEvent && !G.pendingTutorialEvent && !G.pendingPiracy && !G.pendingAction && !G.pendingIntercept && !G.pendingAbjuration && !G.gregorianResponse && !G.pendingBeacon && !G.pendingInterceptionOrder && !G.pendingCityRebels && !G.pendingTribute && !G.pendingMutiny && !G.pendingReliefSplit && !G.pendingRebelMove && !G.pendingForeignWar &&

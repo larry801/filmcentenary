@@ -246,3 +246,16 @@ test("the English log renders the engine's embedded names in English", async ({p
     await expect(log).not.toContainText("大维齐尔");
     await expect(log).not.toContainText("奥斯曼帝国");
 });
+
+test("the action-phase waiting alert also switches to the acting seat", async ({page}) => {
+    test.setTimeout(120_000);
+    await startTutorial(page);
+    await seat(page, 2);
+    const panel = page.locator(".vq-actions:visible");
+    await expect(panel).toContainText("Waiting Ottoman Empire to act");
+    const switchButton = panel.getByRole("button", {name: "Switch to the P1 tab", exact: true});
+    await expect(switchButton).toBeVisible();
+    await switchButton.click();
+    await expect(page.getByRole("tab", {name: /^P1 /})).toHaveAttribute("aria-selected", "true");
+    await expect(page.locator(".vq-actions:visible")).toContainText("Remaining CP: 5");
+});

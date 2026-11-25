@@ -26,7 +26,7 @@ import {ActionModePicker} from "./ActionModePicker";
 import {ActionExtras} from "./ActionExtras";
 
 export const ActionPhasePanel = () => {
-    const {G, moves, playerID, ctx, vqLocale, from, foreignWarUnits, setForeignWarUnits, foreignWarLeader, setForeignWarLeader, setConfirmAction, me, myTurn, ps, cp, hand, passBlockCodes, passBlockReason, endImpulseBlocked, hotseatWaitHint, space} = useVQBoard();
+    const {G, moves, playerID, ctx, vqLocale, from, foreignWarUnits, setForeignWarUnits, foreignWarLeader, setForeignWarLeader, setConfirmAction, me, myTurn, switchToTab, switchToSeat, ps, cp, hand, passBlockCodes, passBlockReason, endImpulseBlocked, hotseatWaitHint, space} = useVQBoard();
     if (me === undefined) return null;
     const movementPending = !!(G.pendingWithdraw || G.pendingContinue);
     const movementBlockedReason = movementPending ? blockingPendingReason(G) : undefined;
@@ -40,6 +40,8 @@ export const ActionPhasePanel = () => {
         </Stack>
         {hotseatWaitHint() !== undefined && <Alert severity="info" icon={false} className="vq-waiting" role="status">
             <i className="vq-dot" style={{background: CONTROLLER_COLORS[G.activePower]}} aria-hidden="true"/> {hotseatWaitHint()}
+            {switchToSeat(G.activePower) !== undefined && <Button size="small" variant="contained" sx={{ml: 1}}
+                onClick={switchToSeat(G.activePower)}>{switchToTab(G.activePower)}</Button>}
         </Alert>}
         {G.pendingNavalOrder !== undefined && G.pendingNavalOrder.attacker === me && <Paper variant="outlined" sx={{p: 1}}>
             <Typography variant="subtitle2">{i18n.chain.vq.board.chooseNavalTarget}</Typography>
