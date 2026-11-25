@@ -133,6 +133,37 @@
 
 .ie-table-3d-a11y button { font-size: var(--ie-font-xs); }
 
+/* The touch camera stick: a phone has no WASD, and one finger on the table
+   already orbits it, so the walk gets a control of its own in the corner. */
+.ie-table-3d-stick {
+  position: absolute;
+  left: 14px;
+  bottom: 52px;
+  z-index: 6;
+  width: 104px;
+  height: 104px;
+  border: 1px solid var(--ie-rule-strong);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ie-panel) 72%, transparent);
+  box-shadow: var(--ie-shadow-2);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ie-table-3d-stick-knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 36px;
+  height: 36px;
+  margin: -18px 0 0 -18px;
+  border: 1px solid var(--ie-brass-deep);
+  border-radius: 50%;
+  background: var(--ie-panel-3);
+  pointer-events: none;
+}
+
 /* The presentation chips sit in the stage's framing bar, before the sheets. */
 .ie-map-view-mode { display: flex; align-items: center; gap: 4px; flex: 0 0 auto; }
 

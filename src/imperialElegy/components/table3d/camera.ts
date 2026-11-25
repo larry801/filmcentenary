@@ -52,7 +52,16 @@ export interface TableCamera {
 /** Board units per world unit. */
 export const WORLD_SCALE = 1000;
 
-export const MIN_PITCH = 0.18;
+/**
+ * The lowest elevation the reader can reach, radians (about 29 degrees).
+ *
+ * A tabletop seen from lower than this stops being a board: the sheet
+ * foreshortens into a sliver, the printed names disappear behind the front
+ * counters, and every flat layer (plates, rings, standee faces) squeezes into
+ * the same few depth buckets.  Players asked for the floor; a grazing camera
+ * was never usable, so this is a limit rather than a preference.
+ */
+export const MIN_PITCH = 0.5;
 export const MAX_PITCH = 1.45;
 export const MIN_DISTANCE = 0.45;
 export const MAX_DISTANCE = 60;
@@ -222,6 +231,33 @@ export const panCamera = (
     y: camera.target.y + (-right.z * dxPixels + flat.z * dyPixels) * perPixel * WORLD_SCALE,
   };
   return clampCamera({...camera, target});
+};
+
+/** Keep a look-at point on the sheet, so the table can never be walked away. */
+export const clampTarget = (point: Vec2, box: BoardBox): Vec2 => ({
+  x: clamp(point.x, box.x, box.x + box.width),
+  y: clamp(point.y, box.y, box.y + box.height),
+});
+
+/**
+ * Walk the look-at point across the table by one step of a held control.
+ *
+ * `forward` and `right` are in screen pixels, the same unit `panCamera` takes,
+ * so the speed of a key or a joystick is expressed the way a drag is: forward
+ * walks up the screen (away from the camera), right walks toward the right of
+ * the screen, whatever the orbit is.  Unlike a drag — which ends when the
+ * pointer lifts — a held key repeats forever, so `bounds` keeps the look-at
+ * point on the sheet and a player cannot walk the table out of sight.
+ */
+export const walkCamera = (
+  camera: TableCamera,
+  forward: number,
+  right: number,
+  viewport: Viewport,
+  bounds?: BoardBox,
+): TableCamera => {
+  const moved = panCamera(camera, -right, forward, viewport);
+  return bounds === undefined ? moved : {...moved, target: clampTarget(moved.target, bounds)};
 };
 
 export const boundsOf = (points: readonly Vec2[]): BoardBox => {

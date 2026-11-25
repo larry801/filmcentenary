@@ -91,3 +91,106 @@ test("the table has two materials and remembers the chosen one", async ({page}) 
     const felt = await stage.screenshot();
     expect(Buffer.compare(paper, felt)).not.toBe(0);
 });
+
+test("WASD walks the camera and stops when the key lifts", async ({page}) => {
+    const stage = await openTable(page);
+    const box = await stage.boundingBox();
+    expect(box).not.toBeNull();
+    // Clicking the table focuses it (it is one focus stop) and selects a space,
+    // exactly as a keyboard player arrives on the board.
+    await page.mouse.click(box!.x + box!.width * 0.5, box!.y + box!.height * 0.45);
+    const before = await stage.screenshot();
+
+    await page.keyboard.down("w");
+    await page.waitForTimeout(600);
+    await page.keyboard.up("w");
+    await page.waitForTimeout(300);
+    const walked = await stage.screenshot();
+    expect(Buffer.compare(before, walked)).not.toBe(0);
+
+    // The walk is a held movement, not a step: once the key is up the camera
+    // settles, so two frames a moment apart are the same picture.
+    const settled = await stage.screenshot();
+    await page.waitForTimeout(400);
+    expect(Buffer.compare(settled, await stage.screenshot())).toBe(0);
+
+    // A/S/D walk the other way; the keyboard also never scrolls the page.
+    await page.keyboard.down("s");
+    await page.waitForTimeout(500);
+    await page.keyboard.up("s");
+    await page.waitForTimeout(300);
+    expect(Buffer.compare(walked, await stage.screenshot())).not.toBe(0);
+});
+
+test("the printed sheet keeps drawing while the camera orbits", async ({page}) => {
+    const stage = await openTable(page);
+    const box = await stage.boundingBox();
+    expect(box).not.toBeNull();
+    const cx = box!.x + box!.width * 0.5;
+    const cy = box!.y + box!.height * 0.45;
+
+    // Frames are weighed rather than eyeballed: the sheet's cardboard edge used
+    // to be coplanar with the printed sheet, so on some frames the plain edge
+    // won the depth test and the whole map disappeared for that frame — the
+    // board flashed blank under a drag.  A blank map compresses to well under
+    // two thirds of a printed one, so the smallest frame is the check.
+    await page.mouse.move(cx, cy);
+    await page.mouse.down();
+    const sizes: number[] = [];
+    for (let step = 1; step <= 16; step += 1) {
+        await page.mouse.move(cx + step * 14, cy + step * 3);
+        await page.waitForTimeout(120);
+        sizes.push((await stage.screenshot()).length);
+    }
+    await page.mouse.up();
+
+    const sorted = [...sizes].sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+    for (const size of sizes) {
+        expect(size).toBeGreaterThan(median * 0.7);
+    }
+});
+
+test.describe("on a phone", () => {
+    test.use({isMobile: true, hasTouch: true, viewport: {width: 412, height: 820}, deviceScaleFactor: 2});
+
+    test("the stick walks the camera and never orbits the table under it", async ({page}) => {
+        const stage = await openTable(page);
+        const stick = page.getByTestId("ie-table-3d-joystick");
+        await expect(stick).toBeVisible();
+        const base = await stick.boundingBox();
+        expect(base).not.toBeNull();
+        // A thumb on the stick is a camera move, not a board gesture.  The
+        // table's own pointer handling claims the pointer (`setPointerCapture`
+        // on the stage) and would then orbit under the thumb; the stick claims
+        // it first, so the stage must never take the capture.
+        await page.evaluate(() => {
+            const stage = document.querySelector(".ie-table-3d");
+            // `gotpointercapture` bubbles from the stick too, so only a capture
+            // the stage itself claims counts.
+            stage?.addEventListener("gotpointercapture", (event) => {
+                if (event.target === stage) window.__stageCapture += 1;
+            });
+        });
+        await page.evaluate(() => { window.__stageCapture = 0; });
+        const before = await stage.screenshot();
+
+        // A thumb on the stick pushes it up: the camera walks up the table.
+        const centre = {x: base!.x + base!.width / 2, y: base!.y + base!.height / 2};
+        await page.mouse.move(centre.x, centre.y);
+        await page.mouse.down();
+        await page.mouse.move(centre.x, centre.y - 30, {steps: 4});
+        await page.waitForTimeout(500);
+        const knob = page.getByTestId("ie-table-3d-joystick-knob");
+        await expect(knob).not.toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+        await page.mouse.up();
+        await page.waitForTimeout(300);
+        expect(Buffer.compare(before, await stage.screenshot())).not.toBe(0);
+        // Released, the knob returns to the middle and the walk stops.
+        await expect(knob).toHaveCSS("transform", "matrix(1, 0, 0, 1, 0, 0)");
+        expect(await page.evaluate(() => window.__stageCapture)).toBe(0);
+        const settled = await stage.screenshot();
+        await page.waitForTimeout(400);
+        expect(Buffer.compare(settled, await stage.screenshot())).toBe(0);
+    });
+});
