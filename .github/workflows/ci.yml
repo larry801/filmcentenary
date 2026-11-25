@@ -196,6 +196,32 @@ jobs:
           name: app-build
           path: build
           retention-days: 3
+      # The Nodaroo deployment uploads `yarn build:single`'s output and starts it
+      # with plain node on a panel that has no node_modules, so the bundle has to
+      # carry its own dependencies. Copy the build into an empty directory and
+      # boot it there: anything left as an external `require` fails here instead
+      # of on the panel.
+      - name: Boot the single-file bundle without node_modules
+        run: |
+          yarn build:single
+          mkdir -p "$RUNNER_TEMP/app/build"
+          cp build/server.js build/index.html "$RUNNER_TEMP/app/build/"
+          cp -r build/assets "$RUNNER_TEMP/app/build/"
+          cd "$RUNNER_TEMP/app"
+          PORT=3399 DB_DIR="$RUNNER_TEMP/data" node build/server.js > bundle.log 2>&1 &
+          for i in $(seq 1 60); do
+            if [ "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3399/ || true)" = "200" ]; then
+              break
+            fi
+            sleep 2
+          done
+          page=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3399/ || true)
+          stats=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3399/api/match-stats || true)
+          pkill -f 'node build/server.js' || true
+          echo "bundle: $(du -h build/server.js | cut -f1), GET / -> $page, GET /api/match-stats -> $stats"
+          echo "node_modules present: $(test -d node_modules && echo yes || echo no)"
+          tail -10 bundle.log
+          test "$page" = "200" && test "$stats" = "200" && test ! -d node_modules
 
   # The browser environment, built once per dependency set.  The image holds
   # everything that used to be reinstalled on every push (Chromium headless
