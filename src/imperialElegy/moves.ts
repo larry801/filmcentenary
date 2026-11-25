@@ -9169,7 +9169,15 @@ export const gwDeclareWarOnNonPlayer = (
 };
 
 export const endGwPlanningMove = (G: ImperialElegyState, ctx: Ctx): string | void => {
-  if (G.phase !== "gwPlanning" || !G.gw) return INVALID_MOVE;
+  if (!G.gw) return INVALID_MOVE;
+  // A scenario that prints "start this scenario with the Maneuver Step" opens
+  // on the planning step only so the GW cards and war budgets are dealt; the
+  // first move starts the maneuver.  Every bot client can send that move in
+  // the same tick, so once one has started the maneuver the rest are already
+  // satisfied.  Refusing them left eight invalid-move errors in the console
+  // every time a solo Historical Great War match opened.
+  if (G.phase === "gwManeuver") return undefined;
+  if (G.phase !== "gwPlanning") return INVALID_MOVE;
   const res = startGwManeuver(G, ctx);
   if (!res.ok) return INVALID_MOVE;
   ctx.events?.setPhase?.("gwManeuver");

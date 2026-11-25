@@ -434,3 +434,88 @@ describe("Great War refusals name the impulse's real blocker", () => {
     expect(row(rows, "gwDeploy")?.reason).toBe("Only during your GW maneuver impulse.");
   });
 });
+
+/**
+ * 27.5.2 / 15.2.3: a Great War row is enabled only when the live move would
+ * accept it.
+ *
+ * Found while playing the solo Historical Great War: the Draft row was offered
+ * on a key at its stacking limit and for a power with no army counter left,
+ * and the Rail row for a reserve army deployed this very impulse.  Every click
+ * was refused by the engine with no reason on screen.
+ */
+describe("Great War rows ask the engine's own question", () => {
+  const gwState = (power: Power, impulse: Record<string, unknown> = {}): ImperialElegyState => {
+    const G = setupImperialElegy(testCtx(power));
+    G.phase = "gwManeuver";
+    G.activePower = power;
+    G.turnIndex = 0;
+    G.pending = null;
+    G.battle = null;
+    G.war = null;
+    G.powers[power].alliance = power === "UK" ? "teCommitted" : "taCommitted";
+    G.powers.GE.alliance = "taCommitted";
+    G.powers[power].gwBudget = 5;
+    G.gw = {
+      active: true,
+      turn: 1,
+      order: [power, "GE"],
+      belligerents: [power, "GE"],
+      neutrals: [],
+      te: power === "UK" ? ["UK"] : [],
+      ta: power === "UK" ? ["GE"] : [power, "GE"],
+      usIn: false,
+      italyIn: false,
+      usStability: 3,
+      usManpower: 3,
+      usBudget: 4,
+      italyStability: 3,
+      italyManpower: 3,
+      italyBudget: 2,
+      trenches: {},
+      lastColonialWar: null,
+      victor: null,
+      outbreakDone: true,
+      nationalWillDone: true,
+      bonusImpulses: [],
+      impulse: {power, turn: 1, index: 0, serial: 1, acted: false, ...impulse},
+    } as never;
+    return G;
+  };
+  const rowsFor = (
+    G: ImperialElegyState,
+    viewer: Power,
+    space: SpaceId,
+    selectedUnit: string | null = null,
+  ): SpaceAction[] => spaceActions(input({
+    G, viewer, space, selectedUnit, phase: "gwManeuver", canGwDraft: true,
+  }));
+
+  test("draft is offered only where 27.5.2 allows it", () => {
+    const G = gwState("UK");
+    expect(row(rowsFor(G, "UK", "london"), "gwDraft")?.enabled).toBe(true);
+
+    // A main-map key holds three armies; a fourth makes the draft illegal.
+    placeUnit(G, "UK", "army", "london", 2);
+    placeUnit(G, "UK", "army", "london", 2);
+    placeUnit(G, "UK", "army", "london", 2);
+    const full = row(rowsFor(G, "UK", "london"), "gwDraft");
+    expect(full?.enabled).toBe(false);
+    expect(full?.reason).toContain("27.5.2");
+  });
+
+  test("rail and march refuse a reserve army deployed this impulse (15.2.3)", () => {
+    const G = gwState("GE");
+    const army = Object.values(G.units).find((unit) => unit.owner === "GE" && unit.space === "berlin" && !unit.naval)!;
+    army.flags = {deployedThisImpulse: true};
+    const blocked = rowsFor(G, "GE", "pomerania", army.id);
+    expect(row(blocked, "gwRail")?.enabled).toBe(false);
+    expect(row(blocked, "gwRail")?.reason).toContain("15.2.3");
+    expect(row(blocked, "gwMarch")?.enabled).toBe(false);
+
+    delete army.flags;
+    const legal = rowsFor(G, "GE", "pomerania", army.id);
+    expect(row(legal, "gwRail")?.enabled).toBe(true);
+    expect(row(legal, "gwMarch")?.enabled).toBe(true);
+  });
+});

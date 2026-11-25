@@ -335,3 +335,49 @@ describe("Great War impulse exit states", () => {
     expect(byTestId(tree, "ie-gw-impulse-hint")).toBeUndefined();
   });
 });
+
+/**
+ * 27.1: the maneuver's exit belongs in the pinned dock, not only in the War
+ * tab.  A player who reads the dock (every campaign phase ends there) used to
+ * see no way to finish a Great War impulse at all: the button existed only
+ * inside the War panel, and the dock's one-line summary never said what the
+ * impulse still owed.
+ */
+describe("Great War exit in the pinned dock", () => {
+  const maneuver = (impulse: Record<string, unknown>): ImperialElegyState => {
+    const G = baseGw();
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    G.turnIndex = 0;
+    G.powers.GE.gwBudget = 5;
+    G.gw!.impulse = {power: "GE", turn: 1, index: 0, serial: 1, acted: false, ...impulse} as never;
+    return G;
+  };
+  const summary = (tree: React.ReactElement): string =>
+    String(byTestId(tree, "ie-dock-summary")?.props?.children ?? "");
+
+  test("the dock ends a completed impulse", () => {
+    const tree = render(maneuver({acted: true, budgetAction: "deploy"}), "GE", moveBag(...GW_MOVES));
+    const pass = byTestId(tree, "ie-gw-pass-dock");
+    expect(pass).toBeTruthy();
+    expect(pass?.props.disabled).toBeFalsy();
+    expect(pass?.props.children).toBe("End impulse");
+    expect(summary(tree)).toBe("Action done — end your impulse");
+  });
+
+  test("an impulse that still owes its budget action keeps the exit disabled with the reason", () => {
+    const tree = render(maneuver({}), "GE", moveBag(...GW_MOVES));
+    const pass = byTestId(tree, "ie-gw-pass-dock");
+    expect(pass?.props.disabled).toBe(true);
+    expect(pass?.props.title).toContain("war-budget CP");
+    expect(summary(tree)).toContain("you may pass only at 2 or less");
+  });
+
+  test("the planning step can start the maneuver from the dock", () => {
+    const G = baseGw();
+    G.phase = "gwPlanning";
+    G.activePower = "GE";
+    const tree = render(G, "GE", moveBag("endGwPlanningMove"));
+    expect(byTestId(tree, "ie-gw-start-dock")).toBeTruthy();
+  });
+});

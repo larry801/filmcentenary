@@ -30,6 +30,9 @@ const powerName = (code: string): string => POWER_DEFS[code as Power]?.nameZh ??
 /** Whole-string reasons; checked before the patterns. */
 const EXACT_ZH: Readonly<Record<string, string>> = {
   "A build needs a space": "建造需要指定一个空间",
+  "A unit deployed this impulse cannot move (15.2.3)": "本行动轮部署的单位不能移动（15.2.3）",
+  "A draft needs a controlled home key with room for one more army and no trench battle marker (27.5.2)":
+    "征召需要一个由你控制的本土关键区，且该区还能再容纳一支军团、没有战壕标记（27.5.2）",
   "Agrarian: needs a 6 after DRMs": "农业国：掷骰加修正后需 6",
   "An allied minor's army may only rail during wartime (12.8)":
     "盟国小国的军团只能在战时使用铁路移动（12.8）",
@@ -78,6 +81,7 @@ const EXACT_ZH: Readonly<Record<string, string>> = {
   "lost the africa colonial war": "输掉了非洲殖民战争",
   "lost the asia colonial war": "输掉了亚洲殖民战争",
   "Metternich's Legacy already resolved": "“梅特涅的遗产”已结算",
+  "Not enough manpower to draft": "人力不足，无法征召",
   "Napoleon's Legacy is already revealed": "“拿破仑的遗产”已公开",
   "No Arab manpower available": "没有可用的阿拉伯人力",
   "No army counter available": "已无军团棋子",
@@ -184,6 +188,7 @@ const PATTERN_ZH: ReadonlyArray<[RegExp, string | Translator]> = [
   [/^The unit must be built in a home space of (.+)$/, (m) => `该单位必须建在${minorLabel(m[1], "zh_CN")}的本土空间`],
   [/^Polish army counters already equal the 22\.5 limit \((\d+)\)$/, (m) => `波兰军团棋子已达 22.5 上限（${m[1]}）`],
   [/^(.+) may not build reserve armies$/, (m) => `${powerName(m[1])}不能建造预备军`],
+  [/^(.+) does not have enough army counters for a draft$/, (m) => `${powerName(m[1])}已无足够的军团棋子来征召（4.2）`],
 ];
 
 /**

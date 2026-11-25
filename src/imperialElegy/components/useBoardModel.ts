@@ -26,9 +26,9 @@ import {AU_NATIONALITIES, auIncorporateDecision, auRightsDecision, canGrantCitiz
 import {polishController, polishRecruitDecision} from "../engine/poland";
 import {deployReserveLimit, loneMinorDefender, minorWarAlly, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
-import {isIndependentItaly} from "../engine/greatWarFlow";
-import {gwActionAllowance} from "../engine/gwImpulse";
-import {POWER_KEYS, amphibiousReasonText, bi, interceptReasonText, isPowerKey, OPTION_ZH, pickActionTarget, PROMPT_ZH, powerOrMinorLabel, transportReasonText, unitIsCommanded, unitLabel} from "./boardHelpers";
+import {gwDraftProblem, isIndependentItaly} from "../engine/greatWarFlow";
+import {currentGwImpulse, gwActionAllowance, gwCanEndTurn, gwFinishImpulseProblem} from "../engine/gwImpulse";
+import {POWER_KEYS, amphibiousReasonText, bi, gwImpulseReasonText, interceptReasonText, isPowerKey, OPTION_ZH, pickActionTarget, PROMPT_ZH, powerOrMinorLabel, transportReasonText, unitIsCommanded, unitLabel} from "./boardHelpers";
 import {handChoiceAvailability} from "./HandChoices";
 import {CardChoiceFace} from "./CardChoice";
 import {PhaseAction} from "./PhaseActions";
@@ -399,7 +399,23 @@ export const useBoardModel = ({
   const passBlockedTitle = bi(actualLocale,
     "Passing needs at most one card in hand (two for the UK), with no home card or mandatory event.",
     "停牌需要手牌不超过 1 张（英国 2 张），且不能持有本国牌或强制事件。");
-  const hasPhaseButtons = viewer !== null && !eliminated && ((phase === "prep" || phase === "diplomacy") ? canPhaseAct : phase === "action" ? isActive : phase === "end" ? canPhaseAct : false);
+  // 27.1/27.3: the Great War's own exit lives in the pinned dock too.  The
+  // War tab keeps its copies, but a seat that only reads the dock (the way
+  // every campaign phase is played) used to have no visible way to end an
+  // impulse, so the maneuver looked stalled after the first action.
+  const gwImpulseProblem = viewer !== null && phase === "gwManeuver" ? gwFinishImpulseProblem(G, viewer) : null;
+  const gwImpulseActed = viewer !== null && phase === "gwManeuver"
+    ? currentGwImpulse(G, viewer).acted === true || G.gw?.neutralImpulses !== undefined
+    : false;
+  const canGwEndTurnNow = viewer !== null && phase === "gwManeuver" && gwCanEndTurn(G, viewer);
+  const hasPhaseButtons = viewer !== null && !eliminated && (
+    (phase === "prep" || phase === "diplomacy") ? canPhaseAct
+      : phase === "action" ? isActive
+        : phase === "end" ? canPhaseAct
+          : phase === "gwPlanning" ? pending === null && battle === null && G.result === null
+            : phase === "gwManeuver" ? isActive && pending === null && battle === null && G.result === null
+              : false
+  );
   // 6.0 / 9.1: the diplomacy home-card selection is a step of its own, after the
   // negotiation segment.  Whether it is still outstanding is the same test
   // `HandChoices` uses, so the dock button and the dialog can never disagree.
@@ -457,6 +473,45 @@ export const useBoardModel = ({
       : []),
     ...(phase === "end" && canPhaseAct
       ? [{key: "endPhaseTurn", label: t.continue, testId: "ie-end-phase-turn", confirm: true, onClick: () => doAction(() => moves.endPhaseTurn(), {label: t.continue})}]
+      : []),
+    // 26.0/27.0: the GW tutorial opens on the planning step only so the cards
+    // and budgets are dealt; the table moves on to the maneuver.
+    ...(phase === "gwPlanning" && pending === null && battle === null && G.result === null
+      ? [{
+          key: "endGwPlanning",
+          label: bi(actualLocale, "Start GW maneuver", "开始大战机动"),
+          testId: "ie-gw-start-dock",
+          confirm: true,
+          onClick: () => doAction(() => moves.endGwPlanningMove(), {label: bi(actualLocale, "Start GW maneuver", "开始大战机动")}),
+        }]
+      : []),
+    // 27.1: the one impulse exit.  It is refused while the budget action is
+    // still owed (a war budget above 2 may not pass) and while Exhaustion is
+    // in hand; the title carries the printed reason instead of going silent.
+    ...(phase === "gwManeuver" && isActive && pending === null && battle === null && G.result === null
+      ? [
+          {
+            key: "gwPass",
+            label: gwImpulseActed ? bi(actualLocale, "End impulse", "结束行动轮") : t.gwPass,
+            testId: "ie-gw-pass-dock",
+            disabled: gwImpulseProblem !== null,
+            title: gwImpulseReasonText(actualLocale, gwImpulseProblem),
+            confirm: true,
+            onClick: () => doAction(() => moves.gwPass(), {
+              label: gwImpulseActed ? bi(actualLocale, "End impulse", "结束行动轮") : t.gwPass,
+              reason: gwImpulseReasonText(actualLocale, gwImpulseProblem),
+            }),
+          },
+          ...(canGwEndTurnNow
+            ? [{
+                key: "gwEndTurn",
+                label: t.gwEnd,
+                testId: "ie-gw-end-dock",
+                confirm: true,
+                onClick: () => doAction(() => moves.gwEndTurn(), {label: t.gwEnd}),
+              }]
+            : []),
+        ]
       : []),
     ] : []),
   ];
@@ -1355,7 +1410,13 @@ export const useBoardModel = ({
     : italyBox.endsWith("Committed")
       ? bi(actualLocale, "joins automatically at the outbreak (25.3)", "大战爆发时自动参战（25.3）")
       : bi(actualLocale, "roll 4–6 at the outbreak, else back to neutral (25.3)", "爆发时掷 4–6 参战，否则退回中立（25.3）");
-  const canGwDraft = selected !== null && viewer !== null && me !== null && phase === "gwManeuver" && isActive && pending === null && !eliminated && gwActionAllowance(G, viewer, "draft").ok && me.manpower >= 1;
+  // 27.5.2: the row must ask the same question the move asks.  A full home
+  // key and an exhausted army-counter pool both used to leave the Draft row
+  // enabled, and the engine then refused it with no visible reason.
+  const gwDraftProblemFor = selected !== null && viewer !== null
+    ? gwDraftProblem(G, viewer, selected)
+    : null;
+  const canGwDraft = selected !== null && viewer !== null && me !== null && phase === "gwManeuver" && isActive && pending === null && !eliminated && gwActionAllowance(G, viewer, "draft").ok && me.manpower >= 1 && gwDraftProblemFor === null;
   const gwDeployRoom = selected !== null && selectedState !== null && selectedState !== undefined
     ? Math.max(0, landStackingLimit(selected) - landUnitsIn(G, selected).filter((u) => isArmyKind(u.kind)).length)
     : 0;
@@ -1554,7 +1615,31 @@ export const useBoardModel = ({
                 : choiceKinds.optional
                   // An optional action must not read as a blocker.
                   ? bi(actualLocale, "Optional: discard a random card for stability", "可选：随机弃牌换稳定")
-                  : canAct
+                  // 26.0/27.1: the Great War's own "what now".  A bare "your
+                  // impulse" leaves a player who only reads the dock without
+                  // the printed budget and pass rules, which is what made the
+                  // maneuver feel stalled after one action.
+                  : phase === "gwPlanning"
+                    ? bi(actualLocale, "GW planning — cards and war budgets are dealt; start the maneuver", "大战计划——大战卡与战争预算已发放；开始机动")
+                    : phase === "gwManeuver"
+                      ? !isActive
+                        ? bi(actualLocale, "Waiting", "等待")
+                        : gwImpulseProblem === "mustAct"
+                          ? bi(actualLocale,
+                            `Your impulse — spend 1 war-budget CP on an action (budget ${viewer !== null ? cpBudget() : 0}); you may pass only at 2 or less`,
+                            `你的行动轮——需用 1 点战争预算执行行动（余额 ${viewer !== null ? cpBudget() : 0}）；预算 ≤2 才能停牌`)
+                          : gwImpulseProblem === "exhaustion"
+                            ? bi(actualLocale, "Play Exhaustion before passing", "停牌前必须打出“精疲力竭”")
+                            : gwImpulseProblem === "bonusPending"
+                              ? bi(actualLocale, "GW card bonus — take one immediate non-land-battle action", "大战卡奖励——立刻执行一次非陆战行动")
+                            : gwImpulseActed
+                              ? bi(actualLocale, "Action done — end your impulse", "行动已完成——结束行动轮")
+                              : bi(actualLocale,
+                                `Your impulse — click a space, then an action (1 CP of a ${viewer !== null ? cpBudget() : 0} budget)`,
+                                `你的行动轮——点击空间再选行动（战争预算 ${viewer !== null ? cpBudget() : 0}，每次 1 CP）`)
+                      : phase === "gwWinter"
+                        ? bi(actualLocale, "Winter resolves automatically", "冬季自动结算")
+                        : canAct
                     ? freeGrantTotal > 0
                       ? bi(actualLocale,
                         `Your impulse — ${freeGrantTotal} event CP still to spend`,
@@ -1581,7 +1666,18 @@ export const useBoardModel = ({
       : navalFrom !== null
         ? bi(actualLocale, "Click a highlighted adjacent sea space to fight there.", "点击高亮的相邻海域发动海战。")
         : selectedUnitDef
-          ? bi(actualLocale, "Click a highlighted space to move the selected unit there.", "点击高亮空间移动所选单位。")
+          // The map click only moves the *cursor*: with a unit selected it
+          // selects the destination and SpacePanel offers the explicit move
+          // row.  The old wording said the click itself moved the unit, so a
+          // player who followed it saw nothing happen (reported while playing
+          // the Historical Great War).
+          ? phase === "gwManeuver"
+            ? bi(actualLocale,
+              "Click a highlighted space, then press \"March here\" in Orders.",
+              "点击高亮空间，再在指令面板点击“行军至此”。")
+            : bi(actualLocale,
+              "Click a highlighted space, then press \"Move selected units…\" in Orders.",
+              "点击高亮空间，再在指令面板点击“移动所选单位…”。")
           : bi(actualLocale, "Click a space; select one of your units to see its legal moves.", "点击空间；选择己方单位以查看合法移动。");
 
   // The map draws one ring per target with the style that explains it: an
