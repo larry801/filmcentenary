@@ -86,7 +86,12 @@ const ieBots = createIEBotDriver({
 });
 attachBotDriverToStorage(db, ieBots, () => botCredential());
 
-const PORT = process.env.PORT || "3002";
+// The single-file panel build replaces __PANEL_PORT__ with the port Nodaroo
+// allocated, so the uploaded file listens there without any environment
+// variable; plain tsc and the Docker images leave it undefined.
+declare const __PANEL_PORT__: string | undefined;
+const PANEL_PORT = typeof __PANEL_PORT__ === "string" ? __PANEL_PORT__ : undefined;
+const PORT = process.env.PORT || process.env.SERVER_PORT || PANEL_PORT || "3002";
 const {app} = server;
 
 /**

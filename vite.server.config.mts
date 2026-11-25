@@ -14,6 +14,9 @@
 import {defineConfig} from 'vite';
 
 export default defineConfig({
+    // The port Nodaroo allocated for the panel server, baked into the bundle so
+    // the uploaded file needs no environment variable to listen correctly.
+    define: {__PANEL_PORT__: JSON.stringify('25664')},
     build: {
         ssr: 'server.ts',
         outDir: 'build',
