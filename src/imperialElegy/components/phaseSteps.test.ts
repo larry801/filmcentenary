@@ -59,6 +59,19 @@ describe("phaseSteps", () => {
     expect(phaseSteps({phase: "gameOver"})[0].current).toBe(true);
   });
 
+  test("every step prints the rulebook section it belongs to", () => {
+    // The printed headings: 2.1 (campaign), 12.17.2 (wartime SoP) and 24.1
+    // (GW SoP).  The sequence list shows these numbers, so a sub-rule number
+    // (13.2, 27.3, …) reads as the wrong rule and contradicts the rulebook.
+    const rules = (steps: readonly {rule?: string}[]): string[] => steps.map((step) => step.rule ?? "");
+    expect(rules(phaseSteps({phase: "prep"}))).toEqual(["10.0", "11.0", "12.0", "20.0"]);
+    expect(rules(phaseSteps({phase: "wartime", war: {status: "warAim"} as never}))).toEqual(
+      ["10.0", "11.0", "13.0", "14.0", "14.2", "14.3", "15.0", "16.0", "17.0"],
+    );
+    expect(rules(phaseSteps({phase: "gwPlanning"}))).toEqual(["26.0", "27.0", "29.0"]);
+    expect(rules(phaseSteps({phase: "gwOutbreak", gw: {active: true} as never})).slice(0, 1)).toEqual(["25.0"]);
+  });
+
   test("phaseAnchor names the current step's printed reference", () => {
     expect(phaseAnchor({phase: "prep"})).toBe("rules:prep");
     expect(phaseAnchor({phase: "action"})).toBe("rules:action");

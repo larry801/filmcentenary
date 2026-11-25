@@ -39,7 +39,7 @@ export const SpaceOverlay = ({G, selected, viewer, locale}: SpaceOverlayProps) =
         {def.keyType !== undefined ? <span className="ie-space-overlay-star" aria-label={t.keyType}>★</span> : null}
       </div>
       <div className="ie-space-overlay-row">
-        <span>{t.control}: {controlLabel(t, state.control)}</span>
+        <span>{t.control}: {controlLabel(t, state.control, locale)}</span>
         {keyType !== undefined && <span>{keyType === "colonial" ? t.keyTypeColonial : t.keyTypeTerritorial}</span>}
       </div>
       <div className="ie-space-overlay-row">

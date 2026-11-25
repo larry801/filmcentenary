@@ -135,3 +135,45 @@ test("a finished game prints no prompt", () => {
   G.result = {reason: "endOfTurn7", winners: ["GE" as Power], vp: {}} as ImperialElegyState["result"];
   expect(actionHints(G, "GE", "en", en)).toEqual([]);
 });
+
+test("the diplomacy hint follows the step the seat actually owes", () => {
+  const campaign = (): ImperialElegyState => {
+    const G = setupImperialElegy(makeCtx(), {});
+    G.phase = "diplomacy";
+    G.activePower = "GE";
+    for (const power of ["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]) {
+      G.powers[power].flags.negotiationDone = false;
+      G.powers[power].flags.homeChosen = false;
+      G.powers[power].selectedHomeCard = null;
+    }
+    return G;
+  };
+  // 9.1: a seat still at the table is told to end its negotiation.
+  const open = campaign();
+  expect(keys(actionHints(open, "GE", "zh_CN", zh))).toEqual(["diplomacy"]);
+  expect(words(actionHints(open, "GE", "zh_CN", zh))).toContain("结束谈判");
+
+  // Once its own negotiation is done but another seat's is not, the seat waits
+  // instead of repeating a button it has already pressed.
+  const waiting = campaign();
+  waiting.powers.GE.flags.negotiationDone = true;
+  expect(keys(actionHints(waiting, "GE", "zh_CN", zh))).toEqual(["diplomacyWaiting"]);
+  expect(words(actionHints(waiting, "GE", "zh_CN", zh))).toContain("5 个席位未结束谈判");
+
+  // 11.2: with the table closed, the owed click is the home card, not a
+  // negotiation that no longer exists.
+  const homeCard = campaign();
+  for (const power of ["GE", "UK", "FR", "AU", "RU", "OT"] as Power[]) {
+    homeCard.powers[power].flags.negotiationDone = true;
+  }
+  homeCard.powers.GE.homeCards = ["IE-H-GE-1"];
+  const owed = actionHints(homeCard, "GE", "zh_CN", zh);
+  expect(keys(owed)).toEqual(["diplomacyHomeCard"]);
+  expect(words(owed)).toContain("选择本土牌");
+  expect(words(owed)).not.toContain("结束谈判");
+
+  // A seat that has chosen is only waiting for the rest of the table.
+  homeCard.powers.GE.selectedHomeCard = "IE-H-GE-1";
+  homeCard.powers.GE.flags.homeChosen = true;
+  expect(keys(actionHints(homeCard, "GE", "en", en))).toEqual(["diplomacyDone"]);
+});

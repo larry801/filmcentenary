@@ -101,7 +101,7 @@ export const SpaceDetailPanel = (props: SpaceDetailPanelProps) => {
         <div className="ie-space-detail" data-testid="ie-space-detail">
           <h4>{locale === "zh_CN" ? selectedSpace.nameZh : selectedSpace.name} <span className="ie-muted">({selectedSpace.type})</span></h4>
           <div>
-            <strong>{t.control}:</strong> {controlLabel(t, selectedState.control)} · <strong>{t.influence}:</strong> {controlLabel(t, selectedState.influence ?? null)} · <strong>{t.diplomacy}:</strong> {controlLabel(t, selectedState.diplomacy ?? null)} · <strong>{t.ally}:</strong> {controlLabel(t, selectedState.ally ?? null)}
+            <strong>{t.control}:</strong> {controlLabel(t, selectedState.control, locale)} · <strong>{t.influence}:</strong> {controlLabel(t, selectedState.influence ?? null, locale)} · <strong>{t.diplomacy}:</strong> {controlLabel(t, selectedState.diplomacy ?? null, locale)} · <strong>{t.ally}:</strong> {controlLabel(t, selectedState.ally ?? null, locale)}
           </div>
           <div>
             <strong>{t.fort}:</strong> {selectedState.fort ? `${selectedState.fort.level} (${selectedState.fort.power})` : "—"} · <strong>{t.pacification}:</strong> {selectedState.pacification ?? 0} · <strong>{t.rebellion}:</strong> {selectedState.rebellion ? `${selectedState.rebellion.minor} (${selectedState.rebellion.step})` : "—"}
@@ -303,7 +303,7 @@ const ActionsHeading = ({G, selected, locale, t, testIdPrefix = "ie-"}: Pick<Spa
   return (
     <div className="ie-actions-space" data-testid={`${testIdPrefix}actions-space`}>
       <b>{locale === "zh_CN" ? space.nameZh : space.name}</b>
-      <span className="ie-muted"> · {t.control}: {controlLabel(t, state.control)}</span>
+      <span className="ie-muted"> · {t.control}: {controlLabel(t, state.control, locale)}</span>
     </div>
   );
 };

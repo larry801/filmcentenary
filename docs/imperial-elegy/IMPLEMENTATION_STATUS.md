@@ -1,3 +1,40 @@
+## Fixed: the sequence list cites the rulebook's own sections (2026-11-25)
+
+Reported as "只看界面玩帝国挽歌 按照规则 pdf 查找问题并修复": a campaign played
+only through the board, checked line by line against the printed
+`IE_rule.pdf`.  Four visible defects, one pass.
+
+- **The stepper's rule numbers were sub-rules, not the printed sections
+  (2.1 / 12.17.2 / 24.1).** The reference drawer's "Sequence of play" list
+  printed `Prep · 5.1`, `Diplomacy · 6.1`, and, inside a limited war and the
+  Great War, `13.2 / 13.4 / 13.6 / 15.2 / 16.1` and `27.3 / 27.5 / 28.0`.
+  The rulebook prints 10.0 Prep, 11.0 Diplomacy, 12.0 Action and 20.0 End;
+  the wartime SoP is 13.0 War Aim, 14.0 Alliance, 14.2 Alliance Shift,
+  14.3 Initiative and Budget, 15.0 Maneuver, 16.0 Victory, 17.0 Demobilization
+  (12.17.2); the GW ladder is 26.0 Planning, 27.0 Maneuver, 29.0 Winter (24.1).
+  Every number in `components/phaseSteps.ts` now names its section, and a test
+  pins the whole list per phase (`phaseSteps.test.ts`).
+- **A refused reserve build spoke English (7.3).** The Orders panel showed
+  `Reserve limit 1 reached` in the Chinese UI; its sibling rows were translated
+  but `reasonText.ts` only had the exact string for limit 0.  The dynamic form
+  now reads `预备军已满（上限 1）` (`reasonText.test.ts`).
+- **The diplomacy hint kept asking for a button that had gone (9.1 / 11.2).**
+  With negotiation closed, the dock still said "negotiate, then every seat
+  presses Finish negotiating" while the step actually owed was the home card.
+  `actionHints.ts` now branches: end your negotiation → wait for the named
+  number of seats → choose the home card → wait for the table
+  (`actionHints.test.ts`, 1 test covering all four).
+- **Minor powers printed in English inside the Chinese UI (3.2).** The space
+  heading read `控制: Belgium` / `Papal States` while every other panel names
+  the same power in Chinese (`与荷兰结盟`).  `controlLabel` now goes through
+  `powerOrMinorLabel`, so the space heading, the space overlay and the war
+  badge print `比利时` / `教皇国` in zh_CN and keep the English name in en.
+
+**Coverage:** `phaseSteps.test.ts` (new "every step prints the rulebook section
+it belongs to"), `referenceTables.test.tsx` (updated to 10.0/11.0),
+`reasonText.test.ts` (+1), `actionHints.test.ts` (+1), and the whole
+`components` suite (1441 tests).
+
 ## Fixed: the Great War impulse can be played from the dock, and its rows no longer lie (2026-11-25)
 
 Reported as "只看界面玩帝国挽歌单人历史大战 增加玩家行动提示": playing the solo

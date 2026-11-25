@@ -408,10 +408,13 @@ export const interceptReasonText = (
 export const PHASE_LABEL = (t: ReturnType<typeof ieT>, phase: string): string =>
   (t.phases as Record<string, string>)[phase] ?? phase;
 
-export const controlLabel = (t: ReturnType<typeof ieT>, control: string | null): string => {
+export const controlLabel = (
+  t: ReturnType<typeof ieT>,
+  control: string | null,
+  locale: "en" | "zh_CN" = "en",
+): string => {
   if (control === null) return "—";
-  if ((POWER_KEYS as string[]).includes(control)) return t.seats[control as Power];
-  return control;
+  return powerOrMinorLabel(t, locale, control);
 };
 
 /**

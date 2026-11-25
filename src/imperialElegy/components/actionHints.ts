@@ -21,6 +21,7 @@
 import {ImperialElegyState, Power} from "../types";
 import {cpBudgetFor} from "../engine/rules";
 import {currentGwImpulse, gwFinishImpulseProblem} from "../engine/gwImpulse";
+import {negotiatingPowers, negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
 import {bi} from "./boardHelpers";
 import type {ieT} from "./i18n";
 
@@ -138,9 +139,34 @@ export const actionHints = (
   }
 
   if (G.phase === "diplomacy") {
-    push("diplomacy",
-      "Negotiate on the Deals page, then every seat presses “Finish negotiating”; the home-card choice opens after that.",
-      "在「谈判」页与各方交涉，然后所有席位点「结束谈判」；之后开放本土牌选择。");
+    // 9.1 / 11.2: two separate steps, and the seat owes a different click in
+    // each.  A single "negotiate, then finish" line kept telling the table to
+    // press a button that had already gone once every seat had ended its
+    // negotiation, while the step actually owed was the home card.
+    if (!negotiationDoneFor(G, viewer)) {
+      push("diplomacy",
+        "Negotiate on the Deals page, then press “Finish negotiating”; the home-card choice opens once every seat has.",
+        "在「谈判」页与各方交涉，然后点「结束谈判」；所有席位结束后才开放本土牌选择。");
+      return out;
+    }
+    if (!negotiationConcluded(G)) {
+      const owed = negotiatingPowers(G).length;
+      push("diplomacyWaiting",
+        `Negotiation is still open for ${owed} seat(s) — the home-card choice opens once every seat has finished.`,
+        `还有 ${owed} 个席位未结束谈判——全部结束后才开放本土牌选择。`);
+      return out;
+    }
+    const me = G.powers[viewer];
+    const homeCardOwed = me.homeCards.length > 0 && me.selectedHomeCard === null && me.flags?.homeChosen !== true;
+    if (homeCardOwed) {
+      push("diplomacyHomeCard",
+        "Negotiation is closed. Choose this turn's home card with “Select home card” in the dock (or on the Deals page).",
+        "谈判已结束。点下方「选择本土牌」（或在「谈判」页）选择本回合的本土牌。");
+      return out;
+    }
+    push("diplomacyDone",
+      "Your home card is chosen. The action phase opens once the other seats have chosen theirs.",
+      "你的本土牌已选好。其余席位选完后进入行动阶段。");
     return out;
   }
 
