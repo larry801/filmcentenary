@@ -125,4 +125,8 @@ down to 1 → the small texture. None of these changes what the board says.
 - `e2e/table3d.spec.ts` — against real SwiftShader WebGL in CI: the scan loads,
   145 markers and counters are drawn, a click selects a space, a drag repaints,
   the sheet round-trip keeps the selection, and both materials differ.
+  It has its own config (`playwright.table3d.config.ts`, `yarn
+  test:e2e:table3d`) and its own CI runner: software-rasterising a table scene
+  beside the VQ boards starved their ten-second waits, so the two never share a
+  machine, and `yarn test:e2e` stays the sheet-and-rules suite.
 - `yarn ie:table:check`, `yarn ie:tokens:check`, `yarn ie:contrast`.

@@ -9,6 +9,11 @@ import {expect, test, type Page} from "@playwright/test";
  * default, so each spec opts in through the same control a player uses.
  */
 
+// Only this file needs the software rasteriser, and only this one flag: forcing
+// it for every spec would push the VQ boards' several thousand SVG nodes onto
+// SwiftShader too and starve their 10 s timeouts.
+test.use({launchOptions: {args: ["--enable-unsafe-swiftshader"]}});
+
 const openTable = async (page: Page) => {
     await page.goto("/localIE");
     await expect(page.getByTestId("ie-map")).toBeVisible();

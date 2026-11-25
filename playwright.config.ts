@@ -26,17 +26,14 @@ export default defineConfig({
     workers: Number(process.env.E2E_WORKERS) || (process.env.CI ? 3 : undefined),
     reporter: process.env.CI ? [["list"], ["html", {open: "never"}]] : "list",
     timeout: 60_000,
+    // The 3D table needs a software rasteriser and its own runner; see
+    // `playwright.table3d.config.ts` and the `e2e-table3d` CI job.
+    testIgnore: ["**/table3d.spec.ts"],
     expect: {timeout: 10_000},
     use: {
         baseURL: "http://127.0.0.1:5173",
         trace: "on-first-retry",
         screenshot: "only-on-failure",
-        // The 3D table needs a WebGL context.  The headless shell has no GPU,
-        // so CI renders on SwiftShader; without these flags Chromium refuses
-        // the context and the table falls back to the sheet.
-        launchOptions: {
-            args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
-        },
     },
     projects: [
         {

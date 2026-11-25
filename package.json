@@ -111,7 +111,8 @@
     "extract:ie": "python3 scripts/extract-imperial-elegy.py",
     "check:ie-assets": "python3 scripts/extract-imperial-elegy.py --check",
     "ie:table": "python3 scripts/generate-ie-table-textures.py",
-    "ie:table:check": "python3 scripts/generate-ie-table-textures.py --check"
+    "ie:table:check": "python3 scripts/generate-ie-table-textures.py --check",
+    "test:e2e:table3d": "playwright test --config playwright.table3d.config.ts"
   },
   "license": "MIT",
   "browserslist": [
