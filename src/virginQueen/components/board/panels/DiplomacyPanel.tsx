@@ -23,7 +23,7 @@ import {NegotiationPanel} from "./NegotiationPanel";
 import {useVQBoard} from "../BoardContext";
 
 export const DiplomacyPanel = () => {
-    const {G, ctx, moves, playerID, vqLocale, selected, from, setDiploTarget, loanFromPort, setLoanFromPort, loanToPort, setLoanToPort, loanLeader, setLoanLeader, domesticRoyal, setDomesticRoyal, foreignRoyal, setForeignRoyal, me, myTurn, diploTargetValue, switchToTab, ps, hand, hotseatWaitHint, space} = useVQBoard();
+    const {G, ctx, moves, playerID, vqLocale, selected, from, setDiploTarget, loanFromPort, setLoanFromPort, loanToPort, setLoanToPort, loanLeader, setLoanLeader, domesticRoyal, setDomesticRoyal, foreignRoyal, setForeignRoyal, me, myTurn, diploTargetValue, switchToTab, switchToSeat, ps, hand, hotseatWaitHint, space} = useVQBoard();
     if (me === undefined) return null;
     const handCp = hand.reduce((n, id) => n + cardById(id).cp, 0);
     const betrothal = betrothalChoices(G, me, domesticRoyal, foreignRoyal);
@@ -283,8 +283,12 @@ export const DiplomacyPanel = () => {
             </Stack>
         </>}
         <Divider/>
-        <Button size="small" variant="outlined" disabled={!myTurn || G.pendingBetrothal !== null} onClick={() => moves.endPhaseTurn()}>
-            {i18n.chain.vq.diplomacy.endDiplomacy}
-        </Button>
+        {!myTurn && switchToSeat(G.activePower) !== undefined
+            ? <Button size="small" variant="contained" onClick={switchToSeat(G.activePower)}>
+                {switchToTab(G.activePower)}
+            </Button>
+            : <Button size="small" variant="outlined" disabled={!myTurn || G.pendingBetrothal !== null} onClick={() => moves.endPhaseTurn()}>
+                {i18n.chain.vq.diplomacy.endDiplomacy}
+            </Button>}
     </Stack>;
 };

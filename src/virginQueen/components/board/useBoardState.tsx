@@ -21,10 +21,10 @@ import {TUTORIAL_POWER_CARDS} from "../../tutorial";
 import {Controller} from "../../constant/general";
 import {cityRebelsDecider, passBlockReasons, type PassBlock, type NavalMoveOrder} from "../../moves";
 
-import {ArmyMutinyTargetSelection, EMPTY_EVENT_SELECTION, GermanRecruitmentTargetSelection, MODE_COST, Mode, StaffordTargetSelection, VirginQueenBoardProps, actionResponderChoices, actionWindowResponders, eventSelectionReducer, leaderLabel, legalDiplomacyTarget, phaseLabel, unitLabel, virginQueenCombatRetrieveOptions} from "./helpers";
+import {ArmyMutinyTargetSelection, EMPTY_EVENT_SELECTION, GermanRecruitmentTargetSelection, MODE_COST, Mode, StaffordTargetSelection, VirginQueenBoardProps, actionResponderChoices, actionWindowResponders, eventSelectionReducer, leaderLabel, legalDiplomacyTarget, phaseChoicePower, phaseLabel, unitLabel, virginQueenCombatRetrieveOptions} from "./helpers";
 
 /** All board state, derived values and handlers shared by the VQ panels. */
-export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, hotseat = false}: VirginQueenBoardProps) => {
+export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, hotseat = false, onSwitchSeat}: VirginQueenBoardProps) => {
     i18n.use();
     const vqLocale = vqLocaleNow();
     const militaryKeyCount = (p: Power): number =>
@@ -157,6 +157,12 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         const seat = ownerOf(G, power);
         if (seat === undefined || seat === playerID) return undefined;
         return i18n.chain.vq.shell.switchToTab.replace("{tab}", String(Number(seat) + 1));
+    };
+    /** Hotseat: the same target as `switchToTab`, as a clickable action. */
+    const switchToSeat = (power: Power | undefined): (() => void) | undefined => {
+        if (power === undefined || onSwitchSeat === undefined || switchToTab(power) === undefined) return undefined;
+        const seat = ownerOf(G, power);
+        return seat === undefined ? undefined : () => onSwitchSeat(Number(seat));
     };
     useTurnNotification({
         isMyTurn: myTurn,
@@ -574,11 +580,8 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         G.pendingReliefSplit?.power ?? G.pendingForeignWar?.power ??
         cityRebelsOwner ??
         G.pendingMutiny?.owner ??
-        // The Spring choices are mandatory too, so name the tab that owns them.
-        (G.pendingCatholicLeague !== undefined ? "spain" as Power : undefined) ??
-        (G.pendingHreReplacement !== undefined ? "hre" as Power : undefined) ??
-        (G.orangeArrivalPending ? "protestant" as Power : undefined) ??
-        G.navalLeaderArrivals?.[0]?.power ??
+        // Phase-locked choices name their owner only in the phase that accepts them.
+        phaseChoicePower(G, phase) ??
         (G.pendingAbjuration !== undefined ? "protestant" as Power : undefined);
     const hasResponse = pendingPower !== undefined && ctx.gameover === undefined;
     // Winter attrition choices are mandatory but are not `pending*` responses,
@@ -638,7 +641,7 @@ export const useBoardState = ({G, log, ctx, moves, playerID, isActive, matchID, 
         selectedActionResponder, setSelectedActionResponder, selectedAbjurationPower, setSelectedAbjurationPower,
         confirmAction, setConfirmAction, sheetOpen, setSheetOpen, formationSheetOpen, setFormationSheetOpen, viewPower, setViewPower,
         owned, piracyResponder, actionResponders, myActionChoices, myActionResponders, actionResponder, responsePower,
-        me, legalEspionageTargets, espionageTarget, myTurn, diploTargetValue, switchToTab, phase, phaseText, displayYear,
+        me, legalEspionageTargets, espionageTarget, myTurn, diploTargetValue, switchToTab, switchToSeat, phase, phaseText, displayYear,
         ps, cp, hand, passBlockCodes, passBlockText, passBlockReason, endImpulseBlocked, hotseatWaitHint, canAct, vqCombatRetrieve,
         modeDisabledReason, isMoveMode, stepState, mapHighlights, stepInfo, transportCandidates, stackPicker, formationSummary,
         doSpaceAction, onSelect, space, spaceDef, standings, religionActions, pendingPower, hasResponse, winterLandChoice,

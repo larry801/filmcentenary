@@ -111,7 +111,7 @@ const MoriscoUnrestPicker = ({G, choice, disabled, onConfirm}: {
 };
 
 export const CardDrawPanel = () => {
-    const {G, ctx, moves, vqLocale, me, myTurn, switchToTab, space} = useVQBoard();
+    const {G, ctx, moves, vqLocale, me, myTurn, switchToTab, switchToSeat, space} = useVQBoard();
     if (me === undefined) return null;
     const powers = participatingPowers(G);
     const nextPhase = G.scenario === "tutorial" ? i18n.chain.vq.cardDraw.springPhase : i18n.chain.vq.cardDraw.diplomacyPhase;
@@ -240,11 +240,15 @@ export const CardDrawPanel = () => {
             ))}
         </Stack>}
         <Typography variant="body2" color={myTurn ? "primary" : "text.secondary"}>
-            {`${myTurn ? i18n.chain.vq.cardDraw.pleaseConfirm : i18n.chain.vq.cardDraw.waiting} P${Number(ctx.currentPlayer) + 1} · ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.cardDraw.completeDraw}${i18n.chain.vq.punct.openParen}${powers.indexOf(G.activePower) + 1}/${powers.length}${i18n.chain.vq.punct.closeParen}${i18n.chain.vq.punct.period}${!myTurn && switchToTab(G.activePower) !== undefined ? ` ${switchToTab(G.activePower)}` : ""}`}
+            {`${myTurn ? i18n.chain.vq.cardDraw.pleaseConfirm : i18n.chain.vq.cardDraw.waiting} P${Number(ctx.currentPlayer) + 1} · ${powerName(G.activePower, vqLocale)} ${i18n.chain.vq.cardDraw.completeDraw}${i18n.chain.vq.punct.openParen}${powers.indexOf(G.activePower) + 1}/${powers.length}${i18n.chain.vq.punct.closeParen}${i18n.chain.vq.punct.period}${!myTurn && switchToSeat(G.activePower) === undefined && switchToTab(G.activePower) !== undefined ? ` ${switchToTab(G.activePower)}` : ""}`}
         </Typography>
-        <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.endPhaseTurn()}>
-            {`${i18n.chain.vq.cardDraw.confirm}${vqLocale === "en" ? " " : ""}${powerName(G.activePower, vqLocale)}${vqLocale === "en" ? " " : ""}${i18n.chain.vq.cardDraw.drawDone}`}
-        </Button>
+        {!myTurn && switchToSeat(G.activePower) !== undefined
+            ? <Button size="small" variant="contained" onClick={switchToSeat(G.activePower)}>
+                {switchToTab(G.activePower)}
+            </Button>
+            : <Button size="small" variant="outlined" disabled={!myTurn} onClick={() => moves.endPhaseTurn()}>
+                {`${i18n.chain.vq.cardDraw.confirm}${vqLocale === "en" ? " " : ""}${powerName(G.activePower, vqLocale)}${vqLocale === "en" ? " " : ""}${i18n.chain.vq.cardDraw.drawDone}`}
+            </Button>}
         <ActionGroup title={i18n.chain.vq.cardDraw.rules}>
         <Typography variant="body2">{i18n.chain.vq.cardDraw.rule1}</Typography>
         <Typography variant="body2">{`${i18n.chain.vq.cardDraw.rule2a}${vqLocale === "en" ? " " : ""}${nextPhase}${i18n.chain.vq.cardDraw.rule2b}`}</Typography>

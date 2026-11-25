@@ -18,10 +18,15 @@ import {setupGame} from "../util";
 import {ScenarioID} from "../constant/general";
 import {VQSurface} from "./theme";
 
+/** Lets a seat's board activate another seat's panel from its waiting hint. */
+const SeatSwitchContext = React.createContext<((seat: number) => void) | undefined>(undefined);
+
 /** Local boards know that every seat is mounted, so pending choices can say
  * which tab the device user should open next. */
-const HotseatBoard = (props: React.ComponentProps<typeof VirginQueenBoard>) =>
-    <VirginQueenBoard {...props} hotseat/>;
+const HotseatBoard = (props: React.ComponentProps<typeof VirginQueenBoard>) => {
+    const onSwitchSeat = React.useContext(SeatSwitchContext);
+    return <VirginQueenBoard {...props} hotseat onSwitchSeat={onSwitchSeat}/>;
+};
 
 /**
  * Board clients are created once so switching seats or locales never remounts
@@ -123,7 +128,9 @@ const LocalVirginQueen = ({initialScenario = "campaign"}: {initialScenario?: Sce
             </div></details>
         </div>
         {configuration.seats.map((label, index) => <Box key={`${configuration.id}-${index}`} sx={{display: tab === index ? "block" : "none"}}>
-            <BoardClient matchID={`${MATCH_ID}-${configuration.id}`} playerID={String(index)} debug={false}/>
+            <SeatSwitchContext.Provider value={setTab}>
+                <BoardClient matchID={`${MATCH_ID}-${configuration.id}`} playerID={String(index)} debug={false}/>
+            </SeatSwitchContext.Provider>
         </Box>)}
     </VQSurface>;
 };

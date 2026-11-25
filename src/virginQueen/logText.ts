@@ -165,6 +165,26 @@ const localizeNames = (text: string): string =>
     text.replace(namePattern, (_match, prefix: string, english: string) =>
         `${prefix}${names.get(english) ?? english}`);
 
+/**
+ * Reverse of `names`.  The engine log is written once and stored in the game
+ * state, and several log sites embed the Chinese display name that
+ * `powerLabel()` and the card definitions return by default.  An English board
+ * must render those names in English too, so this map turns them back.
+ */
+const englishNames = new Map<string, string>();
+for (const [english, chinese] of names) {
+    // Internal ids are lowercase slugs; they are not display names and would
+    // otherwise win over the printed English name for the same Chinese text.
+    if (/^[a-z0-9_-]+$/.test(english)) continue;
+    if (!englishNames.has(chinese)) englishNames.set(chinese, english);
+}
+
+const sortedChineseNames = [...englishNames.keys()].sort((a, b) => b.length - a.length);
+const chineseNamePattern = new RegExp(sortedChineseNames.map(escapeRegExp).join("|"), "gu");
+
+const localizeNamesToEnglish = (text: string): string =>
+    text.replace(chineseNamePattern, (match) => englishNames.get(match) ?? match);
+
 const side = (value: string): string => value === "field" ? "野战" : value === "naval" ? "海战" : "强攻";
 const religion = (value: string): string => value === "catholic" ? "天主教" : value === "protestant" ? "新教" : value === "新教联盟" ? "新教" : value;
 const phase = (value: string): string => value === "spring" ? "春季部署" : value === "action" ? "行动阶段" : value === "diplomacy" ? "外交阶段" : value;
@@ -1039,7 +1059,10 @@ const translateWithRules = (text: string): string | undefined => {
  * instead of disappearing.
  */
 export const localizeLogLine = (text: string, locale: VQLocale = "zh_CN"): string => {
-    if (locale === "en" || text === "") return text;
+    if (text === "") return text;
+    // Engine lines are English templates, but names inside them are written
+    // with the default Chinese labels; render those back for an English board.
+    if (locale === "en") return localizeNamesToEnglish(text);
     // Match the rules against the English engine line first: several rule
     // patterns name powers or places literally ("Spain ...", "French home
     // spaces"), and those patterns stop matching once the names have been
