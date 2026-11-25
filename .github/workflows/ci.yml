@@ -57,6 +57,10 @@ jobs:
         run: yarn ie:tokens:check
       - name: Check Imperial Elegy contrast
         run: yarn ie:contrast
+      # The 3D table's map textures are derived from the published scan; the
+      # check re-hashes them, so a regenerated scan cannot ship a stale table.
+      - name: Check Imperial Elegy table textures
+        run: yarn ie:table:check
       - name: Run unit tests
         run: yarn test --ci
 

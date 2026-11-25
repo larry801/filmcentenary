@@ -97,6 +97,14 @@ check("move-ink-on-dark on panel", c["move-ink-on-dark"], c.panel, 4.5);
 check("move-ink-on-dark on panel-2", c["move-ink-on-dark"], c["panel-2"], 4.5);
 check("paper on overprint (danger label)", c.paper, c.overprint, 4.5);
 
+// The 3D table's felt: the target rings and the selection ring are drawn on a
+// dark green cloth, so they carry their own light palette (TABLE_3D.md).
+for (const ring of ["felt-move", "felt-attack", "felt-rail", "felt-choice", "felt-pending", "felt-selection"]) {
+  check(`${ring} on felt`, c[ring], c.felt, 3);
+}
+check("paper counter edge on felt", c.paper, c.felt, 3);
+note("felt as a surface (not text)", c.felt, c.table);
+
 // Power colours: fills are data; labels and text variants must pass.
 for (const [power, values] of Object.entries(tokens.power)) {
   const name = power.toUpperCase();

@@ -1,0 +1,22 @@
+{
+  "textures": [
+    {
+      "published": "maps/world-table.jpg",
+      "width": 4096,
+      "height": 2903,
+      "bytes": 2873502,
+      "checksum": "b2fcae0ae847b9f886f351d71b6ff1b8119a48f628276a7fa004e09829dbaafe",
+      "source": "maps/world.jpg",
+      "generator": "scripts/generate-ie-table-textures.py"
+    },
+    {
+      "published": "maps/world-table-small.jpg",
+      "width": 1024,
+      "height": 726,
+      "bytes": 200963,
+      "checksum": "61269ab8fbfd38b334068ce2a92efab911ee9d1a4ae855380b7ae7cc62e3b122",
+      "source": "maps/world.jpg",
+      "generator": "scripts/generate-ie-table-textures.py"
+    }
+  ]
+}
