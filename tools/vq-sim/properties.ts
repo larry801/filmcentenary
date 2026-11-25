@@ -19,9 +19,11 @@
  *
  *   runSeededGame({seed: "<seed>", ..., maxSteps: <step + 1>})
  *
- * The first failing step is already the shortest prefix (the run is
- * deterministic), which is the shrinker: `shrinkFailure` re-runs that prefix and
- * proves the violation still reproduces.
+ * The first failing step is already the shortest *prefix* (the run is
+ * deterministic), so `shrinkFailure` re-runs it and confirms the violation.
+ * Minimising the actions themselves lives in `shrink.ts`: it delta-debugs the
+ * recorded decision list and replays the reduced trace through the harness's
+ * `forced` decisions.
  */
 import {Ctx} from "boardgame.io";
 import {ScenarioID, POWERS, Power, VQGame} from "../../src/virginQueen/constant/general";
@@ -39,6 +41,12 @@ export interface PropertyConfig {
     maxSteps?: number;
     /** Keep a JSON snapshot every N actions (0 disables). */
     sampleEvery?: number;
+    /**
+     * Run the board-wide derivations (`full` tier) and the strict JSON
+     * round-trip every N actions, in addition to every phase boundary.  The
+     * cheap tier still runs after every action.
+     */
+    fullEvery?: number;
 }
 
 export interface StepViolation {
@@ -78,6 +86,47 @@ const dedupeBy = (entries: StepViolation[]): StepViolation[] => {
         seen.add(key);
         return true;
     });
+};
+
+/**
+ * JSON-safety scan: one traversal that finds the first value a JSON round trip
+ * would change — NaN/Infinity (become null), Map/Set (become {}), a class
+ * instance (becomes a plain object), a function or symbol (dropped), or an
+ * `undefined` array entry (becomes null).  It allocates nothing, so it can run
+ * after every action; `roundTripProblem` keeps the strict stringify/parse
+ * comparison for the full cadence.
+ */
+export const jsonSafetyProblem = (root: unknown): string | undefined => {
+    const seen = new Set<object>();
+    const walk = (value: unknown, path: string): string | undefined => {
+        if (value === null || value === undefined) return undefined;
+        const kind = typeof value;
+        if (kind === "number") return Number.isFinite(value as number) ? undefined : `${path}: ${String(value)}`;
+        if (kind === "string" || kind === "boolean") return undefined;
+        if (kind !== "object") return `${path}: ${kind}`;
+        const object = value as object;
+        if (seen.has(object)) return undefined;
+        seen.add(object);
+        if (Array.isArray(object)) {
+            for (let index = 0; index < object.length; index += 1) {
+                if (object[index] === undefined) return `${path}[${index}]: undefined array entry`;
+                const found = walk(object[index], `${path}[${index}]`);
+                if (found !== undefined) return found;
+            }
+            return undefined;
+        }
+        const prototype = Object.getPrototypeOf(object);
+        if (prototype !== Object.prototype && prototype !== null) {
+            const name = (object as {constructor?: {name?: string}}).constructor?.name ?? "non-plain";
+            return `${path}: ${name} instance`;
+        }
+        for (const key in object as Record<string, unknown>) {
+            const found = walk((object as Record<string, unknown>)[key], `${path}.${key}`);
+            if (found !== undefined) return found;
+        }
+        return undefined;
+    };
+    return walk(root, "$");
 };
 
 /**
@@ -198,6 +247,8 @@ export const runProperty = (config: PropertyConfig): PropertyRun => {
     const samples: {step: number; state: string}[] = [];
     const trace: string[] = [];
     const sampleEvery = config.sampleEvery ?? 0;
+    const fullEvery = config.fullEvery ?? 25;
+    let lastPhase: string | undefined;
     let finalG: VQGame | undefined;
     let finalCtx: Ctx | undefined;
     const result = runSeededGame({
@@ -206,18 +257,28 @@ export const runProperty = (config: PropertyConfig): PropertyRun => {
         numPlayers: config.numPlayers,
         chaos: config.chaos,
         maxSteps: config.maxSteps ?? 4000,
+        // The rule catalogue covers the same bookkeeping with rule citations,
+        // so the harness's own structural pass would be a second, redundant
+        // walk of the same board on every action.
+        skipStructuralCheck: true,
         trace: (_step, event) => {
             trace.push(`${event.move}|${JSON.stringify(event.args)}|${event.status}`);
         },
         onState: (G, ctx, step) => {
             finalG = G;
             finalCtx = ctx;
-            const found = checkRuleInvariants(G, {ctx});
+            const phaseChanged = lastPhase !== ctx.phase;
+            lastPhase = ctx.phase;
+            const level = phaseChanged || step % fullEvery === 0 ? "full" : "cheap";
+            const found = checkRuleInvariants(G, {ctx, level});
             const hard = found.filter((violation) => violation.tier === "A");
             const audit = found.filter((violation) => violation.tier === "B");
             if (hard.length > 0) violations.push({step, violations: hard});
             if (audit.length > 0) audits.push({step, violations: audit});
-            const snapshot = roundTripProblem(G);
+            // The allocation-free scan runs on every action; the strict
+            // stringify/parse comparison corroborates it on the full cadence.
+            const unsafe = jsonSafetyProblem(G);
+            const snapshot = unsafe ?? (level === "full" ? roundTripProblem(G) : undefined);
             if (snapshot !== undefined) roundTrip.push({step, detail: snapshot});
             if (sampleEvery > 0 && step % sampleEvery === 0) {
                 samples.push({step, state: JSON.stringify(G)});

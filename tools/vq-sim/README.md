@@ -41,8 +41,9 @@ rule layer asks whether the resulting board is *legal*:
 | file | what it does |
 | --- | --- |
 | `invariants.ts` | the rule-cited catalogue (`INVARIANTS`): A-tier hard failures and B-tier rule audits, each with its rulebook section |
-| `properties.ts` | generative runner: per-action invariant checks, JSON round-trip, `playerView` privacy, rule 25 outcome, determinism; `shrinkFailure` replays the shortest failing prefix |
-| `property.test.ts` | the property suite over a scenario/player-count/chaos matrix (`VQ_PROPERTY_SEEDS`, `VQ_PROPERTY_STEPS`) |
+| `properties.ts` | generative runner: per-action invariant checks (cheap tier every action, full tier on a cadence), JSON safety scan, `playerView` privacy, rule 25 outcome, determinism |
+| `shrink.ts` | delta-debugging shrinker for a failing action trace (`VQ_PROPERTY_SHRINK=off\|auto\|always`); replays a reduced trace through the harness's `forced` decisions |
+| `property.test.ts` | the property suite over a scenario/player-count/chaos matrix (`VQ_PROPERTY_SEEDS`, `VQ_PROPERTY_STEPS`, `VQ_PROPERTY_SHRINK`); prints elapsed and ms/step per configuration |
 | `invariantMutation.test.ts` | injects one rule break into a real mid-game state per invariant and asserts the checker fires |
 
 ```sh
