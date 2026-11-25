@@ -97,6 +97,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "build:server": "tsc -p tsconfig.server.json --module node16 --moduleResolution node16",
+    "build:single": "vite build --config vite.server.config.mts",
     "start:server": "node build/server.js",
     "test": "jest",
     "test:e2e": "playwright test",
