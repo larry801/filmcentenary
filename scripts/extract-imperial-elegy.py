@@ -84,6 +84,63 @@ PROMO_CARD_IMAGES = {"Action Card P1.jpg", "Action Card P2.jpg", "Action Card P3
 # are rendered as text cards (see docs/imperial-elegy/CORRECTIONS.md).
 TEXT_CARD_IDS = {82, 22}
 
+# The faces a unit counter prints, per power and role: the front the module
+# lays down and the back its "Reduced" layer flips to after a step loss.  The
+# 3D table stands these on the felt, so a counter there is the module's own
+# token rather than a lookalike painted from the palette.  Roles are the
+# printed counter families; `elite` and `ef` have a single step, so no back.
+UNIT_FACES = {
+    "GE": {
+        "army": ("Army GE.png", "Army GE B.png"),
+        "elite": ("GE Elite CORPS.png", None),
+        "ef": ("GE EXP Force.png", None),
+        "squadron": ("Sq GE.png", "Sq GE B.png"),
+        "dreadnought": ("Dn GE.png", "Dn GE B.png"),
+    },
+    "UK": {
+        "army": ("Army UK.png", "Army UK B.png"),
+        "elite": ("UK Elite Corps.png", None),
+        "ef": ("UK Exp Force.png", None),
+        "colonialEf": ("UK Exp Force 1 DRM.png", None),
+        "squadron": ("Sq UK 2.png", "Sq UK 2 b.png"),
+        "dreadnought": ("Dn UK 3.png", "Dn UK 3 b.png"),
+    },
+    "FR": {
+        "army": ("Army France.png", "Army France b.png"),
+        "zouave": ("FR Zouave.png", None),
+        "elite": ("FR Elite Corps.png", None),
+        "ef": ("FR Exp Force.png", None),
+        "colonialEf": ("FR Elite Col EF.png", None),
+        "squadron": ("Sq FR 2.png", "Sq FR 1.png"),
+        "dreadnought": ("Dn FR 3.png", "Dn FR 2.png"),
+    },
+    "AU": {
+        "army": ("Army AU.png", "Army AU B.png"),
+        "elite": ("AU Elite Corps.png", None),
+        "ef": ("AU Exp Force.png", None),
+        "squadron": ("Sq AU 2.png", "Sq AU B.png"),
+        "dreadnought": ("Dn AU 3.png", "Dn AU 3 b.png"),
+    },
+    "RU": {
+        "army": ("Army RU.png", "Army RU Back.png"),
+        "elite": ("RU Elite Corp.png", None),
+        "ef": ("RU Exp Force.png", None),
+        "colonialEf": ("RU Elite Col EF.png", None),
+        "squadron": ("RU Sq.png", "RU Sq B.png"),
+        "dreadnought": ("RU Dn.png", "RU Dn B.png"),
+    },
+    "OT": {
+        "army": ("OT Army.png", "OT Army b.png"),
+        "elite": ("OT Elite Corps.png", None),
+        "ef": ("OT Exp Force.png", None),
+        "squadron": ("OT Sq.png", "OT Sq B.png"),
+        "dreadnought": ("OT Dn.png", "OT Dn B.png"),
+    },
+}
+
+# The module marks a reserve army with this badge layered over the army face.
+RESERVE_BADGE = "Mkr Reserve Army.jpg"
+
 
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -476,6 +533,23 @@ def main() -> int:
             used_counter_paths[published] = image
             publish("counter", sanitize(Path(image).stem), image, published, "buildFile.xml PieceSlot")
 
+        # Unit faces for the 3D table.  These are the same printed counters as
+        # above, published under a role name the scene can resolve without
+        # guessing from a filename, together with the reduced back and the
+        # reserve badge the module layers over an army.
+        for power, roles in UNIT_FACES.items():
+            for role, (front, back) in roles.items():
+                publish("unitFace", f"{power}-{role}-full", front,
+                        f"units/{power}-{role}-full{Path(front).suffix.lower()}",
+                        "buildFile.xml PrototypeDefinition")
+                if back is not None:
+                    publish("unitFace", f"{power}-{role}-reduced", back,
+                            f"units/{power}-{role}-reduced{Path(back).suffix.lower()}",
+                            "buildFile.xml PrototypeDefinition")
+        publish("unitFace", "reserve-badge", RESERVE_BADGE,
+                f"units/reserve-badge{Path(RESERVE_BADGE).suffix.lower()}",
+                "buildFile.xml PrototypeDefinition")
+
         # ------------------------------------------------------------------
         # Manifest.
         # ------------------------------------------------------------------
@@ -488,6 +562,7 @@ def main() -> int:
                 "Card face OCR is advisory only; transcribed text lives in src/imperialElegy/constant/cards.ts.",
                 "Two cards have no face image in the archive (Wilhelm II #82 and French goal #22) and are rendered as text cards.",
                 "Promotional cards P1-P3 and bot charts are not published (deferred features).",
+                "Counters under units/ are the printed unit faces the 3D table stands on the felt: front, reduced back, and the reserve badge.",
             ],
             "counts": {
                 "maps": sum(a.kind == "map" for a in assets),
@@ -499,6 +574,7 @@ def main() -> int:
                 "goals": sum(a.kind == "goal" for a in assets),
                 "backs": sum(a.kind == "back" for a in assets),
                 "counters": sum(a.kind == "counter" for a in assets),
+                "unitFaces": sum(a.kind == "unitFace" for a in assets),
             },
             "assets": [a.__dict__ for a in assets],
         }

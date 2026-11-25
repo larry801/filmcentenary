@@ -133,3 +133,25 @@ export const drawCounterFace = (
     context.fillText(face.mark, centre, centre + size * 0.02);
   }
 };
+
+/**
+ * Paint a published counter face into a standee's square texture.
+ *
+ * The module prints a squadron at 200 x 120, so the face is stretched across
+ * the square canvas here and the standee's own geometry carries the printed
+ * proportions back.  `badge` is the module's reserve marker, drawn in the
+ * face's corner so the army underneath stays readable.
+ */
+export const drawUnitFace = (
+  context: CanvasRenderingContext2D,
+  size: number,
+  face: CanvasImageSource,
+  badge: CanvasImageSource | null,
+): void => {
+  context.clearRect(0, 0, size, size);
+  context.drawImage(face, 0, 0, size, size);
+  if (badge === null) return;
+  const badgeSize = size * 0.26;
+  const inset = size * 0.055;
+  context.drawImage(badge, size - badgeSize - inset, inset, badgeSize, badgeSize);
+};

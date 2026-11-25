@@ -32,6 +32,9 @@ test("the 3D table draws the board and picks a space", async ({page}) => {
     // puts counters on the table.
     await expect(stage).toHaveAttribute("data-markers", "145");
     expect(Number(await stage.getAttribute("data-tokens"))).toBeGreaterThan(0);
+    // The standees wear the module's own counter faces; the drawn stand-in is
+    // only the fallback until those images decode.
+    await expect(stage).toHaveAttribute("data-faces", /^[1-9]\d*$/);
     // A browser with no WebGL would have fallen back to the sheet with a note.
     await expect(page.getByTestId("ie-table-3d-fallback")).toHaveCount(0);
     await expect(page.locator("canvas.ie-table-3d-canvas")).toBeVisible();
