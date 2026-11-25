@@ -31,6 +31,12 @@ export default defineConfig({
         baseURL: "http://127.0.0.1:5173",
         trace: "on-first-retry",
         screenshot: "only-on-failure",
+        // The 3D table needs a WebGL context.  The headless shell has no GPU,
+        // so CI renders on SwiftShader; without these flags Chromium refuses
+        // the context and the table falls back to the sheet.
+        launchOptions: {
+            args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
+        },
     },
     projects: [
         {

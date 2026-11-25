@@ -18,6 +18,8 @@ import type {OrdersTab} from "./OrdersPanel";
 import type {DealOffer, DiplomacyDeals} from "../types";
 import type {DoAction} from "./moveFeedback";
 import type {ieStringsFor} from "./i18n";
+import type {MapViewMode} from "./preferences";
+import type {TableArt} from "./table3d/camera";
 
 export type T = ReturnType<typeof ieStringsFor>;
 export type Decision = {allowed: boolean; reasons: string[]} | null;
@@ -425,6 +427,12 @@ export interface ModelValues {
   /** Render every hand row unfolded (tests/embeds); the board never sets it. */
   expandAll: boolean;
   cardFaceMode: "svg" | "print";
+  /** The map's presentation: the printed sheet, or the 3D table (opt-in). */
+  mapView: MapViewMode;
+  setMapView: (view: MapViewMode) => void;
+  /** The 3D table's material. */
+  tableArt: TableArt;
+  setTableArt: (art: TableArt) => void;
   setCardFaceMode: (m: "svg" | "print") => void;
   amphibiousFrom: string;
   setAmphibiousFrom: (s: string) => void;

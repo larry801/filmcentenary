@@ -91,13 +91,17 @@ export const BoardLayout = ({model}: BoardLayoutProps) => (
  * is passed down as a prop for the same reason: storage alone only reaches a
  * consumer on its next mount.
  */
-const DisplayMenu = ({mode, setMode, confirmActions, setConfirmActions, showUnavailable, setShowUnavailable, locale}: {
+const DisplayMenu = ({mode, setMode, confirmActions, setConfirmActions, showUnavailable, setShowUnavailable, mapView, setMapView, tableArt, setTableArt, locale}: {
   mode: "svg" | "print";
   setMode: (mode: "svg" | "print") => void;
   confirmActions: boolean;
   setConfirmActions: (enabled: boolean) => void;
   showUnavailable: boolean;
   setShowUnavailable: (open: boolean) => void;
+  mapView: "sheet" | "table";
+  setMapView: (view: "sheet" | "table") => void;
+  tableArt: "felt" | "paper";
+  setTableArt: (art: "felt" | "paper") => void;
   locale: "en" | "zh_CN";
 }) => (
   <details className="ie-display-menu" data-testid="ie-display-menu">
@@ -128,6 +132,55 @@ const DisplayMenu = ({mode, setMode, confirmActions, setConfirmActions, showUnav
       </div>
       <div className="ie-display-note">
         {bi(locale, "Printed scans load the 14 MB card image set.", "印刷卡图会加载约 14 MB 的卡图资源。")}
+      </div>
+
+      <div className="ie-display-title">{bi(locale, "Map", "地图")}</div>
+      <div className="ie-display-options" role="group" aria-label={bi(locale, "Map presentation", "地图视图")}>
+        <button
+          type="button"
+          className={`ie-display-option${mapView === "sheet" ? " selected" : ""}`}
+          aria-pressed={mapView === "sheet"}
+          data-testid="ie-display-map-sheet"
+          onClick={() => setMapView("sheet")}
+        >
+          {bi(locale, "Sheet", "平面图")}
+        </button>
+        <button
+          type="button"
+          className={`ie-display-option${mapView === "table" ? " selected" : ""}`}
+          aria-pressed={mapView === "table"}
+          data-testid="ie-display-map-table"
+          onClick={() => setMapView("table")}
+        >
+          {bi(locale, "3D table", "3D 桌面")}
+        </button>
+      </div>
+      {mapView === "table" && (
+        <div className="ie-display-options" role="group" aria-label={bi(locale, "Table material", "桌面材质")}>
+          <button
+            type="button"
+            className={`ie-display-option${tableArt === "felt" ? " selected" : ""}`}
+            aria-pressed={tableArt === "felt"}
+            data-testid="ie-display-table-felt"
+            onClick={() => setTableArt("felt")}
+          >
+            {bi(locale, "Felt", "绒布")}
+          </button>
+          <button
+            type="button"
+            className={`ie-display-option${tableArt === "paper" ? " selected" : ""}`}
+            aria-pressed={tableArt === "paper"}
+            data-testid="ie-display-table-paper"
+            onClick={() => setTableArt("paper")}
+          >
+            {bi(locale, "Paper", "纸面")}
+          </button>
+        </div>
+      )}
+      <div className="ie-display-note">
+        {bi(locale,
+          "The 3D table is the same board: the same spaces, the same legal targets, the same click. It loads the renderer only when selected.",
+          "3D 桌面是同一张棋盘：同样的地块、同样的合法目标、同样的点击。仅在选中时才加载渲染器。")}
       </div>
 
       <div className="ie-display-title">{bi(locale, "Confirmation", "确认")}</div>
@@ -543,7 +596,8 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
     G, t, locale, viewer, phase, active, botSeats, pending, battle, phaseActions,
     canHandOverSeat, setSeatBot, hotseat,
     otherSeatPending, seatUi, pendingPrompt, pendingKind, responseWindow, cardFaceMode,
-    setCardFaceMode, confirmActions, setConfirmActions, board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
+    setCardFaceMode, confirmActions, setConfirmActions, mapView, setMapView, tableArt, setTableArt,
+    board, setBoard, choiceKinds, choicesProps, pendingSpaceTargets,
     homeChoice, goalChoice, homeCardDialogOpen, setHomeCardDialogOpen,
     optionLabel, optionFace, optionAction, canDecline, jihadDecision, jihadReason, doAction,
     moves, mapHint, cpBudget, canDecide, refAnchor, setRefAnchor, toast, dismissToast, goalCounts,
@@ -703,6 +757,10 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
       setConfirmActions={setConfirmActions}
       showUnavailable={showUnavailableMenu}
       setShowUnavailable={setUnavailablePreference}
+      mapView={mapView}
+      setMapView={setMapView}
+      tableArt={tableArt}
+      setTableArt={setTableArt}
       locale={locale}
     />
   );
@@ -840,6 +898,10 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             mapHint={mapHint}
             modePill={modePill}
             viewer={viewer}
+            view={mapView}
+            art={tableArt}
+            onViewChange={setMapView}
+            onArtChange={setTableArt}
           />
         </div>
 
