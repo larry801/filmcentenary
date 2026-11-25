@@ -40,14 +40,14 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
         const G = game();
         preparePirate(G);
         G.worldPatrols = {northAtlantic: 1};
-        G.powers.spain.treasures = [5];
+        G.spanishTreasureRow = [5];
         const vpBefore = G.powers.england.bonusVp;
 
         // One defense die (miss), then four piracy dice: two hits.
         expect(worldPiracy(G, context([1, 5, 5, 1, 1]), {captain: "drake"})).toBeUndefined();
 
         expect(G.worldPatrols?.northAtlantic).toBe(0);
-        expect(G.powers.spain.treasures).toEqual([]);
+        expect(G.spanishTreasureRow).toEqual([]);
         expect(G.worldCaptains.drake.treasureValues).toContain(5);
         expect(G.powers.england.bonusVp).toBe(vpBefore);
     });
@@ -55,7 +55,7 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
     it("awards piracy VP when no patrol or treasure remains", () => {
         const G = game();
         preparePirate(G);
-        G.powers.spain.treasures = [];
+        G.spanishTreasureRow = [];
         const vp = G.powers.england.bonusVp;
 
         // Four piracy dice: one hit.
@@ -78,7 +78,7 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
     it("limits each power to one piracy action per ocean zone per turn", () => {
         const G = game();
         preparePirate(G);
-        G.powers.spain.treasures = [];
+        G.spanishTreasureRow = [];
         expect(worldPiracy(G, context([1, 1, 1, 1]), {captain: "drake"})).toBeUndefined();
         expect(worldPiracy(G, context([]), {captain: "drake"})).toBe(INVALID_MOVE);
     });
@@ -89,13 +89,13 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
         // A fortress in the zone (so Spain rolled a defense die) and two
         // treasures: Spain withholds the first, so only the second can be taken.
         G.worldFortresses = {florida: "spain"};
-        G.powers.spain.treasures = [1, 5];
+        G.spanishTreasureRow = [1, 5];
         G.worldPiracyWithholds = {spain: 0};
 
         // One defense die (miss), then two piracy dice: one hit.
         expect(worldPiracy(G, context([1, 5, 1]), {captain: "drake"})).toBeUndefined();
 
-        expect(G.powers.spain.treasures).toEqual([1]);
+        expect(G.spanishTreasureRow).toEqual([1]);
         expect(G.worldCaptains.drake.treasureValues).toEqual([5]);
     });
 
@@ -103,7 +103,7 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
         const G = game();
         preparePirate(G);
         G.worldFortresses = {florida: "spain"};
-        G.powers.spain.treasures = [3];
+        G.spanishTreasureRow = [3];
         G.worldPiracyWithholds = {spain: 0};
         const vp = G.powers.england.bonusVp;
 
@@ -111,7 +111,7 @@ describe("World Map piracy and patrols (rules 16.5/17.3)", () => {
         expect(worldPiracy(G, context([1, 5, 1, 1]), {captain: "drake"})).toBeUndefined();
 
         // The only Spanish treasure is withheld, so the hit converts to VP.
-        expect(G.powers.spain.treasures).toEqual([3]);
+        expect(G.spanishTreasureRow).toEqual([3]);
         expect(G.powers.england.bonusVp).toBe(vp + 1);
     });
 });

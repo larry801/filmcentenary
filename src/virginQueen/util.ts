@@ -88,6 +88,7 @@ import {
     scenarioSpaces,
 } from "./scenario";
 import {PATRONAGE_VP_AWARD_BY_ID} from "./data/patronage";
+import {SEA_CAPTAINS} from "./data/seaCaptains";
 import {WORLD_HAZARDS} from "./data/world";
 import {validateSetupData} from "./configuration";
 import {canActivateMajor, isActivatedMajor, ownerOf, participatingPowers, playerCount, samePlayer} from "./ownership";
@@ -455,8 +456,12 @@ export const setupGame = (ctx: Ctx, setupData?: ScenarioSetupData): VQGame => {
         discard: [],
         removed: scenario.cardsRemoved.map((number) => OFFICIAL_CARDS[number - 1].id),
         homeSetAside: [],
+        // Rule 9.5: the base cost is 5; `warCost` applies the Mary Queen of
+        // Scots and excommunication reductions (the Tournament opens with her
+        // already captured, so its first-turn cost is 3).
         doWCostEnglandSpain: 5,
         suezAttempts: scenario.powerCard.ottoman.suezAttempts ?? 0,
+        treasureFleetEscorts: scenario.powerCard.spain?.treasureFleetEscorts ?? 0,
         suezDone: false,
         mercenariesForHire,
         betrothals: [],
@@ -925,6 +930,28 @@ export const returnSeaCaptains = (G: VQGame): void => {
     }
 };
 
+/**
+ * Rule 8.1 and the Scenario Book's Sea Captain Table (p. 34): a sea captain
+ * joins its power's force pool during the Card Draw Phase of the turn printed
+ * on his counter.  Captains already on an expedition, on the Turn Track, or
+ * serving as a naval leader do not re-enter.  French/Protestant shared
+ * captains are dealt into the shared pool at setup instead.
+ */
+export const arriveSeaCaptains = (G: VQGame): void => {
+    for (const captain of SEA_CAPTAINS) {
+        if (captain.turn !== G.year || captain.power === "france/protestant") continue;
+        const power = captain.power as Power;
+        if (ownerOf(G, power) === undefined) continue;
+        if (G.powers[power].seaCaptains.includes(captain.id)) continue;
+        if (G.worldCaptains?.[captain.id] !== undefined) continue;
+        if (G.seaCaptainReturn?.[captain.id] !== undefined) continue;
+        const leaderId = SEA_CAPTAIN_LEADER_BY_CAPTAIN[captain.id];
+        if (leaderId !== undefined && G.leaders[leaderId] !== undefined) continue;
+        G.powers[power].seaCaptains.push(captain.id);
+        pushLog(G, `${captain.nameEn} joins ${powerLabel(power)}'s sea captain pool.`);
+    }
+};
+
 /** 6.3/20.7: Portuguese treasure row refresh and winter award. */
 export const refreshPortugueseTreasures = (G: VQGame, ctx: Ctx): void => {
     if (G.portugalEntered === true && (G.portugueseTreasures?.length ?? 0) === 0) {
@@ -1009,6 +1036,7 @@ export const applyPendingCardDraws = (G: VQGame): Partial<Record<Power, number>>
 
 export const dealYear = (G: VQGame, ctx: Ctx): void => {
     returnSeaCaptains(G);
+    arriveSeaCaptains(G);
     rebuildArmada(G);
     G.piracyActions = {};
     G.piracyZones = {};
@@ -1205,18 +1233,49 @@ export const resolveMinorDiplomacy = (
             }
         }
         G.powers[winner].alliedMinors.push(minor);
+        // Rule 24.2 steps 3-4: only the printed Activate powers lose their
+        // control markers here (a Deactivate-only power such as England in
+        // Ireland keeps Dublin), and units of any other power in a flipped
+        // space are displaced.
+        const flipped: string[] = [];
         for (const s of SPACES.filter((space) => spaceHomes(space).includes(minor))) {
             const owner = G.spaces[s.id].control;
-            if (owner === minor || (isPower(owner) && def.eligible.includes(owner))) G.spaces[s.id].control = winner;
+            if (owner === minor) {
+                // The minor's own marker is simply replaced by its new ally.
+                G.spaces[s.id].control = winner;
+            } else if (isPower(owner) && def.activateOrder.includes(owner)) {
+                // Rule 24.2 steps 3-4: a marker belonging to a major that was
+                // eligible to activate this minor is removed, and units of any
+                // other power in that space are displaced.
+                G.spaces[s.id].control = winner;
+                flipped.push(s.id);
+            }
         }
+        if (flipped.length > 0) displaceNonFriendlyUnits(G, winner, flipped);
         for (const p of POWERS) G.powers[p].warsMinors = G.powers[p].warsMinors.filter((m) => m !== minor);
         if (minor === "ireland") {
+            // Rule 24.2 step 6: clear every land unit from Ulster, add the
+            // fortress, and place 3 Irish rebels there.
             const ulster = G.spaces.ulster;
             if (ulster !== undefined) {
-                delete ulster.land.ireland;
+                ulster.land = {};
                 ulster.fortress = true;
                 addLandFromPool(G, "ulster", "ireland", "regular", 3);
             }
+            // Rule 24.2 step 6: the new ally may immediately declare war on
+            // the power controlling Dublin at no CP; Spain may only do so
+            // against England while their DOW cost is 3 or less.
+            const dublin = G.spaces.dublin?.control;
+            if (isPower(dublin) && dublin !== winner && ownerOf(G, dublin) !== undefined &&
+                !allied(G, winner, dublin) && !atWar(G, winner, dublin) &&
+                !(winner === "spain" && dublin === "england" && warCost(G, winner, dublin) > 3)) {
+                setWar(G, winner, dublin);
+                pushLog(G, `${powerLabel(winner)} declares war on ${powerLabel(dublin)} at no cost (24.2 step 6).`);
+            }
+            // Rule 24.2 step 6: one free formation move from Ulster to Dublin.
+            G.pendingRebelMove = {power: winner, space: "ulster", minor: "ireland"};
+            const allyOwner = ownerOf(G, winner);
+            if (allyOwner !== undefined) ctx.events?.setActivePlayers?.({value: {[allyOwner]: "rebelMoveChoice"}});
         }
         pushLog(G, `${powerLabel(winner)} activates ${minor} as an ally.`);
     }
@@ -1274,7 +1333,17 @@ export const declareOttomanTributeWar = (G: VQGame, ctx: Ctx, target: OttomanTri
         if (!G.minorInfluenceBlocked.ottoman.includes("venice")) G.minorInfluenceBlocked.ottoman.push("venice");
         delete G.powers.ottoman.influence.venice;
         delete G.minorInfluenceDefaults.ottoman.venice;
-        resolveMinorDiplomacy(G, ctx, "venice", {exclude: ["ottoman"]});
+        const winner = resolveMinorDiplomacy(G, ctx, "venice", {exclude: ["ottoman"]});
+        // Rule 9.4 step 4: the power that wins this status check intervenes on
+        // Venice's behalf and is now at war with the declarer (the Ottoman).
+        if (winner !== undefined && G.powers[winner].alliedMinors.includes("venice") && !atWar(G, winner, "ottoman")) {
+            setWar(G, winner, "ottoman");
+            const shared = SPACES.map((d) => d.id).filter((id) => {
+                const space = G.spaces[id];
+                return space !== undefined && ownersWithLand(G, id).includes(winner) && ownersWithLand(G, id).includes("ottoman");
+            });
+            if (shared.length > 0) displaceNonFriendlyUnits(G, winner, shared);
+        }
         return;
     }
     setWar(G, "ottoman", target);
@@ -1367,7 +1436,10 @@ export const minorWarCost = (G: VQGame, p: Power, minor: MinorPower): number | u
 
 export const warCost = (G: VQGame, a: Power, b: Power): number => {
     if ((a === "england" && b === "spain") || (a === "spain" && b === "england")) {
-        return Math.max(1, G.doWCostEnglandSpain - (G.elizabethExcommunicated ? 2 : 0));
+        // Rule 9.5 with the PAC3 chart: -2 while Mary is captured but not yet
+        // executed, -3 once she is executed.  The two are not cumulative.
+        const maryReduction = G.maryExecuted === true ? 3 : G.espionage?.mary === "captured" ? 2 : 0;
+        return Math.max(1, G.doWCostEnglandSpain - (G.elizabethExcommunicated ? 2 : 0) - maryReduction);
     }
     return WAR_COST[[a, b].sort().join("-")] ?? 2;
 };
@@ -3329,8 +3401,12 @@ export const applyConversionRolls = (
         offMapRestored += 1;
         return true;
     };
+    // Rule 18.5 condition (b): the adjacent base space must have carried the
+    // converting religion "at the start of this step", so conversions made by
+    // this action may not extend the base for the next die.
+    const baseSpaces = SPACES.filter((def) => G.spaces[def.id].religion === side).map((def) => def.id);
     for (let i = 0; i < major; i++) {
-        const target = pickCandidate(G, ctx, side, area, true);
+        const target = pickCandidate(G, ctx, side, area, true, baseSpaces);
         if (target === undefined) {
             if (restoreOffMap() || convertOffMap()) continue;
             break;
@@ -3339,7 +3415,7 @@ export const applyConversionRolls = (
         converted.push(target);
     }
     for (let i = 0; i < minor; i++) {
-        const target = pickCandidate(G, ctx, side, area, false);
+        const target = pickCandidate(G, ctx, side, area, false, baseSpaces);
         if (target === undefined) {
             if (restoreOffMap() || convertOffMap()) continue;
             break;
@@ -3637,9 +3713,12 @@ export const fieldBattle = (
     if (winner === "attacker") {
         const defendersLeft = totalLand(G, space, defenderOwners);
         const attackerLeft = totalLand(G, space, attackers);
+        // Rule 14.1: only a power that controls the fortified space may
+        // withdraw behind its walls after losing a field battle.
+        const defendersControlSpace = defenderOwners.some((c) => !isPower(c) || friendlyControlled(G, c, space));
         if (defendersLeft === 0) {
             captureLeaders(G, space, defenderOwners, attacker);
-        } else if (isFortifiedSpace(G, space)) {
+        } else if (isFortifiedSpace(G, space) && defendersControlSpace) {
             const inside = Math.min(4, defendersLeft);
             const surplus = defendersLeft - inside;
             if (surplus > 0) {
@@ -3664,7 +3743,8 @@ export const fieldBattle = (
             }
         }
         const defendersAfter = totalLand(G, space, defenderOwners);
-        if (isFortifiedSpace(G, space) && attackerLeft > defendersAfter) {
+        // A fortress the attacker already controls needs no siege marker.
+        if (isFortifiedSpace(G, space) && !friendlyControlled(G, attacker, space) && attackerLeft > defendersAfter) {
             addBesieger(G, space, attacker);
             if (G.spaces[space].siege?.inside === undefined) {
                 G.spaces[space].siege!.inside = ownersWithLand(G, space).filter((c) => defenderOwners.includes(c));
@@ -4213,8 +4293,13 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
     // Rule 18.5 Step 2: Catholic units are "either regulars or naval units but
     // not mercenaries", so a port holding only a Catholic fleet is not an
     // automatic success.
-    const catholicOwners = ownersWithLand(G, space).filter((c) => unitReligion(c) === "catholic");
-    const catholicNavalOwners = ownersWithNaval(G, space).filter((c) => unitReligion(c) === "catholic");
+    // Rule 18.5 rebellion step 2: the power controlling the space (France or
+    // Spain, plus any minor ally's units treated as its own) fights the
+    // rebellion; Catholic units of a third power do not defend it.
+    const ownerSide = (c: Controller): boolean =>
+        c === enemyPower || (!isPower(c) && c !== "independent" && minorAlly(G, c as MinorPower) === enemyPower);
+    const catholicOwners = ownersWithLand(G, space).filter((c) => unitReligion(c) === "catholic" && ownerSide(c));
+    const catholicNavalOwners = ownersWithNaval(G, space).filter((c) => unitReligion(c) === "catholic" && ownerSide(c));
     let successful = true;
     if (catholicOwners.length > 0 || catholicNavalOwners.length > 0) {
         const diceN = cp + (spaceHomes(def).includes("protestant") ? 1 : 0);
@@ -4246,8 +4331,8 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
             }
             if (navalCount(stack) === 0) delete s.naval[c];
         }
-        if (ownersWithLand(G, space).some((c) => unitReligion(c) === "catholic" && (G.spaces[space].land[c]?.regular ?? 0) > 0) ||
-            ownersWithNaval(G, space).some((c) => unitReligion(c) === "catholic" && navalCount(G.spaces[space].naval[c]) > 0)) {
+        if (ownersWithLand(G, space).some((c) => ownerSide(c) && (G.spaces[space].land[c]?.regular ?? 0) > 0) ||
+            ownersWithNaval(G, space).some((c) => ownerSide(c) && navalCount(G.spaces[space].naval[c]) > 0)) {
             successful = false;
         }
     }
@@ -4271,9 +4356,7 @@ export const resolveRebellion = (G: VQGame, ctx: Ctx, p: Power, space: string, c
         delete G.spaces[space].naval[c];
     }
     for (const c of ownersWithLand(G, space)) {
-        const st = G.spaces[space].land[c];
-        const hasMercOrCav = st !== undefined && (st.merc > 0 || st.cav > 0);
-        if (c !== "protestant" && (unitReligion(c) !== "catholic" || hasMercOrCav)) {
+        if (c !== "protestant" && !friendlyController(G, "protestant", c)) {
             const owner = isPower(c) ? c : (minorAlly(G, c as never) ?? "spain");
             const dest = nearestFriendlyFortified(G, owner, space);
             if (dest !== undefined) {
@@ -4367,7 +4450,7 @@ const applyRulerDeath = (G: VQGame, id: string): void => {
             const mary = G.royals.find((royal) => royal.id === "maryScots");
             if (mary !== undefined) {mary.alive = false; mary.status = "dead";}
             addVp(G, "england", -1);
-            G.doWCostEnglandSpain = Math.max(1, G.doWCostEnglandSpain - 3);
+            G.maryExecuted = true;
             pushLog(G, "Mary Queen of Scots is executed after Elizabeth's death (−1 VP).");
         }
         pushLog(G, "Elizabeth I dies; England drops to 1 Admin and 0 card bonus.");
@@ -4725,15 +4808,15 @@ export const eligibleScienceBonuses = (G: VQGame, p: Power) =>
 
 const eligibleScienceBonus = (G: VQGame, p: Power) => eligibleScienceBonuses(G, p)[0];
 
-const claimScienceBonus = (G: VQGame, p: Power): boolean => {
+const claimScienceBonus = (G: VQGame, p: Power): string | undefined => {
     const bonus = eligibleScienceBonus(G, p);
     if (bonus === undefined) {
-        return false;
+        return undefined;
     }
     G.scienceBonusesAvailable = G.scienceBonusesAvailable.filter((id) => id !== bonus.id);
     G.powers[p].scienceBonuses.push(bonus.id);
     pushLog(G, `${powerLabel(p)} claims science bonus ${bonus.nameEn}.`);
-    return true;
+    return bonus.id;
 };
 
 /**
@@ -4818,6 +4901,7 @@ export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
         }
 
         let rewarded = false;
+        let claimedScienceBonus: string | undefined;
         if (patron.kind === "artist") {
             const maxVp = result >= 15 ? 3 : result >= 13 ? 2 : 1;
             const award = bestPatronageVpAward(G, "artist", maxVp, patron.artistType);
@@ -4829,7 +4913,8 @@ export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
             if (result >= 15) {
                 const award = bestPatronageVpAward(G, "scientist", 2);
                 vpClaimed = claimPatronageVpAward(G, attempt.power, award?.id);
-                rewarded = claimScienceBonus(G, attempt.power) || rewarded;
+                claimedScienceBonus = claimScienceBonus(G, attempt.power);
+                rewarded = claimedScienceBonus !== undefined || rewarded;
             } else if (result >= 13 && bonusAvailable &&
                 G.vpAwardsAvailable.some((id) => PATRONAGE_VP_AWARD_BY_ID[id]?.kind === "scientist" && PATRONAGE_VP_AWARD_BY_ID[id]?.vp === 1)) {
                 const oneVp = G.vpAwardsAvailable.find((id) => {
@@ -4837,7 +4922,8 @@ export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
                     return award?.kind === "scientist" && award.vp === 1;
                 });
                 vpClaimed = claimPatronageVpAward(G, attempt.power, oneVp);
-                rewarded = claimScienceBonus(G, attempt.power) || rewarded;
+                claimedScienceBonus = claimScienceBonus(G, attempt.power);
+                rewarded = claimedScienceBonus !== undefined || rewarded;
             } else if (result >= 13) {
                 const award = bestPatronageVpAward(G, "scientist", 2);
                 vpClaimed = claimPatronageVpAward(G, attempt.power, award?.id);
@@ -4845,12 +4931,19 @@ export const resolvePatronage = (G: VQGame, ctx: Ctx): void => {
                 const oneVp = bestPatronageVpAward(G, "scientist", 1);
                 vpClaimed = claimPatronageVpAward(G, attempt.power, oneVp?.id);
                 if (vpClaimed === 0) {
-                    rewarded = claimScienceBonus(G, attempt.power);
+                    claimedScienceBonus = claimScienceBonus(G, attempt.power);
+                    rewarded = claimedScienceBonus !== undefined;
                 }
             }
             rewarded = rewarded || vpClaimed > 0;
         }
 
+        // Science Bonuses table (Scenario Book p. 35): "Observatory ... return
+        // this scientist to pool" — he stays available for a future turn.
+        if (claimedScienceBonus === "observatory") {
+            pushLog(G, `${patron.name} returns to the available pool with the Observatory bonus.`);
+            continue;
+        }
         if (rewarded) {
             G.powers[attempt.power].patrons.push(patron.id);
             removePatronFromPool(G, patron.id);
@@ -6592,11 +6685,9 @@ const canBuildNavalAt = (G: VQGame, p: Power, port: string, kind: keyof NavalSta
     if (kind === "galley" && !["ottoman", "spain", "france", "hre"].includes(p)) return false;
     if (kind === "galleon" && !["spain", "england", "france", "protestant"].includes(p)) return false;
     if (p === "ottoman" && kind === "galley" && (port === "algiers" || port === "tripoli")) return false;
-    // Rule 17.3: "Spain may not build galleys or galleons in spaces in the
-    // Netherlands religious struggle area."  #109 Union of Arras redefines the
-    // Dutch two-color spaces as Spanish home spaces, which lifts this.
-    if (p === "spain" && (kind === "galley" || kind === "galleon") && def.area === "netherlands" &&
-        G.dutchSpanishHome !== true) return false;
+    // Rule 17.3 plus card FAQ #109: Spain may never build galleys or galleons
+    // in the Netherlands religious struggle area, even after Union of Arras.
+    if (p === "spain" && (kind === "galley" || kind === "galleon") && def.area === "netherlands") return false;
     // Rule 17.1/17.3: every ship type and the rebuild delay share one pool.
     if (minorHome === undefined && navalPoolUsed(G, p) >= NAVAL_LIMITS[p]) return false;
     if (kind === "galleon" && !portZones(port).some((z) =>

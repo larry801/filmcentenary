@@ -2,7 +2,7 @@ import {Ctx} from "boardgame.io";
 import i18n from "../constant/i18n";
 import {Controller, POWER_INDEX, Power, VQGame, isPower, landCount, navalCount} from "./constant/general";
 import {recordNavalLoss, restoreRetainedNavalUnit} from "./util";
-import {LEADER_BY_ID, leaderIsNaval, leaderName} from "./constant/leaders";
+import {LEADER_BY_ID, isNavalKind, leaderIsNaval, leaderName} from "./constant/leaders";
 import {SEA_ZONE_BY_ID, SPACE_BY_ID, isInlandPort, mapName} from "./mapData";
 import {ownerOf} from "./ownership";
 import {
@@ -373,8 +373,12 @@ export const attemptNavalInterception = (
     beaconSkipAt?: string,
     announced?: InterceptionCandidate,
     autoOrder = false,
+    destinationHadFriendly = false,
 ): boolean | "paused" | "choice" => {
     if (destinationHadEnemy) return false;
+    // Rule 16.1 step 2/4: a fleet entering a port, or joining friendly ships in
+    // a sea zone, is oriented with them and may not be intercepted.
+    if (!isSeaZone(to) || destinationHadFriendly) return false;
     if (G.interceptedThisImpulse?.impulse !== G.impulse) G.interceptedThisImpulse = {impulse: G.impulse, spaces: []};
     const used = G.interceptedThisImpulse.spaces;
     const candidates = interceptionCandidates(G, active, from, to);
@@ -491,6 +495,24 @@ export const resolveNavalCombatEnemy = (G: VQGame, ctx: Ctx, location: string, a
         if (keeper === attacker) attackerLeft = 1; else defenderLeft = 1;
         pushLog(G, `Both naval forces are eliminated; ${powerLabel(keeper)} retains 1 ${kind === "racebuilt" ? "race-built galleon" : kind}.`);
     }
+    // Rule 16.2 step 10: naval leaders on a side that was completely
+    // eliminated are placed on the next turn of the Turn Track.
+    const strandedLeaders = (owner: Power, left: number): void => {
+        if (left > 0) return;
+        if (owner === "spain" && G.armada?.location === location) return;
+        const list: string[] = isSeaZone(location)
+            ? G.seaZones[location as keyof VQGame["seaZones"]].leaders
+            : G.spaces[location].leaders;
+        for (const id of [...list]) {
+            const def = LEADER_BY_ID[id];
+            if (def === undefined || def.power !== owner || !isNavalKind(def)) continue;
+            list.splice(list.indexOf(id), 1);
+            G.leaders[id] = {id, location: "pool", returnTurn: G.year + 1};
+            pushLog(G, `${leaderName(id)} is placed on the Turn Track after his fleet is destroyed.`);
+        }
+    };
+    strandedLeaders(attacker, attackerLeft);
+    strandedLeaders(enemy, defenderLeft);
     if (port) {
         if (attackerLeft > 0) retreatNaval(G, location, [attacker], true);
         return;

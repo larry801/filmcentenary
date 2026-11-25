@@ -516,7 +516,13 @@ export const TUTORIAL: ScenarioSetup = {
     wars: [["ottoman", "spain"]],
     alliances: [["spain", "papacy"]],
     influence: {ottoman: {papacy: 0, venice: 2}, spain: {papacy: 1, venice: 0}},
-    spaces: Object.fromEntries(Object.entries(CAMPAIGN.spaces).filter(([id]) => tutorialSpaceAllowed(id))),
+    // Scenario Book p. 4: the Tutorial uses the same map areas minus the
+    // listed regions, and its two printed setup tables differ from the
+    // Campaign in two places — Seville/Cadiz has only its control marker (no
+    // galleon), and England's units are not used at all (so no Dublin garrison).
+    spaces: Object.fromEntries(Object.entries(CAMPAIGN.spaces)
+        .filter(([id]) => tutorialSpaceAllowed(id) && id !== "dublin")
+        .map(([id, setup]) => [id, id === "seville" ? {...setup, naval: {}} : setup])),
     powerCard: {ottoman: {scmOnCard: 4, ruler: "suleiman"}, spain: {scmOnCard: 6}, england: {}, france: {}, hre: {}, protestant: {}},
     royals: [],
     royalStatus: {},

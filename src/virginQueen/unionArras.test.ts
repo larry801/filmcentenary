@@ -58,6 +58,8 @@ describe("Union of Arras (card #109)", () => {
         expect(G.dutchSpanishHome).toBe(true);
         G.powers.spain.cp = 20;
         expect(recruit(G, context(), {space: "amsterdam", kind: "regular"})).toBeUndefined();
-        expect(buildNaval(G, context(), {port: "amsterdam", kind: "galleon"})).toBeUndefined();
+        // Card FAQ #109: Walloons remain the only units Spain may build in the
+        // Netherlands, so the naval ban survives the event.
+        expect(buildNaval(G, context(), {port: "amsterdam", kind: "galleon"})).toBe("INVALID_MOVE");
     });
 });

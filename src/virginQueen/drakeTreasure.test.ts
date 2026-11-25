@@ -18,7 +18,7 @@ describe("Drake expedition treasure capacity", () => {
         const G = game();
         G.worldCaptains.drake = {power: "england", location: "northAtlantic", damaged: false, colony: false, treasureValues: []};
         G.worldControls.atlanticCoast = "spain";
-        G.powers.spain.treasures = [3];
+        G.spanishTreasureRow = [3];
         G.powers.england.cp = 10;
 
         expect(worldPiracy(G, context(), {captain: "drake"})).toBeUndefined();

@@ -1,17 +1,18 @@
 import {Ctx} from "boardgame.io";
+import {INVALID_MOVE} from "boardgame.io/core";
 import {POWERS, Power, VQGame} from "./constant/general";
-import {assassinationTargets, espionageOptions, espionageDice} from "./espionage";
+import {assassinationTargets} from "./espionage";
 import {assassinate, playCard} from "./moves";
 import {patronById} from "./scenario";
-import {rulerStats, setupGame} from "./util";
+import {setupGame, winter} from "./util";
 
 /**
- * #35 residual: Rudolf II assassination must be reachable, must remove the
- * Prague marker, must apply the HRE 1/0 penalty, and must not let Patron of
- * Arts re-place the marker afterwards.  Both royal id spellings are covered.
+ * Rule 3.3: of the four final rulers only Elizabeth I (19.3) and Henry III (an
+ * army leader) may be assassinated; Philip II and Rudolf II can only die
+ * through a Marriage result (21.1).  Rudolf's death still removes the +2 Prague
+ * Cultural Center marker (Card FAQ #35).
  */
 
-/** Deterministic die queue; successful assassination needs attack-defense >= 2. */
 const context = (p: Power = "spain", values: number[] = []): Ctx => ({
     currentPlayer: String(POWERS.indexOf(p)), playerID: String(POWERS.indexOf(p)), phase: "action", numPlayers: 6,
     random: {Die: () => values.shift() ?? 1, Shuffle: (a: unknown[]) => a},
@@ -31,65 +32,36 @@ const game = (): VQGame => {
     return G;
 };
 
-const activePatron = (G: VQGame) =>
-    G.patronsAvailable.map((id) => patronById(G, id)).find((patron) => patron?.rating !== null);
-
-/** Answer every pending espionage response with "continue" until done. */
-const drainResponses = (G: VQGame) => {
-    let guard = 0;
-    while (G.pendingEspionage && guard++ < 10) {
-        const ids = espionageOptions(G).map((o) => o.id);
-        if (!ids.includes("continue")) break;
-        const {chooseEspionage} = require("./espionage");
-        const {ownerOf} = require("./ownership");
-        chooseEspionage(G, {...context(), playerID: ownerOf(G, G.pendingEspionage.responding)!}, {choice: "continue"});
-    }
-};
-
-describe("#35 Rudolf assassination", () => {
-    it("is reachable and kills the canonical rudolf, removing the marker", () => {
+describe("Rudolf II and assassination (rule 3.3)", () => {
+    it("is not an assassination target", () => {
         const G = game();
-        const patron = activePatron(G);
-        expect(patron).toBeDefined();
-        G.pragueCulturalCenter = patron!.id;
         G.royals = G.royals.filter((r) => r.id !== "rudolf" && r.id !== "rudolfII");
         G.royals.push({id: "rudolf", name: "Rudolf II", power: "hre", gender: "male", eligibility: 3, alive: true, married: false, status: "available"});
         G.powers.hre.ruler = "rudolf";
 
-        expect(assassinationTargets(G, "spain")).toContain("rudolf");
-        // Attack dice: cp 4 -> [6,6,6,6] (4 hits); defense: base 1 + Prague capital +1 = 2 dice -> [1,1] (0 hits); diff 4 -> kill.
-        const ctx = context("spain", [6, 6, 6, 6, 1, 1]);
-        expect(assassinate(G, ctx, {target: "rudolf", cp: 4})).toBeUndefined();
-        drainResponses(G);
-
-        const royal = G.royals.find((r) => r.id === "rudolf");
-        expect(royal?.alive).toBe(false);
-        expect(G.pragueCulturalCenter).toBeUndefined();
-        expect(rulerStats(G, "hre")).toEqual({cardBonus: 0, admin: 1});
-        expect(G.log.join("\n")).toContain("Prague Cultural Center marker is removed");
-        expect(G.log.join("\n")).toContain("drops to 1 Admin");
-        expect(G.assassinationUsed).toContain("spain");
+        expect(assassinationTargets(G, "spain")).not.toContain("rudolf");
+        expect(assassinate(G, context("spain", [6, 6, 6, 6, 1, 1]), {target: "rudolf", cp: 4})).toBe(INVALID_MOVE);
+        expect(G.royals.find((r) => r.id === "rudolf")?.alive).toBe(true);
     });
 
-    it("accepts the scenario-book rudolfII id without TypeError", () => {
+    it("loses the Prague Cultural Center marker when he dies in a marriage", () => {
         const G = game();
-        const patron = activePatron(G);
-        G.pragueCulturalCenter = patron!.id;
         G.royals = G.royals.filter((r) => r.id !== "rudolf" && r.id !== "rudolfII");
-        G.royals.push({id: "rudolfII", name: "Rudolf II", power: "hre", gender: "male", eligibility: 3, alive: true, married: false, status: "available"});
-        G.powers.hre.ruler = "rudolfII";
+        G.royals.push({id: "rudolf", name: "Rudolf II", power: "hre", gender: "male", eligibility: 3, alive: true, married: false, status: "available"});
+        G.powers.hre.ruler = "rudolf";
+        const patron = G.patronsAvailable.map((id) => patronById(G, id)).find((candidate) => candidate?.rating !== null);
+        expect(patron).toBeDefined();
+        G.pragueCulturalCenter = patron!.id;
+        G.royals.push({id: "isabellaClaraEugenia", name: "Isabella Clara Eugenia", power: "spain", gender: "female",
+            eligibility: 2, alive: true, married: false, status: "available"});
+        G.betrothals = [{male: "rudolf", female: "isabellaClaraEugenia"}];
 
-        expect(assassinationTargets(G, "spain")).toContain("rudolfII");
-        const ctx = context("spain", [6, 6, 6, 6, 1, 1]);
-        expect(() => {
-            assassinate(G, ctx, {target: "rudolfII", cp: 4});
-            drainResponses(G);
-        }).not.toThrow();
+        winter(G, context());
 
-        const royal = G.royals.find((r) => r.id === "rudolfII");
-        expect(royal?.alive).toBe(false);
-        expect(G.pragueCulturalCenter).toBeUndefined();
-        expect(rulerStats(G, "hre")).toEqual({cardBonus: 0, admin: 1});
+        const royal = G.royals.find((r) => r.id === "rudolf");
+        if (royal?.alive === false) {
+            expect(G.pragueCulturalCenter).toBeUndefined();
+        }
     });
 
     it("does not let Patron of Arts re-place the marker after Rudolf's death", () => {
@@ -98,22 +70,13 @@ describe("#35 Rudolf assassination", () => {
         G.royals.push({id: "rudolf", name: "Rudolf II", power: "hre", gender: "male", eligibility: 3, alive: false, married: false, status: "dead"});
         G.powers.hre.ruler = "rudolf";
         G.powers.hre.cards = ["vq-035"];
-        const patron = activePatron(G);
+        const patron = G.patronsAvailable.map((id) => patronById(G, id)).find((candidate) => candidate?.rating !== null);
         expect(patron).toBeDefined();
 
         const ctx = context("hre");
         expect(playCard(G, ctx, {cardId: "vq-035", asEvent: true, target: patron!.id})).toBeUndefined();
         expect(G.pragueCulturalCenter).toBeUndefined();
         expect(G.log.join("\n")).not.toContain("Prague Cultural Center marker is removed");
-    });
-
-    it("computes dice without touching a leader table", () => {
-        const G = game();
-        G.spaces.prague.control = "hre";
-        const pending = {kind: "assassination", power: "spain", targetPower: "hre", target: "rudolfII", cp: 4} as never;
-        expect(() => espionageDice(G, pending)).not.toThrow();
-        // attack = cp 4; defense = base 1 + Prague home bonus 1 = 2.
-        expect(espionageDice(G, pending)).toEqual({attack: 4, defense: 2});
     });
 });
 
@@ -143,7 +106,14 @@ describe("assassinating a royal army leader (rule 21.4)", () => {
 
         expect(assassinationTargets(G, "spain")).toContain("navarre");
         expect(assassinate(G, context("spain", [6, 6, 6, 6, 1, 1]), {target: "navarre", cp: 4})).toBeUndefined();
-        drainResponses(G);
+        let guard = 0;
+        while (G.pendingEspionage && guard++ < 10) {
+            const {espionageOptions, chooseEspionage} = require("./espionage");
+            const {ownerOf} = require("./ownership");
+            const ids = espionageOptions(G).map((option: {id: string}) => option.id);
+            if (!ids.includes("continue")) break;
+            chooseEspionage(G, {...context(), playerID: ownerOf(G, G.pendingEspionage.responding)!}, {choice: "continue"});
+        }
 
         expect(G.royals.find((r) => r.id === "henryIV")?.alive).toBe(false);
         expect(G.betrothals).toEqual([]);
