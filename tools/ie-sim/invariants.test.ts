@@ -60,7 +60,9 @@ const ALL_MODES: Mode[] = [
 /**
  * The gate runs the whole mode matrix by default: the three modes a first
  * version skipped (amphibious, navy, chaos) produced three of the first six
- * census findings, and the full set still costs under ten minutes in CI.
+ * census findings.  That is 18 runs / 19 200 steps, measured 566 s of play on
+ * the CI runner, of which the invariant checks are ~2% (see the per-run table
+ * the report prints); the rest is the reducer.
  * `IE_MODES=campaign,war` narrows it for a quick local loop.
  */
 const modes = (): Mode[] => {
@@ -93,7 +95,20 @@ const errorCounts = (result: SimResult): Record<string, number> => {
 
 interface Census {
   observed: Map<string, Observation>;
-  perRun: {seed: string; mode: string; errors: Record<string, number>; issues: SimIssue[]; steps: number; finished: boolean}[];
+  perRun: {
+    seed: string;
+    mode: string;
+    errors: Record<string, number>;
+    issues: SimIssue[];
+    steps: number;
+    finished: boolean;
+    /** Wall clock of the whole run, reducer and bot included. */
+    elapsedMs: number;
+    /** How often the full tier ran (phase boundaries plus the step cadence). */
+    fullChecks: number;
+    /** How many of those passes followed a phase change. */
+    phaseBoundaries: number;
+  }[];
 }
 
 const runCensus = (chosenSeeds: string[], chosenModes: Mode[]): Census => {
@@ -101,7 +116,9 @@ const runCensus = (chosenSeeds: string[], chosenModes: Mode[]): Census => {
   const perRun: Census["perRun"] = [];
   for (const seed of chosenSeeds) {
     for (const mode of chosenModes) {
+      const startedAt = Date.now();
       const result = runSeededGame({seed, ...mode.options} as SimOptions);
+      const elapsedMs = Date.now() - startedAt;
       for (const [code, count] of Object.entries(result.invariantCounts)) {
         if (severityOf(code) !== "error") continue;
         const previous = observed.get(code);
@@ -119,10 +136,34 @@ const runCensus = (chosenSeeds: string[], chosenModes: Mode[]): Census => {
         issues: result.issues,
         steps: result.steps,
         finished: result.finished,
+        elapsedMs,
+        fullChecks: result.fullChecks,
+        phaseBoundaries: result.phaseBoundaries,
       });
     }
   }
   return {observed, perRun};
+};
+
+/**
+ * Per-run throughput.  `full` is the number of full-tier passes, which is what
+ * the cadence and the phase boundaries actually buy: a run that crosses few
+ * phases pays the full tier rarely.
+ */
+const perfTable = (census: Census): string => {
+  const header = "seed        mode        steps   elapsed   ms/step   full  phase";
+  const lines = census.perRun.map((run) => [
+    run.seed.padEnd(11),
+    run.mode.padEnd(10),
+    String(run.steps).padStart(5),
+    `${(run.elapsedMs / 1000).toFixed(2)}s`.padStart(9),
+    (run.elapsedMs / Math.max(1, run.steps)).toFixed(2).padStart(8),
+    String(run.fullChecks).padStart(6),
+    String(run.phaseBoundaries).padStart(6),
+  ].join(" "));
+  const totalMs = census.perRun.reduce((sum, run) => sum + run.elapsedMs, 0);
+  const totalSteps = census.perRun.reduce((sum, run) => sum + run.steps, 0);
+  return [header, ...lines, `total ${(totalMs / 1000).toFixed(2)}s over ${totalSteps} steps (${(totalMs / Math.max(1, totalSteps)).toFixed(2)} ms/step)`].join("\n");
 };
 
 const table = (census: Census): string => {
@@ -162,15 +203,16 @@ describe("A-group invariant census", () => {
       `modes: ${chosenModes.map((mode) => mode.name).join(", ")}`,
       census.observed.size === 0 ? "no error-severity breaks" : table(census),
     ].join("\n");
+    const text = `${report}\n${perfTable(census)}`;
     if (unexpected.length > 0) {
-      console.error(report);
+      console.error(text);
       throw new Error(
         `unbaselined invariant breaks:\n${unexpected
           .map(([code, observation]) => `  ${code} (${severityOf(code)}): ${observation.sample} [${observation.seed} ${observation.mode}, ${observation.count} hits]`)
           .join("\n")}\nRecord each one in ${BASELINE_PATH} with a reason and a repro, or fix it.`,
       );
     }
-    console.log(report);
+    console.log(text);
   });
 
   test("the baseline holds no stale or warn-severity entry", () => {

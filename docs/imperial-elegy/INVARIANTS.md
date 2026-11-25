@@ -1,6 +1,6 @@
 # Invariant catalog
 
-**Snapshot:** 2026-11-24. Scope: the `A` (structural) group is implemented and
+**Snapshot:** 2026-11-26. Scope: the `A` (structural) group is implemented and
 gating; `B`–`E` are catalogued below with what each still needs.
 
 The self-play harness already proved the engine does not crash, does not deadlock
@@ -9,7 +9,8 @@ the states it produces are ones the printed rules allow. It replaces the six
 ad-hoc structural checks that used to live in `tools/ie-sim/harness.ts`.
 
 ```sh
-# the gate (all six simulation modes x three seeds, under ten minutes)
+# the gate (all six simulation modes x three seeds: 18 runs, 19 200 steps;
+# measured 566 s of play on ubuntu-24.04, so the CI job is ~10 min)
 npx jest --testPathPatterns "tools/ie-sim/invariants" \
   --testPathIgnorePatterns "/node_modules/" --runInBand
 
@@ -29,7 +30,7 @@ IE_MODES=campaign,war IE_SEEDS=IE-SIM-1 npx jest \
 | `src/imperialElegy/testing/hash.ts` | stable serialization + FNV-1a state hash |
 | `src/imperialElegy/invariants.test.ts` | per-constraint positive and negative cases, in `yarn test` |
 | `tools/ie-sim/invariants.test.ts` | census over seeds x modes, baseline ratchet |
-| `tools/ie-sim/harness.ts` | runs the cheap set after every action, the full set at phase boundaries |
+| `tools/ie-sim/harness.ts` | runs the cheap set after every action, the full set at phase boundaries and every 25th step |
 | `docs/imperial-elegy/invariants.baseline.json` | the recorded, triaged breaks |
 
 The checks live under `src/` — not `tools/` — so `yarn test` runs the
@@ -38,13 +39,25 @@ code and tree-shakes out of the production bundle.
 
 ## Levels and severities
 
-- **cheap** — one state in isolation, no cloning, ~0.2 ms. Runs after every
-  dispatched action.
-- **full** — adds checks that recompute the board (`A07`) or serialize the whole
-  state (`A16`), ~2–5 ms. Runs at every phase boundary and every 25th step.
+- **cheap** — one state in isolation, no cloning. Measured 0.17–0.22 ms on a
+  129–215 KB state. Runs after every dispatched action.
+- **full** — adds the checks that recompute the board (`A07`) and walk the whole
+  state (`A16`). Measured on the 215 KB end state of a 1369-step campaign:
+  6.0 ms at a phase boundary (3.4 ms of it the `A16` walk, 2.2 ms the JSON round
+  trip) and 3.7 ms on a cadence step, where `A16` skips the round trip. Runs at
+  every phase boundary and every 25th step: 106 passes in that run, 53 of them
+  phase boundaries.
 - **error** — impossible under the printed rules; the census fails on it.
 - **warn** — the printed rules permit the state transiently, or the check is
   known to be a subset. Reported, never gating.
+
+The invariant layer is not what the census spends its time on. In the same run
+the reducer took 26.4 s of 31.2 s, the per-seat view clone 3.2 s, the bot 0.7 s
+and every invariant pass together 0.9 s — 0.49 s of it `A16` alone, which the
+walk cut to 0.28 s. The reducer's share is boardgame.io's: every move runs
+against an Immer draft of the whole state, so this engine's read-heavy moves pay
+a proxy hop per object access. That is why the per-pass costs above, not a per-step budget, are the
+number to reason about.
 
 ## A — structural conservation
 
@@ -67,7 +80,7 @@ Every check holds after *every* action in every phase.
 | A13 | pending.ts | cheap | error | every decision has a player owner, a known kind, and non-empty options with unique ids |
 | A14 | 2.1 / 24.1 | cheap | error | phase in the enum, turn 1..8 (20.12 advances the counter before the end), GW turn 0..6 (the winter step advances it before 2.2.2 scores), `activePower` a power, `turnIndex` a non-negative integer (it indexes a seat, then the GW impulse order, then 27.4's neutral order, and keeps the last used value after an order clears), `passed` duplicate-free |
 | A15 | 15 / 24 / 25 | cheap | error | a live battle names existing spaces, a player attacker and a known stage (15.4.2 lets `defender` hold a non-player control id); a live Great War's lists hold only powers, and no power is belligerent and neutral at once |
-| A16 | sync | full | error | no `NaN`, `Infinity`, function, `Map`/`Set` or class instance; no `undefined` array entry (it arrives as `null`); `JSON.parse(JSON.stringify(G))` reproduces the state. A property explicitly set to `undefined` is *not* a break: transport drops it and every reader treats it as absent |
+| A16 | sync | full | error | no `NaN`, `Infinity`, function, `Map`/`Set` or class instance; no `undefined` array entry (it arrives as `null`). One structural walk that builds a path only when it reports, plus `JSON.parse(JSON.stringify(G))` at phase boundaries, which is what catches a `toJSON` or a cycle. A property explicitly set to `undefined` is *not* a break: transport drops it and every reader treats it as absent |
 
 ### Known limits of the A group
 

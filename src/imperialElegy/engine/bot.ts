@@ -45,9 +45,9 @@ import {
 import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs";
 import {impulseAlreadyUsed, recruit as recruitMove} from "../moves";
 import {ottomanArmyTypeFor, passRestriction} from "./characteristics";
-import {battleDrmTotals, beginLandBattle} from "./combat";
+import {battleDrmTotals, canBeginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
-import {gwDraftSpaces, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
+import {gwDraftProblem, gwDraftSpaces, gwLandMoveProblem, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
 import {currentGwImpulse, gwActionAllowance, gwCardProblem, gwFinishImpulseProblem} from "./gwImpulse";
 import {declarationTargetCandidates} from "./declarationTargets";
 import {warDeclarationEntitlement, warDeclarationPolicy} from "./rules";
@@ -393,15 +393,10 @@ const influenceTarget = (G: ImperialElegyState, power: Power, region: BditRegion
   return null;
 };
 
-/** Find rebel armies on the map that the bot can attack (adjacent or in space). */
-/**
- * A land battle the engine would actually accept.  `beginLandBattle` is the
- * same gate `landBattle` uses, so a probe that returns non-null is a move the
- * impulse can spend.  The probe ctx never rolls: the dice are only read once
- * the battle is legal.
- */
+/** The ctx a probe move gets: it never rolls, so a probe cannot consume randomness. */
 const botBattleCtx = {random: {Die: () => 3, Number: () => 0, Shuffle: (a: unknown[]) => a}} as unknown as Ctx;
 
+/** A land battle the engine would actually accept. */
 const legalLandBattle = (G: ImperialElegyState, power: Power, from: SpaceId, to: SpaceId): boolean => {
   // 32.5: during the Great War rebels and non-rebel units cannot coexist, so a
   // battle targeting a rebel space is refused by the GW flow *before*
@@ -409,12 +404,14 @@ const legalLandBattle = (G: ImperialElegyState, power: Power, from: SpaceId, to:
   // "legal" and the bot re-sent a refused move every impulse.  Ask the same
   // destination gate the flow uses, then the battle gate.
   if (maneuverDestinationProblem(G, power, {kind: "landBattle", to}) !== null) return false;
-  // `beginLandBattle` writes the battle into the state it is given.  Probing
-  // the live state leaves that battle open, so every later decision this
-  // impulse reads a board the move will never see.
-  return beginLandBattle(JSON.parse(JSON.stringify(G)) as ImperialElegyState, botBattleCtx, power, from, to) !== null;
+  // `canBeginLandBattle` is the gate `beginLandBattle` itself applies, so the
+  // answer is the same without the whole-state clone the probe used to take.
+  // The sweep asks this per destination, which made the clone the bot's
+  // single largest cost.
+  return canBeginLandBattle(G, power, from, to);
 };
 
+/** Find rebel armies on the map that the bot can attack (adjacent or in space). */
 const findRebelTarget = (G: ImperialElegyState, power: Power): {space: SpaceId; from: SpaceId} | null => {
   for (const [spaceId, spaceState] of Object.entries(G.spaces)) {
     if (!spaceState.rebellion) continue;
@@ -1302,6 +1299,21 @@ const gwPriorityTwo = (G: ImperialElegyState, power: Power, roll: number, ctx: C
   return null;
 };
 
+/**
+ * The pure part of `performGwManeuver`'s gate, read from the same three engine
+ * functions it calls before it changes anything.  A `true` here is a candidate
+ * the probe would refuse, so the whole-state clone is only paid for the
+ * candidate actually chosen.
+ */
+const gwManeuverRefusedByGuards = (G: ImperialElegyState, request: GwManeuverRequest): boolean => {
+  if (maneuverDestinationProblem(G, request.power, request) !== null) return true;
+  if (request.kind === "march" || request.kind === "rail") {
+    return gwLandMoveProblem(G, request.power, request.unitId, request.to, request.kind) !== null;
+  }
+  if (request.kind === "draft") return gwDraftProblem(G, request.power, request.space) !== null;
+  return false;
+};
+
 /** Find a legal required action when a priority row cannot spend this impulse. */
 const gwRequiredAction = (G: ImperialElegyState, ctx: Ctx, power: Power): BotMove | null => {
   const owner = gwAllyImpulseFor(G, power) ?? power;
@@ -1330,6 +1342,7 @@ const gwRequiredAction = (G: ImperialElegyState, ctx: Ctx, power: Power): BotMov
   }
   for (const {request, move} of candidates) {
     if (!gwActionAllowance(G, power, request.kind).ok) continue;
+    if (gwManeuverRefusedByGuards(G, request)) continue;
     const probe = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
     if (performGwManeuver(probe, {...ctx, random: {...ctx.random, Die: () => 3}, events: undefined} as Ctx, request).ok) return move;
   }
