@@ -1,3 +1,32 @@
+## Fixed: the winter spells out its colonial-war modifiers (2026-11-25)
+
+Reported as "看看冬季": the Winter Step played through the solo Historical
+Great War up to the colonial-war rolls and their two decisions, checked
+against `IE_rule.pdf` 29.1-29.3.  Two defects, one pass.
+
+- **The colonial war printed only its totals (29.2).** The history read
+  "Africa colonial war: TE rolled 6, TA rolled 5 (modifiers TE +2, TA +1); TE
+  wins."  The rulebook computes that modifier from the counters on the submap
+  (+1 per EF, +1 per elite, +1 per army, +2 for an elite colonial EF, +2 for
+  naval supremacy), so a player could not check the number without recounting
+  both submaps.  `greatWarFlow.ts#resolveColonialWar` already built the source
+  list (`ef:UK`, `navalSupremacy`, …); it now reaches the log and the history
+  line reads "… TE +2, TA +1 — TE: naval supremacy; TA: EF (Germany) ×2".
+- **Russia's 29.2.1 stability reason was English in the Chinese UI.** The line
+  read "俄国损失 1 点稳定度：3 of Central Asia, Qajar Persia and Manchuria are
+  enemy controlled".  `reasonText.ts` now translates it, and the UK's two
+  "lost the … colonial war" reasons (already translated) are pinned beside it.
+
+Verified as already correct: the losing side picks the unit it loses on the
+submap, the winner takes one unoccupied space per win (both with the printed
+count by differential), naval supremacy needs both boxes of the region, a
+submap the other side controls counts its roll as 0, and `gwBlockade` only
+fires from GW turn 1 (29.1's "not GW turn 0").
+
+**Coverage:** `components/logText.test.ts` (+1: the breakdown in both
+languages, grouped by source), `components/reasonText.test.ts` (+1: the RU and
+UK reasons), and the whole `src/imperialElegy` suite.
+
 ## Fixed: the Great War scenario's opening history and the draft's manpower (2026-11-25)
 
 Reported as "用大战剧本玩": the Historical Great War (`gwTutorial`) played from

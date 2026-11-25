@@ -120,6 +120,20 @@ const cardLabel = (value: unknown, locale: LogLocale): string => {
   return `${CARD_MARK_OPEN}${id}${CARD_MARK_CLOSE}`;
 };
 
+/** One 29.2 colonial-war modifier source, in words (`ef:GE` → "EF (Germany)"). */
+const colonialWarSourceLabel = (code: string, locale: LogLocale): string => {
+  const [kind, owner = ""] = code.split(":");
+  if (kind === "navalSupremacy") return text(locale, "naval supremacy", "海军霸权");
+  const who = powerLabel(owner, locale);
+  switch (kind) {
+    case "eliteColonialEf": return text(locale, `elite colonial EF (${who})`, `精英殖民远征军（${who}）`);
+    case "elite": return text(locale, `elite corps (${who})`, `精锐军团（${who}）`);
+    case "ef": return text(locale, `EF (${who})`, `远征军（${who}）`);
+    case "army": return text(locale, `army (${who})`, `军团（${who}）`);
+    default: return code;
+  }
+};
+
 const EXTRA_POWER_LABELS: Record<string, {en: string; zh: string}> = {
   IT: {en: "Italy", zh: "意大利"},
   US: {en: "United States", zh: "美国"},
@@ -1303,10 +1317,27 @@ const FORMATTERS: Record<string, Formatter> = {
         : winner === "ta"
           ? text(locale, "TA wins", "TA 获胜")
           : text(locale, "no winner", "无人获胜");
+    // 29.2's printed modifiers are per unit on the submap plus naval
+    // supremacy.  The totals alone leave a reader unable to check them without
+    // recounting both submaps, so the engine's source list is spelled out.
+    const breakdown = (value: unknown): string => {
+      const codes = str(value).split(",").filter(Boolean);
+      const counts = new Map<string, number>();
+      for (const code of codes) {
+        const label = colonialWarSourceLabel(code, locale);
+        counts.set(label, (counts.get(label) ?? 0) + 1);
+      }
+      if (counts.size === 0) return text(locale, "none", "无");
+      return [...counts.entries()].map(([label, count]) => (count > 1 ? `${label} ×${count}` : label)).join(text(locale, ", ", "、"));
+    };
     const modifiers =
       teMod === 0 && taMod === 0
         ? ""
-        : text(locale, ` (modifiers TE +${teMod}, TA +${taMod})`, `（修正 TE +${teMod}，TA +${taMod}）`);
+        : text(
+            locale,
+            ` (modifiers TE +${teMod}, TA +${taMod} — TE: ${breakdown(entry.args?.teSources)}; TA: ${breakdown(entry.args?.taSources)})`,
+            `（修正 TE +${teMod}，TA +${taMod}：TE = ${breakdown(entry.args?.teSources)}；TA = ${breakdown(entry.args?.taSources)}）`,
+          );
     const continent =
       controlling === "te" || controlling === "ta"
         ? text(

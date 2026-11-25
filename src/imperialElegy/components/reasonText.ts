@@ -180,6 +180,8 @@ const PATTERN_ZH: ReadonlyArray<[RegExp, string | Translator]> = [
   [/^(.+) already has full citizenship$/, (m) => `${nationalityLabel(m[1], "zh_CN")}已获得完整公民权`],
   [/^Manpower\/army limit (\d+) reached$/, (m) => `人力／军团上限 ${m[1]} 已达`],
   [/^Reserve limit (\d+) reached$/, (m) => `预备军已满（上限 ${m[1]}）`],
+  // 29.2.1: the Russian colonial-war check names its three spaces.
+  [/^(\d+) of Central Asia, Qajar Persia and Manchuria are enemy controlled$/, (m) => `中亚、卡扎尔波斯与满洲中有 ${m[1]} 处被敌方控制`],
   [/^British manpower limit (\d+) reached$/, (m) => `英国人力上限 ${m[1]} 已达`],
   [/^Turkish manpower limit (\d+) reached$/, (m) => `土耳其人力上限 ${m[1]} 已达`],
   [/^Colonial manpower limit (\d+) reached for Indian and CW armies$/, (m) => `印度与自治领军团已达殖民地人力上限 ${m[1]}`],
