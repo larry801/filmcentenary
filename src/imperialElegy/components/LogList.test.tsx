@@ -92,6 +92,24 @@ describe("LogList", () => {
     expect(plain(line![0])).toContain(`T3德国将 ${CARD.cp}${cardDisplayName(CARD, "zh_CN")} 作为 CP 打出。`);
   });
 
+  test("a Great War entry reads GW n instead of the frozen campaign turn", () => {
+    // 27.0: `G.turn` stops at the outbreak, so every GW line used to read the
+    // same `T7`; the entry's own GW turn is what the marker prints.
+    const html = render([entry({phase: "gwManeuver", turn: 7, gwTurn: 2, key: "gwCardPlayed", args: {card: CARD_ID, mode: "bonus"}})], "zh_CN");
+    const line = html.match(/<div[^>]*data-testid="ie-log-entry-1"[^>]*>[\s\S]*?<\/div>/);
+    expect(line).not.toBeNull();
+    expect(line![0]).toContain('<span class="t" data-gw-turn="true">GW 2</span>');
+    expect(line![0]).not.toContain("T7");
+    expect(line![0]).toContain(`data-testid="ie-log-card-${CARD_ID}"`);
+    expect(plain(line![0])).toContain(`GW 2德国将 ${CARD.cp}${cardDisplayName(CARD, "zh_CN")} 作为大战奖励行动打出。`);
+  });
+
+  test("a campaign entry keeps T n", () => {
+    const html = render([entry({turn: 4})], "en");
+    expect(html).toContain('<span class="t">T4</span>');
+    expect(html).not.toContain("data-gw-turn");
+  });
+
   test("a closed list shows no inspector, so the dialog only exists after a click", () => {
     const html = render([entry()]);
     expect(html).not.toContain('data-testid="ie-card-inspector"');

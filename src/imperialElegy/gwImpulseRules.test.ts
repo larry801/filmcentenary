@@ -60,8 +60,12 @@ test("a card funds one immediate different action, cannot be banked or used for 
   expect(gwMarch(G, ctx("GE"), army.id, "pomerania")).toBeUndefined();
   expect(G.powers.GE.gwBudget).toBe(4);
   expect(gwActionAllowance(G, "GE", "rail")).toMatchObject({ok: false, reason: "actionUsed"});
-  expect(redactForView(G, "2").gw!.impulse!.cardPlayed).toBe(true);
-  expect(JSON.stringify(redactForView(G, "2").gw!.impulse)).not.toContain("IE-GW-03");
+  // 27.1/27.2: the card is faceup at the table once played, and the log
+  // announces it (`gwCardPlayed`), so the ledger may name it from then on.  A
+  // card still in hand is private because `cardId` is only written at the play.
+  const seen = redactForView(G, "2").gw!.impulse!;
+  expect(seen.cardPlayed).toBe(true);
+  expect(seen.cardId).toBe("IE-GW-03");
 });
 
 test("card bonus after the last ordinary CP works and survives JSON saves", () => {

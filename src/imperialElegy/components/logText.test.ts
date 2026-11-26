@@ -56,6 +56,7 @@ const SAMPLES: Record<string, LogTextEntry> = {
 prepIndiaStabilityDiscard: {key: "prepIndiaStabilityDiscard", power: "GE", args: {card: CARD_ID}},
   atAnyCostDiscard: {key: "atAnyCostDiscard", power: "GE", args: {card: CARD_ID}},
   cardPlayed: {key: "cardPlayed", power: "GE", args: {card: CARD_ID, mode: "cp"}},
+  gwCardPlayed: {key: "gwCardPlayed", power: "GE", args: {card: "IE-GW-04", mode: "bonus"}},
   passed: {key: "passed", power: "GE", args: {}},
   warDeclared: {key: "warDeclared", power: "GE", args: {target: "FR", aim: "conquest", objectives: "paris,berlin"}},
   combatCardPlayed: {key: "combatCardPlayed", power: "GE", args: {card: CARD_ID, space: "paris"}},

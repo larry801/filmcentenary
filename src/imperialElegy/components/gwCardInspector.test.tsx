@@ -61,6 +61,8 @@ import {HandTray} from "./HandTray";
 import type {HandTrayProps} from "./HandTray";
 import {CardInspector} from "./CardInspector";
 import {ieT} from "./i18n";
+import {CARD_BY_ID} from "../engine/deck";
+import {CardFace} from "./CardFace";
 
 const testCtx = {
   random: {Die: () => 1, Number: () => 1, Shuffle: (a: unknown[]) => a},
@@ -275,6 +277,26 @@ describe("the Great War card's inspector", () => {
     const tree = render(props);
     expect(byTestId(tree, `ie-gw-bonus-${GW_CARD}`)).toBeTruthy();
     expect(byTestId(tree, `ie-gw-event-${GW_CARD}`)).toBeTruthy();
+  });
+
+  test("the tray block reads the card instead of drawing a thumbnail of it", () => {
+    const G = gwSeat();
+    const tree = render(trayProps(G));
+    const card = CARD_BY_ID[GW_CARD];
+    // Reported as "现有界面显示也有点模糊": the block used to draw the 300×380
+    // face in a 126×118 box, which put the printed text on screen at 5 px.
+    // The row now carries the CP, the title and the printed line, and the face
+    // is the inspector's job.
+    expect(byTestId(tree, `ie-gw-text-${GW_CARD}`)!.props.children).toBe(card.textZh);
+    const section = byTestId(tree, `ie-gw-card-${GW_CARD}`)!;
+    expect(section.props.className).toContain("ie-tray-gw");
+    let faces = 0;
+    walk(section.props.children, (element) => {
+      if (element.type === CardFace) faces += 1;
+    });
+    expect(faces).toBe(0);
+    // The whole row opens the inspector, exactly like a hand row does.
+    expect(openButton(tree, `ie-open-gw-card-${GW_CARD}`).props["aria-haspopup"]).toBe("dialog");
   });
 
   test("a hand card's dialog still closes when the played card leaves the hand", () => {

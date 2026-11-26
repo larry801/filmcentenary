@@ -9516,7 +9516,12 @@ export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | 
   const mandatory = cardId === "IE-GW-10";
   const legacy = !hasLiveGwImpulse(G);
   const bonus = !G.gw.neutralImpulses && (mode === "cp" || mandatory);
-  noteGwCard(G, power, bonus);
+  // 27.1/27.2: the card is played faceup and read out, so the play is a public
+  // line — the same announce the action phase makes in `playCard` (12.0/12.1).
+  // Without it the Great War's record showed the action the bonus funded but
+  // never the card that funded it, and the seat's GW slot emptied silently.
+  log(G, power, "gwCardPlayed", {card: cardId, mode: bonus ? "bonus" : "event"});
+  noteGwCard(G, power, cardId, bonus);
   p.gwCard = null;
   // The played card is no longer faceup; remove only this power's stale entry
   // so other powers' public combat cards remain visible for the turn.
