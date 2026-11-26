@@ -3,7 +3,7 @@ import {GwActionKind, GwImpulseState, ImperialElegyState, Power, POWERS} from ".
 import {cpBudgetFor, gwAllyImpulseFor, spendCpFor} from "./rules";
 import {facedownGwCombatCards} from "./combatCards";
 import {EXHAUSTION_CARD, superiorStaffWorkGwFreeDeploy} from "./characteristics";
-import {italyEntryAvailable} from "./gwMajors";
+import {gw02EventOpen} from "./gwMajors";
 
 /**
  * The live 27.1 one-action ledger only exists once `beginGwImpulse` has run for
@@ -47,18 +47,6 @@ export const canPlayGw05Event = (G: ImperialElegyState, power: Power): boolean =
   if (Number(G.powers[power].flags.gwActionsThisImpulse ?? 0) !== 0) return false;
   if (G.flags.gw05PlayedImpulse === gwImpulseKey(G)) return false;
   return facedownGwCombatCards(G).length > 0;
-};
-
-/**
- * GW #2 is printed "cannot be played on GW turn 0".  Its one turn-0 offer is
- * the outbreak Italy that stayed out (25.3), and a single copy of the card can
- * use that offer once.  This mirrors `majorEntryOptions(...).includes("IT")`,
- * which the move re-checks, for a power that is actually on a side.
- */
-const gw02EventOpen = (G: ImperialElegyState, power: Power): boolean => {
-  if ((G.gw?.turn ?? 0) > 0) return true;
-  const onSide = G.gw?.te.includes(power) === true || G.gw?.ta.includes(power) === true;
-  return onSide && G.flags.gwMajorEntryOutbreak !== true && italyEntryAvailable(G);
 };
 
 export const beginGwImpulse = (G: ImperialElegyState, power: Power): void => {
@@ -199,9 +187,19 @@ export const gwCanEndTurn = (G: ImperialElegyState, power: Power): boolean => {
   return empty || !gw.order.slice(G.turnIndex + 1).includes("bonus");
 };
 
-/** Normal events follow the ordinary action; card CP funds a separate immediate action. */
+/**
+ * Normal events follow the ordinary action; card CP funds a separate immediate
+ * action.  This is the one gate the GW card's moves and the tray's two buttons
+ * share: GW #2's turn-0 window (`gwMajors.ts#gw02EventOpen`), GW #5's facedown
+ * window and the empty slot are all answered here, so a button the UI opens is
+ * a button the reducer takes.
+ */
 export const gwCardProblem = (G: ImperialElegyState, power: Power, mode: "event" | "cp"): GwImpulseReason | null => {
   const cardId = G.powers[power].gwCard;
+  // A seat with no GW card has nothing to play; `playGwCardMove` refuses that
+  // outright, and the tray's two buttons must agree (a bot proposed the event
+  // from a neutral impulse on a state whose card had already left the slot).
+  if (!cardId) return "cardWindow";
   /** Card-specific event windows the move re-checks; keep the UI in step. */
   const eventProblem = (): GwImpulseReason | null => {
     if (cardId === "IE-GW-02" && !gw02EventOpen(G, power)) return "cardWindow";
@@ -220,7 +218,7 @@ export const gwCardProblem = (G: ImperialElegyState, power: Power, mode: "event"
   if (gwAllyImpulseFor(G, power)) return "majorCard";
   const id = cardId;
   const impulse = currentGwImpulse(G, power);
-  if (!id || impulse.cardPlayed || impulse.bonusPending) return "cardWindow";
+  if (impulse.cardPlayed || impulse.bonusPending) return "cardWindow";
   if (G.gw.neutralImpulses) {
     if (mode === "cp" || ["IE-GW-03", "IE-GW-04", "IE-GW-06"].includes(id)) return "battleCard";
     return mode === "event" ? eventProblem() : null;

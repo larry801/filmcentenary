@@ -162,6 +162,67 @@ test("a neutral impulse cannot open GW #2 on GW turn 0, and GW #5 needs a facedo
   expect(playGwCardMove(G, ctx("OT"), "event")).toBe(INVALID_MOVE);
 });
 
+test("the tray's GW card gate is the move's: GW #2's turn-0 offer is one rule", () => {
+  // `HandTray` draws its two GW buttons from `gwCardProblem` alone, so anything
+  // the move refuses must be a problem here.  GW #2 was the case that drifted:
+  // its "cannot be played on GW turn 0" exception lived as a hand-written copy
+  // of `majorEntryOptions` in `gwImpulse`, and the tray therefore offered a
+  // turn-0 event the reducer rejected.  The offer is now one predicate, read by
+  // both, and every branch below asserts the two answers together.
+  const armed = (): ImperialElegyState => {
+    const G = game();
+    G.gw!.turn = 0;
+    G.persistent.italyUnified = true;
+    G.persistent.italyIndependent = false;
+    G.gw!.italyIn = false;
+    G.gw!.italySurrendered = false;
+    G.gw!.italyStability = 3;
+    G.flags.gwMajorEntryOutbreak = false;
+    G.phase = "gwManeuver";
+    G.activePower = "GE";
+    G.powers.GE.gwCard = "IE-GW-02";
+    beginGwImpulse(G, "GE");
+    // A normal event follows the ordinary action (27.2), so the impulse must
+    // already have spent its budget CP.
+    G.gw!.impulse = {...G.gw!.impulse!, budgetAction: "refit"};
+    return G;
+  };
+  const tray = (G: ImperialElegyState) => gwCardProblem(G, "GE", "event");
+  const move = (G: ImperialElegyState) =>
+    playGwCardMove(JSON.parse(JSON.stringify(G)) as ImperialElegyState, ctx("GE"), "event");
+
+  // The one turn-0 offer: a unified Italy outside the war.
+  const offer = armed();
+  expect(tray(offer)).toBeNull();
+  expect(move(offer)).toBeUndefined();
+
+  const italyIn = armed();
+  italyIn.gw!.italyIn = true;
+  expect(tray(italyIn)).toBe("cardWindow");
+  expect(move(italyIn)).toBe(INVALID_MOVE);
+
+  const spent = armed();
+  spent.flags.gwMajorEntryOutbreak = true;
+  expect(tray(spent)).toBe("cardWindow");
+  expect(move(spent)).toBe(INVALID_MOVE);
+
+  // From GW turn 1 on the printed card is playable with anyone still able to
+  // join, and its own fallback removes it when nobody can.
+  const later = armed();
+  later.gw!.turn = 1;
+  later.flags.gwMajorEntryOutbreak = true;
+  beginGwImpulse(later, "GE");
+  later.gw!.impulse = {...later.gw!.impulse!, budgetAction: "refit"};
+  expect(tray(later)).toBeNull();
+  expect(move(later)).toBeUndefined();
+
+  // A seat with no GW card has no button to press and no move to send.
+  const empty = armed();
+  empty.powers.GE.gwCard = null;
+  expect(tray(empty)).toBe("cardWindow");
+  expect(move(empty)).toBe(INVALID_MOVE);
+});
+
 test("a major acts every cycle on its own budget and cannot move the commanding player's army", () => {
   const G = game();
   G.gw!.usIn = true;

@@ -1,3 +1,40 @@
+## Fixed: the GW card's buttons and the move ask one gate (2026-11-26)
+
+Reported as "帝国挽歌 `HandTray` 只用 `gwCardProblem` 判断 GW 卡按钮，所以 UI 同样会给出引擎会拒绝的 GW-02「as event」": the tray has exactly one source for its two GW
+buttons, so every window the reducer re-checks on its own is a window the tray
+can offer and the click then drops.  GW #2 was the live one — its printed
+"cannot be played on GW turn 0" has one exception (25.3's outbreak Italy), and
+that exception existed twice: as a hand-written copy of
+`majorEntryOptions(...).includes("IT")` in `gwImpulse`, and as the card's real
+option list in `greatWarFlow`.
+
+- **One predicate.** `gwMajors.ts#gw02EventOpen` is now the only place the
+  question is answered: the war is running, the seat is on a side, and either
+  GW turn 1+ or the one turn-0 Italy offer is unspent.  `gwCardProblem` reads it
+  for the event button, `majorEntryCandidates` reads it for the card's `IT`
+  option (so `majorEntryOptions`, which `playGwCardMove` re-checks, cannot
+  differ), and the private mirror plus its `gwCardPlayedThisOutbreak` helper are
+  gone.
+- **The empty slot is refused too.** `gwCardProblem` returned `null` on the
+  pre-27.1 path when the seat had no GW card in its slot, while
+  `playGwCardMove` refused outright; the bot could propose that event from a
+  neutral impulse.  The gate now opens with `cardWindow` for a missing card, as
+  the 27.1 path already did.
+- **The tray's own test.** The turn-0 GW #2 event button is asserted open while
+  the Italy offer stands and shut (with the "card window" reason) once Italy is
+  in the war, so the report's case is pinned at the UI, not only in rules tests.
+
+**Coverage:** `gwImpulseRules.test.ts` (+1: five branches of GW #2's turn-0
+window — offer open, Italy in, offer spent, GW turn 1, no card — each asserting
+`gwCardProblem`'s answer and `playGwCardMove`'s together), and
+`components/gwCardInspector.test.tsx` (+1: the tray's event button).  A
+throwaway 768-state differential (turn 0/1 × live ledger/legacy × neutral ×
+Italy availability × spent offer × planning/maneuver, full and redacted view)
+found the tray and the move agreeing everywhere afterwards; before the empty-slot
+fix it found 192 refusals the tray called playable.  Local: `tsc --noEmit`, the
+nine affected engine suites (185 tests) and the 68 `components` suites (1535
+tests).  Remote GitHub Actions remains the authority (AGENTS.md §7/§10).
+
 ## Fixed: the Great War card's play reaches the record (2026-11-26)
 
 Reported as "帝国挽歌大战卡牌打出记录里面没有显示 现有界面显示也有点模糊": playing a

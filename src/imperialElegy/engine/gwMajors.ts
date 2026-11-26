@@ -15,7 +15,7 @@
  * unit helpers in `effects.ts` (which call back into it from `removeUnit`).
  */
 import {Ctx} from "boardgame.io";
-import {ImperialElegyState, SpaceId, Unit} from "../types";
+import {ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {SPACES} from "../constant/spaces";
 import {
   displaceAlliedUnitsInTerritory,
@@ -85,6 +85,24 @@ export const italyEntryAvailable = (G: ImperialElegyState): boolean =>
   G.persistent.italyIndependent !== true &&
   !hasSurrendered(G, "IT") &&
   (G.gw?.italyStability ?? 0) > 0;
+
+/**
+ * GW #2 Major Power Entry is printed "cannot be played on GW turn 0".  Its one
+ * exception is 25.3's Outbreak Step offer: a unified Italy that stayed out of
+ * the war can still be drawn in, and the card exists once in the deck so its
+ * first play spends the offer.
+ *
+ * This is `majorEntryOptions(...).includes("IT")`, the move's own re-check.
+ * `gwCardProblem` (the tray's two buttons and the bot) reads it too, so the UI
+ * can never offer a turn-0 play the reducer refuses — the previous copy of this
+ * rule lived in `gwImpulse` and only had to fall one quiet condition behind.
+ */
+export const gw02EventOpen = (G: ImperialElegyState, power: Power): boolean => {
+  if (G.gw?.active !== true) return false;
+  if (!G.gw.te.includes(power) && !G.gw.ta.includes(power)) return false;
+  if ((G.gw.turn ?? 0) > 0) return true;
+  return G.flags.gwMajorEntryOutbreak !== true && italyEntryAvailable(G);
+};
 
 /** Whether `major` is currently fighting in the Great War. */
 export const gwMajorFighting = (G: ImperialElegyState, major: GwMajor): boolean =>

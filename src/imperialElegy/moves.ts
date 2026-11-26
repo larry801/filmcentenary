@@ -9510,6 +9510,8 @@ export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | 
   // is Italy still outside the war when it breaks out: 25.3 has already had its
   // say, and GW #2 is the way Italian diplomacy works during the opening.  The
   // guard is read *before* the flag below is set, so the card can resolve once.
+  // `majorEntryOptions` answers with `gw02EventOpen`, the same predicate
+  // `gwCardProblem` gives the tray's event button.
   const outbreakItaly = cardId === "IE-GW-02" && mode === "event" && (G.gw.turn ?? 0) === 0;
   if (outbreakItaly && !majorEntryOptions(G, power).includes("IT")) return INVALID_MOVE;
   if (isGw05Event) G.flags.gw05PlayedImpulse = gwImpulseKey(G);
