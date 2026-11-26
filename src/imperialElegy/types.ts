@@ -1143,6 +1143,8 @@ export const PENDING_KINDS = [
   "manpowerExcess",
   /** 8.6 / 20.9: the player chooses the direction of a tied alliance roll. */
   "allianceTie",
+  /** A026: the Qing army survived the turn — the owner's stability-or-marker choice. */
+  "qingPenalty",
   /** 32.4: a neutral player with a marker in the attacked non-player's space. */
   "gwNonPlayerJoin",
   /** 29.3: a neutral player chooses whether to join an alliance or stay out. */

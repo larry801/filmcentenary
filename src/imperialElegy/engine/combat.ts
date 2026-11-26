@@ -514,14 +514,24 @@ const landBattleForces = (
       // 15.2.3: a unit deployed this impulse cannot attack.
       u.flags?.deployedThisImpulse !== true,
   );
-  const defendUnits = landUnitsIn(G, to).filter((u) => hostileOwner(G, actor, u.owner));
+  const hostileDefenders = landUnitsIn(G, to).filter((u) => hostileOwner(G, actor, u.owner, to));
+  // 21.4: "When attacking such spaces, players must first attack the units
+  // belonging to enemy powers."  Rebel armies in a space that also holds
+  // enemy-power units stand out of this battle; the attacker may turn on them
+  // on a subsequent impulse (or from a decisive battle).  A rebel-only space
+  // stays a legal rebel battle (12.16), except the friendly rebels of a
+  // liberation war, which `hostileOwner` already removed above.
+  const enemyPowerUnits = hostileDefenders.some((u) => !String(u.owner).startsWith("REBEL:"));
+  const defendUnits = enemyPowerUnits
+    ? hostileDefenders.filter((u) => !String(u.owner).startsWith("REBEL:"))
+    : hostileDefenders;
   if (attackUnits.length === 0 || (defendUnits.length === 0 && !G.spaces[to].fort)) {
     return null;
   }
   // 12.16 / 13.4: a neutral non-player is not a legal land-battle target.  The
   // declaration routes (13.4.1/13.4.2) must make it a belligerent first.  A
   // mixed stack stays legal while at least one unit is a real enemy.
-  if (defendUnits.length > 0 && !defendUnits.some((u) => legalLandBattleTarget(G, actor, u.owner))) {
+  if (defendUnits.length > 0 && !defendUnits.some((u) => legalLandBattleTarget(G, actor, u.owner, to))) {
     return null;
   }
   if (defendUnits.length === 0 && G.spaces[to].fort) {

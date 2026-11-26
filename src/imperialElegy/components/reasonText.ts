@@ -133,6 +133,7 @@ const EXACT_ZH: Readonly<Record<string, string>> = {
   "Reserve limit is the lower of manpower or industry": "预备军上限取人力与工业中的较低者",
   "Russia does not occupy Istanbul": "俄国未占领伊斯坦布尔",
   "Russia was not a belligerent": "俄国不是参战国",
+  "God Save the Tsar grants at most one elite corps": "“天佑沙皇”至多授予 1 个精英军",
   "Russia was on the losing side": "俄国属于战败一方",
   "Russian Steamroller: reserve limit is the lower of manpower or industry, +1":
     "俄国压路机：预备军上限取人力与工业中的较低者，再 +1",

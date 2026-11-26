@@ -643,8 +643,35 @@ const gwSideOfPower = (G: ImperialElegyState, power: Power): GwSide | null =>
  * AU-allied Netherlands).  A minor with no controller (and every rebel) stays
  * hostile, matching the pre-GW permissive paths.
  */
-export const hostileOwner = (G: ImperialElegyState, power: Power, owner: PowerOrMinor): boolean => {
+/**
+ * 13.1.1 / 21.2: "Rebels in a war of liberation are friendly to and may
+ * support the attacking player if that player's war aim is to liberate them."
+ * A rebel standing in one of the liberation war's targeted spaces is friendly
+ * to the attacking side; rebels the attacking player is not trying to liberate
+ * stay hostile to every warring power (21.2).
+ */
+export const liberationWarRebelsFriendlyTo = (
+  G: ImperialElegyState,
+  power: Power,
+  space: SpaceId,
+): boolean => {
+  const war = G.war;
+  if (war === null || war.warAim !== "liberation") return false;
+  if (war.attacker !== power && !war.attackerAllies.includes(power)) return false;
+  return war.objectives.includes(space);
+};
+
+export const hostileOwner = (
+  G: ImperialElegyState,
+  power: Power,
+  owner: PowerOrMinor,
+  space?: SpaceId,
+): boolean => {
   if (isPower(owner)) return atWar(G, power, owner);
+  if (typeof owner === "string" && owner.startsWith("REBEL:")) {
+    if (space !== undefined && liberationWarRebelsFriendlyTo(G, power, space)) return false;
+    return true;
+  }
   if (owner === "US" || owner === "IT") {
     // 32.4: a declared non-player major is an enemy of the opposing alliance
     // even before its own entry flag is read (the declaration sets both).
@@ -694,10 +721,11 @@ export const legalLandBattleTarget = (
   G: ImperialElegyState,
   power: Power,
   owner: PowerOrMinor,
+  space?: SpaceId,
 ): boolean => {
   if (isPower(owner)) return atWar(G, power, owner);
   if (typeof owner !== "string") return false;
-  if (owner.startsWith("REBEL:")) return true;
+  if (owner.startsWith("REBEL:")) return hostileOwner(G, power, owner, space);
   if (owner === "US" || owner === "IT") return hostileOwner(G, power, owner);
   // The Great War tracks belligerency on `G.gw`, not on `G.war`.  32.3/32.4:
   // neutral non-players are not legal targets; a declared power is handled by
@@ -817,7 +845,7 @@ export const freeColonialCp = (G: ImperialElegyState, power: Power): number =>
  * Bengal.  Keeping them as named flags (instead of folding them into the
  * ordinary wallet) is what makes the printed restrictions enforceable.
  */
-export type FreeCpGrant = "freeColonialCp" | "freeOperationCp" | "freeIndianCp";
+export type FreeCpGrant = "freeColonialCp" | "freeOperationCp" | "freeIndianCp" | "freeBuildCp";
 
 export const freeGrantCp = (G: ImperialElegyState, power: Power, grant: FreeCpGrant): number =>
   Number(G.powers[power]?.flags[grant] ?? 0);
@@ -1029,7 +1057,27 @@ export const recordOccupation = (
   if (!state || isNavalBox(space)) return unchanged();
   const wartime = options.force === true || G.war !== null || G.gw?.active === true;
   if (!wartime) return unchanged();
-  const occupants = landOccupants(G, space);
+  let occupants = landOccupants(G, space);
+  // 21.4: "the space cannot be occupied until the rebels are eliminated,
+  // unless the rebels are friendly to the attacker."  Rebels that a lone
+  // player occupant is liberating do not stand between that player and the
+  // occupation marker; rebels hostile to that player still block it.
+  const playerOccupants = occupants.filter(
+    (owner) => isPower(owner) || owner === "US" || owner === "IT",
+  );
+  if (playerOccupants.length === 1 && occupants.length > 1) {
+    const sole = playerOccupants[0];
+    if (
+      isPower(sole) &&
+      occupants.every(
+        (owner) =>
+          isPower(owner) || owner === "US" || owner === "IT" ||
+          liberationWarRebelsFriendlyTo(G, sole, space),
+      )
+    ) {
+      occupants = playerOccupants;
+    }
+  }
   // Two or more players share the space: nobody solely occupies it, so the
   // existing marker is left for the battle/trench logic to resolve.
   if (occupants.length > 1) return unchanged();
@@ -1160,7 +1208,16 @@ export const locFriendlySpace = (
 ): boolean => {
   const state = G.spaces[space];
   if (!state || isNavalBox(space)) return false;
-  if (unitsIn(G, space).some((unit) => unit.kind === "rebelArmy")) return false;
+  if (unitsIn(G, space).some((unit) => unit.kind === "rebelArmy")) {
+    // Hostile rebels keep a space out of every LoC: 21.4 bars occupying the
+    // space until they are eliminated.  21.2 / 13.1.1: the rebels of a
+    // liberation war's targeted space are friendly to the attacking side, and
+    // a space solely containing them counts as occupied by that side, so the
+    // side traces through; a stack the side moved in traces via 21.4's
+    // friendly-rebel occupation exception below.
+    if (!liberationWarRebelsFriendlyTo(G, power, space)) return false;
+    if (landUnitsIn(G, space).every((unit) => String(unit.owner).startsWith("REBEL:"))) return true;
+  }
   const allies = locAllies(G, power);
   // 12.5.1: "For the purposes of placing influence, players can trace LoCs
   // through allied minor power spaces."  That allowance is separate from the
@@ -3765,7 +3822,8 @@ export type TurnDurationFlag =
   | "frLandDrm"
   | "gwCombatDrm"
   | "noRetreat"
-  | "landDrm";
+  | "landDrm"
+  | "godSaveTsarEc";
 
 export const TURN_DURATION_FLAG_DEFAULTS: Readonly<Record<TurnDurationFlag, number | boolean>> = Object.freeze({
   combatDrm: 0,
@@ -3781,6 +3839,9 @@ export const TURN_DURATION_FLAG_DEFAULTS: Readonly<Record<TurnDurationFlag, numb
   noRetreat: false,
   // A41's dedicated handler (no `flag` effect in the card data).
   landDrm: 0,
+  // H-RU-10 God Save the Tsar, builds option: "you can only gain 1 elite
+  // corps through this event".
+  godSaveTsarEc: false,
 });
 
 /**

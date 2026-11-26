@@ -41,6 +41,7 @@ import {
   isPower,
   isHomeSpace,
   isKeySpace,
+  landUnitsIn,
   log,
   minorAlliesOf,
   minorController,
@@ -2078,6 +2079,14 @@ export const needsWhitePeaceOrderChoice = (victory: VictoryClassification): bool
 const spaceHeldBySide = (G: ImperialElegyState, war: WarState, space: SpaceId, side: WarSideName): boolean => {
   const state = G.spaces[space];
   if (!state) return false;
+  // 21.2: "In a war of liberation, if the attacking player is trying to
+  // liberate them, rebel units are considered to occupy spaces for the
+  // attacker if that space solely contains rebel units."  A rebel-held
+  // objective therefore already counts as held by the attacking side.
+  if (side === "attacker" && war.warAim === "liberation" && war.objectives.includes(space)) {
+    const land = landUnitsIn(G, space);
+    if (land.length > 0 && land.every((unit) => String(unit.owner).startsWith("REBEL:"))) return true;
+  }
   const powers = sidePowers(war, side);
   if (isPower(state.occupiedBy) && powers.includes(state.occupiedBy)) return true;
   if (isPower(state.control) && powers.includes(state.control)) return true;

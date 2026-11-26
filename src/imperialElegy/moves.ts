@@ -1544,7 +1544,7 @@ export const recruit = (
       log(G, power, "recruitRejected", {kind, space, reasons: "No reserve army counter available"});
       return INVALID_MOVE;
     }
-    const paid = requireCp(G, ctx, playerID, steps);
+    const paid = requireGrantCp(G, ctx, playerID, steps, ["freeBuildCp"]);
     if (paid === INVALID_MOVE) return INVALID_MOVE;
     const unit = placeUnit(G, power, "reserveArmy", null, 2);
     p.reserves.push(unit.id);
@@ -1596,8 +1596,18 @@ export const recruit = (
       log(G, power, "recruitRejected", {kind, space, reasons: "No elite corps counter available"});
       return INVALID_MOVE;
     }
-    const paid = requireCp(G, ctx, playerID, 2);
+    // H-RU-10 God Save the Tsar, builds option: "you can only gain 1 elite
+    // corps through this event."  The cap rides on the grant wallet: while a
+    // grant is live, one EC may be paid from it; a second is refused.  The
+    // ordinary wallet (no grant in play) is untouched.
+    const grantBefore = freeGrantCp(G, power, "freeBuildCp");
+    if (grantBefore > 0 && G.flags.godSaveTsarEc === true) {
+      log(G, power, "recruitRejected", {kind, space, reasons: "God Save the Tsar grants at most one elite corps"});
+      return INVALID_MOVE;
+    }
+    const paid = requireGrantCp(G, ctx, playerID, 2, ["freeBuildCp"]);
     if (paid === INVALID_MOVE) return INVALID_MOVE;
+    if (grantBefore > 0) G.flags.godSaveTsarEc = true;
     placeUnit(G, power, "eliteCorps", space, 1);
     log(G, power, "recruited", {kind, space});
     return undefined;
@@ -2644,7 +2654,7 @@ export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level
     if (existing.indian === true) return INVALID_MOVE;
     // 12.1's upgrade: 1 CP, one level, never to level 3.
     if (level !== 1 || existing.level >= 2) return INVALID_MOVE;
-    const paid = requireCp(G, ctx, playerID, 1);
+    const paid = requireGrantCp(G, ctx, playerID, 1, ["freeBuildCp"]);
     if (paid === INVALID_MOVE) return INVALID_MOVE;
     existing.level = (existing.level + 1) as 1 | 2;
     log(G, power, "fortUpgraded", {space, level: existing.level});
@@ -2654,7 +2664,7 @@ export const buildFort = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, level
   if (G.spaces[space]?.control !== power && !occupied) return INVALID_MOVE;
   const forts = Object.values(G.spaces).filter((s) => s.fort?.power === power).length;
   if (forts >= 3) return INVALID_MOVE;
-  const paid = requireCp(G, ctx, playerID, level);
+  const paid = requireGrantCp(G, ctx, playerID, level, ["freeBuildCp"]);
   if (paid === INVALID_MOVE) return INVALID_MOVE;
   G.spaces[space].fort = {power, level};
   // 12.12 prints no "once per space, per game" limit on the fort action; the
@@ -7292,8 +7302,13 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     finalizePendingCard(G, ctx);
     return undefined;
   }
-  if (pending.kind === "militarism" || pending.kind === "manpowerExcess" || pending.kind === "allianceTie") {
-    // 20.1 / 20.5 / 20.9: record the choice and resume the printed end-phase order.
+  if (
+    pending.kind === "militarism" ||
+    pending.kind === "manpowerExcess" ||
+    pending.kind === "allianceTie" ||
+    pending.kind === "qingPenalty"
+  ) {
+    // 20.1 / 20.5 / 20.9 / 20.12: record the choice and resume the printed end-phase order.
     return resolveEndPhasePending(G, ctx, pending, optionId);
   }
   if (pending.kind === "whitePeaceOrder") {
@@ -7583,9 +7598,14 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
     finalizePendingCard(G, ctx);
     return undefined;
   }
-  // 20.1/20.5/20.9 keep an explicit safe default (skip / first candidate /
+  // 20.1/20.5/20.9/20.12 keep an explicit safe default (skip / first candidate /
   // deterministic tie direction), so an unattended end phase can never stall.
-  if (pending.kind === "militarism" || pending.kind === "manpowerExcess" || pending.kind === "allianceTie") {
+  if (
+    pending.kind === "militarism" ||
+    pending.kind === "manpowerExcess" ||
+    pending.kind === "allianceTie" ||
+    pending.kind === "qingPenalty"
+  ) {
     return declineEndPhasePending(G, ctx, pending);
   }
   // 22.1.3 has no "skip": an unattended card takes the printed-order default
@@ -8327,7 +8347,61 @@ const endPhaseDrawNgs = (
 };
 
 /** 20.12 Advance the turn (and the decade), ending the game after turn 7. */
-const endPhaseAdvanceTurn = (G: ImperialElegyState): void => {
+/**
+ * A026 Chinese Intervention: "If the Qing army is not eliminated by the end of
+ * the turn remove the Qing army and the control marker from the space.  If the
+ * control marker is removed the owning player must either decrease stability
+ * by 1 or gain a -1 card marker."  The deadline is the top of 20.12, while
+ * `G.turn` is still the play turn.  Returns true when the owner's choice is
+ * pending; the one-shot drivers take the printed stability default.
+ */
+const resolveQingInterventionDeadline = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  interactive: boolean,
+): boolean => {
+  const spaces = Object.keys(G.flags)
+    .filter((key) => key.startsWith("qingIntervention_"))
+    .map((key) => key.slice("qingIntervention_".length) as SpaceId);
+  for (const space of spaces) {
+    delete G.flags[`qingIntervention_${space}`];
+    const rebellion = G.spaces[space]?.rebellion;
+    const liveRebels = (rebellion?.rebels ?? []).filter((id) => G.units[id]?.space === space);
+    if (liveRebels.length === 0) continue;
+    for (const id of liveRebels) removeUnit(G, id);
+    G.spaces[space].rebellion = null;
+    const owner = isPower(G.spaces[space].control) ? G.spaces[space].control as Power : null;
+    if (owner === null) continue;
+    G.spaces[space].control = null;
+    log(G, owner, "qingInterventionExpired", {space});
+    if (!interactive || G.pending !== null) {
+      changeStability(G, owner, -1, ctx);
+      continue;
+    }
+    openDecision(
+      G,
+      endPhaseCtx(ctx),
+      decision(
+        "qingPenalty",
+        owner,
+        `Chinese Intervention: the Qing army in ${spaceLabel(space, "en")} survived the turn — decrease stability by 1 or gain a -1 card marker`,
+        [
+          {id: "stability", label: "Decrease stability by 1", labelZh: "稳定度 -1"},
+          {id: "cardMarker", label: "Gain a -1 card marker", labelZh: "获得 -1 抽牌标记"},
+        ],
+        {space},
+        undefined,
+        `中国干预：清军在本回合结束前未被消灭 — 稳定 -1 或获得 -1 抽牌标记`,
+      ),
+    );
+    return true;
+  }
+  return false;
+};
+
+const endPhaseAdvanceTurn = (G: ImperialElegyState, ctx: Ctx, interactive: boolean): boolean => {
+  // A026: the Qing army's deadline is the end of this turn, i.e. right here.
+  if (resolveQingInterventionDeadline(G, ctx, interactive)) return true;
   // Every "for the rest of the turn" card flag ends with this turn.  Clearing
   // before the counter moves keeps the new turn (and the next decade) clean.
   clearTurnDurationFlags(G);
@@ -8335,6 +8409,7 @@ const endPhaseAdvanceTurn = (G: ImperialElegyState): void => {
   G.turn += 1;
   // 10.1/10.2: keep the displayed decade in step with the new campaign turn.
   G.decade = decadeForTurn(G.turn);
+  return false;
 };
 
 type EndPhaseStepKey = ReturnType<typeof endPhaseOrder>[number]["key"];
@@ -8380,8 +8455,7 @@ const applyEndPhaseStep = (
     case "drawNationalGoals":
       return endPhaseDrawNgs(G, ctx, progress, interactive);
     case "advanceTurn":
-      endPhaseAdvanceTurn(G);
-      return false;
+      return endPhaseAdvanceTurn(G, ctx, interactive);
   }
 };
 
@@ -8479,6 +8553,11 @@ const resolveEndPhasePending = (
     }
   } else if (pending.kind === "manpowerExcess") {
     applyManpowerElimination(G, pending.power, String(choice.data?.unit ?? ""));
+  } else if (pending.kind === "qingPenalty") {
+    // A026: record the penalty here; resuming the end phase re-applies the
+    // suspended 20.12 step, which advances the turn exactly once.
+    if (choice.id === "cardMarker") G.powers[pending.power].cardMarkers -= 1;
+    else changeStability(G, pending.power, -1, ctx);
   } else {
     // 20.9: the die results were rolled before the decision opened, so the
     // player's direction is applied without rerolling the tie.
@@ -8511,7 +8590,7 @@ const declineEndPhasePending = (
     if (!choice) return INVALID_MOVE;
     return resolveEndPhasePending(G, ctx, pending, choice.id);
   }
-  if (pending.kind === "manpowerExcess") {
+  if (pending.kind === "manpowerExcess" || pending.kind === "qingPenalty") {
     const first = pending.options[0];
     if (!first) return INVALID_MOVE;
     return resolveEndPhasePending(G, ctx, pending, first.id);

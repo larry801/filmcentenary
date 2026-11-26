@@ -704,6 +704,17 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  /** A026: the Qing army survived the turn, so it and the control marker go. */
+  qingInterventionExpired: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(
+      entry,
+      locale,
+      `let the Qing army at ${space} survive the turn — the Qing army and their control marker were removed.`,
+      `未能在回合结束前消灭${space}的清军 — 清军与其控制标记被移除。`,
+    );
+  },
+
   eliteBonusCommitted: (entry, locale) => {
     const to = spaceName(entry.args?.to, locale);
     const side = sideLabel(entry.args?.side, locale);
@@ -4038,6 +4049,38 @@ const FORMATTERS: Record<string, Formatter> = {
       locale,
       `discarded ${card} to Japan's Empire of the Sun.`,
       `因“太阳帝国”弃置 ${card}。`,
+    );
+  },
+  habsburgCardMarker: (entry, locale) => {
+    const minors = str(entry.args?.minors);
+    return withActor(
+      entry,
+      locale,
+      `is allied with two German minor powers (${minors}) and gains a +1 card marker.`,
+      `与两个德意志小国（${minors}）结盟，获得 +1 抽牌标记。`,
+    );
+  },
+
+  godSaveBuilds: (entry, locale) => {
+    const cp = num(entry.args?.cp);
+    return withActor(
+      entry,
+      locale,
+      `grants ${cp} CP for recruitment and construct-fort actions.`,
+      `获得 ${cp} 点仅可用于征募和建造要塞的 CP。`,
+    );
+  },
+
+  godSaveTsrr: (entry, locale) => {
+    const roll = num(entry.args?.roll);
+    const complete = entry.args?.complete === true;
+    return withActor(
+      entry,
+      locale,
+      complete
+        ? `rolls ${roll} and completes the Trans-Siberian Railroad.`
+        : `rolls ${roll} and fails to complete the Trans-Siberian Railroad.`,
+      complete ? `掷出 ${roll}，西伯利亚铁路建成。` : `掷出 ${roll}，西伯利亚铁路未能建成。`,
     );
   },
 };

@@ -1,3 +1,36 @@
+## Fixed: the rebels of a liberation war (2026-11-26)
+
+Reported as "按照规则pdf查找帝国挽歌实现问题并修复": a fresh pass over the
+printed rulebook found three printed rebel clauses the live path did not
+honour, all in the liberation-war corner of 13.1/21.x.
+
+- **21.4's first-strike rule.**  A space holding rebel armies and units of an
+  enemy power resolved as one battle with the rebels defending alongside the
+  enemy.  The printed text orders the attacker to fight the enemy-power units
+  first and turn on the rebels "on a subsequent impulse (or from a resulting
+  decisive battle)".  `landBattleForces` now strips the rebels out of the
+  defence force whenever an enemy-power unit is present; a rebel-only space
+  keeps the 12.16 rebel battle.
+- **13.1.1's friendly rebels.**  "Rebels in a war of liberation are friendly
+  to and may support the attacking player if that player's war aim is to
+  liberate them."  `hostileOwner`/`legalLandBattleTarget` now carry the space:
+  rebels in a liberation war's objective spaces are friendly to the attacking
+  side (not attackable, not defending), while rebels anywhere else stay hostile
+  to every warring power.  13.1.1's "may support" stays unimplemented — support
+  declarations are per-space player choices and the rebels belong to no seat;
+  recorded as an interpretation note.
+- **21.2's occupation for the attacker.**  "Rebel units are considered to
+  occupy spaces for the attacker if that space solely contains rebel units."
+  `spaceHeldBySide` counts a solely-rebel liberation objective as held, so the
+  war can be won without garrisoning; `locFriendlySpace` lets a stack in that
+  space trace its LoC, and `recordOccupation` applies 21.4's exception — the
+  attacker (or an attacking ally) takes the occupation marker beside friendly
+  rebels, while hostile rebels still block occupation and LoC as before.
+
+**Coverage:** `liberationRebels.test.ts` (9), plus the affected
+limited-war/combat/displacement suites re-run green.  Local: `tsc --noEmit`.
+Remote GitHub Actions remains the authority (AGENTS.md §7/§10).
+
 ## Fixed: the GW card's buttons and the move ask one gate (2026-11-26)
 
 Reported as "帝国挽歌 `HandTray` 只用 `gwCardProblem` 判断 GW 卡按钮，所以 UI 同样会给出引擎会拒绝的 GW-02「as event」": the tray has exactly one source for its two GW
