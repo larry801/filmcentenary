@@ -34,6 +34,11 @@ The harness is deliberately **not** under `src/`, so `yarn test` stays fast.
 ## Test suites here
 
 - `sweep.test.ts` — campaign + Great War per seed (the default gate).
+- `scenarios.test.ts` — every printed scenario (`IE_playbook.pdf` pp. 3-10)
+  from its own setup: the pre-war scenarios must reach their printed last turn
+  and a decisive ending, the GW scenarios must enter the war's own sequence and
+  survive its first turn.  The campaign and the GW modes start from the
+  campaign setup, so this is the only suite that runs the other seven setups.
 - `fullGame.test.ts` — one continuous fixed-seed match from campaign turn 1
   through a real Great War outbreak and GW turns 0–5, with all six seats
   human-controlled (no `G.bots`), asserting the printed milestones and no

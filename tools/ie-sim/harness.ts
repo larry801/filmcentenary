@@ -10,6 +10,8 @@ import {Ctx} from "boardgame.io";
 import {CreateGameReducer, InitializeGame, ProcessGameConfig} from "boardgame.io/internal";
 import {ImperialElegyGameDef} from "../../src/imperialElegy/game";
 import {redactForView} from "../../src/imperialElegy/engine/privacy";
+import {setupImperialElegy} from "../../src/imperialElegy/engine/setup";
+import type {ScenarioId} from "../../src/imperialElegy/constant/scenarios";
 import {botDecision, phaseExitMove} from "../../src/imperialElegy/engine/bot";
 import {ImperialElegyState, POWERS, Power} from "../../src/imperialElegy/types";
 import {ensureStateDefaults} from "../../src/imperialElegy/engine/migrations";
@@ -29,6 +31,13 @@ import {checkAll, formatViolation, formatViolations, type CheckLevel} from "../.
 
 export interface SimOptions {
   seed: string | number;
+  /**
+   * Play one of the printed scenarios (`IE_playbook.pdf` pp. 3-10) instead of
+   * the campaign's own 1850 setup.  The scenario travels in the game
+   * definition's `setup`, the same way the hotseat board and the old
+   * `scenarioPlaythrough` suite carried it.
+   */
+  scenario?: ScenarioId;
   /**
    * Start the match in the Great War (25.x) instead of 1850.  The pre-war
    * decade loop is the same either way; this only moves the start so the GW
@@ -58,6 +67,12 @@ export interface SimOptions {
   amphibious?: boolean;
   /** Hard cap on dispatched actions. */
   maxSteps?: number;
+  /**
+   * Stop before the game ends once this holds, for a suite that only needs the
+   * opening of a phase — the GW scenarios prove their first war turn rather
+   * than a whole six-turn war.
+   */
+  stop?: (G: ImperialElegyState) => boolean;
   /** Randomised pending choices (chaos exploration) instead of first option. */
   chaos?: number;
   /** RNG for the chaos option picker. */
@@ -146,6 +161,15 @@ export function actingSeatFor(G: ImperialElegyState, ctx: Ctx, states: Map<strin
     return ctx.currentPlayer ?? null;
   }
   if (G.phase === "prep" || G.phase === "diplomacy") {
+    // The home-card step follows the engine's own cursor, not boardgame.io's.
+    // A scenario setup can settle a seat's obligation without advancing
+    // `ctx.currentPlayer` (1870 skips GE's home card on turn 1), and naming the
+    // framework's seat then hands the bot a seat with nothing left to do: it
+    // asks to end diplomacy, the engine refuses because other seats still owe a
+    // card, and the phase deadlocks.
+    if (G.phase === "diplomacy" && G.powers[G.activePower].flags.homeChosen !== true) {
+      return String(POWERS.indexOf(G.activePower));
+    }
     return ctx.currentPlayer ?? null;
   }
   return String(POWERS.indexOf(G.activePower));
@@ -590,7 +614,14 @@ const probeGwManeuver = (
 export function runSeededGame(opts: SimOptions): SimResult {
   const needsSimMoves = Boolean(opts.greatWar || opts.amphibious);
   const def = needsSimMoves ? withSimMoves(ImperialElegyGameDef) : ImperialElegyGameDef;
-  const game = ProcessGameConfig({...def, seed: opts.seed} as any);
+  const scenario = opts.scenario;
+  const game = ProcessGameConfig({
+    ...def,
+    seed: opts.seed,
+    ...(scenario === undefined
+      ? {}
+      : {setup: (ctx: Parameters<typeof setupImperialElegy>[0]) => setupImperialElegy(ctx, {scenario})}),
+  } as any);
   const reducer = CreateGameReducer({game, isClient: false});
   const rng = opts.rng ?? mulberry32(0x51ed);
   const maxSteps = opts.maxSteps ?? 20000;
@@ -609,7 +640,10 @@ export function runSeededGame(opts: SimOptions): SimResult {
   const viewFor = (seat: string | null): ImperialElegyState => {
     const cached = seat === null ? undefined : views.get(seat);
     if (cached !== undefined) return cached;
-    const G = redactForView(JSON.parse(JSON.stringify(state.G)) as ImperialElegyState, seat, state.ctx) as ImperialElegyState;
+    // `redactForView` builds its own deep copy, so `state.G` must not be
+    // cloned again here: one JSON round-trip per step is the harness's largest
+    // avoidable cost (the census pays it 19 200 times).
+    const G = redactForView(state.G as ImperialElegyState, seat, state.ctx) as ImperialElegyState;
     ensureStateDefaults(G);
     if (seat !== null) views.set(seat, G);
     return G;
@@ -645,6 +679,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
     const G = state.G as ImperialElegyState;
     if (G.result) break;
     if (state.ctx.gameover !== undefined) break;
+    if (opts.stop?.(G)) break;
 
     let seat = actingSeatFor(G, state.ctx, views);
     if (seat === null) {
