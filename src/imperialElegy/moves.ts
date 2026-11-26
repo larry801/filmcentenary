@@ -9504,7 +9504,7 @@ const gwImpulseKey = (G: ImperialElegyState): string =>
  * player's GW impulse to flip a facedown GW combat card.  Its battle reroll
  * mode is handled by `combat.ts` and never reaches this move.
  */
-const canPlayGw05Event = (G: ImperialElegyState, power: Power): boolean => {
+export const canPlayGw05Event = (G: ImperialElegyState, power: Power): boolean => {
   if (G.phase !== "gwManeuver" || G.gw?.active !== true) return false;
   if (G.activePower !== power) return false;
   if (G.pending !== null || G.battle !== null) return false;

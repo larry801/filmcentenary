@@ -16,7 +16,7 @@ import {runSeededGame, SimResult} from "./harness";
 jest.setTimeout(1800000);
 
 /**
- * A seed that reaches a real outbreak at campaign turn 2 and plays GW 0–5.
+ * A seed that reaches a real outbreak at campaign turn 3 and plays GW 0–5.
  * (`IE-FULL-2` used to be used before the 34.2 home-card pile change altered the
  * seeded RNG consumption; its new trajectory hits a stale-view race in this
  * hotseat harness, not an engine refusal, so the fixed seed moved to one that
@@ -52,9 +52,12 @@ test("the fixed-seed hotseat game reaches the Great War turn limit without a ref
   expect(game.gw).toBe(true);
   expect(game.result?.reason).toMatch(/^gwTurnLimit:/);
   expect(game.result?.winners.length).toBeGreaterThan(0);
-  // Campaign turn 2 is where this seed's WTT crisis breaks out; GW turns 0–5
-  // are then played, with the winter after GW turn 5 advancing to turn 6.
-  expect(game.turn).toBe(2);
+  // Campaign turn 3 is where this seed's WTT crisis breaks out; GW turns 0–5
+  // are then played, with the winter after GW turn 5 advancing to turn 6.  The
+  // outbreak sat on turn 2 before the reserve-army fix: the bot now builds
+  // reserve armies in the action phase, which moves the crisis one campaign
+  // turn later without changing any of the milestones asserted below.
+  expect(game.turn).toBe(3);
   expect(game.finalState.gw?.budgetTurn).toBe(5);
   expect(game.finalState.gw?.turn).toBe(6);
 });

@@ -43,11 +43,11 @@ import {
   unitsOfPower,
 } from "./rules";
 import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs";
-import {impulseAlreadyUsed, recruit as recruitMove} from "../moves";
+import {canPlayGw05Event, impulseAlreadyUsed, recruit as recruitMove} from "../moves";
 import {ottomanArmyTypeFor, passRestriction} from "./characteristics";
 import {battleDrmTotals, canBeginLandBattle} from "./combat";
 import {canRecruitIn} from "./characteristics";
-import {gwDraftProblem, gwDraftSpaces, gwLandMoveProblem, GwManeuverRequest, performGwManeuver} from "./greatWarFlow";
+import {gwDraftProblem, gwDraftSpaces, gwLandMoveProblem, GwManeuverRequest, majorEntryOptions, performGwManeuver} from "./greatWarFlow";
 import {currentGwImpulse, gwActionAllowance, gwCardProblem, gwFinishImpulseProblem} from "./gwImpulse";
 import {declarationTargetCandidates} from "./declarationTargets";
 import {warDeclarationEntitlement, warDeclarationPolicy} from "./rules";
@@ -391,6 +391,22 @@ const influenceTarget = (G: ImperialElegyState, power: Power, region: BditRegion
     return id;
   }
   return null;
+};
+
+/**
+ * Whether `playGwCardMove("event")` would accept this power's GW card.
+ *
+ * `gwCardProblem` is the tray's and the bot's shared window gate, but the move
+ * applies two card-specific gates the ledger does not know: GW #2's turn-0
+ * offer only exists while Italy can still join, and GW #5's event needs a
+ * battle it can affect.  Naming the move without them made the bot re-send a
+ * refused GW card every impulse (the same divergence the UI's tray has).
+ */
+const gwEventCardPlayable = (G: ImperialElegyState, power: Power): boolean => {
+  if (gwCardProblem(G, power, "event") !== null) return false;
+  const cardId = G.powers[power].gwCard;
+  if (cardId === "IE-GW-02" && (G.gw?.turn ?? 0) === 0 && !majorEntryOptions(G, power).includes("IT")) return false;
+  return !(cardId === "IE-GW-05" && !canPlayGw05Event(G, power));
 };
 
 /** The ctx a probe move gets: it never rolls, so a probe cannot consume randomness. */
@@ -1587,7 +1603,7 @@ const botDecisionInPhase = (G: ImperialElegyState, ctx: Ctx, power: Power): BotM
       // with `activePower` still showing the previous belligerent).
       const neutral = G.gw.neutralImpulses;
       const expected = neutral.order[neutral.index];
-      if (power === expected && gwCardProblem(G, power, "event") === null) {
+      if (power === expected && gwEventCardPlayable(G, power)) {
         return {move: "playGwCardMove", args: ["event"]};
       }
       return {move: "gwPass"};
