@@ -398,6 +398,10 @@ describe("A099 Dreadnought", () => {
 
   test("grants an extra dreadnought as the first card of the turn", () => {
     const G = play("IE-A099", "GE", 3);
+    // The friendly European port is the player's choice.
+    expect(G.pending?.kind).toBe("eventTargetSpace");
+    const port = G.pending!.options[0].id;
+    resolvePending(G, makeCtx([], "0", 3), port);
     expect(dreadnoughts(G)).toBe(2);
   });
 
@@ -415,6 +419,8 @@ describe("A099 Dreadnought", () => {
     G.activePower = "GE";
     G.powers.GE.hand = ["IE-A099"];
     playCard(G, makeCtx([], "0", 3), "IE-A099", "event");
+    const port = G.pending!.options[0].id;
+    resolvePending(G, makeCtx([], "0", 3), port);
     expect(dreadnoughts(G)).toBe(1);
   });
 });
@@ -506,14 +512,18 @@ describe("printed OR clauses are player choices", () => {
     expect(G.powers.GE.cardMarkers).toBe(1);
   });
 
-  test("A073 Economic Panic asks each player that holds a card", () => {
+  test("A073 Economic Panic asks every uneliminated player", () => {
     const G = play("IE-A073", "GE");
     expect(G.pending?.kind).toBe("eventChoice");
-    // The actor has just spent its only card, so the first held-card power is
-    // asked; a power with an empty hand cannot discard and is skipped.
+    // The actor has just spent its only card, and the printed choice is still
+    // offered to an empty hand ("chooses to discard a card but cannot do so"
+    // receives the -1 card marker instead).
     const asked = G.pending!.power;
-    expect(G.powers[asked].hand.length).toBeGreaterThan(0);
+    expect(asked).toBe("GE");
+    expect(G.powers[asked].hand.length).toBe(0);
     expect(G.pending?.options.map((o: any) => o.id)).toEqual(["stability", "discard"]);
+    resolvePending(G, makeCtx([], "0", 3), "discard");
+    expect(G.powers.GE.cardMarkers).toBeLessThan(0);
   });
 
   test("A073 lets a player take the stability loss", () => {

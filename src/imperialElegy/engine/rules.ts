@@ -845,7 +845,7 @@ export const freeColonialCp = (G: ImperialElegyState, power: Power): number =>
  * Bengal.  Keeping them as named flags (instead of folding them into the
  * ordinary wallet) is what makes the printed restrictions enforceable.
  */
-export type FreeCpGrant = "freeColonialCp" | "freeOperationCp" | "freeIndianCp";
+export type FreeCpGrant = "freeColonialCp" | "freeOperationCp" | "freeIndianCp" | "freeBuildCp";
 
 export const freeGrantCp = (G: ImperialElegyState, power: Power, grant: FreeCpGrant): number =>
   Number(G.powers[power]?.flags[grant] ?? 0);
@@ -3800,7 +3800,8 @@ export type TurnDurationFlag =
   | "frLandDrm"
   | "gwCombatDrm"
   | "noRetreat"
-  | "landDrm";
+  | "landDrm"
+  | "godSaveTsarEc";
 
 export const TURN_DURATION_FLAG_DEFAULTS: Readonly<Record<TurnDurationFlag, number | boolean>> = Object.freeze({
   combatDrm: 0,
@@ -3816,6 +3817,9 @@ export const TURN_DURATION_FLAG_DEFAULTS: Readonly<Record<TurnDurationFlag, numb
   noRetreat: false,
   // A41's dedicated handler (no `flag` effect in the card data).
   landDrm: 0,
+  // H-RU-10 God Save the Tsar, builds option: "you can only gain 1 elite
+  // corps through this event".
+  godSaveTsarEc: false,
 });
 
 /**

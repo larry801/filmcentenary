@@ -197,22 +197,36 @@ describe("A36 Rebellions in China", () => {
 // A74 Berlin Conference
 // ---------------------------------------------------------------------------
 describe("A74 Berlin Conference", () => {
-  test("places influence in printed order and only once for Belgium", () => {
+  /** Pre-fill every uncontrolled African space but `keep`, so the errata's
+   * "until all uncontrolled spaces … contain a player marker" loop is short. */
+  const fillAfricaExcept = (G: ReturnType<typeof fresh>, keep: number): void => {
+    const open = africanSpaces.filter((id) => G.spaces[id].control === null && G.spaces[id].influence === null);
+    for (const id of open.slice(0, Math.max(0, open.length - keep))) G.spaces[id].influence = "GE";
+  };
+
+  test("places influence in printed order, repeating the seat order until Africa is full", () => {
     const G = fresh();
     G.spaces.belgium.ally = "OT";
+    fillAfricaExcept(G, 4);
     playEvent(G, "IE-A074", "GE");
 
     const placed: {power: Power; space: string}[] = [];
-    const order: Power[] = ["GE", "UK", "FR", "OT"];
-    for (const power of order.slice(0, 3)) {
-      expect(G.pending?.kind).toBe("eventTargetSpace");
-      expect(G.pending?.power).toBe(power);
+    const seen: Power[] = [];
+    for (let step = 0; step < 12; step += 1) {
+      const pending = G.pending;
+      if (!pending || pending.kind !== "eventTargetSpace") break;
+      const done = optionIds(G).includes("done");
+      if (done) break;
+      seen.push(pending.power);
       const space = optionIds(G)[0];
       expect(africanSpaces).toContain(space);
-      expect(resolvePending(G, ctxFor(power), space)).toBeUndefined();
-      placed.push({power, space});
-      expect(G.spaces[space].influence).toBe(power);
+      expect(resolvePending(G, ctxFor(pending.power), space)).toBeUndefined();
+      placed.push({power: pending.power, space});
+      expect(G.spaces[space].influence).toBe(pending.power);
     }
+    // Round one is GE, UK, FR; the errata repeats the seat order while
+    // uncontrolled African spaces remain, so GE opens round two.
+    expect(seen).toEqual(["GE", "UK", "FR", "GE"]);
     // The Belgian ally places the Belgian control marker once (optional).
     expect(G.pending?.kind).toBe("eventTargetSpace");
     expect(G.pending?.power).toBe("OT");
@@ -224,7 +238,7 @@ describe("A74 Berlin Conference", () => {
     expect(G.pending).toBeNull();
 
     expect(G.persistent.berlinConference).toBe(true);
-    expect(placed).toHaveLength(3);
+    expect(placed).toHaveLength(4);
   });
 
   test("lifts the one-influence limit in Africa and blocks removing it", () => {
@@ -262,17 +276,19 @@ describe("A74 Berlin Conference", () => {
     G.persistent.italyUnified = true;
     G.spaces.tuscany.control = "Italy";
     G.spaces.tuscany.ally = "FR";
+    fillAfricaExcept(G, 4);
     playEvent(G, "IE-A074", "GE");
 
     const seen: Power[] = [];
-    for (let step = 0; step < 4; step += 1) {
+    for (let step = 0; step < 12; step += 1) {
       const pending = G.pending;
-      if (!pending) break;
-      expect(pending.kind).toBe("eventTargetSpace");
+      if (!pending || pending.kind !== "eventTargetSpace" || optionIds(G).includes("done")) break;
       seen.push(pending.power);
       resolvePending(G, ctxFor(pending.power), optionIds(G)[0]);
     }
-    // GE (actor), UK, FR, then Italy's marker placed by its ally FR.
+    // GE (actor), UK, FR, then Italy's marker placed by its ally FR: four
+    // placements fill the four open spaces, so the loop ends and no further
+    // seat is asked.
     expect(seen).toEqual(["GE", "UK", "FR", "FR"]);
     expect(G.pending).toBeNull();
   });

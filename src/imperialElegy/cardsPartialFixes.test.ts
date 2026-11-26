@@ -228,10 +228,24 @@ describe("9.1.4 a discarded mandatory event still triggers", () => {
     G.powers.FR.hand = ["IE-A094"];
     G.powers.GE.hand = ["IE-A073"];
     expect(playCard(G, makeCtx([], seat("GE")), "IE-A073", "event")).toBeUndefined();
-    // Only FR has a card, so it is the only asked player.
+    // Every uneliminated player is asked, in print order — GE first, even with
+    // an empty hand (its "discard" then converts to the -1 card marker).
     expect(G.pending?.kind).toBe("eventChoice");
+    expect(G.pending?.power).toBe("GE");
+    const geMarkers = G.powers.GE.cardMarkers;
+    expect(resolvePending(G, makeCtx([], seat("GE")), "discard")).toBeUndefined();
+    // GE chose to discard but has no card: the printed -1 card marker.
+    expect(G.powers.GE.cardMarkers).toBe(geMarkers - 1);
+    // UK is next (print order), also with an empty hand.
+    expect(G.pending?.power).toBe("UK");
+    expect(resolvePending(G, makeCtx([], seat("UK")), "discard")).toBeUndefined();
+    // FR is next and still holds A094; AU, RU and OT follow with empty hands.
     expect(G.pending?.power).toBe("FR");
     expect(resolvePending(G, makeCtx([], seat("FR")), "discard")).toBeUndefined();
+    for (const power of ["AU", "RU", "OT"] as const) {
+      expect(G.pending?.power).toBe(power);
+      expect(resolvePending(G, makeCtx([], seat(power)), "discard")).toBeUndefined();
+    }
     expect(G.pending).toBeNull();
     // The discarded mandatory event resolved: the Boxers are on the map.
     expect(G.spaces.shanghai.rebellion).not.toBeNull();

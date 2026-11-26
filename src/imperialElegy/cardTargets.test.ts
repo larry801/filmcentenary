@@ -177,6 +177,8 @@ test("Mahdist War lets the player choose the African space for the Mahdi army", 
 
   resolvePending(G, ctx, "algeria");
   expect(unitByOwner(G, "algeria", "REBEL:Mahdi")?.steps).toBe(1);
-  expect(G.spaces.algeria.pacification).toBe(1);
+  // A fresh pacification marker is the printed 0-value default (12.11), not +1.
+  expect(G.spaces.algeria.pacification).toBe(0);
+  expect(G.spaces.algeria.pacificationMarker).toBe(true);
   expect(G.powers.FR.cardMarkers).toBe(markersBefore - 1);
 });
