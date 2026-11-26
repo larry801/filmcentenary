@@ -287,6 +287,7 @@ export const RESPONSE_REASON_TEXT: Record<ResponseBlockReason, {en: string; zh_C
   "impulsive-ruler": {en: "This card cannot be played in response to Impulsive Ruler.", zh_CN: "此牌不能响应“冲动统治者”打出。"},
   "france-trigger": {en: "France must have lost a war or lost stability this turn.", zh_CN: "法国必须在本回合输掉战争或失去稳定度。"},
   "russia-trigger": {en: "Russian stability must have been decreased.", zh_CN: "俄国必须已失去稳定度。"},
+  "wtt-trigger": {en: "The WTT must have increased this turn or last.", zh_CN: "世界紧张必须在本回合或上回合增加过。"},
   "pacification-window": {en: "Play this before a pacification roll, not at the start of an impulse.", zh_CN: "此牌须在绥靖掷骰前打出，而不是在行动轮开始时。"},
   "not-a-card": {en: "Unknown card.", zh_CN: "未知卡牌。"},
 };
@@ -316,6 +317,7 @@ export const responseReasonText = (locale: "en" | "zh_CN", reason: ResponseBlock
     case "impulsive-ruler": return bi(locale, "This card cannot be played in response to Impulsive Ruler.", "此牌不能响应“冲动统治者”打出。");
     case "france-trigger": return bi(locale, "France must have lost a war or lost stability this turn.", "法国必须在本回合输掉战争或失去稳定度。");
     case "russia-trigger": return bi(locale, "Russian stability must have been decreased.", "俄国必须已失去稳定度。");
+    case "wtt-trigger": return bi(locale, "The WTT must have increased this turn or last.", "世界紧张必须在本回合或上回合增加过。");
     case "pacification-window": return bi(locale, "Play this before a pacification roll, not at the start of an impulse.", "此牌须在绥靖掷骰前打出，而不是在行动轮开始时。");
     case "not-a-card": return bi(locale, "Unknown card.", "未知卡牌。");
     default: return bi(locale, "A response is played at the start of an eligible impulse.", "响应牌需在符合条件的行动轮开始时打出。");

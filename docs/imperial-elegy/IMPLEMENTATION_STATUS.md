@@ -1,3 +1,51 @@
+## Fixed: the rules-audit round 3 (2026-11-26)
+
+Continuation of "按照规则pdf查找帝国挽歌实现问题并修复": the third batch closes
+the five audit items the earlier rounds had opened as follow-ups, on a branch
+whose Actions run was watched to completion before the merge (the batch-2
+premature-merge lesson applied).
+
+- **A051 Polish Revolt.**  The printed flow places a Polish army and a 0 WoI
+  marker in two spaces the victim controls, chosen by the actor, and only then
+  asks the victim for stability -1 or the random discard.  The old flow
+  auto-placed in Polish-nationality spaces at victim selection and placed
+  again at the victim's answer — a card-holding victim could end up with four
+  Polish armies from the printed two, and the second placement reset each
+  rebellion object, orphaning the first pair from WoI tracking.  The placement
+  is now one idempotent per-space step driven by two actor choices, and a
+  rebellion record that has already lost its rebels is reset instead of
+  overwritten.
+- **A049 South German Confederation.**  "As long as Austria controls Bavaria,
+  Austria is still treated as allied to the Bavaria minor power for the
+  purpose of National Goals": after the annexation removes the minor, the NG
+  metrics (`engine/victory.ts#ngMinorAlliesOf`) read the annexed space, so
+  AU's "Look to Vienna" keeps its pre-annexation count.  Nothing outside the
+  NG metrics sees a synthetic alliance.
+- **A110 Extreme Militarism.**  "If the Great War does not occur you receive
+  -1 VP for playing this event": the charge is provisional (one
+  `extremeMilitarism_<power>` flag entry per play) and `outbreakGreatWar`
+  refunds every recorded play the moment the GW does occur.
+- **A081 Conquest of Central Asia.**  The permanent clauses are live: the
+  17.0 demobilization leaves one Russian reserve army standing in Asia, and
+  the peacetime 20.5 step eliminates any Russian reserve army standing
+  off-Asia.  "The Asia submap" is read as the Asian part of the map
+  (`region: "asia"`) because the card's own placement stands in Central Asia,
+  a main-map space; the printed "does not count against peacetime manpower"
+  already rides on the reserve kind being outside 20.5's standing-army count.
+- **A105 Impulsive Ruler.**  "MUST be played as a response card if the WTT
+  increases": `changeWtt` stamps `wttIncreasedTurn`, the mandatory-response
+  card is admitted to the response window while that trigger stands, the CP
+  mode closes while it stands ("May be played for CP…" keeps its three-card
+  gate), and the response play keeps its printed shape — WTT +1, no CP, one
+  extra card.  The holder answers at its impulse start, the same 9.1.3 timing
+  interpretation the engine already records for A44/A89/A109.
+
+**Coverage:** `auditRound3.test.ts` (12) plus the affected polish,
+response-window, end-phase, demobilization, GW-flow, scoring and
+component/i18n suites re-run green locally; `tsc --noEmit` clean.  Local
+testing stays lightweight per AGENTS.md §3; remote GitHub Actions remains the
+authority (§7/§10).
+
 ## Fixed: the rules-audit card batch and the Chinese Intervention deadline (2026-11-26)
 
 Continuation of "按照规则pdf查找帝国挽歌实现问题并修复": the second audit

@@ -2890,6 +2890,11 @@ export const eliminatePower = (
 export const changeWtt = (G: ImperialElegyState, delta: number, ctx?: Ctx, incitingCard?: string): number => {
   const before = G.wtt;
   G.wtt = Math.max(0, Math.min(5, G.wtt + delta));
+  if (G.wtt > before) {
+    // A105 Impulsive Ruler: "MUST be played as a response card if the WTT
+    // increases."  The response trigger reads this stamp through `recentTurn`.
+    G.flags.wttIncreasedTurn = G.turn;
+  }
   if (G.wtt >= 5 && before < 5 && !G.gw?.active) {
     // The crisis roll is handled by the caller so it can apply card text first.
     log(G, undefined, "wttMax", {incitingCard});

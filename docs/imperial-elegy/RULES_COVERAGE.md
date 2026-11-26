@@ -505,6 +505,30 @@ on 2026-11-24: every named blocker is live and pinned.
 
 ## 9–12 Cards and the action phase — **Implemented**
 
+- **Card audit round 3 (2026-11-26).**  Four printed clauses the audit's
+  earlier rounds left open, each with a test (`auditRound3.test.ts`, 12):
+  - **A051 Polish Revolt:** the armies are placed **once**, in two spaces the
+    victim controls that the **actor** picks (the print names no nationality
+    for the spaces) — the old flow placed the auto-picked Polish spaces at
+    victim selection *and again* at the victim's answer, doubling the armies
+    and orphaning the first rebellion record; a rebellion record that has
+    already lost its rebels is reset instead of overwritten.
+  - **A049 South German Confederation:** "as long as Austria controls Bavaria,
+    Austria is still treated as allied to the Bavaria minor power for the
+    purpose of National Goals" — the NG metrics (`engine/victory.ts#
+    ngMinorAlliesOf`) read the annexed space so AU's "Look to Vienna" keeps
+    its pre-annexation count; nothing outside the NG metrics sees a synthetic
+    alliance.
+  - **A110 Extreme Militarism:** "If the Great War does not occur you receive
+    -1 VP" — the charge is provisional (one flag entry per play) and
+    `outbreakGreatWar` refunds every recorded play once the GW does occur.
+  - **A105 Impulsive Ruler:** "MUST be played as a response card if the WTT
+    increases" — `changeWtt` stamps `wttIncreasedTurn`, the mandatory-response
+    card is admitted to the response window when that trigger stands
+    (`responseTriggerBlock`, `responseCardEligibility`), the CP mode closes
+    while it stands, and the response play keeps its printed shape (WTT +1,
+    no CP, one extra card).  The same 9.1.3 timing interpretation as
+    A44/A89/A109 applies: the holder answers at its impulse start.
 - **Card audit round (2026-11-26, batch 2).** The printed clauses the engine
   paraphrased or auto-resolved are now literal, each with a test:
   - **A073 Economic Panic:** every uneliminated player is asked in print
@@ -900,6 +924,20 @@ on 2026-11-24: every named blocker is live and pinned.
 
 ## 13–17 Limited war — **Implemented**
 
+- **A081 Conquest of Central Asia, the permanent clauses (2026-11-26).**
+  `russianAsiaReserve` was written at the card and read nowhere.  Now:
+  **17.0's demobilization** leaves one Russian reserve army standing in Asia
+  (`limitedWar.ts#returnReserveArmies` skips it, so the war report lists only
+  what actually went back to the box), and the **peacetime 20.5 step** first
+  eliminates any Russian reserve army standing off-Asia ("it is eliminated if
+  during peacetime it is not on the Asia submap" — a live war or the GW keeps
+  the normal reserve rules).  The card's own placement stands in Central
+  Asia, a main-map space, so "the Asia submap" is read as the Asian part of
+  the map (`region: "asia"`) — the panel reading would eliminate the very
+  army the card places; recorded as an interpretation note.  The printed
+  "does not count against peacetime manpower" already rides on the reserve
+  kind being outside 20.5's standing-army count.  Coverage:
+  `auditRound3.test.ts`.
 - Declaration validation (aim and objectives checked before CP is spent), war
   aim, one or two objectives controlled by the defender, CP war budget (card CP
   + industry), **13.7's one defender card played into that budget**, ally calls,
@@ -1156,6 +1194,13 @@ on 2026-11-24: every named blocker is live and pinned.
 
 ## 21–23 Rebels, Italy/Poland, crisis
 
+- **A051 Polish Revolt placement (2026-11-26, round 3).**  The revolt's armies
+  are placed once, by the actor, in two spaces the victim controls — the
+  old flow placed twice (once at victim selection, again at the victim's
+  answer), could hand a card-holding victim four Polish armies from the
+  printed two, and restricted the targets to Polish-nationality spaces the
+  print does not name.  A rebellion record that has already lost its rebels
+  is reset rather than orphaned.  Coverage: `auditRound3.test.ts`.
 - **Rebels in wars of liberation (13.1.1 / 21.2 / 21.4, 2026-11-26).**  Three
   printed clauses the engine used to miss, fixed together:
   - 21.4's first-strike rule — a space holding rebel armies *and* units of
