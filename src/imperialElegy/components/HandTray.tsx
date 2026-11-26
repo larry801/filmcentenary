@@ -133,6 +133,13 @@ export const HandTray = (props: HandTrayProps) => {
   const storedConfirm = React.useMemo(() => readConfirmActions(), []);
   const confirmActions = props.confirmActions ?? storedConfirm;
   /**
+   * 25.1 discards every action card (and every home card) at the outbreak, so
+   * from the Great War on there is no hand to count and no CP chain to spend:
+   * 12.14's chain lives in the action phase, which the war never returns to.
+   * The tray still carries the seat's Great War card and its goals.
+   */
+  const gwActive = G.gw?.active === true;
+  /**
    * 26.0/27.2: a seat's Great War card is played from its own slot
    * (`me.gwCard`), never from the hand, so the hand's ordinary operations all
    * belong to moves that look the card up in `hand` and refuse it.  The tray
@@ -346,7 +353,7 @@ export const HandTray = (props: HandTrayProps) => {
             {bi(locale, "Show to others", "向他人展示")}
           </button>
         )}
-        {all && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} title={!a.chainOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.cpChain(id), {label: t.cpChain, reason: a.firstReason})}>{t.cpChain}</button>}
+        {all && !gwActive && <button key="chain" data-testid={`ie-cp-chain-add-${id}`} disabled={!a.chainOk} title={!a.chainOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.cpChain(id), {label: t.cpChain, reason: a.firstReason})}>{t.cpChain}</button>}
         {all && <button key="save" data-testid={`ie-save-${id}`} aria-pressed={a.saved} disabled={!a.saveOk} title={!a.saveOk ? a.firstReason : undefined} onClick={() => doAction(() => moves.saveCard(id), {label: a.saved ? t.unsave : t.saveCard, reason: a.firstReason})}>{a.saved ? t.unsave : t.saveCard}</button>}
       </>
     );
@@ -475,9 +482,9 @@ export const HandTray = (props: HandTrayProps) => {
             <span aria-hidden="true">{expanded ? <Icon name="chevron-down" size={14}/> : <Icon name="chevron-up" size={14}/>}</span>
           </button>
         )}
-        <span className="ie-tray-count" data-testid="ie-hand-count">{hand.length} {t.cards}</span>
+        {!gwActive && <span className="ie-tray-count" data-testid="ie-hand-count">{hand.length} {t.cards}</span>}
         <div className="ie-hand-meta">
-          <IEChip>{t.cpChain}: {me.cpChain.length}/2</IEChip>
+          {!gwActive && <IEChip>{t.cpChain}: {me.cpChain.length}/2</IEChip>}
           {saveList.length > 0 && <IEChip>{t.savedCards}: {saveList.map(homeCardTitle).join(", ")}</IEChip>}
           {responseInHand && <IEChip>{t.responseCard}: {hand.filter((id) => cardById(id).type === "response").length}</IEChip>}
           {me.industryCard && <IEChip>{t.industryCard}: {homeCardTitle(me.industryCard)}</IEChip>}
@@ -530,30 +537,32 @@ export const HandTray = (props: HandTrayProps) => {
               );
             })()}
 
-            <div className="ie-cp-chain" data-testid="ie-cp-chain">
-              <span className="ie-tray-chain-title">{t.cpChain}</span>
-              <span className="ie-cp-chain-total" data-testid="ie-cp-chain-total">{chainSpendable}/{chainCap}</span>
-              <span className="ie-tray-chain-cards">
-                {chainNonEmpty
-                  ? me.cpChain.map((id) => <IEChip key={id}>{homeCardTitle(id)}</IEChip>)
-                  : <span className="ie-muted">{bi(locale, "No chained cards.", "CP 链中没有牌。")}</span>}
-              </span>
-              {chainReady && chainCardChoices.length > 0 && (
-                <select
-                  className="ie-cp-chain-select"
-                  data-testid="ie-cp-chain-card"
-                  aria-label={bi(locale, "Card to play for CP with the chain", "用于支付 CP 链的牌")}
-                  value={selectedChainCard}
-                  onChange={(event) => setChainCard(event.target.value)}
-                >
-                  {chainCardChoices.map((id) => <option key={id} value={id}>{homeCardTitle(id)}</option>)}
-                </select>
-              )}
-              <button className="ie-btn secondary ie-btn-xs" data-testid="ie-use-cp-chain" disabled={!chainReady || !selectedChainCard} title={chainReason} onClick={() => doAction(() => moves.useCpChain(selectedChainCard), {label: bi(locale, "Use the CP chain", "使用 CP 链"), reason: chainReason})}>
-                {bi(locale, "Use CP chain", "使用 CP 链")}
-              </button>
-              {(!chainReady || !selectedChainCard) && chainReason && <span className="ie-muted ie-tray-chain-reason" data-testid="ie-cp-chain-reason">{chainReason}</span>}
-            </div>
+            {!gwActive && (
+              <div className="ie-cp-chain" data-testid="ie-cp-chain">
+                <span className="ie-tray-chain-title">{t.cpChain}</span>
+                <span className="ie-cp-chain-total" data-testid="ie-cp-chain-total">{chainSpendable}/{chainCap}</span>
+                <span className="ie-tray-chain-cards">
+                  {chainNonEmpty
+                    ? me.cpChain.map((id) => <IEChip key={id}>{homeCardTitle(id)}</IEChip>)
+                    : <span className="ie-muted">{bi(locale, "No chained cards.", "CP 链中没有牌。")}</span>}
+                </span>
+                {chainReady && chainCardChoices.length > 0 && (
+                  <select
+                    className="ie-cp-chain-select"
+                    data-testid="ie-cp-chain-card"
+                    aria-label={bi(locale, "Card to play for CP with the chain", "用于支付 CP 链的牌")}
+                    value={selectedChainCard}
+                    onChange={(event) => setChainCard(event.target.value)}
+                  >
+                    {chainCardChoices.map((id) => <option key={id} value={id}>{homeCardTitle(id)}</option>)}
+                  </select>
+                )}
+                <button className="ie-btn secondary ie-btn-xs" data-testid="ie-use-cp-chain" disabled={!chainReady || !selectedChainCard} title={chainReason} onClick={() => doAction(() => moves.useCpChain(selectedChainCard), {label: bi(locale, "Use the CP chain", "使用 CP 链"), reason: chainReason})}>
+                  {bi(locale, "Use CP chain", "使用 CP 链")}
+                </button>
+                {(!chainReady || !selectedChainCard) && chainReason && <span className="ie-muted ie-tray-chain-reason" data-testid="ie-cp-chain-reason">{chainReason}</span>}
+              </div>
+            )}
 
             <div className="ie-hand">
               {pinHomeCards(hand).map((id) => {
@@ -628,7 +637,7 @@ export const HandTray = (props: HandTrayProps) => {
                   </article>
                 );
               })}
-              {hand.length === 0 && <div className="ie-muted">{t.hand}: 0 {t.cards}</div>}
+              {hand.length === 0 && !gwActive && <div className="ie-muted">{t.hand}: 0 {t.cards}</div>}
             </div>
 
             <div className="ie-tray-extras">

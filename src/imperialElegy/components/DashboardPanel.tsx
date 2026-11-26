@@ -55,7 +55,10 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
               {state.arabKeys !== undefined && <span>{t.arabKeys} {state.arabKeys}</span>}
               <span>{t.vp} {state.vp}</span>
               <span>{t.reserves} {state.reserves.length}</span>
-              <span>{t.hand} {handCounts[p] ?? state.hand.length}</span>
+              {/* 25.1 discards every action card at the outbreak, so the hand
+                  size (and, below, 12.14's chain chip) has nothing to print
+                  from the Great War on. */}
+              {!G.gw?.active && <span data-testid={`ie-dash-hand-${p}`}>{t.hand} {handCounts[p] ?? state.hand.length}</span>}
               <span>{t.goals} {goalCounts[p] ?? state.goals.length}</span>
               {/* 8.0's track is frozen from the outbreak into `G.gw`'s rosters,
                   so its three counts say nothing the Great War panel does not. */}
@@ -66,7 +69,7 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
             <div className="ie-power-chips">
               {state.selectedHomeCard && <IEChip>{t.homeCard}: {homeCardTitle(state.selectedHomeCard)}</IEChip>}
               {p === viewer && state.industryCard && <IEChip>{t.industryCard}: {homeCardTitle(state.industryCard)}</IEChip>}
-              {p === viewer && state.cpChain.length > 0 && <IEChip>{t.cpChainCard}: {state.cpChain.map(homeCardTitle).join(", ")}</IEChip>}
+              {p === viewer && !G.gw?.active && state.cpChain.length > 0 && <IEChip>{t.cpChainCard}: {state.cpChain.map(homeCardTitle).join(", ")}</IEChip>}
               {p === viewer && state.goals.map((g) => <IEChip key={g}>{locale === "zh_CN" ? GOALS_BY_ID[g]?.titleZh : GOALS_BY_ID[g]?.title}</IEChip>)}
             </div>
             <details>

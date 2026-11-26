@@ -301,6 +301,32 @@ describe("Imperial Elegy board controls", () => {
     expect(gw).not.toContain('data-testid="ie-dash-mpit-');
   });
 
+  test("the Great War drops the hand count and the CP chain", () => {
+    // 25.1 discards every action card at the outbreak, and 12.14's chain only
+    // lives in the action phase.  A seat that still carries a card (the state
+    // an outbreak resolves mid-impulse leaves behind) must not print either.
+    const G = freshGame();
+    const [first, second] = CARDS.actions;
+    G.powers.GE.hand = [first.id];
+    G.powers.GE.cpChain = [second.id];
+
+    const peace = html(G, "0");
+    expect(peace).toContain('data-testid="ie-hand-count"');
+    expect(peace).toContain('data-testid="ie-cp-chain"');
+    expect(peace).toContain('data-testid="ie-dash-hand-');
+    expect(peace).toContain('data-testid="ie-mat-cp-chain"');
+    expect(peace).toContain('class="ie-mat-chain-card"');
+
+    G.phase = "gwManeuver";
+    G.gw = greatWarState();
+    const gw = html(G, "0");
+    expect(gw).not.toContain('data-testid="ie-hand-count"');
+    expect(gw).not.toContain('data-testid="ie-cp-chain"');
+    expect(gw).not.toContain('data-testid="ie-dash-hand-');
+    expect(gw).not.toContain('data-testid="ie-mat-cp-chain"');
+    expect(gw).not.toContain('class="ie-mat-chain-card"');
+  });
+
   test("Great War panel shows US/Italian stability and a surrender", () => {
     const G = freshGame();
     G.phase = "gwManeuver";
