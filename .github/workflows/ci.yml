@@ -33,8 +33,10 @@ env:
   NODE_VERSION: "22"
 
 jobs:
-  # Fast signal: types and unit tests do not need a bundle first.
-  test:
+  # The static gates.  They used to share the unit-test job, where the ~14 s
+  # type check held the ~120 s test run behind it; on their own they finish while
+  # the test shards are still installing.
+  types:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -61,13 +63,41 @@ jobs:
       # check re-hashes them, so a regenerated scan cannot ship a stale table.
       - name: Check Imperial Elegy table textures
         run: yarn ie:table:check
+
+  # Fast signal: the unit suite needs no bundle.  Sharded three ways because no
+  # file is long any more — the run is jest's per-file start plus the engine's
+  # import, 674 times — so a third of the files is a third of the work.  jest's
+  # `--shard` deals the sequencer's order out by index, and 674 files of ~0.5 s
+  # are uniform enough for the thirds to land together (two halves measured
+  # 144 s against 102 s).
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    name: test (${{ matrix.shard }}/3)
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
       - name: Run unit tests
-        run: yarn test --ci
+        run: yarn test --ci --shard=${{ matrix.shard }}/3
 
   # The seeded self-play suites under tools/ are outside `yarn test`'s paths
-  # (see jest.config.js), so the fixed-seed full game needs its own explicit
-  # remote gate.  It plays one continuous campaign turn 1 -> Great War turn 5
-  # with all six seats human-controlled and asserts no refused move.
+  # (see jest.config.js), so the games they play need their own explicit remote
+  # gates.  These two each play a set of complete games, so they are separate
+  # jobs: together they were ~150 s of play, and neither depends on the other.
+  #
+  # One continuous campaign, turn 1 -> Great War turn 5, all six seats
+  # human-controlled (no `G.bots`), asserting no refused move.
   ie-sim-full-game:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -87,6 +117,29 @@ jobs:
           --testPathPatterns "tools/ie-sim/fullGame"
           --testPathIgnorePatterns "/node_modules/"
 
+  # Every printed scenario in `IE_playbook.pdf` pp. 3-10 must set up a legal
+  # position and reach its own printed ending.  The campaign and the GW
+  # tutorials start from the campaign's setup, so this is the only gate that
+  # runs the other seven setups through the real engine.
+  ie-sim-scenarios:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+      - name: Run every printed scenario
+        run: >-
+          yarn test --ci --runInBand
+          --testPathPatterns "tools/ie-sim/scenarios"
+          --testPathIgnorePatterns "/node_modules/"
+
   # The rule-invariant census for Imperial Elegy.  It plays real seeded games
   # through the real reducer and fails on any structural (A-group) break that is
   # not recorded in docs/imperial-elegy/invariants.baseline.json — and on a
@@ -98,12 +151,41 @@ jobs:
   # a 1369-step campaign seed takes ~31 s and pays ~0.7 s of that in invariant
   # checks (the full tier runs 106 times: 53 phase boundaries + 53 cadence
   # steps), so the wall clock is boardgame.io's reducer drafting the whole state
-  # per move, not the checks.  `IE_MODES` / `IE_SEEDS` narrow the matrix for a
-  # local loop; the job runs all 18 runs, measured 566 s of play (19 200 steps)
-  # on this runner and ~10 min including install.
+  # per move, not the checks.
+  #
+  # Those 18 runs were one continuous `--runInBand` pass that measured 345 s of
+  # jest, which made this job the longest one in the workflow.  Every run owns
+  # its own match, so the matrix deals them out six ways: a seed and a mode
+  # group name each job, and the two groups are balanced by measured play time
+  # (the `amphibious`/`navy` modes are the slow ones, `greatWar` the fastest).
+  # The census report is printed per job, so a finding still names its seed and
+  # mode.  `IE_MODES` / `IE_SEEDS` narrow the matrix for a local loop.
   ie-sim-invariants:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - seed: IE-SIM-1
+            group: a
+            modes: "amphibious,campaign,greatWar"
+          - seed: IE-SIM-1
+            group: b
+            modes: "navy,chaos,war"
+          - seed: IE-SIM-2
+            group: a
+            modes: "amphibious,campaign,greatWar"
+          - seed: IE-SIM-2
+            group: b
+            modes: "navy,chaos,war"
+          - seed: IE-SIM-3
+            group: a
+            modes: "amphibious,campaign,greatWar"
+          - seed: IE-SIM-3
+            group: b
+            modes: "navy,chaos,war"
+    name: ie-sim-invariants (${{ matrix.seed }} ${{ matrix.group }})
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
@@ -115,6 +197,9 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       - name: Run the invariant census
+        env:
+          IE_SEEDS: ${{ matrix.seed }}
+          IE_MODES: ${{ matrix.modes }}
         run: >-
           yarn test --ci --runInBand
           --testPathPatterns "tools/ie-sim/invariants"
@@ -306,10 +391,30 @@ jobs:
   # The default browser suite runs against the Vite dev server, so unlike the
   # IE jobs it needs nothing from `build` and does not wait for it: it starts
   # as soon as the image is ready and overlaps the build and unit-test jobs.
+  #
+  # Two shards, named by file.  Playwright's `--shard` deals the test list out by
+  # index, and the list is ordered by file, so it hands each shard a contiguous
+  # block of files: two shards measured 37 s against 111 s and three measured
+  # 14 s, 28 s and 120 s, because `vq-playthrough`'s ten tests (one of them 32 s
+  # on its own) always landed in the same block.  These two lists are balanced by
+  # measured play time instead, and the step below proves they still cover
+  # `e2e/` so a new spec cannot skip CI.  The runner has two physical cores,
+  # which is why the worker count stays at three (see playwright.config.ts).
   e2e-app:
     needs: playwright-image
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: a
+            specs: "e2e/vq-playthrough.spec.ts e2e/card-tables.spec.ts"
+          - shard: b
+            specs: >-
+              e2e/diplomacy.spec.ts e2e/lobby.spec.ts e2e/hotseat.spec.ts
+              e2e/local-smoke.spec.ts e2e/tutorial.spec.ts e2e/map.spec.ts
+    name: e2e-app (${{ matrix.shard }})
     container:
       image: ${{ needs.playwright-image.outputs.image }}:${{ needs.playwright-image.outputs.tag }}
       credentials:
@@ -333,8 +438,16 @@ jobs:
       # the only dependency step a browser job needs now.
       - name: Link dependencies from the image cache
         run: yarn install --frozen-lockfile --offline --non-interactive
+      # The shard lists above are the only place the specs are named, so this
+      # reads them back out of the workflow and diffs them against `e2e/`.
+      - name: Every browser spec is in a shard
+        run: |
+          grep -oE 'e2e/[a-z0-9-]+\.spec\.ts' .github/workflows/ci.yml | sort -u > "$RUNNER_TEMP/shards"
+          ls e2e/*.spec.ts | grep -v '/table3d.spec.ts$' | sort > "$RUNNER_TEMP/actual"
+          diff "$RUNNER_TEMP/shards" "$RUNNER_TEMP/actual" \
+            || { echo "::error::add the new spec to an e2e-app shard in ci.yml"; exit 1; }
       - name: Run browser tests
-        run: yarn test:e2e
+        run: yarn test:e2e ${{ matrix.specs }}
       # Screenshots, traces and the HTML report are what a failure is
       # diagnosed from, so they are kept even when the run fails.
   # The 3D table is the one browser suite that needs WebGL.  It runs on its own

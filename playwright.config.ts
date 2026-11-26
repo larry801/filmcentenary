@@ -34,6 +34,12 @@ export default defineConfig({
         baseURL: "http://127.0.0.1:5173",
         trace: "on-first-retry",
         screenshot: "only-on-failure",
+        // Both apps already answer `prefers-reduced-motion: reduce` with
+        // `transition: none` (virgin-queen.css, imperial-elegy 10-base/40-cards/
+        // 90-phone).  Without this every click waited for the animation to
+        // settle before Playwright would call the target stable, and a spec
+        // that walks a whole turn paid that per interaction.
+        reducedMotion: "reduce",
     },
     projects: [
         {

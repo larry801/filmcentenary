@@ -122,6 +122,7 @@ import {
   BISMARCK_HOME_CARD,
   clearWarDeclarationEntitlement,
   effectiveKeyType,
+  fleetPlacementProblem,
   isTerritorialKeyForPower,
   warDeclarationAllowsTwoPowers,
   warDeclarationEntitlement,
@@ -1785,17 +1786,8 @@ export const constructFleet = (G: ImperialElegyState, ctx: Ctx, space: SpaceId, 
       : 0;
   const baseCost = kind === "dreadnought" ? (reduced ? 2 : 3) : reduced ? 1 : 2;
   const cost = Math.max(1, baseCost - discount);
-  if (!isHomeSpace(G, space, power) || !ownsKey(G, space, power)) return INVALID_MOVE;
-  // 12.4: "Newly built fleets must be placed in a controlled, territorial home
-  // key on the main map with a port."  A colonial home key on a submap (Canada,
-  // India, South Africa, Australia) is neither territorial nor on the main map.
-  // A71 can reclassify a printed territorial key (Egypt) as a colonial home
-  // key, so the live type — not the static map data — decides 12.4.
-  // 33.6 Local Autonomy makes Tripoli and Tunisia territorial keys for the
-  // Ottomans once a land LoC reaches them, so the live per-power key type is
-  // the gate here, not the printed (absent) key type.
-  if (SPACES[space]?.submap !== "main" || !isTerritorialKeyForPower(G, space, power)) return INVALID_MOVE;
-  if (!portBoxes(space).length) return INVALID_MOVE;
+  // 12.4: the placement gate, shared with the bot that names the port.
+  if (fleetPlacementProblem(G, power, space) !== null) return INVALID_MOVE;
   if (kind === "dreadnought" && G.persistent.dreadnoughts !== true && !G.powers[power].flags.navalLimit) return INVALID_MOVE;
   // 4.2: GE/AU/OT may only own 2 squadrons and 2 dreadnoughts until an event
   // (A092 Naval Arms Race) raises the cap to 4/4.
