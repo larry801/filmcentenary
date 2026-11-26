@@ -65,10 +65,12 @@ jobs:
         run: yarn test --ci
 
   # The seeded self-play suites under tools/ are outside `yarn test`'s paths
-  # (see jest.config.js), so the fixed-seed full game needs its own explicit
-  # remote gate.  It plays one continuous campaign turn 1 -> Great War turn 5
-  # with all six seats human-controlled and asserts no refused move.
-  ie-sim-full-game:
+  # (see jest.config.js), so the games they play need their own explicit remote
+  # gate.  Two of them: one continuous campaign turn 1 -> Great War turn 5 with
+  # all six seats human-controlled, and every printed scenario from its own
+  # setup.  Both live here so one job answers "do the campaign and the scenarios
+  # still play", with a separate step so a failure is attributable.
+  ie-sim-games:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -86,6 +88,15 @@ jobs:
           yarn test --ci --runInBand
           --testPathPatterns "tools/ie-sim/fullGame"
           --testPathIgnorePatterns "/node_modules/"
+      # Every printed scenario in `IE_playbook.pdf` pp. 3-10 must set up a legal
+      # position and reach its own printed ending.  The campaign and the GW
+      # tutorials start from the campaign's setup, so this is the only gate that
+      # runs the other seven setups through the real engine.
+      - name: Run every printed scenario
+        run: >-
+          yarn test --ci --runInBand
+          --testPathPatterns "tools/ie-sim/scenarios"
+          --testPathIgnorePatterns "/node_modules/"
 
   # The rule-invariant census for Imperial Elegy.  It plays real seeded games
   # through the real reducer and fails on any structural (A-group) break that is
@@ -99,11 +110,21 @@ jobs:
   # checks (the full tier runs 106 times: 53 phase boundaries + 53 cadence
   # steps), so the wall clock is boardgame.io's reducer drafting the whole state
   # per move, not the checks.  `IE_MODES` / `IE_SEEDS` narrow the matrix for a
-  # local loop; the job runs all 18 runs, measured 566 s of play (19 200 steps)
-  # on this runner and ~10 min including install.
+  # local loop.
+  #
+  # The seeds are a matrix of their own: the 18 runs are one continuous
+  # `--runInBand` pass that measured 345 s of jest, which made this job the
+  # longest one in the workflow.  A seed is independent of the other two (each
+  # run owns its match), so three jobs of six runs each cost the same CPU in a
+  # third of the wall clock; the census report is printed per seed.
   ie-sim-invariants:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        seed: [IE-SIM-1, IE-SIM-2, IE-SIM-3]
+    name: ie-sim-invariants (${{ matrix.seed }})
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
@@ -115,6 +136,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       - name: Run the invariant census
+        env:
+          IE_SEEDS: ${{ matrix.seed }}
         run: >-
           yarn test --ci --runInBand
           --testPathPatterns "tools/ie-sim/invariants"
