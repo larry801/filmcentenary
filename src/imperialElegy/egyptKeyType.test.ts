@@ -234,7 +234,12 @@ describe("Egypt key type — engine-wide readers", () => {
       if (def.id !== "egypt" && effectiveKeyType(G, def.id) === "colonial") G.spaces[def.id].control = "OT";
     }
     G.powers.UK.hand = ["IE-A078"];
-    expect(playCard(G, makeCtx([], seat("UK")), "IE-A078", "event")).toBeUndefined();
+    const ctx = makeCtx([], seat("UK"));
+    expect(playCard(G, ctx, "IE-A078", "event")).toBeUndefined();
+    // The printed text gives the choice to the player; Egypt is the only
+    // colonial key left under UK control.
+    expect(G.pending?.kind).toBe("eventTargetSpace");
+    resolvePending(G, ctx, "egypt");
     const elite = Object.values(G.units).find((unit) => unit.kind === "eliteColonialEf");
     expect(elite?.space).toBe("egypt");
   });

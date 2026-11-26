@@ -37,6 +37,7 @@ import {createWarState, initiativeOrder} from "./engine/limitedWar";
 import {
   clearWarDurationFlags,
   playResponseCard,
+  resolvePending,
   responseCardEligibility,
   responseWindowFor,
   startWarManeuver,
@@ -99,8 +100,12 @@ test("A064 resolves at the alliance step for the attacker and for an ally", () =
   attacker.powers.GE.hand = ["IE-A064"];
   attacker.spaces.hanover.ally = "AU";
 
-  expect(playResponseCard(attacker, makeCtx("0"), "IE-A064")).toBeUndefined();
+  const attackerCtx = makeCtx("0");
+  expect(playResponseCard(attacker, attackerCtx, "IE-A064")).toBeUndefined();
   expect(attacker.powers.GE.hand).not.toContain("IE-A064");
+  // The printed choice is the player's; hanover is the only enemy-allied
+  // minor in this setup.
+  resolvePending(attacker, attackerCtx, "hanover");
   expect(attacker.spaces.hanover.ally).toBe("GE");
 
   const ally = fresh();
@@ -109,8 +114,10 @@ test("A064 resolves at the alliance step for the attacker and for an ally", () =
   ally.powers.RU.hand = ["IE-A064"];
   ally.spaces.hanover.ally = "AU";
 
-  expect(playResponseCard(ally, makeCtx("4"), "IE-A064")).toBeUndefined();
+  const allyCtx = makeCtx("4");
+  expect(playResponseCard(ally, allyCtx, "IE-A064")).toBeUndefined();
   expect(ally.powers.RU.hand).not.toContain("IE-A064");
+  resolvePending(ally, allyCtx, "hanover");
   expect(ally.spaces.hanover.ally).toBe("RU");
 });
 

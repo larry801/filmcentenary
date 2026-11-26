@@ -253,3 +253,4 @@ describe("9.1.4 a discarded mandatory event still triggers", () => {
     expect(G.resolvingCard).toBeNull();
   });
 });
+
