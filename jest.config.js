@@ -14,5 +14,11 @@ module.exports = {
   // whose ancestors include a `tools` directory, and a checkout under e.g.
   // `~/tools/` would silently exclude the whole repository.
   testPathIgnorePatterns: ["/node_modules/", "/perf/", "/e2e/", "/.claude/", "<rootDir>/tools/"],
+  // Every file pays jest's own per-file start (~0.3 s here) plus the engine's
+  // import, and no file is long, so the suite is throughput-bound rather than
+  // tail-bound: on a 4-core box the default (cores - 1) measured 113.7 s and
+  // four workers 83.0 s.  Six workers oversubscribed it back to 88.2 s, so the
+  // ceiling is the core count.  `JEST_MAX_WORKERS` narrows it on a busy machine.
+  maxWorkers: process.env.JEST_MAX_WORKERS ? Number(process.env.JEST_MAX_WORKERS) : "100%",
   setupFilesAfterEnv: ["./config.js"]
 };

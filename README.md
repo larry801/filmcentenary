@@ -166,7 +166,14 @@ yarn build:single  # 服务端 → build/server.js（约 9 MB，依赖全部内�
 
 ## 测试
 
-`yarn test` 会跑完整的 Jest 套件（223 个文件、1300+ 个用例，约 1 分钟）。
+`yarn test` 会跑完整的 Jest 套件（674 个文件、6820+ 个用例，4 核约 40 秒）。
+
+两个不在这条快路径上的门在 GitHub Actions 里跑，本地要用 `tools/` 的显式命令：
+
+* `tools/ie-sim` — 帝国挽歌的种子自走棋（战役、模式矩阵、全部印刷剧本），
+  见 `tools/ie-sim/README.md`。
+* `tools/vq-sim` — 处女女王的规则不变量与属性测试，见
+  `docs/vq-invariant-property-tests.md`。
 
 Jest 在每个 worker 进程里都要重新加载一遍被 import 的模块，因此 **模块顶层的
 计算会按进程重复进行**。修改地图/布局一类在 import 时算好的数据时请注意：
@@ -176,6 +183,9 @@ Jest 在每个 worker 进程里都要重新加载一遍被 import 的模块，�
   `data/decluttered-space-points.json` 锁定布局）。
 * 同一进程内重复使用的派生数据要缓存。`cachedBoardWarpPath` 缓存棋盘海岸线
   的形变结果，因为棋盘每次走子都会重绘。
+
+一条用例如果要跑一整个对局（几百步真实 reducer），它就不该待在 `yarn test`
+里：把它写成 `tools/` 下的种子自走棋，交给 CI 的对应 job。
 
 ## 作者的话
 
