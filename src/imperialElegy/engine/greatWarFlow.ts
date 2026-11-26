@@ -145,6 +145,7 @@ import {EXHAUSTION_CARD, eliteCorpsCap, markSuperiorStaffWorkGwImpulse} from "./
 import {gwExhaustionTurnZero} from "./playability";
 import {
   enemyOccupiedItalianKeys,
+  gw02EventOpen,
   hasSurrendered,
   italianHomeKeys,
   syncItalianHomeKeys,
@@ -4607,9 +4608,10 @@ export function majorEntryCandidates(G: ImperialElegyState, power: Power, mode: 
   if (sideOf(G, power) === null) return [];
   const turn = G.gw.turn ?? 0;
   const out: ("IT" | "US")[] = [];
-  const italyAvailable = italyEntryAvailable(G);
-  const italyOfferOpen = mode === "resolve" || turn > 0 || !gwCardPlayedThisOutbreak(G);
-  if (italyAvailable && italyOfferOpen) out.push("IT");
+  // The turn-0 offer is the same predicate `gwCardProblem` gates the card with,
+  // so the tray's button and this option list cannot disagree; `resolve` only
+  // replays a play that was already legal.
+  if (italyEntryAvailable(G) && (mode === "resolve" || gw02EventOpen(G, power))) out.push("IT");
   // "Cannot be played on GW turn 0": the US offer starts on GW turn 1.
   // 25.2: "do not place the US alliance chit if the CSA won the American Civil
   // War. Likewise, if the American Civil War is currently ongoing, do not
@@ -4626,14 +4628,6 @@ export function majorEntryCandidates(G: ImperialElegyState, power: Power, mode: 
  */
 export function majorEntryOptions(G: ImperialElegyState, power: Power): ("IT" | "US")[] {
   return majorEntryCandidates(G, power, "play");
-}
-
-/**
- * GW #2 exists once in a GW deck, so its turn-0 Italy offer belongs to the
- * opening only; a second copy (an older save, a test) cannot reopen it.
- */
-function gwCardPlayedThisOutbreak(G: ImperialElegyState): boolean {
-  return G.flags.gwMajorEntryOutbreak === true;
 }
 
 export interface MajorEntryOutcome {
