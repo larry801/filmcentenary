@@ -2537,6 +2537,11 @@ export const removeAllUnitsOf = (G: ImperialElegyState, owner: PowerOrMinor): nu
   for (const state of Object.values(G.spaces)) {
     if (state.occupiedBy === owner) state.occupiedBy = null;
   }
+  // 4.2: the reserve box is a second listing of the same counters.  A power
+  // that leaves the game takes its box with it; leaving the ids behind makes
+  // every later bookkeeping pass read a reserve counter that no longer exists.
+  const leaving = (G.powers as Record<string, {reserves?: string[]} | undefined>)[String(owner)];
+  if (leaving !== undefined) leaving.reserves = [];
   return removed;
 };
 
