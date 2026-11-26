@@ -1,7 +1,9 @@
 /** Printed 27.1–27.3 allowances. No action may invent a second budget spend. */
 import {GwActionKind, GwImpulseState, ImperialElegyState, Power, POWERS} from "../types";
 import {cpBudgetFor, gwAllyImpulseFor, spendCpFor} from "./rules";
+import {facedownGwCombatCards} from "./combatCards";
 import {EXHAUSTION_CARD, superiorStaffWorkGwFreeDeploy} from "./characteristics";
+import {italyEntryAvailable} from "./gwMajors";
 
 /**
  * The live 27.1 one-action ledger only exists once `beginGwImpulse` has run for
@@ -25,6 +27,38 @@ export const currentGwImpulse = (G: ImperialElegyState, power: Power): GwImpulse
     power, turn: G.gw?.turn ?? 0, index: G.turnIndex, serial: G.gw?.impulseSeq ?? 0,
     acted, ...(acted ? {budgetAction: "legacy" as const} : {}),
   };
+};
+
+/** Identify the current GW impulse so a one-per-impulse event stays spent. */
+export const gwImpulseKey = (G: ImperialElegyState): string =>
+  G.gw?.impulseSeq === undefined
+    ? `${G.gw?.turn ?? 0}:${G.turnIndex}:${G.activePower}`
+    : `${G.gw.turn}:impulse${G.gw.impulseSeq}:${G.activePower}`;
+
+/**
+ * GW-05 "Capable Commander" may be played as a normal event at the start of a
+ * player's GW impulse to flip a facedown GW combat card.  Its battle reroll
+ * mode is handled by `combat.ts` and never reaches this gate.
+ */
+export const canPlayGw05Event = (G: ImperialElegyState, power: Power): boolean => {
+  if (G.phase !== "gwManeuver" || G.gw?.active !== true) return false;
+  if (G.activePower !== power) return false;
+  if (G.pending !== null || G.battle !== null) return false;
+  if (Number(G.powers[power].flags.gwActionsThisImpulse ?? 0) !== 0) return false;
+  if (G.flags.gw05PlayedImpulse === gwImpulseKey(G)) return false;
+  return facedownGwCombatCards(G).length > 0;
+};
+
+/**
+ * GW #2 is printed "cannot be played on GW turn 0".  Its one turn-0 offer is
+ * the outbreak Italy that stayed out (25.3), and a single copy of the card can
+ * use that offer once.  This mirrors `majorEntryOptions(...).includes("IT")`,
+ * which the move re-checks, for a power that is actually on a side.
+ */
+const gw02EventOpen = (G: ImperialElegyState, power: Power): boolean => {
+  if ((G.gw?.turn ?? 0) > 0) return true;
+  const onSide = G.gw?.te.includes(power) === true || G.gw?.ta.includes(power) === true;
+  return onSide && G.flags.gwMajorEntryOutbreak !== true && italyEntryAvailable(G);
 };
 
 export const beginGwImpulse = (G: ImperialElegyState, power: Power): void => {
@@ -167,22 +201,29 @@ export const gwCanEndTurn = (G: ImperialElegyState, power: Power): boolean => {
 
 /** Normal events follow the ordinary action; card CP funds a separate immediate action. */
 export const gwCardProblem = (G: ImperialElegyState, power: Power, mode: "event" | "cp"): GwImpulseReason | null => {
+  const cardId = G.powers[power].gwCard;
+  /** Card-specific event windows the move re-checks; keep the UI in step. */
+  const eventProblem = (): GwImpulseReason | null => {
+    if (cardId === "IE-GW-02" && !gw02EventOpen(G, power)) return "cardWindow";
+    if (cardId === "IE-GW-05" && !canPlayGw05Event(G, power)) return "cardWindow";
+    return null;
+  };
   if (!hasLiveGwImpulse(G)) {
     // Pre-27.1 validation: a GW card may be played in planning or maneuver,
     // and only an open pending decision blocks it.
     if (G.phase !== "gwPlanning" && G.phase !== "gwManeuver") return "cardWindow";
     if (G.pending !== null) return "busy";
-    return null;
+    return mode === "event" ? eventProblem() : null;
   }
   if (!G.gw?.active || G.phase !== "gwManeuver" || G.activePower !== power || G.powers[power].eliminated) return "notActive";
   if (G.pending || G.battle) return "busy";
   if (gwAllyImpulseFor(G, power)) return "majorCard";
-  const id = G.powers[power].gwCard;
+  const id = cardId;
   const impulse = currentGwImpulse(G, power);
   if (!id || impulse.cardPlayed || impulse.bonusPending) return "cardWindow";
   if (G.gw.neutralImpulses) {
     if (mode === "cp" || ["IE-GW-03", "IE-GW-04", "IE-GW-06"].includes(id)) return "battleCard";
-    return null;
+    return mode === "event" ? eventProblem() : null;
   }
   if (!G.gw.belligerents.includes(power)) return "notBelligerent";
   if (mode === "cp" || id === EXHAUSTION_CARD) {
@@ -191,6 +232,8 @@ export const gwCardProblem = (G: ImperialElegyState, power: Power, mode: "event"
     return impulse.budgetAction || cpBudgetFor(G, power) > 0 ? null : "budget";
   }
   if (["IE-GW-03", "IE-GW-04", "IE-GW-06"].includes(id)) return "battleCard";
+  const special = eventProblem();
+  if (special !== null) return special;
   // GW-05 is the printed start-of-impulse response exception.
   if (id === "IE-GW-05") return impulse.acted ? "cardWindow" : null;
   return impulse.budgetAction ? null : "mustAct";

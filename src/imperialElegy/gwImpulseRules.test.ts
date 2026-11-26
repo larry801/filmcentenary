@@ -135,6 +135,29 @@ test("neutral event-only impulses run in seat order before winter, with saved co
   expect(G.phase).toBe("gwWinter");
 });
 
+test("a neutral impulse cannot open GW #2 on GW turn 0, and GW #5 needs a facedown card", () => {
+  const G = game();
+  G.gw!.turn = 0;
+  G.powers.GE.gwBudget = G.powers.FR.gwBudget = 0;
+  expect(gwPass(G, ctx("GE"))).toBeUndefined();
+  expect(G.gw!.neutralImpulses).toMatchObject({order: ["UK", "AU", "RU", "OT"], index: 0});
+  // GW #2 is printed "cannot be played on GW turn 0": without a side there is
+  // no major to bring in, and without a unified Italy there is no offer.
+  G.powers.UK.gwCard = "IE-GW-02";
+  expect(gwCardProblem(G, "UK", "event")).toBe("cardWindow");
+  expect(playGwCardMove(G, ctx("UK"), "event")).toBe(INVALID_MOVE);
+  G.gw!.neutralImpulses = {order: ["OT"], index: 0};
+  G.activePower = "OT";
+  G.powers.OT.gwCard = "IE-GW-02";
+  expect(gwCardProblem(G, "OT", "event")).toBe("cardWindow");
+  // GW #5's normal event flips a facedown card; with none the UI and the
+  // engine must both refuse it.
+  G.powers.OT.gwCard = "IE-GW-05";
+  G.gw!.combatCardsInFront = [];
+  expect(gwCardProblem(G, "OT", "event")).toBe("cardWindow");
+  expect(playGwCardMove(G, ctx("OT"), "event")).toBe(INVALID_MOVE);
+});
+
 test("a major acts every cycle on its own budget and cannot move the commanding player's army", () => {
   const G = game();
   G.gw!.usIn = true;

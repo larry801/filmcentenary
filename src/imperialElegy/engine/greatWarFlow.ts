@@ -151,6 +151,7 @@ import {
   usArmyMayLeaveNorthAmerica,
   usCanLeaveNorthAmerica,
   usNorthAtlanticCheck,
+  italyEntryAvailable,
 } from "./gwMajors";
 import {openDecision, option} from "./pending";
 import {unitKindLabel} from "./unitKind";
@@ -4606,12 +4607,7 @@ export function majorEntryCandidates(G: ImperialElegyState, power: Power, mode: 
   if (sideOf(G, power) === null) return [];
   const turn = G.gw.turn ?? 0;
   const out: ("IT" | "US")[] = [];
-  const italyAvailable =
-    G.persistent.italyUnified === true &&
-    !G.gw.italyIn &&
-    G.persistent.italyIndependent !== true &&
-    !hasSurrendered(G, "IT") &&
-    G.gw.italyStability > 0;
+  const italyAvailable = italyEntryAvailable(G);
   const italyOfferOpen = mode === "resolve" || turn > 0 || !gwCardPlayedThisOutbreak(G);
   if (italyAvailable && italyOfferOpen) out.push("IT");
   // "Cannot be played on GW turn 0": the US offer starts on GW turn 1.
