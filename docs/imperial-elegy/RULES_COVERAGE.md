@@ -820,7 +820,9 @@ on 2026-11-24: every named blocker is live and pinned.
     played openly as well (the log never says “played a hidden card for CP”).
     Only the card identity is public; the discard order and hand stay redacted.
   - 9.1.2/9.1.3 and 27.2 — response, combat and Great War cards are played
-    openly; `responsePlayed`/`combatCardPlayed` are public.
+    openly; `responsePlayed`/`combatCardPlayed` are public, and so is
+    `gwCardPlayed` (27.1/27.2: the seat's GW card — hidden in `gwCard` until
+    then — is played faceup from its own slot, so the play is the reveal).
   - 12.13/12.14 — industrialization cards and CP-chain cards are placed faceup;
     `industrializeCard` and `cpChained` are public. (A 11.1 card gift is a random
     draw, so `cardGiven` stays masked like any other random discard: the

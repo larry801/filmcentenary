@@ -82,6 +82,14 @@ export interface GwImpulseState {
   bonusPending?: boolean;
   /** Presence only: a CP-spent card's identity is private. */
   cardPlayed?: boolean;
+  /**
+   * The card this impulse played, once it has been played.  It is public at
+   * that moment — 27.1/27.2 plays the card faceup and the log announces it — so
+   * the dock can name the card that funds the bonus action.  Storing the
+   * identity here would leak a card still in hand, which is why it is only set
+   * by `noteGwCard`, at the play.
+   */
+  cardId?: CardId;
   acted: boolean;
 }
 
@@ -414,6 +422,13 @@ export interface LogEntry {
   power?: Power;
   key: string;
   args?: Record<string, unknown>;
+  /**
+   * The Great War turn the entry happened in, while the war runs.  `turn` is
+   * the campaign turn, which stops advancing at the outbreak (27.0), so it
+   * cannot say when a GW entry happened; the log's marker reads `GW n` from
+   * this field instead.
+   */
+  gwTurn?: number;
   /** Public text is rendered from the key + args by the board. */
   text?: string;
 }

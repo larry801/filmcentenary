@@ -20,9 +20,11 @@
  */
 import {ImperialElegyState, Power} from "../types";
 import {cpBudgetFor} from "../engine/rules";
+import {CARD_BY_ID} from "../engine/deck";
 import {currentGwImpulse, gwFinishImpulseProblem} from "../engine/gwImpulse";
 import {negotiatingPowers, negotiationConcluded, negotiationDoneFor} from "../engine/negotiation";
 import {opportunityHint} from "./flashpointHints";
+import {cardDisplayName} from "./cardDisplay";
 import {bi} from "./boardHelpers";
 import type {ieT} from "./i18n";
 
@@ -89,9 +91,18 @@ export const actionHints = (
       return out;
     }
     if (problem === "bonusPending") {
+      // 27.2: name the card that funds the bonus — "a card" alone left the
+      // reader unsure whether the play had registered at all.
+      const played = currentGwImpulse(G, viewer).cardId;
+      const card = played === undefined ? undefined : CARD_BY_ID[played];
+      const title = card === undefined ? null : cardDisplayName(card, locale);
       push("gwBonus",
-        "Card bonus: pick a space on the map, then take one non-land-battle action in Orders.",
-        "卡牌奖励：在地图上点选一个空间，再在指令面板执行一次非陆战行动。");
+        title === null
+          ? "Card bonus: pick a space on the map, then take one non-land-battle action in Orders."
+          : `Card bonus (${title}): pick a space on the map, then take one non-land-battle action in Orders.`,
+        title === null
+          ? "卡牌奖励：在地图上点选一个空间，再在指令面板执行一次非陆战行动。"
+          : `卡牌奖励（${title}）：在地图上点选一个空间，再在指令面板执行一次非陆战行动。`);
       return out;
     }
     if (problem === "mustAct") {

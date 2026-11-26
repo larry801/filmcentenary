@@ -484,6 +484,19 @@ const FORMATTERS: Record<string, Formatter> = {
     return withActor(entry, locale, `played ${card}.`, `打出 ${card}。`);
   },
 
+  /** 27.1/27.2: a Great War card, played from its own slot. */
+  gwCardPlayed: (entry, locale) => {
+    const card = cardLabel(entry.args?.card, locale);
+    if (str(entry.args?.mode) === "event") {
+      return withActor(entry, locale,
+        `played ${card} as a Great War event.`,
+        `将 ${card} 作为大战事件打出。`);
+    }
+    return withActor(entry, locale,
+      `played ${card} for its Great War bonus action.`,
+      `将 ${card} 作为大战奖励行动打出。`);
+  },
+
   passed: (entry, locale) => withActor(entry, locale, "passed.", "停牌。"),
 
   warDeclared: (entry, locale) => {

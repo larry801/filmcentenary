@@ -412,6 +412,15 @@ export const useBoardModel = ({
   const gwImpulseActed = viewer !== null && phase === "gwManeuver"
     ? currentGwImpulse(G, viewer).acted === true || G.gw?.neutralImpulses !== undefined
     : false;
+  // 27.2: the card that funded the bonus.  The ledger keeps it from the play on,
+  // so the dock can name the card instead of saying only that "a card" did.
+  const gwBonusCard = viewer !== null && phase === "gwManeuver"
+    ? (() => {
+      const played = currentGwImpulse(G, viewer).cardId;
+      const card = played === undefined ? undefined : CARD_BY_ID[played];
+      return card === undefined ? null : cardDisplayName(card, actualLocale);
+    })()
+    : null;
   const canGwEndTurnNow = viewer !== null && phase === "gwManeuver" && gwCanEndTurn(G, viewer);
   const hasPhaseButtons = viewer !== null && !eliminated && (
     (phase === "prep" || phase === "diplomacy") ? canPhaseAct
@@ -1653,7 +1662,9 @@ export const useBoardModel = ({
                           : gwImpulseProblem === "exhaustion"
                             ? bi(actualLocale, "Play Exhaustion before passing", "停牌前必须打出“精疲力竭”")
                             : gwImpulseProblem === "bonusPending"
-                              ? bi(actualLocale, "GW card bonus — take one immediate non-land-battle action", "大战卡奖励——立刻执行一次非陆战行动")
+                              ? bi(actualLocale,
+                                `GW card bonus${gwBonusCard === null ? "" : ` (${gwBonusCard})`} — take one immediate non-land-battle action`,
+                                `大战卡奖励${gwBonusCard === null ? "" : `（${gwBonusCard}）`}——立刻执行一次非陆战行动`)
                             : gwImpulseActed
                               ? bi(actualLocale, "Action done — end your impulse", "行动已完成——结束行动轮")
                               : bi(actualLocale,

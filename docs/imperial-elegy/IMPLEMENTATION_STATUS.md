@@ -1,3 +1,48 @@
+## Fixed: the Great War card's play reaches the record (2026-11-26)
+
+Reported as "帝国挽歌大战卡牌打出记录里面没有显示 现有界面显示也有点模糊": playing a
+seat's Great War card left no line in the record, and the only drawing of that
+card was a 126×118 thumbnail of its 300×380 face — the printed text came out at
+5 px.
+
+- **The play is announced (27.1/27.2).** `moves.playGwCardMove` wrote no log at
+  all; only `playCard` logged `cardPlayed`, so the record showed the action a
+  card-funded bonus paid for but never the card, and the slot emptied silently.
+  Both modes now log `gwCardPlayed` (`{card, mode: "bonus" | "event"}`) before
+  the card leaves `gwCard` — the same announce the action phase makes in
+  `playCard` (12.0/12.1), and the family `RULES_COVERAGE.md` already lists for
+  27.2.
+- **Every seat reads it.** `gwCardPlayed` joins `PUBLIC_CARD_ARG_KEYS`: a GW
+  card is hidden in `powers[].gwCard` until it is played, and the play is the
+  reveal (faceup at the table).  The impulse ledger now carries the played card
+  (`GwImpulseState.cardId`, written by `noteGwCard`) so the dock can name it;
+  a card still in hand stays unreadable because the field is only written at the
+  play.
+- **The record says when.** `G.turn` stops advancing at the outbreak, so every
+  Great War line read `T7` — the same number for the whole war.  `log()` now
+  stamps `gwTurn` while the war runs and the log's marker reads `GW n`, exactly
+  like the strip's token.
+- **The tray draws the card, not a blur of it.** The GW slot is a ledger row in
+  the tray above the hand — CP chip, title, the printed line, then its two plays
+  — instead of a 126×118 thumbnail; the face is the inspector's job, one tap on
+  the row.  Its heading names the war budget (it read "剩余 CP", which is the
+  budget, not the card's CP), and the dock's bonus line names the card that
+  funded it.
+
+**Coverage:** `gwCardLog.test.ts` (3: both modes' lines with actor, turn and
+card chip; the play public to another seat while the held card stays hidden;
+the ledger's `cardId`), `actionHints.test.ts` (+1: the bonus line names the
+card in both languages), `LogList.test.tsx` (+2: `GW n` replaces the frozen
+campaign turn and keeps the chip; a campaign line keeps `T n`),
+`gwCardInspector.test.tsx` (+1: the tray row prints the card's text and draws no
+face), and `gwImpulseRules.test.ts`'s ledger-privacy assertion now pins the
+played card as public.  Local: `tsc --noEmit`, the 380 `src/imperialElegy`
+suites (5006 tests), `ie:tokens:check`, `ie:contrast`.  Remote GitHub Actions
+remains the authority (AGENTS.md §7/§10); verified in the browser through the
+solo Historical Great War — the record reads
+`GW 0 德国将 ⟨1⟩【C】现代战争黎明 作为大战奖励行动打出。` and the chip opens the read-only
+inspector.
+
 ## Added: flashpoint and power-projection hints, on the printed chart's data (2026-11-26)
 
 Reported as "帝国挽歌给 flash point和powerprojection 增加提示": the map shaded its

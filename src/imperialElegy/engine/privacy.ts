@@ -155,6 +155,9 @@ const SENSITIVE_CARD_ARGS = ["card", "incitingCard"] as const;
  *    card spent for CP is played openly too, so its identity is public;
  *  - `responsePlayed` (9.1.3) and `combatCardPlayed` (9.1.2, 27.2) — played
  *    openly before the dice;
+ *  - `gwCardPlayed` (27.1/27.2): the GW card sits hidden in `powers[].gwCard`
+ *    until it is played, and the play is the reveal — faceup at the table, so
+ *    the identity is public from that line on;
  *  - `industrializeCard` (12.13: "The card is played faceup, placed next to the
  *    player display") and `cpChained` (12.14: "placed faceup");
  *  - `gwCombatCardFaceup`/`gwCombatCardFlipped` (26.1: GW combat cards are public
@@ -166,6 +169,7 @@ const SENSITIVE_CARD_ARGS = ["card", "incitingCard"] as const;
 const PUBLIC_CARD_ARG_KEYS: ReadonlySet<string> = new Set([
   "responsePlayed",
   "combatCardPlayed",
+  "gwCardPlayed",
   "industrializeCard",
   // 12.13.1: an accepted card is placed faceup in the Ottoman
   // industrialization slot with a chit on it, exactly like `industrializeCard`.

@@ -63,6 +63,20 @@ const LogCard = ({id, locale, onOpen}: {
 };
 
 /**
+ * The time marker at the head of a line.
+ *
+ * `entry.turn` is the campaign turn, which stops advancing at the outbreak
+ * (27.0): every Great War line used to read `T7` — the same number for the whole
+ * war — so the record could not say when anything happened.  A Great War entry
+ * carries its own `gwTurn`, and the marker reads `GW n` exactly like the strip's
+ * token and the dock's chip.
+ */
+const TimeMarker = ({entry}: {entry: LogEntry}) =>
+  entry.gwTurn === undefined
+    ? <span className="t">T{entry.turn}</span>
+    : <span className="t" data-gw-turn="true">GW {entry.gwTurn}</span>;
+
+/**
  * One log line.  Memoized on the entry's identity — boardgame.io keeps
  * previous entries by reference, so only the newest line re-renders when the
  * board updates (the old `LogLine` was memoized for the same reason).
@@ -73,7 +87,7 @@ const LogLine = React.memo(({entry, locale, onOpen}: {
   onOpen: (id: string) => void;
 }) => (
   <div className="ie-log-line" data-testid={`ie-log-entry-${entry.id}`}>
-    <span className="t">T{entry.turn}</span>
+    <TimeMarker entry={entry}/>
     {logSegments(entry, locale).map((segment, index) => (
       segment.kind === "card"
         ? <LogCard key={`${segment.id}-${index}`} id={segment.id} locale={locale} onOpen={onOpen}/>

@@ -91,6 +91,18 @@ test("a card bonus that is still owed names the non-land-battle restriction", ()
   expect(words(hints)).toContain("非陆战");
 });
 
+test("the card bonus names the card that funded it, once the ledger recorded the play", () => {
+  const G = gwState();
+  // 27.2: the bonus belongs to the card just played; the dock said only "a card
+  // bonus", which left the reader unable to tell whether the play registered.
+  G.gw!.impulse = {...G.gw!.impulse!, bonusPending: true, acted: true, cardPlayed: true, cardId: "IE-GW-04"};
+  const hints = actionHints(G, "GE", "zh_CN", zh);
+  expect(keys(hints)).toEqual(["gwBonus"]);
+  expect(words(hints)).toContain("现代战争黎明");
+  const english = actionHints(G, "GE", "en", en);
+  expect(words(english)).toContain("Dawn of Modern Warfare");
+});
+
 test("another seat's impulse, and a neutral window, print no action lines", () => {
   const G = gwState();
   expect(actionHints(G, "FR", "en", en)).toEqual([]);

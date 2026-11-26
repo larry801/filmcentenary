@@ -51,6 +51,10 @@
      taller rows (a fingertip) rather than narrower fixed-width cards. */
   .ie-hand .ie-card-open { min-height: 40px; }
   .ie-hand .ie-card-actions button { min-height: 34px; }
+  /* The Great War card's row is the same ledger row at every width, so a phone
+     gets the same fingertip-sized opener and plays the hand's rows do. */
+  .ie-tray-gw .ie-card-open { min-height: 40px; }
+  .ie-tray-gw .ie-card-actions button { min-height: 34px; }
   .ie-mode-pill { max-width: calc(100% - 12px); gap: 4px; padding: 4px 5px 4px 8px; }
   .ie-mode-pill-from { max-width: 70px; }
   .ie-space-overlay { max-width: 200px; }

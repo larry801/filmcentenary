@@ -239,12 +239,14 @@ export const gwCardProblem = (G: ImperialElegyState, power: Power, mode: "event"
   return impulse.budgetAction ? null : "mustAct";
 };
 
-export const noteGwCard = (G: ImperialElegyState, power: Power, bonus: boolean): void => {
+/** Note the played card so the impulse's own readout can name it (see `cardId`). */
+export const noteGwCard = (G: ImperialElegyState, power: Power, cardId: string, bonus: boolean): void => {
   // Without a live ledger there is nothing to record; creating one here would
   // switch the in-flight legacy impulse to the new action-identity rules.
   if (!hasLiveGwImpulse(G)) return;
   const impulse = currentGwImpulse(G, power);
   impulse.cardPlayed = true;
+  impulse.cardId = cardId;
   impulse.bonusPending = bonus;
   G.gw!.impulse = impulse;
 };

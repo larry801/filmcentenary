@@ -336,11 +336,58 @@
 
 .ie-tray-extras { display: flex; gap: var(--ie-space-2); align-items: flex-start; flex: 0 0 auto; height: 100%; overflow: hidden; }
 
-.ie-tray-gw { display: flex; flex-direction: column; gap: 2px; }
+/* 27.1/27.2: the seat's Great War card, in the tray above the hand.
+   It is a ledger row like every hand card — CP chip, title, the printed line —
+   not a thumbnail: the old 126×118 drawing of the 300×380 face rendered the
+   printed text at 5 px, which read as a blur. */
+.ie-tray-gw { display: flex; flex-direction: column; gap: 2px; flex: 0 0 auto; }
 
-.ie-tray-gw .ie-card { flex: 0 0 128px; width: 128px; height: 170px; display: flex; flex-direction: column; }
+.ie-tray-gw .ie-card {
+  width: 100%;
+  max-width: none;
+  height: auto;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: stretch;
+  border: 1px solid var(--ie-rule);
+  border-radius: var(--ie-radius-sm);
+  background: var(--ie-panel-2);
+  overflow: hidden;
+}
 
-.ie-tray-gw .ie-card-face { max-height: 118px; height: 100%; width: 100%; object-fit: contain; }
+.ie-tray-gw .ie-card-open {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 3px 8px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--ie-on-dark);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ie-tray-gw .ie-card-open:hover,
+.ie-tray-gw .ie-card-open:focus-visible { background: var(--ie-panel-3); }
+
+.ie-tray-gw .ie-gw-head { display: flex; align-items: center; gap: var(--ie-space-2); min-width: 0; }
+
+.ie-tray-gw .ie-gw-text {
+  font-size: var(--ie-font-xs);
+  line-height: 1.35;
+  color: var(--ie-on-dark-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ie-tray-gw .ie-card-actions { flex: 0 0 auto; align-items: center; padding: 4px 6px; gap: 3px; }
+
+.ie-tray-gw .ie-card-actions button { flex: 0 1 auto; min-height: 30px; padding: 2px 10px; font-size: var(--ie-font-xs); }
 
 .ie-tray-goals { display: flex; flex-direction: column; gap: 3px; min-width: 140px; max-width: 200px; }
 
