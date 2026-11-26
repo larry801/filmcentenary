@@ -279,6 +279,27 @@ describe("the Great War card's inspector", () => {
     expect(byTestId(tree, `ie-gw-event-${GW_CARD}`)).toBeTruthy();
   });
 
+  test("the bonus control's tooltip names 27.2's two restrictions", () => {
+    const G = gwSeat();
+    const bonus = byTestId(render(trayProps(G)), `ie-gw-bonus-${GW_CARD}`)!;
+    // Reported as "增加悬停说明 不能重复本轮预算行动、本轮不能发动陆战": an
+    // open button had no title at all, so neither printed restriction showed
+    // on hover and only the engine's refusal taught them.
+    expect(bonus.props.title).toContain("不能重复本轮预算行动");
+    expect(bonus.props.title).toContain("本轮不能发动陆战");
+  });
+
+  test("a shut bonus control keeps its refusal in front of the rule line", () => {
+    const G = gwSeat();
+    G.phase = "gwManeuver";
+    G.gw!.impulse = {power: "GE", turn: 1, index: 0, serial: 1, acted: true, budgetAction: "landBattle"};
+    G.powers.GE.gwBudget = 3;
+    const bonus = byTestId(render(trayProps(G)), `ie-gw-bonus-${GW_CARD}`)!;
+    expect(bonus.props.disabled).toBe(true);
+    expect(bonus.props.title).toContain("使用卡牌奖励行动的本轮不能发动陆战。");
+    expect(bonus.props.title).toContain("不能重复本轮预算行动");
+  });
+
   test("the tray block reads the card instead of drawing a thumbnail of it", () => {
     const G = gwSeat();
     const tree = render(trayProps(G));
