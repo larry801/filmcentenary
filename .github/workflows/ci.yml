@@ -392,13 +392,14 @@ jobs:
   # IE jobs it needs nothing from `build` and does not wait for it: it starts
   # as soon as the image is ready and overlaps the build and unit-test jobs.
   #
-  # Three shards.  The suite is 43 specs of real UI driving on three workers, and
-  # its longest single test is ~32 s, so the run is throughput-bound.  Three,
-  # not two: the specs are ordered by file, most files hold an even number of
-  # tests, and `--shard=x/2` therefore put a whole file in one half — two halves
-  # measured 37 s against 111 s.  An odd shard count interleaves the tests of
-  # every file instead.  The runner has two physical cores, which is why the
-  # worker count stays at three (see playwright.config.ts).
+  # Two shards, named by file.  Playwright's `--shard` deals the test list out by
+  # index, and the list is ordered by file, so it hands each shard a contiguous
+  # block of files: two shards measured 37 s against 111 s and three measured
+  # 14 s, 28 s and 120 s, because `vq-playthrough`'s ten tests (one of them 32 s
+  # on its own) always landed in the same block.  These two lists are balanced by
+  # measured play time instead, and the step below proves they still cover
+  # `e2e/` so a new spec cannot skip CI.  The runner has two physical cores,
+  # which is why the worker count stays at three (see playwright.config.ts).
   e2e-app:
     needs: playwright-image
     runs-on: ubuntu-24.04
@@ -406,8 +407,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3]
-    name: e2e-app (${{ matrix.shard }}/3)
+        include:
+          - shard: a
+            specs: "e2e/vq-playthrough.spec.ts e2e/card-tables.spec.ts"
+          - shard: b
+            specs: >-
+              e2e/diplomacy.spec.ts e2e/lobby.spec.ts e2e/hotseat.spec.ts
+              e2e/local-smoke.spec.ts e2e/tutorial.spec.ts e2e/map.spec.ts
+    name: e2e-app (${{ matrix.shard }})
     container:
       image: ${{ needs.playwright-image.outputs.image }}:${{ needs.playwright-image.outputs.tag }}
       credentials:
@@ -431,8 +438,16 @@ jobs:
       # the only dependency step a browser job needs now.
       - name: Link dependencies from the image cache
         run: yarn install --frozen-lockfile --offline --non-interactive
+      # The shard lists above are the only place the specs are named, so this
+      # reads them back out of the workflow and diffs them against `e2e/`.
+      - name: Every browser spec is in a shard
+        run: |
+          grep -oE 'e2e/[a-z0-9-]+\.spec\.ts' .github/workflows/ci.yml | sort -u > "$RUNNER_TEMP/shards"
+          ls e2e/*.spec.ts | grep -v '/table3d.spec.ts$' | sort > "$RUNNER_TEMP/actual"
+          diff "$RUNNER_TEMP/shards" "$RUNNER_TEMP/actual" \
+            || { echo "::error::add the new spec to an e2e-app shard in ci.yml"; exit 1; }
       - name: Run browser tests
-        run: yarn test:e2e --shard=${{ matrix.shard }}/3
+        run: yarn test:e2e ${{ matrix.specs }}
       # Screenshots, traces and the HTML report are what a failure is
       # diagnosed from, so they are kept even when the run fails.
   # The 3D table is the one browser suite that needs WebGL.  It runs on its own
