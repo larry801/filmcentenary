@@ -7,6 +7,7 @@ import {RuleRef} from "./RuleRef";
 import {ieT} from "./i18n";
 import {POWER_KEYS, bi, powerOrMinorLabel} from "./boardHelpers";
 import {auFormedForState, seatPowerName} from "./seatNames";
+import {powerProjectionHint} from "./flashpointHints";
 
 export interface DashboardPanelProps {
   G: ImperialElegyState;
@@ -26,6 +27,9 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
       {POWER_KEYS.map((p) => {
         const def = POWER_DEFS[p];
         const state = G.powers[p];
+        // 3.3.1: projection is public, and the flashpoint summary awards its
+        // domination; the table needs the six values side by side.
+        const projection = powerProjectionHint(G, p, locale);
         return (
           <div key={p} className={`ie-power ${p === active ? "active" : ""} ${state.eliminated ? "eliminated" : ""}`} data-testid={`ie-power-${p}`}>
             <div className="ie-power-head">
@@ -41,6 +45,13 @@ export const DashboardPanel = ({G, active, viewer, locale, t, handCounts, goalCo
               <span>{t.industry} {state.industry}</span>
               <span>{t.territorialKeys} {state.territorialKeys}</span>
               <span>{t.colonialKeys} {state.colonialKeys}</span>
+              <span
+                data-testid={`ie-dash-projection-${p}`}
+                data-leader={projection.dominates ? "true" : undefined}
+                title={`${projection.detail} — ${projection.standing}`}
+              >
+                {bi(locale, "Power projection", "力量投射")} {projection.dominates ? <b>{projection.value}</b> : projection.value}
+              </span>
               {state.arabKeys !== undefined && <span>{t.arabKeys} {state.arabKeys}</span>}
               <span>{t.vp} {state.vp}</span>
               <span>{t.reserves} {state.reserves.length}</span>

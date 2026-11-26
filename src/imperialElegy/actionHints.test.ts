@@ -130,6 +130,34 @@ test("the campaign action phase names the card or the CP spend", () => {
   expect(words(hints)).toContain("剩余 2 点 CP");
 });
 
+test("the campaign action phase adds one opportunity line after the CP line", () => {
+  const G = setupImperialElegy(makeCtx(), {});
+  G.phase = "action";
+  G.activePower = "GE";
+  G.cpRemaining = 2;
+  G.pending = null;
+  G.battle = null;
+  // GE holds five German keys at setup; two more leave it one short of the
+  // printed eight.
+  G.spaces.hanover.control = "GE";
+  G.spaces.saxony.control = "GE";
+  const hints = actionHints(G, "GE", "zh_CN", zh);
+  expect(keys(hints)).toEqual(["actionSpendCp", "flashpointOpportunity"]);
+  expect(words(hints)).toContain("再取 1 个德意志关键区");
+
+  // With no flashpoint in reach, the projection chase fills the same slot.
+  const P = setupImperialElegy(makeCtx(), {});
+  P.phase = "action";
+  P.activePower = "FR";
+  P.cpRemaining = 1;
+  P.pending = null;
+  P.battle = null;
+  P.powers.FR.flags.powerProjection = 7; // UK leads at 8
+  const projection = actionHints(P, "FR", "en", en);
+  expect(keys(projection)).toEqual(["actionSpendCp", "projectionOpportunity"]);
+  expect(words(projection)).toContain("one behind United Kingdom");
+});
+
 test("a finished game prints no prompt", () => {
   const G = gwState();
   G.result = {reason: "endOfTurn7", winners: ["GE" as Power], vp: {}} as ImperialElegyState["result"];

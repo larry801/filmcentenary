@@ -2235,8 +2235,36 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
 export const ARAB_KEY_SPACES = new Set<SpaceId>(["arabia", "mecca", "baghdad", "kuwait", "syria"]);
 export const EGYPTIAN_SPACES = new Set<SpaceId>(["egypt", "great-sand-sea", "sinai"]);
 
-/** 3.3.1: a box grants 1 for ports, 2 with both an ordinary port and a base. */
-export const computePowerProjection = (G: ImperialElegyState, power: Power): number => {
+/** One naval box's contribution to a power's projection. */
+export interface PowerProjectionPart {
+  box: SpaceId;
+  /** 2 when the box has both an ordinary port and a base, otherwise 1. */
+  value: number;
+  /** False when the European-waters three-box cap leaves this box unscored. */
+  counted: boolean;
+}
+
+/** The projection readout, split into everything the printed ladder names. */
+export interface PowerProjectionParts {
+  /** Every box with a port or base, in board order, capped boxes included. */
+  parts: PowerProjectionPart[];
+  /** The port/base score before the three-European-box and naval caps. */
+  claimed: number;
+  /** 3.3.1: a player's projection cannot exceed naval units × 2. */
+  navalCap: number;
+  /** The live track value: `min(claimed, navalCap)`. */
+  total: number;
+}
+
+/**
+ * 3.3.1: a box grants 1 for ports, 2 with both an ordinary port and a base.
+ *
+ * `computePowerProjection` is the number the track stores; this split exists so
+ * the board can say where the number came from (the player asks "why is my
+ * projection 3 when I hold four ports?").  Both read the same board, so the
+ * display and the track cannot disagree.
+ */
+export const powerProjectionParts = (G: ImperialElegyState, power: Power): PowerProjectionParts => {
   const byBox = new Map<SpaceId, {port: boolean; base: boolean}>();
   for (const def of Object.values(SPACES)) {
     if (!def.ports || def.ports.length === 0) continue;
@@ -2253,19 +2281,28 @@ export const computePowerProjection = (G: ImperialElegyState, power: Power): num
       byBox.set(box, present);
     }
   }
-  let total = 0;
-  const european: number[] = [];
+  const scored: {box: SpaceId; value: number; european: boolean}[] = [];
   for (const [box, present] of byBox) {
-    const value = present.port && present.base ? 2 : 1;
-    if (EUROPEAN_WATERS.has(box)) european.push(value);
-    else total += value;
+    scored.push({box, value: present.port && present.base ? 2 : 1, european: EUROPEAN_WATERS.has(box)});
   }
-  // The three-box maximum is a limit on scoring, not map iteration order.
-  total += european.sort((a, b) => b - a).slice(0, 3).reduce((sum, value) => sum + value, 0);
+  // The three-box maximum is a limit on scoring, not map iteration order: the
+  // three best European boxes count, the rest stay visible as uncounted.
+  const european = scored.filter((entry) => entry.european).sort((a, b) => b.value - a.value);
+  const counted = new Set(european.slice(0, 3).map((entry) => entry.box));
+  const parts: PowerProjectionPart[] = scored.map((entry) => ({
+    box: entry.box,
+    value: entry.value,
+    counted: !entry.european || counted.has(entry.box),
+  }));
+  const claimed = parts.filter((part) => part.counted).reduce((sum, part) => sum + part.value, 0);
   const naval = Object.values(G.units).filter((unit) => unit.naval && unit.steps > 0 && unit.space !== null &&
     (unit.owner === power || (!isPower(unit.owner) && minorController(G, unit.owner) === power))).length;
-  return Math.max(0, Math.min(total, naval * 2));
+  const navalCap = naval * 2;
+  return {parts, claimed, navalCap, total: Math.max(0, Math.min(claimed, navalCap))};
 };
+
+export const computePowerProjection = (G: ImperialElegyState, power: Power): number =>
+  powerProjectionParts(G, power).total;
 
 export const EUROPEAN_WATERS = new Set<SpaceId>([
   "north-atlantic",
@@ -2292,6 +2329,39 @@ export const refreshPowerProjection = (G: ImperialElegyState): void => {
   }
 };
 
+/**
+ * The printed members of one flashpoint that a power can count.
+ *
+ * The chart prints every row but the Caucasus in keys, so the Low Countries'
+ * "both keys", Italy's four and Germany's eight ignore non-key spaces.  The
+ * Caucasus row prints spaces, so its territories count.  Key typing goes
+ * through `isKeySpace`, so a unification or key-type change moves the count
+ * with the board instead of a hand-kept list.
+ */
+export const flashpointMemberCount = (G: ImperialElegyState, flashpoint: string): number => {
+  const unit = FLASHPOINTS[flashpoint]?.unit ?? "keys";
+  return Object.values(SPACES).filter((def) =>
+    def.flashpoints?.includes(flashpoint) === true &&
+    (unit === "spaces" || isKeySpace(G, def.id))).length;
+};
+
+/** How many counted members of one flashpoint each power controls. */
+export const flashpointCounts = (G: ImperialElegyState, flashpoint: string): Map<Power, number> => {
+  const counts = new Map<Power, number>(POWERS.map((power) => [power, 0]));
+  const unit = FLASHPOINTS[flashpoint]?.unit ?? "keys";
+  for (const def of Object.values(SPACES)) {
+    if (!def.flashpoints?.includes(flashpoint)) continue;
+    const state = G.spaces[def.id];
+    if (!state) continue;
+    if (state.rebellion?.rebels.length) continue;
+    if (unit === "keys" && !isKeySpace(G, def.id)) continue;
+    for (const power of POWERS) {
+      if (controlledBy(G, def.id, power)) counts.set(power, (counts.get(power) ?? 0) + 1);
+    }
+  }
+  return counts;
+};
+
 export const flashpointController = (G: ImperialElegyState, flashpoint: string): Power[] => {
   if (flashpoint === "powerProjection") {
     const ranked = [...POWERS].sort((a, b) => Number(G.powers[b].flags.powerProjection ?? 0) - Number(G.powers[a].flags.powerProjection ?? 0));
@@ -2306,16 +2376,7 @@ export const flashpointController = (G: ImperialElegyState, flashpoint: string):
     if (second > 0 && tiedSecond.length === 1) out.push(ranked[1]);
     return out;
   }
-  const counts = new Map<Power, number>();
-  for (const def of Object.values(SPACES)) {
-    if (!def.flashpoints?.includes(flashpoint)) continue;
-    const state = G.spaces[def.id];
-    if (!state) continue;
-    if (state.rebellion?.rebels.length) continue;
-    for (const power of POWERS) {
-      if (controlledBy(G, def.id, power)) counts.set(power, (counts.get(power) ?? 0) + 1);
-    }
-  }
+  const counts = flashpointCounts(G, flashpoint);
   if (flashpoint === "suez" && G.persistent.suezCanal) {
     const controller = G.spaces.egypt?.control;
     if (isPower(controller)) return [controller];
@@ -2361,13 +2422,14 @@ export const cardsToDraw = (G: ImperialElegyState, power: Power): number => {
   const stab = stabilityEffect(G, power);
   if (stab.cards !== undefined) count = stab.cards;
   if (stab.cardDelta) count += stab.cardDelta;
-  // Flashpoint bonuses: +1 or +1/2 rounded down? Printed cards give +1 or half;
-  // dominating two half-flashpoints is +1.  We model each domination as a
-  // half bonus and round the total up (4.1.1).
-  // 3.3.1: PP grants industry DRM, never an inherent card bonus. A028
-  // awards a separate +1 marker when that event is played.
-  const flashpoints = dominatedFlashpoints(G, power).filter((id) => id !== "powerProjection").length;
-  count += Math.ceil(flashpoints / 2);
+  // The printed Flashpoint Summary: Germany, China, Italy and Africa print
+  // "+1 card", the other theatres "+½ card".  The engine keeps no half-card
+  // marker, so the printed weights are summed and the total rounds up — the
+  // same treatment the old "each domination is half a card" shortcut gave a
+  // lone half.  3.3.1: PP grants industry DRM, never an inherent card bonus;
+  // A028 awards a separate +1 marker when that event is played.
+  const flashpoints = dominatedFlashpoints(G, power).filter((id) => id !== "powerProjection");
+  count += Math.ceil(flashpoints.reduce((sum, id) => sum + (FLASHPOINTS[id]?.cardBonus ?? 0), 0));
   // National characteristics (India, City of Light, TSRR) now live in one place.
   count += cardDrawModifier(G, power).delta;
   if (power === "GE" && p.flags.plusCards) count += Number(p.flags.plusCards);

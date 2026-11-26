@@ -277,18 +277,44 @@ export const CREATURE_NAMES: Record<string, string> = {
   OT: "Ottoman Empire",
 };
 
-/** Keys needed to dominate a flashpoint (player aid card page 2). */
-export const FLASHPOINTS: Record<string, {name: string; nameZh: string; keys: number; cardBonus: number}> = {
-  lowCountries: {name: "Low Countries", nameZh: "低地国家", keys: 3, cardBonus: 1},
-  germany: {name: "Germany", nameZh: "德意志", keys: 6, cardBonus: 1},
+/** One row of the printed Flashpoint Summary (player aid card page 2). */
+export interface FlashpointDef {
+  name: string;
+  nameZh: string;
+  /**
+   * How many members dominate it: keys for every chart row printed in keys,
+   * spaces for the Caucasus, whose row alone says "spaces".  The two
+   * "control most keys" rows (Balkans, Africa) carry their printed minimum —
+   * Balkans prints none, so one key is enough to lead.
+   */
+  keys: number;
+  /** Card markers the chart prints; 0.5 is its "+½ card". */
+  cardBonus: number;
+  /** What `keys` counts.  Defaults to keys, the chart's usual wording. */
+  unit?: "keys" | "spaces";
+}
+
+/**
+ * The printed Flashpoint Summary, transcribed from the map chart.
+ *
+ * The counts are the chart's, not a house rule: Germany 8 keys, China 3,
+ * Italy 4, Africa "most keys (min. 5)", the Low Countries both keys, the Great
+ * Game 3, the Balkans "most keys", Central Europe 3 and the Caucasus 5 spaces.
+ * Power projection is a track (lead it) and Suez is the canal exception; both
+ * are decided in `flashpointController` rather than by a member-key count.
+ */
+export const FLASHPOINTS: Record<string, FlashpointDef> = {
+  lowCountries: {name: "Low Countries", nameZh: "低地国家", keys: 2, cardBonus: 0.5},
+  germany: {name: "Germany", nameZh: "德意志", keys: 8, cardBonus: 1},
   italy: {name: "Italy", nameZh: "意大利", keys: 4, cardBonus: 1},
-  balkans: {name: "Balkans", nameZh: "巴尔干", keys: 4, cardBonus: 1},
-  centralEurope: {name: "Central Europe", nameZh: "中欧", keys: 5, cardBonus: 1},
-  africa: {name: "Africa", nameZh: "非洲", keys: 6, cardBonus: 1},
-  greatGame: {name: "The Great Game", nameZh: "大博弈", keys: 5, cardBonus: 1},
-  chinaJapan: {name: "Qing China & Japan", nameZh: "清帝国与日本", keys: 4, cardBonus: 1},
+  balkans: {name: "Balkans", nameZh: "巴尔干", keys: 1, cardBonus: 0.5},
+  centralEurope: {name: "Central Europe", nameZh: "中欧", keys: 3, cardBonus: 0.5},
+  africa: {name: "Africa", nameZh: "非洲", keys: 5, cardBonus: 1},
+  greatGame: {name: "The Great Game", nameZh: "大博弈", keys: 3, cardBonus: 0.5},
+  chinaJapan: {name: "Qing China & Japan", nameZh: "清帝国与日本", keys: 3, cardBonus: 1},
+  caucasus: {name: "Caucasus", nameZh: "高加索", keys: 5, cardBonus: 0.5, unit: "spaces"},
   powerProjection: {name: "Power Projection", nameZh: "力量投射", keys: 0, cardBonus: 0},
-  suez: {name: "Suez Canal", nameZh: "苏伊士运河", keys: 1, cardBonus: 1},
+  suez: {name: "Suez Canal", nameZh: "苏伊士运河", keys: 1, cardBonus: 0.5},
 };
 
 export const SETUP_MARKERS: Partial<Record<Power, Partial<PowerState>>> = {

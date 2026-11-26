@@ -57,6 +57,18 @@ test("the mat prints the player display's numbers and slots", () => {
   expect(html).toContain("印刷面板");
 });
 
+test("the mat prints the printed power-projection track and its sources", () => {
+  const G = game();
+  const html = render(G, "UK");
+  expect(html).toContain('data-testid="ie-mat-projection"');
+  expect(html).toContain('data-testid="ie-mat-projection-source"');
+  expect(html).toContain('data-testid="ie-mat-projection-standing"');
+  expect(html).toContain("力量投射");
+  // The printed chart's +1 Industrialization DRM for leading the track.
+  expect(html).toContain("工业化 +1 DRM");
+  expect(html).toContain("北大西洋");
+});
+
 test("the reserve limit is the engine's Reserve Armies holding box", () => {
   const G = game();
   const html = render(G);
