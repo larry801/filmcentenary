@@ -4,11 +4,12 @@
  * These tests verify that `botDecision` returns a well-formed move object
  * in common game states without throwing.
  */
+import {INVALID_MOVE} from "boardgame.io/core";
 import {setupImperialElegy} from "./engine/setup";
-import {botDecision, botPendingMove, bmpitTarget, enumerateBot} from "./engine/bot";
+import {botDecision, botPendingMove, bmpitTarget, botProbeCtx, enumerateBot} from "./engine/bot";
 import {cardById} from "./engine/deck";
-import {playCard, resolvePending} from "./moves";
-import {POWERS} from "./types";
+import {playCard, recruit, resolvePending} from "./moves";
+import {POWERS, Power} from "./types";
 
 const ctx: any = {
   random: {Die: (n: number) => 1, Number: () => 1, Shuffle: (a: any[]) => a},
@@ -152,4 +153,35 @@ test("34.3 rolls a die for the Franco-Prussian concession instead of always conc
   const roll = (n: number) => ({...ctx, random: {Die: () => n}}) as never;
   expect(botPendingMove(G, "FR", roll(1))).toEqual({move: "resolvePending", args: ["concede"]});
   expect(botPendingMove(G, "FR", roll(2))).toEqual({move: "resolvePending", args: ["fight"]});
+});
+
+
+test("34 the reserve-army probe is seated, so `recruit` can accept it", () => {
+  // Every action move starts with `requireActive`, which resolves the acting
+  // power from `ctx.playerID`.  The bot's probe ctx used to be the battle ctx
+  // (no seat), so the reserve-army probe answered INVALID_MOVE on every board:
+  // the bot never built a reserve army in the action phase, and paid a
+  // whole-state copy to find that out.
+  const G = setupImperialElegy(ctx);
+  const clone = (state: typeof G): typeof G => JSON.parse(JSON.stringify(state)) as typeof G;
+  const seatless = {random: {Die: () => 3, Number: () => 0, Shuffle: (a: unknown[]) => a}} as any;
+
+  for (const power of POWERS as readonly Power[]) {
+    G.phase = "action";
+    G.activePower = power;
+    G.cpRemaining = 2;
+    // 7.3: the reserve box holds the lower of manpower and industry, so a
+    // fresh 1850 board has no room for one yet.
+    G.powers[power].manpower = 4;
+    G.powers[power].industry = 4;
+    const seated = botProbeCtx(power);
+    expect(seated.playerID).toBe(String(POWERS.indexOf(power)));
+    // 33.2: the UK has no reserve box, so the move is refused there for its own
+    // reason; every other power may build one when the box allows it.
+    const result = recruit(clone(G), seated, null as any, "reserveArmy", 1, {});
+    if (power === "UK") expect(result).toBe(INVALID_MOVE);
+    else expect(result).not.toBe(INVALID_MOVE);
+    // The old, seatless probe is what made the branch unreachable.
+    expect(recruit(clone(G), seatless, null as any, "reserveArmy", 1, {})).toBe(INVALID_MOVE);
+  }
 });

@@ -466,11 +466,19 @@ export const A10: Invariant = {
 // A11 — 4.2.1 minor ally cap
 // ---------------------------------------------------------------------------
 
+/**
+ * 4.2.1 caps a player at five minor allies, and every construction path enforces
+ * it (`canGainMinorAlly`).  Errata 13.4.5 is the printed exception: Bismarck's
+ * declaration allies the unaligned minor "even if that player already has five
+ * minor power allies", and the state does not record that the sixth came from
+ * that errata.  So the count is a warn, like 5.5.3's overstack (A08) and 8.3's
+ * forced alliance shift (A12).
+ */
 export const A11: Invariant = {
   code: "A11",
   rule: "4.2.1",
   level: "cheap",
-  severity: "error",
+  severity: "warn",
   title: "a player has at most five minor allies",
   check: (G) => {
     const bad = at(A11);

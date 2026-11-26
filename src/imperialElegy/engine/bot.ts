@@ -396,6 +396,19 @@ const influenceTarget = (G: ImperialElegyState, power: Power, region: BditRegion
 /** The ctx a probe move gets: it never rolls, so a probe cannot consume randomness. */
 const botBattleCtx = {random: {Die: () => 3, Number: () => 0, Shuffle: (a: unknown[]) => a}} as unknown as Ctx;
 
+/**
+ * A probe ctx seated for `power`.
+ *
+ * Every action move starts with `requireActive`, which resolves the acting
+ * power from `ctx.playerID`; a probe ctx without a seat therefore answers
+ * `INVALID_MOVE` for every action move.  The reserve-army probe below used the
+ * battle ctx, which has no seat, so it could never succeed: the bot silently
+ * never built a reserve army in the action phase and paid a whole-state copy
+ * per attempt to find that out.
+ */
+export const botProbeCtx = (power: Power): Ctx =>
+  ({...botBattleCtx, playerID: String(POWERS.indexOf(power))}) as Ctx;
+
 /** A land battle the engine would actually accept. */
 const legalLandBattle = (G: ImperialElegyState, power: Power, from: SpaceId, to: SpaceId): boolean => {
   // 32.5: during the Great War rebels and non-rebel units cannot coexist, so a
@@ -971,9 +984,11 @@ const priorityTwo = (
     if (G.cpRemaining >= 1) {
       // Probe the move itself on a copy.  Re-deriving its gates here drifted
       // (the box, the counter pool and the per-power allowance each refused
-      // the move on their own) and a refused recruit is re-sent forever.
+      // the move on their own) and a refused recruit is re-sent forever.  The
+      // probe has to be seated (`botProbeCtx`), or `requireActive` refuses it
+      // before any of those gates runs.
       const probe = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
-      const accepted = recruitMove(probe, botBattleCtx, null as unknown as SpaceId, "reserveArmy", 1, {}) !== "INVALID_MOVE";
+      const accepted = recruitMove(probe, botProbeCtx(power), null as unknown as SpaceId, "reserveArmy", 1, {}) !== "INVALID_MOVE";
       if (accepted) return {move: "recruit", args: [null, "reserveArmy", 1, {}]};
     }
     // Then fort (3-4 sub-result: die shows 3 on the chart → build fort).

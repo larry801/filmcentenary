@@ -227,6 +227,14 @@ export const removeUnit = (G: ImperialElegyState, unitId: string): void => {
     }
   }
   delete G.units[unitId];
+  // 4.2: a reserve army is listed twice — in `G.units` and in its owner's
+  // reserve box.  A counter destroyed while it sits in that box (a Great War
+  // loss can name one) must leave the box too, or every later invariant pass
+  // reads a reserve id that resolves to nothing.
+  const box = (G.powers as Record<string, {reserves?: string[]} | undefined>)[String(unit.owner)];
+  if (box?.reserves?.includes(unitId)) {
+    box.reserves = box.reserves.filter((id) => id !== unitId);
+  }
   // 10.3 / A094: the Boxers' -1 card marker lasts "until all the rebels are
   // destroyed"; the last Boxer elimination removes it from every marked power.
   if (unit.owner === "REBEL:Boxer" && unit.kind === "rebelArmy") {
