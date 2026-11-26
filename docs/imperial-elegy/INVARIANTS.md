@@ -75,7 +75,7 @@ Every check holds after *every* action in every phase.
 | A08 | 5.5 / 19.9 | cheap | **warn** | armies <= the space's stacking limit (3 main map, 2 submaps, 2 Ottoman home), ships in a port <= 4. 5.5.3 lets a retreating stack exceed the limit until its owner's next impulse, so this warns |
 | A09 | 12.12 | cheap | error | fort level 1..3 and forts only on the main map (the Indian fort of 33.2.3 is exempt). The three-fort cap is **not** asserted — see below |
 | A10 | 12.14 | cheap | error | a CP chain holds at most two cards and never the industry card |
-| A11 | 4.2.1 | cheap | error | at most five distinct minor allies per player |
+| A11 | 4.2.1 | cheap | **warn** | at most five distinct minor allies per player. Errata 13.4.5 (Bismarck) allies the unaligned minor even past the cap, and the state does not record which path produced the sixth, so the count warns |
 | A12 | 8.4 | cheap | warn | at most three player powers per alliance; Italy and the US are exempt by the rule itself. 8.3's forced shift can legally fill a full alliance, so this warns |
 | A13 | pending.ts | cheap | error | every decision has a player owner, a known kind, and non-empty options with unique ids |
 | A14 | 2.1 / 24.1 | cheap | error | phase in the enum, turn 1..8 (20.12 advances the counter before the end), GW turn 0..6 (the winter step advances it before 2.2.2 scores), `activePower` a power, `turnIndex` a non-negative integer (it indexes a seat, then the GW impulse order, then 27.4's neutral order, and keeps the last used value after an order clears), `passed` duplicate-free |
@@ -97,6 +97,10 @@ Every check holds after *every* action in every phase.
   owner's next impulse (the actual requirement is the step loss, a `C` check);
   8.3 lets a forced alliance shift fill an already-full alliance, and no field
   says whether a member joined voluntarily.
+- **A11** is a warn for the same reason as A08 and A12: errata 13.4.5 (Bismarck)
+  allies the unaligned minor of a two-target declaration "even if that player
+  already has five minor power allies", and no field says whether the sixth came
+  from that errata or from a construction path that skipped `canGainMinorAlly`.
 - **A09** does not assert 12.12's three-fort cap. The cap bounds the Construct
   Fort action (`buildFort`), while a card effect may also place a fort
   (`effects.ts`), so a state-level count cannot tell a legal fourth fort from an
