@@ -8128,6 +8128,22 @@ const endPhaseSetManpower = (
     // 33.4 A New Way Forward: the +1 is granted once, during the end phase,
     // and latched so later recomputations keep it.
     grantAuNewWayForward(G);
+    // A81 Conquest of Central Asia: "it is eliminated if during peacetime it
+    // is not on the Asia submap."  A live war keeps the normal reserve rules;
+    // the sweep runs only in peacetime.  The card's own placement stands in
+    // Central Asia, a main-map space, so "the Asia submap" is read as the
+    // Asian part of the map (region "asia") — the panel reading would
+    // eliminate the very army the card places.
+    if (G.persistent.russianAsiaReserve === true && G.war === null && !G.gw?.active) {
+      for (const unit of Object.values(G.units)) {
+        if (unit.owner !== "RU" || unit.kind !== "reserveArmy") continue;
+        if (unit.space === null || unit.space === undefined) continue;
+        if (SPACES[unit.space]?.region === "asia") continue;
+        const space = unit.space;
+        removeUnit(G, unit.id);
+        log(G, "RU", "russianAsiaReserveEliminated", {space});
+      }
+    }
     recomputeTracks(G);
     progress.manpowerSet = true;
   }
@@ -9675,7 +9691,9 @@ export type ResponseBlockReason =
   /** A89/A109: Russian stability must have been decreased. */
   | "russia-trigger"
   /** A65: "Play prior to a pacification roll." */
-  | "pacification-window";
+  | "pacification-window"
+  /** A105: "MUST be played as a response card if the WTT increases." */
+  | "wtt-trigger";
 
 export interface ResponseEligibility {
   ok: boolean;
@@ -9787,8 +9805,9 @@ export const responseCardEligibility = (
   const window = responseWindowFor(G, power);
   // 9.1.3: a response must also meet its own printed trigger.  A67's window is
   // the open crisis decision (which is itself a pending), so it answers before
-  // the generic impulse window below.
-  if (isCardId(cardId) && cardById(cardId).type === "response" && power !== null) {
+  // the generic impulse window below.  A105's trigger is the printed
+  // "MUST be played as a response card if the WTT increases".
+  if (isCardId(cardId) && (cardById(cardId).type === "response" || cardId === "IE-A105") && power !== null) {
     const trigger = responseTriggerBlock(G, power, cardId);
     if (trigger !== null) return blocked(trigger, window.ok ? undefined : window.reason);
     if (cardId === "IE-A067") return eligible();
@@ -9810,7 +9829,9 @@ export const responseCardEligibility = (
   if (!window.ok) return window;
   if (!isCardId(cardId)) return blocked("not-a-card");
   const card = cardById(cardId);
-  if (card.type !== "response") return blocked("not-response");
+  // A105 Impulsive Ruler is printed as a mandatory response card; its own
+  // trigger above decides when the response window is open.
+  if (card.type !== "response" && cardId !== "IE-A105") return blocked("not-response");
   // Printed "Playable at the start of [power]'s impulse" (A41/A54/A98).
   const printedPower = printedResponsePower(cardId);
   if (printedPower !== undefined && printedPower !== power) return blocked("printed-power");

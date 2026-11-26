@@ -913,6 +913,17 @@ export const outbreakGreatWar = (
   crisis?: CrisisOutbreakInfo,
 ): void => {
   if (G.gw?.active) return;
+  // A110 Extreme Militarism: "If the Great War does not occur you receive -1
+  // VP for playing this event."  The GW is occurring, so every provisional
+  // play charge recorded before the outbreak is refunded.
+  for (const power of POWERS) {
+    const charges = Number(G.flags[`extremeMilitarism_${power}`] ?? 0);
+    if (charges > 0) {
+      G.powers[power].vp += charges;
+      delete G.flags[`extremeMilitarism_${power}`];
+      log(G, power, "extremeMilitarismRefund", {count: charges});
+    }
+  }
   // 25.3: the Alliance Track chit of a unified Italy outlives the pre-war state;
   // `G.gw` is replaced below, so keep the box across the outbreak.  Read it as a
   // plain value: `italyAllianceBox` falls back to `persistent`, which is the same

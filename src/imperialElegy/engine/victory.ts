@@ -28,6 +28,19 @@ const initialControl = (id: SpaceId): string | null => {
   return override ? override.control : SPACES[id].control;
 };
 
+/**
+ * A49 South German Confederation: "as long as Austria controls Bavaria,
+ * Austria is still treated as allied to the Bavaria minor power for the
+ * purpose of National Goals."  The annexation removed the minor itself, so the
+ * NG metrics read the annexed space directly; nothing outside the NG metrics
+ * sees a synthetic alliance.
+ */
+export const ngMinorAlliesOf = (G: ImperialElegyState, power: Power): SpaceId[] => {
+  const allies = minorAlliesOf(G, power);
+  if (power !== "AU" || G.spaces.bavaria?.control !== "AU") return allies;
+  return allies.includes("bavaria") ? allies : [...allies, "bavaria"];
+};
+
 export const europeanKeys = (G: ImperialElegyState, power: Power): number =>
   Object.values(SPACES).filter(
     (s) =>
@@ -88,7 +101,7 @@ export const goalMetric = (G: ImperialElegyState, power: Power, goal: GoalDef): 
   switch (goal.kind) {
     case "rankedEuropeanKeys": return G.powers[power].territorialKeys;
     case "rankedAfricaKeys": return africaKeys(G, power);
-    case "rankedAlliances": return minorAlliesOf(G, power).length;
+    case "rankedAlliances": return ngMinorAlliesOf(G, power).length;
     case "rankedStability": return G.powers[power].stability;
     case "rankedFlashpoints": {
       const dominated = dominatedFlashpoints(G, power);

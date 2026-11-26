@@ -896,6 +896,26 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  russianAsiaReserveEliminated: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(
+      entry,
+      locale,
+      `lost the Asian-submap reserve privilege: the reserve army in ${space} is not on the Asia submap (A81) and is eliminated.`,
+      `失去亚洲地图预备军特权：${space}的预备军不在亚洲地图上（征服中亚），被消灭。`,
+    );
+  },
+
+  russianAsiaRetained: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(
+      entry,
+      locale,
+      `leaves one reserve army on the map through demobilization (A81), in ${space}.`,
+      `战时复员阶段在${space}保留 1 个地图上的预备军（征服中亚）。`,
+    );
+  },
+
   nonPlayerBuild: (entry, locale) => {
     const minor = powerLabel(entry.args?.minor, locale);
     const space = spaceName(entry.args?.space, locale);

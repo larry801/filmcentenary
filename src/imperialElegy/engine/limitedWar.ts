@@ -3212,6 +3212,18 @@ export const returnReserveArmies = (G: ImperialElegyState): {power: PowerOrMinor
     }
     if (!isPower(unit.owner)) continue;
     const power = unit.owner;
+    // A81 Conquest of Central Asia: "During the demobilization step of a war
+    // Russia may leave one reserve army on the map."  A reserve army standing
+    // in Asia (the card's own placement is Central Asia, a main-map space, so
+    // "the Asia submap" reads as the Asian part of the map) stays deployed;
+    // the peacetime rules then keep it there.  It is not a returned reserve,
+    // so it stays off the report.
+    if (power === "RU" && G.persistent.russianAsiaReserve === true
+      && unit.space !== null && unit.space !== undefined
+      && SPACES[unit.space]?.region === "asia") {
+      log(G, "RU", "russianAsiaRetained", {space: unit.space});
+      continue;
+    }
     const wasOnMap = Boolean(unit.space);
     if (wasOnMap) {
       const state = G.spaces[unit.space!];

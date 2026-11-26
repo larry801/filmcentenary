@@ -1633,20 +1633,19 @@ export const resolveAmericanCivilWarEndPhase = (
 };
 
 /**
- * A051 Polish Revolt: "Place a Polish army and a 0 War of Independence marker in
- * two spaces that player controls (or one if only one)."
+ * A051 Polish Revolt: "Place a Polish army and a 0 War of Independence marker
+ * in two spaces that player controls (or one if only one)."  One call places
+ * one army in one chosen space; a rebellion record that has already lost its
+ * rebels is reset instead of being orphaned by the new marker.
  */
-const placePolishRevoltRebels = (G: ImperialElegyState, victim: Power): void => {
-  const polish = Object.values(SPACES).filter(
-    (s) => s.nationalities?.includes("Poles") || s.id === "poland",
-  );
-  const targets = polish.filter((s) => G.spaces[s.id].control === victim).slice(0, 2);
-  for (const s of targets) {
-    G.spaces[s.id].rebellion = {minor: "Poland", step: 0, rebels: []};
-    const rebel = placeNonPlayerCounter(G, "REBEL:Poland", "rebelArmy", s.id, 2);
-    if (rebel) G.spaces[s.id].rebellion!.rebels.push(rebel.id);
+const placePolishRevoltRebels = (G: ImperialElegyState, victim: Power, space: SpaceId): void => {
+  const state = G.spaces[space];
+  if (!state.rebellion || state.rebellion.rebels.every((id) => G.units[id]?.space !== space)) {
+    state.rebellion = {minor: "Poland", step: 0, rebels: []};
   }
-  log(G, victim, "polishRevoltRebels", {spaces: targets.map((s) => s.id).join(",")});
+  const rebel = placeNonPlayerCounter(G, "REBEL:Poland", "rebelArmy", space, 2);
+  if (rebel && !state.rebellion!.rebels.includes(rebel.id)) state.rebellion!.rebels.push(rebel.id);
+  log(G, victim, "polishRevoltRebels", {spaces: space});
 };
 
 /**
@@ -2486,38 +2485,84 @@ const resolveCardChain = (
       return;
     }
     case "polishRevolt": {
-      // Step 1 picks the victim; step 2 is that player's stability-or-discard
-      // choice, after which the rebels are placed.
+      // Step 1 picks the victim; steps 2–3 place the Polish armies in two
+      // spaces that victim controls (the print names no nationality for them);
+      // step 4 is that player's stability-or-discard choice.
       const stage = String(context.stage ?? "");
+      const victim = stage === "choice"
+        ? pending.power
+        : stage === "space1" || stage === "space2"
+          ? (context.victim as Power)
+          : (optionId as Power);
+      const openVictimChoice = (): void => {
+        if (G.powers[victim].hand.length > 0) {
+          openDecision(G, ctx, decision(
+            "eventChoice",
+            victim,
+            "Polish Revolt: decrease stability by 1 or discard a random card",
+            [
+              option("stability", "Decrease stability by 1", undefined, false, "稳定度 -1"),
+              option("discard", "Discard a random card", undefined, false, "随机弃 1 张牌"),
+            ],
+            {resume, special, stage: "choice", required: true},
+            undefined,
+            "波兰起义：稳定 -1 或随机弃 1 张牌",
+          ));
+          return;
+        }
+        changeStability(G, victim, -1, ctx);
+        finishCardChain(G, ctx, pending);
+      };
       if (stage === "choice") {
         if (optionId === "discard") {
-          const hand = G.powers[pending.power].hand;
-          if (hand.length > 0) discardCard(G, pending.power, hand[randomIndex(ctx, hand.length)], "polishRevolt");
-          else changeStability(G, pending.power, -1, ctx);
+          const hand = G.powers[victim].hand;
+          if (hand.length > 0) discardCard(G, victim, hand[randomIndex(ctx, hand.length)], "polishRevolt");
+          else changeStability(G, victim, -1, ctx);
         } else {
-          changeStability(G, pending.power, -1, ctx);
+          changeStability(G, victim, -1, ctx);
         }
-        placePolishRevoltRebels(G, pending.power);
         finishCardChain(G, ctx, pending);
         return;
       }
-      const victim = optionId as Power;
-      placePolishRevoltRebels(G, victim);
-      if (G.powers[victim].hand.length > 0) {
-        openDecision(G, ctx, decision(
-          "eventChoice",
-          victim,
-          "Polish Revolt: decrease stability by 1 or discard a random card",
-          [
-            option("stability", "Decrease stability by 1", undefined, false, "稳定度 -1"),
-            option("discard", "Discard a random card", undefined, false, "随机弃 1 张牌"),
-          ],
-          {resume, special: "polishRevolt", stage: "choice", owner, required: true},
-        ));
+      const targets = Object.values(SPACES).filter((s) => G.spaces[s.id].control === victim).map((s) => s.id);
+      if (stage === "space1" || stage === "space2") {
+        placePolishRevoltRebels(G, victim, optionId as SpaceId);
+        if (stage === "space1") {
+          const rest = targets.filter((id) => id !== optionId);
+          if (rest.length === 1) {
+            // "(or one if only one)": the second space has no choice to offer.
+            placePolishRevoltRebels(G, victim, rest[0]);
+            openVictimChoice();
+            return;
+          }
+          openDecision(G, ctx, decision(
+            "eventTargetSpace",
+            owner,
+            "Polish Revolt: choose the second space",
+            spaceOptions(G, rest),
+            {resume, special, stage: "space2", owner, victim, required: true},
+            undefined,
+            "波兰起义：选择第二个空间",
+          ));
+          return;
+        }
+        openVictimChoice();
         return;
       }
-      changeStability(G, victim, -1, ctx);
-      finishCardChain(G, ctx, pending);
+      if (targets.length === 1) {
+        placePolishRevoltRebels(G, victim, targets[0]);
+        openVictimChoice();
+        return;
+      }
+      openDecision(G, ctx, decision(
+        "eventTargetSpace",
+        owner,
+        "Polish Revolt: choose the first space",
+        spaceOptions(G, targets),
+        {resume, special, stage: "space1", owner, victim, required: true},
+        undefined,
+        "波兰起义：选择第一个空间",
+      ));
       return;
     }
     case "revolution1905": {
@@ -4013,7 +4058,14 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "extremeMilitarism": {
       G.powers[actor].flags.reserveLimitBonus = 1;
-      if (G.gw === null) G.powers[actor].vp -= 1;
+      // A110: "If the Great War does not occur you receive -1 VP for playing
+      // this event."  The charge is provisional: outbreakGreatWar refunds one
+      // VP per recorded play once the GW does occur.
+      if (G.gw === null) {
+        G.powers[actor].vp -= 1;
+        const key = `extremeMilitarism_${actor}`;
+        G.flags[key] = Number(G.flags[key] ?? 0) + 1;
+      }
       return true;
     }
     case "grantRightsOrCitizenship": {

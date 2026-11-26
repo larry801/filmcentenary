@@ -23,6 +23,8 @@ export type PlayBlockReason =
   | "battle-window"
   /** A105 Impulsive Ruler: CP play needs three or fewer cards in hand. */
   | "impulsive-ruler-hand"
+  /** A105: the WTT has increased, so the card must be played as a response. */
+  | "impulsive-ruler-response"
   /** A printed "Playable by …" power list excludes the acting power. */
   | "power-list"
   /** A printed "(Germany only after unification)" clause. */
@@ -289,6 +291,8 @@ export type ResponseTriggerBlock =
   | "france-trigger"
   /** A89/A109's printed Russian stability decrease. */
   | "russia-trigger"
+  /** A105's printed "MUST be played as a response card if the WTT increases". */
+  | "wtt-trigger"
   /** A65 is played inside the pacification window, never at impulse start. */
   | "pacification-window";
 
@@ -345,6 +349,11 @@ export const responseTriggerBlock = (
       // "Play if Russian stability decreases."  Present tense, but the impulse
       // window can open just after the turn boundary.
       return recentTurn(G, G.powers.RU?.flags.stabilityDecreasedTurn) ? null : "russia-trigger";
+    case "IE-A105":
+      // "MUST be played as a response card if the WTT increases."  Past tense
+      // on the impulse boundary, like A044/A109: an increase late in the turn
+      // stays a live trigger at the holder's next impulse start.
+      return recentTurn(G, G.flags.wttIncreasedTurn) ? null : "wtt-trigger";
     default:
       return null;
   }
@@ -371,6 +380,9 @@ export const cpPlayability = (
   // A105 is printed "May be played for CP if you have 3 or fewer cards in your
   // hand (including this)."  Every other card has no CP-mode clause.
   if (card.type === "mandatoryResponse" && cardId === "IE-A105") {
+    // "MUST be played as a response card if the WTT increases": while the
+    // printed trigger stands the CP mode is closed.
+    if (recentTurn(G, G.flags.wttIncreasedTurn)) return deny("impulsive-ruler-response");
     const hand = G.powers[power]?.hand.length ?? 0;
     return hand <= 3 ? OK : deny("impulsive-ruler-hand");
   }
