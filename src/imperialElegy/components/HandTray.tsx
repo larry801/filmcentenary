@@ -377,6 +377,15 @@ export const HandTray = (props: HandTrayProps) => {
     const cpProblem = gwCardProblem(G, viewer, "cp");
     const eventProblem = gwCardProblem(G, viewer, "event");
     const canCard = !eliminated && isActive && pending === null;
+    // 27.2: an open bonus button carried no tooltip at all, so the two printed
+    // restrictions (no repeat of the impulse's budget action, no land battle in
+    // an impulse using the card bonus) only surfaced once a move was refused.
+    // A refusal, when there is one, still leads the line.
+    const bonusRule = bi(locale,
+      "Bonus action: skip the event and take one extra action now, paid by this card; it cannot repeat this impulse's budget action, and no land battle may be fought this impulse.",
+      "奖励行动：不结算事件，立刻用本牌额外执行一次行动；不能重复本轮预算行动，本轮不能发动陆战。");
+    const bonusTitle = [gwImpulseReasonText(locale, cpProblem), bonusRule]
+      .filter((text): text is string => text !== undefined).join(" ");
     const testId = (name: string): string => `ie-gw-${name}-${where === "inspector" ? "inspector-" : ""}${id}`;
     return (
       <>
@@ -384,7 +393,7 @@ export const HandTray = (props: HandTrayProps) => {
           key="gw-cp"
           data-testid={testId("bonus")}
           disabled={!canCard || cpProblem !== null}
-          title={gwImpulseReasonText(locale, cpProblem)}
+          title={bonusTitle}
           onClick={() => doAction(() => moves.playGwCardMove("cp"), {label: bi(locale, "Bonus action", "奖励行动"), reason: gwImpulseReasonText(locale, cpProblem) ?? undefined})}
         >
           {bi(locale, "Bonus action", "奖励行动")}
