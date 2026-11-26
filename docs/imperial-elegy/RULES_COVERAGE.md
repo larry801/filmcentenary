@@ -457,6 +457,10 @@ on 2026-11-24: every named blocker is live and pinned.
 
 ## 8 Alliance system — **Implemented**
 
+- **Shifting Alliances away-shift (2026-11-26).**  "Shift both powers away
+  from each other" (`effects.ts#shiftAllianceAway`) had an inverted ternary on
+  the second power's direction, pulling it toward the first power in every
+  mixed track position; each power now moves away from the other.
 - Alliance track boxes, committed/aligned state, card-driven shifts and the
   declaration shift — **implemented**.  **8.1.1/8.1.2/8.1.3** are live:
   neutral-box prohibitions, the UK-defender / Aux Armes invitation exceptions,
@@ -501,6 +505,52 @@ on 2026-11-24: every named blocker is live and pinned.
 
 ## 9–12 Cards and the action phase — **Implemented**
 
+- **Card audit round (2026-11-26, batch 2).** The printed clauses the engine
+  paraphrased or auto-resolved are now literal, each with a test:
+  - **A073 Economic Panic:** every uneliminated player is asked in print
+    order; an empty hand is still asked and its "discard" converts to the
+    printed -1 card marker at the player's own step (`cardsPartialFixes`).
+  - **A020 Diplomatic Incident:** any allied minor is a candidate (the print
+    names no region), and the removed alliance marker flips to its diplomacy
+    side (12.9), so the former ally's diplomacy marker remains
+    (`cardTargets`).
+  - **A053 Powder Keg (errata):** the two rebel armies are placed by player
+    choice in OT-controlled Balkan spaces, Istanbul barred, one space may take
+    both (the errata drops the two-different-spaces clause); each chosen space
+    takes its 0 WoI marker through the rebellion record.  The placement waits
+    for the crisis roll (23.1) like the rest of the text (`crisisFlow`).
+  - **A064 Secret Treaty / A065 Indian Ocean Arms Trade / A078 Crack Colonial
+    Troops:** the printed "choose" clauses are player choices — every
+    enemy-allied minor (4.2.1 cap bound), the pacification marker to reduce
+    (still draws the printed card), the colonial key to garrison (Russia: any
+    controlled Asian space) — and the resolution wiring applies the flip, the
+    reduction+draw and the elite colonial EF placement
+    (`responseAlliance`, `nationalityIntegration`, `egyptKeyType`).
+  - **Card 74 Berlin Conference (errata):** the seat order (active player,
+    UK, FR, GE, unified Italy's ally) repeats round after round until every
+    uncontrolled space on the Africa submap carries a player marker, not once
+    through the queue.
+  - **A099 Dreadnought** docks in a friendly European port of the player's
+    choice; **A038 Great Game** charges one -1 card marker to the single
+    marker holder (control outranks influence) before clearing the space;
+    **A046 French Intervention** "(or moves an EF)" teleports the chosen EF.
+  - **H-AU-7 Habsburg Dynasty** may remove an allied German minor's ally
+    marker (the printed Special overrides 12.8) and pays the printed +1 card
+    marker for two German allies; **H-AU-8 Kaiserreich** resolves the printed
+    rights/citizenship halves, the citizenship attempt rolling 3+ with +1 per
+    nationality already holding citizenship and the printed forgo-stability
+    +2 DRM stage; the **Nationalist Uprising** victim chooses stability -1 or
+    the random discard; **A087 Mahdist War** places the 0-value pacification
+    default (reducing an existing marker by 1 instead) and charges the -1 card
+    marker to the space's control-or-influence owner
+    (`nonPlayerPlacementLimits`, `cardTargetChoices`, `cardEventDefects`).
+  - **H-RU-10 God Save the Tsar, builds half:** "you can only gain 1 elite
+    corps through this event" rides on the event's free-build grant wallet
+    (`rules.ts#FreeCpGrant`, turn flag `godSaveTsarEc`): the first EC may be
+    paid from the grant, a second is refused with its own log; recruitment and
+    fort construction/upgrades spend from the grant wallet.  Both halves open
+    as the printed player choice before the A093-gated stability roll
+    (`flagEnforcement`, `turnDurationFlags`).
 - **Data:** 100 action cards 13–112, 12 home cards, 10 Great War cards, 49
   National Goals (48 in the campaign). Action types: 57 event, 23 mandatory,
   12 response, 7 combat, 1 mandatory-response. Action CP: 24×1, 54×2, 17×3, 5×4.
@@ -1059,6 +1109,19 @@ on 2026-11-24: every named blocker is live and pinned.
 
 ## 20 End phase — **Implemented**
 
+- **A026 Chinese Intervention, the printed 20.12 deadline (2026-11-26).**
+  "If the Qing army is not eliminated by the end of the turn remove the Qing
+  army and the control marker from the space. If the control marker is removed
+  the owning player must either decrease stability by 1 or gain a -1 card
+  marker."  The scan (`moves.ts#resolveQingInterventionDeadline`) now runs at
+  the top of the 20.12 step while `G.turn` is still the play turn: a surviving
+  Qing army loses its unit and rebellion and the space its control marker, the
+  expiry is logged (`qingInterventionExpired`), and the owner's choice opens as
+  the new `qingPenalty` end-phase pending routed through
+  `resolvePending`/`declinePending` — declining takes the printed stability
+  default, so an unattended end phase cannot stall, and resuming the suspended
+  20.12 step advances the turn exactly once.  Coverage:
+  `a26QingIntervention.test.ts` (4).
 - The live end phase (`beginEndPhase`, with `resolveEnd` as the deterministic
   one-shot driver) walks `engine/economy.ts#endPhaseOrder()` and suspends on
   decisions where the print offers a choice: **20.1** one army step or

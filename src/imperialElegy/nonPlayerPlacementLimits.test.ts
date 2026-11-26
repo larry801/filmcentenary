@@ -229,8 +229,11 @@ describe("event and rebel placements cannot exceed the printed rebel row", () =>
     resolvePending(G, ctx, "algeria");
     expect(unitsOf(G, "REBEL:Mahdi")).toHaveLength(1);
     expect(exhaustedLogs(G)).toHaveLength(1);
-    // The pacification marker and card-marker text still resolve.
-    expect(G.spaces.algeria.pacification).toBe(1);
+    // algeria's printed starting marker is already the 0 default, so the
+    // parenthetical reduces it no further; the -1 card marker still lands on
+    // the space's owner.
+    expect(G.spaces.algeria.pacification).toBe(0);
+    expect(G.powers.FR.cardMarkers).toBeLessThan(fresh().powers.FR.cardMarkers);
   });
 
   test("the Meiji Restoration army is limited to Japan's two-counter row", () => {

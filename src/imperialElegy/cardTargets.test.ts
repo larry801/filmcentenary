@@ -33,9 +33,7 @@ const unitByOwner = (G: ReturnType<typeof fresh>, space: string, owner: string) 
 test("Diplomatic Incident offers every minor alliance and removes the chosen one", () => {
   const G = fresh();
   G.spaces["qajar-persia"].ally = "RU";
-  G.spaces["qajar-persia"].diplomacy = "RU";
   G.spaces.tripoli.ally = "OT";
-  G.spaces.tripoli.diplomacy = "OT";
   const ctx = playEvent(G, "IE-A020");
 
   expect(G.pending?.kind).toBe("eventTargetSpace");
@@ -43,9 +41,12 @@ test("Diplomatic Incident offers every minor alliance and removes the chosen one
 
   resolvePending(G, ctx, "qajar-persia");
   expect(G.pending).toBeNull();
+  // 12.9 marker semantics: the alliance marker flips to its diplomacy side,
+  // so the former ally's diplomacy marker remains on the minor.
   expect(G.spaces["qajar-persia"].ally).toBeNull();
-  expect(G.spaces["qajar-persia"].diplomacy).toBeNull();
+  expect(G.spaces["qajar-persia"].diplomacy).toBe("RU");
   expect(G.spaces.tripoli.ally).toBe("OT");
+  expect(G.spaces.tripoli.diplomacy).toBeNull();
 });
 
 test("Chinese Intervention lets the player choose the Qing China space for the Qing army", () => {

@@ -5478,6 +5478,19 @@ export const resolveCardDecision = (
       G.spaces[space].ally = null;
       if (formerAlly !== null && G.spaces[space].diplomacy === null) G.spaces[space].diplomacy = formerAlly;
       log(G, actor, "minorAllianceRemoved", {space});
+    } else if (special === "secretTreaty") {
+      // "Remove that player's ally marker and replace it with your own."
+      gainMinorAlliance(G, actor, space);
+    } else if (special === "indianOceanArms") {
+      // "Decrease the value of a pacification marker by 1 (to a minimum of
+      // 0). Draw a card."
+      applyPacification(G, space, -1);
+      drawCards(G, ctx, actor, 1);
+    } else if (special === "crackColonialTroops") {
+      // The elite colonial EF arrives alone (it is an expedition, not a corps
+      // attached to an army), so this placement carries 5.1.3's placement
+      // exemption until the game has moved on (SETUP_PLACEMENT_FLAG).
+      placeUnit(G, actor, "eliteColonialEf", space, 1, {elite: true, flags: {[SETUP_PLACEMENT_FLAG]: G.turn}});
     } else {
       const then = (context.then as Effect[] | undefined) ?? [];
       if (then.length > 0) resolveEffects(G, ctx, actor, then, data);

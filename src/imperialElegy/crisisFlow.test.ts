@@ -365,7 +365,13 @@ describe("23.1 the inciting card's post-WTT text", () => {
     expect(resolvePending(G, next("0"), "roll")).toBeUndefined();
     expect(G.gw).toBeNull();
     expect(G.wtt).toBe(4);
-    // No outbreak, so "the rest of the text is followed".
+    // No outbreak, so "the rest of the text is followed": the errata gives the
+    // placement to the player (Istanbul is barred, and one space may take both
+    // armies now that the two-different-spaces clause is gone).
+    expect(G.pending?.kind).toBe("eventTargetSpace");
+    resolvePending(G, next("0"), "bosnia-herzegovina");
+    resolvePending(G, next("0"), "bosnia-herzegovina");
+    expect(G.pending).toBeNull();
     expect(G.spaces["bosnia-herzegovina"].rebellion).not.toBeNull();
   });
 

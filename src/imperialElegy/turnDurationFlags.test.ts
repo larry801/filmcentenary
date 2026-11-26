@@ -38,11 +38,13 @@ const printedTurnFlags = (): string[] => {
   return [...flags].sort();
 };
 
-test("the typed list covers every duration:turn flag in the card data (plus A41's handler flag)", () => {
+test("the typed list covers every duration:turn flag in the card data (plus the handler flags)", () => {
   // A41 is a `special` handler, so its `landDrm` flag never appears in the
-  // card data; it is the documented extra key.
+  // card data; H-RU-10's God Save the Tsar build cap (`godSaveTsarEc`) is
+  // likewise raised by the handler, not by card data.  Both are documented
+  // extra keys.
   expect(Object.keys(TURN_DURATION_FLAG_DEFAULTS).sort()).toEqual(
-    [...printedTurnFlags(), "landDrm"].sort(),
+    [...printedTurnFlags(), "landDrm", "godSaveTsarEc"].sort(),
   );
   expect(printedTurnFlags()).toEqual(
     expect.arrayContaining([

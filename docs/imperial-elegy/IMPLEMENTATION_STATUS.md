@@ -1,3 +1,70 @@
+## Fixed: the rules-audit card batch and the Chinese Intervention deadline (2026-11-26)
+
+Continuation of "按照规则pdf查找帝国挽歌实现问题并修复": the second audit
+batch re-read the printed card texts and the end phase against the live path.
+The batch first merged before its CI run had finished (branch 2f49697, merge
+dbe9148) while seven suites were still red locally; this commit repairs that
+state — the printed-text corrections from the batch stand, three of the
+interactive refactors had lost their resolution wiring and are wired here, and
+every stale test now matches the printed reading.
+
+- **A026 Chinese Intervention, the printed 20.12 deadline.**  "If the Qing
+  army is not eliminated by the end of the turn remove the Qing army and the
+  control marker from the space. If the control marker is removed the owning
+  player must either decrease stability by 1 or gain a -1 card marker."
+  `moves.ts#resolveQingInterventionDeadline` runs at the top of the 20.12 step
+  while `G.turn` is still the play turn: a surviving Qing army loses its unit
+  and rebellion, the space its control marker, the expiry is logged
+  (`qingInterventionExpired` formatter added), and the owner's choice opens as
+  the new `qingPenalty` end-phase pending routed through
+  `resolvePending`/`declinePending` (the decline default is the printed
+  stability loss; the suspended 20.12 step advances the turn exactly once).
+- **H-RU-10 God Save the Tsar, builds half.**  "you can only gain 1 elite
+  corps through this event": the cap rides on the event's free-build grant
+  wallet (`rules.ts#FreeCpGrant`, turn flag `godSaveTsarEc`) — the first EC
+  may be paid from the grant, a second is refused with its own log;
+  recruitment and fort construction/upgrades spend from the grant wallet.
+- **Card 74 Berlin Conference (errata).**  The seat order (active player, UK,
+  FR, GE, unified Italy's ally) repeats until every uncontrolled space on the
+  Africa submap carries a player marker.
+- **A073 Economic Panic.**  Every uneliminated player is asked in print order;
+  an empty hand is still asked and its "discard" converts to the printed -1
+  card marker at the player's own step.
+- **A015 Shifting Alliances (`effects.ts#shiftAllianceAway`).**  The second
+  power's shift direction was inverted, pulling it toward the first power in
+  every mixed track position; "shift both powers away from each other" now
+  moves each away.
+- **A038 Great Game.**  One marker holder per Afghanistan (control outranks
+  influence) takes the single -1 card marker before the marker is removed.
+- **Printed choices made real, and wired.**  A020 offers every allied minor and
+  flips the alliance marker to its diplomacy side (12.9); A053 Powder Keg's
+  rebel placement is the player's choice (errata: Istanbul barred, one space
+  may take both armies) with the 0 WoI marker on the rebellion record; A064
+  Secret Treaty offers every enemy-allied minor with the 4.2.1 cap bound;
+  A065's pacification marker is the player's choice and still draws the
+  printed card; A078's elite colonial EF goes to the key the player picks
+  (Russia: any controlled Asian space); A099 Dreadnought docks in a friendly
+  European port of the player's choice; A046 French Intervention "(or moves an
+  EF)" teleports the chosen EF; H-AU-7 may remove a German minor's ally marker
+  (the printed Special overrides 12.8) and pays the +1 card marker for two
+  German allies; H-AU-8 Kaiserreich resolves the printed rights/citizenship
+  halves with the printed sacrifice-DRM stage; the Nationalist Uprising victim
+  chooses stability -1 or the random discard; A087 Mahdist War places the
+  0-value pacification default (an existing marker is reduced by 1) and
+  charges the -1 card marker to the space's control-or-influence owner.  The
+  resolution wiring for A064/A065/A078 is this commit's repair: the batch had
+  turned the three auto-picks into printed player choices but dropped the
+  apply step.
+
+**Coverage:** `a26QingIntervention.test.ts` (4) plus the re-pointed
+`flagEnforcement` (A093 through the printed choice), `turnDurationFlags`
+census, `cardTargets` (A020 flip), `crisisFlow` (Powder Keg choice),
+`egyptKeyType` (A078 choice), `responseAlliance` (A064 choice),
+`nonPlayerPlacementLimits` (Mahdist 0 default) and `nationalityIntegration`
+(A065 choice and draw) — all green locally, `tsc --noEmit` clean.  Local
+testing stays lightweight per AGENTS.md §3; remote GitHub Actions remains the
+authority (§7/§10).
+
 ## Fixed: the rebels of a liberation war (2026-11-26)
 
 Reported as "按照规则pdf查找帝国挽歌实现问题并修复": a fresh pass over the

@@ -2,6 +2,7 @@ import {GOALS_BY_ID} from "./constant/goals";
 import {ImperialElegyState} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit, resolveEffects} from "./engine/effects";
+import {resolvePending} from "./moves";
 import {achievementReached} from "./engine/victory";
 import {recomputeTracks} from "./engine/rules";
 import {grantAuNewWayForward} from "./engine/nationality";
@@ -148,5 +149,21 @@ describe("Indian Ocean Arms Trade (IE-A065)", () => {
     expect(special(G, ctx, "GE", "flipReducedRebelToFull")).toBe(true);
     expect(G.units[full.id].steps).toBe(2);
     expect(G.powers.GE.hand.length).toBe(handBefore);
+  });
+
+  test("indianOceanArms lets the player choose the marker and still draws a card", () => {
+    const G = fresh();
+    const ctx = makeCtx();
+    // dagestan carries the printed +1 pacification marker at setup and is the
+    // only candidate above 0.
+    expect(G.spaces.dagestan.pacification).toBe(1);
+    const handBefore = G.powers.GE.hand.length;
+
+    expect(special(G, ctx, "GE", "indianOceanArms")).toBe(false);
+    expect(G.pending?.kind).toBe("eventTargetSpace");
+    resolvePending(G, ctx, "dagestan");
+    expect(G.spaces.dagestan.pacification).toBe(0);
+    expect(G.powers.GE.hand.length).toBe(handBefore + 1);
+    expect(G.pending).toBeNull();
   });
 });

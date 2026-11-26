@@ -53,11 +53,14 @@ test("the fixed-seed hotseat game reaches the Great War turn limit without a ref
   expect(game.result?.reason).toMatch(/^gwTurnLimit:/);
   expect(game.result?.winners.length).toBeGreaterThan(0);
   // The WTT crisis breaks out inside the campaign; GW turns 0–5 are then
-  // played, with the winter after GW turn 5 advancing to turn 6.  The season is
-  // read from this seed: it broke out on campaign turn 2 before the bot built
-  // reserve armies, and the extra army steps changed how fast the tension
-  // tracks fill.  The milestones below are the contract, not the season.
-  expect(game.turn).toBe(6);
+  // played, and the winter after GW turn 5 ends the match (the GW winters
+  // advance `gw.turn`, so the campaign turn stays at the outbreak turn — the
+  // same shape the pre-audit seed showed).  The season is read from this seed:
+  // the 2026-11-26 audit round fills the tension tracks faster (the Berlin
+  // Conference now cycles until every uncontrolled African space carries a
+  // marker, among the other printed corrections), so the outbreak moved from
+  // turn 6 to turn 3.  The milestones below are the contract, not the season.
+  expect(game.turn).toBe(3);
   expect(game.finalState.gw?.budgetTurn).toBe(5);
   expect(game.finalState.gw?.turn).toBe(6);
 });

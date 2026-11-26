@@ -443,6 +443,9 @@ describe("A093 Nicholas II", () => {
     G.powers.RU.hand.push("IE-H-RU-10");
     const before = G.powers.RU.stability;
     expect(playCard(G, makeCtx([roll], seat("RU")), "IE-H-RU-10", "event")).toBeUndefined();
+    // The printed halves are a player choice; the A093-gated stability roll
+    // is consumed when the chosen half resolves.
+    resolvePending(G, makeCtx([roll], seat("RU")), "builds");
     return G.powers.RU.stability - before;
   };
 
