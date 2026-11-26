@@ -64,19 +64,20 @@ jobs:
       - name: Check Imperial Elegy table textures
         run: yarn ie:table:check
 
-  # Fast signal: the unit suite needs no bundle.  Sharded two ways because no
+  # Fast signal: the unit suite needs no bundle.  Sharded three ways because no
   # file is long any more — the run is jest's per-file start plus the engine's
-  # import, 674 times — so half the files is half the wall clock.  jest's
-  # `--shard` deals the sequencer's order out by index, and the files are
-  # uniform enough for the two halves to land together.
+  # import, 674 times — so a third of the files is a third of the work.  jest's
+  # `--shard` deals the sequencer's order out by index, and 674 files of ~0.5 s
+  # are uniform enough for the thirds to land together (two halves measured
+  # 144 s against 102 s).
   test:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
-    name: test (${{ matrix.shard }}/2)
+        shard: [1, 2, 3]
+    name: test (${{ matrix.shard }}/3)
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
@@ -88,7 +89,7 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
       - name: Run unit tests
-        run: yarn test --ci --shard=${{ matrix.shard }}/2
+        run: yarn test --ci --shard=${{ matrix.shard }}/3
 
   # The seeded self-play suites under tools/ are outside `yarn test`'s paths
   # (see jest.config.js), so the games they play need their own explicit remote
@@ -391,11 +392,13 @@ jobs:
   # IE jobs it needs nothing from `build` and does not wait for it: it starts
   # as soon as the image is ready and overlaps the build and unit-test jobs.
   #
-  # Two shards.  The suite is 43 specs of real UI driving on three workers, and
-  # its longest single test is ~32 s, so the run is throughput-bound; Playwright
-  # deals the test list out by index (`--shard`), and `fullyParallel` keeps both
-  # halves busy.  The runner has two physical cores, which is why the worker
-  # count stays at three (see playwright.config.ts).
+  # Three shards.  The suite is 43 specs of real UI driving on three workers, and
+  # its longest single test is ~32 s, so the run is throughput-bound.  Three,
+  # not two: the specs are ordered by file, most files hold an even number of
+  # tests, and `--shard=x/2` therefore put a whole file in one half — two halves
+  # measured 37 s against 111 s.  An odd shard count interleaves the tests of
+  # every file instead.  The runner has two physical cores, which is why the
+  # worker count stays at three (see playwright.config.ts).
   e2e-app:
     needs: playwright-image
     runs-on: ubuntu-24.04
@@ -403,8 +406,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2]
-    name: e2e-app (${{ matrix.shard }}/2)
+        shard: [1, 2, 3]
+    name: e2e-app (${{ matrix.shard }}/3)
     container:
       image: ${{ needs.playwright-image.outputs.image }}:${{ needs.playwright-image.outputs.tag }}
       credentials:
@@ -429,7 +432,7 @@ jobs:
       - name: Link dependencies from the image cache
         run: yarn install --frozen-lockfile --offline --non-interactive
       - name: Run browser tests
-        run: yarn test:e2e --shard=${{ matrix.shard }}/2
+        run: yarn test:e2e --shard=${{ matrix.shard }}/3
       # Screenshots, traces and the HTML report are what a failure is
       # diagnosed from, so they are kept even when the run fails.
   # The 3D table is the one browser suite that needs WebGL.  It runs on its own
