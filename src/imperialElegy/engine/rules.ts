@@ -2131,6 +2131,28 @@ export const isTerritorialKeyForPower = (
   return true;
 };
 
+/**
+ * 12.4: "Newly built fleets must be placed in a controlled, territorial home
+ * key on the main map with a port."
+ *
+ * One gate for `constructFleet` and every caller that has to name a port the
+ * move will accept (the bot picks its dreadnought port from this).  A colonial
+ * home key on a submap (Canada, India, South Africa, Australia) has a port but
+ * is neither territorial nor on the main map, and A71 can reclassify a printed
+ * territorial key (Egypt) as colonial, so the live key type decides.
+ */
+export const fleetPlacementProblem = (
+  G: ImperialElegyState,
+  power: Power,
+  space: SpaceId,
+): "home" | "control" | "territorial" | "port" | null => {
+  if (!isHomeSpace(G, space, power)) return "home";
+  if (!ownsKey(G, space, power)) return "control";
+  if (SPACES[space]?.submap !== "main" || !isTerritorialKeyForPower(G, space, power)) return "territorial";
+  if (portBoxes(space).length === 0) return "port";
+  return null;
+};
+
 /** Recompute keys, manpower and PP from the board. */
 export const recomputeTracks = (G: ImperialElegyState): void => {
   // 33.1 German Confederation: "Whenever GE takes control of a German

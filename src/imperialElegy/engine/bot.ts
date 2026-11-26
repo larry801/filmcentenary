@@ -35,9 +35,13 @@ import {
   isPower,
   isHomeSpace,
   hostileOwner,
+  landStackingLimit,
   landUnitsIn,
   maneuverDestinationProblem,
+  movementEndProblem,
+  fleetPlacementProblem,
   navalUnitsIn,
+  PORT_NAVAL_LIMIT,
   ownsKey,
   commandsAlliedMinor,
   unitsOfPower,
@@ -874,10 +878,13 @@ const priorityOne = (G: ImperialElegyState, power: Power, ctx: Ctx): BotMove | n
   // 6. UK special: build dreadnoughts if able.
   if (power === "UK" && G.cpRemaining >= 3) {
     const unlocked = G.persistent.dreadnoughts === true || Boolean(p.flags.navalLimit);
-    if (unlocked) {
+    if (unlocked && hasCounterFor(G, power, "dreadnought")) {
+      // 12.4 asks the same gate `constructFleet` enforces, so a colonial port on
+      // a submap (Australia, Canada, India, South Africa) is never named: the
+      // move refused it and the bot re-sent it for the rest of the impulse.
       const ports = Object.values(SPACES)
-        .filter((def) => def.home === "UK" && (def.ports?.length ?? 0) > 0 && ownsKey(G, def.id, "UK"))
-        .filter((def) => navalUnitsIn(G, def.id).length < 4)
+        .filter((def) => fleetPlacementProblem(G, power, def.id) === null)
+        .filter((def) => navalUnitsIn(G, def.id).length < PORT_NAVAL_LIMIT)
         .map((def) => def.id)
         .sort();
       // 34.3.1: "Bot naval units will be placed in a random port they control
@@ -1090,7 +1097,10 @@ const botDeploySpace = (G: ImperialElegyState, power: Power): SpaceId | null => 
     if (!state) continue;
     if (state.control !== power && state.occupiedBy !== power) continue;
     if (!hasLoc(G, power, id, {landOnly: true})) continue;
-    if (landUnitsIn(G, id).filter((u) => isArmyKind(u.kind)).length >= 3) continue;
+    // 5.5.3's cap is the engine's own `landStackingLimit`, not a constant: a
+    // hardcoded 3 named a full space the move then refused, and the bot re-sent
+    // it for the rest of the impulse.
+    if (landUnitsIn(G, id).filter((u) => isArmyKind(u.kind)).length >= landStackingLimit(id)) continue;
     return id;
   }
   return null;
@@ -1223,6 +1233,10 @@ const wartimeRequiredAction = (G: ImperialElegyState, ctx: Ctx, power: Power): B
   for (const unit of Object.values(G.units)) {
     if (unit.owner !== power || unit.naval || !unit.space || unit.steps <= 0) continue;
     for (const to of neighboursOf(unit.space)) {
+      // 5.5.3: the move refuses an overstacked destination and `planWartimeLandMove`
+      // only knows distance and network, so without this the bot re-sent a
+      // refused march for every remaining impulse of the war.
+      if (movementEndProblem(G, to, [unit]) !== null) continue;
       const plan = planWartimeLandMove(G, power, unit.id, to);
       if (plan.ok) return {move: "redeploy", args: [unit.id, to]};
     }
