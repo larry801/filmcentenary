@@ -853,7 +853,7 @@ export const useBoardModel = ({
       if (!state) return false;
       return state.units.some((uid) => {
         const u = G.units[uid];
-        return u !== undefined && !u.naval && legalLandBattleTarget(G, viewer, u.owner);
+        return u !== undefined && !u.naval && legalLandBattleTarget(G, viewer, u.owner, id);
       });
     });
   };

@@ -1093,6 +1093,28 @@ on 2026-11-24: every named blocker is live and pinned.
 
 ## 21–23 Rebels, Italy/Poland, crisis
 
+- **Rebels in wars of liberation (13.1.1 / 21.2 / 21.4, 2026-11-26).**  Three
+  printed clauses the engine used to miss, fixed together:
+  - 21.4's first-strike rule — a space holding rebel armies *and* units of
+    enemy powers was resolved with the rebels defending inside the same
+    battle.  `combat.ts#landBattleForces` now strips the rebels from the
+    defence force whenever an enemy-power unit defends too; the attacker may
+    turn on them on a later impulse (or from a decisive battle), and a
+    rebel-only space remains the legal rebel battle of 12.16.
+  - 13.1.1's friendly rebels — rebels standing in a liberation war's targeted
+    spaces are friendly to the attacking side (`rules.ts#hostileOwner` gains
+    the space-aware liberation check; `legalLandBattleTarget` follows), so the
+    attacker can no longer be forced to fight the very rebels the aim
+    liberates.  The defender still fights them, and rebels outside the
+    objectives stay hostile to everyone.
+  - 21.2's occupation-for-the-attacker — a solely-rebel objective counts as
+    held by the attacking side (`limitedWar.ts#spaceHeldBySide`), which is what
+    makes a liberation war winnable without garrisoning; `rules.ts`
+    `locFriendlySpace` supplies a stack standing in such a space, and
+    `recordOccupation` marks the side's own occupation beside friendly rebels
+    (21.4's occupation exception) while hostile rebels keep blocking both.
+  Coverage: `liberationRebels.test.ts` (9).
+
 - Rebels, per-space WoI state, control denial and rebel armies — **implemented**
   as state plus card/GW events.  21.1's key penalty is applied in
   `recomputeTracks` whenever a space actually contains a rebel army, and 21.0's
