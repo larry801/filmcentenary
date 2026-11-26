@@ -495,15 +495,19 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
             {me.industryCard ? cardName(me.industryCard, locale) : bi(locale, "empty", "空")}
           </span>
         </div>
-        <div className="ie-mat-slot" data-testid="ie-mat-cp-chain">
-          <span className="ie-mat-slot-label">{t.cpChain}</span>
-          <span className="ie-mat-slot-value">
-            {me.cpChain.length === 0
-              ? <span className="empty">{bi(locale, "empty", "空")}</span>
-              : me.cpChain.map((id) => <span key={id} className="ie-mat-chain-card">{cardName(id, locale)}</span>)}
-            <small>{me.cpChain.length}/2</small>
-          </span>
-        </div>
+        {/* 25.1 empties every hand at the outbreak and the CP chain belongs to
+            the action phase, so the slot has nothing to say in the war. */}
+        {!G.gw?.active && (
+          <div className="ie-mat-slot" data-testid="ie-mat-cp-chain">
+            <span className="ie-mat-slot-label">{t.cpChain}</span>
+            <span className="ie-mat-slot-value">
+              {me.cpChain.length === 0
+                ? <span className="empty">{bi(locale, "empty", "空")}</span>
+                : me.cpChain.map((id) => <span key={id} className="ie-mat-chain-card">{cardName(id, locale)}</span>)}
+              <small>{me.cpChain.length}/2</small>
+            </span>
+          </div>
+        )}
         <div className="ie-mat-slot" data-testid="ie-mat-goals">
           <span className="ie-mat-slot-label">{t.goals} · {goals.length}</span>
           <span className="ie-mat-slot-value">
@@ -567,8 +571,12 @@ export const PlayerMat = ({G, viewer, me, active, locale, t, onOpenReference, fo
               </dd>
             </>
           )}
-          <dt>{t.cpChain}</dt>
-          <dd>{me.cpChain.length === 0 ? "—" : me.cpChain.map((id) => cardName(id, locale)).join(", ")}</dd>
+          {!G.gw?.active && (
+            <>
+              <dt>{t.cpChain}</dt>
+              <dd>{me.cpChain.length === 0 ? "—" : me.cpChain.map((id) => cardName(id, locale)).join(", ")}</dd>
+            </>
+          )}
         </dl>
       </div>
     </section>
