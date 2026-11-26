@@ -486,6 +486,41 @@ export const HandTray = (props: HandTrayProps) => {
       {shownOpen && (
         <div className="ie-tray-body" id="ie-tray-body">
           <div className="ie-tray-scroll">
+            {/* 27.1/27.2: a seat's Great War card is the one card that is not in
+                the hand.  It used to be drawn as a 126×118 thumbnail of a
+                300×380 face, which put the printed text on screen at 5 px and
+                read as a blur.  It is a ledger row now — CP, title and the
+                printed line — with its two plays at the end of that row; the
+                face itself is one tap away in the inspector. */}
+            {G.gw?.active && me.gwCard && (phase === "gwPlanning" || phase === "gwManeuver") && (() => {
+              const gwId = me.gwCard!;
+              const gwCard = cardById(gwId);
+              const gwTitle = cardDisplayName(gwCard, locale);
+              return (
+                <section className="ie-tray-gw" data-testid={`ie-gw-card-${gwId}`} data-card-id={gwId}>
+                  <div className="ie-section-title">
+                    {bi(locale, "Great War card", "大战卡")} · {bi(locale, "war budget", "战争预算")} {me.gwBudget ?? 0}
+                  </div>
+                  <article className="ie-card ie-gw-card">
+                    <button type="button" className="ie-card-open" data-testid={`ie-open-gw-card-${gwId}`}
+                      aria-haspopup="dialog"
+                      aria-label={`${bi(locale, "Great War card", "大战卡")}: ${gwTitle}`}
+                      title={bi(locale, `Read ${gwTitle}`, `查看 ${gwTitle}`)}
+                      onClick={() => openInspector({card: gwCard}, gwId)}>
+                      <span className="ie-gw-head">
+                        <span className="ie-card-cp">{gwCard.cp}</span>
+                        <span className="ie-card-name">{gwTitle}</span>
+                      </span>
+                      <span className="ie-gw-text" data-testid={`ie-gw-text-${gwId}`}>
+                        {locale === "zh_CN" ? gwCard.textZh : gwCard.text}
+                      </span>
+                    </button>
+                    <div className="ie-card-actions">{gwActionButtons(gwId, "tray")}</div>
+                  </article>
+                </section>
+              );
+            })()}
+
             <div className="ie-cp-chain" data-testid="ie-cp-chain">
               <span className="ie-tray-chain-title">{t.cpChain}</span>
               <span className="ie-cp-chain-total" data-testid="ie-cp-chain-total">{chainSpendable}/{chainCap}</span>
@@ -589,23 +624,6 @@ export const HandTray = (props: HandTrayProps) => {
 
             <div className="ie-tray-extras">
               {responseWindow && <div className="ie-hint ie-response-hint">{bi(locale, "Response window: you may play a response card instead of an impulse.", "响应窗口：你可以打出响应牌代替本次行动。")}</div>}
-
-              {G.gw?.active && me.gwCard && (phase === "gwPlanning" || phase === "gwManeuver") && (() => {
-                const gwId = me.gwCard!;
-                const gwCard = cardById(gwId);
-                return (
-                  <div className="ie-tray-gw" data-testid={`ie-gw-card-${gwId}`}>
-                    <div className="ie-section-title">{bi(locale, "Great War card", "大战卡")} · {t.cp}: {me.gwBudget ?? 0}</div>
-                    <article className="ie-card ie-card-standalone">
-                      <button type="button" className="ie-card-open" data-testid={`ie-open-gw-card-${gwId}`}
-                        onClick={() => openInspector({card: gwCard}, gwId)}>
-                        {cardFace(gwCard)}
-                      </button>
-                      <div className="ie-card-actions">{gwActionButtons(gwId, "tray")}</div>
-                    </article>
-                  </div>
-                );
-              })()}
 
               {me.goals.length > 0 && (
                 <div className="ie-tray-goals">

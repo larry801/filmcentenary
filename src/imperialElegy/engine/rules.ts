@@ -2869,7 +2869,17 @@ export const hasPacificationMarker = (G: ImperialElegyState, space: SpaceId): bo
 };
 
 export const log = (G: ImperialElegyState, power: Power | undefined, key: string, args?: Record<string, unknown>): void => {
-  G.log.push({id: G.nextLogId++, turn: G.turn, phase: G.phase, power, key, args});
+  // `G.turn` is the campaign turn and stops advancing at the outbreak (27.0),
+  // so a Great War entry has to carry its own clock for the log's marker.
+  G.log.push({
+    id: G.nextLogId++,
+    turn: G.turn,
+    phase: G.phase,
+    power,
+    key,
+    args,
+    ...(G.gw?.active === true ? {gwTurn: G.gw.turn} : {}),
+  });
 };
 
 export const powerLabel = (p: Power): string => POWER_DEFS[p].name;

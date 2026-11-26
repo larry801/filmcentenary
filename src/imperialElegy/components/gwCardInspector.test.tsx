@@ -61,6 +61,8 @@ import {HandTray} from "./HandTray";
 import type {HandTrayProps} from "./HandTray";
 import {CardInspector} from "./CardInspector";
 import {ieT} from "./i18n";
+import {CARD_BY_ID} from "../engine/deck";
+import {CardFace} from "./CardFace";
 
 const testCtx = {
   random: {Die: () => 1, Number: () => 1, Shuffle: (a: unknown[]) => a},
@@ -277,6 +279,26 @@ describe("the Great War card's inspector", () => {
     expect(byTestId(tree, `ie-gw-event-${GW_CARD}`)).toBeTruthy();
   });
 
+  test("the tray block reads the card instead of drawing a thumbnail of it", () => {
+    const G = gwSeat();
+    const tree = render(trayProps(G));
+    const card = CARD_BY_ID[GW_CARD];
+    // Reported as "现有界面显示也有点模糊": the block used to draw the 300×380
+    // face in a 126×118 box, which put the printed text on screen at 5 px.
+    // The row now carries the CP, the title and the printed line, and the face
+    // is the inspector's job.
+    expect(byTestId(tree, `ie-gw-text-${GW_CARD}`)!.props.children).toBe(card.textZh);
+    const section = byTestId(tree, `ie-gw-card-${GW_CARD}`)!;
+    expect(section.props.className).toContain("ie-tray-gw");
+    let faces = 0;
+    walk(section.props.children, (element) => {
+      if (element.type === CardFace) faces += 1;
+    });
+    expect(faces).toBe(0);
+    // The whole row opens the inspector, exactly like a hand row does.
+    expect(openButton(tree, `ie-open-gw-card-${GW_CARD}`).props["aria-haspopup"]).toBe("dialog");
+  });
+
   test("a hand card's dialog still closes when the played card leaves the hand", () => {
     const G = gwSeat();
     const id = G.powers.GE.hand[0];
@@ -287,5 +309,31 @@ describe("the Great War card's inspector", () => {
 
     G.powers.GE.hand = G.powers.GE.hand.filter((card) => card !== id);
     expect(inspector(render(trayProps(G)))).toBeUndefined();
+  });
+
+  test("GW #2's turn-0 event button follows the move's own offer", () => {
+    // Reported as "HandTray 只用 gwCardProblem 判断 GW 卡按钮，所以 UI 同样会给出
+    // 引擎会拒绝的 GW-02 as event": the tray has only `gwCardProblem` to go on,
+    // so the card's play window must be that function's, not a second copy in
+    // `playGwCardMove`.  GW #2 is the card with a turn-0 exception (25.3's
+    // outbreak Italy), so it is the one that can disagree.
+    const G = gwSeat();
+    G.powers.GE.gwCard = "IE-GW-02";
+    G.gw!.turn = 0;
+    G.persistent.italyUnified = true;
+    G.persistent.italyIndependent = false;
+    G.gw!.italyIn = false;
+    G.gw!.italySurrendered = false;
+    G.gw!.italyStability = 3;
+    G.flags.gwMajorEntryOutbreak = false;
+    // A unified Italy outside the war is the one offer the card has on turn 0.
+    expect(byTestId(render(trayProps(G)), "ie-gw-event-IE-GW-02")!.props.disabled).toBe(false);
+
+    // Italy already joined (or the offer was spent): the move refuses, so the
+    // button must be shut rather than offering a play that does nothing.
+    G.gw!.italyIn = true;
+    const shut = byTestId(render(trayProps(G)), "ie-gw-event-IE-GW-02")!;
+    expect(shut.props.disabled).toBe(true);
+    expect(shut.props.title).toBe("本轮卡牌窗口已关闭。");
   });
 });

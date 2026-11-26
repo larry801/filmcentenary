@@ -1,3 +1,85 @@
+## Fixed: the GW card's buttons and the move ask one gate (2026-11-26)
+
+Reported as "帝国挽歌 `HandTray` 只用 `gwCardProblem` 判断 GW 卡按钮，所以 UI 同样会给出引擎会拒绝的 GW-02「as event」": the tray has exactly one source for its two GW
+buttons, so every window the reducer re-checks on its own is a window the tray
+can offer and the click then drops.  GW #2 was the live one — its printed
+"cannot be played on GW turn 0" has one exception (25.3's outbreak Italy), and
+that exception existed twice: as a hand-written copy of
+`majorEntryOptions(...).includes("IT")` in `gwImpulse`, and as the card's real
+option list in `greatWarFlow`.
+
+- **One predicate.** `gwMajors.ts#gw02EventOpen` is now the only place the
+  question is answered: the war is running, the seat is on a side, and either
+  GW turn 1+ or the one turn-0 Italy offer is unspent.  `gwCardProblem` reads it
+  for the event button, `majorEntryCandidates` reads it for the card's `IT`
+  option (so `majorEntryOptions`, which `playGwCardMove` re-checks, cannot
+  differ), and the private mirror plus its `gwCardPlayedThisOutbreak` helper are
+  gone.
+- **The empty slot is refused too.** `gwCardProblem` returned `null` on the
+  pre-27.1 path when the seat had no GW card in its slot, while
+  `playGwCardMove` refused outright; the bot could propose that event from a
+  neutral impulse.  The gate now opens with `cardWindow` for a missing card, as
+  the 27.1 path already did.
+- **The tray's own test.** The turn-0 GW #2 event button is asserted open while
+  the Italy offer stands and shut (with the "card window" reason) once Italy is
+  in the war, so the report's case is pinned at the UI, not only in rules tests.
+
+**Coverage:** `gwImpulseRules.test.ts` (+1: five branches of GW #2's turn-0
+window — offer open, Italy in, offer spent, GW turn 1, no card — each asserting
+`gwCardProblem`'s answer and `playGwCardMove`'s together), and
+`components/gwCardInspector.test.tsx` (+1: the tray's event button).  A
+throwaway 768-state differential (turn 0/1 × live ledger/legacy × neutral ×
+Italy availability × spent offer × planning/maneuver, full and redacted view)
+found the tray and the move agreeing everywhere afterwards; before the empty-slot
+fix it found 192 refusals the tray called playable.  Local: `tsc --noEmit`, the
+nine affected engine suites (185 tests) and the 68 `components` suites (1535
+tests).  Remote GitHub Actions remains the authority (AGENTS.md §7/§10).
+
+## Fixed: the Great War card's play reaches the record (2026-11-26)
+
+Reported as "帝国挽歌大战卡牌打出记录里面没有显示 现有界面显示也有点模糊": playing a
+seat's Great War card left no line in the record, and the only drawing of that
+card was a 126×118 thumbnail of its 300×380 face — the printed text came out at
+5 px.
+
+- **The play is announced (27.1/27.2).** `moves.playGwCardMove` wrote no log at
+  all; only `playCard` logged `cardPlayed`, so the record showed the action a
+  card-funded bonus paid for but never the card, and the slot emptied silently.
+  Both modes now log `gwCardPlayed` (`{card, mode: "bonus" | "event"}`) before
+  the card leaves `gwCard` — the same announce the action phase makes in
+  `playCard` (12.0/12.1), and the family `RULES_COVERAGE.md` already lists for
+  27.2.
+- **Every seat reads it.** `gwCardPlayed` joins `PUBLIC_CARD_ARG_KEYS`: a GW
+  card is hidden in `powers[].gwCard` until it is played, and the play is the
+  reveal (faceup at the table).  The impulse ledger now carries the played card
+  (`GwImpulseState.cardId`, written by `noteGwCard`) so the dock can name it;
+  a card still in hand stays unreadable because the field is only written at the
+  play.
+- **The record says when.** `G.turn` stops advancing at the outbreak, so every
+  Great War line read `T7` — the same number for the whole war.  `log()` now
+  stamps `gwTurn` while the war runs and the log's marker reads `GW n`, exactly
+  like the strip's token.
+- **The tray draws the card, not a blur of it.** The GW slot is a ledger row in
+  the tray above the hand — CP chip, title, the printed line, then its two plays
+  — instead of a 126×118 thumbnail; the face is the inspector's job, one tap on
+  the row.  Its heading names the war budget (it read "剩余 CP", which is the
+  budget, not the card's CP), and the dock's bonus line names the card that
+  funded it.
+
+**Coverage:** `gwCardLog.test.ts` (3: both modes' lines with actor, turn and
+card chip; the play public to another seat while the held card stays hidden;
+the ledger's `cardId`), `actionHints.test.ts` (+1: the bonus line names the
+card in both languages), `LogList.test.tsx` (+2: `GW n` replaces the frozen
+campaign turn and keeps the chip; a campaign line keeps `T n`),
+`gwCardInspector.test.tsx` (+1: the tray row prints the card's text and draws no
+face), and `gwImpulseRules.test.ts`'s ledger-privacy assertion now pins the
+played card as public.  Local: `tsc --noEmit`, the 380 `src/imperialElegy`
+suites (5006 tests), `ie:tokens:check`, `ie:contrast`.  Remote GitHub Actions
+remains the authority (AGENTS.md §7/§10); verified in the browser through the
+solo Historical Great War — the record reads
+`GW 0 德国将 ⟨1⟩【C】现代战争黎明 作为大战奖励行动打出。` and the chip opens the read-only
+inspector.
+
 ## Added: flashpoint and power-projection hints, on the printed chart's data (2026-11-26)
 
 Reported as "帝国挽歌给 flash point和powerprojection 增加提示": the map shaded its

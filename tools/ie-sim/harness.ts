@@ -890,8 +890,8 @@ export function runSeededGame(opts: SimOptions): SimResult {
         const card = before.powers[power as Power]?.gwCard ?? "";
         const mode = String((decision.args ?? [])[0] ?? "");
         refusedGwCards.add(`${power}:${card}:${mode}`);
-        // The move re-checks more than `gwCardProblem` (GW-05's facedown
-        // window, GW-02's turn-0 gate), so name the whole state once.
+        // `gwCardProblem` is the whole gate the move and the tray share, so a
+        // refusal here should name the impulse state that closed it.
         reason = ` [playGwCardMove power=${String(power)} card=${card} mode=${mode}`
           + ` problem=${String(gwCardProblem(before, power as Power, mode as "event" | "cp"))}`
           + ` neutral=${String(before.gw?.neutralImpulses)} active=${String(before.activePower)}`
