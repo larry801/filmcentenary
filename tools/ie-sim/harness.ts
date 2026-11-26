@@ -21,6 +21,8 @@ import {hasCounterFor} from "../../src/imperialElegy/engine/counters";
 import {placeUnit} from "../../src/imperialElegy/engine/effects";
 import {atWar, controlledBy, maneuverDestinationProblem, friendlySpace, hostileOwner, navalUnitsIn, ownsKey, PORT_NAVAL_LIMIT} from "../../src/imperialElegy/engine/rules";
 import {performGwManeuver} from "../../src/imperialElegy/engine/greatWarFlow";
+import {gwCardProblem} from "../../src/imperialElegy/engine/gwImpulse";
+import {facedownGwCombatCards} from "../../src/imperialElegy/engine/combatCards";
 import {hasTruce, validateWarAim} from "../../src/imperialElegy/engine/limitedWar";
 import {outbreakGreatWar} from "../../src/imperialElegy/engine/greatWar";
 import {checkAll, formatViolation, formatViolations, type CheckLevel} from "../../src/imperialElegy/testing/invariants";
@@ -873,6 +875,7 @@ export function runSeededGame(opts: SimOptions): SimResult {
       const err = transient.error;
       event.status = err.type === "InactivePlayer" ? "invalid" : "invalid";
       event.error = `${err.type}: ${JSON.stringify(err.payload ?? null)}`;
+      let reason = "";
       // Ask the flow itself why a GW maneuver was refused; the reducer only
       // says "invalid_move", which cannot distinguish a real engine refusal
       // from a bad heuristic in this harness.
@@ -887,6 +890,12 @@ export function runSeededGame(opts: SimOptions): SimResult {
         const card = before.powers[power as Power]?.gwCard ?? "";
         const mode = String((decision.args ?? [])[0] ?? "");
         refusedGwCards.add(`${power}:${card}:${mode}`);
+        // The move re-checks more than `gwCardProblem` (GW-05's facedown
+        // window, GW-02's turn-0 gate), so name the whole state once.
+        reason = ` [playGwCardMove power=${String(power)} card=${card} mode=${mode}`
+          + ` problem=${String(gwCardProblem(before, power as Power, mode as "event" | "cp"))}`
+          + ` neutral=${String(before.gw?.neutralImpulses)} active=${String(before.activePower)}`
+          + ` phase=${before.phase} facedown=${facedownGwCombatCards(before).length}]`;
       }
       if (decision.move === "recruit") {
         // 4.2's British/Indian counter and manpower ceilings refuse this build;
@@ -900,7 +909,6 @@ export function runSeededGame(opts: SimOptions): SimResult {
         const [from, to] = (decision.args ?? []) as [string, string];
         if (from && to) refusedNaval.add(`${from}|${to}`);
       }
-      let reason = "";
       if (err.type === "action/invalid_move" && decision.move === "declareWar") {
         const args = decision.args ?? [];
         reason = ` [declareWar power=${String(power)} active=${before.activePower} war=${before.war ? "yes" : "no"} wtt=${before.wtt} cp=${before.cpRemaining} args=${JSON.stringify(args)}]`;

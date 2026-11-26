@@ -380,6 +380,7 @@ export const OrdersRegion = (props: OrdersSlice & {
             selectedUnitIds={selectedUnitIds}
             pending={pending} canDecide={canDecide}
             doAction={doAction} moves={moves}
+            onOpenReference={onOpenReference}
           />
         ),
         influence: (
@@ -908,6 +909,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
             art={tableArt}
             onViewChange={setMapView}
             onArtChange={setTableArt}
+            onOpenReference={(anchor) => setRefAnchor(anchor)}
           />
         </div>
 

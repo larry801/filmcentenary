@@ -1,9 +1,11 @@
 import {FLASHPOINT_REGIONS, convexHull, flashpointHulls} from "./flashpoints";
 
 describe("flashpoint shading", () => {
-  test("the rules name seven flashpoint theatres", () => {
+  test("the printed chart names nine flashpoint theatres", () => {
+    // The map chart's callouts: Balkans, Central Europe, Lowlands, China &
+    // Japan, Italy, Great Game, Germany, Africa and the Caucasus.
     expect(FLASHPOINT_REGIONS.map((region) => region.id).sort()).toEqual([
-      "africa", "balkans", "centralEurope", "chinaJapan",
+      "africa", "balkans", "caucasus", "centralEurope", "chinaJapan",
       "germany", "greatGame", "italy", "lowCountries",
     ].sort());
   });

@@ -161,6 +161,15 @@
 
 .ie-key-count { margin-left: 2px; color: var(--ie-on-dark); font-weight: 600; }
 
+/* The hatch key.  It explains the board's shading, not a target ring, so it
+   drops the ring swatch every other key entry gets and shows the hatch itself. */
+.ie-key-flashpoint { color: var(--ie-overprint-text-dark); gap: 4px; }
+.ie-key-flashpoint::before { content: none; }
+button.ie-key-flashpoint { background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
+button.ie-key-flashpoint:hover { text-decoration: underline; }
+button.ie-key-flashpoint:focus-visible { outline: 2px solid var(--ie-focus-dark); outline-offset: 2px; }
+.ie-key-hatch { flex: 0 0 auto; }
+
 .ie-unit-token { display: block; overflow: visible; pointer-events: none; }
 
 .ie-unit-token > polygon { fill: var(--ie-power-neutral); stroke: var(--ie-paper); stroke-width: 1.2; vector-effect: non-scaling-stroke; }

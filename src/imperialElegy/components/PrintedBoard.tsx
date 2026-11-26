@@ -495,6 +495,7 @@ const FlashpointLabels = () => (
       {text: "ITALY", x: 2220, y: 2810, rotate: 0},
       {text: "BALKANS", x: 3150, y: 2820, rotate: -38},
       {text: "AFRICA", x: 2570, y: 3750, rotate: 0},
+      {text: "CAUCASUS", x: 4880, y: 2380, rotate: -6},
       {text: "THE GREAT GAME", x: 5410, y: 1050, rotate: -10},
       {text: "CHINA & JAPAN", x: 6150, y: 1160, rotate: -16},
     ].map((label) => (

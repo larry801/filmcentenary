@@ -202,7 +202,7 @@ import {
   refreshBattleDrmSnapshot,
 } from "./engine/combat";
 import {recordBattleDrm} from "./engine/battleDrm";
-import {facedownGwCombatCards, isCombatCardId} from "./engine/combatCards";
+import {isCombatCardId} from "./engine/combatCards";
 import {usArmyMayLeaveNorthAmerica, usCanLeaveNorthAmerica} from "./engine/gwMajors";
 import {
   auIncorporateDecision,
@@ -321,8 +321,8 @@ import {
   transferGwMajorBudget,
 } from "./engine/greatWarFlow";
 import {
-  currentGwImpulse, gwActionAllowance, gwCanEndTurn, gwCardProblem,
-  gwFinishImpulseProblem, hasLiveGwImpulse, noteGwCard, recordGwAction,
+  canPlayGw05Event, currentGwImpulse, gwActionAllowance, gwCanEndTurn, gwCardProblem,
+  gwFinishImpulseProblem, gwImpulseKey, hasLiveGwImpulse, noteGwCard, recordGwAction,
 } from "./engine/gwImpulse";
 import {
   allyCallEligibility,
@@ -9491,26 +9491,6 @@ const discardGwCard = (G: ImperialElegyState, cardId: CardId): void => {
   if (!G.gw) return;
   const pile = G.gw.discard ?? (G.gw.discard = []);
   pile.push(cardId);
-};
-
-/** Identify the current GW impulse so a one-per-impulse event stays spent. */
-const gwImpulseKey = (G: ImperialElegyState): string =>
-  G.gw?.impulseSeq === undefined
-    ? `${G.gw?.turn ?? 0}:${G.turnIndex}:${G.activePower}`
-    : `${G.gw.turn}:impulse${G.gw.impulseSeq}:${G.activePower}`;
-
-/**
- * GW-05 "Capable Commander" may be played as a normal event at the start of a
- * player's GW impulse to flip a facedown GW combat card.  Its battle reroll
- * mode is handled by `combat.ts` and never reaches this move.
- */
-const canPlayGw05Event = (G: ImperialElegyState, power: Power): boolean => {
-  if (G.phase !== "gwManeuver" || G.gw?.active !== true) return false;
-  if (G.activePower !== power) return false;
-  if (G.pending !== null || G.battle !== null) return false;
-  if (Number(G.powers[power].flags.gwActionsThisImpulse ?? 0) !== 0) return false;
-  if (G.flags.gw05PlayedImpulse === gwImpulseKey(G)) return false;
-  return facedownGwCombatCards(G).length > 0;
 };
 
 export const playGwCardMove = (G: ImperialElegyState, ctx: Ctx, mode: "event" | "cp"): string | void => {

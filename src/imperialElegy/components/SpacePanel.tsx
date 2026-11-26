@@ -27,6 +27,7 @@ import {IEPanel} from "./theme";
 import {RuleLink} from "./RuleRef";
 import {ieT} from "./i18n";
 import {bi, controlLabel, unitIsCommanded, unitLabel} from "./boardHelpers";
+import {spaceFlashpointLines} from "./flashpointHints";
 import {ACTION_GROUP_LABELS, ACTION_GROUP_ORDER, type ActionGroupId, type SpaceAction} from "./actionAvailability";
 import {readShowUnavailable, writeShowUnavailable} from "./preferences";
 import {useSpaceActions} from "./spaceActionModel";
@@ -84,12 +85,14 @@ export interface SpaceDetailPanelProps extends SpaceBaseProps {
   /** Runs a move; `describe` lets the board explain a refusal. */
   doAction: (fn: () => void, describe?: {label: string; reason?: string}) => void;
   moves: Record<string, (...args: any[]) => void>;
+  /** Opens the reference drawer at the flashpoint chart. */
+  onOpenReference?: (anchor: string) => void;
 }
 
 export const SpaceDetailPanel = (props: SpaceDetailPanelProps) => {
   const {
     G, selected, viewer, me, locale, t,
-    selectedUnitIds = [], pending, canDecide, doAction, moves,
+    selectedUnitIds = [], pending, canDecide, doAction, moves, onOpenReference,
   } = props;
 
   const selectedSpace = selected ? SPACES[selected] : null;
@@ -107,6 +110,19 @@ export const SpaceDetailPanel = (props: SpaceDetailPanelProps) => {
             <strong>{t.fort}:</strong> {selectedState.fort ? `${selectedState.fort.level} (${selectedState.fort.power})` : "—"} · <strong>{t.pacification}:</strong> {selectedState.pacification ?? 0} · <strong>{t.rebellion}:</strong> {selectedState.rebellion ? `${selectedState.rebellion.minor} (${selectedState.rebellion.step})` : "—"}
           </div>
           {selectedSpace.ports?.length ? <div><strong>{t.ports}:</strong> {selectedSpace.ports.map((p) => spaceLabel(p, locale)).join(", ")}</div> : null}
+          {selectedSpace.flashpoints?.length ? (
+            <div data-testid="ie-space-flashpoints">
+              <strong>{bi(locale, "Flashpoints", "闪点")}:</strong>{" "}
+              {spaceFlashpointLines(G, selected!, viewer, locale).join(" · ")}{" "}
+              <RuleLink
+                anchor="chart:map-flashpoints"
+                locale={locale}
+                label={bi(locale, "Flashpoints chart", "闪点图表")}
+                onOpenReference={onOpenReference}
+                testId="ie-space-flashpoint-ref"
+              />
+            </div>
+          ) : null}
           {effectiveKeyType(G, selected!) !== undefined && (
             <div data-testid="ie-space-key-type">
               <strong>{t.keyType}:</strong>{" "}

@@ -74,6 +74,18 @@ const setStability = (G: ImperialElegyState, major: GwMajor, value: number): voi
 export const hasSurrendered = (G: ImperialElegyState, major: GwMajor): boolean =>
   major === "US" ? G.gw?.usSurrendered === true : G.gw?.italySurrendered === true;
 
+/**
+ * 25.3 / GW #2: a unified Italy that stayed out of the war can still be
+ * brought in.  Shared with `majorEntryCandidates`, which decides the card's
+ * real options, so the turn-0 play gate and the resolver cannot drift.
+ */
+export const italyEntryAvailable = (G: ImperialElegyState): boolean =>
+  G.persistent.italyUnified === true &&
+  !G.gw?.italyIn &&
+  G.persistent.italyIndependent !== true &&
+  !hasSurrendered(G, "IT") &&
+  (G.gw?.italyStability ?? 0) > 0;
+
 /** Whether `major` is currently fighting in the Great War. */
 export const gwMajorFighting = (G: ImperialElegyState, major: GwMajor): boolean =>
   G.gw?.active === true && !hasSurrendered(G, major) && gwMajorSide(G, major) !== null;
