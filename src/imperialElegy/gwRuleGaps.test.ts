@@ -7,7 +7,7 @@ import type {BattleState, GreatWarState, ImperialElegyState, Power} from "./type
 import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {MINOR_POWER_HOMES} from "./constant/setup";
-import {italianUnificationSpaces} from "./engine/rules";
+import {flashpointController, italianUnificationSpaces} from "./engine/rules";
 import {placeUnit, removeUnit} from "./engine/effects";
 import {finishBattle} from "./engine/combat";
 import {gwDraft, gwPass, pass, placeItalyMpit, resolvePending} from "./moves";
@@ -154,8 +154,9 @@ describe("28.2 Great War forts", () => {
     G.spaces.saxony.fort = {power: "FR", level: 2};
     finishBattle(G, makeCtx(3));
     expect(G.pending?.options.map((entry) => entry.id) ?? []).not.toContain("cancelRetreatFort");
-    // The garrison was eliminated, so 18.7 leaves the fort; 28.2 then degrades it.
-    expect(G.spaces.saxony.fort?.level).toBe(1);
+    // 12.12 (round-5 reading): the advancing attacker's entry into the space
+    // eliminates the fort even when the garrison was annihilated in place.
+    expect(G.spaces.saxony.fort).toBeNull();
   });
 });
 
@@ -249,19 +250,26 @@ describe("22.1 Italian Minor Power Table", () => {
     expect(G.flags.italyPetition).toBe(true);
   });
 
-  test("the +1 unification-box marker is read by the unification roll", () => {
+  test("the unification-box card marker is not a roll DRM (22.1.5)", () => {
     const G = fresh();
     for (const space of italianUnificationSpaces()) G.spaces[space].control = "GE";
     const ctx = makeCtx(6);
     expect(italianUnificationRoll(G, ctx, "GE")).toBe(false);
-    G.flags.italyPetition = true;
+    // 22.1.5's printed DRMs are the +2 no-player-control and the +1 per key
+    // of the strongest Italian minor; the +1 unification box is the winner's
+    // card (playbook p.16), never a roll DRM.
+    G.spaces[italianUnificationSpaces()[0]].control = "Two Sicilies";
     expect(italianUnificationRoll(G, makeCtx(6), "GE")).toBe(true);
   });
 
   test("A Lost Dream removes the Italy card from the game", () => {
     const G = fresh();
     G.deck.push(ITALY_TABLE_CARD);
-    G.flags.italyFlashpointDominator = "GE";
+    // 22.1's -2 DRM reads live flashpoint dominance: GE controls an Italian
+    // flashpoint space, applies the printed -2, and roll 1 falls to A Lost
+    // Dream (the automatic exercise of the dominator's "may").
+    for (const space of ["lombardy", "tuscany", "rome", "naples"] as const) G.spaces[space].control = "GE";
+    expect(flashpointController(G, "italy")).toContain("GE");
     expect(italyTable(G, makeCtx(1), "GE")).toBe(true);
     expect(G.removed).toContain(ITALY_TABLE_CARD);
     expect(G.deck).not.toContain(ITALY_TABLE_CARD);

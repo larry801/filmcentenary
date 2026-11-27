@@ -27,13 +27,14 @@ import {
   setSpaceControl,
   displacementTargetForLoc,
   effectiveKeyType,
+  dominatedFlashpoints,
 } from "./rules";
 import {closeDecision, decision, openDecision, option} from "./pending";
 import {counterRemaining} from "./counters";
 import {scoreGame, scoreGoals} from "./victory";
 import {drawBotGoals} from "./botGoals";
 import {grantRapidDeployment, placeNonPlayerCounter, placeUnit, removeUnit} from "./effects";
-import {resolveGwNeutralOption, resolveGwWinter, resolveItalyAtOutbreak, redeployItaly} from "./greatWarFlow";
+import {maxIndustryOf, resolveGwNeutralOption, resolveGwWinter, resolveItalyAtOutbreak, redeployItaly} from "./greatWarFlow";
 import {altGwVictoryOnly} from "./scenario";
 import {usNorthAtlanticCheck} from "./gwMajors";
 import {recordWarKnockoutCapture} from "./limitedWar";
@@ -550,7 +551,12 @@ export const italyTable = (
     return true;
   }
   let roll = die(ctx, 6);
-  if (G.flags.italyFlashpointDominator === actor) roll -= 2;
+  // 22.1: "DRMs: The player who dominates the Italy Flashpoint may apply a
+  // -2 DRM."  The flag was written nowhere, so the DRM was dead; the board
+  // answer is live dominance.  The dominator's may is exercised automatically
+  // (a lower roll either removes the card through A Lost Dream — which keeps
+  // Italy split, often exactly the dominator's aim — or stands)
+  if (dominatedFlashpoints(G, actor).includes("italy")) roll -= 2;
   if (roll <= 0) {
     // 22.1: "A Lost Dream" — remove the Italy card from the game.
     removeCard(G, ITALY_TABLE_CARD);
@@ -564,7 +570,9 @@ export const italyTable = (
       unifyItaly(G, ctx, actor);
       return true;
     }
-    const playerSpaces = italianPlayerControlledSpaces(G, actor);
+    // 22.1.1: "a player controlled space in Italy" — any player's space,
+    // not only the actor's.
+    const playerSpaces = italianPlayerControlledSpaces(G);
     const target = playerSpaces.length > 0 ? playerSpaces[0] : "piedmont";
     G.spaces[target].rebellion = {minor: "Italian Rebels", step: 0, rebels: []};
     const rebel = placeUnit(G, "REBEL:Italian", "rebelArmy", target, 2);
@@ -676,7 +684,8 @@ export const italianUnificationRoll = (G: ImperialElegyState, ctx: Ctx, actor: P
   }
   const maxMinor = Math.max(0, ...minorControls.values());
   // 22.1.2: the one +1 card marker in the Italian unification box.
-  const petitionMarker = G.flags.italyPetition === true ? 1 : 0;
+  // 22.1.5's example prints the marker as the winner's card, never a roll DRM.
+  const petitionMarker = 0;
   let roll = die(ctx, 6) + (playerControlled === 0 ? 2 : 0) + maxMinor + petitionMarker;
   if (roll >= 7) {
     unifyItaly(G, ctx, actor);
@@ -1108,9 +1117,11 @@ export const outbreakGreatWar = (
         log(G, p, "nationalWillEc", {space: ec.space ?? null});
       }
     }
-    if (vp >= 5) ukOutbreakArmies += boostTrack(G, p, 1, ctx);
-    if (vp >= 7) ukOutbreakArmies += boostTrack(G, p, 1, ctx);
-    if (vp >= 9) ukOutbreakArmies += boostTrack(G, p, 1, ctx);
+    // 25.6's EC bands (3/5/7/9 thresholds): three boosts at 9+ VP.  One call
+    // so the whole set shares the printed "cannot boost the same track twice"
+    // cap (the engine's auto-pick, see boostTrack).
+    const bands = (vp >= 5 ? 1 : 0) + (vp >= 7 ? 1 : 0) + (vp >= 9 ? 1 : 0);
+    if (bands > 0) ukOutbreakArmies += boostTrack(G, p, bands, ctx);
   }
   // 25.6.1 / 33.2 "Join Your Country's Army!": the UK has no reserve box, so
   // every bonus reserve army gained here waits in the UK's holding box and is
@@ -1241,29 +1252,62 @@ export const setGwOrderChoice = (
 };
 
 /**
- * 25.6: apply one display track boost.  When every printed track is already
- * maxed the printed benefit becomes a bonus reserve army.  The UK owns no
- * reserve box (33.2 Professional Army), so those armies are returned to the
- * caller; `outbreakGreatWar` records them for Join Your Country's Army!.
+ * 25.6: apply the National Will Step's display track boosts.  "Players can
+ * boost any track but cannot boost the same track twice"; a boost of an
+ * already-maxed track becomes a bonus reserve army instead (see
+ * grantBoostReserveArmy).  The auto-pick order is a documented fallback for
+ * the printed player choice.
  */
 const boostTrack = (G: ImperialElegyState, power: Power, count: number, ctx: Ctx): number => {
   let joinArmies = 0;
   for (let i = 0; i < count; i += 1) {
     const p = G.powers[power];
-    // A stability gain goes through changeStability so a future characteristic
-    // that reacts to gains (or the elimination check) is not bypassed.
-    if (p.stability < 6) changeStability(G, power, 1, ctx);
-    else if (p.industry < 7) p.industry += 1;
-    else if (power === "UK" && p.manpower >= ukManpowerCeiling()) joinArmies += 1;
-    else p.manpower += 1;
+    // "cannot boost the same track twice": the auto-pick cycles stability →
+    // industry → manpower, so a 3-boost set touches each track once.
+    const track = BOOST_TRACK_ORDER[i % BOOST_TRACK_ORDER.length];
+    if (track === "stability") {
+      // A stability gain goes through changeStability so a future
+      // characteristic that reacts to gains (or the elimination check) is not
+      // bypassed.
+      if (p.stability < stabilityMaxOf(power)) changeStability(G, power, 1, ctx);
+      else joinArmies += grantBoostReserveArmy(G, power);
+    } else if (track === "industry") {
+      // Each display stops at its own printed industry box (GE's is 7).
+      if (p.industry < maxIndustryOf(G, power)) p.industry += 1;
+      else joinArmies += grantBoostReserveArmy(G, power);
+    } else if (p.manpower < manpowerCeilingOf(power)) {
+      p.manpower += 1;
+    } else {
+      joinArmies += grantBoostReserveArmy(G, power);
+    }
   }
   return joinArmies;
 };
 
-/** The top box of the UK manpower track (33.2); a boost above it is wasted. */
-const ukManpowerCeiling = (): number => {
-  const track = POWER_DEFS.UK.keyManpower;
+const BOOST_TRACK_ORDER = ["stability", "industry", "manpower"] as const;
+
+/** The top box of a seated power's stability track (printed 6). */
+const stabilityMaxOf = (_power: Power): number => 6;
+
+/** The top box of a display's manpower track (33.2 for the UK). */
+const manpowerCeilingOf = (power: Power): number => {
+  const track = POWER_DEFS[power].keyManpower;
   return track[track.length - 1] ?? 0;
+};
+
+/**
+ * 25.6: "Each time a player boosts a track that is already maxed out they
+ * immediately place a bonus reserve army in their reserve armies holding box"
+ * — the print allows these to exceed the box limit.  The UK owns no reserve
+ * box (33.2 Professional Army), so its army is returned to the caller and
+ * waits in `joinYourCountrysArmyPending` for the GW turn 1 planning step.
+ */
+const grantBoostReserveArmy = (G: ImperialElegyState, power: Power): number => {
+  if (power === "UK") return 1;
+  const unit = placeUnit(G, power, "army", null, 1);
+  if (unit.space === null || unit.space === undefined) G.powers[power].reserves.push(unit.id);
+  log(G, power, "boostReserveArmy", {});
+  return 0;
 };
 
 /* -------------------------------------------------------------------------- */
@@ -1311,6 +1355,8 @@ interface CrisisRun {
   balkanDraws: string[];
   rollsLeft: number;
   respondent: Power | null;
+  /** The player of the inciting card — §23.5 draws them in too. */
+  actor: Power | null;
   border: BorderChoice | null;
   blame: Power | "IT" | null;
   blameMinor: string | null;
@@ -1456,6 +1502,20 @@ const setMinorAlly = (G: ImperialElegyState, actor: Power, minor: string, ally: 
   // The drawing paths all reach this one setter; the stamp is what tells a drawn
   // belligerent apart from a leftover pre-GW ally marker (25.2.1).
   markMinorGwBelligerent(G, home);
+  log(G, actor, "minorAlliance", {space: home});
+};
+
+/** §23.3: a drawn state always enters the GW roster, but its existing marker is
+ *  replaced only when the marker's alliance differs from the target (Powder
+ *  Keg example: "AU is in the alliance opposing RU so Bosnia's alliance
+ *  marker is not replaced"). */
+const setDrawnMinorAlly = (G: ImperialElegyState, actor: Power, minor: string, ally: Power): void => {
+  const home = balkanHome(minor);
+  if (home === null || !G.spaces[home]) return;
+  markMinorGwBelligerent(G, home);
+  const existing = G.spaces[home].ally ?? null;
+  if (isPower(existing) && allianceOf(G.powers[existing].alliance) === allianceOf(G.powers[ally].alliance)) return;
+  G.spaces[home].ally = ally;
   log(G, actor, "minorAlliance", {space: home});
 };
 
@@ -1608,6 +1668,13 @@ const collectDrawnNeutrals = (G: ImperialElegyState, run: CrisisRun): Power[] =>
   };
   add(run.targetPower);
   add(run.respondent);
+  // "If a neutral player was involved in Bosnian Crisis event or Crisis roll":
+  // the inciting card's player is involved even when no row names them (A103
+  // sets no target; A102/A071 only name the losing space's controller).  A
+  // crisis opened by a player action (13.3's WTT penalty, no card) names
+  // nobody, and A103's printed annexer is AU whoever plays the card.
+  if (run.inciting !== null) add(run.actor);
+  if (run.inciting === "IE-A103") add("AU");
   for (const minor of run.balkanDraws) add(minorAlly(G, minor));
   blameOf(run);
   if (run.blame !== null && run.blame !== "IT") add(run.blame);
@@ -1711,7 +1778,7 @@ const applyBalkanTable = (G: ImperialElegyState, actor: Power, run: CrisisRun): 
     }
     const placer = playersOnSide(G, opposing)[0];
     if (placer === undefined) return;
-    for (const minor of run.balkanDraws) setMinorAlly(G, actor, minor, placer);
+    for (const minor of run.balkanDraws) setDrawnMinorAlly(G, actor, minor, placer);
     return;
   }
   const respondent = run.respondent;
@@ -1721,15 +1788,11 @@ const applyBalkanTable = (G: ImperialElegyState, actor: Power, run: CrisisRun): 
     log(G, actor, "noLegalTarget", {card: G.resolvingCard ?? ""});
     return;
   }
-  if (run.threatened !== null) setMinorAlly(G, actor, run.threatened, respondent);
+  if (run.threatened !== null) setDrawnMinorAlly(G, actor, run.threatened, respondent);
   const opposing = side === "te" ? "ta" : "te";
   const placer = playersOnSide(G, opposing)[0];
   for (const minor of run.balkanDraws) {
-    const home = balkanHome(minor);
-    if (home === null) continue;
-    const existing = G.spaces[home]?.ally ?? null;
-    if (isPower(existing) && allianceOf(G.powers[existing].alliance) === opposing) continue;
-    if (placer !== undefined) setMinorAlly(G, actor, minor, placer);
+    if (placer !== undefined) setDrawnMinorAlly(G, actor, minor, placer);
   }
 };
 
@@ -1971,6 +2034,7 @@ export const crisisRoll = (
     balkanDraws: [],
     rollsLeft: resolution.result.rolls ?? 1,
     respondent: null,
+    actor,
     border: null,
     blame: null,
     blameMinor: null,

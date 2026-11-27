@@ -115,13 +115,14 @@ test("scoring awards ranked goals only to the selecting player and handles ties"
   const G = fresh();
   G.powers.GE.goals.push("NG-01");
   G.powers.FR.goals.push("NG-17");
-  // GE leads European keys, FR second, AU third.
-  G.powers.GE.territorialKeys = 12;
-  G.powers.FR.territorialKeys = 10;
-  G.powers.AU.territorialKeys = 8;
-  G.powers.RU.territorialKeys = 7;
-  G.powers.UK.territorialKeys = 5;
-  G.powers.OT.territorialKeys = 6;
+  // The metric is geographic (round-5 audit): rank the European territorial
+  // keys actually controlled — GE first on 14, FR second on 13, AU third on 9.
+  for (const space of ["istanbul", "izmir", "ankara", "antalya", "syria", "palestine", "mecca", "mosul", "baghdad"] as const) {
+    G.spaces[space].control = "GE";
+  }
+  for (const space of ["riga", "baltic-states", "finland", "st-petersburg"] as const) {
+    G.spaces[space].control = "FR";
+  }
   const scores = scoreGoals(G);
   expect(scores.GE.find((s) => s.goal === "NG-01")!.vp).toBe(3);
   expect(scores.FR.find((s) => s.goal === "NG-17")!.vp).toBe(2);

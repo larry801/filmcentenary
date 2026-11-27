@@ -23,13 +23,22 @@ import {POWERS} from "./types";
 import {setupImperialElegy} from "./engine/setup";
 import {placeUnit} from "./engine/effects";
 import {amphibiousAssaultCheck, easternAmbitionsDecision, revealEasternAmbitions} from "./moves";
-import {planMarch} from "./engine/wartimeMovement";
+import {planMarch, planRail} from "./engine/wartimeMovement";
 import {planNavalMove} from "./engine/navalMovement";
-import {eliminateCaughtLandUnits} from "./engine/combat";
+import {beginLandBattle, eliminateCaughtLandUnits} from "./engine/combat";
 import {flashpointController, setSpaceControl} from "./engine/rules";
 import {goalMetric} from "./engine/victory";
 import {GOALS_BY_ID} from "./constant/goals";
+import {
+  createWarState,
+  holdsWarImpulse,
+  minorTruceRivals,
+  minorWarInfo,
+  recordWarKnockoutCapture,
+} from "./engine/limitedWar";
 import {validateWarAim} from "./engine/limitedWar";
+import {displaceItalyForLoneDefense, deployItalianReserveForGoal} from "./engine/italyMilitary";
+import {usSouthEntryRefusal} from "./engine/gwMajors";
 
 const makeCtx = (dice: number[] = [], playerID: string | null = "0"): Ctx => {
   let index = 0;
@@ -215,5 +224,158 @@ describe("19.6.1(2) caught land units", () => {
     };
     eliminateCaughtLandUnits(G, "north-atlantic", "GE");
     expect(G.units[land.id]).toBeUndefined();
+  });
+});
+
+describe("15.6 the immediate limited-war knockout", () => {
+  const emptyBoard = (G: ImperialElegyState): void => {
+    G.units = {};
+    for (const state of Object.values(G.spaces)) state.units = [];
+  };
+
+  test("a captured capital drops the ally, displaces its armies and bars its impulse", () => {
+    const G = fresh();
+    emptyBoard(G);
+    const war = createWarState(G, "GE", "AU", "conquest", ["bohemia"], 2);
+    G.war = war;
+    war.defenderAllies = ["RU"];
+    war.status = "maneuver";
+    G.activePower = "RU";
+    expect(holdsWarImpulse(G, "RU")).toBe(true);
+    placeUnit(G, "RU", "army", "moscow", 2);
+    placeUnit(G, "RU", "army", "kiev", 2);
+    placeUnit(G, "RU", "army", "kharkov", 2);
+    placeUnit(G, "GE", "army", "st-petersburg", 2);
+
+    const record = recordWarKnockoutCapture(G, "st-petersburg", "GE");
+
+    expect(record?.power).toBe("RU");
+    expect(war.knockedOut?.some((entry) => entry.power === "RU")).toBe(true);
+    expect(war.defenderAllies).not.toContain("RU");
+    expect(holdsWarImpulse(G, "RU")).toBe(false);
+    // All of RU's armies overstack in one unoccupied home (15.6).
+    const spaces = new Set(
+      Object.values(G.units).filter((unit) => unit.owner === "RU").map((unit) => unit.space),
+    );
+    expect([...spaces]).toHaveLength(1);
+    // The first unoccupied home in space order (St. Petersburg holds the captor).
+    const target = [...spaces][0] as SpaceId;
+    expect(target).toBe("astrakhan");
+    expect(G.spaces[target].units.length).toBe(3);
+  });
+});
+
+describe("16.3 the unified-Italy truce", () => {
+  test("a settled lone-Italy war truces the non-player itself", () => {
+    const G = fresh();
+    const settled = createWarState(G, "GE", "IT" as Power, "conquest", ["rome"], 2);
+    settled.minorTarget = {minor: "Italy", ally: null};
+    settled.truceTurns = 2;
+    G.wars = [settled];
+    G.spaces.rome.control = "IT";
+    expect(minorTruceRivals(G, "GE")).toContain("Italy");
+    const info = minorWarInfo(G, "GE", "Italy");
+    expect(info.ok).toBe(false);
+    expect(info.reason).toBe("truce");
+  });
+
+  test("a settled player-vs-player war grants no non-player truce", () => {
+    const G = fresh();
+    const settled = createWarState(G, "GE", "AU", "conquest", ["bohemia"], 2);
+    settled.truceTurns = 2;
+    G.wars = [settled];
+    expect(minorTruceRivals(G, "GE")).toEqual([]);
+  });
+});
+
+describe("22.4 the die between two spaces", () => {
+  const emptyBoard = (G: ImperialElegyState): void => {
+    G.units = {};
+    for (const state of Object.values(G.spaces)) state.units = [];
+  };
+
+  const italyWar = (G: ImperialElegyState) => {
+    const war = createWarState(G, "GE", "IT" as Power, "conquest", ["naples", "lombardy"], 2);
+    war.minorTarget = {minor: "Italy", ally: null};
+    G.persistent.italyUnified = true;
+    // Unified Italy holds its goal spaces (22.4's displacement needs room there).
+    G.spaces.naples.control = "IT";
+    G.spaces.lombardy.control = "IT";
+    return war;
+  };
+
+  test("the lone-defender displacement rolls between two open goals", () => {
+    const G = fresh();
+    emptyBoard(G);
+    const war = italyWar(G);
+    const a = placeUnit(G, "IT", "italianArmy", "tuscany", 2);
+    const b = placeUnit(G, "IT", "italianArmy", "tuscany", 2);
+    displaceItalyForLoneDefense(G, war, makeCtx([2]));
+    expect(G.units[a.id].space).toBe("lombardy");
+    expect(G.units[b.id].space).toBe("naples");
+  });
+
+  test("the reserve deploy rolls between two threatened goals", () => {
+    const G = fresh();
+    emptyBoard(G);
+    const war = italyWar(G);
+    G.spaces.naples.occupiedBy = "GE";
+    G.spaces.lombardy.occupiedBy = "GE";
+    const reserve = placeUnit(G, "IT", "italianArmy", null, 2);
+    const result = deployItalianReserveForGoal(G, war, makeCtx([1]));
+    expect(result?.to).toBe("naples");
+    expect(G.units[reserve.id].space).toBe("naples");
+  });
+});
+
+describe("15.2.5 rail skips severe connections", () => {
+  test("rail cannot cross the Sudan-Egypt severe link that a march may use", () => {
+    const G = fresh();
+    G.spaces.egypt.control = "UK";
+    G.spaces.sudan.control = "UK";
+    const army = placeUnit(G, "UK", "army", "egypt", 2);
+    expect(planRail(G, "UK", army.id, "sudan").reason).toBe("no-rail-path");
+    expect(planMarch(G, "UK", army.id, "sudan").ok).toBe(true);
+  });
+});
+
+describe("32.1 only the US enters the South", () => {
+  const activeGw = (G: ImperialElegyState): void => {
+    G.gw = {active: true, turn: 1, belligerents: ["GE", "UK"], order: ["GE", "UK"]} as ImperialElegyState["gw"];
+  };
+
+  test("the printed guard names the South for a non-US owner in the Great War", () => {
+    const G = fresh();
+    expect(usSouthEntryRefusal(G, "UK", "the-south")).toBeNull();
+    activeGw(G);
+    expect(usSouthEntryRefusal(G, "UK", "the-south")).not.toBeNull();
+    expect(usSouthEntryRefusal(G, "US", "the-south")).toBeNull();
+  });
+
+  test("naval entries and amphibious assaults into the South are refused", () => {
+    const G = fresh();
+    activeGw(G);
+    G.phase = "wartime";
+    expect(planNavalMove(G, "UK", "north-atlantic", "the-south").reason).toBe("usSouth");
+    const army = placeUnit(G, "UK", "army", "north-atlantic", 2);
+    army.space = "north-atlantic";
+    G.spaces["north-atlantic"].units.push(army.id);
+    const check = amphibiousAssaultCheck(G, "UK", "north-atlantic", "the-south", [army.id]);
+    expect(check.ok).toBe(false);
+    expect(check.reason).toBe("us-south");
+  });
+
+  test("pre-Great-War traffic into the South stays legal (the ACW squadrons)", () => {
+    const G = fresh();
+    expect(planNavalMove(G, "UK", "north-atlantic", "the-south").ok).toBe(true);
+  });
+
+  test("a land battle into the South finds no legal forces for a non-US attacker", () => {
+    const G = fresh();
+    activeGw(G);
+    G.phase = "wartime";
+    placeUnit(G, "UK", "army", "canada", 2);
+    placeUnit(G, "US" as Power, "army", "the-south", 2);
+    expect(beginLandBattle(G, makeCtx([]), "UK", "canada", "the-south")).toBeNull();
   });
 });

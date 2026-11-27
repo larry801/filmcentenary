@@ -47,6 +47,7 @@ import {
   spaceHostileTo,
   trenchExitBlocked,
 } from "./rules";
+import {usSouthEntryRefusal} from "./gwMajors";
 import {decision, openDecision, option} from "./pending";
 
 // The Suez / Dardanelles gate helpers live in `rules.ts` so LoC traces can use
@@ -100,6 +101,7 @@ export type NavalPathReason =
   | "notNavalSpace"
   | "enemyBox"
   | "enemyPort"
+  | "usSouth"
   | "suezClosed"
   | "suezBlocked"
   | "dardanellesDenied"
@@ -446,6 +448,8 @@ export const planNavalMove = (
   if (!G.spaces[from] || !G.spaces[to]) return {ok: false, cost: 0, path: [], reason: "unknownSpace"};
   if (!isNavalOrPort(from) || !isNavalOrPort(to)) return {ok: false, cost: 0, path: [], reason: "notNavalSpace"};
   if (from === to) return {ok: true, cost: 0, path: [from], reason: "ok"};
+  // 32.1: only the US can have units in the South space.
+  if (usSouthEntryRefusal(G, power, to) !== null) return {ok: false, cost: 0, path: [], reason: "usSouth"};
   const trenchPort = G.spaces[to]?.trench != null;
   if (portBoxes(to).length > 0 && !(trenchPort && options.allowTrenchPort === true)) {
     const control = G.spaces[to].control;

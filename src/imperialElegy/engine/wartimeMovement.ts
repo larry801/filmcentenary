@@ -295,7 +295,9 @@ const friendlyRailPath = (
     for (const next of neighboursOf(current)) {
       if (previous.has(next) || isNavalBox(next) || !SPACES[next]) continue;
       const connection = connectionBetween(current, next);
-      if (!connection || connection.type === "sea") continue;
+      // 15.2.5: "Units using rail movement cannot move along severe
+      // connections."  March already treats severe as its one-space case.
+      if (!connection || connection.type === "sea" || connection.type === "severe") continue;
       if (!friendlySpace(G, next, power)) continue;
       if (rebelStop(next) && next !== to) continue;
       previous.set(next, current);

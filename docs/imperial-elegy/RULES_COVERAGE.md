@@ -28,6 +28,145 @@ Status labels:
 > the AU/FR/RU/OT special actions are live moves. Exact gaps are in
 > [`IMPLEMENTATION_STATUS.md`](IMPLEMENTATION_STATUS.md).
 
+## Printed-rule audit round 5 (2026-11-27)
+
+Continuation of the printed-rule audit on branch `fix/ie-audit-round5-mediums`:
+the round's MEDIUM batch, driven by the eight audit reports under
+`~/.capy/work/ie-r5` and pushed only after the local gate (see
+`IMPLEMENTATION_STATUS.md` for the run record).
+
+**Movement, rails and stacking (15.2).**
+- **15.2.4/15.2.5 dominator DRM** reads live flashpoint dominance
+  (`dominatedFlashpoints`) instead of a flag written nowhere; the printed
+  "may apply" is exercised automatically for the dominator (the S4 finding's
+  deliberate reading, noted below).
+- **15.2.5 rail:** rail paths refuse **severe** connections (the march's
+  one-space case stays legal), and an **EC attached to an army railed in the
+  same action** spends no rail-allowance slot (15.2.5's printed free EC rail).
+- **15.6 knockout (limited wars):** the immediate capture hook now carries the
+  full printed consequence set — the knocked-out power leaves the war rosters
+  at once (no impulse, its spaces stop counting for either side, the
+  settlement's `knockoutsFor` keeps reading the historical record for the
+  16.1.6 option, and the captor record is trusted over the live board), its
+  own armies displace to one unoccupied home space and **overstack** there
+  ("If there is no such space" falls to the settlement's 5.7 displacement
+  with a logged captor prompt — a resumable choice is not wired for the rare
+  case), and `holdsWarImpulse` refuses a knocked-out power.
+- **16.2.3 war reparations** require an **occupied** home the loser still
+  controls (the old `control === winner` half counted UK's Egypt and homes
+  the winner took by an earlier treaty pick) and accept 33.1's `homeOverride`
+  homes; a treaty-ceded-but-unoccupied loser home no longer opens
+  reparations, which closes the winner's stage at once when no legal entry
+  remains.
+- **16.3 unified-Italy truce:** settled wars against (or with) a unified Italy
+  record non-player truce rows (`minorTruceRivals`), so `minorWarInfo` refuses
+  a fresh declaration on Italy while the shared `truceTurns` runs.
+
+**Italy and the Crisis Table (22/23).**
+- **22.1:** the dominator's -2 DRM is live (see above); **22.1.1** uprising
+  placement scans **all player-controlled Italian spaces** (not the actor's),
+  and rebel independence hands the space to the **closer of Sardinia-Piedmont
+  and the Two Sicilies** instead of a phantom "Italian Rebels" minor.
+- **22.1.5:** the +1 unification box is the winner's card (playbook p.16), so
+  it no longer distorts the unification roll as a third DRM.
+- **22.4:** "If Italy ever has to choose between two spaces, roll a die" — the
+  lone-defender displacement and the reserve deploy roll between qualifying
+  goal spaces (a ctx-less caller keeps the list-order fallback).
+- **23.3:** a Balkan Table draw always stamps its state as a GW belligerent;
+  the existing alliance marker is replaced only when its alliance differs
+  from the target (the printed Powder Keg example keeps Bosnia's marker).
+- **23.5:** the inciting card's player is drawn into the GW even when no row
+  names them (A103 sets no target; A102/A071 only name the losing space's
+  controller), and A103's printed annexer is AU whoever plays the card; a
+  crisis opened by a bare player action names nobody.
+
+**Great War (25/32).**
+- **25.6:** the National Will boosts honour the printed one-per-track cap (the
+  auto-pick cycles stability → industry → manpower), respect each display's
+  printed maximum (the GW majors' 3-stability track, the per-power industry
+  box, the manpower ceiling), and a boost of an already-maxed track grants the
+  **bonus reserve army** ("can exceed players' reserve armies holding box
+  limit"); the UK's armies still wait in `joinYourCountrysArmyPending`.
+- **32.1:** "Only the US can have units in the South space, thus the US can
+  never be invaded" — land battles, amphibious assaults and naval entries into
+  `the-south` are refused for every non-US owner while the GW is active (the
+  ACW's pre-GW supporting squadrons are untouched).
+
+**Cards (A95/A112).**
+- **A95 Death of Franz Joseph / A112 Franz Ferdinand** open the printed OR as
+  a decision: grant full citizenship to a nationality that already has rights,
+  or grant rights to a nationality.  A single legal half resolves directly;
+  the nationality auto-pick keeps the first eligible.
+
+**Earlier rounds of this batch (already on the branch):** the map retypes and
+key classification, the Italian unification shortcut roll, rebel path stops,
+the Aux Armes OR, the Third Republic's 20.9 CP, the conquest-objective gate,
+naval-base marches, the 19.10 same-box origin, the Dardanelles-first landing,
+the amphibious land-first flow, the Danish-strait denial, the control
+cascades, one elite per side per battle, the machine-gun floor on the rolling
+side's own rebels, the geographic NG metric, NG-38's Eastern Ambitions, the
+19.6.1 caught land units, the GW-07 submarine gate, 25.4's outbreak stability
+grant and 27.3's 0-budget Exhaustion.
+
+**Documented readings (deliberate fallbacks, not bugs):**
+- **22.1 "may apply a -2 DRM":** the dominator applies it automatically (a
+  lower roll either removes the card through A Lost Dream — often the
+  dominator's aim — or stands); a resumable choice is not wired.
+- **15.6 captor-chooses displacement:** when no unoccupied home space exists
+  the printed captor choice is logged (`warKnockoutDisplacementBlocked`) and
+  the armies hold for the settlement's 5.7 displacement; the resumable
+  choice is not wired.
+- **18.7 support from a trench-battle space in a normal battle** keeps the
+  28.1.3 halving while the auto-adjacency stays gated to intra-space battles;
+  **18.5's machine-gun floor** attaches to the rolling side's own units (21.0:
+  rebels never benefit), so an opponent's rebels never lift the floor.
+- **Flashpoint member sets** (S3#4): the engine's member sets stand — the
+  playbook p.3 line "No other Flashpoints are controlled" is the sloppy
+  sentence; the 23.1 card commentary and the example of play's turn-2
+  "Master of the Caucasus" both support the implemented sets.
+- **18.7.1's optional extra advance:** the engine performs the printed
+  mandatory advance of one attacker unit; the remaining main-force units
+  (including allied minor armies) are not offered the printed optional
+  advance, because no resumable multi-unit advance decision is wired —
+  recorded by this round's audit and closed as documentation.
+
+## Printed-rule audit round 4 (2026-11-26)
+
+Fourth batch of the printed-rule audit: the map questions were settled
+against the board scan before any rule change, and the sim hardening closed
+the stalling cases the census had found.
+
+- **Printed map retypes** (pixel-validated against the board scan):
+  Bosnia-Herzegovina/Serbia/Bulgaria/Macedonia are keys,
+  Erzurum/Van/Kayseri/Arabia/Cyprus are territories, Kuwait is uncontrolled,
+  and OT's Arab keys are Syria/Mecca/Baghdad/Mosul/Palestine (22.1.3
+  cross-checked against the campaign display, the 1870/1880 setups and the
+  Ottoman manpower table).
+- **3.2.1:** printed keys without a track type classify by owner — RU/AU/OT
+  territorial, UK/FR/GE by the controlled land path to their capital,
+  key/capital/subcapital spaces only.
+- **22.1.3:** the Sardinia-Piedmont / Two Sicilies shortcut rolls for
+  unification (either minor alone holding 3+ keys, once per turn) and runs
+  when an action impulse ends; `unifyItaly` records `italyUnifiedAt`.
+- **15.2.4/15.2.5:** enemy rebels stop a march or rail path passing through
+  (entering is allowed); liberation-war rebels are exempt, and a march
+  blocked only by rebels reports the rebel stop.
+- **H-FR-6 Aux Armes:** the printed OR is a mode decision; the war half
+  grants 2 reserve army steps (two 1-step counters) and keeps the
+  declaration entitlement; the retrieval half keeps FR's impulse open so the
+  taken card can be played immediately.
+- **A046 French Intervention:** eligible uncontrolled spaces include Europe;
+  the EF is placed or moved and the pacification roll follows.
+- **33.3:** the Third Republic's 2 free alliance CP move to the alliance
+  resolution step (20.9), once per turn with no belligerent gate, still
+  spendable on the MPIT in the granting turn.
+- **Scenarios:** 'Italy Status: Unified' applies the unified-Italy half;
+  1870/1880 control overrides carry A71-style home/key-type halves for the
+  Egyptian spaces.
+- **Sim hardening:** a force-less pass can no longer escape the Great War
+  impulse loop; the WOI and Qing tracks recompute from their records; the
+  sim harness pre-checks war and naval moves before submitting them.
+
 ## March 2026 errata pass (2026-11-26)
 
 The whole errata was re-read against the live path. Five clauses changed:

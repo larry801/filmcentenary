@@ -158,15 +158,12 @@ describe("16.1.6 the loser chooses after the winner", () => {
     // The winner has a mandatory knockout pick, so it cannot finish yet.
     expect(optionIds(G)).not.toContain("done");
 
-    // Spend the winner's own knockout option on FR's minor ally.
+    // Spend the winner's own knockout option on FR's minor ally.  16.2.3
+    // (round 5): GE occupies no home of the losing primary — bohemia was
+    // taken by control, vienna is unoccupied — so no legal primary entry
+    // remains and the winner's stage closes at once.
     expect(resolvePending(G, ctx, "realignment#FR")).toBeUndefined();
     expect(G.spaces.bavaria.ally).toBe("GE");
-    expect(G.pending?.power).toBe("GE");
-    expect(G.pending?.context?.remainingKnockout).toBe(0);
-    // Only the optional primary pick is left, so `done` is back.
-    expect(optionIds(G)).toContain("done");
-    // The winner stops early; its primary pick is optional.
-    expect(resolvePending(G, ctx, "done")).toBeUndefined();
 
     // Now the losing primary (AU) is asked, with its own knockout option.
     expect(G.pending?.kind).toBe("treatyOption");
@@ -196,7 +193,6 @@ describe("16.1.6 the loser chooses after the winner", () => {
     const ctx = makeCtx(seat("GE"));
     resolveWar(G, ctx);
     resolvePending(G, ctx, "realignment#FR");
-    resolvePending(G, ctx, "done");
     expect(G.pending?.power).toBe("AU");
     expect(resolvePending(G, ctx, "warReparations#RU")).toBe(INVALID_MOVE);
     // The loser's own seat can.
@@ -208,10 +204,9 @@ describe("16.1.6 the loser chooses after the winner", () => {
     buildWar(G);
     const ctx = makeCtx(seat("GE"));
     resolveWar(G, ctx);
-    // Spend the winner's own knockout pick first, then finish the primary
-    // picks early with `done`.
+    // Spend the winner's own knockout pick; with no legal primary entry left
+    // its stage closes at once (16.2.3, round 5).
     expect(resolvePending(G, ctx, "realignment#FR")).toBeUndefined();
-    expect(resolvePending(G, ctx, "done")).toBeUndefined();
     expect(G.pending?.kind).toBe("treatyOption");
     expect(G.pending?.power).toBe("AU");
     expect(G.pending?.context?.stage).toBe("loser");

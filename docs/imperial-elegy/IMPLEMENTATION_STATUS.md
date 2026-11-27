@@ -1,3 +1,101 @@
+## Fixed: the rules-audit round 5 — the MEDIUM batch (2026-11-27)
+
+Continuation of "按照规则pdf查找帝国挽歌实现问题并修复": the round-5 MEDIUM batch on
+branch `fix/ie-audit-round5-mediums`, driven by the eight audit reports under
+`~/.capy/work/ie-r5` and shipped as three commits.  The gate before the push:
+`tsc --noEmit`, the full `src/imperialElegy` jest run (387 suites, 5117
+tests, 0 failures), the CI-style sim census (IE-SIM-1/2/3 × each of
+campaign/war/greatWar/navy/amphibious/chaos, every run finished with 0
+issues), and `tools/ie-sim/fullGame.test.ts`; the branch's Actions run is
+watched to completion on the pushed SHA before the `--no-ff` merge into
+master (the round-3 workflow).  RULES_COVERAGE round 5 carries the
+rule-by-rule record and this round's documented readings.
+
+- **First commit — map, combat and NG scoring.**  The conquest-objective
+  gate reads the powers' declared subcapitals (13.3.1); armies and elite
+  corps can never enter naval bases on any move path (3.2.8); both armies of
+  a two-army naval move begin the impulse in the same box (19.10); Istanbul's
+  fort defends the Dardanelles and an Eastern Mediterranean landing must take
+  it first (3.4.1); the amphibious assault lands first and the displaced port
+  fleet fights as the attacker of the follow-up naval battle
+  (19.10/19.11); the Egyptian port hop is a Suez crossing behind the canal
+  gate (3.2.9/3.4.3); wartime Denmark can deny the straits (3.4.2); the
+  Egyptian trio and Tripoli-Benghazi cascade on every ordinary control write
+  (3.4.4); one elite per side per battle with the Great War availability, the
+  lone-minor stability exemption and OT's printed earlier Arab column
+  (18.2.1); machine guns floor the die unless the rolling side's own force
+  holds rebels (18.5); expeditionary forces contribute 2 FP versus rebels and
+  other EFs (5.1.4); a non-player unit cannot be eliminated while an
+  unreduced player army stands (18.6); forts are eliminated when enemy units
+  enter their space (12.12); losing a dreadnought costs stability before the
+  GW too (7.1.1); the Indian fort cannot cancel a GW retreat (28.2);
+  influence-only spaces are not friendly (4.9.4); the trench auto-adjacency
+  applies only to intra-space battles (28.1.3); ships arriving in a box whose
+  only enemy presence is unescorted land units eliminate them (19.6.1); the
+  NG European-Keys metric is geographic, RU 41 reads only Balkan minor allies
+  and OT 49 counts Egypt as a lost key from the start; NG-38 spends 3 CP to
+  reveal Eastern Ambitions and take Manchuria or Korea.
+- **Second commit — Great War flow, first half.**  Jihad's "a Caucasus
+  space" reads the flashpoint region, so the Russian-side members qualify
+  (33.6); GW-07's US alliance shift is dead once the ACW exception removed
+  the US chit (25.2); every belligerent entering the GW at 0 stability gains
+  1 at once, and a crisis-drawn neutral joining at 0 gains it too (25.4);
+  the mandatory Exhaustion play has no printed budget precondition (27.3).
+- **Third commit — Great War flow, second half.**  The 15.2.4/15.2.5
+  dominator DRM reads live flashpoint dominance; 22.1.1's uprising scans all
+  player-controlled Italian spaces and independent rebels go to the closer of
+  the two Italian powers; 22.4 rolls the die between two qualifying spaces;
+  23.5 draws the inciting card's player (A103's annexer is AU) into the GW;
+  15.2.5 rail refuses severe hops and the EC railed with its host army spends
+  no slot; 15.6's immediate knockout drops the loser from the war at once and
+  overstacks its armies on one unoccupied home; 16.2.3's reparations require
+  an occupied loser-controlled home and the winner's stage closes when no
+  legal entry remains; 16.3 records unified-Italy truces; 23.3 stamps every
+  drawn state as a GW belligerent; 32.1 bars non-US forces from the South in
+  land battles, amphibious assaults and naval entries; 25.6's boosts honour
+  the printed caps and grant the bonus reserve army on a maxed track;
+  A95/A112's printed OR opens as a decision.  The same commit updates the
+  suites whose printed readings the fixes change and restores two engine
+  behaviours the audits flagged (the 28.1.3 trench halving for battles with a
+  marker, `captorOf` trusting the knockout record).
+
+## Fixed: the rules-audit round 4 (2026-11-26)
+
+Fourth batch of the printed-rule audit: the map questions were settled
+against the board scan before any rule change, and the sim hardening closed
+the stalling cases the census had found.
+
+- **Printed map retypes** (pixel-validated against the board scan):
+  Bosnia-Herzegovina/Serbia/Bulgaria/Macedonia are keys,
+  Erzurum/Van/Kayseri/Arabia/Cyprus are territories, Kuwait is uncontrolled,
+  and OT's Arab keys are Syria/Mecca/Baghdad/Mosul/Palestine (22.1.3
+  cross-checked against the campaign display, the 1870/1880 setups and the
+  Ottoman manpower table).
+- **3.2.1:** printed keys without a track type classify by owner — RU/AU/OT
+  territorial, UK/FR/GE by the controlled land path to their capital,
+  key/capital/subcapital spaces only.
+- **22.1.3:** the Sardinia-Piedmont / Two Sicilies shortcut rolls for
+  unification (either minor alone holding 3+ keys, once per turn) and runs
+  when an action impulse ends; `unifyItaly` records `italyUnifiedAt`.
+- **15.2.4/15.2.5:** enemy rebels stop a march or rail path passing through
+  (entering is allowed); liberation-war rebels are exempt, and a march
+  blocked only by rebels reports the rebel stop.
+- **H-FR-6 Aux Armes:** the printed OR is a mode decision; the war half
+  grants 2 reserve army steps (two 1-step counters) and keeps the
+  declaration entitlement; the retrieval half keeps FR's impulse open so the
+  taken card can be played immediately.
+- **A046 French Intervention:** eligible uncontrolled spaces include Europe;
+  the EF is placed or moved and the pacification roll follows.
+- **33.3:** the Third Republic's 2 free alliance CP move to the alliance
+  resolution step (20.9), once per turn with no belligerent gate, still
+  spendable on the MPIT in the granting turn.
+- **Scenarios:** 'Italy Status: Unified' applies the unified-Italy half;
+  1870/1880 control overrides carry A71-style home/key-type halves for the
+  Egyptian spaces.
+- **Sim hardening:** a force-less pass can no longer escape the Great War
+  impulse loop; the WOI and Qing tracks recompute from their records; the
+  sim harness pre-checks war and naval moves before submitting them.
+
 ## Fixed: the rules-audit round 3 (2026-11-26)
 
 Continuation of "按照规则pdf查找帝国挽歌实现问题并修复": the third batch closes

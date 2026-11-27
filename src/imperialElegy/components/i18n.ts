@@ -285,6 +285,7 @@ const S = {
       scenarioGoalChoice: "Choose the National Goal to keep",
       gwBuildPoint: "Spend a build point",
       dardanellesPassage: "Dardanelles passage: grant or refuse",
+      denmarkPassage: "Denmark passage: grant or refuse",
     },
     playBlock: {
       "unknown-card": "Unknown card.",
@@ -665,6 +666,7 @@ const S = {
       scenarioGoalChoice: "选择要保留的国家目标",
       gwBuildPoint: "花费建设点",
       dardanellesPassage: "达达尼尔海峡：准许或拒绝通行",
+      denmarkPassage: "丹麦海峡：准许或拒绝通行",
     },
     playBlock: {
       "unknown-card": "未知卡牌。",

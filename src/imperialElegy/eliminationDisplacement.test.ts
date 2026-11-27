@@ -226,7 +226,7 @@ describe("15.6 a knocked-out limited-war ally displaces allied units", () => {
     return {G, war};
   };
 
-  test("an allied unit leaves the knocked-out power's territory; its own units stay", () => {
+  test("an allied unit leaves the knocked-out power's territory; its armies overstack at home", () => {
     const {G} = knockoutState();
     const ally = placeUnit(G, "AU", "army", "moscow", 2);
     const own = placeUnit(G, "RU", "army", "moscow", 2);
@@ -237,7 +237,9 @@ describe("15.6 a knocked-out limited-war ally displaces allied units", () => {
     expect(landed).not.toBe("moscow");
     // The unit is displaced *out of* the knocked-out power's territory.
     expect(G.spaces[landed].control).not.toBe("RU");
-    expect(G.units[own.id].space).toBe("moscow");
+    // 15.6 (round 5): the knocked-out power's own armies displace to an
+    // unoccupied home space and overstack there.
+    expect(G.units[own.id].space).toBe("astrakhan");
     expect(unitDisplacements(G).map((entry) => entry.args?.unit)).toEqual([ally.id]);
     expect(unitDisplacements(G)[0].args).toMatchObject({from: "moscow", territory: "RU"});
   });

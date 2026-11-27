@@ -62,7 +62,7 @@ import {
   opponentIsNonRebelArmy,
   eliteDecisionPower,
 } from "./eliteBonus";
-import {applyGwMajorDecisiveDefeat, forceLeader, forceLeaderFromOwners, syncItalianHomeKeys} from "./gwMajors";
+import {applyGwMajorDecisiveDefeat, forceLeader, forceLeaderFromOwners, syncItalianHomeKeys, usSouthEntryRefusal} from "./gwMajors";
 import {
   COMBAT_CARD_BY_ID,
   a043DiscardCostCards,
@@ -396,13 +396,13 @@ export const supportCandidates = (G: ImperialElegyState, _power: Power, battle: 
     // automatically adjacent to both the attacker and the defender because
     // they're both in the same space" — the clause describes the intra-space
     // battle, so the auto-adjacency applies only when the battle is fought
-    // inside one space (from === to).
+    // inside one space (from === to).  The halving itself stays on the
+    // supporting space's own marker for every battle (28.1.3/18.3.2).
     const supportingTrench =
       Boolean(G.gw?.active) &&
-      battle.from === battle.to &&
       !battle.notes.includes("cancelTrenches") &&
       Boolean(G.spaces[adjacent]?.trench);
-    if (supportingTrench) {
+    if (supportingTrench && battle.from === battle.to) {
       adjFrom = true;
       adjTo = true;
     }
@@ -525,6 +525,9 @@ const landBattleForces = (
   from: SpaceId,
   to: SpaceId,
 ): {attackUnits: Unit[]; defendUnits: Unit[]; trenchTerrain: boolean} | null => {
+  // 32.1: a non-US attack into the South would put enemy units in the one
+  // space the print reserves for the US — no legal battle.
+  if (usSouthEntryRefusal(G, actor, to) !== null) return null;
   const allyImpulse = gwAllyImpulseFor(G, actor);
   const attackUnits = landUnitsIn(G, from).filter(
     (u) =>

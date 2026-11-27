@@ -119,12 +119,14 @@ test("scoring ties share the place and skip the next reward", () => {
   const G = fresh();
   G.powers.GE.goals.push("NG-01");
   G.powers.FR.goals.push("NG-01");
-  G.powers.GE.territorialKeys = 10;
-  G.powers.FR.territorialKeys = 10;
-  G.powers.AU.territorialKeys = 8;
-  G.powers.RU.territorialKeys = 7;
-  G.powers.UK.territorialKeys = 5;
-  G.powers.OT.territorialKeys = 6;
+  // The metric is geographic (round-5 audit): the European territorial keys
+  // actually controlled rank the powers.  GE and FR tie for first on 14.
+  for (const space of ["istanbul", "izmir", "ankara", "antalya", "syria", "palestine", "mecca", "mosul", "baghdad"] as const) {
+    G.spaces[space].control = "GE";
+  }
+  for (const space of ["riga", "baltic-states", "finland", "st-petersburg", "poland"] as const) {
+    G.spaces[space].control = "FR";
+  }
   const scores = scoreGoals(G);
   expect(scores.GE.find((s) => s.goal === "NG-01")!.vp).toBe(3);
   expect(scores.FR.find((s) => s.goal === "NG-01")!.vp).toBe(3);

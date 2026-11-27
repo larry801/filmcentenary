@@ -405,6 +405,21 @@ export const usCanLeaveNorthAmerica = (G: ImperialElegyState): NorthAmericaExitC
  * the main map, and movements inside North America (including into Canada and
  * Mexico) are never blocked.
  */
+/** 32.1: the space the US entry force occupies — only the US may hold units there. */
+export const US_SOUTH_SPACE: SpaceId = "the-south";
+
+/**
+ * 32.1: "Only the US can have units in the South space, thus the US can never
+ * be invaded."  Returns the printed refusal for a non-US unit entering the
+ * South, or null.  Scoped to an active Great War: the ACW's printed supporting
+ * squadrons (12.5.3's UK/FR fleet clause) reach the South before the GW starts.
+ */
+export const usSouthEntryRefusal = (G: ImperialElegyState, owner: string, to: SpaceId): string | null => {
+  if (to !== US_SOUTH_SPACE || !G.gw?.active) return null;
+  if (owner === "US") return null;
+  return "Only the US can have units in the South space";
+};
+
 export const usArmyMayLeaveNorthAmerica = (G: ImperialElegyState, unit: Unit, to: SpaceId): boolean => {
   if (unit.owner !== "US" || !isArmyKind(unit.kind)) return true;
   if (!unit.space) return true;

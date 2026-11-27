@@ -1504,6 +1504,28 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // 15.6: the knocked-out power's own armies overstack in one unoccupied home
+  // space (charged to the captor's seat).
+  warKnockoutDisplacement: (entry, locale) => {
+    const victim = powerLabel(entry.args?.power, locale);
+    const space = spaceName(entry.args?.to, locale);
+    const count = entry.args?.count ?? 0;
+    return text(
+      locale,
+      `${victim}'s armies displaced to ${space} and overstack there (15.6): ${count} army counters.`,
+      `${victim}的军队转移至${space}并允许超限堆叠（15.6）：${count} 个军团。`,
+    );
+  },
+
+  warKnockoutDisplacementBlocked: (entry, locale) => {
+    const victim = powerLabel(entry.args?.power, locale);
+    return text(
+      locale,
+      `${victim} has no unoccupied home space, so the captor must choose where its armies displace (15.6).`,
+      `${victim}没有空闲本土空间，须由占领者选择其军队转移地（15.6）。`,
+    );
+  },
+
   // 17.1: a blockaded power gains a -1 card marker (the blockader itself is
   // not logged; the entry is charged to the blockaded power).
   warBlockade: (entry, locale) =>
@@ -3582,6 +3604,22 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  outbreakStabilityGrant: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "joined the Great War at 0 stability and gained 1 (25.4).",
+      "以 0 稳定参战，获得 1 点稳定（25.4）。",
+    ),
+
+  boostReserveArmy: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "placed a bonus reserve army from a maxed-out track boost (25.6).",
+      "因已满格的国家意志增益，放置一个奖励预备军（25.6）。",
+    ),
+
   reserveArmyLimited: (entry, locale) =>
     withActor(
       entry,
@@ -3696,17 +3734,6 @@ const FORMATTERS: Record<string, Formatter> = {
     const to = spaceName(entry.args?.to, locale);
     const units = list(entry.args?.units).length;
     return withActor(entry, locale, `landed ${units} units from ${from} at ${to}.`, `将 ${units} 个单位从${from}登陆${to}。`);
-  },
-
-  amphibiousNavalBattle: (entry, locale) => {
-    const from = spaceName(entry.args?.from, locale);
-    const to = spaceName(entry.args?.to, locale);
-    return withActor(
-      entry,
-      locale,
-      `had to fight the enemy fleet at ${to} before landing the troops from ${from}.`,
-      `登陆${to}前必须先与敌方舰队交战（来自${from}）。`,
-    );
   },
 
   portNavalDisplacement: (entry, locale) => {

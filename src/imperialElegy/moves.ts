@@ -207,7 +207,7 @@ import {
 } from "./engine/combat";
 import {recordBattleDrm} from "./engine/battleDrm";
 import {isCombatCardId} from "./engine/combatCards";
-import {usArmyMayLeaveNorthAmerica, usCanLeaveNorthAmerica} from "./engine/gwMajors";
+import {usArmyMayLeaveNorthAmerica, usCanLeaveNorthAmerica, usSouthEntryRefusal} from "./engine/gwMajors";
 import {
   auIncorporateDecision,
   auRightsDecision,
@@ -3234,9 +3234,10 @@ export const redeploy = (
   }
   let moved = 0;
   let lastError: string | void = undefined;
+  const batchIds = new Set(ids);
   for (const id of ids) {
     const result = wartimeMove
-      ? moveOneWartimeLandUnit(G, power, id, to)
+      ? moveOneWartimeLandUnit(G, power, id, to, batchIds)
       : moveOneLandUnit(G, power, id, to);
     if (result === undefined) moved += 1;
     else lastError = result;
@@ -3263,6 +3264,7 @@ const moveOneWartimeLandUnit = (
   power: Power,
   unitId: string,
   to: SpaceId,
+  batchIds: ReadonlySet<string> = new Set(),
 ): string | void => {
   const unit = G.units[unitId];
   if (!unit) return INVALID_MOVE;
@@ -3286,7 +3288,14 @@ const moveOneWartimeLandUnit = (
   G.spaces[to].units.push(unitId);
   unit.space = to;
   if (plan.kind === "rail") {
-    G.powers[power].flags.wartimeRailedThisImpulse = wartimeRailed(G, power) + 1;
+    // 15.2.5: "ECs attached to armies rail for free if they end their move
+    // attached to the same army" — an EC railed in the same action batch as
+    // its host army spends no allowance slot.
+    if (unit.attachedTo !== null && unit.attachedTo !== undefined && batchIds.has(unit.attachedTo)) {
+      G.powers[power].flags.wartimeRailedThisImpulse = wartimeRailed(G, power);
+    } else {
+      G.powers[power].flags.wartimeRailedThisImpulse = wartimeRailed(G, power) + 1;
+    }
   }
   // Separate calls so the log key is a literal: the log-localization inventory
   // reads keys from the source and a computed key would be invisible to it.
@@ -3450,7 +3459,9 @@ export type AmphibiousBlockReason =
   | "escort"
   | "landing-room"
   /** GW tutorial: the UK may not assault a GE home port holding GE naval units. */
-  | "scenario-german-port";
+  | "scenario-german-port"
+  /** 32.1: only the US can have units in the South space. */
+  | "us-south";
 
 export interface AmphibiousCheck {
   ok: boolean;
@@ -3499,6 +3510,8 @@ export const amphibiousAssaultCheck = (
   if (armyBarredFromNavalBase(to, "army")) return {ok: false, reason: "naval-base"};
   const target = G.spaces[to];
   if (!target) return {ok: false, reason: "target-port"};
+  // 32.1: only the US can have units in the South space.
+  if (usSouthEntryRefusal(G, power, to) !== null) return {ok: false, reason: "us-south"};
   if ((isPower(target.control) || target.occupiedBy) && friendlySpace(G, to, power)) {
     return {ok: false, reason: "target-friendly"};
   }
@@ -10179,7 +10192,7 @@ export const startWarManeuver = (G: ImperialElegyState, ctx: Ctx): string | void
   G.war.status = "maneuver";
   // 22.4: a unified Italy's lone-defender displacement and its reserve-army
   // impulse happen at the start of the war/maneuver, before initiative.
-  applyItalyWarStartRules(G, G.war);
+  applyItalyWarStartRules(G, G.war, ctx);
   // 5.6.3: a war may open paths and close others at once (allies stop supplying
   // enemies and start supplying each other), so the first maneuver impulse's
   // supply is repaired before the upkeep below reads it.

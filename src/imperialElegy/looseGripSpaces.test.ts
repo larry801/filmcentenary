@@ -76,7 +76,10 @@ describe("A79 Loose Grip takes every named Ottoman space", () => {
     playLooseGrip(G, "GE");
 
     expect(G.spaces.tripoli.control).toBe("GE");
-    expect(G.spaces.benghazi.control).toBe("FR");
+    // 3.4.4 (round-5 audit): the Tripoli holder always controls Benghazi, so
+    // taking Tripoli carries Benghazi with it even though A79's own list
+    // names only the still-Ottoman spaces.
+    expect(G.spaces.benghazi.control).toBe("GE");
     expect(G.spaces.tunisia.control).toBe("GE");
     const entries = G.log.filter((entry) => entry.key === "looseGrip");
     expect(entries.map((entry) => entry.args?.space)).toEqual(["tripoli", "tunisia"]);

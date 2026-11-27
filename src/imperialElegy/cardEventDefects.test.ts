@@ -202,14 +202,19 @@ describe("A080 Machine Guns applies to land battles against non-rebels only", ()
     expect(battle.defenderRoll).toBe(3);
   });
 
-  test("does not floor a rebel defender's die", () => {
+  test("a rebel side's own die stays raw; the opponent still floors (18.5)", () => {
     const G = setup("FR");
     G.persistent.machineGuns = true;
     const battle: any = buildLand(G, true);
     G.battle = battle;
-    expect(machineGunsApplies(G, battle, "attacker")).toBe(false);
+    // 18.5: "Machine guns give non-rebel units a minimum die roll of a 3" —
+    // the floor attaches to the units rolling.  The rebel defender's own die
+    // is raw; the FR attacker's roll (no rebels in its own force) still floors.
+    expect(machineGunsApplies(G, battle, "defender")).toBe(false);
+    expect(machineGunsApplies(G, battle, "attacker")).toBe(true);
     resolveBattleRoll(G, makeCtx([1, 1]));
     expect(battle.defenderRoll).toBe(1);
+    expect(battle.attackerRoll).toBe(3);
   });
 
   test("does not floor naval dice", () => {

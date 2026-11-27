@@ -16,9 +16,10 @@
  * reuse the shared 22.4 plan in `rules.ts`, so the Italian army/naval placement
  * cannot drift from the unification redeployment.
  */
+import {Ctx} from "boardgame.io";
 import {ImperialElegyState, Power, SpaceId, Unit, WarState} from "../types";
 import {isNavalBox, neighboursOf} from "../constant/spaces";
-import {isArmyKind, isPower, landStackingLimit, landUnitsIn, log} from "./rules";
+import {die, isArmyKind, isPower, landStackingLimit, landUnitsIn, log} from "./rules";
 
 /** 22.4: Italy is treated as though it has 1 industry in wartime. */
 export const ITALY_WARTIME_INDUSTRY = 1;
@@ -103,6 +104,7 @@ const moveItalianArmy = (G: ImperialElegyState, unit: Unit, to: SpaceId): void =
 export const displaceItalyForLoneDefense = (
   G: ImperialElegyState,
   war: WarState | null = G.war,
+  ctx?: Ctx,
 ): {unitId: string; from: SpaceId; to: SpaceId}[] => {
   if (!G.persistent.italyUnified || war === null) return [];
   if (war.minorTarget?.minor !== "Italy" || war.minorTarget.ally !== null) return [];
@@ -112,8 +114,14 @@ export const displaceItalyForLoneDefense = (
   for (const unit of standingItalianArmies(G)) {
     if (!unit.space || unit.space === "rome") continue;
     if (goals.includes(unit.space)) continue;
-    const to = goals.find((goal) => italyRoomIn(G, goal) && !displaced.some((entry) => entry.to === goal))
-      ?? goals.find((goal) => italyRoomIn(G, goal));
+    // 22.4: "If Italy ever has to choose between two spaces, roll a die to
+    // determine the space."  A ctx-less caller (tests) keeps the old
+    // list-order fallback.
+    const preferred = goals.filter(
+      (goal) => italyRoomIn(G, goal) && !displaced.some((entry) => entry.to === goal),
+    );
+    const pool = preferred.length > 0 ? preferred : goals.filter((goal) => italyRoomIn(G, goal));
+    const to = pickGoal(pool, ctx);
     if (to === undefined) continue;
     const from = unit.space;
     moveItalianArmy(G, unit, to);
@@ -140,6 +148,7 @@ export const displaceItalyForLoneDefense = (
 export const deployItalianReserveForGoal = (
   G: ImperialElegyState,
   war: WarState | null = G.war,
+  ctx?: Ctx,
 ): {unitId: string; to: SpaceId} | null => {
   if (!G.persistent.italyUnified || war === null) return null;
   const side = italyWarSide(war);
@@ -150,7 +159,10 @@ export const deployItalianReserveForGoal = (
     (unit) => unit.owner === "IT" && unit.kind === ITALY_ARMY_KIND && (unit.space === null || unit.space === undefined),
   );
   if (!reserve) return null;
-  const threatened = goals.find((goal) => {
+  // 22.4's defend/support order picks among several goal spaces by die when
+  // more than one qualifies ("If Italy ever has to choose between two
+  // spaces, roll a die to determine the space").
+  const threatenedPool = goals.filter((goal) => {
     if (G.spaces[goal]?.occupiedBy !== null && G.spaces[goal]?.occupiedBy !== undefined) return true;
     return neighboursOf(goal).some((next) => {
       const state = G.spaces[next];
@@ -161,16 +173,28 @@ export const deployItalianReserveForGoal = (
       });
     });
   });
-  const to = threatened ?? goals.find((goal) => italyRoomIn(G, goal));
+  const pool = threatenedPool.length > 0 ? threatenedPool : goals.filter((goal) => italyRoomIn(G, goal));
+  const to = pickGoal(pool, ctx);
   if (to === undefined) return null;
   moveItalianArmy(G, reserve, to);
-  log(G, undefined, "italyReserveDeployed", {space: to, defend: threatened === to});
+  log(G, undefined, "italyReserveDeployed", {space: to, defend: threatenedPool.length > 0});
   return {unitId: reserve.id, to};
 };
 
 /** Run both 22.4 war-start clauses, in the printed order (displace, then deploy). */
-export const applyItalyWarStartRules = (G: ImperialElegyState, war: WarState | null = G.war): void => {
-  displaceItalyForLoneDefense(G, war);
-  deployItalianReserveForGoal(G, war);
+export const applyItalyWarStartRules = (
+  G: ImperialElegyState,
+  war: WarState | null = G.war,
+  ctx?: Ctx,
+): void => {
+  displaceItalyForLoneDefense(G, war, ctx);
+  deployItalianReserveForGoal(G, war, ctx);
+};
+
+/** 22.4: one qualifying space by die; falls back to list order without a ctx. */
+const pickGoal = <T>(pool: T[], ctx?: Ctx): T | undefined => {
+  if (pool.length === 0) return undefined;
+  if (pool.length === 1 || !ctx) return pool[0];
+  return pool[die(ctx, pool.length) - 1];
 };
 

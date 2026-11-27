@@ -152,6 +152,7 @@ import {
   usArmyMayLeaveNorthAmerica,
   usCanLeaveNorthAmerica,
   usNorthAtlanticCheck,
+  usSouthEntryRefusal,
   italyEntryAvailable,
 } from "./gwMajors";
 import {openDecision, option} from "./pending";
@@ -1181,6 +1182,8 @@ const navalPathFailure = (reason: string): string => {
       return "Naval units must end in a naval box or port";
     case "enemyBox":
       return "An enemy-occupied naval box is not a stepping stone";
+    case "usSouth":
+      return "Only the US can have units in the South space";
     default:
       return "No legal naval route to that destination under one NMP";
   }
@@ -2114,6 +2117,9 @@ export const performGwManeuver = (
       const usAttackers = landUnitsIn(G, request.from).filter((unit) => unit.owner === "US");
       const usBlocked = usNorthAmericaExitGuard(G, power, usAttackers, request.to);
       if (usBlocked) return usBlocked;
+      // 32.1: the South can never be invaded — no non-US land battle there.
+      const southBlocked = usSouthEntryRefusal(G, power, request.to);
+      if (southBlocked !== null) return fail("invalidTarget", southBlocked);
       const battle = beginLandBattle(G, ctx, power, request.from, request.to);
       if (!battle) return fail("invalidBattle", "No legal land battle from that space");
       return finish({
