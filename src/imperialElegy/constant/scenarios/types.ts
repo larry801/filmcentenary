@@ -220,7 +220,7 @@ export interface ScenarioDef {
    * RU's as Romania, Serbia and Bulgaria.
    */
   allyMarkers?: {power: Power; minor: string; space: SpaceId}[];
-  controlOverrides: {space: SpaceId; control: PowerOrMinor | null}[];
+  controlOverrides: {space: SpaceId; control: PowerOrMinor | null; home?: Power | null; keyType?: "territorial" | "colonial"}[];
   powerProjection: Record<Power, number>;
   removedCards: string[];
   /** 20.3 End Phase Build Box roster. */

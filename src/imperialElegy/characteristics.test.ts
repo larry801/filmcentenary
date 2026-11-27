@@ -476,7 +476,9 @@ describe("recruitmentLimits", () => {
       turkishRule: "keysWithoutMinorityNationality",
       arabRule: "arabNationalityKeysOnly",
     });
-    expect(limits.ottoman?.arabKeySpaces).toEqual(expect.arrayContaining(["arabia", "egypt"]));
+    // The printed Arab keys plus A71's Egyptian spaces (arabia is a printed
+    // territory, so it is the nationality rule that covers building there).
+    expect(limits.ottoman?.arabKeySpaces).toEqual(expect.arrayContaining(["syria", "palestine", "egypt"]));
 
     // Turkish armies may not be built in an Arab key.
     expect(canRecruitIn(G, "OT", "arabia", "army", {ottoman: "turkish"}).allowed).toBe(false);

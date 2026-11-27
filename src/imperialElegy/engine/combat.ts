@@ -1091,11 +1091,16 @@ const battleFpTotals = (
   G: ImperialElegyState,
   battle: BattleState,
 ): {attackFp: number; defenceFp: number} => {
+  // 5.2.1: "the presence of even a single dreadnought halves the total FP of
+  // all enemy naval squadrons. If both sides have a dreadnought(s) then both
+  // sides' naval squadrons half their FP" — each side halves against the
+  // opponent's dreadnoughts, so compute both flags before either total.
+  const attackHasDreadnought = battle.mainAttack.some((id) => unitById(G, id)?.kind === "dreadnought");
+  const defenceHasDreadnought = battle.mainDefense.some((id) => unitById(G, id)?.kind === "dreadnought");
   const attackFp = battle.mainAttack.reduce((sum, id) => {
     const u = unitById(G, id);
-    return sum + (u ? unitFp(u) : 0);
+    return sum + (u ? unitFp(u, defenceHasDreadnought) : 0);
   }, 0) + battle.supportAttack.reduce((sum, s) => sum + s.fp, 0);
-  const attackHasDreadnought = battle.mainAttack.some((id) => unitById(G, id)?.kind === "dreadnought");
   const defenceFp = battle.mainDefense.reduce((sum, id) => {
     const u = unitById(G, id);
     return sum + (u ? unitFp(u, attackHasDreadnought) : 0);

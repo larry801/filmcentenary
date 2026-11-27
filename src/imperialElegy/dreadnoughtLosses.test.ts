@@ -154,13 +154,18 @@ describe("19.6 dreadnought-majority losses", () => {
     const defenderDread1 = placeUnit(G, "FR", "dreadnought", "brittany", 2).id;
     const defenderDread2 = placeUnit(G, "FR", "dreadnought", "brittany", 2).id;
     const frSquadron = placeUnit(G, "FR", "squadron", "brittany", 2).id;
-    for (let i = 0; i < 4; i += 1) placeUnit(G, "UK", "squadron", "north-atlantic", 2);
+    // 5.2.1 halves both sides' squadrons while dreadnoughts face each other,
+    // so the attacker brings a dreadnought of its own (three squadrons plus
+    // the dread fills the port's four-ship attack limit) to keep the force
+    // points even and FR's two dreadnoughts in the majority.
+    for (let i = 0; i < 3; i += 1) placeUnit(G, "UK", "squadron", "north-atlantic", 2);
+    placeUnit(G, "UK", "dreadnought", "north-atlantic", 2);
     G.spaces.brittany.control = "FR";
     const battle = beginNavalBattle(G, makeCtx(), "UK", "north-atlantic", "brittany");
     if (!battle) throw new Error("naval battle did not start");
     G.pending = null;
-    // 4 squadrons (8) vs 2 dreadnoughts (6) + squadron (2), no dreadnought
-    // halving on the attacking squadrons: an even FP battle won decisively.
+    // 4 squadrons halved to 4 FP plus the dreadnought's 3, against 6 + a
+    // halved squadron: an even FP battle won decisively on the dice.
     battle.attackerDrm = 0;
     battle.defenderDrm = 0;
     // 19.3 step 1: one mine die (1, a miss) comes before the battle dice (6, 1).

@@ -86,9 +86,10 @@ test("The Great Game offers only the great-game spaces that follow normal placem
   const ctx = playEvent(G, "IE-A037", "UK");
 
   expect(G.pending?.kind).toBe("eventTargetSpace");
-  // Qajar Persia and Kuwait are already controlled, and Central Asia has no UK
-  // LoC in the campaign setup; Afghanistan and Balochistan trace through India.
-  expect(optionIds(G)).toEqual(["balochistan", "afghanistan"]);
+  // Qajar Persia is controlled, and Central Asia has no UK LoC in the campaign
+  // setup; Kuwait is the printed uncontrolled great-game key, and Afghanistan
+  // and Balochistan trace through India.
+  expect(optionIds(G)).toEqual(["kuwait", "balochistan", "afghanistan"]);
 
   resolvePending(G, ctx, "afghanistan");
   expect(G.spaces.afghanistan.influence).toBe("UK");

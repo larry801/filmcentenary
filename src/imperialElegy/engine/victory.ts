@@ -137,7 +137,12 @@ export const achievementReached = (G: ImperialElegyState, power: Power, goal: Go
     }
     case "GE_surrounded": {
       const fr = G.powers.FR.alliance;
-      const frOk = fr === "neutral" || !sameAlliance(G, "FR", "GE") ? true : false;
+      // Printed (playbook p.36): "(1) FR is either neutral or not in the
+      // opposing alliance, (2) AU and RU are not both in the opposing
+      // alliance. Important: while GE is in the neutral box both alliances
+      // are considered opposing alliances."  With GE neutral the FR clause
+      // can only pass on FR neutral — which is exactly the print.
+      const frOk = fr === "neutral" || sameAlliance(G, "FR", "GE");
       const au = G.powers.AU.alliance;
       const ru = G.powers.RU.alliance;
       const bothOpposing = opposingAlliance(G, "AU") !== null && opposingAlliance(G, "AU") === opposingAlliance(G, "RU") && opposingAlliance(G, "AU") !== opposingAlliance(G, "GE");
@@ -174,18 +179,21 @@ export const achievementReached = (G: ImperialElegyState, power: Power, goal: Go
       return count >= 8 ? goal.vp : 0;
     }
     case "UK_balanceOfPower": {
-      let one = 0;
-      let two = 0;
+      // "No player controls ≥1 non-home keys in Europe. Gain 2 VPs if no
+      // player controls ≥2 non-home keys in Europe."  The counts are per
+      // player: two different powers each holding one key still pay the 2-VP
+      // partial.
+      const counts = new Map<Power, number>();
       for (const s of Object.values(SPACES)) {
         if (s.region !== "europe" || effectiveKeyType(G, s.id) === undefined) continue;
         const owner = G.spaces[s.id].control;
         if (!isPower(owner)) continue;
         if (isHomeSpace(G, s.id, owner)) continue;
-        one += 1;
-        if (one >= 2) two += 1;
+        counts.set(owner, (counts.get(owner) ?? 0) + 1);
       }
-      if (one === 0) return goal.vp;
-      if (two === 0) return goal.partialVp ?? 0;
+      const max = Math.max(0, ...counts.values());
+      if (max === 0) return goal.vp;
+      if (max === 1) return goal.partialVp ?? 0;
       return 0;
     }
     case "FR_franceResurgent": {
@@ -379,40 +387,6 @@ export const checkGermanUnification = (G: ImperialElegyState, ctx?: Ctx): boolea
   if (G.persistent.imperialGermany !== "granted") G.persistent.imperialGermany = "pending";
   log(G, "GE", "germanUnification", {});
   recomputeTracks(G);
-  return true;
-};
-
-export const checkItalianUnification = (G: ImperialElegyState, ctx?: Ctx): boolean => {
-  if (G.persistent.italyUnified) return false;
-  // Rule 13.2.1 rolled for unification at the war's victory step; a failed
-  // roll is not re-rolled by the action phase's 3-key shortcut in the same
-  // turn.  (The printed 22.1.3/22.1.4 triggers each roll once.)
-  if (G.flags.italianUnificationRolledTurn === G.turn) return false;
-  const italian = Object.values(SPACES).filter((s) => s.flashpoints?.includes("italy"));
-  const controlledByMinor = italian.filter((s) => {
-    const c = G.spaces[s.id].control;
-    return c === "Sardinia-Piedmont" || c === "Two Sicilies";
-  }).length;
-  if (controlledByMinor < 3) return false;
-  G.persistent.italyUnified = true;
-  G.flags.italyUnified = true;
-  G.persistent.italyUnifiedAt = G.turn;
-  for (const s of italian) {
-    // 3.2.6.1: the Italian unification spaces belong to Italy, so its own
-    // markers clear and a unified Italy is not a diplomatic asset.  22.2:
-    // "All Italian unification spaces that are not controlled by a player
-    // become part of the new Kingdom of Italy" — that includes Rome, the
-    // Papal States capital, and the other minor-power homes.
-    const control = G.spaces[s.id].control;
-    if (control === null || control === undefined || !isPower(control)) {
-      // 15.3: a live enemy occupation survives the unification.
-      setSpaceControl(G, s.id, "IT", {preserveOccupation: true});
-    }
-    G.spaces[s.id].influence = null;
-    G.spaces[s.id].diplomacy = null;
-    G.spaces[s.id].ally = null;
-  }
-  log(G, undefined, "italianUnification", {});
   return true;
 };
 

@@ -685,10 +685,39 @@ export const italianUnificationRoll = (G: ImperialElegyState, ctx: Ctx, actor: P
   return false;
 };
 
+/**
+ * 22.1.3 Internal Italian War: once Sardinia-Piedmont or the Kingdom of the
+ * Two Sicilies controls 3 or more Italian keys, the check rolls for Italian
+ * Unification instead of unifying outright.  The printed triggers (13.2.1's
+ * war-victory step and this action shortcut) each roll once per turn, so a
+ * failed roll is not retried in the same turn.
+ */
+export const checkItalianUnification = (G: ImperialElegyState, ctx: Ctx, actor?: Power): boolean => {
+  if (G.persistent.italyUnified) return false;
+  if (G.flags.italianUnificationRolledTurn === G.turn) return false;
+  const italian = Object.values(SPACES).filter((s) => s.flashpoints?.includes("italy"));
+  // 22.1.3: "If Sardinia-Piedmont or the Kingdom of the Two Sicilies now
+  // controls 3 or more Italian keys" — one minor alone must hold the three,
+  // the same per-minor reading 22.1.5's roll bonus applies.
+  const perMinor = new Map<string, number>();
+  for (const s of italian) {
+    const c = G.spaces[s.id].control;
+    if (c === "Sardinia-Piedmont" || c === "Two Sicilies") {
+      perMinor.set(c, (perMinor.get(c) ?? 0) + 1);
+    }
+  }
+  const bestMinor = Math.max(0, ...perMinor.values());
+  if (bestMinor < 3) return false;
+  if (italianUnificationRoll(G, ctx, actor ?? G.activePower)) return true;
+  G.flags.italianUnificationRolledTurn = G.turn;
+  return false;
+};
+
 export const unifyItaly = (G: ImperialElegyState, ctx: Ctx, actor: Power): void => {
   if (G.persistent.italyUnified) return;
   G.persistent.italyUnified = true;
   G.flags.italyUnified = true;
+  G.persistent.italyUnifiedAt = G.turn;
   // 8.5: every power starts with 1 neutral influence; a unified Italy gets its
   // own MPIT column at the same printed value (legacy saves keep their
   // persistent markers because `italyMpitOf` still reads them).
@@ -834,8 +863,12 @@ const formAlliances = (G: ImperialElegyState, ctx: Ctx): void => {
     const roll = die(ctx, 6);
     const pairs: [Power, Power][] = [["GE", "FR"], ["FR", "UK"], ["UK", "RU"], ["RU", "OT"], ["OT", "AU"], ["AU", "GE"]];
     const [a, b] = pairs[(roll - 1) % pairs.length];
-    G.powers[a].alliance = a === "GE" ? "taCommitted" : "teCommitted";
-    G.powers[b].alliance = b === "GE" ? "taCommitted" : "teCommitted";
+    // 25.2.2: "Shift the two powers into opposing alliance committed boxes" —
+    // the second power goes to the opposite box of the first, not to the same
+    // GE-keyed box that left rolls 2-5 with an empty Triple Alliance.
+    const aBox = a === "GE" ? "taCommitted" : "teCommitted";
+    G.powers[a].alliance = aBox;
+    G.powers[b].alliance = aBox === "taCommitted" ? "teCommitted" : "taCommitted";
     G.powers[a].mpit = {te: 0, ta: 1, neutral: 0};
     G.powers[b].mpit = {te: 1, ta: 0, neutral: 0};
     log(G, undefined, "gwAllianceRoll", {roll, first: a, second: b});
@@ -2231,11 +2264,24 @@ export const endGreatWar = (
     // from the winning alliance (2.2.2's/31.0's neutral comparison is the
     // campaign rule).
     if (neutrals.length > 0 && !altGwVictoryOnly(G)) {
+      // 2.2.2: "the team that wins the GW scores bonus VPs equal to 4 minus
+      // the current GW turn (yes it is possible to get zero or negative VPs
+      // for winning the GW)" — every member of the winning alliance, scored
+      // before the comparison with the neutrals.
+      const bonus = 4 - G.gw.turn;
+      if (bonus !== 0) {
+        for (const p of winners) scores[p] = (scores[p] ?? 0) + bonus;
+        log(G, undefined, "gwBonusVps", {turn: G.gw.turn, bonus, powers: winners.join(",")});
+      }
       const bestVictor = Math.max(...winners.map((p) => scores[p] ?? 0));
       const bestNeutral = Math.max(...neutrals.map((p) => scores[p] ?? 0));
       if (bestNeutral > bestVictor) finalWinners = neutrals.filter((p) => scores[p] === bestNeutral);
       else finalWinners = winners.filter((p) => scores[p] === bestVictor);
     }
+    // 2.2.2's exception: "if a player was eliminated during the GW, they
+    // automatically lose the game even if their alliance wins the GW" — their
+    // score can still feed the comparison above, but they never win.
+    finalWinners = finalWinners.filter((p) => !G.powers[p].eliminated);
     G.scores = scores;
     G.result = {winners: finalWinners, reason: `greatWar:${G.gw.victor}`, scores, breakdown};
     log(G, undefined, "greatWarEnded", {victor: G.gw.victor, winners: finalWinners.join(",")});

@@ -272,7 +272,10 @@ test("Great War victory produces a result", () => {
   crisisRoll(G, {...makeCtx("0"), random: {Die: () => 1}}, "GE", "test");
   const {endGreatWar} = require("./engine/greatWar");
   G.gw!.victor = "te";
-  G.gw!.turn = 5;
+  // 2.2.2 scores the winning alliance 4 minus the GW turn; turn 4 keeps that
+  // bonus at zero so the comparison with the neutral players stays out of the
+  // way (a fifth turn would score UK/FR at -1 and hand RU/OT the game at 0).
+  G.gw!.turn = 4;
   endGreatWar(G, makeCtx("0"), "turnLimit");
   expect(G.result).not.toBeNull();
   expect(G.result!.reason).toBe("greatWar:te");

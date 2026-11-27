@@ -245,7 +245,17 @@ describe("16.2.5 colonial cession", () => {
 
   test("a port-to-port sea edge is not a contiguous land connection", () => {
     const G = colonialWar("OT");
-    expect(isColonialTreatyKey(G, "cyprus", "OT")).toBe(true);
+    // Cyprus is a printed territory, not a key, so it is no treaty key at all.
+    expect(isColonialTreatyKey(G, "cyprus", "OT")).toBe(false);
+    // Madagascar is an island key: the port-to-naval-box hop to East Africa
+    // must not bridge the land trace, so it stays a colonial treaty key even
+    // with the whole African corridor under OT control.
+    G.spaces.madagascar.control = "OT";
+    for (const id of ["east-africa", "central-congo", "sudan", "egypt", "palestine", "syria", "antalya"]) {
+      G.spaces[id as keyof typeof G.spaces].control = "OT";
+    }
+    expect(isColonialTreatyKey(G, "madagascar", "OT")).toBe(true);
+    // Antalya sits on the mainland corridor and traces home by land.
     expect(isColonialTreatyKey(G, "antalya", "OT")).toBe(false);
   });
 

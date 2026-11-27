@@ -352,9 +352,13 @@ export const A07: Invariant = {
     const bad = at(A07);
     const out: Violation[] = [];
     let fresh: ImperialElegyState;
+    const trace = {
+      territorial: new Map(POWERS.map((p) => [p, [] as SpaceId[]])),
+      colonial: new Map(POWERS.map((p) => [p, [] as SpaceId[]])),
+    };
     try {
       fresh = JSON.parse(JSON.stringify(G)) as ImperialElegyState;
-      recomputeTracks(fresh);
+      recomputeTracks(fresh, trace);
     } catch (err) {
       return [bad("G", String(err), "recomputeTracks runs on the state", `recomputeTracks threw: ${String(err)}`)];
     }
@@ -366,7 +370,10 @@ export const A07: Invariant = {
         const have = live[field];
         const expect = want[field] ?? 0;
         if ((have ?? 0) !== expect) {
-          out.push(bad(`powers.${p}.${field}`, have ?? 0, String(expect), `${p} ${field}=${String(have ?? 0)} but the board recomputes ${expect}`));
+          // Name the spaces the board feeds this track, so the census sample
+          // points at the divergent writes instead of just the counts.
+          const spaces = (field === "colonialKeys" ? trace.colonial.get(p) : trace.territorial.get(p)) ?? [];
+          out.push(bad(`powers.${p}.${field}`, have ?? 0, String(expect), `${p} ${field}=${String(have ?? 0)} but the board recomputes ${expect} [${spaces.join(" ")}] (track refreshed turn ${String(G.flags.lastRecomputeTurn)} phase ${String(G.flags.lastRecomputePhase)}, now turn ${G.turn} phase ${G.phase})`));
         }
       }
     }

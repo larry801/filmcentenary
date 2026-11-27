@@ -24,7 +24,7 @@
 import type {ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {ITALY_WARTIME_INDUSTRY} from "./italyMilitary";
 import {SPACES, connectionBetween, isNavalBox, neighboursOf} from "../constant/spaces";
-import {allied, atWar, commandsAlliedMinor, friendlySpace, isArmyKind, isPower, minorController} from "./rules";
+import {allied, atWar, commandsAlliedMinor, friendlySpace, hostileOwner, isArmyKind, isPower, landUnitsIn, minorController} from "./rules";
 
 /** Which of the two printed wartime land actions a move is. */
 export type WartimeMoveKind = "march" | "rail";
@@ -43,6 +43,7 @@ export interface WartimeMovePlan {
     | "enemy-units"
     | "enemy-fort"
     | "neutral"
+    | "rebel-stop"
     | "no-rail-path"
     | "rail-allowance";
   /** The spaces the unit passes through, origin first. */
@@ -102,35 +103,37 @@ export const commandsLandUnit = (G: ImperialElegyState, power: Power, unit: Unit
  * never has to satisfy the destination-only checks (none today, but keeping the
  * distinction explicit stops a future edit from silently widening it).
  */
-type EnterProblem = "enemy-units" | "enemy-fort" | "neutral";
+type EnterProblem = "enemy-units" | "enemy-fort" | "neutral" | "rebel-stop";
 
 const marchEnterProblem = (
   G: ImperialElegyState,
   power: Power,
   space: SpaceId,
-  _terminal: boolean,
+  terminal: boolean,
 ): EnterProblem | null => {
   const state = G.spaces[space];
   if (!state) return "enemy-units";
+  // 15.2.4: "players can march units into spaces containing enemy rebels, but
+  // units must stop when they enter such a space."  The rebel hostility is the
+  // space-aware `hostileOwner` one, so rebels friendly to this power through a
+  // liberation war are not "enemy rebels" and impose no stop.
+  let enemyRebels = false;
   const enemyLand = state.units.some((id) => {
     const unit = G.units[id];
     if (!unit || unit.naval === true || unit.steps <= 0) return false;
     if (!isArmyKind(unit.kind) && unit.kind !== "eliteCorps" && unit.kind !== "expeditionary") return true;
-    return unitHostile(G, power, unit);
+    if (!hostileOwner(G, power, unit.owner, space)) return false;
+    if (typeof unit.owner === "string" && unit.owner.startsWith("REBEL:")) {
+      enemyRebels = true;
+      return false;
+    }
+    return true;
   });
   if (enemyLand) return "enemy-units";
+  if (enemyRebels) return terminal ? null : "rebel-stop";
   if (state.fort && fortHostile(G, power, state.fort.power)) return "enemy-fort";
   if (isNeutralLandSpace(G, power, space)) return "neutral";
   return null;
-};
-
-const unitHostile = (G: ImperialElegyState, power: Power, unit: Unit): boolean => {
-  if (unit.owner === power) return false;
-  if (isPower(unit.owner)) return atWar(G, power, unit.owner) && !allied(G, power, unit.owner);
-  const controller = minorController(G, unit.owner);
-  if (controller !== null) return atWar(G, power, controller) && !allied(G, power, controller);
-  // A rebel or independent force is hostile to everyone; it stops a march.
-  return true;
 };
 
 const fortHostile = (G: ImperialElegyState, power: Power, owner: Power | string | undefined): boolean => {
@@ -180,6 +183,7 @@ export const planMarch = (
   // Two-hop march: both connections must be clear, and the middle space only
   // has to be *passable* (it may be enemy-held but empty).
   let best: SpaceId[] | null = null;
+  let stoppedByRebels: SpaceId[] | null = null;
   for (const middle of neighboursOf(from)) {
     if (isNavalBox(middle) || !G.spaces[middle]) continue;
     const first = connectionBetween(from, middle);
@@ -192,11 +196,17 @@ export const planMarch = (
     // The middle space must be traversable: no enemy land unit and no enemy
     // fort.  It is only *passed through*, so the neutral bar does not apply.
     const middleProblem = marchEnterProblem(G, power, middle, false);
+    if (middleProblem === "rebel-stop" && stoppedByRebels === null) stoppedByRebels = [from, middle, to];
     if (middleProblem !== null) continue;
     best = [from, middle, to];
     break;
   }
-  if (best === null) return fail("too-far");
+  if (best === null) {
+    // 15.2.4: the unit would have to stop in the rebel-held space, so the
+    // printed refusal is the rebel stop, not a missing route.
+    if (stoppedByRebels !== null) return fail("rebel-stop", stoppedByRebels);
+    return fail("too-far");
+  }
   return {ok: true, kind: "march", path: best};
 };
 
@@ -246,7 +256,14 @@ export const planRail = (
   return {ok: true, kind: "rail", path};
 };
 
-/** BFS over the friendly land network; `null` when no route exists. */
+/** BFS over the friendly land network; `null` when no route exists.
+ *
+ * 15.2.5: "Players can rail units into friendly spaces containing enemy
+ * rebels, but units must stop when they enter such a space."  A space holding
+ * rebels hostile to the railing power (the space-aware `hostileOwner` reading —
+ * liberation-war rebels are not enemy rebels) can therefore only be the final
+ * node of the path, never an intermediate hop.
+ */
 const friendlyRailPath = (
   G: ImperialElegyState,
   power: Power,
@@ -255,6 +272,9 @@ const friendlyRailPath = (
 ): SpaceId[] | null => {
   const previous = new Map<SpaceId, SpaceId | null>([[from, null]]);
   const queue: SpaceId[] = [from];
+  const rebelStop = (space: SpaceId): boolean =>
+    landUnitsIn(G, space).some((unit) =>
+      unit.kind === "rebelArmy" && hostileOwner(G, power, unit.owner, space));
   while (queue.length > 0) {
     const current = queue.shift()!;
     if (current === to) {
@@ -271,6 +291,7 @@ const friendlyRailPath = (
       const connection = connectionBetween(current, next);
       if (!connection || connection.type === "sea") continue;
       if (!friendlySpace(G, next, power)) continue;
+      if (rebelStop(next) && next !== to) continue;
       previous.set(next, current);
       queue.push(next);
     }

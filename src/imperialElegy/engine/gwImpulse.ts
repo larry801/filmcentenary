@@ -158,7 +158,15 @@ export const gwFinishImpulseProblem = (G: ImperialElegyState, power: Power): GwI
   // A card action is additional to a budget action, never a substitute for it.
   if (impulse.cardPlayed && cpBudgetFor(G, power) > 0) return "mustAct";
   if (G.gw.order[G.turnIndex] === "bonus") return null;
-  return cpBudgetFor(G, power) > 2 ? "mustAct" : null;
+  // 27.7: a seat holding more than 2 budget must act — but a seat with no
+  // force left that could act (no land units, no reserves) has nothing to
+  // spend the budget on, and refusing its pass would deadlock the maneuver
+  // step forever (27.7 ends only on all-pass or all-zero budgets).  This is
+  // the same force-less escape the wartime 15.0 pass rule already carries.
+  const canStillAct = G.powers[power].reserves.length > 0
+    || Object.values(G.units).some((unit) => unit.owner === power && !unit.naval && unit.steps > 0);
+  if (cpBudgetFor(G, power) > 2 && canStillAct) return "mustAct";
+  return null;
 };
 
 export const gwMilitaryFinished = (G: ImperialElegyState): boolean => {

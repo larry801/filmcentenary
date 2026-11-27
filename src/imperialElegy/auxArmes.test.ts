@@ -1,9 +1,12 @@
 /**
  * H-FR-6 Aux Armes, Citoyens!
  *
- * "Take either French Intervention or Papal Influence from the discard pile;
- * you may play it immediately."  The handler only granted the reserve steps and
- * the war declaration, leaving both cards in the discard.
+ * The card is a printed OR: the war half — 2 reserve army steps, then the
+ * CP-valued war declaration — or the retrieval half — French Intervention or
+ * Papal Influence from the discard pile, playable immediately.  With nothing
+ * retrievable only the war half remains, and the war half's 2 steps arrive as
+ * two 1-step reserve counters, the same reading 20.1's militarism step gives
+ * its one army step.
  */
 import type {Ctx} from "boardgame.io";
 import {INVALID_MOVE} from "boardgame.io/core";
@@ -39,24 +42,31 @@ const begin = (): ImperialElegyState => {
 const options = (G: ImperialElegyState): string[] => G.pending?.options.map((o) => o.id) ?? [];
 
 describe("H-FR-6 Aux Armes", () => {
-  test("the player takes one of the two printed cards from the discard", () => {
+  test("the printed OR is a mode decision and the retrieval half takes a card", () => {
     const G = begin();
     const ctx = makeCtx(seat("FR"));
     playCard(G, ctx, "IE-H-FR-6", "event");
     expect(G.pending?.kind).toBe("eventChoice");
-    expect(options(G).sort()).toEqual(["take:IE-A046", "take:IE-A070"]);
+    expect(options(G).sort()).toEqual(["retrieve", "war"]);
 
+    expect(resolvePending(G, ctx, "retrieve")).toBeUndefined();
+    expect(G.pending?.kind).toBe("eventChoice");
+    expect(options(G).sort()).toEqual(["take:IE-A046", "take:IE-A070"]);
     expect(resolvePending(G, ctx, "take:IE-A046")).toBeUndefined();
     expect(G.powers.FR.hand).toContain("IE-A046");
     expect(G.discard).not.toContain("IE-A046");
     expect(G.discard).toContain("IE-A070");
     expect(G.powers.FR.flags.auxArmesFreePlay).toBe("IE-A046");
+    // The retrieval half grants no reserve steps and no declaration.
+    expect(G.powers.FR.reserves).toHaveLength(0);
+    expect(G.powers.FR.flags.warDeclaration).toBeUndefined();
   });
 
   test("the taken card can be played immediately, once", () => {
     const G = begin();
     const ctx = makeCtx(seat("FR"));
     playCard(G, ctx, "IE-H-FR-6", "event");
+    expect(resolvePending(G, ctx, "retrieve")).toBeUndefined();
     expect(resolvePending(G, ctx, "take:IE-A046")).toBeUndefined();
 
     // The home card is already this impulse's card; Aux Armes grants the
@@ -69,6 +79,19 @@ describe("H-FR-6 Aux Armes", () => {
     // Without the marker, a second play is refused again.
     G.pending = null;
     expect(playCard(G, makeCtx(seat("FR")), "IE-A070", "event")).toBe(INVALID_MOVE);
+  });
+
+  test("the war half grants two 1-step reserve counters and the declaration", () => {
+    const G = begin();
+    const ctx = makeCtx(seat("FR"));
+    playCard(G, ctx, "IE-H-FR-6", "event");
+    expect(resolvePending(G, ctx, "war")).toBeUndefined();
+    expect(G.pending).toBeNull();
+    const reserves = G.powers.FR.reserves.map((id: string) => G.units[id]);
+    expect(reserves).toHaveLength(2);
+    for (const unit of reserves) expect(unit.steps).toBe(1);
+    expect(G.powers.FR.flags.warDeclaration).toBe(true);
+    expect(G.powers.FR.flags.warDeclarationCard).toBe("IE-H-FR-6");
   });
 
   test("with neither card in the discard the event still grants the declaration", () => {

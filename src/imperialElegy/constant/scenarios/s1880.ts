@@ -242,13 +242,15 @@ export const S1880_SCENARIO: ScenarioDef = {
     {space: "saxony", control: "GE"},
     {space: "alsace-lorraine", control: "GE"},
     // UK "Control markers: Balochistan, Shanghai, Guangzhou, Egypt, Sanai,
-    // Great Sand Sea (the latter three are colonial home spaces)".
+    // Great Sand Sea (the latter three are colonial home spaces)".  The three
+    // Egyptian spaces are A71-style colonial home spaces under the UK, so the
+    // Egypt key counts on the UK colonial track.
     {space: "balochistan", control: "UK"},
     {space: "shanghai", control: "UK"},
     {space: "guangzhou", control: "UK"},
-    {space: "egypt", control: "UK"},
-    {space: "sinai", control: "UK"},
-    {space: "great-sand-sea", control: "UK"},
+    {space: "egypt", control: "UK", home: "UK", keyType: "colonial"},
+    {space: "sinai", control: "UK", home: "UK"},
+    {space: "great-sand-sea", control: "UK", home: "UK"},
     // FR "Control markers: Indochina".
     {space: "indochina", control: "FR"},
     // RU "Control marker: Manchuria".
