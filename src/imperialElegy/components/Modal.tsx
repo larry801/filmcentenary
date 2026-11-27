@@ -35,6 +35,15 @@ export interface ModalProps {
   requiredTestId?: string;
   /** Shown in the title bar instead of ✕ for a blocker. */
   requiredLabel?: string;
+  /**
+   * A blocker may still be folded out of the way without answering: the
+   * collapse button hides the dialog while the decision stays owed.  The host
+   * keeps a reopen affordance; this button only hides the frame.
+   */
+  collapseTestId?: string;
+  collapseTitle?: string;
+  collapseLabel?: string;
+  onCollapse?: () => void;
   /** Footer content; only rendered for a dismissible dialog. */
   footer?: React.ReactNode;
   /** Extra class on the dialog frame (a wider decision dialog, for example). */
@@ -45,6 +54,7 @@ export interface ModalProps {
 export const Modal = ({
   open, dismissible, locale, title, onClose,
   testId, backdropTestId, closeTestId, requiredTestId, requiredLabel,
+  collapseTestId, collapseTitle, collapseLabel, onCollapse,
   footer, className = "", children,
 }: ModalProps) => {
   // `onEscape` stays undefined for a blocker: `useFocusTrap` then swallows Esc
@@ -87,8 +97,21 @@ export const Modal = ({
               ✕
             </button>
           ) : (
-            <span className="ie-muted" data-testid={requiredTestId}>
-              {requiredLabel ?? bi(locale, "This choice is required.", "此项为必选。")}
+            <span className="ie-choice-required">
+              <span className="ie-muted" data-testid={requiredTestId}>
+                {requiredLabel ?? bi(locale, "This choice is required.", "此项为必选。")}
+              </span>
+              {onCollapse !== undefined && (
+                <button
+                  type="button"
+                  className="ie-btn secondary"
+                  data-testid={collapseTestId}
+                  title={collapseTitle ?? bi(locale, "Collapse and answer later from the Orders panel", "收起后从指令面板作答")}
+                  onClick={onCollapse}
+                >
+                  {collapseLabel ?? bi(locale, "Collapse", "收起")}
+                </button>
+              )}
             </span>
           )}
         </header>

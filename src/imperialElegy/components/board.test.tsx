@@ -190,6 +190,79 @@ describe("Imperial Elegy board controls", () => {
     expect(buttonTag(markup, "ie-pending-option-decline")).toBe("");
   });
 
+  test("the alternate-GW build point is spent, never declined", () => {
+    const G = freshGame();
+    G.pending = {
+      id: "d-bp",
+      kind: "gwBuildPoint",
+      power: "GE",
+      prompt: "Alternate GW setup: spend the build point",
+      options: [
+        {id: "stability", label: "Stability +1"},
+        {id: "industry", label: "Industry +1"},
+      ],
+      createdAt: 1,
+    };
+    const markup = html(G, "0");
+    expect(markup).toContain('data-testid="ie-pending-option-stability"');
+    expect(markup).toContain('data-testid="ie-pending-option-industry"');
+    // p. 8 step 2: every build point is spent.  The engine's decline fallback
+    // would silently spend it on stability, so no generic 拒绝 may appear.
+    expect(buttonTag(markup, "ie-decline-generic")).toBe("");
+    expect(markup).not.toContain(">拒绝<");
+    // The dialog folds (the decision stays owed), so the board is inspectable.
+    expect(markup).toContain('data-testid="ie-decision-collapse"');
+  });
+
+  test("a printed answer replaces the generic decline (naval interception, elite, recoil)", () => {
+    const interception = freshGame();
+    interception.pending = {
+      id: "d-int",
+      kind: "navalInterception",
+      power: "FR",
+      prompt: "19.1: attempt interception?",
+      options: [{id: "skip", label: "Do not intercept"}],
+      createdAt: 1,
+    };
+    const intMarkup = html(interception, "2");
+    expect(intMarkup).toContain('data-testid="ie-pending-option-skip"');
+    expect(buttonTag(intMarkup, "ie-decline-generic")).toBe("");
+
+    const elite = freshGame();
+    elite.pending = {
+      id: "d-elite",
+      kind: "combatElite",
+      power: "GE",
+      prompt: "Commit an elite unit for its printed +1? (attacker)",
+      options: [
+        {id: "commit", label: "Commit the elite unit (+1)"},
+        {id: "decline", label: "Do not use its bonus"},
+      ],
+      createdAt: 1,
+    };
+    const eliteMarkup = html(elite, "0");
+    expect(eliteMarkup).toContain('data-testid="ie-pending-option-decline"');
+    // The generic 拒绝 routes to the engine's fallback, which would commit
+    // the elite; the printed decline is the only refusal control.
+    expect(buttonTag(eliteMarkup, "ie-decline-generic")).toBe("");
+
+    const recoil = freshGame();
+    recoil.pending = {
+      id: "d-recoil",
+      kind: "hydraulicRecoil",
+      power: "GE",
+      prompt: "Hydraulic Recoil: inflict +1 loss to both sides?",
+      options: [
+        {id: "apply", label: "Inflict +1 loss to both sides"},
+        {id: "decline", label: "No extra loss"},
+      ],
+      createdAt: 1,
+    };
+    const recoilMarkup = html(recoil, "0");
+    expect(recoilMarkup).toContain('data-testid="ie-pending-option-apply"');
+    expect(buttonTag(recoilMarkup, "ie-decline-generic")).toBe("");
+  });
+
   test("pending decision renders options and highlights legal spaces", () => {
     const G = freshGame();
     G.pending = {

@@ -15,10 +15,12 @@ jest.mock("./theme", () => {
   return {
     IEBadge: ({children}: any) => React.createElement("span", null, children),
     IEChip: ({children}: any) => React.createElement("span", null, children),
+    IEPanel: ({children, actions}: any) => React.createElement("section", null, actions, children),
   };
 });
 
 import {DecisionModal} from "./DecisionModal";
+import {PendingPanel} from "./PendingPanel";
 import type {PendingPanelProps} from "./PendingPanel";
 import {ieT} from "./i18n";
 import {CARD_BY_ID} from "../engine/deck";
@@ -49,8 +51,8 @@ const body = (over: Partial<Omit<PendingPanelProps, "dock">> = {}): Omit<Pending
   ...over,
 });
 
-const render = (over: Partial<Omit<PendingPanelProps, "dock">> = {}, open = true): string =>
-  renderToStaticMarkup(<DecisionModal open={open} {...body(over)}/>);
+const render = (over: Partial<Omit<PendingPanelProps, "dock">> = {}, open = true, onCollapse?: () => void): string =>
+  renderToStaticMarkup(<DecisionModal open={open} onCollapse={onCollapse} {...body(over)}/>);
 
 describe("the decision dialog", () => {
   test("renders a modal dialog with the decision inside it", () => {
@@ -77,6 +79,53 @@ describe("the decision dialog", () => {
 
   test("does not mount for a seat the reader is not looking at", () => {
     expect(render({}, false)).toBe("");
+  });
+
+  test("offers 收起 to fold the dialog over the board, and the decision stays owed", () => {
+    const html = render({}, true, () => undefined);
+    expect(html).toContain('data-testid="ie-decision-collapse"');
+    expect(html).toContain("收起");
+    // Folding hides the frame, it never closes the decision: no ✕, no
+    // continue button, still not dismissible.
+    expect(html).not.toContain('data-testid="ie-choice-close"');
+    expect(html).toContain('data-dismissible="false"');
+    expect(html).toContain("此项决策为必选。");
+  });
+
+  test("without a collapse handler the dialog stays a plain blocker", () => {
+    expect(render({}, true)).not.toContain('data-testid="ie-decision-collapse"');
+  });
+
+  test("a mandatory build-point decision shows no generic decline", () => {
+    const html = render({
+      pending: {
+        id: "d-bp",
+        kind: "gwBuildPoint",
+        power: "GE",
+        prompt: "Spend the build point",
+        options: [
+          {id: "stability", label: "Stability +1"},
+          {id: "industry", label: "Industry +1"},
+        ],
+        createdAt: 1,
+      } as never,
+      pendingKind: "gwBuildPoint",
+      pendingPrompt: "Spend the build point",
+      pendingSpaceTargets: [],
+      canDecline: false,
+    });
+    expect(html).toContain('data-testid="ie-pending-option-stability"');
+    expect(html).toContain('data-testid="ie-pending-option-industry"');
+    // The generic 拒绝 would silently spend the point on the first option.
+    expect(html).not.toContain('data-testid="ie-decline-generic"');
+    expect(html).not.toContain(">拒绝<");
+  });
+
+  test("the docked panel offers 展开 to re-raise the folded dialog", () => {
+    const dock = (onExpand?: () => void): string =>
+      renderToStaticMarkup(<PendingPanel dock onExpand={onExpand} {...body()}/>);
+    expect(dock(() => undefined)).toContain('data-testid="ie-decision-expand"');
+    expect(dock(undefined)).not.toContain('data-testid="ie-decision-expand"');
   });
 
   test("the hint names the buttons, not the map, because the backdrop covers it", () => {

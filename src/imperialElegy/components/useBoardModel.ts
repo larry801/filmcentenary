@@ -70,11 +70,15 @@ const EMPTY_SEATS: ReadonlySet<Power> = new Set<Power>();
  * Decisions whose printed benefit is mandatory ("gains", "set manpower", a tied
  * alliance direction, returning an NG).  The panel's generic 拒绝 is only a
  * convenience for optional windows; offering it here would let a player decline
- * a benefit the rules grant, so these kinds answer only through their printed
+ * a benefit the rules grant — or, worse, silently pick the option the engine's
+ * unattended fallback would.  These kinds answer only through their printed
  * options.  The engine's `declinePending` stays available as the unattended
  * fallback for bots and stale clients.
+ *
+ * Exported for the decline audit (`pendingDeclineAudit.test.ts`), which keeps
+ * this set, the panel's decline-equivalent ids, and `PENDING_KINDS` in step.
  */
-const MANDATORY_PENDING_KINDS: ReadonlySet<string> = new Set([
+export const MANDATORY_PENDING_KINDS: ReadonlySet<string> = new Set([
   "metternich",
   "militarism",
   "manpowerExcess",
@@ -86,6 +90,70 @@ const MANDATORY_PENDING_KINDS: ReadonlySet<string> = new Set([
   "startingGoal",
   "scenarioGoalChoice",
   "francoPrussianConcession",
+  // Alternate-GW setup step 2: every build point must be spent on stability or
+  // industry.  The engine's decline fallback would silently spend it on the
+  // first option (stability +1), so 拒绝 here lies about what it does.
+  "gwBuildPoint",
+  // 20.12/A026: the Qing stability-or-marker answer is mandatory; decline
+  // auto-picks the first option (declineEndPhasePending).
+  "qingPenalty",
+  // 5.5.3/5.6.2: which unit loses a step — decline is refused outright.
+  "impulseLoss",
+  // The support window self-answers with its printed "done"; the
+  // miscommunication window (supportDeny) has no done and auto-picks a space.
+  "combatSupport",
+  // 28.1.1: retreat is mandatory; decline auto-picks the first legal space.
+  "combatRetreat",
+  // 19.5: the attacker must name the box a two-box port battle counts as.
+  "navalPortBox",
+  // 16.1.6: a two-sided knockout needs the order chosen; decline falls back to
+  // initiative order instead of asking.
+  "whitePeaceOrder",
+  // The follow-up picker for a treaty option that names a space: declining
+  // would advance the stage and skip the cession the winner already chose.
+  "treatySpace",
+  // Combat answer sheets whose decline the engine refuses outright (or whose
+  // fallback would auto-commit): the printed choice is the only answer.
+  "combatCard",
+  "combatDiscard",
+  "combatLosses",
+  "decisiveBattle",
+  // 20.11: the displaced naval unit must return to a nearest friendly port.
+  "movementDestination",
+  // 27.5.2: the second drafted reduced army needs its home key; declining
+  // forfeits the army.
+  "gwDraft",
+  // 12.7: MPIT markers are allocated until the printed amount is spent; decline
+  // auto-picks a column shift.
+  "mpitAllocation",
+  // 33.4: discard a card or take the -1 marker — no third answer exists.
+  "auUnstable",
+  // 29.2: the losing alliance must say which unit takes the colonial-war loss.
+  "gwColonialLoss",
+  // 23.x: the crisis roll, incident and joined alliance resolve through the
+  // printed choices; decline auto-picks the first one.
+  "crisis",
+  "crisisIncident",
+  "crisisAlliance",
+  // 22.x: Italy's internal war, petition, nationalist wave, naval base and
+  // Ottoman-war choices are all mandatory picks.
+  "italianInternalWar",
+  "italianPetition",
+  "italianNationalistWave",
+  "italyNavalBase",
+  "italyOttomanWar",
+  // 29.3: the free-redeployment destination must be named; decline is refused
+  // outright (the deploy step's own skip covers backing out).
+  "gwNeutralDestination",
+  // 29.3: the free-deploy space must be named; decline is refused outright.
+  "gwNeutralDeploy",
+  // Card and event choices: decline resolves to the printed "done" when one
+  // exists and silently picks the first option otherwise, so the generic
+  // 拒绝 is never a distinct answer here.  An event that may be skipped
+  // prints its own no-op (pass/done/none), which stays.
+  "eventTargetSpace",
+  "eventTargetPower",
+  "eventChoice",
 ]);
 
 export interface BoardModelProps {
@@ -1332,7 +1400,7 @@ export const useBoardModel = ({
   // A decision that prints its own "decline" option (13.4.2's aid search, most
   // pending windows) must not also get the generic one: the panel would show
   // two identical 拒绝 buttons whose only difference is the option id.
-  const canDecline = canDecide && pending !== null && !pendingDeclinesItself(pending) && !MANDATORY_PENDING_KINDS.has(pending.kind) && pending.kind !== "combatLosses" && pending.kind !== "combatCard" && pending.kind !== "combatDiscard" && pending.kind !== "decisiveBattle";
+  const canDecline = canDecide && pending !== null && !pendingDeclinesItself(pending) && !MANDATORY_PENDING_KINDS.has(pending.kind);
 
   // Only the rungs `WarState.status` actually holds; `shift`, `initiative` and
   // `demobilization` are printed steps the engine resolves inside the alliance
