@@ -22,9 +22,11 @@ import {
   cardsToDraw,
   isAloneSensitiveKind,
   recomputeTracks,
+  setSpaceControl,
   SETUP_PLACEMENT_FLAG,
 } from "./rules";
 import {ensureStateDefaults} from "./migrations";
+import {italyMpitOf} from "./italyEntry";
 import {
   botPowersOf,
   declaresBotDifficulty,
@@ -145,7 +147,14 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   // (the map's own `control` field carries the campaign defaults), so applying
   // the list is enough for every scenario.
   for (const override of def.controlOverrides) {
-    if (G.spaces[override.space]) G.spaces[override.space].control = override.control;
+    const state = G.spaces[override.space];
+    if (!state) continue;
+    state.control = override.control;
+    // A scenario may print the A71-style halves with its control marker ("the
+    // latter three are colonial home spaces"): the home-space override and, for
+    // a key, the colonial key-type override.
+    if (override.home !== undefined) state.homeOverride = override.home;
+    if (override.keyType !== undefined) state.keyTypeOverride = override.keyType;
   }
 
   // ---------------------------------------------------------------- markers
@@ -221,6 +230,27 @@ export const setupImperialElegy = (ctx: Ctx, setupData?: unknown): ImperialElegy
   }
   // A completed Trans-Siberian RR is printed by the GW setups.
   if (def.powers.RU.tsrr === true) G.powers.RU.tsrr = true;
+
+  // 22.2 / 22.3: a scenario printing "Italy Status: Unified" starts with the
+  // Kingdom of Italy on the map.  The scenario's own unit list carries the
+  // printed Italian units (e.g. the 1870 setup drops AU's Lombardy army and
+  // places Italian ones), so only the flag, the MPIT column and the control
+  // half are applied here - every Italian unification space joins Italy.
+  if (def.italy?.unified === true && !def.special.gwTutorial && !def.special.altGw) {
+    G.persistent.italyUnified = true;
+    G.flags.italyUnified = true;
+    if (G.persistent.italyUnifiedAt === undefined) G.persistent.italyUnifiedAt = def.firstTurn;
+    if (G.italyMpit === undefined) {
+      const existing = italyMpitOf(G);
+      G.italyMpit = existing.te + existing.ta + existing.neutral > 0 ? existing : {te: 0, ta: 0, neutral: 1};
+    }
+    for (const space of Object.values(SPACES).filter((s) => s.flashpoints?.includes("italy"))) {
+      setSpaceControl(G, space.id, "IT", {preserveOccupation: true});
+      G.spaces[space.id].influence = null;
+      G.spaces[space.id].diplomacy = null;
+      G.spaces[space.id].ally = null;
+    }
+  }
 
   // ---------------------------------------------------------------- GW scenarios
   if (def.special.gwTutorial || def.special.altGw) {

@@ -22,8 +22,7 @@ import {
   syncItalianHomeKeys,
 } from "./engine/gwMajors";
 import {enterGwAlly} from "./engine/greatWarFlow";
-import {checkItalianUnification} from "./engine/victory";
-import {unifyItaly} from "./engine/greatWar";
+import {checkItalianUnification, unifyItaly} from "./engine/greatWar";
 import {hostileOwner, isPower, italianKeys, landUnitsIn, navalUnitsIn, recomputeTracks} from "./engine/rules";
 import {CARD_BY_ID} from "./engine/deck";
 import {resolveCard, resolveCardDecision} from "./engine/effects";
@@ -188,13 +187,13 @@ describe("Rome and Italian unification", () => {
   });
 
   test("unification hands Rome (and the other minor homes) to Italy", () => {
-    const G = setupImperialElegy(makeCtx());
-    // Three Italian spaces under the two unifying minors triggers 22.2.
-    G.spaces.piedmont.control = "Sardinia-Piedmont";
-    G.spaces.naples.control = "Two Sicilies";
+    const G = setupImperialElegy(makeCtx(5));
+    // 22.1.3: Sardinia-Piedmont holding three Italian keys rolls for
+    // unification (22.1.5); a 5 die with the +3 minor DRM unifies.
     G.spaces.tuscany.control = "Sardinia-Piedmont";
+    G.spaces.rome.control = "Sardinia-Piedmont";
 
-    expect(checkItalianUnification(G)).toBe(true);
+    expect(checkItalianUnification(G, makeCtx(5))).toBe(true);
     expect(G.persistent.italyUnified).toBe(true);
     expect(G.spaces.rome.control).toBe("IT");
     expect(G.spaces.tuscany.control).toBe("IT");

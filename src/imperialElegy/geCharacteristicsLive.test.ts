@@ -333,13 +333,20 @@ describe("33.1 Zollverein", () => {
 
   test("Zollverein only credits GE, not another controller of the same space", () => {
     const G = fresh();
+    recomputeTracks(G);
+    const frBase = G.powers.FR.territorialKeys;
+    const geBase = G.powers.GE.territorialKeys;
+    // FR holding Bavaria counts it by 3.2.1's owner rule — the land path to
+    // Paris runs through FR's Alsace-Lorraine — not by Zollverein, which is
+    // GE's alone.
     G.spaces.bavaria.control = "FR";
     recomputeTracks(G);
-    const frBefore = G.powers.FR.territorialKeys;
+    expect(G.powers.FR.territorialKeys).toBe(frBase + 1);
+    expect(G.powers.GE.territorialKeys).toBe(geBase);
     G.spaces.bavaria.control = "GE";
     recomputeTracks(G);
-    expect(G.powers.FR.territorialKeys).toBe(frBefore);
-    expect(G.powers.GE.territorialKeys).toBeGreaterThan(0);
+    expect(G.powers.GE.territorialKeys).toBe(geBase + 1);
+    expect(G.powers.FR.territorialKeys).toBe(frBase);
   });
 });
 

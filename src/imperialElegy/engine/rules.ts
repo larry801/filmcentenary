@@ -2111,8 +2111,16 @@ export const isGermanUnificationSpace = (space: SpaceId): boolean =>
 
 /**
  * The key type `power` counts for `space`.  This is `effectiveKeyType` plus
- * Zollverein; a space that already prints (or overrides) a key type is never
- * counted twice.
+ * Zollverein plus 3.2.1's rule for the printed keys that carry no track type:
+ * the printed map marks them as keys (squares and stars) without choosing a
+ * track, so the owner's situation classifies them.
+ *
+ * RU/AU/OT count every key they control as territorial (3.2.1; 33.6 moves OT's
+ * Arab-nationality keys onto the Arab track instead, which `recomputeTracks`
+ * applies before this value is read for OT).  UK/FR/GE count the key as
+ * territorial only while a contiguous controlled land path links it to their
+ * capital - the same trace 16.2.5 uses for treaty keys; anything else is a
+ * colonial key.
  */
 export const keyTypeForPower = (
   G: ImperialElegyState,
@@ -2121,6 +2129,8 @@ export const keyTypeForPower = (
 ): KeyType | undefined => {
   const base = effectiveKeyType(G, space);
   if (base !== undefined) return base;
+  const def = SPACES[space];
+  if (!def || !["key", "capital", "subcapital"].includes(def.type)) return undefined;
   if (power === "GE" && isGermanUnificationSpace(space)) return "territorial";
   // 33.6 Local Autonomy: "Tunisia and Tripoli neither count as keys nor for
   // power projection unless OT can trace a LoC to the keys by land."  They are
@@ -2130,7 +2140,36 @@ export const keyTypeForPower = (
   if (power === "OT" && SPACES[space]?.otLandLocKeyType !== undefined) {
     return SPACES[space].otLandLocKeyType;
   }
-  return undefined;
+  if (power === "RU" || power === "AU" || power === "OT") return "territorial";
+  return hasControlledLandPathToCapital(G, space, power) ? "territorial" : "colonial";
+};
+
+/**
+ * 3.2.1: "keys with a contiguous land connection back to a player's capital.
+ * The land connection cannot be traced through neutral or allied spaces."
+ * Formal control only (15.3), never across a naval box or a sea connection -
+ * the same trace `limitedWar.ts#isColonialTreatyKey` runs for treaty keys.
+ */
+const hasControlledLandPathToCapital = (
+  G: ImperialElegyState,
+  space: SpaceId,
+  power: Power,
+): boolean => {
+  const capital = capitalOf(G, power);
+  const visited = new Set<SpaceId>([space]);
+  const queue: SpaceId[] = [space];
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    if (current === capital) return true;
+    for (const connection of connectionsOf(current)) {
+      if (connection.type === "sea") continue;
+      const next = connection.a === current ? connection.b : connection.a;
+      if (visited.has(next) || isNavalBox(next) || G.spaces[next]?.control !== power) continue;
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+  return false;
 };
 
 /** 33.6 Local Autonomy: the two spaces that need a land LoC to count as keys. */
@@ -2311,7 +2350,7 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
   refreshPowerProjection(G);
 };
 
-export const ARAB_KEY_SPACES = new Set<SpaceId>(["arabia", "mecca", "baghdad", "kuwait", "syria"]);
+export const ARAB_KEY_SPACES = new Set<SpaceId>(["syria", "mecca", "baghdad", "mosul", "palestine"]);
 export const EGYPTIAN_SPACES = new Set<SpaceId>(["egypt", "great-sand-sea", "sinai"]);
 
 /** One naval box's contribution to a power's projection. */

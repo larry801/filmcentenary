@@ -105,7 +105,9 @@ test("20.1 offers a free standing army step under the 12.2 rules", () => {
   expect(options).not.toContain("reserve");
   const placed = armiesOnMap(G, "GE").filter((unit) => unit.space === "prussia");
   expect(placed).toHaveLength(1);
-  expect(placed[0].steps).toBe(2);
+  // 12.2: one CP buys one step, so the free militarism step arrives on the
+  // army's reduced side rather than as a fresh two-step counter.
+  expect(placed[0].steps).toBe(1);
   expect(placed[0].flags?.indian).toBeUndefined();
   expect(G.log.some((entry) => entry.key === "militarism" && entry.args?.choice === "army")).toBe(true);
 });

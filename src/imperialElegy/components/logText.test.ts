@@ -111,6 +111,7 @@ prepIndiaStabilityDiscard: {key: "prepIndiaStabilityDiscard", power: "GE", args:
   woiIndependence: {key: "woiIndependence", args: {space: "serbia", minor: "Serbia", power: "OT", stability: -1}},
   militarism: {key: "militarism", power: "FR", args: {choice: "fort", space: "champagne", level: 2}},
   manpowerExcess: {key: "manpowerExcess", power: "GE", args: {space: "berlin", kind: "army"}},
+  gwBonusVps: {key: "gwBonusVps", args: {turn: 2, bonus: 2, powers: "GE,FR"}},
   russianAsiaReserveEliminated: {key: "russianAsiaReserveEliminated", power: "RU", args: {space: "moscow"}},
   russianAsiaRetained: {key: "russianAsiaRetained", power: "RU", args: {space: "central-asia"}},
   extremeMilitarismRefund: {key: "extremeMilitarismRefund", power: "GE", args: {count: 1}},

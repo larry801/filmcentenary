@@ -24,6 +24,7 @@ import {
   pacify,
   placeMpit,
   rebuildZouave,
+  resolveEnd,
   resolvePending,
   startWarManeuver,
   tsrrRailMove,
@@ -454,24 +455,28 @@ describe("FR government (33.3)", () => {
     expect(gw.powers.FR.government).toBe("secondEmpire");
   });
 
-  test("the Third Republic gains 2 free alliance CP at the war maneuver step", () => {
+  test("33.3: the Third Republic gains 2 free alliance CP at the alliance resolution step", () => {
     const G = fresh();
     G.powers.FR.government = "thirdRepublic";
-    G.phase = "wartime";
-    G.activePower = "FR";
-    G.war = makeWar("FR", "GE", {status: "alliance", budgets: {FR: 0, GE: 0}});
-    expect(startWarManeuver(G, makeCtx([3], seat("FR")))).toBeUndefined();
+    // No war at all: the printed grant is keyed to the 20.9 step, not to a
+    // belligerency, so a peaceful France still receives it.
+    resolveEnd(G, makeCtx());
     expect(G.flags.frAllianceCp).toBe(2);
-    expect(G.flags.frAllianceCpTurn).toBe(G.turn);
+    expect(G.flags.frAllianceCpTurn).toBe(1);
     expect(lastLog(G, "thirdRepublicCp")?.args).toMatchObject({cp: 2});
 
-    // The free CP is spendable on the influence track without touching the budget.
+    // The free CP is spendable on the influence track without touching a war
+    // budget.  The spender's window is the granting turn, so the rewind below
+    // only restores the turn that resolveEnd already advanced past (20.12),
+    // with FR active as it is at the alliance step itself.
+    G.turn = 1;
+    G.phase = "end";
+    G.activePower = "FR";
     const before = G.powers.GE.mpit.te;
     expect(placeMpit(G, makeCtx([], seat("FR")), "GE", "te")).toBeUndefined();
     expect(G.powers.GE.mpit.te).toBe(before + 1);
     expect(G.flags.frAllianceCp).toBe(1);
     expect(lastLog(G, "mpitPlaced")?.args).toMatchObject({free: true});
-    expect(G.war?.budgets.FR).toBe(0);
   });
 
   test("negative: the grant is once per turn and needs the Third Republic", () => {

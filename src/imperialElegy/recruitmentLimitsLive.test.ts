@@ -114,10 +114,11 @@ describe("UK Professional Army (33.2)", () => {
     startAction(G, "UK", 6);
     const ctx = makeCtx([], seat("UK"));
     // The manpower track (3) only allows two more British armies alongside the
-    // 1st Army; the third build is refused.
-    expect(recruit(G, ctx, "scotland", "army")).toBeUndefined();
-    expect(recruit(G, ctx, "scotland", "army")).toBeUndefined();
-    expect(recruit(G, ctx, "scotland", "army")).toBe(INVALID_MOVE);
+    // 1st Army; the third build is refused.  12.2: 1 CP per step, so a new
+    // full-strength counter costs 2 CP.
+    expect(recruit(G, ctx, "scotland", "army", 2)).toBeUndefined();
+    expect(recruit(G, ctx, "scotland", "army", 2)).toBeUndefined();
+    expect(recruit(G, ctx, "scotland", "army", 2)).toBe(INVALID_MOVE);
     expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/British manpower/);
   });
 
@@ -268,12 +269,17 @@ describe("Ottoman Manpower (33.6)", () => {
     const G = fresh();
     startAction(G, "OT", 6);
     const ctx = makeCtx([], seat("OT"));
-    // An Arab key defaults to the Arab pool, so it is the pool that refuses.
+    // An Arab-nationality space defaults to the Arab pool, so it is the pool
+    // that refuses (the printed Arab army already spends the track).
     expect(recruit(G, ctx, "arabia", "army")).toBe(INVALID_MOVE);
     expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/Arab manpower/);
     // Forcing a Turkish build into an Arab key is refused by Local Autonomy.
-    expect(recruit(G, ctx, "arabia", "army", 1, {ottoman: "turkish"})).toBe(INVALID_MOVE);
+    expect(recruit(G, ctx, "palestine", "army", 1, {ottoman: "turkish"})).toBe(INVALID_MOVE);
     expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/Arab\/Egyptian keys/);
+    // Arabia is a printed territory with an Arab nationality, so a forced
+    // Turkish build there is refused by the minority rule instead.
+    expect(recruit(G, ctx, "arabia", "army", 1, {ottoman: "turkish"})).toBe(INVALID_MOVE);
+    expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/minority nationality/);
     // Erzurum prints Armenians, a minority nationality for the Ottomans.
     expect(recruit(G, ctx, "erzurum", "army")).toBe(INVALID_MOVE);
     expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/minority nationality/);

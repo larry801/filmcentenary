@@ -99,7 +99,7 @@ export const UK_SECONDARY_KEY_MANPOWER_EXPECTED: {index: number; value: number}[
  * duplicated here intentionally so a change in the engine constant cannot make
  * the validation agree with itself.
  */
-export const OT_ARAB_KEY_SPACES: string[] = ["arabia", "mecca", "baghdad", "kuwait", "syria"];
+export const OT_ARAB_KEY_SPACES: string[] = ["syria", "mecca", "baghdad", "mosul", "palestine"];
 
 /** `Main Map` zone names that are not spaces. */
 export const NON_SPACE_ZONES: string[] = [

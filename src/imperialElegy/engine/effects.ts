@@ -75,7 +75,7 @@ import {influencePlacementProblem, minorAllianceProblem} from "./foreignAffairs"
 import {BALKAN_MINORS} from "./crisisTable";
 import {facedownGwCombatCards, flipGwCombatCardFaceup} from "./combatCards";
 import {GOALS_BY_ID} from "../constant/goals";
-import {crisisRoll, italyTable, openCrisisDecision, unifyItaly} from "./greatWar";
+import {crisisRoll, italyTable, openCrisisDecision, unifyItaly, checkItalianUnification} from "./greatWar";
 import {
   addPressuredPower,
   adjacentToEnemyArmies,
@@ -96,7 +96,7 @@ import {
   rollItalyAllianceResolution,
   type ItalyAllianceShift,
 } from "./italyEntry";
-import {checkGermanUnification, checkItalianUnification} from "./victory";
+import {checkGermanUnification} from "./victory";
 import {noteGwUnitEliminated} from "./gwMajors";
 import {ALLIANCE_TRACK, allianceMembers, canJoinAlliance, shiftAlliance, sideOfAllianceBox, stepAllianceBox, type AllianceShiftResult} from "./alliance";
 import {initialNonPlayerBuildBox, unitMinor} from "./endPhase";
@@ -632,7 +632,7 @@ export const damageUnit = (G: ImperialElegyState, unitId: string, steps = 1): vo
   if (unit.steps <= 0) removeUnit(G, unitId);
 };
 
-export const addReserve = (G: ImperialElegyState, power: Power, count: number): void => {
+export const addReserve = (G: ImperialElegyState, power: Power, count: number, steps: 1 | 2 = 2): void => {
   const p = G.powers[power];
   for (let i = 0; i < count; i += 1) {
     // 4.2: a reserve army is a physical counter, so a card that grants more
@@ -642,7 +642,7 @@ export const addReserve = (G: ImperialElegyState, power: Power, count: number): 
       log(G, power, "reserveArmyLimited", {});
       break;
     }
-    const unit = placeUnit(G, power, "reserveArmy", null, 2);
+    const unit = placeUnit(G, power, "reserveArmy", null, steps);
     p.reserves.push(unit.id);
   }
 };
@@ -3018,6 +3018,24 @@ const rollCityOfLight = (G: ImperialElegyState, ctx: Ctx, drm: number): boolean 
   return gained;
 };
 
+/** H-FR-6 war half: 2 reserve army steps, then the CP-valued war declaration.
+ *
+ * Errata 12.17: the event banks no ordinary CP; it leaves the declaration
+ * entitlement that `declareWar` consumes, and the impulse stays open until the
+ * seat declares or hands it over.
+ */
+const applyAuxArmesWarHalf = (G: ImperialElegyState): void => {
+  // The card grants 2 reserve army steps, not 2 full armies: two 1-step
+  // counters, the same reading the militarism step applies to its one army
+  // step (moves.ts#endPhaseMilitarism).
+  addReserve(G, "FR", 2, 1);
+  grantWarDeclarationEntitlement(
+    G,
+    "FR",
+    isCardId(G.resolvingCard) ? G.resolvingCard : AUX_ARMES_HOME_CARD,
+  );
+};
+
 const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: string, args: Record<string, unknown> = {}, resume: Effect[]): boolean => {
   switch (handler) {
     case "colonialConflict": {
@@ -3503,10 +3521,12 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     case "frenchIntervention": {
       // Indochina and Mexico are the card's special targets; they may still
       // be held by a minor power (but not by a player or the United States).
+      // The printed card bars nothing else - "an eligible uncontrolled space"
+      // includes Europe - so no region filter applies to the general list.
       const preferred = ["indochina", "mexico"].filter((id) =>
         G.spaces[id] && !isPower(G.spaces[id].control) && G.spaces[id].control !== "United States");
       const general = legalSpaces(G, actor, {uncontrolled: true})
-        .filter((id) => SPACES[id].region !== "europe" && !preferred.includes(id));
+        .filter((id) => !preferred.includes(id));
       return openSpecialSpace(
         G,
         ctx,
@@ -4201,28 +4221,28 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       return false;
     }
     case "auxArmes": {
-      addReserve(G, "FR", 2);
-      // "Then declare war using this card's CP value."  Errata 12.17: the
-      // event banks no ordinary CP; it leaves the declaration entitlement that
-      // `declareWar` consumes, and the impulse stays open until the seat
-      // declares or hands it over.
-      grantWarDeclarationEntitlement(
-        G,
-        "FR",
-        isCardId(G.resolvingCard) ? G.resolvingCard : AUX_ARMES_HOME_CARD,
-      );
-      // "Take either French Intervention or Papal Influence from the discard
-      // pile; you may play it immediately."  Taking is mandatory when one is
-      // in the discard; the free-play marker lets `playCard` ignore 12.0's
-      // one-card limit for that exact card once.
+      // Printed OR (the playbook calls the retrieval the card's "secondary
+      // ability"): the war half — 2 reserve army steps, then the CP-valued war
+      // declaration with its conquest clauses and win-stability bonus — or the
+      // retrieval half — French Intervention or Papal Influence from the
+      // discard pile, playable immediately.  With nothing retrievable only the
+      // war half remains.
       const retrievable = ["IE-A046", "IE-A070"].filter((id) => G.discard.includes(id as CardId)) as CardId[];
-      if (retrievable.length === 0) return true;
+      if (retrievable.length === 0) {
+        applyAuxArmesWarHalf(G);
+        return true;
+      }
       openDecision(G, ctx, decision(
         "eventChoice",
         "FR",
-        "Aux Armes: take French Intervention or Papal Influence from the discard pile",
-        retrievable.map((id) => option(`take:${id}`, cardById(id).title, {card: id}, false, cardById(id).titleZh)),
-        {resume, special: handler, stage: "retrieve"},
+        "Aux Armes: declare war with 2 reserve army steps, or take French Intervention / Papal Influence from the discard pile",
+        [
+          option("war", "Gain 2 reserve army steps and declare war using this card's CP", undefined, false, "获得 2 个预备军步骤并用本牌 CP 宣战"),
+          option("retrieve", "Take French Intervention or Papal Influence from the discard pile", undefined, false, "从弃牌堆取“法国干预”或“教宗影响”"),
+        ],
+        {resume, special: handler, stage: "mode"},
+        undefined,
+        "公民们，拿起武器！：用 2 个预备军步骤宣战，或从弃牌堆取“法国干预”或“教宗影响”",
       ));
       return false;
     }
@@ -4896,7 +4916,7 @@ export const performEffect = (
       return true;
     }
     case "italianUnificationCheck": {
-      checkItalianUnification(G, ctx);
+      checkItalianUnification(G, ctx, actor);
       return true;
     }
     case "crisis": {
@@ -5052,6 +5072,25 @@ export const resolveCardDecision = (
     // plainly rather than granting the discount for free.
     const paid = amount > 0 && spendCpFor(G, actor, amount) ? amount : 0;
     rollCityOfLight(G, ctx, paid);
+    closeDecision(G, ctx);
+    resumeEffects(G, ctx, pending, data);
+    return;
+  }
+  if (special === "auxArmes" && context.stage === "mode") {
+    if (optionId === "retrieve") {
+      const retrievable = ["IE-A046", "IE-A070"].filter((id) => G.discard.includes(id as CardId)) as CardId[];
+      // Taking is mandatory when one is in the discard; the free-play marker
+      // lets `playCard` ignore 12.0's one-card limit for that exact card once.
+      openDecision(G, ctx, decision(
+        "eventChoice",
+        "FR",
+        "Aux Armes: take French Intervention or Papal Influence from the discard pile",
+        retrievable.map((id) => option(`take:${id}`, cardById(id).title, {card: id}, false, cardById(id).titleZh)),
+        {resume: context.resume, special, stage: "retrieve"},
+      ));
+      return;
+    }
+    applyAuxArmesWarHalf(G);
     closeDecision(G, ctx);
     resumeEffects(G, ctx, pending, data);
     return;

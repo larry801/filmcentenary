@@ -246,7 +246,7 @@ import {
   pacificationProblem,
 } from "./engine/pacification";
 import {phaseActionProblem, type ActionFamily} from "./engine/phaseActions";
-import {checkGermanUnification, checkItalianUnification, checkAutoVictory, finishGame, finishScenario, scoreGame} from "./engine/victory";
+import {checkGermanUnification, checkAutoVictory, finishGame, finishScenario, scoreGame} from "./engine/victory";
 import {
   blocksUkAmphibiousPort,
   buildPointsRemaining,
@@ -284,6 +284,7 @@ import {
   resolveCrisisPending,
   resolveItalianNationalistWaveChoice,
   italianUnificationRoll,
+  checkItalianUnification,
   resolveItalyNavalBase,
   resolveItalyOttomanTerritoryChoice,
   setGwOrderChoice,
@@ -578,7 +579,7 @@ const finishImpulse = (G: ImperialElegyState, ctx: Ctx): void => {
   G.impulseCardCp = null;
     G.cpRemaining = 0;
     checkGermanUnification(G, ctx);
-    checkItalianUnification(G, ctx);
+    checkItalianUnification(G, ctx, G.activePower);
     const auto = checkAutoVictory(G);
     if (auto !== null) {
       finishGame(G, `autoVictory:${auto}`);
@@ -1498,7 +1499,7 @@ export const recruit = (
   ctx: Ctx,
   space: SpaceId,
   kind: "army" | "reserveArmy" | "eliteCorps",
-  steps = 1,
+  steps: 1 | 2 = 1,
   options: RecruitOptions = {},
 ): string | void => {
   const playerID = ctx.playerID ?? null;
@@ -1658,7 +1659,9 @@ export const recruit = (
     if (ottoman === "arab") flags.arab = true;
     if (indian === true) flags.indian = true;
     if (cw) flags.cw = true;
-    placeUnit(G, power, "army", space, 2, {flags});
+    // 12.2: "Standing Army - 1 CP per step" — one CP buys one step (a fresh
+    // counter on its reduced side); a full-strength build costs both steps.
+    placeUnit(G, power, "army", space, steps, {flags});
   }
   log(G, power, "recruited", {
     kind,
@@ -5377,6 +5380,11 @@ const finalizePendingCard = (G: ImperialElegyState, ctx: Ctx): void => {
     // the path UK-3 takes: its event opens a required choice, and the grant only
     // arrives when the seat answers it.
     !hasUnspentGrant(G, G.activePower) &&
+    // H-FR-6: the retrieval half hands FR a free-play marker for the taken
+    // card.  The printed immediate play happens within this impulse, so the
+    // impulse must stay open until the seat plays the taken card or hands it
+    // over; ending the impulse here would destroy the printed window.
+    G.powers[G.activePower]?.flags.auxArmesFreePlay === undefined &&
     // A home-card war declaration (Bismarck, Aux Armes, Russo-Turkish Wars,
     // Jihad) belongs to this impulse even when its event paused on a printed
     // choice: the seat declares the war now or hands the impulse over.
@@ -7863,16 +7871,18 @@ export const applyMilitarismChoice = (
     if (reduced) {
       reduced.steps = 2;
     } else {
+      // 20.1: "gain one army step" — a new counter arrives on its reduced
+      // side (12.2: 1 CP per step; two steps are a separate 2 CP build).
       const flags: Record<string, boolean> = {};
       if (power === "OT" && ottomanArmyTypeFor(space) === "arab") flags.arab = true;
       if (power === "UK" && (space === "india" || space === "bengal")) flags.indian = true;
-      placeUnit(G, power, "army", space, 2, {flags});
+      placeUnit(G, power, "army", space, 1, {flags});
     }
     log(G, power, "militarism", {choice: "army", space});
     return;
   }
   if (choice.benefit === "reserve") {
-    addReserve(G, power, 1);
+    addReserve(G, power, 1, 1);
     log(G, power, "militarism", {choice: "reserve"});
     return;
   }
@@ -8258,6 +8268,15 @@ const endPhaseAllianceResolution = (
   progress: EndPhaseProgress,
   interactive: boolean,
 ): boolean => {
+  // 33.3 The Third Republic: 2 free alliance-track CP at the beginning of the
+  // alliance resolution step, once per turn — belligerent or not (the printed
+  // grant is keyed to the step, not to a war).
+  const republic = thirdRepublicCp(G);
+  if (republic.applies) {
+    G.flags.frAllianceCp = Number(G.flags.frAllianceCp ?? 0) + republic.cp;
+    G.flags.frAllianceCpTurn = G.turn;
+    log(G, "FR", "thirdRepublicCp", {cp: republic.cp});
+  }
   const state = (progress.alliance ??= {order: allianceResolutionOrder(G), index: 0});
   while (state.index < state.order.length) {
     const power = state.order[state.index];
@@ -10062,19 +10081,6 @@ export const startWarManeuver = (G: ImperialElegyState, ctx: Ctx): string | void
   G.activePower = G.war.initiative[0] ?? G.war.attacker;
   G.war.passed = [];
   clearWarImpulseSpend(G);
-  // 33.3 The Third Republic: 2 free alliance-track CP once per turn at the
-  // beginning of the alliance resolution step (this war's maneuver start).
-  const republic = thirdRepublicCp(G);
-  const frBelligerent =
-    G.war.attacker === "FR" ||
-    G.war.defender === "FR" ||
-    G.war.attackerAllies.includes("FR") ||
-    G.war.defenderAllies.includes("FR");
-  if (republic.applies && frBelligerent) {
-    G.flags.frAllianceCp = Number(G.flags.frAllianceCp ?? 0) + republic.cp;
-    G.flags.frAllianceCpTurn = G.turn;
-    log(G, "FR", "thirdRepublicCp", {cp: republic.cp});
-  }
   // 34.4.5: a bot belligerent redeploys for free before the first impulse.  Run
   // first so a 15.1 battle below uses the redeployed positions.
   botFreeRedeployment(G, ctx, warBotPowers(G), `war:${G.turn}:${G.war.attacker}:${G.war.defender}`);

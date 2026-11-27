@@ -245,6 +245,12 @@ export const S1870_SCENARIO: ScenarioDef = {
     {space: "indochina", control: "FR"},
     // RU "Control marker: Manchuria".
     {space: "manchuria", control: "RU"},
+    // "Egypt: 1 army, IMP marker" (also printed on Great Sand Sea and Sinai).
+    // The IMP marker means the Egyptian minor controls the three spaces, the
+    // same expression the campaign setup uses in its controlOverrides.
+    {space: "egypt", control: "Egypt"},
+    {space: "sinai", control: "Egypt"},
+    {space: "great-sand-sea", control: "Egypt"},
     // "Mexico: US control marker".
     {space: "mexico", control: "United States"},
   ],
@@ -273,8 +279,8 @@ export const S1870_SCENARIO: ScenarioDef = {
   suezComplete: true,
   italy: {unified: true},
   // "Egypt: 1 army, IMP marker" (also printed on Great Sand Sea and Sinai).
-  // The 1870 setup prints the IMP markers but hands no control marker to Egypt,
-  // so the spaces keep their map-default control and only carry the marker.
+  // The IMP marker hands the three spaces to the Egyptian minor through the
+  // controlOverrides above; the marker itself is recorded below.
   independentMinors: ["Egypt"],
   independentMinorMarkers: [
     {minor: "Egypt", space: "egypt"},
@@ -307,9 +313,9 @@ export const S1870_SCENARIO: ScenarioDef = {
     "Alliance Track (main setup): all players start in the neutral space, so every power's `alliance` is neutral. The Franco-Prussian-War branch places GE in the Triple Alliance (uncommitted) box and FR in the committed Triple Entente box; that state is applied by `engine/scenarioSetup.ts#applyFrancoPrussianConcession`, not by the scenario data, because FR decides it after setup.",
     "Italy Status: Unified (Lombardy, Piedmont, Tuscany and Naples carry Italian units). The display prints no control markers for those spaces, so no controlOverrides are recorded for them.",
     "TODO(ally markers): GE — Bavaria, Saxony; RU — Romania. The printed 'Ally marker' entries have no field on ScenarioDef; only the printed control markers are in controlOverrides.",
-    "Egypt is an independent minor power (IMP marker): `independentMinors: [\"Egypt\"]`; the print also places the IMP marker on Great Sand Sea and Sinai, which the flat independentMinors list cannot name separately.",
+    "Egypt is an independent minor power (IMP marker): `independentMinors: [\"Egypt\"]`; the print also places the IMP marker on Great Sand Sea and Sinai, and the three spaces are handed to the Egyptian minor through controlOverrides, exactly as the campaign setup does.",
     "IMP markers on the map: Egypt, Great Sand Sea, Sinai.",
-    "The 1870 display prints IMP markers but no control markers for Egypt, Sinai or Great Sand Sea, so their control is left at the map default (OT) rather than overridden to Egypt the way the campaign setup does.",
+    "The 1870 display prints the three IMP markers, so the Egyptian minor controls Egypt, Sinai and Great Sand Sea through controlOverrides (the campaign's expression).",
     "Mexico is under United States control (printed 'Mexico: US control marker').",
     "NGs: prior to the Prep Phase of turn 3 every player draws 3 NGs and keeps 1; GE draws only 2 and keeps 1 (startingGoalDraw).",
     "GE also draws only 2 NGs during the end phase of turns 3 and 5 (special.ngDrawCount).",

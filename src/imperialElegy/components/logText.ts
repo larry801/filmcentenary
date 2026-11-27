@@ -896,6 +896,15 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  gwBonusVps: (entry, locale) => {
+    const bonus = Number(entry.args?.bonus);
+    const powers = str(entry.args?.powers);
+    const sentence = locale === "zh_CN"
+      ? `大战在第 ${entry.args?.turn} 回合结束：${powers} 因胜利方加成获得 ${bonus} VP（2.2.2）。`
+      : `the GW ended on turn ${entry.args?.turn}: ${powers} score the winning-alliance bonus of ${bonus} VP (2.2.2).`;
+    return withActor(entry, locale, sentence, sentence);
+  },
+
   russianAsiaReserveEliminated: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     return withActor(
