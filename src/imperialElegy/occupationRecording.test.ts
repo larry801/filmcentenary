@@ -390,8 +390,8 @@ describe("15.3 live wartime moves", () => {
     G.spaces.berlin.control = "GE";
     G.spaces.saxony.control = "FR";
     // Exactly two divergent contingents: the FR army may retreat to Bavaria
-    // (FR-allied minor) or Bohemia (influence only); the UK army only to
-    // Hanover (UK-allied minor).  The split decision therefore opens.
+    // or Bohemia (both FR-allied); the UK army only to Hanover (UK-allied
+    // minor).  The split decision therefore opens.
     for (const space of neighboursOf("saxony")) {
       if (space === "bavaria" || space === "bohemia" || space === "hanover") continue;
       G.spaces[space].control = "GE";
@@ -402,8 +402,8 @@ describe("15.3 live wartime moves", () => {
     G.spaces.bavaria.control = "Bavaria";
     G.spaces.bavaria.ally = "FR";
     resetSpace(G, "bohemia");
-    G.spaces.bohemia.control = null;
-    G.spaces.bohemia.influence = "FR";
+    G.spaces.bohemia.control = "Bohemia";
+    G.spaces.bohemia.ally = "FR";
     resetSpace(G, "hanover");
     G.spaces.hanover.control = "Hanover";
     G.spaces.hanover.ally = "UK";
@@ -420,16 +420,17 @@ describe("15.3 live wartime moves", () => {
 
     finishBattle(G, makeCtx([], seat("FR")));
     expect(G.pending?.kind).toBe("combatRetreat");
-    const option = `split:${fr}@bohemia|${uk}@hanover`;
+    const option = `split:${fr}@bavaria|${uk}@hanover`;
     expect(G.pending?.options.map((entry) => entry.id)).toContain(option);
     expect(resolvePending(G, makeCtx([], seat("FR")), option)).toBeUndefined();
 
-    // 15.3/18.7: the FR army is solely in influence-only Bohemia, so it
-    // records the occupation marker there without changing control.
-    expect(G.units[fr].space).toBe("bohemia");
-    expect(G.spaces.bohemia.occupiedBy).toBe("FR");
-    expect(G.spaces.bohemia.control).toBeNull();
-    // The UK army lands in a UK-controlled (control-backed) minor space.
+    // 15.3/18.7 (round-5 audit): every legal retreat destination is a
+    // controlled or allied space, so the retreat records no occupation marker
+    // — an army standing in its own side's space is not an occupant.
+    expect(G.units[fr].space).toBe("bavaria");
+    expect(G.spaces.bavaria.occupiedBy).toBeNull();
+    expect(G.spaces.bavaria.control).toBe("Bavaria");
+    // The UK army lands in its UK-allied minor space.
     expect(G.units[uk].space).toBe("hanover");
     expect(G.spaces.hanover.occupiedBy).toBeNull();
     // The combat advance into Saxony still records the attacker (unchanged).

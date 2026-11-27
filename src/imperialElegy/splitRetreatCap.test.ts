@@ -76,9 +76,12 @@ const splitFixture = (): {G: ImperialElegyState; ctx: Ctx; fr: string[]; uk: str
   G.battle = null;
   G.cpRemaining = 6;
   G.war = warState("GE", "FR", ["UK"]);
+  // Co-belligerents on the war roster but not on a shared alliance track:
+  // `allied` reads the alliance boxes, so the UK ports are not friendly to FR
+  // and the two contingents have divergent legal retreat spaces.
   G.powers.GE.alliance = "taCommitted";
   G.powers.FR.alliance = "teCommitted";
-  G.powers.UK.alliance = "teCommitted";
+  G.powers.UK.alliance = "neutral";
   for (const power of POWERS) {
     G.powers[power].hand = [];
     G.powers[power].gwCard = null;
@@ -92,8 +95,10 @@ const splitFixture = (): {G: ImperialElegyState; ctx: Ctx; fr: string[]; uk: str
     state.influence = null;
     state.occupiedBy = null;
   }
+  // 4.9.4/18.7 (round-5 audit): a retreat destination must be controlled or
+  // occupied, so the fixture grants control outright.
   const influence = (space: string, power: Power): void => {
-    G.spaces[space].control = null;
+    G.spaces[space].control = power;
     G.spaces[space].influence = power;
   };
   influence("brittany", "FR");

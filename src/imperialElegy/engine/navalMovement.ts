@@ -25,12 +25,17 @@ import {Ctx} from "boardgame.io";
 import {ImperialElegyState, NavalContinuationState, Power, PowerOrMinor, SpaceId, Unit} from "../types";
 import {SPACES, connectionsOf, isNavalBox, portBoxes, spaceLabel} from "../constant/spaces";
 import {
+  armyBarredFromNavalBase,
   atWar,
   crossesClosedSuez,
   crossesSuez,
   dardanellesController,
+  denmarkAtWar,
+  denmarkClosureController,
   friendlySpace,
   hasDardanellesPermission,
+  hasDenmarkPassage,
+  isDenmarkCrossing,
   isDardanellesCrossing,
   gwMajorSide,
   isArmyKind,
@@ -42,6 +47,7 @@ import {
   spaceHostileTo,
   trenchExitBlocked,
 } from "./rules";
+import {usSouthEntryRefusal} from "./gwMajors";
 import {decision, openDecision, option} from "./pending";
 
 // The Suez / Dardanelles gate helpers live in `rules.ts` so LoC traces can use
@@ -95,10 +101,13 @@ export type NavalPathReason =
   | "notNavalSpace"
   | "enemyBox"
   | "enemyPort"
+  | "usSouth"
   | "suezClosed"
   | "suezBlocked"
   | "dardanellesDenied"
   | "dardanellesPermission"
+  | "denmarkDenied"
+  | "denmarkPermission"
   | "disconnected";
 
 export interface NavalMovePlan {
@@ -165,6 +174,21 @@ const suezGate = (G: ImperialElegyState, power: Power, a: SpaceId, b: SpaceId): 
   const blockedBy = G.persistent.suezBlockedBy;
   if (typeof blockedBy === "string" && blockedBy !== power) return "suezBlocked";
   return null;
+};
+
+/**
+ * 3.4.2: while Denmark is at war its controller may close the North Atlantic /
+ * Baltic Sea strait.  The controller passes freely; everyone else needs a
+ * grant recorded for this turn, and a controller at war with the mover denies
+ * the crossing outright.
+ */
+const denmarkGate = (G: ImperialElegyState, power: Power, a: SpaceId, b: SpaceId): NavalPathReason | null => {
+  if (!isDenmarkCrossing(a, b)) return null;
+  if (!denmarkAtWar(G)) return null;
+  if (hasDenmarkPassage(G, power)) return null;
+  const controller = denmarkClosureController(G);
+  if (controller !== null && atWar(G, power, controller)) return "denmarkDenied";
+  return "denmarkPermission";
 };
 
 /**
@@ -278,6 +302,72 @@ const requestDardanellesPassage = (
 
 export {requestDardanellesPassage};
 
+/**
+ * 3.4.2: the same decision shape as the Dardanelles, asked of Denmark's
+ * controller when the straits are closed to the mover.  Returns true when a
+ * decision was opened (the caller must then return without spending an
+ * action).
+ */
+const requestDenmarkPassage = (
+  G: ImperialElegyState,
+  ctx: Ctx | undefined,
+  power: Power,
+  from: SpaceId,
+  to: SpaceId,
+  path?: readonly SpaceId[],
+  resume?: Record<string, unknown>,
+): boolean => {
+  if (G.pending !== null || G.battle !== null) return false;
+  if (!denmarkAtWar(G)) return false;
+  const route = path && path.length > 1 ? path : [from, to];
+  const crossing = route.find((space, index) =>
+    index > 0 && isDenmarkCrossing(route[index - 1], space) && !hasDenmarkPassage(G, power));
+  if (crossing === undefined) return false;
+  const controller = denmarkClosureController(G);
+  if (controller === null || controller === power) return false;
+  if (atWar(G, power, controller)) return false;
+  log(G, power, "denmarkPassageRequested", {
+    from,
+    to,
+    controller,
+  });
+  openDecision(G, ctx, decision(
+    "denmarkPassage",
+    controller,
+    "Danish straits: allow or deny the North Atlantic / Baltic Sea crossing",
+    [option("grant", "Allow the crossing"), option("refuse", "Deny the crossing")],
+    {
+      requesting: power,
+      granting: controller,
+      from,
+      to,
+      ...(resume === undefined ? {} : resume),
+    },
+    undefined,
+    "丹麦海峡：允许还是拒绝穿越北海／波罗的海？",
+  ));
+  return true;
+};
+
+export {requestDenmarkPassage};
+
+/**
+ * The strait-permission wrapper for the live move paths: the Dardanelles is
+ * asked first, then the Danish straits.  A route may need both, one decision
+ * at a time; the mover retries after each answer.
+ */
+export const requestStraitPassages = (
+  G: ImperialElegyState,
+  ctx: Ctx | undefined,
+  power: Power,
+  from: SpaceId,
+  to: SpaceId,
+  path?: readonly SpaceId[],
+  resume?: Record<string, unknown>,
+): boolean =>
+  requestDardanellesPassage(G, ctx, power, from, to, path, resume) ||
+  requestDenmarkPassage(G, ctx, power, from, to, path, resume);
+
 /** Cost in NMP of one directed sea hop between two boxes. */
 const seaHopCost = (from: SpaceId, to: SpaceId): number =>
   isEuropeanWaterBox(from) && isEuropeanWaterBox(to) ? 0 : 1;
@@ -297,9 +387,13 @@ const outgoingEdges = (
 ): Edge[] => {
   const edges: Edge[] = [];
   if (isNavalBox(space)) {
-    // Entering the box's ports is free.
+    // Entering the box's ports is free — except that docking at an Egyptian
+    // Suez port from the Indian Ocean performs the canal hop, so a closed or
+    // blocked canal denies it (3.2.9 note / 3.4.3(3)).
     for (const def of Object.values(SPACES)) {
-      if (def.ports?.includes(space)) edges.push({to: def.id, cost: 0, denied: null});
+      if (def.ports?.includes(space)) {
+        edges.push({to: def.id, cost: 0, denied: suezGate(G, power, space, def.id)});
+      }
     }
     for (const conn of connectionsOf(space)) {
       if (conn.type !== "sea") continue;
@@ -309,11 +403,12 @@ const outgoingEdges = (
       const dardanelles = options.ignoreDardanellesGate
         ? null
         : crossesDeniedDardanelles(G, power, space, next);
+      const denmark = denmarkGate(G, power, space, next);
       const enemy = hasEnemyUnits(G, power, next);
       edges.push({
         to: next,
         cost: seaHopCost(space, next),
-        denied: suez ?? dardanelles ?? (enemy ? "enemyBox" : null),
+        denied: suez ?? dardanelles ?? denmark ?? (enemy ? "enemyBox" : null),
       });
     }
     return edges;
@@ -327,11 +422,12 @@ const outgoingEdges = (
     const dardanelles = options.ignoreDardanellesGate
       ? null
       : crossesDeniedDardanelles(G, power, space, box);
+    const denmark = denmarkGate(G, power, space, box);
     const enemy = hasEnemyUnits(G, power, box);
     edges.push({
       to: box,
       cost: isEuropeanWaterBox(box) ? 0 : 1,
-      denied: suez ?? dardanelles ?? (enemy ? "enemyBox" : null),
+      denied: suez ?? dardanelles ?? denmark ?? (enemy ? "enemyBox" : null),
     });
   }
   return edges;
@@ -352,6 +448,8 @@ export const planNavalMove = (
   if (!G.spaces[from] || !G.spaces[to]) return {ok: false, cost: 0, path: [], reason: "unknownSpace"};
   if (!isNavalOrPort(from) || !isNavalOrPort(to)) return {ok: false, cost: 0, path: [], reason: "notNavalSpace"};
   if (from === to) return {ok: true, cost: 0, path: [from], reason: "ok"};
+  // 32.1: only the US can have units in the South space.
+  if (usSouthEntryRefusal(G, power, to) !== null) return {ok: false, cost: 0, path: [], reason: "usSouth"};
   const trenchPort = G.spaces[to]?.trench != null;
   if (portBoxes(to).length > 0 && !(trenchPort && options.allowTrenchPort === true)) {
     const control = G.spaces[to].control;
@@ -495,6 +593,9 @@ export const planNavalTransport = (
 
   const target = G.spaces[to];
   if (!target || isNavalBox(to) || portBoxes(to).length === 0) return fail("target-not-port", from);
+  // 3.2.8: armies can never enter naval bases — a transported army cannot
+  // disembark into one either.
+  if (armyBarredFromNavalBase(to, land.kind)) return fail("target-not-port", from);
   if (to === from) return fail("same-space", from);
   // 19.10: "Land units cannot move into enemy controlled (or occupied) ports
   // using naval movement."  An amphibious assault is the separate action.

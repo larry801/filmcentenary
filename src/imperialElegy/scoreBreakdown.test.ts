@@ -18,9 +18,13 @@ const fresh = (): ImperialElegyState => setupImperialElegy(ctx);
 test("the breakdown names each score source and matches scoreGame", () => {
   const G = fresh();
   G.powers.GE.vp = 4;
-  G.powers.GE.territorialKeys = 12;
   G.powers.GE.goals = ["NG-01"];
   G.powers.FR.goals = ["NG-22"];
+  // The metric is geographic (round-5 audit): GE's 9 transferred Ottoman
+  // European keys put it first on 14.
+  for (const space of ["istanbul", "izmir", "ankara", "antalya", "syria", "palestine", "mecca", "mosul", "baghdad"] as const) {
+    G.spaces[space].control = "GE";
+  }
 
   const breakdown = scoreBreakdowns(G);
   const {scores, details} = scoreGame(G);

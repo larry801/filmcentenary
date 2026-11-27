@@ -33,6 +33,13 @@ export interface NationalActionsPanelProps {
   setAuIncorporateTarget: (s: string) => void;
   auIncorporate: {allowed: boolean; reasons: string[]} | null;
   auIncorporateReason: string | undefined;
+  // RU / NG-38 Eastern Ambitions special
+  easternAmbitionsPhase: boolean;
+  easternAmbitionsTargets: SpaceId[];
+  easternAmbitionsValue: string;
+  setEasternAmbitionsTargetId: (s: string) => void;
+  easternAmbitionsDecision: {allowed: boolean; reasons: string[]} | null;
+  easternAmbitionsReason: string | undefined;
   // RU / TSRR
   tsrrArmies: {id: string; space?: SpaceId | null}[];
   tsrrUnitValue: string;
@@ -54,6 +61,8 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
     auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenRoll, auCitizenReason,
     auSacrifice, setAuSacrifice,
     auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate, auIncorporateReason,
+    easternAmbitionsPhase, easternAmbitionsTargets, easternAmbitionsValue, setEasternAmbitionsTargetId,
+    easternAmbitionsDecision, easternAmbitionsReason,
     tsrrArmies, tsrrUnitValue, setTsrrUnitId, tsrrDestinations, tsrrToValue, setTsrrTo, tsrrDecision, tsrrReason,
     doAction, moves,
   } = props;
@@ -106,6 +115,16 @@ export const NationalActionsPanel = (props: NationalActionsPanelProps) => {
               </select>
               <button className="ie-btn" data-testid="ie-au-incorporate" disabled={auIncorporate?.allowed !== true || cpBudget() < 3} title={auIncorporateReason} onClick={() => doAction(() => moves.auAction("incorporate", auIncorporateValue), {label: t.auIncorporate, reason: auIncorporateReason})}>{t.auIncorporate}</button>
             </div>
+          </div>
+        )}
+
+        {viewer === "RU" && easternAmbitionsPhase && (
+          <div className="ie-inline" data-testid="ie-eastern-ambitions">
+            <span className="ie-section-title">{t.easternAmbitions}</span>
+            <select className="ie-select" data-testid="ie-eastern-ambitions-target" value={easternAmbitionsValue} onChange={(e) => setEasternAmbitionsTargetId(e.target.value)} disabled={easternAmbitionsTargets.length === 0}>
+              {easternAmbitionsTargets.map((space) => <option key={space} value={space}>{spaceLabel(space, locale)}</option>)}
+            </select>
+            <button className="ie-btn" data-testid="ie-eastern-ambitions-reveal" disabled={easternAmbitionsDecision?.allowed !== true || cpBudget() < 3} title={easternAmbitionsReason} onClick={() => doAction(() => moves.revealEasternAmbitions(easternAmbitionsValue), {label: t.easternAmbitions, reason: easternAmbitionsReason})}>{t.easternAmbitions}</button>
           </div>
         )}
 

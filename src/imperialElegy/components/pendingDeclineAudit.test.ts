@@ -39,6 +39,8 @@ const SELF_ANSWERING: Readonly<Record<string, string>> = {
   warAllyConsent: "refuse",
   // 3.4.1: declining a passage request is the printed refusal.
   dardanellesPassage: "refuse",
+  // 3.4.2: the same printed refusal for the Danish straits.
+  denmarkPassage: "refuse",
   // 13.4.2: declining sends the aid search to the next candidate.
   minorAid: "decline",
   // 13.4.1: declining keeps fighting for the minor, i.e. joins the war.

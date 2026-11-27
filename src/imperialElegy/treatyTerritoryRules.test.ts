@@ -205,7 +205,25 @@ describe("16.2.4 righteous defense", () => {
     G = JSON.parse(JSON.stringify(G));
     expect(resolvePending(G, ctxFor(), "silesia")).toBeUndefined();
     expect(G.spaces.silesia.control).toBe("AU");
-    expect(G.war!.treaties).toContain("righteousDefense");
+    // 16.2.3 (round 5): a ceded-but-unoccupied loser home is no occupation,
+    // so war reparations stay illegal and the settlement closes at once.
+    expect(G.war).toBeNull();
+    const settled = G.wars![G.wars!.length - 1];
+    expect(settled.treaties).toContain("righteousDefense");
+  });
+
+  test("16.2.3: war reparations need an occupied home the loser still controls", () => {
+    const G = fresh();
+    const victory = defense(G);
+    expect(treatyOptionsFor(G, G.war!, victory).some((entry) => entry.option === "warReparations")).toBe(false);
+    G.spaces.pomerania.occupiedBy = "AU";
+    expect(treatyOptionsFor(G, G.war!, victory).some((entry) => entry.option === "warReparations")).toBe(true);
+    // A home the winner already controls but does not occupy (UK's Egypt
+    // against OT) does not count either.
+    const controlled = fresh();
+    controlled.spaces.pomerania.control = "AU";
+    const controlledVictory = defense(controlled);
+    expect(treatyOptionsFor(controlled, controlled.war!, controlledVictory).some((entry) => entry.option === "warReparations")).toBe(false);
   });
 
   test("a stale righteous-defense space choice is revalidated without mutations", () => {

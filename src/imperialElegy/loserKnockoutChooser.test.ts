@@ -139,11 +139,11 @@ describe("16.1.6 losing-side chooser", () => {
     expect(optionIds(G)).toContain("realignment#FR");
     expect(optionIds(G).some((id) => id.endsWith("#RU"))).toBe(false);
 
-    // Spend the winner's own knockout pick, then finish its optional primary
-    // pick early.
+    // Spend the winner's own knockout pick; with no legal primary entry left
+    // (16.2.3, round 5: the winner occupies no home of the losing primary)
+    // its stage closes at once.
     expect(resolvePending(G, ctx, "realignment#FR")).toBeUndefined();
     expect(G.spaces.bavaria.ally).toBe("GE");
-    expect(resolvePending(G, ctx, "done")).toBeUndefined();
 
     // The loser stage belongs to FR (the power that knocked RU out), not to
     // the losing primary AU.
@@ -160,7 +160,6 @@ describe("16.1.6 losing-side chooser", () => {
     const ge = makeCtx(seat("GE"));
     resolveWar(G, ge);
     resolvePending(G, ge, "realignment#FR");
-    resolvePending(G, ge, "done");
     expect(G.pending?.power).toBe("FR");
 
     // The losing primary AU and the winner cannot answer it.
@@ -183,7 +182,6 @@ describe("16.1.6 losing-side chooser", () => {
     const ge = makeCtx(seat("GE"));
     resolveWar(G, ge);
     resolvePending(G, ge, "realignment#FR");
-    resolvePending(G, ge, "done");
     expect(G.pending?.power).toBe("FR");
 
     // The losing primary cannot see the ally's options or context.

@@ -1504,6 +1504,28 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  // 15.6: the knocked-out power's own armies overstack in one unoccupied home
+  // space (charged to the captor's seat).
+  warKnockoutDisplacement: (entry, locale) => {
+    const victim = powerLabel(entry.args?.power, locale);
+    const space = spaceName(entry.args?.to, locale);
+    const count = entry.args?.count ?? 0;
+    return text(
+      locale,
+      `${victim}'s armies displaced to ${space} and overstack there (15.6): ${count} army counters.`,
+      `${victim}的军队转移至${space}并允许超限堆叠（15.6）：${count} 个军团。`,
+    );
+  },
+
+  warKnockoutDisplacementBlocked: (entry, locale) => {
+    const victim = powerLabel(entry.args?.power, locale);
+    return text(
+      locale,
+      `${victim} has no unoccupied home space, so the captor must choose where its armies displace (15.6).`,
+      `${victim}没有空闲本土空间，须由占领者选择其军队转移地（15.6）。`,
+    );
+  },
+
   // 17.1: a blockaded power gains a -1 card marker (the blockader itself is
   // not logged; the entry is charged to the blockaded power).
   warBlockade: (entry, locale) =>
@@ -3010,6 +3032,8 @@ const FORMATTERS: Record<string, Formatter> = {
       "enemy-units": ["the destination holds enemy land units or a fort", "目的地有敌方陆军或要塞"],
       "enemy-fort": ["the destination holds an enemy fort", "目的地有敌方要塞"],
       "neutral": ["a march may not enter neutral territory", "行军不能进入中立领土"],
+      "rebel-stop": ["the march must stop in the rebel-held space", "行军必须在叛军控制的空间停下"],
+      "naval-base": ["armies cannot enter naval bases", "陆军不能进入海军基地"],
       "no-rail-path": ["there is no friendly rail path", "没有友方铁路路径"],
       "rail-allowance": ["this power has already railed its allowance", "该势力本行动轮铁路额度已用完"],
     };
@@ -3580,6 +3604,22 @@ const FORMATTERS: Record<string, Formatter> = {
     );
   },
 
+  outbreakStabilityGrant: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "joined the Great War at 0 stability and gained 1 (25.4).",
+      "以 0 稳定参战，获得 1 点稳定（25.4）。",
+    ),
+
+  boostReserveArmy: (entry, locale) =>
+    withActor(
+      entry,
+      locale,
+      "placed a bonus reserve army from a maxed-out track boost (25.6).",
+      "因已满格的国家意志增益，放置一个奖励预备军（25.6）。",
+    ),
+
   reserveArmyLimited: (entry, locale) =>
     withActor(
       entry,
@@ -3694,17 +3734,6 @@ const FORMATTERS: Record<string, Formatter> = {
     const to = spaceName(entry.args?.to, locale);
     const units = list(entry.args?.units).length;
     return withActor(entry, locale, `landed ${units} units from ${from} at ${to}.`, `将 ${units} 个单位从${from}登陆${to}。`);
-  },
-
-  amphibiousNavalBattle: (entry, locale) => {
-    const from = spaceName(entry.args?.from, locale);
-    const to = spaceName(entry.args?.to, locale);
-    return withActor(
-      entry,
-      locale,
-      `had to fight the enemy fleet at ${to} before landing the troops from ${from}.`,
-      `登陆${to}前必须先与敌方舰队交战（来自${from}）。`,
-    );
   },
 
   portNavalDisplacement: (entry, locale) => {
@@ -3870,6 +3899,39 @@ const FORMATTERS: Record<string, Formatter> = {
       return withActor(entry, locale, `granted ${requesting} permission to pass the Dardanelles (${from} → ${to}).`, `允许${requesting}通过达达尼尔海峡（${from} → ${to}）。`);
     }
     return withActor(entry, locale, `refused ${requesting} permission to pass the Dardanelles (${from} → ${to}).`, `拒绝${requesting}通过达达尼尔海峡（${from} → ${to}）。`);
+  },
+
+  easternAmbitionsRejected: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `could not use Eastern Ambitions on ${space}.`, `无法对${space}使用“东方野心”。`);
+  },
+
+  easternAmbitionsRevealed: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `revealed Eastern Ambitions and took control of ${space} (3 CP).`, `揭示“东方野心”并取得${space}的控制（3 CP）。`);
+  },
+
+  landUnitsCaughtInBox: (_entry, locale) => {
+    return text(
+      locale,
+      "Land units caught alone in a naval box were eliminated (19.6.1).",
+      "在海军 box 中无舰队伴随的陆军被歼灭（19.6.1）。",
+    );
+  },
+
+  denmarkPassageRequested: (entry, locale) => {
+    const controller = powerLabel(entry.args?.controller, locale);
+    const from = spaceName(entry.args?.from, locale);
+    const to = spaceName(entry.args?.to, locale);
+    return withActor(entry, locale, `asked ${controller} to open the Danish straits (${from} → ${to}).`, `请求${controller}开放丹麦海峡（${from} → ${to}）。`);
+  },
+
+  denmarkPassage: (entry, locale) => {
+    const requesting = powerLabel(entry.args?.requesting, locale);
+    if (bool(entry.args?.granted)) {
+      return withActor(entry, locale, `opened the Danish straits to ${requesting}.`, `向${requesting}开放丹麦海峡。`);
+    }
+    return withActor(entry, locale, `closed the Danish straits to ${requesting}.`, `对${requesting}关闭丹麦海峡。`);
   },
 
   // 32.5: player units immediately displace out of a rebel space when the GW

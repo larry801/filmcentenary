@@ -222,19 +222,18 @@ describe("19.10 amphibious assault control", () => {
     expect(moves.amphibiousAssault).not.toHaveBeenCalledWith("north-atlantic", "brittany", [first, second, third]);
   });
 
-  test("a friendly port can load the armies into the adjacent box", () => {
+  test("an army standing in a friendly port is not loaded at assault time (19.10)", () => {
     const G = assaultSetup();
-    // The army starts in London (a friendly port on the North Atlantic).
+    // 19.10: "both armies must begin the impulse in the same naval box
+    // adjacent to the port space."  An army in London began in the port, not
+    // in the North Atlantic, so the round-5 audit fix refuses the assault.
     const army = placeUnit(G, "UK", "army", "london", 2).id;
     const moves = moveBag("amphibiousAssault");
     const tree = renderTree(G, "UK", moves);
     expect(byTestId(tree, "ie-amphibious-from")?.props?.value).toBe("london");
     expect(byTestId(tree, "ie-amphibious-to")?.props?.value).toBe("brittany");
-    expect(isDisabled(tree, "ie-amphibious-go")).toBe(false);
-    click(tree, "ie-amphibious-go");
-    expect(moves.amphibiousAssault).toHaveBeenCalledWith("london", "brittany", [army]);
-    // The engine resolves the loading box itself.
-    expect(amphibiousAssaultCheck(G, "UK", "london", "brittany", [army]).box).toBe("north-atlantic");
+    expect(isDisabled(tree, "ie-amphibious-go")).toBe(true);
+    expect(amphibiousAssaultCheck(G, "UK", "london", "brittany", [army]).reason).toBe("army-location");
   });
 
   test("an enemy fleet in the port requires a 2:1 escort and the reason is printed", () => {

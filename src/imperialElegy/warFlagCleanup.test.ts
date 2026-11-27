@@ -66,6 +66,10 @@ test("the interactive treaty path also clears war-duration flags", () => {
   setWarDurationFlags(G);
   const ctx = makeCtx("0");
   G.spaces.bohemia.control = "GE";
+  // 16.2.3 (round-5 audit): reparations need an occupied home of the losing
+  // power — an occupation (unlike the control GE already holds) keeps a
+  // legal treaty entry on the board, so the interactive chooser opens.
+  G.spaces.vienna.occupiedBy = "GE";
   G.war!.passed = [...belligerentsOf(G.war!)];
 
   expect(resolveWar(G, ctx)).toBeUndefined();

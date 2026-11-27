@@ -398,6 +398,7 @@ export const ensureStateDefaults = (G: ImperialElegyState): ImperialElegyState =
   // 3.4.1: Dardanelles permissions for this turn.
   if (G.dardanellesPassage === undefined) G.dardanellesPassage = null;
   if (G.dardanellesPassages === undefined) G.dardanellesPassages = null;
+  if (G.denmarkPassages === undefined) G.denmarkPassages = null;
   // 19.1: interrupted naval moves.
   if (G.navalContinuation === undefined) G.navalContinuation = null;
   if (G.navalTransit === undefined) G.navalTransit = null;

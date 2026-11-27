@@ -90,9 +90,12 @@ const landFixture = (spaces: LandSpaces): {
   G.pendingStack = [];
   G.battle = null;
   G.war = warState("GE", "FR", ["UK"]);
+  // Co-belligerents on the war roster but not on a shared alliance track:
+  // `allied` reads the alliance boxes, so the UK ports are not friendly to FR
+  // and the two contingents have divergent legal retreat spaces.
   G.powers.GE.alliance = "taCommitted";
   G.powers.FR.alliance = "teCommitted";
-  G.powers.UK.alliance = "teCommitted";
+  G.powers.UK.alliance = "neutral";
   const relevant = ["saxony", "berlin", "bavaria", "silesia", "bohemia"];
   for (const space of relevant) clearLand(G, space);
   for (const space of relevant) {
@@ -152,9 +155,13 @@ describe("18.7 ordinary land retreat choice", () => {
     expect(landUnitsIn(G, "saxony").some((unit) => unit.owner === "GE")).toBe(true);
   });
 
-  test("a common destination stays a group option", () => {
-    const {G, ctx} = landFixture({bavaria: "FR", silesia: "UK", bohemia: "FR"});
-    // Bavaria is FR-controlled, so the allied UK may also retreat there.
+  test("alliance-track allies share the ally's controlled spaces as one group", () => {
+    const {G, ctx, fr, uk} = landFixture({bavaria: "FR", silesia: "UK", bohemia: "FR"});
+    // 4.9.4 (round-5 audit): friendly reads the alliance-track allies, so a
+    // FR-controlled Bavaria is a common destination for the co-belligerent UK,
+    // while FR's minor-ally Bohemia stays FR-only — one group option survives
+    // beside the splits.
+    G.powers.UK.alliance = "teCommitted";
     G.spaces.bavaria.control = "FR";
     G.spaces.bavaria.ally = null;
     finishBattle(G, ctx);
@@ -165,6 +172,8 @@ describe("18.7 ordinary land retreat choice", () => {
     expect(resolvePending(G, ctx, "bavaria")).toBeUndefined();
     expect(G.battle).toBeNull();
     expect(landUnitsIn(G, "bavaria").map((unit) => unit.owner).sort()).toEqual(["FR", "UK"]);
+    expect(G.units[fr].space).toBe("bavaria");
+    expect(G.units[uk].space).toBe("bavaria");
   });
 
   test("a single possible assignment stays deterministic and opens no decision", () => {
@@ -235,9 +244,12 @@ const navalFixture = (withUk: boolean): {G: ImperialElegyState; fr: string; uk?:
   G.battle = null;
   G.cpRemaining = 6;
   G.war = warState("GE", "FR", ["UK"]);
+  // Co-belligerents on the war roster but not on a shared alliance track:
+  // `allied` reads the alliance boxes, so the UK ports are not friendly to FR
+  // and the two contingents have divergent legal retreat spaces.
   G.powers.GE.alliance = "taCommitted";
   G.powers.FR.alliance = "teCommitted";
-  G.powers.UK.alliance = "teCommitted";
+  G.powers.UK.alliance = "neutral";
   for (const power of POWERS) {
     G.powers[power].hand = [];
     G.powers[power].gwCard = null;
@@ -253,8 +265,10 @@ const navalFixture = (withUk: boolean): {G: ImperialElegyState; fr: string; uk?:
     state.influence = null;
     state.occupiedBy = null;
   }
+  // 4.9.4/18.7 (round-5 audit): a retreat destination must be controlled or
+  // occupied, so the fixture grants control outright.
   const influence = (space: string, power: Power): void => {
-    G.spaces[space].control = null;
+    G.spaces[space].control = power;
     G.spaces[space].influence = power;
   };
   influence("brittany", "FR");

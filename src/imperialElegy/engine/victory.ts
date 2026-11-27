@@ -99,7 +99,11 @@ export const italianKeysControlled = (G: ImperialElegyState, power: Power): numb
 
 export const goalMetric = (G: ImperialElegyState, power: Power, goal: GoalDef): number => {
   switch (goal.kind) {
-    case "rankedEuropeanKeys": return G.powers[power].territorialKeys;
+    // 2.4.2's example counts "keys in Europe" and 3.1.1-3.1.3 define the
+    // continent for NG purposes, so the ranked metric is geographic: the
+    // display's worldwide `territorialKeys` counter would hand UK/FR a phantom
+    // key for Egypt and RU one for the Russian Far East.
+    case "rankedEuropeanKeys": return europeanKeys(G, power);
     case "rankedAfricaKeys": return africaKeys(G, power);
     case "rankedAlliances": return ngMinorAlliesOf(G, power).length;
     case "rankedStability": return G.powers[power].stability;
@@ -256,9 +260,11 @@ export const achievementReached = (G: ImperialElegyState, power: Power, goal: Go
         if (s.region !== "europe" || effectiveKeyType(G, s.id) === undefined) continue;
         if (G.spaces[s.id].control === "RU" && initialControl(s.id) !== "RU") count += 1;
       }
+      // "Alliances with minor powers in the Balkans count as control": only
+      // the Balkan minors count, not every European ally.
       count += minorAlliesOf(G, "RU").filter((m) => {
         const home = Object.values(SPACES).find((s) => s.minorHome === m);
-        return home?.region === "europe";
+        return home?.flashpoints?.includes("balkans") === true;
       }).length;
       if (count >= 5) return goal.vp;
       if (count >= 4) return goal.partialVp ?? 0;
@@ -272,7 +278,10 @@ export const achievementReached = (G: ImperialElegyState, power: Power, goal: Go
       for (const s of keys) {
         if (G.spaces[s.id].control !== "OT") lost += 1;
       }
-      if (G.spaces.egypt.control !== "OT") lost += 1;
+      // "Egypt starts the game as a 'lost' key."  The sentence adds a baseline
+      // the board does not show, so Egypt counts whether OT still holds it or
+      // not; the card has no un-lose mechanic.
+      lost += 1;
       if (lost < G.turn) return goal.vp;
       if (lost < G.turn + 1) return goal.partialVp ?? 0;
       return 0;

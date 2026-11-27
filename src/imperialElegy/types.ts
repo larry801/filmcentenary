@@ -1175,6 +1175,8 @@ export const PENDING_KINDS = [
   "metternich",
   /** 3.4.1: the Dardanelles controller's permission for one passage. */
   "dardanellesPassage",
+  /** 3.4.2: Denmark's controller decides whether the straits stay open. */
+  "denmarkPassage",
   /** 1870 scenario: FR may concede the Franco-Prussian War before the first prep. */
   "francoPrussianConcession",
   /** A scenario's opening "draw N NGs, keep one, return the rest" choice. */
@@ -1560,6 +1562,12 @@ export interface ImperialElegyState {
    * Optional so older saves remain valid.
    */
   dardanellesPassages?: {requesting: Power; granting: Power; turn: number; gwTurn?: number}[] | null;
+  /**
+   * 3.4.2: while Denmark is at war, its controller may deny the North
+   * Atlantic / Baltic Sea passage.  A grant lets `requesting` use the strait
+   * for the rest of the turn.  Optional so older saves remain valid.
+   */
+  denmarkPassages?: {requesting: Power; granting: Power; turn: number; gwTurn?: number}[] | null;
   /**
    * 19.1: a naval move whose 19.1 interception window was opened.  The move
    * itself already paid for the action; if the mover wins the interception

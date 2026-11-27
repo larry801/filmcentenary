@@ -26,6 +26,7 @@ import {
   WarState,
 } from "../types";
 import {SPACES, connectionsOf, isNavalBox, neighboursOf} from "../constant/spaces";
+import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {cardById, isCardId} from "./deck";
 import {
@@ -46,6 +47,7 @@ import {
   minorAlliesOf,
   minorController,
   setSpaceControl,
+  subcapitalOf,
   warDeclarationGrantsWinStability,
 } from "./rules";
 import {AU_NATIONALITIES, governmentBenefits} from "./characteristics";
@@ -442,6 +444,19 @@ export const validateWarAim = (
       } else if (def.type === "subcapital") {
         add("conquest-subcapital", `${space} is a subcapital and cannot be a conquest objective`, space);
       }
+      // 13.3.1 names the rank, not the space type: a power's declared
+      // subcapital (AU's Hungary, RU's Moscow, OT's Ankara) is barred even
+      // where the map types the space as a plain key.
+      const subcapitalOwner = (Object.keys(POWER_DEFS) as Power[]).find(
+        (p) => subcapitalOf(p) === space,
+      );
+      if (subcapitalOwner !== undefined) {
+        add(
+          "conquest-subcapital",
+          `${space} is ${subcapitalOwner}'s subcapital and cannot be a conquest objective`,
+          space,
+        );
+      }
       if (effectiveKeyType(G, space) !== undefined) keys += 1;
     }
     const keyLimit = Math.max(1, rules.conquestKeyLimit ?? 1);
@@ -719,6 +734,11 @@ export const minorWarInfo = (
   }
   if (homeState.diplomacy !== null && homeState.diplomacy !== undefined && isPower(homeState.diplomacy) && inAttackerAlliance(homeState.diplomacy)) {
     return {ok: false, minor, home, ally, reason: "attacker-alliance"};
+  }
+  // 16.3: the settled war's truce with the non-player itself (a unified Italy)
+  // blocks a fresh declaration exactly like a player truce (13.5).
+  if (minorTruceRivals(G, attacker).includes(minor)) {
+    return {ok: false, minor, home, ally, reason: "truce"};
   }
   if (ally === null) return {ok: true, minor, home, ally: null};
   if (ally === attacker) return {ok: false, minor, home, ally, reason: "allied-to-attacker"};
@@ -1684,6 +1704,22 @@ export interface InitiativeOptions {
  * belligerent on the other side of a settled war whose truce has not yet
  * counted down to 0.  Players cannot attack, or join a war against, them.
  */
+/** 16.3: "all players (and a unified Italy) involved in the war exchange
+ *  truces" — the non-player truce rows, keyed by the non-player power name the
+ *  `minorWarInfo` declaration check matches.  Player-to-player truces live in
+ *  `truceRivals`; the shared `truceTurns` counter drives both. */
+export const minorTruceRivals = (G: ImperialElegyState, power: Power): string[] => {
+  const rivals = new Set<string>();
+  for (const war of G.wars ?? []) {
+    if (war === G.war || !(war.truceTurns > 0)) continue;
+    const italyOnAttackerSide = war.attackerMinors.includes("Italy");
+    const italyOnDefenderSide = war.minorTarget?.minor === "Italy" || war.defenderMinors.includes("Italy");
+    if (italyOnAttackerSide && sidePowers(war, "defender").includes(power)) rivals.add("Italy");
+    if (italyOnDefenderSide && sidePowers(war, "attacker").includes(power)) rivals.add("Italy");
+  }
+  return [...rivals];
+};
+
 export const truceRivals = (G: ImperialElegyState, power: Power): Power[] => {
   const rivals = new Set<Power>();
   for (const war of G.wars ?? []) {
@@ -1754,6 +1790,9 @@ export const holdsWarImpulse = (
 ): boolean => {
   if (war === null) return false;
   if (war.status !== "maneuver") return false;
+  // 15.6: "They can no longer act during the maneuver phase" — a knocked-out
+  // belligerent is out of the war (its rosters already dropped it).
+  if ((war.knockedOut ?? []).some((entry) => entry.power === power)) return false;
   // 15.4.1: the commander takes the last Italian impulse after every player
   // has passed, so the ordinary "already passed" bar does not apply to it.
   const italianImpulse = G.flags.italyImpulse === true && G.activePower === power;
@@ -2150,9 +2189,49 @@ const recordWarKnockout = (
   log(G, occupier, "warAllyKnockout", {power, by, capital, captor: actual});
   // 15.6: "When a player ally (or Italy) is knocked out, displace any allied
   // units in their territory."  Recorded once, so the displacement also runs
-  // once per knockout (5.7 targets; the power's own units stay in place).
+  // once per knockout.
   displaceAlliedUnitsInTerritory(G, power);
+  // 15.6: "When a player is knocked out they are, effectively, out of the
+  // war."  The rosters drop them at once, so they take no further impulse, and
+  // their unoccupied spaces stop counting for either side (the settlement's
+  // `knockoutsFor` keeps reading the historical record for the 16.1.6 option).
+  war.attackerAllies = war.attackerAllies.filter((ally) => ally !== power);
+  war.defenderAllies = war.defenderAllies.filter((ally) => ally !== power);
+  displaceKnockedOutArmies(G, war, power, actual);
   return {power, by, occupier, captor: actual, capital, treatyOptions: 1};
+};
+
+/**
+ * 15.6: "their armies immediately displace to an unoccupied home space and are
+ * allowed to overstack in that space with no penalty until the end of the war."
+ * All of the knocked-out power's armies move to one unoccupied home space and
+ * stack past the limit there.  "If there is no such space, the player who
+ * occupied their capital chooses a space…" — a resumable choice is not wired
+ * for this rare case, so the armies hold and the captor's prompt is logged
+ * (the settlement's 5.7 displacement still covers them).
+ */
+const displaceKnockedOutArmies = (G: ImperialElegyState, war: WarState, power: Power, captor: Power): void => {
+  const homes = Object.values(SPACES)
+    .filter((def) => def.home === power || G.spaces[def.id]?.homeOverride === power)
+    .map((def) => def.id)
+    .sort();
+  const target = homes.find((id) => G.spaces[id] !== undefined && G.spaces[id].units.length === 0);
+  const armies = Object.values(G.units).filter(
+    (unit) => unit.owner === power && unit.naval !== true && unit.space !== null && unit.space !== undefined,
+  );
+  if (target === undefined) {
+    log(G, captor, "warKnockoutDisplacementBlocked", {power, homes: homes.join(",")});
+    return;
+  }
+  for (const unit of armies) {
+    const from = unit.space as SpaceId;
+    if (G.spaces[from]) G.spaces[from].units = G.spaces[from].units.filter((id) => id !== unit.id);
+    G.spaces[target].units.push(unit.id);
+    unit.space = target;
+  }
+  if (armies.length > 0) {
+    log(G, captor, "warKnockoutDisplacement", {power, to: target, count: armies.length});
+  }
 };
 
 /**
@@ -2229,10 +2308,12 @@ export const recordWarKnockouts = (G: ImperialElegyState): AllyKnockout[] => {
 const knockoutsFor = (G: ImperialElegyState, war: WarState): AllyKnockout[] => {
   const recorded = (power: Power): WarKnockoutRecord | undefined =>
     (war.knockedOut ?? []).find((entry) => entry.power === power);
-  /** Use the recorded captor, or recover it from the live board (old saves). */
+  /** Use the recorded captor, or recover it from the live board (old saves).
+   *  The record is historical and trusted as written: after 15.6 drops the
+   *  knocked-out powers from the rosters, a live `sidePowers` membership test
+   *  would misread a captor that was itself knocked out later. */
   const captorOf = (record: WarKnockoutRecord, capital: SpaceId): Power => {
-    const side = sidePowers(war, record.by);
-    if (record.captor !== undefined && side.includes(record.captor)) return record.captor;
+    if (record.captor !== undefined) return record.captor;
     return knockoutCaptorOf(G, war, record.by, capital);
   };
   const out: AllyKnockout[] = [];
@@ -2812,7 +2893,13 @@ export const canApplyTreaty = (
     add("non-player-defender", "a non-player defender cannot impose or receive treaty options");
   }
 
-  const victoriousPowers = imposingSide === null ? [] : sidePowers(war, imposingSide);
+  // 15.6: a knocked-out ally is out of the war, but its physical occupation
+  // still counts for 16.2's tests — the side that imposes on a knockout target
+  // includes every member it had, knocked-out members included.
+  const victoriousPowers = imposingSide === null ? [] : [
+    ...sidePowers(war, imposingSide),
+    ...(war.knockedOut ?? []).filter((record) => record.by !== imposingSide).map((record) => record.power),
+  ];
   const primary = imposingSide === null ? null : imposingSide === "attacker" ? war.attacker : war.defender;
   const returnsHome = choice.option === "righteousDefense" && choice.righteousMode !== "liberate" &&
     choice.righteousMode !== "take" && choice.space !== undefined && choice.beneficiary !== undefined &&
@@ -2892,13 +2979,19 @@ export const canApplyTreaty = (
     if (target) {
       // Rule 16.2.3: the winning side must occupy at least one home controlled
       // by the losing power; the marker itself may be awarded to any ally.
-      const occupiedHome = Object.values(SPACES).some(
-        (def) =>
-          def.home === target &&
-          victoriousPowers.some(
-            (power) => G.spaces[def.id]?.occupiedBy === power || G.spaces[def.id]?.control === power,
-          ),
-      );
+      // 16.2.3: the winner must OCCUPY a home the losing power controls —
+      // a home the winner already controlled before the war (Egypt for a UK
+      // attacker) does not count, and neither does a home the winner gained
+      // through an earlier treaty pick — and unification homes (33.1's home
+      // override) are the loser's homes too.
+      const occupiedHome = Object.values(SPACES).some((def) => {
+        const state = G.spaces[def.id];
+        if (!state) return false;
+        const loserHome = def.home === target || state.homeOverride === target;
+        return loserHome &&
+          state.control === target &&
+          victoriousPowers.some((power) => state.occupiedBy === power);
+      });
       if (!occupiedHome) add("no-occupied-home", `the winning side does not occupy a home space controlled by ${target}`);
     }
   } else if (choice.option === "righteousDefense") {

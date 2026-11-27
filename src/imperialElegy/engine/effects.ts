@@ -2327,6 +2327,10 @@ const applyNavalArmsRace = (G: ImperialElegyState, ctx: Ctx, actor: Power, targe
 };
 
 /** GW-07: apply the chosen die modifier, roll and resolve the printed table. */
+/** 25.2: the US alliance chit is absent when the CSA won or the ACW runs. */
+const usChitOnTrack = (G: ImperialElegyState): boolean =>
+  G.persistent.acw !== true && G.persistent.csaIndependent !== true;
+
 const applySubmarines = (
   G: ImperialElegyState,
   ctx: Ctx,
@@ -2353,7 +2357,10 @@ const applySubmarines = (
       const next = ALLIANCE_TRACK[Math.max(0, Math.min(ALLIANCE_TRACK.length - 1, index + (side === "te" ? 1 : -1)))];
       G.persistent.usAlliance = next;
       usBox = next;
-      if (isCommittedBox(next)) enterGwAlly(G, ctx, "US", side);
+      // 25.2: without the US chit on the alliance track there is nothing to
+    // shift — the ACW exception (CSA won, or the war still running) keeps the
+    // US out of the GW even on a GW-07 six.
+    if (isCommittedBox(next) && usChitOnTrack(G)) enterGwAlly(G, ctx, "US", side);
     }
   }
 };
@@ -4095,9 +4102,28 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
       // that Franz Joseph has died.
       if (G.resolvingCard === "IE-A095") G.persistent.franzJosephDead = true;
       if (auCitizenshipBlocked(G)) return true;
-      const nationality = nextAuNationality(G.powers.AU.citizenship);
-      if (nationality && G.powers.AU.rights.includes(nationality)) grantAuCitizenship(G, nationality);
-      else if (nationality) G.powers.AU.rights.push(nationality);
+      // Printed OR: "grants full citizenship to a nationality that already has
+      // rights. OR … grants rights to a nationality."  Open the choice when
+      // both halves are legal; a single legal half resolves directly.
+      const citizenshipCandidate = AU_NATIONALITIES.find(
+        (nationality) => G.powers.AU.rights.includes(nationality) && !G.powers.AU.citizenship.includes(nationality),
+      );
+      const rightsCandidate = nextAuNationality(G.powers.AU.rights);
+      if (citizenshipCandidate !== undefined && rightsCandidate !== undefined) {
+        openDecision(G, ctx, decision(
+          "eventChoice",
+          actor,
+          "AU grant: full citizenship for a nationality with rights, or rights for a nationality",
+          [
+            option("citizenship", "Grant full citizenship", undefined, false, "授予完整公民权"),
+            option("rights", "Grant rights", undefined, false, "授予权利"),
+          ],
+          {resume, special: handler, stage: "mode"},
+        ));
+        return false;
+      }
+      if (citizenshipCandidate !== undefined) grantAuCitizenship(G, citizenshipCandidate);
+      else if (rightsCandidate !== undefined) G.powers.AU.rights.push(rightsCandidate);
       return true;
     }
     case "germanGeneralStaff": {
@@ -5072,6 +5098,23 @@ export const resolveCardDecision = (
     // plainly rather than granting the discount for free.
     const paid = amount > 0 && spendCpFor(G, actor, amount) ? amount : 0;
     rollCityOfLight(G, ctx, paid);
+    closeDecision(G, ctx);
+    resumeEffects(G, ctx, pending, data);
+    return;
+  }
+  if (special === "grantRightsOrCitizenship" && context.stage === "mode") {
+    // A95/A112's printed OR choice.  Each half targets its first eligible
+    // nationality: citizenship needs a rights-holder without citizenship,
+    // rights the next nationality without rights.
+    if (optionId === "citizenship") {
+      const candidate = AU_NATIONALITIES.find(
+        (nationality) => G.powers.AU.rights.includes(nationality) && !G.powers.AU.citizenship.includes(nationality),
+      );
+      if (candidate !== undefined) grantAuCitizenship(G, candidate);
+    } else if (optionId === "rights") {
+      const candidate = nextAuNationality(G.powers.AU.rights);
+      if (candidate !== undefined) G.powers.AU.rights.push(candidate);
+    }
     closeDecision(G, ctx);
     resumeEffects(G, ctx, pending, data);
     return;

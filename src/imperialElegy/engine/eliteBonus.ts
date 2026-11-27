@@ -42,10 +42,10 @@ export const eliteBonusCandidates = (
   side: "attacker" | "defender",
 ): Unit[] => {
   if (battle.kind !== "land") return [];
-  // A078's elite colonial EF is a pre-war colonial unit: during the Great War
-  // the printed +1/auto-elimination clause is not part of the GW combat rules,
-  // and asking mid-GW would stall the automated GW impulse sequence.
-  if (G.gw?.active === true) return [];
+  // 28.0: "GW combat follows most of the same rules... all such instances not
+  // explained below follow the same rules as normal wartime combat."  18.1's
+  // sequence keeps the elite step and 27.5.3 sells elite corps during the GW,
+  // so the bonus is available there like any other wartime battle.
   const ids = side === "attacker" ? battle.mainAttack : battle.mainDefense;
   return ids
     .map((id) => G.units[id])

@@ -235,6 +235,11 @@ export const gwCardProblem = (G: ImperialElegyState, power: Power, mode: "event"
   if (mode === "cp" || id === EXHAUSTION_CARD) {
     if (impulse.budgetAction === "legacy") return "cardWindow";
     if (impulse.budgetAction === "landBattle") return "bonusLandBattle";
+    // 27.3: the Exhaustion card must be played at some point during the turn,
+    // with no printed budget precondition — the Play Note ("before your
+    // budget reaches 0") is advice, and a 0-budget holder who cannot play
+    // could neither act nor pass, deadlocking the turn.
+    if (id === EXHAUSTION_CARD) return null;
     return impulse.budgetAction || cpBudgetFor(G, power) > 0 ? null : "budget";
   }
   if (["IE-GW-03", "IE-GW-04", "IE-GW-06"].includes(id)) return "battleCard";

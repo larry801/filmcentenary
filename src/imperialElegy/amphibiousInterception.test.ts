@@ -107,10 +107,14 @@ describe("19.10 amphibious assault", () => {
     // One UK ship is not enough.
     placeUnit(G, "UK", "squadron", "north-atlantic", 2);
     expect(amphibiousAssault(G, ctx, "north-atlantic", "brittany", [army])).toBe(INVALID_MOVE);
-    // Two UK ships against one FR ship is enough; the naval battle comes first.
+    // Two UK ships against one FR ship is enough.  19.10/19.11: the armies
+    // land first and displace the port fleet, which then fights as the
+    // attacker of the follow-up naval battle.
     placeUnit(G, "UK", "squadron", "north-atlantic", 2);
     expect(amphibiousAssault(G, ctx, "north-atlantic", "brittany", [army])).toBeUndefined();
-    expect(G.battle?.kind).toBe("naval");
+    expect(G.units[army].space).toBe("brittany");
+    expect(navalUnitsIn(G, "brittany")).toHaveLength(0);
+    expect(G.pending?.kind).toBe("navalInterception");
   });
 
   test("a friendly port cannot be assaulted", () => {

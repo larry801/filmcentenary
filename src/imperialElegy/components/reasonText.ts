@@ -29,6 +29,10 @@ const powerName = (code: string): string => POWER_DEFS[code as Power]?.nameZh ??
 
 /** Whole-string reasons; checked before the patterns. */
 const EXACT_ZH: Readonly<Record<string, string>> = {
+  "Eastern Ambitions is not in hand": "手中没有“东方野心”",
+  "Eastern Ambitions is already revealed": "“东方野心”已揭示",
+  "the special belongs to Russia": "该特制属于俄国",
+  "the special takes Manchuria or Korea": "该特制取得满洲或朝鲜",
   "A build needs a space": "建造需要指定一个空间",
   "A unit deployed this impulse cannot move (15.2.3)": "本行动轮部署的单位不能移动（15.2.3）",
   "A draft needs a controlled home key with room for one more army and no trench battle marker (27.5.2)":

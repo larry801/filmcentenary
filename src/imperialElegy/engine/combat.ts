@@ -9,7 +9,6 @@ import {
   atWar,
   brokenLoc,
   die,
-  friendlySpace,
   gwAllyImpulseFor,
   hostileOwner,
   isArmyKind,
@@ -63,7 +62,7 @@ import {
   opponentIsNonRebelArmy,
   eliteDecisionPower,
 } from "./eliteBonus";
-import {applyGwMajorDecisiveDefeat, forceLeader, forceLeaderFromOwners, syncItalianHomeKeys} from "./gwMajors";
+import {applyGwMajorDecisiveDefeat, forceLeader, forceLeaderFromOwners, syncItalianHomeKeys, usSouthEntryRefusal} from "./gwMajors";
 import {
   COMBAT_CARD_BY_ID,
   a043DiscardCostCards,
@@ -206,6 +205,26 @@ const stabilityDrm = (G: ImperialElegyState, power: Power): number => {
   const table = def.stability;
   const effect = table[Math.max(0, Math.min(table.length - 1, p.stability))];
   return effect?.bm ?? 0;
+};
+
+/**
+ * 18.2.1: "OT Arab armies receive this modifier earlier than OT Turkish
+ * armies."  A main force containing Arab armies reads the printed `abm`
+ * column; the worse of the two values covers a mixed stack.
+ */
+const stabilityDrmForForce = (G: ImperialElegyState, power: Power, unitIds: readonly string[]): number => {
+  const p = G.powers[power];
+  const def = POWER_DEFS[power];
+  if (!p || !def) return 0;
+  const table = def.stability;
+  const effect = table[Math.max(0, Math.min(table.length - 1, p.stability))];
+  const bm = effect?.bm ?? 0;
+  const hasArab = unitIds.some((id) => {
+    const unit = unitById(G, id);
+    return unit !== undefined && unit.owner === power && unit.flags?.arab === true;
+  });
+  if (!hasArab || effect?.abm === undefined) return bm;
+  return Math.min(bm, effect.abm);
 };
 
 /**
@@ -373,13 +392,17 @@ export const supportCandidates = (G: ImperialElegyState, _power: Power, battle: 
     let adjFrom = landLinks.some((link) => link.to === battle.from);
     let adjTo = landLinks.some((link) => link.to === battle.to);
     if (!adjFrom && !adjTo) continue;
-    // GW trench battle (28.1.3): every supporting unit in a trench battle is
-    // treated as adjacent to both forces because both occupy the same space.
+    // GW trench battle (28.1.3): "all units supporting a trench battle are
+    // automatically adjacent to both the attacker and the defender because
+    // they're both in the same space" — the clause describes the intra-space
+    // battle, so the auto-adjacency applies only when the battle is fought
+    // inside one space (from === to).  The halving itself stays on the
+    // supporting space's own marker for every battle (28.1.3/18.3.2).
     const supportingTrench =
       Boolean(G.gw?.active) &&
       !battle.notes.includes("cancelTrenches") &&
       Boolean(G.spaces[adjacent]?.trench);
-    if (supportingTrench) {
+    if (supportingTrench && battle.from === battle.to) {
       adjFrom = true;
       adjTo = true;
     }
@@ -502,6 +525,9 @@ const landBattleForces = (
   from: SpaceId,
   to: SpaceId,
 ): {attackUnits: Unit[]; defendUnits: Unit[]; trenchTerrain: boolean} | null => {
+  // 32.1: a non-US attack into the South would put enemy units in the one
+  // space the print reserves for the US — no legal battle.
+  if (usSouthEntryRefusal(G, actor, to) !== null) return null;
   const allyImpulse = gwAllyImpulseFor(G, actor);
   const attackUnits = landUnitsIn(G, from).filter(
     (u) =>
@@ -525,7 +551,7 @@ const landBattleForces = (
   const defendUnits = enemyPowerUnits
     ? hostileDefenders.filter((u) => !String(u.owner).startsWith("REBEL:"))
     : hostileDefenders;
-  if (attackUnits.length === 0 || (defendUnits.length === 0 && !G.spaces[to].fort)) {
+  if (attackUnits.length === 0 || (defendUnits.length === 0 && defenceFortFp(G, to) === 0)) {
     return null;
   }
   // 12.16 / 13.4: a neutral non-player is not a legal land-battle target.  The
@@ -534,7 +560,7 @@ const landBattleForces = (
   if (defendUnits.length > 0 && !defendUnits.some((u) => legalLandBattleTarget(G, actor, u.owner, to))) {
     return null;
   }
-  if (defendUnits.length === 0 && G.spaces[to].fort) {
+  if (defendUnits.length === 0 && defenceFortFp(G, to) > 0) {
     const control = G.spaces[to].control;
     if (control !== null && control !== undefined && !legalLandBattleTarget(G, actor, control)) return null;
   }
@@ -643,8 +669,13 @@ export const beginLandBattle = (
   // Modifiers.  Every clause below records its name with `recordBattleDrm` so
   // the battle panel and the result dialog can explain both totals.
   if (amphibious) recordBattleDrm(battle, "attacker", -1, "amphibious", undefined, "rule");
-  const attackerStability = stabilityDrm(G, actor);
-  const defenderStability = stabilityDrm(G, defender);
+  const landDefenderLeader = defenderSupportPower(G, battle);
+  const attackerStability = stabilityDrmForForce(G, actor, battle.mainAttack);
+  // 18.2.1: "minor powers fighting a battle alone never incur this penalty."
+  // A defence with no player leader (a lone minor or an empty fort) records no
+  // stability DRM — the old fallback charged the ATTACKER's stability against
+  // the defender side.
+  const defenderStability = landDefenderLeader === null ? 0 : stabilityDrmForForce(G, landDefenderLeader, battle.mainDefense);
   recordBattleDrm(battle, "attacker", attackerStability, "stability", {
     power: actor,
     value: G.powers[actor]?.stability,
@@ -661,13 +692,12 @@ export const beginLandBattle = (
     recordBattleDrm(battle, "attacker", -1, "manpowerExhausted", undefined, "rule");
     battle.notes.push("manpowerExhaustedAttacker");
   }
-  const landDefenderLeader = defenderSupportPower(G, battle);
   if (landDefenderLeader !== null && manpowerExhausted(G, landDefenderLeader)) {
     recordBattleDrm(battle, "defender", -1, "manpowerExhausted", undefined, "rule");
     battle.notes.push("manpowerExhaustedDefender");
   }
   if (isReducedOnly(attackUnits)) recordBattleDrm(battle, "attacker", -1, "reducedOnly", undefined, "rule");
-  if (isReducedOnly(defenceCandidates) && !G.spaces[to].fort) {
+  if (isReducedOnly(defenceCandidates) && defenceFortFp(G, to) === 0) {
     recordBattleDrm(battle, "defender", -1, "reducedOnly", undefined, "rule");
   }
   // National characteristics (1st Army, Indian armies, Zouaves, Prussian
@@ -787,15 +817,39 @@ const openEliteBonusWindow = (
     return false;
   }
   asked[side] = true;
+  // 18.2.1: "Each side can only commit one elite unit in a given battle."  A
+  // stack with several eligible units picks the one it risks — the committed
+  // unit is eliminated when the battle is lost.
+  if (candidates.length === 1) {
+    openDecision(G, ctx, decision(
+      "combatElite",
+      power,
+      side === "attacker"
+        ? "Commit an elite unit for its printed +1? (attacker)"
+        : "Commit an elite unit for its printed +1? (defender)",
+      [
+        option("commit", `Commit the elite unit (+${ELITE_COMBAT_BONUS})`, {side}, false, `投入精英单位（+${ELITE_COMBAT_BONUS}）`),
+        option("decline", "Do not use its bonus", {side}, false, "不使用其加值"),
+      ],
+      {battle: true, eliteSide: side, power, promptKind: "eliteBonus"},
+    ));
+    return true;
+  }
   openDecision(G, ctx, decision(
     "combatElite",
     power,
     side === "attacker"
-      ? "Commit an elite unit for its printed +1? (attacker)"
-      : "Commit an elite unit for its printed +1? (defender)",
+      ? "Commit one elite unit for its printed +1? (attacker)"
+      : "Commit one elite unit for its printed +1? (defender)",
     [
-      option("commit", `Commit the elite unit (+${ELITE_COMBAT_BONUS})`, {side}, false, `投入精英单位（+${ELITE_COMBAT_BONUS}）`),
-      option("decline", "Do not use its bonus", {side}, false, "不使用其加值"),
+      ...candidates.map((unit) => option(
+        `unit:${unit.id}`,
+        `Commit ${unit.kind === "eliteCorps" ? "elite corps" : unit.kind === "zouave" ? "Zouaves" : "elite colonial EF"} (${unit.steps > 1 ? "full" : "reduced"}) (+${ELITE_COMBAT_BONUS})`,
+        {side, eliteUnit: unit.id},
+        false,
+        `投入精英单位（+${ELITE_COMBAT_BONUS}）`,
+      )),
+      option("decline", "Do not use an elite unit", {side}, false, "不使用精英单位"),
     ],
     {battle: true, eliteSide: side, power, promptKind: "eliteBonus"},
   ));
@@ -992,11 +1046,17 @@ export const resolveEliteBonus = (
   ctx: Ctx,
   side: "attacker" | "defender",
   commit: boolean,
+  chosenUnitId?: string,
 ): void => {
   const battle = G.battle;
   if (!battle) return;
   if (commit) {
-    const units = eliteBonusCandidates(G, battle, side);
+    const candidates = eliteBonusCandidates(G, battle, side);
+    // 18.2.1: one elite unit per side per battle.  The chosen unit wins when
+    // the player picked one; otherwise the stack's first eligible unit is
+    // committed (the single-candidate case is the ordinary path).
+    const chosen = candidates.find((unit) => unit.id === chosenUnitId) ?? candidates[0];
+    const units = chosen ? [chosen] : [];
     const ids = units.map((unit) => unit.id);
     const kinds = units.map((unit) => unit.kind);
     const owners = units.map((unit) => unit.owner);
@@ -1086,6 +1146,65 @@ const openGwRerollChoice = (
   ));
 };
 
+/**
+ * 12.12: a fort falls when ENEMY units enter its space, so ownership decides —
+ * a player owner falls to a power at war with it, a minor owner to a power at
+ * war with the minor's controller.
+ */
+const fortOwnerHostile = (G: ImperialElegyState, power: Power, owner: PowerOrMinor): boolean => {
+  if (isPower(owner)) return atWar(G, power, owner);
+  const controller = minorController(G, owner);
+  return controller !== null ? atWar(G, power, controller) : false;
+};
+
+/**
+ * The fort that defends `space`.  3.4.1(3): "Any fort that exists in the
+ * Istanbul space is also considered to exist in the Dardanelles space so long
+ * as both spaces are OT controlled" (19.9 repeats it for naval battles), so a
+ * battle at the Dardanelles reads Istanbul's fort as its own.
+ */
+export const effectiveDefenceFort = (
+  G: ImperialElegyState,
+  space: SpaceId,
+): NonNullable<ImperialElegyState["spaces"][SpaceId]["fort"]> | null => {
+  const own = G.spaces[space]?.fort ?? null;
+  if (space === "dardanelles") {
+    const istanbul = G.spaces.istanbul?.fort ?? null;
+    if (istanbul !== null && G.spaces.dardanelles?.control === "OT" && G.spaces.istanbul?.control === "OT") {
+      return istanbul;
+    }
+  }
+  return own;
+};
+
+/**
+ * The fort FP the defence actually receives: the fort must still belong to the
+ * side holding the space (12.12 keeps a captured fort from fighting for its
+ * former owner's enemy), and the 3.4.1(3) Istanbul mirror applies.  A minor
+ * holder keeps a friendly power's station fort — hostility, not marker
+ * equality, is the test.
+ */
+const defenceFortFp = (G: ImperialElegyState, space: SpaceId): number => {
+  const fort = effectiveDefenceFort(G, space);
+  if (fort === null) return 0;
+  const state = G.spaces[space];
+  const holder = state?.control ?? state?.occupiedBy ?? null;
+  if (holder !== null && holder !== undefined && holder !== fort.power) {
+    if (isPower(holder)) {
+      if (isPower(fort.power)) {
+        if (atWar(G, holder, fort.power)) return 0;
+      } else {
+        const fortController = minorController(G, fort.power);
+        if (fortController !== null && atWar(G, holder, fortController)) return 0;
+      }
+    } else {
+      const controller = minorController(G, holder);
+      if (isPower(fort.power) && controller !== null && atWar(G, controller, fort.power)) return 0;
+    }
+  }
+  return fort.level;
+};
+
 /** Current FP totals for each side, including fort FP and committed support. */
 const battleFpTotals = (
   G: ImperialElegyState,
@@ -1097,16 +1216,27 @@ const battleFpTotals = (
   // opponent's dreadnoughts, so compute both flags before either total.
   const attackHasDreadnought = battle.mainAttack.some((id) => unitById(G, id)?.kind === "dreadnought");
   const defenceHasDreadnought = battle.mainDefense.some((id) => unitById(G, id)?.kind === "dreadnought");
+  // 5.1.4: an expeditionary force is worth 2 FP versus rebel armies and/or
+  // other EFs, 0 FP versus non-rebel armies — the opponent's composition
+  // decides, per side.
+  const attackFacesSoft = battle.mainDefense.some((id) => {
+    const u = unitById(G, id);
+    return u !== undefined && (u.kind === "rebelArmy" || u.kind === "expeditionary");
+  });
+  const defenceFacesSoft = battle.mainAttack.some((id) => {
+    const u = unitById(G, id);
+    return u !== undefined && (u.kind === "rebelArmy" || u.kind === "expeditionary");
+  });
   const attackFp = battle.mainAttack.reduce((sum, id) => {
     const u = unitById(G, id);
-    return sum + (u ? unitFp(u, defenceHasDreadnought) : 0);
+    return sum + (u ? unitFp(u, defenceHasDreadnought, attackFacesSoft) : 0);
   }, 0) + battle.supportAttack.reduce((sum, s) => sum + s.fp, 0);
   const defenceFp = battle.mainDefense.reduce((sum, id) => {
     const u = unitById(G, id);
-    return sum + (u ? unitFp(u, attackHasDreadnought) : 0);
+    return sum + (u ? unitFp(u, attackHasDreadnought, defenceFacesSoft) : 0);
   }, 0)
     + battle.supportDefense.reduce((sum, s) => sum + s.fp, 0)
-    + (G.spaces[battle.to].fort?.level ?? 0);
+    + defenceFortFp(G, battle.to);
   return {attackFp, defenceFp};
 };
 
@@ -1631,12 +1761,13 @@ export const machineGunsApplies = (
 ): boolean => {
   if (G.persistent.machineGuns !== true) return false;
   if (battle.kind !== "land") return false;
-  const opposing = side === "attacker" ? battle.mainDefense : battle.mainAttack;
-  const hasRebel = opposing.some((id) => G.units[id]?.kind === "rebelArmy");
-  // "non-rebel units" — a rebel army on the rolling side is excluded too.
+  // 18.5: "Machine guns give non-rebel units a minimum die roll of a 3 in land
+  // battles" — the floor attaches to the units rolling, so only the rolling
+  // side's own rebel armies forfeit it.  21.0: rebels never benefit from
+  // machine guns; the opponent's composition is irrelevant.
   const own = side === "attacker" ? battle.mainAttack : battle.mainDefense;
   const ownRebel = own.some((id) => G.units[id]?.kind === "rebelArmy");
-  return !hasRebel && !ownRebel;
+  return !ownRebel;
 };
 
 const rollBattleDice = (G: ImperialElegyState, ctx: Ctx, battle: BattleState): void => {
@@ -2242,6 +2373,21 @@ export const chooseLoss = (G: ImperialElegyState, ctx: Ctx, unitId: string): voi
   const includeSupport = pending.context?.includeSupport === true || firstLossTaken(battle, side);
   const candidates = withDreadnoughtPriority(battle, side, lossCandidates(G, battle, side, includeSupport));
   if (!candidates.some((unit) => unit.id === unitId)) return;
+  // 18.6: "Non-player (purple) units cannot be eliminated unless all player
+  // units in their stack are reduced."  A stack mixing the player's own full
+  // armies with an allied minor's units must lose the player's units first.
+  const chosen = G.units[unitId];
+  if (chosen && !isPower(chosen.owner)) {
+    const stackFull = candidates.some(
+      (unit) =>
+        unit.id !== unitId &&
+        unit.space === chosen.space &&
+        isPower(unit.owner) &&
+        isArmyKind(unit.kind) &&
+        (G.units[unit.id]?.steps ?? 0) > 1,
+    );
+    if (stackFull) return;
+  }
   // 18.6.3: a loss group that is only EFs cannot eliminate a full-strength
   // non-rebel army (see `applyLosses`).
   const efOnlyLoss = isEfOnlyForce(G, battle, side);
@@ -2301,8 +2447,24 @@ const enemyNavalIn = (G: ImperialElegyState, space: SpaceId, power: PowerOrMinor
  * `G.powers[power].alliance` and throws for a minor name, so route non-players
  * through their own control/ally markers.
  */
+/**
+ * 4.9.4: "Friendly spaces are those that are controlled or occupied ... by a
+ * power or any of its allies that are also involved in the war."  Combat's
+ * retreats, port counts and interception DRMs read this stricter test: an
+ * influence-only neutral space is not friendly to a beaten force, unlike the
+ * movement/LoC reading in `friendlySpace`.
+ */
+const combatFriendlySpace = (G: ImperialElegyState, space: SpaceId, power: Power): boolean => {
+  const state = G.spaces[space];
+  if (!state) return false;
+  if (state.control === power || state.occupiedBy === power) return true;
+  if (isPower(state.control) && allied(G, state.control, power)) return true;
+  if (!isPower(state.control) && state.control !== null && state.ally === power) return true;
+  return false;
+};
+
 const friendlyToSide = (G: ImperialElegyState, space: SpaceId, side: PowerOrMinor): boolean => {
-  if (isPower(side)) return friendlySpace(G, space, side);
+  if (isPower(side)) return combatFriendlySpace(G, space, side);
   const state = G.spaces[space];
   if (!state) return false;
   return state.control === side || state.ally === side;
@@ -2416,7 +2578,7 @@ export const maybeOpenDecisiveFollowUp = (G: ImperialElegyState, ctx: Ctx | unde
       ));
       continue;
     }
-    if (friendlySpace(G, id, power) || (state.control === null && state.influence === power)) {
+    if (combatFriendlySpace(G, id, power)) {
       options.push(option(
         `move:${id}`,
         `Move one space: ${spaceLabel(id, "en")}`,
@@ -2497,7 +2659,7 @@ const landRetreatDestinations = (
   return neighboursOf(space).filter((id) => {
     if (isNavalBox(id)) return false;
     if (leavingTrench && G.spaces[id]?.trench) return true;
-    if (retreatPower) return friendlySpace(G, id, retreatPower);
+    if (retreatPower) return combatFriendlySpace(G, id, retreatPower);
     const state = G.spaces[id];
     return Boolean(state) &&
       state.control === targetState?.control &&
@@ -2693,6 +2855,9 @@ const gwFortCancelRetreatOption = (
   if (retreatPower === null) return null;
   if (!retreatingUnits.some((unit) => G.units[unit.id] !== undefined)) return null;
   if (!friendlyFortInSpace(G, battle.to, retreatPower)) return null;
+  // 28.2: "Exception: The Indian fort [33.2.3] cannot be removed to cancel a
+  // retreat."
+  if (G.spaces[battle.to]?.fort?.indian === true) return null;
   return option(
     GW_FORT_CANCEL_RETREAT,
     "Remove a friendly fort to cancel the retreat",
@@ -2856,7 +3021,7 @@ const navalPortContinuationPlan = (
   for (const unit of movers) {
     const power = effectivePower(unit);
     const allowed = adjacentPorts.filter((port) => {
-      if (!friendlySpace(G, port, power)) return false;
+      if (!combatFriendlySpace(G, port, power)) return false;
       if (navalUnitsIn(G, port).some((other) => hostileOwner(G, power, other.owner))) return false;
       if (landUnitsIn(G, port).some((other) => hostileOwner(G, power, other.owner))) return false;
       return movementEndProblem(G, port, [unit]) === null;
@@ -2868,7 +3033,7 @@ const navalPortContinuationPlan = (
   // "friendly to every participating power" test.
   const destinations: SpaceId[] = [];
   for (const port of adjacentPorts) {
-    if (!powerOrder.every((power) => friendlySpace(G, port, power))) continue;
+    if (!powerOrder.every((power) => combatFriendlySpace(G, port, power))) continue;
     const hostileShips = navalUnitsIn(G, port).some((unit) =>
       powerOrder.some((power) => hostileOwner(G, power, unit.owner)),
     );
@@ -3616,9 +3781,8 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
       const retreatPower = defenderSupportPower(G, battle);
       retreated = applyRetreatAssignments(G, battle, defenderUnits, retreatPower, true) > 0;
     }
-    // 18.7: a fort is eliminated only when the defender is forced to retreat
-    // out of its space.  GW-06 (no retreat) and an eliminated garrison leave
-    // the fort in place.
+    // 18.7: a fort is eliminated when the defender is forced to retreat out of
+    // its space; 12.12 adds the entry case, handled at the advance below.
     if (retreated && G.spaces[battle.to].fort) G.spaces[battle.to].fort = null;
     // GW-06 only blocks the advance while a defeated defender actually remains
     // in the space.  If every defender was eliminated, the attacker advances.
@@ -3640,6 +3804,14 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
     }
     const attackerUnit = landUnitsIn(G, battle.from).find((u) => u.owner === battle.attacker);
     if (attackerUnit && (!noRetreat || !defenderSurvives)) {
+      // 12.12: "A fort is eliminated if enemy units enter its space."  The
+      // advance is that entry, including the GW-06 no-retreat case with an
+      // annihilated garrison; a fort owned by the advancer's side survives
+      // allied entry.
+      const enteredFort = G.spaces[battle.to].fort;
+      if (enteredFort && fortOwnerHostile(G, battle.attacker, enteredFort.power)) {
+        G.spaces[battle.to].fort = null;
+      }
       const previousHolder = keyHolder(G, battle.to);
       moveUnitTo(G, attackerUnit, battle.to);
       G.spaces[battle.to].occupiedBy = battle.attacker;
@@ -3712,7 +3884,11 @@ export const finishBattle = (G: ImperialElegyState, ctx: Ctx): void => {
   // and Italy have their own 32.1/32.2 lists, so only player powers are
   // charged here.
   for (const owner of battle.dreadnoughtsSunk ?? []) {
-    if (G.gw?.active && isPower(owner) && !G.powers[owner].eliminated) {
+    // 7.1.1 charts "Losing a dreadnought: -1" among the stability changes that
+    // apply prior to the GW, and 30.0 repeats it for the GW; the charge is not
+    // GW-gated.  The US and Italy have their own 32.1/32.2 lists, so only
+    // player powers are charged here.
+    if (isPower(owner) && !G.powers[owner].eliminated) {
       changeStability(G, owner, -1, ctx, {cause: "battle"});
     }
   }
@@ -3881,6 +4057,8 @@ export const resolveCombatRetreat = (
     // attacker does not advance.  `noRetreat` reuses GW-06's "defender remains"
     // branch so the second finishBattle pass applies exactly that outcome.
     if (!G.spaces[battle.to]?.fort) return false;
+    // 28.2's exception: the Indian fort can never be removed this way.
+    if (G.spaces[battle.to]?.fort?.indian === true) return false;
     G.spaces[battle.to].fort = null;
     G.pending = null;
     if (!battle.notes.includes("noRetreat")) battle.notes.push("noRetreat");
@@ -3964,11 +4142,11 @@ export const interceptionModifiers = (
   const notes: string[] = [];
   let drm = 0;
   const ports = Object.values(SPACES).filter((def) => def.ports?.includes(box));
-  if (ports.filter((def) => friendlySpace(G, def.id, interceptor)).length >= 3) {
+  if (ports.filter((def) => combatFriendlySpace(G, def.id, interceptor)).length >= 3) {
     drm += 1;
     notes.push("threeFriendlyPorts");
   }
-  if (!ports.some((def) => friendlySpace(G, def.id, mover))) {
+  if (!ports.some((def) => combatFriendlySpace(G, def.id, mover))) {
     drm += 1;
     notes.push("moverNoFriendlyPorts");
   }
@@ -4076,7 +4254,7 @@ export const navalInterceptCandidates = (
       ),
     ];
     for (const owner of owners) {
-      if (!friendlySpace(G, def.id, owner)) continue;
+      if (!combatFriendlySpace(G, def.id, owner)) continue;
       out.push({power: owner, port: def.id});
     }
   }
@@ -4695,7 +4873,7 @@ export const navalPortBattleModifiers = (
   const count = (power: PowerOrMinor): number =>
     adjacentPorts.filter((def) =>
       isPower(power)
-        ? friendlySpace(G, def.id, power)
+        ? combatFriendlySpace(G, def.id, power)
         : G.spaces[def.id]?.control === power || G.spaces[def.id]?.ally === power,
     ).length;
   const attackerPorts = count(attacker);
@@ -5005,6 +5183,23 @@ const hostileSeatIn = (G: ImperialElegyState, box: SpaceId, attacker: Power): Po
   if (isPower(control) && control !== attacker) return control;
   const ally = G.spaces[box]?.ally;
   return isPower(ally) && ally !== attacker ? ally : null;
+};
+
+/**
+ * 19.6.1(2): "Land units in a naval box are eliminated if ... the land units
+ * are caught alone in a naval box without any accompanying naval units."
+ * Ships arriving in a box whose only enemy presence is unescorted land units
+ * eliminate them; a box that still holds enemy ships resolves as a naval
+ * battle instead, and the land units are covered by their fleet until it
+ * loses.
+ */
+export const eliminateCaughtLandUnits = (G: ImperialElegyState, box: SpaceId, byPower: Power): void => {
+  if (!isNavalBox(box)) return;
+  if (navalUnitsIn(G, box).some((unit) => hostileOwner(G, byPower, unit.owner))) return;
+  const caught = landUnitsIn(G, box).filter((unit) => hostileOwner(G, byPower, unit.owner));
+  if (caught.length === 0) return;
+  for (const unit of caught) removeUnit(G, unit.id);
+  log(G, byPower, "landUnitsCaughtInBox", {box, count: caught.length});
 };
 
 export const navalStartContacts = (

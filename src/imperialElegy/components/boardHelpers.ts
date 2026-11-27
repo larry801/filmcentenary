@@ -151,6 +151,8 @@ export const PROMPT_ZH: Record<string, string> = {
   "Divide and Conquer: choose a space": "分而治之：选择一个空间",
   "Divide and Conquer: place or move an EF, then pacify": "分而治之：放置或移动远征军，然后绥靖",
   "German General Staff: take a card or gain two elite corps": "德国总参谋部：取一张牌或获得 2 个精英军",
+  "AU grant: full citizenship for a nationality with rights, or rights for a nationality":
+    "奥匈授予权：为已有权利的民族授予完整公民权，或为新民族授予权利",
   "German General Staff: choose a card from the discard pile": "德国总参谋部：从弃牌堆选择一张牌",
   "Aux Armes: take French Intervention or Papal Influence from the discard pile": "拿起武器：从弃牌堆取“法国干预”或“教宗影响”",
   "Economic Panic: discard a random card or lose one stability": "经济恐慌：随机弃 1 张牌或失去 1 点稳定",
@@ -381,6 +383,7 @@ export const amphibiousReasonText = (
         `敌方海上力量：${check.enemyNaval ?? 0} 艘。需要 2:1 护航（${need} 艘），你现有 ${check.ownNaval ?? 0} 艘。`);
     }
     case "landing-room": return bi(locale, "There is no landing room for another army in that port.", "该港口已无空间让军团登陆。");
+    case "us-south": return bi(locale, "Only the US can have units in the South space.", "南方空间只能有美国单位。");
     default: return bi(locale, "This assault is not legal.", "该两栖突击不合法。");
   }
 };

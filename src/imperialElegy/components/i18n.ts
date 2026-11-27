@@ -159,6 +159,7 @@ const S = {
     auFullCitizenship: "Full citizenship",
     auSacrificeStability: "Spend 1 stability for +2 DRM",
     rebuildZouave: "Rebuild the Zouaves (1 CP)",
+    easternAmbitions: "Eastern Ambitions special (3 CP)",
     tsrrRailMove: "Rail move (free)",
     tsrrArmy: "Army",
     tsrrDestination: "Destination",
@@ -284,6 +285,7 @@ const S = {
       scenarioGoalChoice: "Choose the National Goal to keep",
       gwBuildPoint: "Spend a build point",
       dardanellesPassage: "Dardanelles passage: grant or refuse",
+      denmarkPassage: "Denmark passage: grant or refuse",
     },
     playBlock: {
       "unknown-card": "Unknown card.",
@@ -538,6 +540,7 @@ const S = {
     auFullCitizenship: "完整公民权",
     auSacrificeStability: "牺牲 1 稳定换取 +2 DRM",
     rebuildZouave: "重建祖阿夫（1 CP）",
+    easternAmbitions: "“东方野心”特制（3 CP）",
     tsrrRailMove: "铁路移动（免费）",
     tsrrArmy: "军团",
     tsrrDestination: "目的地",
@@ -663,6 +666,7 @@ const S = {
       scenarioGoalChoice: "选择要保留的国家目标",
       gwBuildPoint: "花费建设点",
       dardanellesPassage: "达达尼尔海峡：准许或拒绝通行",
+      denmarkPassage: "丹麦海峡：准许或拒绝通行",
     },
     playBlock: {
       "unknown-card": "未知卡牌。",
