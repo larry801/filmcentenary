@@ -126,7 +126,7 @@ import {
   queuePortNavalDisplacements,
   resolveDeferredNavalWork,
 } from "./combat";
-import {planNavalMove, requestDardanellesPassage} from "./navalMovement";
+import {planNavalMove, requestDardanellesPassage, requestStraitPassages} from "./navalMovement";
 import {botFreeRedeployment, gwBotPowers} from "./botRedeployment";
 import {counterRemaining, hasCounterFor, nonPlayerCounterRemaining, nonPlayerHasCounterFor} from "./counters";
 import {ALLIANCE_MAX_PLAYERS} from "./alliance";
@@ -2186,13 +2186,13 @@ export const performGwManeuver = (
       if (!plan.ok) {
         // 3.4.1: a direct `performGwManeuver` caller gets the same permission
         // prompt as the live wrappers before the budget is spent.
-        if (plan.reason === "dardanellesPermission") {
+        if (plan.reason === "dardanellesPermission" || plan.reason === "denmarkPermission") {
           const route = planNavalMove(G, power, from, request.to, {
             allowEnemyDestination: contact,
             ignoreDardanellesGate: true,
           });
-          if (route.ok && requestDardanellesPassage(G, ctx, power, from, request.to, route.path)) {
-            return fail("invalidTarget", "The Dardanelles controller's permission is required", true);
+          if (route.ok && requestStraitPassages(G, ctx, power, from, request.to, route.path)) {
+            return fail("invalidTarget", "The strait controller's permission is required", true);
           }
         }
         return fail("invalidTarget", navalPathFailure(plan.reason));
@@ -2243,13 +2243,13 @@ export const performGwManeuver = (
       }));
       const blocked = planBySide.find((entry) => !entry.plan.ok);
       if (blocked) {
-        if (blocked.plan.reason === "dardanellesPermission") {
+        if (blocked.plan.reason === "dardanellesPermission" || blocked.plan.reason === "denmarkPermission") {
           const route = planNavalMove(G, blocked.side, from, request.to, {
             allowEnemyDestination: contact,
             ignoreDardanellesGate: true,
           });
-          if (route.ok && requestDardanellesPassage(G, ctx, blocked.side, from, request.to, route.path)) {
-            return fail("invalidTarget", "The Dardanelles controller's permission is required", true);
+          if (route.ok && requestStraitPassages(G, ctx, blocked.side, from, request.to, route.path)) {
+            return fail("invalidTarget", "The strait controller's permission is required", true);
           }
         }
         return fail("invalidTarget", navalPathFailure(blocked.plan.reason));

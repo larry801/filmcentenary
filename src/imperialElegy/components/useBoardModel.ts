@@ -23,6 +23,7 @@ import i18n from "../../constant/i18n";
 import {amphibiousAssaultCheck, canPassNow, hasActedThisImpulse, navalInterceptCheck, navalTransportCheck, responseCardEligibility} from "../moves";
 import {planNavalTransport} from "../engine/navalMovement";
 import {AU_NATIONALITIES, auIncorporateDecision, auRightsDecision, canGrantCitizenship, jihadUse, passRestriction, superiorStaffWorkFreeDeploy, TSRR_RAIL_ARMY_KINDS, tsrrRail} from "../engine/characteristics";
+import {easternAmbitionsDecision as easternAmbitionsDecisionFn} from "../moves";
 import {polishController, polishRecruitDecision} from "../engine/poland";
 import {deployReserveLimit, loneMinorDefender, minorWarAlly, rapidMobilizationFreeDeploy} from "../engine/limitedWar";
 import {italyAllianceBox, italyAllianceSide} from "../engine/italyEntry";
@@ -296,6 +297,7 @@ export const useBoardModel = ({
   const [auIncorporateTarget, setAuIncorporateTarget] = React.useState<string>("");
   const [auSacrifice, setAuSacrifice] = React.useState(false);
   const [tsrrUnitId, setTsrrUnitId] = React.useState<string>("");
+  const [easternAmbitionsTargetId, setEasternAmbitionsTargetId] = React.useState<string>("");
   const [tsrrTo, setTsrrTo] = React.useState<string>("");
   // 22.5(2): the Polish reserve army is optional, so it has its own opt-out.
   // Keep this hook after `tsrrTo`: hook order is observable to the suites that
@@ -688,6 +690,24 @@ export const useBoardModel = ({
     : tsrrDecision !== null && tsrrDecision.allowed !== true
       ? engineReasonText(actualLocale, tsrrDecision.reasons.join(" · "))
       : undefined;
+  // NG-38 Eastern Ambitions' printed special: RU reveals the goal with 3 CP
+  // and takes control of Manchuria or Korea, once.
+  const easternAmbitionsPhase = viewer === "RU" && !eliminated && isActive &&
+    (phase === "action" || phase === "wartime") && pending === null;
+  const easternAmbitionsTargets: SpaceId[] = easternAmbitionsPhase ? ["manchuria", "korea"] : [];
+  const easternAmbitionsValue = easternAmbitionsPhase
+    ? pickActionTarget(easternAmbitionsTargetId, easternAmbitionsTargets, easternAmbitionsTargets)
+    : "";
+  const easternAmbitionsDecision = easternAmbitionsPhase && easternAmbitionsValue !== ""
+    ? easternAmbitionsDecisionFn(G, "RU", easternAmbitionsValue)
+    : null;
+  const easternAmbitionsReason = easternAmbitionsDecision === null
+    ? easternAmbitionsPhase
+      ? bi(actualLocale, "Eastern Ambitions is not in hand or is already revealed.", "手中没有“东方野心”，或已揭示。")
+      : undefined
+    : easternAmbitionsDecision.allowed !== true
+      ? engineReasonText(actualLocale, easternAmbitionsDecision.reasons.join(" · "))
+      : cpBudget() < 3 ? needsCp(3) : undefined;
   const jihadDecision = battle !== null ? jihadUse(G, "OT", battle) : null;
   const jihadReason = jihadDecision !== null && jihadDecision.allowed !== true
     ? engineReasonText(actualLocale, jihadDecision.reasons.join(" · "))
@@ -1925,6 +1945,12 @@ export const useBoardModel = ({
     tsrrDestinations,
     tsrrToValue,
     tsrrDecision,
+    easternAmbitionsPhase,
+    easternAmbitionsTargets,
+    easternAmbitionsValue,
+    setEasternAmbitionsTargetId,
+    easternAmbitionsDecision,
+    easternAmbitionsReason,
     showNationalActions,
     needsCp,
     auReformReason,

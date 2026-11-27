@@ -527,7 +527,11 @@ export const botPendingMove = (
       const totals = battleDrmTotals(G, battle);
       const favour = side === "attacker" ? totals.attacker - totals.defender : totals.defender - totals.attacker;
       const commit = favour >= -2 && favour <= 2;
-      return {move: "resolvePending", args: [commit ? "commit" : "decline"]};
+      if (!commit) return {move: "resolvePending", args: ["decline"]};
+      // One elite unit per side (18.2.1): with several candidates the bot
+      // spends a full-strength one first.
+      const unitOption = pending.options.find((entry) => entry.id.startsWith("unit:"));
+      return {move: "resolvePending", args: [unitOption ? unitOption.id : "commit"]};
     }
 
     case "impulseLoss":
@@ -633,6 +637,7 @@ export const botPendingMove = (
     case "napoleonsLegacy":
     case "metternich":
     case "dardanellesPassage":
+    case "denmarkPassage":
     case "minorAid": {
       // 34.4.4: the PAC tells the bot to aid the attacked minor power.
       const aid = pending.options.find((entry) => entry.id === "aid") ?? pending.options[0];

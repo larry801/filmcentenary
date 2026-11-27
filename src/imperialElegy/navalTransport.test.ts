@@ -276,10 +276,13 @@ describe("12.3 naval transport", () => {
     G.gw = gwState();
     G.powers.UK.gwBudget = 3;
     G.powers.UK.flags.gwActionsThisImpulse = 0;
-    expect(navalTransport(G, makeCtx(seat("UK")), army, fleet, "malta")).toBeUndefined();
+    // 3.2.8: Malta is a naval base, so the army cannot disembark there; the
+    // budget mechanics are asserted on a regular port instead.
+    expect(navalTransportCheck(G, "UK", army, fleet, "malta").reason).toBe("target-not-port");
+    expect(navalTransport(G, makeCtx(seat("UK")), army, fleet, "wales")).toBeUndefined();
     expect(G.powers.UK.gwBudget).toBe(2);
     expect(G.powers.UK.flags.gwActionsThisImpulse).toBe(1);
-    expect(G.units[army].space).toBe("malta");
+    expect(G.units[army].space).toBe("wales");
   });
 });
 

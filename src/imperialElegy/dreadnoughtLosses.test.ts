@@ -259,7 +259,7 @@ describe("30.0 a dreadnought lost in a GW battle", () => {
     expect(G.powers.GE.stability).toBe(3);
   });
 
-  test("a dreadnought outside the Great War costs no stability", () => {
+  test("a dreadnought lost before the Great War costs stability too (7.1.1)", () => {
     const G = navalWar();
     const dread = placeUnit(G, "UK", "dreadnought", "london", 2);
     dread.steps = 1;
@@ -273,6 +273,8 @@ describe("30.0 a dreadnought lost in a GW battle", () => {
     resolveBattleRoll(G, makeCtx([1, 6]));
 
     expect(G.units[dread.id]).toBeUndefined();
-    expect(G.powers.UK.stability).toBe(before);
+    // 7.1.1 charts "Losing a dreadnought: -1" among the pre-GW stability
+    // changes; 30.0 repeats it once the GW is running.
+    expect(G.powers.UK.stability).toBe(before - 1);
   });
 });

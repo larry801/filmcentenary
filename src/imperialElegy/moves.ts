@@ -60,6 +60,7 @@ import {
   planNavalTransport,
   specialRedeployPath,
   requestDardanellesPassage,
+  requestStraitPassages,
   type NavalTransportReason,
 } from "./engine/navalMovement";
 import {
@@ -77,6 +78,7 @@ import {
   changeStability,
   resolveAuUnstableChoice,
   clearTurnDurationFlags,
+  armyBarredFromNavalBase,
   changeWtt,
   commandsAlliedMinor,
   computePowerProjection,
@@ -201,6 +203,7 @@ import {
   queuePortNavalDisplacements,
   resolveDeferredNavalWork,
   refreshBattleDrmSnapshot,
+  eliminateCaughtLandUnits,
 } from "./engine/combat";
 import {recordBattleDrm} from "./engine/battleDrm";
 import {isCombatCardId} from "./engine/combatCards";
@@ -1870,7 +1873,7 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
         allowEnemyDestination: true,
         ignoreDardanellesGate: true,
       });
-      if (route.ok && requestDardanellesPassage(G, ctx, preview, from, to, route.path)) {
+      if (route.ok && requestStraitPassages(G, ctx, preview, from, to, route.path)) {
         return undefined;
       }
     }
@@ -1997,6 +2000,10 @@ export const navalMove = (G: ImperialElegyState, ctx: Ctx, unitIds: string[], to
     u.space = to;
   }
   log(G, power, "navalMove", {from, to, count: units.length, path: plan.path.join(","), nmp: plan.cost});
+  // 19.6.1(2): ships arriving in a box whose only enemy presence is
+  // unescorted land units eliminate them; a box with enemy ships fights
+  // instead, and the land units are covered until that battle is lost.
+  eliminateCaughtLandUnits(G, to, power);
   // 19.1 interception first, then 19.2 avoidance.  A *destination* box whose
   // adjacent enemy ports can intercept opens the same window even when no
   // enemy ships are in the box; a port destination keeps the 19.2 chain.
@@ -2878,6 +2885,42 @@ export const tsrrMinorRailDecision = (
  * in `engine/characteristics.ts#tsrrRail`; a controlled allied minor's army is
  * carried through `tsrrMinorRailDecision` above (15.4).
  */
+/**
+ * NG-38 Eastern Ambitions, Special: "Russia may spend 3 CP to reveal this card
+ * and take control of Manchuria or Korea (once)."  The reveal and the control
+ * marker land together; the goal stays private to RU's hand until then.
+ */
+export const EASTERN_AMBITIONS_GOAL = "NG-38";
+export const EASTERN_AMBITIONS_TARGETS: readonly SpaceId[] = ["manchuria", "korea"];
+
+export const easternAmbitionsDecision = (G: ImperialElegyState, power: Power, space: string): {allowed: boolean; reasons: string[]} => {
+  const reasons: string[] = [];
+  if (power !== "RU") reasons.push("the special belongs to Russia");
+  if (!G.powers.RU?.goals.includes(EASTERN_AMBITIONS_GOAL)) reasons.push("Eastern Ambitions is not in hand");
+  if ((G.revealedGoals ?? []).includes(EASTERN_AMBITIONS_GOAL)) reasons.push("Eastern Ambitions is already revealed");
+  if (!EASTERN_AMBITIONS_TARGETS.includes(space as SpaceId)) reasons.push("the special takes Manchuria or Korea");
+  return {allowed: reasons.length === 0, reasons};
+};
+
+export const revealEasternAmbitions = (G: ImperialElegyState, ctx: Ctx, space: string): string | void => {
+  const playerID = ctx.playerID ?? null;
+  const power = requireActive(G, ctx, playerID);
+  if (power === INVALID_MOVE) return INVALID_MOVE;
+  const check = easternAmbitionsDecision(G, power, space);
+  if (!check.allowed) {
+    log(G, power, "easternAmbitionsRejected", {space, reasons: check.reasons.join(" | ")});
+    return INVALID_MOVE;
+  }
+  const paid = requireCp(G, ctx, playerID, 3);
+  if (paid === INVALID_MOVE) return INVALID_MOVE;
+  const spender = paid;
+  markGoalRevealed(G, EASTERN_AMBITIONS_GOAL);
+  setSpaceControl(G, space as SpaceId, spender);
+  recomputeTracks(G);
+  log(G, spender, "easternAmbitionsRevealed", {space});
+  return undefined;
+};
+
 export const tsrrRailMove = (G: ImperialElegyState, ctx: Ctx, unitId: string, to: SpaceId): string | void => {
   const playerID = ctx.playerID ?? null;
   const power = requireActive(G, ctx, playerID);
@@ -3279,6 +3322,9 @@ const moveOneLandUnit = (
   // 15.2.3: a reserve army deployed this impulse cannot move.
   if (unit.flags?.deployedThisImpulse === true) return INVALID_MOVE;
   if (!friendlySpace(G, to, power) && !(G.spaces[to].influence === power && G.spaces[to].control === null)) return INVALID_MOVE;
+  // 3.2.8: armies and elite corps can never enter naval bases; the EF flavours
+  // may.
+  if (armyBarredFromNavalBase(to, unit.kind)) return INVALID_MOVE;
   // 5.5.3: units may pass through an overstacked space but cannot end their
   // movement there.  Only the destination is validated.
   if (movementEndProblem(G, to, [unit]) !== null) return INVALID_MOVE;
@@ -3398,6 +3444,9 @@ export type AmphibiousBlockReason =
   | "origin-not-adjacent"
   | "army"
   | "army-location"
+  | "naval-base"
+  /** 3.4.1(4): the Eastern Med landing must take the Dardanelles first. */
+  | "dardanelles-first"
   | "escort"
   | "landing-room"
   /** GW tutorial: the UK may not assault a GE home port holding GE naval units. */
@@ -3445,6 +3494,9 @@ export const amphibiousAssaultCheck = (
   }
   const toDef = SPACES[to];
   if (!toDef || isNavalBox(to) || portBoxes(to).length === 0) return {ok: false, reason: "target-port"};
+  // 3.2.8: "Armies can never enter naval bases."  An assault lands armies, so
+  // a naval-base target is refused outright.
+  if (armyBarredFromNavalBase(to, "army")) return {ok: false, reason: "naval-base"};
   const target = G.spaces[to];
   if (!target) return {ok: false, reason: "target-port"};
   if ((isPower(target.control) || target.occupiedBy) && friendlySpace(G, to, power)) {
@@ -3467,8 +3519,20 @@ export const amphibiousAssaultCheck = (
     box = portBoxes(from).find((candidate) => portBoxes(to).includes(candidate)) ?? null;
     if (box === null) return {ok: false, reason: "origin-not-adjacent"};
   }
-  if (armies.some((unit) => unit.space !== box && unit.space !== from)) {
+  // 19.10: "both armies must begin the impulse in the same naval box adjacent
+  // to the port space."  A friendly port is the loading affordance, not an
+  // origin the print allows: armies standing in a port did not begin the
+  // impulse in the box, and one in the box plus one in the port began in
+  // different spaces.
+  if (armies.some((unit) => unit.space !== box)) {
     return {ok: false, reason: "army-location", box};
+  }
+  // 3.4.1(4): "An army attempting an amphibious landing via the Eastern
+  // Mediterranean must first land in the Dardanelles before moving to
+  // Istanbul."  The assault on Istanbul from that box is refused; the
+  // Dardanelles landing is the legal first step.
+  if (to === "istanbul" && box === "eastern-mediterranean") {
+    return {ok: false, reason: "dardanelles-first", box};
   }
   // GW tutorial p. 7: "The UK cannot amphibiously assault GE home spaces
   // containing a GE naval unit(s)."  A scenario prints this restriction, so it
@@ -3539,14 +3603,11 @@ export const amphibiousAssault = (
   if (armies.some((unit) => unit.space === from)) {
     for (const unit of armies) moveUnitToSpace(G, unit, box);
   }
-  if ((check.enemyNaval ?? 0) > 0) {
-    // 19.5 footnote: the naval battle at the port is treated as taking place
-    // in the box the assault came from.
-    const naval = beginNavalBattle(G, ctx, power, box, to, {portBox: box});
-    if (!naval) return INVALID_MOVE;
-    log(G, power, "amphibiousNavalBattle", {from: box, to, armies: armies.map((unit) => unit.id)});
-    return undefined;
-  }
+  // 19.10/19.11: the assault lands first.  A port whose only defence is its
+  // fleet is occupied by the entering armies, which displace the fleet; the
+  // displaced ships become the attackers of the follow-up naval battle (19.11,
+  // no 19.2 avoidance).  A port with land units or a fort fights the land
+  // battle first and the fleet is displaced once the land units enter.
   const defenders = landUnitsIn(G, to).filter((unit) => hostileOwner(G, power, unit.owner));
   if (defenders.length === 0 && !target.fort) {
     // 19.10: an undefended port is simply occupied.
@@ -3560,10 +3621,17 @@ export const amphibiousAssault = (
     // 15.6: an undefended landing can be the capture of an ally's capital.
     recordWarKnockoutCapture(G, to, power);
     log(G, power, "amphibiousLanding", {from: box, to, units: landing.map((unit) => unit.id)});
+    // 19.11: the port's fleet is displaced at once; the interception window
+    // and the displaced-fleet battle open from the queue.
+    queuePortNavalDisplacements(G, power, to);
+    resolveDeferredNavalWork(G, ctx);
     return undefined;
   }
   const battle = beginLandBattle(G, ctx, power, box, to, true);
   if (!battle) return INVALID_MOVE;
+  // 19.11: the land units will displace the port fleet when they enter; queue
+  // the displacement now so it follows the land battle's outcome.
+  queuePortNavalDisplacements(G, power, to);
   log(G, power, "amphibiousAssault", {from: box, to, units: armies.map((unit) => unit.id)});
   return undefined;
 };
@@ -7082,6 +7150,37 @@ const resolveNapoleonsLegacy = (
 };
 
 /**
+ * 3.4.2: Denmark's controller allows or denies the strait crossing.  A grant
+ * is valid for the rest of the turn for that requester; a denial leaves the
+ * straits closed to it.
+ */
+const resolveDenmarkPassage = (
+  G: ImperialElegyState,
+  ctx: Ctx,
+  pending: PendingDecision,
+  granted: boolean,
+): string | void => {
+  const context = pending.context ?? {};
+  const requesting = isPower(context.requesting) ? context.requesting : null;
+  if (requesting === null) return INVALID_MOVE;
+  G.pending = null;
+  if (granted) {
+    const record = {
+      requesting,
+      granting: pending.power,
+      turn: G.turn,
+      ...(G.gw?.active ? {gwTurn: G.gw.turn} : {}),
+    };
+    const others = (Array.isArray(G.denmarkPassages) ? G.denmarkPassages : []).filter(
+      (entry) => !(entry.requesting === requesting && entry.turn === G.turn),
+    );
+    G.denmarkPassages = [...others, record];
+  }
+  log(G, pending.power, "denmarkPassage", {requesting, granted});
+  return undefined;
+};
+
+/**
  * 3.4.1: the Dardanelles controller grants or refuses one passage.  A grant is
  * typed on `G.dardanellesPassage` and valid for the rest of the turn for that
  * requester; a refusal leaves the strait closed.  Either way the mover's naval
@@ -7388,6 +7487,10 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     if (optionId !== "grant" && optionId !== "refuse") return INVALID_MOVE;
     return resolveDardanellesPassage(G, ctx, pending, optionId === "grant");
   }
+  if (pending.kind === "denmarkPassage") {
+    if (optionId !== "grant" && optionId !== "refuse") return INVALID_MOVE;
+    return resolveDenmarkPassage(G, ctx, pending, optionId === "grant");
+  }
   if (pending.kind === "combatSupport") {
     G.pending = null;
     chooseSupport(G, ctx, optionId);
@@ -7398,7 +7501,8 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     return undefined;
   }
   if (pending.kind === "combatElite") {
-    if (optionId !== "commit" && optionId !== "decline") return INVALID_MOVE;
+    const commit = optionId === "commit" || optionId.startsWith("unit:");
+    if (!commit && optionId !== "decline") return INVALID_MOVE;
     const side = (pending.context?.eliteSide as "attacker" | "defender" | undefined)
       ?? (pending.context?.side as "attacker" | "defender" | undefined)
       ?? "attacker";
@@ -7406,7 +7510,7 @@ const resolvePendingDecision = (G: ImperialElegyState, ctx: Ctx, optionId: strin
     // already gone, `resolveEliteBonus` returns early and a stale pending would
     // otherwise block every later decision.
     G.pending = null;
-    resolveEliteBonus(G, ctx, side, optionId === "commit");
+    resolveEliteBonus(G, ctx, side, commit, optionId.startsWith("unit:") ? optionId.slice("unit:".length) : undefined);
     return undefined;
   }
   if (pending.kind === "hydraulicRecoil") {
@@ -7594,6 +7698,10 @@ const declinePendingDecision = (G: ImperialElegyState, ctx: Ctx): string | void 
   // 3.4.1: declining a passage request is a refusal.
   if (pending.kind === "dardanellesPassage") {
     return resolveDardanellesPassage(G, ctx, pending, false);
+  }
+  // 3.4.2: declining the Danish straits denies the crossing.
+  if (pending.kind === "denmarkPassage") {
+    return resolveDenmarkPassage(G, ctx, pending, false);
   }
   // 8.6: declining an action-phase alliance tie takes the deterministic
   // direction (the same fallback the non-interactive resolver uses).

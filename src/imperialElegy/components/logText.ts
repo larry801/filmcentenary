@@ -3010,6 +3010,8 @@ const FORMATTERS: Record<string, Formatter> = {
       "enemy-units": ["the destination holds enemy land units or a fort", "目的地有敌方陆军或要塞"],
       "enemy-fort": ["the destination holds an enemy fort", "目的地有敌方要塞"],
       "neutral": ["a march may not enter neutral territory", "行军不能进入中立领土"],
+      "rebel-stop": ["the march must stop in the rebel-held space", "行军必须在叛军控制的空间停下"],
+      "naval-base": ["armies cannot enter naval bases", "陆军不能进入海军基地"],
       "no-rail-path": ["there is no friendly rail path", "没有友方铁路路径"],
       "rail-allowance": ["this power has already railed its allowance", "该势力本行动轮铁路额度已用完"],
     };
@@ -3870,6 +3872,39 @@ const FORMATTERS: Record<string, Formatter> = {
       return withActor(entry, locale, `granted ${requesting} permission to pass the Dardanelles (${from} → ${to}).`, `允许${requesting}通过达达尼尔海峡（${from} → ${to}）。`);
     }
     return withActor(entry, locale, `refused ${requesting} permission to pass the Dardanelles (${from} → ${to}).`, `拒绝${requesting}通过达达尼尔海峡（${from} → ${to}）。`);
+  },
+
+  easternAmbitionsRejected: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `could not use Eastern Ambitions on ${space}.`, `无法对${space}使用“东方野心”。`);
+  },
+
+  easternAmbitionsRevealed: (entry, locale) => {
+    const space = spaceName(entry.args?.space, locale);
+    return withActor(entry, locale, `revealed Eastern Ambitions and took control of ${space} (3 CP).`, `揭示“东方野心”并取得${space}的控制（3 CP）。`);
+  },
+
+  landUnitsCaughtInBox: (_entry, locale) => {
+    return text(
+      locale,
+      "Land units caught alone in a naval box were eliminated (19.6.1).",
+      "在海军 box 中无舰队伴随的陆军被歼灭（19.6.1）。",
+    );
+  },
+
+  denmarkPassageRequested: (entry, locale) => {
+    const controller = powerLabel(entry.args?.controller, locale);
+    const from = spaceName(entry.args?.from, locale);
+    const to = spaceName(entry.args?.to, locale);
+    return withActor(entry, locale, `asked ${controller} to open the Danish straits (${from} → ${to}).`, `请求${controller}开放丹麦海峡（${from} → ${to}）。`);
+  },
+
+  denmarkPassage: (entry, locale) => {
+    const requesting = powerLabel(entry.args?.requesting, locale);
+    if (bool(entry.args?.granted)) {
+      return withActor(entry, locale, `opened the Danish straits to ${requesting}.`, `向${requesting}开放丹麦海峡。`);
+    }
+    return withActor(entry, locale, `closed the Danish straits to ${requesting}.`, `对${requesting}关闭丹麦海峡。`);
   },
 
   // 32.5: player units immediately displace out of a rebel space when the GW

@@ -26,6 +26,7 @@ import {
   WarState,
 } from "../types";
 import {SPACES, connectionsOf, isNavalBox, neighboursOf} from "../constant/spaces";
+import {POWER_DEFS} from "../constant/powers";
 import {MINOR_POWER_HOMES} from "../constant/setup";
 import {cardById, isCardId} from "./deck";
 import {
@@ -46,6 +47,7 @@ import {
   minorAlliesOf,
   minorController,
   setSpaceControl,
+  subcapitalOf,
   warDeclarationGrantsWinStability,
 } from "./rules";
 import {AU_NATIONALITIES, governmentBenefits} from "./characteristics";
@@ -441,6 +443,19 @@ export const validateWarAim = (
         add("conquest-capital", `${space} is a capital and cannot be a conquest objective`, space);
       } else if (def.type === "subcapital") {
         add("conquest-subcapital", `${space} is a subcapital and cannot be a conquest objective`, space);
+      }
+      // 13.3.1 names the rank, not the space type: a power's declared
+      // subcapital (AU's Hungary, RU's Moscow, OT's Ankara) is barred even
+      // where the map types the space as a plain key.
+      const subcapitalOwner = (Object.keys(POWER_DEFS) as Power[]).find(
+        (p) => subcapitalOf(p) === space,
+      );
+      if (subcapitalOwner !== undefined) {
+        add(
+          "conquest-subcapital",
+          `${space} is ${subcapitalOwner}'s subcapital and cannot be a conquest objective`,
+          space,
+        );
       }
       if (effectiveKeyType(G, space) !== undefined) keys += 1;
     }

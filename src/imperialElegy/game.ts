@@ -62,6 +62,7 @@ import {
   jointNaval,
   playGwCardMove,
   industrialize,
+  revealEasternAmbitions,
   landBattle,
   minorAlliance,
   navalIntercept,
@@ -207,6 +208,7 @@ const ALL_MOVES = {
   gwResolveWinter,
   gwEndTurn,
   endTurn,
+  revealEasternAmbitions,
 };
 // 11.0/11.1: the negotiation moves read the acting seat's hand and the two
 // sides' offers, and the settlement draws from `ctx.random`.  `redact` keeps the

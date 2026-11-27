@@ -24,7 +24,7 @@
 import type {ImperialElegyState, Power, SpaceId, Unit} from "../types";
 import {ITALY_WARTIME_INDUSTRY} from "./italyMilitary";
 import {SPACES, connectionBetween, isNavalBox, neighboursOf} from "../constant/spaces";
-import {allied, atWar, commandsAlliedMinor, friendlySpace, hostileOwner, isArmyKind, isPower, landUnitsIn, minorController} from "./rules";
+import {allied, armyBarredFromNavalBase, atWar, commandsAlliedMinor, friendlySpace, hostileOwner, isArmyKind, isPower, landUnitsIn, minorController} from "./rules";
 
 /** Which of the two printed wartime land actions a move is. */
 export type WartimeMoveKind = "march" | "rail";
@@ -44,6 +44,7 @@ export interface WartimeMovePlan {
     | "enemy-fort"
     | "neutral"
     | "rebel-stop"
+    | "naval-base"
     | "no-rail-path"
     | "rail-allowance";
   /** The spaces the unit passes through, origin first. */
@@ -172,9 +173,13 @@ export const planMarch = (
   if (from === null || !G.spaces[from]) return fail("no-origin");
   if (from === to) return fail("same-space");
   if (isNavalBox(to) || !SPACES[to]) return fail("no-connection");
+  // 3.2.8: armies and elite corps can never enter naval bases; EF flavours
+  // may.  A pass-through middle hop is an entry too.
+  const baseBarred = (space: SpaceId): boolean => armyBarredFromNavalBase(space, unit.kind);
 
   // One-hop march.
   if (neighboursOf(from).includes(to) && connectionBetween(from, to)?.type !== "sea") {
+    if (baseBarred(to)) return fail("naval-base", [from, to]);
     const problem = marchEnterProblem(G, power, to, true);
     if (problem !== null) return fail(problem, [from, to]);
     return {ok: true, kind: "march", path: [from, to]};
@@ -190,6 +195,7 @@ export const planMarch = (
     if (!first || first.type === "sea" || first.type === "difficult" || first.type === "severe") continue;
     if (isDifficult(from, middle)) continue;
     if (!neighboursOf(middle).includes(to)) continue;
+    if (baseBarred(middle) || baseBarred(to)) continue;
     const second = connectionBetween(middle, to);
     if (!second || second.type === "sea" || isDifficult(middle, to)) continue;
     if (marchEnterProblem(G, power, to, true) !== null) continue;

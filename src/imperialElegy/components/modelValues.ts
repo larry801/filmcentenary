@@ -184,6 +184,12 @@ export interface ModelValues {
   tsrrDestinations: SpaceId[];
   tsrrToValue: string;
   tsrrDecision: Decision;
+  easternAmbitionsPhase: boolean;
+  easternAmbitionsTargets: SpaceId[];
+  easternAmbitionsValue: string;
+  setEasternAmbitionsTargetId: (s: string) => void;
+  easternAmbitionsDecision: {allowed: boolean; reasons: string[]} | null;
+  easternAmbitionsReason: string | undefined;
   showNationalActions: boolean;
   needsCp: (cost: number) => string;
   auReformReason: string | undefined;

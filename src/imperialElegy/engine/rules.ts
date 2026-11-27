@@ -1475,6 +1475,21 @@ export const armyEndProblem = (
 };
 
 /**
+ * 3.2.8: "These spaces are all ports and can only be entered by naval units
+ * and expeditionary forces (EFs).  Armies can never enter naval bases."
+ * Armies and elite corps are barred; every EF flavour (expeditionary, elite
+ * colonial EF, Zouaves) may enter, matching the displacement guard the end
+ * phase already applies.
+ */
+export const armyBarredFromNavalBase = (space: SpaceId, kind: Unit["kind"]): boolean => {
+  const def = SPACES[space];
+  if (!def) return false;
+  const isBase = def.type === "navalBase" || def.navalBase === true;
+  if (!isBase) return false;
+  return isArmyKind(kind) || kind === "eliteCorps";
+};
+
+/**
  * 5.5.3 / 5.5.4: "stacking can be violated during movement, but units cannot
  * end their movement overstacked."  Only the destination is validated; passing
  * through an overstacked space stays legal.  A naval battle in a port is the
@@ -2510,6 +2525,14 @@ export const flashpointController = (G: ImperialElegyState, flashpoint: string):
   if (flashpoint === "suez" && G.persistent.suezCanal) {
     const controller = G.spaces.egypt?.control;
     if (isPower(controller)) return [controller];
+    // 3.4.3: "If Egypt is controlled by a minor power, the player allied with
+    // that minor power dominates the Suez Canal flashpoint."  Egypt-held-Egypt
+    // (the normal campaign state after the Urabi auction) falls through the
+    // player branch, so the ally's marker decides.
+    if (typeof controller === "string" && !controller.startsWith("REBEL:")) {
+      const ally = minorController(G, controller);
+      if (ally !== null) return [ally];
+    }
   }
   const threshold = FLASHPOINTS[flashpoint]?.keys ?? 1;
   const max = Math.max(0, ...counts.values());
@@ -2985,7 +3008,30 @@ export const setSpaceControl = (
   }
   if (options.clearInfluence === true) state.influence = null;
   if (options.clearDiplomacy === true) state.diplomacy = null;
+  applyControlCascade(G, space, control);
   return changed;
+};
+
+/**
+ * 3.4.4: "The power that controls Egypt also gains control of the other two
+ * Egyptian spaces: Sinai and the Great Sand Sea.  Similarly, the power that
+ * controls Tripoli always controls Benghazi."  The trio moves with every
+ * ordinary control write — cessions, events, setup overrides — not just the
+ * auction paths that used to hand-place it.  A rebel owner or a cleared
+ * control propagates too, so the trio never disagrees; a rebel never "gains
+ * control" as a power would, but the spaces must not stay in the old owner's
+ * hands either.
+ */
+const applyControlCascade = (G: ImperialElegyState, space: SpaceId, control: PowerOrMinor | null): void => {
+  const partners: readonly SpaceId[] =
+    space === "tripoli" ? ["benghazi"]
+    : EGYPTIAN_SPACES.has(space) ? [...EGYPTIAN_SPACES].filter((id) => id !== space)
+    : [];
+  for (const partner of partners) {
+    const target = G.spaces[partner];
+    if (!target) continue;
+    target.control = control;
+  }
 };
 
 /**
@@ -3047,7 +3093,19 @@ export const canTraceNaval = (G: ImperialElegyState, power: Power, from: SpaceId
 };
 
 export const crossesSuez = (a: SpaceId, b: SpaceId): boolean =>
-  (a === "eastern-mediterranean" && b === "indian-ocean") || (a === "indian-ocean" && b === "eastern-mediterranean");
+  (a === "eastern-mediterranean" && b === "indian-ocean") ||
+  (a === "indian-ocean" && b === "eastern-mediterranean") ||
+  // 3.2.9 note / 3.4.3(3): the canal connects the Eastern Mediterranean to the
+  // Indian Ocean, and Egypt is a port in BOTH boxes only while the canal is
+  // built.  A fleet that docks in an Egyptian port and leaves it for the Indian
+  // Ocean performs the canal hop the same way, so the Egyptian port spaces'
+  // Indian-Ocean port edges are Suez crossings too — otherwise a closed canal
+  // is void whenever Egypt is friendly, pre- and post-canal alike.
+  (isEgyptianSuezPort(a) && b === "indian-ocean") ||
+  (a === "indian-ocean" && isEgyptianSuezPort(b));
+
+/** 3.4.3: the Egyptian spaces whose ports face the Indian Ocean. */
+const isEgyptianSuezPort = (space: SpaceId): boolean => space === "egypt" || space === "sinai";
 
 /**
  * 29.1 / 29.2: whether a sea hop between two naval boxes is open for this
@@ -3064,6 +3122,7 @@ export const navalHopPassable = (
   if (!isNavalBox(a) || !isNavalBox(b)) return true;
   if (crossesClosedSuez(G, power, a, b)) return false;
   if (isDardanellesCrossing(a, b) && !hasDardanellesPermission(G, power)) return false;
+  if (isDenmarkCrossing(a, b) && denmarkAtWar(G) && !hasDenmarkPassage(G, power)) return false;
   return true;
 };
 
@@ -3093,6 +3152,55 @@ export const dardanellesController = (G: ImperialElegyState): Power | null => {
 export const isDardanellesCrossing = (a: SpaceId, b: SpaceId): boolean =>
   (a === "black-sea" && b === "eastern-mediterranean") ||
   (a === "eastern-mediterranean" && b === "black-sea");
+
+/** 3.4.2: the two boxes the Danish straits connect. */
+export const isDenmarkCrossing = (a: SpaceId, b: SpaceId): boolean =>
+  (a === "north-atlantic" && b === "baltic-sea") || (a === "baltic-sea" && b === "north-atlantic");
+
+/**
+ * 3.4.2: "While Denmark is at war, the player who controls Denmark can prevent
+ * units from moving between the North Atlantic Box and the Baltic Sea Box."
+ * Denmark is at war when it fights as a minor belligerent in the running
+ * limited war (either side's minors list or the war's minor target) or was
+ * drawn into the Great War; a controller's own war without Denmark is not
+ * Denmark's war.
+ */
+export const denmarkAtWar = (G: ImperialElegyState): boolean => {
+  const war = G.war;
+  if (war !== null) {
+    if (war.attackerMinors.includes("Denmark") || war.defenderMinors.includes("Denmark")) return true;
+    if (war.minorTarget?.minor === "Denmark") return true;
+  }
+  if (G.gw?.active) {
+    const stamps = String(G.flags.gwMinorBelligerents ?? "");
+    return stamps.split(",").includes("denmark");
+  }
+  return false;
+};
+
+/** 3.4.2: the player who controls Denmark — the occupier, else its ally. */
+export const denmarkClosureController = (G: ImperialElegyState): Power | null => {
+  const control = G.spaces.denmark?.control;
+  if (isPower(control)) return control;
+  const controller = minorController(G, "Denmark");
+  return controller;
+};
+
+/**
+ * 3.4.2: whether this power may use the strait without asking.  The
+ * controller passes freely; everyone else needs a live grant recorded for this
+ * turn — the same shape as the Dardanelles permission.
+ */
+export const hasDenmarkPassage = (G: ImperialElegyState, power: Power): boolean => {
+  const controller = denmarkClosureController(G);
+  if (controller === null || controller === power) return true;
+  const grants = Array.isArray(G.denmarkPassages) ? G.denmarkPassages : [];
+  return grants.some((granted) => {
+    if (granted.requesting !== power || granted.granting !== controller) return false;
+    if (granted.turn !== G.turn) return false;
+    return G.gw?.active ? granted.gwTurn === G.gw.turn : granted.gwTurn === undefined;
+  });
+};
 
 /**
  * 3.4.1: whether this power may pass without asking the controller.  Only the

@@ -263,7 +263,9 @@ export const OrdersRegion = (props: OrdersSlice & {
     auReformReason, auCitizenValue, setAuCitizenTarget, auCitizenDecision, auCitizenRoll, auCitizenReason, auSacrifice,
     setAuSacrifice, auIncorporateCandidates, auIncorporateValue, setAuIncorporateTarget, auIncorporate,
     auIncorporateReason, tsrrArmies, tsrrUnitValue, setTsrrUnitId, tsrrDestinations, tsrrToValue,
-    setTsrrTo, tsrrDecision, tsrrReason, amphibiousVisible, amphibiousOrigins, amphibiousFromValue,
+    setTsrrTo, tsrrDecision, tsrrReason, easternAmbitionsPhase, easternAmbitionsTargets,
+    easternAmbitionsValue, setEasternAmbitionsTargetId, easternAmbitionsDecision, easternAmbitionsReason,
+    amphibiousVisible, amphibiousOrigins, amphibiousFromValue,
     setAmphibiousFrom, amphibiousTargets, amphibiousToValue, setAmphibiousTo, amphibiousArmies,
     amphibiousArmyValue, toggleAmphibiousArmy, amphibiousCanGo, amphibiousReason, amphibiousCheck,
     transportVisible, transportOrigins, transportFromValue, setTransportFrom, transportLands,
@@ -429,6 +431,12 @@ export const OrdersRegion = (props: OrdersSlice & {
               setTsrrTo={setTsrrTo}
               tsrrDecision={tsrrDecision as never}
               tsrrReason={tsrrReason}
+              easternAmbitionsPhase={easternAmbitionsPhase}
+              easternAmbitionsTargets={easternAmbitionsTargets}
+              easternAmbitionsValue={easternAmbitionsValue}
+              setEasternAmbitionsTargetId={setEasternAmbitionsTargetId}
+              easternAmbitionsDecision={easternAmbitionsDecision}
+              easternAmbitionsReason={easternAmbitionsReason}
               doAction={doAction}
               moves={moves}
             />
