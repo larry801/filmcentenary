@@ -8250,6 +8250,11 @@ const endPhaseProgressWarsOfIndependence = (G: ImperialElegyState, ctx: Ctx): vo
     const rebellion = G.spaces[space]?.rebellion;
     if (rebellion) rebellion.step = 1;
   }
+  if (plan.independence.length > 0) {
+    // 20.8's independence writes hand spaces to minors after 20.5's recompute;
+    // the tracks must read the post-step board before 20.12 advances the turn.
+    recomputeTracks(G);
+  }
 };
 
 /**
@@ -8408,6 +8413,10 @@ const resolveQingInterventionDeadline = (
     const owner = isPower(G.spaces[space].control) ? G.spaces[space].control as Power : null;
     if (owner === null) continue;
     G.spaces[space].control = null;
+    // The freed space loses its controlling player's keys after 20.5's
+    // recompute; the tracks must read the post-removal board before the
+    // penalty decision or 20.12's turn advance.
+    recomputeTracks(G);
     log(G, owner, "qingInterventionExpired", {space});
     if (!interactive || G.pending !== null) {
       changeStability(G, owner, -1, ctx);

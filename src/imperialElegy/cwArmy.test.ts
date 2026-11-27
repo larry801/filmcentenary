@@ -175,17 +175,20 @@ describe("during the Great War", () => {
     openColonialTrack(G);
     const ctx = makeCtx([], seat("UK"));
 
+    // 27.5.2: the draft gains reduced armies — 1 CP per step.
     expect(recruit(G, ctx, "canada", "army", 1, {cw: true})).toBeUndefined();
     const canada = landUnitsIn(G, "canada").find((unit) => unit.owner === "UK" && unit.kind === "army")!;
     expect(canada.flags?.cw).toBe(true);
     expect(canada.flags?.indian).toBeUndefined();
-    expect(canada.steps).toBe(2);
+    expect(canada.steps).toBe(1);
     expect(G.powers.UK.gwBudget).toBe(11);
     expect(lastLog(G, "recruited")?.args).toMatchObject({cw: true, indian: false, space: "canada"});
     expect(recruitmentLimits(G, "UK").british).toMatchObject({currentCwArmies: 1, cwArmyLimit: 2});
 
     // The shared colonial pool is now full: the setup Indian army + 1 CW army.
-    expect(recruit(G, ctx, "canada", "army", 1, {cw: true})).toBe(INVALID_MOVE);
+    // A step onto the reduced Canadian counter would still be legal (it adds
+    // no army), so the cap is pinned on a fresh counter in the other space.
+    expect(recruit(G, ctx, "australia-new-zealand", "army", 1, {cw: true})).toBe(INVALID_MOVE);
     expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/Colonial manpower limit 2/);
 
     // Freeing the Indian army opens the second printed space.
@@ -243,12 +246,14 @@ describe("during the Great War", () => {
     const ctx = makeCtx([], seat("UK"));
     // Canada is outside Europe: at most two armies per space.  The pool is
     // pinned per build because the move recomputes it from the colonial keys.
+    // Full-strength builds (2 CP, 12.2) keep adding counters, so the third is
+    // the one the stacking cap refuses.
     simulateColonialManpower(G, 6);
-    expect(recruit(G, ctx, "canada", "army", 1, {cw: true})).toBeUndefined();
+    expect(recruit(G, ctx, "canada", "army", 2, {cw: true})).toBeUndefined();
     simulateColonialManpower(G, 6);
-    expect(recruit(G, ctx, "canada", "army", 1, {cw: true})).toBeUndefined();
+    expect(recruit(G, ctx, "canada", "army", 2, {cw: true})).toBeUndefined();
     simulateColonialManpower(G, 6);
-    expect(recruit(G, ctx, "canada", "army", 1, {cw: true})).toBe(INVALID_MOVE);
+    expect(recruit(G, ctx, "canada", "army", 2, {cw: true})).toBe(INVALID_MOVE);
     expect(lastLog(G, "recruitRejected")?.args?.reasons).toMatch(/Stacking limit reached/);
     expect(cwArmies(G)).toHaveLength(2);
   });
@@ -264,13 +269,13 @@ describe("during the Great War", () => {
     british.steps = 1;
 
     // The CW build is a distinct counter: the British army is not relabelled
-    // and the colonial track pays for the new CW army.
+    // and the colonial track pays for the new CW army (a reduced one — 27.5.2).
     expect(recruit(G, ctx, "canada", "army", 1, {cw: true})).toBeUndefined();
     expect(british.steps).toBe(1);
     expect(british.flags?.cw).toBeUndefined();
     const cw = cwArmies(G);
     expect(cw).toHaveLength(1);
-    expect(cw[0].steps).toBe(2);
+    expect(cw[0].steps).toBe(1);
     expect(colonialCount(G)).toBe(2);
   });
 
@@ -282,7 +287,7 @@ describe("during the Great War", () => {
     const built = cwArmies(G);
     expect(built).toHaveLength(1);
     expect(built[0].kind).toBe("army");
-    expect(built[0].steps).toBe(2);
+    expect(built[0].steps).toBe(1);
     expect(built[0].space).toBe("australia-new-zealand");
     const limits = recruitmentLimits(G, "UK");
     expect(limits.british).toMatchObject({cwArmyAvailable: true, currentCwArmies: 1, cwArmyLimit: 2});

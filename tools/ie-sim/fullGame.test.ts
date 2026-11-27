@@ -56,11 +56,10 @@ test("the fixed-seed hotseat game reaches the Great War turn limit without a ref
   // played, and the winter after GW turn 5 ends the match (the GW winters
   // advance `gw.turn`, so the campaign turn stays at the outbreak turn — the
   // same shape the pre-audit seed showed).  The season is read from this seed:
-  // the 2026-11-26 audit round fills the tension tracks faster (the Berlin
-  // Conference now cycles until every uncontrolled African space carries a
-  // marker, among the other printed corrections), so the outbreak moved from
-  // turn 6 to turn 3.  The milestones below are the contract, not the season.
-  expect(game.turn).toBe(3);
+  // the round-4 engine recalibration (key classification, map retypes, and the
+  // printed corrections' tension-track pacing) settles the outbreak back on
+  // turn 6.  The milestones below are the contract, not the season.
+  expect(game.turn).toBe(6);
   expect(game.finalState.gw?.budgetTurn).toBe(5);
   expect(game.finalState.gw?.turn).toBe(6);
 });

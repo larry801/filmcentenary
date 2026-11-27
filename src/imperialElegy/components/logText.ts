@@ -1535,8 +1535,6 @@ const FORMATTERS: Record<string, Formatter> = {
   imperialGermanyManpower: (entry, locale) =>
     withActor(entry, locale, "gained Imperial Germany's +1 manpower.", "获得德意志帝国的 +1 人力。"),
 
-  italianUnification: (_entry, locale) => text(locale, "Italy is unified.", "意大利完成统一。"),
-
   superiorStaffWork: (entry, locale) => {
     const space = spaceName(entry.args?.space, locale);
     const count = num(entry.args?.count);

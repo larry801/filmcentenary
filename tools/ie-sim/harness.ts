@@ -18,12 +18,12 @@ import {ensureStateDefaults} from "../../src/imperialElegy/engine/migrations";
 import {SPACES, isNavalBox, neighboursOf, portBoxes} from "../../src/imperialElegy/constant/spaces";
 import {planNavalMove} from "../../src/imperialElegy/engine/navalMovement";
 import {amphibiousAssaultCheck, navalInterceptCheck} from "../../src/imperialElegy/moves";
-import {isArmyKind, landUnitsIn} from "../../src/imperialElegy/engine/rules";
+import {isArmyKind, landUnitsIn, allied, movementEndProblem, warDeclarationEntitlement} from "../../src/imperialElegy/engine/rules";
 import {hasCounterFor} from "../../src/imperialElegy/engine/counters";
 import {placeUnit} from "../../src/imperialElegy/engine/effects";
-import {atWar, controlledBy, maneuverDestinationProblem, friendlySpace, hostileOwner, navalUnitsIn, ownsKey, PORT_NAVAL_LIMIT} from "../../src/imperialElegy/engine/rules";
+import {atWar, commandsAlliedMinor, controlledBy, maneuverDestinationProblem, friendlySpace, hostileOwner, navalUnitsIn, ownsKey, PORT_NAVAL_LIMIT} from "../../src/imperialElegy/engine/rules";
 import {performGwManeuver} from "../../src/imperialElegy/engine/greatWarFlow";
-import {gwCardProblem} from "../../src/imperialElegy/engine/gwImpulse";
+import {gwActionAllowance, gwCardProblem, hasLiveGwImpulse} from "../../src/imperialElegy/engine/gwImpulse";
 import {facedownGwCombatCards} from "../../src/imperialElegy/engine/combatCards";
 import {hasTruce, validateWarAim} from "../../src/imperialElegy/engine/limitedWar";
 import {outbreakGreatWar} from "../../src/imperialElegy/engine/greatWar";
@@ -295,11 +295,19 @@ const aggressiveWarDeclaration = (
   // plays a card for CP, which is exactly how the CP got banked in the first
   // place.
   if (G.powers[power].eliminated) return null;
-  const cp = 2;
+  // Errata 12.17: an ordinary impulse card on the table must be committed
+  // whole (cp === G.impulseCardCp) with nothing spent from it yet; otherwise
+  // any number of CP from the banked/chain budget is legal, so 2 stays the
+  // default.
+  const cp = G.impulseCardCp ?? 2;
   if (G.cpRemaining < cp) return null;
+  if (G.impulseCardCp !== null && G.cpRemaining !== G.impulseCardCp) return null;
 
   for (const defender of POWERS) {
     if (defender === power || G.powers[defender].eliminated) continue;
+    // 13.4: a declaration on an allied player power is refused outright, so
+    // the sweep never names one the engine will refuse.
+    if (allied(G, power, defender)) continue;
     // 13.5: a truce blocks a declaration.  Checked here as well as inside
     // `validateWarAim`'s caller so the sweep never names a declaration the
     // engine will refuse (a just-settled war leaves a 1-turn truce).
@@ -334,6 +342,10 @@ const navalAction = (
   // Only a *live* Great War uses the GW budget; a finished war leaves `G.gw`
   // behind with `active` false while the phase can still read `gwManeuver`.
   const gwManeuver = G.phase === "gwManeuver" && G.gw?.active === true;
+  // 27.1's impulse ledger refuses a second maneuver once the one budget action
+  // is spent (gwActionAllowance: "actionUsed"), which a raw budget check cannot
+  // see — the proposer must consult the same allowance the move uses.
+  if (gwManeuver && hasLiveGwImpulse(G) && !gwActionAllowance(G, power, "naval").ok) return null;
   // The live budget is the impulse CP in the action phase and the war/GW budget
   // otherwise; `navalMove`/`navalBattle` charge it, so a 0 budget means every
   // naval action would be refused.
@@ -494,6 +506,10 @@ const aggressiveGwMove = (
   if (enemies.length === 0) return null;
   // Both GW steps spend the same war budget.
   if ((me.gwBudget ?? 0) < 1) return null;
+  // 27.1's impulse ledger refuses a second maneuver once the one budget action
+  // is spent; consult the same allowance the move uses.
+  if (phase === "gwManeuver" && G.gw?.active === true && hasLiveGwImpulse(G)
+    && !gwActionAllowance(G, power, "march").ok) return null;
 
   // 26.x planning: draft onto a home key so there is something to march with.
   if (phase === "gwPlanning") {
@@ -946,15 +962,47 @@ export function runSeededGame(opts: SimOptions): SimResult {
       }
       if (err.type === "action/invalid_move" && decision.move === "declareWar") {
         const args = decision.args ?? [];
-        reason = ` [declareWar power=${String(power)} active=${before.activePower} war=${before.war ? "yes" : "no"} wtt=${before.wtt} cp=${before.cpRemaining} args=${JSON.stringify(args)}]`;
+        const [defender] = args as [string, ...unknown[]];
+        const entitlement = warDeclarationEntitlement(before, power as Power);
+        reason = ` [declareWar power=${String(power)} active=${before.activePower} war=${before.war ? "yes" : "no"} wtt=${before.wtt} cp=${before.cpRemaining}`
+          + ` allied=${String(power !== null && typeof defender === "string" && allied(before, power as Power, defender as Power))}`
+          + ` truce=${String(power !== null && typeof defender === "string" && hasTruce(before, power as Power, defender as Power))}`
+          + ` entitlement=${entitlement ? `${entitlement.card}/${entitlement.cp}` : "none"}`
+          + ` args=${JSON.stringify(args)}]`;
+      }
+      if (err.type === "action/invalid_move" && decision.move === "navalBattle" && power !== null) {
+        const [from, to] = (decision.args ?? []) as [string, string];
+        const clone = JSON.parse(JSON.stringify(before)) as ImperialElegyState;
+        const attackers = navalUnitsIn(clone, String(from)).filter(
+          (unit) => unit.owner === power || commandsAlliedMinor(clone, power as Power, unit.owner),
+        );
+        const defenders = navalUnitsIn(clone, String(to)).filter(
+          (unit) => hostileOwner(clone, power as Power, unit.owner),
+        );
+        reason = ` [navalBattle active=${String(before.activePower)} phase=${before.phase} battle=${before.battle === null ? "none" : "open"}`
+          + ` attackers=${attackers.length} defenders=${defenders.length} pending=${before.pending !== null}`
+          + ` cpChain=${String(before.flags.cpChainActive === true)}/${String(before.flags.cpChainActionUsed === true)}]`;
+        void clone;
       }
       if (err.type === "action/invalid_move" && decision.move === "navalMove" && power !== null) {
         const [ids, dest] = (decision.args ?? []) as [string[], string];
         const unit = before.units[ids?.[0]];
+        const from = String(unit?.space);
+        const plan = planNavalMove(before, power as Power, from, String(dest), {allowEnemyDestination: true});
+        const arrivals = ids?.map((id) => before.units[id]).filter((u) => Boolean(u) && u.naval === true) ?? [];
+        const endProblem = movementEndProblem(before, String(dest), arrivals);
         reason = ` [navalMove active=${String(before.activePower)} cp=${before.cpRemaining}`
-          + ` from=${String(unit?.space)} to=${String(dest)}`
+          + ` from=${from} to=${String(dest)}`
+          + ` plan=${plan.ok ? `ok cost=${plan.cost}` : plan.reason}`
+          + ` endProblem=${String(endProblem ?? "none")}`
           + ` destNaval=${navalUnitsIn(before, String(dest)).length}`
           + ` destControl=${String(before.spaces[String(dest)]?.control)}]`;
+      }
+      if (err.type === "action/invalid_move" && decision.move === "amphibiousAssault" && power !== null) {
+        const [box, port] = (decision.args ?? []) as [string, string];
+        const ids = (decision.args ?? [])[2] as string[];
+        const probe = amphibiousAssaultCheck(JSON.parse(JSON.stringify(before)) as ImperialElegyState, power as Power, String(box), String(port), ids ?? []);
+        reason = ` [amphibiousAssault power=${String(power)} box=${box} port=${port} ids=${JSON.stringify(ids)} probe=${probe.ok ? "accepted" : probe.reason}]`;
       }
       if (err.type === "action/invalid_move" && decision.move === "navalMove" && power !== null
         && before.phase === "gwManeuver" && before.gw?.active === true) {

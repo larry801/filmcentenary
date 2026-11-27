@@ -171,11 +171,20 @@ describe("Indian army build limit (33.2)", () => {
     expect(indianArmiesOf(G)).toHaveLength(2);
     for (const unit of indianArmiesOf(G)) expect(unit.flags?.indian).toBe(true);
 
-    // A third build is over colonial manpower.
-    expect(canRecruitIn(G, "UK", "bengal", "army", {indian: true}).allowed).toBe(false);
+    // A third counter is over colonial manpower: the cap binds new armies,
+    // so the build is pinned in India, where the setup army stands at full
+    // strength and a step cannot be bought instead.
+    expect(canRecruitIn(G, "UK", "india", "army", {indian: true}).allowed).toBe(false);
     setActive(G, "UK");
-    expect(recruit(G, makeCtx([], seat("UK")), "bengal", "army", 1, {indian: true})).toBe(INVALID_MOVE);
+    expect(recruit(G, makeCtx([], seat("UK")), "india", "army", 1, {indian: true})).toBe(INVALID_MOVE);
     expect(indianArmiesOf(G)).toHaveLength(2);
+
+    // A step may still be bought onto the reduced Bengal counter: it flips it
+    // in place and adds no army, so the ceiling does not apply.
+    setActive(G, "UK");
+    expect(recruit(G, makeCtx([], seat("UK")), "bengal", "army", 1, {indian: true})).toBeUndefined();
+    expect(indianArmiesOf(G)).toHaveLength(2);
+    expect(indianArmiesOf(G).every((unit) => unit.steps === 2)).toBe(true);
   });
 
   test("after independence the cap is one and replacements stay refused", () => {

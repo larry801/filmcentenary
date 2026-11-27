@@ -2136,10 +2136,13 @@ export const keyTypeForPower = (
   // power projection unless OT can trace a LoC to the keys by land."  They are
   // printed key spaces without a key type, so OT's conditional type is the only
   // way that clause can ever be observed.  `recomputeTracks` applies the land
-  // LoC test; every other power still sees no key there.
+  // LoC test; every other power still sees no key there — 33.6 is the printed
+  // treatment for these two spaces, so the general 3.2.1 fallback below does
+  // not reach them.
   if (power === "OT" && SPACES[space]?.otLandLocKeyType !== undefined) {
     return SPACES[space].otLandLocKeyType;
   }
+  if (OT_AUTONOMY_KEYS.has(space)) return undefined;
   if (power === "RU" || power === "AU" || power === "OT") return "territorial";
   return hasControlledLandPathToCapital(G, space, power) ? "territorial" : "colonial";
 };
@@ -2250,7 +2253,10 @@ export const fleetPlacementProblem = (
 };
 
 /** Recompute keys, manpower and PP from the board. */
-export const recomputeTracks = (G: ImperialElegyState): void => {
+export const recomputeTracks = (
+  G: ImperialElegyState,
+  trace?: {territorial: Map<Power, SpaceId[]>; colonial: Map<Power, SpaceId[]>},
+): void => {
   // 33.1 German Confederation: "Whenever GE takes control of a German
   // unification space it becomes a permanent home space."  Sweeping here (the
   // single board-reading entry point) covers every treaty/conquest/GW gain, not
@@ -2293,8 +2299,10 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
     if (keyType === "colonial") {
       if (owner === "UK" && def.id === "india") p.colonialKeys += 2;
       else p.colonialKeys += 1;
+      trace?.colonial.get(owner)?.push(def.id);
     } else {
       p.territorialKeys += 1;
+      trace?.territorial.get(owner)?.push(def.id);
     }
   }
   // TSRR adds +2 Russian keys.
@@ -2315,6 +2323,10 @@ export const recomputeTracks = (G: ImperialElegyState): void => {
     }
   }
   ot.arabKeys = otArab;
+  // A07 diagnosis: record when the tracks were last refreshed so the invariant
+  // message can tell a stale track from a divergent one.
+  G.flags.lastRecomputeTurn = G.turn;
+  G.flags.lastRecomputePhase = G.phase;
   // OT Turkish keys are "all other keys"; keep territorialKeys as that total.
   ot.territorialKeys = otOther;
   for (const power of POWERS) {

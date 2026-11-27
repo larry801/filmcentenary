@@ -225,7 +225,6 @@ prepIndiaStabilityDiscard: {key: "prepIndiaStabilityDiscard", power: "GE", args:
   warBlockade: {key: "warBlockade", power: "GE", args: {penalty: -1, cardMarkers: 2}},
   wttMax: {key: "wttMax", args: {incitingCard: CARD_ID}},
   germanUnification: {key: "germanUnification", power: "GE", args: {}},
-  italianUnification: {key: "italianUnification", args: {}},
   superiorStaffWork: {key: "superiorStaffWork", power: "GE", args: {space: "berlin", count: 1, scope: "war"}},
   superiorStaffWorkDeclined: {key: "superiorStaffWorkDeclined", power: "GE", args: {scope: "gw"}},
   germanConfederation: {key: "germanConfederation", power: "GE", args: {minor: "Bavaria", space: "bavaria"}},
