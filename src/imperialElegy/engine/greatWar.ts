@@ -853,6 +853,17 @@ export const applyGwKeyCapture = (
   return result;
 };
 
+/** 25.4: "If a player enters the GW at 0 stability that player immediately gains 1 stability." */
+export const grantOutbreakStability = (G: ImperialElegyState, power: Power): void => {
+  if (G.gw?.active !== true) return;
+  if (!G.gw.belligerents.includes(power)) return;
+  if (G.powers[power].eliminated) return;
+  if (G.powers[power].stability <= 0) {
+    changeStability(G, power, 1, undefined as never);
+    log(G, power, "outbreakStabilityGrant", {});
+  }
+};
+
 const formAlliances = (G: ImperialElegyState, ctx: Ctx): void => {
   const te = POWERS.filter((p) => G.powers[p].alliance === "teAligned" || G.powers[p].alliance === "teCommitted");
   const ta = POWERS.filter((p) => G.powers[p].alliance === "taAligned" || G.powers[p].alliance === "taCommitted");
@@ -973,6 +984,8 @@ export const outbreakGreatWar = (
     G.powers[p].selectedHomeCard = null;
   }
   formAlliances(G, ctx);
+  // 25.4: every belligerent at 0 stability gains 1 at once.
+  for (const power of POWERS) grantOutbreakStability(G, power);
   const te = POWERS.filter((p) => sideOf(G, p) === "te");
   const ta = POWERS.filter((p) => sideOf(G, p) === "ta");
   const neutrals = POWERS.filter((p) => sideOf(G, p) === null);
@@ -1616,6 +1629,8 @@ const legalAllianceSides = (G: ImperialElegyState): ("te" | "ta")[] => {
 const joinAlliance = (G: ImperialElegyState, power: Power, side: "te" | "ta"): void => {
   G.powers[power].alliance = side === "te" ? "teAligned" : "taAligned";
   log(G, power, "gwNeutralEntry", {side});
+  // 25.4 applies when a crisis-drawn neutral joins at 0 stability too.
+  grantOutbreakStability(G, power);
 };
 
 /** §23.5: multiple neutrals are allocated randomly. */

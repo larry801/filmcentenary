@@ -501,7 +501,11 @@ const sideUnits = (G: ImperialElegyState, battle: BattleState, side: BattleSide)
 
 const jihadQualifies = (G: ImperialElegyState, space: SpaceId): boolean =>
   isOtHomeSpace(G, space) ||
-  space === "caucasus" ||
+  // "a Caucasus space" is the Caucasus flashpoint region, parallel to the
+  // Great Game clause in the same sentence: the Russian-side Caucasus
+  // members (dagestan, georgia, azerbaijan, baku) qualify alongside the
+  // space named Caucasus.
+  SPACES[space]?.flashpoints?.includes("caucasus") === true ||
   SPACES[space]?.flashpoints?.includes("greatGame") === true;
 
 /**

@@ -2327,6 +2327,10 @@ const applyNavalArmsRace = (G: ImperialElegyState, ctx: Ctx, actor: Power, targe
 };
 
 /** GW-07: apply the chosen die modifier, roll and resolve the printed table. */
+/** 25.2: the US alliance chit is absent when the CSA won or the ACW runs. */
+const usChitOnTrack = (G: ImperialElegyState): boolean =>
+  G.persistent.acw !== true && G.persistent.csaIndependent !== true;
+
 const applySubmarines = (
   G: ImperialElegyState,
   ctx: Ctx,
@@ -2353,7 +2357,10 @@ const applySubmarines = (
       const next = ALLIANCE_TRACK[Math.max(0, Math.min(ALLIANCE_TRACK.length - 1, index + (side === "te" ? 1 : -1)))];
       G.persistent.usAlliance = next;
       usBox = next;
-      if (isCommittedBox(next)) enterGwAlly(G, ctx, "US", side);
+      // 25.2: without the US chit on the alliance track there is nothing to
+    // shift — the ACW exception (CSA won, or the war still running) keeps the
+    // US out of the GW even on a GW-07 six.
+    if (isCommittedBox(next) && usChitOnTrack(G)) enterGwAlly(G, ctx, "US", side);
     }
   }
 };
