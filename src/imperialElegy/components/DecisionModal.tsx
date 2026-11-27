@@ -9,8 +9,11 @@
  * ones the Orders body rendered.
  *
  * A decision cannot be dismissed — the step cannot continue without an answer —
- * so there is no ✕, no backdrop click and Escape does not close it.  Focus is
- * trapped and returns to the element that opened it.
+ * so there is no ✕, no backdrop click and Escape does not close it.  It *can*
+ * be collapsed: the 收起 button hides the dialog so the reader can study the
+ * board before answering, and the decision stays owed (the inline panel in the
+ * Orders drawer keeps the option buttons, and the next decision re-raises the
+ * dialog on its own).
  *
  * Only the seat being looked at raises the dialog: a hotseat mounts six boards
  * at once, and `useFocusTrap` focuses into its dialog on mount, so a hidden
@@ -25,9 +28,11 @@ import type {PendingPanelProps} from "./PendingPanel";
 export interface DecisionModalProps extends Omit<PendingPanelProps, "dock" | "inModal"> {
   /** Whether a decision is owed and on screen for this seat. */
   open: boolean;
+  /** Fold the dialog out of the way; the decision stays owed. */
+  onCollapse?: () => void;
 }
 
-export const DecisionModal = ({open, locale, t, ...body}: DecisionModalProps) => (
+export const DecisionModal = ({open, locale, t, onCollapse, ...body}: DecisionModalProps) => (
   <Modal
     open={open}
     // A decision must be answered: no ✕, no backdrop dismiss, Escape is held.
@@ -39,6 +44,11 @@ export const DecisionModal = ({open, locale, t, ...body}: DecisionModalProps) =>
     backdropTestId="ie-decision-modal-backdrop"
     requiredTestId="ie-decision-required"
     requiredLabel={bi(locale, "This decision is required.", "此项决策为必选。")}
+    collapseTestId="ie-decision-collapse"
+    collapseLabel={bi(locale, "Collapse", "收起")}
+    collapseTitle={bi(locale, "Collapse to inspect the board — the decision stays owed",
+      "收起以查看态势——决策仍待答")}
+    onCollapse={onCollapse}
     className="ie-decision-modal"
   >
     <DecisionBody {...body} locale={locale} t={t} inModal/>

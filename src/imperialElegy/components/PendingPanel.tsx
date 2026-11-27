@@ -16,10 +16,27 @@ import {battleDrmBreakdown, battleDrmTotals} from "../engine/combat";
  * treaty and war windows) must not also be given the panel's generic one: the
  * seat would see two identical 拒绝 buttons whose only difference is which
  * move they dispatch.
+ *
+ * The engine's `declinePending` resolves to a printed option for several other
+ * kinds too, so an option with one of these ids makes the generic 拒绝 just as
+ * redundant: pass/done/skip/stay/stop are the printed no-ops (event windows,
+ * demobilization, the winter neutrals, the naval windows), fight/draw/
+ * continue/join are the answers `declinePending` picks for navalAvoid,
+ * bloodAndIron, mineRetreat and minorAbandon, and decline/refuse are the
+ * printed refusals (warPeace, minorAid, combatElite, hydraulicRecoil, …) that
+ * `declinePending` routes to the same resolver call — for combatElite and
+ * hydraulicRecoil the generic button is worse than redundant: its fallback
+ * picks the *first* option, i.e. it commits the elite or inflicts the loss.
+ * Hiding the generic button keeps exactly one control per printed answer.
  */
+export const DECLINE_EQUIVALENT_OPTION_IDS: ReadonlySet<string> = new Set([
+  "pass", "done", "skip", "stay", "stop", "fight", "draw", "continue", "join",
+  "decline", "refuse",
+]);
+
 export const pendingDeclinesItself = (
   pending: {options?: readonly {id: string}[]} | null | undefined,
-): boolean => (pending?.options ?? []).some((option) => option.id === "decline" || option.id === "refuse");
+): boolean => (pending?.options ?? []).some((option) => DECLINE_EQUIVALENT_OPTION_IDS.has(option.id));
 
 export interface PendingPanelProps {
   G: ImperialElegyState;
@@ -57,6 +74,12 @@ export interface PendingPanelProps {
    * are the way to answer.
    */
   inModal?: boolean;
+  /**
+   * Re-raise the decision dialog from the inline panel: the dialog was folded
+   * away with its 收起 button and the decision is still owed.  Only the inline
+   * host passes it — the dialog itself has nothing to re-raise.
+   */
+  onExpand?: () => void;
 }
 
 /** Pinned instruction strip for a map-targeting step (battle, naval battle, move). */
@@ -181,6 +204,7 @@ export const DecisionBody = ({
                       return (
                         <ConfirmButton
                           className="ie-btn secondary"
+                          data-testid="ie-decline-generic"
                           title={safety.reason}
                           confirm
                           confirmLabel={bi(locale, `Confirm: ${t.decline}`, `确认：${t.decline}`)}
@@ -190,7 +214,7 @@ export const DecisionBody = ({
                         </ConfirmButton>
                       );
                     }
-                    return <button className="ie-btn secondary" onClick={() => doAction(() => moves.declinePending(), {label: t.decline})}>{t.decline}</button>;
+                    return <button className="ie-btn secondary" data-testid="ie-decline-generic" onClick={() => doAction(() => moves.declinePending(), {label: t.decline})}>{t.decline}</button>;
                   })()}
                 </div>
               )}
@@ -254,7 +278,7 @@ export const DecisionBody = ({
 };
 
 export const PendingPanel = (props: PendingPanelProps) => {
-  const {canDecide, pendingKind, locale, t, dock = false} = props;
+  const {canDecide, pendingKind, locale, t, dock = false, onExpand} = props;
 
   return (
     <IEPanel
@@ -265,13 +289,24 @@ export const PendingPanel = (props: PendingPanelProps) => {
       collapsedHint={canDecide
         ? bi(locale, "A decision is waiting here — expand to answer it.", "这里有待决事项，展开以继续。")
         : undefined}
-      actions={pendingKind !== null ? (
+      actions={(
         <div className="ie-panel-actions">
-          <IEBadge tone="warn">{pendingKind}</IEBadge>
+          {pendingKind !== null && <IEBadge tone="warn">{pendingKind}</IEBadge>}
+          {onExpand !== undefined && canDecide && (
+            <button
+              type="button"
+              className="ie-btn secondary ie-mini"
+              data-testid="ie-decision-expand"
+              title={bi(locale, "Re-raise the decision dialog", "重新展开决策对话框")}
+              onClick={onExpand}
+            >
+              {bi(locale, "Expand", "展开")}
+            </button>
+          )}
         </div>
-      ) : undefined}
+      )}
     >
-      <DecisionBody {...props}/>
+      <DecisionBody {...props} onExpand={undefined}/>
     </IEPanel>
   );
 };

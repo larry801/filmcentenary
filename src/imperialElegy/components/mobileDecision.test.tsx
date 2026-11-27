@@ -19,16 +19,43 @@ jest.mock("./theme", () => {
   return {
     IEBadge: ({children}: any) => React.createElement("span", null, children),
     IEChip: ({children}: any) => React.createElement("span", null, children),
+    IEPanel: ({children, actions}: any) => React.createElement("section", null, actions, children),
   };
 });
 
 import {TurnPanel, TurnPanelProps} from "./TurnPanel";
 import {HandTray} from "./HandTray";
+import {PendingPanel} from "./PendingPanel";
 import {ImperialElegyState} from "../types";
 import {setupImperialElegy} from "../engine/setup";
 import {ieT} from "./i18n";
 
 /* ------------------------------- TurnPanel ------------------------------- */
+
+/** Minimal pending props for the dock body the collapsed decision shows. */
+const pendingBody: Omit<Parameters<typeof PendingPanel>[0], "dock"> = {
+  G: {spaces: {}} as never,
+  pending: {
+    id: "d1",
+    kind: "eventTargetSpace",
+    power: "GE",
+    prompt: "Choose a space",
+    options: [{id: "berlin", label: "Berlin"}],
+    createdAt: 1,
+  },
+  canDecide: true,
+  pendingKind: "eventTargetSpace",
+  pendingPrompt: "Choose a space",
+  optionLabel: (option) => option.label,
+  canDecline: false,
+  pendingSpaceTargets: ["berlin"],
+  viewer: "GE",
+  locale: "en",
+  t: ieT(),
+  jihadDecision: null,
+  doAction: () => undefined,
+  moves: {},
+};
 
 const turnProps = (overrides: Partial<TurnPanelProps> = {}): TurnPanelProps => ({
   locale: "en",
@@ -149,6 +176,25 @@ test("decisionPeek folds the tray to a one-line peek even when the reader had it
   expect(plain).toContain('data-open="true"');
   expect(plain).toContain('class="ie-tray-body"');
   expect(plain).not.toContain('data-testid="ie-tray-decision-peek"');
+});
+
+test("a decision the reader folded away keeps the phone panel decision-only and offers 展开", () => {
+  // The collapsed dock body is what the phone shows after 收起: the decision
+  // is still owed (the panel stays decision-only) and the dock keeps the
+  // expand affordance so the dialog can come back without the drawer.
+  const html = renderToStaticMarkup(
+    <TurnPanel {...turnProps({
+      decisionOnlyOnPhone: true,
+      hasDecision: true,
+      tabs: {
+        action: <PendingPanel dock onExpand={() => undefined} {...pendingBody}/>,
+        war: <p data-testid="ie-war-body-marker">war</p>,
+        log: <p data-testid="ie-log-body-marker">log</p>,
+      },
+    })}/>,
+  );
+  expect(html).toContain('data-decision-only="true"');
+  expect(html).toContain('data-testid="ie-decision-expand"');
 });
 
 test("a decisionPeekLabel names another player's decision instead of asking the reader to answer", () => {

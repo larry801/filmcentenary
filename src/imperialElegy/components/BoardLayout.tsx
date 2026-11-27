@@ -673,11 +673,30 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
    * Only the seat being looked at raises the dialog, for the same reason the
    * card choice does: six boards are mounted at once and a hidden one must not
    * steal the keyboard.
+   *
+   * The dialog may be folded away with its own 收起 button: the decision is
+   * still owed (the engine refuses every other move), but the map is free to
+   * inspect.  The fold is remembered per decision id, so the next decision
+   * re-raises the dialog, and the inline panel in the Orders drawer keeps the
+   * answer buttons plus an 展开 control that brings the dialog back.
    */
-  const decisionModalOpen = decisionOwed && canDecide && isCurrentSeat;
+  const [collapsedDecisionId, setCollapsedDecisionId] = React.useState<string | null>(null);
+  const decisionModalOpen = decisionOwed && canDecide && isCurrentSeat &&
+    !(pending !== null && pending.id === collapsedDecisionId);
   // The inline panel is a report (another seat's decision, a battle, the final
-  // score) whenever this seat is not the one being asked.
+  // score) whenever this seat is not the one being asked — or when this seat
+  // folded its own dialog away to look at the board.
   const showInlineDecision = decisionOwed && !decisionModalOpen;
+  const collapseDecision = pending !== null ? () => {
+    setCollapsedDecisionId(pending.id);
+    // On a phone the sheet stays where it is: the dock's peek and its Orders
+    // tab already surface the decision.  On desktop the drawer must open so
+    // the folded decision is visible beside the map it just uncovered.
+    if (!isPhone) setPanelOpen(true);
+  } : undefined;
+  const expandDecision = pending !== null && pending.id === collapsedDecisionId
+    ? () => setCollapsedDecisionId(null)
+    : undefined;
 
   /**
    * The finished battle's report is public state, so every client raises the
@@ -1015,6 +1034,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
                       doAction={doAction}
                       confirmActions={confirmActions}
                       moves={moves}
+                      onExpand={expandDecision}
                       dock
                     />
                   )}
@@ -1119,6 +1139,7 @@ const ShellRegion = ({core, interaction, orders, war, hand, reference}: ShellPro
           in the Orders body. */}
       <DecisionModal
         open={decisionModalOpen}
+        onCollapse={collapseDecision}
         G={G}
         pending={pending}
         canDecide={canDecide}
