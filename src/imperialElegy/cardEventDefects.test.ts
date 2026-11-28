@@ -378,6 +378,45 @@ describe("A039 Uprising in Ireland", () => {
     expect(G.pending).toBeNull();
     expect(G.spaces.ireland.rebellion).toBeDefined();
   });
+
+  test("UK can cancel even when it plays the event itself", () => {
+    const G = setup("UK");
+    G.spaces.ireland.control = "UK";
+    G.powers.UK.hand = ["IE-A039", "IE-A023"];
+    const stabilityBefore = G.powers.UK.stability;
+    playCard(G, makeCtx([], seatOf("UK"), 3), "IE-A039", "event");
+    expect(G.pending?.kind).toBe("eventChoice");
+    expect(G.pending?.power).toBe("UK");
+    resolvePending(G, makeCtx([], seatOf("UK"), 3), "discard:IE-A023");
+    expect(G.powers.UK.hand).not.toContain("IE-A023");
+    expect(G.powers.UK.stability).toBe(stabilityBefore);
+    expect(G.spaces.ireland.rebellion ?? null).toBeNull();
+  });
+
+  test("a 4 CP card can be discarded", () => {
+    const G = withUkCard(setup("GE"));
+    G.powers.UK.hand = ["IE-A029"];
+    G.powers.GE.hand = ["IE-A039"];
+    playCard(G, makeCtx([], "0", 3), "IE-A039", "event");
+    expect(G.pending?.options.map((o: any) => o.id)).toContain("discard:IE-A029");
+    resolvePending(G, makeCtx([], seatOf("UK"), 3), "discard:IE-A029");
+    expect(G.powers.UK.hand).not.toContain("IE-A029");
+    expect(G.discard).toContain("IE-A029");
+    expect(G.spaces.ireland.rebellion ?? null).toBeNull();
+  });
+
+  test("a home card can be discarded and returns to its owner", () => {
+    const G = withUkCard(setup("GE"));
+    G.powers.UK.hand = ["IE-H-UK-3"];
+    G.powers.GE.hand = ["IE-A039"];
+    playCard(G, makeCtx([], "0", 3), "IE-A039", "event");
+    expect(G.pending?.options.map((o: any) => o.id)).toContain("discard:IE-H-UK-3");
+    resolvePending(G, makeCtx([], seatOf("UK"), 3), "discard:IE-H-UK-3");
+    expect(G.powers.UK.hand).not.toContain("IE-H-UK-3");
+    expect(G.discard).not.toContain("IE-H-UK-3");
+    expect(G.powers.UK.homeCards).toContain("IE-H-UK-3");
+    expect(G.spaces.ireland.rebellion ?? null).toBeNull();
+  });
 });
 
 // ---------------------------------------------------------------------------
