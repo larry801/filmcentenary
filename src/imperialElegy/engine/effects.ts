@@ -3472,19 +3472,20 @@ const doSpecial = (G: ImperialElegyState, ctx: Ctx, actor: Power, handler: strin
     }
     case "uprisingInIreland": {
       // "The UK player may immediately discard a 3 or 4 CP card of their
-      // choice to ignore this event."  The cancel window is only worth a
-      // decision when the UK is not itself the actor and holds a 3/4 CP card.
+      // choice to ignore this event."  The print restricts neither who the
+      // actor is nor the card kind: the UK may cancel even when it plays the
+      // event itself, and a home card may be discarded.
       const cancelable = G.powers.UK.hand.filter((id) => {
         const def = cardById(id);
-        return def.kind !== "home" && (def.cp === 3 || def.cp === 4);
+        return def.cp === 3 || def.cp === 4;
       });
-      if (actor !== "UK" && !G.powers.UK.eliminated && cancelable.length > 0) {
+      if (!G.powers.UK.eliminated && cancelable.length > 0) {
         openDecision(G, ctx, decision(
           "eventChoice",
           "UK",
           "Uprising in Ireland: discard a 3 or 4 CP card to ignore this event",
           [
-            option("decline", "Ignore this event (no card discarded)", undefined, false, "忽略此事件（不弃牌）"),
+            option("decline", "Let the event resolve (no card discarded)", undefined, false, "不弃牌，事件生效"),
             ...cancelable.map((id) => option(`discard:${id}`, `Discard ${cardById(id).title}`, {card: id}, false, `弃置 ${cardById(id).titleZh}`)),
           ],
           {resume, special: handler, owner: actor, required: false},
